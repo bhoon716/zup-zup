@@ -18,9 +18,9 @@
 
 | Category         | Technology         | Note                            |
 | :--------------- | :----------------- | :------------------------------ |
-| **Backend**      | Spring Boot        | 버전 미정                       |
+| **Backend**      | Spring Boot        | 3.4.x (Java 21)                 |
 | **Database**     | MySQL              | 8.x 권장                        |
-| **Cache/Queue**  | Redis              | Token 관리, Dedup               |
+| **Cache/Queue**  | Redis              | Token 관리(RT/Blacklist), Dedup |
 | **Notification** | FCM, SMTP, WebPush | VAPID 지원 예정                 |
 | **Auth**         | Google OAuth2, JWT | Access(Header), Refresh(Cookie) |
 
@@ -51,18 +51,30 @@
 
 ### 환경 변수 (Environment Variables)
 
-실행 전 `application.yml` 또는 환경 변수로 아래 설정을 완료해야 합니다.
+프로젝트 루트에 `.env` 파일을 생성하여 관리합니다. (예제: `.env.example` 참고)
+`application.properties`는 이 환경변수를 참조하도록 설정되어 있습니다.
 
-| Variable                 | Description         | Example       |
-| :----------------------- | :------------------ | :------------ |
-| `SPRING_PROFILES_ACTIVE` | 실행 프로파일       | `local`       |
-| `DB_HOST`                | MySQL 호스트        | `localhost`   |
-| `DB_PORT`                | MySQL 포트          | `3306`        |
-| `DB_NAME`                | 데이터베이스명      | `jbnu_helper` |
-| `DB_USER`                | 데이터베이스 사용자 | `root`        |
-| `DB_PASSWORD`            | 데이터베이스 암호   | `password`    |
-| `REDIS_HOST`             | Redis 호스트        | `localhost`   |
-| `REDIS_PORT`             | Redis 포트          | `6379`        |
+```properties
+# Database
+DB_URL=jdbc:mysql://localhost:3306/sugang_helper?useSSL=false
+DB_USERNAME=root
+DB_PASSWORD=password
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Google OAuth2
+GOOGLE_CLIENT_ID=your_client_id
+GOOGLE_CLIENT_SECRET=your_client_secret
+
+# JWT
+JWT_SECRET=your_jwt_secret_key_should_be_long_enough
+
+# CORS & Redirect
+ALLOWED_ORIGINS=http://localhost:3000
+OAUTH2_REDIRECT_URI=http://localhost:3000/oauth2/redirect
+```
 
 ### API (Draft)
 
@@ -79,6 +91,7 @@ API 명세는 개발 진행에 따라 변경될 수 있습니다.
 
 ## 🗺 로드맵 (Roadmap)
 
+- [x] **Phase 0**: 프로젝트 초기 세팅 및 인증 시스템 구현 (OAuth2, JWT, Redis)
 - [ ] **Phase 1**: 크롤러 PoC (강의 파싱 및 DB 저장)
 - [ ] **Phase 2**: 스케줄러 적용 및 여석 변동 감지(Diff)
 - [ ] **Phase 3**: Redis 기반 중복 방지 및 알림 큐 구축

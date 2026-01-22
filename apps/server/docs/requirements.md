@@ -36,23 +36,24 @@
 - **REQ-OPT-01**: 동일한 강좌의 동일한 변동 사항에 대해 짧은 시간 내에 중복 알림이 발송되지 않도록 **Debounce** 또는 **Dedup** 메커니즘을 적용해야 합니다. (Redis 활용 권장)
 - **REQ-OPT-02**: 알림 발송은 비동기 큐(Queue/Worker) 구조로 처리하여 크롤링 프로세스의 지연을 방지해야 합니다.
 
-### 2.4. 사용자 및 인증 (User & Authentication)
+### 2.4. 사용자 및 인증 (User & Authentication) - [Implemented]
 
-- **REQ-AUT-01 (Social Login)**: 자체 회원가입 없이 **Google OAuth2**를 통한 소셜 로그인만 지원합니다.
+- **REQ-AUT-01 (Social Login)**: 자체 회원가입 없이 **Google OAuth2**를 통한 소셜 로그인만 지원합니다. (SecurityConfig, CustomOAuth2UserService, User Entity)
 - **REQ-AUT-02**: 로그인 성공 시 JWT 기반의 Access Token과 Refresh Token을 발급합니다.
+  - **Success Handler**: `OAuth2SuccessHandler`에서 토큰 발급 및 리다이렉트 처리
 - **REQ-AUT-03**: 사용자는 학수번호(CourseKey)를 통해 원하는 강좌를 검색하고 구독할 수 있어야 합니다.
 - **REQ-AUT-04**: 사용자는 자신의 구독 목록을 조회하고, 더 이상 알림을 원치 않는 강좌를 구독 취소할 수 있어야 합니다.
 
-### 2.5. 보안 및 토큰 관리 (Security & Token)
+### 2.5. 보안 및 토큰 관리 (Security & Token) - [Implemented]
 
 - **REQ-SEC-01 (JWT Structure)**:
-  - **Access Token**: 짧은 만료 시간 (예: 30분 ~ 1시간). API 요청 시 `Authorization: Bearer {token}` 헤더로 전송.
-  - **Refresh Token**: 긴 만료 시간 (예: 2주). `HttpOnly`, `Secure` 쿠키로 전송하여 XSS 공격 방지.
-- **REQ-SEC-02 (Token Rotation)**: Refresh Token을 사용하여 Access Token을 재발급(Reissue) 받을 수 있어야 합니다. (RTR - Refresh Token Rotation 고려 가능)
+  - **Access Token**: 짧은 만료 시간 (30분). API 요청 시 `Authorization: Bearer {token}` 헤더로 전송.
+  - **Refresh Token**: 긴 만료 시간 (2주). `HttpOnly`, `Secure` 쿠키(`refresh_token`)로 전송하여 XSS 공격 방지.
+- **REQ-SEC-02 (Token Rotation)**: Refresh Token을 사용하여 Access Token을 재발급(Reissue) 받을 수 있어야 합니다. (`/api/auth/refresh`)
 - **REQ-SEC-03 (Redis Storage)**: 발급된 Refresh Token은 **Redis**에 저장하여 관리합니다.
-  - Key: `rt:{userId}` 또는 `rt:{refreshToken}`
-  - Value: token (WhiteList 방식) 또는 logout status (BlackList 방식)
-- **REQ-SEC-04 (Logout)**: 로그아웃 시 Redis에서 해당 사용자의 Refresh Token을 삭제하거나 만료 처리해야 합니다.
+  - Key: `RT:{email}`
+  - Value: `refreshToken` (Rotation 시 비교 검증)
+- **REQ-SEC-04 (Logout)**: 로그아웃 시 Redis에서 해당 사용자의 Refresh Token을 삭제하고, Access Token은 남은 유효기간 동안 Blacklist 처리합니다(`BL:{accessToken}`).
 
 ## 3. 비기능 요구사항 (Non-Functional Requirements)
 
@@ -74,12 +75,12 @@
 
 ### 4.1. 주요 엔티티 (Entities)
 
-| Entity              | Description           | Key Fields                                                                  |
-| :------------------ | :-------------------- | :-------------------------------------------------------------------------- |
-| **User**            | 알림 수신 사용자      | `id`, `email`, `name`, `provider`(GOOGLE), `providerId`, `role`             |
-| **Course**          | 모니터링 대상 강좌    | `courseKey` (PK), `name`, `professor`, `capacity`, `current`, `lastUpdated` |
-| **Subscription**    | 사용자-강좌 구독 관계 | `userId`, `courseKey`, `createdAt`, `isActive`                              |
-| **NotificationLog** | 알림 발송 이력        | `id`, `userId`, `courseKey`, `channel`, `status`, `sentAt`                  |
+| Entity              | Description           | Key Fields                                                                             |
+| :------------------ | :-------------------- | :------------------------------------------------------------------------------------- |
+| **User**            | 알림 수신 사용자      | `id`, `email`, `name`, `role`, `createdAt`, `updatedAt` (provider, providerId Removed) |
+| **Course**          | 모니터링 대상 강좌    | `courseKey` (PK), `name`, `professor`, `capacity`, `current`, `lastUpdated`            |
+| **Subscription**    | 사용자-강좌 구독 관계 | `userId`, `courseKey`, `createdAt`, `isActive`                                         |
+| **NotificationLog** | 알림 발송 이력        | `id`, `userId`, `courseKey`, `channel`, `status`, `sentAt`                             |
 
 ## 5. 아키텍처 (Architecture Flow)
 
