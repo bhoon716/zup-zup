@@ -12,15 +12,17 @@
   - 이메일
   - 웹 푸시 (WebPush)
 - **구독 관리**: 사용자가 원하는 강의만 선택하여 알림을 받을 수 있습니다.
+- **간편 로그인**: **Google OAuth2** 로그인을 지원합니다.
 
 ## 🛠 기술 스택 (Tech Stack)
 
-| Category         | Technology         | Note            |
-| :--------------- | :----------------- | :-------------- |
-| **Backend**      | Spring Boot        | 버전 미정       |
-| **Database**     | MySQL              | 8.x 권장        |
-| **Cache/Queue**  | Redis              | 6.x+ 권장       |
-| **Notification** | FCM, SMTP, WebPush | VAPID 지원 예정 |
+| Category         | Technology         | Note                            |
+| :--------------- | :----------------- | :------------------------------ |
+| **Backend**      | Spring Boot        | 버전 미정                       |
+| **Database**     | MySQL              | 8.x 권장                        |
+| **Cache/Queue**  | Redis              | Token 관리, Dedup               |
+| **Notification** | FCM, SMTP, WebPush | VAPID 지원 예정                 |
+| **Auth**         | Google OAuth2, JWT | Access(Header), Refresh(Cookie) |
 
 ## 🏗 아키텍처 (Architecture)
 
@@ -32,7 +34,7 @@
 
 ## 💾 데이터 모델 (Data Model)
 
-- **User**: `email`, `pushToken`, `webPushSubscription`, `createdAt`
+- **User**: `email`, `name`, `provider`, `providerId`, `role`
 - **Course**: `courseKey`, `name`, `professor`, `capacity`, `availableSeats`, `lastCrawledAt`
 - **Subscription**: `userId`, `courseKey`, `active/paused`
 - **NotificationLog**: `courseKey`, `seatChange`, `result`, `retries`
@@ -66,14 +68,14 @@
 
 API 명세는 개발 진행에 따라 변경될 수 있습니다.
 
-| Method   | Endpoint                  | Description    |
-| :------- | :------------------------ | :------------- |
-| `POST`   | `/api/auth/signup`        | 회원가입       |
-| `POST`   | `/api/auth/login`         | 로그인         |
-| `GET`    | `/api/courses`            | 강의 검색/조회 |
-| `POST`   | `/api/subscriptions`      | 강의 구독      |
-| `GET`    | `/api/subscriptions`      | 내 구독 목록   |
-| `DELETE` | `/api/subscriptions/{id}` | 구독 취소      |
+| Method   | Endpoint                       | Description      |
+| :------- | :----------------------------- | :--------------- |
+| `GET`    | `/oauth2/authorization/google` | 구글 로그인 시작 |
+| `POST`   | `/api/auth/refresh`            | 토큰 재발급      |
+| `GET`    | `/api/courses`                 | 강의 검색/조회   |
+| `POST`   | `/api/subscriptions`           | 강의 구독        |
+| `GET`    | `/api/subscriptions`           | 내 구독 목록     |
+| `DELETE` | `/api/subscriptions/{id}`      | 구독 취소        |
 
 ## 🗺 로드맵 (Roadmap)
 
