@@ -1,0 +1,97 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        SERVER_PORT: ${APP_PORT_CONTAINER}
+    image: ${APP_IMAGE_NAME}
+    container_name: ${APP_CONTAINER_NAME}
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
+    environment:
+      SERVER_PORT: ${APP_PORT_CONTAINER}
+      DB_URL: ${DB_URL}
+      DB_DRIVER_CLASS_NAME: ${DB_DRIVER_CLASS_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT_CONTAINER}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      OAUTH2_REDIRECT_URI: ${OAUTH2_REDIRECT_URI_SUCCESS}
+      ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - app_network
+
+  db:
+    image: ${DB_IMAGE}
+    container_name: ${DB_CONTAINER_NAME}
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT_HOST}:${DB_PORT_CONTAINER}"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      TZ: ${TZ}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app_network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: ${REDIS_IMAGE}
+    container_name: ${REDIS_CONTAINER_NAME}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT_HOST}:${REDIS_PORT_CONTAINER}"
+    networks:
+      - app_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ${PROMETHEUS_CONTAINER_NAME}
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT_HOST}:${PROMETHEUS_PORT_CONTAINER}"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - app_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ${GRAFANA_CONTAINER_NAME}
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT_HOST}:${GRAFANA_PORT_CONTAINER}"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  db_data:

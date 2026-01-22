@@ -12,6 +12,7 @@ public class SecurityConstant {
     public static final String REDIS_REFRESH_TOKEN_PREFIX = "RT:";
     public static final String REDIS_BLACKLIST_PREFIX = "BL:";
     public static final String LOGOUT_VALUE = "logout";
+    public static final String CLAIM_EMAIL = "email";
 
     private SecurityConstant() {
     }

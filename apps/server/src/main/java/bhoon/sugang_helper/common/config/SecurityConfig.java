@@ -4,6 +4,7 @@ import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
 import bhoon.sugang_helper.common.security.jwt.JwtAuthenticationFilter;
 import bhoon.sugang_helper.common.security.oauth.CustomOAuth2UserService;
+
 import bhoon.sugang_helper.common.security.oauth.OAuth2FailureHandler;
 import bhoon.sugang_helper.common.security.oauth.OAuth2SuccessHandler;
 import java.util.Arrays;
@@ -16,7 +17,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig;
-import org.springframework.security.config.http.SessionCreationPolicy;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -74,8 +75,7 @@ public class SecurityConfig {
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .formLogin(AbstractHttpConfigurer::disable)
                                 .httpBasic(AbstractHttpConfigurer::disable)
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(PERMIT_ALL_ENDPOINTS).permitAll()
                                                 .requestMatchers(HttpMethod.GET, PERMIT_GET_ENDPOINTS).permitAll()

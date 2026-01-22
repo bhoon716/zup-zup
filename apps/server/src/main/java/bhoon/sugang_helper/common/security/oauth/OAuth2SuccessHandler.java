@@ -1,11 +1,12 @@
 package bhoon.sugang_helper.common.security.oauth;
 
-import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_MAX_AGE;
-import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_NAME;
-
+import bhoon.sugang_helper.common.security.constant.SecurityConstant;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.domain.user.entity.User;
-import jakarta.servlet.ServletException;
+import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,9 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriComponentsBuilder;
 
 @Slf4j
 @Component
@@ -24,31 +25,42 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtProvider jwtProvider;
+    private final RedisService redisService;
+    private final UserRepository userRepository;
 
     @Value("${app.oauth2.authorized-redirect-uri}")
     private String redirectUri;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-            Authentication authentication) throws IOException, ServletException {
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        User user = userDetails.getUser();
+            Authentication authentication) throws IOException {
+
+        OAuth2User userDetails = (OAuth2User) authentication.getPrincipal();
+        String email = (String) userDetails.getAttributes().get(SecurityConstant.CLAIM_EMAIL);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         String accessToken = jwtProvider.createAccessToken(user.getEmail(), user.getRoleKey());
         String refreshToken = jwtProvider.createRefreshToken(user.getEmail());
 
-        // Refresh Token Cookie
-        Cookie refreshCookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(REFRESH_TOKEN_COOKIE_MAX_AGE);
-        response.addCookie(refreshCookie);
+        redisService.setValues(SecurityConstant.REDIS_REFRESH_TOKEN_PREFIX + user.getEmail(), refreshToken,
+                java.time.Duration.ofMillis(SecurityConstant.REFRESH_TOKEN_COOKIE_MAX_AGE * 1000L));
 
-        String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
-                .queryParam("token", accessToken)
-                .build().toUriString();
+        addRefreshTokenCookie(response, refreshToken);
 
-        getRedirectStrategy().sendRedirect(request, response, targetUrl);
+        response.addHeader(SecurityConstant.ACCESS_TOKEN_HEADER, SecurityConstant.TOKEN_PREFIX + accessToken);
+
+        log.info("OAuth2 Login Success: email={}", user.getEmail());
+        getRedirectStrategy().sendRedirect(request, response, redirectUri);
+    }
+
+    private void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        Cookie cookie = new Cookie(SecurityConstant.REFRESH_TOKEN_COOKIE_NAME, refreshToken);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(SecurityConstant.REFRESH_TOKEN_COOKIE_MAX_AGE);
+        response.addCookie(cookie);
     }
 }
