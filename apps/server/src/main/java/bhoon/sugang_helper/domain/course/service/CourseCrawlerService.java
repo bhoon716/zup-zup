@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.domain.course.service;
 
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
@@ -39,7 +41,7 @@ public class CourseCrawlerService {
             log.info("Crawling finished. Processed {} courses.", savedCount);
         } catch (IOException e) {
             log.error("Failed to fetch course data: {}", e.getMessage(), e);
-            throw new RuntimeException("Crawler failed", e);
+            throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR, e.getMessage());
         }
     }
 

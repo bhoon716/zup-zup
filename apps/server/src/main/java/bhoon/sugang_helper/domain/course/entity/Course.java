@@ -13,12 +13,13 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import bhoon.sugang_helper.common.audit.BaseTimeEntity;
+
 @Entity
 @Table(name = "courses")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@EntityListeners(AuditingEntityListener.class)
-public class Course {
+public class Course extends BaseTimeEntity {
 
     @Id
     @Column(length = 20)
@@ -38,8 +39,7 @@ public class Course {
     @Column(nullable = false)
     private Integer available; // capacity - current
 
-    @LastModifiedDate
-    private LocalDateTime lastUpdated;
+    private LocalDateTime lastCrawledAt;
 
     @Builder
     public Course(String courseKey, String name, String professor, Integer capacity, Integer current) {
@@ -49,11 +49,13 @@ public class Course {
         this.capacity = capacity;
         this.current = current;
         this.available = Math.max(0, capacity - current);
+        this.lastCrawledAt = LocalDateTime.now();
     }
 
     public void updateStatus(Integer capacity, Integer current) {
         this.capacity = capacity;
         this.current = current;
         this.available = Math.max(0, capacity - current);
+        this.lastCrawledAt = LocalDateTime.now(); // Always update crawl time
     }
 }

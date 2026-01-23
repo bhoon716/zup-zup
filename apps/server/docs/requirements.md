@@ -21,13 +21,17 @@
   - 수강 정원 (Capacity)
   - 현재 신청 인원 (Current Count)
   - **여석 (Available Seats)**: `Capacity - Current Count` (또는 페이지에 명시된 여석)
+  - **최종 크롤링 시각 (Last Crawled Time)**: `lastCrawledAt` (데이터 변동과 무관하게 갱신)
 - **REQ-MON-03**: 크롤링 실패 시 재시도 로직이 포함되어야 하며, 지속적인 실패 시 관리자(로그)에게 알려야 합니다.
+  - **Error Handling**: `CustomException` 및 `ErrorCode`를 사용하여 표준화된 에러 처리를 적용했습니다. (e.g. `CRAWLER_CONNECTION_ERROR`)
 
-### 2.2. 변동 감지 및 알림 (Detection & Notification)
+### 2.2. 변동 감지 및 알림 (Detection & Notification) - [Implemented]
 
 - **REQ-DET-01**: 이전 수집 데이터와 현재 수집 데이터를 비교하여 상태 변화를 감지해야 합니다.
-- **REQ-DET-02 (핵심)**: 여석이 `0`에서 `1 이상`으로 변경되는 **"빈자리 발생"** 이벤트를 정확히 감지해야 합니다. (단순 수치 변경이 아닌, _unavailable_ -> _available_ 상태 전이에 집중)
-- **REQ-NOT-01**: 빈자리 발생 이벤트 감지 시, 해당 강좌를 구독한 모든 사용자에게 알림을 발송해야 합니다.
+  - **Implementation**: `CourseCrawlerService`가 크롤링 직후 기존 데이터와 비교하여 상태를 업데이트합니다.
+- **REQ-DET-02 (핵심)**: 여석이 `0`에서 `1 이상`으로 변경되는 **"빈자리 발생"** 이벤트를 정확히 감지해야 합니다.
+  - **Implementation**: 여석 발생 시 `SeatOpenedEvent`가 발행됩니다.
+- **REQ-NOT-01**: 빈자리 발생 이벤트 감지 시, 해당 강좌를 구독한 모든 사용자에게 알림을 발송해야 합니다. (Phase 3~4)
 - **REQ-NOT-02**: 지원하는 알림 채널은 다음과 같습니다.
   - **App Push (FCM)**: 모바일 앱 사용자 대상
   - **Email**: 이메일 구독자 대상 (SMTP 활용)
