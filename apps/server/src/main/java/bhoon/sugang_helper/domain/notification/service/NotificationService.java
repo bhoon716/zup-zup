@@ -8,7 +8,10 @@ import bhoon.sugang_helper.domain.notification.sender.NotificationChannel;
 import bhoon.sugang_helper.domain.notification.sender.NotificationSender;
 import bhoon.sugang_helper.domain.subscription.entity.Subscription;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
+import bhoon.sugang_helper.domain.user.entity.UserDevice;
+import bhoon.sugang_helper.domain.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
+import bhoon.sugang_helper.domain.notification.sender.WebPushNotificationSender;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +29,7 @@ public class NotificationService {
     private final RedisService redisService;
     private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
+    private final UserDeviceRepository userDeviceRepository;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
 
@@ -63,17 +67,23 @@ public class NotificationService {
 
         for (Subscription sub : subscriptions) {
             userRepository.findById(sub.getUserId()).ifPresent(user -> {
-                // Dispatch to Email (Default)
+                // 1. Email 발송 (Default)
                 dispatch(user.getEmail(), title, message, NotificationChannel.EMAIL);
+                saveHistory(user.getId(), event.courseKey(), title, message, NotificationChannel.EMAIL);
 
-                // 히스토리 저장
-                notificationHistoryRepository.save(NotificationHistory.builder()
-                        .userId(user.getId())
-                        .courseKey(event.courseKey())
-                        .title(title)
-                        .message(message)
-                        .channel(NotificationChannel.EMAIL)
-                        .build());
+                // 2. 등록된 기기들로 푸시 발송 (FCM, Web)
+                List<UserDevice> devices = userDeviceRepository.findByUserId(user.getId());
+                for (UserDevice device : devices) {
+                    NotificationChannel channel = mapToChannel(device.getType());
+
+                    if (channel == NotificationChannel.WEB) {
+                        dispatchWebPush(device, title, message);
+                    } else {
+                        dispatch(device.getToken(), title, message, channel);
+                    }
+
+                    saveHistory(user.getId(), event.courseKey(), title, message, channel);
+                }
             });
         }
     }
@@ -82,5 +92,34 @@ public class NotificationService {
         notificationSenders.stream()
                 .filter(sender -> sender.supports(channel))
                 .forEach(sender -> sender.send(recipient, title, message));
+    }
+
+    private void dispatchWebPush(UserDevice device, String title, String message) {
+        notificationSenders.stream()
+                .filter(sender -> sender instanceof WebPushNotificationSender)
+                .map(sender -> (WebPushNotificationSender) sender)
+                .forEach(sender -> sender.sendWebPush(
+                        device.getToken(),
+                        device.getP256dh(),
+                        device.getAuth(),
+                        title,
+                        message));
+    }
+
+    private void saveHistory(Long userId, String courseKey, String title, String message, NotificationChannel channel) {
+        notificationHistoryRepository.save(NotificationHistory.builder()
+                .userId(userId)
+                .courseKey(courseKey)
+                .title(title)
+                .message(message)
+                .channel(channel)
+                .build());
+    }
+
+    private NotificationChannel mapToChannel(bhoon.sugang_helper.domain.user.enums.DeviceType type) {
+        return switch (type) {
+            case FCM -> NotificationChannel.FCM;
+            case WEB -> NotificationChannel.WEB;
+        };
     }
 }

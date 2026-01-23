@@ -47,6 +47,6 @@ class EmailNotificationSenderTest {
     @DisplayName("이메일 채널 지원 여부 확인")
     void supports_email_channel() {
         assertThat(emailNotificationSender.supports(NotificationChannel.EMAIL)).isTrue();
-        assertThat(emailNotificationSender.supports(NotificationChannel.APP_PUSH)).isFalse();
+        assertThat(emailNotificationSender.supports(NotificationChannel.FCM)).isFalse();
     }
 }
