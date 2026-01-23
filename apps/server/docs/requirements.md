@@ -95,4 +95,38 @@
 
 1. **Scheduler** triggers **Crawler** (every 5 mins).
 2. **Crawler** fetches page & parses data -> updates **Course** entity.
-3. If `availableSeats` changes from 0 to 1+: 4. **Detector** publishes `CourseOpenEvent`. 5. **Notifier Worker** consumes event. 6. Checks Redis for separate/recent alerts (Dedup). 7. Finds all **Subscriptions** for the `courseKey`. 8. Sends alerts via FCM/Email/WebPush.
+3. If `availableSeats` changes from 0 to 1+:
+4. **Detector** publishes `SeatOpenedEvent`.
+5. **Notifier Worker** consumes event.
+6. Checks Redis for separate/recent alerts (Dedup).
+7. Finds all **Subscriptions** for the `courseKey`.
+8. **Batch fetches** User and UserDevice data to prevent N+1 queries.
+9. Sends alerts via FCM/Email/WebPush using **NotificationTarget** abstraction.
+
+## 6. 최근 개선 사항 (Recent Improvements)
+
+### 6.1. 클린 코드 리팩토링 (Clean Code Refactoring)
+
+- **CustomException 지침 준수**: 모든 비즈니스 로직에서 `CustomException`으로 예외를 일원화하여 Global Exception Handler에서 처리합니다.
+  - `FCM_SEND_ERROR`, `WEBPUSH_SEND_ERROR` 등 ErrorCode 확장
+  - Service/Entity 내부에서 `log.error`, `log.warn` 제거 (Global Handler에서 일괄 처리)
+- **NotificationTarget DTO 도입**: 다양한 알림 채널의 수신자 정보를 통합 관리
+  - Email, FCM 토큰, Web Push 키를 하나의 객체로 캡슐화
+  - `NotificationSender` 인터페이스의 추상화 강화
+
+### 6.2. 성능 최적화 (Performance Optimization)
+
+- **N+1 쿼리 문제 해결**:
+  - 기존: 구독자마다 `userRepository.findById()`, `userDeviceRepository.findByUserId()` 개별 호출
+  - 개선: `userRepository.findAllById()`, `userDeviceRepository.findByUserIdIn()` 배치 조회
+  - **결과**: DB 요청 횟수 대폭 감소, 알림 발송 성능 향상
+
+- **JSON 직렬화 개선**:
+  - Web Push 페이로드 생성 시 수동 문자열 조작 대신 `ObjectMapper` + `record` 사용
+  - 안전하고 유지보수가 쉬운 방식으로 전환
+
+### 6.3. 로컬 개발 환경 개선
+
+- **H2 Database 지원**: 별도 MySQL 설치 없이 로컬 개발 가능
+- **환경 변수 기본값**: 모든 필수 환경변수에 더미 기본값 추가
+- **즉시 실행 가능**: `./gradlew bootRun` 명령어만으로 바로 실행
