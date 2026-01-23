@@ -23,6 +23,7 @@
 | **Cache/Queue**  | Redis              | Token 관리(RT/Blacklist), Dedup |
 | **Notification** | FCM, SMTP, WebPush | VAPID 지원 예정                 |
 | **Auth**         | Google OAuth2, JWT | Access(Header), Refresh(Cookie) |
+| **Crawler**      | Jsoup              | XML API 통신, 헤더 최적화       |
 
 ## 🏗 아키텍처 (Architecture)
 
@@ -92,7 +93,7 @@ API 명세는 개발 진행에 따라 변경될 수 있습니다.
 ## 🗺 로드맵 (Roadmap)
 
 - [x] **Phase 0**: 프로젝트 초기 세팅 및 인증 시스템 구현 (OAuth2, JWT, Redis)
-- [ ] **Phase 1**: 크롤러 PoC (강의 파싱 및 DB 저장)
+- [x] **Phase 1**: 크롤러 PoC (강의 파싱 및 DB 저장, 헤더 최적화 완료)
 - [ ] **Phase 2**: 스케줄러 적용 및 여석 변동 감지(Diff)
 - [ ] **Phase 3**: Redis 기반 중복 방지 및 알림 큐 구축
 - [ ] **Phase 4**: 이메일 알림 연동

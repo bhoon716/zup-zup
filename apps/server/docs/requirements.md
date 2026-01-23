@@ -10,9 +10,11 @@
 
 ## 2. 기능 요구사항 (Functional Requirements)
 
-### 2.1. 강의 모니터링 (Course Monitoring)
+### 2.1. 강의 모니터링 (Course Monitoring) - [Implemented]
 
 - **REQ-MON-01**: 시스템은 설정된 주기(기본 5분)마다 대상 강의의 최신 정보를 수집(크롤링)해야 합니다.
+  - **Implementation**: `JbnuCourseApiClient`를 통해 JBNU 수강신청 시스템의 XML API와 통신합니다. `Jsoup`을 사용하여 XML 응답을 파싱합니다.
+  - **Optimization**: 불필요한 헤더(`Sec-Fetch-*`, `Cookie` 등)를 제거하고 필수 헤더(`Referer`, `Origin`, `X-Requested-With`)만 사용하여 요청 속도와 개인정보 보호를 강화했습니다.
 - **REQ-MON-02**: 수집해야 할 데이터 항목은 다음과 같습니다.
   - 강좌명 (Name)
   - 교수명 (Professor)
