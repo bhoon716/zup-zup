@@ -4,7 +4,9 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
+import bhoon.sugang_helper.domain.course.entity.CourseSeatHistory;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ public class CourseCrawlerService {
     private final JbnuCourseApiClient apiClient;
     private final JbnuCourseParser courseParser;
     private final ApplicationEventPublisher eventPublisher;
+    private final CourseSeatHistoryRepository courseSeatHistoryRepository;
 
     @Transactional
     public void crawlAndSaveCourses() {
@@ -52,16 +55,33 @@ public class CourseCrawlerService {
         courseRepository.findById(crawledCourse.getCourseKey())
                 .ifPresentOrElse(
                         existingCourse -> updateExistingCourse(existingCourse, crawledCourse),
-                        () -> courseRepository.save(crawledCourse));
+                        () -> {
+                            courseRepository.save(crawledCourse);
+                            saveSeatHistory(crawledCourse);
+                        });
     }
 
     private void updateExistingCourse(Course existingCourse, Course crawledCourse) {
-        boolean wasFull = existingCourse.getAvailable() <= 0;
-        existingCourse.updateStatus(crawledCourse.getCapacity(), crawledCourse.getCurrent());
+        if (!existingCourse.getCapacity().equals(crawledCourse.getCapacity()) ||
+                !existingCourse.getCurrent().equals(crawledCourse.getCurrent())) {
 
-        if (wasFull && existingCourse.getAvailable() > 0) {
-            publishSeatOpenedEvent(existingCourse);
+            boolean wasFull = existingCourse.getAvailable() <= 0;
+            existingCourse.updateStatus(crawledCourse.getCapacity(), crawledCourse.getCurrent());
+            courseRepository.save(existingCourse);
+            saveSeatHistory(existingCourse);
+
+            if (wasFull && existingCourse.getAvailable() > 0) {
+                publishSeatOpenedEvent(existingCourse);
+            }
         }
+    }
+
+    private void saveSeatHistory(Course course) {
+        courseSeatHistoryRepository.save(CourseSeatHistory.builder()
+                .courseKey(course.getCourseKey())
+                .capacity(course.getCapacity())
+                .current(course.getCurrent())
+                .build());
     }
 
     private void publishSeatOpenedEvent(Course course) {
