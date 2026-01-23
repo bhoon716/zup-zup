@@ -61,7 +61,7 @@ public class CourseCrawlerService {
 
     private void updateExistingCourse(Course existingCourse, Course crawledCourse) {
         boolean wasFull = existingCourse.getAvailable() <= 0;
-        existingCourse.updateStatus(crawledCourse.getCurrent(), crawledCourse.getAvailable());
+        existingCourse.updateStatus(crawledCourse.getCapacity(), crawledCourse.getCurrent());
 
         if (wasFull && existingCourse.getAvailable() > 0) {
             publishSeatOpenedEvent(existingCourse);
