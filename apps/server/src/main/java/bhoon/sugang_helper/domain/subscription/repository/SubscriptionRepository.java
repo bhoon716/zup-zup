@@ -10,4 +10,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     List<Subscription> findByCourseKeyAndIsActiveTrue(String courseKey);
 
     Optional<Subscription> findByUserIdAndCourseKey(Long userId, String courseKey);
+
+    long countByUserIdAndIsActiveTrue(Long userId);
+
+    List<Subscription> findByUserIdAndIsActiveTrue(Long userId);
 }
