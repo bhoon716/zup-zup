@@ -10,6 +10,7 @@ import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,9 @@ class CourseCrawlerServiceLogicTest {
 
     @Mock
     private JbnuCourseApiClient apiClient;
+
+    @Mock
+    private JbnuCourseParser courseParser;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -57,6 +61,17 @@ class CourseCrawlerServiceLogicTest {
                 """;
 
         given(apiClient.fetchCourseDataXml()).willReturn(mockXml);
+
+        Course crawledCourse = Course.builder()
+                .courseKey("12345-01")
+                .subjectCode("12345")
+                .classNumber("01")
+                .name("Test Course")
+                .professor("Prof. Test")
+                .capacity(50)
+                .current(49)
+                .build();
+        given(courseParser.parseCourses(mockXml)).willReturn(List.of(crawledCourse));
 
         Course existingCourse = Course.builder()
                 .courseKey("12345-01")
@@ -98,6 +113,15 @@ class CourseCrawlerServiceLogicTest {
                 """;
 
         given(apiClient.fetchCourseDataXml()).willReturn(mockXml);
+
+        Course crawledCourse = Course.builder()
+                .courseKey("12345-01")
+                .subjectCode("12345")
+                .classNumber("01")
+                .capacity(50)
+                .current(48)
+                .build();
+        given(courseParser.parseCourses(mockXml)).willReturn(List.of(crawledCourse));
 
         Course existingCourse = Course.builder()
                 .courseKey("12345-01")
