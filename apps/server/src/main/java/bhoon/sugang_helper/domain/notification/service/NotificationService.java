@@ -30,16 +30,13 @@ public class NotificationService {
             return;
         }
 
-        // Logic to send notification (Phase 4/5 placeholder)
         sendNotification(event);
 
-        // Set Dedup Key
         redisService.setValues(redisKey, "SENT", DEDUP_TTL);
         log.info("[Notification] Alert sent for course: {} (Redis Key set with TTL 30m)", courseKey);
     }
 
     private void sendNotification(SeatOpenedEvent event) {
-        // Placeholder for actual notification sending (FCM, Email, etc.)
         log.info("Sending notification for course: {} - {} (Available: {})",
                 event.courseKey(), event.courseName(), event.currentSeats());
     }
