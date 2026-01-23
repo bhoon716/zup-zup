@@ -17,7 +17,7 @@ public class NotificationService {
 
     private final RedisService redisService;
     private static final String NOTIFICATION_KEY_PREFIX = "ALERT:";
-    private static final Duration DEDUP_TTL = Duration.ofMinutes(30);
+    private static final Duration DEDUP_TTL = Duration.ofMinutes(10);
 
     @Async
     @EventListener
