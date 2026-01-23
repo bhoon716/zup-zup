@@ -2,6 +2,8 @@ package bhoon.sugang_helper.domain.notification.service;
 
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
+import bhoon.sugang_helper.domain.notification.entity.NotificationHistory;
+import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.domain.notification.sender.NotificationChannel;
 import bhoon.sugang_helper.domain.notification.sender.NotificationSender;
 import bhoon.sugang_helper.domain.subscription.entity.Subscription;
@@ -24,6 +26,7 @@ public class NotificationService {
     private final RedisService redisService;
     private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
+    private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
 
     private static final String NOTIFICATION_KEY_PREFIX = "ALERT:";
@@ -62,6 +65,15 @@ public class NotificationService {
             userRepository.findById(sub.getUserId()).ifPresent(user -> {
                 // Dispatch to Email (Default)
                 dispatch(user.getEmail(), title, message, NotificationChannel.EMAIL);
+
+                // 히스토리 저장
+                notificationHistoryRepository.save(NotificationHistory.builder()
+                        .userId(user.getId())
+                        .courseKey(event.courseKey())
+                        .title(title)
+                        .message(message)
+                        .channel(NotificationChannel.EMAIL)
+                        .build());
             });
         }
     }
