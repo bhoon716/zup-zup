@@ -43,4 +43,4 @@ out/
 .DS_Store
 
 ### Firebase ###
-/src/main/resources/firebase/firebase-key.json
+/src/main/resources/firebase/
