@@ -17,13 +17,15 @@
   - **Optimization**: 불필요한 헤더(`Sec-Fetch-*`, `Cookie` 등)를 제거하고 필수 헤더(`Referer`, `Origin`, `X-Requested-With`)만 사용하여 요청 속도와 개인정보 보호를 강화했습니다.
 - **REQ-MON-02**: 수집해야 할 데이터 항목은 다음과 같습니다.
   - 강좌명 (Name)
+  - 과목코드 (Subject Code) [New] (e.g., "12345")
+  - 분반 (Class Number) [New] (e.g., "01" - String type to preserve leading zeros)
   - 교수명 (Professor)
   - 수강 정원 (Capacity)
   - 현재 신청 인원 (Current Count)
-  - **여석 (Available Seats)**: `Capacity - Current Count` (또는 페이지에 명시된 여석)
+  - **여석 (Available Seats)**: `Capacity - Current Count` (DB 내 지속 필드가 아닌 계산된 값 사용 가능)
   - **최종 크롤링 시각 (Last Crawled Time)**: `lastCrawledAt` (데이터 변동과 무관하게 갱신)
 - **REQ-MON-03**: 크롤링 실패 시 재시도 로직이 포함되어야 하며, 지속적인 실패 시 관리자(로그)에게 알려야 합니다.
-  - **Error Handling**: `CustomException` 및 `ErrorCode`를 사용하여 표준화된 에러 처리를 적용했습니다. (e.g. `CRAWLER_CONNECTION_ERROR`)
+  - **Error Handling**: `CustomException` 및 `ErrorCode`를 사용하여 표준화된 에러 처리를 적용했습니다. (e.g., `CRAWLER_CONNECTION_ERROR`, `CRAWLER_PARSING_ERROR`)
 
 ### 2.2. 변동 감지 및 알림 (Detection & Notification) - [Implemented]
 
