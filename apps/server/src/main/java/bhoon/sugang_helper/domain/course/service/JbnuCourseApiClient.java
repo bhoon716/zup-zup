@@ -1,9 +1,8 @@
 package bhoon.sugang_helper.domain.course.service;
 
+import java.io.IOException;
 import org.jsoup.Jsoup;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
 
 @Component
 public class JbnuCourseApiClient {

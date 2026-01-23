@@ -5,6 +5,9 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -15,10 +18,6 @@ import org.jsoup.select.Elements;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -96,6 +95,8 @@ public class CourseCrawlerService {
             if (sbjtCd != null && clss != null) {
                 Course course = Course.builder()
                         .courseKey(sbjtCd + "-" + clss)
+                        .subjectCode(sbjtCd)
+                        .classNumber(clss)
                         .name(sbjtNm)
                         .professor(profNm)
                         .capacity(lmtrCnt)

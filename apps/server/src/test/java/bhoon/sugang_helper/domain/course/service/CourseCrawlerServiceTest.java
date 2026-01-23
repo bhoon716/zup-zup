@@ -31,7 +31,7 @@ class CourseCrawlerServiceTest {
 
     @BeforeEach
     void setUp() {
-        apiClient = new JbnuCourseApiClient(); // Real Client
+        apiClient = new JbnuCourseApiClient();
         crawlerService = new CourseCrawlerService(courseRepository, apiClient, eventPublisher);
     }
 

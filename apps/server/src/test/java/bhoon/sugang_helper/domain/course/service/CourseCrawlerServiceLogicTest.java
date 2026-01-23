@@ -1,8 +1,16 @@
 package bhoon.sugang_helper.domain.course.service;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import java.io.IOException;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,13 +18,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-
-import java.io.IOException;
-import java.util.Optional;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CourseCrawlerServiceLogicTest {
@@ -57,13 +58,14 @@ class CourseCrawlerServiceLogicTest {
 
         given(apiClient.fetchCourseDataXml()).willReturn(mockXml);
 
-        // Existing course in DB has 0 available seats
         Course existingCourse = Course.builder()
                 .courseKey("12345-01")
+                .subjectCode("12345")
+                .classNumber("01")
                 .name("Test Course")
                 .professor("Prof. Test")
                 .capacity(50)
-                .current(50) // Full
+                .current(50)
                 .build();
 
         given(courseRepository.findById("12345-01")).willReturn(Optional.of(existingCourse));
@@ -72,8 +74,6 @@ class CourseCrawlerServiceLogicTest {
         courseCrawlerService.crawlAndSaveCourses();
 
         // Then
-        // 1. Verify status updated
-        // 2. Verify event published
         verify(eventPublisher, times(1)).publishEvent(any(SeatOpenedEvent.class));
     }
 
@@ -99,11 +99,12 @@ class CourseCrawlerServiceLogicTest {
 
         given(apiClient.fetchCourseDataXml()).willReturn(mockXml);
 
-        // Existing course already had 1 seat open
         Course existingCourse = Course.builder()
                 .courseKey("12345-01")
+                .subjectCode("12345")
+                .classNumber("01")
                 .capacity(50)
-                .current(49) // 1 available
+                .current(49)
                 .build();
 
         given(courseRepository.findById("12345-01")).willReturn(Optional.of(existingCourse));
@@ -112,7 +113,6 @@ class CourseCrawlerServiceLogicTest {
         courseCrawlerService.crawlAndSaveCourses();
 
         // Then
-        // Verify event NOT published
         verify(eventPublisher, never()).publishEvent(any(SeatOpenedEvent.class));
     }
 }
