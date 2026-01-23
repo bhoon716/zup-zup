@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +35,9 @@ class CourseCrawlerServiceLogicTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
     @InjectMocks
     private CourseCrawlerService courseCrawlerService;

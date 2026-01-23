@@ -3,16 +3,22 @@ package bhoon.sugang_helper.domain.course.service;
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
+import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,10 +31,13 @@ class CourseServiceTest {
     private CourseRepository courseRepository;
 
     @Test
-    @DisplayName("키워드로 과목 검색 성공")
+    @DisplayName("조건으로 과목 검색 성공")
     void searchCourses_success() {
         // given
-        String keyword = "테스트";
+        CourseSearchCondition condition = new CourseSearchCondition();
+        condition.setName("테스트");
+        Pageable pageable = PageRequest.of(0, 10);
+
         Course course = Course.builder()
                 .courseKey("12345-01")
                 .name("테스트 과목")
@@ -36,25 +45,30 @@ class CourseServiceTest {
                 .capacity(40)
                 .current(30)
                 .build();
-        given(courseRepository.findByNameContainingOrProfessorContaining(keyword, keyword))
-                .willReturn(List.of(course));
+        given(courseRepository.searchCourses(any(CourseSearchCondition.class), any(Pageable.class)))
+                .willReturn(new PageImpl<>(List.of(course)));
 
         // when
-        List<CourseResponse> responses = courseService.searchCourses(keyword);
+        Page<CourseResponse> responses = courseService.searchCourses(condition, pageable);
 
         // then
-        assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getName()).isEqualTo("테스트 과목");
-        assertThat(responses.get(0).getProfessor()).isEqualTo("홍길동");
+        assertThat(responses.getContent()).hasSize(1);
+        assertThat(responses.getContent().get(0).getName()).isEqualTo("테스트 과목");
     }
 
     @Test
-    @DisplayName("빈 키워드 검색 시 빈 리스트 반환")
-    void searchCourses_empty_keyword() {
+    @DisplayName("결과가 없는 경우 빈 페이지 반환")
+    void searchCourses_no_result() {
+        // given
+        CourseSearchCondition condition = new CourseSearchCondition();
+        Pageable pageable = PageRequest.of(0, 10);
+        given(courseRepository.searchCourses(any(CourseSearchCondition.class), any(Pageable.class)))
+                .willReturn(Page.empty());
+
         // when
-        List<CourseResponse> responses = courseService.searchCourses(" ");
+        Page<CourseResponse> responses = courseService.searchCourses(condition, pageable);
 
         // then
-        assertThat(responses).isEmpty();
+        assertThat(responses.getContent()).isEmpty();
     }
 }

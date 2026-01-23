@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +28,9 @@ class CourseCrawlerServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private CourseSeatHistoryRepository courseSeatHistoryRepository;
+
     private JbnuCourseApiClient apiClient;
     private JbnuCourseParser courseParser;
     private CourseCrawlerService crawlerService;
@@ -35,7 +39,8 @@ class CourseCrawlerServiceTest {
     void setUp() {
         apiClient = new JbnuCourseApiClient();
         courseParser = new JbnuCourseParser();
-        crawlerService = new CourseCrawlerService(courseRepository, apiClient, courseParser, eventPublisher);
+        crawlerService = new CourseCrawlerService(courseRepository, apiClient, courseParser, eventPublisher,
+                courseSeatHistoryRepository);
     }
 
     @Test

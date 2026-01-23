@@ -6,6 +6,7 @@ import bhoon.sugang_helper.domain.notification.sender.NotificationChannel;
 import bhoon.sugang_helper.domain.notification.sender.NotificationSender;
 import bhoon.sugang_helper.domain.subscription.entity.Subscription;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
+import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.entity.Role;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
@@ -36,6 +37,8 @@ class NotificationServiceTest {
     private UserRepository userRepository;
     @Mock
     private NotificationSender notificationSender;
+    @Mock
+    private NotificationHistoryRepository notificationHistoryRepository;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -94,7 +97,7 @@ class NotificationServiceTest {
         // Inject sender list manually because @InjectMocks doesn't handle List well if
         // notSpy
         notificationService = new NotificationService(redisService, subscriptionRepository, userRepository,
-                List.of(notificationSender));
+                notificationHistoryRepository, List.of(notificationSender));
 
         given(redisService.hasKey(redisKey)).willReturn(false);
         given(subscriptionRepository.findByCourseKeyAndIsActiveTrue("12345-01")).willReturn(List.of(subscription));
