@@ -8,7 +8,6 @@ public class SecurityConstant {
     public static final String CLAIM_ROLE = "role";
     public static final int REFRESH_TOKEN_COOKIE_MAX_AGE = 14 * 24 * 60 * 60; // 2 weeks
 
-    // Redis Keys
     public static final String REDIS_REFRESH_TOKEN_PREFIX = "RT:";
     public static final String REDIS_BLACKLIST_PREFIX = "BL:";
     public static final String LOGOUT_VALUE = "logout";

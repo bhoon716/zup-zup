@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.common.security.oauth;
 
-import bhoon.sugang_helper.common.security.constant.SecurityConstant;
-import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
+import bhoon.sugang_helper.common.security.constant.SecurityConstant;
+import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
@@ -33,7 +33,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-            Authentication authentication) throws IOException {
+                                        Authentication authentication) throws IOException {
 
         OAuth2User userDetails = (OAuth2User) authentication.getPrincipal();
         String email = (String) userDetails.getAttributes().get(SecurityConstant.CLAIM_EMAIL);

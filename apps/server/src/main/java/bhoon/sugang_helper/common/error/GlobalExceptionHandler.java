@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.error;
 
+import bhoon.sugang_helper.common.response.ErrorResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,8 +16,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-
-import bhoon.sugang_helper.common.response.ErrorResponse;
 
 @Slf4j
 @RestControllerAdvice
@@ -47,13 +46,13 @@ public class GlobalExceptionHandler {
         return buildResponse(ErrorCode.INVALID_INPUT, req.getRequestURI(), details);
     }
 
-    @ExceptionHandler({ ExpiredJwtException.class, JwtException.class })
+    @ExceptionHandler({ExpiredJwtException.class, JwtException.class})
     public ResponseEntity<ErrorResponse> handleJwt(HttpServletRequest req, JwtException e) {
         String msg = (e instanceof ExpiredJwtException) ? "만료된 토큰입니다." : "유효하지 않은 토큰입니다.";
         return respond(req, ErrorCode.INVALID_TOKEN, detailOrNull(msg), e);
     }
 
-    @ExceptionHandler({ AuthorizationDeniedException.class, AccessDeniedException.class })
+    @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
     public ResponseEntity<ErrorResponse> handleForbidden(HttpServletRequest req, RuntimeException e) {
         return respond(req, ErrorCode.FORBIDDEN, null, e);
     }
@@ -82,7 +81,7 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ErrorResponse> respond(HttpServletRequest req, ErrorCode code, Map<String, Object> details,
-            Exception e) {
+                                                  Exception e) {
         logCompact(req, code, e, details);
         return buildResponse(code, req.getRequestURI(), details);
     }
@@ -117,8 +116,9 @@ public class GlobalExceptionHandler {
 
     private Throwable mostSpecificCause(Throwable t) {
         Throwable cur = t;
-        while (cur.getCause() != null && cur.getCause() != cur)
+        while (cur.getCause() != null && cur.getCause() != cur) {
             cur = cur.getCause();
+        }
         return cur;
     }
 }

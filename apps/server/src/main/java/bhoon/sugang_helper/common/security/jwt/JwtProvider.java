@@ -1,9 +1,9 @@
 package bhoon.sugang_helper.common.security.jwt;
 
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.CLAIM_ROLE;
-import bhoon.sugang_helper.common.security.constant.SecurityConstant;
 
 import bhoon.sugang_helper.common.redis.RedisService;
+import bhoon.sugang_helper.common.security.constant.SecurityConstant;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;

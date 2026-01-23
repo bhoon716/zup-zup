@@ -25,15 +25,15 @@ class JwtProviderTest {
     @InjectMocks
     private JwtProvider jwtProvider;
 
-    private String secretKey = "testSecretKeytestSecretKeytestSecretKeytestSecretKey";
-    private long accessTokenExpiration = 1000L * 60 * 30; // 30 min
-    private long refreshTokenExpiration = 1000L * 60 * 60 * 24 * 7; // 7 days
+    private static final String TEST_SECRET_KEY = "testSecretKeytestSecretKeytestSecretKeytestSecretKey";
+    private static final long ACCESS_TOKEN_EXPIRATION = 1000L * 60 * 30; // 30 min
+    private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7; // 7 days
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(jwtProvider, "secretKey", secretKey);
-        ReflectionTestUtils.setField(jwtProvider, "accessTokenExpiration", accessTokenExpiration);
-        ReflectionTestUtils.setField(jwtProvider, "refreshTokenExpiration", refreshTokenExpiration);
+        ReflectionTestUtils.setField(jwtProvider, "secretKey", TEST_SECRET_KEY);
+        ReflectionTestUtils.setField(jwtProvider, "accessTokenExpiration", ACCESS_TOKEN_EXPIRATION);
+        ReflectionTestUtils.setField(jwtProvider, "refreshTokenExpiration", REFRESH_TOKEN_EXPIRATION);
         jwtProvider.init();
     }
 

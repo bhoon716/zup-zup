@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.response;
 
+import bhoon.sugang_helper.common.error.ErrorCode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.time.LocalDateTime;
@@ -7,7 +8,6 @@ import java.util.Map;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import bhoon.sugang_helper.common.error.ErrorCode;
 
 @Getter
 @JsonInclude(Include.NON_NULL)
