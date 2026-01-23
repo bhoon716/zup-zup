@@ -15,7 +15,7 @@ import java.io.IOException;
 @Configuration
 public class FirebaseConfig {
 
-    @Value("${app.firebase.config-path:}")
+    @Value("${FIREBASE_CONFIG_PATH:}")
     private String configPath;
 
     @PostConstruct
