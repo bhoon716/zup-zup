@@ -28,11 +28,11 @@
 - 단순 데이터 변경이 아닌, **"신청 불가능" → "신청 가능"** 상태 변화를 정확히 감지합니다.
 - `SeatOpenedEvent` 기반의 이벤트 처리를 통해 감지 로직과 알림 전송 로직을 분리했습니다.
 
-### 3. 다양한 알림 채널
+### 3. 멀티 채널 실시간 알림
 
-- **App Push (FCM)**: 모바일 앱으로 즉시 알림 전송
-- **Email Notification**: 이메일을 통한 상세 정보 전송
-- **Web Push**: 브라우저 알림 지원
+- **App Push (FCM)**: Firebase Cloud Messaging을 통해 모바일 기기로 즉시 푸시 알림을 발송합니다.
+- **Web Push (VAPID)**: 브라우저 표준 프로토콜인 Web Push를 지원하여 PC/모바일 브라우저 알림을 제공합니다.
+- **Email Notification**: Gmail SMTP를 사용하여 상세한 여석 변동 내역을 이메일로 전송합니다.
 
 ### 4. 중복 방지 (Dedup)
 
@@ -61,15 +61,20 @@
 ## 🏗 아키텍처 흐름 (Architecture Flow)
 
 ```mermaid
-graph LR
+graph TD
     Scheduler["Scheduler (5min)"] -->|Trigger| Crawler
     Crawler -->|Fetch & Parse| OASIS["JBNU System"]
     Crawler -->|Update| DB[(MySQL)]
     Crawler -->|Changes Detected| Detector
-    Detector -->|Publish Event| Queue
-    Queue -->|Consume| Notifier
+    Detector -->|Publish| Event["SeatOpenedEvent"]
+    Event -->|Listen| Notifier["NotificationService"]
     Notifier -->|Check Dedup| Redis[(Redis)]
-    Notifier -->|Send Alert| User
+    Notifier -->|Get Subscriptions| DB
+    Notifier -->|Get Device Tokens| DB
+    Notifier -->|Send Alert| MultiChannel{Multi-Channel}
+    MultiChannel -->|Email| UserEmail[User Email]
+    MultiChannel -->|FCM| AppPush[Mobile App]
+    MultiChannel -->|Web| Browser[Web Browser]
 ```
 
 1.  **Scheduler**: 설정된 크론 주기(5분)에 맞춰 크롤링 작업을 트리거합니다.
@@ -82,8 +87,10 @@ graph LR
 ## 💾 데이터 모델 (Data Model)
 
 - **User**: 사용자 기본 정보 (`email`, `name`, `role`)
-- **Course**: 강의 정보 (`courseKey`, `subjectCode`, `classNumber`, `name`, `professor`, `capacity`, `current`, `lastCrawledAt`)
-- **Subscription**: 사용자별 알림 구독 내역 (`active`, `paused`)
+- **Course**: 강의 정보 (`courseKey`, `name`, `professor`, `capacity`, `current`, `lastCrawledAt`)
+- **Subscription**: 사용자별 알림 구독 내역 (`userId`, `courseKey`, `isActive`)
+- **UserDevice**: 알림 수신용 기기 정보 (`userId`, `type`, `token`, `p256dh`, `auth`)
+- **NotificationHistory**: 알림 발송 기록 (`userId`, `courseKey`, `title`, `message`, `channel`)
 
 ---
 
@@ -112,8 +119,20 @@ REDIS_PORT=6379
 # OAuth2 & JWT
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-JWT_SECRET=your_super_secret_key_base64_encoded
+JWT_SECRET=your_super_secret_key_at_least_32_chars
+
+# Email (Gmail SMTP)
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_app_password
+
+# Firebase & Web Push
+FIREBASE_CONFIG_PATH=src/main/resources/firebase/firebase-key.json
+WEBPUSH_PUBLIC_KEY=your_public_key
+WEBPUSH_PRIVATE_KEY=your_private_key
+WEBPUSH_SUBJECT=mailto:admin@example.com
 ```
+
+상세한 설정 방법은 [todo.md](docs/todo.md)를 참고해주세요.
 
 ### 실행
 
