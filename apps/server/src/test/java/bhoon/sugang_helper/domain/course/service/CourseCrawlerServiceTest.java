@@ -28,12 +28,14 @@ class CourseCrawlerServiceTest {
     private ApplicationEventPublisher eventPublisher;
 
     private JbnuCourseApiClient apiClient;
+    private JbnuCourseParser courseParser;
     private CourseCrawlerService crawlerService;
 
     @BeforeEach
     void setUp() {
         apiClient = new JbnuCourseApiClient();
-        crawlerService = new CourseCrawlerService(courseRepository, apiClient, eventPublisher);
+        courseParser = new JbnuCourseParser();
+        crawlerService = new CourseCrawlerService(courseRepository, apiClient, courseParser, eventPublisher);
     }
 
     @Test

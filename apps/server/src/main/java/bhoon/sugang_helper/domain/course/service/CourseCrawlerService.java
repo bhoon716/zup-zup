@@ -6,15 +6,9 @@ import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.parser.Parser;
-import org.jsoup.select.Elements;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +20,7 @@ public class CourseCrawlerService {
 
     private final CourseRepository courseRepository;
     private final JbnuCourseApiClient apiClient;
+    private final JbnuCourseParser courseParser;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -33,7 +28,7 @@ public class CourseCrawlerService {
         log.info("Starting course crawling...");
         try {
             String xmlResponse = apiClient.fetchCourseDataXml();
-            List<Course> courses = parseCourses(xmlResponse);
+            List<Course> courses = courseParser.parseCourses(xmlResponse);
 
             int savedCount = processCourses(courses);
 
@@ -45,12 +40,12 @@ public class CourseCrawlerService {
     }
 
     private int processCourses(List<Course> courses) {
-        int count = 0;
-        for (Course crawledCourse : courses) {
-            processAndSaveCourse(crawledCourse);
-            count++;
+        if (courses.isEmpty()) {
+            throw new CustomException(ErrorCode.CRAWLER_NO_DATA, "No course data found.");
         }
-        return count;
+
+        courses.forEach(this::processAndSaveCourse);
+        return courses.size();
     }
 
     private void processAndSaveCourse(Course crawledCourse) {
@@ -76,48 +71,5 @@ public class CourseCrawlerService {
                 course.getName(),
                 0,
                 course.getAvailable()));
-    }
-
-    private List<Course> parseCourses(String xmlData) {
-        List<Course> courseList = new ArrayList<>();
-        Document doc = Jsoup.parse(xmlData, "", Parser.xmlParser());
-
-        Elements rows = doc.select("Dataset[id=GRD_COUR001] > Rows > Row");
-
-        for (Element row : rows) {
-            String sbjtCd = getColValue(row, "SBJTCD");
-            String clss = getColValue(row, "CLSS");
-            String sbjtNm = getColValue(row, "SBJTNM");
-            String profNm = getColValue(row, "RPSTPROFNM");
-            int lmtrCnt = safeParseInt(getColValue(row, "LMTRCNT"));
-            int tlsnrCnt = safeParseInt(getColValue(row, "TLSNRCNT"));
-
-            if (sbjtCd != null && clss != null) {
-                Course course = Course.builder()
-                        .courseKey(sbjtCd + "-" + clss)
-                        .subjectCode(sbjtCd)
-                        .classNumber(clss)
-                        .name(sbjtNm)
-                        .professor(profNm)
-                        .capacity(lmtrCnt)
-                        .current(tlsnrCnt)
-                        .build();
-                courseList.add(course);
-            }
-        }
-        return courseList;
-    }
-
-    private String getColValue(Element row, String colId) {
-        Element col = row.selectFirst("Col[id=" + colId + "]");
-        return col != null ? col.text() : null;
-    }
-
-    private int safeParseInt(String value) {
-        try {
-            return value != null && !value.isEmpty() ? Integer.parseInt(value) : 0;
-        } catch (NumberFormatException e) {
-            return 0;
-        }
     }
 }
