@@ -29,9 +29,8 @@ public class UserDevice extends BaseTimeEntity {
     private DeviceType type;
 
     @Column(nullable = false, unique = true)
-    private String token; // FCM Token or Subscription Endpoint for Web
+    private String token;
 
-    // For Web Push
     @Column
     private String p256dh;
 

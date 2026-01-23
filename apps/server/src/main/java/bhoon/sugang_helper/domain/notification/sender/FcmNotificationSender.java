@@ -32,7 +32,6 @@ public class FcmNotificationSender implements NotificationSender {
             log.info("[FCM] Sent message to: {}, response: {}", recipient, response);
         } catch (Exception e) {
             log.error("[FCM] Failed to send message to: {}, error: {}", recipient, e.getMessage());
-            // FCM 토큰 만료 등의 이슈가 있을 수 있으나, 일단 로그만 남기고 예외를 던지지는 않음 (멀티 전송 고려)
             throw new CustomException(ErrorCode.INTERNAL_ERROR, "FCM send error: " + e.getMessage());
         }
     }

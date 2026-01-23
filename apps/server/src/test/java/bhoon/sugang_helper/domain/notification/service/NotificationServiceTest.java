@@ -2,17 +2,18 @@ package bhoon.sugang_helper.domain.notification.service;
 
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
+import bhoon.sugang_helper.domain.notification.entity.NotificationHistory;
+import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.domain.notification.sender.NotificationChannel;
 import bhoon.sugang_helper.domain.notification.sender.NotificationSender;
 import bhoon.sugang_helper.domain.subscription.entity.Subscription;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
-import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
-import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.entity.Role;
+import bhoon.sugang_helper.domain.user.entity.User;
+import bhoon.sugang_helper.domain.user.entity.UserDevice;
+import bhoon.sugang_helper.domain.user.enums.DeviceType;
 import bhoon.sugang_helper.domain.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +22,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -47,7 +50,7 @@ class NotificationServiceTest {
     private NotificationService notificationService;
 
     @Test
-    @DisplayName("Send notification if dedup key does not exist")
+    @DisplayName("중복 알림 방지 키가 없을 때 알림 발송")
     void sendNotificationIfKeyNotExists() {
         // Given
         SeatOpenedEvent event = new SeatOpenedEvent("12345-01", "Test Course", 0, 1);
@@ -64,7 +67,7 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("Skip notification if dedup key exists")
+    @DisplayName("중복 알림 방지 키가 있을 때 알림 발송 건너뜀")
     void skipNotificationIfKeyExists() {
         // Given
         SeatOpenedEvent event = new SeatOpenedEvent("12345-01", "Test Course", 0, 1);
@@ -81,36 +84,35 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("Dispatch email to subscribers")
-    void dispatchEmailToSubscribers() {
+    @DisplayName("구독자에게 멀티 채널(Email, FCM, WEB) 발송 검증")
+    void dispatchToMultiChannels() {
         // Given
         SeatOpenedEvent event = new SeatOpenedEvent("12345-01", "Test Course", 0, 1);
-        String redisKey = "ALERT:12345-01";
-        Subscription subscription = Subscription.builder()
-                .userId(1L)
-                .courseKey("12345-01")
-                .isActive(true)
-                .build();
-        User user = User.builder()
-                .name("Tester")
-                .email("test@example.com")
-                .role(Role.USER)
-                .build();
+        Subscription subscription = Subscription.builder().userId(1L).courseKey("12345-01").isActive(true).build();
+        User user = User.builder().id(1L).name("Tester").email("test@example.com").role(Role.USER).build();
 
-        // Inject sender list manually because @InjectMocks doesn't handle List well if
-        // notSpy
+        UserDevice fcmDevice = UserDevice.builder()
+                .userId(1L).type(DeviceType.FCM).token("fcm-token").build();
+        UserDevice webDevice = UserDevice.builder()
+                .userId(1L).type(DeviceType.WEB).token("web-endpoint").p256dh("p256").auth("auth").build();
+
         notificationService = new NotificationService(redisService, subscriptionRepository, userRepository,
                 userDeviceRepository, notificationHistoryRepository, List.of(notificationSender));
 
-        given(redisService.hasKey(redisKey)).willReturn(false);
-        given(subscriptionRepository.findByCourseKeyAndIsActiveTrue("12345-01")).willReturn(List.of(subscription));
+        given(redisService.hasKey(anyString())).willReturn(false);
+        given(subscriptionRepository.findByCourseKeyAndIsActiveTrue(anyString())).willReturn(List.of(subscription));
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of(fcmDevice, webDevice));
+
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
+        given(notificationSender.supports(NotificationChannel.FCM)).willReturn(true);
 
         // When
         notificationService.handleSeatOpenedEvent(event);
 
         // Then
         verify(notificationSender, times(1)).send(eq("test@example.com"), anyString(), anyString());
+        verify(notificationSender, times(1)).send(eq("fcm-token"), anyString(), anyString());
+        verify(notificationHistoryRepository, times(3)).save(any(NotificationHistory.class));
     }
 }

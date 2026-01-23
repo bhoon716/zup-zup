@@ -18,7 +18,6 @@ public class UserDeviceRequest {
     @NotBlank
     private String token;
 
-    // Optional for Web Push
     private String p256dh;
     private String auth;
 }
