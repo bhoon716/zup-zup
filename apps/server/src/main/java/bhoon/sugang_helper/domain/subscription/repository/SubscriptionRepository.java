@@ -14,4 +14,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     long countByUserIdAndIsActiveTrue(Long userId);
 
     List<Subscription> findByUserIdAndIsActiveTrue(Long userId);
+
+    void deleteAllByUserId(Long userId);
 }

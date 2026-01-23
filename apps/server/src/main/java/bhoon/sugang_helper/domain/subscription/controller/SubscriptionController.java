@@ -31,6 +31,12 @@ public class SubscriptionController {
         return CommonResponse.ok(null, "구독이 취소되었습니다.");
     }
 
+    @PatchMapping("/{id}/toggle")
+    public ResponseEntity<CommonResponse<Void>> toggleSubscription(@PathVariable Long id) {
+        subscriptionService.toggleSubscription(id);
+        return CommonResponse.ok(null, "알림 상태가 변경되었습니다.");
+    }
+
     @GetMapping
     public ResponseEntity<CommonResponse<List<SubscriptionResponse>>> getMySubscriptions() {
         List<SubscriptionResponse> responses = subscriptionService.getMySubscriptions();
