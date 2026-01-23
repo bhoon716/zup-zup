@@ -23,6 +23,9 @@ public enum ErrorCode {
     // Crawler
     CRAWLER_CONNECTION_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "C001", "JBNU 수강신청 시스템 연결에 실패했습니다."),
     CRAWLER_PARSING_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C002", "데이터 파싱 중 오류가 발생했습니다."),
+
+    // Notification
+    EMAIL_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N001", "이메일 발송 중 오류가 발생했습니다."),
     ;
 
     private final HttpStatus status;

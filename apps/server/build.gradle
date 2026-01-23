@@ -74,8 +74,19 @@ dependencies {
 
 	// jsoup
 	implementation 'org.jsoup:jsoup:1.18.1'
+
+	// dotenv
+	implementation 'io.github.cdimascio:dotenv-java:3.0.0'
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'manual'
+	}
+}
+
+task manualTest(type: Test) {
+	useJUnitPlatform {
+		includeTags 'manual'
+	}
 }

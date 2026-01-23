@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+@Tag("manual")
 class JbnuCourseApiClientTest {
 
     @Test
@@ -21,7 +23,7 @@ class JbnuCourseApiClientTest {
         System.out.println(
                 "Response excerpt: "
                         + (result != null && result.length() > 500 ? result.substring(0, 500)
-                        : result));
+                                : result));
 
         assertThat(result).isNotNull();
         assertThat(result).as("Server Response Content: %s", result)
