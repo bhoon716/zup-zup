@@ -37,7 +37,7 @@ class EmailNotificationSenderTest {
         given(mailSender.createMimeMessage()).willReturn(mock(MimeMessage.class));
 
         // when
-        emailNotificationSender.send(to, title, content);
+        emailNotificationSender.send(NotificationTarget.of(to), title, content);
 
         // then
         verify(mailSender, times(1)).send(any(MimeMessage.class));

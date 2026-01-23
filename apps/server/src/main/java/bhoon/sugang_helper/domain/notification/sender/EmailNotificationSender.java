@@ -33,7 +33,8 @@ public class EmailNotificationSender implements NotificationSender {
     }
 
     @Override
-    public void send(String recipient, String title, String message) {
+    public void send(NotificationTarget target, String title, String message) {
+        String recipient = target.getRecipient();
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");

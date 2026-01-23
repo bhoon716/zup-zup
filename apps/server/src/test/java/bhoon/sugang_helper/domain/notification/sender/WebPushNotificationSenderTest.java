@@ -15,7 +15,8 @@ class WebPushNotificationSenderTest {
 
     @BeforeEach
     void setUp() {
-        webPushNotificationSender = new WebPushNotificationSender("", "", "");
+        webPushNotificationSender = new WebPushNotificationSender("", "", "",
+                new com.fasterxml.jackson.databind.ObjectMapper());
     }
 
     @Test

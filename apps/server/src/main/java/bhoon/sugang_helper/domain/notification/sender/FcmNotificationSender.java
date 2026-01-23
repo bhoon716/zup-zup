@@ -18,10 +18,10 @@ public class FcmNotificationSender implements NotificationSender {
     }
 
     @Override
-    public void send(String recipient, String title, String message) {
+    public void send(NotificationTarget target, String title, String message) {
         try {
             Message fcmMessage = Message.builder()
-                    .setToken(recipient)
+                    .setToken(target.getRecipient())
                     .setNotification(Notification.builder()
                             .setTitle(title)
                             .setBody(message)
@@ -29,10 +29,10 @@ public class FcmNotificationSender implements NotificationSender {
                     .build();
 
             String response = FirebaseMessaging.getInstance().send(fcmMessage);
-            log.info("[FCM] Sent message to: {}, response: {}", recipient, response);
+            log.info("[FCM] Sent message to: {}, response: {}", target.getRecipient(), response);
         } catch (Exception e) {
-            log.error("[FCM] Failed to send message to: {}, error: {}", recipient, e.getMessage());
-            throw new CustomException(ErrorCode.INTERNAL_ERROR, "FCM send error: " + e.getMessage());
+            log.error("[FCM] 발송 실패 - 토큰: {}, 에러: {}", target.getRecipient(), e.getMessage(), e);
+            throw new CustomException(ErrorCode.FCM_SEND_ERROR, e.getMessage());
         }
     }
 }

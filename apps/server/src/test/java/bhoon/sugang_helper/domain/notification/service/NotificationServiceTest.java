@@ -6,6 +6,7 @@ import bhoon.sugang_helper.domain.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.domain.notification.sender.NotificationChannel;
 import bhoon.sugang_helper.domain.notification.sender.NotificationSender;
+import bhoon.sugang_helper.domain.notification.sender.NotificationTarget;
 import bhoon.sugang_helper.domain.subscription.entity.Subscription;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
 import bhoon.sugang_helper.domain.user.entity.Role;
@@ -23,7 +24,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -101,18 +101,18 @@ class NotificationServiceTest {
 
         given(redisService.hasKey(anyString())).willReturn(false);
         given(subscriptionRepository.findByCourseKeyAndIsActiveTrue(anyString())).willReturn(List.of(subscription));
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of(fcmDevice, webDevice));
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
+        given(userDeviceRepository.findByUserIdIn(anyList())).willReturn(List.of(fcmDevice, webDevice));
 
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
         given(notificationSender.supports(NotificationChannel.FCM)).willReturn(true);
+        given(notificationSender.supports(NotificationChannel.WEB)).willReturn(true);
 
         // When
         notificationService.handleSeatOpenedEvent(event);
 
         // Then
-        verify(notificationSender, times(1)).send(eq("test@example.com"), anyString(), anyString());
-        verify(notificationSender, times(1)).send(eq("fcm-token"), anyString(), anyString());
+        verify(notificationSender, times(3)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, times(3)).save(any(NotificationHistory.class));
     }
 }
