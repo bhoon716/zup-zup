@@ -41,3 +41,6 @@ out/
 
 ### Mac ###
 .DS_Store
+
+### Firebase ###
+/src/main/resources/firebase/

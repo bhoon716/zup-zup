@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Root xmlns="http://www.nexacroplatform.com/platform/dataset">
+    <Dataset id="GRD_COUR001">
+        <ColumnInfo>
+            <Column id="SBJTCD" type="STRING" size="256"/>
+            <Column id="CLSS" type="STRING" size="256"/>
+            <Column id="SBJTNM" type="STRING" size="256"/>
+            <Column id="RPSTPROFNM" type="STRING" size="256"/>
+            <Column id="LMTRCNT" type="STRING" size="256"/>
+            <Column id="TLSNRCNT" type="STRING" size="256"/>
+        </ColumnInfo>
+        <Rows>
+            <Row>
+                <Col id="SBJTCD">STAY_FULL</Col>
+                <Col id="CLSS">01</Col>
+                <Col id="SBJTNM">항상 만석 과목</Col>
+                <Col id="RPSTPROFNM">교수1</Col>
+                <Col id="LMTRCNT">30</Col>
+                <Col id="TLSNRCNT">30</Col>
+            </Row>
+            <Row>
+                <Col id="SBJTCD">BECOME_AVAILABLE</Col>
+                <Col id="CLSS">01</Col>
+                <Col id="SBJTNM">여석 발생 과목</Col>
+                <Col id="RPSTPROFNM">교수2</Col>
+                <Col id="LMTRCNT">30</Col>
+                <Col id="TLSNRCNT">30</Col>
+            </Row>
+            <Row>
+                <Col id="SBJTCD">STAY_AVAILABLE</Col>
+                <Col id="CLSS">01</Col>
+                <Col id="SBJTNM">항상 여석 과목</Col>
+                <Col id="RPSTPROFNM">교수3</Col>
+                <Col id="LMTRCNT">30</Col>
+                <Col id="TLSNRCNT">29</Col>
+            </Row>
+        </Rows>
+    </Dataset>
+</Root>

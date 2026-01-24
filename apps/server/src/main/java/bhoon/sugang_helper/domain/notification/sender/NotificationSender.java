@@ -13,5 +13,5 @@ public interface NotificationSender {
      * @param title     Notification title
      * @param message   Notification body
      */
-    void send(String recipient, String title, String message);
+    void send(NotificationTarget target, String title, String message);
 }

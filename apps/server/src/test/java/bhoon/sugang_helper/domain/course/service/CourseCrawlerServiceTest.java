@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class CourseCrawlerServiceTest {
@@ -48,6 +49,17 @@ class CourseCrawlerServiceTest {
     @DisplayName("Crawl and Save - Real Network Integration")
     void crawlAndSave_RealIntegration() {
         // Given
+        String realApiUrl = System.getProperty("jbnu.api.url");
+        if (realApiUrl == null || realApiUrl.isBlank()) {
+            realApiUrl = System.getenv("JBNU_API_URL");
+        }
+
+        if (realApiUrl == null || realApiUrl.isBlank()) {
+            throw new IllegalStateException(
+                    "JBNU_API_URL environment variable or -Djbnu.api.url property is required for manual tests.");
+        }
+
+        ReflectionTestUtils.setField(apiClient, "apiUrl", realApiUrl);
         given(courseRepository.findById(anyString())).willReturn(Optional.empty());
 
         // When
