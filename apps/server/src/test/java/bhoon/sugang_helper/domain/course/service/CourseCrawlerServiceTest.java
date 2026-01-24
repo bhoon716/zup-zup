@@ -20,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import io.github.cdimascio.dotenv.Dotenv;
+
 @ExtendWith(MockitoExtension.class)
 class CourseCrawlerServiceTest {
 
@@ -49,14 +51,17 @@ class CourseCrawlerServiceTest {
     @DisplayName("Crawl and Save - Real Network Integration")
     void crawlAndSave_RealIntegration() {
         // Given
-        String realApiUrl = System.getProperty("jbnu.api.url");
+        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        String realApiUrl = dotenv.get("JBNU_API_URL");
+
         if (realApiUrl == null || realApiUrl.isBlank()) {
             realApiUrl = System.getenv("JBNU_API_URL");
         }
 
         if (realApiUrl == null || realApiUrl.isBlank()) {
             throw new IllegalStateException(
-                    "JBNU_API_URL environment variable or -Djbnu.api.url property is required for manual tests.");
+                    "JBNU_API_URL environment variable is required for manual tests.\n" +
+                            "Please check your .env file or system environment variables.");
         }
 
         ReflectionTestUtils.setField(apiClient, "apiUrl", realApiUrl);
