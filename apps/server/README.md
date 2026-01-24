@@ -96,4 +96,3 @@ docker-compose up -d
 ## 📂 관련 문서 (Documentation)
 
 - 📝 [기술 의사결정 및 트러블슈팅 상세](docs/troubleshooting.md)
-- 🚀 [테스트 시나리오 및 검증 전략](docs/testing-strategy.md)
