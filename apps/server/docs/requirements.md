@@ -26,6 +26,8 @@
   - **최종 크롤링 시각 (Last Crawled Time)**: `lastCrawledAt` (데이터 변동과 무관하게 갱신)
 - **REQ-MON-03**: 크롤링 실패 시 재시도 로직이 포함되어야 하며, 지속적인 실패 시 관리자(로그)에게 알려야 합니다.
   - **Error Handling**: `CustomException` 및 `ErrorCode`를 사용하여 표준화된 에러 처리를 적용했습니다. (e.g., `CRAWLER_CONNECTION_ERROR`, `CRAWLER_PARSING_ERROR`)
+- **REQ-MON-04 (Configurable API)**: 시스템은 실제 JBNU 서버 호스트가 아닌 테스트용 모킹 주소를 사용할 수 있어야 합니다. [New]
+  - **Implementation**: `application.properties`의 `jbnu.api.url` 속성을 통해 호출 주소를 유연하게 변경할 수 있도록 구성했습니다.
 
 ### 2.2. 변동 감지 및 알림 (Detection & Notification) - [Implemented]
 
@@ -147,3 +149,18 @@
   - JBNU 실제 XML 응답 데이터를 분석하여 `courseKey`(`0000130844-1`), `subjectCode`(`0000130844`) 등 도메인 특화 포맷을 예시에 반영
   - `sentAt`, `createdAt` 등 시간 관련 필드에 표준 ISO 포맷 예시(`2024-01-01T12:00:00`) 보강
 - **프론트엔드 협업 효율화**: 명확한 API 명세를 통해 클라이언트 팀의 개발 편의성 증대 및 커뮤니케이션 비용 감소
+
+## 7. 테스트 및 검증 (Testing & Verification) - [New]
+
+### 7.1. 비수강신청 기간 테스트 전략
+
+실제 학교 서버의 데이터 변화가 없는 기간에도 시스템의 핵심 로직을 검증할 수 있어야 합니다.
+
+- **REQ-TEST-01 (End-to-End Integration)**: 크롤링부터 알림 전송까지의 전체 흐름을 테스트 코드로 검증해야 합니다.
+  - **Implementation**: `@SpringBootTest`와 Mock XML 데이터를 사용하여 실제와 동일한 시나리오를 시뮬레이션합니다.
+- **REQ-TEST-02 (Vacancy Scenarios)**: 다음과 같은 잔여석 변화 케이스를 모두 검증해야 합니다.
+  - `0 -> 0` (여전히 만석): 알림 발송 안 됨.
+  - `0 -> 1+` (여석 발생): 알림 발송 **성공**.
+  - `1+ -> 1+` (여석 유지): 알림 발송 안 됨.
+- **REQ-TEST-03 (Sync Handling in Test)**: 테스트의 결정성을 위해 비동기(`@Async`) 로직을 동기적으로 처리할 수 있어야 합니다.
+  - **Implementation**: `TestAsyncConfig`를 통해 `SyncTaskExecutor`를 주입하여 즉각적인 검증을 지원합니다.
