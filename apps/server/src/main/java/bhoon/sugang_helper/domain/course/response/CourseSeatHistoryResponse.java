@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.domain.course.response;
 
 import bhoon.sugang_helper.domain.course.entity.CourseSeatHistory;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -8,11 +9,21 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
+@Schema(description = "과목 공석 이력 응답 DTO")
 public class CourseSeatHistoryResponse {
+    @Schema(description = "이력 ID", example = "1")
     private Long id;
+
+    @Schema(description = "과목 키", example = "0000130844-1")
     private String courseKey;
+
+    @Schema(description = "당시 정원", example = "40")
     private Integer capacity;
+
+    @Schema(description = "당시 현재 인원", example = "35")
     private Integer current;
+
+    @Schema(description = "감지 시간", example = "2024-01-01T12:00:00")
     private LocalDateTime detectedAt;
 
     public static CourseSeatHistoryResponse from(CourseSeatHistory history) {

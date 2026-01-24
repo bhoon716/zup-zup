@@ -44,6 +44,12 @@
 - **Google OAuth2** 로그인을 통해 별도의 회원가입 없이 이용 가능합니다.
 - JWT(Access Token + Refresh Token) 기반의 안전한 세션 관리 및 **Token Rotation**을 지원합니다.
 
+### 6. API 자동 문서화 (Swagger/OpenAPI)
+
+- **SpringDoc OpenAPI**를 통해 모든 API를 자동으로 문서화했습니다.
+- 실제 JBNU 데이터 포맷을 반영한 상세한 **Example Value**를 제공하여 프론트엔드 개발 효율성을 높였습니다.
+- `/swagger-ui/index.html`을 통해 인터랙티브하게 API를 테스트할 수 있습니다.
+
 ---
 
 ## 🛠 기술 스택 (Tech Stack)
@@ -55,6 +61,7 @@
 | **Infra**    | ![Redis](https://img.shields.io/badge/-Redis-DC382D?logo=redis&logoColor=white)                    | 인증 토큰(Refresh), 알림 중복 방지(Dedup)를 위한 캐시 서버 |
 | **Auth**     | ![Google](https://img.shields.io/badge/-Google%20OAuth-4285F4?logo=google&logoColor=white)         | 편리하고 안전한 소셜 로그인 시스템                         |
 | **Crawler**  | ![Jsoup](https://img.shields.io/badge/-Jsoup-orange)                                               | 빠르고 효율적인 XML 응답 파싱 및 데이터 추출               |
+| **Docs**     | ![Swagger](https://img.shields.io/badge/-Swagger-85EA2D?logo=swagger&logoColor=black)              | SpringDoc 기반의 대화형 API 명세서 (Swagger UI)            |
 
 ---
 

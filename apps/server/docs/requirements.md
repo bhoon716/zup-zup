@@ -63,6 +63,13 @@
   - Value: `refreshToken` (Rotation 시 비교 검증)
 - **REQ-SEC-04 (Logout)**: 로그아웃 시 Redis에서 해당 사용자의 Refresh Token을 삭제하고, Access Token은 남은 유효기간 동안 Blacklist 처리합니다(`BL:{accessToken}`).
 
+### 2.6. API 문서화 (API Documentation) - [Implemented]
+
+- **REQ-DOC-01**: 모든 외부 노출 API는 **Swagger(OpenAPI 3)**를 통해 자동 문서화되어야 합니다.
+- **REQ-DOC-02**: 모든 Controller, Request DTO, Response DTO에는 `@Tag`, `@Operation`, `@Schema` 어노테이션을 사용하여 상세 설명을 포함해야 합니다.
+- **REQ-DOC-03**: API 명세에는 실제 JBNU 데이터 포맷(예: 10자리 과목코드, '과목코드-분반' 형태의 키 등)을 반영한 **Example Value**가 반드시 포함되어야 합니다.
+- **REQ-DOC-04**: Swagger UI는 `/swagger-ui/index.html` 경로를 통해 접근 가능해야 하며, 인터랙티브한 API 테스트 환경을 제공해야 합니다.
+
 ## 3. 비기능 요구사항 (Non-Functional Requirements)
 
 ### 3.1. 기술 스택 (Tech Stack)
@@ -130,3 +137,13 @@
 - **H2 Database 지원**: 별도 MySQL 설치 없이 로컬 개발 가능
 - **환경 변수 기본값**: 모든 필수 환경변수에 더미 기본값 추가
 - **즉시 실행 가능**: `./gradlew bootRun` 명령어만으로 바로 실행
+
+### 6.4. API 문서화 최적화 (API Documentation Optimization)
+
+- **전수 Swagger 어노테이션 적용**:
+  - 모든 컨트롤러 엔드포인트에 `@Operation` 및 `@ApiResponses` 적용
+  - 모든 DTO 필드에 `@Schema`를 통한 설명 및 예시 데이터 추가
+- **실제 데이터 기반 예시(Example) 정밀 교정**:
+  - JBNU 실제 XML 응답 데이터를 분석하여 `courseKey`(`0000130844-1`), `subjectCode`(`0000130844`) 등 도메인 특화 포맷을 예시에 반영
+  - `sentAt`, `createdAt` 등 시간 관련 필드에 표준 ISO 포맷 예시(`2024-01-01T12:00:00`) 보강
+- **프론트엔드 협업 효율화**: 명확한 API 명세를 통해 클라이언트 팀의 개발 편의성 증대 및 커뮤니케이션 비용 감소

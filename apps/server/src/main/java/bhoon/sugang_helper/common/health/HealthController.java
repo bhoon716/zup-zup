@@ -4,6 +4,9 @@ import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -16,21 +19,27 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "System", description = "시스템 관련 API")
+@Tag(name = "Health", description = "헬스체크 API")
 public class HealthController {
 
     private final BuildProperties buildProperties;
 
-    @GetMapping("/health")
     @Operation(summary = "헬스 체크", description = "서버 상태를 확인합니다.")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "요청 성공", content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "헬스 체크 성공 예시", value = """
-            {
-                "status": "UP",
-                "version": "1.0.0",
-                "buildTime": "2025-12-12T10:00:00Z",
-                "timestamp": "2025-12-12T10:00:00.123"
-            }
-            """)))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "헬스 체크 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                    {
+                      "code": "SUCCESS",
+                      "message": "Health check 통과",
+                      "data": {
+                        "status": "UP",
+                        "version": "0.0.1",
+                        "buildTime": "2026-01-25T01:00:00Z",
+                        "timestamp": "2026-01-25T01:00:00"
+                      }
+                    }
+                    """)))
+    })
+    @GetMapping("/health")
     public ResponseEntity<CommonResponse<HealthCheckResponse>> checkHealth() {
         HealthCheckResponse response = new HealthCheckResponse(
                 "UP",

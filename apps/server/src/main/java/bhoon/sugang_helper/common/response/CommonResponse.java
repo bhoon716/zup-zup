@@ -2,6 +2,7 @@ package bhoon.sugang_helper.common.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.net.URI;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -11,12 +12,18 @@ import org.springframework.http.ResponseEntity;
 @Getter
 @JsonInclude(Include.NON_NULL)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Schema(description = "공통 응답 포맷")
 public class CommonResponse<T> {
 
     private static final String SUCCESS_CODE = "SUCCESS";
 
+    @Schema(description = "응답 코드", example = "SUCCESS")
     private final String code;
+
+    @Schema(description = "응답 메시지", example = "요청 성공")
     private final String message;
+
+    @Schema(description = "응답 데이터 (각 API별 데이터 객체)")
     private final T data;
 
     public static <T> CommonResponse<T> success(T data, String message) {
