@@ -85,14 +85,12 @@ docker-compose up -d
 
 ### 2. 테스트 연동
 
-핵심 비즈니스 로직에 대해 작성된 통합 테스트를 실행해볼 수 있습니다.
+기본적인 단위 테스트는 즉시 실행 가능하며, 통합 테스트(manual 태그)는 별도의 환경 변수 설정으로 실행할 수 있습니다.
 
 ```bash
+# 기본 테스트 실행 (약 6초)
 ./gradlew test
+
+# 수동 통합 테스트 실행 (JBNU_API_URL 설정 필요)
+./gradlew manualTest
 ```
-
----
-
-## 📂 관련 문서 (Documentation)
-
-- 📝 [기술 의사결정 및 트러블슈팅 상세](docs/troubleshooting.md)
