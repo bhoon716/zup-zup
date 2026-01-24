@@ -2,12 +2,15 @@ package bhoon.sugang_helper.domain.course.service;
 
 import java.io.IOException;
 import org.jsoup.Jsoup;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class JbnuCourseApiClient {
 
-    private static final String API_URL = "https://oasis.jbnu.ac.kr/uni/uni/cour/less/findLessSubjtTblInq.action";
+    @Value("${jbnu.api.url}")
+    private String apiUrl;
+
     private static final String PAYLOAD_TEMPLATE = """
             <?xml version="1.0" encoding="UTF-8"?>
             <Root xmlns="http://www.nexacroplatform.com/platform/dataset">
@@ -37,7 +40,7 @@ public class JbnuCourseApiClient {
             """;
 
     public String fetchCourseDataXml() throws IOException {
-        return Jsoup.connect(API_URL)
+        return Jsoup.connect(apiUrl)
                 .header("Accept", "application/xml, text/xml, */*")
                 .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
                 .header("Content-Type", "text/xml")
