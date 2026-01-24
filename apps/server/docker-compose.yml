@@ -27,11 +27,14 @@ services:
       OAUTH2_REDIRECT_URI: ${OAUTH2_REDIRECT_URI_SUCCESS}
       ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       JBNU_API_URL: ${JBNU_API_URL}
+      FIREBASE_CONFIG_PATH: ${FIREBASE_CONFIG_PATH}
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+    volumes:
+      - ${FIREBASE_KEY_PATH}:/app/resources/firebase-key.json
     networks:
       - app_network
 
@@ -50,7 +53,7 @@ services:
     networks:
       - app_network
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -92,6 +95,7 @@ services:
 
 networks:
   app_network:
+    name: jbnu-sugang-helper_app_network
     driver: bridge
 
 volumes:

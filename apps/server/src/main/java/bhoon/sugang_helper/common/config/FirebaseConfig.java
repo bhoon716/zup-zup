@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.common.config.firebase;
+package bhoon.sugang_helper.common.config;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -15,7 +15,7 @@ import java.io.IOException;
 @Configuration
 public class FirebaseConfig {
 
-    @Value("${FIREBASE_CONFIG_PATH:}")
+    @Value("${app.firebase.config-path}")
     private String configPath;
 
     @PostConstruct
@@ -23,17 +23,19 @@ public class FirebaseConfig {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
                 if (configPath == null || configPath.isEmpty()) {
-                    log.warn("[Firebase] Config path is not set. FCM will not work.");
+                    log.error("[Firebase] Config path is empty.");
                     return;
                 }
 
-                FileInputStream serviceAccount = new FileInputStream(configPath);
-                FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                        .build();
+                // Docker 환경이나 로컬 환경 어디서든 파일 시스템의 경로를 읽습니다.
+                try (FileInputStream serviceAccount = new FileInputStream(configPath)) {
+                    FirebaseOptions options = FirebaseOptions.builder()
+                            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                            .build();
 
-                FirebaseApp.initializeApp(options);
-                log.info("[Firebase] Successfully initialized FirebaseApp");
+                    FirebaseApp.initializeApp(options);
+                    log.info("[Firebase] Successfully initialized using file: {}", configPath);
+                }
             }
         } catch (IOException e) {
             log.error("[Firebase] Initialization error: {}", e.getMessage());

@@ -13,6 +13,9 @@ build/
 .settings
 .springBeans
 .sts4-cache
+
+### Secrets ###
+secrets/
 bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
