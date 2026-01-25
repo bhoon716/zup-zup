@@ -1,8 +1,11 @@
 import { create } from 'zustand';
+import * as userApi from '@/lib/api/user';
 
 interface User {
+  id: number;
   email: string;
   name: string;
+  role: string;
 }
 
 interface AuthState {
@@ -11,7 +14,7 @@ interface AuthState {
   isLoading: boolean;
   
   // Actions
-  setUser: (user: User) => void;
+  setUser: (user: User | null) => void;
   checkSession: () => Promise<void>;
   logout: () => void;
 }
@@ -21,25 +24,31 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isLoading: true, // Initial load checks for session
 
-  setUser: (user) => set({ user, isAuthenticated: true, isLoading: false }),
+  setUser: (user) => set({ 
+    user, 
+    isAuthenticated: !!user, 
+    isLoading: false 
+  }),
   
   checkSession: async () => {
-    // TODO: Call Backend API (/api/users/me) to validate session
-    // For now, we simulate a check or assume cookie-based
+    set({ isLoading: true });
     try {
-      // Mock API Call - Replace with actual `api.get('/users/me')`
-      // const { data } = await api.get('/users/me');
-      // set({ user: data, isAuthenticated: true, isLoading: false });
-      
-      // Temporary: Should be implemented when Backend API is ready
-      set({ isLoading: false }); 
+      const response = await userApi.getMyProfile();
+      set({ 
+        user: response.data, 
+        isAuthenticated: true, 
+        isLoading: false 
+      });
     } catch (error) {
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      set({ 
+        user: null, 
+        isAuthenticated: false, 
+        isLoading: false 
+      });
     }
   },
 
   logout: () => {
-    // TODO: Call Backend Logout Endpoint
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
 }));

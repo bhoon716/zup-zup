@@ -10,9 +10,10 @@ export const useUser = () => {
     queryKey: ['user', 'me'],
     queryFn: async () => {
       const response = await userApi.getMyProfile();
-      setUser(response.data);
       return response.data;
     },
+    // useUser should refer to the already fetched user if possible
+    // but here it acts as a data source
   });
 };
 

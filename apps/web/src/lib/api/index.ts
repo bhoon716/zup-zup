@@ -1,17 +1,26 @@
 import axios from "axios";
 
+let accessToken: string | null = null;
+
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // Cookie-based auth
+  withCredentials: true,
 });
 
 // Request Interceptor
 api.interceptors.request.use(
   (config) => {
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
     return config;
   },
   (error) => {
@@ -27,23 +36,26 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // 401 에러 && Refresh 시도 전
+    // Access Token이 없거나 만료되어 401 에러 발생 시
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        // Refresh Token으로 Access Token 재발급
-        await axios.post(
+        const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/auth/refresh`,
           {},
           { withCredentials: true }
         );
 
-        // 재발급 성공 시 원래 요청 재시도
+        const newAccessToken = response.data.data;
+        setAccessToken(newAccessToken);
+
+        // 새 토큰으로 헤더 갱신 후 재시도
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh 실패 시 로그인 페이지로 리다이렉트
-        if (typeof window !== "undefined") {
+        setAccessToken(null);
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
           window.location.href = "/login";
         }
         return Promise.reject(refreshError);
