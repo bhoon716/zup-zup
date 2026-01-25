@@ -65,6 +65,6 @@ public class UserDeviceService {
     private User getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 }

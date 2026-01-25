@@ -76,7 +76,10 @@ public class JwtProvider {
         String email = claims.getSubject();
         String role = claims.get(CLAIM_ROLE, String.class);
 
-        List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
+        List<SimpleGrantedAuthority> authorities = StringUtils.hasText(role)
+                ? Collections.singletonList(new SimpleGrantedAuthority(role))
+                : Collections.emptyList();
+
         return new UsernamePasswordAuthenticationToken(email, "", authorities);
     }
 

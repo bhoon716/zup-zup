@@ -51,7 +51,7 @@ public class AuthService {
         }
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
 
         String newAccessToken = jwtProvider.createAccessToken(user.getEmail(), user.getRoleKey());
         String newRefreshToken = jwtProvider.createRefreshToken(user.getEmail());
