@@ -9,7 +9,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
-      <main className="container py-8">
+      <main className="container py-10">
         <SubscriptionList />
       </main>
     </div>
