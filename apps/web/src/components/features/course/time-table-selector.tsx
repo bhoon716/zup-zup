@@ -85,7 +85,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     <div className="w-fit overflow-hidden rounded-xl border border-white/10 bg-card/20 backdrop-blur-md p-3 select-none" onMouseLeave={() => { setHoveredDay(null); setHoveredPeriod(null); }}>
       <div className="w-full">
         <div className="grid grid-cols-[60px_repeat(6,36px)] mb-1 gap-1">
-          <div className="text-[9px] font-black uppercase text-muted-foreground/30 flex items-center justify-center">TIME</div>
+          <div className="text-[9px] font-black uppercase text-muted-foreground/30 flex items-center justify-center">시간</div>
           {DAYS.map(day => (
             <button
               key={day}

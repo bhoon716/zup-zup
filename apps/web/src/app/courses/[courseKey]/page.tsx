@@ -2,9 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { Header } from "@/components/layout/header";
-import { CourseDetailCard } from "@/components/features/course/course-detail-card";
-import { CourseHistoryChart } from "@/components/features/course/course-history-chart";
-import { useCourseDetail, useCourseHistory } from "@/hooks/useCourses";
+import { CourseDetailContent } from "@/components/features/course/course-detail-content";
+import { useCourseDetail } from "@/hooks/useCourses";
 import { Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -16,7 +15,6 @@ export default function CourseDetailPage() {
   const courseKey = params.courseKey as string;
 
   const { data: course, isLoading: isCourseLoading, error: courseError } = useCourseDetail(courseKey);
-  const { data: histories, isLoading: isHistoryLoading } = useCourseHistory(courseKey);
 
   if (isCourseLoading) {
     return (
@@ -63,20 +61,8 @@ export default function CourseDetailPage() {
           <h1 className="text-3xl font-bold">강좌 상세 정보</h1>
         </div>
 
-        <CourseDetailCard course={course} />
-
-        <div className="grid gap-6">
-          {isHistoryLoading ? (
-            <div className="h-[300px] flex items-center justify-center border rounded-lg bg-white dark:bg-gray-800">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            </div>
-          ) : histories && histories.length > 0 ? (
-            <CourseHistoryChart histories={histories} />
-          ) : (
-            <div className="h-[200px] flex flex-col items-center justify-center border rounded-lg bg-white dark:bg-gray-800 text-muted-foreground">
-              <p>인원 변동 이력이 없습니다.</p>
-            </div>
-          )}
+        <div className="bg-card border rounded-2xl p-0 overflow-hidden shadow-sm">
+            <CourseDetailContent course={course} />
         </div>
       </main>
     </div>

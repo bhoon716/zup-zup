@@ -13,6 +13,7 @@ import { useSubscribe, useSubscriptions } from "@/hooks/useSubscriptions";
 import type { Course } from "@/types/api";
 import { Check } from "lucide-react";
 import { CourseDetailDialog } from "./course-detail-dialog";
+import { formatClassification, formatLanguage } from "@/lib/utils/formatters";
 import { useState } from "react";
 
 interface CourseTableProps {
@@ -92,10 +93,10 @@ export function CourseTable({ courses }: CourseTableProps) {
                     <TableCell className="text-[13px] font-medium text-foreground/80">{course.professor || "-"}</TableCell>
                     <TableCell className="text-center">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-secondary/30 text-secondary-foreground border border-white/5 group-hover:border-primary/20 transition-all">
-                        {course.classification || "-"}
+                        {formatClassification(course.classification)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-center text-xs font-medium text-muted-foreground/70">{course.lectureLanguage || "-"}</TableCell>
+                    <TableCell className="text-center text-xs font-medium text-muted-foreground/70">{formatLanguage(course.lectureLanguage)}</TableCell>
                     <TableCell className="text-center text-xs font-bold text-foreground/70">{course.capacity || 0}</TableCell>
                     <TableCell className="text-center font-black">
                       <span className={isAvailable ? "text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.2)]" : "text-destructive/70"}>

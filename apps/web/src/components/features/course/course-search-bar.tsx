@@ -214,11 +214,11 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                   <div className="p-4 rounded-2xl bg-background/20 border border-white/5 space-y-4">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-1 h-3 bg-primary/40 rounded-full"></div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Academic Info</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">상세 검색 정보</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
                       <div className="space-y-2 col-span-1 md:col-span-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">SUBJECT CODE</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">과목코드</label>
                         <Input
                           placeholder="과목코드 (예: CLTR.0031)"
                           value={condition.subjectCode || ''}
@@ -227,7 +227,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">CLASSIFICATION</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">이수구분</label>
                         <Select 
                           value={condition.classification || ''} 
                           onValueChange={(val) => setCondition({ ...condition, classification: val === 'all' ? undefined : val as CourseClassification })}
@@ -242,7 +242,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">CREDITS</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">학점</label>
                         <Select 
                           value={condition.credits || ''} 
                           onValueChange={(val) => setCondition({ ...condition, credits: val === 'all' ? undefined : val })}
@@ -257,7 +257,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">HOURS</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">시수</label>
                         <Select 
                           value={condition.minLectureHours ? '10+' : (condition.lectureHours?.toString() || '')} 
                           onValueChange={(val) => {
@@ -286,11 +286,11 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                   <div className="p-4 rounded-2xl bg-background/20 border border-white/5 space-y-4">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-1 h-3 bg-primary/40 rounded-full"></div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Lecture Details</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">강의 상세 정보</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">DEPARTMENT</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">개설학과</label>
                         <Input
                           placeholder="학과 / 단과대명"
                           value={condition.department || ''}
@@ -299,7 +299,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">GRADING METHOD</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">성적평가방식</label>
                         <Select 
                           value={condition.gradingMethod || ''} 
                           onValueChange={(val) => setCondition({ ...condition, gradingMethod: val === 'all' ? undefined : val as GradingMethod })}
@@ -314,7 +314,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">LANGUAGE</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">강의언어</label>
                         <Select 
                           value={condition.lectureLanguage || ''} 
                           onValueChange={(val) => setCondition({ ...condition, lectureLanguage: val === 'all' ? undefined : val as LectureLanguage })}
@@ -336,11 +336,11 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                     <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-1 h-3 bg-primary/60 rounded-full"></div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">General Education Details</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">교양 세부 정보</span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 ml-1">CATEGORY (교양영역)</label>
+                          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 ml-1">교양영역</label>
                           <Select 
                             value={condition.generalCategory || ''} 
                             onValueChange={(val) => setCondition({ 
@@ -359,7 +359,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 ml-1">DETAIL (상세영역)</label>
+                          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 ml-1">상세영역</label>
                           <Select 
                             value={condition.generalDetail || ''} 
                             onValueChange={(val) => setCondition({ ...condition, generalDetail: val === 'all' ? undefined : val })}
@@ -391,7 +391,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
               size="sm" 
               className="gap-2 h-7 px-8 rounded-full bg-card border border-white/10 hover:bg-accent transition-all shadow-sm text-[9px] font-black uppercase tracking-wider"
             >
-              {isOpen ? 'SIMPLE' : 'EXPAND'} 
+              {isOpen ? '간략히' : '상세검색'} 
               {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </Button>
           </CollapsibleTrigger>

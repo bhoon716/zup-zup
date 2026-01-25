@@ -20,3 +20,8 @@ export const getCourseCategories = async (): Promise<CommonResponse<CourseCatego
   const { data } = await api.get('/api/v1/courses/categories');
   return data;
 };
+
+export const getCourseDetail = async (courseKey: string): Promise<CommonResponse<Course>> => {
+  const { data } = await api.get(`/api/v1/courses/${encodeURIComponent(courseKey)}`);
+  return data;
+};
