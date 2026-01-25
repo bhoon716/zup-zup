@@ -41,10 +41,10 @@ export function NotificationSettings() {
         const auth = btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("auth")!)));
         
         registerDevice({
-          deviceType: "WEB",
-          webPushEndpoint: subscription.endpoint,
-          webPushP256dh: p256dh,
-          webPushAuth: auth,
+          type: "WEB",
+          token: subscription.endpoint,
+          p256dh: p256dh,
+          auth: auth,
         });
         setIsPushEnabled(true);
       } else {

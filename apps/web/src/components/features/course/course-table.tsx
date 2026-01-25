@@ -56,7 +56,6 @@ export function CourseTable({ courses }: CourseTableProps) {
           ) : (
             courses.map((course) => {
               const subscribed = isSubscribed(course.courseKey);
-              const availableSeats = course.totalSeats - course.currentSeats;
 
               return (
                 <TableRow key={course.courseKey}>
@@ -74,8 +73,8 @@ export function CourseTable({ courses }: CourseTableProps) {
                   <TableCell className="text-center">{course.totalSeats}</TableCell>
                   <TableCell className="text-center">{course.currentSeats}</TableCell>
                   <TableCell className="text-center font-semibold">
-                    <span className={availableSeats > 0 ? "text-green-600" : "text-red-600"}>
-                      {availableSeats}
+                    <span className={course.availableSeats > 0 ? "text-green-600" : "text-red-600"}>
+                      {course.availableSeats}
                     </span>
                   </TableCell>
                   <TableCell className="text-center">

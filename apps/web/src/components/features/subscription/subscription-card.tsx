@@ -41,9 +41,9 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-lg">{subscription.subjectName}</CardTitle>
+            <CardTitle className="text-lg">{subscription.courseName}</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              {subscription.courseKey}
+              {subscription.courseKey} | {subscription.professorName}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -71,7 +71,7 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
                   <DialogDescription>
                     정말로 이 강좌의 구독을 취소하시겠습니까?
                     <br />
-                    <strong>{subscription.subjectName}</strong>
+                    <strong>{subscription.courseName}</strong>
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>

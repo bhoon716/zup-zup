@@ -32,10 +32,12 @@ export interface Course {
   courseKey: string;
   subjectCode: string;
   name: string;
+  classNumber: string;
   professorName: string;
   targetGrade: string;
   totalSeats: number;
   currentSeats: number;
+  availableSeats: number;
   status: 'AVAILABLE' | 'FULL';
 }
 
@@ -57,8 +59,10 @@ export interface CourseSeatHistory {
 export interface Subscription {
   id: number;
   courseKey: string;
-  subjectName: string;
+  courseName: string;
+  professorName: string;
   isActive: boolean;
+  createdAt: string;
 }
 
 export interface SubscriptionRequest {
@@ -76,29 +80,28 @@ export interface User {
 // 알림 관련
 export interface NotificationHistory {
   id: number;
-  channel: 'FCM' | 'EMAIL' | 'WEB';
   courseKey: string;
   title: string;
   message: string;
-  sentAt: string;
+  createdAt: string;
 }
 
 // 기기 등록 관련
 export interface UserDevice {
   id: number;
-  deviceType: 'WEB' | 'ANDROID' | 'IOS';
-  fcmToken?: string;
-  webPushEndpoint?: string;
+  type: 'FCM' | 'WEB';
+  token: string;
+  p256dh?: string;
+  auth?: string;
   isActive: boolean;
   createdAt: string;
 }
 
 export interface UserDeviceRequest {
-  deviceType: 'WEB' | 'ANDROID' | 'IOS';
-  fcmToken?: string;
-  webPushEndpoint?: string;
-  webPushP256dh?: string;
-  webPushAuth?: string;
+  type: 'FCM' | 'WEB';
+  token: string;
+  p256dh?: string;
+  auth?: string;
 }
 
 export interface UserUpdateRequest {

@@ -69,7 +69,13 @@ export function Header() {
                 로그아웃
               </Button>
             </>
-          ) : null}
+          ) : (
+            <Link href="/login">
+              <Button size="sm" className="gap-2">
+                로그인
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </header>
