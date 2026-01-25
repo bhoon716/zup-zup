@@ -76,13 +76,11 @@ export interface User {
 // 알림 관련
 export interface NotificationHistory {
   id: number;
-  type: 'FCM' | 'EMAIL' | 'WEB_PUSH';
+  channel: 'FCM' | 'EMAIL' | 'WEB';
   courseKey: string;
-  courseName: string;
   title: string;
   message: string;
-  isRead: boolean;
-  createdAt: string;
+  sentAt: string;
 }
 
 // 기기 등록 관련

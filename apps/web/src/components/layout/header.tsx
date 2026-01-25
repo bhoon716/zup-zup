@@ -3,7 +3,7 @@
 import { useUser, useLogout } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { LogOut, Search, Home, Bell } from "lucide-react";
+import { LogOut, Search, Home, Bell, Settings } from "lucide-react";
 
 export function Header() {
   const { data: user, isLoading } = useUser();
@@ -33,6 +33,12 @@ export function Header() {
               <Button variant="ghost" size="sm" className="gap-2">
                 <Bell className="w-4 h-4" />
                 알림 내역
+              </Button>
+            </Link>
+            <Link href="/settings">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Settings className="w-4 h-4" />
+                설정
               </Button>
             </Link>
           </nav>
