@@ -33,7 +33,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-                                        Authentication authentication) throws IOException {
+            Authentication authentication) throws IOException {
 
         OAuth2User userDetails = (OAuth2User) authentication.getPrincipal();
         String email = (String) userDetails.getAttributes().get(SecurityConstant.CLAIM_EMAIL);
@@ -58,7 +58,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         Cookie cookie = new Cookie(SecurityConstant.REFRESH_TOKEN_COOKIE_NAME, refreshToken);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true);
+        cookie.setSecure(false); // 로컬 테스트 및 HTTP 지원을 위해 false로 설정
         cookie.setPath("/");
         cookie.setMaxAge(SecurityConstant.REFRESH_TOKEN_COOKIE_MAX_AGE);
         response.addCookie(cookie);

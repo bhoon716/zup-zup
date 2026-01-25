@@ -94,7 +94,7 @@ public class AuthService {
     private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true);
+        cookie.setSecure(false); // 로컬 테스트 및 HTTP 지원을 위해 false로 설정
         cookie.setPath("/");
         cookie.setMaxAge(REFRESH_TOKEN_COOKIE_MAX_AGE);
         response.addCookie(cookie);

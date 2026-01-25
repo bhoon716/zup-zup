@@ -72,6 +72,20 @@
 - **REQ-DOC-03**: API 명세에는 실제 JBNU 데이터 포맷(예: 10자리 과목코드, '과목코드-분반' 형태의 키 등)을 반영한 **Example Value**가 반드시 포함되어야 합니다.
 - **REQ-DOC-04**: Swagger UI는 `/swagger-ui/index.html` 경로를 통해 접근 가능해야 하며, 인터랙티브한 API 테스트 환경을 제공해야 합니다.
 
+### 2.7. 계정 관리 (Account Management) - [Implemented]
+
+- **REQ-ACC-01 (Profile Update)**: 사용자는 자신의 이름 등 프로필 정보를 수정할 수 있어야 합니다.
+  - **Implementation**: `PATCH /api/v1/users/me` 엔드포인트 및 `UserUpdateRequest` DTO 구현.
+- **REQ-ACC-02 (Withdrawal)**: 사용자는 계정을 탈퇴할 수 있어야 하며, 탈퇴 시 모든 관련 데이터(구독, 기기 정보 등)가 안전하게 삭제되어야 합니다.
+  - **Implementation**: `DELETE /api/v1/users/me` 엔드포인트 구현 및 `UserService.withdraw()`에서 연관 데이터 삭제 보강.
+
+### 2.8. 관리자 기능 (Admin Dashboard) - [Implemented]
+
+- **REQ-ADM-01 (RBAC)**: 관리자 전용 기능은 `ADMIN` 권한을 가진 사용자만 접근 가능해야 합니다.
+  - **Implementation**: API 레벨의 `@PreAuthorize("hasRole('ADMIN')")` 및 프론트엔드의 `AdminGuard` 도입.
+- **REQ-ADM-02 (Stats)**: 전체 가입자, 활성 구독 수, 금일 알림 발송량 등 서비스 현황을 한눈에 볼 수 있는 통계를 제공해야 합니다.
+  - **Implementation**: `GET /api/v1/admin/stats` 엔드포인트 및 `AdminService` 구현.
+
 ## 3. 비기능 요구사항 (Non-Functional Requirements)
 
 ### 3.1. 기술 스택 (Tech Stack)
@@ -149,6 +163,16 @@
   - JBNU 실제 XML 응답 데이터를 분석하여 `courseKey`(`0000130844-1`), `subjectCode`(`0000130844`) 등 도메인 특화 포맷을 예시에 반영
   - `sentAt`, `createdAt` 등 시간 관련 필드에 표준 ISO 포맷 예시(`2024-01-01T12:00:00`) 보강
 - **프론트엔드 협업 효율화**: 명확한 API 명세를 통해 클라이언트 팀의 개발 편의성 증대 및 커뮤니케이션 비용 감소
+
+### 6.5. 계정 관리 및 설정 UI 고도화
+
+- **사용자 편의성**: **Tabs** 구조를 통해 알림 설정과 계정 관리를 분리하여 UX 개선.
+- **안전한 탈퇴**: `AlertDialog`를 통한 재확인 절차를 도입하여 실수로 인한 데이터 삭제 방지.
+
+### 6.6. 관리자 기초 인프라 구축
+
+- **보안 강화**: 백엔드(RBAC)와 프론트엔드(`AdminGuard`) 양측에서 관리자 권한 검증 체계 구축.
+- **모니터링**: 서비스 전체 현황을 실시간으로 파악할 수 있는 통합 통계 대시보드 첫 화면 완성.
 
 ## 7. 테스트 및 검증 (Testing & Verification) - [New]
 
