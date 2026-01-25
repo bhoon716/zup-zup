@@ -8,7 +8,6 @@ import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
 import bhoon.sugang_helper.domain.course.request.ScheduleCondition;
-import bhoon.sugang_helper.domain.course.response.CourseCategoryResponse;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -171,26 +170,4 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return StringUtils.hasText(generalDetail) ? course.generalDetail.eq(generalDetail) : null;
     }
 
-    @Override
-    public List<CourseCategoryResponse> getGeneralCategories() {
-        List<String> categories = queryFactory
-                .select(course.generalCategory)
-                .from(course)
-                .where(course.generalCategory.isNotNull())
-                .distinct()
-                .fetch();
-
-        return categories.stream()
-                .map(category -> {
-                    List<String> details = queryFactory
-                            .select(course.generalDetail)
-                            .from(course)
-                            .where(course.generalCategory.eq(category)
-                                    .and(course.generalDetail.isNotNull()))
-                            .distinct()
-                            .fetch();
-                    return new CourseCategoryResponse(category, details);
-                })
-                .collect(java.util.stream.Collectors.toList());
-    }
 }
