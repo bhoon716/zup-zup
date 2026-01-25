@@ -135,3 +135,31 @@ Docker 환경에서 DB만 초기화된 경우, 브라우저에는 유효한 JWT(
 ### 결과
 
 DB 초기화나 세션 만료 시 사용자가 의도치 않게 깨진 상태(Broken State)에 머무는 것을 방지하고, 자연스러운 재로그인을 유도하여 UX 안정성을 확보했습니다.
+
+---
+
+## 7. 구독 토글 시 목록에서 사라지는 문제 해결
+
+### 문제 상황
+
+대시보드에서 알림 스위치(토글)를 꺼서 비활성화하면, 구독 내역이 삭제된 것처럼 목록에서 사라지는 현상이 발생했습니다. 실제 데이터는 남아있으나 사용자 인터페이스에서 조회되지 않아 혼란을 초래했습니다.
+
+### 원인 분석
+
+`SubscriptionService.getMySubscriptions()` 메서드가 내부적으로 `findByUserIdAndIsActiveTrue(userId)`를 호출하고 있었습니다. 즉, **활성화된(`isActive=true`) 구독만 조회**하도록 구현되어 있어, 사용자가 알림을 끄는 순간 조회 대상에서 제외되었습니다.
+
+### 해결책
+
+Repository에 `findByUserId(userId)` 메서드를 추가하고, 서비스 로직이 이를 사용하여 **활성 상태와 관계없이 모든 구독**을 반환하도록 수정했습니다.
+
+```java
+// 변경 전: 활성 구독만 조회
+return subscriptionRepository.findByUserIdAndIsActiveTrue(user.getId()).stream()...
+
+// 변경 후: 모든 구독 조회
+return subscriptionRepository.findByUserId(user.getId()).stream()...
+```
+
+### 결과
+
+알림 설정을 꺼도 구독 목록에 항목이 유지되며, 스위치 상태만 정상적으로 반영되도록 수정되었습니다.
