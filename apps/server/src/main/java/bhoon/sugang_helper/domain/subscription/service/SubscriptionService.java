@@ -94,7 +94,7 @@ public class SubscriptionService {
 
     public List<SubscriptionResponse> getMySubscriptions() {
         User user = getCurrentUser();
-        return subscriptionRepository.findByUserIdAndIsActiveTrue(user.getId()).stream()
+        return subscriptionRepository.findByUserId(user.getId()).stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
