@@ -162,4 +162,38 @@ return subscriptionRepository.findByUserId(user.getId()).stream()...
 
 ### 결과
 
+---
+
+## 8. Docker 빌드 속도 최적화 (Layer Caching)
+
+### 문제 상황
+
+소스 코드 변경 후 Docker 이미지를 빌드할 때마다 의존성(Dependencies)을 포함한 전체 빌드 과정이 반복되어, 단순 수정에도 2분 이상의 시간이 소요되었습니다.
+
+### 원인 분석
+
+`Dockerfile`에서 `COPY . .` 명령어가 의존성 설치(`gradle build`)보다 먼저 실행되게 작성되어 있었습니다. 이로 인해 소스 코드가 단 한 줄이라도 변경되면, 이후 레이어인 의존성 다운로드 레이어의 캐시가 모두 무효화(Cache Miss)되어 매번 다시 다운로드받고 있었습니다.
+
+### 해결책
+
+Docker의 **Layer Caching** 메커니즘을 활용하기 위해 `Dockerfile`의 순서를 재구성했습니다.
+
+1. `build.gradle`, `settings.gradle`만 먼저 복사
+2. `gradle dependencies` 실행 (이 레이어는 소스 코드 변경 시에도 캐싱 유지)
+3. 소스 코드 복사 및 빌드 실행
+
+```dockerfile
+# 1. 의존성 정의 파일 복사
+COPY build.gradle settings.gradle ./
+# 2. 의존성 다운로드 (캐싱됨)
+RUN ./gradlew dependencies --no-daemon
+# 3. 소스 복사 및 빌드
+COPY src src
+RUN ./gradlew clean build -x test --no-daemon
+```
+
+### 결과
+
+소스 코드 변경 시 의존성 다운로드 과정이 생략(`CACHED`)되어 빌드 시간이 **약 130초에서 60초대로 50% 이상 단축**되었습니다.
+
 알림 설정을 꺼도 구독 목록에 항목이 유지되며, 스위치 상태만 정상적으로 반영되도록 수정되었습니다.
