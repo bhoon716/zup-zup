@@ -21,11 +21,13 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
-      <main className="container py-8">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">강좌 검색</h1>
-            <p className="text-muted-foreground">
+      <main className="container py-10">
+        <div className="space-y-8">
+          <div className="flex flex-col gap-1.5">
+            <h1 className="text-3xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+              강좌 검색
+            </h1>
+            <p className="text-sm text-muted-foreground font-medium">
               원하는 강좌를 검색하고 구독하여 빈자리 알림을 받아보세요.
             </p>
           </div>
@@ -33,21 +35,24 @@ export default function SearchPage() {
           <CourseSearchBar onSearch={handleSearch} />
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-10 h-10 animate-spin text-primary/60" />
             </div>
           ) : error ? (
-            <div className="text-center py-12">
-              <p className="text-red-600">강좌 검색에 실패했습니다.</p>
+            <div className="text-center py-20 bg-destructive/5 rounded-3xl border border-destructive/10">
+              <p className="text-destructive font-bold">강좌 검색에 실패했습니다.</p>
             </div>
           ) : data ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  총 {data.totalElements}개의 강좌가 검색되었습니다.
-                </p>
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-primary/60" />
+                  <p className="text-[13px] font-bold text-muted-foreground">
+                    총 <span className="text-foreground">{data.length}</span>개의 강좌 검색됨
+                  </p>
+                </div>
               </div>
-              <CourseTable courses={data.content} />
+              <CourseTable courses={data} />
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
