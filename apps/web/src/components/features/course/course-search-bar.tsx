@@ -34,15 +34,29 @@ interface CourseSearchBarProps {
 const CLASSIFICATIONS: CourseClassification[] = ['계열공통', '교양', '교직(대)', '교직', '군사학', '기초필수', '선수', '일반선택', '전공', '전공선택', '전공필수'];
 const GRADING_METHODS: GradingMethod[] = ['Pass/Fail', '기타(법전원)', '상대평가Ⅰ', '상대평가Ⅱ', '상대평가Ⅲ', '절대평가'];
 const LANGUAGES: LectureLanguage[] = ['한국어', '영어', '독일어', '스페인어', '일본어', '중국어', '프랑스어'];
-// const DAYS: CourseDayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']; // Replaced by TimeTableSelector
-// const PERIOD_NUMS = Array.from({ length: 16 }, (_, i) => i.toString()); // Replaced by TimeTableSelector
+const CREDITS = ['0.5', '1', '2', '3'];
+const LECTURE_HOURS = [...Array.from({ length: 9 }, (_, i) => (i + 1).toString()), '10+'];
+
+import { useEffect } from "react";
+import * as courseApi from "@/lib/api/course";
+import type { CourseCategoryResponse } from "@/types/api";
 
 export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [categories, setCategories] = useState<CourseCategoryResponse[]>([]);
   const [condition, setCondition] = useState<CourseSearchCondition>({
     academicYear: '2026',
     semester: 'U211600010'
   });
+
+  useEffect(() => {
+    courseApi.getCourseCategories().then(res => {
+      setCategories(res.data);
+    });
+  }, []);
+
+  const selectedCategory = categories.find(c => c.category === condition.generalCategory);
+  const availableDetails = selectedCategory ? selectedCategory.details : [];
 
   const YEARS = ["2026", "2025", "2024"];
   const SEMESTERS = [
@@ -58,6 +72,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
 
   const handleSearch = () => {
     onSearch(condition);
+    setIsOpen(false);
   };
 
   const handleReset = () => {
@@ -207,8 +222,8 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                       <div className="w-1 h-3 bg-primary/40 rounded-full"></div>
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Academic Info</span>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+                      <div className="space-y-2 col-span-1 md:col-span-2">
                         <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">SUBJECT CODE</label>
                         <Input
                           placeholder="과목코드 (예: CLTR.0031)"
@@ -224,11 +239,49 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                           onValueChange={(val) => setCondition({ ...condition, classification: val === 'all' ? undefined : val as CourseClassification })}
                         >
                           <SelectTrigger className="bg-background/30 border-white/5 h-10 text-[11px] font-medium rounded-xl">
-                            <SelectValue placeholder="이수구분 전체" />
+                            <SelectValue placeholder="이수구분" />
                           </SelectTrigger>
                           <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
                             <SelectItem value="all">전체</SelectItem>
                             {CLASSIFICATIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">CREDITS</label>
+                        <Select 
+                          value={condition.credits || ''} 
+                          onValueChange={(val) => setCondition({ ...condition, credits: val === 'all' ? undefined : val })}
+                        >
+                          <SelectTrigger className="bg-background/30 border-white/5 h-10 text-[11px] font-medium rounded-xl">
+                            <SelectValue placeholder="학점" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
+                            <SelectItem value="all">전체</SelectItem>
+                            {CREDITS.map(c => <SelectItem key={c} value={c}>{c}학점</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">HOURS</label>
+                        <Select 
+                          value={condition.minLectureHours ? '10+' : (condition.lectureHours?.toString() || '')} 
+                          onValueChange={(val) => {
+                            if (val === 'all') {
+                              setCondition({ ...condition, lectureHours: undefined, minLectureHours: undefined });
+                            } else if (val === '10+') {
+                              setCondition({ ...condition, lectureHours: undefined, minLectureHours: 10 });
+                            } else {
+                              setCondition({ ...condition, lectureHours: parseInt(val), minLectureHours: undefined });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="bg-background/30 border-white/5 h-10 text-[11px] font-medium rounded-xl">
+                            <SelectValue placeholder="시수" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
+                            <SelectItem value="all">전체</SelectItem>
+                            {LECTURE_HOURS.map(h => <SelectItem key={h} value={h}>{h === '10+' ? '10시간 이상' : `${h}시간`}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -283,6 +336,53 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Group 3: General Education (Conditional) */}
+                  {condition.classification === '교양' && (
+                    <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1 h-3 bg-primary/60 rounded-full"></div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">General Education Details</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 ml-1">CATEGORY (교양영역)</label>
+                          <Select 
+                            value={condition.generalCategory || ''} 
+                            onValueChange={(val) => setCondition({ 
+                              ...condition, 
+                              generalCategory: val === 'all' ? undefined : val,
+                              generalDetail: undefined 
+                            })}
+                          >
+                            <SelectTrigger className="bg-background/30 border-primary/10 h-10 text-[11px] font-medium rounded-xl">
+                              <SelectValue placeholder="교양영역 전체" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
+                              <SelectItem value="all">전체</SelectItem>
+                              {categories.map(c => <SelectItem key={c.category} value={c.category}>{c.category}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 ml-1">DETAIL (상세영역)</label>
+                          <Select 
+                            value={condition.generalDetail || ''} 
+                            onValueChange={(val) => setCondition({ ...condition, generalDetail: val === 'all' ? undefined : val })}
+                            disabled={!condition.generalCategory}
+                          >
+                            <SelectTrigger className="bg-background/30 border-primary/10 h-10 text-[11px] font-medium rounded-xl disabled:opacity-50">
+                              <SelectValue placeholder={condition.generalCategory ? "상세영역 선택" : "영역을 먼저 선택하세요"} />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
+                              <SelectItem value="all">전체</SelectItem>
+                              {availableDetails.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </CollapsibleContent>

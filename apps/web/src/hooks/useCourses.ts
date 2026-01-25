@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import * as courseApi from '@/lib/api/course';
-import type { CourseSearchCondition, Course } from '@/types/api';
+import type { CourseSearchCondition, Course, PageResponse } from '@/types/api';
 
 export const useCourses = (condition: CourseSearchCondition) => {
   return useQuery({
@@ -11,7 +11,7 @@ export const useCourses = (condition: CourseSearchCondition) => {
       // API 전환기 호환성 및 안정성을 위해 데이터 정규화 (배경: Page 객체 vs List 객체)
       if (Array.isArray(rawData)) return rawData;
       if (rawData && typeof rawData === 'object' && 'content' in rawData) {
-        return (rawData as any).content as Course[];
+        return (rawData as PageResponse<Course>).content;
       }
       return [];
     },

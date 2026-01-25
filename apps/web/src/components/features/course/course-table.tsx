@@ -11,8 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { useSubscribe, useSubscriptions } from "@/hooks/useSubscriptions";
 import type { Course } from "@/types/api";
-import { Check, Plus } from "lucide-react";
-import Link from "next/link";
+import { Check } from "lucide-react";
+import { CourseDetailDialog } from "./course-detail-dialog";
+import { useState } from "react";
 
 interface CourseTableProps {
   courses: Course[];
@@ -21,6 +22,8 @@ interface CourseTableProps {
 export function CourseTable({ courses }: CourseTableProps) {
   const { data: subscriptions } = useSubscriptions();
   const { mutate: subscribe, isPending } = useSubscribe();
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const isSubscribed = (courseKey: string) => {
     return subscriptions?.some((sub) => sub.courseKey === courseKey);
@@ -30,7 +33,13 @@ export function CourseTable({ courses }: CourseTableProps) {
     subscribe({ courseKey });
   };
 
+  const handleCourseClick = (course: Course) => {
+    setSelectedCourse(course);
+    setIsDialogOpen(true);
+  };
+
   return (
+    <>
     <div className="border rounded-xl overflow-hidden shadow-sm bg-card/30 backdrop-blur-md">
       <div className="relative overflow-auto max-h-[650px] scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
         <Table>
@@ -60,18 +69,21 @@ export function CourseTable({ courses }: CourseTableProps) {
                 const isAvailable = (course.available ?? 0) > 0;
 
                 return (
-                  <TableRow key={course.courseKey} className="group hover:bg-primary/5 transition-colors border-white/5">
+                  <TableRow 
+                    key={course.courseKey} 
+                    className="group hover:bg-primary/5 transition-colors border-white/5 cursor-pointer"
+                    onClick={() => handleCourseClick(course)}
+                  >
                     <TableCell className="font-mono text-[10px] text-muted-foreground/60 transition-colors group-hover:text-primary">
                       {course.subjectCode}
                     </TableCell>
                     <TableCell className="font-semibold">
                       <div className="flex flex-col gap-0.5">
-                        <Link
-                          href={`/courses/${encodeURIComponent(course.courseKey)}`}
+                        <span
                           className="text-foreground hover:text-primary transition-colors truncate max-w-[200px]"
                         >
                           {course.name}
-                        </Link>
+                        </span>
                         <span className="text-[10px] text-muted-foreground/50 font-medium group-hover:text-muted-foreground transition-colors truncate max-w-[180px]">
                           {course.department}
                         </span>
@@ -101,7 +113,7 @@ export function CourseTable({ courses }: CourseTableProps) {
                         {isAvailable ? "Available" : "Full"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                       {subscribed ? (
                         <div className="flex items-center justify-center gap-1.5 py-1 text-primary/70 font-bold text-[10px] uppercase tracking-wider bg-primary/5 rounded-lg border border-primary/10">
                           <Check className="w-3 h-3" />
@@ -126,5 +138,12 @@ export function CourseTable({ courses }: CourseTableProps) {
         </Table>
       </div>
     </div>
+    
+    <CourseDetailDialog 
+        course={selectedCourse} 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen} 
+    />
+    </>
   );
 }

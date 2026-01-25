@@ -1,5 +1,5 @@
 import api from './index';
-import type { CommonResponse, PageResponse, Course, CourseSearchCondition, CourseSeatHistory } from '@/types/api';
+import type { CommonResponse, Course, CourseSearchCondition, CourseSeatHistory, CourseCategoryResponse } from '@/types/api';
 
 export const searchCourses = async (
   condition: CourseSearchCondition
@@ -17,5 +17,10 @@ export const getCourseHistory = async (courseKey: string): Promise<CommonRespons
 
 export const getCourseDetail = async (courseKey: string): Promise<CommonResponse<Course>> => {
   const { data } = await api.get(`/api/v1/courses/${encodeURIComponent(courseKey)}`);
+  return data;
+};
+
+export const getCourseCategories = async (): Promise<CommonResponse<CourseCategoryResponse[]>> => {
+  const { data } = await api.get('/api/v1/courses/categories');
   return data;
 };

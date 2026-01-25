@@ -59,6 +59,14 @@ export interface Course {
   generalCategoryByYear?: string;
   courseDirection?: string;
   classDuration?: string;
+  // added fields
+  generalCategory?: string;
+  generalDetail?: string;
+  accreditation?: string;
+  courseStatus?: string;
+  classroom?: string;
+  disclosure?: string;
+  disclosureReason?: string;
   schedules?: {
     dayOfWeek: CourseDayOfWeek;
     period: ClassPeriod;
@@ -84,6 +92,16 @@ export interface CourseSearchCondition {
   dayOfWeek?: CourseDayOfWeek;
   period?: ClassPeriod;
   selectedSchedules?: ScheduleCondition[];
+  credits?: string;
+  lectureHours?: number;
+  minLectureHours?: number;
+  generalCategory?: string;
+  generalDetail?: string;
+}
+
+export interface CourseCategoryResponse {
+  category: string;
+  details: string[];
 }
 
 export interface CourseSeatHistory {

@@ -7,7 +7,6 @@ import { CourseTableSkeleton } from "@/components/features/course/course-table-s
 import { useCourses } from "@/hooks/useCourses";
 import { useState, useCallback } from "react";
 import type { CourseSearchCondition } from "@/types/api";
-import { Loader2 } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
