@@ -3,6 +3,7 @@
 import { Header } from "@/components/layout/header";
 import { CourseSearchBar } from "@/components/features/course/course-search-bar";
 import { CourseTable } from "@/components/features/course/course-table";
+import { CourseTableSkeleton } from "@/components/features/course/course-table-skeleton";
 import { useCourses } from "@/hooks/useCourses";
 import { useState, useCallback } from "react";
 import type { CourseSearchCondition } from "@/types/api";
@@ -32,18 +33,16 @@ export default function SearchPage() {
             </p>
           </div>
 
-          <CourseSearchBar onSearch={handleSearch} />
+          <CourseSearchBar onSearch={handleSearch} isLoading={isLoading} />
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-10 h-10 animate-spin text-primary/60" />
-            </div>
+            <CourseTableSkeleton />
           ) : error ? (
-            <div className="text-center py-20 bg-destructive/5 rounded-3xl border border-destructive/10">
+            <div className="text-center py-20 bg-destructive/5 rounded-3xl border border-destructive/10 animate-in fade-in zoom-in duration-300">
               <p className="text-destructive font-bold">강좌 검색에 실패했습니다.</p>
             </div>
           ) : data ? (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-primary/60" />
@@ -55,7 +54,7 @@ export default function SearchPage() {
               <CourseTable courses={data} />
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-muted-foreground animate-in fade-in duration-300">
               검색어를 입력하여 강좌를 검색하세요.
             </div>
           )}

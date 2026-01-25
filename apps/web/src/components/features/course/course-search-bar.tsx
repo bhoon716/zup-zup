@@ -28,6 +28,7 @@ import type {
 
 interface CourseSearchBarProps {
   onSearch: (condition: CourseSearchCondition) => void;
+  isLoading?: boolean;
 }
 
 const CLASSIFICATIONS: CourseClassification[] = ['계열공통', '교양', '교직(대)', '교직', '군사학', '기초필수', '선수', '일반선택', '전공', '전공선택', '전공필수'];
@@ -36,18 +37,18 @@ const LANGUAGES: LectureLanguage[] = ['한국어', '영어', '독일어', '스�
 // const DAYS: CourseDayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일']; // Replaced by TimeTableSelector
 // const PERIOD_NUMS = Array.from({ length: 16 }, (_, i) => i.toString()); // Replaced by TimeTableSelector
 
-export function CourseSearchBar({ onSearch }: CourseSearchBarProps) {
+export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [condition, setCondition] = useState<CourseSearchCondition>({
     academicYear: '2026',
-    semester: '1'
+    semester: 'U211600010'
   });
 
   const YEARS = ["2026", "2025", "2024"];
   const SEMESTERS = [
-    { label: "1학기", value: "1", short: "1학기" },
+    { label: "1학기", value: "U211600010", short: "1학기" },
     { label: "계절학기(하기)", value: "U010200021", short: "계절(하)" },
-    { label: "2학기", value: "2", short: "2학기" },
+    { label: "2학기", value: "U211600020", short: "2학기" },
     { label: "계절학기(동기)", value: "U010200022", short: "계절(동)" },
     { label: "특별학기(여름)", value: "S1", short: "특(여)" },
     { label: "특별학기(겨울)", value: "S2", short: "특(겨)" },
@@ -62,11 +63,11 @@ export function CourseSearchBar({ onSearch }: CourseSearchBarProps) {
   const handleReset = () => {
     setCondition({
       academicYear: '2026',
-      semester: '1'
+      semester: 'U211600010'
     });
     onSearch({
       academicYear: '2026',
-      semester: '1'
+      semester: 'U211600010'
     });
   };
 
@@ -130,7 +131,7 @@ export function CourseSearchBar({ onSearch }: CourseSearchBarProps) {
                 />
               </div>
 
-              <div className="lg:col-span-4">
+              <div className="lg:col-span-3">
                 <Input
                   type="text"
                   placeholder="교수명"
@@ -158,12 +159,17 @@ export function CourseSearchBar({ onSearch }: CourseSearchBarProps) {
               </div>
 
               {/* Action Buttons (Integrated) - Compact */}
-              <div className="lg:col-span-1 flex items-center gap-1.5">
+              <div className="lg:col-span-2 flex items-center gap-1.5">
                 <Button 
                   onClick={handleSearch} 
-                  className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl transition-all shadow-sm"
+                  disabled={isLoading}
+                  className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl transition-all shadow-lg shadow-primary/20 disabled:opacity-70"
                 >
-                  <Search className="w-4 h-4" />
+                  {isLoading ? (
+                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
                 </Button>
                 <Button 
                   variant="outline" 
