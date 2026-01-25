@@ -196,4 +196,35 @@ RUN ./gradlew clean build -x test --no-daemon
 
 소스 코드 변경 시 의존성 다운로드 과정이 생략(`CACHED`)되어 빌드 시간이 **약 130초에서 60초대로 50% 이상 단축**되었습니다.
 
-알림 설정을 꺼도 구독 목록에 항목이 유지되며, 스위치 상태만 정상적으로 반영되도록 수정되었습니다.
+---
+
+## 9. CourseKey 데이터 절삭(Truncation) 및 크롤러 초기화 이슈
+
+### 문제 상황 1: 데이터 절삭 (Data Truncation)
+
+기존 `과목코드-분반` 형식의 키를 `연도-학기-과목코드-분반`의 Composite Key로 변경하는 과정에서, DB 컬럼 길이가 `varchar(20)`으로 고정되어 있어 `Data truncation: Data too long` 에러가 발생하며 데이터 적재에 실패했습니다.
+
+### 해결책
+
+- `Course`, `Subscription`, `NotificationHistory` 등 `courseKey`를 사용하는 모든 엔티티의 컬럼 길이를 `varchar(64)`로 확장했습니다.
+- Docker 이미지가 캐시된 레이어를 사용하여 변경 사항이 반영되지 않는 문제를 해결하기 위해 `docker-compose build --no-cache`를 수행했습니다.
+
+### 문제 상황 2: 크롤러 초기 구동 지연
+
+서버가 재시작된 직후, 스케줄러(`CourseScheduler`)가 5분 주기로 설정되어 있어 첫 5분간 DB가 비어있는 상태가 지속되었습니다. 사용자는 이를 "검색 기능 고장"으로 인식했습니다.
+
+### 해결책
+
+스프링 부트의 `ApplicationReadyEvent`를 활용하여, 애플리케이션 시작과 동시에 크롤러가 즉시 1회 실행되도록 로직을 추가했습니다.
+
+```java
+@EventListener(ApplicationReadyEvent.class)
+public void onApplicationReady() {
+    log.info("Application ready. Triggering initial course crawling...");
+    runCrawler();
+}
+```
+
+### 결과
+
+서버 시작 즉시 최신 강좌 데이터가 적재되어 검색 기능의 가용성을 100% 확보했습니다.

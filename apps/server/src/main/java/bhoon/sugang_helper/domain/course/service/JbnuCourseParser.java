@@ -85,7 +85,7 @@ public class JbnuCourseParser {
         String disclosureReason = getColValue(row, "NOPUBCRESNNM");
 
         Course course = Course.builder()
-                .courseKey(sbjtCd + "-" + sbjtNm + "-" + (profNm != null ? profNm : ""))
+                .courseKey(year + "-" + semester + "-" + sbjtCd + "-" + clss)
                 .subjectCode(sbjtCd)
                 .classNumber(clss)
                 .name(sbjtNm)

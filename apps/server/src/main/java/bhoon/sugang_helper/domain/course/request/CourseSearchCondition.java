@@ -10,7 +10,7 @@ import lombok.ToString;
 
 @Getter
 @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PUBLIC)
 @ToString
 @Schema(description = "과목 검색 조건 DTO")
 public class CourseSearchCondition {

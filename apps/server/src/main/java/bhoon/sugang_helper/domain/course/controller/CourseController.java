@@ -57,7 +57,7 @@ public class CourseController {
   })
   @GetMapping
   public ResponseEntity<CommonResponse<List<CourseResponse>>> searchCourses(
-      CourseSearchCondition condition) {
+      @org.springframework.web.bind.annotation.ModelAttribute CourseSearchCondition condition) {
     List<CourseResponse> courses = courseService.searchCourses(condition);
     return CommonResponse.ok(courses, "과목 검색 결과입니다.");
   }

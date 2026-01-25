@@ -29,7 +29,7 @@ public class Subscription extends BaseTimeEntity {
     @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 64)
     private String courseKey;
 
     @Column(nullable = false)

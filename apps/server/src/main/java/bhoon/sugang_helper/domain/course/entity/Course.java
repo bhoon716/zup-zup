@@ -30,8 +30,8 @@ import lombok.NoArgsConstructor;
 public class Course extends BaseTimeEntity {
 
     @Id
-    @Column(length = 20)
-    private String courseKey; // '과목코드-분반'
+    @Column(length = 64)
+    private String courseKey; // 'YYYY-Semester-Code-Class'
 
     @Column(nullable = false, length = 20)
     private String subjectCode; // 과목코드
