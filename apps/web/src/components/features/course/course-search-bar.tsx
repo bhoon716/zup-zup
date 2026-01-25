@@ -37,26 +37,20 @@ const LANGUAGES: LectureLanguage[] = ['한국어', '영어', '독일어', '스�
 const CREDITS = ['0.5', '1', '2', '3'];
 const LECTURE_HOURS = [...Array.from({ length: 9 }, (_, i) => (i + 1).toString()), '10+'];
 
-import { useEffect } from "react";
-import * as courseApi from "@/lib/api/course";
-import type { CourseCategoryResponse } from "@/types/api";
+const GE_CATEGORIES: Record<string, string[]> = {
+  '기초': ['공통기초', '이공계기초'],
+  '일반': ['경력개발', '사회과학', '수리/정보', '언어/문학/문화', '역사/철학', '예술/체육', '자연과학'],
+  '핵심': ['과학적사고의기반', '사회이해의기반', '인문적사고의기반']
+};
 
 export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [categories, setCategories] = useState<CourseCategoryResponse[]>([]);
   const [condition, setCondition] = useState<CourseSearchCondition>({
     academicYear: '2026',
     semester: 'U211600010'
   });
 
-  useEffect(() => {
-    courseApi.getCourseCategories().then(res => {
-      setCategories(res.data);
-    });
-  }, []);
-
-  const selectedCategory = categories.find(c => c.category === condition.generalCategory);
-  const availableDetails = selectedCategory ? selectedCategory.details : [];
+  const availableDetails = condition.generalCategory ? GE_CATEGORIES[condition.generalCategory] || [] : [];
 
   const YEARS = ["2026", "2025", "2024"];
   const SEMESTERS = [
@@ -360,8 +354,8 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                             </SelectTrigger>
                             <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
                               <SelectItem value="all">전체</SelectItem>
-                              {categories.map(c => <SelectItem key={c.category} value={c.category}>{c.category}</SelectItem>)}
-                            </SelectContent>
+                            {Object.keys(GE_CATEGORIES).map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                          </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
