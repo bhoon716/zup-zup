@@ -8,6 +8,7 @@ import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
 import bhoon.sugang_helper.domain.course.request.ScheduleCondition;
+import bhoon.sugang_helper.domain.course.response.CourseCategoryResponse;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -43,6 +44,11 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                         isAvailable(condition.getIsAvailableOnly()),
                         eqDayOfWeek(condition.getDayOfWeek()),
                         eqPeriod(condition.getPeriod()),
+                        eqCredits(condition.getCredits()),
+                        eqLectureHours(condition.getLectureHours()),
+                        goeMinLectureHours(condition.getMinLectureHours()),
+                        eqGeneralCategory(condition.getGeneralCategory()),
+                        eqGeneralDetail(condition.getGeneralDetail()),
                         matchSelectedSchedules(condition.getSelectedSchedules()))
                 .orderBy(course.courseKey.asc())
                 .fetch();
@@ -143,5 +149,48 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
             return null;
         }
         return course.capacity.gt(course.current);
+    }
+
+    private BooleanExpression eqCredits(String credits) {
+        return StringUtils.hasText(credits) ? course.credits.eq(credits) : null;
+    }
+
+    private BooleanExpression eqLectureHours(Integer lectureHours) {
+        return lectureHours != null ? course.lectureHours.eq(lectureHours) : null;
+    }
+
+    private BooleanExpression goeMinLectureHours(Integer minLectureHours) {
+        return minLectureHours != null ? course.lectureHours.goe(minLectureHours) : null;
+    }
+
+    private BooleanExpression eqGeneralCategory(String generalCategory) {
+        return StringUtils.hasText(generalCategory) ? course.generalCategory.eq(generalCategory) : null;
+    }
+
+    private BooleanExpression eqGeneralDetail(String generalDetail) {
+        return StringUtils.hasText(generalDetail) ? course.generalDetail.eq(generalDetail) : null;
+    }
+
+    @Override
+    public List<CourseCategoryResponse> getGeneralCategories() {
+        List<String> categories = queryFactory
+                .select(course.generalCategory)
+                .from(course)
+                .where(course.generalCategory.isNotNull())
+                .distinct()
+                .fetch();
+
+        return categories.stream()
+                .map(category -> {
+                    List<String> details = queryFactory
+                            .select(course.generalDetail)
+                            .from(course)
+                            .where(course.generalCategory.eq(category)
+                                    .and(course.generalDetail.isNotNull()))
+                            .distinct()
+                            .fetch();
+                    return new CourseCategoryResponse(category, details);
+                })
+                .collect(java.util.stream.Collectors.toList());
     }
 }

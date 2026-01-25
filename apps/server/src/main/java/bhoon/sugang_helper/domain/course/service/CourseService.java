@@ -27,6 +27,10 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
 
+    public List<bhoon.sugang_helper.domain.course.response.CourseCategoryResponse> getGeneralCategories() {
+        return courseRepository.getGeneralCategories();
+    }
+
     public List<CourseSeatHistoryResponse> getCourseHistory(String courseKey) {
         return courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDesc(courseKey)
                 .stream()

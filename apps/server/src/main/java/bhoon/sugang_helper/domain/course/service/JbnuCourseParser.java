@@ -71,6 +71,19 @@ public class JbnuCourseParser {
 
         String generalCategory = getColValue(row, "FLDFGNM");
         String generalDetail = getColValue(row, "FLDDETAFGNM");
+        String categoryByYear = getColValue(row, "FLDCONVINFO");
+
+        if (categoryByYear != null && categoryByYear.contains(",")) {
+            String[] parts = categoryByYear.split(",");
+            if (parts.length >= 2) {
+                if (generalCategory == null || generalCategory.isBlank()) {
+                    generalCategory = parts[0].trim();
+                }
+                if (generalDetail == null || generalDetail.isBlank()) {
+                    generalDetail = parts[1].trim();
+                }
+            }
+        }
         String accreditationStr = getColValue(row, "VLDFGNM");
         String statusStr = getColValue(row, "OPENLECTFGNM");
         String classroom = getColValue(row, "VILROOMNOCTNT");

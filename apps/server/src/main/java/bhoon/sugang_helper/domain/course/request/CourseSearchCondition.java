@@ -53,11 +53,27 @@ public class CourseSearchCondition {
     @Schema(description = "선택된 시간표 슬롯 리스트")
     private java.util.List<ScheduleCondition> selectedSchedules;
 
+    @Schema(description = "학점", example = "3")
+    private String credits;
+
+    @Schema(description = "강의시간(시수)", example = "3")
+    private Integer lectureHours;
+
+    @Schema(description = "최소 강의시간", example = "10")
+    private Integer minLectureHours;
+
+    @Schema(description = "교양영역구분", example = "기초")
+    private String generalCategory;
+
+    @Schema(description = "교양영역상세구분", example = "공통기초")
+    private String generalDetail;
+
     @Builder
     public CourseSearchCondition(String name, String professor, String subjectCode, String academicYear,
             String semester, String classification,
             String department, String gradingMethod, String lectureLanguage,
-            Boolean isAvailableOnly, String dayOfWeek, String period,
+            Boolean isAvailableOnly, String dayOfWeek, String period, String credits, Integer lectureHours,
+            Integer minLectureHours, String generalCategory, String generalDetail,
             java.util.List<ScheduleCondition> selectedSchedules) {
         this.name = name;
         this.professor = professor;
@@ -71,6 +87,11 @@ public class CourseSearchCondition {
         this.isAvailableOnly = isAvailableOnly;
         this.dayOfWeek = dayOfWeek;
         this.period = period;
+        this.credits = credits;
+        this.lectureHours = lectureHours;
+        this.minLectureHours = minLectureHours;
+        this.generalCategory = generalCategory;
+        this.generalDetail = generalDetail;
         this.selectedSchedules = selectedSchedules;
     }
 }
