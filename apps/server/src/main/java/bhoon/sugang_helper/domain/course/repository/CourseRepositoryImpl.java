@@ -6,14 +6,12 @@ import bhoon.sugang_helper.domain.course.enums.CourseClassification;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
-import bhoon.sugang_helper.domain.course.enums.LectureType;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
+import bhoon.sugang_helper.domain.course.request.ScheduleCondition;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -29,33 +27,10 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     @Override
-    public Page<Course> searchCourses(CourseSearchCondition condition, Pageable pageable) {
-        List<Course> content = queryFactory
+    public List<Course> searchCourses(CourseSearchCondition condition) {
+        return queryFactory
                 .selectFrom(course)
                 .where(
-                        containsKeyword(condition.getKeyword()),
-                        eqAcademicYear(condition.getAcademicYear()),
-                        eqSemester(condition.getSemester()),
-                        eqClassification(condition.getClassification()),
-                        containsDepartment(condition.getDepartment()),
-                        eqGradingMethod(condition.getGradingMethod()),
-                        eqLectureType(condition.getLectureType()),
-                        eqLectureLanguage(condition.getLectureLanguage()),
-                        isAvailable(condition.getIsAvailableOnly()),
-                        eqDayOfWeek(condition.getDayOfWeek()),
-                        eqPeriod(condition.getPeriod()))
-                .orderBy(course.courseKey.asc())
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .fetch();
-
-        long total = queryFactory
-                .selectFrom(course)
-                .where(
-                        containsKeyword(condition.getKeyword()), // Use global keyword search here too or specific
-                                                                 // fields? The previous code mixed them. Let's use
-                                                                 // unified approach or specific if condition has them.
-                        // Assuming frontend sends EITHER keyword OR specific fields.
                         containsName(condition.getName()),
                         containsProfessor(condition.getProfessor()),
                         eqSubjectCode(condition.getSubjectCode()),
@@ -64,23 +39,38 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                         eqClassification(condition.getClassification()),
                         containsDepartment(condition.getDepartment()),
                         eqGradingMethod(condition.getGradingMethod()),
-                        eqLectureType(condition.getLectureType()),
                         eqLectureLanguage(condition.getLectureLanguage()),
                         isAvailable(condition.getIsAvailableOnly()),
                         eqDayOfWeek(condition.getDayOfWeek()),
-                        eqPeriod(condition.getPeriod()))
-                .fetch().size(); // 대량 데이터 시 count 쿼리 최적화 필요하겠으나 MVP 수준에선 fetch().size()로 시작
-
-        return new PageImpl<>(content, pageable, total);
+                        eqPeriod(condition.getPeriod()),
+                        matchSelectedSchedules(condition.getSelectedSchedules()))
+                .orderBy(course.courseKey.asc())
+                .fetch();
     }
 
-    private BooleanExpression containsKeyword(String keyword) {
-        if (!StringUtils.hasText(keyword)) {
+    // ... skipping other methods for brevity, keeping only the logic for subset
+    // matching
+
+    private BooleanExpression matchSelectedSchedules(List<ScheduleCondition> selectedSchedules) {
+        if (selectedSchedules == null || selectedSchedules.isEmpty()) {
             return null;
         }
-        return course.name.contains(keyword)
-                .or(course.professor.contains(keyword))
-                .or(course.subjectCode.contains(keyword));
+
+        // 과목의 모든 수업시간(dayOfWeek, period)이 선택된 리스트 내에 있어야 함 (Subset Matching)
+        // 로직: "해당 과목의 수업 시간 중, 선택된 시간대에 포함되지 않는 시간이 존재하지 않아야 함"
+        bhoon.sugang_helper.domain.course.entity.QCourseSchedule schedule = bhoon.sugang_helper.domain.course.entity.QCourseSchedule.courseSchedule;
+
+        com.querydsl.core.BooleanBuilder selectedSlots = new com.querydsl.core.BooleanBuilder();
+        for (ScheduleCondition cond : selectedSchedules) {
+            selectedSlots.or(schedule.dayOfWeek.eq(cond.getDayOfWeek())
+                    .and(schedule.period.eq(cond.getPeriod())));
+        }
+
+        return JPAExpressions.selectOne()
+                .from(schedule)
+                .where(schedule.course.eq(course)
+                        .and(selectedSlots.not()))
+                .notExists();
     }
 
     private BooleanExpression containsName(String name) {
@@ -119,13 +109,6 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
             return null;
         GradingMethod enumValue = GradingMethod.from(gradingMethod);
         return enumValue != null ? course.gradingMethod.eq(enumValue) : null;
-    }
-
-    private BooleanExpression eqLectureType(String lectureType) {
-        if (!StringUtils.hasText(lectureType))
-            return null;
-        LectureType enumValue = LectureType.from(lectureType);
-        return enumValue != null ? course.lectureType.eq(enumValue) : null;
     }
 
     private BooleanExpression eqLectureLanguage(String lectureLanguage) {
