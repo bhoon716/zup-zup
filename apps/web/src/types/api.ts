@@ -1,5 +1,5 @@
 // 공통 응답 타입
-export interface CommonResponse<T = any> {
+export interface CommonResponse<T = unknown> {
   code: string;
   message: string;
   data: T;
