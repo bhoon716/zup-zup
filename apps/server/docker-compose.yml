@@ -24,19 +24,31 @@ services:
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      OAUTH2_REDIRECT_URI: ${OAUTH2_REDIRECT_URI_SUCCESS}
-      ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      OAUTH2_REDIRECT_URI_SUCCESS: ${OAUTH2_REDIRECT_URI_SUCCESS}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       JBNU_API_URL: ${JBNU_API_URL}
-      FIREBASE_CONFIG_PATH: ${FIREBASE_CONFIG_PATH}
+      FIREBASE_CONFIG_PATH: /app/resources/firebase-key.json
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_AUTH: ${MAIL_AUTH}
+      MAIL_STARTTLS_ENABLE: ${MAIL_STARTTLS_ENABLE}
+      MAIL_FROM: ${MAIL_FROM}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      WEBPUSH_PUBLIC_KEY: ${WEBPUSH_PUBLIC_KEY}
+      WEBPUSH_PRIVATE_KEY: ${WEBPUSH_PRIVATE_KEY}
+      WEBPUSH_SUBJECT: ${WEBPUSH_SUBJECT}
+      SUBSCRIPTION_MAX_LIMIT: ${SUBSCRIPTION_MAX_LIMIT}
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
     volumes:
-      - ${FIREBASE_KEY_PATH}:/app/resources/firebase-key.json
+      - ${FIREBASE_CONFIG_PATH}:/app/resources/firebase-key.json
     networks:
-      - app_network
+      - sugang-helper-network-server
 
   db:
     image: ${DB_IMAGE}
@@ -51,7 +63,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     networks:
-      - app_network
+      - sugang-helper-network-server
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -68,7 +80,7 @@ services:
     ports:
       - "${REDIS_PORT_HOST}:${REDIS_PORT_CONTAINER}"
     networks:
-      - app_network
+      - sugang-helper-network-server
 
   prometheus:
     image: prom/prometheus:latest
@@ -79,7 +91,7 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
-      - app_network
+      - sugang-helper-network-server
 
   grafana:
     image: grafana/grafana:latest
@@ -91,11 +103,12 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
     networks:
-      - app_network
+      - sugang-helper-network-server
+
 
 networks:
-  app_network:
-    name: jbnu-sugang-helper_app_network
+  sugang-helper-network-server:
+    name: sugang-helper-network-server
     driver: bridge
 
 volumes:
