@@ -76,16 +76,29 @@ export interface User {
 // 알림 관련
 export interface NotificationHistory {
   id: number;
+  type: 'FCM' | 'EMAIL' | 'WEB_PUSH';
   courseKey: string;
+  courseName: string;
   title: string;
   message: string;
+  isRead: boolean;
   createdAt: string;
 }
 
 // 기기 등록 관련
+export interface UserDevice {
+  id: number;
+  deviceType: 'WEB' | 'ANDROID' | 'IOS';
+  fcmToken?: string;
+  webPushEndpoint?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface UserDeviceRequest {
-  type: 'FCM' | 'WEB';
-  token: string;
-  p256dh?: string;
-  auth?: string;
+  deviceType: 'WEB' | 'ANDROID' | 'IOS';
+  fcmToken?: string;
+  webPushEndpoint?: string;
+  webPushP256dh?: string;
+  webPushAuth?: string;
 }
