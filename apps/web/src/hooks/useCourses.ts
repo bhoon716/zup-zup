@@ -9,7 +9,7 @@ export const useCourses = (condition: CourseSearchCondition, page = 0, size = 20
       const response = await courseApi.searchCourses(condition, page, size);
       return response.data;
     },
-    enabled: !!(condition.name || condition.professor || condition.subjectCode),
+    // enabled: true (always fetch)
   });
 };
 

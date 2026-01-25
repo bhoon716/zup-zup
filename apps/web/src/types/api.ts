@@ -28,23 +28,60 @@ export interface PageResponse<T> {
 }
 
 // 강좌 관련
+// Enum-like string unions matching backend
+export type CourseClassification = '계열공통' | '교양' | '교직(대)' | '교직' | '군사학' | '기초필수' | '선수' | '일반선택' | '전공' | '전공선택' | '전공필수';
+export type GradingMethod = 'Pass/Fail' | '기타(법전원)' | '상대평가Ⅰ' | '상대평가Ⅱ' | '상대평가Ⅲ' | '절대평가';
+export type LectureType = '대면중심수업(70%미만 온라인)' | '비대면수업' | '혼합수업';
+export type LectureLanguage = '한국어' | '영어' | '독일어' | '스페인어' | '일본어' | '중국어' | '프랑스어';
+export type CourseDayOfWeek = '월' | '화' | '수' | '목' | '금' | '토' | '일';
+export type ClassPeriod = '0-A' | '0-B' | '1-A' | '1-B' | '2-A' | '2-B' | '3-A' | '3-B' | '4-A' | '4-B' | '5-A' | '5-B' | '6-A' | '6-B' | '7-A' | '7-B' | '8-A' | '8-B' | '9-A' | '9-B' | '10-A' | '10-B' | '11-A' | '11-B' | '12-A' | '12-B' | '13-A' | '13-B' | '14-A' | '14-B' | '15-A' | '15-B';
+
 export interface Course {
   courseKey: string;
   subjectCode: string;
   name: string;
   classNumber: string;
-  professorName: string;
-  targetGrade: string;
-  totalSeats: number;
-  currentSeats: number;
-  availableSeats: number;
-  status: 'AVAILABLE' | 'FULL';
+  professor?: string;
+  capacity?: number;
+  current?: number;
+  available?: number;
+  targetGrade?: string;
+  academicYear?: string;
+  semester?: string;
+  classification?: CourseClassification;
+  department?: string;
+  gradingMethod?: GradingMethod;
+  lectureType?: LectureType;
+  lectureLanguage?: LectureLanguage;
+  classTime?: string;
+  credits?: string;
+  // New fields
+  lectureHours?: number;
+  hasSyllabus?: boolean;
+  generalCategoryByYear?: string;
+  courseDirection?: string;
+  classDuration?: string;
+  schedules?: {
+    dayOfWeek: CourseDayOfWeek;
+    period: ClassPeriod;
+  }[];
 }
 
 export interface CourseSearchCondition {
+  academicYear?: string;
+  semester?: string;
   name?: string;
   professor?: string;
+  classification?: CourseClassification;
+  department?: string;
+  gradingMethod?: GradingMethod;
   subjectCode?: string;
+  lectureType?: LectureType;
+  lectureLanguage?: LectureLanguage;
+  isAvailableOnly?: boolean;
+  keyword?: string;
+  dayOfWeek?: CourseDayOfWeek;
+  period?: ClassPeriod;
 }
 
 export interface CourseSeatHistory {
