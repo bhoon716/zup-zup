@@ -51,14 +51,40 @@ graph TD
 - **문제**: 알림 발송의 비동기 특성으로 인해 통합 테스트 검증 시점이 불확실해지는 비결정성 문제.
 - **해결**: 테스트 전용 `SyncTaskExecutor` 설정을 도입하여 비동기 로직을 동기적으로 검증함으로써 **테스트 신뢰도 100% 달성**.
 
+### 4. DB 초기화 시 세션 자동 정리 (401 mapping)
+
+- **문제**: DB 초기화 후 기존 세션 사용자의 요청이 404로 반환되어 프론트엔드에서 로그아웃 처리가 안 되는 현상.
+- **해결**: 유저 미발견 시 **401(Unauthorized)**을 반환하도록 표준화하여 프론트엔드의 자동 로그아웃 및 보안 신뢰성 강화.
+
 ---
 
 ## ✨ 핵심 기능 (Core Features)
 
-- **정밀 모니터링**: 5분 단위 자동 크롤링 및 Jsoup 기반의 효율적인 XML 데이터 파싱.
+- **정밀 모니터링**: 5분 단위 자동 크롤링 및 Jsoup 기반의 효율적인 XML 데이터 파싱. (학년 정보 포함)
+- **OpenAPI v0 정합성**: 모든 API 응답과 에러 코드가 자체 정의된 OpenAPI v0 규격을 완전히 준수합니다.
 - **스마트 알림**: FCM(앱), Web Push(브라우저), Email(SMTP)을 통한 즉각적인 정보 알림.
 - **동적 구독 관리**: 학수번호/과목코드 기반의 검색 및 실시간 구독/취소 기능.
-- **보안 인증**: Google OAuth2 로그인 및 JWT(Refresh Token Rotation) 기반의 안전한 세션 관리.
+- **보안 인증**: Google OAuth2 로그인 및 JWT(Refresh Token Rotation) 기반의 안전한 세션 관리. (401 Unauthorized 기반 자동 세션 정리 지원)
+
+---
+
+## 📂 프로젝트 구조 (Project Structure)
+
+```text
+src/main/java/bhoon/sugang_helper/
+├── common/             # 공통 유틸리티, 예외 처리, 보안 설정
+│   ├── config/         # Spring Configuration (Security, Redis, Swagger)
+│   ├── error/          # 전역 에러 핸들러 및 ErrorCode 정의
+│   ├── response/       # 공통 응답 포맷 (CommonResponse)
+│   └── util/           # 보안 및 기타 유틸리티
+├── domain/             # 도메인 기반 비즈니스 로직
+│   ├── auth/           # OAuth2 인증 및 토큰 관리
+│   ├── course/         # 강좌 정보 조회 및 크롤링 엔진
+│   ├── notification/   # 알림 발송 멀티 채널 로직
+│   ├── subscription/   # 유저 강좌 구독 관리
+│   └── user/           # 사용자 프로필 및 기기(Device) 관리
+└── SugangHelperApplication.java
+```
 
 ---
 
