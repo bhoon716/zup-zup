@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useSubscribe, useSubscriptions } from "@/hooks/useSubscriptions";
 import type { Course } from "@/types/api";
 import { Check, Plus } from "lucide-react";
+import Link from "next/link";
 
 interface CourseTableProps {
   courses: Course[];
@@ -60,7 +61,14 @@ export function CourseTable({ courses }: CourseTableProps) {
               return (
                 <TableRow key={course.courseKey}>
                   <TableCell className="font-mono text-sm">{course.subjectCode}</TableCell>
-                  <TableCell className="font-medium">{course.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/courses/${encodeURIComponent(course.courseKey)}`}
+                      className="text-blue-600 hover:underline transition-colors"
+                    >
+                      {course.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>{course.professorName}</TableCell>
                   <TableCell className="text-center">{course.targetGrade}</TableCell>
                   <TableCell className="text-center">{course.totalSeats}</TableCell>

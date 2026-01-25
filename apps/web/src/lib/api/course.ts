@@ -16,3 +16,8 @@ export const getCourseHistory = async (courseKey: string): Promise<CommonRespons
   const { data } = await api.get(`/api/v1/courses/${encodeURIComponent(courseKey)}/history`);
   return data;
 };
+
+export const getCourseDetail = async (courseKey: string): Promise<CommonResponse<Course>> => {
+  const { data } = await api.get(`/api/v1/courses/${encodeURIComponent(courseKey)}`);
+  return data;
+};
