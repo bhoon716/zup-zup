@@ -39,12 +39,15 @@ public class Course extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer current; // 신청인원
 
+    @Column(length = 20)
+    private String targetGrade; // 대상 학년
+
     @Column(nullable = false)
     private LocalDateTime lastCrawledAt; // 마지막 크롤링 시간
 
     @Builder
     public Course(String courseKey, String subjectCode, String classNumber, String name, String professor,
-                  Integer capacity, Integer current) {
+            Integer capacity, Integer current, String targetGrade) {
         this.courseKey = courseKey;
         this.subjectCode = subjectCode;
         this.classNumber = classNumber;
@@ -52,6 +55,7 @@ public class Course extends BaseTimeEntity {
         this.professor = professor;
         this.capacity = capacity;
         this.current = current;
+        this.targetGrade = targetGrade;
         this.lastCrawledAt = LocalDateTime.now();
     }
 

@@ -40,6 +40,7 @@ public class JbnuCourseParser {
         String clss = getColValue(row, "CLSS");
         String sbjtNm = getColValue(row, "SBJTNM");
         String profNm = getColValue(row, "RPSTPROFNM");
+        String targetGrade = getColValue(row, "UN_SHT_NM"); // 학년 정보 (예: 1학년)
         int lmtrCnt = safeParseInt(getColValue(row, "LMTRCNT"));
         int tlsnrCnt = safeParseInt(getColValue(row, "TLSNRCNT"));
 
@@ -55,6 +56,7 @@ public class JbnuCourseParser {
                 .professor(profNm)
                 .capacity(lmtrCnt)
                 .current(tlsnrCnt)
+                .targetGrade(targetGrade)
                 .build());
     }
 

@@ -22,7 +22,7 @@ public class SubscriptionResponse {
     private final String courseName;
 
     @Schema(description = "담당 교수", example = "김혜진")
-    private final String professor;
+    private final String professorName;
 
     @Schema(description = "알림 활성화 여부", example = "true")
     private final boolean isActive;
@@ -40,12 +40,12 @@ public class SubscriptionResponse {
                 subscription.getCreatedAt());
     }
 
-    public static SubscriptionResponse of(Subscription subscription, String courseName, String professor) {
+    public static SubscriptionResponse of(Subscription subscription, String courseName, String professorName) {
         return new SubscriptionResponse(
                 subscription.getId(),
                 subscription.getCourseKey(),
                 courseName,
-                professor,
+                professorName,
                 subscription.isActive(),
                 subscription.getCreatedAt());
     }

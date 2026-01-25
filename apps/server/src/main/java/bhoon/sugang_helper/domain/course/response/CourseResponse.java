@@ -24,26 +24,35 @@ public class CourseResponse {
     private final String classNumber;
 
     @Schema(description = "담당 교수", example = "김혜진")
-    private final String professor;
+    private final String professorName;
+
+    @Schema(description = "대상 학년", example = "1")
+    private final String targetGrade;
 
     @Schema(description = "정원", example = "40")
-    private final Integer capacity;
+    private final Integer totalSeats;
 
     @Schema(description = "현재 인원", example = "35")
-    private final Integer current;
+    private final Integer currentSeats;
 
-    @Schema(description = "잔여 공석", example = "5")
-    private final Integer available;
+    @Schema(description = "여석", example = "5")
+    private final Integer availableSeats;
+
+    @Schema(description = "상태 (AVAILABLE, FULL)", example = "AVAILABLE")
+    private final String status;
 
     public static CourseResponse from(Course course) {
+        String status = course.getAvailable() > 0 ? "AVAILABLE" : "FULL";
         return new CourseResponse(
                 course.getCourseKey(),
                 course.getSubjectCode(),
                 course.getName(),
                 course.getClassNumber(),
                 course.getProfessor(),
+                course.getTargetGrade(),
                 course.getCapacity(),
                 course.getCurrent(),
-                course.getAvailable());
+                course.getAvailable(),
+                status);
     }
 }
