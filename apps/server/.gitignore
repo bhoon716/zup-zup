@@ -47,3 +47,6 @@ out/
 
 ### Firebase ###
 /src/main/resources/firebase/
+
+### Properties ###
+**/application.yml
