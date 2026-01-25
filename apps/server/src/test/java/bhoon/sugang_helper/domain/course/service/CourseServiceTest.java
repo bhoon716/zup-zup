@@ -34,12 +34,13 @@ class CourseServiceTest {
     @DisplayName("조건으로 과목 검색 성공")
     void searchCourses_success() {
         // given
-        CourseSearchCondition condition = new CourseSearchCondition();
-        condition.setName("테스트");
+        CourseSearchCondition condition = CourseSearchCondition.builder()
+                .name("테스트")
+                .build();
         Pageable pageable = PageRequest.of(0, 10);
 
         Course course = Course.builder()
-                .courseKey("12345-01")
+                .courseKey("12345-테스트 과목-홍길동")
                 .name("테스트 과목")
                 .professor("홍길동")
                 .capacity(40)
@@ -60,7 +61,7 @@ class CourseServiceTest {
     @DisplayName("결과가 없는 경우 빈 페이지 반환")
     void searchCourses_no_result() {
         // given
-        CourseSearchCondition condition = new CourseSearchCondition();
+        CourseSearchCondition condition = CourseSearchCondition.builder().build();
         Pageable pageable = PageRequest.of(0, 10);
         given(courseRepository.searchCourses(any(CourseSearchCondition.class), any(Pageable.class)))
                 .willReturn(Page.empty());

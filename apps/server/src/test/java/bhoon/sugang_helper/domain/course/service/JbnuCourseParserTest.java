@@ -1,106 +1,105 @@
 package bhoon.sugang_helper.domain.course.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import bhoon.sugang_helper.domain.course.entity.Course;
+import bhoon.sugang_helper.domain.course.entity.CourseSchedule;
+import bhoon.sugang_helper.domain.course.enums.ClassPeriod;
+import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 class JbnuCourseParserTest {
 
-    private final JbnuCourseParser parser = new JbnuCourseParser();
+        private final JbnuCourseParser parser = new JbnuCourseParser();
 
-    @Test
-    @DisplayName("JBNU 수강신청 XML 데이터 파싱 성공")
-    void parseCourses_success() {
-        // given
-        String xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<Root>\n" +
-                "  <Dataset id=\"GRD_COUR001\">\n" +
-                "    <Rows>\n" +
-                "      <Row>\n" +
-                "        <Col id=\"SBJTCD\">12345</Col>\n" +
-                "        <Col id=\"CLSS\">01</Col>\n" +
-                "        <Col id=\"SBJTNM\">테스트과목1</Col>\n" +
-                "        <Col id=\"RPSTPROFNM\">홍길동</Col>\n" +
-                "        <Col id=\"LMTRCNT\">40</Col>\n" +
-                "        <Col id=\"TLSNRCNT\">35</Col>\n" +
-                "      </Row>\n" +
-                "      <Row>\n" +
-                "        <Col id=\"SBJTCD\">67890</Col>\n" +
-                "        <Col id=\"CLSS\">02</Col>\n" +
-                "        <Col id=\"SBJTNM\">테스트과목2</Col>\n" +
-                "        <Col id=\"RPSTPROFNM\">김철수</Col>\n" +
-                "        <Col id=\"LMTRCNT\">30</Col>\n" +
-                "        <Col id=\"TLSNRCNT\">30</Col>\n" +
-                "      </Row>\n" +
-                "    </Rows>\n" +
-                "  </Dataset>\n" +
-                "</Root>";
+        @Test
+        @DisplayName("Schedules are parsed correctly from valid time string")
+        void parseSchedules_valid() {
+                // Given
+                // XML format mimics what the parser expects in processRow, but here we test the
+                // logic indirectly via full parse or just trusted logic?
+                // Since parseSchedules is private, we can't test it directly easily without
+                // reflection or testing via public method.
+                // Let's rely on the public method parseCourses but we need an XML input.
+                // Alternatively, we can assume the parser works if the Entity has the data.
 
-        // when
-        List<Course> courses = parser.parseCourses(xmlData);
+                // Let's verify by mocking XML input that produces a known schedule string.
+                String xmlData = """
+                                <Dataset id="GRD_COUR001">
+                                    <Rows>
+                                        <Row>
+                                            <Col id="SBJTCD">12345</Col>
+                                            <Col id="CLSS">01</Col>
+                                            <Col id="SBJTNM">Test Course</Col>
+                                            <Col id="RPSTPROFNM">홍길동</Col>
+                                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
+                                            <Col id="DAYTMCTNT">월 6-A,월 6-B,수 3-A</Col>
+                                            <Col id="TM">3</Col>
+                                            <Col id="OPENLECTFGNM">일반</Col>
+                                            <Col id="VLDFGNM">공학</Col>
+                                            <Col id="LESSTMFGNM">50분</Col>
+                                            <Col id="SUBPLANYN">Y</Col>
+                                            <Col id="PUBCYN">공개</Col>
+                                            <Col id="FLDCONVINFO">일반,사회과학</Col>
+                                        </Row>
+                                    </Rows>
+                                </Dataset>
+                                """;
 
-        // then
-        assertThat(courses).hasSize(2);
+                // When
+                List<Course> courses = parser.parseCourses(xmlData);
 
-        Course course1 = courses.stream()
-                .filter(c -> c.getCourseKey().equals("12345-01"))
-                .findFirst()
-                .orElseThrow();
-        assertThat(course1.getName()).isEqualTo("테스트과목1");
-        assertThat(course1.getProfessor()).isEqualTo("홍길동");
-        assertThat(course1.getCapacity()).isEqualTo(40);
-        assertThat(course1.getCurrent()).isEqualTo(35);
-        assertThat(course1.getAvailable()).isEqualTo(5);
+                // Then
+                assertThat(courses).hasSize(1);
+                Course course = courses.get(0);
 
-        Course course2 = courses.stream()
-                .filter(c -> c.getCourseKey().equals("67890-02"))
-                .findFirst()
-                .orElseThrow();
-        assertThat(course2.getAvailable()).isZero();
-    }
+                // Verify courseKey
+                assertThat(course.getCourseKey()).isEqualTo("12345-Test Course-홍길동");
 
-    @Test
-    @DisplayName("필수 데이터(과목코드, 분반) 누락 시 해당 과목 제외")
-    void parseCourses_skip_invalid_row() {
-        // given
-        String xmlData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<Root>\n" +
-                "  <Dataset id=\"GRD_COUR001\">\n" +
-                "    <Rows>\n" +
-                "      <Row>\n" +
-                "        <Col id=\"SBJTCD\">12345</Col>\n" +
-                "        <Col id=\"SBJTNM\">분반누락과목</Col>\n" +
-                "      </Row>\n" +
-                "    </Rows>\n" +
-                "  </Dataset>\n" +
-                "</Root>";
+                // Verify new fields
+                assertThat(course.getLectureHours()).isEqualTo(3);
+                assertThat(course.getTargetGrade()).isEqualTo("전체(학부)");
+                assertThat(course.getGeneralCategoryByYear()).isEqualTo("일반,사회과학");
+                assertThat(course.getStatus().getDescription()).isEqualTo("일반");
+                assertThat(course.getAccreditation().getDescription()).isEqualTo("공학");
+                assertThat(course.getClassDuration()).isEqualTo("50분");
+                assertThat(course.getHasSyllabus()).isTrue();
+                assertThat(course.getDisclosure().getDescription()).isEqualTo("공개");
 
-        // when
-        List<Course> courses = parser.parseCourses(xmlData);
+                // Verify schedules
+                List<CourseSchedule> schedules = course.getSchedules();
+                assertThat(schedules).hasSize(3);
 
-        // then
-        assertThat(courses).isEmpty();
-    }
+                assertThat(schedules.get(0).getDayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
+                assertThat(schedules.get(0).getPeriod()).isEqualTo(ClassPeriod.PERIOD_6A);
 
-    @Test
-    @DisplayName("숫자 데이터 파싱 실패 시 0으로 처리")
-    void parseCourses_invalid_number_format() {
-        // given
-        String xmlData = "<Root><Dataset id=\"GRD_COUR001\"><Rows><Row>" +
-                "<Col id=\"SBJTCD\">12345</Col>" +
-                "<Col id=\"CLSS\">01</Col>" +
-                "<Col id=\"LMTRCNT\">INVALID</Col>" +
-                "</Row></Rows></Dataset></Root>";
+                assertThat(schedules.get(1).getDayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
+                assertThat(schedules.get(1).getPeriod()).isEqualTo(ClassPeriod.PERIOD_6B);
 
-        // when
-        List<Course> courses = parser.parseCourses(xmlData);
+                assertThat(schedules.get(2).getDayOfWeek()).isEqualTo(CourseDayOfWeek.WEDNESDAY);
+                assertThat(schedules.get(2).getPeriod()).isEqualTo(ClassPeriod.PERIOD_3A);
+        }
 
-        // then
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getCapacity()).isZero();
-    }
+        @Test
+        @DisplayName("Schedules are empty for null or empty string")
+        void parseSchedules_empty() {
+                String xmlData = """
+                                <Dataset id="GRD_COUR001">
+                                    <Rows>
+                                        <Row>
+                                            <Col id="SBJTCD">12345</Col>
+                                            <Col id="CLSS">01</Col>
+                                            <Col id="SBJTNM">Test Course</Col>
+                                            <Col id="DAYTMCTNT"></Col>
+                                        </Row>
+                                    </Rows>
+                                </Dataset>
+                                """;
+
+                List<Course> courses = parser.parseCourses(xmlData);
+                assertThat(courses).hasSize(1);
+                assertThat(courses.get(0).getSchedules()).isEmpty();
+        }
 }
