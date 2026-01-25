@@ -27,6 +27,14 @@ public class UserService {
     }
 
     @Transactional
+    public UserResponse updateProfile(String name) {
+        User user = getCurrentUser();
+        user.update(name);
+        log.info("[User] Profile updated: userId={}, newName={}", user.getId(), name);
+        return UserResponse.from(user);
+    }
+
+    @Transactional
     public void withdraw() {
         User user = getCurrentUser();
 
