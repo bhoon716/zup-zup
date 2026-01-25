@@ -1,15 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 import * as courseApi from '@/lib/api/course';
-import type { CourseSearchCondition } from '@/types/api';
+import type { CourseSearchCondition, Course } from '@/types/api';
 
-export const useCourses = (condition: CourseSearchCondition, page = 0, size = 20) => {
+export const useCourses = (condition: CourseSearchCondition) => {
   return useQuery({
-    queryKey: ['courses', condition, page, size],
+    queryKey: ['courses', condition],
     queryFn: async () => {
-      const response = await courseApi.searchCourses(condition, page, size);
-      return response.data;
+      const response = await courseApi.searchCourses(condition);
+      const rawData = response.data;
+      // API 전환기 호환성 및 안정성을 위해 데이터 정규화 (배경: Page 객체 vs List 객체)
+      if (Array.isArray(rawData)) return rawData;
+      if (rawData && typeof rawData === 'object' && 'content' in rawData) {
+        return (rawData as any).content as Course[];
+      }
+      return [];
     },
-    // enabled: true (always fetch)
   });
 };
 
