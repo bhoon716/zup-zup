@@ -23,3 +23,14 @@ export const useCourseHistory = (courseKey: string) => {
     enabled: !!courseKey,
   });
 };
+
+export const useCourseDetail = (courseKey: string) => {
+  return useQuery({
+    queryKey: ['course-detail', courseKey],
+    queryFn: async () => {
+      const response = await courseApi.getCourseDetail(courseKey);
+      return response.data;
+    },
+    enabled: !!courseKey,
+  });
+};
