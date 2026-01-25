@@ -10,7 +10,6 @@ import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.domain.course.enums.CourseAccreditation;
 import bhoon.sugang_helper.domain.course.enums.CourseStatus;
 import bhoon.sugang_helper.domain.course.enums.DisclosureStatus;
-import bhoon.sugang_helper.domain.course.enums.LectureType;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -56,7 +55,6 @@ public class JbnuCourseParser {
         String classificationStr = getColValue(row, "CPTNFGNM");
         String department = getColValue(row, "SUSTCDNM");
         String gradingMethodStr = getColValue(row, "SCORTRETFGNM");
-        String lectureTypeStr = getColValue(row, "ONOFFFGNM");
         String lectureLanguageStr = getColValue(row, "LTLANGFGNM");
         String classTime = getColValue(row, "DAYTMCTNT");
         String credits = getColValue(row, "PNT");
@@ -100,7 +98,6 @@ public class JbnuCourseParser {
                 .classification(CourseClassification.from(classificationStr))
                 .department(department)
                 .gradingMethod(GradingMethod.from(gradingMethodStr))
-                .lectureType(LectureType.from(lectureTypeStr))
                 .lectureLanguage(LectureLanguage.from(lectureLanguageStr))
                 .classTime(classTime)
                 .credits(credits)

@@ -7,7 +7,6 @@ import bhoon.sugang_helper.domain.course.enums.CourseStatus;
 import bhoon.sugang_helper.domain.course.enums.DisclosureStatus;
 import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
-import bhoon.sugang_helper.domain.course.enums.LectureType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -73,10 +72,6 @@ public class Course extends BaseTimeEntity {
     private GradingMethod gradingMethod; // 성적평가방식 (SCORTRETFGNM)
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 200)
-    private LectureType lectureType; // 수업방식 (ONOFFFGNM)
-
-    @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private LectureLanguage lectureLanguage; // 강의언어 (LTLANGFGNM)
 
@@ -134,7 +129,7 @@ public class Course extends BaseTimeEntity {
     public Course(String courseKey, String subjectCode, String name, String classNumber, String professor,
             Integer capacity, Integer current, String targetGrade, String academicYear, String semester,
             CourseClassification classification, String department, GradingMethod gradingMethod,
-            LectureType lectureType, String classTime, String credits, LectureLanguage lectureLanguage,
+            String classTime, String credits, LectureLanguage lectureLanguage,
             DisclosureStatus disclosure, String disclosureReason, Integer lectureHours, String generalCategory,
             String generalDetail,
             CourseAccreditation accreditation, CourseStatus status, String classroom, Boolean hasSyllabus,
@@ -152,7 +147,6 @@ public class Course extends BaseTimeEntity {
         this.classification = classification;
         this.department = department;
         this.gradingMethod = gradingMethod;
-        this.lectureType = lectureType;
         this.classTime = classTime;
         this.credits = credits;
         this.lectureLanguage = lectureLanguage;

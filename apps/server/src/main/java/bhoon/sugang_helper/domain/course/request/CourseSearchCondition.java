@@ -38,9 +38,6 @@ public class CourseSearchCondition {
     @Schema(description = "성적평가방식", example = "상대평가Ⅰ")
     private String gradingMethod;
 
-    @Schema(description = "수업방식", example = "대면중심수업")
-    private String lectureType;
-
     @Schema(description = "강의언어", example = "한국어")
     private String lectureLanguage;
 
@@ -53,15 +50,15 @@ public class CourseSearchCondition {
     @Schema(description = "교시", example = "1-A")
     private String period; // "1-A", "1-B", etc.
 
-    @Schema(description = "통합 검색어 (과목명, 교수명, 과목코드)", example = "프로그래밍")
-    private String keyword;
+    @Schema(description = "선택된 시간표 슬롯 리스트")
+    private java.util.List<ScheduleCondition> selectedSchedules;
 
     @Builder
-    public CourseSearchCondition(String keyword, String name, String professor, String subjectCode, String academicYear,
+    public CourseSearchCondition(String name, String professor, String subjectCode, String academicYear,
             String semester, String classification,
-            String department, String gradingMethod, String lectureType, String lectureLanguage,
-            Boolean isAvailableOnly, String dayOfWeek, String period) {
-        this.keyword = keyword;
+            String department, String gradingMethod, String lectureLanguage,
+            Boolean isAvailableOnly, String dayOfWeek, String period,
+            java.util.List<ScheduleCondition> selectedSchedules) {
         this.name = name;
         this.professor = professor;
         this.subjectCode = subjectCode;
@@ -70,10 +67,10 @@ public class CourseSearchCondition {
         this.classification = classification;
         this.department = department;
         this.gradingMethod = gradingMethod;
-        this.lectureType = lectureType;
         this.lectureLanguage = lectureLanguage;
         this.isAvailableOnly = isAvailableOnly;
         this.dayOfWeek = dayOfWeek;
         this.period = period;
+        this.selectedSchedules = selectedSchedules;
     }
 }
