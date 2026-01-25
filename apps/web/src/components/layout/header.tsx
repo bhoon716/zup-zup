@@ -3,7 +3,7 @@
 import { useUser, useLogout } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { LogOut, Search, Home, Bell, Settings } from "lucide-react";
+import { LogOut, Search, Home, Bell, Settings, ShieldCheck } from "lucide-react";
 
 export function Header() {
   const { data: user, isLoading } = useUser();
@@ -41,6 +41,14 @@ export function Header() {
                 설정
               </Button>
             </Link>
+            {user?.role === 'ADMIN' && (
+              <Link href="/admin">
+                <Button variant="ghost" size="sm" className="gap-2 text-blue-600">
+                  <ShieldCheck className="w-4 h-4" />
+                  관리자
+                </Button>
+              </Link>
+            )}
           </nav>
         </div>
 

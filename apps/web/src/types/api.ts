@@ -104,3 +104,11 @@ export interface UserDeviceRequest {
 export interface UserUpdateRequest {
   name: string;
 }
+
+export interface AdminDashboardResponse {
+  totalUsers: number;
+  totalActiveSubscriptions: number;
+  todayNotificationCount: number;
+  crawlingStatus: string;
+  lastCrawledAt: string;
+}
