@@ -228,3 +228,50 @@ public void onApplicationReady() {
 ### 결과
 
 서버 시작 즉시 최신 강좌 데이터가 적재되어 검색 기능의 가용성을 100% 확보했습니다.
+
+---
+
+## 10. JbnuCourseParser XML 구조 대응 및 교양 영역 추출 보완
+
+### 문제 상황
+
+학교(JBNU) API 응답에서 교양 영역(`FLDFGNM`)과 상세구분(`FLDDETAFGNM`) 컬럼이 비어 있는 경우가 발생했습니다. 이로 인해 교양 영역별 검색 기능이 정상적으로 동작하지 않는 문제가 발견되었습니다.
+
+### 해결책
+
+데이터를 분석한 결과, `FLDCONVINFO`(입학년도기준교양영역구분) 필드에 `"기초, 공통기초"`와 같은 형식으로 영역과 상세구분이 콤마(`,`)로 결합되어 제공됨을 확인했습니다.
+
+- **파싱 로직 개선**: `JbnuCourseParser`에서 `FLDCONVINFO` 값을 가져와 `,`를 기준으로 분리한 뒤, 각각 `generalCategory`와 `generalDetail` 필드에 할당하도록 수정했습니다.
+
+```java
+if (categoryByYear != null && categoryByYear.contains(",")) {
+    String[] parts = categoryByYear.split(",");
+    if (parts.length >= 2) {
+        if (StringUtils.isBlank(generalCategory)) generalCategory = parts[0].trim();
+        if (StringUtils.isBlank(generalDetail)) generalDetail = parts[1].trim();
+    }
+}
+```
+
+### 결과
+
+데이터 소스의 컬럼 구성 변화에 유연하게 대응하여, 교양 영역 데이터의 누락 없는 수집과 검색을 보장할 수 있게 되었습니다.
+
+---
+
+## 11. 동적 교양 카테고리 필터링 시스템 구현
+
+### 문제 상황
+
+교양 영역과 상세구분은 매 학기 또는 연도별로 변경될 가능성이 큽니다. 이를 프론트엔드에 하드코딩할 경우, 데이터가 바뀔 때마다 코드를 수정해야 하는 유지보수 문제가 예상되었습니다.
+
+### 해결책
+
+DB에 실제 적재된 데이터를 기반으로 유니크한 카테고리 목록을 관리하는 동적 시스템을 설계했습니다.
+
+- **카테고리 조회 API**: `/api/v1/courses/categories` 엔드포인트를 추가하여 현재 DB에 존재하는 영역(Category)과 그에 속한 상세구분(Detail) 목록을 계층 구조로 반환합니다.
+- **Repository 성능**: QueryDSL을 활용하여 `distinct()` 쿼리로 최적화된 유니크 목록을 추출합니다.
+
+### 결과
+
+데이터 소스가 변경되어도 별도의 배포 없이 검색 필터의 옵션이 항상 최신 데이터를 유지하게 되어 시스템의 유연성이 크게 향상되었습니다.
