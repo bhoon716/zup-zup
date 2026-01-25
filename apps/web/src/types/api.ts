@@ -100,3 +100,7 @@ export interface UserDeviceRequest {
   webPushP256dh?: string;
   webPushAuth?: string;
 }
+
+export interface UserUpdateRequest {
+  name: string;
+}
