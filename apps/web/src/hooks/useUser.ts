@@ -1,0 +1,54 @@
+import { useQuery, useMutation } from '@tanstack/react-query';
+import * as userApi from '@/lib/api/user';
+import { useAuthStore } from '@/store/useAuthStore';
+import { toast } from 'sonner';
+
+export const useUser = () => {
+  const setUser = useAuthStore((state) => state.setUser);
+
+  return useQuery({
+    queryKey: ['user', 'me'],
+    queryFn: async () => {
+      const response = await userApi.getMyProfile();
+      setUser(response.data);
+      return response.data;
+    },
+  });
+};
+
+export const useLogout = () => {
+  const logout = useAuthStore((state) => state.logout);
+
+  return useMutation({
+    mutationFn: userApi.logout,
+    onSuccess: () => {
+      logout();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || '로그아웃에 실패했습니다';
+      toast.error(message);
+    },
+  });
+};
+
+export const useWithdraw = () => {
+  const logout = useAuthStore((state) => state.logout);
+
+  return useMutation({
+    mutationFn: userApi.withdraw,
+    onSuccess: (response) => {
+      toast.success(response.message || '회원 탈퇴가 완료되었습니다');
+      logout();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || '회원 탈퇴에 실패했습니다';
+      toast.error(message);
+    },
+  });
+};
