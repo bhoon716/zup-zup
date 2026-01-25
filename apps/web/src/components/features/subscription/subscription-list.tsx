@@ -47,12 +47,21 @@ export function SubscriptionList() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">내 구독 목록</h2>
-        <span className="text-sm text-muted-foreground">
-          총 {subscriptions.length}개 구독 중
-        </span>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between px-1">
+        <div className="flex flex-col gap-1.5">
+          <h2 className="text-3xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+            내 구독 목록
+          </h2>
+          <p className="text-sm text-muted-foreground font-medium">
+            현재 빈자리를 감시 중인 강좌들입니다.
+          </p>
+        </div>
+        <div className="bg-primary/10 px-4 py-2 rounded-2xl border border-primary/20">
+          <span className="text-xs font-black text-primary uppercase tracking-widest">
+            {subscriptions.length} COURSES
+          </span>
+        </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {subscriptions.map((subscription) => (

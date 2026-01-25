@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import api, { setAccessToken } from './index';
-import axios from 'axios';
+import api from './index';
+import type { AxiosInstance } from 'axios';
 
 // Mock axios since api instance is created from it
 vi.mock('axios', async (importOriginal) => {
@@ -8,7 +8,7 @@ vi.mock('axios', async (importOriginal) => {
   return {
     ...actual,
     create: vi.fn(() => {
-      const instance: any = {
+      const instance = {
         interceptors: {
           request: { use: vi.fn(), eject: vi.fn() },
           response: { use: vi.fn(), eject: vi.fn() },
@@ -16,7 +16,7 @@ vi.mock('axios', async (importOriginal) => {
         get: vi.fn(),
         post: vi.fn(),
         defaults: { headers: { common: {} } },
-      };
+      } as unknown as AxiosInstance;
       return instance;
     }),
     post: vi.fn(), // for refresh token call
@@ -29,8 +29,8 @@ describe('API Interceptors', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     originalLocation = window.location;
-    delete (window as any).location;
-    window.location = { href: '', pathname: '/' } as any;
+    delete (window as { location?: Location }).location;
+    window.location = { href: '', pathname: '/' } as unknown as Location;
   });
 
   afterEach(() => {

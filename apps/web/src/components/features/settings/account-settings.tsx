@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { User, UserCircle, Trash2, Save, AlertTriangle } from "lucide-react";
+import { UserCircle, Trash2, Save, AlertTriangle } from "lucide-react";
 import { useUser, useUpdateProfile, useWithdraw } from "@/hooks/useUser";
 import {
   AlertDialog,
@@ -24,13 +24,14 @@ export function AccountSettings() {
   const { mutate: updateProfile, isPending: isUpdating } = useUpdateProfile();
   const { mutate: withdraw, isPending: isWithdrawing } = useWithdraw();
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(user?.name || "");
+  const [prevUserId, setPrevUserId] = useState(user?.id);
 
-  useEffect(() => {
-    if (user) {
-      setName(user.name);
-    }
-  }, [user]);
+  if (user?.id !== prevUserId) {
+    setPrevUserId(user?.id);
+    setName(user?.name || "");
+  }
+
 
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();

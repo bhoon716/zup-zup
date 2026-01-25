@@ -32,56 +32,61 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     });
   };
 
-  const handleToggle = (checked: boolean) => {
+  const handleToggle = () => {
     toggleSubscription(subscription.id);
   };
 
   return (
-    <Card>
+    <Card className="bg-card/40 backdrop-blur-xl border-white/10 shadow-xl transition-all hover:shadow-2xl hover:bg-card/50 group relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-1 h-full bg-primary/40 group-hover:bg-primary transition-colors" />
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-lg">{subscription.courseName}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {subscription.courseKey} | {subscription.professorName}
+            <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">{subscription.courseName}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-2">
+              <span className="font-mono bg-muted/50 px-1.5 py-0.5 rounded text-[10px]">{subscription.courseKey}</span>
+              <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+              <span>{subscription.professorName}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2.5 bg-background/30 px-2.5 py-1.5 rounded-xl border border-white/5">
               {subscription.isActive ? (
-                <Bell className="w-4 h-4 text-green-600" />
+                <Bell className="w-4 h-4 text-primary animate-pulse" />
               ) : (
-                <BellOff className="w-4 h-4 text-gray-400" />
+                <BellOff className="w-4 h-4 text-muted-foreground/50" />
               )}
               <Switch
                 checked={subscription.isActive}
                 onCheckedChange={handleToggle}
                 disabled={isToggling}
+                className="scale-90"
               />
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="bg-card/90 backdrop-blur-2xl border-white/10">
                 <DialogHeader>
                   <DialogTitle>구독 취소</DialogTitle>
                   <DialogDescription>
                     정말로 이 강좌의 구독을 취소하시겠습니까?
                     <br />
-                    <strong>{subscription.courseName}</strong>
+                    <span className="text-foreground font-semibold">[{subscription.courseKey}] {subscription.courseName}</span>
                   </DialogDescription>
                 </DialogHeader>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-xl border-white/10">
                     취소
                   </Button>
                   <Button
                     variant="destructive"
                     onClick={handleUnsubscribe}
                     disabled={isUnsubscribing}
+                    className="rounded-xl"
                   >
                     {isUnsubscribing ? "처리 중..." : "구독 취소"}
                   </Button>
@@ -92,10 +97,11 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            알림 상태: {subscription.isActive ? "활성화" : "비활성화"}
-          </span>
+        <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <div className={`w-2 h-2 rounded-full ${subscription.isActive ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-muted-foreground/30'}`} />
+            <span>{subscription.isActive ? "알림 활성화됨" : "알림 꺼짐"}</span>
+          </div>
         </div>
       </CardContent>
     </Card>

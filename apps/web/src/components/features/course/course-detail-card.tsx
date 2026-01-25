@@ -112,10 +112,6 @@ export function CourseDetailCard({ course }: CourseDetailCardProps) {
               <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">Additional Details</h4>
               <div className="grid grid-cols-2 gap-y-4">
                 <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Lecture Type</p>
-                  <p className="text-sm font-medium">{course.lectureType || "-"}</p>
-                </div>
-                <div>
                   <p className="text-[10px] font-bold text-muted-foreground uppercase">Language</p>
                   <p className="text-sm font-medium">{course.lectureLanguage || "한국어"}</p>
                 </div>

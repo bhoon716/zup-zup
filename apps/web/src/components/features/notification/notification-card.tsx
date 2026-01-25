@@ -1,9 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import type { NotificationHistory } from "@/types/api";
-import { Bell, Mail, Globe } from "lucide-react";
+import { Bell } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
