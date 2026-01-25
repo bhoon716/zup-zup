@@ -88,4 +88,30 @@ public class CourseController {
     List<CourseSeatHistoryResponse> histories = courseService.getCourseHistory(courseKey);
     return CommonResponse.ok(histories, "해당 과목의 인원 변동 이력입니다.");
   }
+
+  @Operation(summary = "과목 상세 조회", description = "특정 과목의 상세 정보를 조회합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "과목 상세 조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+          {
+            "code": "SUCCESS",
+            "message": "과목 상세 정보입니다.",
+            "data": {
+              "courseKey": "CLTR.0031-01",
+              "subjectCode": "CLTR.0031",
+              "name": "기초프로그래밍",
+              "classNumber": "01",
+              "professor": "홍길동",
+              "capacity": 40,
+              "current": 35,
+              "available": 5
+            }
+          }
+          """)))
+  })
+  @GetMapping("/{courseKey}")
+  public ResponseEntity<CommonResponse<CourseResponse>> getCourse(
+      @PathVariable String courseKey) {
+    CourseResponse course = courseService.getCourse(courseKey);
+    return CommonResponse.ok(course, "과목 상세 정보입니다.");
+  }
 }

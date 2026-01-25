@@ -33,4 +33,10 @@ public class CourseService {
                 .map(CourseSeatHistoryResponse::from)
                 .collect(Collectors.toList());
     }
+
+    public CourseResponse getCourse(String courseKey) {
+        return courseRepository.findById(courseKey)
+                .map(CourseResponse::from)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 과목입니다."));
+    }
 }
