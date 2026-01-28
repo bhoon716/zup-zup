@@ -13,7 +13,6 @@ import lombok.Getter;
 @Schema(description = "과목 정보 응답 DTO")
 public class CourseResponse {
 
-    // ... fields (omitted for brevity, they remain same) ...
     @Schema(description = "과목 키", example = "0000130844-1")
     private final String courseKey;
 
@@ -27,19 +26,19 @@ public class CourseResponse {
     private final String classNumber;
 
     @Schema(description = "담당 교수", example = "김혜진")
-    private final String professorName;
+    private final String professor;
 
     @Schema(description = "대상 학년", example = "1")
     private final String targetGrade;
 
     @Schema(description = "정원", example = "40")
-    private final Integer totalSeats;
+    private final Integer capacity;
 
     @Schema(description = "현재 인원", example = "35")
-    private final Integer currentSeats;
+    private final Integer current;
 
     @Schema(description = "여석", example = "5")
-    private final Integer availableSeats;
+    private final Integer available;
 
     @Schema(description = "이수구분", example = "전공필수")
     private final String classification;
@@ -105,11 +104,11 @@ public class CourseResponse {
                 .subjectCode(course.getSubjectCode())
                 .name(course.getName())
                 .classNumber(course.getClassNumber())
-                .professorName(course.getProfessor())
+                .professor(course.getProfessor())
                 .targetGrade(course.getTargetGrade())
-                .totalSeats(course.getCapacity())
-                .currentSeats(course.getCurrent())
-                .availableSeats(course.getAvailable())
+                .capacity(course.getCapacity())
+                .current(course.getCurrent())
+                .available(course.getAvailable())
                 .classification(course.getClassification() != null ? course.getClassification().name() : null)
                 .department(course.getDepartment())
                 .gradingMethod(course.getGradingMethod() != null ? course.getGradingMethod().name() : null)
