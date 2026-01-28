@@ -5,7 +5,7 @@ import {
   TimetableListResponse, 
   TimetableRequest, 
   CustomScheduleRequest 
-} from '../types/api';
+} from '@/types/api';
 
 const BASE_URL = '/api/v1/timetables';
 
