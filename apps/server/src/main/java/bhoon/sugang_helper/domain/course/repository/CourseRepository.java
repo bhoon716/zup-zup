@@ -10,4 +10,6 @@ public interface CourseRepository extends JpaRepository<Course, Long>, CourseRep
     List<Course> findByNameContainingOrProfessorContaining(String name, String professor);
 
     Optional<Course> findByCourseKey(String courseKey);
+
+    List<Course> findByCourseKeyIn(List<String> courseKeys);
 }

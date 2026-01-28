@@ -1,5 +1,8 @@
 package bhoon.sugang_helper.domain.admin.service;
 
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+
 import bhoon.sugang_helper.domain.admin.request.TestNotificationRequest;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardResponse;
 import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
@@ -96,7 +99,7 @@ class AdminServiceTest {
 
         // when & then
         assertThatThrownBy(() -> adminService.sendTestNotification(request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("해당 이메일의 사용자를 찾을 수 없습니다.");
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.USER_NOT_FOUND.getMessage());
     }
 }
