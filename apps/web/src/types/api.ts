@@ -200,3 +200,53 @@ export interface WishlistResponse {
 export interface WishlistToggleResponse {
   isWished: boolean;
 }
+
+// 시간표(Timetable) 관련
+export interface TimetableEntryResponse {
+  id: number;
+  courseKey: string;
+  courseName: string;
+  professor: string;
+  schedules: {
+    dayOfWeek: CourseDayOfWeek;
+    period: ClassPeriod;
+    startTime: string;
+    endTime: string;
+  }[];
+}
+
+export interface CustomScheduleResponse {
+  id: number;
+  title: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  color: string;
+}
+
+export interface TimetableResponse {
+  id: number;
+  name: string;
+  isPrimary: boolean;
+  entries: TimetableEntryResponse[];
+  customSchedules: CustomScheduleResponse[];
+}
+
+export interface TimetableListResponse {
+  id: number;
+  name: string;
+  isPrimary: boolean;
+}
+
+export interface TimetableRequest {
+  name: string;
+  isPrimary: boolean;
+}
+
+export interface CustomScheduleRequest {
+  title: string;
+  dayOfWeek: string;
+  startTime: string; // "HH:mm"
+  endTime: string;   // "HH:mm"
+  color: string;
+}
