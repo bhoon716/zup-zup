@@ -3,7 +3,6 @@ package bhoon.sugang_helper.domain.course.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
-import bhoon.sugang_helper.domain.course.entity.CourseSchedule;
 import bhoon.sugang_helper.domain.course.enums.ClassPeriod;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import java.util.List;
@@ -15,36 +14,62 @@ class JbnuCourseParserTest {
     private final JbnuCourseParser parser = new JbnuCourseParser();
 
     @Test
-    @DisplayName("Schedules are parsed correctly from valid time string")
-    void parseSchedules_valid() {
+    @DisplayName("Courses and their detailed metadata are parsed correctly from XML")
+    void parseCourses_comprehensive() {
         // Given
-        // XML format mimics what the parser expects in processRow, but here we test the
-        // logic indirectly via full parse or just trusted logic?
-        // Since parseSchedules is private, we can't test it directly easily without
-        // reflection or testing via public method.
-        // Let's rely on the public method parseCourses but we need an XML input.
-        // Alternatively, we can assume the parser works if the Entity has the data.
-
-        // Let's verify by mocking XML input that produces a known schedule string.
         String xmlData = """
                 <Dataset id="GRD_COUR001">
                     <Rows>
                         <Row>
-                            <Col id="SBJTCD">12345</Col>
+                            <Col id="SBJTCD">10001</Col>
                             <Col id="CLSS">01</Col>
-                            <Col id="YY">2024</Col>
+                            <Col id="YY">2026</Col>
                             <Col id="SHTM">10</Col>
-                            <Col id="SBJTNM">Test Course</Col>
-                            <Col id="RPSTPROFNM">홍길동</Col>
+                            <Col id="SBJTNM">핵심교양과목</Col>
+                            <Col id="RPSTPROFNM">진교수</Col>
                             <Col id="TLSNOBJFGNM">전체(학부)</Col>
-                            <Col id="DAYTMCTNT">월 6-A,월 6-B,수 3-A</Col>
+                            <Col id="CPTNFGNM">교양</Col>
+                            <Col id="SUSTCDNM">교양교육원</Col>
+                            <Col id="SCORTRETFGNM">상대평가Ⅰ</Col>
+                            <Col id="LTLANGFGNM">한국어</Col>
+                            <Col id="DAYTMCTNT">월 1-A,월 1-B,수 1-A</Col>
+                            <Col id="PNT">3</Col>
                             <Col id="TM">3</Col>
+                            <Col id="LMTRCNT">40</Col>
+                            <Col id="TLSNRCNT">10</Col>
+                            <Col id="FLDFGNM">균형교양</Col>
+                            <Col id="FLDDETAFGNM">삶과사회</Col>
+                            <Col id="FLDCONVINFO">핵심,사회이해의기반</Col>
+                            <Col id="VLDFGNM">일반</Col>
                             <Col id="OPENLECTFGNM">일반</Col>
-                            <Col id="VLDFGNM">공학</Col>
-                            <Col id="LESSTMFGNM">50분</Col>
+                            <Col id="VILROOMNOCTNT">전주:인문대 101</Col>
                             <Col id="SUBPLANYN">Y</Col>
                             <Col id="PUBCYN">공개</Col>
-                            <Col id="FLDCONVINFO">일반,사회과학</Col>
+                        </Row>
+                        <Row>
+                            <Col id="SBJTCD">20002</Col>
+                            <Col id="CLSS">02</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="SBJTNM">전공선택과목</Col>
+                            <Col id="RPSTPROFNM">이전공</Col>
+                            <Col id="TLSNOBJFGNM">3학년</Col>
+                            <Col id="CPTNFGNM">전공선택</Col>
+                            <Col id="SUSTCDNM">컴퓨터공학부</Col>
+                            <Col id="SCORTRETFGNM">절대평가</Col>
+                            <Col id="LTLANGFGNM">English</Col>
+                            <Col id="DAYTMCTNT">화 3-A,화 3-B,목 3-A,목 3-B</Col>
+                            <Col id="PNT">3</Col>
+                            <Col id="TM">4</Col>
+                            <Col id="LMTRCNT">30</Col>
+                            <Col id="TLSNRCNT">30</Col>
+                            <Col id="FLDCONVINFO"></Col>
+                            <Col id="VLDFGNM">공학</Col>
+                            <Col id="OPENLECTFGNM">일반</Col>
+                            <Col id="VILROOMNOCTNT">전주:공대 7호관 301</Col>
+                            <Col id="SUBPLANYN">N</Col>
+                            <Col id="PUBCYN">비공개</Col>
+                            <Col id="NOPUBCRESNNM">학과요청</Col>
                         </Row>
                     </Rows>
                 </Dataset>
@@ -54,54 +79,36 @@ class JbnuCourseParserTest {
         List<Course> courses = parser.parseCourses(xmlData);
 
         // Then
-        assertThat(courses).hasSize(1);
-        Course course = courses.get(0);
+        assertThat(courses).hasSize(2);
 
-        // Verify courseKey
-        assertThat(course.getCourseKey()).isEqualTo("2024-10-12345-01");
+        // 1. 핵심교양과목 검증
+        Course course1 = courses.stream().filter(c -> c.getSubjectCode().equals("10001")).findFirst().orElseThrow();
+        assertThat(course1.getName()).isEqualTo("핵심교양과목");
+        assertThat(course1.getProfessor()).isEqualTo("진교수");
+        assertThat(course1.getCourseKey()).isEqualTo("2026:10:10001:01");
+        assertThat(course1.getGeneralCategory()).isEqualTo("핵심"); // Prioritized from FLDCONVINFO
+        assertThat(course1.getGeneralDetail()).isEqualTo("사회이해의기반");
+        assertThat(course1.getClassification().getDescription()).isEqualTo("교양");
+        assertThat(course1.getCapacity()).isEqualTo(40);
+        assertThat(course1.getCurrent()).isEqualTo(10);
+        assertThat(course1.getAvailable()).isEqualTo(30);
+        assertThat(course1.getHasSyllabus()).isTrue();
+        assertThat(course1.getSchedules()).hasSize(3);
+        assertThat(course1.getSchedules().get(0).getDayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
+        assertThat(course1.getSchedules().get(0).getPeriod()).isEqualTo(ClassPeriod.PERIOD_1A);
 
-        // Verify new fields
-        assertThat(course.getLectureHours()).isEqualTo(3);
-        assertThat(course.getTargetGrade()).isEqualTo("전체(학부)");
-        assertThat(course.getGeneralCategoryByYear()).isEqualTo("일반,사회과학");
-        assertThat(course.getStatus().getDescription()).isEqualTo("일반");
-        assertThat(course.getAccreditation().getDescription()).isEqualTo("공학");
-        assertThat(course.getClassDuration()).isEqualTo("50분");
-        assertThat(course.getHasSyllabus()).isTrue();
-        assertThat(course.getDisclosure().getDescription()).isEqualTo("공개");
-
-        // Verify schedules
-        List<CourseSchedule> schedules = course.getSchedules();
-        assertThat(schedules).hasSize(3);
-
-        assertThat(schedules.get(0).getDayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
-        assertThat(schedules.get(0).getPeriod()).isEqualTo(ClassPeriod.PERIOD_6A);
-
-        assertThat(schedules.get(1).getDayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
-        assertThat(schedules.get(1).getPeriod()).isEqualTo(ClassPeriod.PERIOD_6B);
-
-        assertThat(schedules.get(2).getDayOfWeek()).isEqualTo(CourseDayOfWeek.WEDNESDAY);
-        assertThat(schedules.get(2).getPeriod()).isEqualTo(ClassPeriod.PERIOD_3A);
-    }
-
-    @Test
-    @DisplayName("Schedules are empty for null or empty string")
-    void parseSchedules_empty() {
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">12345</Col>
-                            <Col id="CLSS">01</Col>
-                            <Col id="SBJTNM">Test Course</Col>
-                            <Col id="DAYTMCTNT"></Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
-
-        List<Course> courses = parser.parseCourses(xmlData);
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getSchedules()).isEmpty();
+        // 2. 전공선택과목 검증
+        Course course2 = courses.stream().filter(c -> c.getSubjectCode().equals("20002")).findFirst().orElseThrow();
+        assertThat(course2.getName()).isEqualTo("전공선택과목");
+        assertThat(course2.getClassification().getDescription()).isEqualTo("전공선택");
+        assertThat(course2.getDepartment()).isEqualTo("컴퓨터공학부");
+        assertThat(course2.getLectureHours()).isEqualTo(4);
+        assertThat(course2.getLectureLanguage().getValue()).isEqualTo("영어");
+        assertThat(course2.getDisclosure().getDescription()).isEqualTo("비공개");
+        assertThat(course2.getDisclosureReason()).isEqualTo("학과요청");
+        assertThat(course2.getAccreditation().getDescription()).isEqualTo("공학");
+        assertThat(course2.getGeneralCategory()).isNull(); // FLDCONVINFO empty and FLDFGNM not provided (or would use
+                                                           // FLDFGNM fallback)
+        assertThat(course2.getSchedules()).hasSize(4);
     }
 }

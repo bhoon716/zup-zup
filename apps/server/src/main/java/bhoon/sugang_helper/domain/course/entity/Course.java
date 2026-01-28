@@ -11,6 +11,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
@@ -30,8 +31,11 @@ import lombok.NoArgsConstructor;
 public class Course extends BaseTimeEntity {
 
     @Id
-    @Column(length = 64)
-    private String courseKey; // 'YYYY-Semester-Code-Class'
+    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(unique = true, nullable = false, length = 64)
+    private String courseKey; // 'YYYY:Semester:Code:Class'
 
     @Column(nullable = false, length = 20)
     private String subjectCode; // 과목코드
@@ -169,14 +173,49 @@ public class Course extends BaseTimeEntity {
         return Math.max(0, capacity - current);
     }
 
+    public void addSchedule(CourseSchedule schedule) {
+        this.schedules.add(schedule);
+        schedule.setCourse(this);
+    }
+
     public void updateStatus(Integer capacity, Integer current) {
         this.capacity = capacity;
         this.current = current;
         this.lastCrawledAt = LocalDateTime.now();
     }
 
-    public void addSchedule(CourseSchedule schedule) {
-        this.schedules.add(schedule);
-        schedule.setCourse(this);
+    public void updateMetadata(Course other) {
+        this.name = other.getName();
+        this.professor = other.getProfessor();
+        this.capacity = other.getCapacity();
+        this.current = other.getCurrent();
+        this.targetGrade = other.getTargetGrade();
+        this.academicYear = other.getAcademicYear();
+        this.semester = other.getSemester();
+        this.classification = other.getClassification();
+        this.department = other.getDepartment();
+        this.gradingMethod = other.getGradingMethod();
+        this.lectureLanguage = other.getLectureLanguage();
+        this.classTime = other.getClassTime();
+        this.credits = other.getCredits();
+        this.disclosure = other.getDisclosure();
+        this.disclosureReason = other.getDisclosureReason();
+        this.lectureHours = other.getLectureHours();
+        this.generalCategory = other.getGeneralCategory();
+        this.generalDetail = other.getGeneralDetail();
+        this.accreditation = other.getAccreditation();
+        this.status = other.getStatus();
+        this.classroom = other.getClassroom();
+        this.hasSyllabus = other.getHasSyllabus();
+        this.generalCategoryByYear = other.getGeneralCategoryByYear();
+        this.courseDirection = other.getCourseDirection();
+        this.classDuration = other.getClassDuration();
+        this.lastCrawledAt = LocalDateTime.now();
+
+        // Update schedules
+        this.schedules.clear();
+        for (CourseSchedule schedule : other.getSchedules()) {
+            this.addSchedule(new CourseSchedule(schedule.getDayOfWeek(), schedule.getPeriod()));
+        }
     }
 }

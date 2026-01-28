@@ -36,7 +36,7 @@ public class SubscriptionService {
     @Transactional
     public SubscriptionResponse subscribe(SubscriptionRequest request) {
         User user = getCurrentUser();
-        Course course = courseRepository.findById(request.getCourseKey())
+        Course course = courseRepository.findByCourseKey(request.getCourseKey())
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "과목을 찾을 수 없습니다."));
 
         validateSubscription(user, course);
@@ -100,7 +100,7 @@ public class SubscriptionService {
     }
 
     private SubscriptionResponse convertToResponse(Subscription subscription) {
-        return courseRepository.findById(subscription.getCourseKey())
+        return courseRepository.findByCourseKey(subscription.getCourseKey())
                 .map(course -> SubscriptionResponse.of(subscription, course.getName(), course.getProfessor()))
                 .orElseGet(() -> SubscriptionResponse.of(subscription, "Unknown", "Unknown"));
     }

@@ -28,7 +28,7 @@ public class CourseSchedule {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_key")
+    @JoinColumn(name = "course_id")
     private Course course;
 
     @Enumerated(EnumType.STRING)
@@ -36,6 +36,11 @@ public class CourseSchedule {
 
     @Enumerated(EnumType.STRING)
     private ClassPeriod period;
+
+    public CourseSchedule(CourseDayOfWeek dayOfWeek, ClassPeriod period) {
+        this.dayOfWeek = dayOfWeek;
+        this.period = period;
+    }
 
     @Builder
     public CourseSchedule(Course course, CourseDayOfWeek dayOfWeek, ClassPeriod period) {

@@ -65,7 +65,7 @@ class CourseCrawlerServiceTest {
         }
 
         ReflectionTestUtils.setField(apiClient, "apiUrl", realApiUrl);
-        given(courseRepository.findById(anyString())).willReturn(Optional.empty());
+        given(courseRepository.findByCourseKey(anyString())).willReturn(Optional.empty());
 
         // When
         crawlerService.crawlAndSaveCourses();

@@ -1,10 +1,13 @@
 package bhoon.sugang_helper.domain.course.service;
 
+import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,8 +38,8 @@ public class CourseService {
     }
 
     public CourseResponse getCourse(String courseKey) {
-        return courseRepository.findById(courseKey)
-                .map(CourseResponse::from)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 과목입니다."));
+        Course course = courseRepository.findByCourseKey(courseKey)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "Course not found: " + courseKey));
+        return CourseResponse.from(course);
     }
 }

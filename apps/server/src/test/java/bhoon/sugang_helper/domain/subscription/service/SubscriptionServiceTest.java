@@ -68,7 +68,7 @@ class SubscriptionServiceTest {
                 ReflectionTestUtils.setField(testUser, "id", 1L);
 
                 testCourse = Course.builder()
-                                .courseKey("12345-01")
+                                .courseKey("2026:10:12345:01")
                                 .name("Test Course")
                                 .professor("Test Prof")
                                 .subjectCode("12345")
@@ -88,7 +88,7 @@ class SubscriptionServiceTest {
                 given(securityContext.getAuthentication()).willReturn(authentication);
                 given(authentication.getName()).willReturn(testUser.getEmail());
                 given(userRepository.findByEmail(testUser.getEmail())).willReturn(Optional.of(testUser));
-                given(courseRepository.findById(request.getCourseKey())).willReturn(Optional.of(testCourse));
+                given(courseRepository.findByCourseKey(request.getCourseKey())).willReturn(Optional.of(testCourse));
                 given(subscriptionRepository.findByUserIdAndCourseKey(testUser.getId(), testCourse.getCourseKey()))
                                 .willReturn(Optional.empty());
                 given(subscriptionRepository.countByUserIdAndIsActiveTrue(testUser.getId())).willReturn(0L);
@@ -117,7 +117,7 @@ class SubscriptionServiceTest {
                 given(securityContext.getAuthentication()).willReturn(authentication);
                 given(authentication.getName()).willReturn(testUser.getEmail());
                 given(userRepository.findByEmail(testUser.getEmail())).willReturn(Optional.of(testUser));
-                given(courseRepository.findById(request.getCourseKey())).willReturn(Optional.of(testCourse));
+                given(courseRepository.findByCourseKey(request.getCourseKey())).willReturn(Optional.of(testCourse));
                 given(subscriptionRepository.countByUserIdAndIsActiveTrue(testUser.getId())).willReturn(3L);
 
                 // when & then
@@ -136,27 +136,27 @@ class SubscriptionServiceTest {
 
                 Subscription activeSubscription = Subscription.builder()
                                 .userId(testUser.getId())
-                                .courseKey("12345-01")
+                                .courseKey("2026:10:12345:01")
                                 .isActive(true)
                                 .build();
 
                 Subscription inactiveSubscription = Subscription.builder()
                                 .userId(testUser.getId())
-                                .courseKey("67890-02")
+                                .courseKey("2026:10:67890:02")
                                 .isActive(false)
                                 .build();
 
                 given(subscriptionRepository.findByUserId(testUser.getId()))
                                 .willReturn(List.of(activeSubscription, inactiveSubscription));
 
-                given(courseRepository.findById("12345-01")).willReturn(Optional.of(testCourse));
+                given(courseRepository.findByCourseKey("2026:10:12345:01")).willReturn(Optional.of(testCourse));
 
                 Course inactiveCourse = Course.builder()
-                                .courseKey("67890-02")
+                                .courseKey("2026:10:67890:02")
                                 .name("Inactive Course")
                                 .professor("Other Prof")
                                 .build();
-                given(courseRepository.findById("67890-02")).willReturn(Optional.of(inactiveCourse));
+                given(courseRepository.findByCourseKey("2026:10:67890:02")).willReturn(Optional.of(inactiveCourse));
 
                 // when
                 List<SubscriptionResponse> responses = subscriptionService.getMySubscriptions();
@@ -164,7 +164,7 @@ class SubscriptionServiceTest {
                 // then
                 assertThat(responses).hasSize(2);
                 assertThat(responses).extracting("courseKey")
-                                .containsExactlyInAnyOrder("12345-01", "67890-02");
+                                .containsExactlyInAnyOrder("2026:10:12345:01", "2026:10:67890:02");
                 assertThat(responses).extracting("isActive")
                                 .containsExactlyInAnyOrder(true, false);
         }
@@ -177,7 +177,7 @@ class SubscriptionServiceTest {
                 given(securityContext.getAuthentication()).willReturn(authentication);
                 given(authentication.getName()).willReturn(testUser.getEmail());
                 given(userRepository.findByEmail(testUser.getEmail())).willReturn(Optional.of(testUser));
-                given(courseRepository.findById(request.getCourseKey())).willReturn(Optional.of(testCourse));
+                given(courseRepository.findByCourseKey(request.getCourseKey())).willReturn(Optional.of(testCourse));
                 given(subscriptionRepository.findByUserIdAndCourseKey(testUser.getId(), testCourse.getCourseKey()))
                                 .willReturn(Optional.of(mock(Subscription.class)));
 

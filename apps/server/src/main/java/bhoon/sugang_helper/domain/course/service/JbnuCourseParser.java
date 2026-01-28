@@ -47,93 +47,75 @@ public class JbnuCourseParser {
     private Optional<Course> processRow(Element row) {
         String sbjtCd = getColValue(row, "SBJTCD");
         String clss = getColValue(row, "CLSS");
-        String sbjtNm = getColValue(row, "SBJTNM");
-        String profNm = getColValue(row, "RPSTPROFNM");
-        String targetGrade = getColValue(row, "TLSNOBJFGNM"); // 수강대상 정보
         String year = getColValue(row, "YY");
         String semester = getColValue(row, "SHTM");
-        String classificationStr = getColValue(row, "CPTNFGNM");
-        String department = getColValue(row, "SUSTCDNM");
-        String gradingMethodStr = getColValue(row, "SCORTRETFGNM");
-        String lectureLanguageStr = getColValue(row, "LTLANGFGNM");
-        String classTime = getColValue(row, "DAYTMCTNT");
-        String credits = getColValue(row, "PNT");
 
-        int lmtrCnt = safeParseInt(getColValue(row, "LMTRCNT"));
-        int tlsnrCnt = safeParseInt(getColValue(row, "TLSNRCNT"));
-
-        if (sbjtCd == null || clss == null) {
+        if (sbjtCd == null || clss == null || year == null || semester == null) {
             return Optional.empty();
         }
 
-        String lectureHoursStr = getColValue(row, "TM");
-        int lectureHours = safeParseInt(lectureHoursStr);
-
-        String generalCategory = getColValue(row, "FLDFGNM");
-        String generalDetail = getColValue(row, "FLDDETAFGNM");
-        String categoryByYear = getColValue(row, "FLDCONVINFO");
-
-        if (categoryByYear != null && categoryByYear.contains(",")) {
-            String[] parts = categoryByYear.split(",");
-            if (parts.length >= 2) {
-                if (generalCategory == null || generalCategory.isBlank()) {
-                    generalCategory = parts[0].trim();
-                }
-                if (generalDetail == null || generalDetail.isBlank()) {
-                    generalDetail = parts[1].trim();
-                }
-            }
-        }
-        String accreditationStr = getColValue(row, "VLDFGNM");
-        String statusStr = getColValue(row, "OPENLECTFGNM");
-        String classroom = getColValue(row, "VILROOMNOCTNT");
-        String hasSyllabusStr = getColValue(row, "SUBPLANYN");
-        boolean hasSyllabus = "Y".equalsIgnoreCase(hasSyllabusStr);
-
-        String courseDirection = getColValue(row, "CLSSOPRTDRCT");
-        String classDuration = getColValue(row, "LESSTMFGNM");
-
-        String disclosureStr = getColValue(row, "PUBCYN");
-        DisclosureStatus disclosure = DisclosureStatus.from(disclosureStr);
-        String disclosureReason = getColValue(row, "NOPUBCRESNNM");
+        LiberalArtsInfo liberalArts = parseLiberalArtsInfo(row);
+        StatusInfo statusInfo = parseStatusAndDisclosureInfo(row);
 
         Course course = Course.builder()
-                .courseKey(year + "-" + semester + "-" + sbjtCd + "-" + clss)
+                .courseKey(generateCourseKey(year, semester, sbjtCd, clss))
                 .subjectCode(sbjtCd)
                 .classNumber(clss)
-                .name(sbjtNm)
-                .professor(profNm)
-                .capacity(lmtrCnt)
-                .current(tlsnrCnt)
-                .targetGrade(targetGrade)
+                .name(getColValue(row, "SBJTNM"))
+                .professor(getColValue(row, "RPSTPROFNM"))
+                .capacity(safeParseInt(getColValue(row, "LMTRCNT")))
+                .current(safeParseInt(getColValue(row, "TLSNRCNT")))
+                .targetGrade(getColValue(row, "TLSNOBJFGNM"))
                 .academicYear(year)
                 .semester(semester)
-                .classification(CourseClassification.from(classificationStr))
-                .department(department)
-                .gradingMethod(GradingMethod.from(gradingMethodStr))
-                .lectureLanguage(LectureLanguage.from(lectureLanguageStr))
-                .classTime(classTime)
-                .credits(credits)
-                .disclosure(disclosure)
-                .disclosureReason(disclosureReason)
-                .lectureHours(lectureHours)
-                .generalCategory(generalCategory)
-                .generalDetail(generalDetail)
-                .accreditation(CourseAccreditation.from(accreditationStr))
-                .status(CourseStatus.from(statusStr))
-                .classroom(classroom)
-                .hasSyllabus(hasSyllabus)
+                .classification(CourseClassification.from(getColValue(row, "CPTNFGNM")))
+                .department(getColValue(row, "SUSTCDNM"))
+                .gradingMethod(GradingMethod.from(getColValue(row, "SCORTRETFGNM")))
+                .lectureLanguage(LectureLanguage.from(getColValue(row, "LTLANGFGNM")))
+                .classTime(getColValue(row, "DAYTMCTNT"))
+                .credits(getColValue(row, "PNT"))
+                .disclosure(statusInfo.disclosure)
+                .disclosureReason(statusInfo.disclosureReason)
+                .lectureHours(safeParseInt(getColValue(row, "TM")))
+                .generalCategory(liberalArts.category)
+                .generalDetail(liberalArts.detail)
+                .accreditation(CourseAccreditation.from(getColValue(row, "VLDFGNM")))
+                .status(CourseStatus.from(getColValue(row, "OPENLECTFGNM")))
+                .classroom(getColValue(row, "VILROOMNOCTNT"))
+                .hasSyllabus("Y".equalsIgnoreCase(getColValue(row, "SUBPLANYN")))
                 .generalCategoryByYear(getColValue(row, "FLDCONVINFO"))
-                .courseDirection(courseDirection)
-                .classDuration(classDuration)
+                .courseDirection(getColValue(row, "CLSSOPRTDRCT"))
+                .classDuration(getColValue(row, "LESSTMFGNM"))
                 .build();
 
-        List<CourseSchedule> schedules = parseSchedules(classTime);
-        for (CourseSchedule schedule : schedules) {
-            course.addSchedule(schedule);
-        }
+        parseSchedules(getColValue(row, "DAYTMCTNT")).forEach(course::addSchedule);
 
         return Optional.of(course);
+    }
+
+    private String generateCourseKey(String year, String semester, String sbjtCd, String clss) {
+        return String.format("%s:%s:%s:%s", year, semester, sbjtCd, clss);
+    }
+
+    private LiberalArtsInfo parseLiberalArtsInfo(Element row) {
+        String category = getColValue(row, "FLDFGNM");
+        String detail = getColValue(row, "FLDDETAFGNM");
+        String convInfo = getColValue(row, "FLDCONVINFO");
+
+        if (convInfo != null && convInfo.contains(",")) {
+            String[] parts = convInfo.split(",");
+            if (parts.length >= 2) {
+                category = parts[0].trim();
+                detail = parts[1].trim();
+            }
+        }
+        return new LiberalArtsInfo(category, detail);
+    }
+
+    private StatusInfo parseStatusAndDisclosureInfo(Element row) {
+        DisclosureStatus disclosure = DisclosureStatus.from(getColValue(row, "PUBCYN"));
+        String disclosureReason = getColValue(row, "NOPUBCRESNNM");
+        return new StatusInfo(disclosure, disclosureReason);
     }
 
     private String getColValue(Element row, String colId) {
@@ -155,28 +137,37 @@ public class JbnuCourseParser {
             return schedules;
         }
 
-        // Example input: "월 6-A,월 6-B,수 6-A,수 6-B"
         String[] tokens = timeString.split(",");
         for (String token : tokens) {
-            token = token.trim();
-            // Expected format: "월 6-A"
-            String[] parts = token.split(" ");
-            if (parts.length < 2)
+            CourseSchedule schedule = parseCourseSchedule(token.trim().split(" "));
+            if (schedule == null)
                 continue;
-
-            String dayStr = parts[0];
-            String periodStr = parts[1];
-
-            CourseDayOfWeek day = CourseDayOfWeek.from(dayStr);
-            ClassPeriod period = ClassPeriod.from(periodStr);
-
-            if (day != null && period != null) {
-                schedules.add(CourseSchedule.builder()
-                        .dayOfWeek(day)
-                        .period(period)
-                        .build());
-            }
+            schedules.add(schedule);
         }
         return schedules;
+    }
+
+    private CourseSchedule parseCourseSchedule(String[] parts) {
+        if (parts.length < 2) {
+            return null;
+        }
+
+        CourseDayOfWeek day = CourseDayOfWeek.from(parts[0]);
+        ClassPeriod period = ClassPeriod.from(parts[1]);
+
+        if (day == null || period == null) {
+            return null;
+        }
+
+        return CourseSchedule.builder()
+                .dayOfWeek(day)
+                .period(period)
+                .build();
+    }
+
+    private record LiberalArtsInfo(String category, String detail) {
+    }
+
+    private record StatusInfo(DisclosureStatus disclosure, String disclosureReason) {
     }
 }
