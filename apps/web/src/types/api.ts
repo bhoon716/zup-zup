@@ -67,6 +67,11 @@ export interface Course {
   classroom?: string;
   disclosure?: string;
   disclosureReason?: string;
+  // Legacy/Compatibility fields from OpenAPI spec
+  totalSeats?: number;
+  currentSeats?: number;
+  professorName?: string;
+  status?: string;
   schedules?: {
     dayOfWeek: CourseDayOfWeek;
     period: ClassPeriod;

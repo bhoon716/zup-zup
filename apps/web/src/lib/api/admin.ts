@@ -5,3 +5,8 @@ export const getDashboardStats = async (): Promise<CommonResponse<AdminDashboard
   const { data } = await api.get('/api/v1/admin/stats');
   return data;
 };
+
+export const crawlCourses = async (): Promise<CommonResponse<string>> => {
+  const { data } = await api.post('/api/v1/admin/courses/crawl');
+  return data;
+};

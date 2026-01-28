@@ -1,13 +1,16 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, BookOpen, Bell, Activity, Loader2 } from "lucide-react";
+import { Users, BookOpen, Bell, Activity, Loader2, RefreshCcw } from "lucide-react";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { useHealth } from "@/hooks/useHealth";
+import { Button } from "@/components/ui/button";
+import { useCrawlCourses } from "@/hooks/useAdminActions";
 
 export default function AdminDashboardPage() {
   const { data, isLoading: isStatsLoading, error: statsError } = useAdminStats();
   const { data: healthData, isLoading: isHealthLoading } = useHealth();
+  const { mutate: crawl, isPending: isCrawling } = useCrawlCourses();
 
   const isLoading = isStatsLoading || isHealthLoading;
   const error = statsError;
@@ -57,17 +60,48 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">관리자 대시보드</h1>
           <p className="text-muted-foreground mt-2">전체 서비스 현황을 한눈에 파악합니다.</p>
         </div>
-        <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full border shadow-sm">
-          <div className={`w-3 h-3 rounded-full ${healthData?.status === 'UP' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-          <span className="text-sm font-medium">
-            서버 상태: {healthData?.status === 'UP' ? '정상' : '확인 불가'}
-          </span>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => crawl()} 
+            disabled={isCrawling}
+            className="hidden md:flex gap-2"
+          >
+            {isCrawling ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCcw className="w-4 h-4" />
+            )}
+            강제 크롤링 실행
+          </Button>
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full border shadow-sm">
+            <div className={`w-3 h-3 rounded-full ${healthData?.status === 'UP' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+            <span className="text-sm font-medium">
+              서버 상태: {healthData?.status === 'UP' ? '정상' : '확인 불가'}
+            </span>
+          </div>
         </div>
+      </div>
+
+      <div className="md:hidden">
+        <Button 
+          variant="outline" 
+          onClick={() => crawl()} 
+          disabled={isCrawling}
+          className="w-full gap-2"
+        >
+          {isCrawling ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCcw className="w-4 h-4" />
+          )}
+          강제 크롤링 실행
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

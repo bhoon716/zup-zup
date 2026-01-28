@@ -8,12 +8,23 @@ export const useCourses = (condition: CourseSearchCondition) => {
     queryFn: async () => {
       const response = await courseApi.searchCourses(condition);
       const rawData = response.data;
+      let courses: Course[] = [];
+
       // API 전환기 호환성 및 안정성을 위해 데이터 정규화 (배경: Page 객체 vs List 객체)
-      if (Array.isArray(rawData)) return rawData;
-      if (rawData && typeof rawData === 'object' && 'content' in rawData) {
-        return (rawData as PageResponse<Course>).content;
+      if (Array.isArray(rawData)) {
+        courses = rawData;
+      } else if (rawData && typeof rawData === 'object' && 'content' in rawData) {
+        courses = (rawData as PageResponse<Course>).content;
       }
-      return [];
+
+      // 필드명 정규화 (totalSeats -> capacity, currentSeats -> current, professorName -> professor)
+      return courses.map(course => ({
+        ...course,
+        capacity: course.capacity ?? course.totalSeats ?? 0,
+        current: course.current ?? course.currentSeats ?? 0,
+        available: course.available ?? ((course.capacity ?? course.totalSeats ?? 0) - (course.current ?? course.currentSeats ?? 0)),
+        professor: course.professor ?? course.professorName ?? "교수 미지정"
+      }));
     },
   });
 };
@@ -34,7 +45,17 @@ export const useCourseDetail = (courseKey: string) => {
     queryKey: ['course-detail', courseKey],
     queryFn: async () => {
       const response = await courseApi.getCourseDetail(courseKey);
-      return response.data;
+      const course = response.data;
+      if (!course) return null;
+
+      // 필드명 정규화 (totalSeats -> capacity, currentSeats -> current, professorName -> professor)
+      return {
+        ...course,
+        capacity: course.capacity ?? course.totalSeats ?? 0,
+        current: course.current ?? course.currentSeats ?? 0,
+        available: course.available ?? ((course.capacity ?? course.totalSeats ?? 0) - (course.current ?? course.currentSeats ?? 0)),
+        professor: course.professor ?? course.professorName ?? "교수 미지정"
+      };
     },
     enabled: !!courseKey,
   });
