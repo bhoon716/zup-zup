@@ -68,13 +68,16 @@ public class CourseSearchCondition {
     @Schema(description = "교양영역상세구분", example = "공통기초")
     private String generalDetail;
 
+    @Schema(description = "연동할 시간표 ID (해당 시간표와 겹치는 강의 제외)")
+    private Long timetableId;
+
     @Builder
     public CourseSearchCondition(String name, String professor, String subjectCode, String academicYear,
             String semester, String classification,
             String department, String gradingMethod, String lectureLanguage,
             Boolean isAvailableOnly, String dayOfWeek, String period, String credits, Integer lectureHours,
             Integer minLectureHours, String generalCategory, String generalDetail,
-            java.util.List<ScheduleCondition> selectedSchedules) {
+            java.util.List<ScheduleCondition> selectedSchedules, Long timetableId) {
         this.name = name;
         this.professor = professor;
         this.subjectCode = subjectCode;
@@ -93,5 +96,6 @@ public class CourseSearchCondition {
         this.generalCategory = generalCategory;
         this.generalDetail = generalDetail;
         this.selectedSchedules = selectedSchedules;
+        this.timetableId = timetableId;
     }
 }

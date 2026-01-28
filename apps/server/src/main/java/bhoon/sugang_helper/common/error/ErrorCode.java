@@ -34,6 +34,11 @@ public enum ErrorCode {
     // Subscription
     MAX_SUBSCRIPTION_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "S001", "구독 가능 개수를 초과했습니다."),
     SUBSCRIPTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "S002", "이미 구독 중인 과목입니다."),
+
+    // Timetable
+    MAX_TIMETABLE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "T001", "시간표 생성 개수 제한을 초과했습니다."),
+    TIMETABLE_COURSE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "T002", "시간표 강좌 개수 제한을 초과했습니다."),
+    TIMETABLE_SCHEDULE_OVERLAP(HttpStatus.BAD_REQUEST, "T003", "시간표 내에 시간이 겹치는 일정이 존재합니다."),
     ;
 
     private final HttpStatus status;
