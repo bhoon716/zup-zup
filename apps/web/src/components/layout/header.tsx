@@ -3,7 +3,7 @@
 import { useUser, useLogout } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { LogOut, Search, Home, Bell, Settings, ShieldCheck, ShoppingBag } from "lucide-react";
+import { LogOut, Search, Home, Bell, Settings, ShieldCheck, ShoppingBag, Calendar } from "lucide-react";
 
 export function Header() {
   const { data: user, isLoading } = useUser();
@@ -21,6 +21,12 @@ export function Header() {
               <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9">
                 <Home className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">대시보드</span>
+              </Button>
+            </Link>
+            <Link href="/timetable">
+              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">내 시간표</span>
               </Button>
             </Link>
             <Link href="/search">
