@@ -85,7 +85,9 @@ public class TestAsyncConfig {
 
 ### 결과
 
-## `@Async` 로직이 테스트 코드와 동일한 스레드에서 실행되도록 강제하여 `Thread.sleep()` 없이도 100% 신뢰할 수 있는 통합 테스트를 구현했습니다.
+`@Async` 로직이 테스트 코드와 동일한 스레드에서 실행되도록 강제하여 `Thread.sleep()` 없이도 100% 신뢰할 수 있는 통합 테스트를 구현했습니다.
+
+---
 
 ## 4. 민감한 외부 API URL의 안전한 관리
 
@@ -118,7 +120,9 @@ JUnit5의 **`@Tag("manual")`** 기능을 사용하여 무거운 통합 테스트
 
 ### 결과
 
-## 개발 과정에서 빈번하게 실행하는 기본 테스트 속도를 3배 이상 개선하여 개발 생산성을 확보했습니다.
+개발 과정에서 빈번하게 실행하는 기본 테스트 속도를 3배 이상 개선하여 개발 생산성을 확보했습니다.
+
+---
 
 ## 6. DB 초기화 시 세션 불일치 및 401(Unauthorized) 처리
 
@@ -161,8 +165,6 @@ return subscriptionRepository.findByUserIdAndIsActiveTrue(user.getId()).stream()
 return subscriptionRepository.findByUserId(user.getId()).stream()...
 ```
 
-### 결과
-
 ---
 
 ## 8. Docker 빌드 속도 최적화 (Layer Caching)
@@ -173,7 +175,7 @@ return subscriptionRepository.findByUserId(user.getId()).stream()...
 
 ### 원인 분석
 
-`Dockerfile`에서 `COPY . .` 명령어가 의존성 설치(`gradle build`)보다 먼저 실행되게 작성되어 있었습니다. 이로 인해 소스 코드가 단 한 줄이라도 변경되면, 이후 레이어인 의존성 다운로드 레이어의 캐시가 모두 무효화(Cache Miss)되어 매번 다시 다운로드받고 있었습니다.
+`Dockerfile`에서 `COPY . .` 명령어가 의존성 설치(`gradle build`)보다 먼저 실행되게 작성되어 있었습니다. 이로 인해 소스 코드 변경 시 모든 레이어가 캐시 무효화(Cache Miss)되었습니다.
 
 ### 해결책
 
@@ -195,40 +197,20 @@ RUN ./gradlew clean build -x test --no-daemon
 
 ### 결과
 
-소스 코드 변경 시 의존성 다운로드 과정이 생략(`CACHED`)되어 빌드 시간이 **약 130초에서 60초대로 50% 이상 단축**되었습니다.
+빌드 시간이 **약 130초에서 60초대로 50% 이상 단축**되었습니다.
 
 ---
 
 ## 9. CourseKey 데이터 절삭(Truncation) 및 크롤러 초기화 이슈
 
-### 문제 상황 1: 데이터 절삭 (Data Truncation)
+### 문제 상황
 
-기존 `과목코드-분반` 형식의 키를 `연도-학기-과목코드-분반`의 Composite Key로 변경하는 과정에서, DB 컬럼 길이가 `varchar(20)`으로 고정되어 있어 `Data truncation: Data too long` 에러가 발생하며 데이터 적재에 실패했습니다.
-
-### 해결책
-
-- `Course`, `Subscription`, `NotificationHistory` 등 `courseKey`를 사용하는 모든 엔티티의 컬럼 길이를 `varchar(64)`로 확장했습니다.
-- Docker 이미지가 캐시된 레이어를 사용하여 변경 사항이 반영되지 않는 문제를 해결하기 위해 `docker-compose build --no-cache`를 수행했습니다.
-
-### 문제 상황 2: 크롤러 초기 구동 지연
-
-서버가 재시작된 직후, 스케줄러(`CourseScheduler`)가 5분 주기로 설정되어 있어 첫 5분간 DB가 비어있는 상태가 지속되었습니다. 사용자는 이를 "검색 기능 고장"으로 인식했습니다.
+기존 `과목코드-분반` 형식의 키를 `연도-학기-과목코드-분반`의 Composite Key로 변경하는 과정에서, DB 컬럼 길이가 `varchar(20)`으로 고정되어 있어 `Data truncation` 에러가 발생했습니다.
 
 ### 해결책
 
-스프링 부트의 `ApplicationReadyEvent`를 활용하여, 애플리케이션 시작과 동시에 크롤러가 즉시 1회 실행되도록 로직을 추가했습니다.
-
-```java
-@EventListener(ApplicationReadyEvent.class)
-public void onApplicationReady() {
-    log.info("Application ready. Triggering initial course crawling...");
-    runCrawler();
-}
-```
-
-### 결과
-
-서버 시작 즉시 최신 강좌 데이터가 적재되어 검색 기능의 가용성을 100% 확보했습니다.
+- 모든 관련 엔티티의 컬럼 길이를 `varchar(64)`로 확장했습니다.
+- 스프링 부트 `ApplicationReadyEvent`를 통해 서버 시작 시 즉시 크롤러가 구동되도록 하여 초기 데이터 공백 현상을 제거했습니다.
 
 ---
 
@@ -236,24 +218,48 @@ public void onApplicationReady() {
 
 ### 문제 상황
 
-학교(JBNU) API 응답에서 교양 영역(`FLDFGNM`)과 상세구분(`FLDDETAFGNM`) 컬럼이 비어 있는 경우가 발생했습니다. 이로 인해 교양 영역별 검색 기능이 정상적으로 동작하지 않는 문제가 발견되었습니다.
+학교 API 응답에서 교양 영역(`FLDFGNM`) 컬럼이 비어 있는 경우가 많아 교양 영역별 필터링이 불가능했습니다.
 
 ### 해결책
 
-데이터를 분석한 결과, `FLDCONVINFO`(입학년도기준교양영역구분) 필드에 `"기초, 공통기초"`와 같은 형식으로 영역과 상세구분이 콤마(`,`)로 결합되어 제공됨을 확인했습니다.
+`FLDCONVINFO` 필드(`"영역,상세구분"`)를 파싱하여 값을 추출하는 로직을 추가함으로써 데이터 정합성을 확보했습니다.
 
-- **파싱 로직 개선**: `JbnuCourseParser`에서 `FLDCONVINFO` 값을 가져와 `,`를 기준으로 분리한 뒤, 각각 `generalCategory`와 `generalDetail` 필드에 할당하도록 수정했습니다.
+---
+
+## 11. Web Push 초기화 에러 (Property Key Mismatch)
+
+### 문제 상황
+
+서버 구동 시 `PushService is not initialized` 에러와 함께 알림 발송이 실패하는 현상이 발생했습니다.
+
+### 원인
+
+`WebPushNotificationSender.java` 코드에서는 `@Value("${WEBPUSH_PUBLIC_KEY}")`와 같이 환경변수 스타일로 키를 참조했으나, 실제 `application.yml` 설정은 `app.webpush.public-key`와 같은 계층형 구조로 되어 있어 값을 주입받지 못했습니다.
+
+### 해결책
+
+코드의 `@Value` 어노테이션 값을 YAML 설정 파일 구조에 맞게 수정했습니다.
 
 ```java
-if (categoryByYear != null && categoryByYear.contains(",")) {
-    String[] parts = categoryByYear.split(",");
-    if (parts.length >= 2) {
-        if (StringUtils.isBlank(generalCategory)) generalCategory = parts[0].trim();
-        if (StringUtils.isBlank(generalDetail)) generalDetail = parts[1].trim();
-    }
-}
+// 수정 전
+@Value("${WEBPUSH_PUBLIC_KEY}")
+
+// 수정 후
+@Value("${app.webpush.public-key:}")
 ```
 
 ### 결과
 
-데이터 소스의 컬럼 구성 변화에 유연하게 대응하여, 교양 영역 데이터의 누락 없는 수집과 검색을 보장할 수 있게 되었습니다.
+설정 값을 정상적으로 로드하여 `PushService`가 성공적으로 초기화되었습니다.
+
+---
+
+## 12. 알림 테스트 예외 처리 (Device Not Found)
+
+### 문제 상황
+
+관리자 알림 테스트 시, 대상 유저의 기기 토큰이 DB에 없음에도 불구하고 요청이 성공(200 OK)으로 반환되어 실제 발송 실패 원인을 파악하기 어려웠습니다.
+
+### 해결책
+
+`NotificationService`의 `sendTestNotification` 메서드에서 기기 존재 여부를 먼저 조회하고, 기기가 없을 경우 `ErrorCode.DEVICE_NOT_FOUND` 예외를 명시적으로 발생시키도록 로직을 추가했습니다. 이로써 프론트엔드에서 "기기가 등록되지 않았습니다"라는 정확한 피드백을 줄 수 있게 되었습니다.

@@ -36,30 +36,25 @@ graph TD
 
 핵심적인 기술적 도전과 해결 과정입니다. 상세 내용은 [Troubleshooting Log](docs/troubleshooting.md)에서 확인할 수 있습니다.
 
-### 1. 대규모 알림 발송 성능 최적화 (N+1 문제)
+### 1. Web Push 초기화 에러 (Property Key Mismatch)
+
+- **문제**: `WebPushNotificationSender` 초기화 시 `PushService is not initialized` 에러 발생. `@Value`로 주입받는 환경 변수 키(`WEBPUSH_*`)와 `application.yml`의 계층 구조(`app.webpush.*`)가 불일치하여 발생함.
+- **해결**: `@Value("${app.webpush...}")` 형태로 매핑을 수정하여 설정값을 정상적으로 로드하고 서비스를 안정화함.
+
+### 2. 기기 미등록 시 무음 성공 처리 문제
+
+- **문제**: 알림 테스트 발송 시 타겟 기기가 DB에 없어도 예외 없이 성공(200 OK)으로 처리되어 디버깅이 어려움.
+- **해결**: `NotificationService` 발송 로직에 기기 존재 여부 체크를 추가하고, 기기가 없을 경우 명시적인 `bhoon.sugang_helper.common.error.CustomException`을 던져 클라이언트가 인지할 수 있도록 개선.
+
+### 3. 대규모 알림 발송 성능 최적화 (N+1 문제)
 
 - **문제**: 특정 과목 여석 발생 시 수천 명의 구독자 정보를 개별 조회하며 발생하는 DB 병목 현상.
 - **해결**: ID 리스트 기반의 **배치 조회(`IN` 절)**를 도입하여 쿼리 수를 단 3개로 고정, 발송 성능을 **약 80% 개선**.
 
-### 2. Redis 기반 중복 알림 방지 (Dedup)
+### 4. Redis 기반 중복 알림 방지 (Dedup)
 
 - **문제**: 짧은 크롤링 주기와 시스템 시차로 인해 동일 여석에 대해 중복 알림이 발송되는 UX 저하.
 - **해결**: **Redis**를 활용해 과목별 발송 이력을 10분간 유지하는 Deduplication 메커니즘을 구축하여 알림 피로도 최소화.
-
-### 3. 비동기(@Async) 로직의 테스트 신뢰성 확보
-
-- **문제**: 알림 발송의 비동기 특성으로 인해 통합 테스트 검증 시점이 불확실해지는 비결정성 문제.
-- **해결**: 테스트 전용 `SyncTaskExecutor` 설정을 도입하여 비동기 로직을 동기적으로 검증함으로써 **테스트 신뢰도 100% 달성**.
-
-### 4. DB 초기화 시 세션 자동 정리 (401 mapping)
-
-- **문제**: DB 초기화 후 기존 세션 사용자의 요청이 404로 반환되어 프론트엔드에서 로그아웃 처리가 안 되는 현상.
-- **해결**: 유저 미발견 시 **401(Unauthorized)**을 반환하도록 표준화하여 프론트엔드의 자동 로그아웃 및 보안 신뢰성 강화.
-
-### 5. 예약어(Year) 충돌 및 동적 쿼리 고도화
-
-- **문제**: SQL 예약어 `YEAR`를 필드명으로 사용하여 발생한 쿼리 오류 및 복잡한 상세 검색(요일/교시) 구현의 어려움.
-- **해결**: 필드명을 `academicYear`로 변경하여 예약어 충돌을 방지하고, **QueryDSL** 조인 쿼리를 통해 1:N 관계인 수업 시간표 필터링을 완벽하게 구현.
 
 ---
 
@@ -68,35 +63,9 @@ graph TD
 - **고급 강좌 검색 (Advanced Search)**: QueryDSL을 사용하여 연도, 학기, 이수구분, 학위과정, 학과, 성적평가방식, 강의언어, 학점, 시수(10+ 지원), 수업요일/교시 등 모든 조건에 대한 정밀 동적 필터링 지원.
 - **정밀 모니터링 & 파싱**: Jsoup 기반 XML 파싱 엔진 고도화. `FLDCONVINFO` 필드에서 교양 영역/상세구분을 분리 파싱하여 데이터 정합성을 100% 확보하고 누락 없는 수집 보장.
 - **구조화된 수업 시간표**: 텍스트 형태의 수업 시간을 `CourseSchedule` 엔티티(1:N)로 분리하여 요일 및 교시별 독립적인 검색 및 관리 지원.
-- **과목 공석 변동 이력 조회**: 특정 과목의 공석 변동 이력을 조회하여 사용자가 과거 데이터를 기반으로 수강신청 전략을 세울 수 있도록 지원.
-- **다양한 Enum 적용**: 데이터 일관성을 위해 이수구분, 성적평가 등 7가지 핵심 필드를 Enum 타입으로 전환하여 안전한 데이터 핸들링 보장.
+- **알림 테스트 API**: 관리자가 특정 사용자를 대상으로 이메일, 웹푸시, 앱푸시가 정상 작동하는지 즉시 검증할 수 있는 테스트 엔드포인트 제공.
 - **멀티 채널 스마트 알림**: FCM(앱), Web Push(브라우저), Email(SMTP)을 통한 즉각적인 정보 알림 및 중복 방지 로직.
 - **보안 인증**: Google OAuth2 및 JWT(Refresh Token Rotation) 기반의 안전한 세션 관리.
-
----
-
-## 🛠 주요 기술적 고도화 (Technical Highlights)
-
-본 프로젝트의 최근 업데이트를 통해 다음과 같은 기술적 개선이 이루어졌습니다.
-
-### 1. QueryDSL 기반 동적 쿼리 엔진
-
-단순 검색을 넘어 실시간으로 변하는 수강신청 상황에 대응하기 위해 QueryDSL을 도입했습니다.
-
-- **수업 시간 Join 검색**: 1:N 관계인 `CourseSchedule` 테이블과 Join하여 '월요일 3-A 교시'와 같은 특정 시간대 강좌를 효율적으로 필터링합니다.
-- **방법**: `application.properties`에는 `${JBNU_API_URL}`과 같은 플레이스홀더만 남기고, 실제 값은 `.env` 파일을 통해 주입받습니다.
-- **구조 최적화**: 설정의 성격에 따라 `infra/.env`(인프라)와 `server/.env`(비즈니스 로직)로 분리하여 관리 효율성을 높였습니다. `docker-compose` 실행 시에는 두 파일을 병합하여 사용하고, 로컬 개발 시에는 `server/.env`만으로도 구동이 가능하도록 구성했습니다.
-- **테스트 환경 대응**: 수동 테스트 진행 시에도 하드코딩된 URL 대신 시스템 프로퍼티(`-Djbnu.api.url`) 또는 환경 변수에서 값을 읽어오도록 리팩토링하여 보안성을 높였습니다.
-- **통합 검색 조건**: 복잡한 `BooleanBuilder` 로직을 통해 과목코드, 과목명, 교수명을 아우르는 통합 검색 기능을 제공합니다.
-
-### 2. 데이터 구조 최적화 및 강좌 식별 개선
-
-- **Enum 리팩토링**: 7가지 핵심 도메인 필드를 Enum으로 전환하여 코드 레벨의 타입 안정성을 확보하고 DB 인덱싱 효율을 높였습니다.
-- **CourseKey 가독성 향상**: 기존 학수번호 중심의 식별자에서 **`과목코드-과목명-교수이름`** 형식의 가독성 높은 새로운 식별 체계로 변경하여 정밀한 강좌 추적이 가능해졌습니다.
-
-### 3. XML/CSV 데이터 매핑 정합성 확보
-
-- 전북대 수강 관리 시스템의 XML 헤더와 실제 다운로드 가능한 CSV 데이터 간의 미세한 명칭 차이를 분석하여 100% 일치하는 파싱 로직을 구축했습니다. (수강대상, 교양영역구분 등 누락 방지)
 
 ---
 
@@ -105,14 +74,11 @@ graph TD
 ```text
 src/main/java/bhoon/sugang_helper/
 ├── common/             # 공통 유틸리티, 예외 처리, 보안 설정
-│   ├── config/         # Spring Configuration (Security, Redis, Swagger)
-│   ├── error/          # 전역 에러 핸들러 및 ErrorCode 정의
-│   ├── response/       # 공통 응답 포맷 (CommonResponse)
-│   └── util/           # 보안 및 기타 유틸리티
 ├── domain/             # 도메인 기반 비즈니스 로직
 │   ├── auth/           # OAuth2 인증 및 토큰 관리
+│   ├── admin/          # 관리자 대시보드 및 알림 테스트 API
 │   ├── course/         # 강좌 정보 조회 및 크롤링 엔진
-│   ├── notification/   # 알림 발송 멀티 채널 로직
+│   ├── notification/   # 알림 발송 멀티 채널 로직 (Service, Sender)
 │   ├── subscription/   # 유저 강좌 구독 관리
 │   └── user/           # 사용자 프로필 및 기기(Device) 관리
 └── SugangHelperApplication.java
@@ -125,7 +91,7 @@ src/main/java/bhoon/sugang_helper/
 - **Backend**: Java 21 LTS, Spring Boot 3.5
 - **Database**: MySQL 8.0, Redis (캐시 및 중복 제거)
 - **Auth**: Google OAuth2, JWT
-- **Communication**: Firebase Admin SDK, WebPush VAPID, JavaMail
+- **Communication**: Firebase Admin SDK, WebPush VAPID, JavaMail (SMTP)
 - **Infra**: Docker, Docker Compose
 
 ---
@@ -134,7 +100,7 @@ src/main/java/bhoon/sugang_helper/
 
 ### 1. 서비스 실행
 
-별도의 DB 설치 없이 **Docker Compose**를 통해 즉시 시스템 전체를 실행할 수 있습니다. 시스템 설정은 두 개의 환경 변수 파일로 분리되어 관리됩니다.
+별도의 DB 설치 없이 **Docker Compose**를 통해 즉시 시스템 전체를 실행할 수 있습니다.
 
 - `infra/.env`: 인프라(Docker, DB Root 등) 관련 설정
 - `server/.env`: 애플리케이션 로직(JWT, API Key 등) 관련 설정
@@ -149,9 +115,6 @@ docker-compose up -d
 기본적인 단위 테스트는 즉시 실행 가능하며, 통합 테스트(manual 태그)는 별도의 환경 변수 설정으로 실행할 수 있습니다.
 
 ```bash
-# 기본 테스트 실행 (약 6초)
+# 기본 테스트 실행
 ./gradlew test
-
-# 수동 통합 테스트 실행 (JBNU_API_URL 설정 필요)
-./gradlew manualTest
 ```
