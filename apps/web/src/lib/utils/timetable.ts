@@ -11,6 +11,7 @@ export interface RenderingBlock {
   endTime: string;
   color?: string;
   isOverlap?: boolean;
+  period?: string;
 }
 
 export const getTimeInMinutes = (timeStr: string): number => {
@@ -34,8 +35,8 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
   const flattened: RenderingBlock[] = [];
 
   // 1. 강좌 데이터 변환
-  timetable.entries.forEach((entry) => {
-    entry.schedules.forEach((schedule, idx) => {
+  timetable.entries?.forEach((entry) => {
+    entry.schedules?.forEach((schedule, idx) => {
       flattened.push({
         key: `course-${entry.courseKey}-${idx}`,
         id: entry.courseKey,
@@ -45,12 +46,13 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
         dayOfWeek: schedule.dayOfWeek,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
+        period: schedule.period,
       });
     });
   });
 
   // 2. 커스텀 일정 데이터 변환
-  timetable.customSchedules.forEach((schedule) => {
+  timetable.customSchedules?.forEach((schedule) => {
     flattened.push({
       key: `custom-${schedule.id}`,
       id: schedule.id,

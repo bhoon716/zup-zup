@@ -80,8 +80,9 @@ export function TimetableGrid({ timetable, className }: TimetableGridProps) {
                   >
                     <div className="font-bold truncate">{block.title}</div>
                     {block.subTitle && <div className="text-[9px] opacity-80 truncate">{block.subTitle}</div>}
-                    <div className="text-[8px] mt-0.5 opacity-60">
-                      {block.startTime} - {block.endTime}
+                    <div className="text-[8px] mt-0.5 opacity-60 flex items-center gap-1.5">
+                      <span>{block.startTime} - {block.endTime}</span>
+                      {block.period && <span className="px-1 bg-primary/20 rounded-[2px] font-medium">{block.period}</span>}
                     </div>
                   </div>
                 );
