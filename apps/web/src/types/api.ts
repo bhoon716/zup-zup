@@ -67,6 +67,7 @@ export interface Course {
   classroom?: string;
   disclosure?: string;
   disclosureReason?: string;
+  lastCrawledAt?: string;
   // Legacy/Compatibility fields from OpenAPI spec
   totalSeats?: number;
   currentSeats?: number;

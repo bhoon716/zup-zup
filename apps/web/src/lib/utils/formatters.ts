@@ -1,3 +1,5 @@
+import { formatDistanceToNow } from 'date-fns';
+import { ko } from 'date-fns/locale';
 
 /**
  * API 데이터 값 국문 변환 유틸리티
@@ -92,4 +94,17 @@ export function formatLanguage(value?: string): string {
 export function formatGradingMethod(value?: string): string {
   if (!value) return '-';
   return GRADING_MAP[value] || GRADING_MAP[value.toUpperCase()] || value;
+}
+
+/**
+ * 상대 시간 포맷팅 (예: "3분 전")
+ */
+export function formatRelativeTime(dateString?: string): string {
+  if (!dateString) return '-';
+  try {
+    const date = new Date(dateString);
+    return formatDistanceToNow(date, { addSuffix: true, locale: ko });
+  } catch (e) {
+    return '-';
+  }
 }

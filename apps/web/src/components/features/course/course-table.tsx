@@ -13,7 +13,7 @@ import { useSubscribe, useSubscriptions } from "@/hooks/useSubscriptions";
 import type { Course } from "@/types/api";
 import { Check } from "lucide-react";
 import { CourseDetailDialog } from "./course-detail-dialog";
-import { formatClassification, formatLanguage } from "@/lib/utils/formatters";
+import { formatClassification, formatLanguage, formatRelativeTime } from "@/lib/utils/formatters";
 import { useState } from "react";
 
 interface CourseTableProps {
@@ -54,13 +54,14 @@ export function CourseTable({ courses }: CourseTableProps) {
               <TableHead className="text-center text-[11px] font-black uppercase tracking-wider">정원</TableHead>
               <TableHead className="text-center text-[11px] font-black uppercase tracking-wider">여석</TableHead>
               <TableHead className="text-center text-[11px] font-black uppercase tracking-wider">상태</TableHead>
+              <TableHead className="text-center text-[11px] font-black uppercase tracking-wider">업데이트</TableHead>
               <TableHead className="text-center w-[120px] text-[11px] font-black uppercase tracking-wider">구독</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {courses.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-20 text-muted-foreground italic font-medium">
+                <TableCell colSpan={10} className="text-center py-20 text-muted-foreground italic font-medium">
                   검색 조건에 맞는 강좌가 없습니다.
                 </TableCell>
               </TableRow>
@@ -112,6 +113,11 @@ export function CourseTable({ courses }: CourseTableProps) {
                         }`}
                       >
                         {isAvailable ? "수강 가능" : "정원 초과"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className="text-[10px] text-muted-foreground/60 font-medium italic">
+                        {formatRelativeTime(course.lastCrawledAt)}
                       </span>
                     </TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
