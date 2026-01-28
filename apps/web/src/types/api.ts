@@ -178,3 +178,25 @@ export interface AdminDashboardResponse {
   crawlingStatus: string;
   lastCrawledAt: string;
 }
+
+// 찜(Wishlist) 관련
+export interface WishlistResponse {
+  id: number;
+  userId: number;
+  courseKey: string;
+  courseName: string;
+  professor: string;
+  classification: string;
+  credits: string;
+  classTime: string;
+  capacity: number;
+  current: number;
+  available: number;
+  subjectCode: string;
+  classNumber: string;
+  createdAt: string;
+}
+
+export interface WishlistToggleResponse {
+  isWished: boolean;
+}
