@@ -109,6 +109,7 @@ export function formatRelativeTime(dateString?: string): string {
   if (!dateString) return '-';
   try {
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
     return formatDistanceToNow(date, { addSuffix: true, locale: ko });
   } catch {
     return '-';

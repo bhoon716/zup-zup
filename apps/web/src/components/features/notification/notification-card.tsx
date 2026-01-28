@@ -3,8 +3,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { NotificationHistory } from "@/types/api";
 import { Bell } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ko } from "date-fns/locale";
+import { formatRelativeTime } from "@/lib/utils/formatters";
 
 interface NotificationCardProps {
   notification: NotificationHistory;
@@ -26,10 +25,7 @@ export function NotificationCard({ notification }: NotificationCardProps) {
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="font-medium">{notification.courseKey}</span>
           <span>
-            {formatDistanceToNow(new Date(notification.createdAt), {
-              addSuffix: true,
-              locale: ko,
-            })}
+            {formatRelativeTime(notification.createdAt)}
           </span>
         </div>
       </CardContent>
