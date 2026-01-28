@@ -2,6 +2,7 @@ package bhoon.sugang_helper.domain.course.response;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -97,6 +98,9 @@ public class CourseResponse {
     @Schema(description = "상태 (AVAILABLE, FULL)", example = "AVAILABLE")
     private final String status;
 
+    @Schema(description = "마지막 크롤링 시간", example = "2024-03-20T10:00:00")
+    private final LocalDateTime lastCrawledAt;
+
     public static CourseResponse from(Course course) {
         String status = course.getAvailable() > 0 ? "AVAILABLE" : "FULL";
         return CourseResponse.builder()
@@ -128,6 +132,7 @@ public class CourseResponse {
                 .courseDirection(course.getCourseDirection())
                 .classDuration(course.getClassDuration())
                 .status(status)
+                .lastCrawledAt(course.getLastCrawledAt())
                 .build();
     }
 }
