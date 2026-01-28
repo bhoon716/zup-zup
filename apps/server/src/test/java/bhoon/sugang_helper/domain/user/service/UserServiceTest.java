@@ -19,7 +19,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
+
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -87,5 +91,40 @@ class UserServiceTest {
         // then
         verify(subscriptionRepository, times(1)).deleteAllByUserId(1L);
         verify(userRepository, times(1)).delete(user);
+    }
+
+    @Test
+    @DisplayName("내 프로필 정보를 조회한다")
+    void getMyProfile() {
+        // given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .name("Test User")
+                .role(Role.USER)
+                .build();
+
+        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+
+        // when
+        UserResponse result = userService.getMyProfile();
+
+        // then
+        assertThat(result.getEmail()).isEqualTo("test@example.com");
+        assertThat(result.getName()).isEqualTo("Test User");
+    }
+
+    @Test
+    @DisplayName("사용자 정보를 찾을 수 없으면 예외를 발생시킨다")
+    void getMyProfile_UserNotFound_ThrowsException() {
+        // given
+        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.getMyProfile())
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
     }
 }
