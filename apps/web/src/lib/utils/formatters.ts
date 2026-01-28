@@ -7,21 +7,27 @@ import { ko } from 'date-fns/locale';
 
 // 이수구분 매핑
 const CLASSIFICATION_MAP: Record<string, string> = {
-  // Standard Codes (Prediction)
-  'MAJOR_REQUIRED': '전공필수',
-  'MAJOR_SELECTIVE': '전공선택',
-  'MAJOR_ELECTIVE': '전공선택', // User reported code
+  // Backend CourseClassification.java mapping
+  'SERIES_COMMON': '계열공통',
+  'GENERAL_EDUCATION': '교양',
+  'TEACHING_PROFESSION_GRAD': '교직(대)',
+  'TEACHING_PROFESSION': '교직',
+  'MILITARY_SCIENCE': '군사학',
+  'BASIC_REQUIRED': '기초필수',
+  'PREREQUISITE': '선수',
+  'GENERAL_ELECTIVE': '일반선택',
   'MAJOR': '전공',
+  'MAJOR_ELECTIVE': '전공선택',
+  'MAJOR_REQUIRED': '전공필수',
+
+  // Fallback/Legacy mappings
+  'MAJOR_SELECTIVE': '전공선택',
   'GENERAL_REQUIRED': '교양필수',
   'GENERAL_SELECTIVE': '교양선택',
-  'GENERAL': '교양',
   'LIBERAL_ARTS': '교양',
-  'TEACHING': '교직',
-  'TEACHING_REQUIRED': '교직필수',
-  'TEACHING_SELECTIVE': '교직선택',
-  'OPTIONAL': '자유선택', // or 일반선택
+  'OPTIONAL': '일반선택',
   
-  // Existing Korean Identity
+  // Identity (Already Korean)
   '계열공통': '계열공통',
   '교양': '교양',
   '교직(대)': '교직(대)',
