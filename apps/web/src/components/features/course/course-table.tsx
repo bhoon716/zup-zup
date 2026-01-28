@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -13,10 +12,10 @@ import { useSubscribe, useSubscriptions } from "@/hooks/useSubscriptions";
 import type { Course } from "@/types/api";
 import { Heart, Bell, Calendar } from "lucide-react";
 import { useToggleWishlist, useWishlist } from "@/hooks/useWishlist";
-import { useTimetableDetail, usePrimaryTimetable, useAddCourseToTimetable, useRemoveCourseFromTimetable } from "@/hooks/useTimetable";
+import { usePrimaryTimetable, useAddCourseToTimetable, useRemoveCourseFromTimetable } from "@/hooks/useTimetable";
 import { CourseDetailDialog } from "./course-detail-dialog";
 import { toast } from "sonner";
-import { formatClassification, formatLanguage } from "@/lib/utils/formatters";
+import { formatClassification } from "@/lib/utils/formatters";
 import { useState } from "react";
 import type { TimetableEntryResponse } from "@/types/api";
 

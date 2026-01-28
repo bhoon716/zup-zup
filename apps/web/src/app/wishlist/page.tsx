@@ -17,7 +17,7 @@ export default function WishlistPage() {
       classNumber: item.classNumber,
       name: item.courseName,
       professor: item.professor,
-      classification: item.classification as any,
+      classification: item.classification as Course['classification'],
       credits: item.credits,
       classTime: item.classTime,
       current: item.current,

@@ -4,8 +4,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import type { Course } from "@/types/api";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,20 +14,7 @@ interface CourseDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0 }
-};
+// Unused variants removed
 
 import { CourseDetailContent } from "./course-detail-content";
 

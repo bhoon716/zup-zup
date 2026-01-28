@@ -110,7 +110,7 @@ export function formatRelativeTime(dateString?: string): string {
   try {
     const date = new Date(dateString);
     return formatDistanceToNow(date, { addSuffix: true, locale: ko });
-  } catch (e) {
+  } catch {
     return '-';
   }
 }

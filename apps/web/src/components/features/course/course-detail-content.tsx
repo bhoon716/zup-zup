@@ -3,18 +3,9 @@
 import type { Course } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
 import { 
-  CalendarClock, 
-  GraduationCap, 
-  MapPin, 
-  Users, 
-  BookOpen, 
-  Clock, 
   Globe, 
-  Award,
-  Info,
   CheckCircle2,
   XCircle,
-  Component
 } from "lucide-react";
 import { DialogTitle } from "@/components/ui/dialog";
 import { formatClassification, formatGradingMethod, formatLanguage } from "@/lib/utils/formatters";

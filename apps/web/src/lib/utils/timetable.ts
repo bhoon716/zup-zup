@@ -1,4 +1,4 @@
-import { TimetableResponse, TimetableEntryResponse, CustomScheduleResponse, CourseDayOfWeek } from '@/types/api';
+import { TimetableResponse } from '@/types/api';
 
 export interface RenderingBlock {
   key: string;

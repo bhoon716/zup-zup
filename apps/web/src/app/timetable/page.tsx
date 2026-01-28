@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { timetableApi } from '@/lib/api/timetable';
 import { Header } from '@/components/layout/header';
@@ -34,7 +34,7 @@ export default function TimetablePage() {
       link.href = dataUrl;
       link.click();
       toast.success('시간표 이미지가 저장되었습니다.');
-    } catch (err) {
+    } catch {
       toast.error('이미지 저장에 실패했습니다.');
     }
   };
@@ -54,7 +54,7 @@ export default function TimetablePage() {
   }
 
   // 3. 현재 선택된 시간표 상세 조회
-  const { data: timetableDetail, isLoading: isDetailLoading } = useQuery({
+  const { data: timetableDetail } = useQuery({
     queryKey: ['timetable', selectedTimetableId],
     queryFn: () => timetableApi.getTimetable(selectedTimetableId!),
     enabled: selectedTimetableId !== null,
@@ -90,7 +90,7 @@ export default function TimetablePage() {
     onError: () => toast.error('대표 시간표 설정에 실패했습니다.')
   });
 
-  const isLoading = isListLoading || (selectedTimetableId !== null && isDetailLoading);
+  // const isLoading = isListLoading || (selectedTimetableId !== null && isDetailLoading);
 
   return (
     <div className="min-h-screen bg-background">

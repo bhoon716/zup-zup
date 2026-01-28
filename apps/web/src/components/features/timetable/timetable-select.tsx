@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Check, MoreVertical } from 'lucide-react';
 import { 
-  TimetableListResponse, 
-  TimetableResponse 
+  TimetableListResponse
 } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
