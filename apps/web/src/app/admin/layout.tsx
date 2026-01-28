@@ -11,8 +11,7 @@ export default function AdminLayout({
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="flex">
-          {/* Admin Sidebar could go here */}
-          <main className="flex-1 p-8">{children}</main>
+          <main className="container py-10">{children}</main>
         </div>
       </div>
     </AdminGuard>
