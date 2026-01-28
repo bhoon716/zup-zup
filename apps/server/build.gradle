@@ -78,15 +78,15 @@ dependencies {
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 
 	// jsoup
-	implementation 'org.jsoup:jsoup:1.18.1'
+	implementation 'org.jsoup:jsoup:1.18.3'
 
 
 	// firebase
-	implementation 'com.google.firebase:firebase-admin:9.4.3'
+	implementation 'com.google.firebase:firebase-admin:9.7.0'
 
 	// web push
 	implementation 'nl.martijndwars:web-push:5.1.1'
-	implementation 'org.bouncycastle:bcprov-jdk18on:1.80'
+	implementation 'org.bouncycastle:bcprov-jdk18on:1.83'
 }
 
 tasks.named('test') {
