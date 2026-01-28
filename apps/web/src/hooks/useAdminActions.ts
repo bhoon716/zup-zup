@@ -19,3 +19,16 @@ export const useCrawlCourses = () => {
     },
   });
 };
+
+export const useSendTestNotification = () => {
+  return useMutation({
+    mutationFn: (request: { email: string; channels: string[] }) => adminApi.sendTestNotification(request),
+    onSuccess: (response) => {
+      toast.success(response.message || '테스트 알림이 성공적으로 전송되었습니다.');
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      const errorMessage = error.response?.data?.message || '알림 전송 중 오류가 발생했습니다.';
+      toast.error(errorMessage);
+    },
+  });
+};

@@ -1,11 +1,12 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, BookOpen, Bell, Activity, Loader2, RefreshCcw } from "lucide-react";
+import { Users, BookOpen, Bell, Activity, Loader2, RefreshCcw, Send } from "lucide-react";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { useHealth } from "@/hooks/useHealth";
 import { Button } from "@/components/ui/button";
 import { useCrawlCourses } from "@/hooks/useAdminActions";
+import Link from "next/link";
 
 export default function AdminDashboardPage() {
   const { data, isLoading: isStatsLoading, error: statsError } = useAdminStats();
@@ -79,6 +80,12 @@ export default function AdminDashboardPage() {
             )}
             강제 크롤링 실행
           </Button>
+          <Link href="/admin/notification-test">
+            <Button variant="outline" className="hidden md:flex gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-500/5 hover:text-orange-700">
+              <Send className="w-4 h-4" />
+              알림 테스트
+            </Button>
+          </Link>
           <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full border shadow-sm">
             <div className={`w-3 h-3 rounded-full ${healthData?.status === 'UP' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
             <span className="text-sm font-medium">
@@ -102,6 +109,12 @@ export default function AdminDashboardPage() {
           )}
           강제 크롤링 실행
         </Button>
+        <Link href="/admin/notification-test" className="w-full mt-2 block">
+          <Button variant="outline" className="w-full gap-2 border-orange-500/50 text-orange-600">
+            <Send className="w-4 h-4" />
+            알림 테스트
+          </Button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

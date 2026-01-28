@@ -3,7 +3,7 @@
  */
 
 // Placeholder VAPID primary key - In production, this should be in .env
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY || "BPEg3-f1G-h9l_Z6_k-G2m7v_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_Xv_X";
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
 
 /**
  * Convert base64 string to Uint8Array for VAPID key
@@ -21,18 +21,44 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+
+/**
+ * Get current push subscription if exists with timeout
+ */
+export async function getSubscription() {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return null;
+  
+  try {
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Service Worker timeout")), 5000))
+    ]);
+    return await registration.pushManager.getSubscription();
+  } catch (error) {
+    console.warn("Failed to get push subscription:", error);
+    return null;
+  }
+}
+
 /**
  * Register Service Worker and subscribe to Push Manager
  */
 export async function subscribeToPush() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    throw new Error("Push notifications are not supported in this browser.");
+    throw new Error("브라우저가 푸시 알림을 지원하지 않습니다.");
   }
 
   const registration = await navigator.serviceWorker.register("/sw.js");
   
-  // Wait for service worker to be ready
-  await navigator.serviceWorker.ready;
+  // Wait for service worker to be ready with timeout
+  await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("서비스 워커 로드 타임아웃")), 5000))
+  ]);
+
+  if (!VAPID_PUBLIC_KEY) {
+    throw new Error("VAPID Public Key가 설정되지 않았습니다.");
+  }
 
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
@@ -43,23 +69,17 @@ export async function subscribeToPush() {
 }
 
 /**
- * Get current push subscription if exists
- */
-export async function getSubscription() {
-  if (!("serviceWorker" in navigator)) return null;
-  
-  const registration = await navigator.serviceWorker.ready;
-  return await registration.pushManager.getSubscription();
-}
-
-/**
  * Unsubscribe from Push Manager
  */
 export async function unsubscribeFromPush() {
-  const subscription = await getSubscription();
-  if (subscription) {
-    await subscription.unsubscribe();
-    return true;
+  try {
+    const subscription = await getSubscription();
+    if (subscription) {
+      await subscription.unsubscribe();
+      return true;
+    }
+  } catch (error) {
+    console.error("Failed to unsubscribe:", error);
   }
   return false;
 }
