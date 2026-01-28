@@ -154,16 +154,16 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-4 select-none">수강신청 현황</h3>
             <div className="grid grid-cols-3 gap-8 pb-4">
                 <div className="space-y-1">
-                    <p className="text-3xl font-normal tabular-nums tracking-tight">{course.capacity}</p>
-                    <span className="text-[10px] text-muted-foreground font-medium">정원</span>
+                    <p className="text-4xl font-light tabular-nums tracking-tight">{course.capacity || 0}</p>
+                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">총 정원</span>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-3xl font-normal tabular-nums tracking-tight">{course.current}</p>
-                    <span className="text-[10px] text-muted-foreground font-medium">현재</span>
+                    <p className="text-4xl font-light tabular-nums tracking-tight">{course.current || 0}</p>
+                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">신청 인원</span>
                 </div>
                 <div className="space-y-1">
-                    <p className={`text-3xl font-semibold tabular-nums tracking-tight ${isAvailable ? 'text-emerald-600' : 'text-muted-foreground'}`}>{course.available}</p>
-                    <span className={`text-[10px] font-medium ${isAvailable ? 'text-emerald-600' : 'text-muted-foreground'}`}>여석</span>
+                    <p className={`text-4xl font-black tabular-nums tracking-tight ${isAvailable ? 'text-emerald-500' : 'text-muted-foreground/40'}`}>{course.available || 0}</p>
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${isAvailable ? 'text-emerald-500' : 'text-muted-foreground/40'}`}>잔여 여석</span>
                 </div>
             </div>
         </section>
@@ -183,7 +183,7 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
             </span>
         </div>
         {course.courseDirection && (
-            <span className="truncate max-w-[300px] text-muted-foreground/80" title={course.courseDirection}>
+            <span className="truncate max-w-[400px] text-muted-foreground/80 font-medium" title={course.courseDirection}>
                 {course.courseDirection}
             </span>
         )}

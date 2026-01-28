@@ -44,7 +44,7 @@ export function CourseDetailDialog({ course, open, onOpenChange }: CourseDetailD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 gap-0 bg-background/95 backdrop-blur-md border border-border shadow-2xl overflow-hidden sm:rounded-2xl">
+      <DialogContent className="max-w-6xl p-0 gap-0 bg-background/95 backdrop-blur-md border border-border shadow-2xl overflow-hidden sm:rounded-2xl h-[90vh]">
         <AnimatePresence mode="wait">
           {open && (
             <motion.div

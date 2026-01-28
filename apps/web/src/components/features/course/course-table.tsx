@@ -111,14 +111,14 @@ export function CourseTable({ courses }: CourseTableProps) {
                             : "bg-destructive/10 text-destructive/70 border border-destructive/10"
                         }`}
                       >
-                        {isAvailable ? "Available" : "Full"}
+                        {isAvailable ? "수강 가능" : "정원 초과"}
                       </span>
                     </TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                       {subscribed ? (
                         <div className="flex items-center justify-center gap-1.5 py-1 text-primary/70 font-bold text-[10px] uppercase tracking-wider bg-primary/5 rounded-lg border border-primary/10">
                           <Check className="w-3 h-3" />
-                          <span>Subscribed</span>
+                          <span>구독 중</span>
                         </div>
                       ) : (
                         <Button
