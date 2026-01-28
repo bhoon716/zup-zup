@@ -24,9 +24,9 @@ public class WebPushNotificationSender implements NotificationSender {
     private PushService pushService;
 
     public WebPushNotificationSender(
-            @Value("${WEBPUSH_PUBLIC_KEY:}") String publicKey,
-            @Value("${WEBPUSH_PRIVATE_KEY:}") String privateKey,
-            @Value("${WEBPUSH_SUBJECT:mailto:admin@example.com}") String subject,
+            @Value("${app.webpush.public-key}") String publicKey,
+            @Value("${app.webpush.private-key}") String privateKey,
+            @Value("${app.webpush.subject}") String subject,
             ObjectMapper objectMapper) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;

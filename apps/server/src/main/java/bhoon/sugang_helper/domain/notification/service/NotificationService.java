@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.domain.notification.service;
 
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.notification.entity.NotificationHistory;
@@ -118,15 +120,26 @@ public class NotificationService {
         String message = "관리자 페이지에서 전송된 테스트 알림입니다. 수신이 정상적인지 확인해 주세요.";
 
         for (bhoon.sugang_helper.domain.notification.sender.NotificationChannel channel : channels) {
+            log.info("[NotificationTest] Attempting to send test notification via {}", channel);
+
             if (channel == NotificationChannel.EMAIL) {
                 dispatch(NotificationTarget.of(user.getEmail()), title, message, channel);
                 saveHistory(user.getId(), "TEST", title, message, channel);
                 continue;
             }
 
-            List<UserDevice> devices = userDeviceRepository.findByUserIdAndType(user.getId(),
-                    channel == NotificationChannel.WEB ? bhoon.sugang_helper.domain.user.enums.DeviceType.WEB
-                            : bhoon.sugang_helper.domain.user.enums.DeviceType.FCM);
+            bhoon.sugang_helper.domain.user.enums.DeviceType deviceType = (channel == NotificationChannel.WEB)
+                    ? bhoon.sugang_helper.domain.user.enums.DeviceType.WEB
+                    : bhoon.sugang_helper.domain.user.enums.DeviceType.FCM;
+
+            List<UserDevice> devices = userDeviceRepository.findByUserIdAndType(user.getId(), deviceType);
+
+            if (devices.isEmpty()) {
+                log.warn("[NotificationTest] No devices found for user {} with type {}", user.getEmail(), deviceType);
+                String channelName = (channel == NotificationChannel.WEB) ? "웹 푸시" : "앱 푸시";
+                throw new CustomException(ErrorCode.NOT_FOUND,
+                        String.format("등록된 %s 기기가 없습니다. 먼저 기기를 등록해 주세요.", channelName));
+            }
 
             for (UserDevice device : devices) {
                 NotificationTarget target = (channel == NotificationChannel.WEB)
@@ -134,6 +147,8 @@ public class NotificationService {
                         : NotificationTarget.of(device.getToken());
                 dispatch(target, title, message, channel);
                 saveHistory(user.getId(), "TEST", title, message, channel);
+                log.info("[NotificationTest] Successfully dispatched {} notification to device {}", channel,
+                        device.getId());
             }
         }
     }
