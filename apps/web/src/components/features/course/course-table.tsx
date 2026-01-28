@@ -11,9 +11,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useSubscribe, useSubscriptions } from "@/hooks/useSubscriptions";
 import type { Course } from "@/types/api";
-import { Check } from "lucide-react";
+import { Check, Heart } from "lucide-react";
+import { useToggleWishlist, useWishlist } from "@/hooks/useWishlist";
 import { CourseDetailDialog } from "./course-detail-dialog";
-import { formatClassification, formatLanguage, formatRelativeTime } from "@/lib/utils/formatters";
+import { formatClassification, formatLanguage } from "@/lib/utils/formatters";
 import { useState } from "react";
 
 interface CourseTableProps {
@@ -22,12 +23,18 @@ interface CourseTableProps {
 
 export function CourseTable({ courses }: CourseTableProps) {
   const { data: subscriptions } = useSubscriptions();
+  const { data: wishlist } = useWishlist();
+  const { mutate: toggleWishlist } = useToggleWishlist();
   const { mutate: subscribe, isPending } = useSubscribe();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const isSubscribed = (courseKey: string) => {
     return subscriptions?.some((sub) => sub.courseKey === courseKey);
+  };
+
+  const isWished = (courseKey: string) => {
+    return wishlist?.some((item) => item.courseKey === courseKey);
   };
 
   const handleSubscribe = (courseKey: string) => {
@@ -46,6 +53,7 @@ export function CourseTable({ courses }: CourseTableProps) {
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-background/80 backdrop-blur-md shadow-sm">
             <TableRow className="hover:bg-transparent border-b border-white/10">
+              <TableHead className="w-[40px] text-center text-[11px] font-black uppercase tracking-wider">찜</TableHead>
               <TableHead className="w-[100px] text-[11px] font-black uppercase tracking-wider">과목코드</TableHead>
               <TableHead className="text-[11px] font-black uppercase tracking-wider">강좌명</TableHead>
               <TableHead className="text-[11px] font-black uppercase tracking-wider">교수명</TableHead>
@@ -54,7 +62,6 @@ export function CourseTable({ courses }: CourseTableProps) {
               <TableHead className="text-center text-[11px] font-black uppercase tracking-wider">정원</TableHead>
               <TableHead className="text-center text-[11px] font-black uppercase tracking-wider">여석</TableHead>
               <TableHead className="text-center text-[11px] font-black uppercase tracking-wider">상태</TableHead>
-              <TableHead className="text-center text-[11px] font-black uppercase tracking-wider">업데이트</TableHead>
               <TableHead className="text-center w-[120px] text-[11px] font-black uppercase tracking-wider">구독</TableHead>
             </TableRow>
           </TableHeader>
@@ -76,6 +83,22 @@ export function CourseTable({ courses }: CourseTableProps) {
                     className="group hover:bg-primary/5 transition-colors border-white/5 cursor-pointer"
                     onClick={() => handleCourseClick(course)}
                   >
+                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 hover:bg-transparent"
+                        onClick={() => toggleWishlist(course.courseKey)}
+                      >
+                        <Heart
+                          className={`w-4 h-4 transition-colors ${
+                            isWished(course.courseKey)
+                              ? "fill-rose-500 text-rose-500"
+                              : "text-muted-foreground/40 hover:text-rose-500/70"
+                          }`}
+                        />
+                      </Button>
+                    </TableCell>
                     <TableCell className="font-mono text-[10px] text-muted-foreground/60 transition-colors group-hover:text-primary">
                       {course.subjectCode}
                     </TableCell>
@@ -113,11 +136,6 @@ export function CourseTable({ courses }: CourseTableProps) {
                         }`}
                       >
                         {isAvailable ? "수강 가능" : "정원 초과"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="text-[10px] text-muted-foreground/60 font-medium italic">
-                        {formatRelativeTime(course.lastCrawledAt)}
                       </span>
                     </TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
