@@ -151,8 +151,8 @@
 ### 6.3. 로컬 개발 환경 개선
 
 - **H2 Database 지원**: 별도 MySQL 설치 없이 로컬 개발 가능
-- **환경 변수 기본값**: 모든 필수 환경변수에 더미 기본값 추가
-- **즉시 실행 가능**: `./gradlew bootRun` 명령어만으로 바로 실행
+- **환경 변수 분리 및 기본값**: 인프라(`infra/.env`)와 애플리케이션(`server/.env`) 설정을 분리하여 관리 포인트 최적화
+- **즉시 실행 가능**: `server/.env`가 로컬 개발(`localhost`)에 최적화되어 있어, `./gradlew bootRun` 명령어만으로 바로 실행 가능
 
 ### 6.4. API 문서화 최적화 (API Documentation Optimization)
 
