@@ -11,11 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { useSubscribe, useSubscriptions } from "@/hooks/useSubscriptions";
 import type { Course } from "@/types/api";
-import { Check, Heart, Bell } from "lucide-react";
+import { Heart, Bell, Calendar } from "lucide-react";
 import { useToggleWishlist, useWishlist } from "@/hooks/useWishlist";
+import { useTimetableDetail, usePrimaryTimetable, useAddCourseToTimetable, useRemoveCourseFromTimetable } from "@/hooks/useTimetable";
 import { CourseDetailDialog } from "./course-detail-dialog";
+import { toast } from "sonner";
 import { formatClassification, formatLanguage } from "@/lib/utils/formatters";
 import { useState } from "react";
+import type { TimetableEntryResponse } from "@/types/api";
 
 interface CourseTableProps {
   courses: Course[];
@@ -29,6 +32,10 @@ export function CourseTable({ courses }: CourseTableProps) {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const { data: primaryTimetable } = usePrimaryTimetable();
+  const { mutate: addToTimetable, isPending: isAdding } = useAddCourseToTimetable();
+  const { mutate: removeFromTimetable, isPending: isRemoving } = useRemoveCourseFromTimetable();
+
   const isSubscribed = (courseKey: string) => {
     return subscriptions?.some((sub) => sub.courseKey === courseKey);
   };
@@ -37,8 +44,25 @@ export function CourseTable({ courses }: CourseTableProps) {
     return wishlist?.some((item) => item.courseKey === courseKey);
   };
 
+  const isInTimetable = (courseKey: string) => {
+    return primaryTimetable?.entries.some((entry: TimetableEntryResponse) => entry.courseKey === courseKey);
+  };
+
   const handleSubscribe = (courseKey: string) => {
     subscribe({ courseKey });
+  };
+
+  const handleTimetableAction = (courseKey: string) => {
+    if (!primaryTimetable) {
+      toast.error('대표 시간표가 없습니다. 내 시간표 메뉴에서 시간표를 먼저 생성해주세요.');
+      return;
+    }
+
+    if (isInTimetable(courseKey)) {
+      removeFromTimetable({ timetableId: primaryTimetable.id, courseKey });
+    } else {
+      addToTimetable({ timetableId: primaryTimetable.id, courseKey });
+    }
   };
 
   const handleCourseClick = (course: Course) => {
@@ -58,6 +82,7 @@ export function CourseTable({ courses }: CourseTableProps) {
               <TableHead className="w-[40px] text-center text-[11px] font-black uppercase tracking-wider">학점</TableHead>
               <TableHead className="w-[90px] text-[11px] font-black uppercase tracking-wider">시간</TableHead>
               <TableHead className="text-center w-[70px] text-[11px] font-black uppercase tracking-wider">인원/정원</TableHead>
+              <TableHead className="text-center w-[40px] text-[11px] font-black uppercase tracking-wider">시간표</TableHead>
               <TableHead className="text-center w-[40px] text-[11px] font-black uppercase tracking-wider">찜</TableHead>
               <TableHead className="text-center w-[40px] text-[11px] font-black uppercase tracking-wider pr-4">구독</TableHead>
             </TableRow>
@@ -111,6 +136,23 @@ export function CourseTable({ courses }: CourseTableProps) {
                         <span className={`text-[12px] ${capacityColor}`}>
                             {course.current || 0} / {course.capacity || 0}
                         </span>
+                    </TableCell>
+                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-transparent"
+                        onClick={() => handleTimetableAction(course.courseKey)}
+                        disabled={isAdding || isRemoving}
+                      >
+                        <Calendar
+                          className={`w-4 h-4 transition-all ${
+                            isInTimetable(course.courseKey)
+                              ? "fill-indigo-500 text-indigo-500 scale-110"
+                              : "text-muted-foreground/40 hover:text-indigo-500/70"
+                          }`}
+                        />
+                      </Button>
                     </TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                       <Button
