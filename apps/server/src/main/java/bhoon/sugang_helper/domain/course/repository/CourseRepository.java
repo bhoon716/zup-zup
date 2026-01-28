@@ -11,5 +11,7 @@ public interface CourseRepository extends JpaRepository<Course, Long>, CourseRep
 
     Optional<Course> findByCourseKey(String courseKey);
 
+    boolean existsByCourseKey(String courseKey);
+
     List<Course> findByCourseKeyIn(List<String> courseKeys);
 }

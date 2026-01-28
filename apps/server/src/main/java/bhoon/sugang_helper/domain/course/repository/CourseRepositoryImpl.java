@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 
 import static bhoon.sugang_helper.domain.course.entity.QCourse.course;
+import bhoon.sugang_helper.domain.course.entity.QCourseSchedule;
 
 public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
@@ -63,7 +64,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
         // 과목의 모든 수업시간(dayOfWeek, period)이 선택된 리스트 내에 있어야 함 (Subset Matching)
         // 로직: "해당 과목의 수업 시간 중, 선택된 시간대에 포함되지 않는 시간이 존재하지 않아야 함"
-        bhoon.sugang_helper.domain.course.entity.QCourseSchedule schedule = bhoon.sugang_helper.domain.course.entity.QCourseSchedule.courseSchedule;
+        QCourseSchedule schedule = QCourseSchedule.courseSchedule;
 
         com.querydsl.core.BooleanBuilder selectedSlots = new com.querydsl.core.BooleanBuilder();
         for (ScheduleCondition cond : selectedSchedules) {
