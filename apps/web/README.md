@@ -10,22 +10,21 @@ Next.js 16 (App Router) 기반의 JBNU 수강신청 빈자리 알림 서비스 �
 - **강좌 검색**: 학수번호, 과목명, 교수명은 물론 **학점, 시수(10+), 교양 영역/상세구분**까지 아우르는 강력한 필터링 제공.
 - **조건부 필터링 UI**: 이수구분이 '교양'인 경우에만 상세 카테고리 필터가 노출되어 직관적인 설정 가능.
 - **강좌 상세**: **Chart.js**를 이용한 좌석 변동 이력을 시각화하여 경쟁률 추이 파악 가능.
-- **UX 최적화**: 검색 실행 시 필터바 **자동 접힘(Auto-collapse)** 및 스켈레톤 UI 적용으로 매끄러운 검색 흐름 제공.
-- **알림 설득**: VAPID 프로토콜 기반의 **Web Push** 연동으로 브라우저가 꺼져 있어도 알림 수신 지원.
-- **설정 및 보안**: **TanStack Query**를 통한 서버 상태 관리 및 **Zustand**를 이용한 전역 인증 상태 관리.
-- **관리자 도구**: 서비스 운영자를 위한 구독 통계 및 크롤링 상태 모니터링 대시보드 (RBAC 적용).
-- **반응형 디자인**: 모바일 및 태블릿 환경에 최적화된 유연한 레이아웃 제공.
+- **Smart Web Push**: VAPID 기반 웹푸시를 지원하며, **포그라운드 상태에서도 인앱 Toast 알림**을 통해 놓치지 않는 알림 경험 제공.
+- **알림 테스트 도구**: 관리자 전용 페이지에서 이메일/웹푸시/앱푸시 알림을 즉시 테스트하고 기기를 원클릭으로 등록 가능.
+- **UX 최적화**: 검색 실행 시 필터바 **자동 접힘(Auto-collapse)** 및 스켈레톤 UI 적용.
+- **반응형 디자인**: 모바일 및 태블릿 환경에 최적화된 유연한 레이아웃.
 
 ---
 
 ## 🛠 기술 스택 (Tech Stack)
 
 - **Core**: Next.js 16, React 19, TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui (Radix UI), Lucide React
+- **Styling**: Tailwind CSS, shadcn/ui (Radix UI)
+- **Notifications**: Service Worker, Web Push API, Sonner (Toast)
 - **Data Fetching**: TanStack Query v5 (React Query)
 - **State Management**: Zustand (인증 정보 관리)
-- **Testing**: Vitest, React Testing Library, MSW (Mock Service Worker)
+- **Testing**: Vitest, React Testing Library, MSW
 - **Build**: Turbopack
 
 ---
@@ -34,15 +33,20 @@ Next.js 16 (App Router) 기반의 JBNU 수강신청 빈자리 알림 서비스 �
 
 상세 내용은 [Web Troubleshooting Log](docs/troubleshooting.md)에서 확인할 수 있습니다.
 
-### 1. Docker 환경 의존성 해결 (Radix UI)
+### 1. Web Push 무한 로딩 및 타임아웃 처리
 
-- **문제**: 컨테이너 빌드 시 `@radix-ui` 모듈 누락으로 인한 런타임 에러.
-- **해결**: 컨테이너 내 수동 설치 및 `package-lock.json` 동기화를 통해 빌드 안정성 확보.
+- **문제**: 브라우저 환경에 따라 서비스 워커(`navigator.serviceWorker.ready`) 응답이 지연되어 기기 등록 시 무한 로딩 발생.
+- **해결**: `Promise.race`를 활용하여 5초 타임아웃 로직을 추가하고, 실패 시 사용자에게 명확한 에러 피드백을 제공하여 UX 개선.
 
-### 2. API 필드 규격화 (OpenAPI API Match)
+### 2. 포그라운드 알림 시인성 문제 (이중 알림 구조)
 
-- **문제**: 백엔드 응답 필드와 프론트엔드 인터페이스 불일치로 인한 데이터 누락.
-- **해결**: 모든 DTO를 **OpenAPI v0** 규격으로 통일하여 비즈니스 로직의 데이터 무계성 유지.
+- **문제**: 브라우저 탭이 활성화(Foreground)된 상태에서는 OS 정책상 푸시 알림이 뜨지 않거나 금방 사라져 사용자가 인지하기 어려움.
+- **해결**: 서비스 워커에서 푸시 수신 시 `postMessage`로 클라이언트(탭)에 신호를 보내고, 클라이언트는 이를 감지하여 **인앱 Toast(sonner)**를 띄우는 이중 알림 구조 구현. 또한 `requireInteraction: true` 옵션을 통해 사용자가 확인하기 전까지 알림 유지.
+
+### 3. VAPID 키 환경 변수 연동
+
+- **문제**: `NEXT_PUBLIC_` 접두사가 없는 환경 변수를 클라이언트 사이드 코드에서 참조하여 키 값이 `undefined`로 나오는 문제.
+- **해결**: `.env` 변수명을 수정하고 유틸리티 함수에서 키 존재 여부를 엄격하게 체크하도록 에러 핸들링 강화.
 
 ---
 
@@ -50,11 +54,11 @@ Next.js 16 (App Router) 기반의 JBNU 수강신청 빈자리 알림 서비스 �
 
 ### 1. 환경 변수 설정
 
-`web/.env.local` 파일을 생성하고 다음 값을 설정합니다.
+`web/.env` 파일을 생성하고 다음 값을 설정합니다.
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8080
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key
+NEXT_PUBLIC_VAPID_KEY=your_vapid_public_key_from_server
 ```
 
 ### 2. 의존성 설치 및 실행
@@ -74,9 +78,6 @@ npm run dev
 ```bash
 # 단위 테스트 실행 (Vitest)
 npm run test
-
-# 테스트 리포트 확인
-npm run test:ui (선택 사항)
 ```
 
 ---
@@ -85,14 +86,12 @@ npm run test:ui (선택 사항)
 
 ```text
 src/
-├── app/            # Next.js App Router (Page & Layout)
-├── components/     # UI 및 도메인 단위 컴포넌트
-│   ├── ui/         # 추상화된 UI Base (Button, Card 등)
-│   ├── features/   # 기능별 컴포넌트 (Search, Settings 등)
-│   └── layout/     # 페이지 공통 레이아웃
-├── hooks/          # React Query 및 커스텀 Hook
-├── lib/            # API 클라이언트 및 유틸리티
+├── app/            # Next.js App Router
+├── components/     # UI 및 도메인 컴포넌트
+│   ├── features/   # 기능별 컴포넌트 (알림, 구독 등)
+│   └── providers.tsx # 전역 프로바이더 (QueryClient, Auth, Toast)
+├── hooks/          # 커스텀 Hook (기기 등록, 알림 테스트 등)
+├── lib/            # API 클라이언트 및 Web Push 유틸
 ├── store/          # Zustand 스토어
-├── types/          # TypeScript 인터페이스/타입 정의
-└── test/           # Vitest 테스트 설정 및 유틸
+└── public/         # 정적 파일 (sw.js 포함)
 ```

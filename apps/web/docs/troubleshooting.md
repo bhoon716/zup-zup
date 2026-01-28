@@ -79,3 +79,75 @@ Docker 환경에서 `next dev` 실행 시, `package.json`에 명시된 `@radix-u
 ### 결과
 
 모바일 및 데스크톱 환경 모두에서 화면 공간을 효율적으로 사용하게 되었으며, 사용자의 검색 흐름(Flow)이 비약적으로 매끄러워졌습니다.
+
+---
+
+## 6. 서비스 워커 무한 로딩 및 타임아웃 처리
+
+### 문제 상황
+
+웹푸시 기기 등록 시, `navigator.serviceWorker.ready`가 promise 상태에서 영원히 대기하여 UI가 무한 로딩("등록 중...") 상태에 빠지는 현상이 간헐적으로 발생했습니다.
+
+### 원인
+
+서비스 워커 등록이 어떤 이유로 지연되거나 이미 등록된 워커가 비정상 상태일 때, ready 속성이 resolve 되지 않는 경우가 있었습니다.
+
+### 해결책
+
+- **Time-out 도입**: `Promise.race`를 사용하여 서비스 워커 준비에 5초의 타임아웃을 걸었습니다.
+- **Fail-safe**: 5초 내에 응답이 없으면 명확한 에러를 발생시키고 UI 로딩을 해제하여 사용자가 재시도를 할 수 있도록 유도했습니다.
+
+```typescript
+// webpush.ts
+const registration = await Promise.race([
+  navigator.serviceWorker.ready,
+  new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Timeout")), 5000),
+  ),
+]);
+```
+
+### 결과
+
+무한 대기 상황이 사라지고, 사용자에게 즉각적인 피드백(성공/실패)을 제공하게 되었습니다.
+
+---
+
+## 7. Web Push VAPID 키 환경 변수 연동
+
+### 문제 상황
+
+웹푸시 구독(`pushManager.subscribe`) 시점에 `applicationServerKey`가 유효하지 않다는 에러가 발생하거나 구독 객체가 `null`로 반환되었습니다.
+
+### 원인
+
+Next.js 환경에서 클라이언트 사이드 코드(브라우저)는 `NEXT_PUBLIC_` 접두사가 붙은 환경 변수만 접근할 수 있는데, `.env` 파일에 접두사 없이 정의하거나 `process.env` 접근이 누락되어 키 값이 `undefined`로 전달되었습니다.
+
+### 해결책
+
+- **변수명 변경**: `.env` 파일의 변수명을 `NEXT_PUBLIC_VAPID_KEY`로 수정했습니다.
+- **유효성 검사**: `webpush.ts` 유틸리티에서 키가 존재하는지 검사하는 방어 코드를 추가하여, 키 누락 시 명확한 에러 메시지를 던지도록 수정했습니다.
+
+### 결과
+
+서버와 동일한 공개 키를 사용하여 VAPID 핸드셰이크가 정상적으로 이루어지게 되었습니다.
+
+---
+
+## 8. 포그라운드 알림 미표시 (이중 알림 구조)
+
+### 문제 상황
+
+브라우저 탭을 보고 있는 상태(Foreground)에서는 OS 정책이나 브라우저 설정에 따라 시스템 푸시 알림이 뜨지 않아, 사용자가 중요 알림을 놓칠 가능성이 있었습니다.
+
+### 해결책
+
+서비스 워커와 클라이언트 간의 **양방향 통신(Message Passing)**을 활용한 이중 알림 구조를 구축했습니다.
+
+1. **Service Worker**: 푸시 수신 시 `showNotification`을 호출함과 동시에, 열려 있는 모든 Window Client에게 `postMessage`로 푸시 내용을 전송합니다.
+2. **Client**: `navigator.serviceWorker`의 메시지 이벤트를 리스닝하고 있다가, 푸시 메시지가 오면 **`sonner` Toast**를 화면 상단에 띄웁니다.
+3. **UX 강화**: `requireInteraction: true` 옵션을 추가하여 사용자가 닫기 전까지 시스템 알림이 유지되도록 설정했습니다.
+
+### 결과
+
+사용자가 다른 작업을 하거나 탭을 보고 있을 때 등 모든 시나리오에서 알림을 확실히 인지할 수 있게 되었습니다.
