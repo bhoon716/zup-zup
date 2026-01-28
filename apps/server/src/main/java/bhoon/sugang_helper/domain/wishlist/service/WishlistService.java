@@ -7,6 +7,8 @@ import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
+import bhoon.sugang_helper.domain.user.repository.UserRepository;
+import bhoon.sugang_helper.domain.wishlist.dto.response.WishlistToggleResponse;
 import bhoon.sugang_helper.domain.wishlist.response.WishlistResponse;
 import bhoon.sugang_helper.domain.wishlist.entity.Wishlist;
 import bhoon.sugang_helper.domain.wishlist.repository.WishlistRepository;
@@ -32,7 +34,7 @@ public class WishlistService {
     private final UserRepository userRepository;
 
     @Transactional
-    public void toggleWishlist(String courseKey) {
+    public WishlistToggleResponse toggleWishlist(String courseKey) {
         User user = getCurrentUser();
 
         // Validate Course Existence
@@ -40,22 +42,23 @@ public class WishlistService {
             throw new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 강좌입니다.");
         }
 
-        wishlistRepository.findByUserIdAndCourseKey(user.getId(), courseKey)
-                .ifPresentOrElse(
-                        // If exists, delete (Un-wish)
-                        wishlist -> {
-                            wishlistRepository.delete(wishlist);
-                            log.info("[Wishlist] Deleted: userId={}, courseKey={}", user.getId(), courseKey);
-                        },
-                        // If not exists, save (Wish)
-                        () -> {
-                            Wishlist wishlist = Wishlist.builder()
-                                    .userId(user.getId())
-                                    .courseKey(courseKey)
-                                    .build();
-                            wishlistRepository.save(wishlist);
-                            log.info("[Wishlist] Created: userId={}, courseKey={}", user.getId(), courseKey);
-                        });
+        boolean isWished = wishlistRepository.findByUserIdAndCourseKey(user.getId(), courseKey)
+                .map(wishlist -> {
+                    wishlistRepository.delete(wishlist);
+                    log.info("[Wishlist] Deleted: userId={}, courseKey={}", user.getId(), courseKey);
+                    return false; // Removed
+                })
+                .orElseGet(() -> {
+                    Wishlist wishlist = Wishlist.builder()
+                            .userId(user.getId())
+                            .courseKey(courseKey)
+                            .build();
+                    wishlistRepository.save(wishlist);
+                    log.info("[Wishlist] Created: userId={}, courseKey={}", user.getId(), courseKey);
+                    return true; // Added
+                });
+
+        return WishlistToggleResponse.of(isWished);
     }
 
     public List<WishlistResponse> getMyWishlist() {

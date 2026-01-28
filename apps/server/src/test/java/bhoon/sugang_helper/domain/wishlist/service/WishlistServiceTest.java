@@ -80,7 +80,7 @@ class WishlistServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
     }
 
-    @DisplayName("찜 토글 시 - 이미 찜한 상태면 삭제(Un-wish)")
+    @DisplayName("찜 토글 시 - 이미 찜한 상태면 삭제(Un-wish) 후 false 반환")
     @Test
     void toggleWishlist_AlreadyExists_Delete() {
         // given
@@ -96,14 +96,15 @@ class WishlistServiceTest {
         given(wishlistRepository.findByUserIdAndCourseKey(1L, courseKey)).willReturn(Optional.of(wishlist));
 
         // when
-        wishlistService.toggleWishlist(courseKey);
+        var response = wishlistService.toggleWishlist(courseKey);
 
         // then
         verify(wishlistRepository, times(1)).delete(wishlist);
         verify(wishlistRepository, times(0)).save(any(Wishlist.class));
+        assertThat(response.isWished()).isFalse();
     }
 
-    @DisplayName("찜 토글 시 - 찜하지 않은 상태면 추가(Wish)")
+    @DisplayName("찜 토글 시 - 찜하지 않은 상태면 추가(Wish) 후 true 반환")
     @Test
     void toggleWishlist_NotExists_Save() {
         // given
@@ -118,11 +119,12 @@ class WishlistServiceTest {
         given(wishlistRepository.findByUserIdAndCourseKey(1L, courseKey)).willReturn(Optional.empty());
 
         // when
-        wishlistService.toggleWishlist(courseKey);
+        var response = wishlistService.toggleWishlist(courseKey);
 
         // then
         verify(wishlistRepository, times(0)).delete(any(Wishlist.class));
         verify(wishlistRepository, times(1)).save(any(Wishlist.class));
+        assertThat(response.isWished()).isTrue();
     }
 
     @DisplayName("내 찜 목록 조회 - 빈 목록 반환")
