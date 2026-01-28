@@ -9,6 +9,8 @@ import java.util.Optional;
 public interface UserDeviceRepository extends JpaRepository<UserDevice, Long> {
     List<UserDevice> findByUserId(Long userId);
 
+    List<UserDevice> findByUserIdAndType(Long userId, bhoon.sugang_helper.domain.user.enums.DeviceType type);
+
     List<UserDevice> findByUserIdIn(List<Long> userIds);
 
     Optional<UserDevice> findByToken(String token);

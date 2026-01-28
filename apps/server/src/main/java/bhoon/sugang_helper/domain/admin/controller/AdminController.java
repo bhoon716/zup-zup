@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.domain.admin.controller;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
+import bhoon.sugang_helper.domain.admin.request.TestNotificationRequest;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardResponse;
 import bhoon.sugang_helper.domain.admin.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,5 +27,13 @@ public class AdminController {
     public ResponseEntity<CommonResponse<AdminDashboardResponse>> getDashboardStats() {
         AdminDashboardResponse response = adminService.getDashboardStats();
         return CommonResponse.ok(response, "관리자 대시보드 통계 정보입니다.");
+    }
+
+    @Operation(summary = "알림 테스트 전송", description = "특정 사용자에게 테스트 알림을 전송합니다.")
+    @org.springframework.web.bind.annotation.PostMapping("/notifications/test")
+    public ResponseEntity<CommonResponse<Void>> sendTestNotification(
+            @org.springframework.web.bind.annotation.RequestBody @jakarta.validation.Valid TestNotificationRequest request) {
+        adminService.sendTestNotification(request);
+        return CommonResponse.ok(null, "테스트 알림이 성공적으로 요청되었습니다.");
     }
 }

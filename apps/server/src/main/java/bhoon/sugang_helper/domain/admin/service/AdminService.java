@@ -1,9 +1,14 @@
 package bhoon.sugang_helper.domain.admin.service;
 
+import bhoon.sugang_helper.domain.admin.request.TestNotificationRequest;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardResponse;
 import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
+import bhoon.sugang_helper.domain.notification.sender.NotificationChannel;
+import bhoon.sugang_helper.domain.notification.service.NotificationService;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
+import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +25,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final NotificationHistoryRepository notificationHistoryRepository;
+    private final NotificationService notificationService;
 
     public AdminDashboardResponse getDashboardStats() {
         long totalUsers = userRepository.count();
@@ -35,5 +41,17 @@ public class AdminService {
                 .crawlingStatus("RUNNING") // 임시: 나중에 크롤러 상태 연동 필요
                 .lastCrawledAt(LocalDateTime.now().toString()) // 임시
                 .build();
+    }
+
+    @Transactional
+    public void sendTestNotification(TestNotificationRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("해당 이메일의 사용자를 찾을 수 없습니다."));
+
+        java.util.List<NotificationChannel> channels = request.getChannels().stream()
+                .map(NotificationChannel::valueOf)
+                .collect(Collectors.toList());
+
+        notificationService.sendTestNotification(user, channels);
     }
 }

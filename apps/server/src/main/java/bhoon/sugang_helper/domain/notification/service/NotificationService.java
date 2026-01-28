@@ -112,6 +112,32 @@ public class NotificationService {
                 .build());
     }
 
+    public void sendTestNotification(User user,
+            List<bhoon.sugang_helper.domain.notification.sender.NotificationChannel> channels) {
+        String title = "[SugangHelper] 시스템 테스트 알림";
+        String message = "관리자 페이지에서 전송된 테스트 알림입니다. 수신이 정상적인지 확인해 주세요.";
+
+        for (bhoon.sugang_helper.domain.notification.sender.NotificationChannel channel : channels) {
+            if (channel == NotificationChannel.EMAIL) {
+                dispatch(NotificationTarget.of(user.getEmail()), title, message, channel);
+                saveHistory(user.getId(), "TEST", title, message, channel);
+                continue;
+            }
+
+            List<UserDevice> devices = userDeviceRepository.findByUserIdAndType(user.getId(),
+                    channel == NotificationChannel.WEB ? bhoon.sugang_helper.domain.user.enums.DeviceType.WEB
+                            : bhoon.sugang_helper.domain.user.enums.DeviceType.FCM);
+
+            for (UserDevice device : devices) {
+                NotificationTarget target = (channel == NotificationChannel.WEB)
+                        ? NotificationTarget.ofWeb(device.getToken(), device.getP256dh(), device.getAuth())
+                        : NotificationTarget.of(device.getToken());
+                dispatch(target, title, message, channel);
+                saveHistory(user.getId(), "TEST", title, message, channel);
+            }
+        }
+    }
+
     private NotificationChannel mapToChannel(bhoon.sugang_helper.domain.user.enums.DeviceType type) {
         return switch (type) {
             case FCM -> NotificationChannel.FCM;
