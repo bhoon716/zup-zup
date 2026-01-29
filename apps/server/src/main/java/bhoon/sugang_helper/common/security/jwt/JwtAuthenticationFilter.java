@@ -24,7 +24,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        // 1. 헤더에서 토큰 추출
         String token = jwtProvider.resolveToken(request);
+
+        // 2. 헤더에 토큰이 없으면 세션에서 확인 (BFF 패턴)
+        if (!StringUtils.hasText(token)) {
+            jakarta.servlet.http.HttpSession session = request.getSession(false);
+            if (session != null) {
+                token = (String) session.getAttribute("ACCESS_TOKEN");
+            }
+        }
 
         if (StringUtils.hasText(token) && jwtProvider.validateToken(token)) {
             Authentication authentication = jwtProvider.getAuthentication(token);

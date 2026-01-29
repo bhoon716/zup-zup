@@ -66,6 +66,18 @@ public class AuthService {
         String refreshToken = resolveRefreshToken(request);
         String accessToken = jwtProvider.resolveToken(request);
 
+        // 세션 무효화 (BFF 세션 제거)
+        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        if (session != null) {
+            if (accessToken == null) {
+                accessToken = (String) session.getAttribute("ACCESS_TOKEN");
+            }
+            if (refreshToken == null) {
+                refreshToken = (String) session.getAttribute("REFRESH_TOKEN");
+            }
+            session.invalidate();
+        }
+
         if (StringUtils.hasText(refreshToken) && jwtProvider.validateToken(refreshToken)) {
             String email = jwtProvider.getAuthentication(refreshToken).getName();
             redisService.deleteValues(REDIS_REFRESH_TOKEN_PREFIX + email);

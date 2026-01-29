@@ -49,9 +49,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         addRefreshTokenCookie(response, refreshToken);
 
-        response.addHeader(SecurityConstant.ACCESS_TOKEN_HEADER, SecurityConstant.TOKEN_PREFIX + accessToken);
+        // JWT를 서버 세션에 저장 (BFF 패턴: 브라우저에는 토큰을 노출하지 않음)
+        request.getSession().setAttribute("ACCESS_TOKEN", accessToken);
+        request.getSession().setAttribute("REFRESH_TOKEN", refreshToken);
 
-        log.info("OAuth2 Login Success: email={}", user.getEmail());
+        log.info("OAuth2 Login Success: email={}, session stored", user.getEmail());
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }
 

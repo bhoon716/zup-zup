@@ -80,6 +80,8 @@ dependencies {
 	// jsoup
 	implementation 'org.jsoup:jsoup:1.18.3'
 
+	// session
+	implementation 'org.springframework.session:spring-session-data-redis'
 
 	// firebase
 	implementation 'com.google.firebase:firebase-admin:9.7.0'
