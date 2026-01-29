@@ -77,21 +77,6 @@ public class SubscriptionService {
         log.info("[Subscription] Deleted: userId={}, subscriptionId={}", user.getId(), subscriptionId);
     }
 
-    @Transactional
-    public void toggleSubscription(Long subscriptionId) {
-        User user = getCurrentUser();
-        Subscription subscription = subscriptionRepository.findById(subscriptionId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "구독 정보를 찾을 수 없습니다."));
-
-        if (!subscription.getUserId().equals(user.getId())) {
-            throw new CustomException(ErrorCode.FORBIDDEN);
-        }
-
-        subscription.toggleActive();
-        log.info("[Subscription] Toggled: userId={}, subscriptionId={}, isActive={}",
-                user.getId(), subscriptionId, subscription.isActive());
-    }
-
     public List<SubscriptionResponse> getMySubscriptions() {
         User user = getCurrentUser();
         return subscriptionRepository.findByUserId(user.getId()).stream()
