@@ -56,6 +56,14 @@ public class AuthService {
         String newAccessToken = jwtProvider.createAccessToken(user.getEmail(), user.getRoleKey());
         String newRefreshToken = jwtProvider.createRefreshToken(user.getEmail());
 
+        // Update Session (BFF 패턴: 서버 세션에 최신 토큰 동기화)
+        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.setAttribute("ACCESS_TOKEN", newAccessToken);
+            session.setAttribute("REFRESH_TOKEN", newRefreshToken);
+            log.info("[Auth] Session tokens updated for email: {}", email);
+        }
+
         // Update Cookie
         setRefreshTokenCookie(response, newRefreshToken);
 
