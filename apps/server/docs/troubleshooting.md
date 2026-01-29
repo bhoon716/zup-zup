@@ -262,4 +262,54 @@ RUN ./gradlew clean build -x test --no-daemon
 
 ### 해결책
 
-`NotificationService`의 `sendTestNotification` 메서드에서 기기 존재 여부를 먼저 조회하고, 기기가 없을 경우 `ErrorCode.DEVICE_NOT_FOUND` 예외를 명시적으로 발생시키도록 로직을 추가했습니다. 이로써 프론트엔드에서 "기기가 등록되지 않았습니다"라는 정확한 피드백을 줄 수 있게 되었습니다.
+## `NotificationService`의 `sendTestNotification` 메서드에서 기기 존재 여부를 먼저 조회하고, 기기가 없을 경우 `ErrorCode.DEVICE_NOT_FOUND` 예외를 명시적으로 발생시키도록 로직을 추가했습니다. 이로써 프론트엔드에서 "기기가 등록되지 않았습니다"라는 정확한 피드백을 줄 수 있게 되었습니다.
+
+## 13. BFF(Backend For Frontend) 아키텍처 전환 및 토큰 격리
+
+### 문제 상황
+
+기존의 브라우저 기반 JWT 저장 방식(LocalStorage/Memory)은 다음과 같은 문제점이 있었습니다:
+
+1. **보안 취약점**: XSS 공격 시 자바스크립트를 통해 토큰이 탈취될 위험이 있음.
+2. **401 Race Condition**: Access Token 만료 시 여러 API가 동시에 Refresh를 시도하면서 서버 부하 및 인증 로직 충돌 발생.
+3. **URL 노출**: OAuth2 로그인 후 토큰 전달 과정에서 URL 파라미터로 토큰이 노출되는 보안 리스크.
+
+### 해결책
+
+브라우저가 토큰을 직접 다루지 않는 **BFF + 세션 쿠키** 패턴으로 전면 개편했습니다.
+
+- **토큰 저장소 이전**: 생성된 JWT(Access/Refresh)를 브라우저로 보내지 않고, **Spring Session Redis**를 도입하여 서버 측 세션에 저장합니다.
+- **인증 매커니즘**: 브라우저는 오직 `HttpOnly`, `SameSite=Lax` 설정이 된 `SESSION` 쿠키만 보유하며, 모든 인증은 서버 세션을 통해 수행됩니다.
+- **필터 확장**: `JwtAuthenticationFilter`가 HTTP 헤더뿐만 아니라 서버 세션의 속성을 확인하여 인증을 수행하도록 로직을 확장했습니다.
+
+### 결과
+
+- **보안 극대화**: 브라우저 자바스크립트 엔진에서 토큰 접근이 원천 차단되어 XSS로부터 안전해졌습니다.
+- **안정성 향상**: 클라이언트 측의 복잡한 리프레시 동기화 로직이 제거되고, 서버 세션 생명주기에 따른 일관된 인증 관리가 가능해졌습니다.
+
+---
+
+## 14. JWT 검증 실패 로그 상세화 (디버깅 능력 향상)
+
+### 문제 상황
+
+기존에는 JWT 검증 실패 시 단순히 `log.error("Invalid JWT token")`과 같이 단일 메시지만 출력되어, 토큰이 만료된 것인지, 서명이 잘못된 것인지, 혹은 형식이 틀린 것인지 구분하기 어려웠습니다.
+
+### 해결책
+
+`JwtProvider`의 `validateToken` 메서드 내부에 예외 타입별 상세 로깅을 추가했습니다.
+
+```java
+try {
+    Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+    return true;
+} catch (SecurityException | MalformedJwtException e) {
+    log.info("잘못된 JWT 서명입니다.");
+} catch (ExpiredJwtException e) {
+    log.info("만료된 JWT 토큰입니다.");
+} // ...기타 예외 처리
+```
+
+### 결과
+
+서버 로그만으로도 사용자의 접속 이슈 원인을 즉시 파악할 수 있게 되어 트러블슈팅 속도가 비약적으로 향상되었습니다.
