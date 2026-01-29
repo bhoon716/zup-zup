@@ -36,10 +36,12 @@ graph TD
 
 핵심적인 기술적 도전과 해결 과정입니다. 상세 내용은 [Troubleshooting Log](docs/troubleshooting.md)에서 확인할 수 있습니다.
 
-### 1. Web Push 초기화 에러 (Property Key Mismatch)
+### 1. 401 Unauthorized 및 세션 안정화
 
-- **문제**: `WebPushNotificationSender` 초기화 시 `PushService is not initialized` 에러 발생. `@Value`로 주입받는 환경 변수 키(`WEBPUSH_*`)와 `application.yml`의 계층 구조(`app.webpush.*`)가 불일치하여 발생함.
-- **해결**: `@Value("${app.webpush...}")` 형태로 매핑을 수정하여 설정값을 정상적으로 로드하고 서비스를 안정화함.
+- **문제**: JWT 만료 시점(30분)과 서버 세션 타임아웃 불일치로 인한 빈번한 로그아웃 발생.
+- **해결**: 세션 타임아웃 및 JWT 만료 시간을 **2시간**으로 연장하고, 토큰 재발급(`reissue`) 시 서버 사이드 세션 속성(`ACCESS_TOKEN`)을 즉시 갱신하여 인증 정합성을 확보함.
+
+### 2. Web Push 초기화 에러 (Property Key Mismatch)
 
 ### 2. 기기 미등록 시 무음 성공 처리 문제
 
@@ -70,7 +72,7 @@ graph TD
 - **구조화된 수업 시간표**: 텍스트 형태의 수업 시간을 `CourseSchedule` 엔티티(1:N)로 분리하여 요일 및 교시별 독립적인 검색 및 관리 지원.
 - **예비 수강 바구니 (Wishlist)**: 사용자별 관심 강좌 찜 기능(Toggle) 및 목록 조회 API 구현.
 - **알림 테스트 API**: 관리자가 특정 사용자를 대상으로 이메일, 웹푸시, 앱푸시가 정상 작동하는지 즉시 검증할 수 있는 테스트 엔드포인트 제공.
-- **멀티 채널 스마트 알림**: FCM(앱), Web Push(브라우저), Email(SMTP)을 통한 즉각적인 정보 알림 및 중복 방지 로직.
+- **실시간 스마트 알림**: FCM(앱), Web Push(브라우저), Email(SMTP)을 통한 즉각적인 정보 알림. 복잡한 On/Off 설정을 제거하고 **"상시 모니터링"** 시스템으로 단순화하여 사용자 편의성 극대화.
 - **보안 인증**: Google OAuth2 및 JWT(Refresh Token Rotation) 기반의 안전한 세션 관리.
 
 ---
