@@ -1,11 +1,5 @@
 import axios from "axios";
 
-let accessToken: string | null = null;
-
-export const setAccessToken = (token: string | null) => {
-  accessToken = token;
-};
-
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080",
   timeout: 10000,
@@ -15,79 +9,22 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Request Interceptor
-api.interceptors.request.use(
-  (config) => {
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
-
-const subscribeTokenRefresh = (callback: (token: string) => void) => {
-  refreshSubscribers.push(callback);
+// BFF 패턴에서는 브라우저가 직접 토큰을 다루지 않음. 모든 인증은 세션 쿠키로 처리됨.
+export const setAccessToken = (_token: string | null) => {
+  // 사용하지 않음 (호환성 위해 빈 함수 유지)
 };
 
-const onRefreshed = (token: string) => {
-  refreshSubscribers.forEach((callback) => callback(token));
-  refreshSubscribers = [];
-};
-
-// Response Interceptor
+// Response Interceptor - 401 발생 시 로그아웃 처리만 수행 (갱신은 서버가 담당)
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-
-    // Access Token이 없거나 만료되어 401 에러 발생 시
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve) => {
-          subscribeTokenRefresh((token: string) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            resolve(api(originalRequest));
-          });
-        });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        const response = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
-
-        const newAccessToken = response.data.data;
-        setAccessToken(newAccessToken);
-        isRefreshing = false;
-        onRefreshed(newAccessToken);
-
-        // 새 토큰으로 헤더 갱신 후 재시도
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        isRefreshing = false;
-        refreshSubscribers = [];
-        setAccessToken(null);
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-          window.location.href = "/login";
-        }
-        return Promise.reject(refreshError);
+    if (error.response?.status === 401) {
+      console.error("[API] Unauthorized session. Redirecting to login.");
+      // 세션 세팅 과정에서 발생할 수 있는 401 루프를 방지하기 위해 로그인 페이지가 아닐 때만 이동
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login";
       }
     }
-
     return Promise.reject(error);
   }
 );

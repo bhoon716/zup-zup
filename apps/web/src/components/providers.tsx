@@ -2,32 +2,20 @@
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Toaster, toast } from "sonner";
 
-export default function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000, // 1 minute
-            refetchOnWindowFocus: false,
-          },
-        },
-      })
-  );
-
+function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
 
   useEffect(() => {
+    // BFF 패턴: 모든 인증은 브라우저 쿠키만으로 자동 수행됨.
     checkSession();
 
-    // 서비스 워커로부터 메시지 수신 (포그라운드 알림)
+    // 서비스 워커 로직 유지
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'PUSH_NOTIFICATION') {
         const { title, body } = event.data;
-        // 시스템 알림과 중복될 수 있으나, 포그라운드 시인성을 위해 Toast 표시
         toast.info(title, {
           description: body,
           duration: 5000,
@@ -52,10 +40,28 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     };
   }, [checkSession]);
 
+  return <>{children}</>;
+}
+
+export default function Providers({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000, // 1 minute
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster position="top-right" richColors />
-      {children}
+      <Suspense fallback={null}>
+        <AuthProvider>{children}</AuthProvider>
+      </Suspense>
     </QueryClientProvider>
   );
 }

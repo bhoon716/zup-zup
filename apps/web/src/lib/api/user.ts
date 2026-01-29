@@ -1,9 +1,23 @@
 import api from './index';
 import type { CommonResponse, User, UserDeviceRequest, UserUpdateRequest } from '@/types/api';
 
+let profilePromise: Promise<CommonResponse<User>> | null = null;
+
 export const getMyProfile = async (): Promise<CommonResponse<User>> => {
-  const { data } = await api.get('/api/v1/users/me');
-  return data;
+  if (profilePromise) return profilePromise;
+
+  profilePromise = (async () => {
+    try {
+      const { data } = await api.get('/api/v1/users/me');
+      return data;
+    } finally {
+      // 요청이 완료되면 캐시 초기화 (다음번 호출은 다시 네트워크 요청)
+      // 짧은 간격의 동시 호출만 묶어줌
+      setTimeout(() => { profilePromise = null; }, 100); 
+    }
+  })();
+
+  return profilePromise;
 };
 
 export const logout = async (): Promise<CommonResponse<void>> => {

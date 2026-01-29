@@ -155,4 +155,57 @@ Next.js 환경에서 클라이언트 사이드 코드(브라우저)는 `NEXT_PUB
 
 ### 결과
 
-사용자가 다른 작업을 하거나 탭을 보고 있을 때 등 모든 시나리오에서 알림을 확실히 인지할 수 있게 되었습니다.
+## 사용자가 다른 작업을 하거나 탭을 보고 있을 때 등 모든 시나리오에서 알림을 확실히 인지할 수 있게 되었습니다.
+
+## 9. API 요청 중복 제거 (Request Deduplication) 및 프로미스 캐싱
+
+### 문제 상황
+
+로그인 후 또는 페이지 진입 시 `/api/v1/users/me` API가 짧은 간격으로 2번 이상 호출되는 현상이 발생했습니다. 이는 React Strict Mode의 영향과 더불어, Zustand의 세션 체크와 React Query의 데이터 페칭이 각각 독립적으로 발생하며 네트워크 자원을 낭비하는 결과를 초래했습니다.
+
+### 해결책
+
+API 레이어(`lib/api/user.ts`)에서 **Promise Caching** 패턴을 도입하여 짧은 시간 내 발생하는 동일 요청을 하나로 묶었습니다.
+
+```typescript
+let profilePromise: Promise<CommonResponse<User>> | null = null;
+
+export const getMyProfile = async () => {
+  if (profilePromise) return profilePromise; // 가고 있는 기차가 있으면 그 티켓을 같이 씀
+
+  profilePromise = (async () => {
+    try {
+      const { data } = await api.get("/api/v1/users/me");
+      return data;
+    } finally {
+      setTimeout(() => {
+        profilePromise = null;
+      }, 100); // 처리 완료 후 캐시 해제
+    }
+  })();
+  return profilePromise;
+};
+```
+
+### 결과
+
+서로 다른 상태 관리 도구(Zustand, React Query)가 동일한 API를 호출하더라도 실제 네트워크 요청은 단 1회만 발생하게 되어 초기 로딩 성능이 개선되고 서버 부하를 줄였습니다.
+
+---
+
+## 10. BFF 전환에 따른 클라이언트 사이드 코드 단순화 (Technical Debt 제거)
+
+### 문제 상황
+
+기존 JWT 방식에서는 401 에러 발생 시 토큰 갱신을 위해 `isRefreshing` 플래그, `refreshSubscribers` 큐, 복잡한 재시도 로직이 Axios 인터셉터에 포함되어 있어 유지보수가 어려웠습니다.
+
+### 해결책
+
+BFF 아키텍처 전환으로 브라우저가 직접 토큰을 다루지 않게 됨에 따라, 관련 로직을 모두 제거하고 **순수 세션 기반 인증**으로 단순화했습니다.
+
+- **Axios 설정**: `withCredentials: true`를 기본값으로 설정하여 세션 쿠키 전송을 보장.
+- **인터셉터 정리**: 복잡한 갱신 로직을 삭제하고, 401 발생 시 단순히 로그인 페이지로 리다이렉트하는 최소한의 로직만 남김.
+
+### 결과
+
+인증 관련 클라이언트 코드가 약 70% 감소하였으며, 로직이 단순해짐에 따라 잠재적인 레이스 컨디션 버그 가능성을 원천 차단했습니다.
