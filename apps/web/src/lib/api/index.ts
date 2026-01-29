@@ -28,6 +28,18 @@ api.interceptors.request.use(
   }
 );
 
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+const subscribeTokenRefresh = (callback: (token: string) => void) => {
+  refreshSubscribers.push(callback);
+};
+
+const onRefreshed = (token: string) => {
+  refreshSubscribers.forEach((callback) => callback(token));
+  refreshSubscribers = [];
+};
+
 // Response Interceptor
 api.interceptors.response.use(
   (response) => {
@@ -38,7 +50,17 @@ api.interceptors.response.use(
 
     // Access Token이 없거나 만료되어 401 에러 발생 시
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((token: string) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve(api(originalRequest));
+          });
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         const response = await axios.post(
@@ -49,11 +71,15 @@ api.interceptors.response.use(
 
         const newAccessToken = response.data.data;
         setAccessToken(newAccessToken);
+        isRefreshing = false;
+        onRefreshed(newAccessToken);
 
         // 새 토큰으로 헤더 갱신 후 재시도
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
+        isRefreshing = false;
+        refreshSubscribers = [];
         setAccessToken(null);
         if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
           window.location.href = "/login";
