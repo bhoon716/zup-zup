@@ -15,16 +15,59 @@ export const setAccessToken = (_token: string | null) => {
 };
 
 // Response Interceptor - 401 발생 시 로그아웃 처리만 수행 (갱신은 서버가 담당)
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      console.error("[API] Unauthorized session. Redirecting to login.");
-      // 세션 세팅 과정에서 발생할 수 있는 401 루프를 방지하기 위해 로그인 페이지가 아닐 때만 이동
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-        window.location.href = "/login";
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => {
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        await api.post("/api/auth/refresh");
+        console.info("[API] Token refresh successful. Retrying original request.");
+        isRefreshing = false;
+        processQueue(null);
+        return api(originalRequest);
+      } catch (refreshError) {
+        console.error("[API] Token refresh failed. Redirecting to login.");
+        isRefreshing = false;
+        processQueue(refreshError, null);
+        
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login";
+        }
+        return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   }
 );
