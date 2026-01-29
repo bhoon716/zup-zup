@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalTime;
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -171,7 +172,7 @@ class TimetableServiceTest {
         Timetable newPrimary = Timetable.builder().userId(1L).name("New").isPrimary(false).build();
 
         given(timetableRepository.findById(2L)).willReturn(Optional.of(newPrimary));
-        given(timetableRepository.findByUserIdAndIsPrimaryTrue(1L)).willReturn(Optional.of(oldPrimary));
+        given(timetableRepository.findByUserIdAndIsPrimaryTrue(1L)).willReturn(List.of(oldPrimary));
 
         // when
         timetableService.setPrimary(2L);

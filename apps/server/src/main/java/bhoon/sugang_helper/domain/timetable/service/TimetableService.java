@@ -72,10 +72,27 @@ public class TimetableService {
                 .toList();
     }
 
+    public TimetableDetailResponse getPrimaryTimetable() {
+        User user = getCurrentUser();
+        List<Timetable> primaryTimetables = timetableRepository.findByUserIdAndIsPrimaryTrue(user.getId());
+
+        if (primaryTimetables.isEmpty()) {
+            return null;
+        }
+
+        // If multiple exist (shouldn't happen), take the first one or most recently
+        // updated?
+        // Let's take the first one for now.
+        return getTimetableDetail(primaryTimetables.get(0));
+    }
+
     public TimetableDetailResponse getTimetableDetail(Long timetableId) {
         Timetable timetable = getTimetable(timetableId);
         validateOwnership(timetable);
+        return getTimetableDetail(timetable);
+    }
 
+    private TimetableDetailResponse getTimetableDetail(Timetable timetable) {
         List<String> courseKeys = timetable.getEntries().stream()
                 .map(TimetableEntry::getCourseKey)
                 .toList();
@@ -172,16 +189,22 @@ public class TimetableService {
 
     @Transactional
     public void setPrimary(Long timetableId) {
+        log.info("[Timetable] Setting primary: timetableId={}", timetableId);
         Timetable timetable = getTimetable(timetableId);
         validateOwnership(timetable);
 
         resetPrimary(timetable.getUserId());
         timetable.setPrimary(true);
+        log.info("[Timetable] Primary set successfully: timetableId={}", timetableId);
     }
 
     private void resetPrimary(Long userId) {
-        timetableRepository.findByUserIdAndIsPrimaryTrue(userId)
-                .ifPresent(t -> t.setPrimary(false));
+        List<Timetable> victims = timetableRepository.findByUserIdAndIsPrimaryTrue(userId);
+        log.info("[Timetable] Resetting primary for userId={}: found {} candidates", userId, victims.size());
+        victims.forEach(t -> {
+            log.info("[Timetable] Resetting primary: timetableId={}", t.getId());
+            t.setPrimary(false);
+        });
     }
 
     private Timetable getTimetable(Long timetableId) {

@@ -68,6 +68,7 @@ public class GlobalExceptionHandler {
     // Internal Server Error
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAny(HttpServletRequest req, Exception e) {
+        log.error("[INTERNAL_ERROR] {} {}", req.getMethod(), req.getRequestURI(), e);
         return response(req, ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.getMessage());
     }
 
