@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import {
   TableBody,
   TableCell,
@@ -10,14 +11,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { useSubscribe, useSubscriptions } from "@/hooks/useSubscriptions";
 import type { Course } from "@/types/api";
-import { Heart, Bell, Calendar } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Check, Calendar, Heart, Bell } from "lucide-react";
 import { useToggleWishlist, useWishlist } from "@/hooks/useWishlist";
-import { usePrimaryTimetable, useAddCourseToTimetable, useRemoveCourseFromTimetable } from "@/hooks/useTimetable";
+import { useTimetables, useAddCourseToTimetable } from "@/hooks/useTimetable";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CourseDetailDialog } from "./course-detail-dialog";
-import { toast } from "sonner";
 import { formatClassification } from "@/lib/utils/formatters";
-import { useState } from "react";
-import type { TimetableEntryResponse } from "@/types/api";
 
 interface CourseTableProps {
   courses: Course[];
@@ -31,9 +38,8 @@ export function CourseTable({ courses }: CourseTableProps) {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { data: primaryTimetable } = usePrimaryTimetable();
+  const { data: timetableList } = useTimetables();
   const { mutate: addToTimetable, isPending: isAdding } = useAddCourseToTimetable();
-  const { mutate: removeFromTimetable, isPending: isRemoving } = useRemoveCourseFromTimetable();
 
   const isSubscribed = (courseKey: string) => {
     return subscriptions?.some((sub) => sub.courseKey === courseKey);
@@ -43,25 +49,8 @@ export function CourseTable({ courses }: CourseTableProps) {
     return wishlist?.some((item) => item.courseKey === courseKey);
   };
 
-  const isInTimetable = (courseKey: string) => {
-    return primaryTimetable?.entries.some((entry: TimetableEntryResponse) => entry.courseKey === courseKey);
-  };
-
   const handleSubscribe = (courseKey: string) => {
     subscribe({ courseKey });
-  };
-
-  const handleTimetableAction = (courseKey: string) => {
-    if (!primaryTimetable) {
-      toast.error('대표 시간표가 없습니다. 내 시간표 메뉴에서 시간표를 먼저 생성해주세요.');
-      return;
-    }
-
-    if (isInTimetable(courseKey)) {
-      removeFromTimetable({ timetableId: primaryTimetable.id, courseKey });
-    } else {
-      addToTimetable({ timetableId: primaryTimetable.id, courseKey });
-    }
   };
 
   const handleCourseClick = (course: Course) => {
@@ -137,21 +126,52 @@ export function CourseTable({ courses }: CourseTableProps) {
                         </span>
                     </TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-transparent"
-                        onClick={() => handleTimetableAction(course.courseKey)}
-                        disabled={isAdding || isRemoving}
-                      >
-                        <Calendar
-                          className={`w-4 h-4 transition-all ${
-                            isInTimetable(course.courseKey)
-                              ? "fill-indigo-500 text-indigo-500 scale-110"
-                              : "text-muted-foreground/40 hover:text-indigo-500/70"
-                          }`}
-                        />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-transparent"
+                            disabled={isAdding}
+                          >
+                            <Calendar
+                              className={cn(
+                                "w-4 h-4 transition-all",
+                                (Array.isArray(timetableList) && timetableList.some(t => t.isPrimary))
+                                  ? "text-indigo-500/70 hover:text-indigo-500"
+                                  : "text-muted-foreground/40 hover:text-indigo-500/70"
+                              )}
+                            />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">시간표 선택</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {Array.isArray(timetableList) && timetableList.map((t) => {
+                            // Since we don't have per-timetable detail here, 
+                            // we'd ideally need a way to check if course is in t.id
+                            // For now, let's keep it simple as an Add action or 
+                            // add a note that toggling requires more data.
+                            return (
+                              <DropdownMenuItem 
+                                key={t.id}
+                                className="flex items-center justify-between cursor-pointer"
+                                onClick={() => {
+                                  addToTimetable({ timetableId: t.id, courseKey: course.courseKey });
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-medium">{t.name}</span>
+                                  {t.isPrimary && <span className="text-[9px] px-1 bg-indigo-500/10 text-indigo-500 rounded-sm font-bold">대표</span>}
+                                </div>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                          {(!Array.isArray(timetableList) || timetableList.length === 0) && (
+                            <div className="p-2 text-[10px] text-center text-muted-foreground">시간표가 없습니다.</div>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                       <Button
