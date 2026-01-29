@@ -33,7 +33,7 @@ export function NotificationList() {
         </div>
         <h3 className="text-lg font-semibold mb-2">알림이 없습니다</h3>
         <p className="text-muted-foreground">
-          강좌를 구독하면 빈자리 알림을 받을 수 있습니다.
+          강의를 구독하면 빈자리 알림을 받을 수 있습니다.
         </p>
       </div>
     );

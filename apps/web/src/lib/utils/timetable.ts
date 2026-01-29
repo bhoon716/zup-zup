@@ -34,7 +34,7 @@ export const isOverlapping = (
 export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock[] => {
   const flattened: RenderingBlock[] = [];
 
-  // 1. 강좌 데이터 변환
+  // 1. 강의 데이터 변환
   timetable.entries?.forEach((entry) => {
     entry.schedules?.forEach((schedule, idx) => {
       flattened.push({

@@ -72,7 +72,7 @@ export function NotificationSettings() {
           알림 설정
         </CardTitle>
         <CardDescription>
-          강좌 빈자리 알림 수신 방법을 설정합니다.
+          강의 빈자리 알림 수신 방법을 설정합니다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

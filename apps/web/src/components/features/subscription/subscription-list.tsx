@@ -32,14 +32,14 @@ export function SubscriptionList() {
         <div className="mb-4">
           <Search className="w-16 h-16 mx-auto text-gray-300" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">구독 중인 강좌가 없습니다</h3>
+        <h3 className="text-lg font-semibold mb-2">구독 중인 강의가 없습니다</h3>
         <p className="text-muted-foreground mb-6">
-          강좌를 검색하고 구독하여 빈자리 알림을 받아보세요.
+          강의를 검색하고 구독하여 빈자리 알림을 받아보세요.
         </p>
         <Link href="/search">
           <Button className="gap-2">
             <Search className="w-4 h-4" />
-            강좌 검색하기
+            강의 검색하기
           </Button>
         </Link>
       </div>
@@ -54,7 +54,7 @@ export function SubscriptionList() {
             내 구독 목록
           </h2>
           <p className="text-sm text-muted-foreground font-medium">
-            현재 빈자리를 감시 중인 강좌들입니다.
+            현재 빈자리를 감시 중인 강의들입니다.
           </p>
         </div>
         <div className="bg-primary/10 px-4 py-2 rounded-2xl border border-primary/20">

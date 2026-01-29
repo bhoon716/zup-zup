@@ -43,7 +43,7 @@ export function CourseDetailDialog({ course, open, onOpenChange }: CourseDetailD
           )}
         </AnimatePresence>
         <DialogDescription className="sr-only">
-          강좌 상세 정보 - {course.name}
+          강의 상세 정보 - {course.name}
         </DialogDescription>
       </DialogContent>
     </Dialog>

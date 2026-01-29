@@ -27,7 +27,7 @@ export interface PageResponse<T> {
   empty: boolean;
 }
 
-// 강좌 관련
+// 강의 관련
 // Enum-like string unions matching backend
 export type CourseClassification = '계열공통' | '교양' | '교직(대)' | '교직' | '군사학' | '기초필수' | '선수' | '일반선택' | '전공' | '전공선택' | '전공필수';
 export type GradingMethod = 'Pass/Fail' | '기타(법전원)' | '상대평가Ⅰ' | '상대평가Ⅱ' | '상대평가Ⅲ' | '절대평가';

@@ -73,7 +73,7 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
                 <DialogHeader>
                   <DialogTitle>구독 취소</DialogTitle>
                   <DialogDescription>
-                    정말로 이 강좌의 구독을 취소하시겠습니까?
+                    정말로 이 강의의 구독을 취소하시겠습니까?
                     <br />
                     <span className="text-foreground font-semibold">[{subscription.courseKey}] {subscription.courseName}</span>
                   </DialogDescription>

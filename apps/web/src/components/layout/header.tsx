@@ -32,7 +32,7 @@ export function Header() {
             <Link href="/search">
               <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9">
                 <Search className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">강좌 검색</span>
+                <span className="font-medium">강의 검색</span>
               </Button>
             </Link>
             <Link href="/wishlist">

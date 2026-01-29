@@ -32,7 +32,7 @@ export default function WishlistPage() {
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-black tracking-tight">예비 수강 바구니</h1>
         <p className="text-muted-foreground text-sm font-medium">
-          관심 있는 강좌를 모아보고 시간표를 시뮬레이션하세요.
+          관심 있는 강의를 모아보고 시간표를 시뮬레이션하세요.
         </p>
       </div>
 

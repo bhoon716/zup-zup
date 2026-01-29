@@ -65,7 +65,7 @@ export function CourseTable({ courses }: CourseTableProps) {
         <table className="w-full caption-bottom text-sm">
           <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm shadow-md border-b">
             <TableRow className="hover:bg-transparent border-b border-border/50">
-              <TableHead className="w-[80px] text-[11px] font-black uppercase tracking-wider pl-4">강좌명</TableHead>
+              <TableHead className="w-[80px] text-[11px] font-black uppercase tracking-wider pl-4">강의명</TableHead>
               <TableHead className="w-[60px] text-[11px] font-black uppercase tracking-wider">교수명</TableHead>
               <TableHead className="w-[40px] text-center text-[11px] font-black uppercase tracking-wider">학점</TableHead>
               <TableHead className="w-[90px] text-[11px] font-black uppercase tracking-wider">시간</TableHead>
@@ -79,7 +79,7 @@ export function CourseTable({ courses }: CourseTableProps) {
             {courses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-20 text-muted-foreground italic font-medium">
-                  검색 조건에 맞는 강좌가 없습니다.
+                  검색 조건에 맞는 강의가 없습니다.
                 </TableCell>
               </TableRow>
             ) : (

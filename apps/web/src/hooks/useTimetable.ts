@@ -43,10 +43,10 @@ export const useAddCourseToTimetable = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['timetable', variables.timetableId] });
       queryClient.invalidateQueries({ queryKey: ['timetable', 'primary'] });
-      toast.success('시간표에 강좌가 추가되었습니다.');
+      toast.success('시간표에 강의가 추가되었습니다.');
     },
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '강좌 추가에 실패했습니다.';
+      const message = error.response?.data?.message || '강의 추가에 실패했습니다.';
       toast.error(message);
     },
   });
@@ -60,10 +60,10 @@ export const useRemoveCourseFromTimetable = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['timetable', variables.timetableId] });
       queryClient.invalidateQueries({ queryKey: ['timetable', 'primary'] });
-      toast.success('시간표에서 강좌가 삭제되었습니다.');
+      toast.success('시간표에서 강의가 삭제되었습니다.');
     },
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '강좌 삭제에 실패했습니다.';
+      const message = error.response?.data?.message || '강의 삭제에 실패했습니다.';
       toast.error(message);
     },
   });

@@ -169,7 +169,7 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
             </span>
             <span className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-help">
                 {course.disclosure === "PUBLIC" ? <Globe className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5 text-muted-foreground/50" />}
-                {course.disclosure === "PUBLIC" ? "공개 강좌" : "비공개"}
+                {course.disclosure === "PUBLIC" ? "공개 강의" : "비공개"}
                 {course.disclosureReason && ` (${course.disclosureReason})`}
             </span>
         </div>

@@ -43,7 +43,7 @@ export default function AdminDashboardPage() {
       title: "전체 구독", 
       value: data?.totalActiveSubscriptions.toLocaleString() || "0", 
       icon: <BookOpen className="w-5 h-5 text-green-600" />, 
-      description: "활성 강좌 구독 수" 
+      description: "활성 강의 구독 수" 
     },
     { 
       title: "오늘의 알림", 
@@ -135,7 +135,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle>인기 구독 강좌 (준비 중)</CardTitle>
+            <CardTitle>인기 구독 강의 (준비 중)</CardTitle>
             <CardDescription>가장 많이 구독 중인 과목 순위입니다.</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">

@@ -98,7 +98,7 @@ export function AccountSettings() {
           <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg text-red-800 text-sm">
             <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
             <p>
-              회원 탈퇴 시 현재 구독 중인 모든 강좌의 공석 알림 서비스가 중단됩니다. 
+              회원 탈퇴 시 현재 구독 중인 모든 강의의 공석 알림 서비스가 중단됩니다. 
               이 작업은 되돌릴 수 없으니 주의하시기 바랍니다.
             </p>
           </div>
