@@ -8,7 +8,7 @@ export const useTimetables = () => {
     queryKey: ['timetables'],
     queryFn: async () => {
       const response = await timetableApi.getTimetables();
-      return response.data;
+      return response.data ?? null;
     },
   });
 };
@@ -19,7 +19,7 @@ export const useTimetableDetail = (id: number | null) => {
     queryFn: async () => {
       if (!id) return null;
       const response = await timetableApi.getTimetable(id);
-      return response.data;
+      return response.data ?? null;
     },
     enabled: !!id,
   });
@@ -30,7 +30,7 @@ export const usePrimaryTimetable = () => {
     queryKey: ['timetable', 'primary'],
     queryFn: async () => {
       const response = await timetableApi.getPrimaryTimetable();
-      return response.data;
+      return response.data ?? null;
     },
   });
 };

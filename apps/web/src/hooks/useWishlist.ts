@@ -9,7 +9,7 @@ export const useWishlist = () => {
     queryKey: ['wishlist'],
     queryFn: async () => {
       const response = await wishlistApi.getMyWishlist();
-      return response.data;
+      return response.data ?? null;
     },
   });
 };

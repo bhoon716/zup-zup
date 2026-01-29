@@ -3,7 +3,7 @@
 import { useUser, useLogout } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { LogOut, Search, Home, Bell, Settings, ShieldCheck, ShoppingBag, Calendar } from "lucide-react";
+import { LogOut, Search, Home, Bell, Settings, ShieldCheck, Calendar } from "lucide-react";
 
 export function Header() {
   const { data: user, isLoading } = useUser();
@@ -33,12 +33,6 @@ export function Header() {
               <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9">
                 <Search className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">강의 검색</span>
-              </Button>
-            </Link>
-            <Link href="/wishlist">
-              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9">
-                <ShoppingBag className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">예비 수강 바구니</span>
               </Button>
             </Link>
             <Link href="/notifications">

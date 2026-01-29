@@ -16,7 +16,3 @@ export const unsubscribe = async (id: number): Promise<CommonResponse<void>> => 
   return data;
 };
 
-export const toggleSubscription = async (id: number): Promise<CommonResponse<void>> => {
-  const { data } = await api.patch(`/api/v1/subscriptions/${id}/toggle`);
-  return data;
-};

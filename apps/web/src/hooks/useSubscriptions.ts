@@ -9,7 +9,7 @@ export const useSubscriptions = () => {
     queryKey: ['subscriptions'],
     queryFn: async () => {
       const response = await subscriptionApi.getMySubscriptions();
-      return response.data;
+      return response.data ?? null;
     },
   });
 };
@@ -44,17 +44,3 @@ export const useUnsubscribe = () => {
   });
 };
 
-export const useToggleSubscription = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => subscriptionApi.toggleSubscription(id),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
-      toast.success(response.message || '알림 상태가 변경되었습니다');
-    },
-    onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '알림 상태 변경에 실패했습니다';
-      toast.error(message);
-    },
-  });
-};
