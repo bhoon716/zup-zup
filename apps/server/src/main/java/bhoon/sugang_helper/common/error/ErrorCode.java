@@ -20,6 +20,7 @@ public enum ErrorCode {
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "사용자를 찾을 수 없습니다."),
     USER_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "U002", "인증 정보가 유효하지 않습니다."),
+    UNVERIFIED_EMAIL(HttpStatus.BAD_REQUEST, "U003", "이메일 인증이 완료되지 않았습니다."),
 
     // Crawler
     CRAWLER_CONNECTION_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "C001", "JBNU 수강신청 시스템 연결에 실패했습니다."),

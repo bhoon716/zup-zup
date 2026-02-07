@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import bhoon.sugang_helper.domain.user.request.OnboardingRequest;
+
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -24,6 +26,33 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
   private final UserService userService;
+
+  @Operation(summary = "온보딩 완료", description = "신규 가입 유저의 초기 설정(알림 이메일 등)을 저장하고 온보딩 상태를 완료로 변경합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "온보딩 완료 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
+  })
+  @PostMapping("/onboard")
+  public ResponseEntity<CommonResponse<UserResponse>> completeOnboarding(
+      @Valid @RequestBody OnboardingRequest request) {
+    UserResponse response = userService.completeOnboarding(request);
+    return CommonResponse.ok(response, "온보딩 설정이 완료되었습니다.");
+  }
+
+  @Operation(summary = "이메일 인증 코드 전송", description = "입력한 이메일로 인증 코드를 전송합니다.")
+  @PostMapping("/email/code")
+  public ResponseEntity<CommonResponse<Void>> sendVerificationCode(
+      @Valid @RequestBody bhoon.sugang_helper.domain.user.request.EmailRequest request) {
+    userService.sendVerificationCode(request);
+    return CommonResponse.ok(null, "인증 코드가 전송되었습니다. 이메일을 확인해주세요.");
+  }
+
+  @Operation(summary = "이메일 인증", description = "이메일로 전송된 인증 코드를 검증합니다.")
+  @PostMapping("/email/verify")
+  public ResponseEntity<CommonResponse<Void>> verifyEmail(
+      @Valid @RequestBody bhoon.sugang_helper.domain.user.request.EmailVerificationRequest request) {
+    userService.verifyEmail(request);
+    return CommonResponse.ok(null, "이메일 인증이 완료되었습니다.");
+  }
 
   @Operation(summary = "내 프로필 조회", description = "현재 로그인한 사용자의 프로필 정보를 조회합니다.")
   @ApiResponses(value = {

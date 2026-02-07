@@ -33,6 +33,9 @@ public class UserResponse {
     @Schema(description = "FCM 알림 활성화 여부")
     private boolean fcmEnabled;
 
+    @Schema(description = "온보딩(초기설정) 완료 여부")
+    private boolean onboardingCompleted;
+
     public static UserResponse from(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -43,6 +46,7 @@ public class UserResponse {
                 .emailEnabled(user.isEmailEnabled())
                 .webPushEnabled(user.isWebPushEnabled())
                 .fcmEnabled(user.isFcmEnabled())
+                .onboardingCompleted(user.isOnboardingCompleted())
                 .build();
     }
 }
