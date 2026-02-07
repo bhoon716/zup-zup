@@ -13,6 +13,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,36 +32,15 @@ public class CourseController {
 
   private final CourseService courseService;
 
-  @Operation(summary = "과목 검색", description = "검색 조건에 맞는 과목 목록을 전체 조회합니다.")
+  @Operation(summary = "과목 검색", description = "검색 조건에 맞는 과목 목록을 조회합니다. (페이징: Slice)")
   @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "과목 검색 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
-          {
-            "code": "SUCCESS",
-            "message": "과목 검색 결과입니다.",
-            "data": {
-              "content": [
-                {
-                  "courseKey": "CLTR.0031-01",
-                  "subjectCode": "CLTR.0031",
-                  "name": "기초프로그래밍",
-                  "professorName": "홍길동",
-                  "targetGrade": "1",
-                  "totalSeats": 40,
-                  "currentSeats": 35,
-                  "status": "AVAILABLE"
-                }
-              ],
-              "pageable": { ... },
-              "totalElements": 1,
-              "totalPages": 1
-            }
-          }
-          """)))
+      @ApiResponse(responseCode = "200", description = "과목 검색 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
   })
   @GetMapping
-  public ResponseEntity<CommonResponse<List<CourseResponse>>> searchCourses(
-      @org.springframework.web.bind.annotation.ModelAttribute CourseSearchCondition condition) {
-    List<CourseResponse> courses = courseService.searchCourses(condition);
+  public ResponseEntity<CommonResponse<Slice<CourseResponse>>> searchCourses(
+      @org.springframework.web.bind.annotation.ModelAttribute CourseSearchCondition condition,
+      @PageableDefault(size = 30) Pageable pageable) {
+    Slice<CourseResponse> courses = courseService.searchCourses(condition, pageable);
     return CommonResponse.ok(courses, "과목 검색 결과입니다.");
   }
 

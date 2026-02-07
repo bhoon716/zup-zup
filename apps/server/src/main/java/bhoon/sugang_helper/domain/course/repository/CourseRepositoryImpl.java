@@ -28,8 +28,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     @Override
-    public List<Course> searchCourses(CourseSearchCondition condition) {
-        return queryFactory
+    public org.springframework.data.domain.Slice<Course> searchCourses(CourseSearchCondition condition,
+            org.springframework.data.domain.Pageable pageable) {
+        List<Course> content = queryFactory
                 .selectFrom(course)
                 .where(
                         containsName(condition.getName()),
@@ -51,7 +52,17 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                         eqGeneralDetail(condition.getGeneralDetail()),
                         matchSelectedSchedules(condition.getSelectedSchedules()))
                 .orderBy(course.courseKey.asc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize() + 1)
                 .fetch();
+
+        boolean hasNext = false;
+        if (content.size() > pageable.getPageSize()) {
+            content.remove(pageable.getPageSize());
+            hasNext = true;
+        }
+
+        return new org.springframework.data.domain.SliceImpl<>(content, pageable, hasNext);
     }
 
     // ... skipping other methods for brevity, keeping only the logic for subset

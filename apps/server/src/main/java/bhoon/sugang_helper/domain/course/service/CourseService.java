@@ -23,11 +23,10 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
 
-    public List<CourseResponse> searchCourses(CourseSearchCondition condition) {
-        return courseRepository.searchCourses(condition)
-                .stream()
-                .map(CourseResponse::from)
-                .collect(Collectors.toList());
+    public org.springframework.data.domain.Slice<CourseResponse> searchCourses(CourseSearchCondition condition,
+            org.springframework.data.domain.Pageable pageable) {
+        return courseRepository.searchCourses(condition, pageable)
+                .map(CourseResponse::from);
     }
 
     public List<CourseSeatHistoryResponse> getCourseHistory(String courseKey) {

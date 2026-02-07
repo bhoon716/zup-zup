@@ -129,3 +129,16 @@ docker-compose up -d
 # 기본 테스트 실행
 ./gradlew test
 ```
+
+---
+
+## API 변경 사항 (v1.1)
+
+### 강의 검색 페이징 (Pagination)
+
+- **Endpoint**: `GET /api/v1/courses`
+- **Response**: `Slice<CourseResponse>` 구조로 변경되어 무한 스크롤에 최적화된 데이터를 반환합니다.
+- **Parameters**:
+  - `page`: 페이지 번호 (0-based, default: 0)
+  - `size`: 페이지 크기 (default: 30)
+  - 기존의 검색 필터(`year`, `term`, `department` 등)는 그대로 유지됩니다.
