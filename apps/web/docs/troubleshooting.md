@@ -262,3 +262,44 @@ if (isRefreshing) {
 ### 결과
 
 인증 만료 시점에도 여러 요청이 충돌 없이 안전하게 처리되며, 사용자는 인증 갱신 과정을 인지하지 못한 채 중단 없는 서비스를 이용할 수 있게 되었습니다.
+
+---
+
+## 14. 비로그인 무한 로딩 및 불필요한 API 호출 최적화
+
+### 문제 상황
+
+1. **무한 로딩 (Infinite Loading)**: 비로그인 상태로 홈페이지 접속 시, `useUser` 훅이 401(Unauthorized) 응답을 받았음에도 불구하고 API 인터셉터가 이를 '토큰 만료'로 오해하여 `/api/auth/refresh`를 호출하고, 리프레시마저 실패하면 다시 `useUser`를 재시도하는 무한 루프에 빠져 화면이 로딩 상태에서 멈춤.
+2. **불필요한 API 요청**: 검색 페이지(`SearchPage`) 진입 시, 비로그인 상태임에도 `useWishlist`, `useTimetable`, `useSubscriptions` 훅이 실행되어 401 에러 로그가 콘솔에 다수 찍히고 불필요한 네트워크 트래픽 발생.
+
+### 해결책
+
+1. **재시도 방지 및 에러 핸들링 간소화**:
+   - `useUser` 훅의 `retry` 옵션을 `false`로 설정하여 첫 실패 시 즉시 종료되도록 수정.
+   - `queryFn` 내부에서 401 에러를 catch하여 `null`을 반환하도록 로직을 변경, 에러 상태가 아닌 '비로그인(Guest)' 상태로 정상 처리되도록 함.
+
+   ```typescript
+   // hooks/useUser.ts
+   queryFn: async () => {
+     try {
+       const response = await userApi.getMyProfile();
+       return response.data;
+     } catch (error) {
+       // 401은 에러가 아닌 게스트 상태로 간주
+       if (isAxiosError(error) && error.response?.status === 401) {
+         return null;
+       }
+       throw error;
+     }
+   };
+   ```
+
+2. **인터셉터 재귀 호출 차단**:
+   - API 응답 인터셉터에서 401 에러 발생 시, 만약 요청 URL이 `/api/auth/refresh`라면 더 이상 재시도하지 않고 에러를 반환하도록 예외 처리 추가.
+
+3. **조건부 훅 실행 (Enabled Option)**:
+   - 개인화 데이터(찜, 구독, 시간표)를 가져오는 모든 Hook에 `enabled: !!user` 옵션을 추가하여, 유저 정보가 로드된 상태에서만 API를 호출하도록 변경.
+
+### 결과
+
+- 비로그인 사용자가 접속 시 즉각적으로 랜딩 페이지가 렌더링되며, 불필요한 에러 로그나 네트워크 요청 없이 쾌적한 탐색 경험을 제공하게 되었습니다.
