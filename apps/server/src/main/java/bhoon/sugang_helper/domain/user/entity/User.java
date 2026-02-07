@@ -30,16 +30,41 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column
+    private String notificationEmail;
+
+    @Column(nullable = false)
+    private boolean emailEnabled = true;
+
+    @Column(nullable = false)
+    private boolean webPushEnabled = true;
+
+    @Column(nullable = false)
+    private boolean fcmEnabled = true;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
     @Builder
-    public User(Long id, String name, String email, Role role) {
+    public User(Long id, String name, String email, String notificationEmail, boolean emailEnabled,
+            boolean webPushEnabled, boolean fcmEnabled, Role role) {
         this.id = id;
         this.name = name;
         this.email = email;
+        this.notificationEmail = notificationEmail;
+        this.emailEnabled = emailEnabled;
+        this.webPushEnabled = webPushEnabled;
+        this.fcmEnabled = fcmEnabled;
         this.role = role;
+    }
+
+    public void updateSettings(String notificationEmail, boolean emailEnabled, boolean webPushEnabled,
+            boolean fcmEnabled) {
+        this.notificationEmail = notificationEmail;
+        this.emailEnabled = emailEnabled;
+        this.webPushEnabled = webPushEnabled;
+        this.fcmEnabled = fcmEnabled;
     }
 
     public User update(String name) {

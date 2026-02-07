@@ -35,6 +35,19 @@ public class UserService {
     }
 
     @Transactional
+    public UserResponse updateSettings(bhoon.sugang_helper.domain.user.request.UserSettingsRequest request) {
+        User user = getCurrentUser();
+        user.updateSettings(
+                request.getNotificationEmail(),
+                request.isEmailEnabled(),
+                request.isWebPushEnabled(),
+                request.isFcmEnabled());
+        log.info("[User] Settings updated: userId={}, emailEnabled={}, webPushEnabled={}",
+                user.getId(), request.isEmailEnabled(), request.isWebPushEnabled());
+        return UserResponse.from(user);
+    }
+
+    @Transactional
     public void withdraw() {
         User user = getCurrentUser();
 

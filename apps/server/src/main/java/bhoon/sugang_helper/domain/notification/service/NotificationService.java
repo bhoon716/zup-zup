@@ -80,14 +80,26 @@ public class NotificationService {
             if (user == null)
                 continue;
 
-            // 1. Email 발송 (Default)
-            dispatch(NotificationTarget.of(user.getEmail()), title, message, NotificationChannel.EMAIL);
-            saveHistory(user.getId(), event.courseKey(), title, message, NotificationChannel.EMAIL);
+            // 1. Email 발송
+            if (user.isEmailEnabled()) {
+                String targetEmail = (user.getNotificationEmail() != null && !user.getNotificationEmail().isBlank())
+                        ? user.getNotificationEmail()
+                        : user.getEmail();
+                dispatch(NotificationTarget.of(targetEmail), title, message, NotificationChannel.EMAIL);
+                saveHistory(user.getId(), event.courseKey(), title, message, NotificationChannel.EMAIL);
+            }
 
             // 2. 등록된 기기들로 푸시 발송 (FCM, Web)
             List<UserDevice> devices = deviceMap.getOrDefault(user.getId(), List.of());
             for (UserDevice device : devices) {
                 NotificationChannel channel = mapToChannel(device.getType());
+
+                // 설정 확인
+                if (channel == NotificationChannel.WEB && !user.isWebPushEnabled())
+                    continue;
+                if (channel == NotificationChannel.FCM && !user.isFcmEnabled())
+                    continue;
+
                 NotificationTarget target = (channel == NotificationChannel.WEB)
                         ? NotificationTarget.ofWeb(device.getToken(), device.getP256dh(), device.getAuth())
                         : NotificationTarget.of(device.getToken());

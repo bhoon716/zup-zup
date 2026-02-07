@@ -2,6 +2,7 @@ package bhoon.sugang_helper.domain.user.controller;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.domain.user.request.UserUpdateRequest;
+import bhoon.sugang_helper.domain.user.request.UserSettingsRequest;
 import bhoon.sugang_helper.domain.user.response.UserResponse;
 import bhoon.sugang_helper.domain.user.service.UserService;
 import jakarta.validation.Valid;
@@ -64,6 +65,16 @@ public class UserController {
   public ResponseEntity<CommonResponse<UserResponse>> updateProfile(@Valid @RequestBody UserUpdateRequest request) {
     UserResponse response = userService.updateProfile(request.getName());
     return CommonResponse.ok(response, "사용자 프로필 정보가 수정되었습니다.");
+  }
+
+  @Operation(summary = "사용자 알림 설정 수정", description = "현재 로그인한 사용자의 알림 수신 설정을 수정합니다.")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "설정 수정 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
+  })
+  @PatchMapping("/settings")
+  public ResponseEntity<CommonResponse<UserResponse>> updateSettings(@Valid @RequestBody UserSettingsRequest request) {
+    UserResponse response = userService.updateSettings(request);
+    return CommonResponse.ok(response, "사용자 알림 설정이 수정되었습니다.");
   }
 
   @Operation(summary = "회원 탈퇴", description = "사용자 계정을 삭제합니다.")

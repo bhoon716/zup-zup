@@ -43,7 +43,7 @@ public class SecurityConfig {
         };
 
         private static final String[] PERMIT_GET_ENDPOINTS = new String[] {
-
+                        "/api/v1/courses/**"
         };
 
         private static final String[] PERMIT_POST_ENDPOINTS = new String[] {
