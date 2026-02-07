@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalTime;
 import java.util.Optional;
 import java.util.List;
@@ -180,5 +181,26 @@ class TimetableServiceTest {
         // then
         assertThat(oldPrimary.isPrimary()).isFalse();
         assertThat(newPrimary.isPrimary()).isTrue();
+    }
+
+    @Test
+    @DisplayName("시간표 삭제 - 대표 시간표 삭제 시 다른 시간표가 승계")
+    void deleteTimetable_PrimarySuccession_Success() {
+        // given
+        mockUser();
+        Timetable primary = Timetable.builder().userId(1L).name("P1").isPrimary(true).build();
+        ReflectionTestUtils.setField(primary, "id", 1L);
+        Timetable other = Timetable.builder().userId(1L).name("P2").isPrimary(false).build();
+        ReflectionTestUtils.setField(other, "id", 2L);
+
+        given(timetableRepository.findById(1L)).willReturn(Optional.of(primary));
+        given(timetableRepository.findByUserId(1L)).willReturn(List.of(primary, other));
+
+        // when
+        timetableService.deleteTimetable(1L);
+
+        // then
+        verify(timetableRepository, times(1)).delete(primary);
+        assertThat(other.isPrimary()).isTrue();
     }
 }

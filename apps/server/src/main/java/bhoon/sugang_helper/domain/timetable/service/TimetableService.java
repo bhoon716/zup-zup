@@ -203,9 +203,22 @@ public class TimetableService {
         Timetable timetable = getTimetable(timetableId);
         validateOwnership(timetable);
 
-        // 대표 시간표를 삭제하는 경우, 다른 시간표가 있다면 하나를 대표로 설정하거나
-        // 아니면 그냥 삭제할 수도 있음. 여기서는 그냥 삭제를 허용함.
+        boolean wasPrimary = timetable.isPrimary();
+        Long userId = timetable.getUserId();
+
         timetableRepository.delete(timetable);
+
+        // 삭제하는 시간표가 대표 시간표였다면, 남은 시간표 중 하나를 대표로 승계
+        if (wasPrimary) {
+            timetableRepository.findByUserId(userId).stream()
+                    .filter(t -> !t.getId().equals(timetableId))
+                    .findFirst()
+                    .ifPresent(nextPrimary -> {
+                        nextPrimary.setPrimary(true);
+                        log.info("[Timetable] Primary deleted. Successfully succeeded primary to: timetableId={}",
+                                nextPrimary.getId());
+                    });
+        }
     }
 
     private void resetPrimary(Long userId) {
