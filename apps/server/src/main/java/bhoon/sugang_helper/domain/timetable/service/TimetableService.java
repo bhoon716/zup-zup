@@ -198,6 +198,16 @@ public class TimetableService {
         log.info("[Timetable] Primary set successfully: timetableId={}", timetableId);
     }
 
+    @Transactional
+    public void deleteTimetable(Long timetableId) {
+        Timetable timetable = getTimetable(timetableId);
+        validateOwnership(timetable);
+
+        // 대표 시간표를 삭제하는 경우, 다른 시간표가 있다면 하나를 대표로 설정하거나
+        // 아니면 그냥 삭제할 수도 있음. 여기서는 그냥 삭제를 허용함.
+        timetableRepository.delete(timetable);
+    }
+
     private void resetPrimary(Long userId) {
         List<Timetable> victims = timetableRepository.findByUserIdAndIsPrimaryTrue(userId);
         log.info("[Timetable] Resetting primary for userId={}: found {} candidates", userId, victims.size());

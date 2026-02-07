@@ -84,4 +84,10 @@ public class TimetableController {
         timetableService.setPrimary(timetableId);
         return CommonResponse.success(null, "대표 시간표로 설정되었습니다.");
     }
+
+    @DeleteMapping("/{timetableId}")
+    public CommonResponse<Void> deleteTimetable(@PathVariable Long timetableId) {
+        timetableService.deleteTimetable(timetableId);
+        return CommonResponse.success(null, "시간표가 삭제되었습니다.");
+    }
 }
