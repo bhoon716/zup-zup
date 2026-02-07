@@ -228,8 +228,17 @@ export interface TimetableResponse {
   id: number;
   name: string;
   primary: boolean;
-  entries: TimetableEntryResponse[];
+  courses: TimetableEntryResponse[];
   customSchedules: CustomScheduleResponse[];
+}
+
+export interface TimetableDetailResponse {
+  id: number;
+  name: string;
+  primary: boolean;
+  courses: TimetableEntryResponse[];
+  customSchedules: CustomScheduleResponse[];
+  totalCredits: string;
 }
 
 export interface TimetableListResponse {

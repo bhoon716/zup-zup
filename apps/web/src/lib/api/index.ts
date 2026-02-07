@@ -54,12 +54,13 @@ api.interceptors.response.use(
         await api.post("/api/auth/refresh");
         console.info("[API] Token refresh successful. Retrying original request.");
         isRefreshing = false;
+        const retryRequest = { ...originalRequest, _retry: true };
         processQueue(null);
-        return api(originalRequest);
+        return api(retryRequest);
       } catch (refreshError) {
         console.error("[API] Token refresh failed. Redirecting to login.");
         isRefreshing = false;
-        processQueue(refreshError, null);
+        processQueue(refreshError);
         
         if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
           window.location.href = "/login";

@@ -2,6 +2,7 @@ import api from './index';
 import { 
   CommonResponse, 
   TimetableResponse, 
+  TimetableDetailResponse,
   TimetableListResponse, 
   TimetableRequest, 
   CustomScheduleRequest 
@@ -18,13 +19,13 @@ export const timetableApi = {
 
   // 시간표 상세 조회
   getTimetable: async (id: number) => {
-    const { data } = await api.get<CommonResponse<TimetableResponse>>(`${BASE_URL}/${id}`);
+    const { data } = await api.get<CommonResponse<TimetableDetailResponse>>(`${BASE_URL}/${id}`);
     return data;
   },
 
   // 대표 시간표 조회
   getPrimaryTimetable: async () => {
-    const { data } = await api.get<CommonResponse<TimetableResponse>>(`${BASE_URL}/primary`);
+    const { data } = await api.get<CommonResponse<TimetableDetailResponse>>(`${BASE_URL}/primary`);
     return data;
   },
 
