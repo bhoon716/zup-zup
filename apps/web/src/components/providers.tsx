@@ -5,6 +5,29 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, Suspense } from "react";
 import { Toaster, toast } from "sonner";
 
+import { useUser } from "@/hooks/useUser";
+import { usePathname, useRouter } from "next/navigation";
+
+function OnboardingGuard({ children }: { children: React.ReactNode }) {
+  const { data: user, isLoading } = useUser();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!isLoading && user && !user.onboardingCompleted) {
+      if (pathname !== "/onboarding") {
+        router.replace("/onboarding");
+      }
+    }
+  }, [user, isLoading, pathname, router]);
+
+  if (!isLoading && user && !user.onboardingCompleted && pathname !== "/onboarding") {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
 
@@ -40,7 +63,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [checkSession]);
 
-  return <>{children}</>;
+  return <OnboardingGuard>{children}</OnboardingGuard>;
 }
 
 import { LoginModal } from "./shared/login-modal";

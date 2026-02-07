@@ -142,6 +142,13 @@ export interface User {
   emailEnabled: boolean;
   webPushEnabled: boolean;
   fcmEnabled: boolean;
+  onboardingCompleted: boolean;
+}
+
+export interface OnboardingRequest {
+  notificationEmail: string;
+  emailEnabled: boolean;
+  webPushEnabled: boolean;
 }
 
 export interface UserSettingsRequest {
@@ -153,6 +160,16 @@ export interface UserSettingsRequest {
 
 export interface UserUpdateRequest {
   name: string;
+}
+
+// Email Verification
+export interface EmailRequest {
+  email: string;
+}
+
+export interface EmailVerificationRequest {
+  email: string;
+  code: string;
 }
 
 // 알림 관련

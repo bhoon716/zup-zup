@@ -66,11 +66,27 @@ export const useUpdateProfile = () => {
   return useMutation({
     mutationFn: (request: Parameters<typeof userApi.updateProfile>[0]) => userApi.updateProfile(request),
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
+      queryClient.setQueryData(['user', 'me'], response.data);
       toast.success(response.message || '프로필이 수정되었습니다');
     },
     onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '프로필 수정에 실패했습니다';
+      toast.error(message);
+    },
+  });
+};
+
+export const useCompleteOnboarding = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: Parameters<typeof userApi.completeOnboarding>[0]) => userApi.completeOnboarding(request),
+    onSuccess: (response) => {
+      queryClient.setQueryData(['user', 'me'], response.data);
+      toast.success(response.message || '설정이 완료되었습니다');
+    },
+    onError: (error: AxiosError<{ message: string }, any>) => {
+      const message = error.response?.data?.message || '설정 저장에 실패했습니다';
       toast.error(message);
     },
   });

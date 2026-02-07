@@ -1,5 +1,21 @@
 import api from './index';
-import type { CommonResponse, User, UserDeviceRequest, UserUpdateRequest, UserSettingsRequest } from '@/types/api';
+import type { CommonResponse, User, UserDeviceRequest, UserUpdateRequest, UserSettingsRequest, OnboardingRequest, EmailRequest, EmailVerificationRequest } from '@/types/api';
+
+
+export const completeOnboarding = async (request: OnboardingRequest): Promise<CommonResponse<User>> => {
+  const { data } = await api.post('/api/v1/users/onboard', request);
+  return data;
+};
+
+export const sendVerificationCode = async (request: EmailRequest): Promise<CommonResponse<void>> => {
+  const { data } = await api.post('/api/v1/users/email/code', request);
+  return data;
+};
+
+export const verifyEmail = async (request: EmailVerificationRequest): Promise<CommonResponse<void>> => {
+  const { data } = await api.post('/api/v1/users/email/verify', request);
+  return data;
+};
 
 let profilePromise: Promise<CommonResponse<User>> | null = null;
 
