@@ -43,6 +43,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+import { LoginModal } from "./shared/login-modal";
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -60,7 +62,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <Toaster position="top-right" richColors />
       <Suspense fallback={null}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <LoginModal />
+        </AuthProvider>
       </Suspense>
     </QueryClientProvider>
   );

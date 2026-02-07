@@ -34,7 +34,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // 토큰 갱신 요청 자체가 실패한 경우나 이미 재시도 중인 경우 즉시 실패 처리하여 무한 루프 방지
+    if (originalRequest.url === "/api/auth/refresh" || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    if (error.response?.status === 401) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -54,17 +59,11 @@ api.interceptors.response.use(
         await api.post("/api/auth/refresh");
         console.info("[API] Token refresh successful. Retrying original request.");
         isRefreshing = false;
-        const retryRequest = { ...originalRequest, _retry: true };
         processQueue(null);
-        return api(retryRequest);
+        return api(originalRequest);
       } catch (refreshError) {
-        console.error("[API] Token refresh failed. Redirecting to login.");
         isRefreshing = false;
         processQueue(refreshError);
-        
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-          window.location.href = "/login";
-        }
         return Promise.reject(refreshError);
       }
     }

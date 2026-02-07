@@ -1,5 +1,5 @@
 import api from './index';
-import type { CommonResponse, User, UserDeviceRequest, UserUpdateRequest } from '@/types/api';
+import type { CommonResponse, User, UserDeviceRequest, UserUpdateRequest, UserSettingsRequest } from '@/types/api';
 
 let profilePromise: Promise<CommonResponse<User>> | null = null;
 
@@ -42,5 +42,10 @@ export const unregisterDevice = async (token: string): Promise<CommonResponse<vo
 
 export const updateProfile = async (request: UserUpdateRequest): Promise<CommonResponse<User>> => {
   const { data } = await api.patch('/api/v1/users/me', request);
+  return data;
+};
+
+export const updateSettings = async (request: UserSettingsRequest): Promise<CommonResponse<User>> => {
+  const { data } = await api.patch('/api/v1/users/settings', request);
   return data;
 };

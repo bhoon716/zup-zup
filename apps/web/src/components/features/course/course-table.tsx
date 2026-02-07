@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CourseDetailDialog } from "./course-detail-dialog";
 import { formatClassification } from "@/lib/utils/formatters";
+import { useUser } from "@/hooks/useUser";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface CourseTableProps {
   courses: Course[];
@@ -38,6 +40,9 @@ export function CourseTable({ courses }: CourseTableProps) {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const { data: user } = useUser();
+  const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
+
   const { data: timetableList } = useTimetables();
   const { mutate: addToTimetable, isPending: isAdding } = useAddCourseToTimetable();
 
@@ -50,6 +55,10 @@ export function CourseTable({ courses }: CourseTableProps) {
   };
 
   const handleSubscribe = (courseKey: string) => {
+    if (!user) {
+      setLoginModalOpen(true);
+      return;
+    }
     subscribe({ courseKey });
   };
 
@@ -126,58 +135,75 @@ export function CourseTable({ courses }: CourseTableProps) {
                         </span>
                     </TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-transparent"
-                            disabled={isAdding}
-                          >
-                            <Calendar
-                              className={cn(
-                                "w-4 h-4 transition-all",
-                                (Array.isArray(timetableList) && timetableList.some(t => t.primary))
-                                  ? "text-indigo-500/70 hover:text-indigo-500"
-                                  : "text-muted-foreground/40 hover:text-indigo-500/70"
-                              )}
-                            />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                          <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">시간표 선택</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {Array.isArray(timetableList) && [...timetableList]
-                            .sort((a, b) => (a.primary ? -1 : 1))
-                            .map((t) => (
-                              <DropdownMenuItem 
-                                key={t.id}
-                                className="flex items-center justify-between cursor-pointer"
-                                onClick={() => {
-                                  addToTimetable({ timetableId: t.id, courseKey: course.courseKey });
-                                }}
-                              >
-                                <div className="flex items-center gap-2 text-xs font-medium max-w-[180px]">
-                                  {t.primary && <Crown className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
-                                  <span className="truncate">{t.name}</span>
-                                </div>
-                              </DropdownMenuItem>
-                            ))}
-                          {Array.isArray(timetableList) && timetableList.length === 0 && (
-                            <div className="p-2 text-[10px] text-center text-muted-foreground">시간표가 없습니다.</div>
-                          )}
-                          {!timetableList && (
-                            <div className="p-2 text-[10px] text-center text-muted-foreground animate-pulse">로딩 중...</div>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {!user ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:bg-transparent"
+                          onClick={() => setLoginModalOpen(true)}
+                        >
+                          <Calendar className="w-4 h-4 text-muted-foreground/40 hover:text-indigo-500/70" />
+                        </Button>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 hover:bg-transparent"
+                              disabled={isAdding}
+                            >
+                              <Calendar
+                                className={cn(
+                                  "w-4 h-4 transition-all",
+                                  (Array.isArray(timetableList) && timetableList.some(t => t.primary))
+                                    ? "text-indigo-500/70 hover:text-indigo-500"
+                                    : "text-muted-foreground/40 hover:text-indigo-500/70"
+                                )}
+                              />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">시간표 선택</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {Array.isArray(timetableList) && [...timetableList]
+                              .sort((a, b) => (a.primary ? -1 : 1))
+                              .map((t) => (
+                                <DropdownMenuItem 
+                                  key={t.id}
+                                  className="flex items-center justify-between cursor-pointer"
+                                  onClick={() => {
+                                    addToTimetable({ timetableId: t.id, courseKey: course.courseKey });
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2 text-xs font-medium max-w-[180px]">
+                                    {t.primary && <Crown className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
+                                    <span className="truncate">{t.name}</span>
+                                  </div>
+                                </DropdownMenuItem>
+                              ))}
+                            {Array.isArray(timetableList) && timetableList.length === 0 && (
+                              <div className="p-2 text-[10px] text-center text-muted-foreground">시간표가 없습니다.</div>
+                            )}
+                            {!timetableList && (
+                              <div className="p-2 text-[10px] text-center text-muted-foreground animate-pulse">로딩 중...</div>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:bg-transparent"
-                        onClick={() => toggleWishlist(course.courseKey)}
+                        onClick={() => {
+                          if (!user) {
+                            setLoginModalOpen(true);
+                            return;
+                          }
+                          toggleWishlist(course.courseKey);
+                        }}
                       >
                         <Heart
                           className={`w-4 h-4 transition-all ${

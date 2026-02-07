@@ -4,13 +4,18 @@ import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 import { WishlistResponse } from '@/types/api';
 
+import { useUser } from './useUser';
+
 export const useWishlist = () => {
+  const { data: user } = useUser();
+  
   return useQuery({
     queryKey: ['wishlist'],
     queryFn: async () => {
       const response = await wishlistApi.getMyWishlist();
       return response.data ?? null;
     },
+    enabled: !!user,
   });
 };
 

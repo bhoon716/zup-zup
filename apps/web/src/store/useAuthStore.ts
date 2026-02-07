@@ -12,11 +12,13 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isLoginModalOpen: boolean;
   
   // Actions
   setUser: (user: User | null) => void;
   checkSession: () => Promise<void>;
   logout: () => void;
+  setLoginModalOpen: (open: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -60,4 +62,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
+
+  isLoginModalOpen: false,
+  setLoginModalOpen: (open) => set({ isLoginModalOpen: open }),
 }));

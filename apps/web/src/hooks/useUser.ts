@@ -9,11 +9,18 @@ export const useUser = () => {
   return useQuery({
     queryKey: ['user', 'me'],
     queryFn: async () => {
-      const response = await userApi.getMyProfile();
-      return response.data;
+      try {
+        const response = await userApi.getMyProfile();
+        return response.data;
+      } catch (error: any) {
+        if (error.response?.status === 401) {
+          return null; // Guest user
+        }
+        throw error;
+      }
     },
-    // useUser should refer to the already fetched user if possible
-    // but here it acts as a data source
+    retry: false,
+    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
   });
 };
 

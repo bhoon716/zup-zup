@@ -3,17 +3,22 @@ import { timetableApi } from '@/lib/api/timetable';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 
+import { useUser } from './useUser';
+
 export const useTimetables = () => {
+  const { data: user } = useUser();
   return useQuery({
     queryKey: ['timetables'],
     queryFn: async () => {
       const response = await timetableApi.getTimetables();
       return response.data ?? null;
     },
+    enabled: !!user,
   });
 };
 
 export const useTimetableDetail = (id: number | null) => {
+  const { data: user } = useUser();
   return useQuery({
     queryKey: ['timetable', id],
     queryFn: async () => {
@@ -21,17 +26,19 @@ export const useTimetableDetail = (id: number | null) => {
       const response = await timetableApi.getTimetable(id);
       return response.data ?? null;
     },
-    enabled: !!id,
+    enabled: !!id && !!user,
   });
 };
 
 export const usePrimaryTimetable = () => {
+  const { data: user } = useUser();
   return useQuery({
     queryKey: ['timetable', 'primary'],
     queryFn: async () => {
       const response = await timetableApi.getPrimaryTimetable();
       return response.data ?? null;
     },
+    enabled: !!user,
   });
 };
 

@@ -4,13 +4,18 @@ import { toast } from 'sonner';
 import type { SubscriptionRequest } from '@/types/api';
 import { AxiosError } from 'axios';
 
+import { useUser } from './useUser';
+
 export const useSubscriptions = () => {
+  const { data: user } = useUser();
+  
   return useQuery({
     queryKey: ['subscriptions'],
     queryFn: async () => {
       const response = await subscriptionApi.getMySubscriptions();
       return response.data ?? null;
     },
+    enabled: !!user,
   });
 };
 

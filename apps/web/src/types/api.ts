@@ -138,6 +138,21 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  notificationEmail?: string;
+  emailEnabled: boolean;
+  webPushEnabled: boolean;
+  fcmEnabled: boolean;
+}
+
+export interface UserSettingsRequest {
+  notificationEmail?: string;
+  emailEnabled: boolean;
+  webPushEnabled: boolean;
+  fcmEnabled: boolean;
+}
+
+export interface UserUpdateRequest {
+  name: string;
 }
 
 // 알림 관련

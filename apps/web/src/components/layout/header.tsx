@@ -5,9 +5,19 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { LogOut, Search, Home, Bell, Settings, ShieldCheck, Calendar } from "lucide-react";
 
+import { useAuthStore } from "@/store/useAuthStore";
+
 export function Header() {
   const { data: user, isLoading } = useUser();
   const { mutate: logout, isPending } = useLogout();
+  const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
+
+  const handleGuardedAction = (e: React.MouseEvent, href: string) => {
+    if (!user) {
+      e.preventDefault();
+      setLoginModalOpen(true);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -24,7 +34,7 @@ export function Header() {
             <span className="bg-gradient-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent">수강신청 도우미</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
-            <Link href="/timetable">
+            <Link href="/timetable" onClick={(e) => handleGuardedAction(e, "/timetable")}>
               <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">내 시간표</span>
@@ -36,13 +46,13 @@ export function Header() {
                 <span className="font-medium">강의 검색</span>
               </Button>
             </Link>
-            <Link href="/notifications">
+            <Link href="/notifications" onClick={(e) => handleGuardedAction(e, "/notifications")}>
               <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground">
                 <Bell className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">알림 내역</span>
               </Button>
             </Link>
-            <Link href="/settings">
+            <Link href="/settings" onClick={(e) => handleGuardedAction(e, "/settings")}>
               <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground">
                 <Settings className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">설정</span>
