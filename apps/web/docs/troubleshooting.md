@@ -357,4 +357,39 @@ if (isRefreshing) {
 ### 결과
 
 - 모든 페이지에서 일관된 단일 네비게이션 경험을 제공하게 되었습니다.
-- 검색 결과 화면의 불필요한 정보가 사라져 가독성이 향상되었습니다.
+
+---
+
+## 18. 시간표 렌더링 초기화 이슈 (Empty Timetable)
+
+### 문제 상황
+
+시간표 페이지(`/timetable`) 진입 시, `useQuery`로 데이터를 받아왔음에도 불구하고 화면에 시간표가 표시되지 않고 "아직 생성된 시간표가 없습니다" 메시지도 뜨지 않는 빈 상태가 지속되었습니다.
+
+### 원인
+
+React의 렌더링 사이클과 State 초기화 시점의 불일치가 원인이었습니다.
+기존 코드에서는 `selectedTimetableId`를 설정하는 로직이 컴포넌트 본문(Render Body)에 조건문으로 작성되어 있었는데, 이는 React의 순수성(Purity) 원칙에 어긋나며, 데이터가 `useQuery`로부터 도착한 직후 리렌더링이 발생할 때 상태 업데이트가 누락되거나 무시되는 경우가 발생했습니다.
+
+### 해결책
+
+1. **Side Effect 분리**: 상태 초기화 로직을 `useEffect` 내부로 이동하여, `timetables` 데이터가 변경될 때만 명시적으로 실행되도록 수정했습니다.
+2. **로딩 상태 시각화**: 상세 시간표 데이터를 가져오는 동안(`isDetailLoading`) 로딩 스피너를 표시하여 사용자에게 진행 상황을 명확히 알렸습니다.
+
+```typescript
+// Before
+if (timetables.length > 0 && selectedTimetableId === null) {
+  setSelectedTimetableId(timetables[0].id);
+}
+
+// After
+useEffect(() => {
+  if (timetables.length > 0 && selectedTimetableId === null) {
+    setSelectedTimetableId(timetables[0].id);
+  }
+}, [timetables, selectedTimetableId]);
+```
+
+### 결과
+
+페이지 진입 시 첫 번째(또는 대표) 시간표가 즉시 선택되어 정상적으로 렌더링됩니다.
