@@ -1,6 +1,6 @@
 "use client";
 
-import { Header } from "@/components/layout/header";
+// Header removed (Global layout usage)
 import { CourseSearchBar } from "@/components/features/course/course-search-bar";
 import { CourseTable } from "@/components/features/course/course-table";
 import { CourseTableSkeleton } from "@/components/features/course/course-table-skeleton";
@@ -12,15 +12,24 @@ export const dynamic = 'force-dynamic';
 
 export default function SearchPage() {
   const [searchCondition, setSearchCondition] = useState<CourseSearchCondition>({});
-  const { data, isLoading, error } = useCourses(searchCondition);
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage 
+  } = useCourses(searchCondition);
 
   const handleSearch = useCallback((condition: CourseSearchCondition) => {
     setSearchCondition(condition);
   }, []);
 
+  const allCourses = data?.pages.flatMap((page) => page.content) || [];
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
+      
       <main className="container py-10">
         <div className="space-y-8">
           <div className="flex flex-col gap-1.5">
@@ -40,17 +49,14 @@ export default function SearchPage() {
             <div className="text-center py-20 bg-destructive/5 rounded-3xl border border-destructive/10 animate-in fade-in zoom-in duration-300">
               <p className="text-destructive font-bold">강의 검색에 실패했습니다.</p>
             </div>
-          ) : data ? (
+          ) : allCourses ? (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary/60" />
-                  <p className="text-[13px] font-bold text-muted-foreground">
-                    총 <span className="text-foreground">{data.length}</span>개의 강의 검색됨
-                  </p>
-                </div>
-              </div>
-              <CourseTable courses={data} />
+              <CourseTable 
+                courses={allCourses} 
+                onLoadMore={fetchNextPage} 
+                hasMore={hasNextPage} 
+                isFetchingNextPage={isFetchingNextPage}
+              />
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground animate-in fade-in duration-300">

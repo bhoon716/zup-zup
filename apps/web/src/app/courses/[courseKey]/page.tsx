@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { Header } from "@/components/layout/header";
+// Header removed (Global layout usage)
 import { CourseDetailContent } from "@/components/features/course/course-detail-content";
 import { useCourseDetail } from "@/hooks/useCourses";
 import { Loader2, AlertCircle, ArrowLeft } from "lucide-react";
@@ -19,7 +19,7 @@ export default function CourseDetailPage() {
   if (isCourseLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
+        
         <main className="container py-8 flex flex-col items-center justify-center min-h-[60vh]">
           <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
           <p className="text-muted-foreground">강좌 정보를 불러오는 중...</p>
@@ -31,7 +31,7 @@ export default function CourseDetailPage() {
   if (courseError || !course) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
+        
         <main className="container py-8">
           <div className="max-w-md mx-auto text-center space-y-4 py-12">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
@@ -50,7 +50,7 @@ export default function CourseDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
+      
       <main className="container py-8 space-y-6">
         <div className="flex items-center gap-4">
           <Link href="/search">

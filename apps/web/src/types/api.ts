@@ -5,7 +5,35 @@ export interface CommonResponse<T = unknown> {
   data: T;
 }
 
-// 페이지네이션
+// 페이지네이션 (Slice)
+export interface SliceResponse<T> {
+  content: T[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: {
+      empty: boolean;
+      sorted: boolean;
+      unsorted: boolean;
+    };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  size: number;
+  number: number;
+  sort: {
+    empty: boolean;
+    sorted: boolean;
+    unsorted: boolean;
+  };
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+// 페이지네이션 (Page - Legacy or Admin)
 export interface PageResponse<T> {
   content: T[];
   pageable: {

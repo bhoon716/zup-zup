@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { timetableApi } from '@/lib/api/timetable';
-import { Header } from '@/components/layout/header';
+// Header removed (Global layout usage)
 import { TimetableSelect } from '@/components/features/timetable/timetable-select';
 import { TimetableGrid } from '@/components/features/timetable/timetable-grid';
 import { toast } from 'sonner';
@@ -94,7 +94,7 @@ export default function TimetablePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      
       <main className="container max-w-5xl py-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-1">

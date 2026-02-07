@@ -110,3 +110,13 @@ src/
 ├── store/          # Zustand 스토어
 └── public/         # 정적 파일 (sw.js 포함)
 ```
+
+---
+
+## 주요 기능 업데이트 (v1.1)
+
+### 강의 검색 무한 스크롤 (Infinite Scroll)
+
+- **Infinite Query**: `@tanstack/react-query`의 `useInfiniteQuery`를 사용하여 페이지 단위 데이터 패칭을 구현했습니다.
+- **Intersection Observer**: 스크롤 하단을 감지하여 자동으로 다음 페이지를 불러오는 끊김 없는 사용자 경험을 제공합니다.
+- **UI 간소화**: 검색 결과 상단의 카운터 표시를 제거하고, 로딩 인디케이터를 개선하여 몰입도를 높였습니다.
