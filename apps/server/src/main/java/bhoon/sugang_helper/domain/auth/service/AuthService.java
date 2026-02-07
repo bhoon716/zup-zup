@@ -57,15 +57,14 @@ public class AuthService {
         String newRefreshToken = jwtProvider.createRefreshToken(user.getEmail());
 
         // Update Session (BFF 패턴: 서버 세션에 최신 토큰 동기화)
-        jakarta.servlet.http.HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.setAttribute("ACCESS_TOKEN", newAccessToken);
-            session.setAttribute("REFRESH_TOKEN", newRefreshToken);
-            log.info("[Auth] Session tokens updated for email: {}", email);
-        }
+        // getSession(true)를 사용하여 세션이 만료되었더라도 새 세션을 생성하도록 보장합니다.
+        jakarta.servlet.http.HttpSession session = request.getSession(true);
+        session.setAttribute("ACCESS_TOKEN", newAccessToken);
+        session.setAttribute("REFRESH_TOKEN", newRefreshToken);
+        log.info("[Auth] Session tokens updated for email: {}", email);
 
         // Update Cookie
-        setRefreshTokenCookie(response, newRefreshToken);
+        addRefreshTokenCookie(response, newRefreshToken);
 
         return newAccessToken;
     }
@@ -111,13 +110,16 @@ public class AuthService {
         return null;
     }
 
-    private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-        Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // 로컬 테스트 및 HTTP 지원을 위해 false로 설정
-        cookie.setPath("/");
-        cookie.setMaxAge(REFRESH_TOKEN_COOKIE_MAX_AGE);
-        response.addCookie(cookie);
+    public void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie
+                .from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
+                .httpOnly(true)
+                .secure(false) // 로컬 테스트를 위해 false, 운영 환경에서는 true 권장
+                .path("/")
+                .maxAge(REFRESH_TOKEN_COOKIE_MAX_AGE)
+                .sameSite("Lax") // CSRF 방어
+                .build();
+        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     private void deleteRefreshTokenCookie(HttpServletResponse response) {

@@ -86,15 +86,23 @@ public class JwtProvider {
     public boolean validateToken(String token) {
         try {
             parseClaims(token);
-            if (redisService.hasKey("BL:" + token)) {
-                log.warn("Blacklisted token");
+            if (redisService.hasKey(SecurityConstant.REDIS_BLACKLIST_PREFIX + token)) {
+                log.warn("[JWT] Blacklisted token usage attempted: {}", token);
                 return false;
             }
             return true;
+        } catch (io.jsonwebtoken.security.SecurityException | io.jsonwebtoken.MalformedJwtException e) {
+            log.error("[JWT] Invalid signature or malformed token: {}", e.getMessage());
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            log.warn("[JWT] Expired token: {}", e.getMessage());
+        } catch (io.jsonwebtoken.UnsupportedJwtException e) {
+            log.error("[JWT] Unsupported token: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("[JWT] Token claims string is empty: {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Invalid Token: {}", e.getMessage());
-            return false;
+            log.error("[JWT] Token validation failed: {}", e.getMessage());
         }
+        return false;
     }
 
     private Claims parseClaims(String token) {
