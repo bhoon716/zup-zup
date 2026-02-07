@@ -26,11 +26,13 @@ export const useUser = () => {
 
 export const useLogout = () => {
   const logout = useAuthStore((state) => state.logout);
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: userApi.logout,
     onSuccess: () => {
       logout();
+      queryClient.clear(); // Clear all cached queries to prevent data leak between user sessions
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
@@ -44,12 +46,14 @@ export const useLogout = () => {
 
 export const useWithdraw = () => {
   const logout = useAuthStore((state) => state.logout);
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: userApi.withdraw,
     onSuccess: (response) => {
       toast.success(response.message || '회원 탈퇴가 완료되었습니다');
       logout();
+      queryClient.clear(); // Clear all cached queries to prevent data leak
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }

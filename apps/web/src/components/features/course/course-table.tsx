@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { useSubscribe, useSubscriptions } from "@/hooks/useSubscriptions";
+import { useSubscribe, useSubscriptions, useUnsubscribe } from "@/hooks/useSubscriptions";
 import type { Course } from "@/types/api";
 import { cn } from "@/lib/utils";
 import { Calendar, Heart, Bell, Crown } from "lucide-react";
@@ -39,7 +39,8 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
   const { data: subscriptions } = useSubscriptions();
   const { data: wishlist } = useWishlist();
   const { mutate: toggleWishlist } = useToggleWishlist();
-  const { mutate: subscribe, isPending } = useSubscribe();
+  const { mutate: subscribe, isPending: isSubscribing } = useSubscribe();
+  const { mutate: unsubscribe, isPending: isUnsubscribing } = useUnsubscribe();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -89,7 +90,15 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
       setLoginModalOpen(true);
       return;
     }
-    subscribe({ courseKey });
+    
+    const subscription = subscriptions?.find((sub) => sub.courseKey === courseKey);
+    if (subscription) {
+      // Already subscribed, so unsubscribe
+      unsubscribe(subscription.id);
+    } else {
+      // Not subscribed, so subscribe
+      subscribe({ courseKey });
+    }
   };
 
   const handleCourseClick = (course: Course) => {
@@ -249,7 +258,7 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
                               variant="ghost"
                               size="icon"
                               onClick={() => handleSubscribe(course.courseKey)}
-                              disabled={isPending}
+                              disabled={isSubscribing || isUnsubscribing}
                               className="h-8 w-8 hover:bg-transparent"
                           >
                             <Bell

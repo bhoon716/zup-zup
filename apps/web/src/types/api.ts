@@ -263,10 +263,13 @@ export interface WishlistToggleResponse {
 
 // 시간표(Timetable) 관련
 export interface TimetableEntryResponse {
-  id: number;
   courseKey: string;
-  courseName: string;
+  name: string;
   professor: string;
+  classTime: string;
+  credits: string;
+  classification: string;
+  classroom: string;
   schedules: {
     dayOfWeek: CourseDayOfWeek;
     period: ClassPeriod;
