@@ -4,7 +4,7 @@ import { usePrimaryTimetable } from "@/hooks/useTimetable";
 import { TimetableGrid } from "./timetable-grid";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, ArrowRight, Loader2, Plus, Info } from "lucide-react";
+import { Calendar, ArrowRight, Loader2, Plus, Info, Crown } from "lucide-react";
 import Link from "next/link";
 
 export function DashboardTimetable() {
@@ -47,10 +47,8 @@ export function DashboardTimetable() {
             <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Representative</span>
           </div>
           <CardTitle className="text-2xl font-black tracking-tight flex items-center gap-2.5">
+            {timetable.primary && <Crown className="w-6 h-6 mr-2 text-yellow-500 fill-yellow-500 drop-shadow-md" />}
             {timetable.name}
-            <Badge variant="secondary" className="text-[11px] font-bold rounded-full border-none bg-primary/5 text-primary px-3 h-6">
-                Primary
-            </Badge>
           </CardTitle>
           <CardDescription className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
             <Info className="w-3 h-3" />

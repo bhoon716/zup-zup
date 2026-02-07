@@ -13,43 +13,44 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tighter">
-            <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">Sugang Helper</span>
+          <Link href="/" className="flex items-center gap-2.5 font-bold text-xl tracking-tighter group transition-all active:scale-95">
+            <div className="relative w-8 h-8 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <img 
+                src="/jbnu-logo.png" 
+                alt="전북대학교 로고" 
+                className="w-full h-full object-contain drop-shadow-md"
+              />
+            </div>
+            <span className="bg-gradient-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent">수강신청 도우미</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9">
-                <Home className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">대시보드</span>
-              </Button>
-            </Link>
             <Link href="/timetable">
-              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9">
+              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">내 시간표</span>
               </Button>
             </Link>
             <Link href="/search">
-              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9">
+              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground">
                 <Search className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">강의 검색</span>
               </Button>
             </Link>
             <Link href="/notifications">
-              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9">
+              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground">
                 <Bell className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">알림 내역</span>
               </Button>
             </Link>
             <Link href="/settings">
-              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9">
+              <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground">
                 <Settings className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">설정</span>
               </Button>
             </Link>
             {user?.role === 'ADMIN' && (
               <Link href="/admin">
-                <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9 text-blue-500 hover:text-blue-600 hover:bg-blue-500/5">
+                <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-3 h-9 text-[#56296e]/70 hover:text-[#56296e] hover:bg-[#56296e]/5">
                   <ShieldCheck className="w-4 h-4" />
                   <span className="font-medium">관리자</span>
                 </Button>

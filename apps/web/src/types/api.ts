@@ -227,7 +227,7 @@ export interface CustomScheduleResponse {
 export interface TimetableResponse {
   id: number;
   name: string;
-  isPrimary: boolean;
+  primary: boolean;
   entries: TimetableEntryResponse[];
   customSchedules: CustomScheduleResponse[];
 }
@@ -235,12 +235,12 @@ export interface TimetableResponse {
 export interface TimetableListResponse {
   id: number;
   name: string;
-  isPrimary: boolean;
+  primary: boolean;
 }
 
 export interface TimetableRequest {
   name: string;
-  isPrimary: boolean;
+  primary: boolean;
 }
 
 export interface CustomScheduleRequest {

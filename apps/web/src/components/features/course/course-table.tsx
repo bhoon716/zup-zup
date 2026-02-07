@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useSubscribe, useSubscriptions } from "@/hooks/useSubscriptions";
 import type { Course } from "@/types/api";
 import { cn } from "@/lib/utils";
-import { Check, Calendar, Heart, Bell } from "lucide-react";
+import { Check, Calendar, Heart, Bell, Crown } from "lucide-react";
 import { useToggleWishlist, useWishlist } from "@/hooks/useWishlist";
 import { useTimetables, useAddCourseToTimetable } from "@/hooks/useTimetable";
 import {
@@ -137,7 +137,7 @@ export function CourseTable({ courses }: CourseTableProps) {
                             <Calendar
                               className={cn(
                                 "w-4 h-4 transition-all",
-                                (Array.isArray(timetableList) && timetableList.some(t => t.isPrimary))
+                                (Array.isArray(timetableList) && timetableList.some(t => t.primary))
                                   ? "text-indigo-500/70 hover:text-indigo-500"
                                   : "text-muted-foreground/40 hover:text-indigo-500/70"
                               )}
@@ -147,12 +147,9 @@ export function CourseTable({ courses }: CourseTableProps) {
                         <DropdownMenuContent align="end" className="w-56">
                           <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">시간표 선택</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          {Array.isArray(timetableList) && timetableList.map((t) => {
-                            // Since we don't have per-timetable detail here, 
-                            // we'd ideally need a way to check if course is in t.id
-                            // For now, let's keep it simple as an Add action or 
-                            // add a note that toggling requires more data.
-                            return (
+                          {Array.isArray(timetableList) && [...timetableList]
+                            .sort((a, b) => (a.primary ? -1 : 1))
+                            .map((t) => (
                               <DropdownMenuItem 
                                 key={t.id}
                                 className="flex items-center justify-between cursor-pointer"
@@ -160,15 +157,17 @@ export function CourseTable({ courses }: CourseTableProps) {
                                   addToTimetable({ timetableId: t.id, courseKey: course.courseKey });
                                 }}
                               >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-medium">{t.name}</span>
-                                  {t.isPrimary && <span className="text-[9px] px-1 bg-indigo-500/10 text-indigo-500 rounded-sm font-bold">대표</span>}
+                                <div className="flex items-center gap-2 text-xs font-medium max-w-[180px]">
+                                  {t.primary && <Crown className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
+                                  <span className="truncate">{t.name}</span>
                                 </div>
                               </DropdownMenuItem>
-                            );
-                          })}
-                          {(!Array.isArray(timetableList) || timetableList.length === 0) && (
+                            ))}
+                          {Array.isArray(timetableList) && timetableList.length === 0 && (
                             <div className="p-2 text-[10px] text-center text-muted-foreground">시간표가 없습니다.</div>
+                          )}
+                          {!timetableList && (
+                            <div className="p-2 text-[10px] text-center text-muted-foreground animate-pulse">로딩 중...</div>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>

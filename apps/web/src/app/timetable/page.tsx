@@ -49,7 +49,7 @@ export default function TimetablePage() {
 
   // 2. 초기 선택값 결정 (대표 시간표 혹은 첫 번째 시간표)
   if (timetables.length > 0 && selectedTimetableId === null) {
-    const primary = timetables.find((t) => t.isPrimary);
+    const primary = timetables.find((t) => t.primary);
     setSelectedTimetableId(primary ? primary.id : timetables[0].id);
   }
 
@@ -62,7 +62,7 @@ export default function TimetablePage() {
 
   // 4. Mutations
   const createMutation = useMutation({
-    mutationFn: (name: string) => timetableApi.createTimetable({ name, isPrimary: timetables.length === 0 }),
+    mutationFn: (name: string) => timetableApi.createTimetable({ name, primary: timetables.length === 0 }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['timetables'] });
       setSelectedTimetableId(res.data.id);
