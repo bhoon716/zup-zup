@@ -9,6 +9,10 @@ import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,15 +57,15 @@ class CourseServiceTest {
                                 .capacity(50)
                                 .current(10)
                                 .build();
-                given(courseRepository.searchCourses(any(CourseSearchCondition.class)))
-                                .willReturn(List.of(course));
+                given(courseRepository.searchCourses(any(CourseSearchCondition.class), any(Pageable.class)))
+                                .willReturn(new SliceImpl<>(List.of(course)));
 
                 // when
-                List<CourseResponse> responses = courseService.searchCourses(condition);
+                Slice<CourseResponse> responses = courseService.searchCourses(condition, PageRequest.of(0, 10));
 
                 // then
-                assertThat(responses).hasSize(1);
-                assertThat(responses.get(0).getName()).isEqualTo("Test Course");
+                assertThat(responses.getContent()).hasSize(1);
+                assertThat(responses.getContent().get(0).getName()).isEqualTo("Test Course");
         }
 
         @Test

@@ -44,6 +44,9 @@ class AuthServiceTest {
     @Mock
     private HttpServletResponse response;
 
+    @Mock
+    private jakarta.servlet.http.HttpSession session;
+
     @InjectMocks
     private AuthService authService;
 
@@ -60,7 +63,8 @@ class AuthServiceTest {
                 .build();
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
 
-        given(request.getCookies()).willReturn(new Cookie[]{cookie});
+        given(request.getCookies()).willReturn(new Cookie[] { cookie });
+        given(request.getSession(true)).willReturn(session);
         given(jwtProvider.validateToken(refreshToken)).willReturn(true);
         given(jwtProvider.getAuthentication(refreshToken))
                 .willReturn(new UsernamePasswordAuthenticationToken(email, null));
@@ -74,7 +78,7 @@ class AuthServiceTest {
 
         // then
         assertThat(newAccessToken).isEqualTo("new_access_token");
-        verify(response).addCookie(any(Cookie.class));
+        verify(response).addHeader(anyString(), anyString());
     }
 
     @Test
@@ -96,7 +100,7 @@ class AuthServiceTest {
         String email = "test@example.com";
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
 
-        given(request.getCookies()).willReturn(new Cookie[]{cookie});
+        given(request.getCookies()).willReturn(new Cookie[] { cookie });
         given(jwtProvider.resolveToken(request)).willReturn(accessToken);
         given(jwtProvider.validateToken(refreshToken)).willReturn(true);
         given(jwtProvider.getAuthentication(refreshToken))

@@ -89,7 +89,15 @@ class NotificationServiceTest {
         // Given
         SeatOpenedEvent event = new SeatOpenedEvent("12345-01", "Test Course", 0, 1);
         Subscription subscription = Subscription.builder().userId(1L).courseKey("12345-01").isActive(true).build();
-        User user = User.builder().id(1L).name("Tester").email("test@example.com").role(Role.USER).build();
+        User user = User.builder()
+                .id(1L)
+                .name("Tester")
+                .email("test@example.com")
+                .role(Role.USER)
+                .emailEnabled(true)
+                .webPushEnabled(true)
+                .fcmEnabled(true)
+                .build();
 
         UserDevice fcmDevice = UserDevice.builder()
                 .userId(1L).type(DeviceType.FCM).token("fcm-token").build();
