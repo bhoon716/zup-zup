@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { timetableApi } from '@/lib/api/timetable';
 // Header removed (Global layout usage)
@@ -48,13 +48,15 @@ export default function TimetablePage() {
   const timetables = timetablesData?.data || [];
 
   // 2. 초기 선택값 결정 (대표 시간표 혹은 첫 번째 시간표)
-  if (timetables.length > 0 && selectedTimetableId === null) {
-    const primary = timetables.find((t) => t.primary);
-    setSelectedTimetableId(primary ? primary.id : timetables[0].id);
-  }
+  useEffect(() => {
+    if (timetables.length > 0 && selectedTimetableId === null) {
+      const primary = timetables.find((t) => t.primary);
+      setSelectedTimetableId(primary ? primary.id : timetables[0].id);
+    }
+  }, [timetables, selectedTimetableId]);
 
   // 3. 현재 선택된 시간표 상세 조회
-  const { data: timetableDetail } = useQuery({
+  const { data: timetableDetail, isLoading: isDetailLoading } = useQuery({
     queryKey: ['timetable', selectedTimetableId],
     queryFn: () => timetableApi.getTimetable(selectedTimetableId!),
     enabled: selectedTimetableId !== null,
@@ -127,11 +129,15 @@ export default function TimetablePage() {
             />
           )}
 
-          {selectedTimetableId && timetableDetail?.data && (
+          {isDetailLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : selectedTimetableId && timetableDetail?.data ? (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 timetable-grid-target">
               <TimetableGrid timetable={timetableDetail.data} />
             </div>
-          )}
+          ) : null}
 
           {!isListLoading && timetables.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-xl bg-muted/20">
