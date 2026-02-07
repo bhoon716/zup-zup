@@ -1,9 +1,11 @@
 "use client";
 
+// ... imports
 import { useUser, useLogout } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { LogOut, Search, Home, Bell, Settings, ShieldCheck, Calendar } from "lucide-react";
+import { usePathname } from "next/navigation"; // Import usePathname
 
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -11,6 +13,12 @@ export function Header() {
   const { data: user, isLoading } = useUser();
   const { mutate: logout, isPending } = useLogout();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
+  const pathname = usePathname();
+
+  // Hide header on specific routes
+  if (pathname === "/onboarding") {
+    return null;
+  }
 
   const handleGuardedAction = (e: React.MouseEvent, href: string) => {
     if (!user) {

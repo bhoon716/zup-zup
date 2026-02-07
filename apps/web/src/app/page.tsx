@@ -1,6 +1,6 @@
 "use client";
 
-import { Header } from "@/components/layout/header";
+// import { Header } from "@/components/layout/header"; // Removed header import
 import { DashboardTimetable } from "@/components/features/timetable/dashboard-timetable";
 import { DashboardStats } from "@/components/features/dashboard/dashboard-stats";
 import { HomeLanding } from "@/components/features/dashboard/home-landing";
@@ -24,7 +24,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-black selection:bg-primary/10 selection:text-primary">
-      <Header />
+      {/* Header removed from here and moved to layout.tsx */}
       
       {/* Background Decoration */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
