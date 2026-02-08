@@ -18,6 +18,7 @@ import java.util.List;
 
 import static bhoon.sugang_helper.domain.course.entity.QCourse.course;
 import bhoon.sugang_helper.domain.course.entity.QCourseSchedule;
+import bhoon.sugang_helper.domain.wishlist.entity.QWishlist;
 
 public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
@@ -50,7 +51,8 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                         goeMinLectureHours(condition.getMinLectureHours()),
                         eqGeneralCategory(condition.getGeneralCategory()),
                         eqGeneralDetail(condition.getGeneralDetail()),
-                        matchSelectedSchedules(condition.getSelectedSchedules()))
+                        matchSelectedSchedules(condition.getSelectedSchedules()),
+                        inWishlist(condition.getIsWishedOnly(), condition.getUserId()))
                 .orderBy(course.courseKey.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize() + 1)
@@ -180,6 +182,19 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
     private BooleanExpression eqGeneralDetail(String generalDetail) {
         return StringUtils.hasText(generalDetail) ? course.generalDetail.eq(generalDetail) : null;
+    }
+
+    private BooleanExpression inWishlist(Boolean isWishedOnly, Long userId) {
+        if (isWishedOnly == null || !isWishedOnly || userId == null) {
+            return null;
+        }
+
+        QWishlist wishlist = QWishlist.wishlist;
+        return JPAExpressions.selectOne()
+                .from(wishlist)
+                .where(wishlist.courseKey.eq(course.courseKey)
+                        .and(wishlist.userId.eq(userId)))
+                .exists();
     }
 
 }

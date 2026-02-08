@@ -71,13 +71,19 @@ public class CourseSearchCondition {
     @Schema(description = "연동할 시간표 ID (해당 시간표와 겹치는 강의 제외)")
     private Long timetableId;
 
+    @Schema(description = "찜한 강의만 보기 여부", example = "true")
+    private Boolean isWishedOnly;
+
+    @Schema(description = "사용자 ID (내부용)", hidden = true)
+    private Long userId;
+
     @Builder
     public CourseSearchCondition(String name, String professor, String subjectCode, String academicYear,
             String semester, String classification,
             String department, String gradingMethod, String lectureLanguage,
             Boolean isAvailableOnly, String dayOfWeek, String period, String credits, Integer lectureHours,
             Integer minLectureHours, String generalCategory, String generalDetail,
-            java.util.List<ScheduleCondition> selectedSchedules, Long timetableId) {
+            java.util.List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly, Long userId) {
         this.name = name;
         this.professor = professor;
         this.subjectCode = subjectCode;
@@ -97,5 +103,7 @@ public class CourseSearchCondition {
         this.generalDetail = generalDetail;
         this.selectedSchedules = selectedSchedules;
         this.timetableId = timetableId;
+        this.isWishedOnly = isWishedOnly;
+        this.userId = userId;
     }
 }
