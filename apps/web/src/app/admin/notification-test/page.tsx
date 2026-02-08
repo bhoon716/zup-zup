@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useSendTestNotification } from "@/hooks/useAdminActions";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect } from "react";
-import { getSubscription, subscribeToPush } from "@/lib/webpush";
+import { getSubscription, subscribeToPush, extractSubscriptionKeys } from "@/lib/webpush";
 import { useRegisterDevice } from "@/hooks/useUserDevices";
 import { toast } from "sonner";
 
@@ -47,15 +47,13 @@ export default function NotificationTestPage() {
         
         if (!subscription) {
           subscription = await subscribeToPush();
-          
-          const p256dh = btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("p256dh")!)));
-          const auth = btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("auth")!)));
-          
+          const { endpoint, p256dh, auth } = extractSubscriptionKeys(subscription);
+
           await registerDevice({
             type: "WEB",
-            token: subscription.endpoint,
-            p256dh: p256dh,
-            auth: auth,
+            token: endpoint,
+            p256dh,
+            auth,
           });
           toast.success("웹 푸시 기기가 등록되었습니다.");
         }

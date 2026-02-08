@@ -21,6 +21,22 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+/**
+ * PushSubscription에서 서버로 전달할 필드 추출 (base64url 그대로 사용)
+ */
+export function extractSubscriptionKeys(subscription: PushSubscription) {
+  const json = subscription.toJSON();
+  const endpoint = json.endpoint;
+  const p256dh = json.keys?.p256dh;
+  const auth = json.keys?.auth;
+
+  if (!endpoint || !p256dh || !auth) {
+    throw new Error("푸시 구독 정보가 올바르지 않습니다.");
+  }
+
+  return { endpoint, p256dh, auth };
+}
+
 
 /**
  * Get current push subscription if exists with timeout
