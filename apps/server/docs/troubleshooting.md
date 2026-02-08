@@ -462,3 +462,65 @@ const url = `${BASE_URL}/api/v1/courses?${encodedQuery}&page=0&size=20`;
 ### 결과
 
 보안 가이드라인을 준수하면서도 시스템에서 가장 무거운 어드민 기능 및 인증 레이어에 대한 정밀 부하 측정이 가능해졌습니다.
+
+---
+
+## 22. 디스코드 봇 DM 발송 실패 (403 Forbidden - 50007)
+
+### 문제 상황
+
+디스코드 연동 후 테스트 알림 발송 시, `403 Forbidden` 에러와 함께 `Cannot send messages to this user (Code: 50007)` 응답이 반환되었습니다.
+
+### 원인 분석
+
+디스코드 봇이 사용자와 DM을 하려면 두 가지 조건 중 하나를 만족해야 합니다.
+
+1.  사용자와 봇이 동일한 서버(Guild)에 있어야 함.
+2.  봇이 **"App"**으로서 사용자 계정에 직접 설치되어야 함(User Install).
+
+기존 OAuth2 설정에는 `scope=identify`만 포함되어 있어 단순 로그인만 수행되었고, 봇이 설치되지 않아 DM 발송 권한이 없었습니다.
+
+### 해결책
+
+OAuth2 인증 URL에 `integration_type=1`(User Install) 파라미터와 `applications.commands` 스코프를 추가했습니다.
+
+```javascript
+// 변경된 인증 URL 파라미터
+const params = {
+  client_id: DISCORD_CLIENT_ID,
+  redirect_uri: DISCORD_REDIRECT_URI,
+  response_type: "code",
+  scope: "identify applications.commands", // 필수 스코프 추가
+  integration_type: "1", // User Install 모드 활성화
+};
+```
+
+### 결과
+
+사용자가 재연동 시 "내 계정에 추가" 옵션을 통해 봇을 설치하게 되었고, 서버 가입 여부와 관계없이 DM 발송이 가능해졌습니다.
+
+---
+
+## 23. NotificationChannel DB 컬럼 데이터 잘림 (Data Truncation)
+
+### 문제 상황
+
+디스코드 알림 발송은 성공했으나, 알림 이력을 저장하는 과정에서 `500 Internal Server Error`가 발생했습니다. 로그 확인 결과 `Data truncated for column 'channel'` 에러였습니다.
+
+### 원인 분석
+
+기존 `NotificationChannel` 엔티티의 `channel` 컬럼이 `varchar(255)`가 아닌 기본값(혹은 짧은 길이)으로 설정되어 있었거나, 기존 데이터 길이에 맞춰져 있었습니다. `DISCORD`라는 값(7자)을 저장하려다 길이 제한에 걸린 것입니다.
+
+### 해결책
+
+1.  **엔티티 수정**: `@Column(length = 20)`으로 길이를 명시했습니다.
+2.  **Flyway 도입**: 운영 중인 DB 스키마를 안전하게 변경하기 위해 Flyway를 적용했습니다.
+3.  **마이그레이션 스크립트 작성**: `V2__expand_channel_column.sql`을 통해 기존 테이블의 컬럼 길이를 확장했습니다.
+
+```sql
+ALTER TABLE notification_histories MODIFY COLUMN channel VARCHAR(20) NOT NULL;
+```
+
+### 결과
+
+데이터베이스 스키마가 안전하게 마이그레이션되었고, 모든 채널(FCM, WEB, EMAIL, DISCORD)의 알림 이력이 정상적으로 저장되었습니다.

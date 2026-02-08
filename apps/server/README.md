@@ -57,7 +57,7 @@ graph TD
 ## ✨ 핵심 기능 (Core Features)
 
 - **고급 강좌 검색 (Advanced Search)**: QueryDSL을 사용하여 연도, 학기, 이수구분, 학과 등 모든 조건에 대한 정밀 동적 필터링 지원. 찜한 강의 필터링 기능 통합.
-- **실시간 스마트 알림**: FCM(앱), Web Push(브라우저), Email(SMTP)을 통한 즉각적인 정보 알림.
+- **실시간 스마트 알림**: FCM(앱), Web Push(브라우저), Email(SMTP), **Discord DM**을 통한 즉각적인 정보 알림.
 - **예비 수강 바구니 (Wishlist)**: 사용자별 관심 강좌 찜 기능 및 과목별 알림 구독 기능.
 - **구조화된 수업 시간표**: 수업 시간을 엔티티화하여 요일/교시별 검색 및 시간표 생성/관리 지원.
 - **보안 인증**: Google OAuth2 및 JWT(Refresh Token Rotation) 기반의 안전한 세션 관리.
@@ -87,7 +87,7 @@ src/main/java/bhoon/sugang_helper/
 - **Backend**: Java 21 LTS, Spring Boot 3.5
 - **Database**: MySQL 8.0, Redis (캐시 및 중복 제거)
 - **Auth**: Google OAuth2, JWT
-- **Communication**: Firebase Admin SDK, WebPush VAPID, JavaMail (SMTP)
+- **Communication**: Firebase Admin SDK, WebPush VAPID, JavaMail (SMTP), **Discord Bot**
 - **Infra**: Docker, Docker Compose
 
 ---
@@ -142,6 +142,19 @@ k6 run -e ADMIN_TOKEN=<ADMIN_TOKEN> scripts/k6/admin-heavy-ops.js
 ```bash
 docker-compose up -d
 ```
+
+### ⚙️ 환경 변수 설정 (Environment Variables)
+
+`.env` 파일 또는 환경 변수로 다음 값을 설정해야 합니다.
+
+```env
+# Discord Bot
+DISCORD_BOT_TOKEN=<YOUR_BOT_TOKEN>
+DISCORD_CLIENT_ID=<YOUR_CLIENT_ID>
+DISCORD_CLIENT_SECRET=<YOUR_CLIENT_SECRET>
+```
+
+> **Note**: DB 스키마는 **Flyway**를 통해 자동으로 마이그레이션됩니다. (`V2__expand_channel_column.sql` 포함)
 
 ---
 
