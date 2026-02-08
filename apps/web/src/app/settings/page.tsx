@@ -212,45 +212,45 @@ export default function SettingsPage() {
   const needsVerification = !isOriginal && !isGoogleEmail && notificationEmail;
 
   return (
-    <div className="container max-w-2xl py-10 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full hover:bg-white/10">
-            <ArrowLeft className="h-6 w-6" />
+    <div className="container max-w-2xl py-8 px-4 md:px-6 space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center gap-3 md:gap-4">
+        <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full hover:bg-white/10 flex-shrink-0">
+            <ArrowLeft className="h-5 w-5 md:h-6 md:w-6" />
         </Button>
-        <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20">
-          <Settings2 className="h-8 w-8 text-primary" />
+        <div className="p-2 md:p-3 rounded-2xl bg-primary/10 border border-primary/20 flex-shrink-0">
+          <Settings2 className="h-6 w-6 md:h-8 md:w-8 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400">
             설정
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-[11px] md:text-sm text-muted-foreground mt-0.5 md:mt-1">
             알림 수신 방식과 계정 설정을 관리합니다.
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
         {/* 알림 채널 설정 */}
-        <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl overflow-hidden group">
+        <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl overflow-hidden group rounded-[1.5rem] md:rounded-[2rem]">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <Bell className="h-5 w-5 text-primary" />
               알림 수신 설정
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs md:text-sm">
               여석 발생 시 알림을 받을 채널을 선택하세요.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 relative">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+          <CardContent className="p-5 pt-2 md:p-6 md:pt-4 space-y-4 md:space-y-6 relative">
+            <div className="flex items-center justify-between p-3.5 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-blue-400" />
-                  <Label htmlFor="email-enabled" className="text-base font-semibold">이메일 알림</Label>
+                  <Label htmlFor="email-enabled" className="text-sm md:text-base font-semibold">이메일 알림</Label>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[11px] md:text-sm text-muted-foreground">
                   지정한 이메일 주소로 알림을 보냅니다.
                 </p>
               </div>
@@ -258,16 +258,17 @@ export default function SettingsPage() {
                 id="email-enabled"
                 checked={watch("emailEnabled")}
                 onCheckedChange={(checked) => setValue("emailEnabled", checked, { shouldDirty: true })}
+                className="scale-90 md:scale-100"
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+            <div className="flex items-center justify-between p-3.5 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-green-400" />
-                  <Label htmlFor="web-enabled" className="text-base font-semibold">웹 푸시 (PC 브라우저)</Label>
+                  <Label htmlFor="web-enabled" className="text-sm md:text-base font-semibold">웹 푸시 (PC 브라우저)</Label>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[11px] md:text-sm text-muted-foreground">
                   브라우저가 켜져 있을 때 실시간 알림을 보냅니다.
                 </p>
               </div>
@@ -275,16 +276,17 @@ export default function SettingsPage() {
                 id="web-enabled"
                 checked={watch("webPushEnabled")}
                 onCheckedChange={(checked) => setValue("webPushEnabled", checked, { shouldDirty: true })}
+                className="scale-90 md:scale-100"
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+            <div className="flex items-center justify-between p-3.5 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <Smartphone className="h-4 w-4 text-purple-400" />
-                  <Label htmlFor="fcm-enabled" className="text-base font-semibold">앱 푸시 (PWA/안드로이드)</Label>
+                  <Label htmlFor="fcm-enabled" className="text-sm md:text-base font-semibold">앱 푸시 (PWA/안드로이드)</Label>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[11px] md:text-sm text-muted-foreground">
                   모바일 기기에서 실시간 푸시 알림을 보냅니다.
                 </p>
               </div>
@@ -292,34 +294,33 @@ export default function SettingsPage() {
                 id="fcm-enabled"
                 checked={watch("fcmEnabled")}
                 onCheckedChange={(checked) => setValue("fcmEnabled", checked, { shouldDirty: true })}
+                className="scale-90 md:scale-100"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* 이메일 상세 설정 */}
-        <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl group">
+        <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl group rounded-[1.5rem] md:rounded-[2rem]">
            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <Mail className="h-5 w-5 text-primary" />
               알림 이메일 주소
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs md:text-sm">
               구글 계정 이메일 외에 다른 이메일로 알림을 받고 싶다면 입력하세요.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 relative">
+          <CardContent className="p-5 pt-2 md:p-6 md:pt-4 space-y-4 relative">
             <div className="space-y-2">
-              <Label htmlFor="notificationEmail">수신용 이메일 주소</Label>
+              <Label htmlFor="notificationEmail" className="text-xs md:text-sm font-semibold opacity-70">수신용 이메일 주소</Label>
               <div className="flex gap-2">
                   <Input
                     id="notificationEmail"
                     placeholder={user?.email || "example@email.com"}
                     {...register("notificationEmail")}
-                    className="bg-white/5 border-white/10 focus:ring-primary h-12 text-lg"
-                    // If verification is needed and done, maybe mark green?
-                    // Basic styling.
+                    className="bg-white/5 border-white/10 focus:ring-primary h-11 md:h-12 text-sm md:text-lg rounded-xl"
                   />
                   
                   {needsVerification && !verified && (
@@ -328,7 +329,7 @@ export default function SettingsPage() {
                         variant="outline"
                         onClick={onSendCode}
                         disabled={sending || !!errors.notificationEmail || !notificationEmail}
-                        className="h-12 px-6"
+                        className="h-11 md:h-12 px-4 md:px-6 rounded-xl text-xs md:text-sm font-bold bg-white/5"
                       >
                          {sending ? "전송 중" : "인증"}
                       </Button>
@@ -336,25 +337,25 @@ export default function SettingsPage() {
               </div>
               
               {errors.notificationEmail && (
-                <p className="text-sm text-destructive font-medium">{errors.notificationEmail.message}</p>
+                <p className="text-xs md:text-sm text-destructive font-medium px-1">{errors.notificationEmail.message}</p>
               )}
 
               {/* Status messages */}
               {!errors.notificationEmail && isGoogleEmail && (
-                  <p className="text-xs text-green-500 flex items-center gap-1">
+                  <p className="text-[10px] md:text-xs text-green-500 flex items-center gap-1 px-1">
                       <CheckCircle className="w-3 h-3" /> 구글 계정 이메일 (자동 인증됨)
                   </p>
               )}
                {/* Show verified badge if it IS verified AND it's a custom email (not google, not empty) */}
                {!errors.notificationEmail && verified && !isGoogleEmail && notificationEmail && (
-                  <p className="text-xs text-green-500 flex items-center gap-1">
+                  <p className="text-[10px] md:text-xs text-green-500 flex items-center gap-1 px-1">
                       <CheckCircle className="w-3 h-3" /> 인증되었습니다
                   </p>
               )}
 
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-2 px-1">
-                <History className="h-3 w-3" />
-                입력하지 않으면 로그인한 구글 계정({user?.email})으로 발송됩니다.
+              <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1.5 mt-2 px-1">
+                <History className="h-3 w-3 opacity-50" />
+                입력하지 않으면 로그인한 구글 계정으로 발송됩니다.
               </p>
 
               <AnimatePresence>
@@ -371,13 +372,13 @@ export default function SettingsPage() {
                                 value={authCode}
                                 onChange={(e) => setAuthCode(e.target.value)}
                                 maxLength={6}
-                                className="bg-white/5 h-12"
+                                className="bg-primary/5 h-11 md:h-12 text-center text-lg font-black tracking-[0.3em] rounded-xl"
                             />
-                            <Button type="button" onClick={onVerifyCode} disabled={verifying || authCode.length !== 6} className="h-12">
-                                확인
+                            <Button type="button" onClick={onVerifyCode} disabled={verifying || authCode.length !== 6} className="h-11 md:h-12 px-6 rounded-xl font-bold">
+                                {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "확인"}
                             </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <p className="text-[10px] md:text-xs text-primary font-bold flex items-center gap-1.5 px-1 animate-pulse">
                             <Timer className="w-3 h-3" /> 인증 코드가 발송되었습니다. (5분 내 입력)
                         </p>
                     </motion.div>
@@ -386,10 +387,10 @@ export default function SettingsPage() {
 
             </div>
           </CardContent>
-          <CardFooter className="relative">
+          <CardFooter className="p-5 pt-0 md:p-6 md:pt-0 relative">
             <Button 
                 type="submit" 
-                className="w-full h-12 text-lg font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300"
+                className="w-full h-12 text-base md:text-lg font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 rounded-xl md:rounded-2xl"
                 disabled={isSubmitting} // Removing isDirty check to allow saving anytime if verified
             >
               {isSubmitting ? (
