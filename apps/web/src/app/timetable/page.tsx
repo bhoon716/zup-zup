@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { timetableApi } from '@/lib/api/timetable';
+import { useTimetables, useTimetableDetail } from '@/hooks/useTimetable';
+import { useUser } from '@/hooks/useUser';
 // Header removed (Global layout usage)
 import { TimetableSelect } from '@/components/features/timetable/timetable-select';
 import { TimetableGrid } from '@/components/features/timetable/timetable-grid';
@@ -13,6 +15,7 @@ import { toPng } from 'html-to-image';
 
 export default function TimetablePage() {
   const queryClient = useQueryClient();
+  const { data: user } = useUser();
   const [selectedTimetableId, setSelectedTimetableId] = useState<number | null>(null);
 
   const handleExportImage = async () => {
@@ -39,13 +42,9 @@ export default function TimetablePage() {
     }
   };
 
-  // 1. 시간표 목록 조회
-  const { data: timetablesData, isLoading: isListLoading } = useQuery({
-    queryKey: ['timetables'],
-    queryFn: () => timetableApi.getTimetables(),
-  });
-
-  const timetables = timetablesData?.data || [];
+  // 1. 시간표 목록 조회 (사용자 인증 후에만 실행)
+  const { data: timetablesData, isLoading: isListLoading } = useTimetables();
+  const timetables = timetablesData || [];
 
   // 2. 초기 선택값 결정 (대표 시간표 혹은 첫 번째 시간표)
   useEffect(() => {
@@ -56,11 +55,7 @@ export default function TimetablePage() {
   }, [timetables, selectedTimetableId]);
 
   // 3. 현재 선택된 시간표 상세 조회
-  const { data: timetableDetail, isLoading: isDetailLoading } = useQuery({
-    queryKey: ['timetable', selectedTimetableId],
-    queryFn: () => timetableApi.getTimetable(selectedTimetableId!),
-    enabled: selectedTimetableId !== null,
-  });
+  const { data: timetableDetail, isLoading: isDetailLoading } = useTimetableDetail(selectedTimetableId);
 
   // 4. Mutations
   const createMutation = useMutation({
@@ -133,9 +128,9 @@ export default function TimetablePage() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
-          ) : selectedTimetableId && timetableDetail?.data ? (
+          ) : selectedTimetableId && timetableDetail ? (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 timetable-grid-target">
-              <TimetableGrid timetable={timetableDetail.data} />
+              <TimetableGrid timetable={timetableDetail} />
             </div>
           ) : null}
 
