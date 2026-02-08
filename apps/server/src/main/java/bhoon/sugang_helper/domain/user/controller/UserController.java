@@ -135,20 +135,31 @@ public class UserController {
 
   @Operation(summary = "디스코드 OAuth2 콜백", description = "디스코드 인증 후 리다이렉트되어 연동을 완료합니다.")
   @GetMapping("/discord/callback")
-  public ResponseEntity<Void> discordCallback(@RequestParam String code) {
-    log.info("[DiscordOAuth] Callback received with code: {}", code);
+  public ResponseEntity<Void> discordCallback(@RequestParam String code, @RequestParam(required = false) String state) {
+    log.info("[DiscordOAuth] Callback received with code: {}, state: {}", code, state);
     try {
       String accessToken = discordOAuthService.exchangeCodeForToken(code);
       String discordId = discordOAuthService.getDiscordUserId(accessToken);
       userService.linkDiscordId(discordId);
 
+      String redirectPath = "/settings";
+      if ("onboarding".equals(state)) {
+        redirectPath = "/onboarding";
+      }
+
       return ResponseEntity.status(302)
-          .header("Location", "http://localhost:3000/settings?discord=success")
+          .header("Location", "http://localhost:3000" + redirectPath + "?discord=success")
           .build();
     } catch (Exception e) {
       log.error("[DiscordOAuth] Callback process failed: {}", e.getMessage());
+
+      String redirectPath = "/settings";
+      if ("onboarding".equals(state)) {
+        redirectPath = "/onboarding";
+      }
+
       return ResponseEntity.status(302)
-          .header("Location", "http://localhost:3000/settings?discord=error")
+          .header("Location", "http://localhost:3000" + redirectPath + "?discord=error")
           .build();
     }
   }
