@@ -379,4 +379,36 @@ session.setAttribute("ACCESS_TOKEN", newAccessToken);
 
 ### 결과
 
-액세스 토큰 만료 후 재발급 시에도 서버 세션 컨텍스트가 안정적으로 유지되어, 프론트엔드에서 401 발생 후 재시도 시 인증 상태가 완벽하게 복구되도록 개선되었습니다.
+## 액세스 토큰 만료 후 재발급 시에도 서버 세션 컨텍스트가 안정적으로 유지되어, 프론트엔드에서 401 발생 후 재시도 시 인증 상태가 완벽하게 복구되도록 개선되었습니다.
+
+## 19. Querydsl 서브쿼리를 이용한 고성능 찜 필터링 구현
+
+### 문제 상황
+
+사용자가 찜한 강의만 검색 결과에 노출해야 하는 요구사항이 있었습니다. 초기 계획은 프론트엔드에서 모든 찜 목록을 가져와 필터링하는 방식이었으나, 검색 엔진(Pagination/Sorting)과의 연동 및 데이터 정합성 유지를 위해 백엔드 통합 필터링이 필요했습니다.
+
+### 해결책
+
+`CourseRepositoryImpl`의 `searchCourses` 로직에 Querydsl의 **`JPAExpressions`**를 활용한 `exists` 서브쿼리 조건을 통합했습니다.
+
+- **로직**: `Wishlist` 엔티티와 `Course` 엔티티를 `courseKey`로 조인하되, 실제 조인 대신 `exists()` 체크를 사용하여 성능을 최적화했습니다.
+- **인증 연동**: 서비스 레이어에서 `SecurityUtil`을 통해 현재 로그인 유저의 ID를 주입받아 서브쿼리의 조건으로 사용합니다.
+
+```java
+private BooleanExpression inWishlist(Boolean isWishedOnly, Long userId) {
+    if (isWishedOnly == null || !isWishedOnly || userId == null) {
+        return null;
+    }
+
+    QWishlist wishlist = QWishlist.wishlist;
+    return JPAExpressions.selectOne()
+            .from(wishlist)
+            .where(wishlist.courseKey.eq(course.courseKey)
+                    .and(wishlist.userId.eq(userId)))
+            .exists();
+}
+```
+
+### 결과
+
+수만 건의 강의 데이터와 복잡한 검색 조건(연도, 학기, 요일 등) 속에서도 사용자의 찜 상태를 단일 쿼리로 정확하고 빠르게 필터링할 수 있게 되었습니다.
