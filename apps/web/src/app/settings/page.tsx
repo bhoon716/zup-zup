@@ -17,6 +17,7 @@ import { unlinkDiscord } from "@/lib/api/user";
 import type { User } from "@/types/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useWebPush } from "@/hooks/useWebPush"; // Added import
 
 const settingsSchema = z.object({
   notificationEmail: z.string().email("유효한 이메일 주소를 입력해 주세요.").or(z.literal("")),
@@ -46,6 +47,9 @@ export default function SettingsPage() {
   
   // Discord States
   const [isUnlinking, setIsUnlinking] = useState(false);
+  
+  // Web Push Hook
+  const { subscribe, unsubscribe, loading: loadingWebPush } = useWebPush();
 
   const DISCORD_CLIENT_ID = "1470147038564847719";
   const DISCORD_REDIRECT_URI = encodeURIComponent("http://localhost:8080/api/v1/users/discord/callback");
@@ -321,7 +325,18 @@ export default function SettingsPage() {
               <Switch
                 id="web-enabled"
                 checked={watch("webPushEnabled")}
-                onCheckedChange={(checked) => setValue("webPushEnabled", checked, { shouldDirty: true })}
+                onCheckedChange={async (checked) => {
+                  setValue("webPushEnabled", checked, { shouldDirty: true });
+                  if (checked) {
+                    const success = await subscribe();
+                    if (!success) {
+                       setValue("webPushEnabled", false);
+                    }
+                  } else {
+                    await unsubscribe();
+                  }
+                }}
+                disabled={loadingWebPush}
                 className="scale-90 md:scale-100"
               />
             </div>

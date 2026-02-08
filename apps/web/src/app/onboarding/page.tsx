@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser, useCompleteOnboarding } from "@/hooks/useUser";
+import { useWebPush } from "@/hooks/useWebPush"; // Added import
 import * as userApi from "@/lib/api/user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ export default function OnboardingPage() {
 
   const { data: user, isLoading } = useUser();
   const { mutate: completeOnboarding, isPending } = useCompleteOnboarding();
+  const { subscribe, unsubscribe, loading: loadingWebPush } = useWebPush();
 
   const [emailSent, setEmailSent] = useState(false);
   const [verified, setVerified] = useState(false);
@@ -317,7 +319,18 @@ export default function OnboardingPage() {
                     <Switch 
                       id="webPushEnabled" 
                       checked={webPushEnabled}
-                      onCheckedChange={(checked) => setValue("webPushEnabled", checked)}
+                      onCheckedChange={async (checked) => {
+                        setValue("webPushEnabled", checked);
+                        if (checked) {
+                           const success = await subscribe();
+                           if (!success) {
+                               setValue("webPushEnabled", false);
+                           }
+                        } else {
+                            await unsubscribe();
+                        }
+                      }}
+                      disabled={loadingWebPush}
                     />
                   </div>
 
