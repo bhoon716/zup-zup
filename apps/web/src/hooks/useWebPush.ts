@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import * as webPush from '@/lib/webpush';
+import { extractSubscriptionKeys } from '@/lib/webpush';
 import * as userApi from '@/lib/api/user';
 import { toast } from 'sonner';
 
@@ -18,28 +19,36 @@ export const useWebPush = () => {
       }
 
       // 2. Parse subscription details
-      const json = subscription.toJSON();
-      const token = json.endpoint;
-      const p256dh = json.keys?.p256dh;
-      const auth = json.keys?.auth;
+      const { endpoint: token, p256dh, auth } = extractSubscriptionKeys(subscription);
 
-      if (!token || !p256dh || !auth) {
-        throw new Error('푸시 토큰 정보를 가져올 수 없습니다.');
-      }
+      // 3. Register device to Backend with Alias
+      const ua = navigator.userAgent;
+      let alias = "Unknown Device";
+      if (ua.includes("Win")) alias = "Windows PC";
+      else if (ua.includes("Mac")) alias = "Mac";
+      else if (ua.includes("Linux")) alias = "Linux PC";
+      else if (ua.includes("Android")) alias = "Android Device";
+      else if (ua.includes("iPhone") || ua.includes("iPad")) alias = "iOS Device";
 
-      // 3. Register device to Backend
+      if (ua.includes("Chrome")) alias = `Chrome on ${alias}`;
+      else if (ua.includes("Firefox")) alias = `Firefox on ${alias}`;
+      else if (ua.includes("Safari") && !ua.includes("Chrome")) alias = `Safari on ${alias}`;
+      else if (ua.includes("Edge")) alias = `Edge on ${alias}`;
+
       await userApi.registerDevice({
         type: 'WEB',
         token,
         p256dh,
         auth,
+        alias,
       });
 
       toast.success('웹 푸시 알림이 활성화되었습니다.');
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Web Push Subscription Failed:', error);
-      toast.error(error.message || '웹 푸시 설정에 실패했습니다.');
+      const message = error instanceof Error ? error.message : '웹 푸시 설정에 실패했습니다.';
+      toast.error(message);
       return false;
     } finally {
       setLoading(false);
@@ -68,7 +77,7 @@ export const useWebPush = () => {
 
       toast.success('웹 푸시 알림이 비활성화되었습니다.');
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Web Push Unsubscription Failed:', error);
       toast.error('웹 푸시 해제에 실패했습니다.');
       return false;

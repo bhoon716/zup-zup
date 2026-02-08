@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, Mail, Bell, Globe, Smartphone, Save, History, Settings2, CheckCircle, Timer, ArrowLeft, MessageSquare, Copy, Check } from "lucide-react";
-import { getMyProfile, updateSettings } from "@/lib/api/user";
+import { Loader2, Mail, Bell, Globe, Smartphone, Save, History, Settings2, CheckCircle, Timer, ArrowLeft, MessageSquare, Copy, Check, Trash2 } from "lucide-react";
+import { getMyProfile, updateSettings, getDevices, deleteDevice } from "@/lib/api/user";
 import * as userApi from "@/lib/api/user";
 import { unlinkDiscord } from "@/lib/api/user";
-import type { User } from "@/types/api";
+import type { User, UserDeviceResponse } from "@/types/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useWebPush } from "@/hooks/useWebPush"; // Added import
@@ -47,6 +47,10 @@ export default function SettingsPage() {
   
   // Discord States
   const [isUnlinking, setIsUnlinking] = useState(false);
+
+  // Device States
+  const [devices, setDevices] = useState<UserDeviceResponse[]>([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
   
   // Web Push Hook
   const { subscribe, unsubscribe, loading: loadingWebPush } = useWebPush();
@@ -104,6 +108,10 @@ export default function SettingsPage() {
           fcmEnabled: userData.fcmEnabled,
           discordEnabled: userData.discordEnabled,
         });
+
+        // Fetch Devices
+        const deviceRes = await getDevices();
+        setDevices(deviceRes.data);
         
         // If current saved email exists and equals what we loaded, it is considered verified (as it was saved previously)
         // However, if user changes it, verified becomes false.
@@ -202,6 +210,20 @@ export default function SettingsPage() {
   };
 
 
+  const handleDeleteDevice = async (id: number) => {
+    if (!confirm("이 기기를 삭제하시겠습니까? 더 이상 알림을 받을 수 없습니다.")) return;
+
+    try {
+      await deleteDevice(id);
+      setDevices(prev => prev.filter(d => d.id !== id));
+      toast.success("기기가 삭제되었습니다.");
+    } catch (e: unknown) {
+      const message = (e as any)?.response?.data?.message || "기기 삭제 실패";
+      toast.error(message);
+    }
+  };
+
+
   const onSubmit = async (values: SettingsFormValues) => {
     // Validation: If notification email is changed (not same as saved, not same as google), it must be verified.
     if (user) {
@@ -238,10 +260,11 @@ export default function SettingsPage() {
         discordEnabled: response.data.discordEnabled,
       });
       setAuthCode("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to update settings:", error);
        // Handle 400 specifically if message provided
-      toast.error(error.response?.data?.message || "설정 저장에 실패했습니다.");
+      const message = (error as any)?.response?.data?.message || "설정 저장에 실패했습니다.";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -555,6 +578,54 @@ export default function SettingsPage() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* 기기 관리 설정 */}
+        <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl group rounded-[1.5rem] md:rounded-[2rem] overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+              <Smartphone className="h-5 w-5 text-green-400" />
+              등록된 기기 관리
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm">
+              푸시 알림을 수신하는 기기 목록입니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5 pt-2 md:p-6 md:pt-4 space-y-4 relative">
+             {devices.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  등록된 기기가 없습니다.
+                </div>
+             ) : (
+                <div className="space-y-3">
+                  {devices.map(device => (
+                    <div key={device.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-white/10">
+                          {device.type === 'WEB' ? <Globe className="h-4 w-4 text-blue-300"/> : <Smartphone className="h-4 w-4 text-purple-300"/>}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white">{device.alias || (device.type === 'WEB' ? 'Web Browser' : 'Mobile App')}</p>
+                          <p className="text-[10px] md:text-xs text-muted-foreground">
+                            {new Date(device.registeredAt).toLocaleDateString()} 등록
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => handleDeleteDevice(device.id)}
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full h-8 w-8"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+             )}
           </CardContent>
         </Card>
       </form>

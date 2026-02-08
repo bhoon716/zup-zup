@@ -230,6 +230,15 @@ export interface UserDeviceRequest {
   token: string;
   p256dh?: string;
   auth?: string;
+  alias?: string;
+}
+
+export interface UserDeviceResponse {
+  id: number;
+  type: 'FCM' | 'WEB';
+  alias?: string;
+  maskedToken: string;
+  registeredAt: string;
 }
 
 export interface UserUpdateRequest {

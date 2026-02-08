@@ -1,5 +1,5 @@
 import api from './index';
-import type { CommonResponse, User, UserDeviceRequest, UserUpdateRequest, UserSettingsRequest, OnboardingRequest, EmailRequest, EmailVerificationRequest } from '@/types/api';
+import type { CommonResponse, User, UserDeviceRequest, UserUpdateRequest, UserSettingsRequest, OnboardingRequest, EmailRequest, EmailVerificationRequest, UserDeviceResponse } from '@/types/api';
 
 
 export const completeOnboarding = async (request: OnboardingRequest): Promise<CommonResponse<User>> => {
@@ -46,13 +46,26 @@ export const withdraw = async (): Promise<CommonResponse<void>> => {
   return data;
 };
 
+export const getDevices = async (): Promise<CommonResponse<UserDeviceResponse[]>> => {
+  const { data } = await api.get('/api/v1/users/devices');
+  return data;
+};
+
 export const registerDevice = async (request: UserDeviceRequest): Promise<CommonResponse<void>> => {
   const { data } = await api.post('/api/v1/users/devices', request);
   return data;
 };
 
+export const deleteDevice = async (id: number): Promise<CommonResponse<void>> => {
+  const { data } = await api.delete(`/api/v1/users/devices/${id}`);
+  return data;
+};
+
+/**
+ * @deprecated Use deleteDevice(id) instead
+ */
 export const unregisterDevice = async (token: string): Promise<CommonResponse<void>> => {
-  const { data } = await api.delete(`/api/v1/users/devices/${encodeURIComponent(token)}`);
+  const { data } = await api.delete(`/api/v1/users/devices/token/${encodeURIComponent(token)}`);
   return data;
 };
 
