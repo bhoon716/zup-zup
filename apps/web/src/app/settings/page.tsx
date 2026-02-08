@@ -10,24 +10,28 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, Mail, Bell, Globe, Smartphone, Save, History, Settings2, CheckCircle, Timer, ArrowLeft } from "lucide-react";
+import { Loader2, Mail, Bell, Globe, Smartphone, Save, History, Settings2, CheckCircle, Timer, ArrowLeft, MessageSquare, Copy, Check } from "lucide-react";
 import { getMyProfile, updateSettings } from "@/lib/api/user";
 import * as userApi from "@/lib/api/user";
+import { unlinkDiscord } from "@/lib/api/user";
 import type { User } from "@/types/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const settingsSchema = z.object({
   notificationEmail: z.string().email("유효한 이메일 주소를 입력해 주세요.").or(z.literal("")),
   emailEnabled: z.boolean(),
   webPushEnabled: z.boolean(),
   fcmEnabled: z.boolean(),
+  discordEnabled: z.boolean(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 export default function SettingsPage() {
   const router = useRouter(); // Initialize router
+  const searchParams = useSearchParams();
+  const discordStatus = searchParams.get("discord");
   
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,6 +43,13 @@ export default function SettingsPage() {
   const [authCode, setAuthCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
+  
+  // Discord States
+  const [isUnlinking, setIsUnlinking] = useState(false);
+
+  const DISCORD_CLIENT_ID = "1470147038564847719";
+  const DISCORD_REDIRECT_URI = encodeURIComponent("http://localhost:8080/api/v1/users/discord/callback");
+  const DISCORD_OAUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20applications.commands&integration_type=1`;
 
   const {
     register,
@@ -55,11 +66,22 @@ export default function SettingsPage() {
       emailEnabled: true,
       webPushEnabled: true,
       fcmEnabled: true,
+      discordEnabled: false,
     },
   });
 
   const notificationEmail = watch("notificationEmail");
   const emailEnabled = watch("emailEnabled");
+
+  useEffect(() => {
+    if (discordStatus === "success") {
+      toast.success("디스코드 연동이 성공적으로 완료되었습니다.");
+      router.replace("/settings");
+    } else if (discordStatus === "error") {
+      toast.error("디스코드 연동 중 오류가 발생했습니다. 설정에서 주소를 다시 확인해주세요.");
+      router.replace("/settings");
+    }
+  }, [discordStatus, router]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -76,6 +98,7 @@ export default function SettingsPage() {
           emailEnabled: userData.emailEnabled,
           webPushEnabled: userData.webPushEnabled,
           fcmEnabled: userData.fcmEnabled,
+          discordEnabled: userData.discordEnabled,
         });
         
         // If current saved email exists and equals what we loaded, it is considered verified (as it was saved previously)
@@ -152,6 +175,28 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDiscordConnect = () => {
+    window.location.href = DISCORD_OAUTH_URL;
+  };
+
+  const handleDiscordUnlink = async () => {
+    if (!confirm("디스코드 연동을 해제하시겠습니까?")) return;
+    
+    setIsUnlinking(true);
+    try {
+      await unlinkDiscord();
+      toast.success("디스코드 연동이 해제되었습니다.");
+      // Refresh profile
+      const response = await getMyProfile();
+      setUser(response.data);
+      setValue("discordEnabled", false);
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "연동 해제 실패");
+    } finally {
+      setIsUnlinking(false);
+    }
+  };
+
 
   const onSubmit = async (values: SettingsFormValues) => {
     // Validation: If notification email is changed (not same as saved, not same as google), it must be verified.
@@ -186,6 +231,7 @@ export default function SettingsPage() {
         emailEnabled: response.data.emailEnabled,
         webPushEnabled: response.data.webPushEnabled,
         fcmEnabled: response.data.fcmEnabled,
+        discordEnabled: response.data.discordEnabled,
       });
       setAuthCode("");
     } catch (error: any) {
@@ -294,6 +340,24 @@ export default function SettingsPage() {
                 id="fcm-enabled"
                 checked={watch("fcmEnabled")}
                 onCheckedChange={(checked) => setValue("fcmEnabled", checked, { shouldDirty: true })}
+                className="scale-90 md:scale-100"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3.5 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-indigo-400" />
+                  <Label htmlFor="discord-enabled" className="text-sm md:text-base font-semibold">디스코드 DM 알림</Label>
+                </div>
+                <p className="text-[11px] md:text-sm text-muted-foreground">
+                  지정한 디스코드 계정으로 직접 메시지를 보냅니다.
+                </p>
+              </div>
+              <Switch
+                id="discord-enabled"
+                checked={watch("discordEnabled")}
+                onCheckedChange={(checked) => setValue("discordEnabled", checked, { shouldDirty: true })}
                 className="scale-90 md:scale-100"
               />
             </div>
@@ -406,6 +470,77 @@ export default function SettingsPage() {
               )}
             </Button>
           </CardFooter>
+        </Card>
+
+        {/* 디스코드 연동 설정 */}
+        <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl group rounded-[1.5rem] md:rounded-[2rem] overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+              <MessageSquare className="h-5 w-5 text-indigo-400" />
+              디스코드 계정 연동
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm">
+              디스코드 봇을 통해 계정을 연동하고 실시간 알림을 받아보세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5 pt-2 md:p-6 md:pt-4 space-y-4 relative">
+            {user?.discordId ? (
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-indigo-200">연동된 계정 ID</p>
+                  <p className="text-lg font-mono font-bold text-white">{user.discordId}</p>
+                </div>
+                <div className="p-2 rounded-full bg-indigo-500/20">
+                  <CheckCircle className="h-6 w-6 text-indigo-400" />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                  <h4 className="text-sm font-bold flex items-center gap-2 text-indigo-300">
+                    <CheckCircle className="h-4 w-4" /> 간편 연동 안내
+                  </h4>
+                  <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                    아래 버튼을 눌러 디스코드 계정을 인증하면 즉시 연동됩니다.<br />
+                    연동 시 <strong>'자신의 계정에 설치'</strong>를 선택해야 서버 없이도 알림을 받을 수 있습니다.
+                  </p>
+                  <div className="pt-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 space-y-2">
+                    <p className="text-[11px] md:text-xs text-orange-200 font-bold flex items-center gap-1.5">
+                      <Timer className="w-3 h-3" /> 알림 전송 실패(50007) 해결법
+                    </p>
+                    <ul className="text-[10px] md:text-[11px] text-orange-100/70 list-disc list-inside space-y-1">
+                      <li>디스코드 설정 ➔ 개인정보 보호 ➔ <strong>'내게 메시지를 보낼 수 있는 사람'</strong> 설정 확인</li>
+                      <li>봇을 차단했거나 개인정보 보호 수준이 너무 높으면 메시지가 전송되지 않습니다.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={handleDiscordConnect}
+                  className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/20 transition-all duration-300"
+                >
+                  <MessageSquare className="h-5 w-5 mr-2" />
+                  디스코드 계정 연결하기
+                </Button>
+              </div>
+            )}
+
+            {user?.discordId && (
+              <div className="pt-2">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={handleDiscordUnlink}
+                  disabled={isUnlinking}
+                  className="w-full h-10 text-xs text-destructive hover:bg-destructive/10 rounded-xl"
+                >
+                  {isUnlinking ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : "연동 해제하기"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
         </Card>
       </form>
     </div>

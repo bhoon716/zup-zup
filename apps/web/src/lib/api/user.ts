@@ -65,3 +65,8 @@ export const updateSettings = async (request: UserSettingsRequest): Promise<Comm
   const { data } = await api.patch('/api/v1/users/settings', request);
   return data;
 };
+
+export const unlinkDiscord = async (): Promise<CommonResponse<void>> => {
+  const { data } = await api.delete('/api/v1/users/me/discord');
+  return data;
+};

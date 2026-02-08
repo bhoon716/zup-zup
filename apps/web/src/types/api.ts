@@ -171,6 +171,8 @@ export interface User {
   emailEnabled: boolean;
   webPushEnabled: boolean;
   fcmEnabled: boolean;
+  discordEnabled: boolean;
+  discordId?: string;
   onboardingCompleted: boolean;
 }
 
@@ -178,6 +180,7 @@ export interface OnboardingRequest {
   notificationEmail: string;
   emailEnabled: boolean;
   webPushEnabled: boolean;
+  discordEnabled?: boolean;
 }
 
 export interface UserSettingsRequest {
@@ -185,6 +188,7 @@ export interface UserSettingsRequest {
   emailEnabled: boolean;
   webPushEnabled: boolean;
   fcmEnabled: boolean;
+  discordEnabled: boolean;
 }
 
 export interface UserUpdateRequest {

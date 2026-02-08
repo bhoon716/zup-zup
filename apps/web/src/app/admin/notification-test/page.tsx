@@ -19,6 +19,7 @@ const CHANNELS = [
   { id: "EMAIL", label: "이메일" },
   { id: "WEB", label: "웹 푸시" },
   { id: "FCM", label: "앱 푸시(FCM)" },
+  { id: "DISCORD", label: "디스코드" },
 ];
 
 export default function NotificationTestPage() {
