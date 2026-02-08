@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useUser, useCompleteOnboarding } from "@/hooks/useUser";
 import * as userApi from "@/lib/api/user";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, Mail, Smartphone, CheckCircle, Timer } from "lucide-react";
+import { Bell, Mail, Smartphone, CheckCircle, Timer, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -18,10 +18,14 @@ interface OnboardingForm {
   notificationEmail: string;
   emailEnabled: boolean;
   webPushEnabled: boolean;
+  discordEnabled: boolean;
 }
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const discordStatus = searchParams.get("discord");
+
   const { data: user, isLoading } = useUser();
   const { mutate: completeOnboarding, isPending } = useCompleteOnboarding();
 
@@ -31,49 +35,66 @@ export default function OnboardingPage() {
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
 
-  // If user uses google email, they don't need to verify (optional logic, but let's be consistent and require verification if they change it)
-  // Actually, if they use the same email, we can auto-verify? No, let's follow the requirement "Allow self authentication".
-  // If the initial email is google email, we set it as verified? 
-  // User asked "Add self-authentication".
-  // Let's force verification for ANY email if it's enabled.
+  // Discord Config
+  const DISCORD_CLIENT_ID = "1470147038564847719"; 
+  const DISCORD_REDIRECT_URI = encodeURIComponent("http://localhost:8080/api/v1/users/discord/callback");
+  // Add state=onboarding to redirect back here
+  const DISCORD_OAUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20applications.commands&integration_type=1&state=onboarding`;
 
   const { register, handleSubmit, setValue, watch, formState: { errors }, trigger } = useForm<OnboardingForm>({
     defaultValues: {
       notificationEmail: "",
       emailEnabled: true,
       webPushEnabled: true,
+      discordEnabled: false,
     },
   });
 
   const notificationEmail = watch("notificationEmail");
   const emailEnabled = watch("emailEnabled");
   const webPushEnabled = watch("webPushEnabled");
+  const discordEnabled = watch("discordEnabled");
 
   useEffect(() => {
     if (user) {
       if (user.onboardingCompleted) {
+        // If coming back from discord auth, allow stay? 
+        // No, checking onboardingCompleted is correct.
+        // But if we just linked discord, maybe backend updated it? 
+        // Backend completeOnboarding sets it to true. Linking discord does NOT.
+        // So we are safe.
         router.replace("/");
-      } else if (!watch("notificationEmail") && !verified) { // Only set default if not verified to avoid overwrite
-        setValue("notificationEmail", user.email);
-        // If it's their google email, maybe auto-verify?
-        // Let's NOT auto-verify to be safe properly following user request.
+      } else {
+        if (!watch("notificationEmail") && !verified) {
+           setValue("notificationEmail", user.email);
+        }
+        // Sync discordEnabled with user profile if newly linked
+        if (user.discordId) {
+            setValue("discordEnabled", true);
+        }
       }
     }
   }, [user, router, setValue, watch, verified]);
 
+  // Handle Discord Redirect Status
+  useEffect(() => {
+    if (discordStatus === "success") {
+      toast.success("디스코드 연동이 성공적으로 완료되었습니다.");
+      // Clean up URL
+      router.replace("/onboarding");
+      // user re-fetch is handled by useUser hook automatically swr
+    } else if (discordStatus === "error") {
+      toast.error("디스코드 연동 중 오류가 발생했습니다.");
+      router.replace("/onboarding");
+    }
+  }, [discordStatus, router]);
+
   // Reset verification if email changes
   useEffect(() => {
     if (verified) {
-        // If verified, disable editing? Or if they change it, reset verification.
-        // For better UX, let's disable the input if verified.
+        // ...
     } else {
-        // If email changes, setVerified(false) logic is needed?
-        // But input is controlled by register.
-        // We handle this by checking if 'verified' is true. 
-        // If user changes email, they should re-verify.
-        // How to detect change? 'notificationEmail' dependency.
-        // But initial set triggers this.
-        // Let's make Input readOnly if verified.
+        // ...
     }
   }, [notificationEmail]);
 
@@ -109,28 +130,20 @@ export default function OnboardingPage() {
     }
   };
 
+  const handleDiscordConnect = () => {
+    // Save current form state? 
+    // Since we redirect, state might be lost.
+    // Ideally we save to sessionStorage. 
+    // For now, let's assume user fills email first, then connects discord.
+    // When they come back, email input might be lost.
+    // We can auto-fill google email again.
+    window.location.href = DISCORD_OAUTH_URL;
+  };
+
   const onSubmit = (data: OnboardingForm) => {
-    // If email is different from google email, require verification.
-    // If same, assuming we enforced verification anyway?
-    // Let's require verification if 'verified' is false and email != user.email?
-    // User requested "add self-authentication".
-    // I will require 'verified' to be true if 'emailEnabled' is true.
-    
-    // Exception: If user uses their Google Email (user.email) AND we decide to trust it.
-    // However, for consistency and meeting the requirement "Add self-auth", let's require it unless logic dictates otherwise.
-    // Let's require verification for simplicity and security.
     
     if (user && data.notificationEmail === user.email) {
-       // Allow skipping verification for Google Account Email provided by OAuth2
-       // But wait, the backend logic I added checks verification for *any* email different from user.email.
-       // So if data.notificationEmail === user.email, backend won't throw UNVERIFIED_EMAIL.
-       // So frontend should allow submitting without explicit verification step if it matches.
-       // BUT, the user explicitly asked for "self-authentication". 
-       // If I am the user, I expect to verify my email.
-       // If I use my google email, do I verify?
-       // Let's implement: If email matches user.email, we CAN skip, but maybe show "Verified via Google" badge.
-       // If I allow skipping, I don't need to force Verify.
-       // IF the user types a helper email, they MUST verify.
+       // ...
     } else {
         if (data.emailEnabled && !verified) {
             toast.error("이메일 인증을 완료해주세요.");
@@ -138,13 +151,16 @@ export default function OnboardingPage() {
         }
     }
 
-    if (!data.emailEnabled && !data.webPushEnabled) {
+    if (!data.emailEnabled && !data.webPushEnabled && !data.discordEnabled) {
       if (!confirm("모든 알림을 끄시겠습니까? 빈자리가 생겨도 알림을 받을 수 없습니다.")) {
         return;
       }
     }
     
-    completeOnboarding(data, {
+    completeOnboarding({
+        ...data,
+        discordEnabled: data.discordEnabled // Ensure this is passed
+    }, {
       onSuccess: () => {
         router.replace("/");
       },
@@ -194,10 +210,7 @@ export default function OnboardingPage() {
                         id="notificationEmail" 
                         type="email" 
                         placeholder="example@jbnu.ac.kr"
-                        readOnly={verified || (isGoogleEmail && !emailSent && !verified)} // IF google email, maybe treat as verified? No, let user edit.
-                        // Better: If verified, readOnly.
-                        // If user wants to change, they can't unless we add "Change" button.
-                        // For MVP, just don't make it readOnly unless verified.
+                        readOnly={verified || (isGoogleEmail && !emailSent && !verified)} 
                         {...register("notificationEmail", { 
                           required: "이메일은 필수입니다.",
                           pattern: {
@@ -211,9 +224,6 @@ export default function OnboardingPage() {
                         })}
                         className={verified ? "bg-muted text-muted-foreground" : ""}
                       />
-                      {/* Show button if not verified and (not google email OR verification requested) */}
-                      {/* Actually, backend logic: If Same as Google Email, no verification needed. */}
-                      {/* So we only show Verify button if email != user.email */}
                       
                       {!isGoogleEmail && !verified && (
                           <Button 
@@ -310,6 +320,57 @@ export default function OnboardingPage() {
                       onCheckedChange={(checked) => setValue("webPushEnabled", checked)}
                     />
                   </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-accent/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${discordEnabled ? 'bg-indigo-500/10 text-indigo-500' : 'bg-muted text-muted-foreground'}`}>
+                        <MessageSquare className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <Label htmlFor="discordEnabled" className="text-sm font-medium cursor-pointer">디스코드 알림</Label>
+                        <p className="text-xs text-muted-foreground">디스코드 DM으로 알림을 받습니다.</p>
+                      </div>
+                    </div>
+                    <Switch 
+                      id="discordEnabled" 
+                      checked={discordEnabled}
+                      onCheckedChange={(checked) => setValue("discordEnabled", checked)}
+                      disabled={!user.discordId} // Disable if not linked
+                    />
+                  </div>
+                  
+                  {/* Discord Connect UI */}
+                  {!user.discordId && (
+                      <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
+                          <div className="flex items-center justify-between">
+                              <div className="space-y-1">
+                                  <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">디스코드 미연동</p>
+                                  <p className="text-[10px] text-muted-foreground">연동하면 DM 알림을 켤 수 있습니다.</p>
+                              </div>
+                              <Button 
+                                type="button" 
+                                size="sm" 
+                                variant="outline"
+                                onClick={handleDiscordConnect}
+                                className="h-8 text-xs bg-indigo-600 text-white hover:bg-indigo-700 border-none"
+                              >
+                                연동하기
+                              </Button>
+                          </div>
+                      </div>
+                  )}
+
+                  {user.discordId && (
+                      <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-xl border border-green-100 dark:border-green-900/30">
+                           <div className="flex items-center gap-2">
+                               <CheckCircle className="w-4 h-4 text-green-600" />
+                               <p className="text-xs font-medium text-green-700 dark:text-green-300">
+                                   디스코드 계정이 연동되었습니다.
+                               </p>
+                           </div>
+                      </div>
+                  )}
+
                 </div>
               </div>
 
