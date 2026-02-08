@@ -131,6 +131,7 @@ export interface CourseSearchCondition {
   minLectureHours?: number;
   generalCategory?: string;
   generalDetail?: string;
+  isWishedOnly?: boolean;
 }
 
 export interface CourseCategoryResponse {
