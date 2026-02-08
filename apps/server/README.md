@@ -38,45 +38,29 @@ graph TD
 
 ### 1. 401 Unauthorized 및 세션 안정화
 
-- **문제**: JWT 만료 시점(30분)과 서버 세션 타임아웃 불일치로 인한 빈번한 로그아웃 발생.
-- **해결**: 세션 타임아웃 및 JWT 만료 시간을 **2시간**으로 연장하고, 토큰 재발급(`reissue`) 시 서버 사이드 세션 속성(`ACCESS_TOKEN`)을 즉시 갱신하여 인증 정합성을 확보함.
+- **해결**: 세션 타임아웃 및 JWT 만료 시간을 **2시간**으로 연장하고, 토큰 재발급 시 세션 속성을 즉시 갱신하여 인증 정합성을 확보함.
 
-### 2. Web Push 초기화 에러 (Property Key Mismatch)
+### 2. 대규모 알림 발송 성능 최적화 (N+1 문제)
 
-### 2. 기기 미등록 시 무음 성공 처리 문제
-
-- **문제**: 알림 테스트 발송 시 타겟 기기가 DB에 없어도 예외 없이 성공(200 OK)으로 처리되어 디버깅이 어려움.
-- **해결**: `NotificationService` 발송 로직에 기기 존재 여부 체크를 추가하고, 기기가 없을 경우 명시적인 `bhoon.sugang_helper.common.error.CustomException`을 던져 클라이언트가 인지할 수 있도록 개선.
-
-### 3. 대규모 알림 발송 성능 최적화 (N+1 문제)
-
-- **문제**: 특정 과목 여석 발생 시 수천 명의 구독자 정보를 개별 조회하며 발생하는 DB 병목 현상.
 - **해결**: ID 리스트 기반의 **배치 조회(`IN` 절)**를 도입하여 쿼리 수를 단 3개로 고정, 발송 성능을 **약 80% 개선**.
 
-### 4. Redis 기반 중복 알림 방지 (Dedup)
+### 3. Redis 기반 중복 알림 방지 (Dedup)
 
-- **문제**: 짧은 크롤링 주기와 시스템 시차로 인해 동일 여석에 대해 중복 알림이 발송되는 UX 저하.
-- **해결**: **Redis**를 활용해 과목별 발송 이력을 10분간 유지하는 Deduplication 메커니즘을 구축하여 알림 피로도 최소화.
+- **해결**: Redis를 활용해 과목별 발송 이력을 10분간 유지하는 Deduplication 메커니즘을 구축하여 알림 피로도 최소화.
 
-### 5. BFF 아키텍처 전환 (Security Isolation)
+### 4. BFF 아키텍처 전환 (Security Isolation)
 
-- **문제**: 브라우저 내 JWT 노출로 인한 XSS 리스크 및 401 갱신 레이스 컨디션.
-- **해결**: **Spring Session Redis**를 도입하여 토큰을 서버 세션에 격리하고, 브라우저에는 HttpOnly 세션 쿠키만 발급하는 BFF 패턴으로 보안성 및 안정성 강화.
+- **해결**: Spring Session Redis를 도입하여 토큰을 서버 세션에 격리하고, 브라우저에는 HttpOnly 세션 쿠키만 발급하는 BFF 패턴으로 보안성 강화.
 
 ---
 
 ## ✨ 핵심 기능 (Core Features)
 
-- **고급 강좌 검색 (Advanced Search)**: QueryDSL을 사용하여 연도, 학기, 이수구분, 학위과정, 학과, 성적평가방식, 강의언어, 학점, 시수(10+ 지원), 수업요일/교시 등 모든 조건에 대한 정밀 동적 필터링 지원. 특히, 사용자가 **찜한 강의만 골라보기** 기능을 백엔드 검색 엔진에 통합하여 대규모 데이터에서도 고성능 필터링 제공.
-- **정밀 모니터링 & 파싱**: Jsoup 기반 XML 파싱 엔진 고도화. `FLDCONVINFO` 필드에서 교양 영역/상세구분을 분리 파싱하여 데이터 정합성을 100% 확보하고 누락 없는 수집 보장.
-- **구조화된 수업 시간표**: 텍스트 형태의 수업 시간을 `CourseSchedule` 엔티티(1:N)로 분리하여 요일 및 교시별 독립적인 검색 및 관리 지원.
-- **예비 수강 바구니 (Wishlist)**: 사용자별 관심 강좌 찜 기능(Toggle) 및 목록 조회 API 구현.
-- **알림 테스트 API**: 관리자가 특정 사용자를 대상으로 이메일, 웹푸시, 앱푸시가 정상 작동하는지 즉시 검증할 수 있는 테스트 엔드포인트 제공.
-- **실시간 스마트 알림**: FCM(앱), Web Push(브라우저), Email(SMTP)을 통한 즉각적인 정보 알림. 복잡한 On/Off 설정을 제거하고 **"상시 모니터링"** 시스템으로 단순화하여 사용자 편의성 극대화.
+- **고급 강좌 검색 (Advanced Search)**: QueryDSL을 사용하여 연도, 학기, 이수구분, 학과 등 모든 조건에 대한 정밀 동적 필터링 지원. 찜한 강의 필터링 기능 통합.
+- **실시간 스마트 알림**: FCM(앱), Web Push(브라우저), Email(SMTP)을 통한 즉각적인 정보 알림.
+- **예비 수강 바구니 (Wishlist)**: 사용자별 관심 강좌 찜 기능 및 과목별 알림 구독 기능.
+- **구조화된 수업 시간표**: 수업 시간을 엔티티화하여 요일/교시별 검색 및 시간표 생성/관리 지원.
 - **보안 인증**: Google OAuth2 및 JWT(Refresh Token Rotation) 기반의 안전한 세션 관리.
-- **이메일 본인 인증 (Email Verification)**: Redis를 활용한 5분 제한단위 인증 코드 발송 및 검증 시스템 구축. 사용자 정보 수정 시 이메일 소유권 검증을 강제하여 보안성 강화.
-- **개방형 검색 아키텍처**: 비로그인 상태에서도 강의 검색, 상세 정보 조회(`GET /api/v1/courses/**`)가 가능하도록 Spring Security 필터 체인을 유연하게 구성.
-- **대표 시간표 자동 승계**: 대표 시간표 삭제 시 남은 시간표 중 하나를 자동으로 새로운 대표로 승계하여 홈 화면의 일관성 유지.
 
 ---
 
@@ -89,9 +73,10 @@ src/main/java/bhoon/sugang_helper/
 │   ├── auth/           # OAuth2 인증 및 토큰 관리
 │   ├── admin/          # 관리자 대시보드 및 알림 테스트 API
 │   ├── course/         # 강좌 정보 조회 및 크롤링 엔진
-│   ├── notification/   # 알림 발송 멀티 채널 로직 (Service, Sender)
+│   ├── notification/   # 알림 발송 멀티 채널 로직
 │   ├── subscription/   # 유저 강좌 구독 관리
-│   └── user/           # 사용자 프로필 및 기기(Device) 관리
+│   ├── timetable/      # 수업 시간표 관리
+│   └── user/           # 사용자 프로필 및 기기 관리
 └── SugangHelperApplication.java
 ```
 
@@ -107,27 +92,55 @@ src/main/java/bhoon/sugang_helper/
 
 ---
 
-## 🔧 실행 방법 (Setup)
+## 📊 성능 테스트 (Performance Testing)
 
-### 1. 서비스 실행
+본 프로젝트는 대규모 트래픽 폭증 상황에서의 안정성을 보장하기 위해 **k6** 기반의 성능 테스트 환경을 구축했습니다.
+
+### 1. 테스트 시나리오
+
+- **Smoke Test**: 모든 API 엔드포인트 생존 확인 (`smoke-test.js`)
+- **Extreme Load**: 최대 **1,000 VUs** 규모의 스트레스/스파이크 테스트 (`advanced-stress-test.js`, `auth-spike-test.js`)
+- **Integrated Flow**: 실제 유저 행동 양식(로그인-검색-찜-시간표-구독-내역조회) 재현 (`integrated-user-flow.js`, 500 VUs)
+- **Admin Heavy**: 크롤링 트리거, 전역 통계 등 시스템 자원 집중 소모 작업 (`admin-heavy-ops.js`)
+- **Notification Stress**: 알림 발송 엔진 스트레스 테스트 (`notification-stress-test.js`)
+
+### 2. 실행 방법
+
+k6가 사전에 설치되어 있어야 하며, `server` 디렉터리에서 실행합니다.
+
+```bash
+# 1. 통합 유저 시나리오 검증 (1회 반복)
+k6 run scripts/k6/integrated-user-flow.js --iterations 1 --vus 1
+
+# 2. 알림 발송 엔진 스트레스 테스트 (관리자 권한 필요)
+k6 run -e ADMIN_TOKEN=<ADMIN_TOKEN> -e TEST_EMAIL=<TARGET_EMAIL> scripts/k6/notification-stress-test.js
+
+# 3. 어드민 고부하 작업 테스트
+k6 run -e ADMIN_TOKEN=<ADMIN_TOKEN> scripts/k6/admin-heavy-ops.js
+```
+
+### 3. 테스트 결과 (Summary)
+
+로컬 환경에서의 기초 Smoke Test 결과입니다.
+
+| 메트릭            | 결과 (Results) | 기준 (Threshold) | 판정          |
+| :---------------- | :------------- | :--------------- | :------------ |
+| **Success Rate**  | 100% (Error 0) | > 99%            | **PASS**      |
+| **Avg Resp Time** | 13.55ms        | -                | **Excellent** |
+| **P95 Resp Time** | 25.22ms        | < 300ms          | **PASS**      |
+
+### 4. 상세 전략
+
+상세한 부하 모델링 및 분석 결과는 [k6 성능 테스트 전략 문서](docs/k6-performance-strategy.md)를 참조하세요.
+
+---
+
+## 🔧 실행 방법 (Setup)
 
 별도의 DB 설치 없이 **Docker Compose**를 통해 즉시 시스템 전체를 실행할 수 있습니다.
 
-- `infra/.env`: 인프라(Docker, DB Root 등) 관련 설정
-- `server/.env`: 애플리케이션 로직(JWT, API Key 등) 관련 설정
-
 ```bash
-# 전체 환경 실행 (MySQL, Redis 포함)
 docker-compose up -d
-```
-
-### 2. 테스트 연동
-
-기본적인 단위 테스트는 즉시 실행 가능하며, 통합 테스트(manual 태그)는 별도의 환경 변수 설정으로 실행할 수 있습니다.
-
-```bash
-# 기본 테스트 실행
-./gradlew test
 ```
 
 ---
@@ -138,7 +151,3 @@ docker-compose up -d
 
 - **Endpoint**: `GET /api/v1/courses`
 - **Response**: `Slice<CourseResponse>` 구조로 변경되어 무한 스크롤에 최적화된 데이터를 반환합니다.
-- **Parameters**:
-  - `page`: 페이지 번호 (0-based, default: 0)
-  - `size`: 페이지 크기 (default: 30)
-  - 기존의 검색 필터(`year`, `term`, `department` 등)는 그대로 유지됩니다.

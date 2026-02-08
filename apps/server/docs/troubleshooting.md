@@ -411,4 +411,54 @@ private BooleanExpression inWishlist(Boolean isWishedOnly, Long userId) {
 
 ### 결과
 
-수만 건의 강의 데이터와 복잡한 검색 조건(연도, 학기, 요일 등) 속에서도 사용자의 찜 상태를 단일 쿼리로 정확하고 빠르게 필터링할 수 있게 되었습니다.
+## 수만 건의 강의 데이터와 복잡한 검색 조건(연도, 학기, 요일 등) 속에서도 사용자의 찜 상태를 단일 쿼리로 정확하고 빠르게 필터링할 수 있게 되었습니다.
+
+## 20. k6 통합 테스트 시 한글 검색어 인코딩 문제
+
+### 문제 상황
+
+`integrated-user-flow.js` 시나리오에서 한글이 포함된 검색 쿼리(`keyword=컴퓨터`)를 서버로 전송할 때, k6에서 URL 인코딩 처리를 누락하여 서버로부터 `400 Bad Request` 응답을 받거나 검색 결과가 0건으로 나오는 현상이 발생했습니다.
+
+### 원인 분석
+
+k6의 `http.get()`은 URL에 특수문자나 한글이 포함된 경우 자동으로 인코딩하지 않습니다. 특히 쿼리 파라미터 조합을 문자열로 관리할 때 이 문제가 두드러졌습니다.
+
+### 해결책
+
+JavaScript의 `encodeURIComponent()`를 사용하여 쿼리 파라미터의 값 부분을 명시적으로 인코딩하도록 보정했습니다.
+
+```javascript
+// 보정 전
+const url = `${BASE_URL}/api/v1/courses?${query}&page=0&size=20`;
+
+// 보정 후 (안전한 인코딩 적용)
+const encodedQuery = query
+  .split("&")
+  .map((pair) => {
+    const [key, value] = pair.split("=");
+    return `${key}=${encodeURIComponent(value)}`;
+  })
+  .join("&");
+const url = `${BASE_URL}/api/v1/courses?${encodedQuery}&page=0&size=20`;
+```
+
+### 결과
+
+한글 키워드를 포함한 모든 검색 시나리오에서 **성공률 100%**를 달성했으며, 실제 유저와 동일한 검색 부하를 생성할 수 있게 되었습니다.
+
+---
+
+## 21. 고부하 Admin API 성능 테스트 시 인증(Authorization) 장벽
+
+### 문제 상황
+
+크롤링 트리거(`POST /api/v1/admin/courses/crawl`)나 전역 통계 조회와 같은 고부하 어드민 API를 k6로 테스트할 때, 유효한 `ADMIN_TOKEN`을 지속적으로 공급하고 인증 필터 체인의 오버헤드를 측정하는 과정에서 어려움이 있었습니다.
+
+### 해결책
+
+1. **환경 변수 기반 인증**: k6 실행 시 `-e ADMIN_TOKEN=<TOKEN>` 옵션을 통해 보안 시크릿을 소스 코드와 분리하여 주입받도록 설계했습니다.
+2. **Spike Test 전용 시나리오**: 인증 토큰 재발급(`refresh`) 과정 자체에 고부하를 가하는 `auth-spike-test.js`를 별도로 구성하여, Redis 세션 저장소의 동시성 처리 능력을 단독으로 검증했습니다.
+
+### 결과
+
+보안 가이드라인을 준수하면서도 시스템에서 가장 무거운 어드민 기능 및 인증 레이어에 대한 정밀 부하 측정이 가능해졌습니다.
