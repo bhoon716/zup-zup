@@ -1,12 +1,11 @@
 "use client";
 
-// ... imports
 import { useUser, useLogout } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { LogOut, Search, Home, Bell, Settings, ShieldCheck, Calendar, Menu } from "lucide-react";
-import { usePathname } from "next/navigation"; // Import usePathname
+import { LogOut, Search, Home, Bell, Settings, ShieldCheck, Calendar, Menu, Download } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { 
@@ -17,12 +16,14 @@ import {
   SheetTrigger, 
   SheetClose 
 } from "@/components/ui/sheet";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 export function Header() {
   const { data: user, isLoading } = useUser();
   const { mutate: logout, isPending } = useLogout();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
   const pathname = usePathname();
+  const { isInstallable, install } = usePWAInstall(); // Added hook
 
   // Hide header on specific routes
   if (pathname === "/onboarding") {
@@ -93,6 +94,18 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
+          {isInstallable && (
+            <Button 
+                onClick={install}
+                variant="outline" 
+                size="sm" 
+                className="hidden md:flex gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
+            >
+              <Download className="w-4 h-4" />
+              <span className="font-medium">앱 설치</span>
+            </Button>
+          )}
+
           <div className="hidden md:flex items-center gap-3">
             {isLoading ? (
               <div className="h-8 w-24 animate-pulse bg-muted/50 rounded-xl" />
@@ -139,10 +152,12 @@ export function Header() {
                 </SheetHeader>
                 <div className="flex flex-col gap-2 p-4">
                   <div className="mb-4 px-2">
+                    {/* ... user logic ... */}
                     {isLoading ? (
-                      <div className="h-10 w-full animate-pulse bg-muted/50 rounded-xl" />
+                       <div className="h-10 w-full animate-pulse bg-muted/50 rounded-xl" />
                     ) : user ? (
                       <div className="bg-accent/30 rounded-2xl p-4 border border-white/5">
+                         {/* ... user specific ... */}
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                             {user.name.charAt(0)}
@@ -154,7 +169,7 @@ export function Header() {
                         </div>
                       </div>
                     ) : (
-                      <Link href="/login" className="block">
+                       <Link href="/login" className="block">
                         <Button className="w-full gap-2 rounded-xl h-11 bg-primary shadow-lg shadow-primary/20">
                           로그인하고 시작하기
                         </Button>
@@ -162,6 +177,18 @@ export function Header() {
                     )}
                   </div>
                   
+                  {isInstallable && (
+                    <div className="px-2 mb-2">
+                         <Button 
+                            onClick={install}
+                            className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                        >
+                          <Download className="w-4 h-4" />
+                          앱 설치하기
+                        </Button>
+                    </div>
+                  )}
+
                   <div className="space-y-1">
                     <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Menu</p>
                     <NavLinks isMobile />
