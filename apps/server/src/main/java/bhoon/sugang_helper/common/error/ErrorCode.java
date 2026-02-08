@@ -33,6 +33,11 @@ public enum ErrorCode {
     WEBPUSH_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N003", "Web Push 발송 중 오류가 발생했습니다."),
     DISCORD_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N004", "디스코드 알림 발송 중 오류가 발생했습니다."),
 
+    // Web Push Specific
+    WEBPUSH_NOT_INITIALIZED(HttpStatus.INTERNAL_SERVER_ERROR, "N010", "Web Push 서비스가 초기화되지 않았습니다. (서버 설정 확인 필요)"),
+    WEBPUSH_MISSING_KEYS(HttpStatus.BAD_REQUEST, "N011", "Web Push 암호화 키(p256dh, auth)가 누락되었습니다."),
+    WEBPUSH_INVALID_SUBSCRIPTION(HttpStatus.NOT_FOUND, "N012", "유효하지 않은 Web Push 구독 정보입니다. (재구독 필요)"),
+
     // Subscription
     MAX_SUBSCRIPTION_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "S001", "구독 가능 개수를 초과했습니다."),
     SUBSCRIPTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "S002", "이미 구독 중인 과목입니다."),
