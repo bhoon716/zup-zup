@@ -73,8 +73,8 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
   return (
     <>
       <div className={cn(
-        "relative border rounded-xl bg-background overflow-hidden shadow-sm", 
-        isPreview && "rounded-[1.5rem] border-none shadow-none",
+        "relative border rounded-xl bg-background overflow-hidden shadow-sm min-w-[600px] md:min-w-full timetable-grid-content", 
+        isPreview && "rounded-[1.5rem] border-none shadow-none min-w-full",
         className
       )}>
         {/* Header */}
@@ -92,10 +92,10 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
             <div
               key={day}
               className={cn(
-              "h-10 flex items-center justify-center text-sm font-black transition-colors",
-              isPreview && "h-8 text-[11px]",
-              day === '토' && "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-b-2 border-b-blue-500/50",
-              day === '일' && "bg-red-500/10 text-red-600 dark:text-red-400 border-b-2 border-b-red-500/50"
+                "h-10 md:h-12 flex items-center justify-center text-xs md:text-sm font-black transition-colors",
+                isPreview && "h-8 text-[11px]",
+                day === '토' && "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-b-2 border-b-blue-500/50",
+                day === '일' && "bg-red-500/10 text-red-600 dark:text-red-400 border-b-2 border-b-red-500/50"
               )}
             >
               {day}
@@ -190,7 +190,7 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
                                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                 </svg>
-                                <span className="text-[8px] font-semibold">겹침</span>
+                                <span className="text-[10px] font-bold">겹침</span>
                               </div>
                             </div>
                           );
@@ -198,8 +198,8 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
                         
                         <div 
                           className={cn(
-                            "font-medium truncate text-[10px] leading-tight relative z-10",
-                            isPreview && "text-[8px]"
+                            "font-bold truncate text-xs leading-tight relative z-10",
+                            isPreview ? "text-[8px]" : "text-[12px] md:text-sm"
                           )}
                           style={{ color: block.color || '#1f2937' }}
                         >
@@ -207,17 +207,17 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
                         </div>
                         {block.subTitle && !isPreview && (
                           <div 
-                            className="text-[8px] opacity-60 truncate leading-tight mt-0.5 relative z-10"
+                            className="text-[10px] md:text-xs opacity-80 truncate font-semibold leading-tight mt-1 relative z-10"
                             style={{ color: block.color || '#6b7280' }}
                           >
                             {block.subTitle}
                           </div>
                         )}
                         
-                        {!isPreview && heightPercent > 8 && (
+                        {!isPreview && heightPercent > 10 && (
                           <div className="mt-1 relative z-10">
                             <span 
-                              className="text-[7px] font-mono opacity-50 leading-tight"
+                              className="text-[9px] md:text-[10px] font-mono opacity-60 font-medium leading-tight"
                               style={{ color: block.color || '#9ca3af' }}
                             >
                               {block.startTime}-{block.endTime}
