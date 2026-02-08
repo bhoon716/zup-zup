@@ -45,13 +45,20 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private boolean onboardingCompleted = false;
 
+    @Column
+    private String discordId;
+
+    @Column(nullable = false)
+    private boolean discordEnabled = false;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
     @Builder
     public User(Long id, String name, String email, String notificationEmail, boolean emailEnabled,
-            boolean webPushEnabled, boolean fcmEnabled, boolean onboardingCompleted, Role role) {
+            boolean webPushEnabled, boolean fcmEnabled, boolean discordEnabled, String discordId,
+            boolean onboardingCompleted, Role role) {
         this.id = id;
         this.name = name;
         this.email = email;
@@ -59,16 +66,29 @@ public class User extends BaseEntity {
         this.emailEnabled = emailEnabled;
         this.webPushEnabled = webPushEnabled;
         this.fcmEnabled = fcmEnabled;
+        this.discordEnabled = discordEnabled;
+        this.discordId = discordId;
         this.onboardingCompleted = onboardingCompleted;
         this.role = role;
     }
 
     public void updateSettings(String notificationEmail, boolean emailEnabled, boolean webPushEnabled,
-            boolean fcmEnabled) {
+            boolean fcmEnabled, boolean discordEnabled) {
         this.notificationEmail = notificationEmail;
         this.emailEnabled = emailEnabled;
         this.webPushEnabled = webPushEnabled;
         this.fcmEnabled = fcmEnabled;
+        this.discordEnabled = discordEnabled;
+    }
+
+    public void linkDiscord(String discordId) {
+        this.discordId = discordId;
+        this.discordEnabled = true;
+    }
+
+    public void unlinkDiscord() {
+        this.discordId = null;
+        this.discordEnabled = false;
     }
 
     public void completeOnboarding(String notificationEmail, boolean emailEnabled, boolean webPushEnabled) {

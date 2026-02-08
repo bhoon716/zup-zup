@@ -54,7 +54,8 @@ public class UserService {
                 request.getNotificationEmail(),
                 request.isEmailEnabled(),
                 request.isWebPushEnabled(),
-                request.isFcmEnabled());
+                request.isFcmEnabled(),
+                request.isDiscordEnabled());
         log.info("[User] Settings updated: userId={}, emailEnabled={}, webPushEnabled={}",
                 user.getId(), request.isEmailEnabled(), request.isWebPushEnabled());
         return UserResponse.from(user);
@@ -103,6 +104,20 @@ public class UserService {
         if (!verified) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "인증 코드가 올바르지 않거나 만료되었습니다.");
         }
+    }
+
+    @Transactional
+    public void linkDiscordId(String discordId) {
+        User user = getCurrentUser();
+        user.linkDiscord(discordId);
+        log.info("[User] Discord linked: userId={}, discordId={}", user.getId(), discordId);
+    }
+
+    @Transactional
+    public void unlinkDiscord() {
+        User user = getCurrentUser();
+        user.unlinkDiscord();
+        log.info("[User] Discord unlinked: userId={}", user.getId());
     }
 
     private User getCurrentUser() {

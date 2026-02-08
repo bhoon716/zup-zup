@@ -102,6 +102,8 @@ class NotificationServiceTest {
                 .emailEnabled(true)
                 .webPushEnabled(true)
                 .fcmEnabled(true)
+                .discordEnabled(true)
+                .discordId("discord-id")
                 .build();
 
         UserDevice fcmDevice = UserDevice.builder()
@@ -117,12 +119,13 @@ class NotificationServiceTest {
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
         given(notificationSender.supports(NotificationChannel.FCM)).willReturn(true);
         given(notificationSender.supports(NotificationChannel.WEB)).willReturn(true);
+        given(notificationSender.supports(NotificationChannel.DISCORD)).willReturn(true);
 
         // When
         notificationService.handleSeatOpenedEvent(event);
 
         // Then
-        verify(notificationHistoryRepository, times(3)).save(any(NotificationHistory.class));
+        verify(notificationHistoryRepository, times(4)).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -181,5 +184,46 @@ class NotificationServiceTest {
                 .extracting("detail")
                 .asString()
                 .contains("등록된 웹 푸시 기기가 없습니다");
+    }
+
+    @Test
+    @DisplayName("관리자 테스트 알림 발송 - 디스코드")
+    void sendTestNotification_Discord() {
+        // Given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .discordId("discord-id")
+                .build();
+        List<NotificationChannel> channels = List.of(NotificationChannel.DISCORD);
+
+        given(notificationSender.supports(NotificationChannel.DISCORD)).willReturn(true);
+
+        // When
+        notificationService.sendTestNotification(user, channels);
+
+        // Then
+        verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
+        verify(notificationHistoryRepository, times(1)).save(any(NotificationHistory.class));
+    }
+
+    @Test
+    @DisplayName("관리자 테스트 알림 발송 - 디스코드 연동 안됨 시 예외 발생")
+    void sendTestNotification_Discord_NotLinked() {
+        // Given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .discordId(null)
+                .build();
+        List<NotificationChannel> channels = List.of(NotificationChannel.DISCORD);
+
+        // When & Then
+        org.assertj.core.api.Assertions
+                .assertThatThrownBy(() -> notificationService.sendTestNotification(user, channels))
+                .isInstanceOf(bhoon.sugang_helper.common.error.CustomException.class)
+                .extracting("detail")
+                .asString()
+                .contains("디스코드 연동 정보가 없습니다");
     }
 }

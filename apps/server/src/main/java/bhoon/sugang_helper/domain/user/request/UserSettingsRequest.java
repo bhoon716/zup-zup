@@ -24,11 +24,15 @@ public class UserSettingsRequest {
     @Schema(description = "FCM 알림 활성화 여부", example = "true")
     private boolean fcmEnabled;
 
+    @Schema(description = "디스코드 알림 활성화 여부", example = "true")
+    private boolean discordEnabled;
+
     public UserSettingsRequest(String notificationEmail, boolean emailEnabled, boolean webPushEnabled,
-            boolean fcmEnabled) {
+            boolean fcmEnabled, boolean discordEnabled) {
         this.notificationEmail = notificationEmail;
         this.emailEnabled = emailEnabled;
         this.webPushEnabled = webPushEnabled;
         this.fcmEnabled = fcmEnabled;
+        this.discordEnabled = discordEnabled;
     }
 }

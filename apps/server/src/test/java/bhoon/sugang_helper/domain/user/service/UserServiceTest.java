@@ -34,6 +34,9 @@ class UserServiceTest {
     @Mock
     private SubscriptionRepository subscriptionRepository;
 
+    @Mock
+    private EmailVerificationService emailVerificationService;
+
     @InjectMocks
     private UserService userService;
 
@@ -126,5 +129,65 @@ class UserServiceTest {
         assertThatThrownBy(() -> userService.getMyProfile())
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
+    }
+
+    @Test
+    @DisplayName("사용자 설정을 정상적으로 업데이트한다 (디스코드 포함)")
+    void updateSettings() {
+        // given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .name("Tester")
+                .role(Role.USER)
+                .build();
+
+        bhoon.sugang_helper.domain.user.request.UserSettingsRequest request = new bhoon.sugang_helper.domain.user.request.UserSettingsRequest(
+                "new@example.com", true, true, false, true);
+
+        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(emailVerificationService.isVerified(1L, "new@example.com")).thenReturn(true);
+
+        // when
+        UserResponse result = userService.updateSettings(request);
+
+        // then
+        assertThat(result.getNotificationEmail()).isEqualTo("new@example.com");
+        assertThat(result.isEmailEnabled()).isTrue();
+        assertThat(result.isDiscordEnabled()).isTrue();
+        assertThat(user.getNotificationEmail()).isEqualTo("new@example.com");
+        assertThat(user.isDiscordEnabled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("온보딩을 정상적으로 완료한다")
+    void completeOnboarding() {
+        // given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .name("Tester")
+                .role(Role.USER)
+                .onboardingCompleted(false)
+                .build();
+
+        bhoon.sugang_helper.domain.user.request.OnboardingRequest request = mock(
+                bhoon.sugang_helper.domain.user.request.OnboardingRequest.class);
+        when(request.getNotificationEmail()).thenReturn("notify@example.com");
+        when(request.isEmailEnabled()).thenReturn(true);
+        when(request.isWebPushEnabled()).thenReturn(true);
+
+        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(emailVerificationService.isVerified(1L, "notify@example.com")).thenReturn(true);
+
+        // when
+        UserResponse result = userService.completeOnboarding(request);
+
+        // then
+        assertThat(result.isOnboardingCompleted()).isTrue();
+        assertThat(user.isOnboardingCompleted()).isTrue();
+        assertThat(user.getNotificationEmail()).isEqualTo("notify@example.com");
     }
 }

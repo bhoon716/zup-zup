@@ -31,6 +31,7 @@ public enum ErrorCode {
     EMAIL_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N001", "이메일 발송 중 오류가 발생했습니다."),
     FCM_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N002", "FCM 발송 중 오류가 발생했습니다."),
     WEBPUSH_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N003", "Web Push 발송 중 오류가 발생했습니다."),
+    DISCORD_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N004", "디스코드 알림 발송 중 오류가 발생했습니다."),
 
     // Subscription
     MAX_SUBSCRIPTION_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "S001", "구독 가능 개수를 초과했습니다."),

@@ -4,8 +4,10 @@ import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.domain.user.request.UserUpdateRequest;
 import bhoon.sugang_helper.domain.user.request.UserSettingsRequest;
 import bhoon.sugang_helper.domain.user.response.UserResponse;
+import bhoon.sugang_helper.domain.user.service.DiscordOAuthService;
 import bhoon.sugang_helper.domain.user.service.UserService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import bhoon.sugang_helper.domain.user.request.OnboardingRequest;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -26,6 +29,7 @@ import bhoon.sugang_helper.domain.user.request.OnboardingRequest;
 public class UserController {
 
   private final UserService userService;
+  private final DiscordOAuthService discordOAuthService;
 
   @Operation(summary = "온보딩 완료", description = "신규 가입 유저의 초기 설정(알림 이메일 등)을 저장하고 온보딩 상태를 완료로 변경합니다.")
   @ApiResponses(value = {
@@ -120,5 +124,32 @@ public class UserController {
   public ResponseEntity<CommonResponse<Void>> withdraw() {
     userService.withdraw();
     return CommonResponse.ok(null, "회원 탈퇴가 완료되었습니다.");
+  }
+
+  @Operation(summary = "디스코드 연동 해제", description = "현재 계정에 연동된 디스코드 계정을 해제합니다.")
+  @DeleteMapping("/me/discord")
+  public ResponseEntity<CommonResponse<Void>> unlinkDiscord() {
+    userService.unlinkDiscord();
+    return CommonResponse.ok(null, "디스코드 연동이 해제되었습니다.");
+  }
+
+  @Operation(summary = "디스코드 OAuth2 콜백", description = "디스코드 인증 후 리다이렉트되어 연동을 완료합니다.")
+  @GetMapping("/discord/callback")
+  public ResponseEntity<Void> discordCallback(@RequestParam String code) {
+    log.info("[DiscordOAuth] Callback received with code: {}", code);
+    try {
+      String accessToken = discordOAuthService.exchangeCodeForToken(code);
+      String discordId = discordOAuthService.getDiscordUserId(accessToken);
+      userService.linkDiscordId(discordId);
+
+      return ResponseEntity.status(302)
+          .header("Location", "http://localhost:3000/settings?discord=success")
+          .build();
+    } catch (Exception e) {
+      log.error("[DiscordOAuth] Callback process failed: {}", e.getMessage());
+      return ResponseEntity.status(302)
+          .header("Location", "http://localhost:3000/settings?discord=error")
+          .build();
+    }
   }
 }

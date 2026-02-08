@@ -19,7 +19,7 @@ public class TestNotificationRequest {
     @NotEmpty(message = "이메일은 필수 입력값입니다.")
     private String email;
 
-    @Schema(description = "발송 채널 리스트 (EMAIL, WEB, FCM)", example = "[\"EMAIL\", \"WEB\"]")
+    @Schema(description = "발송 채널 리스트 (EMAIL, WEB, FCM, DISCORD)", example = "[\"EMAIL\", \"DISCORD\"]")
     @NotEmpty(message = "최소 하나 이상의 채널을 선택해야 합니다.")
     private List<String> channels;
 }

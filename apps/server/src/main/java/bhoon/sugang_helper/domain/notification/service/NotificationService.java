@@ -107,6 +107,12 @@ public class NotificationService {
                 dispatch(target, title, message, channel);
                 saveHistory(user.getId(), event.courseKey(), title, message, channel);
             }
+
+            // 3. 디스코드 발송
+            if (user.isDiscordEnabled() && user.getDiscordId() != null) {
+                dispatch(NotificationTarget.of(user.getDiscordId()), title, message, NotificationChannel.DISCORD);
+                saveHistory(user.getId(), event.courseKey(), title, message, NotificationChannel.DISCORD);
+            }
         }
     }
 
@@ -146,11 +152,21 @@ public class NotificationService {
 
             List<UserDevice> devices = userDeviceRepository.findByUserIdAndType(user.getId(), deviceType);
 
-            if (devices.isEmpty()) {
+            if (devices.isEmpty() && channel != NotificationChannel.DISCORD) {
                 log.warn("[NotificationTest] No devices found for user {} with type {}", user.getEmail(), deviceType);
                 String channelName = (channel == NotificationChannel.WEB) ? "웹 푸시" : "앱 푸시";
                 throw new CustomException(ErrorCode.NOT_FOUND,
                         String.format("등록된 %s 기기가 없습니다. 먼저 기기를 등록해 주세요.", channelName));
+            }
+
+            if (channel == NotificationChannel.DISCORD) {
+                if (user.getDiscordId() == null) {
+                    throw new CustomException(ErrorCode.NOT_FOUND, "디스코드 연동 정보가 없습니다. 먼저 디스코드를 연동해 주세요.");
+                }
+                dispatch(NotificationTarget.of(user.getDiscordId()), title, message, channel);
+                saveHistory(user.getId(), "TEST", title, message, channel);
+                log.info("[NotificationTest] Successfully dispatched Discord notification to {}", user.getDiscordId());
+                continue;
             }
 
             for (UserDevice device : devices) {
