@@ -37,11 +37,14 @@ class CourseServiceTest {
         @Mock
         private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
+        @Mock
+        private bhoon.sugang_helper.domain.user.repository.UserRepository userRepository;
+
         private CourseService courseService;
 
         @BeforeEach
         void setUp() {
-                courseService = new CourseService(courseRepository, courseSeatHistoryRepository);
+                courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userRepository);
         }
 
         @Test
