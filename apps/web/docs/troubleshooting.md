@@ -432,4 +432,38 @@ useEffect(() => {
 
 ### 결과
 
-사용자가 현재 보고 있는 화면 상태와 상관없이, 항상 전체 요일이 포함된 깔끔하고 선명한(2x 해상도) 시간표 이미지를 저장할 수 있게 되었습니다.
+## 사용자가 현재 보고 있는 화면 상태와 상관없이, 항상 전체 요일이 포함된 깔끔하고 선명한(2x 해상도) 시간표 이미지를 저장할 수 있게 되었습니다.
+
+## 21. 이벤트 핸들러 내 Hook 호출로 인한 Invalid Hook Call
+
+### 문제 상황
+
+`CourseSearchBar` 컴포넌트의 체크박스 `onClick` 이벤트 핸들러 내에서 유저 정보를 가져오기 위해 `useUser` 훅을 호출했을 때, "Invalid hook call. Hooks can only be called inside of the body of a function component" 에러가 발생하며 앱이 중단되었습니다.
+
+### 원인
+
+React의 **Hooks 규칙(Rules of Hooks)**에 따라 훅은 반드시 리액트 함수 컴포넌트의 최상위(Top-level)에서만 호출되어야 합니다. `onClick`과 같은 이벤트 핸들러나 일반 자바스크립트 함수 내부에서 훅을 호출하는 것은 금지되어 있습니다.
+
+### 해결책
+
+1. **호출 위치 변경**: 핸들러 내부에 있던 `useUser` 호출을 컴포넌트 본문 상단으로 이동시켰습니다.
+2. **데이터 활용**: 상단에서 가져온 `user` 데이터를 핸들러 함수 내에서 참조하여 비로그인 여부를 판단하도록 로직을 수정했습니다.
+
+```tsx
+// 수정 후
+export function CourseSearchBar(...) {
+  const { data: user } = useUser(); // 최상위 호출
+
+  const handleWishlistToggle = () => {
+    if (!user) { // 데이터 참조
+      toast.error("로그인이 필요합니다.");
+      return;
+    }
+    // ... logic
+  };
+}
+```
+
+### 결과
+
+리액트 렌더링 생명주기에 부합하는 올바른 훅 사용 방식을 통해 런타임 에러를 해결하고 안정적인 인증 체크 로직을 구현했습니다.
