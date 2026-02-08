@@ -25,6 +25,8 @@ import type {
   LectureLanguage,
   ScheduleCondition
 } from "@/types/api";
+import { toast } from "sonner";
+import { useUser } from "@/hooks/useUser";
 
 interface CourseSearchBarProps {
   onSearch: (condition: CourseSearchCondition) => void;
@@ -49,6 +51,8 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
     academicYear: '2026',
     semester: 'U211600010'
   });
+
+  const { data: user } = useUser();
 
   const availableDetails = condition.generalCategory ? GE_CATEGORIES[condition.generalCategory] || [] : [];
 
@@ -129,7 +133,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
               </div>
 
               {/* Name & Professor */}
-              <div className="col-span-2 sm:col-span-1 lg:col-span-4">
+              <div className="col-span-2 sm:col-span-1 lg:col-span-3">
                 <Input
                   type="text"
                   placeholder="과목명"
@@ -151,20 +155,50 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                 />
               </div>
 
-              {/* Availability Checkbox (Integrated) - Compact */}
-              <div className="col-span-1 lg:col-span-1 flex items-center justify-center bg-background/30 border border-dashed border-white/10 rounded-xl px-1 group cursor-pointer hover:bg-background/50 transition-all h-11 md:h-10" onClick={() => setCondition({ ...condition, isAvailableOnly: !condition.isAvailableOnly })}>
-                <Checkbox 
-                  id="isAvailableOnly" 
-                  checked={condition.isAvailableOnly || false}
-                  onCheckedChange={(checked) => setCondition({ ...condition, isAvailableOnly: !!checked })}
-                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary w-3.5 h-3.5"
-                />
-                <label 
-                  htmlFor="isAvailableOnly"
-                  className="text-[10px] font-bold text-muted-foreground group-hover:text-foreground cursor-pointer select-none transition-colors ml-1.5 truncate"
+              {/* Availability & Wishlist Checkbox (Integrated) - Compact */}
+              <div className="col-span-1 lg:col-span-2 flex items-center gap-1.5 h-11 md:h-10">
+                {/* Availability Only */}
+                <div className="flex-1 flex items-center justify-center bg-background/30 border border-dashed border-white/10 rounded-xl px-1 group cursor-pointer hover:bg-background/50 transition-all h-full" onClick={() => setCondition({ ...condition, isAvailableOnly: !condition.isAvailableOnly })}>
+                  <Checkbox 
+                    id="isAvailableOnly" 
+                    checked={condition.isAvailableOnly || false}
+                    onCheckedChange={(checked) => setCondition({ ...condition, isAvailableOnly: !!checked })}
+                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary w-3.5 h-3.5"
+                  />
+                  <label 
+                    htmlFor="isAvailableOnly"
+                    className="text-[10px] font-bold text-muted-foreground group-hover:text-foreground cursor-pointer select-none transition-colors ml-1.5 truncate"
+                  >
+                    잔여석만
+                  </label>
+                </div>
+
+                {/* Wishlist Only */}
+                <div 
+                  className="flex-1 flex items-center justify-center bg-background/30 border border-dashed border-white/10 rounded-xl px-1 group cursor-pointer hover:bg-background/50 transition-all h-full" 
+                  onClick={() => {
+                    if (!user) {
+                      toast.error("로그인이 필요한 기능입니다.");
+                      return;
+                    }
+                    setCondition({ ...condition, isWishedOnly: !condition.isWishedOnly });
+                  }}
                 >
-                  잔여석만
-                </label>
+                  <Checkbox 
+                    id="isWishedOnly" 
+                    checked={condition.isWishedOnly || false}
+                    onCheckedChange={(checked) => {
+                       // Handled by div onClick for convenience and user check
+                    }}
+                    className="data-[state=checked]:bg-rose-500 data-[state=checked]:border-rose-500 w-3.5 h-3.5"
+                  />
+                  <label 
+                    htmlFor="isWishedOnly"
+                    className="text-[10px] font-bold text-muted-foreground group-hover:text-foreground cursor-pointer select-none transition-colors ml-1.5 truncate"
+                  >
+                    찜한 강의만
+                  </label>
+                </div>
               </div>
 
               {/* Action Buttons (Integrated) - Compact */}
