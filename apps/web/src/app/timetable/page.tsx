@@ -19,25 +19,43 @@ export default function TimetablePage() {
   const [selectedTimetableId, setSelectedTimetableId] = useState<number | null>(null);
 
   const handleExportImage = async () => {
-    const element = document.querySelector('.timetable-grid-target');
+    const element = document.querySelector('.timetable-grid-content') as HTMLElement;
     if (!element) {
       toast.error('시간표를 찾을 수 없습니다.');
       return;
     }
 
     try {
-      const dataUrl = await toPng(element as HTMLElement, {
+      const padding = 40; // 넉넉한 여백
+      const width = element.scrollWidth + (padding * 2);
+      const height = element.scrollHeight + (padding * 2);
+
+      const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
+        cacheBust: true,
+        width: width,
+        height: height,
         style: {
-          padding: '20px',
-        }
+          padding: `${padding}px`,
+          borderRadius: '0',
+          margin: '0',
+          transform: 'none',
+          width: `${element.scrollWidth}px`,
+          height: `${element.scrollHeight}px`,
+          boxSizing: 'content-box',
+          maxWidth: 'none',
+          minWidth: 'none',
+        },
+        pixelRatio: 2,
       });
+
       const link = document.createElement('a');
       link.download = `timetable-${new Date().getTime()}.png`;
       link.href = dataUrl;
       link.click();
       toast.success('시간표 이미지가 저장되었습니다.');
-    } catch {
+    } catch (error) {
+      console.error('Export failed:', error);
       toast.error('이미지 저장에 실패했습니다.');
     }
   };
@@ -92,15 +110,15 @@ export default function TimetablePage() {
   return (
     <div className="min-h-screen bg-background">
       
-      <main className="container max-w-5xl py-8 space-y-6">
+      <main className="container max-w-5xl py-8 px-4 md:px-6 space-y-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight">내 시간표</h1>
-            <p className="text-muted-foreground">나만의 수강 바구니를 구성하고 최적의 시간표를 만들어보세요.</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">내 시간표</h1>
+            <p className="text-sm text-muted-foreground mr-4">나만의 수강 바구니를 구성하고 최적의 시간표를 만들어보세요.</p>
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2" onClick={handleExportImage}>
+            <Button variant="outline" size="sm" className="gap-2 w-full md:w-auto h-11 md:h-9 rounded-xl shadow-sm" onClick={handleExportImage}>
               <Download className="w-4 h-4" />
               이미지로 저장
             </Button>
@@ -129,7 +147,7 @@ export default function TimetablePage() {
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : selectedTimetableId && timetableDetail ? (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 timetable-grid-target">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 timetable-grid-target overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
               <TimetableGrid timetable={timetableDetail} />
             </div>
           ) : null}
