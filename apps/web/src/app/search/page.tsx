@@ -30,13 +30,13 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       
-      <main className="container py-10">
-        <div className="space-y-8">
+      <main className="container py-8 px-4 md:px-6">
+        <div className="space-y-6 md:space-y-8">
           <div className="flex flex-col gap-1.5">
-            <h1 className="text-3xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
               강의 검색
             </h1>
-            <p className="text-sm text-muted-foreground font-medium">
+            <p className="text-xs md:text-sm text-muted-foreground font-medium">
               원하는 강의를 검색하고 구독하여 빈자리 알림을 받아보세요.
             </p>
           </div>

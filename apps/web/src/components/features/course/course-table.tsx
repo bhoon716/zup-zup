@@ -108,7 +108,8 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
 
   return (
     <>
-      <div className="border rounded-xl overflow-hidden shadow-sm bg-card/30 backdrop-blur-md">
+      {/* Desktop Table View */}
+      <div className="hidden md:block border rounded-xl overflow-hidden shadow-sm bg-card/30 backdrop-blur-md">
         <div className="relative overflow-auto max-h-[650px] scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
           <table className="w-full caption-bottom text-sm">
             <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm shadow-md border-b">
@@ -274,28 +275,182 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
                     );
                   })}
                   
-                  {/* Sentinel for Infinite Scroll */}
+                  {/* Sentinel for Infinite Scroll (Desktop) */}
                   <TableRow ref={observerTarget}>
                      <TableCell colSpan={8} className="h-4 p-0 border-0" />
                   </TableRow>
-                  
-                  {isFetchingNextPage && (
-                    <TableRow>
-                       <TableCell colSpan={8} className="text-center py-4">
-                          <div className="flex justify-center items-center gap-2 text-xs text-muted-foreground animate-pulse">
-                             <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-75"/>
-                             <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-100"/>
-                             <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-150"/>
-                             <span>더 불러오는 중...</span>
-                          </div>
-                       </TableCell>
-                    </TableRow>
-                  )}
                 </>
               )}
             </TableBody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-4">
+        {courses.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground italic font-medium bg-card/30 rounded-2xl border">
+            검색 조건에 맞는 강의가 없습니다.
+          </div>
+        ) : (
+          <>
+            {courses.map((course, index) => {
+              const subscribed = isSubscribed(course.courseKey);
+              const isAvailable = (course.available ?? 0) > 0;
+              const capacityColor = isAvailable 
+                  ? "text-emerald-500 font-bold" 
+                  : "text-rose-500 font-bold";
+
+              return (
+                <div 
+                  key={`${course.courseKey}-${index}-mobile`}
+                  className="bg-white dark:bg-gray-900 border border-border/50 rounded-2xl p-4 shadow-sm active:scale-[0.98] transition-all"
+                  onClick={() => handleCourseClick(course)}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="space-y-1 pr-2">
+                       <h3 className="font-bold text-base text-foreground leading-tight">{course.name}</h3>
+                       <div className="flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-muted-foreground font-medium">
+                          <span>{course.professor || "미지정"}</span>
+                          <span className="opacity-30">|</span>
+                          <span>{course.department}</span>
+                          <span className="opacity-30">|</span>
+                          <span>{formatClassification(course.classification)}</span>
+                       </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                       <p className={`text-sm tracking-tighter ${capacityColor}`}>
+                         {course.current} / {course.capacity}
+                       </p>
+                       <p className="text-[10px] text-muted-foreground mt-0.5">{course.credits}학점</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-accent/30 rounded-xl p-3 mb-4 flex items-center justify-between">
+                     <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                        <Calendar className="w-3.5 h-3.5 opacity-60" />
+                        <span className="truncate max-w-[180px]">{course.classTime || "시간 미배정"}</span>
+                     </div>
+                     <span className="text-[10px] font-bold text-muted-foreground/60 px-2 py-0.5 rounded-full border border-border/50 uppercase">{course.subjectCode}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                    <div className="flex items-center gap-1">
+                      {!user ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-10 px-3 rounded-xl gap-2 hover:bg-primary/5 active:bg-primary/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLoginModalOpen(true);
+                          }}
+                        >
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-xs font-bold">시간표</span>
+                        </Button>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-10 px-3 rounded-xl gap-2 hover:bg-primary/5 active:bg-primary/10"
+                              disabled={isAdding}
+                            >
+                              <Calendar
+                                className={cn(
+                                  "w-4 h-4",
+                                  (Array.isArray(timetableList) && timetableList.some(t => t.primary))
+                                    ? "text-indigo-500"
+                                    : "text-muted-foreground"
+                                )}
+                              />
+                              <span className="text-xs font-bold">시간표</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-56">
+                            <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">시간표 선택</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {Array.isArray(timetableList) && [...timetableList]
+                              .sort((a, b) => (a.primary ? -1 : 1))
+                              .map((t) => (
+                                <DropdownMenuItem 
+                                  key={t.id}
+                                  className="flex items-center justify-between cursor-pointer"
+                                  onClick={() => {
+                                    addToTimetable({ timetableId: t.id, courseKey: course.courseKey });
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2 text-xs font-medium max-w-[180px]">
+                                    {t.primary && <Crown className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
+                                    <span className="truncate">{t.name}</span>
+                                  </div>
+                                </DropdownMenuItem>
+                              ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 rounded-xl hover:bg-rose-500/5 active:bg-rose-500/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!user) {
+                             setLoginModalOpen(true);
+                             return;
+                          }
+                          toggleWishlist(course.courseKey);
+                        }}
+                      >
+                        <Heart
+                          className={cn(
+                             "w-4 h-4 transition-all",
+                             isWished(course.courseKey) ? "fill-rose-500 text-rose-500" : "text-muted-foreground"
+                          )}
+                        />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-10 px-4 rounded-xl gap-2 font-bold transition-all border-none",
+                          subscribed 
+                            ? "bg-primary text-white hover:bg-primary/90" 
+                            : "bg-primary/10 text-primary hover:bg-primary/20"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSubscribe(course.courseKey);
+                        }}
+                        disabled={isSubscribing || isUnsubscribing}
+                      >
+                        <Bell className={cn("w-4 h-4", subscribed && "fill-white")} />
+                        <span className="text-xs">{subscribed ? "구독 중" : "알림 신청"}</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Sentinel for Infinite Scroll (Mobile) */}
+            <div ref={observerTarget} className="h-4" />
+          </>
+        )}
+
+        {isFetchingNextPage && (
+          <div className="flex justify-center items-center py-6 gap-2 text-xs text-muted-foreground animate-pulse">
+            <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-75"/>
+            <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-100"/>
+            <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-150"/>
+            <span className="font-bold">강의 더 불러오기...</span>
+          </div>
+        )}
       </div>
       
       <CourseDetailDialog 
