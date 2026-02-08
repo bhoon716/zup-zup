@@ -16,7 +16,8 @@ class WebPushNotificationSenderTest {
     @BeforeEach
     void setUp() {
         webPushNotificationSender = new WebPushNotificationSender("", "", "",
-                new com.fasterxml.jackson.databind.ObjectMapper());
+                new com.fasterxml.jackson.databind.ObjectMapper(),
+                org.mockito.Mockito.mock(bhoon.sugang_helper.domain.user.service.UserDeviceService.class));
     }
 
     @Test

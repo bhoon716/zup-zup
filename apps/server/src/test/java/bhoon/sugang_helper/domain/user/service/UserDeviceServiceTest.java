@@ -73,6 +73,7 @@ class UserDeviceServiceTest {
                 .p256dh("P256DH")
                 .auth("AUTH")
                 .type(DeviceType.WEB)
+                .alias("Alias")
                 .build();
         given(userDeviceRepository.findByToken("TOKEN")).willReturn(Optional.empty());
 
@@ -93,12 +94,14 @@ class UserDeviceServiceTest {
                 .p256dh("NEW_P256DH")
                 .auth("NEW_AUTH")
                 .type(DeviceType.WEB)
+                .alias("NewAlias")
                 .build();
         UserDevice existingDevice = spy(UserDevice.builder()
                 .userId(1L)
                 .token("TOKEN")
                 .p256dh("OLD_P256DH")
                 .auth("OLD_AUTH")
+                .alias("OldAlias")
                 .build());
         given(userDeviceRepository.findByToken("TOKEN")).willReturn(Optional.of(existingDevice));
 
@@ -106,7 +109,7 @@ class UserDeviceServiceTest {
         userDeviceService.registerDevice(request);
 
         // then
-        verify(existingDevice, times(1)).updateToken("TOKEN", "NEW_P256DH", "NEW_AUTH");
+        verify(existingDevice, times(1)).updateToken("TOKEN", "NEW_P256DH", "NEW_AUTH", "NewAlias");
         verify(userDeviceRepository, times(0)).save(any(UserDevice.class));
     }
 
@@ -147,14 +150,19 @@ class UserDeviceServiceTest {
     @DisplayName("사용자 디바이스 목록 조회 - 성공")
     void getUserDevices_Success() {
         // given
-        UserDevice device = mock(UserDevice.class);
+        UserDevice device = UserDevice.builder()
+                .userId(1L)
+                .type(DeviceType.WEB)
+                .token("TOKEN")
+                .alias("Alias")
+                .build();
         given(userDeviceRepository.findByUserId(1L)).willReturn(Collections.singletonList(device));
 
         // when
-        List<UserDevice> result = userDeviceService.getUserDevices(1L);
+        List<bhoon.sugang_helper.domain.user.response.UserDeviceResponse> result = userDeviceService.getUserDevices(1L);
 
         // then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0)).isEqualTo(device);
+        assertThat(result.get(0).getAlias()).isEqualTo("Alias");
     }
 }

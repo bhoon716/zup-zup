@@ -31,4 +31,7 @@ public class UserDeviceRequest {
 
     @Schema(description = "Auth (Web Push용)", example = "auth-key")
     private String auth;
+
+    @Schema(description = "기기 별칭", example = "Chrome on macOS")
+    private String alias;
 }

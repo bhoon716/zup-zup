@@ -21,17 +21,20 @@ public class WebPushNotificationSender implements NotificationSender {
     private final String privateKey;
     private final String subject;
     private final ObjectMapper objectMapper;
+    private final bhoon.sugang_helper.domain.user.service.UserDeviceService userDeviceService;
     private PushService pushService;
 
     public WebPushNotificationSender(
             @Value("${app.webpush.public-key}") String publicKey,
             @Value("${app.webpush.private-key}") String privateKey,
             @Value("${app.webpush.subject}") String subject,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            bhoon.sugang_helper.domain.user.service.UserDeviceService userDeviceService) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
         this.subject = subject;
         this.objectMapper = objectMapper;
+        this.userDeviceService = userDeviceService;
     }
 
     @PostConstruct
@@ -60,11 +63,15 @@ public class WebPushNotificationSender implements NotificationSender {
     @Override
     public void send(NotificationTarget target, String title, String message) {
         if (pushService == null) {
-            throw new CustomException(ErrorCode.WEBPUSH_SEND_ERROR, "PushService is not initialized");
+            throw new CustomException(ErrorCode.WEBPUSH_NOT_INITIALIZED);
+        }
+
+        if (target.getP256dh() == null || target.getAuth() == null) {
+            throw new CustomException(ErrorCode.WEBPUSH_MISSING_KEYS);
         }
 
         try {
-            String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message));
+            String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/"));
 
             Notification notification = new Notification(
                     target.getRecipient(),
@@ -74,17 +81,25 @@ public class WebPushNotificationSender implements NotificationSender {
 
             log.info("[WebPush] Sending notification to {}", target.getRecipient());
             var response = pushService.send(notification);
+            int statusCode = response.getStatusLine().getStatusCode();
 
-            if (response.getStatusLine().getStatusCode() >= 400) {
-                throw new CustomException(ErrorCode.WEBPUSH_SEND_ERROR,
-                        "Response status: " + response.getStatusLine().getStatusCode());
+            if (statusCode == 404 || statusCode == 410) {
+                userDeviceService.deleteDeviceByToken(target.getRecipient());
+                throw new CustomException(ErrorCode.WEBPUSH_INVALID_SUBSCRIPTION);
             }
+
+            if (statusCode >= 400) {
+                throw new CustomException(ErrorCode.WEBPUSH_SEND_ERROR, "Status: " + statusCode);
+            }
+
             log.info("[WebPush] Sent successfully to {}", target.getRecipient());
+        } catch (CustomException e) {
+            throw e;
         } catch (Exception e) {
             throw new CustomException(ErrorCode.WEBPUSH_SEND_ERROR, e.getMessage());
         }
     }
 
-    private record WebPushPayload(String title, String body) {
+    private record WebPushPayload(String title, String body, String url) {
     }
 }
