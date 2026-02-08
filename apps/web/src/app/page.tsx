@@ -46,22 +46,23 @@ export default function HomePage() {
                   Welcome to JBNU Helper
                 </div>
                 <div className="space-y-1">
-                  <h1 className="text-4xl md:text-5xl font-black tracking-tight text-foreground">
-                    안녕하세요, <span className="bg-gradient-to-r from-primary to-[#7c4d91] bg-clip-text text-transparent">{user.name}</span>님!
+                  <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground leading-[1.2]">
+                    안녕하세요, <br className="md:hidden" />
+                    <span className="bg-gradient-to-r from-primary to-[#7c4d91] bg-clip-text text-transparent">{user.name}</span>님!
                   </h1>
-                  <p className="text-muted-foreground font-medium md:text-lg">
+                  <p className="text-muted-foreground font-medium text-sm md:text-lg">
                     스마트한 수강신청의 시작, 오늘 진행할 작업을 확인하세요.
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-3">
-                 <Link href="/timetable">
-                   <Button className="rounded-2xl px-6 h-12 font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 bg-primary text-white">
-                     시간표 관리하기
+              <div className="grid grid-cols-2 md:flex gap-3">
+                 <Link href="/timetable" className="w-full md:w-auto">
+                   <Button className="w-full rounded-2xl px-6 h-12 font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 bg-primary text-white text-sm md:text-base">
+                     시간표 관리
                    </Button>
                  </Link>
-                 <Link href="/search">
-                   <Button variant="outline" className="rounded-2xl px-6 h-12 font-bold bg-white/50 backdrop-blur-sm border-border/60 hover:bg-white transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95">
+                 <Link href="/search" className="w-full md:w-auto">
+                   <Button variant="outline" className="w-full rounded-2xl px-6 h-12 font-bold bg-white/50 backdrop-blur-sm border-border/60 hover:bg-white transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 text-sm md:text-base">
                      강의 검색
                    </Button>
                  </Link>

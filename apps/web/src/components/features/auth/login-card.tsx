@@ -18,27 +18,30 @@ export function LoginCard() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg">
-      <CardHeader className="text-center space-y-2">
-        <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          환영합니다
+    <Card className="w-full max-w-[320px] sm:max-w-md mx-auto shadow-2xl border-none bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-[2rem] overflow-hidden">
+      <CardHeader className="text-center space-y-3 p-6 md:p-8">
+        <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-2">
+           <Chromium className="w-8 h-8 text-primary" />
+        </div>
+        <CardTitle className="text-2xl md:text-3xl font-black tracking-tight text-foreground">
+          반갑습니다!
         </CardTitle>
-        <CardDescription>
-          JBNU 수강신청 빈자리 알림 서비스입니다. <br />
-          서비스 이용을 위해 로그인을 진행해 주세요.
+        <CardDescription className="text-xs md:text-sm font-medium leading-relaxed">
+          전북대학교 수강신청 빈자리 알림 서비스 <br className="hidden md:block" /> 
+          <span className="text-primary font-bold">JBNU Helper</span>입니다.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6 p-6 md:p-8 pt-0">
         <Button
           variant="outline"
-          className="w-full flex items-center justify-center gap-2 py-6 text-base font-medium transition-all hover:bg-gray-50 dark:hover:bg-gray-800"
+          className="w-full flex items-center justify-center gap-3 h-14 rounded-2xl text-base font-bold transition-all hover:bg-white border-border/60 hover:shadow-lg active:scale-95"
           onClick={handleGoogleLogin}
         >
-          <Chromium className="w-5 h-5 text-red-500" />
-          Google 계정으로 로그인 (학교 계정 권장)
+          <img src="https://www.google.com/favicon.ico" className="w-5 h-5 flex-shrink-0" alt="Google" />
+          Google로 시작하기
         </Button>
-        <p className="text-xs text-center text-gray-500">
-          로그인 시 서비스 이용약관 및 개인정보 처리방침에 동의하게 됩니다.
+        <p className="text-[10px] text-center text-muted-foreground leading-relaxed px-4">
+          로그인 시 서비스 이용약관 및 <br className="md:hidden" /> 개인정보 처리방침에 동의하게 됩니다.
         </p>
       </CardContent>
     </Card>

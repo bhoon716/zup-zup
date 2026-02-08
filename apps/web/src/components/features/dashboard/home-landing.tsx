@@ -56,7 +56,7 @@ export function HomeLanding() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1]"
+          className="text-4xl md:text-7xl font-black tracking-tight leading-[1.2] md:leading-[1.1]"
         >
           수강신청 빈자리, <br />
           <span className="bg-gradient-to-r from-primary via-purple-500 to-indigo-500 bg-clip-text text-transparent">
@@ -68,7 +68,7 @@ export function HomeLanding() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="max-w-2xl mx-auto text-muted-foreground text-lg md:text-xl font-medium leading-relaxed"
+          className="max-w-2xl mx-auto text-muted-foreground text-base md:text-xl font-medium leading-relaxed px-2"
         >
           전북대학교 오아시스 시스템을 실시간 모니터링하여 여석 발생 시 <br className="hidden md:block" />
           가장 빠르게 알려드립니다. 반복되는 수동 조회는 이제 그만.
@@ -78,16 +78,16 @@ export function HomeLanding() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 px-6"
         >
-          <Link href="/login">
-            <Button size="lg" className="rounded-2xl px-10 h-14 text-lg font-bold shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:-translate-y-1 bg-primary text-white group">
+          <Link href="/login" className="w-full sm:w-auto">
+            <Button size="lg" className="w-full rounded-2xl px-10 h-14 text-lg font-bold shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:-translate-y-1 bg-primary text-white group">
               지금 시작하기
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
-          <Link href="/search">
-            <Button variant="ghost" size="lg" className="rounded-2xl px-10 h-14 text-lg font-bold hover:bg-white/50 backdrop-blur-sm transition-all">
+          <Link href="/search" className="w-full sm:w-auto">
+            <Button variant="ghost" size="lg" className="w-full rounded-2xl px-10 h-14 text-lg font-bold hover:bg-white/50 backdrop-blur-sm transition-all">
               강의 먼저 둘러보기
             </Button>
           </Link>

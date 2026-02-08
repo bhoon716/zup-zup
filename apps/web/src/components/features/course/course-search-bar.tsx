@@ -93,18 +93,18 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
   return (
     <div className="space-y-2">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="p-4 border rounded-2xl bg-card/40 backdrop-blur-xl shadow-2xl border-white/10 ring-1 ring-white/5">
+        <div className="p-3 md:p-4 border rounded-2xl bg-card/40 backdrop-blur-xl shadow-2xl border-white/10 ring-1 ring-white/5">
           {/* Compressed Single Line Header & Primary Controls */}
-          <div className="flex flex-col lg:flex-row items-center gap-3">
+          <div className="flex flex-col lg:flex-row items-center gap-2 md:gap-3">
             {/* Section 1: All Primary Fields in One Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2 flex-grow w-full">
+            <div className="grid grid-cols-2 lg:grid-cols-12 gap-2 flex-grow w-full">
               {/* Year (Compact) */}
-              <div className="lg:col-span-1">
+              <div className="col-span-1 lg:col-span-1">
                 <Select 
                   value={condition.academicYear || '2026'} 
                   onValueChange={(val) => setCondition({ ...condition, academicYear: val })}
                 >
-                  <SelectTrigger className="bg-background/40 border-white/10 h-10 text-[11px] font-bold rounded-xl transition-all hover:bg-background/60">
+                  <SelectTrigger className="bg-background/40 border-white/10 h-11 md:h-10 text-[11px] font-bold rounded-xl transition-all hover:bg-background/60">
                     <SelectValue placeholder="연도" />
                   </SelectTrigger>
                   <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
@@ -114,12 +114,12 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
               </div>
 
               {/* Semester (Compact) */}
-              <div className="lg:col-span-1">
+              <div className="col-span-1 lg:col-span-1">
                 <Select 
                   value={condition.semester || '1'} 
                   onValueChange={(val) => setCondition({ ...condition, semester: val })}
                 >
-                  <SelectTrigger className="bg-background/40 border-white/10 h-10 text-[11px] font-bold rounded-xl transition-all hover:bg-background/60">
+                  <SelectTrigger className="bg-background/40 border-white/10 h-11 md:h-10 text-[11px] font-bold rounded-xl transition-all hover:bg-background/60">
                     <SelectValue placeholder="학기" />
                   </SelectTrigger>
                   <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
@@ -129,30 +129,30 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
               </div>
 
               {/* Name & Professor */}
-              <div className="lg:col-span-4">
+              <div className="col-span-2 sm:col-span-1 lg:col-span-4">
                 <Input
                   type="text"
                   placeholder="과목명"
                   value={condition.name || ''}
                   onChange={(e) => setCondition({ ...condition, name: e.target.value })}
                   onKeyDown={handleKeyDown}
-                  className="bg-background/40 border-white/10 focus-visible:ring-primary/20 h-10 text-xs font-medium rounded-xl transition-all hover:bg-background/60"
+                  className="bg-background/40 border-white/10 focus-visible:ring-primary/20 h-11 md:h-10 text-sm md:text-xs font-medium rounded-xl transition-all hover:bg-background/60"
                 />
               </div>
 
-              <div className="lg:col-span-3">
+              <div className="col-span-2 sm:col-span-1 lg:col-span-3">
                 <Input
                   type="text"
                   placeholder="교수명"
                   value={condition.professor || ''}
                   onChange={(e) => setCondition({ ...condition, professor: e.target.value })}
                   onKeyDown={handleKeyDown}
-                  className="bg-background/40 border-white/10 focus-visible:ring-primary/20 h-10 text-xs font-medium rounded-xl transition-all hover:bg-background/60"
+                  className="bg-background/40 border-white/10 focus-visible:ring-primary/20 h-11 md:h-10 text-sm md:text-xs font-medium rounded-xl transition-all hover:bg-background/60"
                 />
               </div>
 
               {/* Availability Checkbox (Integrated) - Compact */}
-              <div className="lg:col-span-1 flex items-center justify-center bg-background/30 border border-dashed border-white/10 rounded-xl px-1 group cursor-pointer hover:bg-background/50 transition-all" onClick={() => setCondition({ ...condition, isAvailableOnly: !condition.isAvailableOnly })}>
+              <div className="col-span-1 lg:col-span-1 flex items-center justify-center bg-background/30 border border-dashed border-white/10 rounded-xl px-1 group cursor-pointer hover:bg-background/50 transition-all h-11 md:h-10" onClick={() => setCondition({ ...condition, isAvailableOnly: !condition.isAvailableOnly })}>
                 <Checkbox 
                   id="isAvailableOnly" 
                   checked={condition.isAvailableOnly || false}
@@ -163,27 +163,30 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                   htmlFor="isAvailableOnly"
                   className="text-[10px] font-bold text-muted-foreground group-hover:text-foreground cursor-pointer select-none transition-colors ml-1.5 truncate"
                 >
-                  잔여석 존재
+                  잔여석만
                 </label>
               </div>
 
               {/* Action Buttons (Integrated) - Compact */}
-              <div className="lg:col-span-2 flex items-center gap-1.5">
+              <div className="col-span-1 lg:col-span-2 flex items-center gap-1.5 h-11 md:h-10">
                 <Button 
                   onClick={handleSearch} 
                   disabled={isLoading}
-                  className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl transition-all shadow-lg shadow-primary/20 disabled:opacity-70"
+                  className="flex-1 h-full bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl transition-all shadow-lg shadow-primary/20 disabled:opacity-70"
                 >
                   {isLoading ? (
                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <Search className="w-4 h-4" />
+                    <div className="flex items-center gap-2">
+                      <Search className="w-4 h-4" />
+                      <span className="md:hidden text-xs">검색</span>
+                    </div>
                   )}
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={handleReset} 
-                  className="w-10 h-10 p-0 rounded-xl border-white/10 hover:bg-white/5 transition-all flex-shrink-0"
+                  className="w-11 md:w-10 h-full p-0 rounded-xl border-white/10 hover:bg-white/5 transition-all flex-shrink-0"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </Button>
