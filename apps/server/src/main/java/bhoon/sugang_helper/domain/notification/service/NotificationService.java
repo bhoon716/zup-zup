@@ -61,6 +61,7 @@ public class NotificationService {
 
     private void sendNotification(SeatOpenedEvent event) {
         List<Subscription> subscriptions = subscriptionRepository.findByCourseKeyAndIsActiveTrue(event.courseKey());
+
         if (subscriptions.isEmpty()) {
             return;
         }
@@ -77,8 +78,9 @@ public class NotificationService {
 
         for (Subscription sub : subscriptions) {
             User user = userMap.get(sub.getUserId());
-            if (user == null)
+            if (user == null) {
                 continue;
+            }
 
             // 1. Email 발송
             if (user.isEmailEnabled()) {
@@ -153,7 +155,6 @@ public class NotificationService {
             List<UserDevice> devices = userDeviceRepository.findByUserIdAndType(user.getId(), deviceType);
 
             if (devices.isEmpty() && channel != NotificationChannel.DISCORD) {
-                log.warn("[NotificationTest] No devices found for user {} with type {}", user.getEmail(), deviceType);
                 String channelName = (channel == NotificationChannel.WEB) ? "웹 푸시" : "앱 푸시";
                 throw new CustomException(ErrorCode.NOT_FOUND,
                         String.format("등록된 %s 기기가 없습니다. 먼저 기기를 등록해 주세요.", channelName));
