@@ -37,18 +37,29 @@ public class UserDevice extends BaseTimeEntity {
     @Column
     private String auth;
 
+    @Column
+    private String alias;
+
     @Builder
-    public UserDevice(Long userId, DeviceType type, String token, String p256dh, String auth) {
+    public UserDevice(Long userId, DeviceType type, String token, String p256dh, String auth, String alias) {
         this.userId = userId;
         this.type = type;
         this.token = token;
         this.p256dh = p256dh;
         this.auth = auth;
+        this.alias = alias;
     }
 
-    public void updateToken(String token, String p256dh, String auth) {
+    public void updateToken(String token, String p256dh, String auth, String alias) {
         this.token = token;
         this.p256dh = p256dh;
         this.auth = auth;
+        if (alias != null && !alias.isBlank()) {
+            this.alias = alias;
+        }
+    }
+
+    public void updateAlias(String alias) {
+        this.alias = alias;
     }
 }

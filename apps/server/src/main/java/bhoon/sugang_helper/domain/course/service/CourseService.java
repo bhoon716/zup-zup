@@ -1,13 +1,17 @@
 package bhoon.sugang_helper.domain.course.service;
 
+import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.domain.user.entity.User;
+import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,8 +25,16 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
+    private final UserRepository userRepository;
 
-    public Page<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
+    public org.springframework.data.domain.Slice<CourseResponse> searchCourses(CourseSearchCondition condition,
+            org.springframework.data.domain.Pageable pageable) {
+        if (Boolean.TRUE.equals(condition.getIsWishedOnly())) {
+            String email = SecurityUtil.getCurrentUserEmail();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+            condition.setUserId(user.getId());
+        }
         return courseRepository.searchCourses(condition, pageable)
                 .map(CourseResponse::from);
     }
@@ -32,5 +44,11 @@ public class CourseService {
                 .stream()
                 .map(CourseSeatHistoryResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    public CourseResponse getCourse(String courseKey) {
+        Course course = courseRepository.findByCourseKey(courseKey)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "Course not found: " + courseKey));
+        return CourseResponse.from(course);
     }
 }

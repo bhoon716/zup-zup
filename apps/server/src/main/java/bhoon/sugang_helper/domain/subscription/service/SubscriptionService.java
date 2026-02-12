@@ -36,7 +36,7 @@ public class SubscriptionService {
     @Transactional
     public SubscriptionResponse subscribe(SubscriptionRequest request) {
         User user = getCurrentUser();
-        Course course = courseRepository.findById(request.getCourseKey())
+        Course course = courseRepository.findByCourseKey(request.getCourseKey())
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "과목을 찾을 수 없습니다."));
 
         validateSubscription(user, course);
@@ -77,30 +77,15 @@ public class SubscriptionService {
         log.info("[Subscription] Deleted: userId={}, subscriptionId={}", user.getId(), subscriptionId);
     }
 
-    @Transactional
-    public void toggleSubscription(Long subscriptionId) {
-        User user = getCurrentUser();
-        Subscription subscription = subscriptionRepository.findById(subscriptionId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "구독 정보를 찾을 수 없습니다."));
-
-        if (!subscription.getUserId().equals(user.getId())) {
-            throw new CustomException(ErrorCode.FORBIDDEN);
-        }
-
-        subscription.toggleActive();
-        log.info("[Subscription] Toggled: userId={}, subscriptionId={}, isActive={}",
-                user.getId(), subscriptionId, subscription.isActive());
-    }
-
     public List<SubscriptionResponse> getMySubscriptions() {
         User user = getCurrentUser();
-        return subscriptionRepository.findByUserIdAndIsActiveTrue(user.getId()).stream()
+        return subscriptionRepository.findByUserId(user.getId()).stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
     private SubscriptionResponse convertToResponse(Subscription subscription) {
-        return courseRepository.findById(subscription.getCourseKey())
+        return courseRepository.findByCourseKey(subscription.getCourseKey())
                 .map(course -> SubscriptionResponse.of(subscription, course.getName(), course.getProfessor()))
                 .orElseGet(() -> SubscriptionResponse.of(subscription, "Unknown", "Unknown"));
     }
@@ -108,6 +93,6 @@ public class SubscriptionService {
     private User getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 }

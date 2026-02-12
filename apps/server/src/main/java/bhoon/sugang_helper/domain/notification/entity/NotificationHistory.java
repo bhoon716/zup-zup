@@ -23,7 +23,7 @@ public class NotificationHistory extends BaseTimeEntity {
     @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 64)
     private String courseKey;
 
     @Column(nullable = false)
@@ -33,7 +33,7 @@ public class NotificationHistory extends BaseTimeEntity {
     private String message;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private NotificationChannel channel;
 
     @Builder

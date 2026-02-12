@@ -67,7 +67,7 @@ class CourseCrawlerServiceLogicTest {
         given(apiClient.fetchCourseDataXml()).willReturn(mockXml);
 
         Course crawledCourse = Course.builder()
-                .courseKey("12345-01")
+                .courseKey("12345:01")
                 .subjectCode("12345")
                 .classNumber("01")
                 .name("Test Course")
@@ -78,7 +78,7 @@ class CourseCrawlerServiceLogicTest {
         given(courseParser.parseCourses(mockXml)).willReturn(List.of(crawledCourse));
 
         Course existingCourse = Course.builder()
-                .courseKey("12345-01")
+                .courseKey("12345:01")
                 .subjectCode("12345")
                 .classNumber("01")
                 .name("Test Course")
@@ -87,7 +87,7 @@ class CourseCrawlerServiceLogicTest {
                 .current(50)
                 .build();
 
-        given(courseRepository.findById("12345-01")).willReturn(Optional.of(existingCourse));
+        given(courseRepository.findByCourseKey("12345:01")).willReturn(Optional.of(existingCourse));
 
         // When
         courseCrawlerService.crawlAndSaveCourses();
@@ -119,7 +119,7 @@ class CourseCrawlerServiceLogicTest {
         given(apiClient.fetchCourseDataXml()).willReturn(mockXml);
 
         Course crawledCourse = Course.builder()
-                .courseKey("12345-01")
+                .courseKey("12345:01")
                 .subjectCode("12345")
                 .classNumber("01")
                 .capacity(50)
@@ -128,14 +128,14 @@ class CourseCrawlerServiceLogicTest {
         given(courseParser.parseCourses(mockXml)).willReturn(List.of(crawledCourse));
 
         Course existingCourse = Course.builder()
-                .courseKey("12345-01")
+                .courseKey("12345:01")
                 .subjectCode("12345")
                 .classNumber("01")
                 .capacity(50)
                 .current(49)
                 .build();
 
-        given(courseRepository.findById("12345-01")).willReturn(Optional.of(existingCourse));
+        given(courseRepository.findByCourseKey("12345:01")).willReturn(Optional.of(existingCourse));
 
         // When
         courseCrawlerService.crawlAndSaveCourses();

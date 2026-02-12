@@ -1,19 +1,24 @@
 package bhoon.sugang_helper.domain.course.repository;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
-import bhoon.sugang_helper.domain.course.entity.QCourse;
+import bhoon.sugang_helper.domain.course.enums.ClassPeriod;
+import bhoon.sugang_helper.domain.course.enums.CourseClassification;
+import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
+import bhoon.sugang_helper.domain.course.enums.GradingMethod;
+import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
+import bhoon.sugang_helper.domain.course.request.ScheduleCondition;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
 
 import static bhoon.sugang_helper.domain.course.entity.QCourse.course;
+import bhoon.sugang_helper.domain.course.entity.QCourseSchedule;
+import bhoon.sugang_helper.domain.wishlist.entity.QWishlist;
 
 public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
@@ -24,37 +29,172 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     @Override
-    public Page<Course> searchCourses(CourseSearchCondition condition, Pageable pageable) {
+    public org.springframework.data.domain.Slice<Course> searchCourses(CourseSearchCondition condition,
+            org.springframework.data.domain.Pageable pageable) {
         List<Course> content = queryFactory
                 .selectFrom(course)
                 .where(
-                        nameContains(condition.getName()),
-                        professorContains(condition.getProfessor()),
-                        subjectCodeEq(condition.getSubjectCode()))
+                        containsName(condition.getName()),
+                        containsProfessor(condition.getProfessor()),
+                        eqSubjectCode(condition.getSubjectCode()),
+                        eqAcademicYear(condition.getAcademicYear()),
+                        eqSemester(condition.getSemester()),
+                        eqClassification(condition.getClassification()),
+                        containsDepartment(condition.getDepartment()),
+                        eqGradingMethod(condition.getGradingMethod()),
+                        eqLectureLanguage(condition.getLectureLanguage()),
+                        isAvailable(condition.getIsAvailableOnly()),
+                        eqDayOfWeek(condition.getDayOfWeek()),
+                        eqPeriod(condition.getPeriod()),
+                        eqCredits(condition.getCredits()),
+                        eqLectureHours(condition.getLectureHours()),
+                        goeMinLectureHours(condition.getMinLectureHours()),
+                        eqGeneralCategory(condition.getGeneralCategory()),
+                        eqGeneralDetail(condition.getGeneralDetail()),
+                        matchSelectedSchedules(condition.getSelectedSchedules()),
+                        inWishlist(condition.getIsWishedOnly(), condition.getUserId()))
+                .orderBy(course.courseKey.asc())
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+                .limit(pageable.getPageSize() + 1)
                 .fetch();
 
-        long total = queryFactory
-                .selectFrom(course)
-                .where(
-                        nameContains(condition.getName()),
-                        professorContains(condition.getProfessor()),
-                        subjectCodeEq(condition.getSubjectCode()))
-                .fetch().size(); // 대량 데이터 시 count 쿼리 최적화 필요하겠으나 MVP 수준에선 fetch().size()로 시작
+        boolean hasNext = false;
+        if (content.size() > pageable.getPageSize()) {
+            content.remove(pageable.getPageSize());
+            hasNext = true;
+        }
 
-        return new PageImpl<>(content, pageable, total);
+        return new org.springframework.data.domain.SliceImpl<>(content, pageable, hasNext);
     }
 
-    private BooleanExpression nameContains(String name) {
+    // ... skipping other methods for brevity, keeping only the logic for subset
+    // matching
+
+    private BooleanExpression matchSelectedSchedules(List<ScheduleCondition> selectedSchedules) {
+        if (selectedSchedules == null || selectedSchedules.isEmpty()) {
+            return null;
+        }
+
+        // 과목의 모든 수업시간(dayOfWeek, period)이 선택된 리스트 내에 있어야 함 (Subset Matching)
+        // 로직: "해당 과목의 수업 시간 중, 선택된 시간대에 포함되지 않는 시간이 존재하지 않아야 함"
+        QCourseSchedule schedule = QCourseSchedule.courseSchedule;
+
+        com.querydsl.core.BooleanBuilder selectedSlots = new com.querydsl.core.BooleanBuilder();
+        for (ScheduleCondition cond : selectedSchedules) {
+            selectedSlots.or(schedule.dayOfWeek.eq(cond.getDayOfWeek())
+                    .and(schedule.period.eq(cond.getPeriod())));
+        }
+
+        return JPAExpressions.selectOne()
+                .from(schedule)
+                .where(schedule.course.eq(course)
+                        .and(selectedSlots.not()))
+                .notExists();
+    }
+
+    private BooleanExpression containsName(String name) {
         return StringUtils.hasText(name) ? course.name.contains(name) : null;
     }
 
-    private BooleanExpression professorContains(String professor) {
+    private BooleanExpression containsProfessor(String professor) {
         return StringUtils.hasText(professor) ? course.professor.contains(professor) : null;
     }
 
-    private BooleanExpression subjectCodeEq(String subjectCode) {
+    private BooleanExpression eqSubjectCode(String subjectCode) {
         return StringUtils.hasText(subjectCode) ? course.subjectCode.eq(subjectCode) : null;
     }
+
+    private BooleanExpression eqAcademicYear(String year) {
+        return StringUtils.hasText(year) ? course.academicYear.eq(year) : null;
+    }
+
+    private BooleanExpression eqSemester(String semester) {
+        return StringUtils.hasText(semester) ? course.semester.eq(semester) : null;
+    }
+
+    private BooleanExpression eqClassification(String classification) {
+        if (!StringUtils.hasText(classification))
+            return null;
+        CourseClassification enumValue = CourseClassification.from(classification);
+        return enumValue != null ? course.classification.eq(enumValue) : null;
+    }
+
+    private BooleanExpression containsDepartment(String department) {
+        return StringUtils.hasText(department) ? course.department.contains(department) : null;
+    }
+
+    private BooleanExpression eqGradingMethod(String gradingMethod) {
+        if (!StringUtils.hasText(gradingMethod))
+            return null;
+        GradingMethod enumValue = GradingMethod.from(gradingMethod);
+        return enumValue != null ? course.gradingMethod.eq(enumValue) : null;
+    }
+
+    private BooleanExpression eqLectureLanguage(String lectureLanguage) {
+        if (!StringUtils.hasText(lectureLanguage)) {
+            return null;
+        }
+        return course.lectureLanguage.eq(LectureLanguage.from(lectureLanguage));
+    }
+
+    private BooleanExpression eqDayOfWeek(String dayOfWeekStr) {
+        if (!StringUtils.hasText(dayOfWeekStr)) {
+            return null;
+        }
+        CourseDayOfWeek day = CourseDayOfWeek.from(dayOfWeekStr);
+        if (day == null)
+            return null;
+        return course.schedules.any().dayOfWeek.eq(day);
+    }
+
+    private BooleanExpression eqPeriod(String periodStr) {
+        if (!StringUtils.hasText(periodStr)) {
+            return null;
+        }
+        ClassPeriod period = ClassPeriod.from(periodStr);
+        if (period == null)
+            return null;
+        return course.schedules.any().period.eq(period);
+    }
+
+    private BooleanExpression isAvailable(Boolean isAvailableOnly) {
+        if (isAvailableOnly == null || !isAvailableOnly) {
+            return null;
+        }
+        return course.capacity.gt(course.current);
+    }
+
+    private BooleanExpression eqCredits(String credits) {
+        return StringUtils.hasText(credits) ? course.credits.eq(credits) : null;
+    }
+
+    private BooleanExpression eqLectureHours(Integer lectureHours) {
+        return lectureHours != null ? course.lectureHours.eq(lectureHours) : null;
+    }
+
+    private BooleanExpression goeMinLectureHours(Integer minLectureHours) {
+        return minLectureHours != null ? course.lectureHours.goe(minLectureHours) : null;
+    }
+
+    private BooleanExpression eqGeneralCategory(String generalCategory) {
+        return StringUtils.hasText(generalCategory) ? course.generalCategory.eq(generalCategory) : null;
+    }
+
+    private BooleanExpression eqGeneralDetail(String generalDetail) {
+        return StringUtils.hasText(generalDetail) ? course.generalDetail.eq(generalDetail) : null;
+    }
+
+    private BooleanExpression inWishlist(Boolean isWishedOnly, Long userId) {
+        if (isWishedOnly == null || !isWishedOnly || userId == null) {
+            return null;
+        }
+
+        QWishlist wishlist = QWishlist.wishlist;
+        return JPAExpressions.selectOne()
+                .from(wishlist)
+                .where(wishlist.courseKey.eq(course.courseKey)
+                        .and(wishlist.userId.eq(userId)))
+                .exists();
+    }
+
 }

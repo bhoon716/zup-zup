@@ -64,22 +64,6 @@ public class SubscriptionController {
     return CommonResponse.ok(null, "구독이 취소되었습니다.");
   }
 
-  @Operation(summary = "알림 활성화 토글", description = "특정 구독의 알림 활성화 상태를 변경합니다.")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "토글 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
-          {
-            "code": "SUCCESS",
-            "message": "알림 상태가 변경되었습니다.",
-            "data": null
-          }
-          """)))
-  })
-  @PatchMapping("/{id}/toggle")
-  public ResponseEntity<CommonResponse<Void>> toggleSubscription(@PathVariable Long id) {
-    subscriptionService.toggleSubscription(id);
-    return CommonResponse.ok(null, "알림 상태가 변경되었습니다.");
-  }
-
   @Operation(summary = "내 구독 목록 조회", description = "현재 로그인한 사용자의 모든 구독 목록을 조회합니다.")
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "구독 목록 조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """

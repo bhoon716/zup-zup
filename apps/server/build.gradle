@@ -22,6 +22,9 @@ configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
 	}
+	all {
+		exclude group: 'commons-logging', module: 'commons-logging'
+	}
 }
 
 repositories {
@@ -41,6 +44,7 @@ dependencies {
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
+	testImplementation 'io.github.cdimascio:java-dotenv:5.2.2'
 
 	// db
 	implementation 'org.flywaydb:flyway-core'
@@ -74,15 +78,17 @@ dependencies {
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 
 	// jsoup
-	implementation 'org.jsoup:jsoup:1.18.1'
+	implementation 'org.jsoup:jsoup:1.18.3'
 
+	// session
+	implementation 'org.springframework.session:spring-session-data-redis'
 
 	// firebase
-	implementation 'com.google.firebase:firebase-admin:9.4.3'
+	implementation 'com.google.firebase:firebase-admin:9.7.0'
 
 	// web push
 	implementation 'nl.martijndwars:web-push:5.1.1'
-	implementation 'org.bouncycastle:bcprov-jdk18on:1.80'
+	implementation 'org.bouncycastle:bcprov-jdk18on:1.83'
 }
 
 tasks.named('test') {

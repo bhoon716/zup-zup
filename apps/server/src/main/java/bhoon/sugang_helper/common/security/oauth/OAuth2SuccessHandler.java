@@ -2,12 +2,11 @@ package bhoon.sugang_helper.common.security.oauth;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.security.constant.SecurityConstant;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.domain.auth.service.AuthService;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -25,15 +24,15 @@ import org.springframework.stereotype.Component;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtProvider jwtProvider;
-    private final RedisService redisService;
     private final UserRepository userRepository;
+    private final AuthService authService;
 
     @Value("${app.oauth2.authorized-redirect-uri}")
     private String redirectUri;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-                                        Authentication authentication) throws IOException {
+            Authentication authentication) throws IOException {
 
         OAuth2User userDetails = (OAuth2User) authentication.getPrincipal();
         String email = (String) userDetails.getAttributes().get(SecurityConstant.CLAIM_EMAIL);
@@ -44,23 +43,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtProvider.createAccessToken(user.getEmail(), user.getRoleKey());
         String refreshToken = jwtProvider.createRefreshToken(user.getEmail());
 
-        redisService.setValues(SecurityConstant.REDIS_REFRESH_TOKEN_PREFIX + user.getEmail(), refreshToken,
-                java.time.Duration.ofMillis(SecurityConstant.REFRESH_TOKEN_COOKIE_MAX_AGE * 1000L));
+        // 쿠키 설정 (AuthService의 공통 로직 사용)
+        authService.addRefreshTokenCookie(response, refreshToken);
 
-        addRefreshTokenCookie(response, refreshToken);
+        // JWT를 서버 세션에 저장 (BFF 패턴: 브라우저에는 토큰을 노출하지 않음)
+        request.getSession().setAttribute("ACCESS_TOKEN", accessToken);
+        request.getSession().setAttribute("REFRESH_TOKEN", refreshToken);
 
-        response.addHeader(SecurityConstant.ACCESS_TOKEN_HEADER, SecurityConstant.TOKEN_PREFIX + accessToken);
-
-        log.info("OAuth2 Login Success: email={}", user.getEmail());
+        log.info("OAuth2 Login Success: email={}, session stored", user.getEmail());
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
-    }
-
-    private void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-        Cookie cookie = new Cookie(SecurityConstant.REFRESH_TOKEN_COOKIE_NAME, refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(SecurityConstant.REFRESH_TOKEN_COOKIE_MAX_AGE);
-        response.addCookie(cookie);
     }
 }

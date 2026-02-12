@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
-import java.util.Map;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -32,9 +31,9 @@ public class ErrorResponse {
     private final String message;
 
     @Schema(description = "상세 에러 정보 (필드 에러 등)")
-    private final Map<String, Object> details;
+    private final String details;
 
-    public static ErrorResponse of(ErrorCode errorCode, String path, Map<String, Object> details) {
+    public static ErrorResponse of(ErrorCode errorCode, String path, String details) {
         return new ErrorResponse(
                 LocalDateTime.now().toString(),
                 path,

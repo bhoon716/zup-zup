@@ -47,32 +47,30 @@ public class CourseCrawlerService {
             throw new CustomException(ErrorCode.CRAWLER_NO_DATA, "No course data found.");
         }
 
-        courses.forEach(this::processAndSaveCourse);
+        courses.forEach(this::processCourse);
         return courses.size();
     }
 
-    private void processAndSaveCourse(Course crawledCourse) {
-        courseRepository.findById(crawledCourse.getCourseKey())
+    private void processCourse(Course crawledCourse) {
+        courseRepository.findByCourseKey(crawledCourse.getCourseKey())
                 .ifPresentOrElse(
                         existingCourse -> updateExistingCourse(existingCourse, crawledCourse),
-                        () -> {
-                            courseRepository.save(crawledCourse);
-                            saveSeatHistory(crawledCourse);
-                        });
+                        () -> createNewCourse(crawledCourse));
+    }
+
+    private void createNewCourse(Course course) {
+        courseRepository.save(course);
+        saveSeatHistory(course);
     }
 
     private void updateExistingCourse(Course existingCourse, Course crawledCourse) {
-        if (!existingCourse.getCapacity().equals(crawledCourse.getCapacity()) ||
-                !existingCourse.getCurrent().equals(crawledCourse.getCurrent())) {
+        boolean wasFull = existingCourse.getAvailable() <= 0;
+        existingCourse.updateMetadata(crawledCourse);
+        courseRepository.save(existingCourse);
+        saveSeatHistory(existingCourse);
 
-            boolean wasFull = existingCourse.getAvailable() <= 0;
-            existingCourse.updateStatus(crawledCourse.getCapacity(), crawledCourse.getCurrent());
-            courseRepository.save(existingCourse);
-            saveSeatHistory(existingCourse);
-
-            if (wasFull && existingCourse.getAvailable() > 0) {
-                publishSeatOpenedEvent(existingCourse);
-            }
+        if (wasFull && existingCourse.getAvailable() > 0) {
+            publishSeatOpenedEvent(existingCourse);
         }
     }
 
