@@ -50,11 +50,12 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
   const { data: timetableList } = useTimetables();
   const { mutate: addToTimetable, isPending: isAdding } = useAddCourseToTimetable();
 
-  const observerTarget = useRef<HTMLTableRowElement>(null);
+  const desktopTarget = useRef<HTMLTableRowElement>(null);
+  const mobileTarget = useRef<HTMLDivElement>(null);
 
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
-    const [entry] = entries;
-    if (entry.isIntersecting && hasMore && !isFetchingNextPage && onLoadMore) {
+    const isIntersecting = entries.some((entry) => entry.isIntersecting);
+    if (isIntersecting && hasMore && !isFetchingNextPage && onLoadMore) {
       onLoadMore();
     }
   }, [hasMore, isFetchingNextPage, onLoadMore]);
@@ -66,14 +67,15 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
       threshold: 0.1,
     });
     
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
+    if (desktopTarget.current) {
+      observer.observe(desktopTarget.current);
+    }
+    if (mobileTarget.current) {
+      observer.observe(mobileTarget.current);
     }
     
     return () => {
-      if (observerTarget.current) {
-        observer.unobserve(observerTarget.current);
-      }
+      observer.disconnect();
     };
   }, [handleObserver]);
 
@@ -276,7 +278,7 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
                   })}
                   
                   {/* Sentinel for Infinite Scroll (Desktop) */}
-                  <TableRow ref={observerTarget}>
+                  <TableRow ref={desktopTarget}>
                      <TableCell colSpan={8} className="h-4 p-0 border-0" />
                   </TableRow>
                 </>
@@ -439,7 +441,7 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
             })}
             
             {/* Sentinel for Infinite Scroll (Mobile) */}
-            <div ref={observerTarget} className="h-4" />
+            <div ref={mobileTarget} className="h-4" />
           </>
         )}
 
