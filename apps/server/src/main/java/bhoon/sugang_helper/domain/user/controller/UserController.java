@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +31,9 @@ public class UserController {
 
   private final UserService userService;
   private final DiscordOAuthService discordOAuthService;
+
+  @Value("${app.oauth2.authorized-redirect-uri}")
+  private String frontendBaseUrl;
 
   @Operation(summary = "온보딩 완료", description = "신규 가입 유저의 초기 설정(알림 이메일 등)을 저장하고 온보딩 상태를 완료로 변경합니다.")
   @ApiResponses(value = {
@@ -148,7 +152,7 @@ public class UserController {
       }
 
       return ResponseEntity.status(302)
-          .header("Location", "http://localhost:3000" + redirectPath + "?discord=success")
+          .header("Location", frontendBaseUrl + redirectPath + "?discord=success")
           .build();
     } catch (Exception e) {
       log.error("[DiscordOAuth] Callback process failed: {}", e.getMessage());
@@ -159,7 +163,7 @@ public class UserController {
       }
 
       return ResponseEntity.status(302)
-          .header("Location", "http://localhost:3000" + redirectPath + "?discord=error")
+          .header("Location", frontendBaseUrl + redirectPath + "?discord=error")
           .build();
     }
   }
