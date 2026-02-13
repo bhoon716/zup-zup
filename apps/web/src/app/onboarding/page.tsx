@@ -38,10 +38,7 @@ export default function OnboardingPage() {
   const [sending, setSending] = useState(false);
 
   // Discord Config
-  const DISCORD_CLIENT_ID = "1470147038564847719"; 
-  const DISCORD_REDIRECT_URI = encodeURIComponent("http://localhost:8080/api/v1/users/discord/callback");
-  // Add state=onboarding to redirect back here
-  const DISCORD_OAUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20applications.commands&integration_type=1&state=onboarding`;
+  const DISCORD_CLIENT_ID = "1470147038564847719";
 
   const { register, handleSubmit, setValue, watch, formState: { errors }, trigger } = useForm<OnboardingForm>({
     defaultValues: {
@@ -133,12 +130,8 @@ export default function OnboardingPage() {
   };
 
   const handleDiscordConnect = () => {
-    // Save current form state? 
-    // Since we redirect, state might be lost.
-    // Ideally we save to sessionStorage. 
-    // For now, let's assume user fills email first, then connects discord.
-    // When they come back, email input might be lost.
-    // We can auto-fill google email again.
+    const DISCORD_REDIRECT_URI = encodeURIComponent(`${window.location.origin}/api/v1/users/discord/callback`);
+    const DISCORD_OAUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20applications.commands&integration_type=1&state=onboarding`;
     window.location.href = DISCORD_OAUTH_URL;
   };
 

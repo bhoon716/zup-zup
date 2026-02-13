@@ -16,8 +16,8 @@ export function LoginModal() {
   const { isLoginModalOpen, setLoginModalOpen } = useAuthStore();
 
   const handleLogin = () => {
-    // Redirect to backend OAuth2 endpoint
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/oauth2/authorization/google`;
+    // Redirect to backend OAuth2 endpoint (via Vercel Rewrites)
+    window.location.href = `${window.location.origin}/api/oauth2/authorization/google`;
   };
 
   return (
