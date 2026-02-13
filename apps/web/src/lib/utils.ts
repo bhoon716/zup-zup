@@ -22,7 +22,6 @@ export function isInAppBrowser() {
     "daum",
     "thunderbird",
     "everytime", // 에브리타임
-    "whale",
     "wv", // Android WebView marker
     "bridge", // Some internal webviews
   ];

@@ -1,5 +1,11 @@
 # JBNU Sugang Helper Web
 
+> [!IMPORTANT]
+> **Legal Disclaimer & Non-Profit Notice**
+> 본 서비스는 전북대학교 학생들을 위한 **공익적 목적의 비영리 서비스**입니다.
+> 제공되는 정보는 보조적인 도구이며, 실제 수강신청 결과에 대한 법적 책임은 사용자 본인에게 있습니다.
+> 이용 전 [서비스 이용약관](https://jbnu-sugang-helper-web.vercel.app/terms) 및 [개인정보 처리방침](https://jbnu-sugang-helper-web.vercel.app/privacy)을 확인해 주시기 바랍니다.
+
 Next.js 16 (App Router) 기반의 JBNU 수강신청 빈자리 알림 서비스 프론트엔드입니다.
 
 ---

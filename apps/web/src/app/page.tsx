@@ -113,6 +113,23 @@ export default function HomePage() {
         )}
       </main>
 
+      <footer className="container max-w-7xl py-12 px-10 border-t border-border/40">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="space-y-1">
+            <h3 className="font-black text-lg tracking-tight">JBNU Helper</h3>
+            <p className="text-xs text-muted-foreground font-medium">전북대학교 수강신청 빈자리 알림 서비스 (비영리)</p>
+          </div>
+          <div className="flex items-center gap-8">
+            <Link href="/terms" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">이용약관</Link>
+            <Link href="/privacy" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">개인정보 처리방침</Link>
+            <span className="text-xs text-muted-foreground/40 font-medium">© 2026 JBNU Helper</span>
+          </div>
+        </div>
+        <p className="text-[10px] text-muted-foreground/30 mt-8 leading-relaxed max-w-2xl">
+          본 서비스는 전북대학교 학생들을 위한 공익적 목적으로 운영되는 비영리 서비스입니다. 제공되는 모든 정보의 출처는 전북대학교 오아시스이며, 수강신청 결과에 대한 최종 책임은 사용자 본인에게 있습니다.
+        </p>
+      </footer>
+
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;

@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sparkles, LogIn, AlertCircle, ExternalLink } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { isInAppBrowser } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
@@ -84,6 +85,10 @@ export function LoginModal() {
             {isInApp ? "외부 브라우저에서 이용" : "Google 계정으로 계속하기"}
           </Button>
           
+          <p className="text-[10px] text-center text-muted-foreground pt-2">
+            로그인 시 <Link href="/terms" className="underline hover:text-primary">이용약관</Link> 및 <Link href="/privacy" className="underline hover:text-primary">개인정보 처리방침</Link>에 동의하게 됩니다.
+          </p>
+
           <Button 
             variant="ghost" 
             onClick={() => setLoginModalOpen(false)}

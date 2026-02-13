@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Bell, Mail, Smartphone, CheckCircle, Timer, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import Link from "next/link";
 
 interface OnboardingForm {
   notificationEmail: string;
@@ -383,6 +384,10 @@ export default function OnboardingPage() {
               <Button type="submit" className="w-full h-11 text-base font-medium rounded-xl" disabled={isPending}>
                 {isPending ? "저장 중..." : "설정 완료하고 시작하기"}
               </Button>
+              
+              <p className="text-[11px] text-center text-muted-foreground leading-relaxed pt-2">
+                시작 시 서비스 <Link href="/terms" className="underline hover:text-primary">이용약관</Link> 및 <Link href="/privacy" className="underline hover:text-primary">개인정보 처리방침</Link>에 <br /> 동의하는 것으로 간주됩니다.
+              </p>
             </form>
           </CardContent>
         </Card>

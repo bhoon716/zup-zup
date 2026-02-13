@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -71,7 +72,7 @@ export function LoginCard() {
           {isInApp ? "외부 브라우저로 접속해 주세요" : "Google로 시작하기"}
         </Button>
         <p className="text-[10px] text-center text-muted-foreground leading-relaxed px-4">
-          로그인 시 서비스 이용약관 및 <br className="md:hidden" /> 개인정보 처리방침에 동의하게 됩니다.
+          로그인 시 서비스 <Link href="/terms" className="underline hover:text-primary transition-colors">이용약관</Link> 및 <br className="md:hidden" /> <Link href="/privacy" className="underline hover:text-primary transition-colors">개인정보 처리방침</Link>에 동의하게 됩니다.
         </p>
       </CardContent>
     </Card>
