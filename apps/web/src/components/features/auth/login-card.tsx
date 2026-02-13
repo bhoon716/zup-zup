@@ -12,9 +12,9 @@ import { Chromium } from "lucide-react";
 
 export function LoginCard() {
   const handleGoogleLogin = () => {
-    // Redirect to Backend OAuth2 Endpoint
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-    window.location.href = `${backendUrl}/oauth2/authorization/google`;
+    // Redirect to Backend OAuth2 Endpoint (via Vercel Rewrites)
+    // /api Prefix를 붙여야 next.config.ts의 rewrites 설정에 따라 백엔드로 프록시됨
+    window.location.href = `${window.location.origin}/api/oauth2/authorization/google`;
   };
 
   return (
