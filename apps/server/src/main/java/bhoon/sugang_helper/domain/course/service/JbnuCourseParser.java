@@ -120,7 +120,7 @@ public class JbnuCourseParser {
 
     private String getColValue(Element row, String colId) {
         Element col = row.selectFirst("Col[id=" + colId + "]");
-        return col != null ? col.text() : null;
+        return col != null ? col.text().trim() : null;
     }
 
     private int safeParseInt(String value) {
@@ -139,7 +139,11 @@ public class JbnuCourseParser {
 
         String[] tokens = timeString.split(",");
         for (String token : tokens) {
-            CourseSchedule schedule = parseCourseSchedule(token.trim().split(" "));
+            String trimmedToken = token.trim();
+            if (trimmedToken.isEmpty())
+                continue;
+
+            CourseSchedule schedule = parseCourseSchedule(trimmedToken.split("\\s+"));
             if (schedule == null)
                 continue;
             schedules.add(schedule);

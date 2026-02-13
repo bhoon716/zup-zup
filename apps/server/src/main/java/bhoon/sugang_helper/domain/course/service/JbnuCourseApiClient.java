@@ -51,6 +51,7 @@ public class JbnuCourseApiClient {
                         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Whale/4.35.351.12 Safari/537.36")
                 .requestBody(PAYLOAD_TEMPLATE)
                 .timeout(30000)
+                .maxBodySize(0) // 무제한 수신
                 .method(org.jsoup.Connection.Method.POST)
                 .ignoreContentType(true)
                 .execute()
