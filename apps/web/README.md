@@ -26,6 +26,7 @@ Next.js 16 (App Router) 기반의 JBNU 수강신청 빈자리 알림 서비스 �
 - **알림 테스트 도구**: 관리자 전용 페이지에서 이메일/웹푸시/앱푸시 알림을 즉시 테스트하고 기기를 원클릭으로 등록 가능.
 - **UX 최적화**: 검색 실행 시 필터바 **자동 접힘(Auto-collapse)** 및 스켈레톤 UI 적용.
 - **반응형 디자인**: 모바일 및 태블릿 환경에 최적화된 유연한 레이아웃.
+- **인앱 브라우저 대응**: 에브리타임, 카카오톡 등 인앱 브라우저 환경에서 Google 로그인 이슈를 감지하여 외부 브라우저 실행을 유도하고, 필요한 경우 강제 진행 옵션을 제공하여 접근성 강화.
 - **이메일 본인 인증**: 회원가입(온보딩) 및 설정 변경 시 이메일 소유 확인을 위한 인증 코드 발송/검증 UI 제공.
 
 ---
@@ -80,9 +81,13 @@ Next.js 16 (App Router) 기반의 JBNU 수강신청 빈자리 알림 서비스 �
 `web/.env` 파일을 생성하고 다음 값을 설정합니다.
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
-NEXT_PUBLIC_VAPID_KEY=your_vapid_public_key_from_server
+NEXT_PUBLIC_API_URL=<SERVER_URL> # e.g., http://localhost:8080
+NEXT_PUBLIC_VAPID_KEY=<VAPID_PUBLIC_KEY>
 ```
+
+> [!TIP]
+> **Next.js Rewrite 설정**
+> 로컬 개발 환경에서 CORS 문제를 피하기 위해 `next.config.ts`의 `rewrites` 설정을 사용합니다. `.env`의 `NEXT_PUBLIC_API_URL`은 브라우저에서 접근 가능한 주소여야 합니다.
 
 ### 2. 의존성 설치 및 실행
 
