@@ -86,7 +86,9 @@ public class UserService {
         user.completeOnboarding(
                 newEmail,
                 request.isEmailEnabled(),
-                request.isWebPushEnabled());
+                request.isWebPushEnabled(),
+                request.isFcmEnabled(),
+                request.isDiscordEnabled());
         log.info("[User] Onboarding completed: userId={}, email={}", user.getId(), user.getEmail());
         return UserResponse.from(user);
     }

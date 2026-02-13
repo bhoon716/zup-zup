@@ -91,10 +91,13 @@ public class User extends BaseEntity {
         this.discordEnabled = false;
     }
 
-    public void completeOnboarding(String notificationEmail, boolean emailEnabled, boolean webPushEnabled) {
+    public void completeOnboarding(String notificationEmail, boolean emailEnabled, boolean webPushEnabled,
+            boolean fcmEnabled, boolean discordEnabled) {
         this.notificationEmail = notificationEmail;
         this.emailEnabled = emailEnabled;
         this.webPushEnabled = webPushEnabled;
+        this.fcmEnabled = fcmEnabled;
+        this.discordEnabled = discordEnabled;
         this.onboardingCompleted = true;
     }
 

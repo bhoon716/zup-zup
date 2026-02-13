@@ -22,4 +22,10 @@ public class OnboardingRequest {
 
     @Schema(description = "웹 푸시 알림 수신 여부", example = "true")
     private boolean webPushEnabled;
+
+    @Schema(description = "FCM 알림 수신 여부", example = "true")
+    private boolean fcmEnabled;
+
+    @Schema(description = "디스코드 알림 수신 여부", example = "true")
+    private boolean discordEnabled;
 }
