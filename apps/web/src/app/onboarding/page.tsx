@@ -205,7 +205,7 @@ export default function OnboardingPage() {
                         id="notificationEmail" 
                         type="email" 
                         placeholder="example@jbnu.ac.kr"
-                        readOnly={verified || (isGoogleEmail && !emailSent && !verified)} 
+                        readOnly={verified} 
                         {...register("notificationEmail", { 
                           required: "이메일은 필수입니다.",
                           pattern: {
