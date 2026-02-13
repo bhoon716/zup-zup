@@ -9,13 +9,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LogIn } from "lucide-react";
+import { Sparkles, LogIn, AlertCircle, ExternalLink } from "lucide-react";
 import Image from "next/image";
+import { isInAppBrowser } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 export function LoginModal() {
   const { isLoginModalOpen, setLoginModalOpen } = useAuthStore();
+  const [isInApp, setIsInApp] = useState(false);
+
+  useEffect(() => {
+    if (isLoginModalOpen) {
+      setIsInApp(isInAppBrowser());
+    }
+  }, [isLoginModalOpen]);
 
   const handleLogin = () => {
+    if (isInApp) return;
     // Redirect to backend OAuth2 endpoint (via Vercel Rewrites)
     window.location.href = `${window.location.origin}/api/oauth2/authorization/google`;
   };
@@ -37,20 +47,41 @@ export function LoginModal() {
         </DialogHeader>
         
         <div className="flex flex-col gap-3 pb-6 px-2">
+          {isInApp && (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-4 mb-2">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs mb-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Google 로그인 제한</span>
+              </div>
+              <p className="text-[11px] text-amber-600/90 dark:text-amber-500/90 leading-normal font-medium">
+                인앱 브라우저에서는 로그인이 불가합니다. <br />
+                메뉴에서 <span className="font-bold underline">"다른 브라우저로 열기"</span>를 선택해 주세요.
+              </p>
+            </div>
+          )}
           <Button 
             onClick={handleLogin}
+            disabled={isInApp}
             size="lg"
-            className="w-full h-14 rounded-2xl bg-white text-black border border-border/50 hover:bg-gray-50 font-bold shadow-sm transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+            className={`w-full h-14 rounded-2xl font-bold shadow-sm transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${
+              isInApp 
+                ? "bg-gray-100 text-muted-foreground border-none cursor-not-allowed opacity-70" 
+                : "bg-white text-black border border-border/50 hover:bg-gray-50"
+            }`}
           >
-            <div className="relative w-5 h-5">
-              <Image 
-                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-                alt="Google" 
-                fill
-                className="object-contain"
-              />
+            <div className="relative w-5 h-5 flex-shrink-0">
+              {isInApp ? (
+                <ExternalLink className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <Image 
+                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+                  alt="Google" 
+                  fill
+                  className="object-contain"
+                />
+              )}
             </div>
-            Google 계정으로 계속하기
+            {isInApp ? "외부 브라우저에서 이용" : "Google 계정으로 계속하기"}
           </Button>
           
           <Button 
