@@ -32,102 +32,107 @@ export default function HomePage() {
         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
 
-      <main className="container max-w-7xl py-12 px-6 md:px-10 space-y-12">
-        {!user ? (
-          <HomeLanding />
-        ) : (
-          <>
-            {/* Hero Section */}
-            <section className="relative flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b border-border/40 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-primary uppercase tracking-[0.2em] text-[10px] font-black">
-                  <div className="w-8 h-[1px] bg-primary/30" />
-                  <Sparkles className="w-3 h-3" />
-                  Welcome to JBNU Helper
-                </div>
-                <div className="space-y-1">
-                  <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground leading-[1.2]">
-                    안녕하세요, <br className="md:hidden" />
-                    <span className="bg-gradient-to-r from-primary to-[#7c4d91] bg-clip-text text-transparent">{user.name}</span>님!
-                  </h1>
-                  <p className="text-muted-foreground font-medium text-sm md:text-lg">
-                    스마트한 수강신청의 시작, 오늘 진행할 작업을 확인하세요.
-                  </p>
-                </div>
+      {!user ? (
+        <HomeLanding />
+      ) : (
+        <main className="container max-w-7xl py-12 px-6 md:px-10 space-y-12">
+          {/* Hero Section */}
+          <section className="relative flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b border-border/40 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-primary uppercase tracking-[0.2em] text-[10px] font-black">
+                <div className="w-8 h-[1px] bg-primary/30" />
+                <Sparkles className="w-3 h-3" />
+                Welcome to JBNU Helper
               </div>
-              <div className="grid grid-cols-2 md:flex gap-3">
-                 <Link href="/timetable" className="w-full md:w-auto">
-                   <Button className="w-full rounded-2xl px-6 h-12 font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 bg-primary text-white text-sm md:text-base">
-                     시간표 관리
-                   </Button>
-                 </Link>
-                 <Link href="/search" className="w-full md:w-auto">
-                   <Button variant="outline" className="w-full rounded-2xl px-6 h-12 font-bold bg-white/50 backdrop-blur-sm border-border/60 hover:bg-white transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 text-sm md:text-base">
-                     강의 검색
-                   </Button>
-                 </Link>
+              <div className="space-y-1">
+                <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground leading-[1.2]">
+                  안녕하세요, <br className="md:hidden" />
+                  <span className="bg-gradient-to-r from-primary to-[#7c4d91] bg-clip-text text-transparent">{user.name}</span>님!
+                </h1>
+                <p className="text-muted-foreground font-medium text-sm md:text-lg">
+                  스마트한 수강신청의 시작, 오늘 진행할 작업을 확인하세요.
+                </p>
               </div>
-            </section>
-
-            {/* Stats Section */}
-            <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-               <DashboardStats />
-            </section>
-
-            {/* Main Timetable Section - Full Width Expansion */}
-            <div className="animate-in fade-in slide-in-from-bottom-12 duration-700 delay-200">
-              <section className="group relative rounded-[2.5rem] bg-white dark:bg-gray-900 border border-border/40 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-700 overflow-hidden min-h-[700px]">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-3xl -mr-48 -mt-48 group-hover:bg-primary/10 transition-colors duration-700" />
-                <div className="relative p-8 md:p-10 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                        <Calendar className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-black text-foreground">내 대표 시간표</h2>
-                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-1 opacity-60">Representative Weekly Schedule</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Link href="/search">
-                        <Button variant="outline" size="sm" className="rounded-full px-4 h-9 font-bold text-xs border-border/60 hover:bg-primary/5 hover:text-primary transition-all">
-                          강의 추가
-                        </Button>
-                      </Link>
-                      <Link href="/timetable">
-                        <Button variant="ghost" size="sm" className="rounded-full px-4 h-9 font-bold text-xs hover:bg-primary/5 hover:text-primary gap-1 transition-all">
-                          상세보기 <ArrowRight className="w-3 h-3" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1 bg-[#fcfcfc] dark:bg-black/20 rounded-3xl border border-border/20 p-2 md:p-4 overflow-hidden shadow-inner">
-                    <DashboardTimetable />
-                  </div>
-                </div>
-              </section>
             </div>
-          </>
-        )}
-      </main>
+            <div className="grid grid-cols-2 md:flex gap-3">
+               <Link href="/timetable" className="w-full md:w-auto">
+                 <Button className="w-full rounded-2xl px-6 h-12 font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 bg-primary text-white text-sm md:text-base">
+                   시간표 관리
+                 </Button>
+               </Link>
+               <Link href="/search" className="w-full md:w-auto">
+                 <Button variant="outline" className="w-full rounded-2xl px-6 h-12 font-bold bg-white/50 backdrop-blur-sm border-border/60 hover:bg-white transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 text-sm md:text-base">
+                   강의 검색
+                 </Button>
+               </Link>
+            </div>
+          </section>
 
-      <footer className="container max-w-7xl py-12 px-10 border-t border-border/40">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="space-y-1">
-            <h3 className="font-black text-lg tracking-tight">JBNU Helper</h3>
-            <p className="text-xs text-muted-foreground font-medium">전북대학교 수강신청 빈자리 알림 서비스 (비영리)</p>
+          {/* Stats Section */}
+          <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+             <DashboardStats />
+          </section>
+
+          {/* Main Timetable Section - Full Width Expansion */}
+          <div className="animate-in fade-in slide-in-from-bottom-12 duration-700 delay-200">
+            <section className="group relative rounded-[2.5rem] bg-white dark:bg-gray-900 border border-border/40 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-700 overflow-hidden min-h-[700px]">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-3xl -mr-48 -mt-48 group-hover:bg-primary/10 transition-colors duration-700" />
+              <div className="relative p-8 md:p-10 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                      <Calendar className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-black text-foreground">내 대표 시간표</h2>
+                      <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-1 opacity-60">Representative Weekly Schedule</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Link href="/search">
+                      <Button variant="outline" size="sm" className="rounded-full px-4 h-9 font-bold text-xs border-border/60 hover:bg-primary/5 hover:text-primary transition-all">
+                        강의 추가
+                      </Button>
+                    </Link>
+                    <Link href="/timetable">
+                      <Button variant="ghost" size="sm" className="rounded-full px-4 h-9 font-bold text-xs hover:bg-primary/5 hover:text-primary gap-1 transition-all">
+                        상세보기 <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+                
+                <div className="flex-1 bg-[#fcfcfc] dark:bg-black/20 rounded-3xl border border-border/20 p-2 md:p-4 overflow-hidden shadow-inner">
+                  <DashboardTimetable />
+                </div>
+              </div>
+            </section>
           </div>
-          <div className="flex items-center gap-8">
-            <Link href="/terms" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">이용약관</Link>
-            <Link href="/privacy" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">개인정보 처리방침</Link>
-            <span className="text-xs text-muted-foreground/40 font-medium">© 2026 JBNU Helper</span>
+        </main>
+      )}
+
+      <footer className="bg-white border-t border-gray-100 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="text-center md:text-left">
+              <h5 className="text-lg font-bold text-primary mb-1">JBNU Helper</h5>
+              <p className="text-xs text-muted-foreground">전북대학교 수강신청 빈자리 알림 서비스 (비영리)</p>
+            </div>
+            <div className="flex gap-6 text-xs font-bold text-muted-foreground">
+              <Link href="/terms" className="hover:text-primary transition-colors">이용약관</Link>
+              <Link href="/privacy" className="hover:text-primary transition-colors">개인정보 처리방침</Link>
+              <Link href="#" className="hover:text-primary transition-colors">문의하기</Link>
+            </div>
+            <p className="text-[11px] text-muted-foreground/60 text-center md:text-right">
+              © 2026 JBNU Helper. All rights reserved.
+            </p>
+          </div>
+          <div className="mt-8 pt-8 border-t border-gray-50 text-center">
+            <p className="text-[11px] text-muted-foreground/50 leading-relaxed max-w-2xl mx-auto">
+              본 서비스는 전북대학교 학생들을 위한 공익적 목적으로 운영되는 비영리 서비스입니다. 제공되는 모든 정보의 출처는 전북대학교 오아시스이며, 수강신청 결과에 대한 최종 책임은 사용자 본인에게 있습니다.
+            </p>
           </div>
         </div>
-        <p className="text-[10px] text-muted-foreground/30 mt-8 leading-relaxed max-w-2xl">
-          본 서비스는 전북대학교 학생들을 위한 공익적 목적으로 운영되는 비영리 서비스입니다. 제공되는 모든 정보의 출처는 전북대학교 오아시스이며, 수강신청 결과에 대한 최종 책임은 사용자 본인에게 있습니다.
-        </p>
       </footer>
 
       <style jsx global>{`

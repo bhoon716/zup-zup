@@ -4,7 +4,7 @@ import { useUser, useLogout } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { LogOut, Search, Home, Bell, Settings, ShieldCheck, Calendar, Menu, Download } from "lucide-react";
+import { LogOut, Search, Home, Bell, Settings, ShieldCheck, Calendar, Menu, Download, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { useAuthStore } from "@/store/useAuthStore";
@@ -40,34 +40,34 @@ export function Header() {
   const NavLinks = ({ isMobile = false }: { isMobile?: boolean }) => (
     <>
       <Link href="/timetable" onClick={(e) => handleGuardedAction(e, "/timetable")}>
-        <Button variant="ghost" size="sm" className={cn("gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-          <Calendar className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium">내 시간표</span>
+        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Calendar className="w-[1.1rem] h-[1.1rem]" />
+          <span className="text-sm font-medium">내 시간표</span>
         </Button>
       </Link>
       <Link href="/search">
-        <Button variant="ghost" size="sm" className={cn("gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-          <Search className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium">강의 검색</span>
+        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Search className="w-[1.1rem] h-[1.1rem]" />
+          <span className="text-sm font-medium">강의 검색</span>
         </Button>
       </Link>
       <Link href="/notifications" onClick={(e) => handleGuardedAction(e, "/notifications")}>
-        <Button variant="ghost" size="sm" className={cn("gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-          <Bell className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium">알림 내역</span>
+        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Bell className="w-[1.1rem] h-[1.1rem]" />
+          <span className="text-sm font-medium">알림 내역</span>
         </Button>
       </Link>
       <Link href="/settings" onClick={(e) => handleGuardedAction(e, "/settings")}>
-        <Button variant="ghost" size="sm" className={cn("gap-2 rounded-xl px-3 h-9 hover:bg-accent/50 text-foreground", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-          <Settings className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium">설정</span>
+        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Settings className="w-[1.1rem] h-[1.1rem]" />
+          <span className="text-sm font-medium">설정</span>
         </Button>
       </Link>
       {user?.role === 'ADMIN' && (
         <Link href="/admin">
-          <Button variant="ghost" size="sm" className={cn("gap-2 rounded-xl px-3 h-9 text-[#56296e]/70 hover:text-[#56296e] hover:bg-[#56296e]/5", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-            <ShieldCheck className="w-4 h-4" />
-            <span className="font-medium">관리자</span>
+          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 text-primary/70 hover:text-primary hover:bg-primary/5", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+            <ShieldCheck className="w-[1.1rem] h-[1.1rem]" />
+            <span className="text-sm font-medium">관리자</span>
           </Button>
         </Link>
       )}
@@ -75,18 +75,12 @@ export function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2.5 font-bold text-xl tracking-tighter group transition-all active:scale-95">
-            <div className="relative w-8 h-8 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-              <img 
-                src="/jbnu-logo.png" 
-                alt="전북대학교 로고" 
-                className="w-full h-full object-contain drop-shadow-md"
-              />
-            </div>
-            <span className="bg-gradient-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent">수강신청 도우미</span>
+          <Link href="/" className="flex items-center gap-2 group transition-all active:scale-95">
+            <Sparkles className="text-primary w-8 h-8 group-hover:scale-110 transition-transform" />
+            <span className="font-bold text-xl text-primary tracking-tight">수강신청도우미</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             <NavLinks />
@@ -128,7 +122,7 @@ export function Header() {
               </div>
             ) : (
               <Link href="/login">
-                <Button size="sm" className="gap-2 rounded-xl px-5 h-9 bg-primary shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-95 transition-all">
+                <Button size="sm" className="bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-sm">
                   로그인
                 </Button>
               </Link>
