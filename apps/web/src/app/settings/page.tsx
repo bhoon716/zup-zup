@@ -18,7 +18,7 @@ import type { User, UserDeviceResponse } from "@/types/api";
 import { AxiosError } from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useWebPush } from "@/hooks/useWebPush"; // Added import
+import { useWebPush } from "@/hooks/useWebPush";
 
 const settingsSchema = z.object({
   notificationEmail: z.string().email("유효한 이메일 주소를 입력해 주세요.").or(z.literal("")),
@@ -39,7 +39,7 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
 };
 
 export default function SettingsPage() {
-  const router = useRouter(); // Initialize router
+  const router = useRouter();
   const searchParams = useSearchParams();
   const discordStatus = searchParams.get("discord");
   
@@ -47,20 +47,16 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Email Verification States
   const [emailSent, setEmailSent] = useState(false);
   const [verified, setVerified] = useState(false);
   const [authCode, setAuthCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
-  
-  // Discord States
+
   const [isUnlinking, setIsUnlinking] = useState(false);
 
-  // Device States
   const [devices, setDevices] = useState<UserDeviceResponse[]>([]);
-  
-  // Web Push Hook
+
   const { subscribe, unsubscribe, loading: loadingWebPush } = useWebPush();
 
   const DISCORD_CLIENT_ID = "1470147038564847719";
@@ -71,8 +67,8 @@ export default function SettingsPage() {
     reset,
     watch,
     setValue,
-    trigger, // Added trigger
-    formState: { errors }, // removed isDirty constraint for now as verification state matters
+    trigger,
+    formState: { errors },
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
@@ -102,10 +98,9 @@ export default function SettingsPage() {
         const response = await getMyProfile();
         const userData = response.data;
         setUser(userData);
-        
-        // Initial values
+
         const initialEmail = userData.notificationEmail || "";
-        
+
         reset({
           notificationEmail: initialEmail,
           emailEnabled: userData.emailEnabled,
@@ -114,13 +109,8 @@ export default function SettingsPage() {
           discordEnabled: userData.discordEnabled,
         });
 
-        // Fetch Devices
         const deviceRes = await getDevices();
         setDevices(deviceRes.data);
-        
-        // If current saved email exists and equals what we loaded, it is considered verified (as it was saved previously)
-        // However, if user changes it, verified becomes false.
-        // We track 'originalEmail' to compare.
       } catch (error) {
         console.error("Failed to fetch profile:", error);
         toast.error("프로필 정보를 불러오는데 실패했습니다.");
@@ -132,32 +122,21 @@ export default function SettingsPage() {
     fetchProfile();
   }, [reset]);
 
-  // Reset verification if email changes
   useEffect(() => {
-      if (user) {
-          const currentInput = notificationEmail;
-          const originalEmail = user.notificationEmail || "";
-          const googleEmail = user.email;
+    if (user) {
+      const currentInput = notificationEmail;
+      const originalEmail = user.notificationEmail || "";
+      const googleEmail = user.email;
 
-          // If input matches currently saved email (which is already verified), set verified true
-          if (currentInput === originalEmail) {
-             // Already verified because it is saved in DB
-             setVerified(true);
-             setEmailSent(false);
-          } else if (currentInput === googleEmail) {
-              // Google email is implicitly verified? 
-              // Based on backend logic: 
-              // if (newEmail != user.getEmail() && newEmail != user.getNotificationEmail()) check verify
-              // So if newEmail == user.getEmail(), backend skips verify check.
-              // So we can treat it as verified/safe.
-              setVerified(true); // Treat as verified for UI behavior
-               setEmailSent(false);
-          } else {
-              // Changed to something else, reset verification
-              setVerified(false);
-              setEmailSent(false); 
-          }
+      // 현재 입력값이 기존 알림 메일 또는 구글 메일이면 재인증 없이 저장 가능하다.
+      if (currentInput === originalEmail || currentInput === googleEmail) {
+        setVerified(true);
+        setEmailSent(false);
+      } else {
+        setVerified(false);
+        setEmailSent(false);
       }
+    }
   }, [notificationEmail, user]);
 
 
@@ -183,7 +162,7 @@ export default function SettingsPage() {
     try {
       await userApi.verifyEmail({ email: notificationEmail, code: authCode });
       setVerified(true);
-      setEmailSent(false); // Hide code input
+      setEmailSent(false);
       toast.success("이메일이 인증되었습니다.");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "인증 실패"));
@@ -205,7 +184,6 @@ export default function SettingsPage() {
     try {
       await unlinkDiscord();
       toast.success("디스코드 연동이 해제되었습니다.");
-      // Refresh profile
       const response = await getMyProfile();
       setUser(response.data);
       setValue("discordEnabled", false);
@@ -231,33 +209,25 @@ export default function SettingsPage() {
 
 
   const onSubmit = async (values: SettingsFormValues) => {
-    // Validation: If notification email is changed (not same as saved, not same as google), it must be verified.
     if (user) {
-        const isOriginal = values.notificationEmail === (user.notificationEmail || "");
-        const isGoogle = values.notificationEmail === user.email || (!values.notificationEmail && !user.notificationEmail); 
-        // Logic: if notificationEmail is empty string, it defaults to google email in backend logic usually? 
-        // Backend: if request.notificationEmail is null/empty -> updateSettings logic uses it.
-        // Wait, UserSettingsRequest has notificationEmail.
-        // User.updateSettings receives email.
-        // If empty string passed, it saves empty string?
-        // Let's assume user wants to set a specific email.
-        
-        if (!isOriginal && !isGoogle) {
-             if (values.emailEnabled && !verified) {
-                 toast.error("변경된 이메일 인증을 완료해주세요.");
-                 return;
-             }
+      const isOriginal = values.notificationEmail === (user.notificationEmail || "");
+      const isGoogle = values.notificationEmail === user.email || (!values.notificationEmail && !user.notificationEmail);
+
+      if (!isOriginal && !isGoogle) {
+        // 새 메일 주소를 활성화할 때는 인증 상태를 반드시 확인한다.
+        if (values.emailEnabled && !verified) {
+          toast.error("변경된 이메일 인증을 완료해주세요.");
+          return;
         }
+      }
     }
     
     setIsSubmitting(true);
     try {
       await updateSettings(values);
       toast.success("알림 설정이 저장되었습니다.");
-      // Refresh user data
       const response = await getMyProfile();
       setUser(response.data);
-      // Reset form with new data
       reset({
         notificationEmail: response.data.notificationEmail || "",
         emailEnabled: response.data.emailEnabled,
@@ -283,8 +253,6 @@ export default function SettingsPage() {
   }
 
   const isGoogleEmail = user?.email === notificationEmail;
-  // Determine if verification is needed for UI state
-  // Verification needed if: email is not empty AND email != saved AND email != google
   const isOriginal = user && notificationEmail === (user.notificationEmail || "");
   const needsVerification = !isOriginal && !isGoogleEmail && notificationEmail;
 
@@ -308,7 +276,6 @@ export default function SettingsPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
-        {/* 알림 채널 설정 */}
         <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl overflow-hidden group rounded-[1.5rem] md:rounded-[2rem]">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
@@ -405,8 +372,6 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* 이메일 상세 설정 */}
         <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl group rounded-[1.5rem] md:rounded-[2rem]">
            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
@@ -445,14 +410,11 @@ export default function SettingsPage() {
               {errors.notificationEmail && (
                 <p className="text-xs md:text-sm text-destructive font-medium px-1">{errors.notificationEmail.message}</p>
               )}
-
-              {/* Status messages */}
               {!errors.notificationEmail && isGoogleEmail && (
                   <p className="text-[10px] md:text-xs text-green-500 flex items-center gap-1 px-1">
                       <CheckCircle className="w-3 h-3" /> 구글 계정 이메일 (자동 인증됨)
                   </p>
               )}
-               {/* Show verified badge if it IS verified AND it's a custom email (not google, not empty) */}
                {!errors.notificationEmail && verified && !isGoogleEmail && notificationEmail && (
                   <p className="text-[10px] md:text-xs text-green-500 flex items-center gap-1 px-1">
                       <CheckCircle className="w-3 h-3" /> 인증되었습니다
@@ -497,7 +459,7 @@ export default function SettingsPage() {
             <Button 
                 type="submit" 
                 className="w-full h-12 text-base md:text-lg font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 rounded-xl md:rounded-2xl"
-                disabled={isSubmitting} // Removing isDirty check to allow saving anytime if verified
+                disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
@@ -513,8 +475,6 @@ export default function SettingsPage() {
             </Button>
           </CardFooter>
         </Card>
-
-        {/* 디스코드 연동 설정 */}
         <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl group rounded-[1.5rem] md:rounded-[2rem] overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
@@ -584,8 +544,6 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* 기기 관리 설정 */}
         <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl group rounded-[1.5rem] md:rounded-[2rem] overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">

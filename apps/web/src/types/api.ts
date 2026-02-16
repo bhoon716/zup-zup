@@ -5,7 +5,7 @@ export interface CommonResponse<T = unknown> {
   data: T;
 }
 
-// 페이지네이션 (Slice)
+// 분할 페이지 응답
 export interface SliceResponse<T> {
   content: T[];
   pageable: {
@@ -33,7 +33,7 @@ export interface SliceResponse<T> {
   empty: boolean;
 }
 
-// 페이지네이션 (Page - Legacy or Admin)
+// 페이지 응답(관리자/이전 형식)
 export interface PageResponse<T> {
   content: T[];
   pageable: {
@@ -56,7 +56,7 @@ export interface PageResponse<T> {
 }
 
 // 강의 관련
-// Enum-like string unions matching backend
+// 서버 열거형 문자열과 일대일 매핑
 export type CourseClassification = '계열공통' | '교양' | '교직(대)' | '교직' | '군사학' | '기초필수' | '선수' | '일반선택' | '전공' | '전공선택' | '전공필수';
 export type GradingMethod = 'Pass/Fail' | '기타(법전원)' | '상대평가Ⅰ' | '상대평가Ⅱ' | '상대평가Ⅲ' | '절대평가';
 export type LectureLanguage = '한국어' | '영어' | '독일어' | '스페인어' | '일본어' | '중국어' | '프랑스어';
@@ -81,13 +81,13 @@ export interface Course {
   lectureLanguage?: LectureLanguage;
   classTime?: string;
   credits?: string;
-  // New fields
+  // 확장 필드
   lectureHours?: number;
   hasSyllabus?: boolean;
   generalCategoryByYear?: string;
   courseDirection?: string;
   classDuration?: string;
-  // added fields
+  // 교양/공개 설정 관련 필드
   generalCategory?: string;
   generalDetail?: string;
   accreditation?: string;
@@ -96,7 +96,7 @@ export interface Course {
   disclosure?: string;
   disclosureReason?: string;
   lastCrawledAt?: string;
-  // Legacy/Compatibility fields from OpenAPI spec
+  // 명세 호환 필드
   totalSeats?: number;
   currentSeats?: number;
   professorName?: string;
@@ -195,7 +195,7 @@ export interface UserUpdateRequest {
   name: string;
 }
 
-// Email Verification
+// 이메일 인증
 export interface EmailRequest {
   email: string;
 }
@@ -249,7 +249,7 @@ export interface AdminDashboardResponse {
   lastCrawledAt: string;
 }
 
-// 찜(Wishlist) 관련
+// 찜 관련
 export interface WishlistResponse {
   id: number;
   userId: number;
@@ -271,7 +271,7 @@ export interface WishlistToggleResponse {
   isWished: boolean;
 }
 
-// 시간표(Timetable) 관련
+// 시간표 관련
 export interface TimetableEntryResponse {
   courseKey: string;
   name: string;
@@ -328,7 +328,7 @@ export interface TimetableRequest {
 export interface CustomScheduleRequest {
   title: string;
   dayOfWeek: string;
-  startTime: string; // "HH:mm"
-  endTime: string;   // "HH:mm"
+  startTime: string; // 시:분 형식
+  endTime: string;   // 시:분 형식
   color: string;
 }

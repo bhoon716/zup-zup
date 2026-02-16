@@ -19,21 +19,21 @@ export interface RenderingBlock {
   }[];
 }
 
-// Generate consistent color for each course based on its ID
 const COURSE_COLORS = [
-  '#3b82f6', // blue
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#f59e0b', // amber
-  '#10b981', // emerald
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#6366f1', // indigo
-  '#14b8a6', // teal
-  '#a855f7', // violet
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
+  '#f59e0b',
+  '#10b981',
+  '#06b6d4',
+  '#f97316',
+  '#6366f1',
+  '#14b8a6',
+  '#a855f7',
 ];
 
 export const getCourseColor = (courseId: string | number): string => {
+  // 강의 식별자 기준으로 항상 같은 색을 반환해 화면 일관성을 유지한다.
   const str = String(courseId);
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -43,14 +43,11 @@ export const getCourseColor = (courseId: string | number): string => {
   return COURSE_COLORS[index];
 };
 
-// Format period string (e.g., "PERIOD_6A" -> "6-A교시")
 export const formatPeriod = (period?: string): string => {
   if (!period) return '';
-  
-  // Remove "PERIOD_" prefix if exists
+
   const cleaned = period.replace(/^PERIOD_/, '');
-  
-  // Match pattern like "6A" or "10B"
+
   const match = cleaned.match(/^(\d+)([A-Z]?)$/);
   if (match) {
     const [, number, letter] = match;
@@ -80,7 +77,6 @@ export const isOverlapping = (
   return start1 < end2 && start2 < end1;
 };
 
-// Map English day names from API to Korean day names used in UI
 const DAY_MAP: Record<string, string> = {
   'MONDAY': '월',
   'TUESDAY': '화',
@@ -98,7 +94,6 @@ export const mapDayOfWeek = (englishDay: string): string => {
 export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock[] => {
   const flattened: RenderingBlock[] = [];
 
-  // 1. 강의 데이터 변환
   timetable.courses?.forEach((entry) => {
     entry.schedules?.forEach((schedule, idx) => {
       flattened.push({
@@ -116,7 +111,6 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
     });
   });
 
-  // 2. 커스텀 일정 데이터 변환
   timetable.customSchedules?.forEach((schedule) => {
     flattened.push({
       key: `custom-${schedule.id}`,
@@ -130,9 +124,8 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
     });
   });
 
-  // 3. 같은 강의의 연속된 블록 병합
   const merged: RenderingBlock[] = [];
-  const processedKeys = new Set<string>(); // Track which blocks have been processed
+  const processedKeys = new Set<string>();
   const sorted = [...flattened].sort((a, b) => {
     if (a.dayOfWeek !== b.dayOfWeek) {
       const dayOrder = ['월', '화', '수', '목', '금', '토', '일'];
@@ -143,11 +136,10 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
 
   for (let i = 0; i < sorted.length; i++) {
     const current = sorted[i];
-    
-    // 이미 처리된 블록이면 스킵
+
     if (processedKeys.has(current.key)) continue;
-    
-    // 같은 강의의 연속된 블록 찾기
+
+    // 같은 강의가 연속 시간대로 붙어 있으면 하나의 블록으로 합친다.
     const consecutive = [current];
     processedKeys.add(current.key);
     
@@ -155,7 +147,6 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
       const next = sorted[j];
       const last = consecutive[consecutive.length - 1];
       
-      // 같은 강의, 같은 요일, 연속된 시간인지 확인
       if (
         next.id === current.id &&
         next.dayOfWeek === current.dayOfWeek &&
@@ -163,11 +154,10 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
         getTimeInMinutes(next.startTime) === getTimeInMinutes(last.endTime)
       ) {
         consecutive.push(next);
-        processedKeys.add(next.key); // Mark as processed
+        processedKeys.add(next.key);
       }
     }
-    
-    // 병합된 블록 생성
+
     if (consecutive.length > 1) {
       merged.push({
         ...current,
@@ -179,7 +169,6 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
     }
   }
 
-  // 4. 충돌 체크 및 겹치는 영역 계산
   return merged.map((block, _, all) => {
     const overlappingBlocks = all.filter((other) => {
       if (block.key === other.key) return false;
@@ -200,7 +189,6 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
         const otherStartMin = getTimeInMinutes(other.startTime);
         const otherEndMin = getTimeInMinutes(other.endTime);
 
-        // Calculate intersection
         const overlapStart = Math.max(blockStartMin, otherStartMin);
         const overlapEnd = Math.min(blockEndMin, otherEndMin);
 
@@ -221,6 +209,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
               subTitle: other.subTitle,
             });
           } else {
+            // 겹침 안내 다이얼로그에서 시간대별 충돌 목록을 보여주기 위해 구간을 모은다.
             overlapRegions.push({
               startTime: `${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`,
               endTime: `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`,

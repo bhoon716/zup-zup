@@ -1,7 +1,6 @@
 "use client";
 
 import { useParams } from "next/navigation";
-// Header removed (Global layout usage)
 import { CourseDetailContent } from "@/components/features/course/course-detail-content";
 import { useCourseDetail } from "@/hooks/useCourses";
 import { Loader2, AlertCircle, ArrowLeft } from "lucide-react";

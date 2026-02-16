@@ -19,7 +19,6 @@ export function LoginModal() {
 
   const handleLogin = () => {
     if (isInApp) return;
-    // Redirect to backend OAuth2 endpoint (via Vercel Rewrites)
     window.location.href = `${window.location.origin}/api/oauth2/authorization/google`;
   };
 

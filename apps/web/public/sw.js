@@ -1,9 +1,9 @@
 self.addEventListener("install", () => {
-  self.skipWaiting(); // Force activation
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim()); // Take control of all clients immediately
+  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener("push", (event) => {
@@ -42,8 +42,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  
-  // URL fallback to root if missing
+
   const urlToOpen = new URL(event.notification.data.url || "/", self.location.origin).href;
 
   const promiseChain = clients
@@ -52,7 +51,6 @@ self.addEventListener("notificationclick", (event) => {
       includeUncontrolled: true,
     })
     .then((windowClients) => {
-      // Check if there is already a window/tab open with the target URL
       let matchingClient = null;
       for (let i = 0; i < windowClients.length; i++) {
         const windowClient = windowClients[i];

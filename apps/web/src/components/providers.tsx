@@ -32,12 +32,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
 
   useEffect(() => {
-    // BFF 패턴: 모든 인증은 브라우저 쿠키만으로 자동 수행됨.
     checkSession();
 
-    // 서비스 워커 로직 유지
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'PUSH_NOTIFICATION') {
+        // 서비스 워커 메시지를 인앱 토스트로 연결한다.
         const { title, body } = event.data;
         toast.info(title, {
           description: body,
@@ -74,7 +73,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute
+            staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
           },
         },

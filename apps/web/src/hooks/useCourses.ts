@@ -8,17 +8,15 @@ export const useCourses = (condition: CourseSearchCondition) => {
     queryFn: async ({ pageParam = 0 }) => {
       const response = await courseApi.searchCourses(condition, pageParam as number);
       const sliceData = response.data;
-      
-      // Handle slice response properly
+
       let courses: Course[] = [];
       if ('content' in sliceData) {
-          courses = sliceData.content;
+        courses = sliceData.content;
       } else if (Array.isArray(sliceData)) {
-          // Fallback if API returns array directly (unlikely with new change but safe)
-          courses = sliceData; 
+        courses = sliceData;
       }
 
-      // Normalize fields
+      // 백엔드 응답 필드명이 달라도 화면에서 동일한 속성으로 다루도록 정규화한다.
       const normalizedCourses = courses.map(course => ({
         ...course,
         capacity: course.capacity ?? course.totalSeats ?? 0,
@@ -60,7 +58,6 @@ export const useCourseDetail = (courseKey: string) => {
       const course = response.data;
       if (!course) return null;
 
-      // 필드명 정규화 (totalSeats -> capacity, currentSeats -> current, professorName -> professor)
       return {
         ...course,
         capacity: course.capacity ?? course.totalSeats ?? 0,

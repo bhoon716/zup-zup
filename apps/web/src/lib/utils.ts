@@ -12,24 +12,20 @@ export function isInAppBrowser() {
   const inAppPatterns = [
     "kakaotalk",
     "instagram",
-    "fbav", // Facebook App for Android/iOS
-    "fban", // Facebook App for iOS
-    "fb_iab", // Facebook In-App Browser
+    "fbav",
+    "fban",
+    "fb_iab",
     "messenger",
     "discord",
     "line",
     "naver",
     "daum",
     "thunderbird",
-    "everytime", // 에브리타임
-    "wv", // Android WebView marker
-    "bridge", // Some internal webviews
+    "everytime",
+    "wv",
+    "bridge",
   ];
-  
-  // Chrome on iOS (CriOS) or Safari on iOS are NOT in-app webviews in this context
-  // but they often have 'safari' or 'crios'.
-  // However, WebViews usually LACK the standalone 'safari' string while having 'applewebkit'
-  
+
   const isWebView = (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) 
     && ua.includes('applewebkit') 
     && !ua.includes('safari');

@@ -20,10 +20,8 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
-      {/* Minimal Header - Clean Document Style */}
       <div className="px-8 pt-10 pb-6">
         <div className="flex flex-col gap-6">
-          {/* Top Meta: Badges & Year */}
           <div className="flex items-center justify-between">
              <div className="flex items-center gap-3">
                 <Badge variant="outline" className="font-mono text-[10px] font-normal border-primary/20 text-primary bg-primary/5 px-2 py-0.5 h-auto">
@@ -42,8 +40,6 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
               <span>{isAvailable ? "신청가능" : "마감"}</span>
             </div>
           </div>
-
-          {/* Main Title Area */}
           <div className="space-y-4">
             {isDialog ? (
                 <DialogTitle className="text-3xl font-black tracking-tight text-foreground leading-tight break-keep">
@@ -54,8 +50,6 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
                     {course.name}
                 </h1>
             )}
-            
-            {/* Sub Info Row */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-foreground/70">
                  <span className="font-semibold text-foreground">{course.professor || "교수 미지정"}</span>
                  <span className="text-border/40 text-[10px]">|</span>
@@ -74,12 +68,7 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
       </div>
 
       <div className="w-full h-[1px] bg-border/30 mx-auto max-w-[calc(100%-4rem)]" />
-
-      {/* Content Body - Single Flow */}
       <div className="px-8 py-8 space-y-10">
-        
-
-        {/* Section 1: Key Statistics (Grid) */}
         <section>
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-4 select-none">상세 정보</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-8">
@@ -93,8 +82,6 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
                  <SimpleDetailItem label="분반" value={`${course.classNumber}분반`} />
             </div>
         </section>
-
-        {/* Section 2: Time & Location (Emphasis) */}
         <section>
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-4 select-none">시간 및 장소</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -108,8 +95,6 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
                 </div>
             </div>
         </section>
-
-        {/* Section 3: General Ed (Conditional) */}
         {(course.generalCategory || course.generalDetail) && (
             <section>
                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-4 select-none">교양 영역 정보</h3>
@@ -139,8 +124,6 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
                  </div>
             </section>
         )}
-
-        {/* Section 4: Enrollment (Numbers) */}
         <section className="pt-2">
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-4 select-none">수강신청 현황</h3>
             <div className="grid grid-cols-3 gap-8 pb-4">
@@ -159,8 +142,6 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
             </div>
         </section>
       </div>
-
-      {/* Footer */}
       <div className="px-8 py-6 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground mt-auto bg-background/50">
         <div className="flex gap-6">
             <span className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-help" title="강의계획서 조회 가능 여부">

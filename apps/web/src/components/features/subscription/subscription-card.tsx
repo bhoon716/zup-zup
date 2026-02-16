@@ -85,8 +85,6 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* 구독 취소 확인 다이얼로그 (이벤트 버블링 방지를 위해 Card 외부 배치) */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent 
           className="bg-card/90 backdrop-blur-2xl border-white/10"
@@ -115,8 +113,6 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* 강의 상세 다이얼로그 */}
       <CourseDetailDialog 
         course={courseDetail || null} 
         open={isDetailOpen} 

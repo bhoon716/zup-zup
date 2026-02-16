@@ -18,7 +18,6 @@ export function LoginCard() {
 
   const handleGoogleLogin = () => {
     if (isInApp) return;
-    // Redirect to Backend OAuth2 Endpoint (via Vercel Rewrites)
     window.location.href = `${window.location.origin}/api/oauth2/authorization/google`;
   };
 

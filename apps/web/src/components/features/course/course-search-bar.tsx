@@ -98,11 +98,8 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
     <div className="space-y-2">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="p-3 md:p-4 border rounded-2xl bg-card/40 backdrop-blur-xl shadow-2xl border-white/10 ring-1 ring-white/5">
-          {/* Compressed Single Line Header & Primary Controls */}
           <div className="flex flex-col lg:flex-row items-center gap-2 md:gap-3">
-            {/* Section 1: All Primary Fields in One Row */}
             <div className="grid grid-cols-2 lg:grid-cols-12 gap-2 flex-grow w-full">
-              {/* Year (Compact) */}
               <div className="col-span-1 lg:col-span-1">
                 <Select 
                   value={condition.academicYear || '2026'} 
@@ -116,8 +113,6 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Semester (Compact) */}
               <div className="col-span-1 lg:col-span-1">
                 <Select 
                   value={condition.semester || '1'} 
@@ -131,8 +126,6 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Name & Professor */}
               <div className="col-span-2 sm:col-span-1 lg:col-span-3">
                 <Input
                   type="text"
@@ -154,10 +147,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                   className="bg-background/40 border-white/10 focus-visible:ring-primary/20 h-11 md:h-10 text-sm md:text-xs font-medium rounded-xl transition-all hover:bg-background/60"
                 />
               </div>
-
-              {/* Availability & Wishlist Checkbox (Integrated) - Compact */}
               <div className="col-span-1 lg:col-span-2 flex items-center gap-1.5 h-11 md:h-10">
-                {/* Availability Only */}
                 <div className="flex-1 flex items-center justify-center bg-background/30 border border-dashed border-white/10 rounded-xl px-1 group cursor-pointer hover:bg-background/50 transition-all h-full" onClick={() => setCondition({ ...condition, isAvailableOnly: !condition.isAvailableOnly })}>
                   <Checkbox 
                     id="isAvailableOnly" 
@@ -172,8 +162,6 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                     잔여석만
                   </label>
                 </div>
-
-                {/* Wishlist Only */}
                 <div 
                   className="flex-1 flex items-center justify-center bg-background/30 border border-dashed border-white/10 rounded-xl px-1 group cursor-pointer hover:bg-background/50 transition-all h-full" 
                   onClick={() => {
@@ -197,8 +185,6 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                   </label>
                 </div>
               </div>
-
-              {/* Action Buttons (Integrated) - Compact */}
               <div className="col-span-1 lg:col-span-2 flex items-center gap-1.5 h-11 md:h-10">
                 <Button 
                   onClick={handleSearch} 
@@ -228,7 +214,6 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
           <div className="overflow-hidden">
             <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
               <div className="flex flex-col lg:flex-row gap-8 mt-4 pt-4 border-t border-white/5">
-                {/* Left Column: Timetable */}
                 <div className="flex-shrink-0 space-y-3">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-1 h-3 bg-primary/60 rounded-full"></div>
@@ -241,10 +226,7 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                     onChange={handleSchedulesChange}
                   />
                 </div>
-
-                {/* Right Column: Advanced Filters */}
                 <div className="flex-grow space-y-6">
-                  {/* Group 1: Academic Info */}
                   <div className="p-4 rounded-2xl bg-background/20 border border-white/5 space-y-4">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-1 h-3 bg-primary/40 rounded-full"></div>
@@ -315,8 +297,6 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                       </div>
                     </div>
                   </div>
-
-                  {/* Group 2: Lecture Info */}
                   <div className="p-4 rounded-2xl bg-background/20 border border-white/5 space-y-4">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-1 h-3 bg-primary/40 rounded-full"></div>
@@ -364,8 +344,6 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                       </div>
                     </div>
                   </div>
-
-                  {/* Group 3: General Education (Conditional) */}
                   {condition.classification === '교양' && (
                     <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                       <div className="flex items-center gap-2 mb-1">
@@ -416,8 +394,6 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
             </CollapsibleContent>
           </div>
         </div>
-
-        {/* Repositioned Expand Toggle (Bottom Center) */}
         <div className="flex justify-center -mt-4 relative z-10">
           <CollapsibleTrigger asChild>
             <Button 

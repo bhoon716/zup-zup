@@ -15,13 +15,13 @@ export const useUser = () => {
       } catch (error: unknown) {
         const axiosError = error as AxiosError<{ message?: string }>;
         if (axiosError.response?.status === 401) {
-          return null; // Guest user
+          return null;
         }
         throw error;
       }
     },
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+    staleTime: 1000 * 60 * 5,
   });
 };
 
@@ -33,7 +33,7 @@ export const useLogout = () => {
     mutationFn: userApi.logout,
     onSuccess: () => {
       logout();
-      queryClient.clear(); // Clear all cached queries to prevent data leak between user sessions
+      queryClient.clear();
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
@@ -54,7 +54,7 @@ export const useWithdraw = () => {
     onSuccess: (response) => {
       toast.success(response.message || '회원 탈퇴가 완료되었습니다');
       logout();
-      queryClient.clear(); // Clear all cached queries to prevent data leak
+      queryClient.clear();
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }

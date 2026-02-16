@@ -96,7 +96,6 @@ export default function NotificationTestPage() {
           <CardTitle className="text-base text-muted-foreground">테스트 설정</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Email Input */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">수신자 (관리자 본인)</Label>
             <Input
@@ -106,8 +105,6 @@ export default function NotificationTestPage() {
               className="bg-gray-50 dark:bg-gray-900 border-dashed cursor-default focus-visible:ring-0"
             />
           </div>
-
-          {/* Channel Checkboxes */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">발송 채널</Label>
             <div className="flex flex-wrap gap-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-900 border">
@@ -133,8 +130,6 @@ export default function NotificationTestPage() {
               ))}
             </div>
           </div>
-
-          {/* Submit Button */}
           <Button
             className="w-full h-11 font-bold bg-orange-600 hover:bg-orange-700"
             disabled={!email || selectedChannels.length === 0 || isPending || isRegistering}

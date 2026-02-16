@@ -27,8 +27,7 @@ export const getMyProfile = async (): Promise<CommonResponse<User>> => {
       const { data } = await api.get('/api/v1/users/me');
       return data;
     } finally {
-      // 요청이 완료되면 캐시 초기화 (다음번 호출은 다시 네트워크 요청)
-      // 짧은 간격의 동시 호출만 묶어줌
+      // 짧은 간격의 중복 호출만 합치고 곧바로 해제한다.
       setTimeout(() => { profilePromise = null; }, 100); 
     }
   })();
@@ -62,7 +61,7 @@ export const deleteDevice = async (id: number): Promise<CommonResponse<void>> =>
 };
 
 /**
- * @deprecated Use deleteDevice(id) instead
+ * 사용 중단 예정입니다. 토큰 기반 삭제 대신 숫자 식별자 기반 삭제 함수를 사용하세요.
  */
 export const unregisterDevice = async (token: string): Promise<CommonResponse<void>> => {
   const { data } = await api.delete(`/api/v1/users/devices/token/${encodeURIComponent(token)}`);

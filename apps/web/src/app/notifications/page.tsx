@@ -1,6 +1,5 @@
 "use client";
 
-// Header removed (Global layout usage)
 import { NotificationList } from "@/components/features/notification/notification-list";
 
 export const dynamic = 'force-dynamic';

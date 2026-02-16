@@ -48,7 +48,6 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 
-  /* Template mapped colors */
   --color-primary-light: var(--primary-light);
   --color-primary-dark: var(--primary-dark);
   --color-accent-purple: var(--accent-purple);
@@ -91,7 +90,6 @@
   --sidebar-border: #e5e7eb;
   --sidebar-ring: #56296e;
 
-  /* Template colors */
   --primary-light: #6d348a;
   --primary-dark: #3f1e50;
   --accent-purple: #5a4ad1;

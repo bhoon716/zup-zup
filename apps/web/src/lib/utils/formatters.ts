@@ -2,12 +2,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
 /**
- * API 데이터 값 국문 변환 유틸리티
+ * 서버 응답 값을 화면용 한글 표현으로 변환한다.
  */
 
-// 이수구분 매핑
 const CLASSIFICATION_MAP: Record<string, string> = {
-  // Backend CourseClassification.java mapping
   'SERIES_COMMON': '계열공통',
   'GENERAL_EDUCATION': '교양',
   'TEACHING_PROFESSION_GRAD': '교직(대)',
@@ -20,14 +18,11 @@ const CLASSIFICATION_MAP: Record<string, string> = {
   'MAJOR_ELECTIVE': '전공선택',
   'MAJOR_REQUIRED': '전공필수',
 
-  // Fallback/Legacy mappings
   'MAJOR_SELECTIVE': '전공선택',
   'GENERAL_REQUIRED': '교양필수',
   'GENERAL_SELECTIVE': '교양선택',
   'LIBERAL_ARTS': '교양',
   'OPTIONAL': '일반선택',
-  
-  // Identity (Already Korean)
   '계열공통': '계열공통',
   '교양': '교양',
   '교직(대)': '교직(대)',
@@ -41,7 +36,6 @@ const CLASSIFICATION_MAP: Record<string, string> = {
   '전공필수': '전공필수',
 };
 
-// 강의언어 매핑
 const LANGUAGE_MAP: Record<string, string> = {
   'KO': '한국어',
   'KOREAN': '한국어',
@@ -57,8 +51,6 @@ const LANGUAGE_MAP: Record<string, string> = {
   'CHINESE': '중국어',
   'FR': '프랑스어',
   'FRENCH': '프랑스어',
-  
-  // Identity
   '한국어': '한국어',
   '영어': '영어',
   '독일어': '독일어',
@@ -68,7 +60,6 @@ const LANGUAGE_MAP: Record<string, string> = {
   '프랑스어': '프랑스어',
 };
 
-// 성적평가방식 매핑
 const GRADING_MAP: Record<string, string> = {
   'ABSOLUTE': '절대평가',
   'RELATIVE': '상대평가',
@@ -77,8 +68,6 @@ const GRADING_MAP: Record<string, string> = {
   'RELATIVE_3': '상대평가Ⅲ',
   'P_F': 'Pass/Fail',
   'PASS_FAIL': 'Pass/Fail',
-  
-  // Identity
   'Pass/Fail': 'Pass/Fail',
   '기타(법전원)': '기타(법전원)',
   '상대평가Ⅰ': '상대평가Ⅰ',
@@ -103,7 +92,7 @@ export function formatGradingMethod(value?: string): string {
 }
 
 /**
- * 상대 시간 포맷팅 (예: "3분 전")
+ * 상대 시간을 한글 문구로 변환한다.
  */
 export function formatRelativeTime(dateString?: string): string {
   if (!dateString) return '-';

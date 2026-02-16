@@ -14,15 +14,7 @@ interface CourseDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Unused variants removed
-
 import { CourseDetailContent } from "./course-detail-content";
-
-interface CourseDetailDialogProps {
-  course: Course | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
 
 export function CourseDetailDialog({ course, open, onOpenChange }: CourseDetailDialogProps) {
   if (!course) return null;

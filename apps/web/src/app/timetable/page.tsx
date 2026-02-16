@@ -4,7 +4,6 @@ import React, { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { timetableApi } from '@/lib/api/timetable';
 import { useTimetables, useTimetableDetail } from '@/hooks/useTimetable';
-// Header removed (Global layout usage)
 import { TimetableSelect } from '@/components/features/timetable/timetable-select';
 import { TimetableGrid } from '@/components/features/timetable/timetable-grid';
 import { toast } from 'sonner';
@@ -24,7 +23,7 @@ export default function TimetablePage() {
     }
 
     try {
-      const padding = 40; // 넉넉한 여백
+      const padding = 40;
       const width = element.scrollWidth + (padding * 2);
       const height = element.scrollHeight + (padding * 2);
 
@@ -58,11 +57,9 @@ export default function TimetablePage() {
     }
   };
 
-  // 1. 시간표 목록 조회 (사용자 인증 후에만 실행)
   const { data: timetablesData, isLoading: isListLoading } = useTimetables();
   const timetables = useMemo(() => timetablesData ?? [], [timetablesData]);
 
-  // 2. 현재 선택값 결정 (명시 선택값이 없으면 대표 시간표 혹은 첫 번째 시간표)
   const activeTimetableId = useMemo(() => {
     if (selectedTimetableId !== null) {
       return selectedTimetableId;
@@ -74,10 +71,8 @@ export default function TimetablePage() {
     return primary ? primary.id : timetables[0].id;
   }, [selectedTimetableId, timetables]);
 
-  // 3. 현재 선택된 시간표 상세 조회
   const { data: timetableDetail, isLoading: isDetailLoading } = useTimetableDetail(activeTimetableId);
 
-  // 4. Mutations
   const createMutation = useMutation({
     mutationFn: (name: string) => timetableApi.createTimetable({ name, primary: timetables.length === 0 }),
     onSuccess: (res) => {
@@ -106,8 +101,6 @@ export default function TimetablePage() {
     },
     onError: () => toast.error('대표 시간표 설정에 실패했습니다.')
   });
-
-  // const isLoading = isListLoading || (selectedTimetableId !== null && isDetailLoading);
 
   return (
     <div className="min-h-screen bg-background">

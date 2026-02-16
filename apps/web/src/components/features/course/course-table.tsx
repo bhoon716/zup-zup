@@ -55,6 +55,7 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
 
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const isIntersecting = entries.some((entry) => entry.isIntersecting);
+    // 데스크톱/모바일 센티넬이 보이면 다음 페이지를 자동 요청한다.
     if (isIntersecting && hasMore && !isFetchingNextPage && onLoadMore) {
       onLoadMore();
     }
@@ -62,7 +63,7 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
 
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
-      root: null, // viewport or scroll container if ref passed
+      root: null,
       rootMargin: "20px",
       threshold: 0.1,
     });
@@ -95,10 +96,8 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
     
     const subscription = subscriptions?.find((sub) => sub.courseKey === courseKey);
     if (subscription) {
-      // Already subscribed, so unsubscribe
       unsubscribe(subscription.id);
     } else {
-      // Not subscribed, so subscribe
       subscribe({ courseKey });
     }
   };
@@ -110,7 +109,6 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
 
   return (
     <>
-      {/* Desktop Table View */}
       <div className="hidden md:block border rounded-xl overflow-hidden shadow-sm bg-card/30 backdrop-blur-md">
         <div className="relative overflow-auto max-h-[650px] scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
           <table className="w-full caption-bottom text-sm">
@@ -276,8 +274,6 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
                       </TableRow>
                     );
                   })}
-                  
-                  {/* Sentinel for Infinite Scroll (Desktop) */}
                   <TableRow ref={desktopTarget}>
                      <TableCell colSpan={8} className="h-4 p-0 border-0" />
                   </TableRow>
@@ -287,8 +283,6 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
           </table>
         </div>
       </div>
-
-      {/* Mobile Card View */}
       <div className="md:hidden space-y-4">
         {courses.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground italic font-medium bg-card/30 rounded-2xl border">
@@ -439,8 +433,6 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
                 </div>
               );
             })}
-            
-            {/* Sentinel for Infinite Scroll (Mobile) */}
             <div ref={mobileTarget} className="h-4" />
           </>
         )}

@@ -103,7 +103,7 @@ Docker 환경에서 `next dev` 실행 시, `package.json`에 명시된 `@radix-u
 - **Fail-safe**: 5초 내에 응답이 없으면 명확한 에러를 발생시키고 UI 로딩을 해제하여 사용자가 재시도를 할 수 있도록 유도했습니다.
 
 ```typescript
-// webpush.ts
+// 웹푸시 유틸 코드 예시
 const registration = await Promise.race([
   navigator.serviceWorker.ready,
   new Promise((_, reject) =>
@@ -249,7 +249,7 @@ Axios 인터셉터에 **요청 큐(Request Queue)** 메커니즘을 도입하여
 3. **일괄 재시도**: 리프레시 성공 시 큐에 쌓인 모든 요청을 새로운 세션 상태로 일괄 재실행하며, 실패 시 일괄 로그아웃 처리합니다.
 
 ```typescript
-// api/index.ts
+// 인증 인터셉터 코드 예시
 if (isRefreshing) {
   return new Promise((resolve, reject) => {
     failedQueue.push({ resolve, reject });
@@ -279,7 +279,7 @@ if (isRefreshing) {
    - `queryFn` 내부에서 401 에러를 catch하여 `null`을 반환하도록 로직을 변경, 에러 상태가 아닌 '비로그인(Guest)' 상태로 정상 처리되도록 함.
 
    ```typescript
-   // hooks/useUser.ts
+   // 사용자 조회 훅 코드 예시
    queryFn: async () => {
      try {
        const response = await userApi.getMyProfile();
@@ -377,12 +377,12 @@ React의 렌더링 사이클과 State 초기화 시점의 불일치가 원인이
 2. **로딩 상태 시각화**: 상세 시간표 데이터를 가져오는 동안(`isDetailLoading`) 로딩 스피너를 표시하여 사용자에게 진행 상황을 명확히 알렸습니다.
 
 ```typescript
-// Before
+// 변경 전
 if (timetables.length > 0 && selectedTimetableId === null) {
   setSelectedTimetableId(timetables[0].id);
 }
 
-// After
+// 변경 후
 useEffect(() => {
   if (timetables.length > 0 && selectedTimetableId === null) {
     setSelectedTimetableId(timetables[0].id);
@@ -459,7 +459,7 @@ export function CourseSearchBar(...) {
       toast.error("로그인이 필요합니다.");
       return;
     }
-    // ... logic
+    // ... 나머지 처리 로직
   };
 }
 ```

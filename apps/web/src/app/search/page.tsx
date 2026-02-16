@@ -1,6 +1,5 @@
 "use client";
 
-// Header removed (Global layout usage)
 import { CourseSearchBar } from "@/components/features/course/course-search-bar";
 import { CourseTable } from "@/components/features/course/course-table";
 import { CourseTableSkeleton } from "@/components/features/course/course-table-skeleton";

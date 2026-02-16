@@ -31,10 +31,9 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
   const [courseDetailOpen, setCourseDetailOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<RenderingBlock | null>(null);
 
-  // 1. 가변적 시간 범위 계산
   const { startHour, endHour, hoursArray } = useMemo(() => {
-    let minMin = 9 * 60; // 기본 시작 09:00
-    let maxMin = 18 * 60; // 기본 종료 18:00
+    let minMin = 9 * 60;
+    let maxMin = 18 * 60;
 
     blocks.forEach(block => {
       const start = getTimeInMinutes(block.startTime);
@@ -77,7 +76,6 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
         isPreview && "rounded-[1.5rem] border-none shadow-none min-w-full",
         className
       )}>
-        {/* Header */}
         <div className={cn(
           "grid grid-cols-[60px_repeat(7,1fr)] border-b bg-muted/30 divide-x divide-border/50",
           isPreview && "grid-cols-[40px_repeat(7,1fr)] h-8"
@@ -102,10 +100,7 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
             </div>
           ))}
         </div>
-
-        {/* Time Grid */}
         <div className="grid grid-cols-[60px_repeat(7,1fr)] divide-x divide-border/50">
-          {/* Time column */}
           <div className="divide-y divide-border/50 bg-muted/10">
             {hoursArray.map((hour) => (
               <div
@@ -119,8 +114,6 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
               </div>
             ))}
           </div>
-
-          {/* Day columns */}
           {DAYS.map((day) => (
             <div key={day} className="relative divide-y divide-border/50">
               {hoursArray.map((hour) => (
@@ -132,8 +125,6 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
                   )}
                 />
               ))}
-
-              {/* Timetable blocks for this day */}
               <div className="absolute inset-0 pointer-events-none">
                 {blocks
                   .filter((block) => block.dayOfWeek === day)
@@ -166,7 +157,6 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
                           }
                         }}
                       >
-                        {/* Overlap region warnings - now just visual indicator */}
                         {block.overlapRegions?.map((region, idx) => {
                           const regionStart = getTimeInMinutes(region.startTime);
                           const regionEnd = getTimeInMinutes(region.endTime);
@@ -232,8 +222,6 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
           ))}
         </div>
       </div>
-
-      {/* Overlap Dialog */}
       <Dialog open={overlapDialogOpen} onOpenChange={setOverlapDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -276,8 +264,6 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Course Detail Dialog */}
       <Dialog open={courseDetailOpen} onOpenChange={setCourseDetailOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -328,4 +314,3 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
     </>
   );
 }
-

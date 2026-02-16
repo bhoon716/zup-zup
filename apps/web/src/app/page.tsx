@@ -1,6 +1,5 @@
 "use client";
 
-// import { Header } from "@/components/layout/header"; // Removed header import
 import { DashboardTimetable } from "@/components/features/timetable/dashboard-timetable";
 import { DashboardStats } from "@/components/features/dashboard/dashboard-stats";
 import { HomeLanding } from "@/components/features/dashboard/home-landing";
@@ -24,9 +23,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-black selection:bg-primary/10 selection:text-primary">
-      {/* Header removed from here and moved to layout.tsx */}
-      
-      {/* Background Decoration */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
@@ -36,7 +32,6 @@ export default function HomePage() {
         <HomeLanding />
       ) : (
         <main className="container max-w-7xl py-12 px-6 md:px-10 space-y-12">
-          {/* Hero Section */}
           <section className="relative flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b border-border/40 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-primary uppercase tracking-[0.2em] text-[10px] font-black">
@@ -67,13 +62,9 @@ export default function HomePage() {
                </Link>
             </div>
           </section>
-
-          {/* Stats Section */}
           <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
              <DashboardStats />
           </section>
-
-          {/* Main Timetable Section - Full Width Expansion */}
           <div className="animate-in fade-in slide-in-from-bottom-12 duration-700 delay-200">
             <section className="group relative rounded-[2.5rem] bg-white dark:bg-gray-900 border border-border/40 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-700 overflow-hidden min-h-[700px]">
               <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-3xl -mr-48 -mt-48 group-hover:bg-primary/10 transition-colors duration-700" />

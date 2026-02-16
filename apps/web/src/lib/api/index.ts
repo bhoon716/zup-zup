@@ -9,13 +9,11 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// BFF 패턴에서는 브라우저가 직접 토큰을 다루지 않음. 모든 인증은 세션 쿠키로 처리됨.
 export const setAccessToken = (token: string | null) => {
+  // 이전 인터페이스 호환을 위해 함수 형태만 유지한다.
   void token;
-  // 사용하지 않음 (호환성 위해 빈 함수 유지)
 };
 
-// Response Interceptor - 401 발생 시 로그아웃 처리만 수행 (갱신은 서버가 담당)
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
@@ -47,13 +45,13 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // 토큰 갱신 요청 자체가 실패한 경우나 이미 재시도 중인 경우 즉시 실패 처리하여 무한 루프 방지
     if (originalRequest.url === "/api/auth/refresh" || originalRequest._retry) {
       return Promise.reject(error);
     }
 
     if (error.response?.status === 401) {
       if (isRefreshing) {
+        // 재발급 진행 중이면 기존 요청을 대기열에 넣고 완료 후 재시도한다.
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -69,6 +67,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        // 리프레시 성공 시 대기 중인 요청을 순차 재실행한다.
         await api.post("/api/auth/refresh");
         console.info("[API] Token refresh successful. Retrying original request.");
         isRefreshing = false;

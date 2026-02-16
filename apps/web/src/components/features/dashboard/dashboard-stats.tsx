@@ -5,7 +5,6 @@ import { GraduationCap, Heart, Bell, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TimetableDetailResponse } from "@/types/api";
 
-// ... (StatCard 컴플리먼트 내용은 동일하므로 생략하지 않고 전체 유지)
 interface StatCardProps {
   title: string;
   value: string | number;

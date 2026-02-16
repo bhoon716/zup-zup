@@ -1,13 +1,8 @@
-/**
- * Web Push utility functions
- */
+/** 웹 푸시 관련 유틸 함수 모음. */
 
-// Placeholder VAPID primary key - In production, this should be in .env
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
 
-/**
- * Convert base64 string to Uint8Array for VAPID key
- */
+/** 공개키 문자열을 푸시 구독에 필요한 바이트 배열로 변환한다. */
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -21,9 +16,7 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-/**
- * PushSubscription에서 서버로 전달할 필드 추출 (base64url 그대로 사용)
- */
+/** 구독 객체에서 서버 등록에 필요한 키를 추출한다. */
 export function extractSubscriptionKeys(subscription: PushSubscription) {
   const json = subscription.toJSON();
   const endpoint = json.endpoint;
@@ -38,9 +31,7 @@ export function extractSubscriptionKeys(subscription: PushSubscription) {
 }
 
 
-/**
- * Get current push subscription if exists with timeout
- */
+/** 현재 브라우저의 푸시 구독을 조회한다. */
 export async function getSubscription() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return null;
   
@@ -56,9 +47,7 @@ export async function getSubscription() {
   }
 }
 
-/**
- * Register Service Worker and subscribe to Push Manager
- */
+/** 서비스 워커를 등록하고 푸시 구독을 생성한다. */
 export async function subscribeToPush() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     throw new Error("브라우저가 푸시 알림을 지원하지 않습니다.");
@@ -66,7 +55,6 @@ export async function subscribeToPush() {
 
   const registration = await navigator.serviceWorker.register("/sw.js");
   
-  // Wait for service worker to be ready with timeout
   await Promise.race([
     navigator.serviceWorker.ready,
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error("서비스 워커 로드 타임아웃")), 5000))
@@ -84,9 +72,7 @@ export async function subscribeToPush() {
   return subscription;
 }
 
-/**
- * Unsubscribe from Push Manager
- */
+/** 현재 푸시 구독을 해제한다. */
 export async function unsubscribeFromPush() {
   try {
     const subscription = await getSubscription();

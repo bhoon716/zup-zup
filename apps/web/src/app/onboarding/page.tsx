@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser, useCompleteOnboarding } from "@/hooks/useUser";
-import { useWebPush } from "@/hooks/useWebPush"; // Added import
+import { useWebPush } from "@/hooks/useWebPush";
 import * as userApi from "@/lib/api/user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,9 +45,7 @@ export default function OnboardingPage() {
   const [authCode, setAuthCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes
-
-  // Discord Config
+  const [timeLeft, setTimeLeft] = useState(180);
   const DISCORD_CLIENT_ID = "1470147038564847719";
 
   const { register, handleSubmit, setValue, watch, formState: { errors }, trigger } = useForm<OnboardingForm>({
@@ -67,41 +65,33 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (user) {
       if (user.onboardingCompleted) {
-        // If coming back from discord auth, allow stay? 
-        // No, checking onboardingCompleted is correct.
-        // But if we just linked discord, maybe backend updated it? 
-        // Backend completeOnboarding sets it to true. Linking discord does NOT.
-        // So we are safe.
+        // 온보딩이 끝난 사용자는 홈으로 보낸다.
         router.replace("/");
       } else {
         if (!watch("notificationEmail") && !verified) {
-           setValue("notificationEmail", user.email);
+          setValue("notificationEmail", user.email);
         }
-        // Sync discordEnabled with user profile if newly linked
         if (user.discordId) {
-            setValue("discordEnabled", true);
+          setValue("discordEnabled", true);
         }
       }
     }
   }, [user, router, setValue, watch, verified]);
 
-  // Handle Discord Redirect Status
   useEffect(() => {
     if (discordStatus === "success") {
       toast.success("디스코드 연동이 성공적으로 완료되었습니다.");
-      // Clean up URL
       router.replace("/onboarding");
-      // user re-fetch is handled by useUser hook automatically swr
     } else if (discordStatus === "error") {
       toast.error("디스코드 연동 중 오류가 발생했습니다.");
       router.replace("/onboarding");
     }
   }, [discordStatus, router]);
 
-  // Timer logic
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (emailSent && timeLeft > 0 && !verified) {
+      // 인증 코드 입력 유효 시간을 초 단위로 감소시킨다.
       timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
@@ -127,7 +117,7 @@ export default function OnboardingPage() {
     try {
       await userApi.sendVerificationCode({ email: notificationEmail });
       setEmailSent(true);
-      setTimeLeft(180); // Reset timer
+      setTimeLeft(180);
       toast.success("인증 코드가 전송되었습니다.");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "인증 코드 전송 실패"));
@@ -142,7 +132,7 @@ export default function OnboardingPage() {
     try {
       await userApi.verifyEmail({ email: notificationEmail, code: authCode });
       setVerified(true);
-      setEmailSent(false); // Hide code input
+      setEmailSent(false);
       toast.success("이메일이 인증되었습니다.");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "인증 실패"));
@@ -168,14 +158,12 @@ export default function OnboardingPage() {
   };
 
   const onSubmit = (data: OnboardingForm) => {
-    
-    if (user && data.notificationEmail === user.email) {
-       // ...
-    } else {
-        if (data.emailEnabled && !verified) {
-            toast.error("이메일 인증을 완료해주세요.");
-            return;
-        }
+    if (!(user && data.notificationEmail === user.email)) {
+      // 구글 계정 메일이 아닌 경우에는 별도 인증 완료가 필요하다.
+      if (data.emailEnabled && !verified) {
+        toast.error("이메일 인증을 완료해주세요.");
+        return;
+      }
     }
 
     if (data.webPushEnabled && !data.deviceName?.trim()) {
@@ -189,14 +177,17 @@ export default function OnboardingPage() {
       }
     }
     
-    completeOnboarding({
+    completeOnboarding(
+      {
         ...data,
-        discordEnabled: data.discordEnabled // Ensure this is passed
-    }, {
-      onSuccess: () => {
-        router.replace("/");
+        discordEnabled: data.discordEnabled,
       },
-    });
+      {
+        onSuccess: () => {
+          router.replace("/");
+        },
+      }
+    );
   };
 
   if (isLoading) {
@@ -232,7 +223,6 @@ export default function OnboardingPage() {
             </div>
 
             <div className="space-y-6">
-              {/* Discord Section */}
               <div className="bg-[#f3f4f6] rounded-xl overflow-hidden transition-all border border-transparent hover:border-indigo-100">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
@@ -266,8 +256,6 @@ export default function OnboardingPage() {
                   </div>
                 )}
               </div>
-
-              {/* Email Section */}
               <div className="bg-[#f3f4f6] rounded-xl overflow-hidden transition-all border border-transparent hover:border-purple-100">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
@@ -354,8 +342,6 @@ export default function OnboardingPage() {
                   )}
                 </div>
               </div>
-
-              {/* Web Push Section */}
               <div className="bg-[#f3f4f6] rounded-xl overflow-hidden transition-all border border-transparent hover:border-blue-100">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">

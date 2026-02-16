@@ -8,6 +8,6 @@ export const useHealth = () => {
       const response = await healthApi.checkHealth();
       return response.data;
     },
-    refetchInterval: 30000, // Check every 30 seconds
+    refetchInterval: 30000,
   });
 };

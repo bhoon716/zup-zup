@@ -39,7 +39,6 @@ const features = [
 export function HomeLanding() {
   return (
     <div className="flex flex-col overflow-hidden">
-      {/* Hero Section */}
       <section className="relative bg-white pt-20 pb-32 overflow-hidden min-h-[calc(100vh-64px)] flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center relative z-10">
           <motion.div
@@ -90,15 +89,11 @@ export function HomeLanding() {
             </Link>
           </motion.div>
         </div>
-
-        {/* Floating Decorative Elements */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-0 w-full h-[500px] opacity-10 pointer-events-none">
           <div className="absolute top-0 right-1/4 w-72 h-72 bg-primary blur-[120px] rounded-full animate-pulse" />
           <div className="absolute bottom-0 left-1/4 w-72 h-72 bg-indigo-500 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
         </div>
       </section>
-
-      {/* Features Bento Grid */}
       <section className="py-24 bg-surface-light border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 space-y-4">

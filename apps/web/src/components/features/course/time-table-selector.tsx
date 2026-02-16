@@ -18,7 +18,6 @@ interface TimeTableSelectorProps {
 }
 
 export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps) {
-  // ... (previous state and handlers remain the same)
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<'select' | 'deselect' | null>(null);
   const [hoveredDay, setHoveredDay] = useState<CourseDayOfWeek | null>(null);
@@ -164,7 +163,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
             <span className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-tighter">Selected</span>
           </div>
           <p className="text-[9px] text-muted-foreground/40 italic">
-            * drag to select
+            * 드래그해서 선택
           </p>
         </div>
         <button 

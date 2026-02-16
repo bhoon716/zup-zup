@@ -11,21 +11,19 @@ export const useWebPush = () => {
   const subscribe = useCallback(async (customAlias?: string) => {
     setLoading(true);
     try {
-      // 1. Subscribe to Push Manager (Browser)
       const subscription = await webPush.subscribeToPush();
       
       if (!subscription) {
         throw new Error('푸시 구독 객체를 생성할 수 없습니다.');
       }
 
-      // 2. Parse subscription details
       const { endpoint: token, p256dh, auth } = extractSubscriptionKeys(subscription);
 
-      // 3. Register device to Backend with Alias
       const ua = navigator.userAgent;
       let alias = customAlias;
       
       if (!alias) {
+          // 사용자 지정 별칭이 없으면 기기/브라우저 정보를 조합해 기본 이름을 만든다.
           alias = "Unknown Device";
           if (ua.includes("Win")) alias = "Windows PC";
           else if (ua.includes("Mac")) alias = "Mac";
@@ -62,20 +60,17 @@ export const useWebPush = () => {
   const unsubscribe = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Get current subscription to find token (for backend unregistration)
       const subscription = await webPush.getSubscription();
       
       if (subscription) {
         const token = subscription.endpoint;
         
-        // 2. Unregister from Backend
         try {
           await userApi.unregisterDevice(token);
         } catch (e) {
           console.warn('Backend unregistration failed (might be already deleted)', e);
         }
 
-        // 3. Unsubscribe from Browser
         await subscription.unsubscribe();
       }
 

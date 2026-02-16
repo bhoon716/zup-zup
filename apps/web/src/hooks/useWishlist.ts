@@ -27,12 +27,7 @@ export const useToggleWishlist = () => {
       await queryClient.cancelQueries({ queryKey: ['wishlist'] });
       
       const previousWishlist = queryClient.getQueryData<WishlistResponse[]>(['wishlist']);
-      
-      // Optimistically update: If exists, remove it. If not, add a temporary item (partial).
-      // Since we don't have full course details for 'add', optimistic update might be tricky for the list view.
-      // But for the heart icon state in the table, we usually derive it from the list data.
-      // So, adding a placeholder record is important.
-      
+
       if (previousWishlist) {
          const exists = previousWishlist.some(item => item.courseKey === courseKey);
          let newWishlist;
@@ -40,14 +35,12 @@ export const useToggleWishlist = () => {
          if (exists) {
             newWishlist = previousWishlist.filter(item => item.courseKey !== courseKey);
          } else {
-             // Mocking new item. Since we don't display detailed info in the heart icon logic,
-             // just having an item with the courseKey is sufficient for the "isWished" check.
+             // 하트 토글 즉시 반영을 위해 최소 필드만 가진 임시 레코드를 넣는다.
              newWishlist = [...previousWishlist, { 
-                id: -1, // temporary ID
+                id: -1,
                 courseKey, 
                 courseName: '', 
                 professor: '', 
-                // ...other empty fields 
              } as WishlistResponse];
          }
          
