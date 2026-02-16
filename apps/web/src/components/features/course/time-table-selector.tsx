@@ -160,7 +160,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_rgba(var(--primary),0.5)]" />
-            <span className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-tighter">Selected</span>
+            <span className="text-[9px] font-bold text-muted-foreground/60 tracking-tighter">선택됨</span>
           </div>
           <p className="text-[9px] text-muted-foreground/40 italic">
             * 드래그해서 선택
@@ -168,9 +168,9 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
         </div>
         <button 
           onClick={() => onChange([])}
-          className="text-[9px] font-black uppercase tracking-widest text-primary/60 hover:text-primary hover:underline transition-all active:scale-95"
+          className="text-[9px] font-black tracking-widest text-primary/60 hover:text-primary hover:underline transition-all active:scale-95"
         >
-          Reset
+          전체 해제
         </button>
       </div>
     </div>

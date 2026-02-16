@@ -1,33 +1,36 @@
-
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-
-/** 강의 테이블 로딩 중에 실제 레이아웃과 동일한 스켈레톤을 보여준다. */
 export function CourseTableSkeleton() {
   return (
-    <div className="rounded-2xl border border-white/10 bg-card/50 backdrop-blur-xl shadow-2xl overflow-hidden animate-pulse">
-      <Table>
-        <TableHeader className="bg-muted/30">
-          <TableRow className="border-white/5 hover:bg-transparent">
-            {[...Array(6)].map((_, i) => (
-              <TableHead key={i}>
-                <div className="h-4 bg-muted/50 rounded w-20"></div>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {[...Array(10)].map((_, i) => (
-            <TableRow key={i} className="border-white/5">
-              {[...Array(6)].map((_, j) => (
-                <TableCell key={j}>
-                  <div className="h-8 bg-muted/40 rounded-lg"></div>
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="space-y-2.5">
+      {[...Array(6)].map((_, index) => (
+        <div
+          key={index}
+          className="overflow-hidden rounded-xl border border-border bg-white shadow-sm animate-pulse"
+        >
+          <div className="flex items-stretch">
+            <div className="w-1.5 shrink-0 bg-muted" />
+            <div className="flex flex-1 flex-col gap-3 p-4 md:flex-row md:items-center">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-14 rounded bg-muted" />
+                  <div className="h-5 w-12 rounded bg-muted" />
+                  <div className="h-4 w-16 rounded bg-muted" />
+                </div>
+                <div className="h-5 w-52 rounded bg-muted" />
+                <div className="h-4 w-64 rounded bg-muted" />
+              </div>
+              <div className="min-w-[170px] space-y-2 border-t border-border pt-2 md:border-l md:border-t-0 md:pl-4 md:pt-0">
+                <div className="h-4 w-24 rounded bg-muted" />
+                <div className="h-1.5 w-full rounded bg-muted" />
+                <div className="flex gap-1.5">
+                  <div className="h-8 w-8 rounded-lg bg-muted" />
+                  <div className="h-8 w-8 rounded-lg bg-muted" />
+                  <div className="h-8 w-8 rounded-lg bg-muted" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

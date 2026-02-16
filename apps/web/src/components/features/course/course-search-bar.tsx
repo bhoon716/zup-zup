@@ -1,9 +1,10 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, RotateCcw, Search } from "lucide-react";
-import { useState } from "react";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -16,397 +17,626 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { TimeTableSelector } from "./time-table-selector";
+import { useUser } from "@/hooks/useUser";
+import {
+  ChevronDown,
+  Filter,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type {
-  CourseSearchCondition,
   CourseClassification,
+  CourseSearchCondition,
   GradingMethod,
   LectureLanguage,
-  ScheduleCondition
+  ScheduleCondition,
 } from "@/types/api";
-import { toast } from "sonner";
-import { useUser } from "@/hooks/useUser";
 
 interface CourseSearchBarProps {
   onSearch: (condition: CourseSearchCondition) => void;
   isLoading?: boolean;
+  initialCondition?: CourseSearchCondition;
 }
 
-const CLASSIFICATIONS: CourseClassification[] = ['계열공통', '교양', '교직(대)', '교직', '군사학', '기초필수', '선수', '일반선택', '전공', '전공선택', '전공필수'];
-const GRADING_METHODS: GradingMethod[] = ['Pass/Fail', '기타(법전원)', '상대평가Ⅰ', '상대평가Ⅱ', '상대평가Ⅲ', '절대평가'];
-const LANGUAGES: LectureLanguage[] = ['한국어', '영어', '독일어', '스페인어', '일본어', '중국어', '프랑스어'];
-const CREDITS = ['0.5', '1', '2', '3'];
-const LECTURE_HOURS = [...Array.from({ length: 9 }, (_, i) => (i + 1).toString()), '10+'];
-
-const GE_CATEGORIES: Record<string, string[]> = {
-  '기초': ['공통기초', '이공계기초'],
-  '일반': ['경력개발', '사회과학', '수리/정보', '언어/문학/문화', '역사/철학', '예술/체육', '자연과학'],
-  '핵심': ['과학적사고의기반', '사회이해의기반', '인문적사고의기반']
+const DEFAULT_CONDITION: CourseSearchCondition = {
+  academicYear: "2026",
+  semester: "U211600010",
 };
 
-export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [condition, setCondition] = useState<CourseSearchCondition>({
-    academicYear: '2026',
-    semester: 'U211600010'
+const CLASSIFICATIONS: CourseClassification[] = [
+  "계열공통",
+  "교양",
+  "교직(대)",
+  "교직",
+  "군사학",
+  "기초필수",
+  "선수",
+  "일반선택",
+  "전공",
+  "전공선택",
+  "전공필수",
+];
+
+const GRADING_METHODS: GradingMethod[] = [
+  "Pass/Fail",
+  "기타(법전원)",
+  "상대평가Ⅰ",
+  "상대평가Ⅱ",
+  "상대평가Ⅲ",
+  "절대평가",
+];
+
+const LANGUAGES: LectureLanguage[] = [
+  "한국어",
+  "영어",
+  "독일어",
+  "스페인어",
+  "일본어",
+  "중국어",
+  "프랑스어",
+];
+
+const CREDITS = ["0.5", "1", "2", "3", "4"];
+const LECTURE_HOURS = [...Array.from({ length: 9 }, (_, i) => `${i + 1}`), "10+"];
+
+const YEARS = ["2026", "2025", "2024"];
+
+const SEMESTERS = [
+  { label: "1학기", value: "U211600010" },
+  { label: "계절학기(하기)", value: "U010200021" },
+  { label: "2학기", value: "U211600020" },
+  { label: "계절학기(동기)", value: "U010200022" },
+  { label: "특별학기(여름)", value: "S1" },
+  { label: "특별학기(겨울)", value: "S2" },
+  { label: "특별학기(신입생)", value: "S3" },
+  { label: "특별학기(SW)", value: "S4" },
+];
+
+const GE_CATEGORIES: Record<string, string[]> = {
+  기초: ["공통기초", "이공계기초"],
+  일반: ["경력개발", "사회과학", "수리/정보", "언어/문학/문화", "역사/철학", "예술/체육", "자연과학"],
+  핵심: ["과학적사고의기반", "사회이해의기반", "인문적사고의기반"],
+};
+
+function sanitizeCondition(condition: CourseSearchCondition): CourseSearchCondition {
+  const sanitized: CourseSearchCondition = {};
+
+  Object.entries(condition).forEach(([key, value]) => {
+    if (value === undefined || value === null) {
+      return;
+    }
+
+    if (typeof value === "string" && value.trim() === "") {
+      return;
+    }
+
+    if (Array.isArray(value) && value.length === 0) {
+      return;
+    }
+
+    (sanitized as Record<string, unknown>)[key] = value;
   });
+
+  return sanitized;
+}
+
+interface FilterSectionProps {
+  title: string;
+  icon: ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: ReactNode;
+}
+
+function FilterSection({ title, icon, open, onOpenChange, children }: FilterSectionProps) {
+  return (
+    <Collapsible open={open} onOpenChange={onOpenChange}>
+      <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_6px_20px_rgba(15,23,42,0.03)]">
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-muted/60"
+          >
+            <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+              {icon}
+              {title}
+            </span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                open && "rotate-180",
+              )}
+            />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="border-t border-border/70 px-4 pb-4 pt-3 data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+          {children}
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
+
+export function CourseSearchBar({
+  onSearch,
+  isLoading,
+  initialCondition,
+}: CourseSearchBarProps) {
+  const [condition, setCondition] = useState<CourseSearchCondition>(
+    () => ({ ...(initialCondition ?? DEFAULT_CONDITION) }),
+  );
+  const [smartOpen, setSmartOpen] = useState(true);
+  const [basicOpen, setBasicOpen] = useState(true);
+  const [detailOpen, setDetailOpen] = useState(true);
 
   const { data: user } = useUser();
 
-  const availableDetails = condition.generalCategory ? GE_CATEGORIES[condition.generalCategory] || [] : [];
-
-  const YEARS = ["2026", "2025", "2024"];
-  const SEMESTERS = [
-    { label: "1학기", value: "U211600010", short: "1학기" },
-    { label: "계절학기(하기)", value: "U010200021", short: "계절(하)" },
-    { label: "2학기", value: "U211600020", short: "2학기" },
-    { label: "계절학기(동기)", value: "U010200022", short: "계절(동)" },
-    { label: "특별학기(여름)", value: "S1", short: "특(여)" },
-    { label: "특별학기(겨울)", value: "S2", short: "특(겨)" },
-    { label: "특별학기(신입생)", value: "S3", short: "특(신)" },
-    { label: "특별학기(SW)", value: "S4", short: "특(SW)" },
-  ];
+  const availableDetails = useMemo(() => {
+    if (!condition.generalCategory) {
+      return [];
+    }
+    return GE_CATEGORIES[condition.generalCategory] || [];
+  }, [condition.generalCategory]);
 
   const handleSearch = () => {
-    onSearch(condition);
-    setIsOpen(false);
+    onSearch(sanitizeCondition(condition));
   };
 
   const handleReset = () => {
-    setCondition({
-      academicYear: '2026',
-      semester: 'U211600010'
-    });
-    onSearch({
-      academicYear: '2026',
-      semester: 'U211600010'
-    });
+    setCondition({ ...DEFAULT_CONDITION });
+    onSearch({ ...DEFAULT_CONDITION });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    handleSearch();
+  };
+
+  const handleWishedOnlyChange = (checked: boolean) => {
+    if (checked && !user) {
+      toast.error("찜한 강의 필터는 로그인 후 사용할 수 있습니다.");
+      return;
     }
+
+    setCondition((prev) => ({ ...prev, isWishedOnly: checked || undefined }));
   };
 
   const handleSchedulesChange = (selected: ScheduleCondition[]) => {
-    setCondition({ ...condition, selectedSchedules: selected });
+    setCondition((prev) => ({
+      ...prev,
+      selectedSchedules: selected.length > 0 ? selected : undefined,
+    }));
   };
 
   return (
-    <div className="space-y-2">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="p-3 md:p-4 border rounded-2xl bg-card/40 backdrop-blur-xl shadow-2xl border-white/10 ring-1 ring-white/5">
-          <div className="flex flex-col lg:flex-row items-center gap-2 md:gap-3">
-            <div className="grid grid-cols-2 lg:grid-cols-12 gap-2 flex-grow w-full">
-              <div className="col-span-1 lg:col-span-1">
-                <Select 
-                  value={condition.academicYear || '2026'} 
-                  onValueChange={(val) => setCondition({ ...condition, academicYear: val })}
-                >
-                  <SelectTrigger className="bg-background/40 border-white/10 h-11 md:h-10 text-[11px] font-bold rounded-xl transition-all hover:bg-background/60">
-                    <SelectValue placeholder="연도" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
-                    {YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-1 lg:col-span-1">
-                <Select 
-                  value={condition.semester || '1'} 
-                  onValueChange={(val) => setCondition({ ...condition, semester: val })}
-                >
-                  <SelectTrigger className="bg-background/40 border-white/10 h-11 md:h-10 text-[11px] font-bold rounded-xl transition-all hover:bg-background/60">
-                    <SelectValue placeholder="학기" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
-                    {SEMESTERS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2 sm:col-span-1 lg:col-span-3">
-                <Input
-                  type="text"
-                  placeholder="과목명"
-                  value={condition.name || ''}
-                  onChange={(e) => setCondition({ ...condition, name: e.target.value })}
-                  onKeyDown={handleKeyDown}
-                  className="bg-background/40 border-white/10 focus-visible:ring-primary/20 h-11 md:h-10 text-sm md:text-xs font-medium rounded-xl transition-all hover:bg-background/60"
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="space-y-3 pb-4">
+        <Button
+          type="button"
+          onClick={handleSearch}
+          disabled={isLoading}
+          className="h-12 w-full gap-2 rounded-2xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
+        >
+          {isLoading ? (
+            <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+          검색 적용하기
+        </Button>
+
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-lg font-black tracking-tight text-foreground">상세 필터</h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 rounded-lg px-2 text-xs font-bold text-muted-foreground hover:text-primary"
+            onClick={handleReset}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            초기화
+          </Button>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="space-y-3 overflow-y-auto pr-1">
+          <FilterSection
+            title="스마트 필터"
+            icon={<Sparkles className="h-4 w-4 text-primary/80" />}
+            open={smartOpen}
+            onOpenChange={setSmartOpen}
+          >
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border bg-muted/30 p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-bold text-muted-foreground">가능한 시간대 선택</p>
+                  <span className="text-[10px] font-semibold text-primary/70">
+                    {condition.selectedSchedules?.length ?? 0}칸 선택
+                  </span>
+                </div>
+                <TimeTableSelector
+                  selected={condition.selectedSchedules || []}
+                  onChange={handleSchedulesChange}
                 />
               </div>
 
-              <div className="col-span-2 sm:col-span-1 lg:col-span-3">
-                <Input
-                  type="text"
-                  placeholder="교수명"
-                  value={condition.professor || ''}
-                  onChange={(e) => setCondition({ ...condition, professor: e.target.value })}
-                  onKeyDown={handleKeyDown}
-                  className="bg-background/40 border-white/10 focus-visible:ring-primary/20 h-11 md:h-10 text-sm md:text-xs font-medium rounded-xl transition-all hover:bg-background/60"
-                />
-              </div>
-              <div className="col-span-1 lg:col-span-2 flex items-center gap-1.5 h-11 md:h-10">
-                <div className="flex-1 flex items-center justify-center bg-background/30 border border-dashed border-white/10 rounded-xl px-1 group cursor-pointer hover:bg-background/50 transition-all h-full" onClick={() => setCondition({ ...condition, isAvailableOnly: !condition.isAvailableOnly })}>
-                  <Checkbox 
-                    id="isAvailableOnly" 
-                    checked={condition.isAvailableOnly || false}
-                    onCheckedChange={(checked) => setCondition({ ...condition, isAvailableOnly: !!checked })}
-                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary w-3.5 h-3.5"
-                  />
-                  <label 
-                    htmlFor="isAvailableOnly"
-                    className="text-[10px] font-bold text-muted-foreground group-hover:text-foreground cursor-pointer select-none transition-colors ml-1.5 truncate"
-                  >
-                    잔여석만
-                  </label>
-                </div>
-                <div 
-                  className="flex-1 flex items-center justify-center bg-background/30 border border-dashed border-white/10 rounded-xl px-1 group cursor-pointer hover:bg-background/50 transition-all h-full" 
-                  onClick={() => {
-                    if (!user) {
-                      toast.error("로그인이 필요한 기능입니다.");
-                      return;
+              <div className="space-y-3 rounded-xl border border-border bg-white p-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="isAvailableOnly" className="text-sm font-medium text-foreground">
+                    여석 있는 강의만
+                  </Label>
+                  <Switch
+                    id="isAvailableOnly"
+                    checked={condition.isAvailableOnly ?? false}
+                    onCheckedChange={(checked) =>
+                      setCondition((prev) => ({
+                        ...prev,
+                        isAvailableOnly: checked || undefined,
+                      }))
                     }
-                    setCondition({ ...condition, isWishedOnly: !condition.isWishedOnly });
-                  }}
-                >
-                  <Checkbox 
-                    id="isWishedOnly" 
-                    checked={condition.isWishedOnly || false}
-                    className="data-[state=checked]:bg-rose-500 data-[state=checked]:border-rose-500 w-3.5 h-3.5"
                   />
-                  <label 
-                    htmlFor="isWishedOnly"
-                    className="text-[10px] font-bold text-muted-foreground group-hover:text-foreground cursor-pointer select-none transition-colors ml-1.5 truncate"
-                  >
-                    찜한 강의만
-                  </label>
                 </div>
-              </div>
-              <div className="col-span-1 lg:col-span-2 flex items-center gap-1.5 h-11 md:h-10">
-                <Button 
-                  onClick={handleSearch} 
-                  disabled={isLoading}
-                  className="flex-1 h-full bg-primary hover:bg-primary/90 text-primary-foreground font-black rounded-xl transition-all shadow-lg shadow-primary/20 disabled:opacity-70"
-                >
-                  {isLoading ? (
-                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Search className="w-4 h-4" />
-                      <span className="md:hidden text-xs">검색</span>
-                    </div>
-                  )}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleReset} 
-                  className="w-11 md:w-10 h-full p-0 rounded-xl border-white/10 hover:bg-white/5 transition-all flex-shrink-0"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </Button>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="isWishedOnly" className="text-sm font-medium text-foreground">
+                    관심 강의만 보기
+                  </Label>
+                  <Switch
+                    id="isWishedOnly"
+                    checked={condition.isWishedOnly ?? false}
+                    onCheckedChange={handleWishedOnlyChange}
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          </FilterSection>
 
-          <div className="overflow-hidden">
-            <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-              <div className="flex flex-col lg:flex-row gap-8 mt-4 pt-4 border-t border-white/5">
-                <div className="flex-shrink-0 space-y-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-1 h-3 bg-primary/60 rounded-full"></div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-primary/80">
-                      수강 가능 시간표
-                    </label>
-                  </div>
-                  <TimeTableSelector 
-                    selected={condition.selectedSchedules || []}
-                    onChange={handleSchedulesChange}
-                  />
+          <FilterSection
+            title="기본 정보"
+            icon={<Filter className="h-4 w-4 text-primary/80" />}
+            open={basicOpen}
+            onOpenChange={setBasicOpen}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-bold text-muted-foreground">년도</Label>
+                  <Select
+                    value={condition.academicYear || "2026"}
+                    onValueChange={(value) =>
+                      setCondition((prev) => ({ ...prev, academicYear: value }))
+                    }
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+                      <SelectValue placeholder="년도" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {YEARS.map((year) => (
+                        <SelectItem key={year} value={year}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="flex-grow space-y-6">
-                  <div className="p-4 rounded-2xl bg-background/20 border border-white/5 space-y-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-1 h-3 bg-primary/40 rounded-full"></div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">상세 검색 정보</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
-                      <div className="space-y-2 col-span-1 md:col-span-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">과목코드</label>
-                        <Input
-                          placeholder="과목코드 (예: CLTR.0031)"
-                          value={condition.subjectCode || ''}
-                          onChange={(e) => setCondition({ ...condition, subjectCode: e.target.value })}
-                          className="bg-background/30 border-white/5 h-10 text-[11px] font-medium rounded-xl placeholder:text-muted-foreground/40"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">이수구분</label>
-                        <Select 
-                          value={condition.classification || ''} 
-                          onValueChange={(val) => setCondition({ ...condition, classification: val === 'all' ? undefined : val as CourseClassification })}
-                        >
-                          <SelectTrigger className="bg-background/30 border-white/5 h-10 text-[11px] font-medium rounded-xl">
-                            <SelectValue placeholder="이수구분" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
-                            <SelectItem value="all">전체</SelectItem>
-                            {CLASSIFICATIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">학점</label>
-                        <Select 
-                          value={condition.credits || ''} 
-                          onValueChange={(val) => setCondition({ ...condition, credits: val === 'all' ? undefined : val })}
-                        >
-                          <SelectTrigger className="bg-background/30 border-white/5 h-10 text-[11px] font-medium rounded-xl">
-                            <SelectValue placeholder="학점" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
-                            <SelectItem value="all">전체</SelectItem>
-                            {CREDITS.map(c => <SelectItem key={c} value={c}>{c}학점</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">시수</label>
-                        <Select 
-                          value={condition.minLectureHours ? '10+' : (condition.lectureHours?.toString() || '')} 
-                          onValueChange={(val) => {
-                            if (val === 'all') {
-                              setCondition({ ...condition, lectureHours: undefined, minLectureHours: undefined });
-                            } else if (val === '10+') {
-                              setCondition({ ...condition, lectureHours: undefined, minLectureHours: 10 });
-                            } else {
-                              setCondition({ ...condition, lectureHours: parseInt(val), minLectureHours: undefined });
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="bg-background/30 border-white/5 h-10 text-[11px] font-medium rounded-xl">
-                            <SelectValue placeholder="시수" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
-                            <SelectItem value="all">전체</SelectItem>
-                            {LECTURE_HOURS.map(h => <SelectItem key={h} value={h}>{h === '10+' ? '10시간 이상' : `${h}시간`}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-background/20 border border-white/5 space-y-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-1 h-3 bg-primary/40 rounded-full"></div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">강의 상세 정보</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">개설학과</label>
-                        <Input
-                          placeholder="학과 / 단과대명"
-                          value={condition.department || ''}
-                          onChange={(e) => setCondition({ ...condition, department: e.target.value })}
-                          className="bg-background/30 border-white/5 h-10 text-[11px] font-medium rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">성적평가방식</label>
-                        <Select 
-                          value={condition.gradingMethod || ''} 
-                          onValueChange={(val) => setCondition({ ...condition, gradingMethod: val === 'all' ? undefined : val as GradingMethod })}
-                        >
-                          <SelectTrigger className="bg-background/30 border-white/5 h-10 text-[11px] font-medium rounded-xl">
-                            <SelectValue placeholder="성적평가방식" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
-                            <SelectItem value="all">전체</SelectItem>
-                            {GRADING_METHODS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">강의언어</label>
-                        <Select 
-                          value={condition.lectureLanguage || ''} 
-                          onValueChange={(val) => setCondition({ ...condition, lectureLanguage: val === 'all' ? undefined : val as LectureLanguage })}
-                        >
-                          <SelectTrigger className="bg-background/30 border-white/5 h-10 text-[11px] font-medium rounded-xl">
-                            <SelectValue placeholder="강의언어" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
-                            <SelectItem value="all">전체</SelectItem>
-                            {LANGUAGES.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                  {condition.classification === '교양' && (
-                    <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-1 h-3 bg-primary/60 rounded-full"></div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">교양 세부 정보</span>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 ml-1">교양영역</label>
-                          <Select 
-                            value={condition.generalCategory || ''} 
-                            onValueChange={(val) => setCondition({ 
-                              ...condition, 
-                              generalCategory: val === 'all' ? undefined : val,
-                              generalDetail: undefined 
-                            })}
-                          >
-                            <SelectTrigger className="bg-background/30 border-primary/10 h-10 text-[11px] font-medium rounded-xl">
-                              <SelectValue placeholder="교양영역 전체" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
-                              <SelectItem value="all">전체</SelectItem>
-                            {Object.keys(GE_CATEGORIES).map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                          </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 ml-1">상세영역</label>
-                          <Select 
-                            value={condition.generalDetail || ''} 
-                            onValueChange={(val) => setCondition({ ...condition, generalDetail: val === 'all' ? undefined : val })}
-                            disabled={!condition.generalCategory}
-                          >
-                            <SelectTrigger className="bg-background/30 border-primary/10 h-10 text-[11px] font-medium rounded-xl disabled:opacity-50">
-                              <SelectValue placeholder={condition.generalCategory ? "상세영역 선택" : "영역을 먼저 선택하세요"} />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card/90 backdrop-blur-xl border-white/10">
-                              <SelectItem value="all">전체</SelectItem>
-                              {availableDetails.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-bold text-muted-foreground">학기</Label>
+                  <Select
+                    value={condition.semester || "U211600010"}
+                    onValueChange={(value) =>
+                      setCondition((prev) => ({ ...prev, semester: value }))
+                    }
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+                      <SelectValue placeholder="학기" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SEMESTERS.map((semester) => (
+                        <SelectItem key={semester.value} value={semester.value}>
+                          {semester.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            </CollapsibleContent>
-          </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-muted-foreground">강의명 / 강의 코드</Label>
+                <Input
+                  value={condition.name || ""}
+                  onChange={(e) => setCondition((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="예: 자료구조, CLTR.0031"
+                  className="h-10 rounded-xl bg-muted/30"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-muted-foreground">교수명</Label>
+                <Input
+                  value={condition.professor || ""}
+                  onChange={(e) =>
+                    setCondition((prev) => ({ ...prev, professor: e.target.value }))
+                  }
+                  placeholder="교수님 성함"
+                  className="h-10 rounded-xl bg-muted/30"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-muted-foreground">학과 검색</Label>
+                <Input
+                  value={condition.department || ""}
+                  onChange={(e) =>
+                    setCondition((prev) => ({ ...prev, department: e.target.value }))
+                  }
+                  placeholder="예: 컴퓨터공학부, 경영학과"
+                  className="h-10 rounded-xl bg-muted/30"
+                />
+              </div>
+            </div>
+          </FilterSection>
+
+          <FilterSection
+            title="강의 상세"
+            icon={<SlidersHorizontal className="h-4 w-4 text-primary/80" />}
+            open={detailOpen}
+            onOpenChange={setDetailOpen}
+          >
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-muted-foreground">이수 구분</Label>
+                <Select
+                  value={condition.classification || "all"}
+                  onValueChange={(value) =>
+                    setCondition((prev) => ({
+                      ...prev,
+                      classification:
+                        value === "all" ? undefined : (value as CourseClassification),
+                      generalCategory: value === "교양" ? prev.generalCategory : undefined,
+                      generalDetail: value === "교양" ? prev.generalDetail : undefined,
+                    }))
+                  }
+                >
+                  <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+                    <SelectValue placeholder="전체" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체</SelectItem>
+                    {CLASSIFICATIONS.map((classification) => (
+                      <SelectItem key={classification} value={classification}>
+                        {classification}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {condition.classification === "교양" && (
+                <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-bold text-primary/80">교양 영역</Label>
+                    <Select
+                      value={condition.generalCategory || "all"}
+                      onValueChange={(value) =>
+                        setCondition((prev) => ({
+                          ...prev,
+                          generalCategory: value === "all" ? undefined : value,
+                          generalDetail: undefined,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="h-10 rounded-xl bg-white/80 text-sm">
+                        <SelectValue placeholder="전체" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">전체</SelectItem>
+                        {Object.keys(GE_CATEGORIES).map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-bold text-primary/80">상세 영역</Label>
+                    <Select
+                      value={condition.generalDetail || "all"}
+                      disabled={!condition.generalCategory}
+                      onValueChange={(value) =>
+                        setCondition((prev) => ({
+                          ...prev,
+                          generalDetail: value === "all" ? undefined : value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="h-10 rounded-xl bg-white/80 text-sm">
+                        <SelectValue
+                          placeholder={
+                            condition.generalCategory ? "상세 영역 선택" : "교양 영역을 먼저 선택하세요"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">전체</SelectItem>
+                        {availableDetails.map((detail) => (
+                          <SelectItem key={detail} value={detail}>
+                            {detail}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-bold text-muted-foreground">강의 언어</Label>
+                  <Select
+                    value={condition.lectureLanguage || "all"}
+                    onValueChange={(value) =>
+                      setCondition((prev) => ({
+                        ...prev,
+                        lectureLanguage:
+                          value === "all" ? undefined : (value as LectureLanguage),
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+                      <SelectValue placeholder="전체" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {LANGUAGES.map((language) => (
+                        <SelectItem key={language} value={language}>
+                          {language}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-bold text-muted-foreground">성적 평가</Label>
+                  <Select
+                    value={condition.gradingMethod || "all"}
+                    onValueChange={(value) =>
+                      setCondition((prev) => ({
+                        ...prev,
+                        gradingMethod: value === "all" ? undefined : (value as GradingMethod),
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+                      <SelectValue placeholder="전체" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {GRADING_METHODS.map((grading) => (
+                        <SelectItem key={grading} value={grading}>
+                          {grading}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-bold text-muted-foreground">학점</Label>
+                  <Select
+                    value={condition.credits || "all"}
+                    onValueChange={(value) =>
+                      setCondition((prev) => ({
+                        ...prev,
+                        credits: value === "all" ? undefined : value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+                      <SelectValue placeholder="전체" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {CREDITS.map((credit) => (
+                        <SelectItem key={credit} value={credit}>
+                          {credit}학점
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-bold text-muted-foreground">시수</Label>
+                  <Select
+                    value={
+                      condition.minLectureHours
+                        ? "10+"
+                        : condition.lectureHours
+                          ? `${condition.lectureHours}`
+                          : "all"
+                    }
+                    onValueChange={(value) => {
+                      if (value === "all") {
+                        setCondition((prev) => ({
+                          ...prev,
+                          lectureHours: undefined,
+                          minLectureHours: undefined,
+                        }));
+                        return;
+                      }
+
+                      if (value === "10+") {
+                        setCondition((prev) => ({
+                          ...prev,
+                          lectureHours: undefined,
+                          minLectureHours: 10,
+                        }));
+                        return;
+                      }
+
+                      setCondition((prev) => ({
+                        ...prev,
+                        lectureHours: Number(value),
+                        minLectureHours: undefined,
+                      }));
+                    }}
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+                      <SelectValue placeholder="전체" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {LECTURE_HOURS.map((hour) => (
+                        <SelectItem key={hour} value={hour}>
+                          {hour === "10+" ? "10시간 이상" : `${hour}시간`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-muted-foreground">과목 코드</Label>
+                <Input
+                  value={condition.subjectCode || ""}
+                  onChange={(e) =>
+                    setCondition((prev) => ({ ...prev, subjectCode: e.target.value }))
+                  }
+                  placeholder="예: CLTR.0031"
+                  className="h-10 rounded-xl bg-muted/30"
+                />
+              </div>
+            </div>
+          </FilterSection>
         </div>
-        <div className="flex justify-center -mt-4 relative z-10">
-          <CollapsibleTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="gap-2 h-7 px-8 rounded-full bg-card border border-white/10 hover:bg-accent transition-all shadow-sm text-[9px] font-black uppercase tracking-wider"
-            >
-              {isOpen ? '간략히' : '상세검색'} 
-              {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </Button>
-          </CollapsibleTrigger>
+
+        <div className="mt-4 border-t border-border/70 pt-3">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="h-11 w-full gap-2 rounded-xl bg-primary text-sm font-bold text-white hover:bg-primary/90"
+          >
+            <Search className="h-4 w-4" />
+            필터로 검색하기
+          </Button>
         </div>
-      </Collapsible>
+      </form>
     </div>
   );
 }
