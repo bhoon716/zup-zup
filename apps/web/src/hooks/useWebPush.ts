@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 export const useWebPush = () => {
   const [loading, setLoading] = useState(false);
 
-  const subscribe = useCallback(async () => {
+  const subscribe = useCallback(async (customAlias?: string) => {
     setLoading(true);
     try {
       // 1. Subscribe to Push Manager (Browser)
@@ -23,17 +23,21 @@ export const useWebPush = () => {
 
       // 3. Register device to Backend with Alias
       const ua = navigator.userAgent;
-      let alias = "Unknown Device";
-      if (ua.includes("Win")) alias = "Windows PC";
-      else if (ua.includes("Mac")) alias = "Mac";
-      else if (ua.includes("Linux")) alias = "Linux PC";
-      else if (ua.includes("Android")) alias = "Android Device";
-      else if (ua.includes("iPhone") || ua.includes("iPad")) alias = "iOS Device";
+      let alias = customAlias;
+      
+      if (!alias) {
+          alias = "Unknown Device";
+          if (ua.includes("Win")) alias = "Windows PC";
+          else if (ua.includes("Mac")) alias = "Mac";
+          else if (ua.includes("Linux")) alias = "Linux PC";
+          else if (ua.includes("Android")) alias = "Android Device";
+          else if (ua.includes("iPhone") || ua.includes("iPad")) alias = "iOS Device";
 
-      if (ua.includes("Chrome")) alias = `Chrome on ${alias}`;
-      else if (ua.includes("Firefox")) alias = `Firefox on ${alias}`;
-      else if (ua.includes("Safari") && !ua.includes("Chrome")) alias = `Safari on ${alias}`;
-      else if (ua.includes("Edge")) alias = `Edge on ${alias}`;
+          if (ua.includes("Chrome")) alias = `Chrome on ${alias}`;
+          else if (ua.includes("Firefox")) alias = `Firefox on ${alias}`;
+          else if (ua.includes("Safari") && !ua.includes("Chrome")) alias = `Safari on ${alias}`;
+          else if (ua.includes("Edge")) alias = `Edge on ${alias}`;
+      }
 
       await userApi.registerDevice({
         type: 'WEB',
