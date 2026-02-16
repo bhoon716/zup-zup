@@ -29,7 +29,7 @@ public class FcmNotificationSender implements NotificationSender {
                     .build();
 
             String response = FirebaseMessaging.getInstance().send(fcmMessage);
-            log.info("[FCM] Sent message to: {}, response: {}", target.getRecipient(), response);
+            log.info("[FCM] 메시지 전송 완료 - 대상: {}, 응답: {}", target.getRecipient(), response);
         } catch (Exception e) {
             log.error("[FCM] 발송 실패 - 토큰: {}, 에러: {}", target.getRecipient(), e.getMessage(), e);
             throw new CustomException(ErrorCode.FCM_SEND_ERROR, e.getMessage());

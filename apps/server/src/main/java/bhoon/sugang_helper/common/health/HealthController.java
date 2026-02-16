@@ -29,7 +29,7 @@ public class HealthController {
             @ApiResponse(responseCode = "200", description = "헬스 체크 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
                     {
                       "code": "SUCCESS",
-                      "message": "Health check 통과",
+                      "message": "헬스 체크 통과",
                       "data": {
                         "status": "UP",
                         "version": "0.0.1",
@@ -46,7 +46,7 @@ public class HealthController {
                 buildProperties.getVersion(),
                 buildProperties.getTime(),
                 LocalDateTime.now());
-        log.info("Health check 통과");
-        return CommonResponse.ok(response, "Health check 통과");
+        log.info("헬스 체크 통과");
+        return CommonResponse.ok(response, "헬스 체크 통과");
     }
 }

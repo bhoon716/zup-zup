@@ -2,13 +2,12 @@ package bhoon.sugang_helper.domain.notification.sender;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-
-import java.util.Map;
 
 @Component
 @Slf4j
@@ -33,13 +32,12 @@ public class DiscordNotificationSender implements NotificationSender {
     @Override
     public void send(NotificationTarget target, String title, String message) {
         if (botToken == null || botToken.isBlank() || botToken.equals("<DISCORD_BOT_TOKEN>")) {
-            log.warn("[Discord] Bot token is not configured. Skipping notification.");
+            log.warn("[디스코드] 봇 토큰이 설정되지 않아 알림을 건너뜁니다.");
             return;
         }
 
         String userId = target.getRecipient();
         try {
-            // 1. Create/Get DM Channel
             @SuppressWarnings("unchecked")
             Map<String, Object> channelResponse = restClient.post()
                     .uri("/users/@me/channels")
@@ -50,12 +48,11 @@ public class DiscordNotificationSender implements NotificationSender {
                     .body(Map.class);
 
             if (channelResponse == null || !channelResponse.containsKey("id")) {
-                throw new RuntimeException("Failed to create DM channel");
+                throw new RuntimeException("디스코드 개인 메시지 채널 생성에 실패했습니다.");
             }
 
             String channelId = (String) channelResponse.get("id");
 
-            // 2. Send Message
             String content = String.format("**%s**\n\n%s", title, message);
             restClient.post()
                     .uri("/channels/{channelId}/messages", channelId)
@@ -65,9 +62,9 @@ public class DiscordNotificationSender implements NotificationSender {
                     .retrieve()
                     .toEntity(String.class);
 
-            log.info("[Discord] Sent DM to userId: {}", userId);
+            log.info("[디스코드] 개인 메시지 알림을 전송했습니다. userId={}", userId);
         } catch (Exception e) {
-            log.error("[Discord] Failed to send DM to userId: {}. Error: {}", userId, e.getMessage());
+            log.error("[디스코드] 개인 메시지 알림 전송에 실패했습니다. userId={}, reason={}", userId, e.getMessage());
             throw new CustomException(ErrorCode.DISCORD_SEND_ERROR, "디스코드 알림 발송 실패: " + e.getMessage());
         }
     }

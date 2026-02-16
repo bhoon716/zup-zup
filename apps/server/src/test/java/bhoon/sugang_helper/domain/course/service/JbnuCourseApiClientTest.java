@@ -2,19 +2,18 @@ package bhoon.sugang_helper.domain.course.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import java.io.IOException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import io.github.cdimascio.dotenv.Dotenv;
-
 @Tag("manual")
 class JbnuCourseApiClientTest {
 
     @Test
-    @DisplayName("Fetch Course Data - Real Network Call")
+    @DisplayName("실제 강좌 데이터 가져오기")
     void fetchCourseData_RealCall() throws IOException {
         // Given
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
@@ -40,7 +39,7 @@ class JbnuCourseApiClientTest {
         System.out.println(
                 "Response excerpt: "
                         + (result != null && result.length() > 500 ? result.substring(0, 500)
-                                : result));
+                        : result));
 
         assertThat(result).isNotNull();
         assertThat(result).as("Server Response Content: %s", result)

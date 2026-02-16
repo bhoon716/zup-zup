@@ -15,9 +15,12 @@ import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -36,18 +39,18 @@ public class AuthService {
         String refreshToken = resolveRefreshToken(request);
 
         if (!StringUtils.hasText(refreshToken)) {
-            throw new CustomException(ErrorCode.INVALID_TOKEN, "Refresh Token not found");
+            throw new CustomException(ErrorCode.INVALID_TOKEN, "리프레시 토큰이 없습니다.");
         }
 
         if (!jwtProvider.validateToken(refreshToken)) {
-            throw new CustomException(ErrorCode.INVALID_TOKEN, "Invalid Refresh Token");
+            throw new CustomException(ErrorCode.INVALID_TOKEN, "유효하지 않은 리프레시 토큰입니다.");
         }
 
         String email = jwtProvider.getAuthentication(refreshToken).getName();
         String savedToken = redisService.getValues(REDIS_REFRESH_TOKEN_PREFIX + email);
 
         if (!refreshToken.equals(savedToken)) {
-            throw new CustomException(ErrorCode.INVALID_TOKEN, "Token Unmatched");
+            throw new CustomException(ErrorCode.INVALID_TOKEN, "저장된 리프레시 토큰과 일치하지 않습니다.");
         }
 
         User user = userRepository.findByEmail(email)
@@ -56,14 +59,12 @@ public class AuthService {
         String newAccessToken = jwtProvider.createAccessToken(user.getEmail(), user.getRoleKey());
         String newRefreshToken = jwtProvider.createRefreshToken(user.getEmail());
 
-        // Update Session (BFF 패턴: 서버 세션에 최신 토큰 동기화)
-        // getSession(true)를 사용하여 세션이 만료되었더라도 새 세션을 생성하도록 보장합니다.
-        jakarta.servlet.http.HttpSession session = request.getSession(true);
+        // 세션이 없으면 새로 생성해 최신 토큰을 동기화한다.
+        HttpSession session = request.getSession(true);
         session.setAttribute("ACCESS_TOKEN", newAccessToken);
         session.setAttribute("REFRESH_TOKEN", newRefreshToken);
-        log.info("[Auth] Session tokens updated for email: {}", email);
+        log.info("[인증] 세션 토큰을 갱신했습니다. email={}", email);
 
-        // Update Cookie
         addRefreshTokenCookie(response, newRefreshToken);
 
         return newAccessToken;
@@ -73,8 +74,7 @@ public class AuthService {
         String refreshToken = resolveRefreshToken(request);
         String accessToken = jwtProvider.resolveToken(request);
 
-        // 세션 무효화 (BFF 세션 제거)
-        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        HttpSession session = request.getSession(false);
         if (session != null) {
             if (accessToken == null) {
                 accessToken = (String) session.getAttribute("ACCESS_TOKEN");
@@ -111,15 +111,15 @@ public class AuthService {
     }
 
     public void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-        org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie
+        ResponseCookie cookie = ResponseCookie
                 .from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
-                .secure(false) // 로컬 테스트를 위해 false, 운영 환경에서는 true 권장
+                .secure(false) // 운영 환경에서는 반드시 활성화해야 한다.
                 .path("/")
                 .maxAge(REFRESH_TOKEN_COOKIE_MAX_AGE)
-                .sameSite("Lax") // CSRF 방어
+                .sameSite("Lax")
                 .build();
-        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     private void deleteRefreshTokenCookie(HttpServletResponse response) {

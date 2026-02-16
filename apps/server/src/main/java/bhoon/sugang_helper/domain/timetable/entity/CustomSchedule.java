@@ -49,7 +49,7 @@ public class CustomSchedule extends BaseTimeEntity {
 
     @Builder
     public CustomSchedule(Timetable timetable, String title, String dayOfWeek, LocalTime startTime, LocalTime endTime,
-            String color) {
+                          String color) {
         this.timetable = timetable;
         this.title = title;
         this.dayOfWeek = dayOfWeek;

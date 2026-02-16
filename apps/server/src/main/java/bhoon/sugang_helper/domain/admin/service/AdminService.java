@@ -10,14 +10,13 @@ import bhoon.sugang_helper.domain.notification.service.NotificationService;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -50,9 +49,9 @@ public class AdminService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, "email: " + request.getEmail()));
 
-        java.util.List<NotificationChannel> channels = request.getChannels().stream()
+        List<NotificationChannel> channels = request.getChannels().stream()
                 .map(NotificationChannel::valueOf)
-                .collect(Collectors.toList());
+                .toList();
 
         notificationService.sendTestNotification(user, channels);
     }

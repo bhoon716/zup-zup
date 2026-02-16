@@ -2,23 +2,22 @@ package bhoon.sugang_helper.domain.subscription.service;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
-import bhoon.sugang_helper.domain.subscription.request.SubscriptionRequest;
-import bhoon.sugang_helper.domain.subscription.response.SubscriptionResponse;
 import bhoon.sugang_helper.domain.subscription.entity.Subscription;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
+import bhoon.sugang_helper.domain.subscription.request.SubscriptionRequest;
+import bhoon.sugang_helper.domain.subscription.response.SubscriptionResponse;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import bhoon.sugang_helper.common.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service

@@ -1,12 +1,12 @@
 package bhoon.sugang_helper.domain.course.service;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.never;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
@@ -117,10 +117,8 @@ class CourseCrawlerServiceTest {
 
     @Test
     @Tag("manual")
-    @DisplayName("Crawl and Save - Real Network Integration")
+    @DisplayName("실제 크롤링 및 저장 진행")
     void crawlAndSave_RealIntegration() {
-        // given 로직 생략 (기존 테스트 유지하되 필요한 것만 보정)
-        ReflectionTestUtils.setField(apiClient, "apiUrl", "http://example.com"); // Dummy for compile
-        // ... (이 테스트는 실제 환경 변수 의존적이므로 skip 가능성 큼)
+        ReflectionTestUtils.setField(apiClient, "apiUrl", "http://example.com");
     }
 }

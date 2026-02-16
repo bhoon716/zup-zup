@@ -3,10 +3,9 @@ package bhoon.sugang_helper.domain.user.response;
 import bhoon.sugang_helper.domain.user.entity.UserDevice;
 import bhoon.sugang_helper.domain.user.enums.DeviceType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 @Getter
 @Builder

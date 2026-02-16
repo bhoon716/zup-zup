@@ -1,25 +1,29 @@
 package bhoon.sugang_helper.domain.course.repository;
 
+import static bhoon.sugang_helper.domain.course.entity.QCourse.course;
+
 import bhoon.sugang_helper.domain.course.entity.Course;
+import bhoon.sugang_helper.domain.course.entity.QCourseSchedule;
 import bhoon.sugang_helper.domain.course.enums.CourseClassification;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
 import bhoon.sugang_helper.domain.course.request.ScheduleCondition;
+import bhoon.sugang_helper.domain.wishlist.entity.QWishlist;
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
-import org.springframework.util.StringUtils;
-
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-
-import static bhoon.sugang_helper.domain.course.entity.QCourse.course;
-import bhoon.sugang_helper.domain.course.entity.QCourseSchedule;
-import bhoon.sugang_helper.domain.wishlist.entity.QWishlist;
+import java.util.Optional;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
+import org.springframework.util.StringUtils;
 
 public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
@@ -30,8 +34,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     @Override
-    public org.springframework.data.domain.Slice<Course> searchCourses(CourseSearchCondition condition,
-            org.springframework.data.domain.Pageable pageable) {
+    public Slice<Course> searchCourses(CourseSearchCondition condition, Pageable pageable) {
         List<Course> content = queryFactory
                 .selectFrom(course)
                 .where(
@@ -64,48 +67,58 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
             hasNext = true;
         }
 
-        return new org.springframework.data.domain.SliceImpl<>(content, pageable, hasNext);
+        return new SliceImpl<>(content, pageable, hasNext);
     }
 
-    // ... skipping other methods for brevity, keeping only the logic for subset
-    // matching
-
     private BooleanExpression matchSelectedSchedules(List<ScheduleCondition> selectedSchedules) {
-        if (selectedSchedules == null || selectedSchedules.isEmpty()) {
+        List<ValidScheduleCondition> validConditions = toValidConditions(selectedSchedules);
+        if (validConditions.isEmpty()) {
             return null;
         }
 
-        // 과목의 모든 수업시간(dayOfWeek, start~end)이 선택된 시간대에 포함되어야 한다.
         QCourseSchedule schedule = QCourseSchedule.courseSchedule;
-
-        com.querydsl.core.BooleanBuilder selectedSlots = new com.querydsl.core.BooleanBuilder();
-        int validSlotCount = 0;
-        for (ScheduleCondition cond : selectedSchedules) {
-            if (cond.getDayOfWeek() == null) {
-                continue;
-            }
-
-            LocalTime startTime = parseTime(cond.getStartTime());
-            LocalTime endTime = parseTime(cond.getEndTime());
-            if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
-                continue;
-            }
-
-            selectedSlots.or(schedule.dayOfWeek.eq(cond.getDayOfWeek())
-                    .and(schedule.startTime.goe(startTime))
-                    .and(schedule.endTime.loe(endTime)));
-            validSlotCount++;
-        }
-
-        if (validSlotCount == 0) {
-            return null;
-        }
+        BooleanBuilder selectedSlots = buildSelectedSlots(schedule, validConditions);
 
         return JPAExpressions.selectOne()
                 .from(schedule)
                 .where(schedule.course.eq(course)
                         .and(selectedSlots.not()))
                 .notExists();
+    }
+
+    private List<ValidScheduleCondition> toValidConditions(List<ScheduleCondition> selectedSchedules) {
+        if (selectedSchedules == null || selectedSchedules.isEmpty()) {
+            return List.of();
+        }
+
+        return selectedSchedules.stream()
+                .map(this::toValidCondition)
+                .flatMap(Optional::stream)
+                .toList();
+    }
+
+    private Optional<ValidScheduleCondition> toValidCondition(ScheduleCondition condition) {
+        if (condition.getDayOfWeek() == null) {
+            return Optional.empty();
+        }
+
+        LocalTime startTime = parseTime(condition.getStartTime());
+        LocalTime endTime = parseTime(condition.getEndTime());
+        if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new ValidScheduleCondition(condition.getDayOfWeek(), startTime, endTime));
+    }
+
+    private BooleanBuilder buildSelectedSlots(QCourseSchedule schedule, List<ValidScheduleCondition> validConditions) {
+        BooleanBuilder selectedSlots = new BooleanBuilder();
+        for (ValidScheduleCondition validCondition : validConditions) {
+            selectedSlots.or(schedule.dayOfWeek.eq(validCondition.dayOfWeek())
+                    .and(schedule.startTime.goe(validCondition.startTime()))
+                    .and(schedule.endTime.loe(validCondition.endTime())));
+        }
+        return selectedSlots;
     }
 
     private BooleanExpression containsName(String name) {
@@ -129,8 +142,10 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     private BooleanExpression eqClassification(String classification) {
-        if (!StringUtils.hasText(classification))
+        if (!StringUtils.hasText(classification)) {
             return null;
+        }
+
         CourseClassification enumValue = CourseClassification.from(classification);
         return enumValue != null ? course.classification.eq(enumValue) : null;
     }
@@ -140,8 +155,10 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     private BooleanExpression eqGradingMethod(String gradingMethod) {
-        if (!StringUtils.hasText(gradingMethod))
+        if (!StringUtils.hasText(gradingMethod)) {
             return null;
+        }
+
         GradingMethod enumValue = GradingMethod.from(gradingMethod);
         return enumValue != null ? course.gradingMethod.eq(enumValue) : null;
     }
@@ -158,8 +175,10 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
             return null;
         }
         CourseDayOfWeek day = CourseDayOfWeek.from(dayOfWeekStr);
-        if (day == null)
+        if (day == null) {
             return null;
+        }
+
         return course.schedules.any().dayOfWeek.eq(day);
     }
 
@@ -219,4 +238,6 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                 .exists();
     }
 
+    private record ValidScheduleCondition(CourseDayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
+    }
 }

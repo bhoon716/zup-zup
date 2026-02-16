@@ -19,7 +19,7 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "timetable_entries", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_timetable_course", columnNames = { "timetable_id", "courseKey" })
+        @UniqueConstraint(name = "uk_timetable_course", columnNames = {"timetable_id", "courseKey"})
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

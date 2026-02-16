@@ -1,5 +1,14 @@
 package bhoon.sugang_helper.domain.notification.service;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.notification.entity.NotificationHistory;
@@ -15,20 +24,14 @@ import bhoon.sugang_helper.domain.user.entity.UserDevice;
 import bhoon.sugang_helper.domain.user.enums.DeviceType;
 import bhoon.sugang_helper.domain.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
+import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.Duration;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
@@ -176,7 +179,6 @@ class NotificationServiceTest {
 
         given(userDeviceRepository.findByUserIdAndType(1L, DeviceType.WEB)).willReturn(List.of());
 
-        // When & Then
         // When & Then
         org.assertj.core.api.Assertions
                 .assertThatThrownBy(() -> notificationService.sendTestNotification(user, channels))

@@ -13,14 +13,14 @@ public class CourseScheduler {
 
     private final CourseCrawlerService courseCrawlerService;
 
-    @Scheduled(cron = "0 0/5 * * * ?") // Every 5 minutes
+    @Scheduled(cron = "0 0/5 * * * ?") // 5분
     public void runCrawler() {
-        log.info("Scheduled crawler task started.");
+        log.info("[스케줄러] 강의 크롤링 작업을 시작합니다.");
         try {
             courseCrawlerService.crawlAndSaveCourses();
-            log.info("Scheduled crawler task completed.");
+            log.info("[스케줄러] 강의 크롤링 작업을 완료했습니다.");
         } catch (Exception e) {
-            log.error("Scheduled crawler task failed.", e);
+            log.error("[스케줄러] 강의 크롤링 작업에 실패했습니다.", e);
         }
     }
 }

@@ -30,16 +30,6 @@ public class SubscriptionResponse {
     @Schema(description = "구독 생성 일시", example = "2024-01-01T12:00:00")
     private final LocalDateTime createdAt;
 
-    public static SubscriptionResponse from(Subscription subscription) {
-        return new SubscriptionResponse(
-                subscription.getId(),
-                subscription.getCourseKey(),
-                null, // 서비스에서 과목명 조회 후 매핑 예정
-                null, // 서비스에서 교수명 조회 후 매핑 예정
-                subscription.isActive(),
-                subscription.getCreatedAt());
-    }
-
     public static SubscriptionResponse of(Subscription subscription, String courseName, String professorName) {
         return new SubscriptionResponse(
                 subscription.getId(),

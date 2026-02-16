@@ -1,9 +1,8 @@
 package bhoon.sugang_helper.domain.course.enums;
 
+import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-
-import java.util.Arrays;
 
 @Getter
 @RequiredArgsConstructor
@@ -26,6 +25,6 @@ public enum CourseClassification {
         return Arrays.stream(values())
                 .filter(c -> c.description.equals(description))
                 .findFirst()
-                .orElse(null); // 매핑 실패 시 null 반환 (또는 UNKNOWN 추가 고려)
+                .orElse(null); // 매핑 실패 시 null 반환 (필요하면 미확인 상수 추가)
     }
 }

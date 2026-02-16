@@ -1,22 +1,23 @@
 package bhoon.sugang_helper.domain.course.service;
 
-import bhoon.sugang_helper.domain.course.entity.Course;
-import bhoon.sugang_helper.domain.course.repository.CourseRepository;
-import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
-import bhoon.sugang_helper.domain.course.response.CourseResponse;
-import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
-import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.domain.course.entity.Course;
+import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
+import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
+import bhoon.sugang_helper.domain.course.response.CourseResponse;
+import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,8 +28,7 @@ public class CourseService {
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
     private final UserRepository userRepository;
 
-    public org.springframework.data.domain.Slice<CourseResponse> searchCourses(CourseSearchCondition condition,
-            org.springframework.data.domain.Pageable pageable) {
+    public Slice<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
         if (Boolean.TRUE.equals(condition.getIsWishedOnly())) {
             String email = SecurityUtil.getCurrentUserEmail();
             User user = userRepository.findByEmail(email)
@@ -48,7 +48,7 @@ public class CourseService {
 
     public CourseResponse getCourse(String courseKey) {
         Course course = courseRepository.findByCourseKey(courseKey)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "Course not found: " + courseKey));
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "강의를 찾을 수 없습니다: " + courseKey));
         return CourseResponse.from(course);
     }
 }

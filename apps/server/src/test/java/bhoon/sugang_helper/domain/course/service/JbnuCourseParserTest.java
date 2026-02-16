@@ -14,7 +14,7 @@ class JbnuCourseParserTest {
     private final JbnuCourseParser parser = new JbnuCourseParser();
 
     @Test
-    @DisplayName("Courses and their detailed metadata are parsed correctly from XML")
+    @DisplayName("XML에서 강좌 및 상세 메타데이터를 정확하게 파싱합니다.")
     void parseCourses_comprehensive() {
         // Given
         String xmlData = """
@@ -111,8 +111,8 @@ class JbnuCourseParserTest {
         assertThat(course2.getDisclosure().getDescription()).isEqualTo("비공개");
         assertThat(course2.getDisclosureReason()).isEqualTo("학과요청");
         assertThat(course2.getAccreditation().getDescription()).isEqualTo("공학");
-        assertThat(course2.getGeneralCategory()).isNull(); // FLDCONVINFO empty and FLDFGNM not provided (or would use
-                                                           // FLDFGNM fallback)
+        assertThat(course2.getGeneralCategory()).isNull();
+
         assertThat(course2.getSchedules()).hasSize(2);
         assertThat(course2.getSchedules().get(0).getStartTime()).isEqualTo(LocalTime.of(11, 0));
         assertThat(course2.getSchedules().get(0).getEndTime()).isEqualTo(LocalTime.of(12, 0));

@@ -5,9 +5,9 @@ import lombok.Getter;
 
 @Getter
 public class NotificationTarget {
-    private final String recipient; // Email, FCM Token, or Web Endpoint
-    private final String p256dh; // Only for Web Push
-    private final String auth; // Only for Web Push
+    private final String recipient; // 이메일, FCM 토큰, 웹푸시 엔드포인트
+    private final String p256dh; // 웹푸시 전용 공개키
+    private final String auth; // 웹푸시 전용 인증키
 
     @Builder
     private NotificationTarget(String recipient, String p256dh, String auth) {

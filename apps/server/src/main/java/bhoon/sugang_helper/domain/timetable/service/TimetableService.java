@@ -5,8 +5,6 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
-import bhoon.sugang_helper.domain.user.entity.User;
-import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import bhoon.sugang_helper.domain.timetable.entity.CustomSchedule;
 import bhoon.sugang_helper.domain.timetable.entity.Timetable;
 import bhoon.sugang_helper.domain.timetable.entity.TimetableEntry;
@@ -18,15 +16,16 @@ import bhoon.sugang_helper.domain.timetable.request.TimetableRequest;
 import bhoon.sugang_helper.domain.timetable.response.TimetableCourseResponse;
 import bhoon.sugang_helper.domain.timetable.response.TimetableDetailResponse;
 import bhoon.sugang_helper.domain.timetable.response.TimetableResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import bhoon.sugang_helper.domain.user.entity.User;
+import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -34,23 +33,19 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class TimetableService {
 
+    private static final int MAX_TIMETABLE_COUNT = 10;
+    private static final int MAX_COURSE_COUNT = 10;
+
     private final TimetableRepository timetableRepository;
     private final TimetableEntryRepository timetableEntryRepository;
     private final CustomScheduleRepository customScheduleRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
 
-    private static final int MAX_TIMETABLE_COUNT = 10;
-    private static final int MAX_COURSE_COUNT = 10;
-
     @Transactional
     public TimetableResponse createTimetable(TimetableRequest request) {
         User user = getCurrentUser();
-
-        if (timetableRepository.countByUserId(user.getId()) >= MAX_TIMETABLE_COUNT) {
-            throw new CustomException(ErrorCode.MAX_TIMETABLE_LIMIT_EXCEEDED,
-                    "시간표는 최대 " + MAX_TIMETABLE_COUNT + "개까지 생성 가능합니다.");
-        }
+        validateTimetableLimit(user.getId());
 
         if (request.isPrimary()) {
             resetPrimary(user.getId());
@@ -75,14 +70,9 @@ public class TimetableService {
     public TimetableDetailResponse getPrimaryTimetable() {
         User user = getCurrentUser();
         List<Timetable> primaryTimetables = timetableRepository.findByUserIdAndIsPrimaryTrue(user.getId());
-
         if (primaryTimetables.isEmpty()) {
             return null;
         }
-
-        // If multiple exist (shouldn't happen), take the first one or most recently
-        // updated?
-        // Let's take the first one for now.
         return getTimetableDetail(primaryTimetables.get(0));
     }
 
@@ -92,53 +82,18 @@ public class TimetableService {
         return getTimetableDetail(timetable);
     }
 
-    private TimetableDetailResponse getTimetableDetail(Timetable timetable) {
-        List<String> courseKeys = timetable.getEntries().stream()
-                .map(TimetableEntry::getCourseKey)
-                .toList();
-
-        Map<String, Course> courseMap = courseRepository.findByCourseKeyIn(courseKeys).stream()
-                .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
-
-        List<TimetableCourseResponse> courses = timetable.getEntries().stream()
-                .map(entry -> {
-                    Course course = courseMap.get(entry.getCourseKey());
-                    return course != null ? TimetableCourseResponse.of(course) : null;
-                })
-                .filter(c -> c != null)
-                .toList();
-
-        double totalCredits = courses.stream()
-                .mapToDouble(c -> Double.parseDouble(c.getCredits()))
-                .sum();
-
-        return TimetableDetailResponse.of(timetable, courses, String.valueOf(totalCredits));
-    }
-
     @Transactional
     public void addCourse(Long timetableId, String courseKey) {
         Timetable timetable = getTimetable(timetableId);
         validateOwnership(timetable);
-
-        if (timetable.getEntries().size() >= MAX_COURSE_COUNT) {
-            throw new CustomException(ErrorCode.TIMETABLE_COURSE_LIMIT_EXCEEDED,
-                    "시간표당 최대 " + MAX_COURSE_COUNT + "개의 강좌만 담을 수 있습니다.");
-        }
-
-        if (!courseRepository.existsByCourseKey(courseKey)) {
-            throw new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 강좌입니다.");
-        }
-
-        // Duplication check
-        if (timetableEntryRepository.findByTimetableIdAndCourseKey(timetableId, courseKey).isPresent()) {
-            throw new CustomException(ErrorCode.INVALID_INPUT, "이미 시간표에 존재하는 강좌입니다.");
-        }
+        validateCourseLimit(timetable.getEntries().size());
+        validateCourseExists(courseKey);
+        validateCourseNotDuplicated(timetableId, courseKey);
 
         TimetableEntry entry = TimetableEntry.builder()
                 .timetable(timetable)
                 .courseKey(courseKey)
                 .build();
-
         timetable.addEntry(entry);
     }
 
@@ -167,7 +122,6 @@ public class TimetableService {
                 .endTime(request.getEndTime())
                 .color(request.getColor())
                 .build();
-
         timetable.addCustomSchedule(schedule);
     }
 
@@ -189,13 +143,12 @@ public class TimetableService {
 
     @Transactional
     public void setPrimary(Long timetableId) {
-        log.info("[Timetable] Setting primary: timetableId={}", timetableId);
         Timetable timetable = getTimetable(timetableId);
         validateOwnership(timetable);
 
         resetPrimary(timetable.getUserId());
         timetable.setPrimary(true);
-        log.info("[Timetable] Primary set successfully: timetableId={}", timetableId);
+        log.info("[시간표] 대표 시간표를 변경했습니다. timetableId={}", timetableId);
     }
 
     @Transactional
@@ -205,29 +158,110 @@ public class TimetableService {
 
         boolean wasPrimary = timetable.isPrimary();
         Long userId = timetable.getUserId();
-
         timetableRepository.delete(timetable);
 
-        // 삭제하는 시간표가 대표 시간표였다면, 남은 시간표 중 하나를 대표로 승계
-        if (wasPrimary) {
-            timetableRepository.findByUserId(userId).stream()
-                    .filter(t -> !t.getId().equals(timetableId))
-                    .findFirst()
-                    .ifPresent(nextPrimary -> {
-                        nextPrimary.setPrimary(true);
-                        log.info("[Timetable] Primary deleted. Successfully succeeded primary to: timetableId={}",
-                                nextPrimary.getId());
-                    });
+        if (!wasPrimary) {
+            return;
+        }
+
+        promoteNextPrimary(userId, timetableId);
+    }
+
+    private TimetableDetailResponse getTimetableDetail(Timetable timetable) {
+        Map<String, Course> courseMap = findCoursesByKey(timetable);
+        List<TimetableCourseResponse> courses = mapTimetableCourses(timetable, courseMap);
+        String totalCredits = calculateTotalCredits(courses);
+        return TimetableDetailResponse.of(timetable, courses, totalCredits);
+    }
+
+    private Map<String, Course> findCoursesByKey(Timetable timetable) {
+        List<String> courseKeys = timetable.getEntries().stream()
+                .map(TimetableEntry::getCourseKey)
+                .toList();
+
+        return courseRepository.findByCourseKeyIn(courseKeys).stream()
+                .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
+    }
+
+    private List<TimetableCourseResponse> mapTimetableCourses(Timetable timetable, Map<String, Course> courseMap) {
+        return timetable.getEntries().stream()
+                .map(TimetableEntry::getCourseKey)
+                .map(courseMap::get)
+                .filter(course -> course != null)
+                .map(TimetableCourseResponse::of)
+                .toList();
+    }
+
+    private String calculateTotalCredits(List<TimetableCourseResponse> courses) {
+        double totalCredits = courses.stream()
+                .map(TimetableCourseResponse::getCredits)
+                .mapToDouble(this::toCreditValue)
+                .sum();
+        return String.valueOf(totalCredits);
+    }
+
+    private double toCreditValue(String credits) {
+        if (credits == null || credits.isBlank()) {
+            return 0.0;
+        }
+
+        try {
+            return Double.parseDouble(credits);
+        } catch (NumberFormatException ignored) {
+            return 0.0;
         }
     }
 
+    private void validateTimetableLimit(Long userId) {
+        long currentCount = timetableRepository.countByUserId(userId);
+        if (currentCount < MAX_TIMETABLE_COUNT) {
+            return;
+        }
+
+        throw new CustomException(ErrorCode.MAX_TIMETABLE_LIMIT_EXCEEDED,
+                "시간표는 최대 " + MAX_TIMETABLE_COUNT + "개까지 생성 가능합니다.");
+    }
+
+    private void validateCourseLimit(int currentSize) {
+        if (currentSize < MAX_COURSE_COUNT) {
+            return;
+        }
+
+        throw new CustomException(ErrorCode.TIMETABLE_COURSE_LIMIT_EXCEEDED,
+                "시간표당 최대 " + MAX_COURSE_COUNT + "개의 강좌만 담을 수 있습니다.");
+    }
+
+    private void validateCourseExists(String courseKey) {
+        if (courseRepository.existsByCourseKey(courseKey)) {
+            return;
+        }
+
+        throw new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 강좌입니다.");
+    }
+
+    private void validateCourseNotDuplicated(Long timetableId, String courseKey) {
+        if (timetableEntryRepository.findByTimetableIdAndCourseKey(timetableId, courseKey).isEmpty()) {
+            return;
+        }
+
+        throw new CustomException(ErrorCode.INVALID_INPUT, "이미 시간표에 존재하는 강좌입니다.");
+    }
+
+    private void promoteNextPrimary(Long userId, Long deletedTimetableId) {
+        timetableRepository.findByUserId(userId).stream()
+                .filter(timetable -> !timetable.getId().equals(deletedTimetableId))
+                .findFirst()
+                .ifPresent(timetable -> {
+                    timetable.setPrimary(true);
+                    log.info("[시간표] 대표 시간표를 자동 승계했습니다. timetableId={}", timetable.getId());
+                });
+    }
+
     private void resetPrimary(Long userId) {
-        List<Timetable> victims = timetableRepository.findByUserIdAndIsPrimaryTrue(userId);
-        log.info("[Timetable] Resetting primary for userId={}: found {} candidates", userId, victims.size());
-        victims.forEach(t -> {
-            log.info("[Timetable] Resetting primary: timetableId={}", t.getId());
-            t.setPrimary(false);
-        });
+        List<Timetable> primaryTimetables = timetableRepository.findByUserIdAndIsPrimaryTrue(userId);
+        for (Timetable primaryTimetable : primaryTimetables) {
+            primaryTimetable.setPrimary(false);
+        }
     }
 
     private Timetable getTimetable(Long timetableId) {
@@ -237,9 +271,11 @@ public class TimetableService {
 
     private void validateOwnership(Timetable timetable) {
         User user = getCurrentUser();
-        if (!timetable.getUserId().equals(user.getId())) {
-            throw new CustomException(ErrorCode.FORBIDDEN);
+        if (timetable.getUserId().equals(user.getId())) {
+            return;
         }
+
+        throw new CustomException(ErrorCode.FORBIDDEN);
     }
 
     private User getCurrentUser() {

@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.domain.course.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -45,10 +46,10 @@ public class CourseSearchCondition {
     private Boolean isAvailableOnly;
 
     @Schema(description = "요일", example = "MO")
-    private String dayOfWeek; // "MO", "TU", etc.
+    private String dayOfWeek; // 예: MO, TU
 
     @Schema(description = "선택된 시간표 슬롯 리스트")
-    private java.util.List<ScheduleCondition> selectedSchedules;
+    private List<ScheduleCondition> selectedSchedules;
 
     @Schema(description = "학점", example = "3")
     private String credits;
@@ -76,11 +77,12 @@ public class CourseSearchCondition {
 
     @Builder
     public CourseSearchCondition(String name, String professor, String subjectCode, String academicYear,
-            String semester, String classification,
-            String department, String gradingMethod, String lectureLanguage,
-            Boolean isAvailableOnly, String dayOfWeek, String credits, Integer lectureHours,
-            Integer minLectureHours, String generalCategory, String generalDetail,
-            java.util.List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly, Long userId) {
+                                 String semester, String classification,
+                                 String department, String gradingMethod, String lectureLanguage,
+                                 Boolean isAvailableOnly, String dayOfWeek, String credits, Integer lectureHours,
+                                 Integer minLectureHours, String generalCategory, String generalDetail,
+                                 List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly,
+                                 Long userId) {
         this.name = name;
         this.professor = professor;
         this.subjectCode = subjectCode;

@@ -2,10 +2,9 @@ package bhoon.sugang_helper.domain.course.response;
 
 import bhoon.sugang_helper.domain.course.entity.CourseSeatHistory;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 @Getter
 @Builder

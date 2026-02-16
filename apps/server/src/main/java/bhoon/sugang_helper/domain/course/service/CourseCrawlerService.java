@@ -3,8 +3,8 @@ package bhoon.sugang_helper.domain.course.service;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.Course;
-import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.entity.CourseSeatHistory;
+import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import java.io.IOException;
@@ -28,23 +28,23 @@ public class CourseCrawlerService {
 
     @Transactional
     public void crawlAndSaveCourses() {
-        log.info("Starting course crawling...");
+        log.info("[크롤러] 강의 크롤링을 시작합니다.");
         try {
             String xmlResponse = apiClient.fetchCourseDataXml();
             List<Course> courses = courseParser.parseCourses(xmlResponse);
 
             int savedCount = processCourses(courses);
 
-            log.info("Crawling finished. Processed {} courses.", savedCount);
+            log.info("[크롤러] 강의 크롤링을 완료했습니다. 처리 건수={}", savedCount);
         } catch (IOException e) {
-            log.error("Failed to fetch course data: {}", e.getMessage(), e);
+            log.error("[크롤러] 강의 데이터를 가져오지 못했습니다. reason={}", e.getMessage(), e);
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR, e.getMessage());
         }
     }
 
     private int processCourses(List<Course> courses) {
         if (courses.isEmpty()) {
-            throw new CustomException(ErrorCode.CRAWLER_NO_DATA, "No course data found.");
+            throw new CustomException(ErrorCode.CRAWLER_NO_DATA, "강의 데이터가 비어 있습니다.");
         }
 
         courses.forEach(this::processCourse);
@@ -83,7 +83,7 @@ public class CourseCrawlerService {
     }
 
     private void publishSeatOpenedEvent(Course course) {
-        log.info("Seat Opened! Course: {}, Available: {}", course.getName(), course.getAvailable());
+        log.info("[크롤러] 빈자리 발생을 감지했습니다. courseName={}, available={}", course.getName(), course.getAvailable());
         eventPublisher.publishEvent(new SeatOpenedEvent(
                 course.getCourseKey(),
                 course.getName(),

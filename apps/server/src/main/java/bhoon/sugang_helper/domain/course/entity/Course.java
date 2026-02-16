@@ -7,16 +7,16 @@ import bhoon.sugang_helper.domain.course.enums.CourseStatus;
 import bhoon.sugang_helper.domain.course.enums.DisclosureStatus;
 import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.OneToMany;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -35,19 +35,19 @@ public class Course extends BaseTimeEntity {
     private Long id;
 
     @Column(unique = true, nullable = false, length = 64)
-    private String courseKey; // 'YYYY:Semester:Code:Class'
+    private String courseKey; // YYYY:학기코드:과목코드:분반
 
     @Column(nullable = false, length = 20)
-    private String subjectCode; // 과목코드
+    private String subjectCode; // 과목 코드
 
     @Column(nullable = false, length = 100)
     private String name; // 과목명
 
     @Column(nullable = false, length = 5)
-    private String classNumber; // 분반 (e.g., "01")
+    private String classNumber; // 분반
 
     @Column(length = 50)
-    private String professor; // 교수 이름
+    private String professor; // 교수명
 
     @Column(nullable = false)
     private Integer capacity; // 정원
@@ -59,10 +59,10 @@ public class Course extends BaseTimeEntity {
     private String targetGrade; // 대상 학년
 
     @Column(nullable = false, length = 4, name = "academic_year")
-    private String academicYear; // 연도 (YY)
+    private String academicYear; // 연도(YY)
 
     @Column(nullable = false, length = 10)
-    private String semester; // 학기 (SHTM)
+    private String semester; // 학기 코드(SHTM)
 
     @Enumerated(EnumType.STRING)
     @Column(length = 50)
@@ -83,7 +83,7 @@ public class Course extends BaseTimeEntity {
     private String classTime; // 강의시간 (DAYTMCTNT)
 
     @Column(length = 10)
-    private String credits; // CSV 추가 필드
+    private String credits; // 학점
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private DisclosureStatus disclosure; // 공개여부
@@ -92,7 +92,7 @@ public class Course extends BaseTimeEntity {
     private String disclosureReason; // 비공개사유
 
     @Column
-    private Integer lectureHours; // 시간 (Number of hours)
+    private Integer lectureHours; // 강의 시수
 
     @Column(length = 50)
     private String generalCategory; // 교양영역구분
@@ -112,7 +112,7 @@ public class Course extends BaseTimeEntity {
     private String classroom; // 강의실
 
     @Column(name = "has_syllabus")
-    private Boolean hasSyllabus; // 강의계획서여부 (Y/N)
+    private Boolean hasSyllabus; // 강의계획서 여부
 
     @Column(length = 50)
     private String generalCategoryByYear; // 입학년도기준교양영역구분
@@ -121,7 +121,7 @@ public class Course extends BaseTimeEntity {
     private String courseDirection; // 수업운영방향
 
     @Column(length = 50)
-    private String classDuration; // 수업 시간 (duration, e.g. "50분")
+    private String classDuration; // 수업 시간(예: 50분)
 
     @Column(nullable = false)
     private LocalDateTime lastCrawledAt; // 마지막 크롤링 시간
@@ -131,13 +131,13 @@ public class Course extends BaseTimeEntity {
 
     @Builder
     public Course(String courseKey, String subjectCode, String name, String classNumber, String professor,
-            Integer capacity, Integer current, String targetGrade, String academicYear, String semester,
-            CourseClassification classification, String department, GradingMethod gradingMethod,
-            String classTime, String credits, LectureLanguage lectureLanguage,
-            DisclosureStatus disclosure, String disclosureReason, Integer lectureHours, String generalCategory,
-            String generalDetail,
-            CourseAccreditation accreditation, CourseStatus status, String classroom, Boolean hasSyllabus,
-            String generalCategoryByYear, String courseDirection, String classDuration) {
+                  Integer capacity, Integer current, String targetGrade, String academicYear, String semester,
+                  CourseClassification classification, String department, GradingMethod gradingMethod,
+                  String classTime, String credits, LectureLanguage lectureLanguage,
+                  DisclosureStatus disclosure, String disclosureReason, Integer lectureHours, String generalCategory,
+                  String generalDetail,
+                  CourseAccreditation accreditation, CourseStatus status, String classroom, Boolean hasSyllabus,
+                  String generalCategoryByYear, String courseDirection, String classDuration) {
         this.courseKey = courseKey;
         this.subjectCode = subjectCode;
         this.name = name;
@@ -178,12 +178,6 @@ public class Course extends BaseTimeEntity {
         schedule.setCourse(this);
     }
 
-    public void updateStatus(Integer capacity, Integer current) {
-        this.capacity = capacity;
-        this.current = current;
-        this.lastCrawledAt = LocalDateTime.now();
-    }
-
     public void updateMetadata(Course other) {
         this.name = other.getName();
         this.professor = other.getProfessor();
@@ -212,10 +206,10 @@ public class Course extends BaseTimeEntity {
         this.classDuration = other.getClassDuration();
         this.lastCrawledAt = LocalDateTime.now();
 
-        // Update schedules
         this.schedules.clear();
         for (CourseSchedule schedule : other.getSchedules()) {
-            this.addSchedule(new CourseSchedule(schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()));
+            this.addSchedule(
+                    new CourseSchedule(schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()));
         }
     }
 }

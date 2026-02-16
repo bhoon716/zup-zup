@@ -1,18 +1,29 @@
 package bhoon.sugang_helper.domain.timetable.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.timetable.entity.Timetable;
 import bhoon.sugang_helper.domain.timetable.entity.TimetableEntry;
-import bhoon.sugang_helper.domain.timetable.repository.CustomScheduleRepository;
 import bhoon.sugang_helper.domain.timetable.repository.TimetableEntryRepository;
 import bhoon.sugang_helper.domain.timetable.repository.TimetableRepository;
 import bhoon.sugang_helper.domain.timetable.request.CustomScheduleRequest;
 import bhoon.sugang_helper.domain.timetable.request.TimetableRequest;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,17 +33,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.test.util.ReflectionTestUtils;
-import java.time.LocalTime;
-import java.util.Optional;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TimetableServiceTest {
@@ -45,9 +46,6 @@ class TimetableServiceTest {
 
     @Mock
     private TimetableEntryRepository timetableEntryRepository;
-
-    @Mock
-    private CustomScheduleRepository customScheduleRepository;
 
     @Mock
     private CourseRepository courseRepository;

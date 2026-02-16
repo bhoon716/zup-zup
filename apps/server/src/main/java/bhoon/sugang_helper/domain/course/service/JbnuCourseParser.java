@@ -1,14 +1,21 @@
 package bhoon.sugang_helper.domain.course.service;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
-import bhoon.sugang_helper.domain.course.enums.CourseClassification;
-import bhoon.sugang_helper.domain.course.enums.GradingMethod;
-import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
 import bhoon.sugang_helper.domain.course.entity.CourseSchedule;
-import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.domain.course.enums.CourseAccreditation;
+import bhoon.sugang_helper.domain.course.enums.CourseClassification;
+import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.domain.course.enums.CourseStatus;
 import bhoon.sugang_helper.domain.course.enums.DisclosureStatus;
+import bhoon.sugang_helper.domain.course.enums.GradingMethod;
+import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -16,14 +23,6 @@ import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.time.LocalTime;
 
 @Slf4j
 @Component
@@ -42,7 +41,7 @@ public class JbnuCourseParser {
             try {
                 processRow(row).ifPresent(courseList::add);
             } catch (Exception e) {
-                log.warn("Failed to parse row: {}", e.getMessage());
+                log.warn("강의 행 파싱에 실패했습니다: {}", e.getMessage());
             }
         }
         return courseList;
@@ -144,12 +143,14 @@ public class JbnuCourseParser {
         String[] tokens = timeString.split(",");
         for (String token : tokens) {
             String trimmedToken = token.trim();
-            if (trimmedToken.isEmpty())
+            if (trimmedToken.isEmpty()) {
                 continue;
+            }
 
             CourseSchedule schedule = parseCourseSchedule(trimmedToken.split("\\s+"));
-            if (schedule == null)
+            if (schedule == null) {
                 continue;
+            }
             schedules.add(schedule);
         }
         return mergeConsecutiveSchedules(schedules);
