@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.domain.course.request;
 
-import bhoon.sugang_helper.domain.course.enums.ClassPeriod;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
@@ -16,6 +15,9 @@ public class ScheduleCondition {
     @Schema(description = "요일", example = "MONDAY")
     private CourseDayOfWeek dayOfWeek;
 
-    @Schema(description = "교시", example = "PERIOD_1A")
-    private ClassPeriod period;
+    @Schema(description = "시작 시간", example = "09:00:00")
+    private String startTime;
+
+    @Schema(description = "종료 시간", example = "10:00:00")
+    private String endTime;
 }

@@ -19,6 +19,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,18 @@ public class CourseController {
   @GetMapping
   public ResponseEntity<CommonResponse<Slice<CourseResponse>>> searchCourses(
       @org.springframework.web.bind.annotation.ModelAttribute CourseSearchCondition condition,
+      @PageableDefault(size = 30) Pageable pageable) {
+    Slice<CourseResponse> courses = courseService.searchCourses(condition, pageable);
+    return CommonResponse.ok(courses, "과목 검색 결과입니다.");
+  }
+
+  @Operation(summary = "과목 검색(POST)", description = "시간 범위 기반 조건으로 과목 목록을 조회합니다. (페이징: Slice)")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "과목 검색 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
+  })
+  @PostMapping("/search")
+  public ResponseEntity<CommonResponse<Slice<CourseResponse>>> searchCoursesByPost(
+      @RequestBody CourseSearchCondition condition,
       @PageableDefault(size = 30) Pageable pageable) {
     Slice<CourseResponse> courses = courseService.searchCourses(condition, pageable);
     return CommonResponse.ok(courses, "과목 검색 결과입니다.");

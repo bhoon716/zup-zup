@@ -5,7 +5,6 @@ import bhoon.sugang_helper.domain.course.enums.CourseClassification;
 import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
 import bhoon.sugang_helper.domain.course.entity.CourseSchedule;
-import bhoon.sugang_helper.domain.course.enums.ClassPeriod;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.domain.course.enums.CourseAccreditation;
 import bhoon.sugang_helper.domain.course.enums.CourseStatus;
@@ -19,14 +18,19 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.time.LocalTime;
 
 @Slf4j
 @Component
 public class JbnuCourseParser {
 
     private static final String DATASET_ID = "GRD_COUR001";
+    private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
 
     public List<Course> parseCourses(String xmlData) {
         List<Course> courseList = new ArrayList<>();
@@ -148,7 +152,7 @@ public class JbnuCourseParser {
                 continue;
             schedules.add(schedule);
         }
-        return schedules;
+        return mergeConsecutiveSchedules(schedules);
     }
 
     private CourseSchedule parseCourseSchedule(String[] parts) {
@@ -157,21 +161,87 @@ public class JbnuCourseParser {
         }
 
         CourseDayOfWeek day = CourseDayOfWeek.from(parts[0]);
-        ClassPeriod period = ClassPeriod.from(parts[1]);
+        TimeRange timeRange = parseTimeRange(parts[1]);
 
-        if (day == null || period == null) {
+        if (day == null || timeRange == null) {
             return null;
         }
 
         return CourseSchedule.builder()
                 .dayOfWeek(day)
-                .period(period)
+                .startTime(timeRange.start())
+                .endTime(timeRange.end())
                 .build();
+    }
+
+    private List<CourseSchedule> mergeConsecutiveSchedules(List<CourseSchedule> schedules) {
+        if (schedules.isEmpty()) {
+            return schedules;
+        }
+
+        List<CourseSchedule> sorted = schedules.stream()
+                .sorted(Comparator
+                        .comparing((CourseSchedule schedule) -> schedule.getDayOfWeek().ordinal())
+                        .thenComparing(CourseSchedule::getStartTime))
+                .toList();
+
+        List<CourseSchedule> merged = new ArrayList<>();
+        CourseSchedule current = sorted.get(0);
+
+        for (int i = 1; i < sorted.size(); i++) {
+            CourseSchedule next = sorted.get(i);
+            if (current.getDayOfWeek() == next.getDayOfWeek()
+                    && current.getEndTime().equals(next.getStartTime())) {
+                current = CourseSchedule.builder()
+                        .dayOfWeek(current.getDayOfWeek())
+                        .startTime(current.getStartTime())
+                        .endTime(next.getEndTime())
+                        .build();
+                continue;
+            }
+
+            merged.add(current);
+            current = next;
+        }
+
+        merged.add(current);
+        return merged;
+    }
+
+    private TimeRange parseTimeRange(String periodToken) {
+        if (periodToken == null) {
+            return null;
+        }
+
+        Matcher matcher = PERIOD_TOKEN_PATTERN.matcher(periodToken.trim());
+        if (!matcher.matches()) {
+            return null;
+        }
+
+        int slot = Integer.parseInt(matcher.group(1));
+        if (slot < 0 || slot > 15) {
+            return null;
+        }
+
+        String half = matcher.group(2).toUpperCase();
+        int hour = 8 + slot;
+
+        if ("A".equals(half)) {
+            return new TimeRange(LocalTime.of(hour, 0), LocalTime.of(hour, 30));
+        }
+
+        if (slot == 15) {
+            return new TimeRange(LocalTime.of(23, 30), LocalTime.of(23, 59));
+        }
+        return new TimeRange(LocalTime.of(hour, 30), LocalTime.of(hour + 1, 0));
     }
 
     private record LiberalArtsInfo(String category, String detail) {
     }
 
     private record StatusInfo(DisclosureStatus disclosure, String disclosureReason) {
+    }
+
+    private record TimeRange(LocalTime start, LocalTime end) {
     }
 }

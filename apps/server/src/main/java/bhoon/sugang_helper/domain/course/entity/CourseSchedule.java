@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.domain.course.entity;
 
-import bhoon.sugang_helper.domain.course.enums.ClassPeriod;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import jakarta.persistence.Column;
 import java.time.LocalTime;
@@ -36,29 +35,24 @@ public class CourseSchedule {
     @Enumerated(EnumType.STRING)
     private CourseDayOfWeek dayOfWeek;
 
-    @Enumerated(EnumType.STRING)
-    private ClassPeriod period;
-
     @Column(nullable = false)
     private LocalTime startTime;
 
     @Column(nullable = false)
     private LocalTime endTime;
 
-    public CourseSchedule(CourseDayOfWeek dayOfWeek, ClassPeriod period) {
+    public CourseSchedule(CourseDayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
         this.dayOfWeek = dayOfWeek;
-        this.period = period;
-        this.startTime = period.getStartTime();
-        this.endTime = period.getEndTime();
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
 
     @Builder
-    public CourseSchedule(Course course, CourseDayOfWeek dayOfWeek, ClassPeriod period) {
+    public CourseSchedule(Course course, CourseDayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
         this.course = course;
         this.dayOfWeek = dayOfWeek;
-        this.period = period;
-        this.startTime = period.getStartTime();
-        this.endTime = period.getEndTime();
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
 
     public void setCourse(Course course) {

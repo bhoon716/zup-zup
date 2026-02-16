@@ -3,8 +3,8 @@ package bhoon.sugang_helper.domain.course.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
-import bhoon.sugang_helper.domain.course.enums.ClassPeriod;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
+import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -93,9 +93,13 @@ class JbnuCourseParserTest {
         assertThat(course1.getCurrent()).isEqualTo(10);
         assertThat(course1.getAvailable()).isEqualTo(30);
         assertThat(course1.getHasSyllabus()).isTrue();
-        assertThat(course1.getSchedules()).hasSize(3);
+        assertThat(course1.getSchedules()).hasSize(2);
         assertThat(course1.getSchedules().get(0).getDayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
-        assertThat(course1.getSchedules().get(0).getPeriod()).isEqualTo(ClassPeriod.PERIOD_1A);
+        assertThat(course1.getSchedules().get(0).getStartTime()).isEqualTo(LocalTime.of(9, 0));
+        assertThat(course1.getSchedules().get(0).getEndTime()).isEqualTo(LocalTime.of(10, 0));
+        assertThat(course1.getSchedules().get(1).getDayOfWeek()).isEqualTo(CourseDayOfWeek.WEDNESDAY);
+        assertThat(course1.getSchedules().get(1).getStartTime()).isEqualTo(LocalTime.of(9, 0));
+        assertThat(course1.getSchedules().get(1).getEndTime()).isEqualTo(LocalTime.of(9, 30));
 
         // 2. 전공선택과목 검증
         Course course2 = courses.stream().filter(c -> c.getSubjectCode().equals("20002")).findFirst().orElseThrow();
@@ -109,6 +113,65 @@ class JbnuCourseParserTest {
         assertThat(course2.getAccreditation().getDescription()).isEqualTo("공학");
         assertThat(course2.getGeneralCategory()).isNull(); // FLDCONVINFO empty and FLDFGNM not provided (or would use
                                                            // FLDFGNM fallback)
-        assertThat(course2.getSchedules()).hasSize(4);
+        assertThat(course2.getSchedules()).hasSize(2);
+        assertThat(course2.getSchedules().get(0).getStartTime()).isEqualTo(LocalTime.of(11, 0));
+        assertThat(course2.getSchedules().get(0).getEndTime()).isEqualTo(LocalTime.of(12, 0));
+        assertThat(course2.getSchedules().get(1).getStartTime()).isEqualTo(LocalTime.of(11, 0));
+        assertThat(course2.getSchedules().get(1).getEndTime()).isEqualTo(LocalTime.of(12, 0));
+    }
+
+    @Test
+    @DisplayName("연속된 반교시(A/B)는 하나의 시간 구간으로 병합된다")
+    void parseCourses_mergeConsecutiveHalfSlots() {
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">30003</Col>
+                            <Col id="CLSS">01</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="DAYTMCTNT">월 1-A, 월 1-B, 수 1-A</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getSchedules()).hasSize(2);
+        assertThat(courses.get(0).getSchedules().get(0).getDayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
+        assertThat(courses.get(0).getSchedules().get(0).getStartTime()).isEqualTo(LocalTime.of(9, 0));
+        assertThat(courses.get(0).getSchedules().get(0).getEndTime()).isEqualTo(LocalTime.of(10, 0));
+        assertThat(courses.get(0).getSchedules().get(1).getDayOfWeek()).isEqualTo(CourseDayOfWeek.WEDNESDAY);
+        assertThat(courses.get(0).getSchedules().get(1).getStartTime()).isEqualTo(LocalTime.of(9, 0));
+        assertThat(courses.get(0).getSchedules().get(1).getEndTime()).isEqualTo(LocalTime.of(9, 30));
+    }
+
+    @Test
+    @DisplayName("짝이 없는 반교시(B)도 실제 시간 범위로 그대로 보존된다")
+    void parseCourses_preserveSingleHalfSlot() {
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">40004</Col>
+                            <Col id="CLSS">01</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="DAYTMCTNT">화 3-B</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getSchedules()).hasSize(1);
+        assertThat(courses.get(0).getSchedules().get(0).getDayOfWeek()).isEqualTo(CourseDayOfWeek.TUESDAY);
+        assertThat(courses.get(0).getSchedules().get(0).getStartTime()).isEqualTo(LocalTime.of(11, 30));
+        assertThat(courses.get(0).getSchedules().get(0).getEndTime()).isEqualTo(LocalTime.of(12, 0));
     }
 }

@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.domain.course.repository;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
-import bhoon.sugang_helper.domain.course.enums.ClassPeriod;
 import bhoon.sugang_helper.domain.course.enums.CourseClassification;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.domain.course.enums.GradingMethod;
@@ -14,6 +13,8 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import static bhoon.sugang_helper.domain.course.entity.QCourse.course;
@@ -45,7 +46,6 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                         eqLectureLanguage(condition.getLectureLanguage()),
                         isAvailable(condition.getIsAvailableOnly()),
                         eqDayOfWeek(condition.getDayOfWeek()),
-                        eqPeriod(condition.getPeriod()),
                         eqCredits(condition.getCredits()),
                         eqLectureHours(condition.getLectureHours()),
                         goeMinLectureHours(condition.getMinLectureHours()),
@@ -75,14 +75,30 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
             return null;
         }
 
-        // 과목의 모든 수업시간(dayOfWeek, period)이 선택된 리스트 내에 있어야 함 (Subset Matching)
-        // 로직: "해당 과목의 수업 시간 중, 선택된 시간대에 포함되지 않는 시간이 존재하지 않아야 함"
+        // 과목의 모든 수업시간(dayOfWeek, start~end)이 선택된 시간대에 포함되어야 한다.
         QCourseSchedule schedule = QCourseSchedule.courseSchedule;
 
         com.querydsl.core.BooleanBuilder selectedSlots = new com.querydsl.core.BooleanBuilder();
+        int validSlotCount = 0;
         for (ScheduleCondition cond : selectedSchedules) {
+            if (cond.getDayOfWeek() == null) {
+                continue;
+            }
+
+            LocalTime startTime = parseTime(cond.getStartTime());
+            LocalTime endTime = parseTime(cond.getEndTime());
+            if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
+                continue;
+            }
+
             selectedSlots.or(schedule.dayOfWeek.eq(cond.getDayOfWeek())
-                    .and(schedule.period.eq(cond.getPeriod())));
+                    .and(schedule.startTime.goe(startTime))
+                    .and(schedule.endTime.loe(endTime)));
+            validSlotCount++;
+        }
+
+        if (validSlotCount == 0) {
+            return null;
         }
 
         return JPAExpressions.selectOne()
@@ -147,14 +163,20 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return course.schedules.any().dayOfWeek.eq(day);
     }
 
-    private BooleanExpression eqPeriod(String periodStr) {
-        if (!StringUtils.hasText(periodStr)) {
+    private LocalTime parseTime(String value) {
+        if (!StringUtils.hasText(value)) {
             return null;
         }
-        ClassPeriod period = ClassPeriod.from(periodStr);
-        if (period == null)
-            return null;
-        return course.schedules.any().period.eq(period);
+
+        try {
+            return LocalTime.parse(value);
+        } catch (DateTimeParseException first) {
+            try {
+                return LocalTime.parse(value + ":00");
+            } catch (DateTimeParseException ignored) {
+                return null;
+            }
+        }
     }
 
     private BooleanExpression isAvailable(Boolean isAvailableOnly) {

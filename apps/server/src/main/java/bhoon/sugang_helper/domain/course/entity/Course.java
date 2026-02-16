@@ -215,7 +215,7 @@ public class Course extends BaseTimeEntity {
         // Update schedules
         this.schedules.clear();
         for (CourseSchedule schedule : other.getSchedules()) {
-            this.addSchedule(new CourseSchedule(schedule.getDayOfWeek(), schedule.getPeriod()));
+            this.addSchedule(new CourseSchedule(schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()));
         }
     }
 }
