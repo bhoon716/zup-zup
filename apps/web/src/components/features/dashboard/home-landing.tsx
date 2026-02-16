@@ -2,106 +2,126 @@
 
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Bell, Calendar, Search, TrendingUp, Sparkles, ArrowRight } from "lucide-react";
+import { Bell, Calendar, Search, TrendingUp, Sparkles, ArrowRight, Heart, Flame } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 const features = [
   {
-    title: "실시간 빈자리 알림",
-    description: "원하는 과목의 여석이 생기는 즉시 FCM, 웹 푸시, 이메일로 알림을 보냅니다.",
+    title: "실시간 여석 알림",
+    description: "원하는 강의에 빈자리가 생기면 즉시 푸시 알림과 문자로 알려드립니다. 더 이상 모니터 앞에서 대기하지 마세요.",
     icon: Bell,
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
   },
   {
     title: "스마트 시간표 관리",
-    description: "직관적인 인터페이스로 나만의 시간표를 짜고 대표 시간표를 관리하세요.",
+    description: "복잡한 경우의 수를 고려하여 최적의 시간표를 시뮬레이션 해보세요. 중복 시간대와 이동 동선까지 체크합니다.",
     icon: Calendar,
-    color: "text-purple-500",
-    bgColor: "bg-purple-500/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
   },
   {
-    title: "정밀 강좌 검색",
-    description: "학점, 시수, 요일, 교양 영역 등 모든 조건을 아우르는 강력한 필터링.",
+    title: "정밀 강의 검색",
+    description: "강의명, 교수님은 물론 이수 구분, 학점, 강의 시간대 등 다양한 필터로 나에게 딱 맞는 강의를 쉽고 빠르게 찾으세요.",
     icon: Search,
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+  },
+];
+
+const popularCourses = [
+  {
+    rank: 1,
+    title: "영화로보는 역사",
+    type: "교양",
+    professor: "정문성 교수님",
+    time: "월3,4 / 수3",
+    likes: "1,240",
+    isHot: true,
+    rankColor: "bg-orange-100 text-orange-600",
   },
   {
-    title: "여석 변동 이력",
-    description: "과거 여석 데이터를 시각화하여 수강신청 확률을 예측할 수 있습니다.",
-    icon: TrendingUp,
-    color: "text-orange-500",
-    bgColor: "bg-orange-500/10",
+    rank: 2,
+    title: "인공지능 개론",
+    type: "전공",
+    professor: "최민혁 교수님",
+    time: "화2,3 / 목2",
+    likes: "982",
+    isHot: false,
+    rankColor: "bg-gray-100 text-gray-500",
+  },
+  {
+    rank: 3,
+    title: "심리학의 이해",
+    type: "교양",
+    professor: "배수지 교수님",
+    time: "금1,2,3",
+    likes: "856",
+    isHot: false,
+    rankColor: "bg-gray-100 text-gray-500",
+  },
+  {
+    rank: 4,
+    title: "자바 프로그래밍",
+    type: "전공",
+    professor: "홍진호 교수님",
+    time: "월5,6 / 수5,6",
+    likes: "741",
+    isHot: false,
+    rankColor: "bg-gray-100 text-gray-500",
   },
 ];
 
 export function HomeLanding() {
   return (
-    <div className="flex flex-col overflow-hidden">
-      <section className="relative bg-white pt-20 pb-32 overflow-hidden min-h-[calc(100vh-64px)] flex items-center">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary/5 text-primary border border-primary/10 mb-8 text-xs font-bold uppercase tracking-wider shadow-sm"
-          >
-            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-            MORE INTELLIGENT SUGANG SYSTEM
-          </motion.div>
-
+    <div className="flex flex-col">
+      {/* Hero Section */}
+      <section className="relative pt-16 pb-24 md:pt-32 md:pb-40 overflow-hidden flex items-center">
+        <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center text-center relative z-10 w-full">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-6xl font-black tracking-tight text-gray-900 mb-8 leading-[1.2]"
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-[#161118] mb-8 leading-[1.1]"
           >
             수강신청 빈자리,<br/>
-            <span className="gradient-text">이제 알림으로 잡으세요.</span>
+            <span className="text-primary">이제 알림으로 잡으세요.</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="mt-2 max-w-2xl text-lg text-gray-500 mb-14 leading-relaxed px-4"
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-lg md:text-xl text-[#161118]/60 mb-12 max-w-2xl mx-auto leading-relaxed"
           >
-            전북대학교 오아시스 시스템을 실시간 모니터링하여 여석 발생 시<br className="hidden sm:inline"/>
-            가장 빠르게 알려드립니다. 반복되는 수동 조회는 이제 그만.
+            하루 종일 새로고침만 누르고 계신가요? 전북대 수강신청 도우미가 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4 w-full justify-center items-center px-6"
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
           >
             <Link href="/login" className="w-full sm:w-auto">
-              <Button className="w-full inline-flex justify-center items-center px-12 py-5 text-base font-bold rounded-full text-white bg-primary hover:bg-primary-dark transition-all shadow-lg hover:shadow-primary/30 group h-auto">
-                  지금 시작하기<ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <Button className="w-full px-10 py-7 rounded-full bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all shadow-xl shadow-primary/30 h-auto">
+                지금 시작하기
               </Button>
             </Link>
             <Link href="/search" className="w-full sm:w-auto">
-              <Button variant="ghost" className="w-full inline-flex justify-center items-center px-12 py-5 text-base font-medium rounded-full text-gray-700 bg-white border border-transparent hover:bg-gray-50 transition-colors h-auto">
-                  강의 먼저 둘러보기
+              <Button variant="outline" className="w-full px-10 py-7 rounded-full bg-white text-primary border-2 border-primary/20 font-bold text-lg hover:bg-primary/5 transition-all h-auto">
+                강의 먼저 둘러보기
               </Button>
             </Link>
           </motion.div>
         </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-0 w-full h-[500px] opacity-10 pointer-events-none">
-          <div className="absolute top-0 right-1/4 w-72 h-72 bg-primary blur-[120px] rounded-full animate-pulse" />
-          <div className="absolute bottom-0 left-1/4 w-72 h-72 bg-indigo-500 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
-        </div>
       </section>
-      <section className="py-24 bg-surface-light border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 space-y-4">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">핵심 기능</h2>
-            <p className="text-gray-500 font-medium tracking-tight">수강신청에 꼭 필요한 4가지 기능을 제공합니다.</p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Features Section */}
+      <section className="pb-32">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {features.map((feature, idx) => (
               <motion.div
                 key={feature.title}
@@ -109,13 +129,14 @@ export function HomeLanding() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
+                className="bg-white dark:bg-primary/10 p-10 rounded-2xl shadow-sm border border-primary/5 flex flex-col gap-6 hover:shadow-xl transition-all group cursor-default"
               >
-                <div className="bg-white rounded-3xl p-8 shadow-card hover:shadow-soft transition-all duration-300 transform hover:-translate-y-1 border border-gray-50 h-full group">
-                  <div className={`w-12 h-12 ${feature.bgColor} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                    <feature.icon className={`w-6 h-6 ${feature.color}`} />
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">{feature.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-medium">
+                <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform", feature.bgColor)}>
+                  <feature.icon className={cn("w-8 h-8", feature.color)} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-[#161118] mb-4">{feature.title}</h3>
+                  <p className="text-[#161118]/60 leading-relaxed text-base font-medium">
                     {feature.description}
                   </p>
                 </div>
@@ -125,6 +146,62 @@ export function HomeLanding() {
         </div>
       </section>
 
+      {/* Popular Courses Section */}
+      <section className="pb-32">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h3 className="text-2xl md:text-3xl font-bold text-[#161118] flex items-center gap-3 mb-2">
+                <Flame className="text-primary w-8 h-8 fill-primary" />
+                지금 뜨는 인기 강의
+              </h3>
+              <p className="text-[#161118]/60 text-sm md:text-base font-medium">로그인 없이 실시간 인기 트렌드를 확인해보세요.</p>
+            </div>
+            <Link href="/search">
+              <Button variant="link" className="text-primary font-bold flex items-center gap-1 hover:no-underline group p-0">
+                전체 순위 보기 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {popularCourses.map((course, idx) => (
+              <motion.div
+                key={course.title}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: idx * 0.05 }}
+                className="bg-white dark:bg-primary/5 p-6 rounded-2xl border border-primary/5 shadow-sm flex items-center justify-between hover:bg-primary/5 transition-all cursor-pointer group hover:border-primary/20"
+              >
+                <div className="flex items-center gap-5 overflow-hidden">
+                  <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center font-bold text-2xl shadow-inner shrink-0", course.rankColor)}>
+                    {course.rank}
+                  </div>
+                  <div className="overflow-hidden">
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      {course.isHot && (
+                        <span className="text-[10px] font-black text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full shrink-0">HOT</span>
+                      )}
+                      <h4 className="font-bold text-lg text-[#161118] group-hover:text-primary transition-colors truncate">{course.title}</h4>
+                    </div>
+                    <p className="text-sm text-[#161118]/60 font-medium truncate">
+                      {course.type} • {course.professor} • {course.time}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0 ml-4">
+                  <div className="flex items-center gap-1.5 text-primary">
+                    <Heart className="w-4 h-4 fill-primary" />
+                    <span className="text-lg font-bold">{course.likes}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-[#161118]/40 uppercase tracking-tighter">관심 등록 수</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
