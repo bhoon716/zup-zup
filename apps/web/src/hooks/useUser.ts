@@ -11,7 +11,7 @@ export const useUser = () => {
     queryFn: async () => {
       try {
         const response = await userApi.getMyProfile();
-        return response.data;
+        return response.data ?? null;
       } catch (error: unknown) {
         const axiosError = error as AxiosError<{ message?: string }>;
         if (axiosError.response?.status === 401) {
@@ -71,7 +71,7 @@ export const useUpdateProfile = () => {
   return useMutation({
     mutationFn: (request: Parameters<typeof userApi.updateProfile>[0]) => userApi.updateProfile(request),
     onSuccess: (response) => {
-      queryClient.setQueryData(['user', 'me'], response.data);
+      queryClient.setQueryData(['user', 'me'], response.data ?? null);
       toast.success(response.message || '프로필이 수정되었습니다');
     },
     onError: (error: AxiosError<{ message: string }>) => {
@@ -87,7 +87,7 @@ export const useCompleteOnboarding = () => {
   return useMutation({
     mutationFn: (request: Parameters<typeof userApi.completeOnboarding>[0]) => userApi.completeOnboarding(request),
     onSuccess: (response) => {
-      queryClient.setQueryData(['user', 'me'], response.data);
+      queryClient.setQueryData(['user', 'me'], response.data ?? null);
       toast.success(response.message || '설정이 완료되었습니다');
     },
     onError: (error: AxiosError<{ message: string }>) => {
