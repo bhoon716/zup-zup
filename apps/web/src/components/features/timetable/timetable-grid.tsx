@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { TimetableResponse } from '@/types/api';
 import { cn } from '@/lib/utils';
-import { getRenderingBlocks, getTimeInMinutes, RenderingBlock, formatPeriod } from '@/lib/utils/timetable';
+import { getRenderingBlocks, getTimeInMinutes, RenderingBlock } from '@/lib/utils/timetable';
 import {
   Dialog,
   DialogContent,
@@ -295,13 +295,6 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
                   <p className="text-sm font-semibold font-mono">{selectedCourse.startTime} - {selectedCourse.endTime}</p>
                 </div>
               </div>
-
-              {selectedCourse.period && (
-                <div className="bg-primary/5 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-1">교시</p>
-                  <p className="text-sm font-semibold text-primary">{formatPeriod(selectedCourse.period)}</p>
-                </div>
-              )}
 
               <div className="bg-gradient-to-r from-background to-muted/30 rounded-lg p-3 border-l-4" style={{ borderLeftColor: selectedCourse.color || '#e5e7eb' }}>
                 <p className="text-xs text-muted-foreground mb-1">수업 유형</p>

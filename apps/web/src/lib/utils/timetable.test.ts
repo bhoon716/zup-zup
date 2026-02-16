@@ -49,7 +49,7 @@ describe('Timetable Utils', () => {
           classification: '전공',
           classroom: '공학관 101',
           schedules: [
-            { dayOfWeek: '월', period: '1-A', startTime: '09:00', endTime: '10:15' },
+            { dayOfWeek: '월', startTime: '09:00', endTime: '10:15' },
           ],
         },
         {
@@ -61,7 +61,7 @@ describe('Timetable Utils', () => {
           classification: '전공',
           classroom: '공학관 102',
           schedules: [
-            { dayOfWeek: '월', period: '1-B', startTime: '10:00', endTime: '11:15' },
+            { dayOfWeek: '월', startTime: '10:00', endTime: '11:15' },
           ],
         },
       ],

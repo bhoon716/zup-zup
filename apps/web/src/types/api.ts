@@ -60,8 +60,10 @@ export interface PageResponse<T> {
 export type CourseClassification = '계열공통' | '교양' | '교직(대)' | '교직' | '군사학' | '기초필수' | '선수' | '일반선택' | '전공' | '전공선택' | '전공필수';
 export type GradingMethod = 'Pass/Fail' | '기타(법전원)' | '상대평가Ⅰ' | '상대평가Ⅱ' | '상대평가Ⅲ' | '절대평가';
 export type LectureLanguage = '한국어' | '영어' | '독일어' | '스페인어' | '일본어' | '중국어' | '프랑스어';
-export type CourseDayOfWeek = '월' | '화' | '수' | '목' | '금' | '토' | '일';
-export type ClassPeriod = '0-A' | '0-B' | '1-A' | '1-B' | '2-A' | '2-B' | '3-A' | '3-B' | '4-A' | '4-B' | '5-A' | '5-B' | '6-A' | '6-B' | '7-A' | '7-B' | '8-A' | '8-B' | '9-A' | '9-B' | '10-A' | '10-B' | '11-A' | '11-B' | '12-A' | '12-B' | '13-A' | '13-B' | '14-A' | '14-B' | '15-A' | '15-B';
+export type CourseDayOfWeek =
+  | 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
+  | 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA' | 'SU'
+  | '월' | '화' | '수' | '목' | '금' | '토' | '일';
 
 export interface Course {
   courseKey: string;
@@ -103,13 +105,15 @@ export interface Course {
   status?: string;
   schedules?: {
     dayOfWeek: CourseDayOfWeek;
-    period: ClassPeriod;
+    startTime: string;
+    endTime: string;
   }[];
 }
 
 export interface ScheduleCondition {
   dayOfWeek: CourseDayOfWeek;
-  period: ClassPeriod;
+  startTime: string;
+  endTime: string;
 }
 
 export interface CourseSearchCondition {
@@ -124,7 +128,6 @@ export interface CourseSearchCondition {
   lectureLanguage?: LectureLanguage;
   isAvailableOnly?: boolean;
   dayOfWeek?: CourseDayOfWeek;
-  period?: ClassPeriod;
   selectedSchedules?: ScheduleCondition[];
   credits?: string;
   lectureHours?: number;
@@ -282,7 +285,6 @@ export interface TimetableEntryResponse {
   classroom: string;
   schedules: {
     dayOfWeek: CourseDayOfWeek;
-    period: ClassPeriod;
     startTime: string;
     endTime: string;
   }[];

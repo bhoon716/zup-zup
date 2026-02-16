@@ -11,7 +11,6 @@ export interface RenderingBlock {
   endTime: string;
   color?: string;
   isOverlap?: boolean;
-  period?: string;
   overlapRegions?: { 
     startTime: string; 
     endTime: string;
@@ -41,23 +40,6 @@ export const getCourseColor = (courseId: string | number): string => {
   }
   const index = Math.abs(hash) % COURSE_COLORS.length;
   return COURSE_COLORS[index];
-};
-
-export const formatPeriod = (period?: string): string => {
-  if (!period) return '';
-
-  const cleaned = period.replace(/^PERIOD_/, '');
-
-  const match = cleaned.match(/^(\d+)([A-Z]?)$/);
-  if (match) {
-    const [, number, letter] = match;
-    if (letter) {
-      return `${number}-${letter}교시`;
-    }
-    return `${number}교시`;
-  }
-  
-  return period;
 };
 
 export const getTimeInMinutes = (timeStr: string): number => {
@@ -105,7 +87,6 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
         dayOfWeek: mapDayOfWeek(schedule.dayOfWeek),
         startTime: schedule.startTime,
         endTime: schedule.endTime,
-        period: schedule.period,
         color: getCourseColor(entry.courseKey),
       });
     });

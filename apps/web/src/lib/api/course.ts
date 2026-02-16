@@ -6,8 +6,8 @@ export const searchCourses = async (
   page: number = 0,
   size: number = 30
 ): Promise<CommonResponse<SliceResponse<Course>>> => {
-  const { data } = await api.get('/api/v1/courses', {
-    params: { ...condition, page, size },
+  const { data } = await api.post('/api/v1/courses/search', condition, {
+    params: { page, size },
   });
   return data;
 };
