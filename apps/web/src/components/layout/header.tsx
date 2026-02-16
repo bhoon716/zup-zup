@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { LogOut, Search, Bell, Settings, ShieldCheck, Calendar, Menu, Download, Sparkles } from "lucide-react";
+import { LogOut, Search, Bell, Settings, ShieldCheck, Calendar, Menu, Download, GraduationCap } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import {
@@ -86,8 +86,8 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2 group transition-all active:scale-95">
-            <Sparkles className="text-primary w-8 h-8 group-hover:scale-110 transition-transform" />
-            <span className="font-bold text-xl text-primary tracking-tight">수강신청도우미</span>
+            <GraduationCap className="text-primary w-8 h-8 group-hover:scale-110 transition-transform" />
+            <span className="font-bold text-xl text-primary tracking-tight">전북대 수강신청 도우미</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             <NavLinks isAdmin={user?.role === "ADMIN"} onGuardedAction={handleGuardedAction} />
