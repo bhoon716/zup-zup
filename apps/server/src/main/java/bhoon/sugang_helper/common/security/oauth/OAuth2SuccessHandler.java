@@ -27,7 +27,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final UserRepository userRepository;
     private final AuthService authService;
 
-    @Value("${app.oauth2.authorized-redirect-uri}")
+    @Value("${app.oauth2.success-redirect-uri}")
     private String redirectUri;
 
     @Override

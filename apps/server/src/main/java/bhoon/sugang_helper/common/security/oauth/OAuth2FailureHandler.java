@@ -13,12 +13,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class OAuth2FailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
-    @Value("${app.oauth2.authorized-redirect-uri}")
+    @Value("${app.oauth2.failure-redirect-uri}")
     private String redirectUri;
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
-                                        AuthenticationException exception) throws IOException {
+            AuthenticationException exception) throws IOException {
         log.error("OAuth2 Login Failed: {}", exception.getMessage());
 
         getRedirectStrategy().sendRedirect(request, response, redirectUri);

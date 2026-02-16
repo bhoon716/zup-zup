@@ -50,3 +50,4 @@ out/
 
 ### Properties ###
 **/application.yml
+**/application-prod.yml
