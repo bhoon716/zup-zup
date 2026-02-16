@@ -9,7 +9,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useUnsubscribe } from "@/hooks/useSubscriptions";
 import type { Subscription } from "@/types/api";

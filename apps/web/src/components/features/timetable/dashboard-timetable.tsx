@@ -3,7 +3,6 @@ import { TimetableGrid } from "./timetable-grid";
 import { Button } from "@/components/ui/button";
 import { Calendar, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 
 export function DashboardTimetable() {
   const { data: timetable, isLoading } = usePrimaryTimetable();

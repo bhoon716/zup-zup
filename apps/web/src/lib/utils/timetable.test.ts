@@ -38,26 +38,32 @@ describe('Timetable Utils', () => {
     const mockTimetable: TimetableResponse = {
       id: 1,
       name: 'Test Timetable',
-      isPrimary: true,
-      entries: [
+      primary: true,
+      courses: [
         {
-          id: 1,
           courseKey: 'COURSE1',
-          courseName: 'Java Programming',
+          name: 'Java Programming',
           professor: 'John Doe',
+          classTime: '월 09:00-10:15',
+          credits: '3',
+          classification: '전공',
+          classroom: '공학관 101',
           schedules: [
-            { dayOfWeek: '월', period: '1-A', startTime: '09:00', endTime: '10:15' }
-          ]
+            { dayOfWeek: '월', period: '1-A', startTime: '09:00', endTime: '10:15' },
+          ],
         },
         {
-          id: 2,
           courseKey: 'COURSE2',
-          courseName: 'Database',
+          name: 'Database',
           professor: 'Jane Smith',
+          classTime: '월 10:00-11:15',
+          credits: '3',
+          classification: '전공',
+          classroom: '공학관 102',
           schedules: [
-            { dayOfWeek: '월', period: '1-B', startTime: '10:00', endTime: '11:15' } // Overlaps with COURSE1
-          ]
-        }
+            { dayOfWeek: '월', period: '1-B', startTime: '10:00', endTime: '11:15' },
+          ],
+        },
       ],
       customSchedules: [
         {
@@ -66,19 +72,19 @@ describe('Timetable Utils', () => {
           dayOfWeek: '화',
           startTime: '12:00',
           endTime: '13:00',
-          color: '#FF0000'
-        }
-      ]
+          color: '#FF0000',
+        },
+      ],
     };
 
     it('should flatten and detect overlaps correctly', () => {
       const blocks = getRenderingBlocks(mockTimetable);
-      
-      expect(blocks).toHaveLength(3); // 2 course schedules + 1 custom schedule
-      
-      const course1 = blocks.find(b => b.id === 'COURSE1');
-      const course2 = blocks.find(b => b.id === 'COURSE2');
-      const lunch = blocks.find(b => b.id === 1);
+
+      expect(blocks).toHaveLength(3);
+
+      const course1 = blocks.find((b) => b.id === 'COURSE1');
+      const course2 = blocks.find((b) => b.id === 'COURSE2');
+      const lunch = blocks.find((b) => b.id === 1);
 
       expect(course1?.isOverlap).toBe(true);
       expect(course2?.isOverlap).toBe(true);
@@ -88,20 +94,20 @@ describe('Timetable Utils', () => {
     it('should not detect overlap on different days', () => {
       const differentDayTimetable: TimetableResponse = {
         ...mockTimetable,
-        entries: [
+        courses: [
           {
-            ...mockTimetable.entries[0],
-            schedules: [{ ...mockTimetable.entries[0].schedules[0], dayOfWeek: '월' }]
+            ...mockTimetable.courses[0],
+            schedules: [{ ...mockTimetable.courses[0].schedules[0], dayOfWeek: '월' }],
           },
           {
-            ...mockTimetable.entries[1],
-            schedules: [{ ...mockTimetable.entries[1].schedules[0], dayOfWeek: '화' }]
-          }
-        ]
+            ...mockTimetable.courses[1],
+            schedules: [{ ...mockTimetable.courses[1].schedules[0], dayOfWeek: '화' }],
+          },
+        ],
       };
 
       const blocks = getRenderingBlocks(differentDayTimetable);
-      expect(blocks.every(b => !b.isOverlap)).toBe(true);
+      expect(blocks.every((b) => !b.isOverlap)).toBe(true);
     });
   });
 });

@@ -9,21 +9,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LogIn, AlertCircle, ExternalLink } from "lucide-react";
-import Image from "next/image";
+import { Sparkles, AlertCircle, ExternalLink, Chromium } from "lucide-react";
 import Link from "next/link";
 import { isInAppBrowser } from "@/lib/utils";
-import { useEffect, useState } from "react";
 
 export function LoginModal() {
   const { isLoginModalOpen, setLoginModalOpen } = useAuthStore();
-  const [isInApp, setIsInApp] = useState(false);
-
-  useEffect(() => {
-    if (isLoginModalOpen) {
-      setIsInApp(isInAppBrowser());
-    }
-  }, [isLoginModalOpen]);
+  const isInApp = isLoginModalOpen && isInAppBrowser();
 
   const handleLogin = () => {
     if (isInApp) return;
@@ -56,7 +48,7 @@ export function LoginModal() {
               </div>
               <p className="text-[11px] text-amber-600/90 dark:text-amber-500/90 leading-normal font-medium">
                 인앱 브라우저에서는 로그인이 불가합니다. <br />
-                메뉴에서 <span className="font-bold underline">"다른 브라우저로 열기"</span>를 선택해 주세요.
+                메뉴에서 <span className="font-bold underline">&quot;다른 브라우저로 열기&quot;</span>를 선택해 주세요.
               </p>
             </div>
           )}
@@ -74,12 +66,7 @@ export function LoginModal() {
               {isInApp ? (
                 <ExternalLink className="w-5 h-5 text-muted-foreground" />
               ) : (
-                <Image 
-                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-                  alt="Google" 
-                  fill
-                  className="object-contain"
-                />
+                <Chromium className="w-5 h-5 text-muted-foreground" />
               )}
             </div>
             {isInApp ? "외부 브라우저에서 이용" : "Google 계정으로 계속하기"}

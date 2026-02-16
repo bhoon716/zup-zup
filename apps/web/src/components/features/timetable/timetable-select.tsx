@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Check, MoreVertical, Crown } from 'lucide-react';
+import { Plus, Trash2, MoreVertical, Crown } from 'lucide-react';
 import { 
   TimetableListResponse
 } from '@/types/api';

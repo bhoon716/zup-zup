@@ -10,11 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, Mail, Bell, Globe, Smartphone, Save, History, Settings2, CheckCircle, Timer, ArrowLeft, MessageSquare, Copy, Check, Trash2 } from "lucide-react";
+import { Loader2, Mail, Bell, Globe, Smartphone, Save, History, Settings2, CheckCircle, Timer, ArrowLeft, MessageSquare, Trash2 } from "lucide-react";
 import { getMyProfile, updateSettings, getDevices, deleteDevice } from "@/lib/api/user";
 import * as userApi from "@/lib/api/user";
 import { unlinkDiscord } from "@/lib/api/user";
 import type { User, UserDeviceResponse } from "@/types/api";
+import { AxiosError } from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useWebPush } from "@/hooks/useWebPush"; // Added import
@@ -28,6 +29,14 @@ const settingsSchema = z.object({
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
+
+const getErrorMessage = (error: unknown, fallbackMessage: string) => {
+  if (error instanceof AxiosError) {
+    const responseData = error.response?.data as { message?: string } | undefined;
+    return responseData?.message || fallbackMessage;
+  }
+  return fallbackMessage;
+};
 
 export default function SettingsPage() {
   const router = useRouter(); // Initialize router
@@ -50,7 +59,6 @@ export default function SettingsPage() {
 
   // Device States
   const [devices, setDevices] = useState<UserDeviceResponse[]>([]);
-  const [loadingDevices, setLoadingDevices] = useState(false);
   
   // Web Push Hook
   const { subscribe, unsubscribe, loading: loadingWebPush } = useWebPush();
@@ -77,7 +85,6 @@ export default function SettingsPage() {
   });
 
   const notificationEmail = watch("notificationEmail");
-  const emailEnabled = watch("emailEnabled");
 
   useEffect(() => {
     if (discordStatus === "success") {
@@ -163,8 +170,8 @@ export default function SettingsPage() {
       await userApi.sendVerificationCode({ email: notificationEmail });
       setEmailSent(true);
       toast.success("인증 코드가 전송되었습니다.");
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || "인증 코드 전송 실패");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "인증 코드 전송 실패"));
     } finally {
       setSending(false);
     }
@@ -178,8 +185,8 @@ export default function SettingsPage() {
       setVerified(true);
       setEmailSent(false); // Hide code input
       toast.success("이메일이 인증되었습니다.");
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || "인증 실패");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "인증 실패"));
     } finally {
       setVerifying(false);
     }
@@ -202,8 +209,8 @@ export default function SettingsPage() {
       const response = await getMyProfile();
       setUser(response.data);
       setValue("discordEnabled", false);
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || "연동 해제 실패");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "연동 해제 실패"));
     } finally {
       setIsUnlinking(false);
     }
@@ -217,9 +224,8 @@ export default function SettingsPage() {
       await deleteDevice(id);
       setDevices(prev => prev.filter(d => d.id !== id));
       toast.success("기기가 삭제되었습니다.");
-    } catch (e: unknown) {
-      const message = (e as any)?.response?.data?.message || "기기 삭제 실패";
-      toast.error(message);
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "기기 삭제 실패"));
     }
   };
 
@@ -262,9 +268,7 @@ export default function SettingsPage() {
       setAuthCode("");
     } catch (error: unknown) {
       console.error("Failed to update settings:", error);
-       // Handle 400 specifically if message provided
-      const message = (error as any)?.response?.data?.message || "설정 저장에 실패했습니다.";
-      toast.error(message);
+      toast.error(getErrorMessage(error, "설정 저장에 실패했습니다."));
     } finally {
       setIsSubmitting(false);
     }
@@ -541,14 +545,14 @@ export default function SettingsPage() {
                   </h4>
                   <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
                     아래 버튼을 눌러 디스코드 계정을 인증하면 즉시 연동됩니다.<br />
-                    연동 시 <strong>'자신의 계정에 설치'</strong>를 선택해야 서버 없이도 알림을 받을 수 있습니다.
+                    연동 시 <strong>&apos;자신의 계정에 설치&apos;</strong>를 선택해야 서버 없이도 알림을 받을 수 있습니다.
                   </p>
                   <div className="pt-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 space-y-2">
                     <p className="text-[11px] md:text-xs text-orange-200 font-bold flex items-center gap-1.5">
                       <Timer className="w-3 h-3" /> 알림 전송 실패(50007) 해결법
                     </p>
                     <ul className="text-[10px] md:text-[11px] text-orange-100/70 list-disc list-inside space-y-1">
-                      <li>디스코드 설정 ➔ 개인정보 보호 ➔ <strong>'내게 메시지를 보낼 수 있는 사람'</strong> 설정 확인</li>
+                      <li>디스코드 설정 ➔ 개인정보 보호 ➔ <strong>&apos;내게 메시지를 보낼 수 있는 사람&apos;</strong> 설정 확인</li>
                       <li>봇을 차단했거나 개인정보 보호 수준이 너무 높으면 메시지가 전송되지 않습니다.</li>
                     </ul>
                   </div>

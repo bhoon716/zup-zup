@@ -1,45 +1,33 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import { useUser, useLogout } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { LogOut, Search, Home, Bell, Settings, ShieldCheck, Calendar, Menu, Download, Sparkles } from "lucide-react";
+import { LogOut, Search, Bell, Settings, ShieldCheck, Calendar, Menu, Download, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
-
 import { useAuthStore } from "@/store/useAuthStore";
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetTrigger, 
-  SheetClose 
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 
-export function Header() {
-  const { data: user, isLoading } = useUser();
-  const { mutate: logout, isPending } = useLogout();
-  const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
-  const pathname = usePathname();
-  const { isInstallable, install } = usePWAInstall(); // Added hook
+interface NavLinksProps {
+  isMobile?: boolean;
+  isAdmin: boolean;
+  onGuardedAction: (e: MouseEvent) => void;
+}
 
-  // Hide header on specific routes
-  if (pathname === "/onboarding") {
-    return null;
-  }
-
-  const handleGuardedAction = (e: React.MouseEvent, href: string) => {
-    if (!user) {
-      e.preventDefault();
-      setLoginModalOpen(true);
-    }
-  };
-
-  const NavLinks = ({ isMobile = false }: { isMobile?: boolean }) => (
+function NavLinks({ isMobile = false, isAdmin, onGuardedAction }: NavLinksProps) {
+  return (
     <>
-      <Link href="/timetable" onClick={(e) => handleGuardedAction(e, "/timetable")}>
+      <Link href="/timetable" onClick={onGuardedAction}>
         <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
           <Calendar className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">내 시간표</span>
@@ -51,19 +39,19 @@ export function Header() {
           <span className="text-sm font-medium">강의 검색</span>
         </Button>
       </Link>
-      <Link href="/notifications" onClick={(e) => handleGuardedAction(e, "/notifications")}>
+      <Link href="/notifications" onClick={onGuardedAction}>
         <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
           <Bell className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">알림 내역</span>
         </Button>
       </Link>
-      <Link href="/settings" onClick={(e) => handleGuardedAction(e, "/settings")}>
+      <Link href="/settings" onClick={onGuardedAction}>
         <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
           <Settings className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">설정</span>
         </Button>
       </Link>
-      {user?.role === 'ADMIN' && (
+      {isAdmin && (
         <Link href="/admin">
           <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 text-primary/70 hover:text-primary hover:bg-primary/5", isMobile && "w-full justify-start h-11 px-4 text-base")}>
             <ShieldCheck className="w-[1.1rem] h-[1.1rem]" />
@@ -73,6 +61,25 @@ export function Header() {
       )}
     </>
   );
+}
+
+export function Header() {
+  const { data: user, isLoading } = useUser();
+  const { mutate: logout, isPending } = useLogout();
+  const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
+  const pathname = usePathname();
+  const { isInstallable, install } = usePWAInstall();
+
+  if (pathname === "/onboarding") {
+    return null;
+  }
+
+  const handleGuardedAction = (e: MouseEvent) => {
+    if (!user) {
+      e.preventDefault();
+      setLoginModalOpen(true);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
@@ -83,17 +90,17 @@ export function Header() {
             <span className="font-bold text-xl text-primary tracking-tight">수강신청도우미</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
-            <NavLinks />
+            <NavLinks isAdmin={user?.role === "ADMIN"} onGuardedAction={handleGuardedAction} />
           </nav>
         </div>
 
         <div className="flex items-center gap-3">
           {isInstallable && (
-            <Button 
-                onClick={install}
-                variant="outline" 
-                size="sm" 
-                className="hidden md:flex gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
+            <Button
+              onClick={install}
+              variant="outline"
+              size="sm"
+              className="hidden md:flex gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
             >
               <Download className="w-4 h-4" />
               <span className="font-medium">앱 설치</span>
@@ -129,7 +136,6 @@ export function Header() {
             )}
           </div>
 
-          {/* Mobile Menu */}
           <div className="flex md:hidden items-center gap-2">
             <Sheet>
               <SheetTrigger asChild>
@@ -140,18 +146,16 @@ export function Header() {
               <SheetContent side="right" className="w-[280px] sm:w-[350px] p-0 border-l border-white/5 bg-background/95 backdrop-blur-xl">
                 <SheetHeader className="p-6 border-b border-white/5">
                   <SheetTitle className="text-left flex items-center gap-2.5">
-                    <img src="/jbnu-logo.png" alt="로고" className="w-6 h-6 object-contain" />
+                    <Image src="/jbnu-logo.png" alt="로고" width={24} height={24} className="w-6 h-6 object-contain" />
                     <span className="bg-gradient-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent font-bold tracking-tight">수강신청 도우미</span>
                   </SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-2 p-4">
                   <div className="mb-4 px-2">
-                    {/* ... user logic ... */}
                     {isLoading ? (
-                       <div className="h-10 w-full animate-pulse bg-muted/50 rounded-xl" />
+                      <div className="h-10 w-full animate-pulse bg-muted/50 rounded-xl" />
                     ) : user ? (
                       <div className="bg-accent/30 rounded-2xl p-4 border border-white/5">
-                         {/* ... user specific ... */}
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                             {user.name.charAt(0)}
@@ -163,29 +167,29 @@ export function Header() {
                         </div>
                       </div>
                     ) : (
-                       <Link href="/login" className="block">
+                      <Link href="/login" className="block">
                         <Button className="w-full gap-2 rounded-xl h-11 bg-primary shadow-lg shadow-primary/20">
                           로그인하고 시작하기
                         </Button>
                       </Link>
                     )}
                   </div>
-                  
+
                   {isInstallable && (
                     <div className="px-2 mb-2">
-                         <Button 
-                            onClick={install}
-                            className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-                        >
-                          <Download className="w-4 h-4" />
-                          앱 설치하기
-                        </Button>
+                      <Button
+                        onClick={install}
+                        className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                      >
+                        <Download className="w-4 h-4" />
+                        앱 설치하기
+                      </Button>
                     </div>
                   )}
 
                   <div className="space-y-1">
                     <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Menu</p>
-                    <NavLinks isMobile />
+                    <NavLinks isMobile isAdmin={user?.role === "ADMIN"} onGuardedAction={handleGuardedAction} />
                   </div>
 
                   {user && (

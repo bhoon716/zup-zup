@@ -2,29 +2,50 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { 
-  useTimetables, 
-  useTimetableDetail, 
-  usePrimaryTimetable, 
-  useAddCourseToTimetable 
+import {
+  useTimetables,
+  useTimetableDetail,
+  usePrimaryTimetable,
+  useAddCourseToTimetable,
 } from './useTimetable';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
+const mockUser = {
+  id: 1,
+  email: 'test@jbnu.ac.kr',
+  name: 'Tester',
+  role: 'USER',
+  notificationEmail: 'test@jbnu.ac.kr',
+  emailEnabled: true,
+  webPushEnabled: true,
+  fcmEnabled: true,
+  discordEnabled: false,
+  onboardingCompleted: true,
+};
+
 const mockTimetables = [
-  { id: 1, name: 'Default', isPrimary: true },
-  { id: 2, name: 'Secondary', isPrimary: false },
+  { id: 1, name: 'Default', primary: true },
+  { id: 2, name: 'Secondary', primary: false },
 ];
 
 const mockDetail = {
   id: 1,
   name: 'Default',
-  isPrimary: true,
-  entries: [],
+  primary: true,
+  courses: [],
   customSchedules: [],
+  totalCredits: '0',
 };
 
 const handlers = [
+  http.get('*/api/v1/users/me', () => {
+    return HttpResponse.json({
+      code: 'SUCCESS',
+      message: 'Success',
+      data: mockUser,
+    });
+  }),
   http.get('*/api/v1/timetables', () => {
     return HttpResponse.json({
       code: 'SUCCESS',
@@ -91,12 +112,12 @@ describe('useTimetable hooks', () => {
   it('usePrimaryTimetable fetches the primary timetable', async () => {
     const { result } = renderHook(() => usePrimaryTimetable(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.isPrimary).toBe(true);
+    expect(result.current.data?.primary).toBe(true);
   });
 
   it('useAddCourseToTimetable adds a course to a timetable', async () => {
     const { result } = renderHook(() => useAddCourseToTimetable(), { wrapper });
-    
+
     result.current.mutate({ timetableId: 1, courseKey: 'COURSE1' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

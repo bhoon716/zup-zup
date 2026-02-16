@@ -241,10 +241,6 @@ export interface UserDeviceResponse {
   registeredAt: string;
 }
 
-export interface UserUpdateRequest {
-  name: string;
-}
-
 export interface AdminDashboardResponse {
   totalUsers: number;
   totalActiveSubscriptions: number;

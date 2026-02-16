@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import * as courseApi from '@/lib/api/course';
-import type { CourseSearchCondition, Course, SliceResponse } from '@/types/api';
+import type { CourseSearchCondition, Course } from '@/types/api';
 
 export const useCourses = (condition: CourseSearchCondition) => {
   return useInfiniteQuery({

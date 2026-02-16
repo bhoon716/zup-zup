@@ -209,7 +209,7 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
                                 <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">시간표 선택</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {Array.isArray(timetableList) && [...timetableList]
-                                  .sort((a, b) => (a.primary ? -1 : 1))
+                                  .sort((a, b) => Number(b.primary) - Number(a.primary))
                                   .map((t) => (
                                     <DropdownMenuItem 
                                       key={t.id}
@@ -375,7 +375,7 @@ export function CourseTable({ courses, onLoadMore, hasMore, isFetchingNextPage }
                             <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">시간표 선택</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             {Array.isArray(timetableList) && [...timetableList]
-                              .sort((a, b) => (a.primary ? -1 : 1))
+                              .sort((a, b) => Number(b.primary) - Number(a.primary))
                               .map((t) => (
                                 <DropdownMenuItem 
                                   key={t.id}

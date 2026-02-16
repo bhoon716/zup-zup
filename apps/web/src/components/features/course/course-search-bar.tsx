@@ -187,9 +187,6 @@ export function CourseSearchBar({ onSearch, isLoading }: CourseSearchBarProps) {
                   <Checkbox 
                     id="isWishedOnly" 
                     checked={condition.isWishedOnly || false}
-                    onCheckedChange={(checked) => {
-                       // Handled by div onClick for convenience and user check
-                    }}
                     className="data-[state=checked]:bg-rose-500 data-[state=checked]:border-rose-500 w-3.5 h-3.5"
                   />
                   <label 

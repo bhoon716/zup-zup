@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { timetableApi } from '@/lib/api/timetable';
 import { useTimetables, useTimetableDetail } from '@/hooks/useTimetable';
-import { useUser } from '@/hooks/useUser';
 // Header removed (Global layout usage)
 import { TimetableSelect } from '@/components/features/timetable/timetable-select';
 import { TimetableGrid } from '@/components/features/timetable/timetable-grid';
@@ -15,7 +14,6 @@ import { toPng } from 'html-to-image';
 
 export default function TimetablePage() {
   const queryClient = useQueryClient();
-  const { data: user } = useUser();
   const [selectedTimetableId, setSelectedTimetableId] = useState<number | null>(null);
 
   const handleExportImage = async () => {
@@ -62,18 +60,22 @@ export default function TimetablePage() {
 
   // 1. 시간표 목록 조회 (사용자 인증 후에만 실행)
   const { data: timetablesData, isLoading: isListLoading } = useTimetables();
-  const timetables = timetablesData || [];
+  const timetables = useMemo(() => timetablesData ?? [], [timetablesData]);
 
-  // 2. 초기 선택값 결정 (대표 시간표 혹은 첫 번째 시간표)
-  useEffect(() => {
-    if (timetables.length > 0 && selectedTimetableId === null) {
-      const primary = timetables.find((t) => t.primary);
-      setSelectedTimetableId(primary ? primary.id : timetables[0].id);
+  // 2. 현재 선택값 결정 (명시 선택값이 없으면 대표 시간표 혹은 첫 번째 시간표)
+  const activeTimetableId = useMemo(() => {
+    if (selectedTimetableId !== null) {
+      return selectedTimetableId;
     }
-  }, [timetables, selectedTimetableId]);
+    if (timetables.length === 0) {
+      return null;
+    }
+    const primary = timetables.find((t) => t.primary);
+    return primary ? primary.id : timetables[0].id;
+  }, [selectedTimetableId, timetables]);
 
   // 3. 현재 선택된 시간표 상세 조회
-  const { data: timetableDetail, isLoading: isDetailLoading } = useTimetableDetail(selectedTimetableId);
+  const { data: timetableDetail, isLoading: isDetailLoading } = useTimetableDetail(activeTimetableId);
 
   // 4. Mutations
   const createMutation = useMutation({
@@ -133,7 +135,7 @@ export default function TimetablePage() {
           ) : (
             <TimetableSelect 
               timetables={timetables}
-              currentId={selectedTimetableId || 0}
+              currentId={activeTimetableId || 0}
               onSelect={setSelectedTimetableId}
               onCreate={(name) => createMutation.mutate(name)}
               onDelete={(id) => deleteMutation.mutate(id)}
@@ -146,7 +148,7 @@ export default function TimetablePage() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
-          ) : selectedTimetableId && timetableDetail ? (
+          ) : activeTimetableId && timetableDetail ? (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 timetable-grid-target overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
               <TimetableGrid timetable={timetableDetail} />
             </div>

@@ -1,9 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Bell, Calendar, Search, TrendingUp, Sparkles, ArrowRight, ShieldCheck, Mail, Smartphone } from "lucide-react";
+import { Bell, Calendar, Search, TrendingUp, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 const features = [

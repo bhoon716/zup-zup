@@ -12,8 +12,9 @@ export const useUser = () => {
       try {
         const response = await userApi.getMyProfile();
         return response.data;
-      } catch (error: any) {
-        if (error.response?.status === 401) {
+      } catch (error: unknown) {
+        const axiosError = error as AxiosError<{ message?: string }>;
+        if (axiosError.response?.status === 401) {
           return null; // Guest user
         }
         throw error;
@@ -89,7 +90,7 @@ export const useCompleteOnboarding = () => {
       queryClient.setQueryData(['user', 'me'], response.data);
       toast.success(response.message || '설정이 완료되었습니다');
     },
-    onError: (error: AxiosError<{ message: string }, any>) => {
+    onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '설정 저장에 실패했습니다';
       toast.error(message);
     },

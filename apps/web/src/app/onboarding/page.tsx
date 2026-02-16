@@ -8,13 +8,12 @@ import { useWebPush } from "@/hooks/useWebPush"; // Added import
 import * as userApi from "@/lib/api/user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, Mail, Smartphone, CheckCircle, Check, Timer, MessageSquare, Link as LinkIcon } from "lucide-react";
+import { Mail, Smartphone, CheckCircle, Check, MessageSquare, Link as LinkIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
+import { AxiosError } from "axios";
 
 interface OnboardingForm {
   notificationEmail: string;
@@ -23,6 +22,14 @@ interface OnboardingForm {
   discordEnabled: boolean;
   deviceName: string;
 }
+
+const getErrorMessage = (error: unknown, fallbackMessage: string) => {
+  if (error instanceof AxiosError) {
+    const responseData = error.response?.data as { message?: string } | undefined;
+    return responseData?.message || fallbackMessage;
+  }
+  return fallbackMessage;
+};
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -122,8 +129,8 @@ export default function OnboardingPage() {
       setEmailSent(true);
       setTimeLeft(180); // Reset timer
       toast.success("인증 코드가 전송되었습니다.");
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || "인증 코드 전송 실패");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "인증 코드 전송 실패"));
     } finally {
       setSending(false);
     }
@@ -137,8 +144,8 @@ export default function OnboardingPage() {
       setVerified(true);
       setEmailSent(false); // Hide code input
       toast.success("이메일이 인증되었습니다.");
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || "인증 실패");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "인증 실패"));
     } finally {
       setVerifying(false);
     }

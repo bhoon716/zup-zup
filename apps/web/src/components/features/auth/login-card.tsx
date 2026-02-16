@@ -11,14 +11,10 @@ import {
 } from "@/components/ui/card";
 import { Chromium, AlertCircle, ExternalLink } from "lucide-react";
 import { isInAppBrowser } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function LoginCard() {
-  const [isInApp, setIsInApp] = useState(false);
-
-  useEffect(() => {
-    setIsInApp(isInAppBrowser());
-  }, []);
+  const [isInApp] = useState(() => isInAppBrowser());
 
   const handleGoogleLogin = () => {
     if (isInApp) return;
@@ -50,7 +46,7 @@ export function LoginCard() {
             <p className="text-xs text-amber-600/90 dark:text-amber-500/90 leading-relaxed font-medium">
               현재 인앱 브라우저(카카오톡, 인스타그램 등)에서는 Google 로그인이 차단됩니다. 
               상단 또는 하단의 <span className="font-bold underline">점 세 개(⋮)</span> 메뉴를 눌러 
-              <span className="font-bold underline text-primary">"다른 브라우저로 열기"</span> 혹은 <span className="font-bold underline">"Chrome/Safari로 열기"</span>를 선택해 주세요.
+              <span className="font-bold underline text-primary">&quot;다른 브라우저로 열기&quot;</span> 혹은 <span className="font-bold underline">&quot;Chrome/Safari로 열기&quot;</span>를 선택해 주세요.
             </p>
           </div>
         )}
@@ -67,7 +63,7 @@ export function LoginCard() {
           {isInApp ? (
             <ExternalLink className="w-5 h-5 flex-shrink-0" />
           ) : (
-            <img src="https://www.google.com/favicon.ico" className="w-5 h-5 flex-shrink-0" alt="Google" />
+            <Chromium className="w-5 h-5 flex-shrink-0" />
           )}
           {isInApp ? "외부 브라우저로 접속해 주세요" : "Google로 시작하기"}
         </Button>
