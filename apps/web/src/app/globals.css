@@ -151,6 +151,7 @@
   .gradient-text {
     background: linear-gradient(135deg, #572970 0%, #5a4ad1 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
@@ -172,6 +173,19 @@
 
   .shadow-glow {
     box-shadow: 0 0 20px rgba(87, 41, 112, 0.15);
+  }
+
+  .shadow-floating {
+    box-shadow: 0 10px 40px -10px rgba(86, 41, 110, 0.15);
+  }
+
+  .card-hover {
+    @apply transition-all duration-300;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    @apply shadow-lg;
   }
 }
 
