@@ -3,13 +3,6 @@
 import { motion } from "framer-motion";
 import { Timer, CalendarCheck, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import Image from "next/image";
-import { useState, useEffect } from "react";
 
 const dDayEvents = [
   {
@@ -45,15 +38,6 @@ const dDayEvents = [
 ];
 
 export function DashboardDDayBlock() {
-  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
-
-  // 이미지 갱신을 위한 유틸리티 함수 (Event Bus 역할)
-  useEffect(() => {
-    const handleImageUpdate = () => setImageTimestamp(Date.now());
-    window.addEventListener("schedule-image-updated", handleImageUpdate);
-    return () => window.removeEventListener("schedule-image-updated", handleImageUpdate);
-  }, []);
-
   return (
     <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-7 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
       <div className="flex justify-between items-center mb-5 shrink-0">
@@ -62,28 +46,9 @@ export function DashboardDDayBlock() {
             <Timer className="w-5 h-5 text-indigo-600" />
           </div>
           
-          <HoverCard openDelay={100} closeDelay={100}>
-            <HoverCardTrigger asChild>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 cursor-help decoration-wavy decoration-indigo-300 underline-offset-4 hover:underline">
-                주요 일정
-              </h3>
-            </HoverCardTrigger>
-            <HoverCardContent className="w-auto p-0 border-none shadow-2xl bg-transparent" side="right" align="start">
-              <div className="relative rounded-xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-white dark:bg-gray-900">
-                <Image 
-                  src={`/uploads/schedule.png?t=${imageTimestamp}`}
-                  alt="수강신청 일정 상세" 
-                  width={600} 
-                  height={800}
-                  className="w-auto h-auto max-w-[500px] max-h-[700px] object-contain"
-                  onError={(e) => {
-                    // 이미지가 없을 경우 숨기거나 기본 이미지 표시
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            </HoverCardContent>
-          </HoverCard>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            주요 일정
+          </h3>
         </div>
       </div>
 

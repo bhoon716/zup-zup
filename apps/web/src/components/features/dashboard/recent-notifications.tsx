@@ -4,15 +4,17 @@ import { Bell } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 
+import { NotificationHistory } from "@/types/api";
+
 /**
  * 사용자의 최근 알림 내역 중 최상위 3개를 요약하여 보여줍니다.
  * 전체 알림 페이지로 이동할 수 있는 링크를 제공합니다.
  */
-export function RecentNotifications({ notifications }: { notifications: any }) {
-  const limitedNotifications = notifications?.slice(0, 5) || [];
+export function RecentNotifications({ notifications }: { notifications: NotificationHistory[] }) {
+  const limitedNotifications = notifications?.slice(0, 3) || [];
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-7 shadow-card border border-gray-100 dark:border-gray-800 transition-all hover:shadow-xl group flex flex-col h-full min-h-[460px]">
+    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-7 shadow-card border border-gray-100 dark:border-gray-800 transition-all hover:shadow-xl group flex flex-col h-full min-h-[300px]">
       <div className="flex justify-between items-center mb-5 shrink-0">
         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <span className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center">

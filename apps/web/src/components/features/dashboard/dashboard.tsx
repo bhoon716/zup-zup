@@ -70,7 +70,7 @@ export function Dashboard() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <RecentNotifications notifications={notifications} />
+            <RecentNotifications notifications={notifications || []} />
           </motion.div>
           
           <motion.div
@@ -85,5 +85,3 @@ export function Dashboard() {
     </main>
   );
 }
-
-// DailyTimeline 컴포넌트 제거됨

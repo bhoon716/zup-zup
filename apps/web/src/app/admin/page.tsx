@@ -6,7 +6,6 @@ import { useHealth } from "@/hooks/useHealth";
 import { Button } from "@/components/ui/button";
 import { useCrawlCourses } from "@/hooks/useAdminActions";
 import Link from "next/link";
-import { useState } from "react";
 import { 
   Users, 
   BookOpen, 
@@ -14,9 +13,7 @@ import {
   Activity, 
   Loader2, 
   RefreshCcw, 
-  Send, 
-  Image as ImageIcon, 
-  Upload 
+  Send
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
@@ -24,36 +21,6 @@ export default function AdminDashboardPage() {
   const { data: healthData, isLoading: isHealthLoading } = useHealth();
   const { mutate: crawl, isPending: isCrawling } = useCrawlCourses();
   
-  const [isUploading, setIsUploading] = useState(false);
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
-
-    setIsUploading(true);
-    try {
-      const res = await fetch("/api/admin/upload/schedule", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res.ok) {
-        alert("이미지가 성공적으로 업로드되었습니다.");
-        // 다른 창/컴포넌트에 갱신 알림 (동일 브라우저 내 탭 간 통신은 아님, 현재 탭 내 컴포넌트 갱신용)
-        window.dispatchEvent(new Event("schedule-image-updated"));
-      } else {
-        alert("업로드 실패");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("업로드 중 오류가 발생했습니다.");
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const isLoading = isStatsLoading || isHealthLoading;
   const error = statsError;
@@ -195,51 +162,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* 수강신청 일정 이미지 업로드 카드 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-indigo-600" />
-              수강신청 일정 이미지 관리
-            </CardTitle>
-            <CardDescription>
-              대시보드 메인에 표시될 일정표 이미지를 등록합니다.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-              <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center mb-3">
-                <Upload className="w-6 h-6 text-indigo-600" />
-              </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                이미지 파일을 드래그하거나 클릭하여 선택
-              </p>
-              <p className="text-xs text-muted-foreground mb-4">
-                PNG, JPG, WEBP (최적화된 이미지 권장)
-              </p>
-              
-              <label htmlFor="schedule-upload" className="cursor-pointer">
-                <Button variant="default" disabled={isUploading} asChild>
-                  <span>
-                    {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    {isUploading ? "업로드 중..." : "파일 선택 및 업로드"}
-                  </span>
-                </Button>
-                <input 
-                  id="schedule-upload" 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  onChange={handleImageUpload}
-                  disabled={isUploading}
-                />
-              </label>
-            </div>
-            <p className="text-[10px] text-gray-400 text-center">
-              * 업로드 즉시 대시보드에 반영됩니다.
-            </p>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );
