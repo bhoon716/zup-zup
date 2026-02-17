@@ -8,8 +8,7 @@ import {
   usePrimaryTimetable,
   useAddCourseToTimetable,
 } from './useTimetable';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { createQueryWrapper, createTestQueryClient } from '@/test/query-client';
 
 const mockUser = {
   id: 1,
@@ -81,41 +80,37 @@ const server = setupServer(...handlers);
 beforeAll(() => server.listen());
 afterEach(() => {
   server.resetHandlers();
-  queryClient.clear();
 });
 afterAll(() => server.close());
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: false },
-    mutations: { retry: false },
-  },
-});
-
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-);
-
 describe('useTimetable hooks', () => {
   it('useTimetables fetches all timetables', async () => {
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => useTimetables(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toHaveLength(2);
   });
 
   it('useTimetableDetail fetches details for a specific timetable', async () => {
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => useTimetableDetail(1), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.id).toBe(1);
   });
 
   it('usePrimaryTimetable fetches the primary timetable', async () => {
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => usePrimaryTimetable(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.primary).toBe(true);
   });
 
   it('useAddCourseToTimetable adds a course to a timetable', async () => {
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => useAddCourseToTimetable(), { wrapper });
 
     result.current.mutate({ timetableId: 1, courseKey: 'COURSE1' });
