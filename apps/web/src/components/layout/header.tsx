@@ -147,7 +147,7 @@ export function Header() {
                 <SheetHeader className="p-6 border-b border-white/5">
                   <SheetTitle className="text-left flex items-center gap-2.5">
                     <Image src="/jbnu-logo.png" alt="로고" width={24} height={24} className="w-6 h-6 object-contain" />
-                    <span className="bg-gradient-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent font-bold tracking-tight">수강신청 도우미</span>
+                    <span className="bg-linear-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent font-bold tracking-tight">수강신청 도우미</span>
                   </SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-2 p-4">
