@@ -20,8 +20,10 @@ import {
 import { Switch } from "@/shared/ui/switch";
 import { TimeTableSelector } from "./time-table-selector";
 import { useUser } from "@/features/user/hooks/useUser";
+import { usePrimaryTimetable } from "@/features/timetable/hooks/useTimetable";
 import {
   ChevronDown,
+  Download,
   Filter,
   RotateCcw,
   Search,
@@ -31,11 +33,13 @@ import {
 import { cn } from "@/shared/lib/utils";
 import { toast } from "sonner";
 import type {
+  CourseDayOfWeek,
   CourseClassification,
   CourseSearchCondition,
   GradingMethod,
   LectureLanguage,
   ScheduleCondition,
+  TimetableDetailResponse,
 } from "@/shared/types/api";
 
 interface CourseSearchBarProps {
@@ -82,8 +86,22 @@ const LANGUAGES: LectureLanguage[] = [
   "프랑스어",
 ];
 
-const CREDITS = ["0.5", "1", "2", "3", "4"];
-const LECTURE_HOURS = [...Array.from({ length: 9 }, (_, i) => `${i + 1}`), "10+"];
+const CREDITS = ["0.5", "1", "2", "3", "4+"];
+const TARGET_GRADES = ["1", "2", "3", "4", "5", "6", "없음"];
+const DISCLOSURES = ["공개", "비공개"];
+const COURSE_DIRECTIONS = [
+  "일반",
+  "원격강좌(콘텐츠)",
+  "원격강좌(실시간)",
+  "플립러닝",
+  "블렌디드러닝",
+  "온·오프라인강좌",
+  "현장실습",
+  "사회봉사",
+  "논문연구",
+  "화상강의",
+  "특별(영어)",
+];
 
 const YEARS = ["2026", "2025", "2024"];
 
@@ -104,6 +122,151 @@ const GE_CATEGORIES: Record<string, string[]> = {
   핵심: ["과학적사고의기반", "사회이해의기반", "인문적사고의기반"],
 };
 
+const SMART_FILTER_DAYS: CourseDayOfWeek[] = ["월", "화", "수", "목", "금", "토"];
+const SMART_FILTER_START_MINUTES = 9 * 60;
+const SMART_FILTER_SLOT_MINUTES = 60;
+const SMART_FILTER_SLOT_COUNT = 13;
+
+/**
+ * "HH:mm" 또는 "HH:mm:ss" 형식의 문자열을 분(minutes) 단위 숫자로 변환
+ */
+function toMinutes(value?: string): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const [hourText, minuteText] = value.split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) {
+    return null;
+  }
+
+  return hour * 60 + minute;
+}
+
+/**
+ * 다양한 형식의 요일 문자열을 내부 공통 형식('월', '화' 등)으로 변환
+ */
+function toDayLabel(dayOfWeek?: string): CourseDayOfWeek | null {
+  const dayMap: Record<string, CourseDayOfWeek> = {
+    MONDAY: "월",
+    TUESDAY: "화",
+    WEDNESDAY: "수",
+    THURSDAY: "목",
+    FRIDAY: "금",
+    SATURDAY: "토",
+    SUNDAY: "일",
+    MO: "월",
+    TU: "화",
+    WE: "수",
+    TH: "목",
+    FR: "금",
+    SA: "토",
+    SU: "일",
+    월요일: "월",
+    화요일: "화",
+    수요일: "수",
+    목요일: "목",
+    금요일: "금",
+    토요일: "토",
+    일요일: "일",
+    월: "월",
+    화: "화",
+    수: "수",
+    목: "목",
+    금: "금",
+    토: "토",
+    일: "일",
+  };
+
+  if (!dayOfWeek) {
+    return null;
+  }
+
+  return dayMap[dayOfWeek] ?? null;
+}
+
+/**
+ * 분 단위 숫자를 "HH:mm:00" 형식의 시간 문자열로 변환
+ */
+function toTimeText(minutes: number): string {
+  const hour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+}
+
+/**
+ * 기존 시간표 정보를 분석하여 비어있는 시간대(공강) 목록을 생성
+ */
+function buildFreeSchedulesFromTimetable(
+  timetable: TimetableDetailResponse,
+): ScheduleCondition[] {
+  const schedules = [
+    ...(timetable?.courses?.flatMap((course) => course.schedules ?? []) ?? []),
+    ...(timetable?.customSchedules ?? []),
+  ];
+
+  const allSlots: ScheduleCondition[] = [];
+  const occupiedSlotKeys = new Set<string>();
+
+  SMART_FILTER_DAYS.forEach((day) => {
+    for (let slot = 0; slot < SMART_FILTER_SLOT_COUNT; slot += 1) {
+      const slotStart = SMART_FILTER_START_MINUTES + slot * SMART_FILTER_SLOT_MINUTES;
+      const slotEnd = slotStart + SMART_FILTER_SLOT_MINUTES;
+
+      allSlots.push({
+        dayOfWeek: day,
+        startTime: toTimeText(slotStart),
+        endTime: toTimeText(slotEnd),
+      });
+    }
+  });
+
+  schedules.forEach((schedule) => {
+    const day = toDayLabel(schedule.dayOfWeek);
+    if (!day || !SMART_FILTER_DAYS.includes(day)) {
+      return;
+    }
+
+    const startMinutes = toMinutes(schedule.startTime);
+    const endMinutes = toMinutes(schedule.endTime);
+    if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+      return;
+    }
+
+    for (let slot = 0; slot < SMART_FILTER_SLOT_COUNT; slot += 1) {
+      const slotStart = SMART_FILTER_START_MINUTES + slot * SMART_FILTER_SLOT_MINUTES;
+      const slotEnd = slotStart + SMART_FILTER_SLOT_MINUTES;
+      const overlaps = startMinutes < slotEnd && slotStart < endMinutes;
+
+      if (!overlaps) {
+        continue;
+      }
+
+      const slotSchedule: ScheduleCondition = {
+        dayOfWeek: day,
+        startTime: toTimeText(slotStart),
+        endTime: toTimeText(slotEnd),
+      };
+      const key = `${slotSchedule.dayOfWeek}-${slotSchedule.startTime}-${slotSchedule.endTime}`;
+      occupiedSlotKeys.add(key);
+    }
+  });
+
+  return allSlots.filter((slot) => !occupiedSlotKeys.has(toScheduleKey(slot)));
+}
+
+/**
+ * 시간대 정보를 식별하기 위한 고유 키 생성
+ */
+function toScheduleKey(schedule: ScheduleCondition): string {
+  return `${schedule.dayOfWeek}-${schedule.startTime}-${schedule.endTime}`;
+}
+
+/**
+ * 검색 조건 객체에서 유효하지 않은 값(undefined, 빈 문자열 등)을 제거하여 정제
+ */
 function sanitizeCondition(condition: CourseSearchCondition): CourseSearchCondition {
   const sanitized: CourseSearchCondition = {};
 
@@ -134,6 +297,9 @@ interface FilterSectionProps {
   children: ReactNode;
 }
 
+/**
+ * 상세 필터의 각 섹션 레이아웃 컴포넌트
+ */
 function FilterSection({ title, icon, open, onOpenChange, children }: FilterSectionProps) {
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
@@ -163,6 +329,9 @@ function FilterSection({ title, icon, open, onOpenChange, children }: FilterSect
   );
 }
 
+/**
+ * 강의 검색바 컴포넌트 (스마트 필터, 기본 정보, 상세 필터 포함)
+ */
 export function CourseSearchBar({
   onSearch,
   isLoading,
@@ -174,8 +343,14 @@ export function CourseSearchBar({
   const [smartOpen, setSmartOpen] = useState(true);
   const [basicOpen, setBasicOpen] = useState(true);
   const [detailOpen, setDetailOpen] = useState(true);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const { data: user } = useUser();
+  const {
+    data: primaryTimetable,
+    isFetching: isFetchingTimetable,
+    refetch: refetchPrimaryTimetable,
+  } = usePrimaryTimetable();
 
   const availableDetails = useMemo(() => {
     if (!condition.generalCategory) {
@@ -214,6 +389,34 @@ export function CourseSearchBar({
     }));
   };
 
+  const handleImportFromMyTimetable = async () => {
+    if (!user) {
+      toast.error("내 시간표에서 선택하기는 로그인 후 사용할 수 있습니다.");
+      return;
+    }
+
+    const fetched = await refetchPrimaryTimetable();
+    const timetable = fetched.data ?? primaryTimetable;
+
+    if (!timetable) {
+      toast.error("대표 시간표가 없습니다. 시간표를 먼저 만들어주세요.");
+      return;
+    }
+
+    const importedSchedules = buildFreeSchedulesFromTimetable(timetable);
+    if (importedSchedules.length === 0) {
+      toast.error("시간표 기준 공강 시간대가 없습니다.");
+      return;
+    }
+
+    setCondition((prev) => ({
+      ...prev,
+      selectedSchedules: importedSchedules,
+    }));
+    setScheduleOpen(true);
+    toast.success(`내 시간표 기준 공강 ${importedSchedules.length}칸을 선택했습니다.`);
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="space-y-3 pb-4">
@@ -247,7 +450,7 @@ export function CourseSearchBar({
       </div>
 
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <div className="space-y-3 overflow-y-auto pr-1">
+        <div className="space-y-3 overflow-y-auto pr-1 [scrollbar-gutter:stable_both-edges]">
           <FilterSection
             title="스마트 필터"
             icon={<Sparkles className="h-4 w-4 text-primary/80" />}
@@ -255,18 +458,55 @@ export function CourseSearchBar({
             onOpenChange={setSmartOpen}
           >
             <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-muted/30 p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-bold text-muted-foreground">가능한 시간대 선택</p>
-                  <span className="text-[10px] font-semibold text-primary/70">
-                    {condition.selectedSchedules?.length ?? 0}칸 선택
-                  </span>
+              <Collapsible open={scheduleOpen} onOpenChange={setScheduleOpen}>
+                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-bold text-muted-foreground">가능한 시간대 선택</p>
+                    <span className="text-[10px] font-semibold text-primary/70">
+                      {condition.selectedSchedules?.length ?? 0}칸 선택
+                    </span>
+                  </div>
+
+                  <div className="mb-2 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-lg border-border/80 bg-white text-xs font-semibold"
+                      disabled={isFetchingTimetable}
+                      onClick={handleImportFromMyTimetable}
+                    >
+                      {isFetchingTimetable ? (
+                        <span className="h-3.5 w-3.5 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                      내 시간표에서 선택
+                    </Button>
+
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="ml-auto h-8 gap-1 rounded-lg px-2 text-xs font-semibold text-muted-foreground"
+                      >
+                        {scheduleOpen ? "접기" : "펼치기"}
+                        <ChevronDown
+                          className={cn("h-3.5 w-3.5 transition-transform", scheduleOpen && "rotate-180")}
+                        />
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+
+                  <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+                    <TimeTableSelector
+                      selected={condition.selectedSchedules || []}
+                      onChange={handleSchedulesChange}
+                    />
+                  </CollapsibleContent>
                 </div>
-                <TimeTableSelector
-                  selected={condition.selectedSchedules || []}
-                  onChange={handleSchedulesChange}
-                />
-              </div>
+              </Collapsible>
 
               <div className="space-y-3 rounded-xl border border-border bg-white p-3">
                 <div className="flex items-center justify-between">
@@ -538,11 +778,12 @@ export function CourseSearchBar({
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-bold text-muted-foreground">학점</Label>
                   <Select
-                    value={condition.credits || "all"}
+                    value={condition.minCredits ? "4+" : condition.credits || "all"}
                     onValueChange={(value) =>
                       setCondition((prev) => ({
                         ...prev,
-                        credits: value === "all" ? undefined : value,
+                        credits: value === "all" || value === "4+" ? undefined : value,
+                        minCredits: value === "4+" ? 4 : undefined,
                       }))
                     }
                   >
@@ -561,38 +802,13 @@ export function CourseSearchBar({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] font-bold text-muted-foreground">시수</Label>
+                  <Label className="text-[11px] font-bold text-muted-foreground">강의 방식</Label>
                   <Select
-                    value={
-                      condition.minLectureHours
-                        ? "10+"
-                        : condition.lectureHours
-                          ? `${condition.lectureHours}`
-                          : "all"
-                    }
+                    value={condition.status || "all"}
                     onValueChange={(value) => {
-                      if (value === "all") {
-                        setCondition((prev) => ({
-                          ...prev,
-                          lectureHours: undefined,
-                          minLectureHours: undefined,
-                        }));
-                        return;
-                      }
-
-                      if (value === "10+") {
-                        setCondition((prev) => ({
-                          ...prev,
-                          lectureHours: undefined,
-                          minLectureHours: 10,
-                        }));
-                        return;
-                      }
-
                       setCondition((prev) => ({
                         ...prev,
-                        lectureHours: Number(value),
-                        minLectureHours: undefined,
+                        status: value === "all" ? undefined : value,
                       }));
                     }}
                   >
@@ -601,9 +817,61 @@ export function CourseSearchBar({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">전체</SelectItem>
-                      {LECTURE_HOURS.map((hour) => (
-                        <SelectItem key={hour} value={hour}>
-                          {hour === "10+" ? "10시간 이상" : `${hour}시간`}
+                      {COURSE_DIRECTIONS.map((direction) => (
+                        <SelectItem key={direction} value={direction}>
+                          {direction}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-bold text-muted-foreground">대상 학년</Label>
+                  <Select
+                    value={condition.targetGrade || "all"}
+                    onValueChange={(value) =>
+                      setCondition((prev) => ({
+                        ...prev,
+                        targetGrade: value === "all" ? undefined : value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+                      <SelectValue placeholder="전체" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {TARGET_GRADES.map((grade) => (
+                        <SelectItem key={grade} value={grade}>
+                          {grade === "없음" ? grade : `${grade}학년`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-bold text-muted-foreground">공개 여부</Label>
+                  <Select
+                    value={condition.disclosure || "all"}
+                    onValueChange={(value) =>
+                      setCondition((prev) => ({
+                        ...prev,
+                        disclosure: value === "all" ? undefined : value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+                      <SelectValue placeholder="전체" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      {DISCLOSURES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -626,16 +894,6 @@ export function CourseSearchBar({
           </FilterSection>
         </div>
 
-        <div className="mt-4 border-t border-border/70 pt-3">
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="h-11 w-full gap-2 rounded-xl bg-primary text-sm font-bold text-white hover:bg-primary/90"
-          >
-            <Search className="h-4 w-4" />
-            필터로 검색하기
-          </Button>
-        </div>
       </form>
     </div>
   );
