@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.domain.course.request;
 
+import bhoon.sugang_helper.domain.course.enums.TargetGrade;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.AccessLevel;
@@ -72,17 +73,39 @@ public class CourseSearchCondition {
     @Schema(description = "찜한 강의만 보기 여부", example = "true")
     private Boolean isWishedOnly;
 
+    @Schema(description = "강의방식(설강상태)", example = "일반")
+    private String status;
+
+    @Schema(description = "최소 학점", example = "4")
+    private Double minCredits;
+
+    @Schema(description = "대상 학년", example = "1")
+    private TargetGrade targetGrade;
+
+    @Schema(description = "공개 여부", example = "공개")
+    private String disclosure;
+
+    @Schema(description = "정렬 기준", example = "recommended")
+    private String sortBy;
+
+    @Schema(description = "정렬 순서", example = "asc")
+    private String sortOrder;
+
     @Schema(description = "사용자 ID (내부용)", hidden = true)
     private Long userId;
 
+    /**
+     * 강의 검색 조건을 생성하기 위한 빌더 생성자
+     */
     @Builder
     public CourseSearchCondition(String name, String professor, String subjectCode, String academicYear,
-                                 String semester, String classification,
-                                 String department, String gradingMethod, String lectureLanguage,
-                                 Boolean isAvailableOnly, String dayOfWeek, String credits, Integer lectureHours,
-                                 Integer minLectureHours, String generalCategory, String generalDetail,
-                                 List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly,
-                                 Long userId) {
+            String semester, String classification,
+            String department, String gradingMethod, String lectureLanguage,
+            Boolean isAvailableOnly, String dayOfWeek, String credits, Integer lectureHours,
+            Integer minLectureHours, String generalCategory, String generalDetail,
+            List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly,
+            String status, Double minCredits, TargetGrade targetGrade, String disclosure,
+            String sortBy, String sortOrder, Long userId) {
         this.name = name;
         this.professor = professor;
         this.subjectCode = subjectCode;
@@ -102,6 +125,12 @@ public class CourseSearchCondition {
         this.selectedSchedules = selectedSchedules;
         this.timetableId = timetableId;
         this.isWishedOnly = isWishedOnly;
+        this.status = status;
+        this.minCredits = minCredits;
+        this.targetGrade = targetGrade;
+        this.disclosure = disclosure;
+        this.sortBy = sortBy;
+        this.sortOrder = sortOrder;
         this.userId = userId;
     }
 }

@@ -9,6 +9,7 @@ import bhoon.sugang_helper.domain.course.enums.CourseStatus;
 import bhoon.sugang_helper.domain.course.enums.DisclosureStatus;
 import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
+import bhoon.sugang_helper.domain.course.enums.TargetGrade;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -31,6 +32,9 @@ public class JbnuCourseParser {
     private static final String DATASET_ID = "GRD_COUR001";
     private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
 
+    /**
+     * XML 데이터를 파싱하여 강의 리스트로 변환
+     */
     public List<Course> parseCourses(String xmlData) {
         List<Course> courseList = new ArrayList<>();
         Document doc = Jsoup.parse(xmlData, "", Parser.xmlParser());
@@ -47,6 +51,9 @@ public class JbnuCourseParser {
         return courseList;
     }
 
+    /**
+     * 단일 행(Row) 데이터를 파싱하여 강의 객체 생성
+     */
     private Optional<Course> processRow(Element row) {
         String sbjtCd = getColValue(row, "SBJTCD");
         String clss = getColValue(row, "CLSS");
@@ -68,7 +75,7 @@ public class JbnuCourseParser {
                 .professor(getColValue(row, "RPSTPROFNM"))
                 .capacity(safeParseInt(getColValue(row, "LMTRCNT")))
                 .current(safeParseInt(getColValue(row, "TLSNRCNT")))
-                .targetGrade(getColValue(row, "TLSNOBJFGNM"))
+                .targetGrade(TargetGrade.from(getColValue(row, "TLSNOBJFGNM")))
                 .academicYear(year)
                 .semester(semester)
                 .classification(CourseClassification.from(getColValue(row, "CPTNFGNM")))
@@ -96,10 +103,16 @@ public class JbnuCourseParser {
         return Optional.of(course);
     }
 
+    /**
+     * 강의 고유 키 생성 (연도:학기:과목코드:분반)
+     */
     private String generateCourseKey(String year, String semester, String sbjtCd, String clss) {
         return String.format("%s:%s:%s:%s", year, semester, sbjtCd, clss);
     }
 
+    /**
+     * 교양 과목 정보(영역, 상세영역) 추출
+     */
     private LiberalArtsInfo parseLiberalArtsInfo(Element row) {
         String category = getColValue(row, "FLDFGNM");
         String detail = getColValue(row, "FLDDETAFGNM");
@@ -115,6 +128,9 @@ public class JbnuCourseParser {
         return new LiberalArtsInfo(category, detail);
     }
 
+    /**
+     * 강의 상태 및 공개 여부 정보 추출
+     */
     private StatusInfo parseStatusAndDisclosureInfo(Element row) {
         DisclosureStatus disclosure = DisclosureStatus.from(getColValue(row, "PUBCYN"));
         String disclosureReason = getColValue(row, "NOPUBCRESNNM");
@@ -134,6 +150,9 @@ public class JbnuCourseParser {
         }
     }
 
+    /**
+     * 시간 정보 문자열을 파싱하여 시간표 리스트 생성
+     */
     private List<CourseSchedule> parseSchedules(String timeString) {
         List<CourseSchedule> schedules = new ArrayList<>();
         if (timeString == null || timeString.isBlank()) {
@@ -175,6 +194,9 @@ public class JbnuCourseParser {
                 .build();
     }
 
+    /**
+     * 연속된 시간대 정보를 하나의 시간대로 병합 (예: 1A, 1B -> 1시간)
+     */
     private List<CourseSchedule> mergeConsecutiveSchedules(List<CourseSchedule> schedules) {
         if (schedules.isEmpty()) {
             return schedules;

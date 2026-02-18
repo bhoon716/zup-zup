@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.domain.course.response;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
+import bhoon.sugang_helper.domain.course.enums.TargetGrade;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -30,7 +31,7 @@ public class CourseResponse {
     private final String professor;
 
     @Schema(description = "대상 학년", example = "1")
-    private final String targetGrade;
+    private final TargetGrade targetGrade;
 
     @Schema(description = "정원", example = "40")
     private final Integer capacity;
@@ -101,6 +102,9 @@ public class CourseResponse {
     @Schema(description = "마지막 크롤링 시간", example = "2024-03-20T10:00:00")
     private final LocalDateTime lastCrawledAt;
 
+    /**
+     * 강의 엔티티를 응답 DTO로 변환
+     */
     public static CourseResponse from(Course course) {
         String status = course.getAvailable() > 0 ? "AVAILABLE" : "FULL";
         return CourseResponse.builder()
