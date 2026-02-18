@@ -36,20 +36,23 @@ interface CourseTableProps {
   isFetchingNextPage?: boolean;
 }
 
+/**
+ * 여석 상태에 따른 라벨 및 스타일 정보 반환
+ */
 function getSeatStatus(available: number) {
   if (available <= 0) {
     return {
       label: "마감됨",
-      badgeClass: "bg-gray-100 text-gray-500",
-      barClass: "bg-gray-400",
+      badgeClass: "bg-red-50 text-red-600",
+      barClass: "bg-red-500",
     };
   }
 
   if (available <= 5) {
     return {
       label: "마감 임박",
-      badgeClass: "bg-red-50 text-red-600",
-      barClass: "bg-red-500",
+      badgeClass: "bg-amber-50 text-amber-600",
+      barClass: "bg-amber-500",
     };
   }
 
@@ -60,6 +63,9 @@ function getSeatStatus(available: number) {
   };
 }
 
+/**
+ * 이수 구분에 따른 왼쪽 포인트 색상 반환
+ */
 function getClassificationStripe(classification?: string) {
   const normalized = classification || "";
 
@@ -82,6 +88,9 @@ function getClassificationStripe(classification?: string) {
   return "bg-gray-400";
 }
 
+/**
+ * 검색된 강의 목록을 표시하는 테이블 컴포넌트 (무한 스크롤 지원)
+ */
 export function CourseTable({
   courses,
   onLoadMore,
@@ -115,6 +124,9 @@ export function CourseTable({
     [wishlist],
   );
 
+  /**
+   * 무한 스크롤을 위한 Intersection Observer 콜백
+   */
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const isIntersecting = entries.some((entry) => entry.isIntersecting);
@@ -144,6 +156,9 @@ export function CourseTable({
     };
   }, [handleObserver]);
 
+  /**
+   * 여석 알림 구독/취소 핸들러
+   */
   const handleSubscribe = (courseKey: string) => {
     if (!user) {
       setLoginModalOpen(true);
@@ -160,6 +175,9 @@ export function CourseTable({
     subscribe({ courseKey });
   };
 
+  /**
+   * 강의 클릭 시 상세 다이얼로그 오픈
+   */
   const handleCourseClick = (course: Course) => {
     setSelectedCourse(course);
     setIsDialogOpen(true);
@@ -192,52 +210,90 @@ export function CourseTable({
           return (
             <article
               key={`${course.courseKey}-${index}`}
-              className="group overflow-hidden rounded-xl border border-border bg-white transition-all duration-300 hover:border-primary/40 hover:shadow-md"
+              className="group relative overflow-hidden rounded-xl border border-border bg-white transition-all duration-300 hover:border-primary/40 hover:shadow-md"
               onClick={() => handleCourseClick(course)}
             >
               <div className="flex items-stretch">
-                <div className={cn("w-1.5 shrink-0", getClassificationStripe(course.classification))} />
+                <div
+                  className={cn(
+                    "w-1 shrink-0 md:w-1.5",
+                    getClassificationStripe(course.classification),
+                  )}
+                />
 
-                <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 md:flex-row md:items-center md:gap-4">
+                <div className="flex min-w-0 flex-1 flex-col p-3 md:flex-row md:items-center md:gap-4 md:p-4">
                   <div className="min-w-0 flex-1">
-                    <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-                      <span className="rounded border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                        {formatClassification(course.classification)}
-                      </span>
-                      <span className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
-                        {course.credits || 0}학점
-                      </span>
-                      {course.subjectCode && (
-                        <span className="text-[10px] font-semibold tracking-wide text-gray-400">
-                          {course.subjectCode}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-1 md:mb-1.5 md:gap-1.5">
+                          <span className="rounded border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                            {formatClassification(course.classification)}
+                          </span>
+                          <span className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
+                            {course.credits || 0}학점
+                          </span>
+                          {course.subjectCode && (
+                            <span className="text-[10px] font-semibold tracking-wide text-gray-400">
+                              {course.subjectCode}
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="mb-1 truncate text-sm font-bold text-foreground transition-colors group-hover:text-primary md:mb-1.5 md:text-base">
+                          {course.name}
+                        </h3>
+                      </div>
+
+                      {/* 모바일용 상단 우측 여석 상태 */}
+                      <div className="flex items-center gap-2 pt-1 md:hidden">
+                        <span
+                          className={cn(
+                            "rounded-sm px-1.5 py-0.5 text-[9px] font-bold shrink-0",
+                            seatStatus.badgeClass,
+                          )}
+                        >
+                          {seatStatus.label}
                         </span>
-                      )}
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="text-[10px] font-bold text-gray-900">
+                            {current} / {capacity}
+                          </span>
+                          <div className="h-1 w-12 overflow-hidden rounded-full bg-gray-100">
+                            <div
+                              className={cn("h-full transition-all", seatStatus.barClass)}
+                              style={{ width: `${seatRatio}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <h3 className="mb-1.5 truncate text-sm font-bold text-foreground transition-colors group-hover:text-primary md:text-base">
-                      {course.name}
-                    </h3>
-
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-600">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-600 md:text-[11px]">
                       <span className="flex items-center gap-1">
-                        <UserRound className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="font-medium text-gray-700">{course.professor || "미지정"}</span>
+                        <UserRound className="h-3 w-3 text-gray-400 md:h-3.5 md:w-3.5" />
+                        <span className="font-medium text-gray-700">
+                          {course.professor || "미지정"}
+                        </span>
                       </span>
 
                       <span className="flex items-center gap-1">
-                        <Clock3 className="h-3.5 w-3.5 text-gray-400" />
-                        <span>{course.classTime || "시간 미배정"}</span>
+                        <Clock3 className="h-3 w-3 text-gray-400 md:h-3.5 md:w-3.5" />
+                        <span className="max-w-[120px] truncate md:max-w-none">
+                          {course.classTime || "시간 미배정"}
+                        </span>
                       </span>
 
                       <span className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                        <span>{course.classroom || "강의실 미정"}</span>
+                        <MapPin className="h-3 w-3 text-gray-400 md:h-3.5 md:w-3.5" />
+                        <span className="max-w-[100px] truncate md:max-w-none">
+                          {course.classroom || "강의실 미정"}
+                        </span>
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex min-w-[170px] flex-col gap-2 border-t border-border pt-2 md:border-l md:border-t-0 md:pl-4 md:pt-0">
-                    <div className="space-y-1">
+                  <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5 md:mt-0 md:block md:min-w-[170px] md:border-l md:border-t-0 md:pl-4 md:pt-0">
+                    <div className="hidden space-y-1 md:block">
                       <div className="flex items-center justify-between gap-2">
                         <span
                           className={cn(
@@ -260,8 +316,10 @@ export function CourseTable({
                       </div>
                     </div>
 
+
+
                     <div
-                      className="flex items-center gap-1.5"
+                      className="flex items-center gap-1 md:gap-1.5"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {!user ? (
@@ -269,9 +327,8 @@ export function CourseTable({
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="h-8 w-8 rounded-lg border-gray-200 text-gray-500 hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                          className="h-7 w-7 rounded-lg border-gray-200 text-gray-500 md:h-8 md:w-8"
                           onClick={() => setLoginModalOpen(true)}
-                          title="시간표에 추가"
                         >
                           <CalendarPlus className="h-4 w-4" />
                         </Button>
@@ -282,16 +339,15 @@ export function CourseTable({
                               type="button"
                               variant="outline"
                               size="icon"
-                              className="h-8 w-8 rounded-lg border-gray-200 text-gray-500 hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                              className="h-7 w-7 rounded-lg border-gray-200 text-gray-500 md:h-8 md:w-8"
                               disabled={isAdding}
-                              title="시간표에 추가"
                             >
                               <CalendarPlus className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
 
-                          <DropdownMenuContent align="start" className="w-56">
-                            <DropdownMenuLabel className="text-[11px] font-bold text-muted-foreground">
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground">
                               추가할 시간표 선택
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
@@ -302,7 +358,7 @@ export function CourseTable({
                                 .map((timetable) => (
                                   <DropdownMenuItem
                                     key={timetable.id}
-                                    className="cursor-pointer"
+                                    className="cursor-pointer py-1.5"
                                     onClick={() => {
                                       addToTimetable({
                                         timetableId: timetable.id,
@@ -310,9 +366,9 @@ export function CourseTable({
                                       });
                                     }}
                                   >
-                                    <span className="flex max-w-[190px] items-center gap-2 text-xs font-medium">
+                                    <span className="flex max-w-[160px] items-center gap-2 text-[11px] font-medium">
                                       {timetable.primary && (
-                                        <Crown className="h-3 w-3 shrink-0 fill-yellow-500 text-yellow-500" />
+                                        <Crown className="h-2.5 w-2.5 shrink-0 fill-yellow-500 text-yellow-500" />
                                       )}
                                       <span className="truncate">{timetable.name}</span>
                                     </span>
@@ -320,7 +376,7 @@ export function CourseTable({
                                 ))
                             ) : (
                               <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                                등록된 시간표가 없습니다.
+                                시간표가 없습니다.
                               </div>
                             )}
                           </DropdownMenuContent>
@@ -331,8 +387,7 @@ export function CourseTable({
                         type="button"
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8 rounded-lg border-gray-200 text-gray-500 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500"
-                        title="관심강좌 담기"
+                        className="h-7 w-7 rounded-lg border-gray-200 text-gray-500 md:h-8 md:w-8"
                         onClick={() => {
                           if (!user) {
                             setLoginModalOpen(true);
@@ -354,12 +409,11 @@ export function CourseTable({
                         variant={subscribed ? "default" : "outline"}
                         size="icon"
                         className={cn(
-                          "h-8 w-8 rounded-lg",
+                          "h-7 w-7 rounded-lg md:h-8 md:w-8",
                           subscribed
                             ? "bg-primary text-white hover:bg-primary/90"
-                            : "border-gray-200 text-gray-500 hover:border-primary/30 hover:bg-primary/5 hover:text-primary",
+                            : "border-gray-200 text-gray-500",
                         )}
-                        title={subscribed ? "알림 설정 끄기" : "알림 설정 켜기"}
                         onClick={() => handleSubscribe(course.courseKey)}
                         disabled={isSubscribing || isUnsubscribing}
                       >

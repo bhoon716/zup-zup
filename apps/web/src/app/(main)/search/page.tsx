@@ -21,11 +21,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/shared/ui/sheet";
-import { Filter, SlidersHorizontal, X } from "lucide-react";
+import { Filter, SlidersHorizontal, X, ArrowDown, ArrowUp } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-type SortOption = "recommended" | "name" | "credits" | "available";
 
 const DEFAULT_CONDITION: CourseSearchCondition = {
   academicYear: "2026",
@@ -38,30 +36,13 @@ interface FilterChip {
   patch: Partial<CourseSearchCondition>;
 }
 
-function sortCourses(courses: Course[], sortOption: SortOption) {
-  const sorted = [...courses];
-
-  if (sortOption === "name") {
-    sorted.sort((a, b) => a.name.localeCompare(b.name, "ko"));
-    return sorted;
-  }
-
-  if (sortOption === "credits") {
-    sorted.sort((a, b) => (Number(b.credits) || 0) - (Number(a.credits) || 0));
-    return sorted;
-  }
-
-  if (sortOption === "available") {
-    sorted.sort((a, b) => (b.available || 0) - (a.available || 0));
-    return sorted;
-  }
-
-  return sorted;
-}
-
+/**
+ * 강의 검색 페이지 메인 컴포넌트
+ */
 export default function SearchPage() {
   const [searchCondition, setSearchCondition] = useState<CourseSearchCondition>(DEFAULT_CONDITION);
-  const [sortOption, setSortOption] = useState<SortOption>("recommended");
+  const [sortOption, setSortOption] = useState<string>("recommended");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   const {
@@ -71,31 +52,46 @@ export default function SearchPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useCourses(searchCondition);
+  } = useCourses({
+    ...searchCondition,
+    sortBy: sortOption,
+    sortOrder,
+  });
 
+  /**
+   * 검색 바에서 검색 실행 시 호출되는 핸들러
+   */
   const handleSearch = useCallback((condition: CourseSearchCondition) => {
     setSearchCondition(condition);
   }, []);
 
+  /**
+   * 모바일 필터 시트에서 검색 실행 시 호출되는 핸들러
+   */
   const handleSearchFromSheet = useCallback((condition: CourseSearchCondition) => {
     setSearchCondition(condition);
     setIsFilterSheetOpen(false);
   }, []);
 
+  /**
+   * 무한 페이징 데이터를 평탄화하여 전체 강의 리스트 생성
+   */
   const allCourses = useMemo(
     () => data?.pages.flatMap((page) => page.content) || [],
     [data],
   );
 
-  const sortedCourses = useMemo(
-    () => sortCourses(allCourses, sortOption),
-    [allCourses, sortOption],
-  );
+  /**
+   * 검색 조건이 변경될 때마다 갱신되는 고유 키
+   */
   const searchConditionKey = useMemo(
-    () => JSON.stringify(searchCondition),
-    [searchCondition],
+    () => JSON.stringify({ ...searchCondition, sortOption, sortOrder }),
+    [searchCondition, sortOption, sortOrder],
   );
 
+  /**
+   * 활성화된 필터들을 칩(Chip) 형태로 표시하기 위한 데이터 가공
+   */
   const activeFilters = useMemo<FilterChip[]>(() => {
     const filters: FilterChip[] = [];
 
@@ -158,10 +154,16 @@ export default function SearchPage() {
     return filters;
   }, [searchCondition]);
 
+  /**
+   * 개별 필터 칩 삭제 핸들러
+   */
   const clearSingleFilter = useCallback((patch: Partial<CourseSearchCondition>) => {
     setSearchCondition((prev) => ({ ...prev, ...patch }));
   }, []);
 
+  /**
+   * 모든 필터 초기화 핸들러
+   */
   const resetAllFilters = useCallback(() => {
     setSearchCondition(DEFAULT_CONDITION);
   }, []);
@@ -183,31 +185,41 @@ export default function SearchPage() {
 
           <section className="min-w-0 space-y-4">
             <div className="rounded-2xl border border-border/70 bg-white px-4 py-4 shadow-sm md:px-5">
-              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h1 className="text-2xl font-black tracking-tight text-foreground md:text-3xl">
-                    검색 결과
-                  </h1>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    조건에 맞는 <span className="font-bold text-primary">{sortedCourses.length}</span>개 강의가 표시되고 있습니다.
-                  </p>
-                </div>
+              <div className="mb-3 flex items-center justify-between">
+                <h1 className="text-xl font-black tracking-tight text-foreground md:text-2xl">
+                  검색 결과
+                </h1>
 
                 <div className="flex items-center gap-2">
                   <Select
                     value={sortOption}
-                    onValueChange={(value) => setSortOption(value as SortOption)}
+                    onValueChange={(value) => setSortOption(value)}
                   >
-                    <SelectTrigger className="h-10 min-w-[160px] rounded-xl bg-white text-sm font-medium">
+                    <SelectTrigger className="h-9 min-w-[130px] rounded-xl bg-white text-xs font-medium md:h-10 md:min-w-[160px] md:text-sm">
                       <SelectValue placeholder="정렬" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="recommended">추천순</SelectItem>
-                      <SelectItem value="name">강의명 (가나다)</SelectItem>
-                      <SelectItem value="credits">학점 (높은순)</SelectItem>
+                      <SelectItem value="name">강의명</SelectItem>
+                      <SelectItem value="credits">학점순</SelectItem>
                       <SelectItem value="available">여석순</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 rounded-xl border border-border/70 bg-white text-muted-foreground hover:bg-muted md:h-10 md:w-10"
+                    onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+                    title={sortOrder === "asc" ? "오름차순" : "내림차순"}
+                  >
+                    {sortOrder === "asc" ? (
+                      <ArrowUp className="h-4 w-4 md:h-5 md:w-5" />
+                    ) : (
+                      <ArrowDown className="h-4 w-4 md:h-5 md:w-5" />
+                    )}
+                  </Button>
                 </div>
               </div>
 
@@ -251,7 +263,7 @@ export default function SearchPage() {
               </div>
             ) : (
               <CourseTable
-                courses={sortedCourses}
+                courses={allCourses}
                 onLoadMore={fetchNextPage}
                 hasMore={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}

@@ -65,6 +65,9 @@ export type CourseDayOfWeek =
   | 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA' | 'SU'
   | '월' | '화' | '수' | '목' | '금' | '토' | '일';
 
+/**
+ * 강의 기본 정보 인터페이스
+ */
 export interface Course {
   courseKey: string;
   subjectCode: string;
@@ -116,6 +119,9 @@ export interface ScheduleCondition {
   endTime: string;
 }
 
+/**
+ * 강의 검색 조건 인터페이스
+ */
 export interface CourseSearchCondition {
   academicYear?: string;
   semester?: string;
@@ -135,6 +141,12 @@ export interface CourseSearchCondition {
   generalCategory?: string;
   generalDetail?: string;
   isWishedOnly?: boolean;
+  status?: string;
+  minCredits?: number;
+  targetGrade?: string;
+  disclosure?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface CourseCategoryResponse {
@@ -151,6 +163,9 @@ export interface CourseSeatHistory {
 }
 
 // 구독 관련
+/**
+ * 여석 알림 구독 정보 인터페이스
+ */
 export interface Subscription {
   id: number;
   courseKey: string;
@@ -165,6 +180,9 @@ export interface SubscriptionRequest {
 }
 
 // 사용자 관련
+/**
+ * 사용자 정보 인터페이스
+ */
 export interface User {
   id: number;
   email: string;
@@ -299,6 +317,9 @@ export interface CustomScheduleResponse {
   color: string;
 }
 
+/**
+ * 시간표 요약 정보 인터페이스
+ */
 export interface TimetableResponse {
   id: number;
   name: string;
@@ -307,6 +328,9 @@ export interface TimetableResponse {
   customSchedules: CustomScheduleResponse[];
 }
 
+/**
+ * 시간표 상세 정보 인터페이스
+ */
 export interface TimetableDetailResponse {
   id: number;
   name: string;
