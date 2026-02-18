@@ -75,7 +75,7 @@ public class JbnuCourseParser {
                 .professor(getColValue(row, "RPSTPROFNM"))
                 .capacity(safeParseInt(getColValue(row, "LMTRCNT")))
                 .current(safeParseInt(getColValue(row, "TLSNRCNT")))
-                .targetGrade(TargetGrade.from(getColValue(row, "TLSNOBJFGNM")))
+                .targetGrade(parseTargetGrade(row))
                 .academicYear(year)
                 .semester(semester)
                 .classification(CourseClassification.from(getColValue(row, "CPTNFGNM")))
@@ -108,6 +108,28 @@ public class JbnuCourseParser {
      */
     private String generateCourseKey(String year, String semester, String sbjtCd, String clss) {
         return String.format("%s:%s:%s:%s", year, semester, sbjtCd, clss);
+    }
+
+    /**
+     * 대상 학년 정보 추출 (기본 컬럼 외에 학과 정보의 학년 필드도 분석)
+     */
+    private TargetGrade parseTargetGrade(Element row) {
+        String gradeNm = getColValue(row, "TLSNOBJFGNM");
+        TargetGrade grade = TargetGrade.from(gradeNm);
+
+        // 전체(학부)이거나 파싱되지 않은 경우, 학과 정보(SUSTCDNM)에서 학년 추출 시도
+        if (grade == TargetGrade.ALL || grade == TargetGrade.NONE) {
+            String deptNm = getColValue(row, "SUSTCDNM");
+            if (deptNm != null && !deptNm.isBlank()) {
+                // "학과명 3", "학과명 3,학과명 3" 형식에서 숫자 추출
+                Pattern pattern = Pattern.compile("\\s([1-6])(\\s|$)");
+                Matcher matcher = pattern.matcher(deptNm);
+                if (matcher.find()) {
+                    return TargetGrade.from(matcher.group(1));
+                }
+            }
+        }
+        return grade;
     }
 
     /**

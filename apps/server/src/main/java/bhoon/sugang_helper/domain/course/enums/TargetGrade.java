@@ -15,6 +15,8 @@ public enum TargetGrade {
     GRADE_4("4", "4학년"),
     GRADE_5("5", "5학년"),
     GRADE_6("6", "6학년"),
+    ALL("전체", "전체(학부)"),
+    GRADUATE("대학원", "대학원생"),
     NONE("없음", "없음");
 
     private final String code;

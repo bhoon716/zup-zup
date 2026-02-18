@@ -174,4 +174,28 @@ class JbnuCourseParserTest {
         assertThat(courses.get(0).getSchedules().get(0).getStartTime()).isEqualTo(LocalTime.of(11, 30));
         assertThat(courses.get(0).getSchedules().get(0).getEndTime()).isEqualTo(LocalTime.of(12, 0));
     }
+
+    @Test
+    @DisplayName("TLSNOBJFGNM이 전체(학부)인 경우 SUSTCDNM에서 학년을 추출한다")
+    void parseCourses_extractGradeFromSustcdnm() {
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">50005</Col>
+                            <Col id="CLSS">01</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
+                            <Col id="SUSTCDNM">영어영문 3</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getTargetGrade().getDescription()).isEqualTo("3학년");
+    }
 }
