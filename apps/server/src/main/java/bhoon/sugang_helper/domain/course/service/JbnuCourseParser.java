@@ -117,15 +117,19 @@ public class JbnuCourseParser {
         String gradeNm = getColValue(row, "TLSNOBJFGNM");
         TargetGrade grade = TargetGrade.from(gradeNm);
 
-        // 전체(학부)이거나 파싱되지 않은 경우, 학과 정보(SUSTCDNM)에서 학년 추출 시도
+        // 전체(학부)이거나 파싱되지 않은 경우, 학가 정보(SUSTCDNM)에서 학년 추출 시도
         if (grade == TargetGrade.ALL || grade == TargetGrade.NONE) {
             String deptNm = getColValue(row, "SUSTCDNM");
-            if (deptNm != null && !deptNm.isBlank()) {
-                // "학과명 3", "학과명 3,학과명 3" 형식에서 숫자 추출
-                Pattern pattern = Pattern.compile("\\s([1-6])(\\s|$)");
+            if (deptNm != null && !deptNm.isBlank() && !deptNm.contains("계열")) {
+                // "학과명 3", "학과명 3,학과명 3" 형식에서 마지막 숫자를 학년으로 간주
+                Pattern pattern = Pattern.compile("\\s([1-6])(?=[\\s,]|$)");
                 Matcher matcher = pattern.matcher(deptNm);
-                if (matcher.find()) {
-                    return TargetGrade.from(matcher.group(1));
+                String lastMatchedGrade = null;
+                while (matcher.find()) {
+                    lastMatchedGrade = matcher.group(1);
+                }
+                if (lastMatchedGrade != null) {
+                    return TargetGrade.from(lastMatchedGrade);
                 }
             }
         }

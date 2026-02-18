@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
+import bhoon.sugang_helper.domain.course.enums.TargetGrade;
 import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -197,5 +198,53 @@ class JbnuCourseParserTest {
 
         assertThat(courses).hasSize(1);
         assertThat(courses.get(0).getTargetGrade().getDescription()).isEqualTo("3학년");
+    }
+
+    @Test
+    @DisplayName("SUSTCDNM에 여러 숫자가 있는 경우 마지막 숫자를 학년으로 추출한다 (계열 제외)")
+    void parseCourses_extractLastGradeFromSustcdnm() {
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">60006</Col>
+                            <Col id="CLSS">01</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
+                            <Col id="SUSTCDNM">기계시스템 3,기계시스템(정밀기계) 3</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getTargetGrade().getDescription()).isEqualTo("3학년");
+    }
+
+    @Test
+    @DisplayName("SUSTCDNM에 '계열'이 포함된 경우 숫자가 있어도 학년으로 파싱하지 않는다")
+    void parseCourses_ignoreGradeForCategory() {
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">70007</Col>
+                            <Col id="CLSS">01</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
+                            <Col id="SUSTCDNM">공학계열 1 1</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.ALL);
     }
 }
