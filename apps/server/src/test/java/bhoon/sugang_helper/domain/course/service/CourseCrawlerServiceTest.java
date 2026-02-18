@@ -22,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,9 +43,15 @@ class CourseCrawlerServiceTest {
     @Mock
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
     @InjectMocks
     private CourseCrawlerService crawlerService;
 
+    /**
+     * 신규 강의 데이터 크롤링 시 DB 저장 및 이력 기록 검증
+     */
     @Test
     @DisplayName("새로운 강좌 데이터를 성공적으로 크롤링하여 저장한다")
     void crawlAndSave_NewCourses() throws java.io.IOException {
@@ -65,6 +72,9 @@ class CourseCrawlerServiceTest {
         verify(eventPublisher, never()).publishEvent(any());
     }
 
+    /**
+     * 기존 강의 업데이트 시 빈자리 발생 여부를 판단하고 이벤트를 발행하는지 검증
+     */
     @Test
     @DisplayName("기존 강좌의 빈자리가 생기면 알림 이벤트를 발행한다")
     void crawlAndSave_UpdateWithEvent() throws java.io.IOException {
@@ -88,6 +98,9 @@ class CourseCrawlerServiceTest {
         assertThat(existingCourse.getAvailable()).isEqualTo(5);
     }
 
+    /**
+     * 클라이언트 연결 실패 시 커스텀 예외(CRAWLER_CONNECTION_ERROR) 발생 여부 검증
+     */
     @Test
     @DisplayName("API 호출 실패 시 Connection Error 예외를 발생시킨다")
     void crawlAndSave_ConnectionError() throws java.io.IOException {
@@ -101,6 +114,9 @@ class CourseCrawlerServiceTest {
                         bhoon.sugang_helper.common.error.ErrorCode.CRAWLER_CONNECTION_ERROR);
     }
 
+    /**
+     * 크롤링된 데이터가 없을 경우 커스텀 예외(CRAWLER_NO_DATA) 발생 여부 검증
+     */
     @Test
     @DisplayName("파싱된 데이터가 없으면 No Data 예외를 발생시킨다")
     void crawlAndSave_NoData() throws java.io.IOException {
