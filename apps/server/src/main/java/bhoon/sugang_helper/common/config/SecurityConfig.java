@@ -29,81 +29,82 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private static final String[] PERMIT_ALL_ENDPOINTS = new String[]{
-            "/api/health",
-            "/health",
-            "/actuator/**",
-            "/swagger-ui/**",
-            "/v3/api-docs/**",
-            "/swagger-ui.html",
-            "/h2-console/**",
-            "/error",
-            "/favicon.ico",
-            "/oauth2/**"
-    };
+        private static final String[] PERMIT_ALL_ENDPOINTS = new String[] {
+                        "/api/health",
+                        "/health",
+                        "/actuator/**",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/swagger-ui.html",
+                        "/h2-console/**",
+                        "/error",
+                        "/favicon.ico",
+                        "/oauth2/**"
+        };
 
-    private static final String[] PERMIT_GET_ENDPOINTS = new String[]{
-            "/api/v1/courses/**"
-    };
+        private static final String[] PERMIT_GET_ENDPOINTS = new String[] {
+                        "/api/v1/courses/**"
+        };
 
-    private static final String[] PERMIT_POST_ENDPOINTS = new String[]{
-            "/api/auth/refresh",
-            "/api/auth/logout"
-    };
+        private static final String[] PERMIT_POST_ENDPOINTS = new String[] {
+                        "/api/auth/refresh",
+                        "/api/auth/logout",
+                        "/api/v1/courses/search"
+        };
 
-    @Value("${app.cors.allowed-origins}")
-    private String[] allowedOrigins;
+        @Value("${app.cors.allowed-origins}")
+        private String[] allowedOrigins;
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final CustomAccessDeniedHandler customAccessDeniedHandler;
-    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-    private final CustomOAuth2UserService customOAuth2UserService;
-    private final OAuth2SuccessHandler oAuth2SuccessHandler;
-    private final OAuth2FailureHandler oAuth2FailureHandler;
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final CustomAccessDeniedHandler customAccessDeniedHandler;
+        private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+        private final CustomOAuth2UserService customOAuth2UserService;
+        private final OAuth2SuccessHandler oAuth2SuccessHandler;
+        private final OAuth2FailureHandler oAuth2FailureHandler;
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
-                .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable)
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .formLogin(AbstractHttpConfigurer::disable)
+                                .httpBasic(AbstractHttpConfigurer::disable)
 
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(PERMIT_ALL_ENDPOINTS).permitAll()
-                        .requestMatchers(HttpMethod.GET, PERMIT_GET_ENDPOINTS).permitAll()
-                        .requestMatchers(HttpMethod.POST, PERMIT_POST_ENDPOINTS).permitAll()
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
-                .exceptionHandling(exception -> exception
-                        .accessDeniedHandler(customAccessDeniedHandler)
-                        .authenticationEntryPoint(customAuthenticationEntryPoint))
-                .headers(headers -> headers.frameOptions(FrameOptionsConfig::sameOrigin))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService))
-                        .successHandler(oAuth2SuccessHandler)
-                        .failureHandler(oAuth2FailureHandler));
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(PERMIT_ALL_ENDPOINTS).permitAll()
+                                                .requestMatchers(HttpMethod.GET, PERMIT_GET_ENDPOINTS).permitAll()
+                                                .requestMatchers(HttpMethod.POST, PERMIT_POST_ENDPOINTS).permitAll()
+                                                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                                                .anyRequest().authenticated())
+                                .exceptionHandling(exception -> exception
+                                                .accessDeniedHandler(customAccessDeniedHandler)
+                                                .authenticationEntryPoint(customAuthenticationEntryPoint))
+                                .headers(headers -> headers.frameOptions(FrameOptionsConfig::sameOrigin))
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                                .oauth2Login(oauth2 -> oauth2
+                                                .userInfoEndpoint(userInfo -> userInfo
+                                                                .userService(customOAuth2UserService))
+                                                .successHandler(oAuth2SuccessHandler)
+                                                .failureHandler(oAuth2FailureHandler));
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+                configuration.setAllowedHeaders(Arrays.asList("*"));
+                configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 }

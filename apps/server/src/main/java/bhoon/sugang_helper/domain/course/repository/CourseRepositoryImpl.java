@@ -359,7 +359,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         if (minCredits == null) {
             return null;
         }
-        // JBNU credits는 "1", "3", "0.5" 등 문자열임. Double로 변환하여 비교
+        // JBNU 학점(credits)은 "1", "3", "0.5" 등 문자열 형태임. 숫자로 변환하여 비교 수행.
         return course.credits.castToNum(Double.class).goe(minCredits);
     }
 
@@ -369,9 +369,6 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     private BooleanExpression eqTargetGrade(TargetGrade targetGrade) {
         if (targetGrade == null) {
             return null;
-        }
-        if (targetGrade == TargetGrade.NONE) {
-            return course.targetGrade.eq(TargetGrade.NONE).or(course.targetGrade.isNull());
         }
         return course.targetGrade.eq(targetGrade);
     }
@@ -387,6 +384,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return status != null ? course.disclosure.eq(status) : null;
     }
 
+    /**
+     * 유효한 시간대 조건을 담는 내부 레코드
+     */
     private record ValidScheduleCondition(CourseDayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
     }
 }
