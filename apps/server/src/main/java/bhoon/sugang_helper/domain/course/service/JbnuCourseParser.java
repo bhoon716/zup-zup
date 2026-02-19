@@ -31,6 +31,7 @@ public class JbnuCourseParser {
 
     private static final String DATASET_ID = "GRD_COUR001";
     private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
+    private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("\\s(?<grade>[1-6])(?=[\\s,]|$)");
 
     /**
      * XML 데이터를 파싱하여 강의 리스트로 변환
@@ -117,23 +118,33 @@ public class JbnuCourseParser {
         String gradeNm = getColValue(row, "TLSNOBJFGNM");
         TargetGrade grade = TargetGrade.from(gradeNm);
 
-        // 전체(학부)이거나 파싱되지 않은 경우, 학가 정보(SUSTCDNM)에서 학년 추출 시도
-        if (grade == TargetGrade.ALL || grade == TargetGrade.NONE) {
-            String deptNm = getColValue(row, "SUSTCDNM");
-            if (deptNm != null && !deptNm.isBlank() && !deptNm.contains("계열")) {
-                // "학과명 3", "학과명 3,학과명 3" 형식에서 마지막 숫자를 학년으로 간주
-                Pattern pattern = Pattern.compile("\\s([1-6])(?=[\\s,]|$)");
-                Matcher matcher = pattern.matcher(deptNm);
-                String lastMatchedGrade = null;
-                while (matcher.find()) {
-                    lastMatchedGrade = matcher.group(1);
-                }
-                if (lastMatchedGrade != null) {
-                    return TargetGrade.from(lastMatchedGrade);
-                }
-            }
+        // 구체적인 학년이나 대학원이 파싱되면 즉시 반환
+        if (grade != null) {
+            return grade;
         }
-        return grade;
+
+        String deptNm = getColValue(row, "SUSTCDNM");
+        if (deptNm == null || deptNm.isBlank()) {
+            return null;
+        }
+
+        // "계열"이 포함된 경우 1학년으로 간주하여 얼리 리턴
+        if (deptNm.contains("계열")) {
+            return TargetGrade.GRADE_1;
+        }
+
+        // "학과명 3", "학과명 3,학과명 3" 형식에서 마지막 숫자를 학년으로 간주
+        Matcher matcher = GRADE_IN_DEPT_PATTERN.matcher(deptNm);
+        String lastMatchedGrade = null;
+        while (matcher.find()) {
+            lastMatchedGrade = matcher.group("grade");
+        }
+
+        if (lastMatchedGrade != null) {
+            return TargetGrade.from(lastMatchedGrade);
+        }
+
+        return null;
     }
 
     /**
@@ -142,15 +153,6 @@ public class JbnuCourseParser {
     private LiberalArtsInfo parseLiberalArtsInfo(Element row) {
         String category = getColValue(row, "FLDFGNM");
         String detail = getColValue(row, "FLDDETAFGNM");
-        String convInfo = getColValue(row, "FLDCONVINFO");
-
-        if (convInfo != null && convInfo.contains(",")) {
-            String[] parts = convInfo.split(",");
-            if (parts.length >= 2) {
-                category = parts[0].trim();
-                detail = parts[1].trim();
-            }
-        }
         return new LiberalArtsInfo(category, detail);
     }
 
@@ -257,6 +259,9 @@ public class JbnuCourseParser {
         return merged;
     }
 
+    /**
+     * 교시 토큰(예: 1-A)을 파싱하여 시간 범위로 변환
+     */
     private TimeRange parseTimeRange(String periodToken) {
         if (periodToken == null) {
             return null;
@@ -275,22 +280,33 @@ public class JbnuCourseParser {
         String half = matcher.group(2).toUpperCase();
         int hour = 8 + slot;
 
+        // A 교시는 정각부터 30분간
         if ("A".equals(half)) {
             return new TimeRange(LocalTime.of(hour, 0), LocalTime.of(hour, 30));
         }
 
+        // B 교시는 30분부터 다음 정각까지 (15교시는 예외 처리)
         if (slot == 15) {
             return new TimeRange(LocalTime.of(23, 30), LocalTime.of(23, 59));
         }
         return new TimeRange(LocalTime.of(hour, 30), LocalTime.of(hour + 1, 0));
     }
 
+    /**
+     * 교양 과목 정보를 담는 내부 레코드
+     */
     private record LiberalArtsInfo(String category, String detail) {
     }
 
+    /**
+     * 강의 상태 정보를 담는 내부 레코드
+     */
     private record StatusInfo(DisclosureStatus disclosure, String disclosureReason) {
     }
 
+    /**
+     * 시간 범위를 담는 내부 레코드
+     */
     private record TimeRange(LocalTime start, LocalTime end) {
     }
 }

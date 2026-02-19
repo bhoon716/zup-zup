@@ -87,8 +87,8 @@ class JbnuCourseParserTest {
         assertThat(course1.getName()).isEqualTo("핵심교양과목");
         assertThat(course1.getProfessor()).isEqualTo("진교수");
         assertThat(course1.getCourseKey()).isEqualTo("2026:10:10001:01");
-        assertThat(course1.getGeneralCategory()).isEqualTo("핵심"); // Prioritized from FLDCONVINFO
-        assertThat(course1.getGeneralDetail()).isEqualTo("사회이해의기반");
+        assertThat(course1.getGeneralCategory()).isEqualTo("균형교양");
+        assertThat(course1.getGeneralDetail()).isEqualTo("삶과사회");
         assertThat(course1.getClassification().getDescription()).isEqualTo("교양");
         assertThat(course1.getCapacity()).isEqualTo(40);
         assertThat(course1.getCurrent()).isEqualTo(10);
@@ -225,8 +225,8 @@ class JbnuCourseParserTest {
     }
 
     @Test
-    @DisplayName("SUSTCDNM에 '계열'이 포함된 경우 숫자가 있어도 학년으로 파싱하지 않는다")
-    void parseCourses_ignoreGradeForCategory() {
+    @DisplayName("SUSTCDNM에 '계열'이 포함된 경우 1학년으로 파싱한다")
+    void parseCourses_parseGradeForCategoryAsGrade1() {
         String xmlData = """
                 <Dataset id="GRD_COUR001">
                     <Rows>
@@ -245,6 +245,6 @@ class JbnuCourseParserTest {
         List<Course> courses = parser.parseCourses(xmlData);
 
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.ALL);
+        assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.GRADE_1);
     }
 }

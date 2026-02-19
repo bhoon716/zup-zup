@@ -6,35 +6,45 @@ import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 강의 대상 학년 정보를 정의하는 열거형
+ */
 @Getter
 @RequiredArgsConstructor
 public enum TargetGrade {
-    GRADE_1("1", "1학년"),
-    GRADE_2("2", "2학년"),
-    GRADE_3("3", "3학년"),
-    GRADE_4("4", "4학년"),
-    GRADE_5("5", "5학년"),
-    GRADE_6("6", "6학년"),
-    ALL("전체", "전체(학부)"),
-    GRADUATE("대학원", "대학원생"),
-    NONE("없음", "없음");
+    GRADE_1("1학년"),
+    GRADE_2("2학년"),
+    GRADE_3("3학년"),
+    GRADE_4("4학년"),
+    GRADE_5("5학년"),
+    GRADE_6("6학년"),
+    GRADUATE("대학원생");
 
-    private final String code;
     private final String description;
 
+    /**
+     * 입력된 값(코드, 설명, 또는 이름)으로부터 TargetGrade를 추출
+     */
     @JsonCreator
     public static TargetGrade from(String value) {
         if (value == null || value.isBlank()) {
-            return NONE;
+            return null;
         }
+        String trimmedValue = value.trim();
         return Arrays.stream(values())
-                .filter(g -> g.code.equals(value) || g.description.equals(value.trim()))
+                .filter(g -> g.name().equals(trimmedValue) ||
+                        g.description.equals(trimmedValue) ||
+                        (trimmedValue.length() == 1 && g.name().endsWith("_" + trimmedValue)) ||
+                        (g == GRADUATE && "대학원".equals(trimmedValue)))
                 .findFirst()
-                .orElse(NONE);
+                .orElse(null);
     }
 
+    /**
+     * JSON 변환 시 설명(description)을 값으로 사용
+     */
     @JsonValue
-    public String getCode() {
-        return code;
+    public String getDescription() {
+        return description;
     }
 }

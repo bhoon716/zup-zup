@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 public enum CourseClassification {
     SERIES_COMMON("계열공통"),
     GENERAL_EDUCATION("교양"),
-    TEACHING_PROFESSION_GRAD("교직(대)"),
+    TEACHING_PROFESSION_GRAD("교직(대학원)"),
     TEACHING_PROFESSION("교직"),
     MILITARY_SCIENCE("군사학"),
     BASIC_REQUIRED("기초필수"),
@@ -25,6 +25,6 @@ public enum CourseClassification {
         return Arrays.stream(values())
                 .filter(c -> c.description.equals(description))
                 .findFirst()
-                .orElse(null); // 매핑 실패 시 null 반환 (필요하면 미확인 상수 추가)
+                .orElse(null);
     }
 }
