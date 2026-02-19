@@ -38,7 +38,7 @@ export function DashboardAnnouncements() {
           <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
             <Megaphone className="w-5 h-5 text-indigo-600" />
           </div>
-          중요 공지사항
+          공지사항
         </h3>
         <Button variant="ghost" size="sm" className="text-xs font-bold text-gray-400 hover:text-primary transition-colors">
           전체보기 <ChevronRight className="w-4 h-4" />
