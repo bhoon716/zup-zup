@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { FormEvent } from "react";
 import { Button } from "@/shared/ui/button";
 import { Filter, RotateCcw, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -52,11 +51,6 @@ export function CourseSearchBar({
     setGradingType(undefined);
     onSearch({ ...DEFAULT_CONDITION });
     toast.success("검색 조건을 초기화했습니다.");
-  };
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    handleSearch();
   };
 
   return (

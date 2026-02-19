@@ -5,7 +5,7 @@ import { CourseSearchBar } from "@/features/course/components/course-search-bar"
 import { CourseTable } from "@/features/course/components/course-table";
 import { CourseTableSkeleton } from "@/features/course/components/course-table-skeleton";
 import { useCourses } from "@/features/course/hooks/useCourses";
-import type { Course, CourseSearchCondition } from "@/shared/types/api";
+import type { CourseSearchCondition } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
 import {
   Select,

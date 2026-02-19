@@ -1,4 +1,4 @@
-import { CourseClassification, GradingMethod, LectureLanguage, CourseDayOfWeek } from "@/shared/types/api";
+import { CourseDayOfWeek, LectureLanguage } from "@/shared/types/api";
 
 export const DEFAULT_CONDITION = {
   academicYear: "2026",
