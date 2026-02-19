@@ -145,6 +145,7 @@ export interface CourseSearchCondition {
   minCredits?: number;
   targetGrade?: string;
   disclosure?: string;
+  courseDirection?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }

@@ -91,6 +91,18 @@ export function formatGradingMethod(value?: string): string {
   return GRADING_MAP[value] || GRADING_MAP[value.toUpperCase()] || value;
 }
 
+export function formatTargetGrade(value?: string): string {
+  if (!value) return "-";
+  if (value === "GRADUATE" || value === "대학원") return "대학원생";
+
+  const match = value.match(/^(?:GRADE_)?([1-6])$/i);
+  if (match) {
+    return `${match[1]}학년`;
+  }
+
+  return value;
+}
+
 /**
  * 상대 시간을 한글 문구로 변환한다.
  */
