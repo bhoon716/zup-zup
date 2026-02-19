@@ -8,7 +8,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { DialogTitle } from "@/shared/ui/dialog";
-import { formatClassification, formatGradingMethod, formatLanguage } from "@/shared/lib/formatters";
+import { formatClassification, formatGradingMethod, formatLanguage, formatTargetGrade } from "@/shared/lib/formatters";
 
 interface CourseDetailContentProps {
   course: Course;
@@ -27,7 +27,7 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
                 <Badge variant="outline" className="font-mono text-[10px] font-normal border-primary/20 text-primary bg-primary/5 px-2 py-0.5 h-auto">
                     {course.courseKey}
                 </Badge>
-                <div className="h-3 w-[1px] bg-border/60" />
+                <div className="h-3 w-px bg-border/60" />
                 <span className="text-xs text-muted-foreground font-medium tracking-wide">{course.academicYear}년 {course.semester}학기</span>
              </div>
              <div className={`
@@ -67,14 +67,14 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
         </div>
       </div>
 
-      <div className="w-full h-[1px] bg-border/30 mx-auto max-w-[calc(100%-4rem)]" />
+      <div className="w-full h-px bg-border/30 mx-auto max-w-[calc(100%-4rem)]" />
       <div className="px-8 py-8 space-y-10">
         <section>
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-4 select-none">상세 정보</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-8">
                 <SimpleDetailItem label="학점 · 시수" value={`${course.credits}학점 (${course.lectureHours || '-'}시수)`} />
                 <SimpleDetailItem label="성적평가" value={formatGradingMethod(course.gradingMethod)} />
-                <SimpleDetailItem label="대상학년" value={`${course.targetGrade}학년`} />
+                <SimpleDetailItem label="대상학년" value={formatTargetGrade(course.targetGrade)} />
                 <SimpleDetailItem label="강의언어" value={formatLanguage(course.lectureLanguage)} />
             </div>
             <div className="mt-6 pt-6 border-t border-border/40 grid grid-cols-2 gap-x-8">
@@ -105,7 +105,7 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
                             <span className="font-medium">{course.generalCategory}</span>
                         </div>
                     )}
-                    <div className="w-[1px] bg-border/40 mx-2" />
+                    <div className="w-px bg-border/40 mx-2" />
                     {course.generalDetail && (
                         <div className="flex flex-col gap-0.5">
                             <span className="text-[10px] text-muted-foreground">상세</span>
@@ -114,7 +114,7 @@ export function CourseDetailContent({ course, isDialog = false }: CourseDetailCo
                     )}
                     {(course.generalCategoryByYear) && (
                          <>
-                            <div className="w-[1px] bg-border/40 mx-2" />
+                            <div className="w-px bg-border/40 mx-2" />
                             <div className="flex flex-col gap-0.5">
                                 <span className="text-[10px] text-muted-foreground">입학년도 기준</span>
                                 <span className="font-medium text-muted-foreground">{course.generalCategoryByYear}</span>

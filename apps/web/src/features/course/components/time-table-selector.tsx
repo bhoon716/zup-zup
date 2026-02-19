@@ -1,12 +1,13 @@
 "use client";
 
 import { cn } from "@/shared/lib/utils";
+import { Button } from "@/shared/ui/button";
 import type { CourseDayOfWeek, ScheduleCondition } from "@/shared/types/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const DAYS: CourseDayOfWeek[] = ["월", "화", "수", "목", "금", "토"];
 const SLOT_NUMBERS = Array.from({ length: 13 }, (_, i) => i);
-const GRID_COLUMNS_CLASS = "grid-cols-[56px_repeat(6,minmax(0,1fr))]";
+const GRID_COLUMNS_CLASS = "grid-cols-[34px_repeat(6,minmax(0,1fr))]";
 
 interface DragCell {
   dayIndex: number;
@@ -18,18 +19,12 @@ interface TimeTableSelectorProps {
   onChange: (selected: ScheduleCondition[]) => void;
 }
 
-/**
- * 분 단위 숫자를 "HH:mm:00" 형식의 시간 문자열로 변환
- */
 function toTimeText(minutes: number): string {
   const hour = Math.floor(minutes / 60);
   const minute = minutes % 60;
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
 }
 
-/**
- * 슬롯 인덱스를 실제 시간 범위 정보로 변환
- */
 function getSlotRange(slot: number): { startTime: string; endTime: string; label: string } {
   const startMinutes = 9 * 60 + slot * 60;
   const endMinutes = startMinutes + 60;
@@ -41,24 +36,15 @@ function getSlotRange(slot: number): { startTime: string; endTime: string; label
   };
 }
 
-/**
- * 요일과 슬롯 정보를 검색 조건 형식으로 변환
- */
 function toSchedule(day: CourseDayOfWeek, slot: number): ScheduleCondition {
   const { startTime, endTime } = getSlotRange(slot);
   return { dayOfWeek: day, startTime, endTime };
 }
 
-/**
- * 시간대 정보를 식별하기 위한 고유 키 생성
- */
 function toScheduleKey(schedule: ScheduleCondition): string {
   return `${schedule.dayOfWeek}-${schedule.startTime}-${schedule.endTime}`;
 }
 
-/**
- * 드래그 영역 내의 모든 셀 좌표 계산
- */
 function getDragCells(start: DragCell, end: DragCell): DragCell[] {
   const minDay = Math.min(start.dayIndex, end.dayIndex);
   const maxDay = Math.max(start.dayIndex, end.dayIndex);
@@ -75,9 +61,6 @@ function getDragCells(start: DragCell, end: DragCell): DragCell[] {
   return cells;
 }
 
-/**
- * 선택된 시간대 리스트를 요일/시간 순으로 정렬
- */
 function sortSchedules(schedules: ScheduleCondition[]): ScheduleCondition[] {
   return [...schedules].sort((a, b) => {
     const dayOrderDiff = DAYS.indexOf(a.dayOfWeek) - DAYS.indexOf(b.dayOfWeek);
@@ -88,9 +71,6 @@ function sortSchedules(schedules: ScheduleCondition[]): ScheduleCondition[] {
   });
 }
 
-/**
- * 시간표 형식의 시간대 선택기 컴포넌트 (드래그 지원)
- */
 export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<"select" | "deselect" | null>(null);
@@ -114,7 +94,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     if (!dragStart || !dragCurrent) {
       return [];
     }
-
     return getDragCells(dragStart, dragCurrent).map(({ dayIndex, slot }) =>
       toSchedule(DAYS[dayIndex], slot),
     );
@@ -129,9 +108,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     if (!isDragging || !dragMode) {
       return selectedKeySet;
     }
-
     const next = new Set(dragSnapshotKeySet);
-
     dragRectKeySet.forEach((key) => {
       if (dragMode === "select") {
         next.add(key);
@@ -139,18 +116,12 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
         next.delete(key);
       }
     });
-
     return next;
   }, [dragMode, dragRectKeySet, dragSnapshotKeySet, isDragging, selectedKeySet]);
 
-  /**
-   * 드래그 시작 핸들러 (선택/해제 모드 결정)
-   */
   const startDrag = (day: CourseDayOfWeek, slot: number) => {
     const dayIndex = DAYS.indexOf(day);
-    if (dayIndex < 0) {
-      return;
-    }
+    if (dayIndex < 0) return;
 
     const schedule = toSchedule(day, slot);
     const scheduleKey = toScheduleKey(schedule);
@@ -163,26 +134,16 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     setDragCurrent({ dayIndex, slot });
   };
 
-  /**
-   * 셀 위에 마우스가 올라갔을 때 드래그 영역 갱신
-   */
   const onMouseEnterCell = (day: CourseDayOfWeek, slot: number) => {
     setHoveredDay(day);
     setHoveredSlot(slot);
-
-    if (!isDragging) {
-      return;
-    }
-
+    if (!isDragging) return;
     const dayIndex = DAYS.indexOf(day);
     if (dayIndex >= 0) {
       setDragCurrent({ dayIndex, slot });
     }
   };
 
-  /**
-   * 드래그 종료 시 최종 선택 상태 반영
-   */
   const finishDragSelection = useCallback(() => {
     if (!isDragging || !dragMode || !dragStart || !dragCurrent) {
       setIsDragging(false);
@@ -191,7 +152,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     }
 
     const nextMap = new Map(dragSnapshot.map((schedule) => [toScheduleKey(schedule), schedule]));
-
     dragRectSchedules.forEach((schedule) => {
       const key = toScheduleKey(schedule);
       if (dragMode === "select") {
@@ -210,17 +170,11 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
   }, [dragCurrent, dragMode, dragRectSchedules, dragSnapshot, dragStart, isDragging, onChange]);
 
   useEffect(() => {
-    const handleMouseUp = () => {
-      finishDragSelection();
-    };
-
+    const handleMouseUp = () => finishDragSelection();
     window.addEventListener("mouseup", handleMouseUp);
     return () => window.removeEventListener("mouseup", handleMouseUp);
   }, [finishDragSelection]);
 
-  /**
-   * 특정 요일 전체 선택/해제 핸들러
-   */
   const handleSelectAllByDay = (day: CourseDayOfWeek) => {
     const daySlots = SLOT_NUMBERS.map((slot) => toSchedule(day, slot));
     const daySlotKeys = new Set(daySlots.map((schedule) => toScheduleKey(schedule)));
@@ -228,7 +182,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
       daySlotKeys.has(toScheduleKey(schedule)),
     );
     const isFullySelected = selectedByDay.length === daySlots.length;
-
     const withoutDay = selected.filter((schedule) => !daySlotKeys.has(toScheduleKey(schedule)));
     onChange(sortSchedules(isFullySelected ? withoutDay : [...withoutDay, ...daySlots]));
   };
@@ -239,24 +192,57 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
   };
 
   const isCellInDragRect = (day: CourseDayOfWeek, slot: number) => {
-    if (!isDragging) {
-      return false;
-    }
+    if (!isDragging) return false;
     const key = toScheduleKey(toSchedule(day, slot));
     return dragRectKeySet.has(key);
   };
 
+  // 모든 요일/교시를 선택 상태로 변경
+  const handleSelectAll = () => {
+    const allSlots: ScheduleCondition[] = [];
+    DAYS.forEach((day) => {
+      SLOT_NUMBERS.forEach((slot) => {
+        allSlots.push(toSchedule(day, slot));
+      });
+    });
+    onChange(sortSchedules(allSlots));
+  };
+
+  // 모든 선택을 해제
+  const handleDeselectAll = () => {
+    onChange([]);
+  };
+
   return (
     <div
-      className="w-full max-w-full select-none overflow-hidden rounded-xl border border-white/10 bg-card/20 p-3 backdrop-blur-md"
+      className="w-full max-w-full select-none overflow-hidden rounded-xl border border-border/20 bg-card/20 p-3 backdrop-blur-md"
       onMouseLeave={() => {
         setHoveredDay(null);
         setHoveredSlot(null);
       }}
     >
+      <div className="mb-3 flex justify-end gap-2">
+        <Button
+          variant="outline"
+          size="xs"
+          onClick={handleSelectAll}
+          className="h-7 border-border/40 bg-background/50 text-[11px] hover:bg-muted"
+        >
+          전체 선택
+        </Button>
+        <Button
+          variant="outline"
+          size="xs"
+          onClick={handleDeselectAll}
+          className="h-7 border-border/40 bg-background/50 text-[11px] hover:bg-muted"
+        >
+          전체 해제
+        </Button>
+      </div>
+
       <div className="w-full">
         <div className={cn("mb-1 grid gap-1", GRID_COLUMNS_CLASS)}>
-          <div className="flex items-center justify-center text-[9px] font-black text-muted-foreground/30">
+          <div className="flex items-center justify-center rounded-sm border border-border/60 bg-muted text-[9px] font-black text-foreground">
             시간
           </div>
           {DAYS.map((day) => (
@@ -266,10 +252,10 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
               onClick={() => handleSelectAllByDay(day)}
               onMouseEnter={() => setHoveredDay(day)}
               className={cn(
-                "rounded border-t-2 border-transparent py-1 text-center text-[11px] font-bold transition-all",
+                "rounded-sm border border-border/60 py-1 text-center text-[11px] font-bold transition-all bg-muted text-foreground",
                 hoveredDay === day
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "text-muted-foreground/60 hover:text-primary",
+                  ? "bg-muted text-foreground border-border/60"
+                  : "text-muted-foreground/60 hover:text-foreground/80 hover:bg-muted/50",
               )}
             >
               {day}
@@ -285,73 +271,69 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
               <div
                 key={slot}
                 className={cn(
-                  "grid gap-1 rounded-lg transition-colors",
+                  "grid gap-1 rounded-sm transition-colors",
                   GRID_COLUMNS_CLASS,
-                  slot % 2 === 1 && "bg-white/2",
-                  hoveredSlot === slot && "bg-primary/5",
+                  slot % 2 === 1 && "bg-muted/5",
+                  hoveredSlot === slot && "bg-muted/10",
                 )}
               >
                 <div
                   className={cn(
-                    "flex h-10 flex-col items-center justify-center border-r border-white/5 pr-2 transition-colors",
-                    hoveredSlot === slot
-                      ? "rounded-l-lg bg-primary/10 text-primary"
-                      : "text-muted-foreground/40",
+                    "flex flex-col items-center justify-center rounded-sm border border-border/60 bg-muted transition-colors",
+                    hoveredSlot === slot && "bg-muted/80"
                   )}
                 >
-                  <span
-                    className={cn(
-                      "mb-0.5 text-[10px] font-black leading-none",
-                      hoveredSlot === slot ? "text-primary" : "text-primary/60",
-                    )}
-                  >
+                  <span className="text-[10px] font-black leading-none text-foreground">
                     {slotRange.label}
                   </span>
-                  <span className="text-[8px] font-bold">{slot + 1}교시</span>
+                  <span className="text-[8px] font-bold text-foreground/80">{slot + 1}교시</span>
                 </div>
 
-                {DAYS.map((day) => (
-                  <button
-                    key={`${day}-${slot}`}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      startDrag(day, slot);
-                    }}
-                    onMouseEnter={() => onMouseEnterCell(day, slot)}
-                    aria-label={`${day} ${slot + 1}교시`}
-                    className={cn(
-                      "h-10 rounded-md border border-white/5 transition-all duration-150",
-                      hoveredDay === day && "border-primary/20 bg-primary/5",
-                      isCellInDragRect(day, slot) && dragMode === "select" && "ring-1 ring-primary/50",
-                      isCellInDragRect(day, slot) && dragMode === "deselect" && "bg-destructive/20",
-                      isCellSelected(day, slot)
-                        ? "border-primary/50 bg-primary text-primary-foreground shadow-[0_0_8px_rgba(var(--primary),0.3)]"
-                        : "bg-background/10 hover:bg-primary/20",
-                    )}
-                  />
-                ))}
+                {DAYS.map((day) => {
+                  const selected = isCellSelected(day, slot);
+                  const inDrag = isCellInDragRect(day, slot);
+                  const dragging = isDragging;
+
+                  let cellClassName = "bg-background/40 hover:bg-muted/30 border border-border/30";
+
+                  if (dragging && inDrag) {
+                    if (dragMode === "select") {
+                      // 선택 드래그 중
+                      cellClassName = "bg-primary/30 ring-2 ring-primary/40 border-primary/20";
+                    } 
+                    else if (dragMode === "deselect") {
+                         // 해제 모드
+                         cellClassName = "bg-muted/30 border-border/20";
+                    }
+                  } else if (selected) {
+                    // 선택됨 (테마색 + 투명도)
+                    cellClassName = "bg-primary/70 text-primary-foreground shadow-sm hover:bg-primary/60 border-primary/20";
+                  } else if (hoveredDay === day) {
+                    // 마우스 오버
+                    cellClassName += " bg-muted/50 border-border/40";
+                  }
+
+                  return (
+                    <button
+                      key={`${day}-${slot}`}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        startDrag(day, slot);
+                      }}
+                      onMouseEnter={() => onMouseEnterCell(day, slot)}
+                      aria-label={`${day} ${slot + 1}교시`}
+                      className={cn(
+                        "h-10 rounded-sm transition-all duration-100",
+                        cellClassName
+                      )}
+                    />
+                  );
+                })}
               </div>
             );
           })}
         </div>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between border-t border-white/5 px-1 pt-3">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <div className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_5px_rgba(var(--primary),0.5)]" />
-            <span className="text-[9px] font-bold tracking-tighter text-muted-foreground/60">선택됨</span>
-          </div>
-          <p className="text-[9px] italic text-muted-foreground/40">* 사각형 드래그로 선택/해제</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => onChange([])}
-          className="text-[9px] font-black tracking-widest text-primary/60 transition-all hover:text-primary hover:underline active:scale-95"
-        >
-          전체 해제
-        </button>
       </div>
     </div>
   );
