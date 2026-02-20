@@ -24,6 +24,8 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
   const available = course.available ?? 0;
   const percent = capacity > 0 ? Math.min(100, (current / capacity) * 100) : 0;
   const mapQuery = getCampusMapQuery(course.classroom) ?? "전북대학교 전주캠퍼스";
+  const targetGradeLabel = formatTargetGrade(course.targetGrade);
+  const departmentLabel = formatDepartmentLabel(course.department, targetGradeLabel);
 
   const classLabel = (() => {
     const academicYear = course.academicYear ? `${course.academicYear}년 ` : "";
@@ -70,10 +72,7 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
                 <>
                   <span className="text-sm text-gray-300 dark:text-gray-600">|</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {course.department} {(() => {
-                      const tg = formatTargetGrade(course.targetGrade);
-                      return tg === '전체' ? '' : tg;
-                    })()}
+                    {departmentLabel} {targetGradeLabel === "전체" ? "" : targetGradeLabel}
                   </span>
                 </>
               )}
@@ -196,6 +195,49 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
       </div>
     </div>
   );
+}
+
+/**
+ * 학과명에서 학년 정보를 제거하고 정규화된 학과 라벨을 반환합니다.
+ */
+function formatDepartmentLabel(department?: string, targetGradeLabel?: string): string {
+  if (!department) {
+    return "";
+  }
+
+  const normalizedDepartment = department.replace(/\s+/g, " ").trim();
+  if (!normalizedDepartment) {
+    return "";
+  }
+
+  const gradeNumber = extractGradeNumber(targetGradeLabel);
+  if (!gradeNumber) {
+    return normalizedDepartment;
+  }
+
+  return normalizedDepartment
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) =>
+      part
+        .replace(new RegExp(`\\s+${gradeNumber}(?=\\s*(?:학년)?(?:\\s*등)?\\s*$)`), "")
+        .replace(new RegExp(`\\s+${gradeNumber}학년(?=\\s*(?:등)?\\s*$)`), "")
+        .trim(),
+    )
+    .join(", ");
+}
+
+/**
+ * 학년 라벨(예: "3학년")에서 숫자(예: "3")만 추출합니다.
+ */
+function extractGradeNumber(targetGradeLabel?: string): string | null {
+  if (!targetGradeLabel) {
+    return null;
+  }
+
+  const match = targetGradeLabel.match(/^([1-6])학년$/);
+  return match ? match[1] : null;
 }
 
 function DetailBox({ label, value, subValue }: { label: string; value: string; subValue?: string }) {
