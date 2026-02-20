@@ -4,12 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.domain.admin.request.TestNotificationRequest;
+import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardResponse;
 import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.domain.notification.service.NotificationService;
@@ -17,13 +18,13 @@ import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,21 +68,21 @@ class AdminServiceTest {
     void sendTestNotification_Success() {
         // given
         String email = "test@example.com";
-        TestNotificationRequest request = new TestNotificationRequest();
-        request.setEmail(email);
-        request.setChannels(List.of("EMAIL", "WEB"));
-
         User user = User.builder()
                 .email(email)
+                .emailEnabled(true)
                 .build();
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
+            securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(email);
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
-        // when
-        adminService.sendTestNotification(request);
+            // when
+            adminService.sendTestNotification();
 
-        // then
-        verify(notificationService).sendTestNotification(eq(user), any());
+            // then
+            verify(notificationService).sendTestNotification(eq(user), any());
+        }
     }
 
     @Test
@@ -89,15 +90,15 @@ class AdminServiceTest {
     void sendTestNotification_UserNotFound() {
         // given
         String email = "notfound@example.com";
-        TestNotificationRequest request = new TestNotificationRequest();
-        request.setEmail(email);
-        request.setChannels(List.of("EMAIL"));
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
+            securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(email);
+            when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> adminService.sendTestNotification(request))
-                .isInstanceOf(CustomException.class)
-                .hasMessage(ErrorCode.USER_NOT_FOUND.getMessage());
+            // when & then
+            assertThatThrownBy(() -> adminService.sendTestNotification())
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.USER_NOT_FOUND.getMessage());
+        }
     }
 }
