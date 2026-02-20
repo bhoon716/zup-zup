@@ -12,9 +12,18 @@ import { CalendarPlus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { TimeTableSelector } from "../time-table-selector";
 import { useUser } from "@/features/user/hooks/useUser";
-import { usePrimaryTimetable } from "@/features/timetable/hooks/useTimetable";
+import { useTimetables } from "@/features/timetable/hooks/useTimetable";
+import { timetableApi } from "@/features/timetable/api/timetable.api";
 import { buildFreeSchedulesFromTimetable } from "../../lib/course-utils";
-import type { CourseSearchCondition, ScheduleCondition } from "@/shared/types/api";
+import type { CourseSearchCondition, ScheduleCondition, TimetableResponse, TimetableDetailResponse } from "@/shared/types/api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 
 interface CourseSmartFiltersProps {
   condition: CourseSearchCondition;
@@ -23,6 +32,10 @@ interface CourseSmartFiltersProps {
   setScheduleOpen: (open: boolean) => void;
 }
 
+/**
+ * 강의 검색 결과에 적용할 스마트 필터 구성을 제공하는 컴포넌트입니다.
+ * 찜한 강의, 여석 유무, 공강 시간대 등의 추가 필터링 조건을 관리합니다.
+ */
 export function CourseSmartFilters({
   condition,
   setCondition,
@@ -30,8 +43,9 @@ export function CourseSmartFilters({
   setScheduleOpen,
 }: CourseSmartFiltersProps) {
   const { data: user } = useUser();
-  const { data: primaryTimetable, refetch: refetchPrimaryTimetable } = usePrimaryTimetable();
+  const { data: timetables, refetch: refetchTimetables } = useTimetables();
 
+  // 찜한 강의만 보기 토글 핸들러
   const handleWishedOnlyChange = (checked: boolean) => {
     if (checked && !user) {
       toast.error("찜한 강의 필터는 로그인 후 사용할 수 있습니다.");
@@ -51,32 +65,33 @@ export function CourseSmartFilters({
     }));
   };
 
-  const handleImportFromMyTimetable = async () => {
-    if (!user) {
-      toast.error("내 시간표에서 선택하기는 로그인 후 사용할 수 있습니다.");
-      return;
+  /**
+   * 내 시간표 정보를 가져와서 비어있는 시간대(공강)를 자동으로 선택합니다.
+   */
+  const handleImportFromTimetable = async (timetableId: number, name: string) => {
+    try {
+      const { data: detail } = await timetableApi.getTimetable(timetableId);
+
+      if (!detail) {
+        toast.error(`'${name}' 정보를 불러올 수 없습니다.`);
+        return;
+      }
+
+      const importedSchedules = buildFreeSchedulesFromTimetable(detail);
+      if (importedSchedules.length === 0) {
+        toast.error(`'${name}' 기준 공강 시간대가 없습니다.`);
+        return;
+      }
+
+      setCondition((prev) => ({
+        ...prev,
+        selectedSchedules: importedSchedules,
+      }));
+      setScheduleOpen(true);
+      toast.success(`'${name}' 기준 공강 ${importedSchedules.length}칸을 선택했습니다.`);
+    } catch (error) {
+      toast.error("시간표 정보를 가져오는데 실패했습니다.");
     }
-
-    const fetched = await refetchPrimaryTimetable();
-    const timetable = fetched.data ?? primaryTimetable;
-
-    if (!timetable) {
-      toast.error("대표 시간표가 없습니다. 시간표를 먼저 만들어주세요.");
-      return;
-    }
-
-    const importedSchedules = buildFreeSchedulesFromTimetable(timetable);
-    if (importedSchedules.length === 0) {
-      toast.error("시간표 기준 공강 시간대가 없습니다.");
-      return;
-    }
-
-    setCondition((prev) => ({
-      ...prev,
-      selectedSchedules: importedSchedules,
-    }));
-    setScheduleOpen(true);
-    toast.success(`내 시간표 기준 공강 ${importedSchedules.length}칸을 선택했습니다.`);
   };
 
   return (
@@ -124,18 +139,52 @@ export function CourseSmartFilters({
               )}
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleImportFromMyTimetable();
-              }}
-              title="내 시간표에서 공강 불러오기"
-            >
-              <CalendarPlus className="h-4 w-4 text-muted-foreground transition-colors hover:text-primary" />
-            </Button>
+            <DropdownMenu onOpenChange={(open) => open && refetchTimetables()}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!user) {
+                      toast.error("내 시간표에서 선택하기는 로그인 후 사용할 수 있습니다.");
+                    }
+                  }}
+                  title="내 시간표에서 공강 불러오기"
+                >
+                  <CalendarPlus className="h-4 w-4 text-muted-foreground transition-colors hover:text-primary" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="text-xs font-semibold">내 시간표 선택</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {!user ? (
+                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    로그인이 필요합니다.
+                  </div>
+                ) : !timetables || timetables.length === 0 ? (
+                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    생성된 시간표가 없습니다.
+                  </div>
+                ) : (
+                  timetables.map((timetable) => (
+                    <DropdownMenuItem
+                      key={timetable.id}
+                      onClick={() => handleImportFromTimetable(timetable.id, timetable.name)}
+                      className="flex cursor-pointer items-center justify-between py-2"
+                    >
+                      <span className="truncate text-xs font-medium">{timetable.name}</span>
+                      {timetable.primary && (
+                        <span className="ml-2 shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                          대표
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <ChevronDown

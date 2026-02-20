@@ -10,6 +10,7 @@ import {
   SMART_FILTER_SLOT_MINUTES,
   SMART_FILTER_SLOT_COUNT,
 } from "../constants/course-options";
+import { formatDayOfWeek } from "@/shared/lib/formatters";
 
 /**
  * "HH:mm" 또는 "HH:mm:ss" 형식의 문자열을 분(minutes) 단위 숫자로 변환
@@ -29,47 +30,6 @@ export function toMinutes(value?: string): number | null {
   return hour * 60 + minute;
 }
 
-/**
- * 다양한 형식의 요일 문자열을 내부 공통 형식('월', '화' 등)으로 변환
- */
-export function toDayLabel(dayOfWeek?: string): CourseDayOfWeek | null {
-  const dayMap: Record<string, CourseDayOfWeek> = {
-    MONDAY: "월",
-    TUESDAY: "화",
-    WEDNESDAY: "수",
-    THURSDAY: "목",
-    FRIDAY: "금",
-    SATURDAY: "토",
-    SUNDAY: "일",
-    MO: "월",
-    TU: "화",
-    WE: "수",
-    TH: "목",
-    FR: "금",
-    SA: "토",
-    SU: "일",
-    월요일: "월",
-    화요일: "화",
-    수요일: "수",
-    목요일: "목",
-    금요일: "금",
-    토요일: "토",
-    일요일: "일",
-    월: "월",
-    화: "화",
-    수: "수",
-    목: "목",
-    금: "금",
-    토: "토",
-    일: "일",
-  };
-
-  if (!dayOfWeek) {
-    return null;
-  }
-
-  return dayMap[dayOfWeek] ?? null;
-}
 
 /**
  * 분 단위 숫자를 "HH:mm:00" 형식의 시간 문자열로 변환
@@ -116,7 +76,7 @@ export function buildFreeSchedulesFromTimetable(
   const occupiedSlotKeys = new Set<string>();
 
   schedules.forEach((schedule) => {
-    const day = toDayLabel(schedule.dayOfWeek);
+    const day = formatDayOfWeek(schedule.dayOfWeek) as CourseDayOfWeek;
     if (!day || !SMART_FILTER_DAYS.includes(day)) {
       return;
     }

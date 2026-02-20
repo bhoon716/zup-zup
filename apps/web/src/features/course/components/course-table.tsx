@@ -12,6 +12,7 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { cn } from "@/shared/lib/utils";
 import { formatClassification } from "@/shared/lib/formatters";
+import { normalizeCourse } from "@/shared/lib/course";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { useUser } from "@/features/user/hooks/useUser";
 import { useAddCourseToTimetable, useTimetables } from "@/features/timetable/hooks/useTimetable";
@@ -196,14 +197,13 @@ export function CourseTable({
   return (
     <>
       <div className="space-y-2.5">
-        {courses.map((course, index) => {
+        {courses.map((rawCourse, index) => {
+          const course = normalizeCourse(rawCourse);
           const subscription = subscriptionMap.get(course.courseKey);
           const subscribed = !!subscription;
           const wished = wishlistSet.has(course.courseKey);
 
-          const capacity = course.capacity ?? 0;
-          const current = course.current ?? 0;
-          const available = course.available ?? Math.max(capacity - current, 0);
+          const { capacity, current, available } = course;
           const seatRatio = capacity > 0 ? Math.min((current / capacity) * 100, 100) : 0;
           const seatStatus = getSeatStatus(available);
 

@@ -104,6 +104,43 @@ export function formatTargetGrade(value?: string): string {
   return value;
 }
 
+const DAY_MAP: Record<string, string> = {
+  'MONDAY': '월',
+  'TUESDAY': '화',
+  'WEDNESDAY': '수',
+  'THURSDAY': '목',
+  'FRIDAY': '금',
+  'SATURDAY': '토',
+  'SUNDAY': '일',
+  'MO': '월',
+  'TU': '화',
+  'WE': '수',
+  'TH': '목',
+  'FR': '금',
+  'SA': '토',
+  'SU': '일',
+  '월요일': '월',
+  '화요일': '화',
+  '수요일': '수',
+  '목요일': '목',
+  '금요일': '금',
+  '토요일': '토',
+  '일요일': '일',
+  '월': '월',
+  '화': '화',
+  '수': '수',
+  '목': '목',
+  '금': '금',
+  '토': '토',
+  '일': '일',
+};
+
+export function formatDayOfWeek(value?: string): string {
+  if (!value) return '-';
+  const upper = value.toUpperCase();
+  return DAY_MAP[upper] || DAY_MAP[value] || value;
+}
+
 /**
  * 상대 시간을 한글 문구로 변환한다.
  */

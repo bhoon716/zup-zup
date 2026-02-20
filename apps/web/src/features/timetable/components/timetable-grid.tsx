@@ -4,16 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { TimetableResponse } from '@/shared/types/api';
 import { cn } from '@/shared/lib/utils';
 import { getRenderingBlocks, getTimeInMinutes, RenderingBlock } from '@/features/timetable/lib/timetable';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from '@/shared/ui/dialog';
-import { useQuery } from '@tanstack/react-query';
-import { getCourseDetail } from '@/features/course/api/course.api';
-import { Loader2 } from 'lucide-react';
-
-import { CourseDetailContent } from '@/features/course/components/course-detail-content';
+import { CourseDetailDialog } from '@/features/course/components/course-detail-dialog';
 import { Course } from '@/shared/types/api';
 
 import { TimetableBlock } from './timetable-block';
@@ -35,13 +26,17 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
   const [courseDetailOpen, setCourseDetailOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<RenderingBlock | null>(null);
 
-  const { data: detailResponse, isLoading: isDetailLoading } = useQuery({
-    queryKey: ['courseDetail', selectedCourse?.courseKey],
-    queryFn: () => selectedCourse?.courseKey ? getCourseDetail(selectedCourse.courseKey) : null,
-    enabled: !!selectedCourse?.courseKey && courseDetailOpen && selectedCourse.type === 'course',
-  });
-
-  const detailedCourse = detailResponse?.data;
+  const initialCourse = useMemo(() => {
+    if (!selectedCourse) return null;
+    return {
+      courseKey: selectedCourse.courseKey || '',
+      name: selectedCourse.title,
+      professor: selectedCourse.subTitle || '',
+      credits: selectedCourse.credits || '',
+      classification: selectedCourse.classification || '',
+      classroom: selectedCourse.classroom || '',
+    } as Course;
+  }, [selectedCourse]);
 
   const { startHour, hoursArray } = useMemo(() => {
     let minMin = 9 * 60;
@@ -195,30 +190,11 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
         </div>
       </div>
 
-      <Dialog open={courseDetailOpen} onOpenChange={setCourseDetailOpen}>
-        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-0 bg-transparent shadow-none flex flex-col">
-          <DialogTitle className="sr-only">수업 상세 정보</DialogTitle>
-          <div className="relative w-full bg-white dark:bg-[#121212] rounded-3xl overflow-y-auto shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 max-h-[90vh]">
-            {isDetailLoading ? (
-              <div className="flex items-center justify-center p-20 min-h-[400px]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : selectedCourse && (
-              <CourseDetailContent 
-                course={{
-                  ...(detailedCourse || {}),
-                  courseKey: selectedCourse.courseKey || '',
-                  name: selectedCourse.title,
-                  professor: detailedCourse?.professor || selectedCourse.subTitle || '',
-                  credits: detailedCourse?.credits || selectedCourse.credits || '',
-                  classification: detailedCourse?.classification || selectedCourse.classification || '',
-                  classroom: detailedCourse?.classroom || selectedCourse.classroom || '',
-                } as Course} 
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CourseDetailDialog 
+        course={initialCourse}
+        open={courseDetailOpen}
+        onOpenChange={setCourseDetailOpen}
+      />
     </>
   );
 }

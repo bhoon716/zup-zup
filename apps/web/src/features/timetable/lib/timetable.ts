@@ -1,4 +1,5 @@
 import { TimetableResponse } from '@/shared/types/api';
+import { formatDayOfWeek } from '@/shared/lib/formatters';
 
 export interface RenderingBlock {
   key: string;
@@ -69,19 +70,6 @@ export const isOverlapping = (
   return start1 < end2 && start2 < end1;
 };
 
-const DAY_MAP: Record<string, string> = {
-  'MONDAY': '월',
-  'TUESDAY': '화',
-  'WEDNESDAY': '수',
-  'THURSDAY': '목',
-  'FRIDAY': '금',
-  'SATURDAY': '토',
-  'SUNDAY': '일',
-};
-
-export const mapDayOfWeek = (englishDay: string): string => {
-  return DAY_MAP[englishDay] || englishDay;
-};
 
 export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock[] => {
   const flattened: RenderingBlock[] = [];
@@ -94,7 +82,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
         type: 'course',
         title: entry.name,
         subTitle: entry.professor,
-        dayOfWeek: mapDayOfWeek(schedule.dayOfWeek),
+        dayOfWeek: formatDayOfWeek(schedule.dayOfWeek),
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         color: getCourseColor(entry.courseKey),
@@ -112,7 +100,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
       id: schedule.id,
       type: 'custom',
       title: schedule.title,
-      dayOfWeek: mapDayOfWeek(schedule.dayOfWeek),
+      dayOfWeek: formatDayOfWeek(schedule.dayOfWeek),
       startTime: schedule.startTime,
       endTime: schedule.endTime,
       color: schedule.color,
