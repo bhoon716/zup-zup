@@ -8,8 +8,7 @@ import Image from "next/image";
 import { cn } from "@/shared/lib/utils";
 import { 
   LogOut, Search, Bell, Settings, ShieldCheck, Calendar, 
-  Menu, Download, GraduationCap, LayoutDashboard, Users, 
-  School, BellRing, Terminal, ChevronDown 
+  Menu, Download, GraduationCap, LayoutDashboard, ChevronDown 
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
@@ -89,22 +88,6 @@ function NavLinks({ isMobile = false, isAdmin, onGuardedAction, onLinkClick }: N
                     대시보드
                   </Button>
                 </Link>
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium text-gray-400 cursor-not-allowed">
-                  <Users className="w-4 h-4" />
-                  사용자 관리
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium text-gray-400 cursor-not-allowed">
-                  <School className="w-4 h-4" />
-                  강의 데이터베이스
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium text-gray-400 cursor-not-allowed">
-                  <BellRing className="w-4 h-4" />
-                  알림 시스템
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium text-gray-400 cursor-not-allowed">
-                  <Terminal className="w-4 h-4" />
-                  시스템 로그
-                </Button>
               </div>
             </>
           ) : (
@@ -117,7 +100,7 @@ function NavLinks({ isMobile = false, isAdmin, onGuardedAction, onLinkClick }: N
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 rounded-2xl border-gray-100 bg-white/95 backdrop-blur-xl p-2 shadow-2xl">
-                <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-primary uppercase tracking-widest">SYSTEM ADMIN</DropdownMenuLabel>
+                <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-primary uppercase tracking-widest">시스템 관리자</DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-gray-100" />
                 <Link href="/admin">
                   <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
@@ -125,22 +108,6 @@ function NavLinks({ isMobile = false, isAdmin, onGuardedAction, onLinkClick }: N
                     대시보드
                   </DropdownMenuItem>
                 </Link>
-                <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 cursor-not-allowed">
-                  <Users className="w-4 h-4" />
-                  사용자 관리
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 cursor-not-allowed">
-                  <School className="w-4 h-4" />
-                  강의 데이터베이스
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 cursor-not-allowed">
-                  <BellRing className="w-4 h-4" />
-                  알림 시스템
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 cursor-not-allowed">
-                  <Terminal className="w-4 h-4" />
-                  시스템 로그
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -208,7 +175,7 @@ export function Header() {
               <div className="flex items-center gap-3">
                 <div className="hidden sm:flex flex-col items-end mr-1">
                   <span className="text-xs font-bold leading-none">{user.name} 님</span>
-                  <span className="text-[10px] text-muted-foreground mt-1">Logged in</span>
+                  <span className="text-[10px] text-muted-foreground mt-1">로그인 됨</span>
                 </div>
                 <Button
                   variant="ghost"
@@ -285,7 +252,7 @@ export function Header() {
                   )}
 
                   <div className="space-y-1">
-                    <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Menu</p>
+                    <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">메뉴</p>
                     <NavLinks isMobile isAdmin={user?.role === "ADMIN"} onGuardedAction={handleGuardedAction} onLinkClick={closeMenu} />
                   </div>
 

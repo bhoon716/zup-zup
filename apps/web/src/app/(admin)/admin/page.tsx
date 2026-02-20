@@ -14,13 +14,13 @@ import { AdminTrafficChart } from "@/features/admin/components/admin-traffic-cha
 import { AdminQuickActions } from "@/features/admin/components/admin-quick-actions";
 import { AdminActivityLog } from "@/features/admin/components/admin-activity-log";
 import { AdminOverview } from "@/features/admin/components/admin-overview";
-import { 
-  formatNumber, 
-  formatDateTime, 
-  formatTime, 
-  formatRelative, 
-  getStatusMeta, 
-  getLogMeta 
+import {
+  formatDateTime,
+  formatNumber,
+  formatRelative,
+  formatTime,
+  getLogMeta,
+  getStatusMeta,
 } from "@/features/admin/lib/formatters";
 
 /**
@@ -35,11 +35,7 @@ export default function AdminDashboardPage() {
     refetch: refetchOverview,
   } = useAdminOverview();
   
-  const {
-    data: healthData,
-    isLoading: isHealthLoading,
-    refetch: refetchHealth,
-  } = useHealth();
+  const { isLoading: isHealthLoading, refetch: refetchHealth } = useHealth();
   
   const { mutate: crawlCourses, isPending: isCrawling } = useCrawlCourses();
   const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
@@ -102,11 +98,28 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
-      <main className="flex-1">
+    <div className="bg-[#f3f4f6] text-slate-900">
+      <div className="sticky top-16 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-[1920px] items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <span className="font-medium text-slate-800">시스템 현황 개요</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 gap-1 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
+            onClick={handleRefresh}
+          >
+            <RefreshCcw className="h-3.5 w-3.5" />
+            새로고침
+          </Button>
+        </div>
+      </div>
+
+      <main>
         <AdminOverview serverClock={serverClockText} onRefresh={handleRefresh} />
 
-        <div className="container mx-auto space-y-12 p-6 lg:p-12">
+        <div className="mx-auto max-w-[1920px] space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 sm:py-8 lg:space-y-12 lg:px-8">
           {/* 주요 통계 그리드 섹션 */}
           <section className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             {statItems.map((stat, i) => (
@@ -139,11 +152,11 @@ export default function AdminDashboardPage() {
           <footer className="py-20 text-center">
             <div className="flex items-center justify-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.3em] mb-4">
                <div className="h-px w-8 bg-slate-100"></div>
-               Internal Dashboard
+               내부 대시보드
                <div className="h-px w-8 bg-slate-100"></div>
             </div>
             <p className="text-xs font-bold text-slate-400">
-              © 2026 JBNU 수강신청 도우미 관리자. <br className="sm:hidden" /> All rights reserved. V2.0.0-GOLD
+              © 2026 JBNU 수강신청 도우미 관리자. <br className="sm:hidden" /> 모든 권리 보유. V2.0.0-GOLD
             </p>
           </footer>
         </div>

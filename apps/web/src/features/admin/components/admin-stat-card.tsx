@@ -37,19 +37,19 @@ export function AdminStatCard({
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      className="group relative overflow-hidden rounded-[2.5rem] border border-slate-100 bg-white p-8 shadow-2xl shadow-slate-200/50 transition-all hover:-translate-y-1 hover:border-primary/20"
+      className="group relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-5 shadow-2xl shadow-slate-200/50 transition-all hover:-translate-y-1 hover:border-primary/20 sm:p-6 lg:rounded-[2.5rem] lg:p-8"
     >
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-6 flex items-start justify-between sm:mb-8">
         <div
           className={cn(
-            "flex h-14 w-14 items-center justify-center rounded-2xl transition-colors",
+            "flex h-12 w-12 items-center justify-center rounded-2xl transition-colors sm:h-14 sm:w-14",
             color === "primary" ? "bg-primary/10 text-primary" :
             color === "amber" ? "bg-amber-100 text-amber-600" :
             color === "green" ? "bg-green-100 text-green-600" :
             "bg-indigo-100 text-indigo-600"
           )}
         >
-          <Icon className="h-7 w-7" />
+          <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
         </div>
         
         {meta ? (
@@ -71,7 +71,7 @@ export function AdminStatCard({
       </div>
 
       <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-4xl font-black text-slate-900 tracking-tight">{value}</p>
+      <p className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{value}</p>
       {sub && (
         <p className="mt-4 text-xs font-medium text-slate-500 flex items-center gap-1.5">
           {sub}

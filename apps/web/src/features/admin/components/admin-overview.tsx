@@ -15,13 +15,13 @@ interface AdminOverviewProps {
 export function AdminOverview({ serverClock, onRefresh }: AdminOverviewProps) {
   return (
     <section className="bg-white border-b border-slate-100">
-      <div className="container mx-auto px-6 py-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="mx-auto flex max-w-[1920px] flex-col justify-between gap-4 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 md:flex-row md:items-end lg:px-8">
         <div>
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest mb-3">
             <div className="h-1 w-8 bg-primary rounded-full"></div>
-            OVERVIEW
+            개요
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">시스템 현황 개요</h1>
+          <h1 className="mb-2 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">시스템 현황 개요</h1>
           <p className="text-slate-500 font-medium">
             서버 클럭: <span className="font-mono text-primary font-bold">{serverClock} (KST)</span>
           </p>
@@ -29,7 +29,7 @@ export function AdminOverview({ serverClock, onRefresh }: AdminOverviewProps) {
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            className="h-14 gap-2 rounded-2xl border-slate-200 bg-white px-6 font-bold shadow-sm transition-all hover:border-primary/30 hover:bg-primary/5 active:scale-95"
+            className="h-11 gap-2 rounded-xl border-slate-200 bg-white px-4 text-sm font-bold shadow-sm transition-all hover:border-primary/30 hover:bg-primary/5 active:scale-95 sm:h-14 sm:rounded-2xl sm:px-6 sm:text-base"
             onClick={onRefresh}
           >
             <RefreshCcw className="h-5 w-5" />

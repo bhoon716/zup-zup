@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Download, ChevronDown } from "lucide-react";
+import { Download } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
 
@@ -29,32 +29,33 @@ export function AdminActivityLog({
 }: AdminActivityLogProps) {
   return (
     <section className="space-y-8">
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between px-4">
+      <div className="flex flex-col gap-4 px-1 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:px-4">
         <div>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tight">시스템 활동 로그</h3>
+          <h3 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">시스템 활동 로그</h3>
           <p className="text-slate-500 font-medium mt-1">실시간 오류 정보와 시스템 중요 이벤트입니다.</p>
         </div>
-        <div className="flex gap-4">
-          <Button variant="outline" className="h-14 gap-2 rounded-2xl border-slate-200 bg-white px-6 font-bold shadow-sm hover:bg-slate-50">
+        <div className="flex gap-2 sm:gap-4">
+          <Button variant="outline" className="h-10 gap-2 rounded-xl border-slate-200 bg-white px-3 text-xs font-bold shadow-sm hover:bg-slate-50 sm:h-14 sm:rounded-2xl sm:px-6 sm:text-sm">
             <Download className="h-5 w-5" />
             <span className="hidden sm:inline">CSV 리포트</span>
+            <span className="sm:hidden">CSV</span>
           </Button>
-          <Button className="h-14 rounded-2xl bg-slate-900 text-white font-bold px-8 hover:bg-slate-800 shadow-xl shadow-slate-900/10">
+          <Button className="h-10 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white shadow-xl shadow-slate-900/10 hover:bg-slate-800 sm:h-14 sm:rounded-2xl sm:px-8 sm:text-sm">
             전체 기록 보기
           </Button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[3rem] border border-slate-100 bg-white shadow-2xl shadow-slate-200/50">
+      <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl shadow-slate-200/50 sm:rounded-[3rem]">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-[0.15em]">
               <tr>
-                <th className="px-10 py-6">Timestamp</th>
-                <th className="px-8 py-6">Level</th>
-                <th className="px-8 py-6">Message</th>
-                <th className="px-8 py-6">Source</th>
-                <th className="px-10 py-6 text-right">Actions</th>
+                <th className="px-10 py-6">발생 시간</th>
+                <th className="px-8 py-6">레벨</th>
+                <th className="px-8 py-6">메시지</th>
+                <th className="px-8 py-6">발생 위치</th>
+                <th className="px-10 py-6 text-right">작업</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -97,7 +98,7 @@ export function AdminActivityLog({
                       </td>
                       <td className="px-10 py-6 text-right">
                         <button type="button" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black text-slate-400 transition-all hover:border-primary/30 hover:text-primary hover:shadow-sm">
-                          DETAILS
+                          상세 보기
                         </button>
                       </td>
                     </motion.tr>

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Database, RefreshCcw, Send, Power, Loader2 } from "lucide-react";
+import { Database, RefreshCcw, Send, Loader2 } from "lucide-react";
 
 interface AdminQuickActionsProps {
   onRefresh: () => void;
@@ -49,7 +49,7 @@ export function AdminQuickActions({
     <motion.div
       initial={{ opacity: 0, x: 30 }}
       animate={{ opacity: 1, x: 0 }}
-      className="flex flex-col rounded-[3rem] border border-slate-100 bg-white p-10 shadow-2xl shadow-slate-200/50"
+      className="flex flex-col rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-200/50 lg:rounded-[3rem] lg:p-10"
     >
       <h3 className="mb-8 text-2xl font-black text-slate-900 tracking-tight">퀵 컨트롤 센터</h3>
       <div className="flex flex-1 flex-col gap-5">
@@ -57,36 +57,21 @@ export function AdminQuickActions({
           <button
             key={action.label}
             type="button"
-            className="group relative h-28 w-full overflow-hidden rounded-[2rem] border border-slate-100 bg-slate-50/50 transition-all hover:scale-[1.02] hover:border-primary/30 hover:bg-white hover:shadow-xl hover:shadow-primary/5"
+            className="group relative h-24 w-full overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/50 transition-all hover:scale-[1.01] hover:border-primary/30 hover:bg-white hover:shadow-xl hover:shadow-primary/5 lg:h-28 lg:rounded-[2rem] lg:hover:scale-[1.02]"
             onClick={action.onClick}
             disabled={action.loading}
           >
-            <div className="flex items-center gap-6 px-7">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/50 transition-colors group-hover:bg-primary group-hover:text-white group-hover:ring-primary">
+            <div className="flex items-center gap-4 px-5 lg:gap-6 lg:px-7">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/50 transition-colors group-hover:bg-primary group-hover:text-white group-hover:ring-primary lg:h-14 lg:w-14">
                 {action.loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <action.icon className="h-6 w-6" />}
               </div>
               <div className="text-left">
-                <p className="text-base font-black text-slate-900 group-hover:text-primary transition-colors">{action.label}</p>
+                <p className="text-sm font-black text-slate-900 transition-colors group-hover:text-primary lg:text-base">{action.label}</p>
                 <p className="text-xs font-medium text-slate-500 group-hover:text-slate-600">{action.desc}</p>
               </div>
             </div>
           </button>
         ))}
-
-        <button
-          type="button"
-          className="group relative mt-auto h-28 w-full overflow-hidden rounded-[2rem] border border-red-100 bg-red-50/30 transition-all hover:scale-[1.02] hover:border-red-500 hover:bg-red-600 hover:text-white hover:shadow-xl hover:shadow-red-500/10"
-        >
-          <div className="flex items-center gap-6 px-7">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-red-200/50 transition-colors group-hover:bg-white group-hover:text-red-600 group-hover:ring-white">
-              <Power className="h-6 w-6 text-red-600" />
-            </div>
-            <div className="text-left">
-              <p className="text-base font-black text-red-700 group-hover:text-white transition-colors">긴급 시스템 재시작</p>
-              <p className="text-xs font-medium text-red-500 group-hover:text-white/80">크롤러 긴급 복구 시스템</p>
-            </div>
-          </div>
-        </button>
       </div>
     </motion.div>
   );
