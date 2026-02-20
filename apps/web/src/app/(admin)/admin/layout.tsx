@@ -7,7 +7,9 @@ export default function AdminLayout({
 }) {
   return (
     <AdminGuard>
-      <div className="h-screen overflow-hidden bg-[#f3f4f6]">{children}</div>
+      <div className="min-h-[calc(100dvh-4rem)] bg-[#f3f4f6] text-slate-900">
+        {children}
+      </div>
     </AdminGuard>
   );
 }
