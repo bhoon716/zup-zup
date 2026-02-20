@@ -4,7 +4,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
 import { Clock, MapPin, User, Trash2, Calendar } from 'lucide-react';
-import { RenderingBlock } from '@/features/timetable/lib/timetable';
+import { RenderingBlock, mergeAdjacentSchedules } from '@/features/timetable/lib/timetable';
 import { useRemoveCustomSchedule, useTimetableDetail } from '@/features/timetable/hooks/useTimetable';
 import { formatDayOfWeek } from '@/shared/lib/formatters';
 
@@ -42,14 +42,17 @@ export function CustomScheduleDetailDialog({ block, timetableId, open, onOpenCha
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md p-0 overflow-hidden border-none bg-white dark:bg-[#251e2b] rounded-3xl shadow-2xl">
         <div className="px-8 py-8 space-y-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+          <DialogHeader className="space-y-2 text-left">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider w-fit">
               직접 추가 일정
             </div>
-            <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight break-all">
+            <DialogTitle className="text-2xl font-black text-gray-900 dark:text-white tracking-tight break-all">
               {fullSchedule.title}
-            </h2>
-          </div>
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              커스텀 일정의 상세 정보입니다.
+            </DialogDescription>
+          </DialogHeader>
 
           <div className="space-y-4">
             {fullSchedule.professor && (
@@ -69,7 +72,7 @@ export function CustomScheduleDetailDialog({ block, timetableId, open, onOpenCha
                 <div className="flex-1 space-y-2">
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wide block">일정 시간</span>
                   <div className="space-y-1.5">
-                    {fullSchedule.schedules.map((slot) => (
+                    {mergeAdjacentSchedules(fullSchedule.schedules).map((slot) => (
                       <div key={slot.id} className="flex items-center justify-between bg-gray-50 dark:bg-white/5 px-3 py-2 rounded-xl border border-gray-100 dark:border-gray-800">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-primary">{formatDayOfWeek(slot.dayOfWeek)}</span>

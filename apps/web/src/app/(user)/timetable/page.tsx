@@ -16,24 +16,8 @@ import { Badge } from '@/shared/ui/badge';
 import { cn } from '@/shared/lib/utils';
 import { toPng } from 'html-to-image';
 
-const DAY_MAP: Record<string, string> = {
-  MONDAY: '월',
-  TUESDAY: '화',
-  WEDNESDAY: '수',
-  THURSDAY: '목',
-  FRIDAY: '금',
-  SATURDAY: '토',
-  SUNDAY: '일',
-  MO: '월',
-  TU: '화',
-  WE: '수',
-  TH: '목',
-  FR: '금',
-  SA: '토',
-  SU: '일',
-};
+import { formatDayOfWeek } from '@/shared/lib/formatters';
 
-const normalizeDay = (day: string) => DAY_MAP[day] || day;
 const TODAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
 export default function TimetablePage() {
@@ -165,7 +149,7 @@ export default function TimetablePage() {
 
     const courseItems = timetableDetail.courses.flatMap((course) =>
       (course.schedules ?? [])
-        .filter((schedule) => normalizeDay(String(schedule.dayOfWeek)) === todayLabel)
+        .filter((schedule) => formatDayOfWeek(String(schedule.dayOfWeek)) === todayLabel)
         .map((schedule, idx) => ({
           key: `${course.courseKey}-${idx}`,
           title: course.name,
@@ -176,16 +160,18 @@ export default function TimetablePage() {
         }))
     );
 
-    const customItems = (timetableDetail.customSchedules ?? [])
-      .filter((schedule) => normalizeDay(schedule.dayOfWeek) === todayLabel)
-      .map((schedule) => ({
-        key: `custom-${schedule.id}`,
-        title: schedule.title,
-        subtitle: '직접 추가 일정',
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-        type: 'custom' as const,
-      }));
+    const customItems = (timetableDetail.customSchedules ?? []).flatMap((custom) =>
+      (custom.schedules ?? [])
+        .filter((schedule) => formatDayOfWeek(schedule.dayOfWeek) === todayLabel)
+        .map((schedule) => ({
+          key: `custom-${custom.id}-${schedule.id}`,
+          title: custom.title,
+          subtitle: '직접 추가 일정',
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          type: 'custom' as const,
+        }))
+    );
 
     return [...courseItems, ...customItems].sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [timetableDetail, todayLabel]);
@@ -197,7 +183,7 @@ export default function TimetablePage() {
 
     return timetableDetail.courses.map((course) => {
       const scheduleText = (course.schedules ?? [])
-        .map((schedule) => `${normalizeDay(String(schedule.dayOfWeek))} ${schedule.startTime}-${schedule.endTime}`)
+        .map((schedule) => `${formatDayOfWeek(String(schedule.dayOfWeek))} ${schedule.startTime}-${schedule.endTime}`)
         .join(', ');
 
       return {
@@ -214,13 +200,13 @@ export default function TimetablePage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-slate-100">
-      <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 p-4 lg:flex-row">
-        <section className="flex min-h-[calc(100vh-6rem)] min-w-0 flex-1 flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-5 py-4">
+      <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-2 p-2 sm:gap-4 sm:p-4 lg:flex-row">
+        <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm sm:rounded-[1.5rem]">
+          <div className="border-b border-slate-100 p-3 sm:px-5 sm:py-4">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div className="space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">내 시간표</h1>
-                <p className="text-sm text-slate-500">강의 시간이 겹치면 대시보드처럼 자동으로 세로 분할되어 표시됩니다.</p>
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">내 시간표</h1>
+                <p className="hidden text-sm text-slate-500 sm:block">강의 시간이 겹치면 대시보드처럼 자동으로 세로 분할되어 표시됩니다.</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -268,14 +254,14 @@ export default function TimetablePage() {
             )}
           </div>
 
-          <div className="min-h-0 flex-1 bg-slate-50/80 p-3 sm:p-4">
+          <div className="min-h-0 flex-1 bg-slate-50/80 p-1 sm:p-4">
             {isDetailLoading ? (
               <div className="flex h-full items-center justify-center py-20">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
               </div>
             ) : activeTimetableId && timetableDetail ? (
-              <div className="h-full overflow-auto rounded-2xl border border-slate-200 bg-white p-3">
-                <TimetableGrid timetable={timetableDetail} className="mx-auto min-w-[760px] lg:min-w-0" />
+              <div className="h-full overflow-auto rounded-xl border border-slate-200 bg-white p-1 sm:rounded-2xl sm:p-3">
+                <TimetableGrid timetable={timetableDetail} className="mx-auto w-full" />
               </div>
             ) : null}
 
@@ -291,7 +277,7 @@ export default function TimetablePage() {
         </section>
 
         <aside className="w-full lg:w-[340px]">
-          <div className="flex h-full min-h-[calc(100vh-6rem)] flex-col rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+          <div className="flex h-full flex-col rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-100 p-5">
               <CreditStatsCard totalCredits={totalCredits} />
             </div>

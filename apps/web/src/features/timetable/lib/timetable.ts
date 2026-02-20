@@ -1,5 +1,7 @@
-import { TimetableResponse } from '@/shared/types/api';
+import { TimetableResponse, CustomScheduleTimeResponse } from '@/shared/types/api';
 import { formatDayOfWeek } from '@/shared/lib/formatters';
+
+export const WEEK_DAYS = ['월', '화', '수', '목', '금', '토', '일'] as const;
 
 export interface RenderingBlock {
   key: string;
@@ -43,7 +45,7 @@ const COURSE_COLORS = [
 ];
 
 export const getCourseColor = (courseId: string | number): string => {
-  // 강의 식별자 기준으로 항상 같은 색을 반환해 화면 일관성을 유지한다.
+  // Returns the same color based on the course identifier to maintain consistency on the screen.
   const str = String(courseId);
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -115,8 +117,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
   const processedKeys = new Set<string>();
   const sorted = [...flattened].sort((a, b) => {
     if (a.dayOfWeek !== b.dayOfWeek) {
-      const dayOrder = ['월', '화', '수', '목', '금', '토', '일'];
-      return dayOrder.indexOf(a.dayOfWeek) - dayOrder.indexOf(b.dayOfWeek);
+      return WEEK_DAYS.indexOf(a.dayOfWeek as any) - WEEK_DAYS.indexOf(b.dayOfWeek as any);
     }
     return getTimeInMinutes(a.startTime) - getTimeInMinutes(b.startTime);
   });
@@ -217,3 +218,27 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
     };
   });
 };
+/**
+ * 연속된 시간대의 스케줄 정보를 하나로 병합합니다.
+ */
+export function mergeAdjacentSchedules(schedules: CustomScheduleTimeResponse[]): CustomScheduleTimeResponse[] {
+  const merged: CustomScheduleTimeResponse[] = [];
+  const sorted = [...schedules].sort((a, b) => {
+    const dayA = formatDayOfWeek(a.dayOfWeek);
+    const dayB = formatDayOfWeek(b.dayOfWeek);
+    const dayDiff = WEEK_DAYS.indexOf(dayA as any) - WEEK_DAYS.indexOf(dayB as any);
+    if (dayDiff !== 0) return dayDiff;
+    return a.startTime.localeCompare(b.startTime);
+  });
+
+  for (const slot of sorted) {
+    const last = merged[merged.length - 1];
+    if (last && formatDayOfWeek(last.dayOfWeek) === formatDayOfWeek(slot.dayOfWeek) && last.endTime === slot.startTime) {
+      merged[merged.length - 1] = { ...last, endTime: slot.endTime };
+    } else {
+      merged.push({ ...slot });
+    }
+  }
+
+  return merged;
+}
