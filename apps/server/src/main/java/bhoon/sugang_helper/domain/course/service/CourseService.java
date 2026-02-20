@@ -7,6 +7,7 @@ import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
+import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.domain.user.entity.User;
@@ -46,9 +47,9 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
 
-    public CourseResponse getCourse(String courseKey) {
+    public CourseDetailResponse getCourse(String courseKey) {
         Course course = courseRepository.findByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "강의를 찾을 수 없습니다: " + courseKey));
-        return CourseResponse.from(course);
+        return CourseDetailResponse.from(course);
     }
 }

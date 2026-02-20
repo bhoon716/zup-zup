@@ -2,6 +2,7 @@ package bhoon.sugang_helper.domain.course.controller;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
+import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.domain.course.service.CourseService;
@@ -32,80 +33,101 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Course", description = "과목 관련 API")
 public class CourseController {
 
-    private final CourseService courseService;
+        private final CourseService courseService;
 
-    @Operation(summary = "과목 검색", description = "검색 조건에 맞는 과목 목록을 조회합니다. (페이징: Slice)")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "과목 검색 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
-    })
-    @GetMapping
-    public ResponseEntity<CommonResponse<Slice<CourseResponse>>> searchCourses(
-            @ModelAttribute CourseSearchCondition condition,
-            @PageableDefault(size = 30) Pageable pageable) {
-        Slice<CourseResponse> courses = courseService.searchCourses(condition, pageable);
-        return CommonResponse.ok(courses, "과목 검색 결과입니다.");
-    }
+        @Operation(summary = "과목 검색", description = "검색 조건에 맞는 과목 목록을 조회합니다. (페이징: Slice)")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "과목 검색 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
+        })
+        @GetMapping
+        public ResponseEntity<CommonResponse<Slice<CourseResponse>>> searchCourses(
+                        @ModelAttribute CourseSearchCondition condition,
+                        @PageableDefault(size = 30) Pageable pageable) {
+                Slice<CourseResponse> courses = courseService.searchCourses(condition, pageable);
+                return CommonResponse.ok(courses, "과목 검색 결과입니다.");
+        }
 
-    @Operation(summary = "과목 검색(POST)", description = "시간 범위 기반 조건으로 과목 목록을 조회합니다. (페이징: Slice)")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "과목 검색 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
-    })
-    @PostMapping("/search")
-    public ResponseEntity<CommonResponse<Slice<CourseResponse>>> searchCoursesByPost(
-            @RequestBody CourseSearchCondition condition,
-            @PageableDefault(size = 30) Pageable pageable) {
-        Slice<CourseResponse> courses = courseService.searchCourses(condition, pageable);
-        return CommonResponse.ok(courses, "과목 검색 결과입니다.");
-    }
+        @Operation(summary = "과목 검색(POST)", description = "시간 범위 기반 조건으로 과목 목록을 조회합니다. (페이징: Slice)")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "과목 검색 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
+        })
+        @PostMapping("/search")
+        public ResponseEntity<CommonResponse<Slice<CourseResponse>>> searchCoursesByPost(
+                        @RequestBody CourseSearchCondition condition,
+                        @PageableDefault(size = 30) Pageable pageable) {
+                Slice<CourseResponse> courses = courseService.searchCourses(condition, pageable);
+                return CommonResponse.ok(courses, "과목 검색 결과입니다.");
+        }
 
-    @Operation(summary = "과목 공석 변동 이력 조회", description = "특정 과목의 공석 변동 이력을 조회합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "이력 조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
-                    {
-                      "code": "SUCCESS",
-                      "message": "해당 과목의 인원 변동 이력입니다.",
-                      "data": [
-                        {
-                          "id": 1,
-                          "courseKey": "CLTR.0031-01",
-                          "currentSeats": 35,
-                          "changedSeats": -2,
-                          "createdAt": "2024-01-01T12:00:00"
-                        }
-                      ]
-                    }
-                    """)))
-    })
-    @GetMapping("/{courseKey}/history")
-    public ResponseEntity<CommonResponse<List<CourseSeatHistoryResponse>>> getCourseHistory(
-            @PathVariable String courseKey) {
-        List<CourseSeatHistoryResponse> histories = courseService.getCourseHistory(courseKey);
-        return CommonResponse.ok(histories, "해당 과목의 인원 변동 이력입니다.");
-    }
+        @Operation(summary = "과목 공석 변동 이력 조회", description = "특정 과목의 공석 변동 이력을 조회합니다.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "이력 조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                                        {
+                                          "code": "SUCCESS",
+                                          "message": "해당 과목의 인원 변동 이력입니다.",
+                                          "data": [
+                                            {
+                                              "id": 1,
+                                              "courseKey": "CLTR.0031-01",
+                                              "currentSeats": 35,
+                                              "changedSeats": -2,
+                                              "createdAt": "2024-01-01T12:00:00"
+                                            }
+                                          ]
+                                        }
+                                        """)))
+        })
+        @GetMapping("/{courseKey}/history")
+        public ResponseEntity<CommonResponse<List<CourseSeatHistoryResponse>>> getCourseHistory(
+                        @PathVariable String courseKey) {
+                List<CourseSeatHistoryResponse> histories = courseService.getCourseHistory(courseKey);
+                return CommonResponse.ok(histories, "해당 과목의 인원 변동 이력입니다.");
+        }
 
-    @Operation(summary = "과목 상세 조회", description = "특정 과목의 상세 정보를 조회합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "과목 상세 조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
-                    {
-                      "code": "SUCCESS",
-                      "message": "과목 상세 정보입니다.",
-                      "data": {
-                        "courseKey": "CLTR.0031-01",
-                        "subjectCode": "CLTR.0031",
-                        "name": "기초프로그래밍",
-                        "classNumber": "01",
-                        "professor": "홍길동",
-                        "capacity": 40,
-                        "current": 35,
-                        "available": 5
-                      }
-                    }
-                    """)))
-    })
-    @GetMapping("/{courseKey}")
-    public ResponseEntity<CommonResponse<CourseResponse>> getCourse(
-            @PathVariable String courseKey) {
-        CourseResponse course = courseService.getCourse(courseKey);
-        return CommonResponse.ok(course, "과목 상세 정보입니다.");
-    }
+        @Operation(summary = "과목 상세 조회", description = "특정 과목의 상세 정보를 조회합니다.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "과목 상세 조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                                        {
+                                          "code": "SUCCESS",
+                                          "message": "과목 상세 정보입니다.",
+                                          "data": {
+                                            "courseKey": "CLTR.0031-01",
+                                            "subjectCode": "CLTR.0031",
+                                            "name": "기초프로그래밍",
+                                            "classNumber": "01",
+                                            "professor": "홍길동",
+                                            "targetGrade": "GRADE_1",
+                                            "capacity": 40,
+                                            "current": 35,
+                                            "available": 5,
+                                            "classification": "교양",
+                                            "department": "자율전공학부",
+                                            "gradingMethod": "절대평가",
+                                            "lectureLanguage": "한국어",
+                                            "classTime": "월1,2 수3",
+                                            "credits": "3",
+                                            "lectureHours": 3,
+                                            "disclosure": "PUBLIC",
+                                            "disclosureReason": "",
+                                            "generalCategory": "인문소양",
+                                            "generalDetail": "",
+                                            "accreditation": "공학인증",
+                                            "courseStatus": "OPEN",
+                                            "classroom": "7호관 101호",
+                                            "hasSyllabus": true,
+                                            "generalCategoryByYear": "핵심교양",
+                                            "courseDirection": "대면수업",
+                                            "classDuration": "50분",
+                                            "status": "AVAILABLE",
+                                            "lastCrawledAt": "2024-03-20T10:00:00"
+                                          }
+                                        }
+                                        """)))
+        })
+        @GetMapping("/{courseKey}")
+        public ResponseEntity<CommonResponse<CourseDetailResponse>> getCourse(
+                        @PathVariable String courseKey) {
+                CourseDetailResponse course = courseService.getCourse(courseKey);
+                return CommonResponse.ok(course, "과목 상세 정보입니다.");
+        }
 }
