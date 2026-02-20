@@ -7,7 +7,11 @@ import { Toaster, toast } from "sonner";
 
 import { useUser } from "@/features/user/hooks/useUser";
 import { usePathname, useRouter } from "next/navigation";
+import { TooltipProvider } from "@/shared/ui/tooltip";
 
+/**
+ * 온보딩 완료 여부를 체크하여 미완료 시 온보딩 페이지로 강제 이동시키는 가드 컴포넌트입니다.
+ */
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading } = useUser();
   const router = useRouter();
@@ -28,6 +32,9 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * 세션 상태 및 서비스 워커 푸시 알림 이벤트를 처리하는 인증 프로바이더입니다.
+ */
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
 
@@ -67,6 +74,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
 import { LoginModal } from "@/widgets/auth/login-modal";
 
+/**
+ * React Query, Toaster, Tooltip 등 전역 상태 및 UI 프로바이더들을 통합 관리하는 컴포넌트입니다.
+ */
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -82,13 +92,15 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster position="top-right" richColors />
-      <Suspense fallback={null}>
-        <AuthProvider>
-          {children}
-          <LoginModal />
-        </AuthProvider>
-      </Suspense>
+      <TooltipProvider>
+        <Toaster position="top-right" richColors />
+        <Suspense fallback={null}>
+          <AuthProvider>
+            {children}
+            <LoginModal />
+          </AuthProvider>
+        </Suspense>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }
