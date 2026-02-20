@@ -1,169 +1,153 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
-import { useAdminStats } from "@/features/admin/hooks/useAdminStats";
+import { motion } from "framer-motion";
+import { AlertCircle, BellRing, CloudCog, Gauge, Loader2, RefreshCcw, Users } from "lucide-react";
+
+import { useAdminOverview } from "@/features/admin/hooks/useAdminOverview";
 import { useHealth } from "@/features/admin/hooks/useHealth";
+import { useCrawlCourses, useSendTestNotification } from "@/features/admin/hooks/useAdminActions";
+
 import { Button } from "@/shared/ui/button";
-import { useCrawlCourses } from "@/features/admin/hooks/useAdminActions";
-import Link from "next/link";
+
+import { AdminStatCard } from "@/features/admin/components/admin-stat-card";
+import { AdminTrafficChart } from "@/features/admin/components/admin-traffic-chart";
+import { AdminQuickActions } from "@/features/admin/components/admin-quick-actions";
+import { AdminActivityLog } from "@/features/admin/components/admin-activity-log";
+import { AdminOverview } from "@/features/admin/components/admin-overview";
 import { 
-  Users, 
-  BookOpen, 
-  Bell, 
-  Activity, 
-  Loader2, 
-  RefreshCcw, 
-  Send
-} from "lucide-react";
+  formatNumber, 
+  formatDateTime, 
+  formatTime, 
+  formatRelative, 
+  getStatusMeta, 
+  getLogMeta 
+} from "@/features/admin/lib/formatters";
 
+/**
+ * 관리자 대시보드 페이지 메인 컴포넌트입니다.
+ * 서비스 전체의 지표, 실시간 트래픽, 시스템 로그 및 제어판을 통합적으로 제공합니다.
+ */
 export default function AdminDashboardPage() {
-  const { data, isLoading: isStatsLoading, error: statsError } = useAdminStats();
-  const { data: healthData, isLoading: isHealthLoading } = useHealth();
-  const { mutate: crawl, isPending: isCrawling } = useCrawlCourses();
+  const {
+    data: overview,
+    isLoading: isOverviewLoading,
+    isError: isOverviewError,
+    refetch: refetchOverview,
+  } = useAdminOverview();
   
+  const {
+    data: healthData,
+    isLoading: isHealthLoading,
+    refetch: refetchHealth,
+  } = useHealth();
+  
+  const { mutate: crawlCourses, isPending: isCrawling } = useCrawlCourses();
+  const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
 
-  const isLoading = isStatsLoading || isHealthLoading;
-  const error = statsError;
+  /**
+   * 모든 대시보드 데이터를 최신 상태로 갱신합니다.
+   */
+  const handleRefresh = () => {
+    void Promise.all([refetchOverview(), refetchHealth()]);
+  };
 
-  if (isLoading) {
+  // 로딩 상태 처리
+  if (isOverviewLoading || isHealthLoading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="flex h-full items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm font-medium text-slate-500">데이터를 불러오는 중...</p>
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  // 에러 발생 혹은 데이터 부재 처리
+  if (isOverviewError || !overview) {
     return (
-      <div className="text-center py-12">
-        <p className="text-red-600">데이터를 불러오는데 실패했습니다.</p>
+      <div className="flex h-full items-center justify-center bg-slate-50 px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-[2.5rem] border border-red-100 bg-white p-12 text-center shadow-xl shadow-red-500/5 max-w-md w-full"
+        >
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-red-50 text-red-500">
+            <AlertCircle className="h-10 w-10" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">연결 오류</h2>
+          <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+            관리자 대시보드 데이터를 불러오지 못했습니다.<br />서버 상태를 확인하거나 잠시 후 다시 시도해 주세요.
+          </p>
+          <Button
+            onClick={handleRefresh}
+            className="w-full h-14 rounded-2xl bg-primary hover:bg-primary-dark transition-all text-base font-semibold"
+          >
+            <RefreshCcw className="mr-2 h-5 w-5" />
+            다시 시도하기
+          </Button>
+        </motion.div>
       </div>
     );
   }
 
-  const stats = [
-    { 
-      title: "전체 사용자", 
-      value: data?.totalUsers.toLocaleString() || "0", 
-      icon: <Users className="w-5 h-5 text-blue-600" />, 
-      description: "가입 유저 수" 
-    },
-    { 
-      title: "전체 구독", 
-      value: data?.totalActiveSubscriptions.toLocaleString() || "0", 
-      icon: <BookOpen className="w-5 h-5 text-green-600" />, 
-      description: "활성 강의 구독 수" 
-    },
-    { 
-      title: "오늘의 알림", 
-      value: data?.todayNotificationCount.toLocaleString() || "0", 
-      icon: <Bell className="w-5 h-5 text-orange-600" />, 
-      description: "발송된 빈자리 알림" 
-    },
-    { 
-      title: "크롤링 상태", 
-      value: data?.crawlingStatus === "RUNNING" ? "정상" : "점검 중", 
-      icon: <Activity className="w-5 h-5 text-purple-600" />, 
-      description: `마지막: ${data?.lastCrawledAt ? new Date(data.lastCrawledAt).toLocaleTimeString() : "-"}` 
-    },
+  const statusMeta = getStatusMeta(overview.crawlingStatus || "UNKNOWN");
+  const serverClockText = formatTime(overview.serverTime);
+
+  const statItems = [
+    { label: "크롤러 상태", value: overview.crawlingStatus || "UNKNOWN", sub: `마지막: ${formatRelative(overview.lastCrawledAt)}`, icon: CloudCog, meta: statusMeta, color: "primary" as const },
+    { label: "JBNU 지연시간", value: overview.jbnuLatencyMs === null ? "-" : `${overview.jbnuLatencyMs}ms`, sub: "실시간 연동 준비 중", icon: Gauge, color: "amber" as const },
+    { label: "누적 사용자 수", value: formatNumber(overview.totalUsers), sub: "이번 학기 활성 학생", icon: Users, badge: "LIVE", color: "green" as const },
+    { label: "현재 가동 중인 알림", value: formatNumber(overview.totalActiveSubscriptions), sub: "수강신청 빈자리 대기", icon: BellRing, badge: "Push", color: "indigo" as const }
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">관리자 대시보드</h1>
-          <p className="text-muted-foreground mt-2">전체 서비스 현황을 한눈에 파악합니다.</p>
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+      <main className="flex-1">
+        <AdminOverview serverClock={serverClockText} onRefresh={handleRefresh} />
+
+        <div className="container mx-auto space-y-12 p-6 lg:p-12">
+          {/* 주요 통계 그리드 섹션 */}
+          <section className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {statItems.map((stat, i) => (
+              <AdminStatCard key={stat.label} {...stat} index={i} />
+            ))}
+          </section>
+
+          <section className="grid grid-cols-1 gap-12 lg:grid-cols-3">
+            {/* 트래픽 시각화 섹션 */}
+            <AdminTrafficChart traffic={overview.notificationTraffic ?? []} />
+
+            {/* 퀵 컨트롤 센터 섹션 */}
+            <AdminQuickActions 
+              onRefresh={handleRefresh}
+              onCrawl={() => crawlCourses()}
+              onSendTest={() => sendTestNotification()}
+              isCrawling={isCrawling}
+              isSendingTest={isSendingTest}
+            />
+          </section>
+
+          {/* 시스템 활동 로그 섹션 */}
+          <AdminActivityLog 
+            logs={overview.recentLogs} 
+            formatDateTime={formatDateTime}
+            getLogMeta={getLogMeta}
+          />
+
+          {/* 푸터 섹션 */}
+          <footer className="py-20 text-center">
+            <div className="flex items-center justify-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.3em] mb-4">
+               <div className="h-px w-8 bg-slate-100"></div>
+               Internal Dashboard
+               <div className="h-px w-8 bg-slate-100"></div>
+            </div>
+            <p className="text-xs font-bold text-slate-400">
+              © 2026 JBNU 수강신청 도우미 관리자. <br className="sm:hidden" /> All rights reserved. V2.0.0-GOLD
+            </p>
+          </footer>
         </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => crawl()} 
-            disabled={isCrawling}
-            className="hidden md:flex gap-2"
-          >
-            {isCrawling ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCcw className="w-4 h-4" />
-            )}
-            강제 크롤링 실행
-          </Button>
-          <Link href="/admin/notification-test">
-            <Button variant="outline" className="hidden md:flex gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-500/5 hover:text-orange-700">
-              <Send className="w-4 h-4" />
-              알림 테스트
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full border shadow-sm">
-            <div className={`w-3 h-3 rounded-full ${healthData?.status === 'UP' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-sm font-medium">
-              서버 상태: {healthData?.status === 'UP' ? '정상' : '확인 불가'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="md:hidden">
-        <Button 
-          variant="outline" 
-          onClick={() => crawl()} 
-          disabled={isCrawling}
-          className="w-full gap-2"
-        >
-          {isCrawling ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <RefreshCcw className="w-4 h-4" />
-          )}
-          강제 크롤링 실행
-        </Button>
-        <Link href="/admin/notification-test" className="w-full mt-2 block">
-          <Button variant="outline" className="w-full gap-2 border-orange-500/50 text-orange-600">
-            <Send className="w-4 h-4" />
-            알림 테스트
-          </Button>
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              {stat.icon}
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>인기 구독 강의 (준비 중)</CardTitle>
-            <CardDescription>가장 많이 구독 중인 과목 순위입니다.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-            데이터 수집 중...
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>최근 알림 로그 (준비 중)</CardTitle>
-            <CardDescription>시스템 전체 알림 발송 기록입니다.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-            로그 로딩 중...
-          </CardContent>
-        </Card>
-
-
-      </div>
+      </main>
     </div>
   );
 }

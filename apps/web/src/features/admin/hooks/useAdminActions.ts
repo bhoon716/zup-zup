@@ -9,8 +9,8 @@ export const useCrawlCourses = () => {
   return useMutation({
     mutationFn: () => adminApi.crawlCourses(),
     onSuccess: (response) => {
-      // 대시보드 통계 및 마지막 크롤링 시간 갱신을 위해 쿼리 무효화
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'overview'] });
       toast.success(response.message || '크롤링이 성공적으로 시작되었습니다.');
     },
     onError: (error: AxiosError<{ message: string }>) => {
@@ -22,7 +22,7 @@ export const useCrawlCourses = () => {
 
 export const useSendTestNotification = () => {
   return useMutation({
-    mutationFn: (request: { email: string; channels: string[] }) => adminApi.sendTestNotification(request),
+    mutationFn: () => adminApi.sendTestNotification(),
     onSuccess: (response) => {
       toast.success(response.message || '테스트 알림이 성공적으로 전송되었습니다.');
     },
