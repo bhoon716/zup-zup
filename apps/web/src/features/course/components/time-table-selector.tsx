@@ -72,7 +72,16 @@ function sortSchedules(schedules: ScheduleCondition[]): ScheduleCondition[] {
 }
 
 export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps) {
-  const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useCallback((val: boolean) => {
+    (window as any)._isDragging = val;
+  }, []);
+  const getIsDragging = () => (window as any)._isDragging || false;
+
+  const [isDragging, _setIsDragging] = useState(false);
+  const setIsDragging = (val: boolean) => {
+    _setIsDragging(val);
+    isDraggingRef(val);
+  };
   const [dragMode, setDragMode] = useState<"select" | "deselect" | null>(null);
   const [dragStart, setDragStart] = useState<DragCell | null>(null);
   const [dragCurrent, setDragCurrent] = useState<DragCell | null>(null);
@@ -134,18 +143,18 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     setDragCurrent({ dayIndex, slot });
   };
 
-  const onMouseEnterCell = (day: CourseDayOfWeek, slot: number) => {
+  const onMouseEnterCell = useCallback((day: CourseDayOfWeek, slot: number) => {
     setHoveredDay(day);
     setHoveredSlot(slot);
-    if (!isDragging) return;
+    if (!getIsDragging()) return;
     const dayIndex = DAYS.indexOf(day);
     if (dayIndex >= 0) {
       setDragCurrent({ dayIndex, slot });
     }
-  };
+  }, []);
 
   const finishDragSelection = useCallback(() => {
-    if (!isDragging || !dragMode || !dragStart || !dragCurrent) {
+    if (!getIsDragging() || !dragMode || !dragStart || !dragCurrent) {
       setIsDragging(false);
       setDragMode(null);
       return;
@@ -167,12 +176,18 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     setDragStart(null);
     setDragCurrent(null);
     setDragSnapshot([]);
-  }, [dragCurrent, dragMode, dragRectSchedules, dragSnapshot, dragStart, isDragging, onChange]);
+  }, [dragCurrent, dragMode, dragRectSchedules, dragSnapshot, dragStart, onChange]);
 
   useEffect(() => {
-    const handleMouseUp = () => finishDragSelection();
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => window.removeEventListener("mouseup", handleMouseUp);
+    const handleUp = () => finishDragSelection();
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchend", handleUp);
+    window.addEventListener("touchcancel", handleUp);
+    return () => {
+      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchend", handleUp);
+      window.removeEventListener("touchcancel", handleUp);
+    };
   }, [finishDragSelection]);
 
   const handleSelectAllByDay = (day: CourseDayOfWeek) => {
@@ -213,6 +228,23 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     onChange([]);
   };
 
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!getIsDragging()) return;
+    const touch = e.touches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!element) return;
+
+    const cell = element.closest("[data-day][data-slot]");
+    if (!cell) return;
+
+    const day = cell.getAttribute("data-day") as CourseDayOfWeek;
+    const slot = Number(cell.getAttribute("data-slot"));
+
+    if (day && !Number.isNaN(slot)) {
+      onMouseEnterCell(day, slot);
+    }
+  };
+
   return (
     <div
       className="w-full max-w-full select-none overflow-hidden rounded-xl border border-border/20 bg-card/20 p-3 backdrop-blur-md"
@@ -220,6 +252,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
         setHoveredDay(null);
         setHoveredSlot(null);
       }}
+      style={{ touchAction: isDragging ? "none" : "auto" }}
     >
       <div className="mb-3 flex justify-end gap-2">
         <Button
@@ -317,16 +350,23 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
                     <button
                       key={`${day}-${slot}`}
                       type="button"
+                      data-day={day}
+                      data-slot={slot}
                       onMouseDown={(e) => {
                         e.preventDefault();
                         startDrag(day, slot);
                       }}
                       onMouseEnter={() => onMouseEnterCell(day, slot)}
+                      onTouchStart={(e) => {
+                        startDrag(day, slot);
+                      }}
+                      onTouchMove={onTouchMove}
                       aria-label={`${day} ${slot + 1}교시`}
                       className={cn(
                         "h-10 rounded-sm transition-all duration-100",
                         cellClassName
                       )}
+                      style={{ touchAction: 'none' }}
                     />
                   );
                 })}
