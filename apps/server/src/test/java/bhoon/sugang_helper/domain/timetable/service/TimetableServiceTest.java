@@ -152,8 +152,9 @@ class TimetableServiceTest {
         Timetable timetable = Timetable.builder().userId(1L).name("P1").build();
         given(timetableRepository.findById(1L)).willReturn(Optional.of(timetable));
 
-        CustomScheduleRequest request = new CustomScheduleRequest("Lunch", "월",
-                LocalTime.of(9, 45), LocalTime.of(10, 45), "#FFFFFF");
+        CustomScheduleRequest request = new CustomScheduleRequest("Lunch", null, List.of(
+                new CustomScheduleRequest.CustomScheduleTimeRequest("월", LocalTime.of(9, 45), LocalTime.of(10, 45),
+                        null)));
 
         // when
         timetableService.addCustomSchedule(1L, request);

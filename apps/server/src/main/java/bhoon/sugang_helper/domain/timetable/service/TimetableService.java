@@ -6,6 +6,7 @@ import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.timetable.entity.CustomSchedule;
+import bhoon.sugang_helper.domain.timetable.entity.CustomScheduleTime;
 import bhoon.sugang_helper.domain.timetable.entity.Timetable;
 import bhoon.sugang_helper.domain.timetable.entity.TimetableEntry;
 import bhoon.sugang_helper.domain.timetable.repository.CustomScheduleRepository;
@@ -117,11 +118,20 @@ public class TimetableService {
         CustomSchedule schedule = CustomSchedule.builder()
                 .timetable(timetable)
                 .title(request.getTitle())
-                .dayOfWeek(request.getDayOfWeek())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
-                .color(request.getColor())
+                .professor(request.getProfessor())
                 .build();
+
+        request.getSchedules().forEach(timeRequest -> {
+            CustomScheduleTime time = CustomScheduleTime.builder()
+                    .customSchedule(schedule)
+                    .dayOfWeek(timeRequest.getDayOfWeek())
+                    .startTime(timeRequest.getStartTime())
+                    .endTime(timeRequest.getEndTime())
+                    .classroom(timeRequest.getClassroom())
+                    .build();
+            schedule.addTime(time);
+        });
+
         timetable.addCustomSchedule(schedule);
     }
 
