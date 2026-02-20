@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { timetableApi } from '@/features/timetable/api/timetable.api';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
+import { CustomScheduleRequest } from '@/shared/types/api';
 
 import { useUser } from "@/features/user/hooks/useUser";
 
@@ -71,6 +72,40 @@ export const useRemoveCourseFromTimetable = () => {
     },
     onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '강의 삭제에 실패했습니다.';
+      toast.error(message);
+    },
+  });
+};
+
+export const useAddCustomSchedule = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ timetableId, data }: { timetableId: number; data: CustomScheduleRequest }) => 
+      timetableApi.addCustomSchedule(timetableId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['timetable', variables.timetableId] });
+      queryClient.invalidateQueries({ queryKey: ['timetable', 'primary'] });
+      toast.success('시간표에 일정이 추가되었습니다.');
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      const message = error.response?.data?.message || '일정 추가에 실패했습니다.';
+      toast.error(message);
+    },
+  });
+};
+
+export const useRemoveCustomSchedule = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ timetableId, scheduleId }: { timetableId: number; scheduleId: number }) => 
+      timetableApi.removeCustomSchedule(timetableId, scheduleId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['timetable', variables.timetableId] });
+      queryClient.invalidateQueries({ queryKey: ['timetable', 'primary'] });
+      toast.success('시간표에서 일정이 삭제되었습니다.');
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      const message = error.response?.data?.message || '일정 삭제에 실패했습니다.';
       toast.error(message);
     },
   });

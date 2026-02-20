@@ -8,8 +8,9 @@ import { TimetableSelect } from '@/features/timetable/components/timetable-selec
 import { TimetableGrid } from '@/features/timetable/components/timetable-grid';
 import { useWishlist } from '@/features/wishlist/hooks/useWishlist';
 import { toast } from 'sonner';
-import { Loader2, Download, CalendarDays, Clock3, Heart, BookOpen } from 'lucide-react';
+import { Loader2, Download, CalendarDays, Clock3, Heart, BookOpen, Plus } from 'lucide-react';
 import { CreditStatsCard } from '@/features/timetable/components/credit-stats-card';
+import { CustomScheduleDialog } from '@/features/timetable/components/custom-schedule-dialog';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
 import { cn } from '@/shared/lib/utils';
@@ -39,6 +40,7 @@ export default function TimetablePage() {
   const queryClient = useQueryClient();
   const [selectedTimetableId, setSelectedTimetableId] = useState<number | null>(null);
   const [sidebarTab, setSidebarTab] = useState<'schedule' | 'wishlist'>('schedule');
+  const [customDialogOpen, setCustomDialogOpen] = useState(false);
 
   /**
    * 현재 시간표 그리드 영역을 PNG 이미지로 캡처하여 다운로드합니다.
@@ -235,6 +237,15 @@ export default function TimetablePage() {
                   <Download className="h-4 w-4" />
                   내보내기
                 </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-9 rounded-xl bg-primary text-white hover:bg-primary-hover shadow-sm"
+                  onClick={() => setCustomDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  수업 직접 추가
+                </Button>
               </div>
             </div>
 
@@ -410,6 +421,12 @@ export default function TimetablePage() {
           </div>
         </aside>
       </main>
+
+      <CustomScheduleDialog 
+        timetableId={activeTimetableId}
+        open={customDialogOpen}
+        onOpenChange={setCustomDialogOpen}
+      />
     </div>
   );
 }

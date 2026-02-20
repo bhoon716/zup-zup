@@ -6,8 +6,8 @@ import { RenderingBlock } from '@/features/timetable/lib/timetable';
 
 interface TimetableBlockProps {
   block: RenderingBlock;
-  topPx: number;
-  heightPx: number;
+  top: string;
+  height: string;
   leftOffset: number;
   widthFraction: number;
   isPreview?: boolean;
@@ -55,8 +55,8 @@ const withAlpha = (color: string | undefined, alpha: number, fallback: string) =
  */
 export function TimetableBlock({
   block,
-  topPx,
-  heightPx,
+  top,
+  height,
   leftOffset,
   widthFraction,
   isPreview = false,
@@ -77,8 +77,8 @@ export function TimetableBlock({
         !isPreview && 'p-1'
       )}
       style={{
-        top: `${topPx}px`,
-        height: `${heightPx}px`,
+        top,
+        height,
         left: `calc(${leftOffset * 100}%)`,
         width: `calc(${widthFraction * 100}%)`,
       }}
@@ -97,13 +97,13 @@ export function TimetableBlock({
       >
         <div className="relative">
           <h4 
-            className={cn("font-bold leading-tight mb-0.5 break-all", isPreview ? 'text-[8px] line-clamp-2' : 'text-xs sm:text-sm')} 
+            className={cn("font-bold leading-tight mb-0.5 break-all", isPreview ? 'text-[8px] line-clamp-2' : 'text-[10px] sm:text-sm')} 
             style={{ color: borderColor }}
           >
             {block.title}
           </h4>
           {!isPreview && infoText && (
-            <p className="text-[10px] sm:text-[11px] font-medium leading-tight truncate" style={{ color: infoColor }}>
+            <p className="text-[9px] sm:text-[11px] font-medium leading-tight truncate" style={{ color: infoColor }}>
               {infoText}
             </p>
           )}
@@ -112,7 +112,7 @@ export function TimetableBlock({
         {!isPreview && (
           <div className="flex items-center gap-1 mt-1">
             <span
-              className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap overflow-hidden text-ellipsis"
+              className="text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap overflow-hidden text-ellipsis"
               style={{ backgroundColor: badgeBgColor, color: borderColor }}
             >
               {('badgeText' in block ? block.badgeText as string : undefined) || (block.type === 'course' ? '강의' : '일정')}
