@@ -5,6 +5,8 @@ import { AlertCircle, Clock3, MapPin, User, Users } from "lucide-react";
 import type { Course } from "@/shared/types/api";
 import { formatClassification, formatGradingMethod, formatLanguage, formatTargetGrade } from "@/shared/lib/formatters";
 import { cn } from "@/shared/lib/utils";
+import { normalizeCourse } from "@/shared/lib/course";
+import { getMapSearchUrls } from "@/shared/lib/map-links";
 
 interface CourseDetailContentProps {
   course: Course;
@@ -14,12 +16,14 @@ interface CourseDetailContentProps {
  * 강의 상세 정보를 보여주는 공통 콘텐츠 컴포넌트입니다.
  * 다이얼로그나 모달 내부에서 사용됩니다.
  */
-export function CourseDetailContent({ course }: CourseDetailContentProps) {
+export function CourseDetailContent({ course: rawCourse }: CourseDetailContentProps) {
+  const course = normalizeCourse(rawCourse);
   const isFull = (course.available ?? 0) <= 0;
   const capacity = course.capacity ?? 0;
   const current = course.current ?? 0;
-  const available = course.available ?? Math.max(capacity - current, 0);
+  const available = course.available ?? 0;
   const percent = capacity > 0 ? Math.min(100, (current / capacity) * 100) : 0;
+  const mapUrls = getMapSearchUrls(course.classroom);
 
   const classLabel = (() => {
     const academicYear = course.academicYear ? `${course.academicYear}년 ` : "";
@@ -139,11 +143,26 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                   {course.classroom || "장소 미정"}
                 </h3>
               </div>
-              {course.classroom && (
-                <button className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700 group">
-                  <MapPin className="w-[18px] h-[18px] text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-200" />
-                  강의 공간 확인
-                </button>
+              {mapUrls && (
+                <div className="space-y-2">
+                  <a
+                    href={mapUrls.kakao}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700 group"
+                  >
+                    <MapPin className="w-[18px] h-[18px] text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-200" />
+                    강의 공간 확인
+                  </a>
+                  <a
+                    href={mapUrls.naver}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block text-center text-xs font-medium text-gray-500 hover:text-primary"
+                  >
+                    네이버맵에서 열기
+                  </a>
+                </div>
               )}
             </div>
           </div>
