@@ -3,12 +3,10 @@
 import React, { useMemo, useState } from 'react';
 import { TimetableResponse } from '@/shared/types/api';
 import { cn } from '@/shared/lib/utils';
-import { getRenderingBlocks, getTimeInMinutes, RenderingBlock } from '@/features/timetable/lib/timetable';
+import { getRenderingBlocks, getTimeInMinutes, RenderingBlock, WEEK_DAYS } from '@/features/timetable/lib/timetable';
 import { CourseDetailDialog } from '@/features/course/components/course-detail-dialog';
 import { CustomScheduleDetailDialog } from './custom-schedule-detail-dialog';
 import { Course } from '@/shared/types/api';
-import { Button } from '@/shared/ui/button';
-
 import { TimetableBlock } from './timetable-block';
 
 interface TimetableGridProps {
@@ -17,7 +15,86 @@ interface TimetableGridProps {
   isPreview?: boolean;
 }
 
-const DAYS = ['월', '화', '수', '목', '금', '토'];
+const DISPLAY_DAYS = WEEK_DAYS.slice(0, 6);
+interface BlockLayout {
+  leftOffset: number;
+  widthFraction: number;
+}
+
+function sortBlocksByTime(a: RenderingBlock, b: RenderingBlock): number {
+  const startDiff = getTimeInMinutes(a.startTime) - getTimeInMinutes(b.startTime);
+  if (startDiff !== 0) {
+    return startDiff;
+  }
+
+  return getTimeInMinutes(a.endTime) - getTimeInMinutes(b.endTime);
+}
+
+function buildLayoutsForDay(dayBlocks: RenderingBlock[]): Map<string, BlockLayout> {
+  const layouts = new Map<string, BlockLayout>();
+  if (dayBlocks.length === 0) {
+    return layouts;
+  }
+
+  const clusters: RenderingBlock[][] = [];
+  let currentCluster: RenderingBlock[] = [];
+  let clusterEnd = -1;
+
+  for (const block of dayBlocks) {
+    const start = getTimeInMinutes(block.startTime);
+    const end = getTimeInMinutes(block.endTime);
+
+    if (currentCluster.length === 0) {
+      currentCluster.push(block);
+      clusterEnd = end;
+      continue;
+    }
+
+    if (start < clusterEnd) {
+      currentCluster.push(block);
+      clusterEnd = Math.max(clusterEnd, end);
+      continue;
+    }
+
+    clusters.push(currentCluster);
+    currentCluster = [block];
+    clusterEnd = end;
+  }
+
+  if (currentCluster.length > 0) {
+    clusters.push(currentCluster);
+  }
+
+  for (const cluster of clusters) {
+    const columnEndTimes: number[] = [];
+    const placements: { block: RenderingBlock; column: number }[] = [];
+
+    for (const block of cluster) {
+      const start = getTimeInMinutes(block.startTime);
+      const end = getTimeInMinutes(block.endTime);
+
+      let column = columnEndTimes.findIndex((columnEnd) => start >= columnEnd);
+      if (column === -1) {
+        column = columnEndTimes.length;
+        columnEndTimes.push(end);
+      } else {
+        columnEndTimes[column] = end;
+      }
+
+      placements.push({ block, column });
+    }
+
+    const totalColumns = Math.max(columnEndTimes.length, 1);
+    placements.forEach(({ block, column }) => {
+      layouts.set(block.key, {
+        leftOffset: column / totalColumns,
+        widthFraction: 1 / totalColumns,
+      });
+    });
+  }
+
+  return layouts;
+}
 
 /**
  * 시간표의 그리드 UI를 렌더링하고 각 강의 블록을 배치하는 컴포넌트입니다.
@@ -60,6 +137,28 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
   }, [blocks]);
 
   const GRID_START_TIME = startHour * 60;
+  const dayBlocksMap = useMemo(() => {
+    const map = new Map<string, RenderingBlock[]>();
+
+    DISPLAY_DAYS.forEach((day) => {
+      const sortedBlocks = blocks
+        .filter((block) => block.dayOfWeek === day)
+        .sort(sortBlocksByTime);
+      map.set(day, sortedBlocks);
+    });
+
+    return map;
+  }, [blocks]);
+
+  const dayLayoutMap = useMemo(() => {
+    const map = new Map<string, Map<string, BlockLayout>>();
+
+    DISPLAY_DAYS.forEach((day) => {
+      map.set(day, buildLayoutsForDay(dayBlocksMap.get(day) ?? []));
+    });
+
+    return map;
+  }, [dayBlocksMap]);
 
   const handleCourseClick = (block: RenderingBlock) => {
     setSelectedCourse(block);
@@ -75,11 +174,11 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
       <div className="w-full overflow-x-auto custom-scrollbar bg-white rounded-2xl md:bg-transparent">
         <div
           className={cn(
-            'relative bg-white timetable-grid-content min-w-[380px] md:min-w-0',
-            !isPreview && 'shadow-sm min-h-[500px] md:min-h-[600px] flex flex-col',
+            'relative bg-white timetable-grid-content min-w-full',
+            !isPreview && 'shadow-sm flex flex-col',
             className
           )}
-          style={{ '--slot-height': isPreview ? '45px' : '50px' } as React.CSSProperties}
+          style={{ '--slot-height': isPreview ? '45px' : '42px' } as React.CSSProperties}
         >
           <style jsx>{`
             @media (min-width: 768px) {
@@ -90,18 +189,18 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
           `}</style>
         <div
           className={cn(
-            'grid grid-cols-[35px_repeat(6,1fr)] md:grid-cols-[60px_repeat(6,1fr)] border-b border-slate-200 sticky top-0 bg-white z-40',
+            'grid grid-cols-[20px_repeat(6,minmax(0,1fr))] md:grid-cols-[60px_repeat(6,1fr)] border-b border-slate-200 sticky top-0 bg-white z-40',
             !isPreview && 'shadow-[0_4px_6px_-4px_rgba(0,0,0,0.05)]',
             isPreview && 'grid-cols-[40px_repeat(6,1fr)] h-8 shadow-none'
           )}
         >
-          <div className="p-3 border-r border-slate-200 bg-slate-50 md:bg-slate-50/50 sticky left-0 z-50"></div>
-          {DAYS.map((day) => (
+          <div className="p-1 md:p-3 border-r border-slate-200 bg-slate-50 md:bg-slate-50/50 sticky left-0 z-50"></div>
+          {DISPLAY_DAYS.map((day) => (
             <div
               key={day}
               className={cn(
                 'p-1.5 md:p-3 text-center font-bold text-[10px] md:text-sm text-slate-600 border-r border-slate-100 bg-white last:border-r-0',
-                isPreview && 'p-1 text-[10px]',
+                isPreview && 'p-px text-[10px]',
                 day === '토' && 'text-blue-500 bg-blue-50/30'
               )}
             >
@@ -110,19 +209,19 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
           ))}
         </div>
 
-        <div className={cn("flex-1 grid grid-cols-[35px_repeat(6,1fr)] md:grid-cols-[60px_repeat(6,1fr)] relative", isPreview && "grid-cols-[40px_repeat(6,1fr)]")}>
+        <div className={cn("flex-1 grid grid-cols-[20px_repeat(6,minmax(0,1fr))] md:grid-cols-[60px_repeat(6,1fr)] relative", isPreview && "grid-cols-[40px_repeat(6,1fr)]")}>
           {/* Y-axis timeline */}
           <div className="col-start-1 col-span-1 row-start-1 border-r border-slate-200 bg-slate-50 md:bg-slate-50/30 text-xs text-slate-400 font-medium select-none z-30 sticky left-0">
             {hoursArray.map((hour) => (
-              <div key={hour} className={cn("border-b border-slate-200 relative flex flex-col items-center justify-center gap-0.5", isPreview ? "h-[45px]" : "h-[50px] md:h-[60px]")}>
+              <div key={hour} className="border-b border-slate-200 relative flex flex-col items-center justify-center gap-0.5 h-(--slot-height)">
                 <span className={cn(
-                  "text-[8px] md:text-[11px] font-bold text-slate-500",
+                  "text-[9px] md:text-[11px] font-bold text-slate-500",
                   isPreview && "text-[8px]"
                 )}>
                   {hour - 8}
                 </span>
                 <span className={cn(
-                  "text-[7px] md:text-[9px] text-slate-400",
+                  "hidden text-[7px] md:block md:text-[9px] text-slate-400",
                   isPreview && "text-[6px]"
                 )}>
                   {hour}:00
@@ -141,7 +240,7 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
           {/* Horizontal Guides */}
           <div className="col-start-2 col-span-6 row-start-1 pointer-events-none z-0 flex flex-col">
             {hoursArray.map((hour) => (
-              <div key={hour} className="w-full border-b border-slate-100 relative h-[var(--slot-height)]">
+              <div key={hour} className="w-full border-b border-slate-100 relative h-(--slot-height)">
                 <div className="absolute top-1/2 w-full border-t border-dashed border-slate-100/50"></div>
               </div>
             ))}
@@ -149,55 +248,34 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
 
           {/* Course Blocks Layer */}
           <div className="col-start-2 col-span-6 row-start-1 grid grid-cols-6 h-full pointer-events-none z-10">
-            {DAYS.map((day) => {
-              const dayBlocks = blocks.filter(b => b.dayOfWeek === day);
-              
-              // 겹치는 일정들을 그룹화하여, 좌우(세로 기둥)로 분할 배치
-              const groups: typeof blocks[] = [];
-              dayBlocks
-                .sort((a, b) => getTimeInMinutes(a.startTime) - getTimeInMinutes(b.startTime))
-                .forEach((sched) => {
-                  let placed = false;
-                  for (const group of groups) {
-                    const isOverlapping = group.some((item) =>
-                      Math.max(getTimeInMinutes(sched.startTime), getTimeInMinutes(item.startTime)) < Math.min(getTimeInMinutes(sched.endTime), getTimeInMinutes(item.endTime))
-                    );
-                    if (isOverlapping) {
-                      group.push(sched);
-                      placed = true;
-                      break;
-                    }
-                  }
-                  if (!placed) groups.push([sched]);
-                });
+            {DISPLAY_DAYS.map((day) => {
+              const dayBlocks = dayBlocksMap.get(day) ?? [];
+              const dayLayouts = dayLayoutMap.get(day);
 
               return (
                 <div key={day} className="relative w-full h-full pointer-events-none hover:z-50">
-                  {groups.map((group) => {
-                    const count = group.length;
-                    return group.map((block, idx) => {
-                      const start = getTimeInMinutes(block.startTime);
-                      const end = getTimeInMinutes(block.endTime);
-                      
-                      const top = `calc((${start} - ${GRID_START_TIME}) / 60 * var(--slot-height))`;
-                      const height = `calc((${end} - ${start}) / 60 * var(--slot-height))`;
+                  {dayBlocks.map((block) => {
+                    const start = getTimeInMinutes(block.startTime);
+                    const end = getTimeInMinutes(block.endTime);
+                    const top = `calc((${start} - ${GRID_START_TIME}) / 60 * var(--slot-height))`;
+                    const height = `calc((${end} - ${start}) / 60 * var(--slot-height))`;
 
-                      const widthFraction = 1 / count;
-                      const leftOffset = widthFraction * idx;
+                    const layout = dayLayouts?.get(block.key);
+                    const leftOffset = layout?.leftOffset ?? 0;
+                    const widthFraction = layout?.widthFraction ?? 1;
 
-                      return (
-                        <TimetableBlock
-                          key={block.key}
-                          block={block}
-                          top={top}
-                          height={height}
-                          leftOffset={leftOffset}
-                          widthFraction={widthFraction}
-                          isPreview={isPreview}
-                          onClick={handleCourseClick}
-                        />
-                      );
-                    });
+                    return (
+                      <TimetableBlock
+                        key={block.key}
+                        block={block}
+                        top={top}
+                        height={height}
+                        leftOffset={leftOffset}
+                        widthFraction={widthFraction}
+                        isPreview={isPreview}
+                        onClick={handleCourseClick}
+                      />
+                    );
                   })}
                 </div>
               );
