@@ -19,16 +19,22 @@ export interface RenderingBlock {
 }
 
 const COURSE_COLORS = [
-  '#3b82f6',
-  '#8b5cf6',
-  '#ec4899',
-  '#f59e0b',
-  '#10b981',
-  '#06b6d4',
-  '#f97316',
-  '#6366f1',
-  '#14b8a6',
-  '#a855f7',
+  '#ef4444', // Red
+  '#3b82f6', // Blue
+  '#10b981', // Emerald
+  '#f59e0b', // Amber
+  '#8b5cf6', // Violet
+  '#f43f5e', // Rose
+  '#06b6d4', // Cyan
+  '#84cc16', // Lime
+  '#f97316', // Orange
+  '#6366f1', // Indigo
+  '#14b8a6', // Teal
+  '#ec4899', // Pink
+  '#eab308', // Yellow
+  '#0ea5e9', // Sky
+  '#d946ef', // Fuchsia
+  '#22c55e', // Green
 ];
 
 export const getCourseColor = (courseId: string | number): string => {
