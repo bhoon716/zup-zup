@@ -36,7 +36,7 @@ public class TimetableCourseResponse {
                 .professor(course.getProfessor())
                 .classTime(course.getClassTime())
                 .credits(course.getCredits())
-                .classification(course.getClassification() != null ? course.getClassification().name() : null)
+                .classification(course.getClassification() != null ? course.getClassification().getDescription() : null)
                 .classroom(course.getClassroom())
                 .schedules(course.getSchedules().stream()
                         .map(ScheduleResponse::of)
