@@ -141,6 +141,20 @@ export function formatDayOfWeek(value?: string): string {
   return DAY_MAP[upper] || DAY_MAP[value] || value;
 }
 
+const ENG_DAY_MAP: Record<string, string> = {
+  '월': 'MONDAY',
+  '화': 'TUESDAY',
+  '수': 'WEDNESDAY',
+  '목': 'THURSDAY',
+  '금': 'FRIDAY',
+  '토': 'SATURDAY',
+  '일': 'SUNDAY',
+};
+
+export function toEngDayOfWeek(value: string): string {
+  return ENG_DAY_MAP[value] || value;
+}
+
 /**
  * 상대 시간을 한글 문구로 변환한다.
  */

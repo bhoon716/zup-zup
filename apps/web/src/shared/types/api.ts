@@ -309,13 +309,19 @@ export interface TimetableEntryResponse {
   }[];
 }
 
-export interface CustomScheduleResponse {
+export interface CustomScheduleTimeResponse {
   id: number;
-  title: string;
   dayOfWeek: string;
   startTime: string;
   endTime: string;
-  color: string;
+  classroom?: string;
+}
+
+export interface CustomScheduleResponse {
+  id: number;
+  title: string;
+  professor?: string;
+  schedules: CustomScheduleTimeResponse[];
 }
 
 /**
@@ -352,10 +358,15 @@ export interface TimetableRequest {
   primary: boolean;
 }
 
+export interface CustomScheduleTimeRequest {
+  dayOfWeek: string;
+  startTime: string; // 시:분:초 형식 (서버 LocalTime 호환)
+  endTime: string;   // 시:분:초 형식
+  classroom?: string;
+}
+
 export interface CustomScheduleRequest {
   title: string;
-  dayOfWeek: string;
-  startTime: string; // 시:분 형식
-  endTime: string;   // 시:분 형식
-  color: string;
+  professor?: string;
+  schedules: CustomScheduleTimeRequest[];
 }

@@ -95,15 +95,19 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
   });
 
   timetable.customSchedules?.forEach((schedule) => {
-    flattened.push({
-      key: `custom-${schedule.id}`,
-      id: schedule.id,
-      type: 'custom',
-      title: schedule.title,
-      dayOfWeek: formatDayOfWeek(schedule.dayOfWeek),
-      startTime: schedule.startTime,
-      endTime: schedule.endTime,
-      color: schedule.color,
+    schedule.schedules?.forEach((slot) => {
+      flattened.push({
+        key: `custom-${schedule.id}-${slot.id}`,
+        id: schedule.id,
+        type: 'custom',
+        title: schedule.title,
+        subTitle: schedule.professor,
+        dayOfWeek: formatDayOfWeek(slot.dayOfWeek),
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        classroom: slot.classroom,
+        color: getCourseColor(schedule.title),
+      });
     });
   });
 
