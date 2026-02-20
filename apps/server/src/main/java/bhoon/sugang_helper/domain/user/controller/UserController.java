@@ -55,6 +55,15 @@ public class UserController {
     }
 
     @Operation(summary = "이메일 인증 코드 전송", description = "입력한 이메일로 인증 코드를 전송합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "코드 전송 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                    {
+                      "code": "SUCCESS",
+                      "message": "인증 코드가 전송되었습니다. 이메일을 확인해주세요.",
+                      "data": null
+                    }
+                    """)))
+    })
     @PostMapping("/email/code")
     public ResponseEntity<CommonResponse<Void>> sendVerificationCode(
             @Valid @RequestBody EmailRequest request) {
@@ -63,6 +72,22 @@ public class UserController {
     }
 
     @Operation(summary = "이메일 인증", description = "이메일로 전송된 인증 코드를 검증합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "이메일 인증 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                    {
+                      "code": "SUCCESS",
+                      "message": "이메일 인증이 완료되었습니다.",
+                      "data": null
+                    }
+                    """))),
+            @ApiResponse(responseCode = "400", description = "잘못된 인증 코드", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                    {
+                      "code": "INVALID_VERIFICATION_CODE",
+                      "message": "인증 코드가 일치하지 않거나 만료되었습니다.",
+                      "data": null
+                    }
+                    """)))
+    })
     @PostMapping("/email/verify")
     public ResponseEntity<CommonResponse<Void>> verifyEmail(
             @Valid @RequestBody EmailVerificationRequest request) {
@@ -114,7 +139,18 @@ public class UserController {
 
     @Operation(summary = "사용자 알림 설정 수정", description = "현재 로그인한 사용자의 알림 수신 설정을 수정합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "설정 수정 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
+            @ApiResponse(responseCode = "200", description = "설정 수정 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                    {
+                      "code": "SUCCESS",
+                      "message": "사용자 알림 설정이 수정되었습니다.",
+                      "data": {
+                        "id": 1,
+                        "email": "user@jbnu.ac.kr",
+                        "emailEnabled": true,
+                        "discordEnabled": false
+                      }
+                    }
+                    """)))
     })
     @PatchMapping("/settings")
     public ResponseEntity<CommonResponse<UserResponse>> updateSettings(
@@ -149,7 +185,7 @@ public class UserController {
     @Operation(summary = "디스코드 OAuth2 콜백", description = "디스코드 인증 후 리다이렉트되어 연동을 완료합니다.")
     @GetMapping("/discord/callback")
     public ResponseEntity<Void> discordCallback(@RequestParam String code,
-                                                @RequestParam(required = false) String state) {
+            @RequestParam(required = false) String state) {
         String redirectPath = resolveDiscordRedirectPath(state);
 
         try {

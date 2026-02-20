@@ -33,6 +33,18 @@ public class UserDeviceController {
     private final UserDeviceService userDeviceService;
 
     @Operation(summary = "기기 목록 조회", description = "사용자의 등록된 기기 목록을 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                    {
+                      "code": "SUCCESS",
+                      "message": "기기 목록을 조회했습니다.",
+                      "data": [
+                        { "id": 1, "alias": "내 아이폰", "type": "FCM", "registeredAt": "2026-02-21T07:30:00" },
+                        { "id": 2, "alias": "태블릿", "type": "WEB", "registeredAt": "2026-02-21T07:31:00" }
+                      ]
+                    }
+                    """)))
+    })
     @GetMapping
     public ResponseEntity<CommonResponse<List<UserDeviceResponse>>> getUserDevices() {
         User user = userDeviceService.getCurrentUserOrThrow();
