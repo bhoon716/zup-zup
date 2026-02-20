@@ -10,6 +10,10 @@ export interface RenderingBlock {
   startTime: string;
   endTime: string;
   color?: string;
+  classroom?: string;
+  classification?: string;
+  credits?: string;
+  courseKey?: string;
   isOverlap?: boolean;
   overlapRegions?: { 
     startTime: string; 
@@ -94,6 +98,10 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         color: getCourseColor(entry.courseKey),
+        classroom: entry.classroom,
+        classification: entry.classification,
+        credits: entry.credits,
+        courseKey: entry.courseKey,
       });
     });
   });
