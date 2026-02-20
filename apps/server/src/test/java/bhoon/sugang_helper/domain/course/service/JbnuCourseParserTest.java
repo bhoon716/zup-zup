@@ -247,4 +247,112 @@ class JbnuCourseParserTest {
         assertThat(courses).hasSize(1);
         assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.GRADE_1);
     }
+
+    @Test
+    @DisplayName("과목명 끝 숫자가 분반과 같으면 숫자를 제거한다")
+    void parseCourses_removeTrailingClassNumberFromSubjectName() {
+        // given
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">80008</Col>
+                            <Col id="CLSS">1</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="SBJTNM">가구와실내디자인 1</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        // when
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        // then
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getName()).isEqualTo("가구와실내디자인");
+    }
+
+    @Test
+    @DisplayName("과목명 끝 숫자가 분반과 다르면 과목명 숫자를 유지한다")
+    void parseCourses_keepTrailingNumberWhenItIsNotClassNumber() {
+        // given
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">90009</Col>
+                            <Col id="CLSS">1</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="SBJTNM">가구디자인 3</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        // when
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        // then
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getName()).isEqualTo("가구디자인 3");
+    }
+
+    @Test
+    @DisplayName("학과명 끝 학년 숫자는 제거하고 대상 학년은 별도로 유지한다")
+    void parseCourses_removeTrailingGradeFromDepartment() {
+        // given
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">91010</Col>
+                            <Col id="CLSS">1</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
+                            <Col id="SUSTCDNM">영어영문 3</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        // when
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        // then
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getDepartment()).isEqualTo("영어영문");
+        assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.GRADE_3);
+    }
+
+    @Test
+    @DisplayName("복수 학과명에서도 끝 학년 숫자를 제거한다")
+    void parseCourses_removeTrailingGradeFromMultipleDepartments() {
+        // given
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">91011</Col>
+                            <Col id="CLSS">1</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
+                            <Col id="SUSTCDNM">기계시스템 3,기계시스템(정밀기계) 3</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        // when
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        // then
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getDepartment()).isEqualTo("기계시스템, 기계시스템(정밀기계)");
+        assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.GRADE_3);
+    }
 }

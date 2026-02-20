@@ -32,6 +32,9 @@ public class JbnuCourseParser {
     private static final String DATASET_ID = "GRD_COUR001";
     private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
     private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("\\s(?<grade>[1-6])(?=[\\s,]|$)");
+    private static final Pattern TRAILING_NUMBER_IN_SUBJECT_PATTERN =
+            Pattern.compile("^(?<subjectName>.*?)(?:\\s+)(?<number>\\d+)$");
+    private static final Pattern TRAILING_GRADE_PATTERN_TEMPLATE = Pattern.compile("^(?<before>.*?)(?:\\s+)(?<grade>[1-6])(?:학년)?(?:\\s*등)?$");
 
     /**
      * XML 데이터를 파싱하여 강의 리스트로 변환
@@ -60,6 +63,8 @@ public class JbnuCourseParser {
         String clss = getColValue(row, "CLSS");
         String year = getColValue(row, "YY");
         String semester = getColValue(row, "SHTM");
+        String rawDepartment = getColValue(row, "SUSTCDNM");
+        String gradeNm = getColValue(row, "TLSNOBJFGNM");
 
         if (sbjtCd == null || clss == null || year == null || semester == null) {
             return Optional.empty();
@@ -67,20 +72,24 @@ public class JbnuCourseParser {
 
         LiberalArtsInfo liberalArts = parseLiberalArtsInfo(row);
         StatusInfo statusInfo = parseStatusAndDisclosureInfo(row);
+        TargetGrade targetGrade = parseTargetGrade(gradeNm, rawDepartment);
+
+        String subjectName = normalizeSubjectName(getColValue(row, "SBJTNM"), clss);
+        String department = normalizeDepartmentName(rawDepartment, targetGrade);
 
         Course course = Course.builder()
                 .courseKey(generateCourseKey(year, semester, sbjtCd, clss))
                 .subjectCode(sbjtCd)
                 .classNumber(clss)
-                .name(getColValue(row, "SBJTNM"))
+                .name(subjectName)
                 .professor(getColValue(row, "RPSTPROFNM"))
                 .capacity(safeParseInt(getColValue(row, "LMTRCNT")))
                 .current(safeParseInt(getColValue(row, "TLSNRCNT")))
-                .targetGrade(parseTargetGrade(row))
+                .targetGrade(targetGrade)
                 .academicYear(year)
                 .semester(semester)
                 .classification(CourseClassification.from(getColValue(row, "CPTNFGNM")))
-                .department(getColValue(row, "SUSTCDNM"))
+                .department(department)
                 .gradingMethod(GradingMethod.from(getColValue(row, "SCORTRETFGNM")))
                 .lectureLanguage(LectureLanguage.from(getColValue(row, "LTLANGFGNM")))
                 .classTime(getColValue(row, "DAYTMCTNT"))
@@ -105,6 +114,98 @@ public class JbnuCourseParser {
     }
 
     /**
+     * 과목명 끝 숫자가 분반(CLSS)과 동일하면 과목명에서 제거한다.
+     */
+    private String normalizeSubjectName(String rawSubjectName, String classNumber) {
+        if (rawSubjectName == null || rawSubjectName.isBlank()) {
+            return rawSubjectName;
+        }
+
+        if (classNumber == null || classNumber.isBlank()) {
+            return rawSubjectName;
+        }
+
+        Matcher matcher = TRAILING_NUMBER_IN_SUBJECT_PATTERN.matcher(rawSubjectName);
+        if (!matcher.matches()) {
+            return rawSubjectName;
+        }
+
+        String suffixNumber = matcher.group("number");
+        String normalizedClassNumber = classNumber.replaceFirst("^0+(?!$)", "");
+        if (!suffixNumber.equals(normalizedClassNumber)) {
+            return rawSubjectName;
+        }
+
+        return matcher.group("subjectName").trim();
+    }
+
+    /**
+     * 학과명 끝의 학년 표기(예: "영어영문 3")를 제거하여 학과명만 보존한다.
+     */
+    private String normalizeDepartmentName(String rawDepartment, TargetGrade targetGrade) {
+        if (rawDepartment == null || rawDepartment.isBlank()) {
+            return rawDepartment;
+        }
+
+        String gradeNumber = extractGradeNumber(targetGrade);
+        if (gradeNumber == null) {
+            return rawDepartment.trim();
+        }
+
+        List<String> normalizedDepartments = new ArrayList<>();
+        for (String token : rawDepartment.split(",")) {
+            String trimmedToken = token.trim();
+            if (trimmedToken.isEmpty()) {
+                continue;
+            }
+
+            String normalizedToken = removeTrailingGradeToken(trimmedToken, gradeNumber);
+            if (!normalizedToken.isBlank()) {
+                normalizedDepartments.add(normalizedToken);
+            }
+        }
+
+        if (normalizedDepartments.isEmpty()) {
+            return rawDepartment.trim();
+        }
+
+        return String.join(", ", normalizedDepartments);
+    }
+
+    private String removeTrailingGradeToken(String departmentToken, String gradeNumber) {
+        String current = departmentToken;
+        while (true) {
+            Matcher matcher = TRAILING_GRADE_PATTERN_TEMPLATE.matcher(current);
+            if (!matcher.matches()) {
+                return current.trim();
+            }
+
+            String suffixGrade = matcher.group("grade");
+            if (!gradeNumber.equals(suffixGrade)) {
+                return current.trim();
+            }
+
+            String before = matcher.group("before");
+            if (before == null || before.isBlank()) {
+                return current.trim();
+            }
+            current = before.trim();
+        }
+    }
+
+    private String extractGradeNumber(TargetGrade targetGrade) {
+        if (targetGrade == null || targetGrade == TargetGrade.GRADUATE) {
+            return null;
+        }
+
+        String name = targetGrade.name();
+        if (name.startsWith("GRADE_") && name.length() == "GRADE_".length() + 1) {
+            return name.substring("GRADE_".length());
+        }
+        return null;
+    }
+
+    /**
      * 강의 고유 키 생성 (연도:학기:과목코드:분반)
      */
     private String generateCourseKey(String year, String semester, String sbjtCd, String clss) {
@@ -114,8 +215,7 @@ public class JbnuCourseParser {
     /**
      * 대상 학년 정보 추출 (기본 컬럼 외에 학과 정보의 학년 필드도 분석)
      */
-    private TargetGrade parseTargetGrade(Element row) {
-        String gradeNm = getColValue(row, "TLSNOBJFGNM");
+    private TargetGrade parseTargetGrade(String gradeNm, String deptNm) {
         TargetGrade grade = TargetGrade.from(gradeNm);
 
         // 구체적인 학년이나 대학원이 파싱되면 즉시 반환
@@ -123,7 +223,6 @@ public class JbnuCourseParser {
             return grade;
         }
 
-        String deptNm = getColValue(row, "SUSTCDNM");
         if (deptNm == null || deptNm.isBlank()) {
             return null;
         }
