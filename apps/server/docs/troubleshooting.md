@@ -617,4 +617,44 @@ ALTER TABLE notification_histories MODIFY COLUMN channel VARCHAR(20) NOT NULL;
 
 ### 결과
 
-사용자가 여러 교시를 한 번에 선택하거나 해제할 수 있어 시간표 설정 편의성이 대폭 개선되었습니다.
+## 사용자가 여러 교시를 한 번에 선택하거나 해제할 수 있어 시간표 설정 편의성이 대폭 개선되었습니다.
+
+## 29. API 응답 데이터의 Enum 명칭 노출 (Localization Mismatch)
+
+### 문제 상황
+
+시간표 조회 API(`TimetableCourseResponse`)에서 이수구분 필드가 `MAJOR_REQUIRED`와 같은 Enum 명칭으로 반환되어, 프론트엔드에서 이를 매번 한글로 변환하는 오버헤드가 발생했습니다. 프론트엔드의 포맷터 가중치를 줄이고 데이터 일관성을 확보할 필요가 있었습니다.
+
+### 해결책
+
+응답 DTO(`TimetableCourseResponse`)의 팩토리 메서드(`of()`)에서 Enum의 `name()` 대신 사전에 정의된 `getDescription()` 메서드를 사용하도록 변경했습니다.
+
+```java
+// 변경 전
+.classification(course.getClassification() != null ? course.getClassification().name() : null)
+
+// 변경 후
+.classification(course.getClassification() != null ? course.getClassification().getDescription() : null)
+```
+
+### 결과
+
+서버로부터 "전공필수", "교양" 등 사용자 친화적인 명칭이 직접 전달되어 프론트엔드 로직이 간소화되었으며, 데이터의 시각적 정합성이 향상되었습니다.
+
+---
+
+## 30. 프로젝트 전반의 코드 스타일 불일치 및 유지보수성 저하
+
+### 문제 상황
+
+여러 차례의 기능 추가와 리팩토링 과정에서 파일별로 들여쓰기(Indentation), 사용하지 않는 Import, 일관성 없는 주석 등이 누적되었습니다. 특히 IDE 설정 차이로 인해 2칸과 4칸 들여쓰기가 혼재되어 코드 리뷰 시 불필요한 변경 사항(Noise)이 다수 발생했습니다.
+
+### 해결책
+
+1.  **스타일 표준화**: 모든 Java 소스 코드의 들여쓰기를 **4개 공백**으로 통일했습니다.
+2.  **클린 코드 정례화**: `/clean` 워크플로우를 활용하여 사용하지 않는 Import를 제거하고, 메서드별 1~3줄의 핵심 주석을 추가하여 SOLID 원칙을 재점검했습니다.
+3.  **검증**: 스타일 수정 후 전체 테스트(`./gradlew test`)를 수행하여 로직에 영향이 없음을 확인했습니다.
+
+### 결과
+
+코드 베이스의 시각적 일관성이 확보되어 가독성이 높아졌으며, 향후 git diff 확인 시 코드 본연의 변경 사항에만 집중할 수 있는 환경이 조성되었습니다.
