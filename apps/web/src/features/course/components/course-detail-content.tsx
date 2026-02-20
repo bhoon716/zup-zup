@@ -1,174 +1,209 @@
 "use client";
 
+import React from "react";
+import { AlertCircle, Clock3, MapPin, User, Users } from "lucide-react";
 import type { Course } from "@/shared/types/api";
-import { Badge } from "@/shared/ui/badge";
-import { 
-  Globe, 
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
-import { DialogTitle } from "@/shared/ui/dialog";
 import { formatClassification, formatGradingMethod, formatLanguage, formatTargetGrade } from "@/shared/lib/formatters";
+import { cn } from "@/shared/lib/utils";
 
 interface CourseDetailContentProps {
   course: Course;
-  isDialog?: boolean;
 }
 
-export function CourseDetailContent({ course, isDialog = false }: CourseDetailContentProps) {
-  const isAvailable = (course.available ?? 0) > 0;
+/**
+ * 강의 상세 정보를 보여주는 공통 콘텐츠 컴포넌트입니다.
+ * 다이얼로그나 모달 내부에서 사용됩니다.
+ */
+export function CourseDetailContent({ course }: CourseDetailContentProps) {
+  const isFull = (course.available ?? 0) <= 0;
+  const capacity = course.capacity ?? 0;
+  const current = course.current ?? 0;
+  const available = course.available ?? Math.max(capacity - current, 0);
+  const percent = capacity > 0 ? Math.min(100, (current / capacity) * 100) : 0;
+
+  const classLabel = (() => {
+    const academicYear = course.academicYear ? `${course.academicYear}년 ` : "";
+    const semester = course.semester ? `${course.semester}학기 · ` : "";
+    const subjectCode = course.subjectCode || course.courseKey;
+    const classNumber = course.classNumber ? `-${course.classNumber}` : "";
+    return `${academicYear}${semester}${subjectCode}${classNumber}`.trim();
+  })();
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      <div className="px-8 pt-10 pb-6">
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-             <div className="flex items-center gap-3">
-                <Badge variant="outline" className="font-mono text-[10px] font-normal border-primary/20 text-primary bg-primary/5 px-2 py-0.5 h-auto">
-                    {course.courseKey}
-                </Badge>
-                <div className="h-3 w-px bg-border/60" />
-                <span className="text-xs text-muted-foreground font-medium tracking-wide">{course.academicYear}년 {course.semester}학기</span>
-             </div>
-             <div className={`
-              flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors
-              ${isAvailable 
-                ? "bg-emerald-500/5 text-emerald-600 dark:text-emerald-400" 
-                : "bg-destructive/5 text-destructive"}
-            `}>
-              <div className={`w-1.5 h-1.5 rounded-full ${isAvailable ? "bg-emerald-500" : "bg-destructive"}`} />
-              <span>{isAvailable ? "신청가능" : "마감"}</span>
+    <div className="px-6 md:px-8 py-6 space-y-6 bg-white dark:bg-[#121212]">
+      {/* Header Info */}
+      <div className="flex flex-col gap-4 w-full">
+        <div className="flex flex-wrap items-center gap-2.5 text-sm">
+          <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full font-medium text-xs tracking-tight border border-gray-200 dark:border-gray-700">
+            {classLabel}
+          </span>
+          {isFull && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full text-xs font-bold border border-red-100 dark:border-red-900/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+              마감됨
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="relative pl-3">
+              <div className="absolute left-0 top-1 bottom-1 w-1 rounded-full bg-primary/70"></div>
+              <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
+                {course.name}
+              </h1>
             </div>
-          </div>
-          <div className="space-y-4">
-            {isDialog ? (
-                <DialogTitle className="text-3xl font-black tracking-tight text-foreground leading-tight break-keep">
-                    {course.name}
-                </DialogTitle>
-            ) : (
-                <h1 className="text-3xl font-black tracking-tight text-foreground leading-tight break-keep">
-                    {course.name}
-                </h1>
-            )}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-foreground/70">
-                 <span className="font-semibold text-foreground">{course.professor || "교수 미지정"}</span>
-                 <span className="text-border/40 text-[10px]">|</span>
-                 <span>{course.department}</span>
-                 <span className="text-border/40 text-[10px]">|</span>
-                 <span>{formatClassification(course.classification)}</span>
-                 {course.subjectCode && (
-                   <>
-                     <span className="text-border/40 text-[10px]">|</span>
-                     <span className="font-mono text-xs text-muted-foreground">{course.subjectCode}</span>
-                   </>
-                 )}
+
+            <div className="flex flex-wrap items-center gap-3 mt-3 text-base text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+                <User className="w-4 h-4 text-primary" />
+                <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">
+                  {course.professor || "교수 미지정"}
+                </span>
+              </div>
+
+              {course.department && (
+                <>
+                  <span className="text-sm text-gray-300 dark:text-gray-600">|</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {course.department} {(() => {
+                      const tg = formatTargetGrade(course.targetGrade);
+                      return tg === '전체' ? '' : tg;
+                    })()}
+                  </span>
+                </>
+              )}
+
+              {course.classification && (
+                <>
+                  <span className="text-sm text-gray-300 dark:text-gray-600">|</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary dark:text-primary-light">
+                    {formatClassification(course.classification)}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="w-full h-px bg-border/30 mx-auto max-w-[calc(100%-4rem)]" />
-      <div className="px-8 py-8 space-y-10">
-        <section>
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-4 select-none">상세 정보</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-8">
-                <SimpleDetailItem label="학점 · 시수" value={`${course.credits}학점 (${course.lectureHours || '-'}시수)`} />
-                <SimpleDetailItem label="성적평가" value={formatGradingMethod(course.gradingMethod)} />
-                <SimpleDetailItem label="대상학년" value={formatTargetGrade(course.targetGrade)} />
-                <SimpleDetailItem label="강의언어" value={formatLanguage(course.lectureLanguage)} />
-            </div>
-            <div className="mt-6 pt-6 border-t border-border/40 grid grid-cols-2 gap-x-8">
-                 <SimpleDetailItem label="이수구분" value={formatClassification(course.classification)} />
-                 <SimpleDetailItem label="분반" value={`${course.classNumber}분반`} />
-            </div>
-        </section>
-        <section>
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-4 select-none">시간 및 장소</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-1">
-                    <span className="text-2xl font-light tracking-tight">{course.classTime || "미정"}</span>
-                    <span className="text-xs text-muted-foreground">{course.classDuration || "시간 정보 없음"}</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                     <span className="text-2xl font-light tracking-tight">{course.classroom || "미정"}</span>
-                     <span className="text-xs text-muted-foreground">강의실 위치</span>
-                </div>
-            </div>
-        </section>
-        {(course.generalCategory || course.generalDetail) && (
-            <section>
-                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-4 select-none">교양 영역 정보</h3>
-                 <div className="flex flex-wrap gap-4 text-sm bg-muted/20 p-4 rounded-lg border border-border/20">
-                    {course.generalCategory && (
-                        <div className="flex flex-col gap-0.5">
-                            <span className="text-[10px] text-muted-foreground">영역</span>
-                            <span className="font-medium">{course.generalCategory}</span>
-                        </div>
-                    )}
-                    <div className="w-px bg-border/40 mx-2" />
-                    {course.generalDetail && (
-                        <div className="flex flex-col gap-0.5">
-                            <span className="text-[10px] text-muted-foreground">상세</span>
-                            <span className="font-medium">{course.generalDetail}</span>
-                        </div>
-                    )}
-                    {(course.generalCategoryByYear) && (
-                         <>
-                            <div className="w-px bg-border/40 mx-2" />
-                            <div className="flex flex-col gap-0.5">
-                                <span className="text-[10px] text-muted-foreground">입학년도 기준</span>
-                                <span className="font-medium text-muted-foreground">{course.generalCategoryByYear}</span>
-                            </div>
-                         </>
-                    )}
-                 </div>
-            </section>
-        )}
-        <section className="pt-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mb-4 select-none">수강신청 현황</h3>
-            <div className="grid grid-cols-3 gap-8 pb-4">
-                <div className="space-y-1">
-                    <p className="text-4xl font-light tabular-nums tracking-tight">{course.capacity || 0}</p>
-                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">총 정원</span>
-                </div>
-                <div className="space-y-1">
-                    <p className="text-4xl font-light tabular-nums tracking-tight">{course.current || 0}</p>
-                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">신청 인원</span>
-                </div>
-                <div className="space-y-1">
-                    <p className={`text-4xl font-black tabular-nums tracking-tight ${isAvailable ? 'text-emerald-500' : 'text-muted-foreground/40'}`}>{course.available || 0}</p>
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${isAvailable ? 'text-emerald-500' : 'text-muted-foreground/40'}`}>잔여 여석</span>
-                </div>
-            </div>
-        </section>
+      {/* Summary Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <DetailBox label="학점 / 시간" value={`${course.credits || "-"}학점`} subValue={course.lectureHours ? ` (${course.lectureHours}시간)` : ""} />
+        <DetailBox label="성적평가" value={formatGradingMethod(course.gradingMethod)} />
+        <DetailBox label="수업방향" value={course.courseDirection || "-"} />
+        <DetailBox label="강의언어" value={formatLanguage(course.lectureLanguage)} />
       </div>
-      <div className="px-8 py-6 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground mt-auto bg-background/50">
-        <div className="flex gap-6">
-            <span className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-help" title="강의계획서 조회 가능 여부">
-                {course.hasSyllabus ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <XCircle className="w-3.5 h-3.5 text-muted-foreground/50" />}
-                강의계획서
-            </span>
-            <span className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-help">
-                {course.disclosure === "PUBLIC" ? <Globe className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5 text-muted-foreground/50" />}
-                {course.disclosure === "PUBLIC" ? "공개 강의" : "비공개"}
-                {course.disclosureReason && ` (${course.disclosureReason})`}
-            </span>
+
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Time & Location */}
+        <div className="lg:col-span-2 flex flex-col h-full">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock3 className="w-5 h-5 text-primary" />
+            <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">시간 및 장소</h2>
+          </div>
+          <div className="bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row gap-8 flex-1">
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">강의 일정</span>
+                {course.classDuration && (
+                  <span className="text-xs font-medium text-primary bg-primary/5 px-2 py-1 rounded">
+                    {course.classDuration} 수업
+                  </span>
+                )}
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+                  <span className="flex shrink-0 items-center justify-center w-8 h-8 rounded-lg bg-white dark:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 shadow-sm border border-gray-100 dark:border-gray-600">
+                    강
+                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">
+                      {course.classTime || "-"}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      원규 전체 시간표: {course.classTime || "-"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-px bg-gray-100 dark:bg-gray-700 hidden md:block"></div>
+
+            <div className="flex-1 flex flex-col justify-between space-y-4">
+              <div>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wide block mb-2">강의실 위치</span>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
+                  {course.classroom || "장소 미정"}
+                </h3>
+              </div>
+              {course.classroom && (
+                <button className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700 group">
+                  <MapPin className="w-[18px] h-[18px] text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-200" />
+                  강의 공간 확인
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-        {course.courseDirection && (
-            <span className="truncate max-w-[400px] text-muted-foreground/80 font-medium" title={course.courseDirection}>
-                {course.courseDirection}
-            </span>
-        )}
+
+        {/* Application Status */}
+        <div className="flex flex-col h-full">
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="w-5 h-5 text-primary" />
+            <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">신청 현황</h2>
+          </div>
+          <div className="bg-linear-to-br from-[#f3eaf7] to-white dark:from-primary/10 dark:to-[#121212] border border-primary/10 rounded-3xl p-6 h-full flex flex-col justify-center items-center relative overflow-hidden shadow-sm">
+            {capacity > 0 ? (
+              <>
+                <div className="relative w-36 h-36 mb-6">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                    <path className="text-gray-200 dark:text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="3"></path>
+                    <path className={isFull ? "text-red-500" : "text-primary"} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray={`${percent}, 100`} strokeLinecap="round" strokeWidth="3"></path>
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span className="text-xs font-semibold text-gray-500 mb-0.5">신청률</span>
+                    <span className={cn("text-3xl font-black tracking-tight", isFull ? "text-red-500" : "text-primary dark:text-[#7e4d9a]")}>
+                      {Math.round(percent)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full grid grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 p-3 text-center">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">신청 / 정원</div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{current} / {capacity}</div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 p-3 text-center">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">잔여 여석</div>
+                    <div className={cn("text-lg font-bold", isFull ? "text-red-500" : "text-primary")}>
+                      {available}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
+                <AlertCircle className="w-10 h-10 mb-3 opacity-50" />
+                <p className="text-sm font-medium">실시간 현황<br />데이터가 없습니다</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function SimpleDetailItem({ label, value }: { label: string, value?: string | number }) {
-    return (
-        <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider">{label}</span>
-            <span className="text-sm font-medium text-foreground break-keep leading-relaxed">{value || "-"}</span>
-        </div>
-    )
+function DetailBox({ label, value, subValue }: { label: string; value: string; subValue?: string }) {
+  return (
+    <div className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center gap-1 hover:bg-primary/5 hover:border-primary/20 transition-colors group">
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{label}</span>
+      <div className="text-lg font-bold text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors">
+        {value}
+        {subValue && <span className="text-sm font-normal text-gray-400">{subValue}</span>}
+      </div>
+    </div>
+  );
 }

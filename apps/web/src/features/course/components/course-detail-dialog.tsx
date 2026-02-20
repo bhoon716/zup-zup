@@ -3,10 +3,13 @@
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
+  DialogTitle,
 } from "@/shared/ui/dialog";
 import type { Course } from "@/shared/types/api";
-import { motion, AnimatePresence } from "framer-motion";
+import { useCourseDetail } from "@/features/course/hooks/useCourses";
+import { Loader2 } from "lucide-react";
+
+import { CourseDetailContent } from "./course-detail-content";
 
 interface CourseDetailDialogProps {
   course: Course | null;
@@ -14,32 +17,25 @@ interface CourseDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-import { CourseDetailContent } from "./course-detail-content";
-
 export function CourseDetailDialog({ course, open, onOpenChange }: CourseDetailDialogProps) {
+  const courseKey = course?.courseKey ?? "";
+  const { data: detailedCourse, isLoading } = useCourseDetail(open ? courseKey : "");
   if (!course) return null;
+  const displayCourse = (detailedCourse ?? course) as Course;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
-        className="max-w-6xl p-0 gap-0 bg-background/95 backdrop-blur-md border border-border shadow-2xl overflow-hidden sm:rounded-2xl h-[90vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <AnimatePresence mode="wait">
-          {open && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="flex flex-col h-full max-h-[90vh] overflow-y-auto"
-            >
-              <CourseDetailContent course={course} isDialog={true} />
-            </motion.div>
+      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-0 bg-transparent shadow-none flex flex-col">
+        <DialogTitle className="sr-only">강의 상세 정보</DialogTitle>
+        <div className="relative w-full bg-white dark:bg-[#121212] rounded-3xl overflow-y-auto shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 max-h-[90vh]">
+          {isLoading ? (
+            <div className="flex items-center justify-center p-20 min-h-[400px]">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <CourseDetailContent course={displayCourse} />
           )}
-        </AnimatePresence>
-        <DialogDescription className="sr-only">
-          강의 상세 정보 - {course.name}
-        </DialogDescription>
+        </div>
       </DialogContent>
     </Dialog>
   );

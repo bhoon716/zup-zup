@@ -7,9 +7,16 @@ import { getRenderingBlocks, getTimeInMinutes, RenderingBlock } from '@/features
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
+import { useQuery } from '@tanstack/react-query';
+import { getCourseDetail } from '@/features/course/api/course.api';
+import { Loader2 } from 'lucide-react';
+
+import { CourseDetailContent } from '@/features/course/components/course-detail-content';
+import { Course } from '@/shared/types/api';
+
+import { TimetableBlock } from './timetable-block';
 
 interface TimetableGridProps {
   timetable: TimetableResponse;
@@ -18,65 +25,23 @@ interface TimetableGridProps {
 }
 
 const DAYS = ['월', '화', '수', '목', '금', '토'];
-const DEFAULT_BLOCK_COLOR = '#56296E';
 
-// HEX 색상 코드를 RGB 객체로 변환합니다.
-// 유효하지 않은 색상 코드인 경우 null을 반환합니다.
-const hexToRgb = (color: string) => {
-  if (!color.startsWith('#')) {
-    return null;
-  }
-
-  const normalized = color.length === 4
-    ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
-    : color;
-  const value = normalized.slice(1);
-  if (value.length !== 6) {
-    return null;
-  }
-
-  const num = Number.parseInt(value, 16);
-  if (Number.isNaN(num)) {
-    return null;
-  }
-
-  return {
-    r: (num >> 16) & 255,
-    g: (num >> 8) & 255,
-    b: num & 255,
-  };
-};
-
-// 주어진 색상에 투명도(alpha)를 적용한 rgba 문자열을 생성합니다.
-// 색상 변환 실패 시 기본 색상(fallback)을 반환합니다.
-const withAlpha = (color: string | undefined, alpha: number, fallback: string) => {
-  const rgb = color ? hexToRgb(color) : null;
-  if (!rgb) {
-    return fallback;
-  }
-
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-};
-
-// 주어진 색상과 흰색을 주어진 비율로 혼합하여 좀 더 밝은 rgb 색상을 생성합니다.
-// 배경색이나 배지 색상을 기존 테마와 맞추기 위해 사용됩니다.
-const mixWithWhite = (color: string | undefined, whiteRatio: number, fallback: string) => {
-  const rgb = color ? hexToRgb(color) : null;
-  if (!rgb) {
-    return fallback;
-  }
-
-  const ratio = Math.max(0, Math.min(1, whiteRatio));
-  const mix = (value: number) => Math.round(value + (255 - value) * ratio);
-  return `rgb(${mix(rgb.r)}, ${mix(rgb.g)}, ${mix(rgb.b)})`;
-};
-
-// 시간표의 그리드 UI를 렌더링하고 각 강의 블록을 배치하는 컴포넌트입니다.
-// 시작/종료 시간을 동적으로 계산하여 스크롤 및 배치 레이아웃을 생성합니다.
+/**
+ * 시간표의 그리드 UI를 렌더링하고 각 강의 블록을 배치하는 컴포넌트입니다.
+ * 시작/종료 시간을 동적으로 계산하여 스크롤 및 배치 레이아웃을 생성합니다.
+ */
 export function TimetableGrid({ timetable, className, isPreview = false }: TimetableGridProps) {
   const blocks = useMemo(() => getRenderingBlocks(timetable), [timetable]);
   const [courseDetailOpen, setCourseDetailOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<RenderingBlock | null>(null);
+
+  const { data: detailResponse, isLoading: isDetailLoading } = useQuery({
+    queryKey: ['courseDetail', selectedCourse?.courseKey],
+    queryFn: () => selectedCourse?.courseKey ? getCourseDetail(selectedCourse.courseKey) : null,
+    enabled: !!selectedCourse?.courseKey && courseDetailOpen && selectedCourse.type === 'course',
+  });
+
+  const detailedCourse = detailResponse?.data;
 
   const { startHour, hoursArray } = useMemo(() => {
     let minMin = 9 * 60;
@@ -209,73 +174,17 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
                       const widthFraction = 1 / count;
                       const leftOffset = widthFraction * idx;
 
-                      const baseColor = block.color || DEFAULT_BLOCK_COLOR;
-                      const borderColor = baseColor;
-                      const badgeBgColor = mixWithWhite(baseColor, 0.90, '#ede9fe');
-                      const bgColor = mixWithWhite(baseColor, 0.96, '#F5F3FF');
-                      const infoColor = withAlpha(baseColor, 0.65, '#6b7280');
-                      const infoText = [block.classroom, block.subTitle].filter(Boolean).join(' • ') || block.subTitle;
-
                       return (
-                        <div
+                        <TimetableBlock
                           key={block.key}
-                          data-testid={`timetable-block-${block.key}`}
-                          className={cn(
-                            'absolute p-0.5 z-10 group cursor-pointer transition-all duration-200 pointer-events-auto',
-                            !isPreview && 'p-1'
-                          )}
-                          style={{
-                            top: `${topPx}px`,
-                            height: `${heightPx}px`,
-                            left: `calc(${leftOffset * 100}%)`,
-                            width: `calc(${widthFraction * 100}%)`,
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCourseClick(block);
-                          }}
-                        >
-                          <div 
-                            className={cn(
-                              'w-full h-full p-2 flex flex-col justify-between rounded-lg overflow-hidden border-l-4 transition-transform hover:-translate-y-px',
-                              !isPreview && 'hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)]',
-                              isPreview && 'p-1 rounded border-l-2'
-                            )}
-                            style={{ backgroundColor: bgColor, borderLeftColor: borderColor }}
-                          >
-                            <div className="relative">
-                              <h4 
-                                className={cn("font-bold leading-tight mb-0.5 break-words", isPreview ? 'text-[8px] line-clamp-2' : 'text-xs sm:text-sm')} 
-                                style={{ color: borderColor }}
-                              >
-                                {block.title}
-                              </h4>
-                              {!isPreview && infoText && (
-                                <p className="text-[10px] sm:text-[11px] font-medium leading-tight truncate" style={{ color: infoColor }}>
-                                  {infoText}
-                                </p>
-                              )}
-                            </div>
-
-                            {!isPreview && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <span
-                                  className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap overflow-hidden text-ellipsis"
-                                  style={{ backgroundColor: badgeBgColor, color: borderColor }}
-                                >
-                                  {('badgeText' in block ? block.badgeText as string : undefined) || (block.type === 'course' ? '강의' : '일정')}
-                                </span>
-                              </div>
-                            )}
-                            {isPreview && (
-                              <div className="mt-0.5 flex items-center">
-                                <span className="text-[7px] font-semibold" style={{ color: infoColor }}>
-                                   {block.startTime}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                          block={block}
+                          topPx={topPx}
+                          heightPx={heightPx}
+                          leftOffset={leftOffset}
+                          widthFraction={widthFraction}
+                          isPreview={isPreview}
+                          onClick={handleCourseClick}
+                        />
                       );
                     });
                   })}
@@ -287,46 +196,27 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
       </div>
 
       <Dialog open={courseDetailOpen} onOpenChange={setCourseDetailOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
-              </svg>
-              수업 상세 정보
-            </DialogTitle>
-          </DialogHeader>
-          {selectedCourse && (
-            <div className="space-y-4">
-              <div className="bg-slate-50 rounded-lg p-4">
-                <h3 className="text-lg font-bold mb-2" style={{ color: selectedCourse.color || '#1f2937' }}>
-                  {selectedCourse.title}
-                </h3>
-                {selectedCourse.subTitle && (
-                  <p className="text-sm text-slate-500">{selectedCourse.subTitle}</p>
-                )}
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-0 bg-transparent shadow-none flex flex-col">
+          <DialogTitle className="sr-only">수업 상세 정보</DialogTitle>
+          <div className="relative w-full bg-white dark:bg-[#121212] rounded-3xl overflow-y-auto shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 max-h-[90vh]">
+            {isDetailLoading ? (
+              <div className="flex items-center justify-center p-20 min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white rounded-lg p-3 border border-slate-200">
-                  <p className="text-xs text-slate-500 mb-1">요일</p>
-                  <p className="text-sm font-semibold">{selectedCourse.dayOfWeek}요일</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 border border-slate-200">
-                  <p className="text-xs text-slate-500 mb-1">시간</p>
-                  <p className="text-sm font-semibold font-mono">{selectedCourse.startTime} - {selectedCourse.endTime}</p>
-                </div>
-              </div>
-
-              <div
-                className="bg-linear-to-r from-white to-slate-50 rounded-lg p-3 border-l-4"
-                style={{ borderLeftColor: selectedCourse.color || '#e5e7eb' }}
-              >
-                <p className="text-xs text-slate-500 mb-1">수업 유형</p>
-                <p className="text-sm font-semibold">{selectedCourse.type === 'course' ? '정규 수업' : '사용자 지정'}</p>
-              </div>
-            </div>
-          )}
+            ) : selectedCourse && (
+              <CourseDetailContent 
+                course={{
+                  ...(detailedCourse || {}),
+                  courseKey: selectedCourse.courseKey || '',
+                  name: selectedCourse.title,
+                  professor: detailedCourse?.professor || selectedCourse.subTitle || '',
+                  credits: detailedCourse?.credits || selectedCourse.credits || '',
+                  classification: detailedCourse?.classification || selectedCourse.classification || '',
+                  classroom: detailedCourse?.classroom || selectedCourse.classroom || '',
+                } as Course} 
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>
