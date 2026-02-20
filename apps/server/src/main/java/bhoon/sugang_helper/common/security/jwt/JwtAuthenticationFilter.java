@@ -30,22 +30,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = jwtProvider.resolveToken(request);
 
         // 헤더에 토큰이 없으면 세션에서 확인
-        if (StringUtils.hasText(token)) {
-            return;
+        if (!StringUtils.hasText(token)) {
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                token = (String) session.getAttribute("ACCESS_TOKEN");
+            }
         }
 
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            token = (String) session.getAttribute("ACCESS_TOKEN");
+        if (StringUtils.hasText(token) && jwtProvider.validateToken(token)) {
+            Authentication authentication = jwtProvider.getAuthentication(token);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            log.debug("시큐리티 컨텍스트에 '{}' 인증 정보를 저장했습니다", authentication.getName());
         }
-
-        if (!StringUtils.hasText(token) || !jwtProvider.validateToken(token)) {
-            return;
-        }
-
-        Authentication authentication = jwtProvider.getAuthentication(token);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        log.debug("시큐리티 컨텍스트에 '{}' 인증 정보를 저장했습니다", authentication.getName());
 
         filterChain.doFilter(request, response);
     }
