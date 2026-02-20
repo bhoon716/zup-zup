@@ -182,7 +182,7 @@ export function Header() {
                         className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                       >
                         <Download className="w-4 h-4" />
-                        앱 설치하기
+                        바로가기 설치하기
                       </Button>
                     </div>
                   )}
