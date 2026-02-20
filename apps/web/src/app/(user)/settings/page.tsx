@@ -4,13 +4,16 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/shared/ui/card";
 import { Label } from "@/shared/ui/label";
 import { Input } from "@/shared/ui/input";
-import { Switch } from "@/shared/ui/switch";
 import { Button } from "@/shared/ui/button";
 import { toast } from "sonner";
-import { Loader2, Mail, Bell, Globe, Smartphone, Save, History, Settings2, CheckCircle, Timer, ArrowLeft, MessageSquare, Trash2 } from "lucide-react";
+import { Badge } from "@/shared/ui/badge";
+import { 
+  Loader2, Mail, Bell, Smartphone, Save, History, 
+  CheckCircle, Timer, Trash2, MessageSquare, Laptop, 
+  X, AlertCircle, Monitor
+} from "lucide-react";
 import { getMyProfile, updateSettings, getDevices, deleteDevice } from "@/features/user/api/user.api";
 import * as userApi from "@/features/user/api/user.api";
 import { unlinkDiscord } from "@/features/user/api/user.api";
@@ -19,6 +22,7 @@ import { AxiosError } from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useWebPush } from "@/features/user/hooks/useWebPush";
+import { cn } from "@/shared/lib/utils";
 
 const settingsSchema = z.object({
   notificationEmail: z.string().email("유효한 이메일 주소를 입력해 주세요.").or(z.literal("")),
@@ -38,6 +42,10 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   return fallbackMessage;
 };
 
+/**
+ * 알림 설정 페이지 컴포넌트입니다.
+ * 실시간 알림 채널(Discord, 이메일, 웹 푸시)을 연동하고 관리합니다.
+ */
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -54,7 +62,7 @@ export default function SettingsPage() {
   const [sending, setSending] = useState(false);
 
   const [isUnlinking, setIsUnlinking] = useState(false);
-
+  const [deviceAlias, setDeviceAlias] = useState("");
   const [devices, setDevices] = useState<UserDeviceResponse[]>([]);
 
   const { subscribe, unsubscribe, loading: loadingWebPush } = useWebPush();
@@ -68,7 +76,7 @@ export default function SettingsPage() {
     watch,
     setValue,
     trigger,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
@@ -128,7 +136,7 @@ export default function SettingsPage() {
       const originalEmail = user.notificationEmail || "";
       const googleEmail = user.email;
 
-      // 현재 입력값이 기존 알림 메일 또는 구글 메일이면 재인증 없이 저장 가능하다.
+      // 현재 입력값이 기존 알림 메일 또는 구글 메일이면 재인증 없이 저장 가능
       if (currentInput === originalEmail || currentInput === googleEmail) {
         setVerified(true);
         setEmailSent(false);
@@ -138,7 +146,6 @@ export default function SettingsPage() {
       }
     }
   }, [notificationEmail, user]);
-
 
   const onSendCode = async () => {
     const valid = await trigger("notificationEmail");
@@ -194,6 +201,24 @@ export default function SettingsPage() {
     }
   };
 
+  const handleRegisterDevice = async () => {
+    if (!deviceAlias.trim()) {
+      toast.error("기기 별칭을 입력해 주세요.");
+      return;
+    }
+
+    try {
+      const success = await subscribe(deviceAlias);
+      if (success) {
+        const deviceRes = await getDevices();
+        setDevices(deviceRes.data);
+        setDeviceAlias("");
+        toast.success("현재 기기가 등록되었습니다.");
+      }
+    } catch (error) {
+      toast.error("기기 등록 중 오류가 발생했습니다.");
+    }
+  };
 
   const handleDeleteDevice = async (id: number) => {
     if (!confirm("이 기기를 삭제하시겠습니까? 더 이상 알림을 받을 수 없습니다.")) return;
@@ -207,14 +232,12 @@ export default function SettingsPage() {
     }
   };
 
-
   const onSubmit = async (values: SettingsFormValues) => {
     if (user) {
       const isOriginal = values.notificationEmail === (user.notificationEmail || "");
       const isGoogle = values.notificationEmail === user.email || (!values.notificationEmail && !user.notificationEmail);
 
       if (!isOriginal && !isGoogle) {
-        // 새 메일 주소를 활성화할 때는 인증 상태를 반드시 확인한다.
         if (values.emailEnabled && !verified) {
           toast.error("변경된 이메일 인증을 완료해주세요.");
           return;
@@ -242,7 +265,7 @@ export default function SettingsPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }
 
   if (loading) {
     return (
@@ -257,340 +280,299 @@ export default function SettingsPage() {
   const needsVerification = !isOriginal && !isGoogleEmail && notificationEmail;
 
   return (
-    <div className="container max-w-2xl py-8 px-4 md:px-6 space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center gap-3 md:gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full hover:bg-white/10 flex-shrink-0">
-            <ArrowLeft className="h-5 w-5 md:h-6 md:w-6" />
-        </Button>
-        <div className="p-2 md:p-3 rounded-2xl bg-primary/10 border border-primary/20 flex-shrink-0">
-          <Settings2 className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+    <div className="min-h-screen bg-white">
+      <main className="max-w-4xl mx-auto px-6 sm:px-10 py-10 md:py-16 pb-32">
+        <div className="mb-12 border-b border-slate-100 pb-8">
+          <h1 className="text-3xl font-bold mb-2 text-slate-900 tracking-tight">알림 설정</h1>
+          <p className="text-slate-500 font-medium">빈 좌석 알림을 받을 채널을 설정하고 관리하세요.</p>
         </div>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400">
-            설정
-          </h1>
-          <p className="text-[11px] md:text-sm text-muted-foreground mt-0.5 md:mt-1">
-            알림 수신 방식과 계정 설정을 관리합니다.
-          </p>
-        </div>
-      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
-        <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl overflow-hidden group rounded-[1.5rem] md:rounded-[2rem]">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-              <Bell className="h-5 w-5 text-primary" />
-              알림 수신 설정
-            </CardTitle>
-            <CardDescription className="text-xs md:text-sm">
-              여석 발생 시 알림을 받을 채널을 선택하세요.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-5 pt-2 md:p-6 md:pt-4 space-y-4 md:space-y-6 relative">
-            <div className="flex items-center justify-between p-3.5 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-blue-400" />
-                  <Label htmlFor="email-enabled" className="text-sm md:text-base font-semibold">이메일 알림</Label>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <section className="space-y-12">
+            <div>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Bell className="text-primary w-5 h-5" />
+                    </div>
+                    알림 채널 연동
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-2 ml-11.5 font-medium">여러 채널을 연동하여 확실하게 알림을 받아보세요.</p>
                 </div>
-                <p className="text-[11px] md:text-sm text-muted-foreground">
-                  지정한 이메일 주소로 알림을 보냅니다.
-                </p>
               </div>
-              <Switch
-                id="email-enabled"
-                checked={watch("emailEnabled")}
-                onCheckedChange={(checked) => setValue("emailEnabled", checked, { shouldDirty: true })}
-                className="scale-90 md:scale-100"
-              />
-            </div>
 
-            <div className="flex items-center justify-between p-3.5 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-green-400" />
-                  <Label htmlFor="web-enabled" className="text-sm md:text-base font-semibold">웹 푸시 (PC 브라우저)</Label>
+              <div className="space-y-6">
+                {/* Discord Section */}
+                <div className="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 transition-all hover:border-primary/30">
+                  <div className="flex items-start gap-6">
+                    <div className="hidden sm:flex w-14 h-14 bg-[#5865F2] rounded-2xl items-center justify-center shadow-lg shadow-[#5865F2]/20 shrink-0 text-white">
+                      <MessageSquare className="w-8 h-8" />
+                    </div>
+                    <div className="flex-1 w-full">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-bold text-lg text-slate-900">Discord 연동</h3>
+                        {user?.discordId && (
+                           <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-100 font-bold px-2 py-0.5 text-[10px] rounded-lg">
+                             연동됨
+                           </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-500 mb-5 font-medium">디스코드 봇이 개인 DM으로 알림을 즉시 보내드립니다.</p>
+                      
+                      {user?.discordId ? (
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <div className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                            <span className="text-sm font-mono font-bold text-slate-700">{user.discordId}</span>
+                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                          </div>
+                          <Button 
+                            type="button" 
+                            variant="destructive"
+                            onClick={handleDiscordUnlink}
+                            disabled={isUnlinking}
+                            className="rounded-xl px-6 h-12 font-bold shadow-soft"
+                          >
+                            {isUnlinking ? <Loader2 className="w-4 h-4 animate-spin" /> : "연동 해제"}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button 
+                          type="button"
+                          onClick={handleDiscordConnect}
+                          className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white h-13 rounded-xl font-bold flex items-center justify-center gap-3 transition-all shadow-lg shadow-[#5865F2]/20 active:scale-[0.98]"
+                        >
+                          <MessageSquare className="w-6 h-6" />
+                          Discord 계정 연결하기
+                        </Button>
+                      )}
+
+                      <div className="mt-4 flex items-center justify-between border-t border-slate-200/50 pt-4">
+                        <Label htmlFor="discord-enabled" className="text-sm font-bold text-slate-600">DM 알림 활성화</Label>
+                        <Switch
+                          id="discord-enabled"
+                          checked={watch("discordEnabled")}
+                          onCheckedChange={(checked) => setValue("discordEnabled", checked, { shouldDirty: true })}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[11px] md:text-sm text-muted-foreground">
-                  브라우저가 켜져 있을 때 실시간 알림을 보냅니다.
-                </p>
-              </div>
-              <Switch
-                id="web-enabled"
-                checked={watch("webPushEnabled")}
-                onCheckedChange={async (checked) => {
-                  setValue("webPushEnabled", checked, { shouldDirty: true });
-                  if (checked) {
-                    const success = await subscribe();
-                    if (!success) {
-                       setValue("webPushEnabled", false);
-                    }
-                  } else {
-                    await unsubscribe();
-                  }
-                }}
-                disabled={loadingWebPush}
-                className="scale-90 md:scale-100"
-              />
-            </div>
 
-            <div className="flex items-center justify-between p-3.5 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Smartphone className="h-4 w-4 text-purple-400" />
-                  <Label htmlFor="fcm-enabled" className="text-sm md:text-base font-semibold">앱 푸시 (PWA/안드로이드)</Label>
-                </div>
-                <p className="text-[11px] md:text-sm text-muted-foreground">
-                  모바일 기기에서 실시간 푸시 알림을 보냅니다.
-                </p>
-              </div>
-              <Switch
-                id="fcm-enabled"
-                checked={watch("fcmEnabled")}
-                onCheckedChange={(checked) => setValue("fcmEnabled", checked, { shouldDirty: true })}
-                className="scale-90 md:scale-100"
-              />
-            </div>
+                {/* Email Section */}
+                <div className="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 transition-all hover:border-primary/30">
+                  <div className="flex items-start gap-6">
+                    <div className="hidden sm:flex w-14 h-14 bg-white rounded-2xl items-center justify-center shadow-sm border border-slate-100 shrink-0">
+                      <Mail className="w-7 h-7 text-slate-400" />
+                    </div>
+                    <div className="flex-1 w-full">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-bold text-lg text-slate-900">이메일 알림</h3>
+                        {(isGoogleEmail || verified) && (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">인증됨</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-500 mb-5 font-medium">중요 알림을 이메일로 받아보세요. 학교 이메일을 권장합니다.</p>
+                      
+                      <div className="space-y-3">
+                        <div className="relative flex items-center gap-2">
+                          <Input 
+                            {...register("notificationEmail")}
+                            placeholder={user?.email}
+                            readOnly={isOriginal || isGoogleEmail}
+                            className={cn(
+                              "w-full bg-white border-slate-200 rounded-xl px-4 py-6 text-sm focus:ring-2 focus:ring-primary h-12",
+                              (isOriginal || isGoogleEmail) && "bg-slate-50 text-slate-400"
+                            )}
+                          />
+                          {needsVerification && !verified && (
+                            <Button 
+                              type="button"
+                              variant="outline"
+                              onClick={onSendCode}
+                              disabled={sending || !!errors.notificationEmail || !notificationEmail}
+                              className="shrink-0 h-12 rounded-xl px-6 bg-white border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
+                            >
+                              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : "인증"}
+                            </Button>
+                          )}
+                          {(isGoogleEmail || (verified && !isOriginal)) && (
+                            <div className="absolute right-3 bg-slate-100 text-slate-400 px-3 py-1.5 rounded-lg text-[11px] font-bold">
+                              인증완료
+                            </div>
+                          )}
+                        </div>
 
-            <div className="flex items-center justify-between p-3.5 md:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-indigo-400" />
-                  <Label htmlFor="discord-enabled" className="text-sm md:text-base font-semibold">디스코드 DM 알림</Label>
-                </div>
-                <p className="text-[11px] md:text-sm text-muted-foreground">
-                  지정한 디스코드 계정으로 직접 메시지를 보냅니다.
-                </p>
-              </div>
-              <Switch
-                id="discord-enabled"
-                checked={watch("discordEnabled")}
-                onCheckedChange={(checked) => setValue("discordEnabled", checked, { shouldDirty: true })}
-                className="scale-90 md:scale-100"
-              />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl group rounded-[1.5rem] md:rounded-[2rem]">
-           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-              <Mail className="h-5 w-5 text-primary" />
-              알림 이메일 주소
-            </CardTitle>
-            <CardDescription className="text-xs md:text-sm">
-              구글 계정 이메일 외에 다른 이메일로 알림을 받고 싶다면 입력하세요.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-5 pt-2 md:p-6 md:pt-4 space-y-4 relative">
-            <div className="space-y-2">
-              <Label htmlFor="notificationEmail" className="text-xs md:text-sm font-semibold opacity-70">수신용 이메일 주소</Label>
-              <div className="flex gap-2">
-                  <Input
-                    id="notificationEmail"
-                    placeholder={user?.email || "example@email.com"}
-                    {...register("notificationEmail")}
-                    className="bg-white/5 border-white/10 focus:ring-primary h-11 md:h-12 text-sm md:text-lg rounded-xl"
-                  />
-                  
-                  {needsVerification && !verified && (
-                      <Button 
-                        type="button"
-                        variant="outline"
-                        onClick={onSendCode}
-                        disabled={sending || !!errors.notificationEmail || !notificationEmail}
-                        className="h-11 md:h-12 px-4 md:px-6 rounded-xl text-xs md:text-sm font-bold bg-white/5"
-                      >
-                         {sending ? "전송 중" : "인증"}
-                      </Button>
-                  )}
-              </div>
-              
-              {errors.notificationEmail && (
-                <p className="text-xs md:text-sm text-destructive font-medium px-1">{errors.notificationEmail.message}</p>
-              )}
-              {!errors.notificationEmail && isGoogleEmail && (
-                  <p className="text-[10px] md:text-xs text-green-500 flex items-center gap-1 px-1">
-                      <CheckCircle className="w-3 h-3" /> 구글 계정 이메일 (자동 인증됨)
-                  </p>
-              )}
-               {!errors.notificationEmail && verified && !isGoogleEmail && notificationEmail && (
-                  <p className="text-[10px] md:text-xs text-green-500 flex items-center gap-1 px-1">
-                      <CheckCircle className="w-3 h-3" /> 인증되었습니다
-                  </p>
-              )}
-
-              <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1.5 mt-2 px-1">
-                <History className="h-3 w-3 opacity-50" />
-                입력하지 않으면 로그인한 구글 계정으로 발송됩니다.
-              </p>
-
-              <AnimatePresence>
-                {needsVerification && !verified && emailSent && (
-                    <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-2 pt-2"
-                    >
-                        <div className="flex gap-2">
-                            <Input 
+                        <AnimatePresence>
+                          {needsVerification && !verified && emailSent && (
+                            <motion.div 
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="bg-primary/5 p-4 rounded-[1.5rem] border border-primary/10 flex flex-col sm:flex-row gap-3"
+                            >
+                              <Input 
                                 placeholder="인증 코드 6자리"
                                 value={authCode}
                                 onChange={(e) => setAuthCode(e.target.value)}
                                 maxLength={6}
-                                className="bg-primary/5 h-11 md:h-12 text-center text-lg font-black tracking-[0.3em] rounded-xl"
-                            />
-                            <Button type="button" onClick={onVerifyCode} disabled={verifying || authCode.length !== 6} className="h-11 md:h-12 px-6 rounded-xl font-bold">
+                                className="flex-1 h-12 text-center text-lg font-black tracking-[0.3em] rounded-xl border-primary/20 bg-white"
+                              />
+                              <Button 
+                                type="button" 
+                                onClick={onVerifyCode} 
+                                disabled={verifying || authCode.length !== 6} 
+                                className="h-12 px-8 rounded-xl font-bold bg-primary"
+                              >
                                 {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "확인"}
-                            </Button>
-                        </div>
-                        <p className="text-[10px] md:text-xs text-primary font-bold flex items-center gap-1.5 px-1 animate-pulse">
-                            <Timer className="w-3 h-3" /> 인증 코드가 발송되었습니다. (5분 내 입력)
-                        </p>
-                    </motion.div>
-                )}
-              </AnimatePresence>
+                              </Button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
 
-            </div>
-          </CardContent>
-          <CardFooter className="p-5 pt-0 md:p-6 md:pt-0 relative">
-            <Button 
-                type="submit" 
-                className="w-full h-12 text-base md:text-lg font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 rounded-xl md:rounded-2xl"
-                disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  저장 중...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-5 w-5" />
-                  설정 저장하기
-                </>
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-        <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl group rounded-[1.5rem] md:rounded-[2rem] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-              <MessageSquare className="h-5 w-5 text-indigo-400" />
-              디스코드 계정 연동
-            </CardTitle>
-            <CardDescription className="text-xs md:text-sm">
-              디스코드 봇을 통해 계정을 연동하고 실시간 알림을 받아보세요.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-5 pt-2 md:p-6 md:pt-4 space-y-4 relative">
-            {user?.discordId ? (
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-indigo-200">연동된 계정 ID</p>
-                  <p className="text-lg font-mono font-bold text-white">{user.discordId}</p>
-                </div>
-                <div className="p-2 rounded-full bg-indigo-500/20">
-                  <CheckCircle className="h-6 w-6 text-indigo-400" />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <h4 className="text-sm font-bold flex items-center gap-2 text-indigo-300">
-                    <CheckCircle className="h-4 w-4" /> 간편 연동 안내
-                  </h4>
-                  <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-                    아래 버튼을 눌러 디스코드 계정을 인증하면 즉시 연동됩니다.<br />
-                    연동 시 <strong>&apos;자신의 계정에 설치&apos;</strong>를 선택해야 서버 없이도 알림을 받을 수 있습니다.
-                  </p>
-                  <div className="pt-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 space-y-2">
-                    <p className="text-[11px] md:text-xs text-orange-200 font-bold flex items-center gap-1.5">
-                      <Timer className="w-3 h-3" /> 알림 전송 실패(50007) 해결법
-                    </p>
-                    <ul className="text-[10px] md:text-[11px] text-orange-100/70 list-disc list-inside space-y-1">
-                      <li>디스코드 설정 ➔ 개인정보 보호 ➔ <strong>&apos;내게 메시지를 보낼 수 있는 사람&apos;</strong> 설정 확인</li>
-                      <li>봇을 차단했거나 개인정보 보호 수준이 너무 높으면 메시지가 전송되지 않습니다.</li>
-                    </ul>
+                        <div className="flex items-center justify-between border-t border-slate-200/50 pt-4">
+                          <Label htmlFor="email-enabled" className="text-sm font-bold text-slate-600">이메일 알림 활성화</Label>
+                          <Switch
+                            id="email-enabled"
+                            checked={watch("emailEnabled")}
+                            onCheckedChange={(checked) => setValue("emailEnabled", checked, { shouldDirty: true })}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-3 font-medium flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        이메일 변경을 원하시면 관리자에게 문의하세요.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <Button
-                  type="button"
-                  onClick={handleDiscordConnect}
-                  className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/20 transition-all duration-300"
-                >
-                  <MessageSquare className="h-5 w-5 mr-2" />
-                  디스코드 계정 연결하기
-                </Button>
-              </div>
-            )}
-
-            {user?.discordId && (
-              <div className="pt-2">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  onClick={handleDiscordUnlink}
-                  disabled={isUnlinking}
-                  className="w-full h-10 text-xs text-destructive hover:bg-destructive/10 rounded-xl"
-                >
-                  {isUnlinking ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : "연동 해제하기"}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl group rounded-[1.5rem] md:rounded-[2rem] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <CardHeader className="p-5 pb-2 md:p-6 md:pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-              <Smartphone className="h-5 w-5 text-green-400" />
-              등록된 기기 관리
-            </CardTitle>
-            <CardDescription className="text-xs md:text-sm">
-              푸시 알림을 수신하는 기기 목록입니다.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-5 pt-2 md:p-6 md:pt-4 space-y-4 relative">
-             {devices.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  등록된 기기가 없습니다.
-                </div>
-             ) : (
-                <div className="space-y-3">
-                  {devices.map(device => (
-                    <div key={device.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-full bg-white/10">
-                          {device.type === 'WEB' ? <Globe className="h-4 w-4 text-blue-300"/> : <Smartphone className="h-4 w-4 text-purple-300"/>}
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-white">{device.alias || (device.type === 'WEB' ? 'Web Browser' : 'Mobile App')}</p>
-                          <p className="text-[10px] md:text-xs text-muted-foreground">
-                            {new Date(device.registeredAt).toLocaleDateString()} 등록
-                          </p>
+                {/* Web Push Section */}
+                <div className="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 transition-all hover:border-primary/30">
+                  <div className="flex items-start gap-6">
+                    <div className="hidden sm:flex w-14 h-14 bg-white rounded-2xl items-center justify-center shadow-sm border border-slate-100 shrink-0">
+                      <Laptop className="w-7 h-7 text-primary" />
+                    </div>
+                    <div className="flex-1 w-full">
+                      <h3 className="font-bold text-lg text-slate-900 mb-1">웹 푸시 알림</h3>
+                      <p className="text-sm text-slate-500 mb-5 font-medium">현재 사용 중인 기기를 등록하여 브라우저 알림을 받습니다.</p>
+                      
+                      <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-6">
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <Input 
+                            value={deviceAlias}
+                            onChange={(e) => setDeviceAlias(e.target.value)}
+                            placeholder="기기 별칭 (예: 맥북 프로)"
+                            className="flex-1 bg-slate-50 border-transparent rounded-xl px-4 h-12 focus:bg-white transition-all shadow-none"
+                          />
+                          <Button 
+                            type="button"
+                            onClick={handleRegisterDevice}
+                            className="bg-primary hover:bg-primary-hover text-white px-6 h-12 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all active:scale-[0.95]"
+                          >
+                            현재 기기 등록
+                          </Button>
                         </div>
                       </div>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => handleDeleteDevice(device.id)}
-                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full h-8 w-8"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-bold text-slate-400 px-1 uppercase tracking-wider mb-2">등록된 기기 목록</h4>
+                        {devices.length === 0 ? (
+                           <div className="text-center py-6 bg-white/50 rounded-2xl border border-dashed border-slate-200">
+                             <p className="text-sm text-slate-400 font-medium">등록된 기기가 없습니다.</p>
+                           </div>
+                        ) : (
+                          devices.map((device, idx) => (
+                            <div key={device.id} className="flex items-center justify-between bg-white border border-slate-100 px-4 py-3.5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-slate-50">
+                                  {device.type === 'WEB' ? <Monitor className="w-4 h-4 text-slate-400" /> : <Smartphone className="w-4 h-4 text-slate-400" />}
+                                </div>
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                     <span className="text-sm font-bold text-slate-700">{device.alias || '알 수 없는 기기'}</span>
+                                     {idx === 0 && <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-black tracking-tighter">THIS</span>}
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 font-medium">{new Date(device.registeredAt).toLocaleDateString()} 등록</span>
+                                </div>
+                              </div>
+                              <button 
+                                type="button" 
+                                onClick={() => handleDeleteDevice(device.id)}
+                                className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="mt-6 flex items-center justify-between border-t border-slate-200/50 pt-5">
+                        <div className="space-y-1">
+                          <Label htmlFor="web-enabled" className="text-sm font-bold text-slate-600">브라우저 전체 알림</Label>
+                          <p className="text-[11px] text-slate-400 font-medium">기기 개별 설정이 아닌 서비스 전체 알림 스위치입니다.</p>
+                        </div>
+                        <Switch
+                          id="web-enabled"
+                          checked={watch("webPushEnabled")}
+                          onCheckedChange={async (checked) => {
+                            setValue("webPushEnabled", checked, { shouldDirty: true });
+                          }}
+                          disabled={loadingWebPush}
+                        />
+                      </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
-             )}
-          </CardContent>
-        </Card>
-      </form>
+              </div>
+            </div>
+          </section>
+
+          {/* Floating Action Bar */}
+          <div className="fixed bottom-0 right-0 left-0 bg-white/90 backdrop-blur-md border-t border-slate-100 px-8 py-5 flex items-center justify-center sm:justify-end gap-4 z-40">
+            <Button 
+              type="button" 
+              variant="ghost"
+              onClick={() => router.back()}
+              className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 font-bold px-8 h-12 rounded-full transition-all text-sm"
+            >
+              변경 취소
+            </Button>
+            <Button 
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-primary hover:bg-primary-hover text-white font-black px-12 h-12 rounded-full transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-[0.95] text-sm tracking-tight"
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+              설정 저장하기
+            </Button>
+          </div>
+        </form>
+      </main>
+    </div>
+  );
+}
+
+/**
+ * 전용 Switch 컴포넌트 (mockup 스타일)
+ */
+function Switch({ id, checked, onCheckedChange, disabled }: { id: string, checked: boolean, onCheckedChange: (checked: boolean) => void, disabled?: boolean }) {
+  return (
+    <div 
+      className={cn(
+        "relative inline-flex h-7 w-13 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-300 ease-in-out focus-visible:outline-hidden",
+        checked ? "bg-primary" : "bg-slate-200",
+        disabled && "opacity-50 cursor-not-allowed"
+      )}
+      onClick={() => !disabled && onCheckedChange(!checked)}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-soft transition duration-300 ease-in-out",
+          checked ? "translate-x-7" : "translate-x-1"
+        )}
+      />
     </div>
   );
 }

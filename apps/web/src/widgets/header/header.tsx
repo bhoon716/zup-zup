@@ -6,9 +6,22 @@ import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/shared/lib/utils";
-import { LogOut, Search, Bell, Settings, ShieldCheck, Calendar, Menu, Download, GraduationCap } from "lucide-react";
+import { 
+  LogOut, Search, Bell, Settings, ShieldCheck, Calendar, 
+  Menu, Download, GraduationCap, LayoutDashboard, Users, 
+  School, BellRing, Terminal, ChevronDown 
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -22,53 +35,132 @@ interface NavLinksProps {
   isMobile?: boolean;
   isAdmin: boolean;
   onGuardedAction: (e: MouseEvent) => void;
+  onLinkClick?: () => void;
 }
 
-function NavLinks({ isMobile = false, isAdmin, onGuardedAction }: NavLinksProps) {
+/**
+ * 메인 내비게이션 링크들을 렌더링하는 컴포넌트입니다.
+ * 데스크톱과 모바일 환경에 적합한 레이아웃을 제공하며, 권한에 따른 관리자 메뉴를 포함합니다.
+ */
+function NavLinks({ isMobile = false, isAdmin, onGuardedAction, onLinkClick }: NavLinksProps) {
+  const handleClick = (e: MouseEvent) => {
+    onLinkClick?.();
+    onGuardedAction(e);
+  };
+
   return (
     <>
-      <Link href="/timetable" onClick={onGuardedAction}>
+      <Link href="/timetable" onClick={handleClick}>
         <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
           <Calendar className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">내 시간표</span>
         </Button>
       </Link>
-      <Link href="/search">
+      <Link href="/search" onClick={onLinkClick}>
         <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
           <Search className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">강의 검색</span>
         </Button>
       </Link>
-      <Link href="/notifications" onClick={onGuardedAction}>
+      <Link href="/notifications" onClick={handleClick}>
         <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
           <Bell className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">알림 내역</span>
+          <span className="text-sm font-medium">알림 / 구독</span>
         </Button>
       </Link>
-      <Link href="/settings" onClick={onGuardedAction}>
+      <Link href="/settings" onClick={handleClick}>
         <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
           <Settings className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">설정</span>
         </Button>
       </Link>
       {isAdmin && (
-        <Link href="/admin">
-          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 text-primary/70 hover:text-primary hover:bg-primary/5", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-            <ShieldCheck className="w-[1.1rem] h-[1.1rem]" />
-            <span className="text-sm font-medium">관리자</span>
-          </Button>
-        </Link>
+        <div className={cn(isMobile ? "mt-4 space-y-1 pt-4 border-t border-gray-100" : "flex items-center")}>
+          {isMobile ? (
+            <>
+              <p className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                관리 메뉴
+              </p>
+              <div className="flex flex-col gap-0.5 pl-3">
+                <Link href="/admin" onClick={onLinkClick}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                    <LayoutDashboard className="w-4 h-4" />
+                    대시보드
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium text-gray-400 cursor-not-allowed">
+                  <Users className="w-4 h-4" />
+                  사용자 관리
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium text-gray-400 cursor-not-allowed">
+                  <School className="w-4 h-4" />
+                  강의 데이터베이스
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium text-gray-400 cursor-not-allowed">
+                  <BellRing className="w-4 h-4" />
+                  알림 시스템
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium text-gray-400 cursor-not-allowed">
+                  <Terminal className="w-4 h-4" />
+                  시스템 로그
+                </Button>
+              </div>
+            </>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 text-primary font-bold hover:bg-primary/5">
+                  <ShieldCheck className="w-[1.1rem] h-[1.1rem]" />
+                  <span className="text-sm">관리자</span>
+                  <ChevronDown className="w-3.5 h-3.5 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-2xl border-gray-100 bg-white/95 backdrop-blur-xl p-2 shadow-2xl">
+                <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-primary uppercase tracking-widest">SYSTEM ADMIN</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-gray-100" />
+                <Link href="/admin">
+                  <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
+                    <LayoutDashboard className="w-4 h-4" />
+                    대시보드
+                  </DropdownMenuItem>
+                </Link>
+                <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 cursor-not-allowed">
+                  <Users className="w-4 h-4" />
+                  사용자 관리
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 cursor-not-allowed">
+                  <School className="w-4 h-4" />
+                  강의 데이터베이스
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 cursor-not-allowed">
+                  <BellRing className="w-4 h-4" />
+                  알림 시스템
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 cursor-not-allowed">
+                  <Terminal className="w-4 h-4" />
+                  시스템 로그
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       )}
     </>
   );
 }
 
+/**
+ * 애플리케이션의 최상단 공통 헤더 컴포넌트입니다.
+ * 서비스 로고, 내비게이션 메뉴, PWA 설치 유도 및 사용자 인증 상태(로그인/로그아웃)를 관리합니다.
+ */
 export function Header() {
   const { data: user, isLoading } = useUser();
   const { mutate: logout, isPending } = useLogout();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
   const pathname = usePathname();
   const { isInstallable, install } = usePWAInstall();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (pathname === "/onboarding") {
     return null;
@@ -80,6 +172,8 @@ export function Header() {
       setLoginModalOpen(true);
     }
   };
+
+  const closeMenu = () => setIsMenuOpen(false);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
@@ -137,7 +231,7 @@ export function Header() {
           </div>
 
           <div className="flex md:hidden items-center gap-2">
-            <Sheet>
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-xl w-10 h-10 hover:bg-accent/50">
                   <Menu className="w-6 h-6" />
@@ -167,7 +261,7 @@ export function Header() {
                         </div>
                       </div>
                     ) : (
-                      <Link href="/login" className="block">
+                      <Link href="/login" className="block" onClick={closeMenu}>
                         <Button className="w-full gap-2 rounded-xl h-11 bg-primary shadow-lg shadow-primary/20">
                           로그인하고 시작하기
                         </Button>
@@ -178,7 +272,10 @@ export function Header() {
                   {isInstallable && (
                     <div className="px-2 mb-2">
                       <Button
-                        onClick={install}
+                        onClick={() => {
+                          install();
+                          closeMenu();
+                        }}
                         className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                       >
                         <Download className="w-4 h-4" />
@@ -189,7 +286,7 @@ export function Header() {
 
                   <div className="space-y-1">
                     <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Menu</p>
-                    <NavLinks isMobile isAdmin={user?.role === "ADMIN"} onGuardedAction={handleGuardedAction} />
+                    <NavLinks isMobile isAdmin={user?.role === "ADMIN"} onGuardedAction={handleGuardedAction} onLinkClick={closeMenu} />
                   </div>
 
                   {user && (
@@ -197,7 +294,10 @@ export function Header() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => logout()}
+                        onClick={() => {
+                          logout();
+                          closeMenu();
+                        }}
                         disabled={isPending}
                         className="w-full gap-3 rounded-xl h-11 justify-start px-4 hover:bg-destructive/5 hover:text-destructive text-muted-foreground transition-colors"
                       >

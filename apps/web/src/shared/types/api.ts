@@ -271,6 +271,30 @@ export interface AdminDashboardResponse {
   lastCrawledAt: string;
 }
 
+export interface AdminTrafficPointResponse {
+  label: string;
+  count: number;
+}
+
+export interface AdminRecentLogResponse {
+  timestamp: string;
+  level: string;
+  message: string;
+  source: string;
+}
+
+export interface AdminOverviewResponse {
+  totalUsers: number;
+  totalActiveSubscriptions: number;
+  todayNotificationCount: number;
+  crawlingStatus: string;
+  lastCrawledAt: string | null;
+  jbnuLatencyMs: number | null;
+  serverTime: string;
+  notificationTraffic: AdminTrafficPointResponse[];
+  recentLogs: AdminRecentLogResponse[];
+}
+
 // 찜 관련
 export interface WishlistResponse {
   id: number;
