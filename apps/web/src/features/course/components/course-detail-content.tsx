@@ -1,12 +1,12 @@
 "use client";
 
-import React from "react";
-import { AlertCircle, Clock3, MapPin, User, Users } from "lucide-react";
+import { AlertCircle, Clock3, User, Users } from "lucide-react";
 import type { Course } from "@/shared/types/api";
 import { formatClassification, formatGradingMethod, formatLanguage, formatTargetGrade } from "@/shared/lib/formatters";
 import { cn } from "@/shared/lib/utils";
 import { normalizeCourse } from "@/shared/lib/course";
-import { getMapSearchUrls } from "@/shared/lib/map-links";
+import { getCampusMapQuery } from "@/shared/lib/map-links";
+import { KakaoMapEmbed } from "@/shared/ui/kakao-map-embed";
 
 interface CourseDetailContentProps {
   course: Course;
@@ -23,7 +23,7 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
   const current = course.current ?? 0;
   const available = course.available ?? 0;
   const percent = capacity > 0 ? Math.min(100, (current / capacity) * 100) : 0;
-  const mapUrls = getMapSearchUrls(course.classroom);
+  const mapQuery = getCampusMapQuery(course.classroom) ?? "전북대학교 전주캠퍼스";
 
   const classLabel = (() => {
     const academicYear = course.academicYear ? `${course.academicYear}년 ` : "";
@@ -143,27 +143,10 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
                   {course.classroom || "장소 미정"}
                 </h3>
               </div>
-              {mapUrls && (
-                <div className="space-y-2">
-                  <a
-                    href={mapUrls.kakao}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700 group"
-                  >
-                    <MapPin className="w-[18px] h-[18px] text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-200" />
-                    강의 공간 확인
-                  </a>
-                  <a
-                    href={mapUrls.naver}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block text-center text-xs font-medium text-gray-500 hover:text-primary"
-                  >
-                    네이버맵에서 열기
-                  </a>
-                </div>
-              )}
+              <KakaoMapEmbed
+                query={mapQuery}
+                className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700"
+              />
             </div>
           </div>
         </div>
