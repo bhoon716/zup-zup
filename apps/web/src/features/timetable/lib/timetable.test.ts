@@ -69,10 +69,10 @@ describe('Timetable Utils', () => {
         {
           id: 1,
           title: 'Lunch',
-          dayOfWeek: '화',
-          startTime: '12:00',
-          endTime: '13:00',
-          color: '#FF0000',
+          professor: 'Self',
+          schedules: [
+            { id: 101, dayOfWeek: '화', startTime: '12:00', endTime: '13:00', classroom: 'Cafeteria' },
+          ],
         },
       ],
     };
