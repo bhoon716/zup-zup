@@ -8,7 +8,8 @@ import { TimetableSelect } from '@/features/timetable/components/timetable-selec
 import { TimetableGrid } from '@/features/timetable/components/timetable-grid';
 import { useWishlist } from '@/features/wishlist/hooks/useWishlist';
 import { toast } from 'sonner';
-import { Loader2, Download, CalendarDays, Clock3, GraduationCap, Heart, BookOpen } from 'lucide-react';
+import { Loader2, Download, CalendarDays, Clock3, Heart, BookOpen } from 'lucide-react';
+import { CreditStatsCard } from '@/features/timetable/components/credit-stats-card';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
 import { cn } from '@/shared/lib/utils';
@@ -39,6 +40,9 @@ export default function TimetablePage() {
   const [selectedTimetableId, setSelectedTimetableId] = useState<number | null>(null);
   const [sidebarTab, setSidebarTab] = useState<'schedule' | 'wishlist'>('schedule');
 
+  /**
+   * 현재 시간표 그리드 영역을 PNG 이미지로 캡처하여 다운로드합니다.
+   */
   const handleExportImage = async () => {
     const element = document.querySelector('.timetable-grid-content') as HTMLElement;
     if (!element) {
@@ -86,6 +90,9 @@ export default function TimetablePage() {
   const { data: wishlistData, isLoading: isWishlistLoading } = useWishlist();
   const wishlist = wishlistData ?? [];
 
+  /**
+   * 현재 선택된 시간표 ID를 계산합니다. (선택된 ID -> 대표 시간표 -> 첫 번째 시간표 순)
+   */
   const activeTimetableId = useMemo(() => {
     if (selectedTimetableId !== null) {
       return selectedTimetableId;
@@ -130,6 +137,9 @@ export default function TimetablePage() {
   });
 
   const timetableName = timetableDetail?.name || '시간표';
+  /**
+   * 시간표에 포함된 모든 강의의 총 신청 학점을 계산합니다.
+   */
   const totalCredits = useMemo(() => {
     if (!timetableDetail) {
       return 0;
@@ -142,9 +152,10 @@ export default function TimetablePage() {
 
     return timetableDetail.courses.reduce((sum, course) => sum + (Number(course.credits) || 0), 0);
   }, [timetableDetail]);
-  const creditPercent = Math.max(0, Math.min(100, (totalCredits / 18) * 100));
-  const isCreditWarning = totalCredits < 6 || totalCredits > 18;
 
+  /**
+   * 현재 요일에 해당하는 시간표 및 커스텀 일정 리스트를 필터링하여 정렬합니다.
+   */
   const todaySchedules = useMemo(() => {
     if (!timetableDetail) {
       return [];
@@ -269,26 +280,9 @@ export default function TimetablePage() {
         </section>
 
         <aside className="w-full lg:w-[340px]">
-          <div className="flex h-full min-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+          <div className="flex h-full min-h-[calc(100vh-6rem)] flex-col rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-100 p-5">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-                    <GraduationCap className={cn('h-3.5 w-3.5', isCreditWarning ? 'text-rose-500' : 'text-primary')} />
-                    총 신청 학점
-                  </div>
-                  <span className={cn('text-sm font-bold', isCreditWarning ? 'text-rose-500' : 'text-primary')}>
-                    {totalCredits}
-                    <span className="ml-1 text-xs font-medium text-slate-400">/ 18</span>
-                  </span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
-                  <div
-                    className={cn('h-full rounded-full transition-all', isCreditWarning ? 'bg-rose-500' : 'bg-primary')}
-                    style={{ width: `${creditPercent}%` }}
-                  />
-                </div>
-              </div>
+              <CreditStatsCard totalCredits={totalCredits} />
             </div>
 
             <div className="border-b border-slate-100 p-4">
