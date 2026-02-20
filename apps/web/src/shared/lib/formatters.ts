@@ -93,6 +93,7 @@ export function formatGradingMethod(value?: string): string {
 
 export function formatTargetGrade(value?: string): string {
   if (!value) return "-";
+  if (value === "ALL" || value === "GRADE_ALL" || value === "전체" || value === "전체학년") return "전체";
   if (value === "GRADUATE" || value === "대학원") return "대학원생";
 
   const match = value.match(/^(?:GRADE_)?([1-6])$/i);
