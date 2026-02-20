@@ -7,11 +7,7 @@ export default function AdminLayout({
 }) {
   return (
     <AdminGuard>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="flex">
-          <main className="container py-10">{children}</main>
-        </div>
-      </div>
+      <div className="h-screen overflow-hidden bg-[#f3f4f6]">{children}</div>
     </AdminGuard>
   );
 }
