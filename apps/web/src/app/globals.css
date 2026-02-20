@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap");
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -8,8 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Noto Sans KR', var(--font-geist-sans);
-  --font-display: 'Noto Sans KR', sans-serif;
+  --font-sans: "Noto Sans KR", var(--font-geist-sans);
+  --font-display: "Noto Sans KR", sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -55,6 +55,15 @@
   --color-background-dark: var(--background-dark);
   --color-surface-light: var(--surface-light);
   --color-gray-custom: var(--gray-custom);
+
+  --color-pastel-1: var(--pastel-1);
+  --color-pastel-2: var(--pastel-2);
+  --color-pastel-3: var(--pastel-3);
+  --color-pastel-4: var(--pastel-4);
+  --color-pastel-5: var(--pastel-5);
+  --color-pastel-6: var(--pastel-6);
+  --color-pastel-7: var(--pastel-7);
+  --color-pastel-8: var(--pastel-8);
 }
 
 :root {
@@ -98,6 +107,15 @@
   --background-dark: #1a141e;
   --surface-light: #f9f9f9;
   --gray-custom: #f3f4f6;
+
+  --pastel-1: #ffb7b2;
+  --pastel-2: #ffdac1;
+  --pastel-3: #e2f0cb;
+  --pastel-4: #b5ead7;
+  --pastel-5: #c7ceea;
+  --pastel-6: #f8c8dc;
+  --pastel-7: #e0bbe4;
+  --pastel-8: #d291bc;
 }
 
 .dark {
@@ -134,11 +152,7 @@
   background-image:
     radial-gradient(at 0% 0%, rgba(87, 41, 112, 0.15) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(90, 74, 209, 0.1) 0px, transparent 50%),
-    radial-gradient(
-      at 100% 100%,
-      rgba(87, 41, 112, 0.1) 0px,
-      transparent 50%
-    ),
+    radial-gradient(at 100% 100%, rgba(87, 41, 112, 0.1) 0px, transparent 50%),
     radial-gradient(at 0% 100%, rgba(90, 74, 209, 0.1) 0px, transparent 50%);
   background-attachment: fixed;
 }
@@ -229,4 +243,16 @@
 
 .animate-shine {
   animation: shine 1.5s infinite;
+}
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  }
 }

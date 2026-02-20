@@ -5,7 +5,9 @@ import { TimetableResponse } from '@/shared/types/api';
 import { cn } from '@/shared/lib/utils';
 import { getRenderingBlocks, getTimeInMinutes, RenderingBlock } from '@/features/timetable/lib/timetable';
 import { CourseDetailDialog } from '@/features/course/components/course-detail-dialog';
+import { CustomScheduleDetailDialog } from './custom-schedule-detail-dialog';
 import { Course } from '@/shared/types/api';
+import { Button } from '@/shared/ui/button';
 
 import { TimetableBlock } from './timetable-block';
 
@@ -25,6 +27,7 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
   const blocks = useMemo(() => getRenderingBlocks(timetable), [timetable]);
   const [courseDetailOpen, setCourseDetailOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<RenderingBlock | null>(null);
+  const [customDetailOpen, setCustomDetailOpen] = useState(false);
 
   const initialCourse = useMemo(() => {
     if (!selectedCourse) return null;
@@ -60,31 +63,44 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
 
   const handleCourseClick = (block: RenderingBlock) => {
     setSelectedCourse(block);
-    setCourseDetailOpen(true);
+    if (block.type === 'course') {
+      setCourseDetailOpen(true);
+    } else {
+      setCustomDetailOpen(true);
+    }
   };
 
   return (
     <>
-      <div
-        className={cn(
-          'relative bg-white timetable-grid-content',
-          !isPreview && 'rounded-2xl shadow-sm min-h-[600px] flex flex-col',
-          className
-        )}
-      >
+      <div className="w-full overflow-x-auto custom-scrollbar bg-white rounded-2xl md:bg-transparent">
         <div
           className={cn(
-            'grid grid-cols-[60px_repeat(6,1fr)] border-b border-slate-200 sticky top-0 bg-white z-30',
+            'relative bg-white timetable-grid-content min-w-[380px] md:min-w-0',
+            !isPreview && 'shadow-sm min-h-[500px] md:min-h-[600px] flex flex-col',
+            className
+          )}
+          style={{ '--slot-height': isPreview ? '45px' : '50px' } as React.CSSProperties}
+        >
+          <style jsx>{`
+            @media (min-width: 768px) {
+              .timetable-grid-content {
+                --slot-height: ${isPreview ? '45px' : '60px'};
+              }
+            }
+          `}</style>
+        <div
+          className={cn(
+            'grid grid-cols-[35px_repeat(6,1fr)] md:grid-cols-[60px_repeat(6,1fr)] border-b border-slate-200 sticky top-0 bg-white z-40',
             !isPreview && 'shadow-[0_4px_6px_-4px_rgba(0,0,0,0.05)]',
             isPreview && 'grid-cols-[40px_repeat(6,1fr)] h-8 shadow-none'
           )}
         >
-          <div className="p-3 border-r border-slate-200 bg-slate-50/50"></div>
+          <div className="p-3 border-r border-slate-200 bg-slate-50 md:bg-slate-50/50 sticky left-0 z-50"></div>
           {DAYS.map((day) => (
             <div
               key={day}
               className={cn(
-                'p-2 md:p-3 text-center font-bold text-xs md:text-sm text-slate-600 border-r border-slate-100 bg-white last:border-r-0',
+                'p-1.5 md:p-3 text-center font-bold text-[10px] md:text-sm text-slate-600 border-r border-slate-100 bg-white last:border-r-0',
                 isPreview && 'p-1 text-[10px]',
                 day === '토' && 'text-blue-500 bg-blue-50/30'
               )}
@@ -94,22 +110,22 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
           ))}
         </div>
 
-        <div className={cn("flex-1 grid grid-cols-[60px_repeat(6,1fr)] relative", isPreview && "grid-cols-[40px_repeat(6,1fr)]")}>
+        <div className={cn("flex-1 grid grid-cols-[35px_repeat(6,1fr)] md:grid-cols-[60px_repeat(6,1fr)] relative", isPreview && "grid-cols-[40px_repeat(6,1fr)]")}>
           {/* Y-axis timeline */}
-          <div className="col-start-1 col-span-1 row-start-1 border-r border-slate-200 bg-slate-50/30 text-xs text-slate-400 font-medium select-none z-20">
+          <div className="col-start-1 col-span-1 row-start-1 border-r border-slate-200 bg-slate-50 md:bg-slate-50/30 text-xs text-slate-400 font-medium select-none z-30 sticky left-0">
             {hoursArray.map((hour) => (
-              <div key={hour} className={cn("border-b border-slate-200 relative flex flex-col items-center justify-center gap-0.5", isPreview ? "h-[45px]" : "h-[60px]")}>
+              <div key={hour} className={cn("border-b border-slate-200 relative flex flex-col items-center justify-center gap-0.5", isPreview ? "h-[45px]" : "h-[50px] md:h-[60px]")}>
                 <span className={cn(
-                  "text-[10px] sm:text-[11px] font-bold text-slate-500",
+                  "text-[8px] md:text-[11px] font-bold text-slate-500",
                   isPreview && "text-[8px]"
                 )}>
-                  {hour - 8}교시
+                  {hour - 8}
                 </span>
                 <span className={cn(
-                  "text-[8px] sm:text-[9px] text-slate-400",
+                  "text-[7px] md:text-[9px] text-slate-400",
                   isPreview && "text-[6px]"
                 )}>
-                  {String(hour).padStart(2, '0')}:00
+                  {hour}:00
                 </span>
               </div>
             ))}
@@ -125,7 +141,7 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
           {/* Horizontal Guides */}
           <div className="col-start-2 col-span-6 row-start-1 pointer-events-none z-0 flex flex-col">
             {hoursArray.map((hour) => (
-              <div key={hour} className={cn("w-full border-b border-slate-100 relative", isPreview ? "h-[45px]" : "h-[60px]")}>
+              <div key={hour} className="w-full border-b border-slate-100 relative h-[var(--slot-height)]">
                 <div className="absolute top-1/2 w-full border-t border-dashed border-slate-100/50"></div>
               </div>
             ))}
@@ -162,9 +178,9 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
                     return group.map((block, idx) => {
                       const start = getTimeInMinutes(block.startTime);
                       const end = getTimeInMinutes(block.endTime);
-                      const SLOT_HEIGHT = isPreview ? 45 : 60;
-                      const topPx = ((start - GRID_START_TIME) / 60) * SLOT_HEIGHT;
-                      const heightPx = ((end - start) / 60) * SLOT_HEIGHT;
+                      
+                      const top = `calc((${start} - ${GRID_START_TIME}) / 60 * var(--slot-height))`;
+                      const height = `calc((${end} - ${start}) / 60 * var(--slot-height))`;
 
                       const widthFraction = 1 / count;
                       const leftOffset = widthFraction * idx;
@@ -173,8 +189,8 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
                         <TimetableBlock
                           key={block.key}
                           block={block}
-                          topPx={topPx}
-                          heightPx={heightPx}
+                          top={top}
+                          height={height}
                           leftOffset={leftOffset}
                           widthFraction={widthFraction}
                           isPreview={isPreview}
@@ -189,11 +205,19 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
           </div>
         </div>
       </div>
+    </div>
 
       <CourseDetailDialog 
         course={initialCourse}
         open={courseDetailOpen}
         onOpenChange={setCourseDetailOpen}
+      />
+
+      <CustomScheduleDetailDialog
+        block={selectedCourse}
+        timetableId={timetable.id}
+        open={customDetailOpen}
+        onOpenChange={setCustomDetailOpen}
       />
     </>
   );
