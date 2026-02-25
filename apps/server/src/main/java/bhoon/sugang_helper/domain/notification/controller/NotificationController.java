@@ -44,7 +44,8 @@ public class NotificationController {
                           "courseKey": "CLTR.0031-01",
                           "title": "공석 발생",
                           "message": "[기초프로그래밍] 과목에 공석이 발생했습니다.",
-                          "createdAt": "2024-01-01T12:00:00"
+                          "channel": "FCM",
+                          "sentAt": "2024-01-01T12:00:00"
                         }
                       ]
                     }

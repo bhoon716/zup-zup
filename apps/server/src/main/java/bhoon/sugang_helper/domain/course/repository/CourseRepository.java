@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface CourseRepository extends JpaRepository<Course, Long>, CourseRepositoryCustom {
 
@@ -29,4 +30,29 @@ public interface CourseRepository extends JpaRepository<Course, Long>, CourseRep
      */
     @Query("select max(c.lastCrawledAt) from Course c")
     Optional<LocalDateTime> findMaxLastCrawledAt();
+
+    /**
+     * 교양 영역(카테고리) 목록을 조회합니다.
+     */
+    @Query("""
+            select distinct c.generalCategory
+            from Course c
+            where c.generalCategory is not null
+              and c.generalCategory <> ''
+            order by c.generalCategory
+            """)
+    List<String> findDistinctGeneralCategories();
+
+    /**
+     * 교양 상세 영역 목록을 조회합니다.
+     */
+    @Query("""
+            select distinct c.generalDetail
+            from Course c
+            where c.generalCategory = :category
+              and c.generalDetail is not null
+              and c.generalDetail <> ''
+            order by c.generalDetail
+            """)
+    List<String> findDistinctGeneralDetailsByCategory(@Param("category") String category);
 }

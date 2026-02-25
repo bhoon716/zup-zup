@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.domain.timetable.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -17,6 +18,7 @@ public class TimetableRequest {
     private String name;
 
     @Schema(description = "대표 시간표 여부", example = "true")
+    @JsonAlias("primary")
     private boolean isPrimary;
 
     public TimetableRequest(String name, boolean isPrimary) {

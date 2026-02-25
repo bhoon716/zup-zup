@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.domain.course.controller;
 
+import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.domain.course.service.CourseCrawlerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,8 +20,8 @@ public class AdminCourseController {
 
     @Operation(summary = "강의 크롤링 실행", description = "관리자 권한으로 강의 크롤링 작업을 즉시 실행합니다.")
     @PostMapping("/crawl")
-    public ResponseEntity<String> crawlCourses() {
+    public ResponseEntity<CommonResponse<String>> crawlCourses() {
         courseCrawlerService.crawlAndSaveCourses();
-        return ResponseEntity.ok("강의 크롤링 작업을 실행했습니다.");
+        return CommonResponse.ok("강의 크롤링 작업을 실행했습니다.", "강의 크롤링 작업을 실행했습니다.");
     }
 }

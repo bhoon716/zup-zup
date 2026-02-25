@@ -76,6 +76,9 @@ public class CourseSearchCondition {
     @Schema(description = "강의방식(설강상태)", example = "일반")
     private String status;
 
+    @Schema(description = "수업 운영 방향", example = "대면수업")
+    private String courseDirection;
+
     @Schema(description = "최소 학점", example = "4")
     private Double minCredits;
 
@@ -104,7 +107,7 @@ public class CourseSearchCondition {
             Boolean isAvailableOnly, String dayOfWeek, String credits, Integer lectureHours,
             Integer minLectureHours, String generalCategory, String generalDetail,
             List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly,
-            String status, Double minCredits, TargetGrade targetGrade, String disclosure,
+            String status, String courseDirection, Double minCredits, TargetGrade targetGrade, String disclosure,
             String sortBy, String sortOrder, Long userId) {
         this.name = name;
         this.professor = professor;
@@ -126,6 +129,7 @@ public class CourseSearchCondition {
         this.timetableId = timetableId;
         this.isWishedOnly = isWishedOnly;
         this.status = status;
+        this.courseDirection = courseDirection;
         this.minCredits = minCredits;
         this.targetGrade = targetGrade;
         this.disclosure = disclosure;

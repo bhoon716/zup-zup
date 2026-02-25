@@ -7,6 +7,7 @@ import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
+import bhoon.sugang_helper.domain.course.response.CourseCategoryResponse;
 import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
@@ -45,6 +46,16 @@ public class CourseService {
                 .stream()
                 .map(CourseSeatHistoryResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    public List<CourseCategoryResponse> getCourseCategories() {
+        return courseRepository.findDistinctGeneralCategories()
+                .stream()
+                .map(category -> CourseCategoryResponse.builder()
+                        .category(category)
+                        .details(courseRepository.findDistinctGeneralDetailsByCategory(category))
+                        .build())
+                .toList();
     }
 
     public CourseDetailResponse getCourse(String courseKey) {

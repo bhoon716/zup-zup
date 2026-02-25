@@ -12,6 +12,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardResponse;
+import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.domain.notification.service.NotificationService;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
@@ -34,6 +35,9 @@ class AdminServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private CourseRepository courseRepository;
+
+    @Mock
     private SubscriptionRepository subscriptionRepository;
 
     @Mock
@@ -52,6 +56,7 @@ class AdminServiceTest {
         when(userRepository.count()).thenReturn(100L);
         when(subscriptionRepository.countByIsActiveTrue()).thenReturn(50L);
         when(notificationHistoryRepository.countByCreatedAtAfter(any(LocalDateTime.class))).thenReturn(20L);
+        when(courseRepository.findMaxLastCrawledAt()).thenReturn(Optional.of(LocalDateTime.now()));
 
         // when
         AdminDashboardResponse result = adminService.getDashboardStats();

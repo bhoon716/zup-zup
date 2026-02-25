@@ -66,6 +66,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                         eqGeneralCategory(condition.getGeneralCategory()),
                         eqGeneralDetail(condition.getGeneralDetail()),
                         eqStatus(condition.getStatus()),
+                        containsCourseDirection(condition.getCourseDirection()),
                         matchSelectedSchedules(condition.getSelectedSchedules()),
                         inWishlist(condition.getIsWishedOnly(), condition.getUserId()))
                 .orderBy(getOrderSpecifiers(condition))
@@ -311,6 +312,13 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         }
         CourseStatus status = CourseStatus.from(statusStr);
         return status != null ? course.status.eq(status) : null;
+    }
+
+    /**
+     * 수업운영방향 포함 여부 필터
+     */
+    private BooleanExpression containsCourseDirection(String courseDirection) {
+        return StringUtils.hasText(courseDirection) ? course.courseDirection.contains(courseDirection) : null;
     }
 
     /**

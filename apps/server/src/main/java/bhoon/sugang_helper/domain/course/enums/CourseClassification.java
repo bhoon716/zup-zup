@@ -22,8 +22,17 @@ public enum CourseClassification {
     private final String description;
 
     public static CourseClassification from(String description) {
+        if (description == null || description.isBlank()) {
+            return null;
+        }
+
+        String normalized = description.trim();
+        if ("교직(대)".equals(normalized)) {
+            return TEACHING_PROFESSION_GRAD;
+        }
+
         return Arrays.stream(values())
-                .filter(c -> c.description.equals(description))
+                .filter(c -> c.description.equals(normalized))
                 .findFirst()
                 .orElse(null);
     }
