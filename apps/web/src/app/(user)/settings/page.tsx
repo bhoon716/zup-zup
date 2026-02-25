@@ -10,8 +10,8 @@ import { Button } from "@/shared/ui/button";
 import { toast } from "sonner";
 import { Badge } from "@/shared/ui/badge";
 import { 
-  Loader2, Mail, Bell, Smartphone, Save, History, 
-  CheckCircle, Timer, Trash2, MessageSquare, Laptop, 
+  Loader2, Mail, Bell, Smartphone, Save,
+  CheckCircle, MessageSquare, Laptop,
   X, AlertCircle, Monitor
 } from "lucide-react";
 import { getMyProfile, updateSettings, getDevices, deleteDevice } from "@/features/user/api/user.api";
@@ -65,7 +65,7 @@ export default function SettingsPage() {
   const [deviceAlias, setDeviceAlias] = useState("");
   const [devices, setDevices] = useState<UserDeviceResponse[]>([]);
 
-  const { subscribe, unsubscribe, loading: loadingWebPush } = useWebPush();
+  const { subscribe, loading: loadingWebPush } = useWebPush();
 
   const DISCORD_CLIENT_ID = "1470147038564847719";
 
@@ -76,7 +76,7 @@ export default function SettingsPage() {
     watch,
     setValue,
     trigger,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
@@ -215,7 +215,7 @@ export default function SettingsPage() {
         setDeviceAlias("");
         toast.success("현재 기기가 등록되었습니다.");
       }
-    } catch (error) {
+    } catch {
       toast.error("기기 등록 중 오류가 발생했습니다.");
     }
   };
@@ -350,7 +350,6 @@ export default function SettingsPage() {
                       <div className="mt-4 flex items-center justify-between border-t border-slate-200/50 pt-4">
                         <Label htmlFor="discord-enabled" className="text-sm font-bold text-slate-600">DM 알림 활성화</Label>
                         <Switch
-                          id="discord-enabled"
                           checked={watch("discordEnabled")}
                           onCheckedChange={(checked) => setValue("discordEnabled", checked, { shouldDirty: true })}
                         />
@@ -432,7 +431,6 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between border-t border-slate-200/50 pt-4">
                           <Label htmlFor="email-enabled" className="text-sm font-bold text-slate-600">이메일 알림 활성화</Label>
                           <Switch
-                            id="email-enabled"
                             checked={watch("emailEnabled")}
                             onCheckedChange={(checked) => setValue("emailEnabled", checked, { shouldDirty: true })}
                           />
@@ -513,7 +511,6 @@ export default function SettingsPage() {
                           <p className="text-[11px] text-slate-400 font-medium">기기 개별 설정이 아닌 서비스 전체 알림 스위치입니다.</p>
                         </div>
                         <Switch
-                          id="web-enabled"
                           checked={watch("webPushEnabled")}
                           onCheckedChange={async (checked) => {
                             setValue("webPushEnabled", checked, { shouldDirty: true });
@@ -556,7 +553,7 @@ export default function SettingsPage() {
 /**
  * 전용 Switch 컴포넌트 (mockup 스타일)
  */
-function Switch({ id, checked, onCheckedChange, disabled }: { id: string, checked: boolean, onCheckedChange: (checked: boolean) => void, disabled?: boolean }) {
+function Switch({ checked, onCheckedChange, disabled }: { checked: boolean, onCheckedChange: (checked: boolean) => void, disabled?: boolean }) {
   return (
     <div 
       className={cn(

@@ -57,7 +57,7 @@ export interface PageResponse<T> {
 
 // 강의 관련
 // 서버 열거형 문자열과 일대일 매핑
-export type CourseClassification = '계열공통' | '교양' | '교직(대)' | '교직' | '군사학' | '기초필수' | '선수' | '일반선택' | '전공' | '전공선택' | '전공필수';
+export type CourseClassification = '계열공통' | '교양' | '교직(대학원)' | '교직(대)' | '교직' | '군사학' | '기초필수' | '선수' | '일반선택' | '전공' | '전공선택' | '전공필수';
 export type GradingMethod = 'Pass/Fail' | '기타(법전원)' | '상대평가Ⅰ' | '상대평가Ⅱ' | '상대평가Ⅲ' | '절대평가';
 export type LectureLanguage = '한국어' | '영어' | '독일어' | '스페인어' | '일본어' | '중국어' | '프랑스어';
 export type CourseDayOfWeek =
@@ -158,9 +158,9 @@ export interface CourseCategoryResponse {
 export interface CourseSeatHistory {
   id: number;
   courseKey: string;
-  currentSeats: number;
-  changedSeats: number;
-  createdAt: string;
+  capacity: number;
+  current: number;
+  detectedAt: string;
 }
 
 // 구독 관련
@@ -202,6 +202,7 @@ export interface OnboardingRequest {
   notificationEmail: string;
   emailEnabled: boolean;
   webPushEnabled: boolean;
+  fcmEnabled: boolean;
   discordEnabled?: boolean;
 }
 
@@ -233,7 +234,9 @@ export interface NotificationHistory {
   courseKey: string;
   title: string;
   message: string;
-  createdAt: string;
+  channel?: 'FCM' | 'EMAIL' | 'WEB' | 'DISCORD';
+  sentAt?: string;
+  createdAt?: string;
 }
 
 // 기기 등록 관련
@@ -268,7 +271,7 @@ export interface AdminDashboardResponse {
   totalActiveSubscriptions: number;
   todayNotificationCount: number;
   crawlingStatus: string;
-  lastCrawledAt: string;
+  lastCrawledAt: string | null;
 }
 
 export interface AdminTrafficPointResponse {
@@ -298,7 +301,7 @@ export interface AdminOverviewResponse {
 // 찜 관련
 export interface WishlistResponse {
   id: number;
-  userId: number;
+  userId?: number;
   courseKey: string;
   courseName: string;
   professor: string;
@@ -375,11 +378,13 @@ export interface TimetableListResponse {
   id: number;
   name: string;
   primary: boolean;
+  courseCount?: number;
 }
 
 export interface TimetableRequest {
   name: string;
-  primary: boolean;
+  isPrimary?: boolean;
+  primary?: boolean;
 }
 
 export interface CustomScheduleTimeRequest {

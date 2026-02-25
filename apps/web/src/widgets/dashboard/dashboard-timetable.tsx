@@ -3,7 +3,6 @@
 import { ExternalLink, Calendar } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import Link from "next/link";
-import { cn } from "@/shared/lib/utils";
 import type { TimetableDetailResponse } from "@/shared/types/api";
 import { TimetableGrid } from "@/features/timetable/components/timetable-grid";
 

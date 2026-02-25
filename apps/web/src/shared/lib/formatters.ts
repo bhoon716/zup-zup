@@ -8,7 +8,7 @@ import { ko } from 'date-fns/locale';
 const CLASSIFICATION_MAP: Record<string, string> = {
   'SERIES_COMMON': '계열공통',
   'GENERAL_EDUCATION': '교양',
-  'TEACHING_PROFESSION_GRAD': '교직(대)',
+  'TEACHING_PROFESSION_GRAD': '교직(대학원)',
   'TEACHING_PROFESSION': '교직',
   'MILITARY_SCIENCE': '군사학',
   'BASIC_REQUIRED': '기초필수',
@@ -25,7 +25,8 @@ const CLASSIFICATION_MAP: Record<string, string> = {
   'OPTIONAL': '일반선택',
   '계열공통': '계열공통',
   '교양': '교양',
-  '교직(대)': '교직(대)',
+  '교직(대학원)': '교직(대학원)',
+  '교직(대)': '교직(대학원)',
   '교직': '교직',
   '군사학': '군사학',
   '기초필수': '기초필수',

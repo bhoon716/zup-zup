@@ -40,7 +40,8 @@ describe("useAdminActions hooks", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin-stats"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "stats"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "overview"] });
     expect(toast.success).toHaveBeenCalledWith("크롤링 시작");
   });
 
@@ -75,7 +76,7 @@ describe("useAdminActions hooks", () => {
     const { result } = renderHook(() => useSendTestNotification(), { wrapper });
 
     act(() => {
-      result.current.mutate({ email: "test@jbnu.ac.kr", channels: ["EMAIL"] });
+      result.current.mutate();
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

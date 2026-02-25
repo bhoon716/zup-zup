@@ -12,15 +12,19 @@ export interface NormalizedCourse extends Course {
  * (예: capacity vs totalSeats, current vs currentSeats 등)
  */
 export function normalizeCourse(course: Partial<Course>): NormalizedCourse {
-  const capacity = Number(course.capacity ?? (course as any).totalSeats ?? 0);
-  const current = Number(course.current ?? (course as any).currentSeats ?? 0);
+  const capacity = Number(course.capacity ?? course.totalSeats ?? 0);
+  const current = Number(course.current ?? course.currentSeats ?? 0);
   const available = Number(course.available ?? Math.max(capacity - current, 0));
 
   return {
+    courseKey: course.courseKey ?? "",
+    subjectCode: course.subjectCode ?? "",
+    name: course.name ?? "",
+    classNumber: course.classNumber ?? "",
     ...course,
     capacity,
     current,
     available,
-    professor: course.professor || (course as any).professorName || "교수 미지정",
-  } as NormalizedCourse;
+    professor: course.professor || course.professorName || "교수 미지정",
+  };
 }

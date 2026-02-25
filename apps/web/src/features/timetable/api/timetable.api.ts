@@ -1,9 +1,8 @@
 import api from "@/shared/api/client";
 import { 
   CommonResponse, 
-  TimetableResponse, 
+  TimetableListResponse,
   TimetableDetailResponse,
-  TimetableListResponse, 
   TimetableRequest, 
   CustomScheduleRequest 
 } from '@/shared/types/api';
@@ -27,7 +26,11 @@ export const timetableApi = {
   },
 
   createTimetable: async (data: TimetableRequest) => {
-    const { data: responseData } = await api.post<CommonResponse<TimetableResponse>>(BASE_URL, data);
+    const payload = {
+      name: data.name,
+      isPrimary: data.isPrimary ?? data.primary ?? false,
+    };
+    const { data: responseData } = await api.post<CommonResponse<TimetableListResponse>>(BASE_URL, payload);
     return responseData;
   },
 

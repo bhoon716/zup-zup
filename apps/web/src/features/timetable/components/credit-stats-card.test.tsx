@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { CreditStatsCard } from './credit-stats-card';
 import { TooltipProvider } from '@/shared/ui/tooltip';
 

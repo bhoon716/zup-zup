@@ -55,7 +55,7 @@ export function buildFreeSchedulesFromTimetable(
 ): ScheduleCondition[] {
   const schedules = [
     ...(timetable?.courses?.flatMap((course) => course.schedules ?? []) ?? []),
-    ...(timetable?.customSchedules ?? []),
+    ...(timetable?.customSchedules?.flatMap((schedule) => schedule.schedules ?? []) ?? []),
   ];
 
   const allSlots: ScheduleCondition[] = [];

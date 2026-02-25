@@ -3,7 +3,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
-import { Clock, MapPin, User, Trash2, Calendar } from 'lucide-react';
+import { MapPin, User, Trash2, Calendar } from 'lucide-react';
 import { RenderingBlock, mergeAdjacentSchedules } from '@/features/timetable/lib/timetable';
 import { useRemoveCustomSchedule, useTimetableDetail } from '@/features/timetable/hooks/useTimetable';
 import { formatDayOfWeek } from '@/shared/lib/formatters';

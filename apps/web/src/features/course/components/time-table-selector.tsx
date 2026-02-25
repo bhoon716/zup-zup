@@ -3,7 +3,7 @@
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import type { CourseDayOfWeek, ScheduleCondition } from "@/shared/types/api";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const DAYS: CourseDayOfWeek[] = ["월", "화", "수", "목", "금", "토"];
 const SLOT_NUMBERS = Array.from({ length: 13 }, (_, i) => i);
@@ -72,16 +72,12 @@ function sortSchedules(schedules: ScheduleCondition[]): ScheduleCondition[] {
 }
 
 export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps) {
-  const isDraggingRef = useCallback((val: boolean) => {
-    (window as any)._isDragging = val;
-  }, []);
-  const getIsDragging = () => (window as any)._isDragging || false;
-
+  const dragActiveRef = useRef(false);
   const [isDragging, _setIsDragging] = useState(false);
-  const setIsDragging = (val: boolean) => {
+  const setIsDragging = useCallback((val: boolean) => {
     _setIsDragging(val);
-    isDraggingRef(val);
-  };
+    dragActiveRef.current = val;
+  }, []);
   const [dragMode, setDragMode] = useState<"select" | "deselect" | null>(null);
   const [dragStart, setDragStart] = useState<DragCell | null>(null);
   const [dragCurrent, setDragCurrent] = useState<DragCell | null>(null);
@@ -146,7 +142,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
   const onMouseEnterCell = useCallback((day: CourseDayOfWeek, slot: number) => {
     setHoveredDay(day);
     setHoveredSlot(slot);
-    if (!getIsDragging()) return;
+    if (!dragActiveRef.current) return;
     const dayIndex = DAYS.indexOf(day);
     if (dayIndex >= 0) {
       setDragCurrent({ dayIndex, slot });
@@ -154,7 +150,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
   }, []);
 
   const finishDragSelection = useCallback(() => {
-    if (!getIsDragging() || !dragMode || !dragStart || !dragCurrent) {
+    if (!dragActiveRef.current || !dragMode || !dragStart || !dragCurrent) {
       setIsDragging(false);
       setDragMode(null);
       return;
@@ -176,7 +172,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     setDragStart(null);
     setDragCurrent(null);
     setDragSnapshot([]);
-  }, [dragCurrent, dragMode, dragRectSchedules, dragSnapshot, dragStart, onChange]);
+  }, [dragCurrent, dragMode, dragRectSchedules, dragSnapshot, dragStart, onChange, setIsDragging]);
 
   useEffect(() => {
     const handleUp = () => finishDragSelection();
@@ -229,7 +225,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    if (!getIsDragging()) return;
+    if (!dragActiveRef.current) return;
     const touch = e.touches[0];
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
     if (!element) return;
@@ -357,7 +353,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
                         startDrag(day, slot);
                       }}
                       onMouseEnter={() => onMouseEnterCell(day, slot)}
-                      onTouchStart={(e) => {
+                      onTouchStart={() => {
                         startDrag(day, slot);
                       }}
                       onTouchMove={onTouchMove}

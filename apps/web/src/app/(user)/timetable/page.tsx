@@ -21,11 +21,34 @@ import { Badge } from '@/shared/ui/badge';
 import { cn } from '@/shared/lib/utils';
 import { toPng } from 'html-to-image';
 import { CourseDetailDialog } from '@/features/course/components/course-detail-dialog';
-import { Course } from '@/shared/types/api';
+import type { Course, CourseClassification, TimetableEntryResponse, WishlistResponse } from '@/shared/types/api';
 
 import { formatDayOfWeek } from '@/shared/lib/formatters';
 
 const TODAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const;
+const COURSE_CLASSIFICATIONS = new Set<CourseClassification>([
+  '계열공통',
+  '교양',
+  '교직(대학원)',
+  '교직(대)',
+  '교직',
+  '군사학',
+  '기초필수',
+  '선수',
+  '일반선택',
+  '전공',
+  '전공선택',
+  '전공필수',
+]);
+
+type SidebarCourseSource = TimetableEntryResponse | WishlistResponse;
+
+function normalizeClassification(value?: string): CourseClassification | undefined {
+  if (!value || !COURSE_CLASSIFICATIONS.has(value as CourseClassification)) {
+    return undefined;
+  }
+  return value as CourseClassification;
+}
 
 export default function TimetablePage() {
   const queryClient = useQueryClient();
@@ -213,18 +236,18 @@ export default function TimetablePage() {
   /**
    * 사이드바 강의 또는 찜 목록 누를 때 상세 다이얼로그를 켭니다.
    */
-  const handleSidebarCourseClick = (course: any) => {
+  const handleSidebarCourseClick = (course: SidebarCourseSource) => {
     // TimetableEntryResponse 또는 WishlistResponse를 Course 타입으로 변환
     const mapped: Course = {
       courseKey: course.courseKey,
-      subjectCode: course.subjectCode || '',
-      name: course.name || course.courseName,
-      classNumber: course.classNumber || '',
+      subjectCode: 'subjectCode' in course ? course.subjectCode : '',
+      name: 'courseName' in course ? course.courseName : course.name,
+      classNumber: 'classNumber' in course ? course.classNumber : '',
       professor: course.professor,
       credits: course.credits,
-      classification: course.classification as any,
-      classroom: course.classroom,
-      classTime: course.scheduleText || course.classTime,
+      classification: normalizeClassification(course.classification),
+      classroom: 'classroom' in course ? course.classroom : undefined,
+      classTime: course.classTime,
     };
     setSelectedSidebarCourse(mapped);
     setSidebarCourseDialogOpen(true);

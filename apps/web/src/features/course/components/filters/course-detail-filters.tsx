@@ -48,6 +48,11 @@ export function CourseDetailFilters({
       ? (GE_CATEGORIES as Record<string, string[]>)[condition.generalCategory]
       : [];
 
+  const creditSelectValue =
+    condition.minCredits !== undefined && condition.minCredits >= 4
+      ? "4+"
+      : (condition.credits || "all");
+
   return (
     <div className="space-y-4">
       {/* 이수 구분 (대분류 & 중분류) */}
@@ -272,11 +277,12 @@ export function CourseDetailFilters({
         <div className="space-y-1.5">
           <Label className="text-[11px] font-bold text-muted-foreground">학점</Label>
           <Select
-            value={condition.credits || "all"}
+            value={creditSelectValue}
             onValueChange={(value) =>
               setCondition((prev) => ({
                 ...prev,
-                credits: value === "all" ? undefined : value,
+                credits: value === "all" || value === "4+" ? undefined : value,
+                minCredits: value === "4+" ? 4 : undefined,
               }))
             }
           >
@@ -323,11 +329,12 @@ export function CourseDetailFilters({
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">강의 방식</Label>
         <Select
-          value={condition.courseDirection || "all"}
+          value={condition.status || "all"}
           onValueChange={(value) =>
             setCondition((prev) => ({
               ...prev,
-              courseDirection: value === "all" ? undefined : value,
+              status: value === "all" ? undefined : value,
+              courseDirection: undefined,
             }))
           }
         >

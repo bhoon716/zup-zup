@@ -7,8 +7,8 @@ export const DEFAULT_CONDITION = {
 
 export const CLASSIFICATION_GROUPS = [
   {
-    label: "전공(대학원)",
-    items: ["전공", "전공필수", "전공선택"],
+    label: "전공",
+    items: ["전공필수", "전공선택", "전공(대학원)"],
   },
   {
     label: "교양",
@@ -22,7 +22,7 @@ export const CLASSIFICATION_GROUPS = [
   },
   {
     label: "기타",
-    items: ["기초필수", "계열공통", "교직", "교직(대)", "군사학", "선수", "논문"],
+    items: ["기초필수", "계열공통", "교직", "교직(대학원)", "군사학", "선수"],
   },
 ];
 

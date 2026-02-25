@@ -2,6 +2,11 @@ import { TimetableResponse, CustomScheduleTimeResponse } from '@/shared/types/ap
 import { formatDayOfWeek } from '@/shared/lib/formatters';
 
 export const WEEK_DAYS = ['월', '화', '수', '목', '금', '토', '일'] as const;
+const WEEK_DAY_ORDER = new Map(WEEK_DAYS.map((day, index) => [day, index]));
+
+function getWeekDayOrder(day: string): number {
+  return WEEK_DAY_ORDER.get(day as (typeof WEEK_DAYS)[number]) ?? Number.MAX_SAFE_INTEGER;
+}
 
 export interface RenderingBlock {
   key: string;
@@ -117,7 +122,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
   const processedKeys = new Set<string>();
   const sorted = [...flattened].sort((a, b) => {
     if (a.dayOfWeek !== b.dayOfWeek) {
-      return WEEK_DAYS.indexOf(a.dayOfWeek as any) - WEEK_DAYS.indexOf(b.dayOfWeek as any);
+      return getWeekDayOrder(a.dayOfWeek) - getWeekDayOrder(b.dayOfWeek);
     }
     return getTimeInMinutes(a.startTime) - getTimeInMinutes(b.startTime);
   });
@@ -226,7 +231,7 @@ export function mergeAdjacentSchedules(schedules: CustomScheduleTimeResponse[]):
   const sorted = [...schedules].sort((a, b) => {
     const dayA = formatDayOfWeek(a.dayOfWeek);
     const dayB = formatDayOfWeek(b.dayOfWeek);
-    const dayDiff = WEEK_DAYS.indexOf(dayA as any) - WEEK_DAYS.indexOf(dayB as any);
+    const dayDiff = getWeekDayOrder(dayA) - getWeekDayOrder(dayB);
     if (dayDiff !== 0) return dayDiff;
     return a.startTime.localeCompare(b.startTime);
   });

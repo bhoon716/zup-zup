@@ -37,7 +37,9 @@ export function RecentNotifications({ notifications }: { notifications: Notifica
                   {notif.title}
                 </p>
                 <p className="text-[10px] text-gray-400 font-medium">
-                  {format(new Date(notif.createdAt), "yy. MM. dd. HH:mm")}
+                  {notif.sentAt || notif.createdAt
+                    ? format(new Date(notif.sentAt || notif.createdAt || ""), "yy. MM. dd. HH:mm")
+                    : "-"}
                 </p>
               </div>
             </div>

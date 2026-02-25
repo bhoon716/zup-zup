@@ -15,7 +15,7 @@ import { useUser } from "@/features/user/hooks/useUser";
 import { useTimetables } from "@/features/timetable/hooks/useTimetable";
 import { timetableApi } from "@/features/timetable/api/timetable.api";
 import { buildFreeSchedulesFromTimetable } from "../../lib/course-utils";
-import type { CourseSearchCondition, ScheduleCondition, TimetableResponse, TimetableDetailResponse } from "@/shared/types/api";
+import type { CourseSearchCondition, ScheduleCondition } from "@/shared/types/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,7 +89,7 @@ export function CourseSmartFilters({
       }));
       setScheduleOpen(true);
       toast.success(`'${name}' 기준 공강 ${importedSchedules.length}칸을 선택했습니다.`);
-    } catch (error) {
+    } catch {
       toast.error("시간표 정보를 가져오는데 실패했습니다.");
     }
   };

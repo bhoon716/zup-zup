@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -45,16 +45,21 @@ export function CustomScheduleDialog({ timetableId, open, onOpenChange }: Custom
     },
   });
 
-  useEffect(() => {
-    if (open) {
-      reset({
-        title: '',
-        professor: '',
-        classroom: '',
-      });
-      setSelectedSchedules([]);
+  const resetDialogState = () => {
+    reset({
+      title: '',
+      professor: '',
+      classroom: '',
+    });
+    setSelectedSchedules([]);
+  };
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      resetDialogState();
     }
-  }, [open, reset]);
+    onOpenChange(nextOpen);
+  };
 
   const onSubmit = async (values: FormValues) => {
     if (!timetableId) return;
@@ -77,14 +82,14 @@ export function CustomScheduleDialog({ timetableId, open, onOpenChange }: Custom
           }))
         }
       });
-      onOpenChange(false);
+      handleDialogOpenChange(false);
     } catch (error) {
       console.error('Failed to add custom schedules:', error);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-4xl p-0 overflow-hidden border-none bg-white dark:bg-[#251e2b] max-h-[95vh] flex flex-col">
         <DialogHeader className="px-8 py-6 border-b border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-white/5 text-left">
           <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">일정 직접 추가</DialogTitle>
@@ -162,7 +167,7 @@ export function CustomScheduleDialog({ timetableId, open, onOpenChange }: Custom
             <Button 
               type="button" 
               variant="ghost" 
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleDialogOpenChange(false)}
               className="px-6 h-12 text-gray-500 font-medium hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
             >
               취소
