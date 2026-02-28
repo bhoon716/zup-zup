@@ -181,26 +181,39 @@ export function HomeLanding() {
                   className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow hover:border-indigo-100"
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <span className={cn(
-                        "px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase",
-                        schedule.dDay === "D-Day" ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"
-                      )}>
-                        {schedule.dDay}
-                      </span>
-                      <span className="text-sm font-bold text-slate-400">
-                        {schedule.scheduleDate}
-                      </span>
+                    <div className="flex flex-col gap-2 mb-4">
+                      <div className="flex items-center justify-between">
+                        <span className={cn(
+                          "px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase",
+                          schedule.dDay === "D-Day" ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"
+                        )}>
+                          {schedule.dDay}
+                        </span>
+                        <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">
+                          {schedule.target}
+                        </span>
+                      </div>
                     </div>
-                    <h4 className="text-xl font-bold text-[#161118] leading-snug break-keep">
-                      {schedule.title}
+                    <h4 className="text-[1.1rem] font-bold text-[#161118] leading-snug break-keep mb-1">
+                      {schedule.scheduleType}
                     </h4>
                   </div>
-                  {schedule.scheduleTime && (
-                    <div className="mt-6 pt-4 border-t border-slate-100 text-sm font-medium text-slate-500 flex items-center gap-2">
-                       <time>{schedule.scheduleTime.substring(0, 5)} 시작</time>
+                  <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-1 text-[13px] font-semibold text-slate-500">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">일자</span>
+                      <span>
+                        {schedule.startDate.substring(5).replace("-", ".")} ~ {schedule.endDate.substring(5).replace("-", ".")}
+                      </span>
                     </div>
-                  )}
+                    {(schedule.startTime || schedule.endTime) && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">시간</span>
+                        <span>
+                          {schedule.startTime ? schedule.startTime : "--:--"} ~ {schedule.endTime ? schedule.endTime : "--:--"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               ))}
             </div>
