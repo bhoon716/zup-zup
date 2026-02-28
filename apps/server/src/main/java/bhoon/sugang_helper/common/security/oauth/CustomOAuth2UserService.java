@@ -2,11 +2,13 @@ package bhoon.sugang_helper.common.security.oauth;
 
 import bhoon.sugang_helper.domain.user.entity.Role;
 import bhoon.sugang_helper.domain.user.entity.User;
+import bhoon.sugang_helper.domain.user.event.UserRegisteredEvent;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import java.util.Collections;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -39,7 +42,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String name = (String) attributes.get("name");
 
         log.info("소셜 로그인 사용자 정보 로드 요청(OAuth2): 제공자={}, 이메일={}", registrationId, email);
-        User user = saveOrUpdate(email, name);
+        saveOrUpdate(email, name);
+        User user = userRepository.findByEmail(email).orElseThrow();
         log.info("소셜 로그인 사용자 정보 로드 완료(OAuth2): 사용자ID={}", user.getId());
 
         return new DefaultOAuth2User(
@@ -48,17 +52,20 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                 userNameAttributeName);
     }
 
-    private User saveOrUpdate(String email, String name) {
-        User user = userRepository.findByEmail(email)
-                .orElse(User.builder()
-                        .email(email)
-                        .name(name)
-                        .role(Role.USER)
-                        .build());
-
-        User savedUser = userRepository.save(user);
-        log.info("사용자 저장/갱신 완료: 사용자ID={}, 이메일={}", savedUser.getId(), email);
-        return savedUser;
+    private void saveOrUpdate(String email, String name) {
+        userRepository.findByEmail(email)
+                .ifPresentOrElse(
+                        user -> log.info("기존 사용자 로그인: 이메일={}", email),
+                        () -> {
+                            User newUser = User.builder()
+                                    .email(email)
+                                    .name(name)
+                                    .role(Role.USER)
+                                    .build();
+                            User savedUser = userRepository.save(newUser);
+                            log.info("신규 사용자 가입 완료: 사용자ID={}, 이메일={}", savedUser.getId(), email);
+                            eventPublisher.publishEvent(new UserRegisteredEvent(savedUser.getId(), email));
+                        });
     }
 
     protected OAuth2User getDelegateUser(OAuth2UserRequest userRequest) {
