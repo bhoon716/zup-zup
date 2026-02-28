@@ -29,8 +29,13 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
     private final UserRepository userRepository;
+    private final CourseCrawlerTargetService crawlerTargetService;
 
+    /**
+     * 필터 조건과 페이징 정보를 사용하여 강의 목록을 검색
+     */
     public Slice<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
+        CourseCrawlerTargetService.CrawlTarget target = crawlerTargetService.getCurrentTargetValue();
         if (Boolean.TRUE.equals(condition.getIsWishedOnly())) {
             String email = SecurityUtil.getCurrentUserEmail();
             User user = userRepository.findByEmail(email)
@@ -38,9 +43,12 @@ public class CourseService {
             condition.setUserId(user.getId());
         }
         return courseRepository.searchCourses(condition, pageable)
-                .map(CourseResponse::from);
+                .map(course -> CourseResponse.from(course, target.year(), target.semester()));
     }
 
+    /**
+     * 특정 강의의 여석 변화 이력을 조회
+     */
     public List<CourseSeatHistoryResponse> getCourseHistory(String courseKey) {
         return courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDesc(courseKey)
                 .stream()
@@ -48,6 +56,9 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 존재하는 모든 교양 영역 및 상세 카테고리 목록을 조회
+     */
     public List<CourseCategoryResponse> getCourseCategories() {
         return courseRepository.findDistinctGeneralCategories()
                 .stream()
@@ -58,9 +69,13 @@ public class CourseService {
                 .toList();
     }
 
+    /**
+     * 특정 강의의 상세 정보를 조회
+     */
     public CourseDetailResponse getCourse(String courseKey) {
         Course course = courseRepository.findByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "강의를 찾을 수 없습니다: " + courseKey));
-        return CourseDetailResponse.from(course);
+        CourseCrawlerTargetService.CrawlTarget target = crawlerTargetService.getCurrentTargetValue();
+        return CourseDetailResponse.from(course, target.year(), target.semester());
     }
 }
