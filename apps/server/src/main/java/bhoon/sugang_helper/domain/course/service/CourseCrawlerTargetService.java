@@ -1,11 +1,11 @@
 package bhoon.sugang_helper.domain.course.service;
 
+import bhoon.sugang_helper.domain.course.enums.SemesterType;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.CrawlerSetting;
 import bhoon.sugang_helper.domain.course.repository.CrawlerSettingRepository;
 import bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,17 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CourseCrawlerTargetService {
-
-    private static final Set<String> SUPPORTED_SEMESTER_CODES = Set.of(
-            "U211600010", // 1학기
-            "U211600020", // 2학기
-            "U211600015", // 하기 계절학기
-            "U211600025", // 동기 계절학기
-            "U211600016", // 여름 특별학기
-            "U211600026", // 겨울 특별학기
-            "U211600009", // 신입생 특별학기
-            "U211600008" // SW 특별학기
-    );
 
     private final CrawlerSettingRepository crawlerSettingRepository;
 
@@ -93,11 +82,13 @@ public class CourseCrawlerTargetService {
             throw new CustomException(ErrorCode.INVALID_INPUT, "학기 코드는 필수입니다.");
         }
         String normalized = semester.trim();
-        if (!SUPPORTED_SEMESTER_CODES.contains(normalized)) {
+        try {
+            return SemesterType.fromCode(normalized).getCode();
+        } catch (CustomException e) {
+            // 지원하는 학기 목록을 포함한 더 친절한 에러 메시지로 보강
             throw new CustomException(ErrorCode.INVALID_INPUT,
-                    "지원하지 않는 학기 코드입니다. (1학기, 2학기, 하기/동기 계절학기, 여름/겨울/신입생/SW 특별학기)");
+                    "지원하지 않는 학기 코드입니다. (지원대상: 1학기, 2학기, 하기/동기 계절학기, 여름/겨울/신입생/SW 특별학기)");
         }
-        return normalized;
     }
 
     /**

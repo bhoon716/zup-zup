@@ -25,8 +25,12 @@ public class CourseScheduler {
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         if (runOnStartup) {
-            log.info("[초기화] 애플리케이션 시작 시 초기 크롤링 작업을 진행합니다.");
-            runCrawler();
+            log.info("[초기화] 애플리케이션 시작 시 최근 3개년 강의 데이터를 크롤링합니다.");
+            try {
+                courseCrawlerService.crawlRecentYears();
+            } catch (Exception e) {
+                log.error("[초기화] 초기 크롤링 작업 중 오류가 발생했으나 서비스를 시작합니다. 사유: {}", e.getMessage());
+            }
         }
     }
 
