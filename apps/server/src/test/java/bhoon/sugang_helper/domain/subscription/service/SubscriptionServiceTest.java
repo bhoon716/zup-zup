@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.domain.subscription.service;
 
+import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,6 +38,8 @@ class SubscriptionServiceTest {
     private CourseRepository courseRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private CourseCrawlerTargetService crawlerTargetService;
 
     @InjectMocks
     private SubscriptionService subscriptionService;
@@ -47,7 +51,13 @@ class SubscriptionServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(subscriptionService, "maxLimit", 3);
         user = User.builder().id(1L).email("test@example.com").build();
-        course = Course.builder().courseKey("CK1").name("Test Course").professor("Prof").build();
+        course = Course.builder()
+                .courseKey("CK1")
+                .name("Test Course")
+                .professor("Prof")
+                .academicYear("2026")
+                .semester("U211600010")
+                .build();
     }
 
     @Test
@@ -62,6 +72,8 @@ class SubscriptionServiceTest {
             given(subscriptionRepository.findByUserIdAndCourseKey(user.getId(), course.getCourseKey()))
                     .willReturn(Optional.empty());
             given(subscriptionRepository.countByUserIdAndIsActiveTrue(user.getId())).willReturn(0L);
+            given(crawlerTargetService.getCurrentTargetValue())
+                    .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
 
             Subscription subscription = Subscription.builder()
                     .userId(user.getId())

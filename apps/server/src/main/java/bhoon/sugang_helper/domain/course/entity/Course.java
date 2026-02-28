@@ -182,6 +182,13 @@ public class Course extends BaseTimeEntity {
     }
 
     /**
+     * 입력받은 년도와 학기가 현재 강의의 정보와 일치하는지 확인
+     */
+    public boolean isMatchingTarget(String year, String semester) {
+        return this.academicYear.equals(year) && this.semester.equals(semester);
+    }
+
+    /**
      * 강의 시간표 정보 추가
      */
     public void addSchedule(CourseSchedule schedule) {

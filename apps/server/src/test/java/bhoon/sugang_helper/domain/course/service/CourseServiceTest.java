@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.domain.course.service;
 
+import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService.CrawlTarget;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,11 +42,15 @@ class CourseServiceTest {
         @Mock
         private bhoon.sugang_helper.domain.user.repository.UserRepository userRepository;
 
+        @Mock
+        private CourseCrawlerTargetService crawlerTargetService;
+
         private CourseService courseService;
 
         @BeforeEach
         void setUp() {
-                courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userRepository);
+                courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userRepository,
+                                crawlerTargetService);
         }
 
         @Test
@@ -59,9 +65,12 @@ class CourseServiceTest {
                                 .name("Test Course")
                                 .capacity(50)
                                 .current(10)
+                                .academicYear("2026")
+                                .semester("U211600010")
                                 .build();
                 given(courseRepository.searchCourses(any(CourseSearchCondition.class), any(Pageable.class)))
                                 .willReturn(new SliceImpl<>(List.of(course)));
+                given(crawlerTargetService.getCurrentTargetValue()).willReturn(new CrawlTarget("2026", "U211600010"));
 
                 // when
                 Slice<CourseResponse> responses = courseService.searchCourses(condition, PageRequest.of(0, 10));
@@ -81,8 +90,11 @@ class CourseServiceTest {
                                 .name("Test Course")
                                 .capacity(50)
                                 .current(10)
+                                .academicYear("2026")
+                                .semester("U211600010")
                                 .build();
                 given(courseRepository.findByCourseKey(courseKey)).willReturn(Optional.of(course));
+                given(crawlerTargetService.getCurrentTargetValue()).willReturn(new CrawlTarget("2026", "U211600010"));
 
                 // when
                 CourseDetailResponse response = courseService.getCourse(courseKey);

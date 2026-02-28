@@ -99,14 +99,19 @@ public class CourseResponse {
     @Schema(description = "상태 (AVAILABLE, FULL)", example = "AVAILABLE")
     private final String status;
 
+    @Schema(description = "구독 가능 여부 (현재 추적 중인 학기 여부)", example = "true")
+    private final Boolean isSubscribable;
+
     @Schema(description = "마지막 크롤링 시간", example = "2024-03-20T10:00:00")
     private final LocalDateTime lastCrawledAt;
 
     /**
      * 강의 엔티티를 응답 DTO로 변환
      */
-    public static CourseResponse from(Course course) {
+    public static CourseResponse from(Course course, String currentYear, String currentSemester) {
         String status = course.getAvailable() > 0 ? "AVAILABLE" : "FULL";
+        boolean isSubscribable = course.isMatchingTarget(currentYear, currentSemester);
+
         return CourseResponse.builder()
                 .courseKey(course.getCourseKey())
                 .subjectCode(course.getSubjectCode())
@@ -136,6 +141,7 @@ public class CourseResponse {
                 .courseDirection(course.getCourseDirection())
                 .classDuration(course.getClassDuration())
                 .status(status)
+                .isSubscribable(isSubscribable)
                 .lastCrawledAt(course.getLastCrawledAt())
                 .build();
     }
