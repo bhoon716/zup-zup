@@ -4,8 +4,7 @@ import { motion } from "framer-motion";
 import { Loader2, Play, Save, Settings2 } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { CRAWL_SEMESTER_OPTIONS } from "@/features/admin/lib/crawl-semester-options";
+import { CRAWL_SEMESTER_OPTIONS, getCrawlYearOptions } from "@/features/admin/lib/crawl-semester-options";
 
 /**
  * 관리자 크롤링 타겟 패널의 Props 인터페이스입니다.
@@ -69,6 +68,8 @@ export function AdminCrawlTargetPanel({
   isRunningCustomTarget,
   canRunCustomTarget,
 }: AdminCrawlTargetPanelProps) {
+  const yearOptions = getCrawlYearOptions();
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 20 }}
@@ -87,12 +88,19 @@ export function AdminCrawlTargetPanel({
             스케줄러 및 기본 크롤링 버튼에서 사용할 년도/학기를 저장합니다.
           </p>
           <div className="space-y-3">
-            <Input
+            <select
               value={configuredYear}
               onChange={(event) => onConfiguredYearChange(event.target.value)}
-              placeholder="년도 (예: 2025)"
               disabled={isConfiguredTargetLoading || isSavingConfiguredTarget}
-            />
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">년도 선택</option>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
             <select
               value={configuredSemester}
               onChange={(event) => onConfiguredSemesterChange(event.target.value)}
@@ -140,12 +148,19 @@ export function AdminCrawlTargetPanel({
             저장과 무관하게 1회성으로 원하는 년도/학기를 즉시 크롤링합니다.
           </p>
           <div className="space-y-3">
-            <Input
+            <select
               value={runYear}
               onChange={(event) => onRunYearChange(event.target.value)}
-              placeholder="년도 (예: 2024)"
               disabled={isRunningCustomTarget}
-            />
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">년도 선택</option>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
             <select
               value={runSemester}
               onChange={(event) => onRunSemesterChange(event.target.value)}
