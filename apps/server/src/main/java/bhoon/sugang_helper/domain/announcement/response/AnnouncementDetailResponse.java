@@ -26,9 +26,6 @@ public class AnnouncementDetailResponse {
     @Schema(description = "공개 여부")
     private boolean published;
 
-    @Schema(description = "작성자 이름")
-    private String authorName;
-
     @Schema(description = "생성 시각")
     private LocalDateTime createdAt;
 
@@ -42,7 +39,6 @@ public class AnnouncementDetailResponse {
                 .content(announcement.getContent())
                 .pinned(announcement.isPinned())
                 .published(announcement.isPublished())
-                .authorName(announcement.getAuthorName())
                 .createdAt(announcement.getCreatedAt())
                 .updatedAt(announcement.getUpdatedAt())
                 .build();

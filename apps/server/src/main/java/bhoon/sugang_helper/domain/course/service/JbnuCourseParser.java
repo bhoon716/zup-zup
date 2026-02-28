@@ -32,9 +32,10 @@ public class JbnuCourseParser {
     private static final String DATASET_ID = "GRD_COUR001";
     private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
     private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("\\s(?<grade>[1-6])(?=[\\s,]|$)");
-    private static final Pattern TRAILING_NUMBER_IN_SUBJECT_PATTERN =
-            Pattern.compile("^(?<subjectName>.*?)(?:\\s+)(?<number>\\d+)$");
-    private static final Pattern TRAILING_GRADE_PATTERN_TEMPLATE = Pattern.compile("^(?<before>.*?)(?:\\s+)(?<grade>[1-6])(?:학년)?(?:\\s*등)?$");
+    private static final Pattern TRAILING_NUMBER_IN_SUBJECT_PATTERN = Pattern
+            .compile("^(?<subjectName>.*?)(?:\\s+)(?<number>\\d+)$");
+    private static final Pattern TRAILING_GRADE_PATTERN_TEMPLATE = Pattern
+            .compile("^(?<before>.*?)(?:\\s+)(?<grade>[1-6])(?:학년)?(?:\\s*등)?$");
 
     /**
      * XML 데이터를 파싱하여 강의 리스트로 변환

@@ -102,14 +102,20 @@ public class CourseDetailResponse {
         @Schema(description = "구독 가능 여부 (현재 추적 중인 학기 여부)", example = "true")
         private final Boolean isSubscribable;
 
+        @Schema(description = "정형화된 강의 일정")
+        private final java.util.List<ScheduleResponse> schedules;
+
         @Schema(description = "마지막 크롤링 시간", example = "2024-03-20T10:00:00")
         private final LocalDateTime lastCrawledAt;
 
         /**
-         * 강의 엔티티를 응답 DTO로 변환
+         * 강의 엔티티를 클라이언트 응답용 상세 DTO로 변환합니다.
+         * 여석 상태 및 정형화된 일정 데이터(HH:mm)를 포함합니다.
          */
         public static CourseDetailResponse from(Course course, String currentYear, String currentSemester) {
+                // 여석 유무에 따른 상태 결정
                 String status = course.getAvailable() > 0 ? "AVAILABLE" : "FULL";
+                // 현재 추적 중인 학기인지 확인
                 boolean isSubscribable = course.isMatchingTarget(currentYear, currentSemester);
 
                 return CourseDetailResponse.builder()
@@ -153,6 +159,9 @@ public class CourseDetailResponse {
                                 .status(status)
                                 .isSubscribable(isSubscribable)
                                 .lastCrawledAt(course.getLastCrawledAt())
+                                .schedules(course.getSchedules().stream()
+                                                .map(ScheduleResponse::from)
+                                                .toList())
                                 .build();
         }
 }

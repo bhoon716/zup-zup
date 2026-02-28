@@ -25,9 +25,6 @@ public class AnnouncementListResponse {
     @Schema(description = "상단 고정 여부")
     private boolean pinned;
 
-    @Schema(description = "작성자 이름")
-    private String authorName;
-
     @Schema(description = "생성 시각")
     private LocalDateTime createdAt;
 
@@ -37,7 +34,6 @@ public class AnnouncementListResponse {
                 .title(announcement.getTitle())
                 .previewContent(createPreview(announcement.getContent()))
                 .pinned(announcement.isPinned())
-                .authorName(announcement.getAuthorName())
                 .createdAt(announcement.getCreatedAt())
                 .build();
     }

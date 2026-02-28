@@ -82,7 +82,6 @@ CREATE TABLE IF NOT EXISTS announcements (
     content TEXT NOT NULL,
     pinned TINYINT(1) NOT NULL DEFAULT 0,
     published TINYINT(1) NOT NULL DEFAULT 1,
-    author_name VARCHAR(100) NOT NULL,
     created_at DATETIME(6) NULL,
     updated_at DATETIME(6) NULL,
     PRIMARY KEY (id)

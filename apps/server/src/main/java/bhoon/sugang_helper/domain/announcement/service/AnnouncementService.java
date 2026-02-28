@@ -2,15 +2,12 @@ package bhoon.sugang_helper.domain.announcement.service;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.announcement.entity.Announcement;
 import bhoon.sugang_helper.domain.announcement.repository.AnnouncementRepository;
 import bhoon.sugang_helper.domain.announcement.request.AnnouncementRequest;
 import bhoon.sugang_helper.domain.announcement.request.AnnouncementSearchType;
 import bhoon.sugang_helper.domain.announcement.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.domain.announcement.response.AnnouncementListResponse;
-import bhoon.sugang_helper.domain.user.entity.User;
-import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AnnouncementService {
 
     private final AnnouncementRepository announcementRepository;
-    private final UserRepository userRepository;
 
     /**
      * 공개된 공지사항 목록을 검색 조건에 따라 조회합니다.
@@ -58,13 +54,11 @@ public class AnnouncementService {
      */
     @Transactional
     public AnnouncementDetailResponse createAnnouncement(AnnouncementRequest request) {
-        User user = getCurrentUser();
         Announcement announcement = Announcement.builder()
                 .title(request.getTitle().trim())
                 .content(request.getContent().trim())
                 .pinned(request.isPinnedOrDefault())
                 .published(request.isPublishedOrDefault())
-                .authorName(user.getName())
                 .build();
         return AnnouncementDetailResponse.from(announcementRepository.save(announcement));
     }
@@ -117,14 +111,5 @@ public class AnnouncementService {
             case CONTENT -> announcementRepository.searchPublishedByContent(normalizedKeyword);
             case TITLE_CONTENT -> announcementRepository.searchPublishedByTitleOrContent(normalizedKeyword);
         };
-    }
-
-    /**
-     * 현재 인증된 사용자 정보를 조회합니다.
-     */
-    private User getCurrentUser() {
-        String email = SecurityUtil.getCurrentUserEmail();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, "email: " + email));
     }
 }

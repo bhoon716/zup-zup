@@ -34,16 +34,12 @@ public class Announcement extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean published;
 
-    @Column(name = "author_name", nullable = false, length = 100)
-    private String authorName;
-
     @Builder
-    public Announcement(String title, String content, boolean pinned, boolean published, String authorName) {
+    public Announcement(String title, String content, boolean pinned, boolean published) {
         this.title = title;
         this.content = content;
         this.pinned = pinned;
         this.published = published;
-        this.authorName = authorName;
     }
 
     /**

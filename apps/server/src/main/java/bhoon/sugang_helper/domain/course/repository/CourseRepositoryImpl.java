@@ -346,18 +346,54 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
         Order order = "desc".equalsIgnoreCase(sortOrder) ? Order.DESC : Order.ASC;
 
+        // 강의명 순: 강의명(order) -> 과목코드(ASC) -> 분반(ASC)
         if ("name".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier[] { new OrderSpecifier<>(order, course.name) };
-        }
-        if ("credits".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier[] { new OrderSpecifier<>(order, course.credits) };
-        }
-        if ("available".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier[] { new OrderSpecifier<>(order, course.capacity.subtract(course.current)) };
+            return new OrderSpecifier[] {
+                    new OrderSpecifier<>(order, course.name),
+                    new OrderSpecifier<>(Order.ASC, course.subjectCode),
+                    new OrderSpecifier<>(Order.ASC, course.classNumber)
+            };
         }
 
-        // default: 추천순 (courseKey asc)
-        return new OrderSpecifier[] { new OrderSpecifier<>(Order.ASC, course.courseKey) };
+        // 인기순 (찜 횟수 기준): 찜횟수(order) -> 신청인원(DESC) -> 고유키(ASC)
+        if ("popular".equalsIgnoreCase(sortBy)) {
+            QWishlist wishlist = QWishlist.wishlist;
+            return new OrderSpecifier[] {
+                    new OrderSpecifier<>(order, JPAExpressions.select(wishlist.count())
+                            .from(wishlist)
+                            .where(wishlist.courseKey.eq(course.courseKey))),
+                    new OrderSpecifier<>(Order.DESC, course.current),
+                    new OrderSpecifier<>(Order.ASC, course.courseKey)
+            };
+        }
+
+        // 신청인원순: 신청인원(order) -> 전체정원(ASC) -> 고유키(ASC)
+        if ("current".equalsIgnoreCase(sortBy)) {
+            return new OrderSpecifier[] {
+                    new OrderSpecifier<>(order, course.current),
+                    new OrderSpecifier<>(Order.ASC, course.capacity),
+                    new OrderSpecifier<>(Order.ASC, course.courseKey)
+            };
+        }
+
+        // 여석순: 여석수(order) -> 전체정원(ASC) -> 고유키(ASC)
+        if ("available".equalsIgnoreCase(sortBy)) {
+            return new OrderSpecifier[] {
+                    new OrderSpecifier<>(order, course.capacity.subtract(course.current)),
+                    new OrderSpecifier<>(Order.ASC, course.capacity),
+                    new OrderSpecifier<>(Order.ASC, course.courseKey)
+            };
+        }
+
+        // default: 인기순 기반 정렬
+        QWishlist wishlist = QWishlist.wishlist;
+        return new OrderSpecifier[] {
+                new OrderSpecifier<>(order, JPAExpressions.select(wishlist.count())
+                        .from(wishlist)
+                        .where(wishlist.courseKey.eq(course.courseKey))),
+                new OrderSpecifier<>(Order.DESC, course.current),
+                new OrderSpecifier<>(Order.ASC, course.courseKey)
+        };
     }
 
     /**
