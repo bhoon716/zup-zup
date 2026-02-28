@@ -30,10 +30,10 @@ public class ScheduleService {
     }
 
     /**
-     * 어드민용: 만료된 일정을 포함한 모든 일정을 최신순으로 조회
+     * 어드민용: 만료된 일정을 포함한 모든 일정을 시작일 역순으로 정렬하여 조회
      */
     public List<ScheduleResponse> getAllSchedules() {
-        return scheduleRepository.findAllByOrderByScheduleDateDescScheduleTimeDesc()
+        return scheduleRepository.findAllByOrderByStartDateDescStartTimeDesc()
                 .stream()
                 .map(ScheduleResponse::from)
                 .toList();
@@ -45,9 +45,11 @@ public class ScheduleService {
     @Transactional
     public ScheduleResponse createSchedule(ScheduleRequest request) {
         Schedule schedule = Schedule.builder()
-                .title(request.getTitle())
-                .scheduleDate(request.getScheduleDate())
-                .scheduleTime(request.getScheduleTime())
+                .scheduleType(request.getScheduleType())
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .startTime(request.getStartTime())
+                .endTime(request.getEndTime())
                 .build();
         return ScheduleResponse.from(scheduleRepository.save(schedule));
     }
@@ -58,7 +60,8 @@ public class ScheduleService {
     @Transactional
     public ScheduleResponse updateSchedule(Long id, ScheduleRequest request) {
         Schedule schedule = getScheduleEntity(id);
-        schedule.update(request.getTitle(), request.getScheduleDate(), request.getScheduleTime());
+        schedule.update(request.getScheduleType(), request.getStartDate(),
+                request.getEndDate(), request.getStartTime(), request.getEndTime());
         return ScheduleResponse.from(schedule);
     }
 

@@ -39,9 +39,11 @@ class ScheduleServiceTest {
         // given
         LocalDate today = LocalDate.now();
         Schedule schedule = Schedule.builder()
-                .title("수강신청 장바구니")
-                .scheduleDate(today.plusDays(3))
-                .scheduleTime(LocalTime.of(10, 0))
+                .scheduleType("수강신청 장바구니")
+                .startDate(today.plusDays(3))
+                .endDate(today.plusDays(5))
+                .startTime(LocalTime.of(10, 0))
+                .endTime(LocalTime.of(18, 0))
                 .build();
         ReflectionTestUtils.setField(schedule, "id", 1L);
 
@@ -52,7 +54,7 @@ class ScheduleServiceTest {
 
         // then
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getTitle()).isEqualTo("수강신청 장바구니");
+        assertThat(responses.get(0).getScheduleType()).isEqualTo("수강신청 장바구니");
         assertThat(responses.get(0).getDDay()).isEqualTo("D-3");
     }
 
@@ -60,11 +62,14 @@ class ScheduleServiceTest {
     @DisplayName("새로운 일정을 생성한다")
     void createSchedule() {
         // given
-        ScheduleRequest request = new ScheduleRequest("본 수강신청", LocalDate.now().plusDays(5), LocalTime.of(8, 0));
+        ScheduleRequest request = new ScheduleRequest("본 수강신청", LocalDate.now().plusDays(5),
+                LocalDate.now().plusDays(6), LocalTime.of(8, 0), LocalTime.of(18, 0));
         Schedule schedule = Schedule.builder()
-                .title(request.getTitle())
-                .scheduleDate(request.getScheduleDate())
-                .scheduleTime(request.getScheduleTime())
+                .scheduleType(request.getScheduleType())
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .startTime(request.getStartTime())
+                .endTime(request.getEndTime())
                 .build();
         ReflectionTestUtils.setField(schedule, "id", 1L);
 
@@ -74,7 +79,7 @@ class ScheduleServiceTest {
         ScheduleResponse response = scheduleService.createSchedule(request);
 
         // then
-        assertThat(response.getTitle()).isEqualTo("본 수강신청");
+        assertThat(response.getScheduleType()).isEqualTo("본 수강신청");
         assertThat(response.getDDay()).isEqualTo("D-5");
         verify(scheduleRepository).save(any(Schedule.class));
     }
@@ -84,12 +89,14 @@ class ScheduleServiceTest {
     void updateSchedule() {
         // given
         Schedule schedule = Schedule.builder()
-                .title("기존 일정")
-                .scheduleDate(LocalDate.now().plusDays(1))
+                .scheduleType("기존 일정")
+                .startDate(LocalDate.now().plusDays(1))
+                .endDate(LocalDate.now().plusDays(2))
                 .build();
         ReflectionTestUtils.setField(schedule, "id", 1L);
 
-        ScheduleRequest updateRequest = new ScheduleRequest("수정된 일정", LocalDate.now().plusDays(2), LocalTime.of(12, 0));
+        ScheduleRequest updateRequest = new ScheduleRequest("수정된 일정", LocalDate.now().plusDays(2),
+                LocalDate.now().plusDays(3), LocalTime.of(12, 0), LocalTime.of(18, 0));
 
         when(scheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
 
@@ -97,15 +104,15 @@ class ScheduleServiceTest {
         ScheduleResponse response = scheduleService.updateSchedule(1L, updateRequest);
 
         // then
-        assertThat(response.getTitle()).isEqualTo("수정된 일정");
-        assertThat(schedule.getScheduleTime()).isEqualTo(LocalTime.of(12, 0));
+        assertThat(response.getScheduleType()).isEqualTo("수정된 일정");
+        assertThat(schedule.getStartTime()).isEqualTo(LocalTime.of(12, 0));
     }
 
     @Test
     @DisplayName("일정을 찾을 수 없으면 예외가 발생한다")
     void updateScheduleNotFound() {
         // given
-        ScheduleRequest request = new ScheduleRequest("테스트", LocalDate.now(), null);
+        ScheduleRequest request = new ScheduleRequest("테스트", LocalDate.now(), LocalDate.now(), null, null);
         when(scheduleRepository.findById(1L)).thenReturn(Optional.empty());
 
         // when & then

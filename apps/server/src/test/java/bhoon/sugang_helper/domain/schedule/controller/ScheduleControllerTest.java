@@ -17,11 +17,15 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import bhoon.sugang_helper.common.config.SecurityConfig;
+import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+
 @WebMvcTest(controllers = ScheduleController.class, excludeFilters = {
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = bhoon.sugang_helper.common.config.SecurityConfig.class)
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class)
 })
 @AutoConfigureMockMvc(addFilters = false) // 시큐리티 필터 비활성화 (순수 컨트롤러 로직만 테스트)
 class ScheduleControllerTest {
@@ -33,10 +37,10 @@ class ScheduleControllerTest {
     private ScheduleService scheduleService;
 
     @MockitoBean
-    private bhoon.sugang_helper.common.security.jwt.JwtProvider jwtProvider;
+    private JwtProvider jwtProvider;
 
     @MockitoBean
-    private org.springframework.data.jpa.mapping.JpaMetamodelMappingContext jpaMetamodelMappingContext;
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @Test
     @DisplayName("예정된 주요 일정 목록을 조회한다")
@@ -45,9 +49,11 @@ class ScheduleControllerTest {
         List<ScheduleResponse> mockResponses = List.of(
                 ScheduleResponse.builder()
                         .id(1L)
-                        .title("테스트 일정")
-                        .scheduleDate(LocalDate.now().plusDays(1))
-                        .scheduleTime(LocalTime.of(10, 0))
+                        .scheduleType("테스트 일정")
+                        .startDate(LocalDate.now().plusDays(1))
+                        .endDate(LocalDate.now().plusDays(1))
+                        .startTime(LocalTime.of(10, 0))
+                        .endTime(LocalTime.of(11, 0))
                         .dDay("D-1")
                         .build());
         given(scheduleService.getUpcomingSchedules()).willReturn(mockResponses);
@@ -55,7 +61,7 @@ class ScheduleControllerTest {
         // when & then
         mockMvc.perform(get("/api/v1/schedules"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].title").value("테스트 일정"))
+                .andExpect(jsonPath("$[0].scheduleType").value("테스트 일정"))
                 .andExpect(jsonPath("$[0].dDay").value("D-1"))
                 .andExpect(jsonPath("$[0].id").value(1L));
     }

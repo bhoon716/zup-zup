@@ -24,12 +24,16 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import bhoon.sugang_helper.common.config.SecurityConfig;
+import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+
 @WebMvcTest(controllers = AdminScheduleController.class, excludeFilters = {
-                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = bhoon.sugang_helper.common.config.SecurityConfig.class)
+                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class)
 })
 @AutoConfigureMockMvc(addFilters = false) // 시큐리티 필터 무시
 class AdminScheduleControllerTest {
@@ -44,10 +48,10 @@ class AdminScheduleControllerTest {
         private ScheduleService scheduleService;
 
         @MockitoBean
-        private bhoon.sugang_helper.common.security.jwt.JwtProvider jwtProvider;
+        private JwtProvider jwtProvider;
 
         @MockitoBean
-        private org.springframework.data.jpa.mapping.JpaMetamodelMappingContext jpaMetamodelMappingContext;
+        private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
         @Test
         @DisplayName("모든 일정 목록을 조회한다")
@@ -56,8 +60,9 @@ class AdminScheduleControllerTest {
                 List<ScheduleResponse> mockResponses = List.of(
                                 ScheduleResponse.builder()
                                                 .id(1L)
-                                                .title("어드민 전체 테스트")
-                                                .scheduleDate(LocalDate.now())
+                                                .scheduleType("장바구니(예비)")
+                                                .startDate(LocalDate.now())
+                                                .endDate(LocalDate.now())
                                                 .dDay("D-Day")
                                                 .build());
                 given(scheduleService.getAllSchedules()).willReturn(mockResponses);
@@ -65,18 +70,20 @@ class AdminScheduleControllerTest {
                 // when & then
                 mockMvc.perform(get("/api/v1/admin/schedules"))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$[0].title").value("어드민 전체 테스트"));
+                                .andExpect(jsonPath("$[0].scheduleType").value("장바구니(예비)"));
         }
 
         @Test
         @DisplayName("신규 일정을 생성한다")
         void createSchedule() throws Exception {
                 // given
-                ScheduleRequest request = new ScheduleRequest("일정", LocalDate.now(), LocalTime.of(9, 0));
+                ScheduleRequest request = new ScheduleRequest("정식", LocalDate.now(), LocalDate.now(),
+                                LocalTime.of(9, 0), LocalTime.of(18, 0));
                 ScheduleResponse response = ScheduleResponse.builder()
                                 .id(1L)
-                                .title("일정")
-                                .scheduleDate(LocalDate.now())
+                                .scheduleType("정식")
+                                .startDate(LocalDate.now())
+                                .endDate(LocalDate.now())
                                 .dDay("D-Day")
                                 .build();
                 given(scheduleService.createSchedule(any())).willReturn(response);
@@ -93,11 +100,13 @@ class AdminScheduleControllerTest {
         @DisplayName("기존 일정을 수정한다")
         void updateSchedule() throws Exception {
                 // given
-                ScheduleRequest request = new ScheduleRequest("수정됨", LocalDate.now(), LocalTime.of(10, 0));
+                ScheduleRequest request = new ScheduleRequest("수정됨", LocalDate.now(), LocalDate.now(),
+                                LocalTime.of(10, 0), LocalTime.of(18, 0));
                 ScheduleResponse response = ScheduleResponse.builder()
                                 .id(1L)
-                                .title("수정됨")
-                                .scheduleDate(LocalDate.now())
+                                .scheduleType("수정됨")
+                                .startDate(LocalDate.now())
+                                .endDate(LocalDate.now())
                                 .dDay("D-Day")
                                 .build();
                 given(scheduleService.updateSchedule(eq(1L), any())).willReturn(response);
@@ -107,7 +116,7 @@ class AdminScheduleControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.title").value("수정됨"));
+                                .andExpect(jsonPath("$.scheduleType").value("수정됨"));
         }
 
         @Test

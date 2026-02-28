@@ -24,31 +24,37 @@ public class Schedule extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
-    private String title;
+    @Column(nullable = false, length = 50)
+    private String scheduleType;
 
     @Column(nullable = false)
-    private LocalDate scheduleDate;
+    private LocalDate startDate;
+
+    @Column(nullable = false)
+    private LocalDate endDate;
 
     @Column
-    private LocalTime scheduleTime;
+    private LocalTime startTime;
 
-    /**
-     * 일정 엔티티를 생성하는 빌더 메서드입니다.
-     */
+    @Column
+    private LocalTime endTime;
+
     @Builder
-    public Schedule(String title, LocalDate scheduleDate, LocalTime scheduleTime) {
-        this.title = title;
-        this.scheduleDate = scheduleDate;
-        this.scheduleTime = scheduleTime;
+    public Schedule(String scheduleType, LocalDate startDate, LocalDate endDate, LocalTime startTime,
+            LocalTime endTime) {
+        this.scheduleType = scheduleType;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
 
-    /**
-     * 일정의 정보를 수정합니다.
-     */
-    public void update(String title, LocalDate scheduleDate, LocalTime scheduleTime) {
-        this.title = title;
-        this.scheduleDate = scheduleDate;
-        this.scheduleTime = scheduleTime;
+    public void update(String scheduleType, LocalDate startDate, LocalDate endDate, LocalTime startTime,
+            LocalTime endTime) {
+        this.scheduleType = scheduleType;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
 }

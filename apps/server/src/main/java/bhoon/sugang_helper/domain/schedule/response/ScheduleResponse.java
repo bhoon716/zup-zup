@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -20,14 +21,22 @@ public class ScheduleResponse {
     @Schema(description = "일정 ID", example = "1")
     private Long id;
 
-    @Schema(description = "일정 이름", example = "2026년 1학기 수강신청")
-    private String title;
+    @Schema(description = "일정 구분", example = "장바구니(예비)")
+    private String scheduleType;
 
-    @Schema(description = "일정 날짜", example = "2026-02-14")
-    private LocalDate scheduleDate;
+    @Schema(description = "시작일", example = "2026-02-02")
+    private LocalDate startDate;
 
-    @Schema(description = "일정 시간", example = "10:00:00")
-    private LocalTime scheduleTime;
+    @Schema(description = "종료일", example = "2026-02-04")
+    private LocalDate endDate;
+
+    @Schema(description = "시작 시간", type = "string", example = "10:00")
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime startTime;
+
+    @Schema(description = "종료 시간", type = "string", example = "18:00")
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime endTime;
 
     @Schema(description = "D-Day", example = "D-3")
     @JsonProperty("dDay")
@@ -38,7 +47,7 @@ public class ScheduleResponse {
      */
     public static ScheduleResponse from(Schedule schedule) {
         LocalDate today = LocalDate.now();
-        long daysBetween = ChronoUnit.DAYS.between(today, schedule.getScheduleDate());
+        long daysBetween = ChronoUnit.DAYS.between(today, schedule.getStartDate());
 
         String dDayStr;
         if (daysBetween == 0) {
@@ -51,9 +60,11 @@ public class ScheduleResponse {
 
         return ScheduleResponse.builder()
                 .id(schedule.getId())
-                .title(schedule.getTitle())
-                .scheduleDate(schedule.getScheduleDate())
-                .scheduleTime(schedule.getScheduleTime())
+                .scheduleType(schedule.getScheduleType())
+                .startDate(schedule.getStartDate())
+                .endDate(schedule.getEndDate())
+                .startTime(schedule.getStartTime())
+                .endTime(schedule.getEndTime())
                 .dDay(dDayStr)
                 .build();
     }
