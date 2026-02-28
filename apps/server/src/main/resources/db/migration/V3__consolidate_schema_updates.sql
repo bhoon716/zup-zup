@@ -69,3 +69,9 @@ CREATE TABLE IF NOT EXISTS schedules (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. 사용자 기기(user_devices) 테이블의 token 컬럼 길이 확장
+-- Web Push 엔드포인트 URL은 255자를 초과할 수 있어 1000자로 확장함
+ALTER TABLE user_devices MODIFY COLUMN token VARCHAR(1000) NOT NULL;
+ALTER TABLE user_devices MODIFY COLUMN p256dh VARCHAR(500);
+ALTER TABLE user_devices MODIFY COLUMN auth VARCHAR(500);

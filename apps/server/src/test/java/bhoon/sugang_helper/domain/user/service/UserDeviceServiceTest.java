@@ -20,6 +20,7 @@ import bhoon.sugang_helper.domain.user.enums.DeviceType;
 import bhoon.sugang_helper.domain.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import bhoon.sugang_helper.domain.user.request.UserDeviceRequest;
+import bhoon.sugang_helper.domain.user.response.UserDeviceResponse;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -113,7 +114,7 @@ class UserDeviceServiceTest {
         userDeviceService.registerDevice(request);
 
         // then
-        verify(existingDevice, times(1)).updateToken("TOKEN", "NEW_P256DH", "NEW_AUTH", "NewAlias");
+        verify(existingDevice, times(1)).updateToken(1L, "TOKEN", "NEW_P256DH", "NEW_AUTH", "NewAlias");
         verify(userDeviceRepository, times(0)).save(any(UserDevice.class));
     }
 
@@ -163,7 +164,7 @@ class UserDeviceServiceTest {
         given(userDeviceRepository.findByUserId(1L)).willReturn(Collections.singletonList(device));
 
         // when
-        List<bhoon.sugang_helper.domain.user.response.UserDeviceResponse> result = userDeviceService.getUserDevices(1L);
+        List<UserDeviceResponse> result = userDeviceService.getUserDevices(1L);
 
         // then
         assertThat(result).hasSize(1);
