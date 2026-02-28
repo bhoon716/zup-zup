@@ -420,14 +420,20 @@ export interface CustomScheduleRequest {
 // 일정 관리 관련
 export interface ScheduleResponse {
   id: number;
-  title: string;
-  scheduleDate: string; // "YYYY-MM-DD"
-  scheduleTime?: string; // "HH:mm:ss"
+  scheduleType: string;
+  target: string;
+  startDate: string; // "YYYY-MM-DD"
+  endDate: string; // "YYYY-MM-DD"
+  startTime?: string; // "HH:mm"
+  endTime?: string; // "HH:mm"
   dDay: string;
 }
 
 export interface ScheduleRequest {
-  title: string;
-  scheduleDate: string; // "YYYY-MM-DD"
-  scheduleTime?: string; // "HH:mm:ss"
+  scheduleType: string;
+  target: string;
+  startDate: string; // "YYYY-MM-DD"
+  endDate: string; // "YYYY-MM-DD"
+  startTime?: string; // "HH:mm"
+  endTime?: string; // "HH:mm"
 }
