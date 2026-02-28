@@ -78,4 +78,19 @@ describe("user.api", () => {
       "/api/v1/users/devices/token/token%2Fwith%3Funsafe%3Dvalue"
     );
   });
+
+  it("sendTestNotification은 사용자 테스트 알림 API를 호출한다", async () => {
+    const { api, userApi } = await loadModules();
+    api.post.mockResolvedValue({
+      data: {
+        code: "SUCCESS",
+        message: "ok",
+        data: undefined,
+      },
+    });
+
+    await userApi.sendTestNotification();
+
+    expect(api.post).toHaveBeenCalledWith("/api/v1/notifications/test");
+  });
 });
