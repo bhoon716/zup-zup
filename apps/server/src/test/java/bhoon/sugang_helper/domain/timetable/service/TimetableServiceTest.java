@@ -20,6 +20,7 @@ import bhoon.sugang_helper.domain.timetable.repository.TimetableRepository;
 import bhoon.sugang_helper.domain.timetable.request.CustomScheduleRequest;
 import bhoon.sugang_helper.domain.timetable.request.TimetableRequest;
 import bhoon.sugang_helper.domain.user.entity.User;
+import bhoon.sugang_helper.domain.user.event.UserRegisteredEvent;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import java.time.LocalTime;
 import java.util.List;
@@ -62,7 +63,6 @@ class TimetableServiceTest {
     void setUp() {
         securityUtil = mockStatic(SecurityUtil.class);
         testUser = mock(User.class);
-        given(testUser.getId()).willReturn(1L);
     }
 
     @AfterEach
@@ -71,6 +71,7 @@ class TimetableServiceTest {
     }
 
     private void mockUser() {
+        given(testUser.getId()).willReturn(1L);
         given(SecurityUtil.getCurrentUserEmail()).willReturn(testEmail);
         given(userRepository.findByEmail(testEmail)).willReturn(Optional.of(testUser));
     }
@@ -201,5 +202,18 @@ class TimetableServiceTest {
         // then
         verify(timetableRepository, times(1)).delete(primary);
         assertThat(other.isPrimary()).isTrue();
+    }
+
+    @Test
+    @DisplayName("신규 사용자 가입 시 기본 시간표 자동 생성")
+    void handleUserRegisteredEvent_Success() {
+        // given
+        UserRegisteredEvent event = new UserRegisteredEvent(1L, "new@example.com");
+
+        // when
+        timetableService.handleUserRegisteredEvent(event);
+
+        // then
+        verify(timetableRepository, times(1)).save(any(Timetable.class));
     }
 }
