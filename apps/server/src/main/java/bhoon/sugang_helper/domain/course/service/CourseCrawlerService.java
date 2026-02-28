@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.domain.course.service;
 
+import bhoon.sugang_helper.domain.course.enums.SemesterType;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.Course;
@@ -7,7 +8,6 @@ import bhoon.sugang_helper.domain.course.entity.CourseSeatHistory;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
-import java.io.IOException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -64,6 +64,45 @@ public class CourseCrawlerService {
             return;
         }
 
+        try {
+            executeCrawl(year, semester);
+        } finally {
+            isCrawling.set(false);
+        }
+    }
+
+    /**
+     * 최근 3개년의 모든 학기에 대해 강의 데이터를 크롤링합니다.
+     */
+    public void crawlRecentYears() {
+        if (!isCrawling.compareAndSet(false, true)) {
+            log.warn("[크롤러] 이미 크롤링 작업이 진행 중입니다. 작업을 스킵합니다.");
+            return;
+        }
+
+        try {
+            int currentYear = java.time.Year.now().getValue();
+            for (int y = currentYear; y > currentYear - 3; y--) {
+                String year = String.valueOf(y);
+                for (SemesterType semester : SemesterType.values()) {
+                    try {
+                        log.info("[크롤러] 자동 크롤링 실행 중: {}년 {}학기", year, semester.getDescription());
+                        executeCrawl(year, semester.getCode());
+                    } catch (Exception e) {
+                        log.warn("[크롤러] {}년 {}학기 크롤링 실패 : {}", year, semester.getDescription(),
+                                e.getMessage());
+                    }
+                }
+            }
+        } finally {
+            isCrawling.set(false);
+        }
+    }
+
+    /**
+     * 실제 크롤링 로직을 실행합니다. (중복 체크 및 Lock 관리는 호출부에서 담당)
+     */
+    private void executeCrawl(String year, String semester) {
         log.info("[크롤러] 강의 크롤링을 시작합니다. year={}, semester={}", year, semester);
         try {
             // API 호출은 트랜잭션 외부에서 수행
@@ -74,10 +113,11 @@ public class CourseCrawlerService {
 
             log.info("[크롤러] 강의 크롤링을 완료했습니다. year={}, semester={}, 처리 건수={}",
                     year, semester, savedCount);
-        } catch (IOException e) {
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("[크롤러] 강의 데이터 가져오기 실패 (year={}, semester={})", year, semester, e);
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
-        } finally {
-            isCrawling.set(false);
         }
     }
 
@@ -104,7 +144,7 @@ public class CourseCrawlerService {
     /**
      * 개별 강의별로 트랜잭션을 분리하여 락 경합 및 대량 데이터 처리 안정성 확보
      */
-    public void processCourse(Course crawledCourse) {
+    private void processCourse(Course crawledCourse) {
         courseRepository.findByCourseKey(crawledCourse.getCourseKey())
                 .ifPresentOrElse(
                         existingCourse -> updateExistingCourse(existingCourse, crawledCourse),

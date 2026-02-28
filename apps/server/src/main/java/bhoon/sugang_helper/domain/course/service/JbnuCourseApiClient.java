@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.domain.course.service;
 
-import java.io.IOException;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -14,10 +15,10 @@ public class JbnuCourseApiClient {
     @Value("${jbnu.api.url}")
     private String apiUrl;
 
-    @Value("${jbnu.api.timeout-ms:30000}")
+    @Value("${jbnu.api.timeout-ms}")
     private int timeoutMs;
 
-    @Value("${jbnu.api.max-retries:1}")
+    @Value("${jbnu.api.max-retries}")
     private int maxRetries;
 
     @Value("${jbnu.crawler.default-year}")
@@ -57,7 +58,7 @@ public class JbnuCourseApiClient {
     /**
      * 기본 서버 설정값(defaultYear, defaultSemester)을 사용하여 강의 데이터를 가져옵니다.
      */
-    public String fetchCourseDataXml() throws IOException {
+    public String fetchCourseDataXml() {
         String year = (defaultYear == null || defaultYear.isBlank()) ? "2026" : defaultYear;
         String semester = (defaultSemester == null || defaultSemester.isBlank()) ? "U211600010" : defaultSemester;
         return fetchCourseDataXml(year, semester);
@@ -66,9 +67,10 @@ public class JbnuCourseApiClient {
     /**
      * 특정 년도와 학기를 지정하여 JBNU API 서버로부터 강의 데이터를 XML 형식으로 가져옵니다.
      */
-    public String fetchCourseDataXml(String year, String semester) throws IOException {
+    public String fetchCourseDataXml(String year, String semester) {
         String payload = PAYLOAD_TEMPLATE.formatted(year, semester);
         int retryCount = 0;
+
         while (true) {
             try {
                 return Jsoup.connect(apiUrl)
@@ -87,20 +89,30 @@ public class JbnuCourseApiClient {
                         .ignoreContentType(true)
                         .execute()
                         .body();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 retryCount++;
                 log.warn("[API 클라이언트] 강의 데이터 요청 실패 (시도 {}/{}): yy={}, shtm={}, reason={}",
                         retryCount, maxRetries + 1, year, semester, e.getMessage());
+
                 if (retryCount > maxRetries) {
-                    throw e;
+                    throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR,
+                            "JBNU API 요청 최종 실패: " + e.getMessage());
                 }
-                try {
-                    Thread.sleep(1000); // 1초 대기 후 재시도
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException("재시도 대기 중 인터럽트 발생", ie);
-                }
+
+                waitBeforeRetry();
             }
+        }
+    }
+
+    /**
+     * 재시도 전 일정 시간 대기합니다.
+     */
+    private void waitBeforeRetry() {
+        try {
+            Thread.sleep(1000); // 1초 대기
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new CustomException(ErrorCode.INTERNAL_ERROR, "재시도 대기 중 프로세스가 중단되었습니다.");
         }
     }
 }
