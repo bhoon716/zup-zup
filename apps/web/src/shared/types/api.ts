@@ -298,6 +298,22 @@ export interface AdminOverviewResponse {
   recentLogs: AdminRecentLogResponse[];
 }
 
+/**
+ * 관리자 크롤링 타겟 설정을 위한 요청 데이터 인터페이스입니다.
+ */
+export interface AdminCrawlTargetRequest {
+  year: string;
+  semester: string;
+}
+
+/**
+ * 관리자 크롤링 타겟 조회 시 반환되는 응답 데이터 인터페이스입니다.
+ */
+export interface AdminCrawlTargetResponse {
+  year: string;
+  semester: string;
+}
+
 // 찜 관련
 export interface WishlistResponse {
   id: number;

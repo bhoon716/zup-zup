@@ -1,11 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { AlertCircle, BellRing, CloudCog, Gauge, Loader2, RefreshCcw, Users } from "lucide-react";
 
 import { useAdminOverview } from "@/features/admin/hooks/useAdminOverview";
 import { useHealth } from "@/features/admin/hooks/useHealth";
-import { useCrawlCourses, useSendTestNotification } from "@/features/admin/hooks/useAdminActions";
+import {
+  useAdminCrawlTarget,
+  useCrawlCourses,
+  useCrawlCoursesByTarget,
+  useSendTestNotification,
+  useUpdateAdminCrawlTarget,
+} from "@/features/admin/hooks/useAdminActions";
 
 import { Button } from "@/shared/ui/button";
 
@@ -14,6 +21,7 @@ import { AdminTrafficChart } from "@/features/admin/components/admin-traffic-cha
 import { AdminQuickActions } from "@/features/admin/components/admin-quick-actions";
 import { AdminActivityLog } from "@/features/admin/components/admin-activity-log";
 import { AdminOverview } from "@/features/admin/components/admin-overview";
+import { AdminCrawlTargetPanel } from "@/features/admin/components/admin-crawl-target-panel";
 import {
   formatDateTime,
   formatNumber,
@@ -38,7 +46,20 @@ export default function AdminDashboardPage() {
   const { isLoading: isHealthLoading, refetch: refetchHealth } = useHealth();
   
   const { mutate: crawlCourses, isPending: isCrawling } = useCrawlCourses();
+  const { mutate: crawlCoursesByTarget, isPending: isCustomCrawling } = useCrawlCoursesByTarget();
   const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
+  const { data: crawlTarget, isLoading: isCrawlTargetLoading } = useAdminCrawlTarget();
+  const { mutate: updateCrawlTarget, isPending: isUpdatingCrawlTarget } = useUpdateAdminCrawlTarget();
+
+  const [configuredDraft, setConfiguredDraft] = useState<{ year: string; semester: string } | null>(null);
+  const [runDraft, setRunDraft] = useState<{ year: string; semester: string } | null>(null);
+
+  const configuredYear = configuredDraft?.year ?? crawlTarget?.year ?? "";
+  const configuredSemester = configuredDraft?.semester ?? crawlTarget?.semester ?? "";
+  const runYear = runDraft?.year ?? crawlTarget?.year ?? "";
+  const runSemester = runDraft?.semester ?? crawlTarget?.semester ?? "";
+  const canSaveConfiguredTarget = /^\d{4}$/.test(configuredYear.trim()) && configuredSemester.trim().length > 0;
+  const canRunCustomTarget = /^\d{4}$/.test(runYear.trim()) && runSemester.trim().length > 0;
 
   /**
    * 모든 대시보드 데이터를 최신 상태로 갱신합니다.
@@ -140,6 +161,56 @@ export default function AdminDashboardPage() {
               isSendingTest={isSendingTest}
             />
           </section>
+
+          <AdminCrawlTargetPanel
+            configuredYear={configuredYear}
+            configuredSemester={configuredSemester}
+            onConfiguredYearChange={(value) => {
+              setConfiguredDraft((prev) => ({
+                year: value,
+                semester: prev?.semester ?? crawlTarget?.semester ?? "",
+              }));
+            }}
+            onConfiguredSemesterChange={(value) => {
+              setConfiguredDraft((prev) => ({
+                year: prev?.year ?? crawlTarget?.year ?? "",
+                semester: value,
+              }));
+            }}
+            onSaveConfiguredTarget={() => {
+              updateCrawlTarget({
+                year: configuredYear.trim(),
+                semester: configuredSemester.trim(),
+              });
+            }}
+            onRunConfiguredTarget={() => crawlCourses()}
+            isConfiguredTargetLoading={isCrawlTargetLoading}
+            isSavingConfiguredTarget={isUpdatingCrawlTarget}
+            isRunningConfiguredTarget={isCrawling}
+            canSaveConfiguredTarget={canSaveConfiguredTarget}
+            runYear={runYear}
+            runSemester={runSemester}
+            onRunYearChange={(value) => {
+              setRunDraft((prev) => ({
+                year: value,
+                semester: prev?.semester ?? crawlTarget?.semester ?? "",
+              }));
+            }}
+            onRunSemesterChange={(value) => {
+              setRunDraft((prev) => ({
+                year: prev?.year ?? crawlTarget?.year ?? "",
+                semester: value,
+              }));
+            }}
+            onRunCustomTarget={() => {
+              crawlCoursesByTarget({
+                year: runYear.trim(),
+                semester: runSemester.trim(),
+              });
+            }}
+            isRunningCustomTarget={isCustomCrawling}
+            canRunCustomTarget={canRunCustomTarget}
+          />
 
           {/* 시스템 활동 로그 섹션 */}
           <AdminActivityLog 
