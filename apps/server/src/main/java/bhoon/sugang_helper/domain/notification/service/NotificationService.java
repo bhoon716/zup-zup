@@ -34,7 +34,6 @@ public class NotificationService {
 
     private static final String NOTIFICATION_KEY_PREFIX = "ALERT:";
     private static final Duration DEDUP_TTL = Duration.ofMinutes(10);
-    private static final String TEST_COURSE_KEY = "TEST";
     private static final String USER_TEST_COOLDOWN_KEY_PREFIX = "ALERT:USER_TEST:";
     private static final Duration USER_TEST_COOLDOWN = Duration.ofSeconds(10);
 
@@ -261,7 +260,6 @@ public class NotificationService {
     private void sendTestEmail(User user, NotificationMessage notification) {
         dispatch(NotificationTarget.of(user.getEmail()), notification.title(), notification.body(),
                 NotificationChannel.EMAIL);
-        saveHistory(user.getId(), TEST_COURSE_KEY, notification, NotificationChannel.EMAIL);
     }
 
     /**
@@ -274,7 +272,6 @@ public class NotificationService {
 
         dispatch(NotificationTarget.of(user.getDiscordId()), notification.title(), notification.body(),
                 NotificationChannel.DISCORD);
-        saveHistory(user.getId(), TEST_COURSE_KEY, notification, NotificationChannel.DISCORD);
         log.info("[알림 테스트] 디스코드 발송을 완료했습니다. discordId={}", user.getDiscordId());
     }
 
@@ -291,7 +288,6 @@ public class NotificationService {
         for (UserDevice device : devices) {
             NotificationTarget target = toDeviceTarget(device, channel);
             dispatch(target, notification.title(), notification.body(), channel);
-            saveHistory(user.getId(), TEST_COURSE_KEY, notification, channel);
             log.info("[알림 테스트] 디바이스 발송을 완료했습니다. channel={}, deviceId={}", channel, device.getId());
         }
     }
