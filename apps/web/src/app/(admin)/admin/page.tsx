@@ -22,6 +22,7 @@ import { AdminQuickActions } from "@/features/admin/components/admin-quick-actio
 import { AdminActivityLog } from "@/features/admin/components/admin-activity-log";
 import { AdminOverview } from "@/features/admin/components/admin-overview";
 import { AdminCrawlTargetPanel } from "@/features/admin/components/admin-crawl-target-panel";
+import { AdminSchedulePanel } from "@/features/admin/components/admin-schedule-panel";
 import {
   formatDateTime,
   formatNumber,
@@ -211,6 +212,8 @@ export default function AdminDashboardPage() {
             isRunningCustomTarget={isCustomCrawling}
             canRunCustomTarget={canRunCustomTarget}
           />
+
+          <AdminSchedulePanel />
 
           {/* 시스템 활동 로그 섹션 */}
           <AdminActivityLog 

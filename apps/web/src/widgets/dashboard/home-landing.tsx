@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Bell, Calendar, Search, ArrowRight, Heart, Flame } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/shared/lib/utils";
+import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
+import { Loader2 } from "lucide-react";
 
 const features = [
   {
@@ -74,6 +76,8 @@ const popularCourses = [
 ];
 
 export function HomeLanding() {
+  const { data: upcomingSchedules, isLoading: isScheduleLoading } = useUpcomingSchedules();
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -143,6 +147,64 @@ export function HomeLanding() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Upcoming Schedules Section */}
+      <section className="pb-32">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="mb-8">
+            <h3 className="text-2xl md:text-3xl font-bold text-[#161118] flex items-center gap-3">
+              <Calendar className="text-indigo-500 w-8 h-8" />
+              학사 및 수강신청 주요 일정
+            </h3>
+            <p className="mt-2 text-[#161118]/60 text-sm md:text-base font-medium">놓치지 말아야 할 전북대 수강신청 일정을 확인하세요.</p>
+          </div>
+
+          {isScheduleLoading ? (
+            <div className="flex h-32 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+            </div>
+          ) : upcomingSchedules?.length === 0 ? (
+            <div className="flex xl:col-span-12 h-32 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50">
+              <p className="text-sm font-medium text-slate-500">현재 예정된 주요 일정이 없습니다.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {upcomingSchedules?.map((schedule, idx) => (
+                <motion.div
+                  key={schedule.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: idx * 0.1 }}
+                  className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow hover:border-indigo-100"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className={cn(
+                        "px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase",
+                        schedule.dDay === "D-Day" ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"
+                      )}>
+                        {schedule.dDay}
+                      </span>
+                      <span className="text-sm font-bold text-slate-400">
+                        {schedule.scheduleDate}
+                      </span>
+                    </div>
+                    <h4 className="text-xl font-bold text-[#161118] leading-snug break-keep">
+                      {schedule.title}
+                    </h4>
+                  </div>
+                  {schedule.scheduleTime && (
+                    <div className="mt-6 pt-4 border-t border-slate-100 text-sm font-medium text-slate-500 flex items-center gap-2">
+                       <time>{schedule.scheduleTime.substring(0, 5)} 시작</time>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

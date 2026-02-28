@@ -416,3 +416,18 @@ export interface CustomScheduleRequest {
   professor?: string;
   schedules: CustomScheduleTimeRequest[];
 }
+
+// 일정 관리 관련
+export interface ScheduleResponse {
+  id: number;
+  title: string;
+  scheduleDate: string; // "YYYY-MM-DD"
+  scheduleTime?: string; // "HH:mm:ss"
+  dDay: string;
+}
+
+export interface ScheduleRequest {
+  title: string;
+  scheduleDate: string; // "YYYY-MM-DD"
+  scheduleTime?: string; // "HH:mm:ss"
+}
