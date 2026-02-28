@@ -44,6 +44,9 @@ class CourseCrawlerServiceTest {
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
     @Mock
+    private CourseCrawlerTargetService crawlerTargetService;
+
+    @Mock
     private PlatformTransactionManager transactionManager;
 
     @InjectMocks
@@ -59,7 +62,9 @@ class CourseCrawlerServiceTest {
         String xmlResponse = "<xml>...</xml>";
         Course course = Course.builder().courseKey("12345-01").name("Test Course").capacity(40).current(30).build();
 
-        given(apiClient.fetchCourseDataXml()).willReturn(xmlResponse);
+        given(crawlerTargetService.getCurrentTargetValue())
+                .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+        given(apiClient.fetchCourseDataXml("2026", "U211600010")).willReturn(xmlResponse);
         given(courseParser.parseCourses(xmlResponse)).willReturn(List.of(course));
         given(courseRepository.findByCourseKey("12345-01")).willReturn(Optional.empty());
 
@@ -85,7 +90,9 @@ class CourseCrawlerServiceTest {
                 .build();
         String xmlResponse = "<xml>...</xml>";
 
-        given(apiClient.fetchCourseDataXml()).willReturn(xmlResponse);
+        given(crawlerTargetService.getCurrentTargetValue())
+                .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+        given(apiClient.fetchCourseDataXml("2026", "U211600010")).willReturn(xmlResponse);
         given(courseParser.parseCourses(xmlResponse)).willReturn(List.of(crawledCourse));
         given(courseRepository.findByCourseKey("12345-01")).willReturn(Optional.of(existingCourse));
 
@@ -105,7 +112,10 @@ class CourseCrawlerServiceTest {
     @DisplayName("API 호출 실패 시 Connection Error 예외를 발생시킨다")
     void crawlAndSave_ConnectionError() throws java.io.IOException {
         // given
-        given(apiClient.fetchCourseDataXml()).willThrow(new java.io.IOException("Network down"));
+        given(crawlerTargetService.getCurrentTargetValue())
+                .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+        given(apiClient.fetchCourseDataXml("2026", "U211600010"))
+                .willThrow(new java.io.IOException("Network down"));
 
         // when & then
         assertThatThrownBy(() -> crawlerService.crawlAndSaveCourses())
@@ -122,7 +132,9 @@ class CourseCrawlerServiceTest {
     void crawlAndSave_NoData() throws java.io.IOException {
         // given
         String xmlResponse = "<xml>...</xml>";
-        given(apiClient.fetchCourseDataXml()).willReturn(xmlResponse);
+        given(crawlerTargetService.getCurrentTargetValue())
+                .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+        given(apiClient.fetchCourseDataXml("2026", "U211600010")).willReturn(xmlResponse);
         given(courseParser.parseCourses(xmlResponse)).willReturn(List.of());
 
         // when & then

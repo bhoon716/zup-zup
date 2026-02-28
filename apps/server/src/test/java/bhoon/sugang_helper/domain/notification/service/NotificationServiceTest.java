@@ -152,7 +152,7 @@ class NotificationServiceTest {
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, times(1)).save(any(NotificationHistory.class));
+        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -172,7 +172,7 @@ class NotificationServiceTest {
 
         // then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, times(1)).save(any(NotificationHistory.class));
+        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -207,7 +207,7 @@ class NotificationServiceTest {
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, times(1)).save(any(NotificationHistory.class));
+        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -246,7 +246,7 @@ class NotificationServiceTest {
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, times(1)).save(any(NotificationHistory.class));
+        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test

@@ -41,6 +41,9 @@ class CourseCrawlerServiceLogicTest {
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
     @Mock
+    private CourseCrawlerTargetService crawlerTargetService;
+
+    @Mock
     private PlatformTransactionManager transactionManager;
 
     @InjectMocks
@@ -71,7 +74,9 @@ class CourseCrawlerServiceLogicTest {
                 </Root>
                 """;
 
-        given(apiClient.fetchCourseDataXml()).willReturn(mockXml);
+        given(crawlerTargetService.getCurrentTargetValue())
+                .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+        given(apiClient.fetchCourseDataXml("2026", "U211600010")).willReturn(mockXml);
 
         Course crawledCourse = Course.builder()
                 .courseKey("12345:01")
@@ -126,7 +131,9 @@ class CourseCrawlerServiceLogicTest {
                 </Root>
                 """;
 
-        given(apiClient.fetchCourseDataXml()).willReturn(mockXml);
+        given(crawlerTargetService.getCurrentTargetValue())
+                .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+        given(apiClient.fetchCourseDataXml("2026", "U211600010")).willReturn(mockXml);
 
         Course crawledCourse = Course.builder()
                 .courseKey("12345:01")
