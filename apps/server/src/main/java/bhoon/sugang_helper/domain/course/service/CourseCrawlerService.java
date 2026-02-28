@@ -25,6 +25,7 @@ public class CourseCrawlerService {
     private final JbnuCourseParser courseParser;
     private final ApplicationEventPublisher eventPublisher;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
+    private final CourseCrawlerTargetService crawlerTargetService;
     private final TransactionTemplate transactionTemplate;
 
     private final AtomicBoolean isCrawling = new AtomicBoolean(false);
@@ -35,12 +36,14 @@ public class CourseCrawlerService {
     public CourseCrawlerService(CourseRepository courseRepository, JbnuCourseApiClient apiClient,
             JbnuCourseParser courseParser, ApplicationEventPublisher eventPublisher,
             CourseSeatHistoryRepository courseSeatHistoryRepository,
+            CourseCrawlerTargetService crawlerTargetService,
             PlatformTransactionManager transactionManager) {
         this.courseRepository = courseRepository;
         this.apiClient = apiClient;
         this.courseParser = courseParser;
         this.eventPublisher = eventPublisher;
         this.courseSeatHistoryRepository = courseSeatHistoryRepository;
+        this.crawlerTargetService = crawlerTargetService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
@@ -48,23 +51,31 @@ public class CourseCrawlerService {
      * 강의 크롤링 및 저장 수행 (중복 실행 방지 적용)
      */
     public void crawlAndSaveCourses() {
+        CourseCrawlerTargetService.CrawlTarget target = crawlerTargetService.getCurrentTargetValue();
+        crawlAndSaveCourses(target.year(), target.semester());
+    }
+
+    /**
+     * 특정 년도와 학기를 지정하여 강의 크롤링 및 저장을 수행합니다.
+     */
+    public void crawlAndSaveCourses(String year, String semester) {
         if (!isCrawling.compareAndSet(false, true)) {
             log.warn("[크롤러] 이미 크롤링 작업이 진행 중입니다. 작업을 스킵합니다.");
             return;
         }
 
-        log.info("[크롤러] 강의 크롤링을 시작합니다.");
+        log.info("[크롤러] 강의 크롤링을 시작합니다. year={}, semester={}", year, semester);
         try {
             // API 호출은 트랜잭션 외부에서 수행
-            String xmlResponse = apiClient.fetchCourseDataXml();
+            String xmlResponse = apiClient.fetchCourseDataXml(year, semester);
             List<Course> courses = courseParser.parseCourses(xmlResponse);
 
             int savedCount = processCourses(courses);
 
-            log.info("[크롤러] 강의 크롤링을 완료했습니다. 처리 건수={}", savedCount);
+            log.info("[크롤러] 강의 크롤링을 완료했습니다. year={}, semester={}, 처리 건수={}",
+                    year, semester, savedCount);
         } catch (IOException e) {
-            log.error("[크롤러] 강의 데이터를 가져오지 못했습니다. reason={}", e.getMessage(), e);
-            throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR, e.getMessage());
+            throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         } finally {
             isCrawling.set(false);
         }
