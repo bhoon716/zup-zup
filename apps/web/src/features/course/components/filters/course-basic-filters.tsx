@@ -68,18 +68,6 @@ export function CourseBasicFilters({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-[11px] font-bold text-muted-foreground">
-          강의명 / 강의 코드
-        </Label>
-        <Input
-          value={condition.name || ""}
-          onChange={(e) => setCondition((prev) => ({ ...prev, name: e.target.value }))}
-          placeholder="예: 자료구조, 0000123456"
-          className="h-10 rounded-xl bg-muted/30"
-        />
-      </div>
-
-      <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">교수명</Label>
         <Input
           value={condition.professor || ""}

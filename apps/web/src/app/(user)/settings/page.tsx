@@ -33,6 +33,11 @@ const settingsSchema = z.object({
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
 
+/**
+ * API 에러 객체에서 메시지를 추출하거나 기본 메시지를 반환합니다.
+ * @param error 에러 객체 (AxiosError 포함)
+ * @param fallbackMessage 기본 메시지
+ */
 const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof AxiosError) {
     const responseData = error.response?.data as { message?: string } | undefined;
@@ -160,6 +165,10 @@ export default function SettingsPage() {
     return () => window.clearInterval(timer);
   }, [testCooldownSeconds]);
 
+  /**
+   * 입력된 이메일로 인증 코드를 전송합니다.
+   * 입력값이 유효한 이메일 형식인지 먼저 검증합니다.
+   */
   const onSendCode = async () => {
     const valid = await trigger("notificationEmail");
     if (!valid || !notificationEmail) return;
@@ -176,6 +185,10 @@ export default function SettingsPage() {
     }
   };
 
+  /**
+   * 사용자가 입력한 6자리 인증 코드를 서버에 확인 요청합니다.
+   * 인증 성공 시 이메일 인증 상태를 완료로 변경합니다.
+   */
   const onVerifyCode = async () => {
     if (!authCode) return;
     setVerifying(true);
@@ -191,6 +204,10 @@ export default function SettingsPage() {
     }
   };
 
+  /**
+   * 현재 저장된 알림 채널들의 작동 여부를 확인하기 위한 테스트 알림을 발송합니다.
+   * 남용 방지를 위해 10초의 재시도 쿨타임이 적용됩니다.
+   */
   const handleSendTestNotification = async () => {
     if (testCooldownSeconds > 0) {
       toast.error(`알림 테스트는 ${testCooldownSeconds}초 후 다시 시도할 수 있습니다.`);
@@ -212,12 +229,19 @@ export default function SettingsPage() {
     }
   };
 
+  /**
+   * 디스코드 계정 연동을 위한 OAuth2 인증 페이지로 리다이렉트합니다.
+   */
   const handleDiscordConnect = () => {
     const DISCORD_REDIRECT_URI = encodeURIComponent(`${window.location.origin}/api/v1/users/discord/callback`);
     const DISCORD_OAUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20applications.commands&integration_type=1&state=settings`;
     window.location.href = DISCORD_OAUTH_URL;
   };
 
+  /**
+   * 이미 연동된 디스코드 계정과의 연결을 해제합니다.
+   * 해제 전 사용자 확인 창을 표시합니다.
+   */
   const handleDiscordUnlink = async () => {
     if (!confirm("디스코드 연동을 해제하시겠습니까?")) return;
     
@@ -235,6 +259,10 @@ export default function SettingsPage() {
     }
   };
 
+  /**
+   * 현재 브라우저 기기를 웹 푸시 알림 수신 대상으로 등록합니다.
+   * 기기에 별칭을 부여하여 목록에서 식별할 수 있게 합니다.
+   */
   const handleRegisterDevice = async () => {
     if (!deviceAlias.trim()) {
       toast.error("기기 별칭을 입력해 주세요.");
@@ -256,6 +284,10 @@ export default function SettingsPage() {
     }
   };
 
+  /**
+   * 등록된 알림 수신 기기를 삭제합니다.
+   * 삭제된 기기는 더 이상 웹 푸시 알림을 받을 수 없습니다.
+   */
   const handleDeleteDevice = async (id: number) => {
     if (!confirm("이 기기를 삭제하시겠습니까? 더 이상 알림을 받을 수 없습니다.")) return;
 
@@ -268,6 +300,10 @@ export default function SettingsPage() {
     }
   };
 
+  /**
+   * 변경된 모든 알림 설정을 서버에 저장합니다.
+   * 이메일이 변경된 경우 인증 여부를 사전에 확인합니다.
+   */
   const onSubmit = async (values: SettingsFormValues) => {
     if (user) {
       const isOriginal = values.notificationEmail === (user.notificationEmail || "");
@@ -317,15 +353,29 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <main className="max-w-4xl mx-auto px-6 sm:px-10 py-10 md:py-16 pb-32">
-        <div className="mb-12 border-b border-slate-100 pb-8">
+      <motion.main 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="max-w-4xl mx-auto px-6 sm:px-10 pt-10 pb-32 md:pt-16 md:pb-40"
+      >
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-12 border-b border-slate-100 pb-8"
+        >
           <h1 className="text-3xl font-bold mb-2 text-slate-900 tracking-tight">알림 설정</h1>
           <p className="text-slate-500 font-medium">빈 좌석 알림을 받을 채널을 설정하고 관리하세요.</p>
-        </div>
+        </motion.div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <section className="space-y-12">
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
@@ -341,7 +391,7 @@ export default function SettingsPage() {
                     type="button"
                     onClick={handleSendTestNotification}
                     disabled={isSendingTest || testCooldownSeconds > 0}
-                    className="h-11 rounded-xl bg-primary px-5 text-sm font-bold text-white shadow-sm hover:bg-primary-hover disabled:bg-slate-300"
+                    className="h-11 rounded-xl bg-primary px-5 text-sm font-bold text-white shadow-sm hover:bg-primary-hover disabled:bg-slate-300 transition-all active:scale-95"
                   >
                     {isSendingTest ? (
                       <>
@@ -360,7 +410,10 @@ export default function SettingsPage() {
 
               <div className="space-y-6">
                 {/* Discord Section */}
-                <div className="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 transition-all hover:border-primary/30">
+                <motion.div 
+                  whileHover={{ y: -2 }}
+                  className="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 transition-all hover:border-primary/30 hover:shadow-md"
+                >
                   <div className="flex items-start gap-6">
                     <div className="hidden sm:flex w-14 h-14 bg-[#5865F2] rounded-2xl items-center justify-center shadow-lg shadow-[#5865F2]/20 shrink-0 text-white">
                       <MessageSquare className="w-8 h-8" />
@@ -387,7 +440,7 @@ export default function SettingsPage() {
                             variant="destructive"
                             onClick={handleDiscordUnlink}
                             disabled={isUnlinking}
-                            className="rounded-xl px-6 h-12 font-bold shadow-soft"
+                            className="rounded-xl px-6 h-12 font-bold shadow-soft transition-all active:scale-95"
                           >
                             {isUnlinking ? <Loader2 className="w-4 h-4 animate-spin" /> : "연동 해제"}
                           </Button>
@@ -412,10 +465,13 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Email Section */}
-                <div className="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 transition-all hover:border-primary/30">
+                <motion.div 
+                  whileHover={{ y: -2 }}
+                  className="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 transition-all hover:border-primary/30 hover:shadow-md"
+                >
                   <div className="flex items-start gap-6">
                     <div className="hidden sm:flex w-14 h-14 bg-white rounded-2xl items-center justify-center shadow-sm border border-slate-100 shrink-0">
                       <Mail className="w-7 h-7 text-slate-400" />
@@ -434,10 +490,9 @@ export default function SettingsPage() {
                           <Input 
                             {...register("notificationEmail")}
                             placeholder={user?.email}
-                            readOnly={isOriginal || isGoogleEmail}
                             className={cn(
-                              "w-full bg-white border-slate-200 rounded-xl px-4 py-6 text-sm focus:ring-2 focus:ring-primary h-12",
-                              (isOriginal || isGoogleEmail) && "bg-slate-50 text-slate-400"
+                              "w-full bg-white border-slate-200 rounded-xl px-4 py-6 text-sm focus:ring-2 focus:ring-primary h-12 transition-all",
+                              (verified && !needsVerification && notificationEmail) && "bg-slate-50 text-slate-500 font-semibold"
                             )}
                           />
                           {needsVerification && !verified && (
@@ -446,13 +501,13 @@ export default function SettingsPage() {
                               variant="outline"
                               onClick={onSendCode}
                               disabled={sending || !!errors.notificationEmail || !notificationEmail}
-                              className="shrink-0 h-12 rounded-xl px-6 bg-white border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
+                              className="shrink-0 h-12 rounded-xl px-6 bg-white border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
                             >
                               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : "인증"}
                             </Button>
                           )}
-                          {(isGoogleEmail || (verified && !isOriginal)) && (
-                            <div className="absolute right-3 bg-slate-100 text-slate-400 px-3 py-1.5 rounded-lg text-[11px] font-bold">
+                          {verified && notificationEmail && (
+                            <div className="absolute right-3 bg-slate-100/80 text-primary px-3 py-1.5 rounded-lg text-[11px] font-bold border border-primary/10 backdrop-blur-sm">
                               인증완료
                             </div>
                           )}
@@ -461,9 +516,10 @@ export default function SettingsPage() {
                         <AnimatePresence>
                           {needsVerification && !verified && emailSent && (
                             <motion.div 
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className="bg-primary/5 p-4 rounded-[1.5rem] border border-primary/10 flex flex-col sm:flex-row gap-3"
+                              initial={{ opacity: 0, scale: 0.95, height: 0 }}
+                              animate={{ opacity: 1, scale: 1, height: "auto" }}
+                              exit={{ opacity: 0, scale: 0.95, height: 0 }}
+                              className="bg-primary/5 p-4 rounded-[1.5rem] border border-primary/10 flex flex-col sm:flex-row gap-3 overflow-hidden"
                             >
                               <Input 
                                 placeholder="인증 코드 6자리"
@@ -476,7 +532,7 @@ export default function SettingsPage() {
                                 type="button" 
                                 onClick={onVerifyCode} 
                                 disabled={verifying || authCode.length !== 6} 
-                                className="h-12 px-8 rounded-xl font-bold bg-primary"
+                                className="h-12 px-8 rounded-xl font-bold bg-primary transition-all active:scale-95"
                               >
                                 {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "확인"}
                               </Button>
@@ -494,14 +550,17 @@ export default function SettingsPage() {
                       </div>
                       <p className="text-[11px] text-slate-400 mt-3 font-medium flex items-center gap-1.5">
                         <AlertCircle className="w-3.5 h-3.5" />
-                        이메일 변경을 원하시면 관리자에게 문의하세요.
+                        주 선택 이메일이 아닌 경우 인증이 필요합니다.
                       </p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Web Push Section */}
-                <div className="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 transition-all hover:border-primary/30">
+                <motion.div 
+                  whileHover={{ y: -2 }}
+                  className="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 transition-all hover:border-primary/30 hover:shadow-md"
+                >
                   <div className="flex items-start gap-6">
                     <div className="hidden sm:flex w-14 h-14 bg-white rounded-2xl items-center justify-center shadow-sm border border-slate-100 shrink-0">
                       <Laptop className="w-7 h-7 text-primary" />
@@ -510,12 +569,12 @@ export default function SettingsPage() {
                       <h3 className="font-bold text-lg text-slate-900 mb-1">웹 푸시 알림</h3>
                       <p className="text-sm text-slate-500 mb-5 font-medium">현재 사용 중인 기기를 등록하여 브라우저 알림을 받습니다.</p>
                       
-                      <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-6">
+                      <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-6 transition-all hover:border-primary/20">
                         <div className="flex flex-col sm:flex-row gap-3">
                           <Input 
                             value={deviceAlias}
                             onChange={(e) => setDeviceAlias(e.target.value)}
-                            placeholder="기기 별칭 (예: 맥북 프로)"
+                            placeholder="기기 별칭 (예: 내 노트북)"
                             className="flex-1 bg-slate-50 border-transparent rounded-xl px-4 h-12 focus:bg-white transition-all shadow-none"
                           />
                           <Button 
@@ -543,29 +602,35 @@ export default function SettingsPage() {
                              <p className="text-sm text-slate-400 font-medium">등록된 기기가 없습니다.</p>
                            </div>
                         ) : (
-                          devices.map((device, idx) => (
-                            <div key={device.id} className="flex items-center justify-between bg-white border border-slate-100 px-4 py-3.5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                              <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-slate-50">
-                                  {device.type === 'WEB' ? <Monitor className="w-4 h-4 text-slate-400" /> : <Smartphone className="w-4 h-4 text-slate-400" />}
-                                </div>
-                                <div className="flex flex-col">
-                                  <div className="flex items-center gap-2">
-                                     <span className="text-sm font-bold text-slate-700">{device.alias || '알 수 없는 기기'}</span>
-                                     {idx === 0 && <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-black tracking-tighter">THIS</span>}
-                                  </div>
-                                  <span className="text-[10px] text-slate-400 font-medium">{new Date(device.registeredAt).toLocaleDateString()} 등록</span>
-                                </div>
-                              </div>
-                              <button 
-                                type="button" 
-                                onClick={() => handleDeleteDevice(device.id)}
-                                className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                          <div className="space-y-2">
+                            {devices.map((device, idx) => (
+                              <motion.div 
+                                layout
+                                key={device.id} 
+                                className="flex items-center justify-between bg-white border border-slate-100 px-4 py-3.5 rounded-xl shadow-sm hover:shadow-md transition-shadow"
                               >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 rounded-lg bg-slate-50">
+                                    {device.type === 'WEB' ? <Monitor className="w-4 h-4 text-slate-400" /> : <Smartphone className="w-4 h-4 text-slate-400" />}
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                       <span className="text-sm font-bold text-slate-700">{device.alias || '알 수 없는 기기'}</span>
+                                       {idx === 0 && <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-black tracking-tighter">THIS</span>}
+                                    </div>
+                                    <span className="text-[10px] text-slate-400 font-medium">{new Date(device.registeredAt).toLocaleDateString()} 등록</span>
+                                  </div>
+                                </div>
+                                <button 
+                                  type="button" 
+                                  onClick={() => handleDeleteDevice(device.id)}
+                                  className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </motion.div>
+                            ))}
+                          </div>
                         )}
                       </div>
 
@@ -584,18 +649,23 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
           </section>
 
           {/* Floating Action Bar */}
-          <div className="fixed bottom-0 right-0 left-0 bg-white/90 backdrop-blur-md border-t border-slate-100 px-8 py-5 flex items-center justify-center sm:justify-end gap-4 z-40">
+          <motion.div 
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            transition={{ duration: 0.5, type: "spring", damping: 20 }}
+            className="fixed bottom-0 right-0 left-0 bg-white/90 backdrop-blur-md border-t border-slate-100 px-8 py-5 flex items-center justify-center sm:justify-end gap-4 z-40 shadow-[0_-8px_30px_rgba(0,0,0,0.04)]"
+          >
             <Button 
               type="button" 
               variant="ghost"
               onClick={() => router.back()}
-              className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 font-bold px-8 h-12 rounded-full transition-all text-sm"
+              className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 font-bold px-8 h-12 rounded-full transition-all text-sm active:scale-95"
             >
               변경 취소
             </Button>
@@ -607,9 +677,9 @@ export default function SettingsPage() {
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
               설정 저장하기
             </Button>
-          </div>
+          </motion.div>
         </form>
-      </main>
+      </motion.main>
     </div>
   );
 }
@@ -617,7 +687,7 @@ export default function SettingsPage() {
 /**
  * 설정 페이지 전용 Switch 컴포넌트입니다.
  */
-function Switch({ checked, onCheckedChange, disabled }: { checked: boolean, onCheckedAction?: (checked: boolean) => void, onCheckedChange: (checked: boolean) => void, disabled?: boolean }) {
+function Switch({ checked, onCheckedChange, disabled }: { checked: boolean, onCheckedChange: (checked: boolean) => void, disabled?: boolean }) {
   const handleToggle = () => {
     if (!disabled) {
       onCheckedChange(!checked);

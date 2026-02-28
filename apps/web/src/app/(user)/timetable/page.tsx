@@ -22,7 +22,7 @@ import { cn } from '@/shared/lib/utils';
 import { toPng } from 'html-to-image';
 import { CourseDetailDialog } from '@/features/course/components/course-detail-dialog';
 import type { Course, CourseClassification, TimetableEntryResponse, WishlistResponse } from '@/shared/types/api';
-
+import { motion, AnimatePresence } from 'framer-motion';
 import { formatDayOfWeek } from '@/shared/lib/formatters';
 
 const TODAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const;
@@ -43,6 +43,10 @@ const COURSE_CLASSIFICATIONS = new Set<CourseClassification>([
 
 type SidebarCourseSource = TimetableEntryResponse | WishlistResponse;
 
+/**
+ * 문자열 값으로 넘어오는 이수구분을 CourseClassification 타입으로 안전하게 변환합니다.
+ * 미확인 값인 경우 undefined를 반환합니다.
+ */
 function normalizeClassification(value?: string): CourseClassification | undefined {
   if (!value || !COURSE_CLASSIFICATIONS.has(value as CourseClassification)) {
     return undefined;
@@ -255,7 +259,12 @@ export default function TimetablePage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-slate-100">
-      <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-2 p-2 sm:gap-4 sm:p-4 lg:flex-row">
+      <motion.main 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="mx-auto flex w-full max-w-[1600px] flex-col gap-2 p-2 sm:gap-4 sm:p-4 lg:flex-row"
+      >
         <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm sm:rounded-[1.5rem]">
           <div className="border-b border-slate-100 p-3 sm:px-5 sm:py-4">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -272,7 +281,7 @@ export default function TimetablePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  className="h-9 rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all active:scale-95"
                   onClick={handleExportImage}
                 >
                   <Download className="h-4 w-4" />
@@ -281,7 +290,7 @@ export default function TimetablePage() {
                 <Button
                   variant="default"
                   size="sm"
-                  className="h-9 rounded-xl bg-primary text-white hover:bg-primary-hover shadow-sm"
+                  className="h-9 rounded-xl bg-primary text-white hover:bg-primary-hover shadow-sm transition-all active:scale-95"
                   onClick={() => setCustomDialogOpen(true)}
                 >
                   <Plus className="h-4 w-4" />
@@ -315,15 +324,20 @@ export default function TimetablePage() {
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
               </div>
             ) : activeTimetableId && timetableDetail ? (
-              <div className="h-full overflow-auto rounded-xl border border-slate-200 bg-white p-1 sm:rounded-2xl sm:p-3">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.99 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+                className="h-full overflow-auto rounded-xl border border-slate-200 bg-white p-1 sm:rounded-2xl sm:p-3"
+              >
                 <TimetableGrid timetable={timetableDetail} className="mx-auto w-full" />
-              </div>
+              </motion.div>
             ) : null}
 
             {!isListLoading && timetables.length === 0 && (
               <div className="flex h-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white">
                 <p className="mb-4 text-sm text-slate-500">아직 생성된 시간표가 없습니다.</p>
-                <Button onClick={() => createMutation.mutate('기본 시간표')}>
+                <Button onClick={() => createMutation.mutate('기본 시간표')} className="rounded-xl transition-all active:scale-95">
                   첫 시간표 만들기
                 </Button>
               </div>
@@ -332,7 +346,7 @@ export default function TimetablePage() {
         </section>
 
         <aside className="w-full lg:w-[340px]">
-          <div className="flex h-full flex-col rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+          <div className="flex h-full flex-col rounded-[1.5rem] border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="border-b border-slate-100 p-5">
               <CreditStatsCard totalCredits={totalCredits} />
             </div>
@@ -342,7 +356,7 @@ export default function TimetablePage() {
                 <button
                   type="button"
                   className={cn(
-                    'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    'rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-out',
                     sidebarTab === 'schedule'
                       ? 'bg-primary text-white shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
@@ -354,7 +368,7 @@ export default function TimetablePage() {
                 <button
                   type="button"
                   className={cn(
-                    'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    'rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-out',
                     sidebarTab === 'wishlist'
                       ? 'bg-primary text-white shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
@@ -366,201 +380,224 @@ export default function TimetablePage() {
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-              {sidebarTab === 'schedule' ? (
-                <>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
-                        <Clock3 className="h-4 w-4 text-primary" />
-                        오늘 일정
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 bg-slate-50/30">
+              <AnimatePresence mode="wait">
+                {sidebarTab === 'schedule' ? (
+                  <motion.div
+                    key="schedule-tab"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-4"
+                  >
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                          <Clock3 className="h-4 w-4 text-primary" />
+                          오늘 일정
+                        </div>
+                        <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-xs text-slate-600">
+                          {todayLabel}요일
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="rounded-full border-slate-200 bg-white text-xs text-slate-600">
-                        {todayLabel}요일
-                      </Badge>
+                      {todaySchedules.length === 0 ? (
+                        <p className="text-xs text-slate-500 py-2 text-center">오늘 등록된 일정이 없습니다.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {todaySchedules.map((item) => (
+                            <div key={item.key} className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+                              <p className="text-sm font-bold text-slate-800">{item.title}</p>
+                              <p className="mt-1 text-xs text-slate-500">{item.subtitle}</p>
+                              <p className="mt-2 text-xs font-semibold text-primary">
+                                {item.startTime} - {item.endTime}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {todaySchedules.length === 0 ? (
-                      <p className="text-xs text-slate-500">오늘 등록된 일정이 없습니다.</p>
+
+                    <div>
+                      <div className="mb-2 flex items-center gap-1.5 px-1 text-xs font-bold text-slate-500">
+                        <BookOpen className="h-3.5 w-3.5" />
+                        시간표 강의 {timetableCourses.length}건
+                      </div>
+                      <div className="space-y-2">
+                        {timetableCourses.length === 0 ? (
+                          <div className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-center text-xs text-slate-500">
+                            강의가 아직 없습니다.
+                          </div>
+                        ) : (
+                          timetableDetail?.courses?.map((course) => (
+                            <motion.div 
+                              layout
+                              key={course.courseKey} 
+                              initial={{ opacity: 0, y: 5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              whileHover={{ y: -2 }}
+                              className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-3 transition-shadow hover:border-primary/50 hover:shadow-md"
+                              onClick={() => handleSidebarCourseClick(course)}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 overflow-hidden">
+                                  <p className="text-sm font-bold text-slate-800 transition-colors group-hover:text-primary truncate">{course.name}</p>
+                                  <p className="mt-1 text-xs text-slate-500">{course.professor}</p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                  <Badge variant="secondary" className="h-5 rounded-md px-1.5 text-[10px] font-semibold">
+                                    {course.credits}학점
+                                  </Badge>
+                                  <button
+                                    type="button"
+                                    disabled={removeCourseMutation.isPending}
+                                    className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm(`${course.name} 강의를 시간표에서 삭제하시겠습니까?`)) {
+                                        removeCourseMutation.mutate({ 
+                                          timetableId: activeTimetableId!, 
+                                          courseKey: course.courseKey 
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    {removeCourseMutation.isPending && removeCourseMutation.variables?.courseKey === course.courseKey ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="mt-2 text-[11px] text-slate-500">
+                                {(course.schedules ?? [])
+                                  .map((schedule) => `${formatDayOfWeek(String(schedule.dayOfWeek))} ${schedule.startTime}-${schedule.endTime}`)
+                                  .join(', ') || course.classTime || '시간 정보 없음'}
+                              </p>
+                              <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500">
+                                <span>{course.classroom || '강의실 미정'}</span>
+                                {course.classification ? <span>• {course.classification}</span> : null}
+                              </div>
+                            </motion.div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="wishlist-tab"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="mb-2 flex items-center gap-1.5 px-1 text-xs font-bold text-slate-500">
+                      <Heart className="h-3.5 w-3.5" />
+                      찜한 강의 {wishlist.length}건
+                    </div>
+                    {isWishlistLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                      </div>
+                    ) : wishlist.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-center text-xs text-slate-500">
+                        찜한 강의가 없습니다.
+                      </div>
                     ) : (
                       <div className="space-y-2">
-                        {todaySchedules.map((item) => (
-                          <div key={item.key} className="rounded-xl border border-slate-200 bg-white p-3">
-                            <p className="text-sm font-bold text-slate-800">{item.title}</p>
-                            <p className="mt-1 text-xs text-slate-500">{item.subtitle}</p>
-                            <p className="mt-2 text-xs font-semibold text-primary">
-                              {item.startTime} - {item.endTime}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex items-center gap-1.5 px-1 text-xs font-bold text-slate-500">
-                      <BookOpen className="h-3.5 w-3.5" />
-                      시간표 강의 {timetableCourses.length}건
-                    </div>
-                    <div className="space-y-2">
-                      {timetableCourses.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
-                          강의가 아직 없습니다.
-                        </div>
-                      ) : (
-                        timetableDetail?.courses?.map((course) => (
-                          <div 
-                            key={course.courseKey} 
-                            className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-3 transition-all hover:border-primary/50 hover:bg-slate-50/50"
+                        {wishlist.map((course) => (
+                          <motion.div 
+                            layout
+                            key={course.id} 
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            whileHover={{ y: -2 }}
+                            className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-3 transition-shadow hover:border-primary/50 hover:shadow-md"
                             onClick={() => handleSidebarCourseClick(course)}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 overflow-hidden">
-                                <p className="text-sm font-bold text-slate-800 transition-colors group-hover:text-primary truncate">{course.name}</p>
+                                <p className="text-sm font-bold text-slate-800 transition-colors group-hover:text-primary truncate">{course.courseName}</p>
                                 <p className="mt-1 text-xs text-slate-500">{course.professor}</p>
                               </div>
                               <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                <Badge variant="secondary" className="h-5 rounded-md px-1.5 text-[10px] font-semibold">
-                                  {course.credits}학점
-                                </Badge>
-                                <button
-                                  type="button"
-                                  disabled={removeCourseMutation.isPending}
-                                  className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm(`${course.name} 강의를 시간표에서 삭제하시겠습니까?`)) {
-                                      removeCourseMutation.mutate({ 
-                                        timetableId: activeTimetableId!, 
-                                        courseKey: course.courseKey 
-                                      });
+                                  <Badge variant="secondary" className="h-5 rounded-md px-1.5 text-[10px] font-semibold">
+                                    {course.credits}학점
+                                  </Badge>
+                                  {(() => {
+                                    const isInTimetable = timetableDetail?.courses?.some(c => c.courseKey === course.courseKey);
+                                    const isPending = (addCourseMutation.isPending && addCourseMutation.variables?.courseKey === course.courseKey) ||
+                                                     (removeCourseMutation.isPending && removeCourseMutation.variables?.courseKey === course.courseKey);
+                                    
+                                    if (isInTimetable) {
+                                      return (
+                                        <button
+                                          type="button"
+                                          disabled={isPending}
+                                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (confirm(`${course.courseName} 강의를 시간표에서 삭제하시겠습니까?`)) {
+                                              removeCourseMutation.mutate({ 
+                                                timetableId: activeTimetableId!, 
+                                                courseKey: course.courseKey 
+                                              });
+                                            }
+                                          }}
+                                        >
+                                          {isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <Trash2 className="h-4 w-4" />
+                                          )}
+                                        </button>
+                                      );
                                     }
-                                  }}
-                                >
-                                  {removeCourseMutation.isPending && removeCourseMutation.variables?.courseKey === course.courseKey ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4" />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                            <p className="mt-2 text-[11px] text-slate-500">
-                              {(course.schedules ?? [])
-                                .map((schedule) => `${formatDayOfWeek(String(schedule.dayOfWeek))} ${schedule.startTime}-${schedule.endTime}`)
-                                .join(', ') || course.classTime || '시간 정보 없음'}
-                            </p>
-                            <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500">
-                              <span>{course.classroom || '강의실 미정'}</span>
-                              {course.classification ? <span>• {course.classification}</span> : null}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="mb-2 flex items-center gap-1.5 px-1 text-xs font-bold text-slate-500">
-                    <Heart className="h-3.5 w-3.5" />
-                    찜한 강의 {wishlist.length}건
-                  </div>
-                  {isWishlistLoading ? (
-                    <div className="flex items-center justify-center py-6">
-                      <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-                    </div>
-                  ) : wishlist.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
-                      찜한 강의가 없습니다.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {wishlist.map((course) => (
-                        <div 
-                          key={course.id} 
-                          className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-3 transition-all hover:border-primary/50 hover:bg-slate-50/50"
-                          onClick={() => handleSidebarCourseClick(course)}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 overflow-hidden">
-                              <p className="text-sm font-bold text-slate-800 transition-colors group-hover:text-primary truncate">{course.courseName}</p>
-                              <p className="mt-1 text-xs text-slate-500">{course.professor}</p>
-                            </div>
-                            <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                <Badge variant="secondary" className="h-5 rounded-md px-1.5 text-[10px] font-semibold">
-                                  {course.credits}학점
-                                </Badge>
-                                {(() => {
-                                  const isInTimetable = timetableDetail?.courses?.some(c => c.courseKey === course.courseKey);
-                                  const isPending = (addCourseMutation.isPending && addCourseMutation.variables?.courseKey === course.courseKey) ||
-                                                   (removeCourseMutation.isPending && removeCourseMutation.variables?.courseKey === course.courseKey);
-                                  
-                                  if (isInTimetable) {
+
                                     return (
                                       <button
                                         type="button"
-                                        disabled={isPending}
-                                        className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                        disabled={isPending || !activeTimetableId}
+                                        className="rounded-lg p-1.5 text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          if (confirm(`${course.courseName} 강의를 시간표에서 삭제하시겠습니까?`)) {
-                                            removeCourseMutation.mutate({ 
-                                              timetableId: activeTimetableId!, 
-                                              courseKey: course.courseKey 
-                                            });
+                                          if (!activeTimetableId) {
+                                            toast.error('강의를 추가할 시간표를 먼저 선택해주세요.');
+                                            return;
                                           }
+                                          addCourseMutation.mutate({ 
+                                            timetableId: activeTimetableId, 
+                                            courseKey: course.courseKey 
+                                          });
                                         }}
                                       >
                                         {isPending ? (
                                           <Loader2 className="h-4 w-4 animate-spin" />
                                         ) : (
-                                          <Trash2 className="h-4 w-4" />
+                                          <Plus className="h-4 w-4" />
                                         )}
                                       </button>
                                     );
-                                  }
-
-                                  return (
-                                    <button
-                                      type="button"
-                                      disabled={isPending || !activeTimetableId}
-                                      className="rounded-lg p-1.5 text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (!activeTimetableId) {
-                                          toast.error('강의를 추가할 시간표를 먼저 선택해주세요.');
-                                          return;
-                                        }
-                                        addCourseMutation.mutate({ 
-                                          timetableId: activeTimetableId, 
-                                          courseKey: course.courseKey 
-                                        });
-                                      }}
-                                    >
-                                      {isPending ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <Plus className="h-4 w-4" />
-                                      )}
-                                    </button>
-                                  );
-                                })()}
-                              </div>
-                          </div>
-                          <p className="mt-1 text-[11px] text-slate-500">{course.classTime}</p>
-                          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                            <span>{course.classification}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
+                                  })()}
+                                </div>
+                            </div>
+                            <p className="mt-1 text-[11px] text-slate-500">{course.classTime}</p>
+                            <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                              <span>{course.classification}</span>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </aside>
-      </main>
+      </motion.main>
 
       <CustomScheduleDialog 
         timetableId={activeTimetableId}

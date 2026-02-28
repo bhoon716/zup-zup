@@ -448,7 +448,6 @@ export interface AnnouncementListItemResponse {
   title: string;
   previewContent: string;
   pinned: boolean;
-  authorName: string;
   createdAt: string;
 }
 
@@ -458,7 +457,6 @@ export interface AnnouncementDetailResponse {
   content: string;
   pinned: boolean;
   published: boolean;
-  authorName: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -120,6 +120,20 @@ export function CourseSmartFilters({
             onCheckedChange={handleAvailableOnlyChange}
           />
         </div>
+
+        {/* 공개 강의만 보기 */}
+        <div className="flex items-center justify-between">
+          <Label htmlFor="disclosure-only" className="text-sm font-medium">
+            공개 강의만 보기
+          </Label>
+          <Switch
+            id="disclosure-only"
+            checked={condition.disclosure === "공개"}
+            onCheckedChange={(checked) => 
+               setCondition((prev) => ({ ...prev, disclosure: checked ? "공개" : undefined }))
+            }
+          />
+        </div>
       </div>
 
       {/* 공강 시간표 설정 */}

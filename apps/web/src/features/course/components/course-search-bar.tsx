@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import { Filter, RotateCcw, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/shared/lib/utils";
 import type { CourseSearchCondition } from "@/shared/types/api";
 import { DEFAULT_CONDITION } from "../constants/course-options";
 import { CourseBasicFilters } from "./filters/course-basic-filters";
@@ -15,16 +16,31 @@ interface CourseSearchBarProps {
   onSearch: (condition: CourseSearchCondition) => void;
   isLoading?: boolean;
   initialCondition?: CourseSearchCondition;
+  hideHeader?: boolean;
 }
 
 export function CourseSearchBar({
   onSearch,
   isLoading,
   initialCondition,
+  hideHeader,
 }: CourseSearchBarProps) {
   const [condition, setCondition] = useState<CourseSearchCondition>(
     () => ({ ...(initialCondition ?? DEFAULT_CONDITION) }),
   );
+
+  /**
+   * 외부에서 전달된 초기 검색 조건이 변경될 경우(예: 필터 칩 삭제)
+   * 현재 입력 중인 상태와 동기화합니다.
+   */
+  useEffect(() => {
+    if (initialCondition) {
+      if (JSON.stringify(condition) !== JSON.stringify(initialCondition)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCondition({ ...initialCondition });
+      }
+    }
+  }, [initialCondition, condition]);
   
   // UI 상태: 접기/펼치기
   const [smartOpen, setSmartOpen] = useState(true);
@@ -36,8 +52,11 @@ export function CourseSearchBar({
   const [classificationType, setClassificationType] = useState<string | undefined>();
   const [gradingType, setGradingType] = useState<string | undefined>();
 
+  /**
+   * 검색 버튼 클릭 시 호출되며, 선택된 검색 조건을 부모 컴포넌트로 전달합니다.
+   * 학년도와 학기 선택 여부를 검증합니다.
+   */
   const handleSearch = () => {
-    // 유효성 검사
     if (!condition.academicYear || !condition.semester) {
       toast.error("학년도와 학기를 선택해주세요.");
       return;
@@ -45,6 +64,10 @@ export function CourseSearchBar({
     onSearch(condition);
   };
 
+  /**
+   * 모든 검색 조건을 기본값으로 초기화하고 검색을 수행합니다.
+   * 초기화 성공 시 토스트 메시지를 표시합니다.
+   */
   const handleReset = () => {
     setCondition({ ...DEFAULT_CONDITION });
     setClassificationType(undefined);
@@ -54,35 +77,49 @@ export function CourseSearchBar({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="space-y-3 pb-4">
-        <Button
-          type="button"
-          onClick={handleSearch}
-          disabled={isLoading}
-          className="h-12 w-full gap-2 rounded-2xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
-        >
-          {isLoading ? (
-            <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
-          검색 적용하기
-        </Button>
+    <div className={cn("flex min-h-0 flex-col", !hideHeader && "h-full")}>
+      {!hideHeader && (
+        <div className="space-y-3 pb-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="강의명 또는 코드"
+                value={condition.name || ""}
+                onChange={(e) => setCondition((prev) => ({ ...prev, name: e.target.value }))}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="h-12 w-full rounded-2xl border-none bg-muted/50 pl-10 pr-4 text-sm font-bold placeholder:text-muted-foreground/60 focus:bg-white focus:ring-2 focus:ring-primary/20"
+              />
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            </div>
+            <Button
+              type="button"
+              onClick={handleSearch}
+              disabled={isLoading}
+              className="h-12 rounded-2xl bg-primary px-5 font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+            >
+              {isLoading ? (
+                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              ) : (
+                "검색"
+              )}
+            </Button>
+          </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleReset}
-          disabled={isLoading}
-          className="h-10 w-full gap-2 rounded-xl border-border/40 bg-white/50 text-xs font-medium text-muted-foreground hover:bg-white/80 hover:text-foreground"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          초기화
-        </Button>
-      </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleReset}
+            disabled={isLoading}
+            className="h-10 w-full gap-2 rounded-xl border-border/40 bg-white/50 text-xs font-medium text-muted-foreground hover:bg-white/80 hover:text-foreground"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            검색 조건 초기화
+          </Button>
+        </div>
+      )}
 
-      <div className="flex-1 space-y-3 overflow-y-auto pr-1 scrollbar-hide">
+      <div className={cn("space-y-3 pr-1 scrollbar-hide", !hideHeader ? "flex-1 overflow-y-auto" : "h-auto overflow-visible")}>
         {/* 스마트 필터 섹션 */}
         <FilterSection
           title="스마트 필터"
