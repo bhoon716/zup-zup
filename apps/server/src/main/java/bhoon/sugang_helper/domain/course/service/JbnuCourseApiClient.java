@@ -1,15 +1,23 @@
 package bhoon.sugang_helper.domain.course.service;
 
 import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class JbnuCourseApiClient {
 
     @Value("${jbnu.api.url}")
     private String apiUrl;
+
+    @Value("${jbnu.api.timeout-ms:30000}")
+    private int timeoutMs;
+
+    @Value("${jbnu.api.max-retries:1}")
+    private int maxRetries;
 
     private static final String PAYLOAD_TEMPLATE = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -39,22 +47,43 @@ public class JbnuCourseApiClient {
             </Root>
             """;
 
+    /**
+     * JBNU API 서버로부터 강의 데이터를 XML 형식으로 가져옵니다.
+     * 설정된 타임아웃 및 재시도 횟수를 따릅니다.
+     */
     public String fetchCourseDataXml() throws IOException {
-        return Jsoup.connect(apiUrl)
-                .header("Accept", "application/xml, text/xml, */*")
-                .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
-                .header("Content-Type", "text/xml")
-                .header("Origin", "https://oasis.jbnu.ac.kr")
-                .header("Referer", "https://oasis.jbnu.ac.kr/jbnu/sugang/sbjt/sbjt.html?param=KOR")
-                .header("X-Requested-With", "XMLHttpRequest")
-                .header("User-Agent",
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Whale/4.35.351.12 Safari/537.36")
-                .requestBody(PAYLOAD_TEMPLATE)
-                .timeout(30000)
-                .maxBodySize(0) // 무제한 수신
-                .method(org.jsoup.Connection.Method.POST)
-                .ignoreContentType(true)
-                .execute()
-                .body();
+        int retryCount = 0;
+        while (true) {
+            try {
+                return Jsoup.connect(apiUrl)
+                        .header("Accept", "application/xml, text/xml, */*")
+                        .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+                        .header("Content-Type", "text/xml")
+                        .header("Origin", "https://oasis.jbnu.ac.kr")
+                        .header("Referer", "https://oasis.jbnu.ac.kr/jbnu/sugang/sbjt/sbjt.html?param=KOR")
+                        .header("X-Requested-With", "XMLHttpRequest")
+                        .header("User-Agent",
+                                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Whale/4.35.351.12 Safari/537.36")
+                        .requestBody(PAYLOAD_TEMPLATE)
+                        .timeout(timeoutMs)
+                        .maxBodySize(0) // 무제한 수신
+                        .method(org.jsoup.Connection.Method.POST)
+                        .ignoreContentType(true)
+                        .execute()
+                        .body();
+            } catch (IOException e) {
+                retryCount++;
+                log.warn("[API 클라이언트] 강의 데이터 요청 실패 (시도 {}/{}): {}", retryCount, maxRetries + 1, e.getMessage());
+                if (retryCount > maxRetries) {
+                    throw e;
+                }
+                try {
+                    Thread.sleep(1000); // 1초 대기 후 재시도
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("재시도 대기 중 인터럽트 발생", ie);
+                }
+            }
+        }
     }
 }
