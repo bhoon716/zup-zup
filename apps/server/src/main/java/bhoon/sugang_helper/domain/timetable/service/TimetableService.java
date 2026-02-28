@@ -18,6 +18,7 @@ import bhoon.sugang_helper.domain.timetable.response.TimetableCourseResponse;
 import bhoon.sugang_helper.domain.timetable.response.TimetableDetailResponse;
 import bhoon.sugang_helper.domain.timetable.response.TimetableResponse;
 import bhoon.sugang_helper.domain.user.entity.User;
+import bhoon.sugang_helper.domain.user.event.UserRegisteredEvent;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +61,21 @@ public class TimetableService {
                 .build();
 
         return TimetableResponse.of(timetableRepository.save(timetable));
+    }
+
+    /**
+     * 신규 사용자 가입 시 기본 시간표를 자동으로 생성합니다.
+     */
+    @EventListener
+    @Transactional
+    public void handleUserRegisteredEvent(UserRegisteredEvent event) {
+        Timetable timetable = Timetable.builder()
+                .userId(event.userId())
+                .name("기본 시간표")
+                .isPrimary(true)
+                .build();
+        timetableRepository.save(timetable);
+        log.info("[시간표] 신규 사용자를 위한 기본 시간표가 생성되었습니다. userId={}", event.userId());
     }
 
     public List<TimetableResponse> getMyTimetables() {
