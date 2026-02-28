@@ -101,6 +101,7 @@ export interface Course {
   disclosure?: string;
   disclosureReason?: string;
   lastCrawledAt?: string;
+  isSubscribable?: boolean;
   // 명세 호환 필드
   totalSeats?: number;
   currentSeats?: number;

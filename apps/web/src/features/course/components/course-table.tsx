@@ -13,6 +13,7 @@ import {
 import { cn } from "@/shared/lib/utils";
 import { formatClassification } from "@/shared/lib/formatters";
 import { normalizeCourse } from "@/shared/lib/course";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { useUser } from "@/features/user/hooks/useUser";
 import { useAddCourseToTimetable, useTimetables } from "@/features/timetable/hooks/useTimetable";
@@ -158,7 +159,7 @@ export function CourseTable({
   }, [handleObserver]);
 
   /**
-   * 여석 알림 구독/취소 핸들러
+   * 여석 알림 구독 상태를 토글 (구독 신청 또는 취소)
    */
   const handleSubscribe = (courseKey: string) => {
     if (!user) {
@@ -177,7 +178,7 @@ export function CourseTable({
   };
 
   /**
-   * 강의 클릭 시 상세 다이얼로그 오픈
+   * 강의 카드를 클릭했을 때 해당 강의의 상세 정보를 다이얼로그로 표시
    */
   const handleCourseClick = (course: Course) => {
     setSelectedCourse(course);
@@ -292,9 +293,9 @@ export function CourseTable({
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5 md:mt-0 md:block md:min-w-[170px] md:border-l md:border-t-0 md:pl-4 md:pt-0">
-                    <div className="hidden space-y-1 md:block">
-                      <div className="flex items-center justify-between gap-2">
+                  <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5 md:mt-0 md:flex md:flex-col md:justify-center md:min-w-[190px] md:border-l md:border-t-0 md:pl-6 md:pt-0">
+                    <div className="hidden w-full md:block">
+                      <div className="mb-2.5 flex items-center justify-between gap-2">
                         <span
                           className={cn(
                             "rounded px-1.5 py-0.5 text-[10px] font-bold",
@@ -308,7 +309,7 @@ export function CourseTable({
                         </span>
                       </div>
 
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
                         <div
                           className={cn("h-full rounded-full transition-all", seatStatus.barClass)}
                           style={{ width: `${seatRatio}%` }}
@@ -316,10 +317,8 @@ export function CourseTable({
                       </div>
                     </div>
 
-
-
                     <div
-                      className="flex items-center gap-1 md:gap-1.5"
+                      className="mt-0 flex items-center gap-1 md:mt-4 md:w-full md:justify-between md:gap-1.5"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {!user ? (
@@ -404,21 +403,44 @@ export function CourseTable({
                         />
                       </Button>
 
-                      <Button
-                        type="button"
-                        variant={subscribed ? "default" : "outline"}
-                        size="icon"
-                        className={cn(
-                          "h-7 w-7 rounded-lg md:h-8 md:w-8",
-                          subscribed
-                            ? "bg-primary text-white hover:bg-primary/90"
-                            : "border-gray-200 text-gray-500",
-                        )}
-                        onClick={() => handleSubscribe(course.courseKey)}
-                        disabled={isSubscribing || isUnsubscribing}
-                      >
-                        <Bell className={cn("h-4 w-4", subscribed && "fill-white")} />
-                      </Button>
+                      {!course.isSubscribable ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="cursor-not-allowed">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-lg border-gray-100 text-gray-300 pointer-events-none md:h-8 md:w-8"
+                                  disabled
+                                >
+                                  <Bell className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>현재 추적 중인 학기가 아닙니다.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant={subscribed ? "default" : "outline"}
+                          size="icon"
+                          className={cn(
+                            "h-7 w-7 rounded-lg md:h-8 md:w-8",
+                            subscribed
+                              ? "bg-primary text-white hover:bg-primary/90"
+                              : "border-gray-200 text-gray-500",
+                          )}
+                          onClick={() => handleSubscribe(course.courseKey)}
+                          disabled={isSubscribing || isUnsubscribing}
+                        >
+                          <Bell className={cn("h-4 w-4", subscribed && "fill-white")} />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -49,6 +49,12 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
               마감됨
             </span>
           )}
+          {!course.isSubscribable && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full text-xs font-bold border border-gray-200 dark:border-gray-700">
+              <AlertCircle className="w-3 h-3" />
+              조회 전용 (종료된 학기)
+            </span>
+          )}
         </div>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
