@@ -64,6 +64,8 @@ export default function SettingsPage() {
   const [isUnlinking, setIsUnlinking] = useState(false);
   const [deviceAlias, setDeviceAlias] = useState("");
   const [devices, setDevices] = useState<UserDeviceResponse[]>([]);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testCooldownSeconds, setTestCooldownSeconds] = useState(0);
 
   const { subscribe, loading: loadingWebPush } = useWebPush();
 
@@ -147,6 +149,18 @@ export default function SettingsPage() {
     }
   }, [notificationEmail, user]);
 
+  useEffect(() => {
+    if (testCooldownSeconds <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setTestCooldownSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [testCooldownSeconds]);
+
   const onSendCode = async () => {
     const valid = await trigger("notificationEmail");
     if (!valid || !notificationEmail) return;
@@ -175,6 +189,27 @@ export default function SettingsPage() {
       toast.error(getErrorMessage(error, "인증 실패"));
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    if (testCooldownSeconds > 0) {
+      toast.error(`알림 테스트는 ${testCooldownSeconds}초 후 다시 시도할 수 있습니다.`);
+      return;
+    }
+
+    setIsSendingTest(true);
+    try {
+      const response = await userApi.sendTestNotification();
+      toast.success(response.message || "알림 테스트를 전송했습니다.");
+      setTestCooldownSeconds(10);
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error.response?.status === 429) {
+        setTestCooldownSeconds(10);
+      }
+      toast.error(getErrorMessage(error, "알림 테스트 전송에 실패했습니다."));
+    } finally {
+      setIsSendingTest(false);
     }
   };
 
@@ -300,6 +335,26 @@ export default function SettingsPage() {
                   </h2>
                   <p className="text-sm text-slate-500 mt-2 ml-11.5 font-medium">여러 채널을 연동하여 확실하게 알림을 받아보세요.</p>
                 </div>
+                <div className="flex flex-col items-end gap-1">
+                  <Button
+                    type="button"
+                    onClick={handleSendTestNotification}
+                    disabled={isSendingTest || testCooldownSeconds > 0}
+                    className="h-11 rounded-xl bg-primary px-5 text-sm font-bold text-white shadow-sm hover:bg-primary-hover disabled:bg-slate-300"
+                  >
+                    {isSendingTest ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        전송 중...
+                      </>
+                    ) : testCooldownSeconds > 0 ? (
+                      `테스트 쿨타임 ${testCooldownSeconds}s`
+                    ) : (
+                      "알림 테스트"
+                    )}
+                  </Button>
+                  <p className="text-xs text-slate-400">저장된 설정 기준으로 전송됩니다.</p>
+                </div>
               </div>
 
               <div className="space-y-6">
@@ -371,7 +426,7 @@ export default function SettingsPage() {
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">인증됨</span>
                         )}
                       </div>
-                      <p className="text-sm text-slate-500 mb-5 font-medium">중요 알림을 이메일로 받아보세요. 학교 이메일을 권장합니다.</p>
+                      <p className="text-sm text-slate-500 mb-5 font-medium">중요 알림을 이메일로 받아보세요. 네이버 이메일을 권장합니다.</p>
                       
                       <div className="space-y-3">
                         <div className="relative flex items-center gap-2">
