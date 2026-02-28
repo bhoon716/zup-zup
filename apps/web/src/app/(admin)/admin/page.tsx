@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { AlertCircle, BellRing, CloudCog, Gauge, Loader2, RefreshCcw, Users } from "lucide-react";
+import Link from "next/link";
 
 import { useAdminOverview } from "@/features/admin/hooks/useAdminOverview";
 import { useHealth } from "@/features/admin/hooks/useHealth";
@@ -126,15 +127,26 @@ export default function AdminDashboardPage() {
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <span className="font-medium text-slate-800">시스템 현황 개요</span>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-8 gap-1 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
-            onClick={handleRefresh}
-          >
-            <RefreshCcw className="h-3.5 w-3.5" />
-            새로고침
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/announcements">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
+              >
+                공지사항 관리
+              </Button>
+            </Link>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-8 gap-1 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
+              onClick={handleRefresh}
+            >
+              <RefreshCcw className="h-3.5 w-3.5" />
+              새로고침
+            </Button>
+          </div>
         </div>
       </div>
 

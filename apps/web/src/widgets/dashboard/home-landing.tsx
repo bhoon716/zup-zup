@@ -8,6 +8,9 @@ import { cn } from "@/shared/lib/utils";
 import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
 import { Loader2 } from "lucide-react";
 
+/**
+ * 서비스의 주요 특징을 정의하는 상수 리스트입니다.
+ */
 const features = [
   {
     title: "실시간 여석 알림",
@@ -32,6 +35,9 @@ const features = [
   },
 ];
 
+/**
+ * 인기 강의의 샘플 데이터를 정의합니다. (실제 데이터로 연동 가능)
+ */
 const popularCourses = [
   {
     rank: 1,
@@ -75,12 +81,15 @@ const popularCourses = [
   },
 ];
 
+/**
+ * 인덱스 페이지에서 서비스를 소개하고 핵심 기능을 보여주는 랜딩용 섹션입니다.
+ */
 export function HomeLanding() {
   const { data: upcomingSchedules, isLoading: isScheduleLoading } = useUpcomingSchedules();
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
+      {/* Hero Section: 서비스의 핵심 가치 전달 */}
       <section className="relative pt-16 pb-24 md:pt-32 md:pb-40 overflow-hidden flex items-center">
         <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center text-center relative z-10 w-full">
           <motion.h1

@@ -8,7 +8,7 @@ import Image from "next/image";
 import { cn } from "@/shared/lib/utils";
 import { 
   LogOut, Search, Bell, Settings, ShieldCheck, Calendar, 
-  Menu, Download, GraduationCap, LayoutDashboard, ChevronDown, ExternalLink 
+  Menu, Download, GraduationCap, LayoutDashboard, ChevronDown, ExternalLink, Megaphone
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Sheet,
   SheetContent,
@@ -128,6 +128,12 @@ function NavLinks({ isMobile = false, isAdmin, onGuardedAction, onLinkClick }: N
           <span className="text-sm font-medium">알림 / 구독</span>
         </Button>
       </Link>
+      <Link href="/announcements" onClick={onLinkClick}>
+        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Megaphone className="w-[1.1rem] h-[1.1rem]" />
+          <span className="text-sm font-medium">공지사항</span>
+        </Button>
+      </Link>
       <Link href="/settings" onClick={handleClick}>
         <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
           <Settings className="w-[1.1rem] h-[1.1rem]" />
@@ -151,6 +157,12 @@ function NavLinks({ isMobile = false, isAdmin, onGuardedAction, onLinkClick }: N
                     대시보드
                   </Button>
                 </Link>
+                <Link href="/admin/announcements" onClick={onLinkClick}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                    <Megaphone className="w-4 h-4" />
+                    공지사항 관리
+                  </Button>
+                </Link>
               </div>
             </>
           ) : (
@@ -169,6 +181,12 @@ function NavLinks({ isMobile = false, isAdmin, onGuardedAction, onLinkClick }: N
                   <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
                     <LayoutDashboard className="w-4 h-4" />
                     대시보드
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/admin/announcements">
+                  <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
+                    <Megaphone className="w-4 h-4" />
+                    공지사항 관리
                   </DropdownMenuItem>
                 </Link>
               </DropdownMenuContent>

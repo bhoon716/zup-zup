@@ -5,6 +5,8 @@ import type {
   AdminOverviewResponse,
   AdminCrawlTargetRequest,
   AdminCrawlTargetResponse,
+  AnnouncementRequest,
+  AnnouncementDetailResponse,
 } from '@/shared/types/api';
 
 /**
@@ -64,5 +66,42 @@ export const updateCrawlTarget = async (
  */
 export const sendTestNotification = async (): Promise<CommonResponse<void>> => {
   const { data } = await api.post('/api/v1/admin/notifications/test');
+  return data;
+};
+
+/**
+ * 관리자 공지사항 목록을 조회합니다. (공개/비공개 포함)
+ */
+export const getAdminAnnouncements = async (): Promise<CommonResponse<AnnouncementDetailResponse[]>> => {
+  const { data } = await api.get('/api/v1/admin/announcements');
+  return data;
+};
+
+/**
+ * 관리자 공지사항을 생성합니다.
+ */
+export const createAdminAnnouncement = async (
+  request: AnnouncementRequest
+): Promise<CommonResponse<AnnouncementDetailResponse>> => {
+  const { data } = await api.post('/api/v1/admin/announcements', request);
+  return data;
+};
+
+/**
+ * 관리자 공지사항을 수정합니다.
+ */
+export const updateAdminAnnouncement = async (
+  id: number,
+  request: AnnouncementRequest
+): Promise<CommonResponse<AnnouncementDetailResponse>> => {
+  const { data } = await api.put(`/api/v1/admin/announcements/${id}`, request);
+  return data;
+};
+
+/**
+ * 관리자 공지사항을 삭제합니다.
+ */
+export const deleteAdminAnnouncement = async (id: number): Promise<CommonResponse<void>> => {
+  const { data } = await api.delete(`/api/v1/admin/announcements/${id}`);
   return data;
 };

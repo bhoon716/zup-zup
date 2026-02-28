@@ -1,11 +1,15 @@
-// 공통 응답 타입
+/**
+ * 서버의 표준 응답 형식을 정의합니다.
+ */
 export interface CommonResponse<T = unknown> {
   code: string;
   message: string;
   data: T;
 }
 
-// 분할 페이지 응답
+/**
+ * 무한 스크롤 등에서 사용되는 분할 페이지 응답 형식입니다.
+ */
 export interface SliceResponse<T> {
   content: T[];
   pageable: {
@@ -434,4 +438,34 @@ export interface ScheduleRequest {
   endDate: string; // "YYYY-MM-DD"
   startTime?: string; // "HH:mm"
   endTime?: string; // "HH:mm"
+}
+
+// 공지사항 관련
+export type AnnouncementSearchType = "TITLE" | "CONTENT" | "TITLE_CONTENT";
+
+export interface AnnouncementListItemResponse {
+  id: number;
+  title: string;
+  previewContent: string;
+  pinned: boolean;
+  authorName: string;
+  createdAt: string;
+}
+
+export interface AnnouncementDetailResponse {
+  id: number;
+  title: string;
+  content: string;
+  pinned: boolean;
+  published: boolean;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnnouncementRequest {
+  title: string;
+  content: string;
+  pinned?: boolean;
+  published?: boolean;
 }
