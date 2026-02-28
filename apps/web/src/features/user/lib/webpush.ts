@@ -56,7 +56,7 @@ export async function getSubscription() {
   try {
     const registration = await Promise.race([
       navigator.serviceWorker.ready,
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Service Worker timeout")), 5000))
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("서비스 워커 로드 타임아웃")), 15000))
     ]);
     return await registration.pushManager.getSubscription();
   } catch (error) {
@@ -75,7 +75,7 @@ export async function subscribeToPush() {
   
   await Promise.race([
     navigator.serviceWorker.ready,
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("서비스 워커 로드 타임아웃")), 5000))
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("서비스 워커 로드 타임아웃")), 15000))
   ]);
 
   if (!VAPID_PUBLIC_KEY) {

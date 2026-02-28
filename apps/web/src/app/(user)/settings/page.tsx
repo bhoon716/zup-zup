@@ -14,9 +14,8 @@ import {
   CheckCircle, MessageSquare, Laptop,
   X, AlertCircle, Monitor
 } from "lucide-react";
-import { getMyProfile, updateSettings, getDevices, deleteDevice } from "@/features/user/api/user.api";
+import { getMyProfile, updateSettings, getDevices, deleteDevice, unlinkDiscord } from "@/features/user/api/user.api";
 import * as userApi from "@/features/user/api/user.api";
-import { unlinkDiscord } from "@/features/user/api/user.api";
 import type { User, UserDeviceResponse } from "@/shared/types/api";
 import { AxiosError } from "axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -248,10 +247,12 @@ export default function SettingsPage() {
         const deviceRes = await getDevices();
         setDevices(deviceRes.data);
         setDeviceAlias("");
+        setValue("webPushEnabled", true, { shouldDirty: true });
         toast.success("현재 기기가 등록되었습니다.");
       }
-    } catch {
-      toast.error("기기 등록 중 오류가 발생했습니다.");
+    } catch (error: unknown) {
+      console.error("Failed to register device:", error);
+      toast.error(getErrorMessage(error, "기기 등록 중 오류가 발생했습니다. 메세지: " + (error instanceof Error ? error.message : "알 수 없음")));
     }
   };
 
@@ -520,9 +521,17 @@ export default function SettingsPage() {
                           <Button 
                             type="button"
                             onClick={handleRegisterDevice}
-                            className="bg-primary hover:bg-primary-hover text-white px-6 h-12 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all active:scale-[0.95]"
+                            disabled={loadingWebPush}
+                            className="bg-primary hover:bg-primary-hover text-white px-6 h-12 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all active:scale-[0.95] disabled:bg-slate-300"
                           >
-                            현재 기기 등록
+                            {loadingWebPush ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                등록 중...
+                              </>
+                            ) : (
+                              "현재 기기 등록"
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -606,9 +615,15 @@ export default function SettingsPage() {
 }
 
 /**
- * 전용 Switch 컴포넌트 (mockup 스타일)
+ * 설정 페이지 전용 Switch 컴포넌트입니다.
  */
-function Switch({ checked, onCheckedChange, disabled }: { checked: boolean, onCheckedChange: (checked: boolean) => void, disabled?: boolean }) {
+function Switch({ checked, onCheckedChange, disabled }: { checked: boolean, onCheckedAction?: (checked: boolean) => void, onCheckedChange: (checked: boolean) => void, disabled?: boolean }) {
+  const handleToggle = () => {
+    if (!disabled) {
+      onCheckedChange(!checked);
+    }
+  };
+
   return (
     <div 
       className={cn(
@@ -616,7 +631,7 @@ function Switch({ checked, onCheckedChange, disabled }: { checked: boolean, onCh
         checked ? "bg-primary" : "bg-slate-200",
         disabled && "opacity-50 cursor-not-allowed"
       )}
-      onClick={() => !disabled && onCheckedChange(!checked)}
+      onClick={handleToggle}
     >
       <span
         aria-hidden="true"
