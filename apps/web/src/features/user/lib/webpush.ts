@@ -2,6 +2,24 @@
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
 
+/** 두 Uint8Array가 동일한지 비교한다. */
+function isSameUint8Array(a: Uint8Array, b: Uint8Array) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+/** 기존 구독의 applicationServerKey가 현재 VAPID 공개키와 같은지 확인한다. */
+function hasSameApplicationServerKey(subscription: PushSubscription, expectedKey: Uint8Array) {
+  const existingKeyBuffer = subscription.options?.applicationServerKey;
+  if (!existingKeyBuffer) return false;
+
+  const existingKey = new Uint8Array(existingKeyBuffer);
+  return isSameUint8Array(existingKey, expectedKey);
+}
+
 /** 공개키 문자열을 푸시 구독에 필요한 바이트 배열로 변환한다. */
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -64,12 +82,39 @@ export async function subscribeToPush() {
     throw new Error("VAPID Public Key가 설정되지 않았습니다.");
   }
 
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-  });
+  const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+  const existingSubscription = await registration.pushManager.getSubscription();
 
-  return subscription;
+  if (existingSubscription) {
+    if (hasSameApplicationServerKey(existingSubscription, applicationServerKey)) {
+      return existingSubscription;
+    }
+
+    // VAPID 키가 바뀐 경우 기존 구독을 지우고 재구독해야 한다.
+    await existingSubscription.unsubscribe();
+  }
+
+  try {
+    return await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+  } catch (error) {
+    // 일부 브라우저는 내부 캐시로 인해 첫 시도에서 InvalidStateError를 던진다.
+    if (error instanceof DOMException && error.name === "InvalidStateError") {
+      const staleSubscription = await registration.pushManager.getSubscription();
+      if (staleSubscription) {
+        await staleSubscription.unsubscribe();
+      }
+
+      return await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
+    }
+
+    throw error;
+  }
 }
 
 /** 현재 푸시 구독을 해제한다. */
