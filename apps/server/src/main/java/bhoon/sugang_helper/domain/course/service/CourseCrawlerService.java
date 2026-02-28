@@ -116,7 +116,6 @@ public class CourseCrawlerService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[크롤러] 강의 데이터 가져오기 실패 (year={}, semester={})", year, semester, e);
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         }
     }
