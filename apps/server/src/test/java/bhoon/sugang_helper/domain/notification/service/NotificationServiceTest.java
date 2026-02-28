@@ -186,7 +186,9 @@ class NotificationServiceTest {
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
 
         // when & then
-        Assertions.assertThatThrownBy(() -> notificationService.sendUserTestNotification(user, List.of(NotificationChannel.EMAIL)))
+        Assertions
+                .assertThatThrownBy(
+                        () -> notificationService.sendUserTestNotification(user, List.of(NotificationChannel.EMAIL)))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
     }
@@ -199,7 +201,7 @@ class NotificationServiceTest {
         List<NotificationChannel> channels = List.of(NotificationChannel.FCM);
         UserDevice device = UserDevice.builder().userId(1L).type(DeviceType.FCM).token("token").build();
 
-        given(userDeviceRepository.findByUserIdAndType(1L, DeviceType.FCM)).willReturn(List.of(device));
+        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of(device));
         given(notificationSender.supports(NotificationChannel.FCM)).willReturn(true);
 
         // When
@@ -217,12 +219,12 @@ class NotificationServiceTest {
         User user = User.builder().id(1L).email("test@example.com").build();
         List<NotificationChannel> channels = List.of(NotificationChannel.WEB);
 
-        given(userDeviceRepository.findByUserIdAndType(1L, DeviceType.WEB)).willReturn(List.of());
+        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of());
 
         // When & Then
         org.assertj.core.api.Assertions
                 .assertThatThrownBy(() -> notificationService.sendTestNotification(user, channels))
-                .isInstanceOf(bhoon.sugang_helper.common.error.CustomException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("detail")
                 .asString()
                 .contains("등록된 웹 푸시 기기가 없습니다");
@@ -263,7 +265,7 @@ class NotificationServiceTest {
         // When & Then
         org.assertj.core.api.Assertions
                 .assertThatThrownBy(() -> notificationService.sendTestNotification(user, channels))
-                .isInstanceOf(bhoon.sugang_helper.common.error.CustomException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("detail")
                 .asString()
                 .contains("디스코드 연동 정보가 없습니다");
