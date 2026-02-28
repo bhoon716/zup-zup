@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "JBNU Sugang Helper",
+  title: "전북대 수강신청 도우미",
   description: "전북대학교 수강신청 빈자리 알림 서비스",
   manifest: "/manifest.json",
   appleWebApp: {
