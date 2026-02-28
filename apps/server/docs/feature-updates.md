@@ -51,4 +51,5 @@
 - **마이그레이션 통합 및 최적화**: 분산되어 있던 `Flyway` 마이그레이션 파일(V3~V7)을 단일 파일(`V3__consolidate_schema_updates.sql`)로 통합하여 초기 배포 및 DB 초기화 리소스를 대폭 절감.
 - **`course_schedules` 스키마 튜닝**: 불필요한 기간(`period`) 컬럼을 제거하고 인덱스 및 제약 조건을 재설계하여 크롤링 데이터 적재 성능 최적화.
 - **일정(Schedule) 도메인 모델 단순화**: 사용자 혼선을 줄이기 위해 모호했던 `target` 필드를 과감히 삭제하고, 모든 일정을 `startDate`/`endDate` 및 `startTime`/`endTime` 체계로 일원화하여 표현력 강화.
+- **신규 가입 유저 기본 시간표 자동 생성**: 사용자가 처음 가입(`OAuth2`)하는 즉시 '기본 시간표'를 생성하고 대표 시간표로 설정하여 서비스 적응력을 제고.
 - **테스트 정합성 확보**: 도메인 필드 변경에 맞춰 `ScheduleServiceTest`, `AdminScheduleControllerTest` 등 백엔드 전반의 테스트 스위트를 업데이트하여 변경 취약성 방어.
