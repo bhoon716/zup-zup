@@ -71,7 +71,23 @@ CREATE TABLE IF NOT EXISTS schedules (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4. 사용자 기기(user_devices) 테이블의 token 컬럼 길이 확장
--- Web Push 엔드포인트 URL은 255자를 초과할 수 있어 1000자로 확장함
 ALTER TABLE user_devices MODIFY COLUMN token VARCHAR(1000) NOT NULL;
 ALTER TABLE user_devices MODIFY COLUMN p256dh VARCHAR(500);
 ALTER TABLE user_devices MODIFY COLUMN auth VARCHAR(500);
+
+-- 5. 공지사항(announcements) 테이블 생성
+CREATE TABLE IF NOT EXISTS announcements (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    pinned TINYINT(1) NOT NULL DEFAULT 0,
+    published TINYINT(1) NOT NULL DEFAULT 1,
+    author_name VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NULL,
+    updated_at DATETIME(6) NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE INDEX idx_announcements_public_order
+    ON announcements (published, pinned, created_at);
+
