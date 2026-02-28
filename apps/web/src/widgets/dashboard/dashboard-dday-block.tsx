@@ -70,7 +70,7 @@ export function DashboardDDayBlock() {
                     </span>
                   </div>
                   <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 break-keep">
-                    {event.scheduleType} <span className="text-xs font-medium text-gray-500">({event.target})</span>
+                    {event.scheduleType}
                   </h4>
                   <p className="text-[11px] text-gray-500 font-medium">
                     {event.startDate} {event.startTime ? event.startTime : ""} 

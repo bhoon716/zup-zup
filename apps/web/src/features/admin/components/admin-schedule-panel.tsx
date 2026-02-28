@@ -152,7 +152,6 @@ export function AdminSchedulePanel() {
   const handleSave = () => {
     const request: ScheduleRequest = {
       scheduleType: draftType,
-      target: "대상 없음", // 대상 필드 제거됨
       startDate: draftStartDate,
       endDate: draftEndDate,
       startTime: draftStartTime || undefined,

@@ -189,9 +189,6 @@ export function HomeLanding() {
                         )}>
                           {schedule.dDay}
                         </span>
-                        <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">
-                          {schedule.target}
-                        </span>
                       </div>
                     </div>
                     <h4 className="text-[1.1rem] font-bold text-[#161118] leading-snug break-keep mb-1">

@@ -421,7 +421,6 @@ export interface CustomScheduleRequest {
 export interface ScheduleResponse {
   id: number;
   scheduleType: string;
-  target: string;
   startDate: string; // "YYYY-MM-DD"
   endDate: string; // "YYYY-MM-DD"
   startTime?: string; // "HH:mm"
@@ -431,7 +430,6 @@ export interface ScheduleResponse {
 
 export interface ScheduleRequest {
   scheduleType: string;
-  target: string;
   startDate: string; // "YYYY-MM-DD"
   endDate: string; // "YYYY-MM-DD"
   startTime?: string; // "HH:mm"
