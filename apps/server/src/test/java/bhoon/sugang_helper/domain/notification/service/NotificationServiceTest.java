@@ -8,7 +8,10 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.notification.entity.NotificationHistory;
@@ -26,6 +29,7 @@ import bhoon.sugang_helper.domain.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import java.time.Duration;
 import java.util.List;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -149,6 +153,42 @@ class NotificationServiceTest {
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, times(1)).save(any(NotificationHistory.class));
+    }
+
+    @Test
+    @DisplayName("사용자 테스트 알림 발송 - 쿨타임 획득 시 정상 발송")
+    void sendUserTestNotification_Success() {
+        // given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .build();
+        List<NotificationChannel> channels = List.of(NotificationChannel.EMAIL);
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
+
+        // when
+        notificationService.sendUserTestNotification(user, channels);
+
+        // then
+        verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
+        verify(notificationHistoryRepository, times(1)).save(any(NotificationHistory.class));
+    }
+
+    @Test
+    @DisplayName("사용자 테스트 알림 발송 - 쿨타임 중이면 예외 발생")
+    void sendUserTestNotification_Cooldown() {
+        // given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .build();
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
+
+        // when & then
+        Assertions.assertThatThrownBy(() -> notificationService.sendUserTestNotification(user, List.of(NotificationChannel.EMAIL)))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
     }
 
     @Test
