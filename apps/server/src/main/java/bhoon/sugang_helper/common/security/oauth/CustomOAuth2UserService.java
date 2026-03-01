@@ -41,10 +41,10 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
 
-        log.info("소셜 로그인 사용자 정보 로드 요청(OAuth2): 제공자={}, 이메일={}", registrationId, email);
+        log.info("Social login request (OAuth2): provider={}, email={}", registrationId, email);
         saveOrUpdate(email, name);
         User user = userRepository.findByEmail(email).orElseThrow();
-        log.info("소셜 로그인 사용자 정보 로드 완료(OAuth2): 사용자ID={}", user.getId());
+        log.info("Social login load complete (OAuth2): userId={}", user.getId());
 
         return new DefaultOAuth2User(
                 Collections.singleton(new SimpleGrantedAuthority(user.getRole().getKey())),
@@ -55,7 +55,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
     private void saveOrUpdate(String email, String name) {
         userRepository.findByEmail(email)
                 .ifPresentOrElse(
-                        user -> log.info("기존 사용자 로그인: 이메일={}", email),
+                        user -> log.info("Existing user login: email={}", email),
                         () -> {
                             User newUser = User.builder()
                                     .email(email)
@@ -63,7 +63,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                                     .role(Role.USER)
                                     .build();
                             User savedUser = userRepository.save(newUser);
-                            log.info("신규 사용자 가입 완료: 사용자ID={}, 이메일={}", savedUser.getId(), email);
+                            log.info("New user sign-up complete: userId={}, email={}", savedUser.getId(), email);
                             eventPublisher.publishEvent(new UserRegisteredEvent(savedUser.getId(), email));
                         });
     }

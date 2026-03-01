@@ -91,7 +91,7 @@ public class JbnuCourseApiClient {
                         .body();
             } catch (Exception e) {
                 retryCount++;
-                log.warn("[API 클라이언트] 강의 데이터 요청 실패 (시도 {}/{}): yy={}, shtm={}, reason={}",
+                log.warn("[API Client] Failed to request course data (attempt {}/{}): yy={}, shtm={}, reason={}",
                         retryCount, maxRetries + 1, year, semester, e.getMessage());
 
                 if (retryCount > maxRetries) {

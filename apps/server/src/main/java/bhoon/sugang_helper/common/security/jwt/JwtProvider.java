@@ -87,20 +87,20 @@ public class JwtProvider {
         try {
             parseClaims(token);
             if (redisService.hasKey(SecurityConstant.REDIS_BLACKLIST_PREFIX + token)) {
-                log.warn("[JWT] 블랙리스트 토큰 사용이 감지되었습니다: {}", token);
+                log.warn("[JWT] Blacklisted token usage detected: {}", token);
                 return false;
             }
             return true;
         } catch (io.jsonwebtoken.security.SecurityException | io.jsonwebtoken.MalformedJwtException e) {
-            log.error("[JWT] 서명이 유효하지 않거나 토큰 형식이 올바르지 않습니다: {}", e.getMessage());
+            log.error("[JWT] Invalid signature or token format: {}", e.getMessage());
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
-            log.warn("[JWT] 만료된 토큰입니다: {}", e.getMessage());
+            log.warn("[JWT] Expired token: {}", e.getMessage());
         } catch (io.jsonwebtoken.UnsupportedJwtException e) {
-            log.error("[JWT] 지원하지 않는 토큰 형식입니다: {}", e.getMessage());
+            log.error("[JWT] Unsupported token format: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
-            log.error("[JWT] 토큰 클레임 문자열이 비어 있습니다: {}", e.getMessage());
+            log.error("[JWT] Empty token claims: {}", e.getMessage());
         } catch (Exception e) {
-            log.error("[JWT] 토큰 검증에 실패했습니다: {}", e.getMessage());
+            log.error("[JWT] Token validation failed: {}", e.getMessage());
         }
         return false;
     }

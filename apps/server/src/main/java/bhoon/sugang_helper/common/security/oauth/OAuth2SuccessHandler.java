@@ -32,7 +32,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-                                        Authentication authentication) throws IOException {
+            Authentication authentication) throws IOException {
 
         OAuth2User userDetails = (OAuth2User) authentication.getPrincipal();
         String email = (String) userDetails.getAttributes().get(SecurityConstant.CLAIM_EMAIL);
@@ -50,7 +50,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         request.getSession().setAttribute("ACCESS_TOKEN", accessToken);
         request.getSession().setAttribute("REFRESH_TOKEN", refreshToken);
 
-        log.info("소셜 로그인(OAuth2) 성공: email={}, 세션 저장 완료", user.getEmail());
+        log.info("Social login (OAuth2) successful: email={}, session saved", user.getEmail());
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }
 }
