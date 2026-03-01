@@ -116,6 +116,7 @@ public class CourseCrawlerService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
+            log.error("[크롤러] 크롤링 중 알 수 없는 오류 발생: {}", e.getMessage());
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         }
     }
@@ -163,9 +164,17 @@ public class CourseCrawlerService {
      */
     private void updateExistingCourse(Course existingCourse, Course crawledCourse) {
         boolean wasFull = existingCourse.getAvailable() <= 0;
+        // 정원 또는 현재 인원에 변동이 있는지 확인
+        boolean seatsChanged = !existingCourse.getCapacity().equals(crawledCourse.getCapacity()) ||
+                !existingCourse.getCurrent().equals(crawledCourse.getCurrent());
+
         existingCourse.updateMetadata(crawledCourse);
         courseRepository.save(existingCourse);
-        saveSeatHistory(existingCourse);
+
+        // 변경 사항이 있을 때만 이력 저장 (저장 공간 최적화)
+        if (seatsChanged) {
+            saveSeatHistory(existingCourse);
+        }
 
         if (wasFull && existingCourse.getAvailable() > 0) {
             publishSeatOpenedEvent(existingCourse);
