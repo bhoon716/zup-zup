@@ -2,11 +2,27 @@
 
 import { Button } from "@/shared/ui/button";
 import { motion } from "framer-motion";
-import { Bell, Calendar, Search, ArrowRight, Heart, Flame } from "lucide-react";
+import { Bell, Calendar, Search, Megaphone, Pin, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/shared/lib/utils";
 import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
+import { useAnnouncements } from "@/features/announcement/hooks/useAnnouncements";
 import { Loader2 } from "lucide-react";
+
+/**
+ * 날짜를 포맷팅하는 유틸리티 함수입니다.
+ */
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+};
 
 /**
  * 서비스의 주요 특징을 정의하는 상수 리스트입니다.
@@ -36,56 +52,13 @@ const features = [
 ];
 
 /**
- * 인기 강의의 샘플 데이터를 정의합니다. (실제 데이터로 연동 가능)
- */
-const popularCourses = [
-  {
-    rank: 1,
-    title: "영화로보는 역사",
-    type: "교양",
-    professor: "정문성 교수님",
-    time: "월3,4 / 수3",
-    likes: "1,240",
-    isHot: true,
-    rankColor: "bg-orange-100 text-orange-600",
-  },
-  {
-    rank: 2,
-    title: "인공지능 개론",
-    type: "전공",
-    professor: "최민혁 교수님",
-    time: "화2,3 / 목2",
-    likes: "982",
-    isHot: false,
-    rankColor: "bg-gray-100 text-gray-500",
-  },
-  {
-    rank: 3,
-    title: "심리학의 이해",
-    type: "교양",
-    professor: "배수지 교수님",
-    time: "금1,2,3",
-    likes: "856",
-    isHot: false,
-    rankColor: "bg-gray-100 text-gray-500",
-  },
-  {
-    rank: 4,
-    title: "자바 프로그래밍",
-    type: "전공",
-    professor: "홍진호 교수님",
-    time: "월5,6 / 수5,6",
-    likes: "741",
-    isHot: false,
-    rankColor: "bg-gray-100 text-gray-500",
-  },
-];
-
-/**
  * 인덱스 페이지에서 서비스를 소개하고 핵심 기능을 보여주는 랜딩용 섹션입니다.
  */
 export function HomeLanding() {
   const { data: upcomingSchedules, isLoading: isScheduleLoading } = useUpcomingSchedules();
+  const { data: announcements, isLoading: isAnnouncementLoading } = useAnnouncements();
+  
+  const latestAnnouncements = (announcements ?? []).slice(0, 4);
 
   return (
     <div className="flex flex-col">
@@ -227,60 +200,63 @@ export function HomeLanding() {
         </div>
       </section>
 
-      {/* Popular Courses Section */}
+      {/* Announcements Section */}
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="flex items-center justify-between mb-10">
             <div>
               <h3 className="text-2xl md:text-3xl font-bold text-[#161118] flex items-center gap-3 mb-2">
-                <Flame className="text-primary w-8 h-8 fill-primary" />
-                지금 뜨는 인기 강의
+                <Megaphone className="text-primary w-8 h-8 fill-primary/10" />
+                공지사항
               </h3>
-              <p className="text-[#161118]/60 text-sm md:text-base font-medium">로그인 없이 실시간 인기 트렌드를 확인해보세요.</p>
+              <p className="text-[#161118]/60 text-sm md:text-base font-medium">서비스 및 학사의 주요 공지사항을 확인하세요.</p>
             </div>
-            <Link href="/search">
+            <Link href="/announcements">
               <Button variant="link" className="text-primary font-bold flex items-center gap-1 hover:no-underline group p-0">
-                전체 순위 보기 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                전체보기 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {popularCourses.map((course, idx) => (
-              <motion.div
-                key={course.title}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: idx * 0.05 }}
-                className="bg-white dark:bg-primary/5 p-6 rounded-2xl border border-primary/5 shadow-sm flex items-center justify-between hover:bg-primary/5 transition-all cursor-pointer group hover:border-primary/20"
-              >
-                <div className="flex items-center gap-5 overflow-hidden">
-                  <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center font-bold text-2xl shadow-inner shrink-0", course.rankColor)}>
-                    {course.rank}
-                  </div>
-                  <div className="overflow-hidden">
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      {course.isHot && (
-                        <span className="text-[10px] font-black text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full shrink-0">HOT</span>
-                      )}
-                      <h4 className="font-bold text-lg text-[#161118] group-hover:text-primary transition-colors truncate">{course.title}</h4>
+          {isAnnouncementLoading ? (
+            <div className="flex h-36 items-center justify-center text-sm text-slate-500">
+              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+            </div>
+          ) : latestAnnouncements.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+              등록된 공지사항이 없습니다.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {latestAnnouncements.map((item, idx) => (
+                <Link key={item.id} href={`/announcements/${item.id}`}>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: idx * 0.05 }}
+                    className="bg-white dark:bg-primary/5 p-6 rounded-2xl border border-primary/5 shadow-sm flex flex-col gap-3 hover:bg-primary/5 transition-all cursor-pointer group hover:border-primary/20 h-full"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        {item.pinned ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-black text-indigo-600 dark:border-indigo-900/50 dark:bg-indigo-950/50">
+                            <Pin className="h-3 w-3" />
+                            고정
+                          </span>
+                        ) : null}
+                        <h4 className="truncate text-base md:text-lg font-bold text-gray-800 transition-colors group-hover:text-primary dark:text-gray-200">
+                          {item.title}
+                        </h4>
+                      </div>
+                      <span className="shrink-0 text-xs font-medium text-gray-400">{formatDate(item.createdAt)}</span>
                     </div>
-                    <p className="text-sm text-[#161118]/60 font-medium truncate">
-                      {course.type} • {course.professor} • {course.time}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0 ml-4">
-                  <div className="flex items-center gap-1.5 text-primary">
-                    <Heart className="w-4 h-4 fill-primary" />
-                    <span className="text-lg font-bold">{course.likes}</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-[#161118]/40 uppercase tracking-tighter">관심 등록 수</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                    <p className="line-clamp-2 text-sm text-slate-500">{item.previewContent || "-"}</p>
+                  </motion.div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>
