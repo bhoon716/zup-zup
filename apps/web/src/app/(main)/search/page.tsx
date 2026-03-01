@@ -23,7 +23,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/shared/ui/sheet";
-import { Filter, SlidersHorizontal, X, ArrowDown, ArrowUp, Search, ChevronRight, ListFilter } from "lucide-react";
+import { Filter, SlidersHorizontal, X, Search, ChevronRight, ListFilter } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -193,7 +193,7 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
       {/* 모바일 검색 영역 (상단) */}
-      <div className="sticky top-0 z-30 border-b border-border/50 bg-white/95 px-4 py-4 backdrop-blur-md lg:hidden">
+      <div className="sticky top-16 z-30 border-b border-border/50 bg-white/95 px-4 py-4 backdrop-blur-md lg:hidden">
         <div className="space-y-3">
           {/* 강의명 검색창 */}
           <form 

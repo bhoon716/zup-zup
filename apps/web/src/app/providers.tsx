@@ -5,6 +5,7 @@ import { getFirebaseApp } from "@/shared/lib/firebase";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, Suspense } from "react";
 import { Toaster, toast } from "sonner";
+import { LoginModal } from "@/widgets/auth/login-modal";
 
 import { useUser } from "@/features/user/hooks/useUser";
 import { usePathname, useRouter } from "next/navigation";
@@ -75,7 +76,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   return <OnboardingGuard>{children}</OnboardingGuard>;
 }
 
-import { LoginModal } from "@/widgets/auth/login-modal";
 
 /**
  * React Query, Toaster, Tooltip 등 전역 상태 및 UI 프로바이더들을 통합 관리하는 컴포넌트입니다.
@@ -88,6 +88,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
+            // 401 에러는 재시도해도 실패할 가능성이 높으므로 즉시 중단한다.
+            retry: (failureCount, error: any) => {
+              if (error?.response?.status === 401) return false;
+              return failureCount < 3;
+            },
           },
         },
       })
