@@ -25,27 +25,21 @@ describe("TimeTableSelector", () => {
   });
 
   it("사각형 드래그로 여러 칸을 한 번에 선택한다", () => {
-    // 하위 컴포넌트는 자체 상태를 가짐
     const { getByRole, getByTestId } = render(<SelectorHarness initial={[]} />);
 
     const startCell = getByRole("button", { name: "월 1교시" });
     const endCell = getByRole("button", { name: "화 2교시" });
 
-    fireEvent.mouseDown(startCell);
-    fireEvent.mouseEnter(endCell);
-    
-    // fireEvent를 사용하여 window에 mouseup 이벤트를 트리거해야 함
-    fireEvent.mouseUp(window);
+    fireEvent.pointerDown(startCell, { pointerId: 1, pointerType: "mouse", button: 0 });
+    fireEvent.pointerMove(endCell, { pointerId: 1, pointerType: "mouse" });
+    fireEvent.pointerUp(window, { pointerId: 1, pointerType: "mouse" });
 
     expect(getByTestId("selected-count")).toHaveTextContent("4");
 
     const selected = JSON.parse(
       getByTestId("selected-json").textContent ?? "[]",
     ) as ScheduleCondition[];
-    
-    // 올바른 셀이 선택되었는지 확인
-    // 월 1, 월 2, 화 1, 화 2
-    // We just check the count and structure mainly
+
     expect(selected).toHaveLength(4);
     expect(selected).toEqual(expect.arrayContaining([
       { dayOfWeek: "월", startTime: "09:00:00", endTime: "10:00:00" },
@@ -68,9 +62,9 @@ describe("TimeTableSelector", () => {
     const startCell = screen.getByRole("button", { name: "화 2교시" });
     const endCell = screen.getByRole("button", { name: "월 1교시" });
 
-    fireEvent.mouseDown(startCell);
-    fireEvent.mouseEnter(endCell);
-    fireEvent.mouseUp(window);
+    fireEvent.pointerDown(startCell, { pointerId: 2, pointerType: "mouse", button: 0 });
+    fireEvent.pointerMove(endCell, { pointerId: 2, pointerType: "mouse" });
+    fireEvent.pointerUp(window, { pointerId: 2, pointerType: "mouse" });
 
     expect(screen.getByTestId("selected-count")).toHaveTextContent("0");
   });
