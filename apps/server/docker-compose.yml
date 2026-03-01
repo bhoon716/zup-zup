@@ -10,6 +10,7 @@ services:
     ports:
       - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       DB_HOST: db
       REDIS_HOST: redis
       FIREBASE_CONFIG_PATH: /app/resources/firebase/firebase-key.json
@@ -22,6 +23,5 @@ services:
       - ./src/main/resources/firebase/firebase-key.json:/app/resources/firebase/firebase-key.json:ro
     networks:
       - sugang-helper-network-server
-
 
 # Networks and Volumes are managed in the root docker-compose.yml
