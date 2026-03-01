@@ -50,7 +50,7 @@ public class JbnuCourseParser {
             try {
                 processRow(row).ifPresent(courseList::add);
             } catch (Exception e) {
-                log.warn("강의 행 파싱에 실패했습니다: {}", e.getMessage());
+                log.warn("Failed to parse course row: {}", e.getMessage());
             }
         }
         return courseList;

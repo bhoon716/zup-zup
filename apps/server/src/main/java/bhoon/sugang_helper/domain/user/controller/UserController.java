@@ -252,7 +252,7 @@ public class UserController {
       linkDiscordAccount(code);
       return buildDiscordRedirectResponse(redirectPath, "success");
     } catch (Exception e) {
-      log.warn("[디스코드] OAuth 콜백 처리에 실패했습니다. state={}, reason={}", state, e.getMessage());
+      log.warn("[Discord] Failed to process OAuth callback. state={}, reason={}", state, e.getMessage());
       return buildDiscordRedirectResponse(redirectPath, "error");
     }
   }

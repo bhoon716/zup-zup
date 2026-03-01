@@ -24,7 +24,7 @@ public class FirebaseConfig {
                 return;
             }
             if (configPath == null || configPath.isEmpty()) {
-                log.error("[Firebase] 설정 파일 경로가 비어 있습니다.");
+                log.error("[Firebase] Configuration file path is empty.");
                 return;
             }
 
@@ -35,10 +35,10 @@ public class FirebaseConfig {
                         .build();
 
                 FirebaseApp.initializeApp(options);
-                log.info("[Firebase] 파일 기반 초기화를 완료했습니다. 경로={}", configPath);
+                log.info("[Firebase] File-based initialization completed. path={}", configPath);
             }
         } catch (IOException e) {
-            log.error("[Firebase] 초기화 중 오류가 발생했습니다: {}", e.getMessage(), e);
+            log.error("[Firebase] Error during initialization: {}", e.getMessage(), e);
         }
     }
 }

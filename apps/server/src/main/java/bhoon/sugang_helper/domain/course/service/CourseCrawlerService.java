@@ -60,7 +60,7 @@ public class CourseCrawlerService {
      */
     public void crawlAndSaveCourses(String year, String semester) {
         if (!isCrawling.compareAndSet(false, true)) {
-            log.warn("[크롤러] 이미 크롤링 작업이 진행 중입니다. 작업을 스킵합니다.");
+            log.warn("[Crawler] Crawling already in progress. Skipping.");
             return;
         }
 
@@ -76,7 +76,7 @@ public class CourseCrawlerService {
      */
     public void crawlRecentYears() {
         if (!isCrawling.compareAndSet(false, true)) {
-            log.warn("[크롤러] 이미 크롤링 작업이 진행 중입니다. 작업을 스킵합니다.");
+            log.warn("[Crawler] Crawling already in progress. Skipping.");
             return;
         }
 
@@ -86,10 +86,10 @@ public class CourseCrawlerService {
                 String year = String.valueOf(y);
                 for (SemesterType semester : SemesterType.values()) {
                     try {
-                        log.info("[크롤러] 자동 크롤링 실행 중: {}년 {}학기", year, semester.getDescription());
+                        log.info("[Crawler] Automatic crawling: year={}, semester={}", year, semester.getDescription());
                         executeCrawl(year, semester.getCode());
                     } catch (Exception e) {
-                        log.warn("[크롤러] {}년 {}학기 크롤링 실패 : {}", year, semester.getDescription(),
+                        log.warn("[Crawler] Failed to crawl year={}, semester={} : {}", year, semester.getDescription(),
                                 e.getMessage());
                     }
                 }
@@ -103,7 +103,7 @@ public class CourseCrawlerService {
      * 실제 크롤링 로직을 실행합니다. (중복 체크 및 Lock 관리는 호출부에서 담당)
      */
     private void executeCrawl(String year, String semester) {
-        log.info("[크롤러] 강의 크롤링을 시작합니다. year={}, semester={}", year, semester);
+        log.info("[Crawler] Starting course crawl. year={}, semester={}", year, semester);
         try {
             // API 호출은 트랜잭션 외부에서 수행
             String xmlResponse = apiClient.fetchCourseDataXml(year, semester);
@@ -111,12 +111,12 @@ public class CourseCrawlerService {
 
             int savedCount = processCourses(courses);
 
-            log.info("[크롤러] 강의 크롤링을 완료했습니다. year={}, semester={}, 처리 건수={}",
+            log.info("[Crawler] Completed course crawl. year={}, semester={}, count={}",
                     year, semester, savedCount);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[크롤러] 크롤링 중 알 수 없는 오류 발생: {}", e.getMessage());
+            log.error("[Crawler] Unknown error during crawling: {}", e.getMessage());
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         }
     }
@@ -134,7 +134,8 @@ public class CourseCrawlerService {
                 // 개별 강의별로 트랜잭션을 분리하여 안정성 확보
                 transactionTemplate.executeWithoutResult(status -> processCourse(course));
             } catch (Exception e) {
-                log.error("[크롤러] 강의 처리 중 오류 발생: courseKey={}, reason={}", course.getCourseKey(), e.getMessage());
+                log.error("[Crawler] Error processing course: courseKey={}, reason={}", course.getCourseKey(),
+                        e.getMessage());
                 // 개별 강의 실패는 로그만 남기고 계속 진행
             }
         }
@@ -196,7 +197,8 @@ public class CourseCrawlerService {
      * 빈자리 발생 알림 이벤트를 시스템에 발행
      */
     private void publishSeatOpenedEvent(Course course) {
-        log.info("[크롤러] 빈자리 발생을 감지했습니다. courseName={}, available={}", course.getName(), course.getAvailable());
+        log.info("[Crawler] Seat opening detected. courseName={}, available={}", course.getName(),
+                course.getAvailable());
         eventPublisher.publishEvent(new SeatOpenedEvent(
                 course.getCourseKey(),
                 course.getName(),

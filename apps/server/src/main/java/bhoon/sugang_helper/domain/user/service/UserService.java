@@ -46,7 +46,7 @@ public class UserService {
     public UserResponse updateProfile(String name) {
         User user = getCurrentUser();
         user.update(name);
-        log.info("[사용자] 프로필 수정: userId={}, newName={}", user.getId(), name);
+        log.info("[User] Update profile: userId={}, newName={}", user.getId(), name);
         return UserResponse.from(user);
     }
 
@@ -70,7 +70,7 @@ public class UserService {
                 request.isWebPushEnabled(),
                 request.isFcmEnabled(),
                 request.isDiscordEnabled());
-        log.info("[사용자] 설정 변경: userId={}, emailEnabled={}, webPushEnabled={}",
+        log.info("[User] Change settings: userId={}, emailEnabled={}, webPushEnabled={}",
                 user.getId(), request.isEmailEnabled(), request.isWebPushEnabled());
         return UserResponse.from(user);
     }
@@ -86,7 +86,7 @@ public class UserService {
         subscriptionRepository.deleteAllByUserId(user.getId());
 
         userRepository.delete(user);
-        log.info("[사용자] 회원 탈퇴: userId={}, email={}", user.getId(), user.getEmail());
+        log.info("[User] Delete account: userId={}, email={}", user.getId(), user.getEmail());
     }
 
     /**
@@ -109,7 +109,7 @@ public class UserService {
                 request.isWebPushEnabled(),
                 request.isFcmEnabled(),
                 request.isDiscordEnabled());
-        log.info("[사용자] 온보딩 완료: userId={}, email={}", user.getId(), user.getEmail());
+        log.info("[User] Onboarding complete: userId={}, email={}", user.getId(), user.getEmail());
         return UserResponse.from(user);
     }
 
@@ -141,7 +141,7 @@ public class UserService {
     public void linkDiscordId(String discordId) {
         User user = getCurrentUser();
         user.linkDiscord(discordId);
-        log.info("[사용자] 디스코드 연동: userId={}, discordId={}", user.getId(), discordId);
+        log.info("[User] Link Discord: userId={}, discordId={}", user.getId(), discordId);
     }
 
     /**
@@ -151,7 +151,7 @@ public class UserService {
     public void unlinkDiscord() {
         User user = getCurrentUser();
         user.unlinkDiscord();
-        log.info("[사용자] 디스코드 연동 해제: userId={}", user.getId());
+        log.info("[User] Unlink Discord: userId={}", user.getId());
     }
 
     /**
@@ -166,7 +166,7 @@ public class UserService {
         }
 
         notificationService.sendUserTestNotification(user, channels);
-        log.info("[사용자] 테스트 알림 발송: userId={}, channels={}", user.getId(), channels);
+        log.info("[User] Send test notification: userId={}, channels={}", user.getId(), channels);
     }
 
     /**

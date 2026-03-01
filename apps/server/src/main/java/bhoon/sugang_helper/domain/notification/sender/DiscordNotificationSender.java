@@ -32,7 +32,7 @@ public class DiscordNotificationSender implements NotificationSender {
     @Override
     public void send(NotificationTarget target, String title, String message) {
         if (botToken == null || botToken.isBlank() || botToken.equals("<DISCORD_BOT_TOKEN>")) {
-            log.warn("[디스코드] 봇 토큰이 설정되지 않아 알림을 건너뜁니다.");
+            log.warn("[Discord] Skipping notification as bot token is not configured.");
             return;
         }
 
@@ -62,9 +62,10 @@ public class DiscordNotificationSender implements NotificationSender {
                     .retrieve()
                     .toEntity(String.class);
 
-            log.info("[디스코드] 개인 메시지 알림을 전송했습니다. userId={}", userId);
+            log.info("[Discord] Dispatched private message notification. userId={}", userId);
         } catch (Exception e) {
-            log.error("[디스코드] 개인 메시지 알림 전송에 실패했습니다. userId={}, reason={}", userId, e.getMessage());
+            log.error("[Discord] Failed to dispatch private message notification. userId={}, reason={}", userId,
+                    e.getMessage());
             throw new CustomException(ErrorCode.DISCORD_SEND_ERROR, "디스코드 알림 발송 실패: " + e.getMessage());
         }
     }

@@ -63,7 +63,7 @@ public class AuthService {
         HttpSession session = request.getSession(true);
         session.setAttribute("ACCESS_TOKEN", newAccessToken);
         session.setAttribute("REFRESH_TOKEN", newRefreshToken);
-        log.info("[인증] 세션 토큰을 갱신했습니다. email={}", email);
+        log.info("[Auth] Refreshed session token. email={}", email);
 
         addRefreshTokenCookie(response, newRefreshToken);
 

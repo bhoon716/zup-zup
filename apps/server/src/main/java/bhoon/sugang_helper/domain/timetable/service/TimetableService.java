@@ -75,7 +75,7 @@ public class TimetableService {
                 .isPrimary(true)
                 .build();
         timetableRepository.save(timetable);
-        log.info("[시간표] 신규 사용자를 위한 기본 시간표가 생성되었습니다. userId={}", event.userId());
+        log.info("[Timetable] Default timetable created for new user. userId={}", event.userId());
     }
 
     public List<TimetableResponse> getMyTimetables() {
@@ -175,7 +175,7 @@ public class TimetableService {
 
         resetPrimary(timetable.getUserId());
         timetable.setPrimary(true);
-        log.info("[시간표] 대표 시간표를 변경했습니다. timetableId={}", timetableId);
+        log.info("[Timetable] Changed representive timetable. timetableId={}", timetableId);
     }
 
     @Transactional
@@ -280,7 +280,8 @@ public class TimetableService {
                 .findFirst()
                 .ifPresent(timetable -> {
                     timetable.setPrimary(true);
-                    log.info("[시간표] 대표 시간표를 자동 승계했습니다. timetableId={}", timetable.getId());
+                    log.info("[Timetable] Automatically delegated representive timetable. timetableId={}",
+                            timetable.getId());
                 });
     }
 

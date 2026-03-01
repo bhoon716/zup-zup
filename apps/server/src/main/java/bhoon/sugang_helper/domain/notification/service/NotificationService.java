@@ -52,13 +52,13 @@ public class NotificationService {
     public void handleSeatOpenedEvent(SeatOpenedEvent event) {
         String redisKey = NOTIFICATION_KEY_PREFIX + event.courseKey();
         if (redisService.hasKey(redisKey)) {
-            log.debug("[알림] 중복 발송을 방지했습니다. courseKey={}", event.courseKey());
+            log.debug("[Notification] Skipped duplicate sending. courseKey={}", event.courseKey());
             return;
         }
 
         notifySubscribers(event);
         redisService.setValues(redisKey, "SENT", DEDUP_TTL);
-        log.info("[알림] 빈자리 알림 발송을 완료했습니다. courseKey={}", event.courseKey());
+        log.info("[Notification] Completed sending seat opening notifications. courseKey={}", event.courseKey());
     }
 
     /**
@@ -69,7 +69,7 @@ public class NotificationService {
         List<UserDevice> devices = userDeviceRepository.findByUserId(user.getId());
 
         for (NotificationChannel channel : channels) {
-            log.info("[알림 테스트] 발송을 시도합니다. channel={}, userId={}", channel, user.getId());
+            log.info("[Notification Test] Attempting to send. channel={}, userId={}", channel, user.getId());
             sendNotification(user, devices, notification, channel, "TEST", false, true);
         }
     }
