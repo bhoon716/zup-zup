@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { Switch } from "@/shared/ui/switch";
@@ -46,24 +47,24 @@ export function CourseSmartFilters({
   const { data: timetables, refetch: refetchTimetables } = useTimetables();
 
   // 찜한 강의만 보기 토글 핸들러
-  const handleWishedOnlyChange = (checked: boolean) => {
+  const handleWishedOnlyChange = useCallback((checked: boolean) => {
     if (checked && !user) {
       toast.error("찜한 강의 필터는 로그인 후 사용할 수 있습니다.");
       return;
     }
     setCondition((prev) => ({ ...prev, isWishedOnly: checked || undefined }));
-  };
+  }, [user, setCondition]);
 
-  const handleAvailableOnlyChange = (checked: boolean) => {
+  const handleAvailableOnlyChange = useCallback((checked: boolean) => {
     setCondition((prev) => ({ ...prev, isAvailableOnly: checked || undefined }));
-  };
+  }, [setCondition]);
 
-  const handleSchedulesChange = (selected: ScheduleCondition[]) => {
+  const handleSchedulesChange = useCallback((selected: ScheduleCondition[]) => {
     setCondition((prev) => ({
       ...prev,
       selectedSchedules: selected.length > 0 ? selected : undefined,
     }));
-  };
+  }, [setCondition]);
 
   /**
    * 내 시간표 정보를 가져와서 비어있는 시간대(공강)를 자동으로 선택합니다.
