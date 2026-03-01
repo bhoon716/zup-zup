@@ -352,14 +352,14 @@ export function Header() {
                   <Menu className="w-6 h-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[350px] p-0 border-l border-white/5 bg-background/95 backdrop-blur-xl">
+              <SheetContent side="right" className="w-[280px] sm:w-[350px] p-0 border-l border-white/5 bg-background/95 backdrop-blur-xl flex flex-col h-full">
                 <SheetHeader className="p-6 border-b border-white/5">
                   <SheetTitle className="text-left flex items-center gap-2.5">
                     <Image src="/jbnu-logo.png" alt="로고" width={24} height={24} className="w-6 h-6 object-contain" />
                     <span className="bg-linear-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent font-bold tracking-tight">수강신청 도우미</span>
                   </SheetTitle>
                 </SheetHeader>
-                <div className="flex flex-col gap-2 p-4">
+                <div className="flex flex-col gap-2 p-4 flex-1 overflow-y-auto min-h-0">
                   <div className="mb-4 px-2">
                     <HeaderMobileUserStatus 
                       user={user} 
@@ -395,7 +395,7 @@ export function Header() {
                   </div>
 
                   {user && (
-                    <div className="mt-auto pt-6 border-t border-white/5 p-2">
+                    <div className="mt-auto pt-6 border-t border-white/5 p-2 shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"
