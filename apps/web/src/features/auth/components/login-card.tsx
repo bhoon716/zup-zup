@@ -32,7 +32,7 @@ export function LoginCard() {
         </CardTitle>
         <CardDescription className="text-xs md:text-sm font-medium leading-relaxed">
           전북대학교 수강신청 빈자리 알림 서비스 <br className="hidden md:block" /> 
-          <span className="text-primary font-bold">JBNU Helper</span>입니다.
+          <span className="text-primary font-bold">전북대 수강신청 도우미</span>입니다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 p-6 md:p-8 pt-0">

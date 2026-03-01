@@ -1,6 +1,6 @@
 {
-  "name": "전북대 수강제우미",
-  "short_name": "수강제우미",
+  "name": "전북대 수강신청 도우미",
+  "short_name": "수강도우미",
   "description": "전북대학교 수강신청 빈자리 알림 도우미",
   "start_url": "/",
   "display": "standalone",

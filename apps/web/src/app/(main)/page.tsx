@@ -37,7 +37,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="text-center md:text-left">
-              <h5 className="text-lg font-bold text-primary mb-1">JBNU Helper</h5>
+              <h5 className="text-lg font-bold text-primary mb-1">전북대 수강신청 도우미</h5>
               <p className="text-xs text-muted-foreground">전북대학교 수강신청 빈자리 알림 서비스 (비영리)</p>
             </div>
             <div className="flex gap-6 text-xs font-bold text-muted-foreground">
@@ -46,7 +46,7 @@ export default function HomePage() {
               <Link href="#" className="hover:text-primary transition-colors">문의하기</Link>
             </div>
             <p className="text-[11px] text-muted-foreground/60 text-center md:text-right">
-              © 2026 JBNU Helper. All rights reserved.
+              © 2026 전북대 수강신청 도우미. All rights reserved.
             </p>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-50 text-center">

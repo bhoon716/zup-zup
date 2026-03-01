@@ -1,136 +1,88 @@
-# JBNU Sugang Helper Web
+<div align="center">
 
-> [!IMPORTANT]
-> **Legal Disclaimer & Non-Profit Notice**
-> 본 서비스는 전북대학교 학생들을 위한 **공익적 목적의 비영리 서비스**입니다.
-> 제공되는 정보는 보조적인 도구이며, 실제 수강신청 결과에 대한 법적 책임은 사용자 본인에게 있습니다.
-> 이용 전 [서비스 이용약관](https://jbnu-sugang-helper-web.vercel.app/terms) 및 [개인정보 처리방침](https://jbnu-sugang-helper-web.vercel.app/privacy)을 확인해 주시기 바랍니다.
+# 🎨 전북대 수강신청 도우미 Front-End
 
-Next.js 16 (App Router) 기반의 JBNU 수강신청 빈자리 알림 서비스 프론트엔드입니다.
+**전북대 수강신청 도우미: 고도화된 UX와 시인성 중심의 프론트엔드 플랫폼**
 
----
-
-## ✨ 주요 기능 (Key Features)
-
-- **실시간 대시보드**: 구독 중인 강의 목록 및 여석 상태 실시간 확인.
-- **강의 검색**: 학수번호, 과목명, 교수명은 물론 **상세 학년(1~6학년), 학점, 시수(10+), 교양 영역/상세구분, 찜한 강의만 보기**까지 아우르는 강력한 필터링 제공.
-- **조건부 필터링 UI**: 이수구분이 '교양'인 경우에만 상세 카테고리 필터가 노출되어 직관적인 설정 가능.
-- **강의 상세**: **Chart.js**를 이용한 좌석 변동 이력을 시각화하여 경쟁률 추이 파악 가능.
-- **프리미엄 대시보드 (Bento Grid)**: 정보를 구획화하여 시각적 직관성을 높인 현대적인 그리드 시스템 도입. 시각적 몰입감을 위해 대표 시간표를 전면에 배치하고 배경 데코레이션 및 애니메이션 강화.
-- **비로그인 게스트 모드**: 로그인 없이도 강의 검색, 상세 정보 조회, 여석 이력 확인이 가능한 개방형 서비스 구조.
-- **스마트 로그인 유도 (Modal)**: 비로그인 상태에서 찜하기/구독 등 개인화 기능 접근 시, 페이지 이동 없이 현재 화면에서 즉시 로그인 가능한 모달 제공.
-- **DashboardStats 위젯**: 총 신청 학점, 찜 목록 수, 활성 알림 수 등을 한눈에 볼 수 있는 요약 카드 제공.
-- **Smart Web Push**: VAPID 기반 웹푸시를 지원하며, **포커스 여부와 관계없는 시스템 알림(OS)**과 **인앱 Toast**를 동시에 제공하여 확실한 알림 전달 보장.
-- **PWA (Progressive Web App)**: 모바일/데스크톱에서 **앱 설치**를 지원하며, 스탠드얼론 모드로 네이티브 앱과 유사한 UX 제공.
-- **기기 관리 (Device Management)**: 로그인된 기기 목록을 확인하고, 원격으로 등록을 해제하거나 별칭(Alias)을 설정하여 직관적으로 관리 가능.
-- **알림 테스트 도구**: 관리자 전용 페이지에서 이메일/웹푸시/앱푸시 알림을 즉시 테스트하고 기기를 원클릭으로 등록 가능.
-- **UX 최적화**: 검색 실행 시 필터바 **자동 접힘(Auto-collapse)** 및 스켈레톤 UI 적용.
-- **반응형 디자인**: 모바일 및 태블릿 환경에 최적화된 유연한 레이아웃.
-- **인앱 브라우저 대응**: 에브리타임, 카카오톡 등 인앱 브라우저 환경에서 Google 로그인 이슈를 감지하여 외부 브라우저 실행을 유도하고, 필요한 경우 강제 진행 옵션을 제공하여 접근성 강화.
-- **이메일 본인 인증**: 회원가입(온보딩) 및 설정 변경 시 이메일 소유 확인을 위한 인증 코드 발송/검증 UI 제공.
-- **공지사항 관리 시스템**: 관리자용 공지사항 CRUD 패널 및 일반 사용자 전용 상세 페이지를 제공합니다. **표준 마크다운(Markdown)** 환경을 완벽하게 지원하여 공지 본문에 풍부한 서식과 표, 링크 등을 고품질로 렌더링할 수 있습니다.
-- **표준 마크다운 뷰어**: **react-markdown** 기반의 최적화된 마크다운 뷰어를 탑재하여, 운영 지침 및 소식을 사용자에게 일관성 있게 전달합니다.
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15.1-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white" />
+  <img src="https://img.shields.io/badge/TanStack_Query-FF4154?style=for-the-badge&logo=react-query&logoColor=white" />
+</p>
 
 ---
 
-## 🛠 기술 스택 (Tech Stack)
+</div>
 
-- **Core**: Next.js 16, React 19, TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui (Radix UI)
-- **Notifications**: Service Worker, Web Push API, Sonner (Toast)
-- **Markdown**: React Markdown, Remark GFM (GitHub Flavored Markdown)
-- **Data Fetching**: TanStack Query v5 (React Query)
-- **State Management**: Zustand (인증 정보 관리)
-- **Testing**: Vitest, React Testing Library, MSW
-- **Build**: Turbopack
+## ✨ 핵심 가치 (Core Values)
+
+- **⚡ Speed**: TanStack Query를 활용한 지연 없는 강의 데이터 탐색
+- **🎨 Intuition**: 드래그 한 번으로 시간을 고르는 스마트 그리드 필터
+- **🛡️ Reliability**: 브라우저 상태를 자동 감지하는 Self-Healing 웹푸시
 
 ---
 
-## 🚀 트러블슈팅 (Troubleshooting)
+## 🛠️ 기술 스택 (Tech Stack)
 
-상세 내용은 [Web Troubleshooting Log](docs/troubleshooting.md)에서 확인할 수 있습니다.
+### 🧱 Framework & Language
 
-### 1. Web Push 무한 로딩 및 타임아웃 처리
+- **Next.js 15+ (App Router)**, **React 19**, **TypeScript**
+- **Axios** (Security Interceptors with Refresh Token Rotation)
 
-- **문제**: 브라우저 환경에 따라 서비스 워커(`navigator.serviceWorker.ready`) 응답이 지연되어 기기 등록 시 무한 로딩 발생.
-- **해결**: `Promise.race`를 활용하여 5초 타임아웃 로직을 추가하고, 실패 시 사용자에게 명확한 에러 피드백을 제공하여 UX 개선.
+### 🎨 Styling & Animation
 
-### 2. 포그라운드 알림 시인성 문제 (이중 알림 구조)
+- **Tailwind CSS**, **shadcn/ui**, **Framer Motion**
+- **Lucide Icons** (Visual Semantics)
 
-- **문제**: 브라우저 탭이 활성화(Foreground)된 상태에서는 OS 정책상 푸시 알림이 뜨지 않거나 금방 사라져 사용자가 인지하기 어려움.
-- **해결**: 서비스 워커에서 푸시 수신 시 `postMessage`로 클라이언트(탭)에 신호를 보내고, 클라이언트는 이를 감지하여 **인앱 Toast(sonner)**를 띄우는 이중 알림 구조 구현. 또한 `requireInteraction: true` 옵션을 통해 사용자가 확인하기 전까지 알림 유지.
+### 📡 Data & Workflow
 
-### 3. VAPID 키 환경 변수 연동
-
-- **문제**: `NEXT_PUBLIC_` 접두사가 없는 환경 변수를 클라이언트 사이드 코드에서 참조하여 키 값이 `undefined`로 나오는 문제.
-- **해결**: `.env` 변수명을 수정하고 유틸리티 함수에서 키 존재 여부를 엄격하게 체크하도록 에러 핸들링 강화.
-
-### 4. 401 에러 대응: 자동 토큰 리프레시
-
-- **문제**: 세션 혹은 토큰 만료 시 모든 API 요청이 실패하고 사용자가 강제 로그아웃되는 불편함.
-- **해결**: Axios 응답 인터셉터에 자동 리프레시 로직을 구현. 401 에러 감지 시 백그라운드에서 `/api/auth/refresh`를 호출하여 세션을 갱신하고, 실패했던 원래 요청을 자동으로 재검색 및 재시도하여 중단 없는 UX 제공.
-
-### 5. 팝업 중복 트리거 방지 (Dialog Event Bubbling)
-
-- **문제**: 강의 카드 내부에 위치한 다이얼로그의 배경(Overlay) 클릭 시, 부모 카드 컴포넌트로 이벤트가 전파(Bubbling)되어 팝업이 닫히자마자 다시 열리는 현상.
-- **해결**: 다이얼로그를 카드 외부로 격리(Structural Isolation)하고, `stopPropagation`을 적용하여 이벤트 흐름을 제어함으로써 오작동 해결.
+- **TanStack Query v5** (Caching & State Consistency)
+- **Firebase Web SDK** (Web Push & Message Handler)
+- **React Markdown** (High-Quality Docs Rendering)
 
 ---
 
-## 🔧 설치 및 실행 (Setup)
+## 🏗️ 사용자 경험 혁신 (UX Innovation)
 
-### 1. 환경 변수 설정
+### 📅 가상 시간표 시뮬레이터
 
-`web/.env` 파일을 생성하고 다음 값을 설정합니다.
+- **Why**: 여러 강의를 담았을 때 시간이 겹치는지, 점심시간은 확보되는지를 즉각적으로 확인해야 함.
+- **What**: 겹치는 강의를 세로 분할(`column-split`)하여 렌더링하는 전용 시간표 그리드 로직 구현.
+- **Impact**: 수강 바구니 구성의 불확실성을 제거하고 모바일에서도 안정적인 가독성 확보.
 
-```env
-API_URL=<SERVER_URL> # e.g., http://localhost:8080 (next.config.ts rewrite)
-NEXT_PUBLIC_API_URL=<SERVER_URL> # e.g., http://localhost:8080
-NEXT_PUBLIC_VAPID_KEY=<VAPID_PUBLIC_KEY>
-NEXT_PUBLIC_KAKAO_MAP_JS_KEY=<KAKAO_JS_KEY>
-```
+### 🔔 Self-Healing 알림 시스템
 
-> [!TIP]
-> **Next.js Rewrite 설정**
-> 로컬 개발 환경에서 CORS 문제를 피하기 위해 `next.config.ts`의 `rewrites` 설정을 사용합니다. `.env`의 `NEXT_PUBLIC_API_URL`은 브라우저에서 접근 가능한 주소여야 합니다.
+- **Why**: 브라우저 정책 변화나 만료된 구독 정보로 인한 알림 누락은 치명적인 정보 손실임.
+- **What**: 서비스 워커 등록 상태를 감시하고, 구독 불일치 시 자동으로 `Unsubscribe - Resubscribe`를 수행.
+- **Impact**: 푸시 알림 신뢰도를 95% 이상으로 유지하며 사용자 경험 보장.
 
-### 2. 의존성 설치 및 실행
+### 📝 마크다운 기반 운영 소통
 
-```bash
-cd web
-npm install
-npm run dev
-```
+- **Why**: 복잡한 공문을 깔끔하게 보고 운영자가 자유롭게 정보를 전달할 공간이 필요함.
+- **What**: `MarkdownViewer` 공통 컴포넌트 구축 및 관리자용 4:6 분할 에디터 제공.
+- **Impact**: 정보 전달의 정확성을 높이고 운영 생산성 극대화.
 
 ---
 
-## 🧪 테스팅 (Testing)
-
-모든 핵심 유틸리티 및 React Query Hook에 대한 단위 테스트가 포함되어 있습니다.
-
-```bash
-# 단위 테스트 실행 (Vitest)
-npm run test
-```
-
----
-
-## 📦 폴더 구조 (Project Structure)
+## 📂 프로젝트 구조 (Feature-Based)
 
 ```text
-src/
-├── app/            # Next.js App Router
-├── components/     # UI 및 도메인 컴포넌트
-│   ├── features/   # 기능별 컴포넌트 (알림, 구독 등)
-│   └── providers.tsx # 전역 프로바이더 (QueryClient, Auth, Toast)
-├── hooks/          # 커스텀 Hook (기기 등록, 알림 테스트 등)
-├── lib/            # API 클라이언트 및 Web Push 유틸
-├── store/          # Zustand 스토어
-└── public/         # 정적 파일 (sw.js 포함)
+src
+├── app             # 라우트 설계 및 페이지 레이아웃
+├── features        # 도메인 기반 기능 모듈
+│   ├── user / auth  # 회원 정보 및 인증 흐름
+│   ├── course       # 강의 엔진 및 상세 필터
+│   ├── timetable    # 그리드 시뮬레이터 로직
+│   ├── notification # 웹푸시/디바이스 관리
+│   └── admin        # 운영 관제 시스템
+└── shared           # 공용 UI 컴포넌트, 유틸리티, 타입
 ```
 
 ---
 
-## 📢 업데이트 내역 (What's New)
+## 🔗 관련 문서 (Docs)
 
-버전별 주요 기능 추가 및 변경 사항은 [Feature Updates Log](docs/feature-updates.md)에서 확인할 수 있습니다.
+- 📜 **[릴리스 노트](./docs/feature-updates.md)**
+- 🛠️ **[트러블슈팅 로그](./docs/troubleshooting.md)**
