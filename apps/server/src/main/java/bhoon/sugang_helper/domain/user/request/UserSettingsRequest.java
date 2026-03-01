@@ -28,7 +28,7 @@ public class UserSettingsRequest {
     private boolean discordEnabled;
 
     public UserSettingsRequest(String notificationEmail, boolean emailEnabled, boolean webPushEnabled,
-            boolean fcmEnabled, boolean discordEnabled) {
+                               boolean fcmEnabled, boolean discordEnabled) {
         this.notificationEmail = notificationEmail;
         this.emailEnabled = emailEnabled;
         this.webPushEnabled = webPushEnabled;

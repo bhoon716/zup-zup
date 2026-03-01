@@ -45,9 +45,9 @@ public class EmailNotificationSender implements NotificationSender {
             helper.setText(message);
 
             javaMailSender.send(mimeMessage);
-            log.info("[Email] Sent to: {} from: {} ({})", recipient, from, fromName);
+            log.info("[이메일] 발송 완료 - 수신자: {}, 발신자: {} ({})", recipient, from, fromName);
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.EMAIL_SEND_ERROR, "Recipient: " + recipient);
+            throw new CustomException(ErrorCode.EMAIL_SEND_ERROR, "수신자: " + recipient);
         }
     }
 }

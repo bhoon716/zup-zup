@@ -1,5 +1,16 @@
 package bhoon.sugang_helper.domain.user.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
@@ -9,6 +20,10 @@ import bhoon.sugang_helper.domain.user.enums.DeviceType;
 import bhoon.sugang_helper.domain.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import bhoon.sugang_helper.domain.user.request.UserDeviceRequest;
+import bhoon.sugang_helper.domain.user.response.UserDeviceResponse;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,16 +33,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserDeviceServiceTest {
@@ -109,7 +114,7 @@ class UserDeviceServiceTest {
         userDeviceService.registerDevice(request);
 
         // then
-        verify(existingDevice, times(1)).updateToken("TOKEN", "NEW_P256DH", "NEW_AUTH", "NewAlias");
+        verify(existingDevice, times(1)).updateToken(1L, "TOKEN", "NEW_P256DH", "NEW_AUTH", "NewAlias");
         verify(userDeviceRepository, times(0)).save(any(UserDevice.class));
     }
 
@@ -159,7 +164,7 @@ class UserDeviceServiceTest {
         given(userDeviceRepository.findByUserId(1L)).willReturn(Collections.singletonList(device));
 
         // when
-        List<bhoon.sugang_helper.domain.user.response.UserDeviceResponse> result = userDeviceService.getUserDevices(1L);
+        List<UserDeviceResponse> result = userDeviceService.getUserDevices(1L);
 
         // then
         assertThat(result).hasSize(1);

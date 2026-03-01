@@ -1,11 +1,26 @@
 package bhoon.sugang_helper.domain.user.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.domain.notification.sender.NotificationChannel;
+import bhoon.sugang_helper.domain.notification.service.NotificationService;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
 import bhoon.sugang_helper.domain.user.entity.Role;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import bhoon.sugang_helper.domain.user.response.UserResponse;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,15 +30,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
-
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -36,6 +42,9 @@ class UserServiceTest {
 
     @Mock
     private EmailVerificationService emailVerificationService;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private UserService userService;
@@ -189,5 +198,57 @@ class UserServiceTest {
         assertThat(result.isOnboardingCompleted()).isTrue();
         assertThat(user.isOnboardingCompleted()).isTrue();
         assertThat(user.getNotificationEmail()).isEqualTo("notify@example.com");
+    }
+
+    @Test
+    @DisplayName("사용자 알림 테스트 발송 시 활성화된 채널로 발송한다")
+    void sendTestNotification() {
+        // given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .name("Tester")
+                .role(Role.USER)
+                .emailEnabled(true)
+                .webPushEnabled(true)
+                .fcmEnabled(false)
+                .discordEnabled(false)
+                .build();
+
+        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+
+        // when
+        userService.sendTestNotification();
+
+        // then
+        verify(notificationService, times(1)).sendUserTestNotification(eq(user),
+                argThat(channels -> channels.size() == 2
+                        && channels.contains(NotificationChannel.EMAIL)
+                        && channels.contains(NotificationChannel.WEB)));
+    }
+
+    @Test
+    @DisplayName("활성화된 알림 채널이 없으면 사용자 알림 테스트 발송에 실패한다")
+    void sendTestNotification_NoChannel() {
+        // given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .name("Tester")
+                .role(Role.USER)
+                .emailEnabled(false)
+                .webPushEnabled(false)
+                .fcmEnabled(false)
+                .discordEnabled(false)
+                .build();
+
+        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+
+        // when & then
+        assertThatThrownBy(() -> userService.sendTestNotification())
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
 }

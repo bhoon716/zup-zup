@@ -4,7 +4,6 @@ import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.domain.subscription.request.SubscriptionRequest;
 import bhoon.sugang_helper.domain.subscription.response.SubscriptionResponse;
 import bhoon.sugang_helper.domain.subscription.service.SubscriptionService;
-import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -12,11 +11,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/subscriptions")
@@ -24,66 +29,66 @@ import java.util.List;
 @Tag(name = "Subscription", description = "구독 관련 API")
 public class SubscriptionController {
 
-  private final SubscriptionService subscriptionService;
+    private final SubscriptionService subscriptionService;
 
-  @Operation(summary = "강의 구독 신청", description = "특정 과목의 공석 알림을 위해 구독을 신청합니다.")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "구독 신청 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
-          {
-            "code": "SUCCESS",
-            "message": "구독 신청이 완료되었습니다.",
-            "data": {
-              "id": 1,
-              "courseKey": "CLTR.0031-01",
-              "subjectName": "기초프로그래밍",
-              "isActive": true
-            }
-          }
-          """)))
-  })
-  @PostMapping
-  public ResponseEntity<CommonResponse<SubscriptionResponse>> subscribe(
-      @RequestBody @Valid SubscriptionRequest request) {
-    SubscriptionResponse response = subscriptionService.subscribe(request);
-    return CommonResponse.ok(response, "구독 신청이 완료되었습니다.");
-  }
+    @Operation(summary = "강의 구독 신청", description = "특정 과목의 공석 알림을 위해 구독을 신청합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "구독 신청 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                    {
+                      "code": "SUCCESS",
+                      "message": "구독 신청이 완료되었습니다.",
+                      "data": {
+                        "id": 1,
+                        "courseKey": "CLTR.0031-01",
+                        "subjectName": "기초프로그래밍",
+                        "isActive": true
+                      }
+                    }
+                    """)))
+    })
+    @PostMapping
+    public ResponseEntity<CommonResponse<SubscriptionResponse>> subscribe(
+            @RequestBody @Valid SubscriptionRequest request) {
+        SubscriptionResponse response = subscriptionService.subscribe(request);
+        return CommonResponse.ok(response, "구독 신청이 완료되었습니다.");
+    }
 
-  @Operation(summary = "강의 구독 취소", description = "특정 구독 이력을 삭제합니다.")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "구독 취소 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
-          {
-            "code": "SUCCESS",
-            "message": "구독이 취소되었습니다.",
-            "data": null
-          }
-          """)))
-  })
-  @DeleteMapping("/{id}")
-  public ResponseEntity<CommonResponse<Void>> unsubscribe(@PathVariable Long id) {
-    subscriptionService.unsubscribe(id);
-    return CommonResponse.ok(null, "구독이 취소되었습니다.");
-  }
+    @Operation(summary = "강의 구독 취소", description = "특정 구독 이력을 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "구독 취소 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                    {
+                      "code": "SUCCESS",
+                      "message": "구독이 취소되었습니다.",
+                      "data": null
+                    }
+                    """)))
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<CommonResponse<Void>> unsubscribe(@PathVariable Long id) {
+        subscriptionService.unsubscribe(id);
+        return CommonResponse.ok(null, "구독이 취소되었습니다.");
+    }
 
-  @Operation(summary = "내 구독 목록 조회", description = "현재 로그인한 사용자의 모든 구독 목록을 조회합니다.")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "구독 목록 조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
-          {
-            "code": "SUCCESS",
-            "message": "내 구독 목록입니다.",
-            "data": [
-              {
-                "id": 1,
-                "courseKey": "CLTR.0031-01",
-                "subjectName": "기초프로그래밍",
-                "isActive": true
-              }
-            ]
-          }
-          """)))
-  })
-  @GetMapping
-  public ResponseEntity<CommonResponse<List<SubscriptionResponse>>> getMySubscriptions() {
-    List<SubscriptionResponse> responses = subscriptionService.getMySubscriptions();
-    return CommonResponse.ok(responses, "내 구독 목록입니다.");
-  }
+    @Operation(summary = "내 구독 목록 조회", description = "현재 로그인한 사용자의 모든 구독 목록을 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "구독 목록 조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
+                    {
+                      "code": "SUCCESS",
+                      "message": "내 구독 목록입니다.",
+                      "data": [
+                        {
+                          "id": 1,
+                          "courseKey": "CLTR.0031-01",
+                          "subjectName": "기초프로그래밍",
+                          "isActive": true
+                        }
+                      ]
+                    }
+                    """)))
+    })
+    @GetMapping
+    public ResponseEntity<CommonResponse<List<SubscriptionResponse>>> getMySubscriptions() {
+        List<SubscriptionResponse> responses = subscriptionService.getMySubscriptions();
+        return CommonResponse.ok(responses, "내 구독 목록입니다.");
+    }
 }

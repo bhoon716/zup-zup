@@ -1,5 +1,17 @@
 package bhoon.sugang_helper.domain.notification.service;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.notification.entity.NotificationHistory;
@@ -15,20 +27,15 @@ import bhoon.sugang_helper.domain.user.entity.UserDevice;
 import bhoon.sugang_helper.domain.user.enums.DeviceType;
 import bhoon.sugang_helper.domain.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
+import java.time.Duration;
+import java.util.List;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.Duration;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
@@ -145,7 +152,45 @@ class NotificationServiceTest {
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, times(1)).save(any(NotificationHistory.class));
+        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
+    }
+
+    @Test
+    @DisplayName("사용자 테스트 알림 발송 - 쿨타임 획득 시 정상 발송")
+    void sendUserTestNotification_Success() {
+        // given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .build();
+        List<NotificationChannel> channels = List.of(NotificationChannel.EMAIL);
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
+
+        // when
+        notificationService.sendUserTestNotification(user, channels);
+
+        // then
+        verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
+        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
+    }
+
+    @Test
+    @DisplayName("사용자 테스트 알림 발송 - 쿨타임 중이면 예외 발생")
+    void sendUserTestNotification_Cooldown() {
+        // given
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .build();
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
+
+        // when & then
+        Assertions
+                .assertThatThrownBy(
+                        () -> notificationService.sendUserTestNotification(user, List.of(NotificationChannel.EMAIL)))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
     }
 
     @Test
@@ -156,7 +201,7 @@ class NotificationServiceTest {
         List<NotificationChannel> channels = List.of(NotificationChannel.FCM);
         UserDevice device = UserDevice.builder().userId(1L).type(DeviceType.FCM).token("token").build();
 
-        given(userDeviceRepository.findByUserIdAndType(1L, DeviceType.FCM)).willReturn(List.of(device));
+        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of(device));
         given(notificationSender.supports(NotificationChannel.FCM)).willReturn(true);
 
         // When
@@ -164,7 +209,7 @@ class NotificationServiceTest {
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, times(1)).save(any(NotificationHistory.class));
+        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -174,13 +219,12 @@ class NotificationServiceTest {
         User user = User.builder().id(1L).email("test@example.com").build();
         List<NotificationChannel> channels = List.of(NotificationChannel.WEB);
 
-        given(userDeviceRepository.findByUserIdAndType(1L, DeviceType.WEB)).willReturn(List.of());
+        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of());
 
-        // When & Then
         // When & Then
         org.assertj.core.api.Assertions
                 .assertThatThrownBy(() -> notificationService.sendTestNotification(user, channels))
-                .isInstanceOf(bhoon.sugang_helper.common.error.CustomException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("detail")
                 .asString()
                 .contains("등록된 웹 푸시 기기가 없습니다");
@@ -204,7 +248,7 @@ class NotificationServiceTest {
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, times(1)).save(any(NotificationHistory.class));
+        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -221,7 +265,7 @@ class NotificationServiceTest {
         // When & Then
         org.assertj.core.api.Assertions
                 .assertThatThrownBy(() -> notificationService.sendTestNotification(user, channels))
-                .isInstanceOf(bhoon.sugang_helper.common.error.CustomException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("detail")
                 .asString()
                 .contains("디스코드 연동 정보가 없습니다");

@@ -12,17 +12,16 @@ services:
     environment:
       DB_HOST: db
       REDIS_HOST: redis
+      FIREBASE_CONFIG_PATH: /app/resources/firebase/firebase-key.json
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
     volumes:
-      - ${FIREBASE_CONFIG_PATH}:/app/resources/firebase-key.json
+      - ./src/main/resources/firebase/firebase-key.json:/app/resources/firebase/firebase-key.json:ro
     networks:
       - sugang-helper-network-server
 
 
 # Networks and Volumes are managed in the root docker-compose.yml
-
-

@@ -16,7 +16,7 @@ public enum LectureLanguage {
     FRENCH("프랑스어", "프랑스어");
 
     private final String value;
-    private final String alias; // XML/CSV에 등장할 수 있는 다른 표기
+    private final String alias;
 
     public static LectureLanguage from(String value) {
         if (value == null || value.isBlank()) {

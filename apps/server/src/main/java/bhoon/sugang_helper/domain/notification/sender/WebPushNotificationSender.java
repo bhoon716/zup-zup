@@ -2,16 +2,16 @@ package bhoon.sugang_helper.domain.notification.sender;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.domain.user.service.UserDeviceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
+import java.security.Security;
 import lombok.extern.slf4j.Slf4j;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import jakarta.annotation.PostConstruct;
-import java.security.Security;
 
 @Slf4j
 @Component
@@ -21,7 +21,7 @@ public class WebPushNotificationSender implements NotificationSender {
     private final String privateKey;
     private final String subject;
     private final ObjectMapper objectMapper;
-    private final bhoon.sugang_helper.domain.user.service.UserDeviceService userDeviceService;
+    private final UserDeviceService userDeviceService;
     private PushService pushService;
 
     public WebPushNotificationSender(
@@ -29,7 +29,7 @@ public class WebPushNotificationSender implements NotificationSender {
             @Value("${app.webpush.private-key}") String privateKey,
             @Value("${app.webpush.subject}") String subject,
             ObjectMapper objectMapper,
-            bhoon.sugang_helper.domain.user.service.UserDeviceService userDeviceService) {
+            UserDeviceService userDeviceService) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
         this.subject = subject;
@@ -41,17 +41,16 @@ public class WebPushNotificationSender implements NotificationSender {
     public void init() {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
-            log.info("[WebPush] Registered BouncyCastleProvider");
+            log.info("[웹푸시] BouncyCastleProvider를 등록했습니다.");
         }
         try {
             if (publicKey != null && !publicKey.trim().isEmpty() &&
                     privateKey != null && !privateKey.trim().isEmpty()) {
                 this.pushService = new PushService(publicKey, privateKey, subject);
-                log.info("[WebPush] PushService initialized");
+                log.info("[웹푸시] PushService 초기화를 완료했습니다.");
             }
         } catch (Exception e) {
-            // 초기화 실패는 비즈니스 예외가 아니므로 런타임 예외로 던져서 기동 중단
-            throw new RuntimeException("WebPush PushService initialization failed", e);
+            throw new RuntimeException("웹푸시 PushService 초기화에 실패했습니다.", e);
         }
     }
 
@@ -63,11 +62,11 @@ public class WebPushNotificationSender implements NotificationSender {
     @Override
     public void send(NotificationTarget target, String title, String message) {
         if (pushService == null) {
-            throw new CustomException(ErrorCode.WEBPUSH_NOT_INITIALIZED);
+            throw new CustomException(ErrorCode.WEB_PUSH_NOT_INITIALIZED);
         }
 
         if (target.getP256dh() == null || target.getAuth() == null) {
-            throw new CustomException(ErrorCode.WEBPUSH_MISSING_KEYS);
+            throw new CustomException(ErrorCode.WEB_PUSH_MISSING_KEYS);
         }
 
         try {
@@ -79,24 +78,24 @@ public class WebPushNotificationSender implements NotificationSender {
                     target.getAuth(),
                     payload);
 
-            log.info("[WebPush] Sending notification to {}", target.getRecipient());
+            log.info("[웹푸시] 알림 전송을 시작합니다. recipient={}", target.getRecipient());
             var response = pushService.send(notification);
             int statusCode = response.getStatusLine().getStatusCode();
 
             if (statusCode == 404 || statusCode == 410) {
                 userDeviceService.deleteDeviceByToken(target.getRecipient());
-                throw new CustomException(ErrorCode.WEBPUSH_INVALID_SUBSCRIPTION);
+                throw new CustomException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION);
             }
 
             if (statusCode >= 400) {
-                throw new CustomException(ErrorCode.WEBPUSH_SEND_ERROR, "Status: " + statusCode);
+                throw new CustomException(ErrorCode.WEB_PUSH_SEND_ERROR, "상태 코드: " + statusCode);
             }
 
-            log.info("[WebPush] Sent successfully to {}", target.getRecipient());
+            log.info("[웹푸시] 알림 전송을 완료했습니다. recipient={}", target.getRecipient());
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.WEBPUSH_SEND_ERROR, e.getMessage());
+            throw new CustomException(ErrorCode.WEB_PUSH_SEND_ERROR, e.getMessage());
         }
     }
 

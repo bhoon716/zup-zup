@@ -22,7 +22,6 @@ public class GlobalExceptionHandler {
 
     private static final int MAX_VALIDATION_ERRORS_TO_LOG = 5;
 
-    // Custom Exception
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ErrorResponse> handleCustomException(HttpServletRequest req, CustomException e) {
         ErrorCode errorCode = e.getErrorCode();
@@ -30,7 +29,6 @@ public class GlobalExceptionHandler {
         return response(req, errorCode, detail);
     }
 
-    // Validation Error
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(HttpServletRequest req, MethodArgumentNotValidException e) {
         Map<String, Object> details = new LinkedHashMap<>();
@@ -41,31 +39,26 @@ public class GlobalExceptionHandler {
         return response(req, ErrorCode.INVALID_INPUT, details.toString());
     }
 
-    // JWT Error
     @ExceptionHandler({ ExpiredJwtException.class, JwtException.class })
     public ResponseEntity<ErrorResponse> handleJwt(HttpServletRequest req, JwtException e) {
         return response(req, ErrorCode.INVALID_TOKEN, ErrorCode.INVALID_TOKEN.getMessage());
     }
 
-    // Authorization Error
     @ExceptionHandler({ AuthorizationDeniedException.class, AccessDeniedException.class })
     public ResponseEntity<ErrorResponse> handleForbidden(HttpServletRequest req, RuntimeException e) {
         return response(req, ErrorCode.FORBIDDEN, ErrorCode.FORBIDDEN.getMessage());
     }
 
-    // Not Found Error
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(HttpServletRequest req, NoResourceFoundException e) {
         return response(req, ErrorCode.NOT_FOUND, ErrorCode.NOT_FOUND.getMessage());
     }
 
-    // Database Error
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleIntegrity(HttpServletRequest req, DataIntegrityViolationException e) {
         return response(req, ErrorCode.INVALID_INPUT, "데이터 처리 중 충돌이 발생했습니다.");
     }
 
-    // Internal Server Error
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAny(HttpServletRequest req, Exception e) {
         log.error("[INTERNAL_ERROR] {} {}", req.getMethod(), req.getRequestURI(), e);
@@ -79,8 +72,14 @@ public class GlobalExceptionHandler {
     }
 
     private void log(ErrorCode errorCode, String method, String path, String details) {
-        // [ERROR][CODE_A001] [POST /api/v1/...] [MESSAGE: ...] [DETAIL: ...]
-        log.error("[ERROR][CODE_{}] [{} {}] [MESSAGE: {}] [DETAIL: {}]",
+        String message = String.format("[오류][코드_%s] [%s %s] [메시지: %s] [상세: %s]",
                 errorCode.getCode(), method, path, errorCode.getMessage(), details);
+
+        if (errorCode.getStatus().is5xxServerError()) {
+            log.error(message);
+            return;
+        }
+
+        log.warn(message);
     }
 }

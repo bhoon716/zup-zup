@@ -28,6 +28,6 @@ public enum CourseStatus {
         return Arrays.stream(values())
                 .filter(s -> s.description.trim().equalsIgnoreCase(description.trim()))
                 .findFirst()
-                .orElse(null); // 매핑되지 않는 값은 null 처리 (필요시 UNKNOWN 추가)
+                .orElse(null); // 매핑되지 않는 값은 null 처리 (필요하면 미확인 상수 추가)
     }
 }

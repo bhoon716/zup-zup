@@ -1,5 +1,12 @@
 package bhoon.sugang_helper.domain.course.service;
 
+import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService.CrawlTarget;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.Course;
@@ -7,26 +14,21 @@ import bhoon.sugang_helper.domain.course.entity.CourseSeatHistory;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
+import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.SliceImpl;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 
 @ExtendWith(MockitoExtension.class)
 class CourseServiceTest {
@@ -40,11 +42,15 @@ class CourseServiceTest {
         @Mock
         private bhoon.sugang_helper.domain.user.repository.UserRepository userRepository;
 
+        @Mock
+        private CourseCrawlerTargetService crawlerTargetService;
+
         private CourseService courseService;
 
         @BeforeEach
         void setUp() {
-                courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userRepository);
+                courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userRepository,
+                                crawlerTargetService);
         }
 
         @Test
@@ -59,9 +65,12 @@ class CourseServiceTest {
                                 .name("Test Course")
                                 .capacity(50)
                                 .current(10)
+                                .academicYear("2026")
+                                .semester("U211600010")
                                 .build();
                 given(courseRepository.searchCourses(any(CourseSearchCondition.class), any(Pageable.class)))
                                 .willReturn(new SliceImpl<>(List.of(course)));
+                given(crawlerTargetService.getCurrentTargetValue()).willReturn(new CrawlTarget("2026", "U211600010"));
 
                 // when
                 Slice<CourseResponse> responses = courseService.searchCourses(condition, PageRequest.of(0, 10));
@@ -81,11 +90,14 @@ class CourseServiceTest {
                                 .name("Test Course")
                                 .capacity(50)
                                 .current(10)
+                                .academicYear("2026")
+                                .semester("U211600010")
                                 .build();
                 given(courseRepository.findByCourseKey(courseKey)).willReturn(Optional.of(course));
+                given(crawlerTargetService.getCurrentTargetValue()).willReturn(new CrawlTarget("2026", "U211600010"));
 
                 // when
-                CourseResponse response = courseService.getCourse(courseKey);
+                CourseDetailResponse response = courseService.getCourse(courseKey);
 
                 // then
                 assertThat(response.getName()).isEqualTo("Test Course");

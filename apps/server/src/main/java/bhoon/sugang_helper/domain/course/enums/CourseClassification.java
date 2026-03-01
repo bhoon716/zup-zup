@@ -1,16 +1,15 @@
 package bhoon.sugang_helper.domain.course.enums;
 
+import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-
-import java.util.Arrays;
 
 @Getter
 @RequiredArgsConstructor
 public enum CourseClassification {
     SERIES_COMMON("계열공통"),
     GENERAL_EDUCATION("교양"),
-    TEACHING_PROFESSION_GRAD("교직(대)"),
+    TEACHING_PROFESSION_GRAD("교직(대학원)"),
     TEACHING_PROFESSION("교직"),
     MILITARY_SCIENCE("군사학"),
     BASIC_REQUIRED("기초필수"),
@@ -23,9 +22,18 @@ public enum CourseClassification {
     private final String description;
 
     public static CourseClassification from(String description) {
+        if (description == null || description.isBlank()) {
+            return null;
+        }
+
+        String normalized = description.trim();
+        if ("교직(대)".equals(normalized)) {
+            return TEACHING_PROFESSION_GRAD;
+        }
+
         return Arrays.stream(values())
-                .filter(c -> c.description.equals(description))
+                .filter(c -> c.description.equals(normalized))
                 .findFirst()
-                .orElse(null); // 매핑 실패 시 null 반환 (또는 UNKNOWN 추가 고려)
+                .orElse(null);
     }
 }

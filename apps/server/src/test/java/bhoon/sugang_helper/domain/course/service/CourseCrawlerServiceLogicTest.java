@@ -20,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @ExtendWith(MockitoExtension.class)
 class CourseCrawlerServiceLogicTest {
@@ -39,11 +40,20 @@ class CourseCrawlerServiceLogicTest {
     @Mock
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
+    @Mock
+    private CourseCrawlerTargetService crawlerTargetService;
+
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
     @InjectMocks
     private CourseCrawlerService courseCrawlerService;
 
+    /**
+     * 강의 여석이 0에서 1로 변할 때 알림 이벤트가 정상적으로 발행되는지 검증
+     */
     @Test
-    @DisplayName("Detect Seat Opening: 0 -> 1 seats triggers event")
+    @DisplayName("여석 발생 감지: 0명에서 1명으로 변경 시 이벤트 발행")
     void detectSeatOpening() throws IOException {
         // Given
         String mockXml = """
@@ -64,7 +74,9 @@ class CourseCrawlerServiceLogicTest {
                 </Root>
                 """;
 
-        given(apiClient.fetchCourseDataXml()).willReturn(mockXml);
+        given(crawlerTargetService.getCurrentTargetValue())
+                .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+        given(apiClient.fetchCourseDataXml("2026", "U211600010")).willReturn(mockXml);
 
         Course crawledCourse = Course.builder()
                 .courseKey("12345:01")
@@ -96,8 +108,11 @@ class CourseCrawlerServiceLogicTest {
         verify(eventPublisher, times(1)).publishEvent(any(SeatOpenedEvent.class));
     }
 
+    /**
+     * 이미 여석이 있었던 경우 인원수가 변하더라도 추가 알림 이벤트가 발행되지 않는지 검증
+     */
     @Test
-    @DisplayName("No Event if seats were already available")
+    @DisplayName("여석 유지 시 무시: 이미 여석이 있었던 경우 이벤트 발행 안함")
     void noEventIfAlreadyAvailable() throws IOException {
         // Given
         String mockXml = """
@@ -116,7 +131,9 @@ class CourseCrawlerServiceLogicTest {
                 </Root>
                 """;
 
-        given(apiClient.fetchCourseDataXml()).willReturn(mockXml);
+        given(crawlerTargetService.getCurrentTargetValue())
+                .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+        given(apiClient.fetchCourseDataXml("2026", "U211600010")).willReturn(mockXml);
 
         Course crawledCourse = Course.builder()
                 .courseKey("12345:01")

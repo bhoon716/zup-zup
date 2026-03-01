@@ -2,18 +2,18 @@ package bhoon.sugang_helper.domain.user.service;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.entity.UserDevice;
 import bhoon.sugang_helper.domain.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import bhoon.sugang_helper.domain.user.request.UserDeviceRequest;
-import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.domain.user.response.UserDeviceResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -31,7 +31,7 @@ public class UserDeviceService {
         userDeviceRepository.findByToken(request.getToken())
                 .ifPresentOrElse(
                         device -> {
-                            device.updateToken(request.getToken(), request.getP256dh(), request.getAuth(),
+                            device.updateToken(user.getId(), request.getToken(), request.getP256dh(), request.getAuth(),
                                     request.getAlias());
                             log.info("[UserDevice] Updated existing device: userId={}, token={}, alias={}",
                                     user.getId(),
@@ -87,9 +87,9 @@ public class UserDeviceService {
                 });
     }
 
-    public List<bhoon.sugang_helper.domain.user.response.UserDeviceResponse> getUserDevices(Long userId) {
+    public List<UserDeviceResponse> getUserDevices(Long userId) {
         return userDeviceRepository.findByUserId(userId).stream()
-                .map(bhoon.sugang_helper.domain.user.response.UserDeviceResponse::from)
+                .map(UserDeviceResponse::from)
                 .toList();
     }
 

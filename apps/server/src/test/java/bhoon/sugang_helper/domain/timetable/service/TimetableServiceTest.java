@@ -1,18 +1,30 @@
 package bhoon.sugang_helper.domain.timetable.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.timetable.entity.Timetable;
 import bhoon.sugang_helper.domain.timetable.entity.TimetableEntry;
-import bhoon.sugang_helper.domain.timetable.repository.CustomScheduleRepository;
 import bhoon.sugang_helper.domain.timetable.repository.TimetableEntryRepository;
 import bhoon.sugang_helper.domain.timetable.repository.TimetableRepository;
 import bhoon.sugang_helper.domain.timetable.request.CustomScheduleRequest;
 import bhoon.sugang_helper.domain.timetable.request.TimetableRequest;
 import bhoon.sugang_helper.domain.user.entity.User;
+import bhoon.sugang_helper.domain.user.event.UserRegisteredEvent;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,17 +34,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.test.util.ReflectionTestUtils;
-import java.time.LocalTime;
-import java.util.Optional;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TimetableServiceTest {
@@ -45,9 +47,6 @@ class TimetableServiceTest {
 
     @Mock
     private TimetableEntryRepository timetableEntryRepository;
-
-    @Mock
-    private CustomScheduleRepository customScheduleRepository;
 
     @Mock
     private CourseRepository courseRepository;
@@ -64,7 +63,6 @@ class TimetableServiceTest {
     void setUp() {
         securityUtil = mockStatic(SecurityUtil.class);
         testUser = mock(User.class);
-        given(testUser.getId()).willReturn(1L);
     }
 
     @AfterEach
@@ -73,6 +71,7 @@ class TimetableServiceTest {
     }
 
     private void mockUser() {
+        given(testUser.getId()).willReturn(1L);
         given(SecurityUtil.getCurrentUserEmail()).willReturn(testEmail);
         given(userRepository.findByEmail(testEmail)).willReturn(Optional.of(testUser));
     }
@@ -154,8 +153,9 @@ class TimetableServiceTest {
         Timetable timetable = Timetable.builder().userId(1L).name("P1").build();
         given(timetableRepository.findById(1L)).willReturn(Optional.of(timetable));
 
-        CustomScheduleRequest request = new CustomScheduleRequest("Lunch", "월",
-                LocalTime.of(9, 45), LocalTime.of(10, 45), "#FFFFFF");
+        CustomScheduleRequest request = new CustomScheduleRequest("Lunch", null, List.of(
+                new CustomScheduleRequest.CustomScheduleTimeRequest("월", LocalTime.of(9, 45), LocalTime.of(10, 45),
+                        null)));
 
         // when
         timetableService.addCustomSchedule(1L, request);
@@ -202,5 +202,18 @@ class TimetableServiceTest {
         // then
         verify(timetableRepository, times(1)).delete(primary);
         assertThat(other.isPrimary()).isTrue();
+    }
+
+    @Test
+    @DisplayName("신규 사용자 가입 시 기본 시간표 자동 생성")
+    void handleUserRegisteredEvent_Success() {
+        // given
+        UserRegisteredEvent event = new UserRegisteredEvent(1L, "new@example.com");
+
+        // when
+        timetableService.handleUserRegisteredEvent(event);
+
+        // then
+        verify(timetableRepository, times(1)).save(any(Timetable.class));
     }
 }

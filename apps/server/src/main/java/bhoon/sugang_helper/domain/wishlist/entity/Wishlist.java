@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
         @Index(name = "idx_wishlist_user_id", columnList = "userId"),
         @Index(name = "idx_wishlist_course_key", columnList = "courseKey")
 }, uniqueConstraints = {
-        @UniqueConstraint(name = "uk_wishlist_user_course", columnNames = { "userId", "courseKey" })
+        @UniqueConstraint(name = "uk_wishlist_user_course", columnNames = {"userId", "courseKey"})
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

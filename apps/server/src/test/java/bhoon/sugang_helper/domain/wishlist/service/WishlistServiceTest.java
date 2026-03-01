@@ -1,5 +1,15 @@
 package bhoon.sugang_helper.domain.wishlist.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
@@ -7,9 +17,13 @@ import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
-import bhoon.sugang_helper.domain.wishlist.response.WishlistResponse;
 import bhoon.sugang_helper.domain.wishlist.entity.Wishlist;
 import bhoon.sugang_helper.domain.wishlist.repository.WishlistRepository;
+import bhoon.sugang_helper.domain.wishlist.response.WishlistResponse;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,21 +33,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Arrays;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class WishlistServiceTest {
@@ -161,7 +160,7 @@ class WishlistServiceTest {
         Course c1 = mock(Course.class);
         given(c1.getCourseKey()).willReturn(courseKey1);
         given(c1.getName()).willReturn("Course1");
-        given(c1.getCapacity()).willReturn(50); // for available calculation
+        given(c1.getCapacity()).willReturn(50);
         given(c1.getCurrent()).willReturn(10);
 
         Course c2 = mock(Course.class);

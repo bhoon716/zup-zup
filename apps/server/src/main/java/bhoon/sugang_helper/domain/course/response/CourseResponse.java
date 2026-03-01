@@ -11,7 +11,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Schema(description = "과목 정보 응답 DTO")
+@Schema(description = "과목 정보 응답 DTO (목록용)")
 public class CourseResponse {
 
     @Schema(description = "과목 키", example = "0000130844-1")
@@ -29,9 +29,6 @@ public class CourseResponse {
     @Schema(description = "담당 교수", example = "김혜진")
     private final String professor;
 
-    @Schema(description = "대상 학년", example = "1")
-    private final String targetGrade;
-
     @Schema(description = "정원", example = "40")
     private final Integer capacity;
 
@@ -44,95 +41,49 @@ public class CourseResponse {
     @Schema(description = "이수구분", example = "전공필수")
     private final String classification;
 
-    @Schema(description = "학과", example = "컴퓨터공학부")
-    private final String department;
-
-    @Schema(description = "성적평가방식", example = "상대평가Ⅰ")
-    private final String gradingMethod;
-
-    @Schema(description = "강의언어", example = "한국어")
-    private final String lectureLanguage;
-
     @Schema(description = "강의시간", example = "월1,2 수3")
     private final String classTime;
 
     @Schema(description = "학점", example = "3")
     private final String credits;
 
-    @Schema(description = "강의시수", example = "3")
-    private final Integer lectureHours;
-
-    @Schema(description = "공개여부", example = "PUBLIC")
-    private final String disclosure;
-
-    @Schema(description = "비공개사유", example = "")
-    private final String disclosureReason;
-
-    @Schema(description = "교양영역", example = "인문소양")
-    private final String generalCategory;
-
-    @Schema(description = "교양상세", example = "")
-    private final String generalDetail;
-
-    @Schema(description = "인증구분", example = "공학인증")
-    private final String accreditation;
-
-    @Schema(description = "설강여부", example = "OPEN")
-    private final String courseStatus;
-
     @Schema(description = "강의실", example = "7호관 101호")
     private final String classroom;
-
-    @Schema(description = "강의계획서여부", example = "true")
-    private final Boolean hasSyllabus;
-
-    @Schema(description = "입학년도기준교양영역", example = "핵심교양")
-    private final String generalCategoryByYear;
-
-    @Schema(description = "수업운영방향", example = "대면수업")
-    private final String courseDirection;
-
-    @Schema(description = "수업시간(분)", example = "50분")
-    private final String classDuration;
 
     @Schema(description = "상태 (AVAILABLE, FULL)", example = "AVAILABLE")
     private final String status;
 
+    @Schema(description = "구독 가능 여부 (현재 추적 중인 학기 여부)", example = "true")
+    private final Boolean isSubscribable;
+
     @Schema(description = "마지막 크롤링 시간", example = "2024-03-20T10:00:00")
     private final LocalDateTime lastCrawledAt;
 
-    public static CourseResponse from(Course course) {
+    /**
+     * 강의 엔티티를 클라이언트 응답용 DTO로 변환합니다. (목록용)
+     */
+    public static CourseResponse from(Course course, String currentYear, String currentSemester) {
+        // 여석 유무에 따른 상태 결정
         String status = course.getAvailable() > 0 ? "AVAILABLE" : "FULL";
+        // 현재 추적 중인 학기인지 확인
+        boolean isSubscribable = course.isMatchingTarget(currentYear, currentSemester);
+
         return CourseResponse.builder()
                 .courseKey(course.getCourseKey())
                 .subjectCode(course.getSubjectCode())
                 .name(course.getName())
                 .classNumber(course.getClassNumber())
                 .professor(course.getProfessor())
-                .targetGrade(course.getTargetGrade())
                 .capacity(course.getCapacity())
                 .current(course.getCurrent())
                 .available(course.getAvailable())
-                .classification(course.getClassification() != null ? course.getClassification().name() : null)
-                .department(course.getDepartment())
-                .gradingMethod(course.getGradingMethod() != null ? course.getGradingMethod().name() : null)
-                .lectureLanguage(course.getLectureLanguage() != null ? course.getLectureLanguage().name() : null)
+                .classification(course.getClassification() != null ? course.getClassification().getDescription() : null)
                 .classTime(course.getClassTime())
                 .credits(course.getCredits())
-                .lectureHours(course.getLectureHours())
-                .disclosure(course.getDisclosure() != null ? course.getDisclosure().name() : null)
-                .disclosureReason(course.getDisclosureReason())
-                .generalCategory(course.getGeneralCategory())
-                .generalDetail(course.getGeneralDetail())
-                .accreditation(course.getAccreditation() != null ? course.getAccreditation().name() : null)
-                .courseStatus(course.getStatus() != null ? course.getStatus().name() : null)
                 .classroom(course.getClassroom())
-                .hasSyllabus(course.getHasSyllabus())
-                .generalCategoryByYear(course.getGeneralCategoryByYear())
-                .courseDirection(course.getCourseDirection())
-                .classDuration(course.getClassDuration())
                 .status(status)
                 .lastCrawledAt(course.getLastCrawledAt())
+                .isSubscribable(isSubscribable)
                 .build();
     }
 }

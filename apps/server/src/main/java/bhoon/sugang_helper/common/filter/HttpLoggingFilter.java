@@ -14,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class HttpLoggingFilter extends OncePerRequestFilter {
 
     @Override
+    @SuppressWarnings("NullableProblems")
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,

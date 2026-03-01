@@ -43,12 +43,14 @@ public class SecurityConfig {
         };
 
         private static final String[] PERMIT_GET_ENDPOINTS = new String[] {
-                        "/api/v1/courses/**"
+                        "/api/v1/courses/**",
+                        "/api/v1/announcements/**"
         };
 
         private static final String[] PERMIT_POST_ENDPOINTS = new String[] {
                         "/api/auth/refresh",
-                        "/api/auth/logout"
+                        "/api/auth/logout",
+                        "/api/v1/courses/search"
         };
 
         @Value("${app.cors.allowed-origins}")
@@ -61,11 +63,17 @@ public class SecurityConfig {
         private final OAuth2SuccessHandler oAuth2SuccessHandler;
         private final OAuth2FailureHandler oAuth2FailureHandler;
 
+        /**
+         * 비밀번호 암호화를 위한 Encoder 빈을 등록합니다.
+         */
         @Bean
         public PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder();
         }
 
+        /**
+         * HTTP 보안 필터 체인을 구성합니다.
+         */
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 http
@@ -94,6 +102,9 @@ public class SecurityConfig {
                 return http.build();
         }
 
+        /**
+         * CORS(Cross-Origin Resource Sharing) 설정을 구성합니다.
+         */
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();

@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.domain.timetable.entity;
 
 import bhoon.sugang_helper.common.audit.BaseTimeEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -9,8 +10,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -35,34 +38,30 @@ public class CustomSchedule extends BaseTimeEntity {
     @Column(nullable = false, length = 100)
     private String title;
 
-    @Column(nullable = false, length = 10)
-    private String dayOfWeek;
+    @Column(length = 50)
+    private String professor;
 
-    @Column(nullable = false)
-    private LocalTime startTime;
-
-    @Column(nullable = false)
-    private LocalTime endTime;
-
-    @Column(length = 20)
-    private String color;
+    @OneToMany(mappedBy = "customSchedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CustomScheduleTime> times = new ArrayList<>();
 
     @Builder
-    public CustomSchedule(Timetable timetable, String title, String dayOfWeek, LocalTime startTime, LocalTime endTime,
-            String color) {
+    public CustomSchedule(Timetable timetable, String title, String professor) {
         this.timetable = timetable;
         this.title = title;
-        this.dayOfWeek = dayOfWeek;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.color = color;
+        this.professor = professor;
     }
 
-    public void update(String title, String dayOfWeek, LocalTime startTime, LocalTime endTime, String color) {
+    public void update(String title, String professor) {
         this.title = title;
-        this.dayOfWeek = dayOfWeek;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.color = color;
+        this.professor = professor;
+    }
+
+    public void addTime(CustomScheduleTime time) {
+        this.times.add(time);
+        time.setCustomSchedule(this);
+    }
+
+    public void clearTimes() {
+        this.times.clear();
     }
 }
