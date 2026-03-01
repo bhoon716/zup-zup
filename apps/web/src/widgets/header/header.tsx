@@ -33,6 +33,7 @@ import { usePWAInstall } from "@/shared/hooks/usePWAInstall";
 interface NavLinksProps {
   isMobile?: boolean;
   isAdmin: boolean;
+  isLoggedIn: boolean;
   onGuardedAction: (e: MouseEvent) => void;
   onLinkClick?: () => void;
 }
@@ -102,7 +103,7 @@ function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
  * 메인 내비게이션 링크들을 렌더링하는 컴포넌트입니다.
  * 데스크톱과 모바일 환경에 적합한 레이아웃을 제공하며, 권한에 따른 관리자 메뉴를 포함합니다.
  */
-function NavLinks({ isMobile = false, isAdmin, onGuardedAction, onLinkClick }: NavLinksProps) {
+function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedAction, onLinkClick }: NavLinksProps) {
   const handleClick = (e: MouseEvent) => {
     onLinkClick?.();
     onGuardedAction(e);
@@ -110,36 +111,42 @@ function NavLinks({ isMobile = false, isAdmin, onGuardedAction, onLinkClick }: N
 
   return (
     <>
-      <Link href="/timetable" onClick={handleClick}>
-        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-          <Calendar className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">내 시간표</span>
-        </Button>
-      </Link>
+      {isLoggedIn && (
+        <Link href="/timetable" onClick={handleClick}>
+          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+            <Calendar className="w-[1.1rem] h-[1.1rem]" />
+            <span className="text-sm font-medium">내 시간표</span>
+          </Button>
+        </Link>
+      )}
       <Link href="/search" onClick={onLinkClick}>
         <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
           <Search className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">강의 검색</span>
         </Button>
       </Link>
-      <Link href="/notifications" onClick={handleClick}>
-        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-          <Bell className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">알림 / 구독</span>
-        </Button>
-      </Link>
+      {isLoggedIn && (
+        <Link href="/notifications" onClick={handleClick}>
+          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+            <Bell className="w-[1.1rem] h-[1.1rem]" />
+            <span className="text-sm font-medium">알림 / 구독</span>
+          </Button>
+        </Link>
+      )}
       <Link href="/announcements" onClick={onLinkClick}>
         <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
           <Megaphone className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">공지사항</span>
         </Button>
       </Link>
-      <Link href="/settings" onClick={handleClick}>
-        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-          <Settings className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">설정</span>
-        </Button>
-      </Link>
+      {isLoggedIn && (
+        <Link href="/settings" onClick={handleClick}>
+          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+            <Settings className="w-[1.1rem] h-[1.1rem]" />
+            <span className="text-sm font-medium">설정</span>
+          </Button>
+        </Link>
+      )}
 
       <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} />
       {isAdmin && (
@@ -198,6 +205,81 @@ function NavLinks({ isMobile = false, isAdmin, onGuardedAction, onLinkClick }: N
   );
 }
 
+interface UserProfileProps {
+  user: any;
+  isLoading: boolean;
+  isPending: boolean;
+  onLogout: () => void;
+  onLoginClick: () => void;
+}
+
+/**
+ * 데스크톱 환경의 사용자 프로필 및 로그아웃 버튼을 렌더링합니다.
+ */
+function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLoginClick }: UserProfileProps) {
+  if (isLoading) return <div className="h-8 w-24 animate-pulse bg-muted/50 rounded-xl" />;
+  
+  if (!user) {
+    return (
+      <Link href="/login" onClick={onLoginClick}>
+        <Button size="sm" className="bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-sm">
+          로그인
+        </Button>
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="hidden sm:flex flex-col items-end mr-1">
+        <span className="text-xs font-bold leading-none">{user.name} 님</span>
+        <span className="text-[10px] text-muted-foreground mt-1">로그인 됨</span>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onLogout}
+        disabled={isPending}
+        className="gap-2 rounded-xl h-9 hover:bg-destructive/5 hover:text-destructive transition-colors"
+      >
+        <LogOut className="w-4 h-4" />
+        로그아웃
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * 모바일 환경의 사용자 상태(프로필/로그인 유도)를 렌더링합니다.
+ */
+function HeaderMobileUserStatus({ user, isLoading, onLinkClick }: Omit<UserProfileProps, 'isPending' | 'onLogout' | 'onLoginClick'> & { onLinkClick: () => void }) {
+  if (isLoading) return <div className="h-10 w-full animate-pulse bg-muted/50 rounded-xl" />;
+
+  if (!user) {
+    return (
+      <Link href="/login" className="block" onClick={onLinkClick}>
+        <Button className="w-full gap-2 rounded-xl h-11 bg-primary shadow-lg shadow-primary/20">
+          로그인하고 시작하기
+        </Button>
+      </Link>
+    );
+  }
+
+  return (
+    <div className="bg-accent/30 rounded-2xl p-4 border border-white/5">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+          {user.name.charAt(0)}
+        </div>
+        <div>
+          <p className="font-bold text-sm">{user.name} 님</p>
+          <p className="text-[10px] text-muted-foreground italic">환영합니다!</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * 애플리케이션의 최상단 공통 헤더 컴포넌트입니다.
  * 서비스 로고, 내비게이션 메뉴, PWA 설치 유도 및 사용자 인증 상태(로그인/로그아웃)를 관리합니다.
@@ -232,7 +314,11 @@ export function Header() {
             <span className="font-bold text-xl text-primary tracking-tight">전북대 수강신청 도우미</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
-            <NavLinks isAdmin={user?.role === "ADMIN"} onGuardedAction={handleGuardedAction} />
+            <NavLinks 
+              isLoggedIn={!!user} 
+              isAdmin={user?.role === "ADMIN"} 
+              onGuardedAction={handleGuardedAction} 
+            />
           </nav>
         </div>
 
@@ -250,32 +336,13 @@ export function Header() {
           )}
 
           <div className="hidden md:flex items-center gap-3">
-            {isLoading ? (
-              <div className="h-8 w-24 animate-pulse bg-muted/50 rounded-xl" />
-            ) : user ? (
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex flex-col items-end mr-1">
-                  <span className="text-xs font-bold leading-none">{user.name} 님</span>
-                  <span className="text-[10px] text-muted-foreground mt-1">로그인 됨</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => logout()}
-                  disabled={isPending}
-                  className="gap-2 rounded-xl h-9 hover:bg-destructive/5 hover:text-destructive transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  로그아웃
-                </Button>
-              </div>
-            ) : (
-              <Link href="/login">
-                <Button size="sm" className="bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-sm">
-                  로그인
-                </Button>
-              </Link>
-            )}
+            <HeaderDesktopUser 
+              user={user} 
+              isLoading={isLoading} 
+              isPending={isPending} 
+              onLogout={() => logout()} 
+              onLoginClick={closeMenu}
+            />
           </div>
 
           <div className="flex md:hidden items-center gap-2">
@@ -294,27 +361,11 @@ export function Header() {
                 </SheetHeader>
                 <div className="flex flex-col gap-2 p-4">
                   <div className="mb-4 px-2">
-                    {isLoading ? (
-                      <div className="h-10 w-full animate-pulse bg-muted/50 rounded-xl" />
-                    ) : user ? (
-                      <div className="bg-accent/30 rounded-2xl p-4 border border-white/5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                            {user.name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm">{user.name} 님</p>
-                            <p className="text-[10px] text-muted-foreground italic">환영합니다!</p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <Link href="/login" className="block" onClick={closeMenu}>
-                        <Button className="w-full gap-2 rounded-xl h-11 bg-primary shadow-lg shadow-primary/20">
-                          로그인하고 시작하기
-                        </Button>
-                      </Link>
-                    )}
+                    <HeaderMobileUserStatus 
+                      user={user} 
+                      isLoading={isLoading} 
+                      onLinkClick={closeMenu} 
+                    />
                   </div>
 
                   {isInstallable && (
@@ -334,7 +385,13 @@ export function Header() {
 
                   <div className="space-y-1">
                     <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">메뉴</p>
-                    <NavLinks isMobile isAdmin={user?.role === "ADMIN"} onGuardedAction={handleGuardedAction} onLinkClick={closeMenu} />
+                    <NavLinks 
+                      isMobile 
+                      isLoggedIn={!!user} 
+                      isAdmin={user?.role === "ADMIN"} 
+                      onGuardedAction={handleGuardedAction} 
+                      onLinkClick={closeMenu} 
+                    />
                   </div>
 
                   {user && (
