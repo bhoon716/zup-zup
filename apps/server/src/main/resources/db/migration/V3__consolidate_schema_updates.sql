@@ -1,15 +1,19 @@
--- 🚀 [V3] 데이터베이스 구조 최적화 및 레거시 데이터 초기화 스크립트
--- 이 서비스의 핵심인 Users, Subscriptions, Timetables, Wishlists 등 유저 생성 데이터는 100% 보존합니다.
+-- 🚀 [V3] 데이터베이스 구조 최적화 및 초기화 (Idempotent 및 신규 필드 반영 버전)
+-- 중요 유저 데이터(Users, Subscriptions, Timetables, Wishlists)는 보존하되, 
+-- 구조가 대폭 변경된 관리 테이블 및 빈 테이블들은 초기화하여 충돌을 방지합니다.
 
--- 마이그레이션 중 제약 조건 충돌 방지를 위해 외래 키 체크 일시 중지
 SET FOREIGN_KEY_CHECKS = 0;
 
--- 1. 대규모/불필요 레거시 데이터 및 테이블 초기화
--- 재수집 및 재생성 가능한 데이터들을 삭제하여 DB 용량 최적화 및 인덱스 꼬임 방지
+-- 1. 대규모/구조변경/관리 테이블 초기화
 DROP TABLE IF EXISTS course_seat_histories;
 DROP TABLE IF EXISTS course_schedules;
 DROP TABLE IF EXISTS notification_histories;
 DROP TABLE IF EXISTS courses;
+DROP TABLE IF EXISTS crawler_settings;
+DROP TABLE IF EXISTS schedules;
+DROP TABLE IF EXISTS announcements;
+DROP TABLE IF EXISTS custom_schedule_times;
+DROP TABLE IF EXISTS custom_schedules;
 
 -- 2. 핵심 마스터 테이블(courses) 재생성
 CREATE TABLE courses (
@@ -22,7 +26,7 @@ CREATE TABLE courses (
     department VARCHAR(100),
     target_grade VARCHAR(20),
     credits VARCHAR(10),
-    classification ENUM('BASIC_REQUIRED','GENERAL_EDUCATION','GENERAL_ELECTIVE','MAJOR','MAJOR_ELECTIVE','MAJOR_REQUIRED','MILITARY_SCIENCE','PREREQUISITE','SERIES_COMMON','TEACHING_PROFESSION','TEACHING_PROFESSION_GRAD'),
+    classification VARCHAR(50),
     academic_year VARCHAR(4) NOT NULL,
     semester VARCHAR(10) NOT NULL,
     capacity INT NOT NULL,
@@ -33,11 +37,12 @@ CREATE TABLE courses (
     general_category VARCHAR(50),
     general_category_by_year VARCHAR(50),
     general_detail VARCHAR(50),
-    status ENUM('BLENDED','FIELD_TRAINING','FLIPPED_LEARNING','GENERAL','ONLINE_OFFLINE','REMOTE_CONTENTS','REMOTE_REALTIME','SOCIAL_SERVICE','SPECIAL_ENGLISH','THESIS_RESEARCH','VIDEO_CONFERENCE'),
-    lecture_language ENUM('CHINESE','ENGLISH','FRENCH','GERMAN','JAPANESE','KOREAN','SPANISH'),
-    grading_method ENUM('ABSOLUTE','ETC_LAW_SCHOOL','PASS_FAIL','RELATIVE_1','RELATIVE_2','RELATIVE_3'),
-    accreditation ENUM('ENGINEERING','GENERAL','MANAGEMENT','NURSING'),
-    disclosure ENUM('PRIVATE','PUBLIC'),
+    lecture_hours INT,
+    status VARCHAR(30),
+    lecture_language VARCHAR(30),
+    grading_method VARCHAR(30),
+    accreditation VARCHAR(30),
+    disclosure VARCHAR(30),
     disclosure_reason VARCHAR(100),
     course_direction VARCHAR(500),
     has_syllabus BIT(1),
@@ -82,18 +87,39 @@ CREATE TABLE notification_histories (
     INDEX idx_notif_hist_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 6. 기타 관리 테이블 생성
-CREATE TABLE IF NOT EXISTS crawler_settings (
+-- 6. 커스텀 스케줄 테이블 (신규 구조 반영)
+CREATE TABLE custom_schedules (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    timetable_id BIGINT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    professor VARCHAR(50),
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
+    CONSTRAINT FK_custom_schedules_timetable FOREIGN KEY (timetable_id) REFERENCES timetables (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE custom_schedule_times (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    custom_schedule_id BIGINT NOT NULL,
+    day_of_week VARCHAR(10) NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    classroom VARCHAR(100),
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
+    CONSTRAINT FK_custom_schedule_times_custom FOREIGN KEY (custom_schedule_id) REFERENCES custom_schedules (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. 관리용 테이블 재생성
+CREATE TABLE crawler_settings (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     target_year VARCHAR(4) NOT NULL,
     target_semester VARCHAR(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO crawler_settings (target_year, target_semester)
-SELECT '2026', 'U211600010'
-WHERE NOT EXISTS (SELECT 1 FROM crawler_settings);
+INSERT INTO crawler_settings (target_year, target_semester) VALUES ('2026', 'U211600010');
 
-CREATE TABLE IF NOT EXISTS schedules (
+CREATE TABLE schedules (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     schedule_type VARCHAR(50) NOT NULL,
     start_date DATE NOT NULL,
@@ -104,7 +130,7 @@ CREATE TABLE IF NOT EXISTS schedules (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS announcements (
+CREATE TABLE announcements (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
     content TEXT NOT NULL,
@@ -116,11 +142,10 @@ CREATE TABLE IF NOT EXISTS announcements (
 
 CREATE INDEX idx_announcements_public_order ON announcements (published, pinned, created_at);
 
--- 7. 사용자 기기(user_devices) 사양 최적화 (데이터 유지)
+-- 8. 사용자 기기 최적화 및 제약조건 복구
 ALTER TABLE user_devices 
     MODIFY COLUMN token VARCHAR(500) NOT NULL,
     MODIFY COLUMN p256dh VARCHAR(500),
     MODIFY COLUMN auth VARCHAR(500);
 
--- 외래 키 체크 다시 활성화
 SET FOREIGN_KEY_CHECKS = 1;
