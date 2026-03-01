@@ -18,6 +18,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "ngrok-skip-browser-warning",
+            value: "69420",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
