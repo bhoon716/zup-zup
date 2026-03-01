@@ -36,7 +36,7 @@ public class UserDevice extends BaseTimeEntity {
     @Column(nullable = false)
     private DeviceType type;
 
-    @Column(nullable = false, unique = true, length = 1000)
+    @Column(nullable = false, unique = true, length = 500)
     private String token;
 
     @Column(length = 500)
