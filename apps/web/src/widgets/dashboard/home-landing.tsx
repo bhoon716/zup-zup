@@ -91,12 +91,12 @@ export function HomeLanding() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
           >
             <Link href="/login" className="w-full sm:w-auto">
-              <Button className="w-full px-10 py-7 rounded-full bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all shadow-xl shadow-primary/30 h-auto">
+              <Button className="h-auto w-full rounded-full bg-primary px-8 py-5 text-base font-bold text-white shadow-xl shadow-primary/30 transition-all hover:bg-primary/90">
                 지금 시작하기
               </Button>
             </Link>
             <Link href="/search" className="w-full sm:w-auto">
-              <Button variant="outline" className="w-full px-10 py-7 rounded-full bg-white text-primary border-2 border-primary/20 font-bold text-lg hover:bg-primary/5 transition-all h-auto">
+              <Button variant="outline" className="h-auto w-full rounded-full border-2 border-primary/20 bg-white px-8 py-5 text-base font-bold text-primary transition-all hover:bg-primary/5">
                 강의 먼저 둘러보기
               </Button>
             </Link>
