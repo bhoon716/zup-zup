@@ -63,34 +63,48 @@ jobs:
     steps:
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.SERVER_SSH_HOST }}
           username: ${{ secrets.SERVER_SSH_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: GITHUB_SHA,GITHUB_TOKEN,GITHUB_ACTOR
           script: |
             set -e
 
             REPO_DIR=~/jbnu-sugang-helper/server
             cd $REPO_DIR
 
-            # 이미 빌드된 이미지 태그 (SHA-XXXX) 사용
-            NEW_TAG="sha-${GITHUB_SHA::7}"
+            # 0. 최신 설정 파일 반영을 위한 git pull (설정 정보만 업데이트)
+            echo ">>> 최신 설정 파일 및 compose 파일 업데이트 중..."
+            # 혹시 모르니 remote 설정을 main으로 유지
+            git pull origin main
+
+            # 이미 빌드된 이미지 태그 (SHA-7자리) 사용
+            NEW_TAG="sha-${GITHUB_SHA:0:7}"
             echo ">>> 신규 이미지 배포 시작: $NEW_TAG"
+
+            # 1. GHCR 로그인 (이미지 pull을 위해 필요)
+            echo "$GITHUB_TOKEN" | sudo docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
             if [ ! -f .env ]; then
                 echo "오류: .env 파일을 찾을 수 없습니다."
                 exit 1
             fi
 
-            # 1. .env 업데이트
-            sed -i "s/^APP_IMAGE_TAG=.*/APP_IMAGE_TAG=$NEW_TAG/" .env || echo "APP_IMAGE_TAG=$NEW_TAG" >> .env
+            # 2. .env 업데이트 (APP_IMAGE_TAG)
+            # - 태그 값이 정확히 박히도록 sed 명령어 보완
+            sed -i "s/^APP_IMAGE_TAG=.*/APP_IMAGE_TAG=$NEW_TAG/" .env
 
-            # 2. 이미 빌드된 이미지 pull & 컨테이너 재시작
+            # 3. 이미지 pull 및 컨테이너 재시작
             echo ">>> 이미지 가져오기 및 컨테이너 재시작..."
             sudo docker compose pull app
             sudo docker compose up -d app
 
-            # 3. 헬스체크 대기 (배포 성공 여부 검증)
+            # 4. 헬스체크 대기
             echo ">>> 애플리케이션 상태 확인 중..."
             TIMEOUT=120
             for i in $(seq 1 $TIMEOUT); do
