@@ -1,0 +1,44 @@
+name: Deploy Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # 수동 실행 옵션
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_SSH_HOST }}
+          username: ${{ secrets.SERVER_SSH_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ~/jbnu-sugang-helper/server
+
+            # 최신 코드 동기화
+            git fetch origin main
+            git reset --hard origin/main
+
+            # 1. 운영 환경 설정 파일(application-prod.yml) 복구
+            mkdir -p src/main/resources
+            echo "${{ secrets.APPLICATION_PROD_YML }}" > src/main/resources/application-prod.yml
+
+            # 2. Firebase 키 파일 복구
+            mkdir -p src/main/resources/firebase
+            echo "${{ secrets.FIREBASE_KEY_JSON }}" > src/main/resources/firebase/firebase-key.json
+
+            # 3. 환경변수(.env) 복구
+            echo "${{ secrets.SERVER_ENV }}" > .env
+
+            # 4. 도커 컨테이너 재빌드 및 실행
+            sudo docker compose up -d --build app
+
+            # 5. 미사용 이미지 정리 (용량 확보)
+            sudo docker image prune -f
