@@ -19,4 +19,5 @@ WORKDIR /app
 COPY --from=builder /app/build/libs/*.jar app.jar
 
 EXPOSE 8080
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# 컨테이너 외부(/app/config/)에 마운트된 설정 파일을 우선적으로 읽도록 설정하여 구동
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dspring.config.additional-location=file:/app/config/ -jar app.jar"]
