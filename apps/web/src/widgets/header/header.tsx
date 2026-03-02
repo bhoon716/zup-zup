@@ -323,17 +323,15 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          {isInstallable && (
-            <Button
-              onClick={install}
-              variant="outline"
-              size="sm"
-              className="hidden md:flex gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
-            >
-              <Download className="w-4 h-4" />
-              <span className="font-medium">{platform === "ios" ? "공유 → 홈 추가" : "앱 설치"}</span>
-            </Button>
-          )}
+          <Button
+            onClick={install}
+            variant="outline"
+            size="sm"
+            className="hidden md:flex gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
+          >
+            <Download className="w-4 h-4" />
+            <span className="font-medium">{platform === "ios" ? "공유 → 홈 추가" : "앱 설치"}</span>
+          </Button>
 
           <div className="hidden md:flex items-center gap-3">
             <HeaderDesktopUser 
@@ -368,20 +366,18 @@ export function Header() {
                     />
                   </div>
 
-                  {isInstallable && (
                     <div className="px-2 mb-2">
-                        <Button
-                          onClick={() => {
-                            install();
-                            closeMenu();
-                          }}
-                          className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-                        >
-                          <Download className="w-4 h-4" />
-                          {platform === "ios" ? "홈 화면에 추가 안내" : "바로가기 설치하기"}
-                        </Button>
+                      <Button
+                        onClick={() => {
+                          install();
+                          closeMenu();
+                        }}
+                        className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                      >
+                        <Download className="w-4 h-4" />
+                        {platform === "ios" ? "홈 화면에 추가 안내" : "바로가기 설치하기"}
+                      </Button>
                     </div>
-                  )}
 
                   <div className="space-y-1">
                     <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">메뉴</p>
