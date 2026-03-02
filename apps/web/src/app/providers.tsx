@@ -45,6 +45,20 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     getFirebaseApp();
     checkSession();
 
+    // 서비스 워커 등록 (PWA 설치 가능성 확보)
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").then(
+          (registration) => {
+            console.log("ServiceWorker registration successful with scope: ", registration.scope);
+          },
+          (err) => {
+            console.log("ServiceWorker registration failed: ", err);
+          }
+        );
+      });
+    }
+
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'PUSH_NOTIFICATION') {
         // 서비스 워커 메시지를 인앱 토스트로 연결한다.
