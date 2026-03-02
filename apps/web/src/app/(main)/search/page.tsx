@@ -23,7 +23,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/shared/ui/sheet";
-import { Filter, SlidersHorizontal, X, Search, ChevronRight, ListFilter } from "lucide-react";
+import { SlidersHorizontal, X, Search, ChevronRight, ListFilter } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -165,13 +165,6 @@ export default function SearchPage() {
    * 키워드 입력을 통한 검색을 처리합니다.
    * 입력된 강의명을 검색 조건에 반영합니다.
    */
-  const handleKeywordSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSearchCondition(prev => ({
-      ...prev,
-      name: keyword || undefined
-    }));
-  };
 
   /**
    * 개별 필터 칩 삭제 핸들러입니다.

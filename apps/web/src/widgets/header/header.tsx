@@ -6,21 +6,15 @@ import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/shared/lib/utils";
-import { 
-  LogOut, Search, Bell, Settings, ShieldCheck, Calendar, 
-  Menu, Download, GraduationCap, LayoutDashboard, ChevronDown, ExternalLink, Megaphone
+import {
+  Menu,
+  Download,
+  GraduationCap,
+  LogOut,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/shared/ui/dropdown-menu";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -30,255 +24,8 @@ import {
 } from "@/shared/ui/sheet";
 import { usePWAInstall } from "@/shared/hooks/usePWAInstall";
 
-interface NavLinksProps {
-  isMobile?: boolean;
-  isAdmin: boolean;
-  isLoggedIn: boolean;
-  onGuardedAction: (e: MouseEvent) => void;
-  onLinkClick?: () => void;
-}
-
-const JBNU_SITES = [
-  { name: "수강신청시스템", url: "https://oasis.jbnu.ac.kr/jbnu/sugang/" },
-  { name: "개설강좌조회", url: "https://oasis.jbnu.ac.kr/jbnu/sugang/sbjt/sbjt.html" },
-  { name: "전북대학교", url: "https://www.jbnu.ac.kr/web/index.do" },
-  { name: "오아시스 3.0", url: "https://oasis.jbnu.ac.kr/com/login.do" },
-];
-
-interface JBNUSiteLinksProps {
-  isMobile: boolean;
-  onLinkClick?: () => void;
-}
-
-/**
- * 전북대학교 주요 사이트 바로가기 링크들을 렌더링합니다.
- */
-function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
-  if (isMobile) {
-    return (
-      <div className="mt-4 space-y-1 pt-4 border-t border-gray-100">
-        <p className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-          바로가기
-        </p>
-        <div className="flex flex-col gap-0.5 pl-3">
-          {JBNU_SITES.map((site) => (
-            <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer" onClick={onLinkClick}>
-              <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium hover:bg-primary/5 text-gray-600">
-                <ExternalLink className="w-4 h-4 opacity-50" />
-                {site.name}
-              </Button>
-            </a>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 text-gray-600 font-medium hover:bg-primary/5 group transition-colors">
-            <ExternalLink className="w-[1.1rem] h-[1.1rem]" />
-            <span className="text-sm">바로가기</span>
-            <ChevronDown className="w-3.5 h-3.5 opacity-40" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 rounded-2xl border-gray-100 bg-white p-1.5 shadow-xl">
-          {JBNU_SITES.map((site) => (
-            <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer">
-              <DropdownMenuItem className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary cursor-pointer transition-colors group">
-                <span className="font-medium">{site.name}</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </DropdownMenuItem>
-            </a>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-}
-
-/**
- * 메인 내비게이션 링크들을 렌더링하는 컴포넌트입니다.
- * 데스크톱과 모바일 환경에 적합한 레이아웃을 제공하며, 권한에 따른 관리자 메뉴를 포함합니다.
- */
-function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedAction, onLinkClick }: NavLinksProps) {
-  const handleClick = (e: MouseEvent) => {
-    onLinkClick?.();
-    onGuardedAction(e);
-  };
-
-  return (
-    <>
-      {isLoggedIn && (
-        <Link href="/timetable" onClick={handleClick}>
-          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-            <Calendar className="w-[1.1rem] h-[1.1rem]" />
-            <span className="text-sm font-medium">내 시간표</span>
-          </Button>
-        </Link>
-      )}
-      <Link href="/search" onClick={onLinkClick}>
-        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-          <Search className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">강의 검색</span>
-        </Button>
-      </Link>
-      {isLoggedIn && (
-        <Link href="/notifications" onClick={handleClick}>
-          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-            <Bell className="w-[1.1rem] h-[1.1rem]" />
-            <span className="text-sm font-medium">알림 / 구독</span>
-          </Button>
-        </Link>
-      )}
-      <Link href="/announcements" onClick={onLinkClick}>
-        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-          <Megaphone className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">공지사항</span>
-        </Button>
-      </Link>
-      {isLoggedIn && (
-        <Link href="/settings" onClick={handleClick}>
-          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
-            <Settings className="w-[1.1rem] h-[1.1rem]" />
-            <span className="text-sm font-medium">설정</span>
-          </Button>
-        </Link>
-      )}
-
-      <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} />
-      {isAdmin && (
-        <div className={cn(isMobile ? "mt-4 space-y-1 pt-4 border-t border-gray-100" : "flex items-center")}>
-          {isMobile ? (
-            <>
-              <p className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                관리 메뉴
-              </p>
-              <div className="flex flex-col gap-0.5 pl-3">
-                <Link href="/admin" onClick={onLinkClick}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
-                    <LayoutDashboard className="w-4 h-4" />
-                    대시보드
-                  </Button>
-                </Link>
-                <Link href="/admin/announcements" onClick={onLinkClick}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
-                    <Megaphone className="w-4 h-4" />
-                    공지사항 관리
-                  </Button>
-                </Link>
-              </div>
-            </>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 text-primary font-bold hover:bg-primary/5">
-                  <ShieldCheck className="w-[1.1rem] h-[1.1rem]" />
-                  <span className="text-sm">관리자</span>
-                  <ChevronDown className="w-3.5 h-3.5 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-2xl border-gray-100 bg-white/95 backdrop-blur-xl p-2 shadow-2xl">
-                <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-primary uppercase tracking-widest">시스템 관리자</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-gray-100" />
-                <Link href="/admin">
-                  <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
-                    <LayoutDashboard className="w-4 h-4" />
-                    대시보드
-                  </DropdownMenuItem>
-                </Link>
-                <Link href="/admin/announcements">
-                  <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
-                    <Megaphone className="w-4 h-4" />
-                    공지사항 관리
-                  </DropdownMenuItem>
-                </Link>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      )}
-    </>
-  );
-}
-
-interface UserProfileProps {
-  user: any;
-  isLoading: boolean;
-  isPending: boolean;
-  onLogout: () => void;
-  onLoginClick: () => void;
-}
-
-/**
- * 데스크톱 환경의 사용자 프로필 및 로그아웃 버튼을 렌더링합니다.
- */
-function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLoginClick }: UserProfileProps) {
-  if (isLoading) return <div className="h-8 w-24 animate-pulse bg-muted/50 rounded-xl" />;
-  
-  if (!user) {
-    return (
-      <Link href="/login" onClick={onLoginClick}>
-        <Button size="sm" className="bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-sm">
-          로그인
-        </Button>
-      </Link>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-3">
-      <div className="hidden sm:flex flex-col items-end mr-1">
-        <span className="text-xs font-bold leading-none">{user.name} 님</span>
-        <span className="text-[10px] text-muted-foreground mt-1">로그인 됨</span>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onLogout}
-        disabled={isPending}
-        className="gap-2 rounded-xl h-9 hover:bg-destructive/5 hover:text-destructive transition-colors"
-      >
-        <LogOut className="w-4 h-4" />
-        로그아웃
-      </Button>
-    </div>
-  );
-}
-
-/**
- * 모바일 환경의 사용자 상태(프로필/로그인 유도)를 렌더링합니다.
- */
-function HeaderMobileUserStatus({ user, isLoading, onLinkClick }: Omit<UserProfileProps, 'isPending' | 'onLogout' | 'onLoginClick'> & { onLinkClick: () => void }) {
-  if (isLoading) return <div className="h-10 w-full animate-pulse bg-muted/50 rounded-xl" />;
-
-  if (!user) {
-    return (
-      <Link href="/login" className="block" onClick={onLinkClick}>
-        <Button className="w-full gap-2 rounded-xl h-11 bg-primary shadow-lg shadow-primary/20">
-          로그인하고 시작하기
-        </Button>
-      </Link>
-    );
-  }
-
-  return (
-    <div className="bg-accent/30 rounded-2xl p-4 border border-white/5">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-          {user.name.charAt(0)}
-        </div>
-        <div>
-          <p className="font-bold text-sm">{user.name} 님</p>
-          <p className="text-[10px] text-muted-foreground italic">환영합니다!</p>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { NavLinks } from "./ui/nav-links";
+import { HeaderDesktopUser, HeaderMobileUserStatus } from "./ui/user-status";
 
 /**
  * 애플리케이션의 최상단 공통 헤더 컴포넌트입니다.
@@ -289,7 +36,7 @@ export function Header() {
   const { mutate: logout, isPending } = useLogout();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
   const pathname = usePathname();
-  const { isInstallable, install } = usePWAInstall();
+  const { isInstallable, install, platform } = usePWAInstall();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (pathname === "/onboarding") {
@@ -323,17 +70,15 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          {isInstallable && (
-            <Button
-              onClick={install}
-              variant="outline"
-              size="sm"
-              className="hidden md:flex gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
-            >
-              <Download className="w-4 h-4" />
-              <span className="font-medium">앱 설치</span>
-            </Button>
-          )}
+          <Button
+            onClick={install}
+            variant="outline"
+            size="sm"
+            className="hidden md:flex gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
+          >
+            <Download className="w-4 h-4" />
+            <span className="font-medium">{platform === "ios" ? "공유 → 홈 추가" : "앱 설치"}</span>
+          </Button>
 
           <div className="hidden md:flex items-center gap-3">
             <HeaderDesktopUser 
@@ -368,7 +113,6 @@ export function Header() {
                     />
                   </div>
 
-                  {isInstallable && (
                     <div className="px-2 mb-2">
                       <Button
                         onClick={() => {
@@ -378,10 +122,9 @@ export function Header() {
                         className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                       >
                         <Download className="w-4 h-4" />
-                        바로가기 설치하기
+                        {platform === "ios" ? "홈 화면에 추가 안내" : "바로가기 설치하기"}
                       </Button>
                     </div>
-                  )}
 
                   <div className="space-y-1">
                     <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">메뉴</p>

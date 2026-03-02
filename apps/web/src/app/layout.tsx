@@ -23,6 +23,11 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "전북대 수강신청 도우미",
   },
+  icons: {
+    apple: [
+      { url: "/jbnu-logo.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
   formatDetection: {
     telephone: false,
   },
