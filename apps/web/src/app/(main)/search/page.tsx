@@ -43,6 +43,7 @@ interface FilterChip {
  */
 export default function SearchPage() {
   const [searchCondition, setSearchCondition] = useState<CourseSearchCondition>(DEFAULT_CONDITION);
+  const [draftCondition, setDraftCondition] = useState<CourseSearchCondition>(DEFAULT_CONDITION);
   const [sortOption, setSortOption] = useState<string>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
@@ -62,6 +63,7 @@ export default function SearchPage() {
 
   const handleSearch = useCallback((condition: CourseSearchCondition) => {
     setSearchCondition(condition);
+    setDraftCondition(condition);
     setIsFilterExpanded(false);
   }, []);
 
@@ -146,7 +148,8 @@ export default function SearchPage() {
     return filters;
   }, [searchCondition]);
 
-  const [keyword, setKeyword] = useState(searchCondition.name || "");
+  const keyword = draftCondition.name || "";
+  const setKeyword = (name: string) => setDraftCondition(prev => ({ ...prev, name }));
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -172,6 +175,7 @@ export default function SearchPage() {
    */
   const clearSingleFilter = useCallback((patch: Partial<CourseSearchCondition>) => {
     setSearchCondition((prev) => ({ ...prev, ...patch }));
+    setDraftCondition((prev) => ({ ...prev, ...patch }));
   }, []);
 
   /**
@@ -180,7 +184,7 @@ export default function SearchPage() {
    */
   const resetAllFilters = useCallback(() => {
     setSearchCondition(DEFAULT_CONDITION);
-    setKeyword("");
+    setDraftCondition(DEFAULT_CONDITION);
   }, []);
 
   return (
@@ -192,7 +196,7 @@ export default function SearchPage() {
           <form 
             onSubmit={(e) => {
               e.preventDefault();
-              handleSearch({ ...searchCondition, name: keyword || undefined });
+              handleSearch({ ...draftCondition, name: keyword || undefined });
             }} 
             className="flex items-center gap-2"
           >
@@ -249,7 +253,7 @@ export default function SearchPage() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ 
+                transition={{
                   height: { duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] },
                   opacity: { duration: 0.2 }
                 }}
@@ -259,8 +263,9 @@ export default function SearchPage() {
                   <CourseSearchBar
                     key="mobile-search-bar"
                     onSearch={handleSearch}
+                    onConditionChange={setDraftCondition}
                     isLoading={isLoading}
-                    initialCondition={searchCondition}
+                    initialCondition={draftCondition}
                     hideHeader
                   />
                 </div>
@@ -270,7 +275,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <motion.main 
+      <motion.main
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
@@ -282,8 +287,9 @@ export default function SearchPage() {
               <CourseSearchBar
                 key="desktop-search-bar"
                 onSearch={handleSearch}
+                onConditionChange={setDraftCondition}
                 isLoading={isLoading}
-                initialCondition={searchCondition}
+                initialCondition={draftCondition}
               />
             </div>
           </aside>
