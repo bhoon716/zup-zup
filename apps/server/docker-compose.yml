@@ -24,4 +24,6 @@ services:
     networks:
       - sugang-helper-network-server
 
-# Networks and Volumes are managed in the root docker-compose.yml
+networks:
+  sugang-helper-network-server:
+    external: true
