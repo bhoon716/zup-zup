@@ -1,44 +1,44 @@
+name: sugang-helper-server
+
 services:
   app:
-    # 1. 이미지: CI에서 빌드하여 GHCR에 푸시한 이미지를 사용 (태그는 .env의 APP_IMAGE_TAG 기반)
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-bhoon716}/jbnu-sugang-helper-server:${APP_IMAGE_TAG:-latest}
     container_name: sugang-helper-app
     restart: unless-stopped
-    ports:
-      - "${APP_PORT_HOST:-8080}:8080"
-    
-    # 2. 환경변수: 외부 주입이 필요한 설정 정보 정의
+    pull_policy: always
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_HOST: sugang-helper-mysql
-      REDIS_HOST: sugang-helper-redis
+      TZ: ${TZ:-Asia/Seoul}
+      JAVA_OPTS: ${JAVA_OPTS:--Duser.timezone=Asia/Seoul}
+      DB_HOST: ${DB_HOST:-sugang-helper-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      REDIS_HOST: ${REDIS_HOST:-sugang-helper-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
       SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD}
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
-      # 서버 보안 디렉터리에 위치한 시크릿 파일 경로 주입
       FIREBASE_CONFIG_PATH: /app/config/firebase-key.json
-      TZ: Asia/Seoul
-      JAVA_OPTS: "-Duser.timezone=Asia/Seoul"
-    
-    # 3. 볼륨: 서버 본체에 저장된 민감한 설정 파일을 읽기 전용으로 마운트
+    ports:
+      - "${APP_PORT_HOST:-8080}:8080"
     volumes:
-      - ~/jbnu-sugang-helper/secrets/application-prod.yml:/app/config/application-prod.yml:ro
-      - ~/jbnu-sugang-helper/secrets/firebase-key.json:/app/config/firebase-key.json:ro
-    
-    # 4. 네트워크 및 호스트 설정
+      - ${APP_CONFIG_PATH:-/opt/jbnu-sugang-helper/secrets/application-prod.yml}:/app/config/application-prod.yml:ro
+      - ${FIREBASE_KEY_PATH:-/opt/jbnu-sugang-helper/secrets/firebase-key.json}:/app/config/firebase-key.json:ro
     extra_hosts:
       - "oasis.jbnu.ac.kr:114.70.191.85"
     networks:
       - sugang-helper-network-server
-    
-    # 5. 상태 검사: 애플리케이션의 Actuator 헬스체크 엔드포인트를 통해 정상 구동 확인
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep UP || exit 1"]
-      interval: 20s
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
       timeout: 5s
-      retries: 5
-      start_period: 40s
+      retries: 10
+      start_period: 60s
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 networks:
-  # 인프라 공통 네트워크 사용
   sugang-helper-network-server:
     external: true
