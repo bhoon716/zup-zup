@@ -1,23 +1,29 @@
+# syntax=docker/dockerfile:1.7
 FROM gradle:8.5-jdk21 AS builder
-WORKDIR /app
+WORKDIR /workspace
 
-# 1. 의존성 캐싱을 위한 파일 복사
-COPY build.gradle settings.gradle ./
+# Gradle wrapper/설정 파일을 먼저 복사해 의존성 레이어 캐시 효율을 높인다.
+COPY gradlew gradlew
 COPY gradle gradle
-COPY gradlew ./
+COPY build.gradle settings.gradle ./
 
-# 2. 의존성 미리 다운로드 (소스코드 변경 시 재사용됨)
 RUN chmod +x gradlew
-RUN ./gradlew dependencies --no-daemon
 
-# 3. 소스코드 복사 및 빌드
 COPY src src
-RUN ./gradlew clean build -x test --no-daemon
+
+# 테스트는 CI job에서 수행하므로 이미지 빌드에서는 bootJar만 생성한다.
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    ./gradlew bootJar -x test --no-daemon
+
+# plain jar를 제외한 실행 jar만 추출한다.
+RUN set -eux; \
+    JAR_PATH="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' | head -n 1)"; \
+    test -n "$JAR_PATH"; \
+    cp "$JAR_PATH" /workspace/app.jar
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /workspace/app.jar /app/app.jar
 
 EXPOSE 8080
-# 컨테이너 외부(/app/config/)에 마운트된 설정 파일을 우선적으로 읽도록 설정하여 구동
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dspring.config.additional-location=file:/app/config/ -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dspring.config.additional-location=file:/app/config/ -jar /app/app.jar"]
