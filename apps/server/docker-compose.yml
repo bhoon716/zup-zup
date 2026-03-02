@@ -14,11 +14,6 @@ services:
       DB_HOST: db
       REDIS_HOST: redis
       FIREBASE_CONFIG_PATH: /app/resources/firebase/firebase-key.json
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
     volumes:
       - ./src/main/resources/firebase/firebase-key.json:/app/resources/firebase/firebase-key.json:ro
     networks:
