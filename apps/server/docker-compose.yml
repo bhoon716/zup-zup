@@ -11,8 +11,10 @@ services:
       - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_HOST: db
-      REDIS_HOST: redis
+      DB_HOST: sugang-helper-mysql
+      REDIS_HOST: sugang-helper-redis
+      SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD}
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
       FIREBASE_CONFIG_PATH: /app/resources/firebase/firebase-key.json
     volumes:
       - ./src/main/resources/firebase/firebase-key.json:/app/resources/firebase/firebase-key.json:ro
