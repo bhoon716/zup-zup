@@ -13,7 +13,7 @@ COPY src src
 
 # 테스트는 CI job에서 수행하므로 이미지 빌드에서는 bootJar만 생성한다.
 RUN --mount=type=cache,target=/home/gradle/.gradle \
-    ./gradlew bootJar -x test --no-daemon
+    ./gradlew bootJar -x test --no-daemon --build-cache
 
 # plain jar를 제외한 실행 jar만 추출한다.
 RUN set -eux; \
