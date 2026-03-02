@@ -1,16 +1,13 @@
-name: Server CI/CD
+name: Fast Deploy
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
   workflow_dispatch:
 
 concurrency:
-  group: server-cicd-${{ github.ref }}
+  group: fast-deploy-main
   cancel-in-progress: true
 
 env:
@@ -18,128 +15,67 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/jbnu-sugang-helper-server
 
 jobs:
-  test:
-    name: Test
+  build-and-push:
+    name: Build & Push
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: gradle
-
-      - name: Set up Gradle cache
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Run tests
-        run: ./gradlew test --no-daemon
-
-  build_and_deploy:
-    name: Build and Deploy
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    timeout-minutes: 25
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_tag: ${{ steps.tag.outputs.image_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set image tag
-        id: vars
-        run: echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+        id: tag
+        run: echo "image_tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GHCR
+      - name: Login GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64
-          pull: true
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          cache-from: type=gha,scope=server-docker
-          cache-to: type=gha,mode=max,scope=server-docker
+      - name: Docker build
+        run: |
+          docker build \
+            -t "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.image_tag }}" \
+            -t "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" \
+            .
 
+      - name: Docker push
+        run: |
+          docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.image_tag }}"
+          docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
-          GHCR_USERNAME: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
         with:
           host: ${{ secrets.SERVER_SSH_HOST }}
           username: ${{ secrets.SERVER_SSH_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: IMAGE_TAG,GHCR_USERNAME,GHCR_TOKEN
+          envs: IMAGE_TAG,GHCR_USERNAME,GHCR_PAT
           script_stop: true
           script: |
-            set -euo pipefail
+            set -eu
 
-            REPO_DIR="$HOME/jbnu-sugang-helper/server"
-            cd "$REPO_DIR"
+            cd "$HOME/jbnu-sugang-helper/server"
 
-            git fetch --prune origin main
-            git checkout main
-            git pull --ff-only origin main
-
-            if [ ! -f .env ]; then
-              echo "[ERROR] Missing .env file"
-              exit 1
+            if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_PAT:-}" ]; then
+              echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
             fi
 
-            if grep -q '^APP_IMAGE_TAG=' .env; then
-              sed -i.bak "s/^APP_IMAGE_TAG=.*/APP_IMAGE_TAG=${IMAGE_TAG}/" .env
-            else
-              echo "APP_IMAGE_TAG=${IMAGE_TAG}" >> .env
-            fi
-            rm -f .env.bak
-
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-            docker compose pull app
-            docker compose up -d --no-deps app
-
-            APP_CONTAINER_ID="$(docker compose ps -q app)"
-            if [ -z "$APP_CONTAINER_ID" ]; then
-              echo "[ERROR] App container not found"
-              exit 1
-            fi
-
-            for i in $(seq 1 60); do
-              STATUS="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$APP_CONTAINER_ID")"
-              if [ "$STATUS" = "healthy" ] || [ "$STATUS" = "running" ]; then
-                echo "[OK] Deployment succeeded"
-                exit 0
-              fi
-              if [ "$STATUS" = "unhealthy" ] || [ "$STATUS" = "exited" ] || [ "$STATUS" = "dead" ]; then
-                echo "[ERROR] Deployment failed with status: $STATUS"
-                docker logs --tail=120 "$APP_CONTAINER_ID" || true
-                exit 1
-              fi
-              sleep 2
-            done
-
-            echo "[ERROR] Health check timeout"
-            docker logs --tail=120 "$APP_CONTAINER_ID" || true
-            exit 1
+            APP_IMAGE_TAG="$IMAGE_TAG" docker compose pull app
+            APP_IMAGE_TAG="$IMAGE_TAG" docker compose up -d --no-deps app
+            docker compose ps app
