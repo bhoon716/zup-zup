@@ -43,36 +43,51 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
      */
     @Override
     public Slice<Course> searchCourses(CourseSearchCondition condition, Pageable pageable) {
-        List<Course> content = queryFactory
-                .selectFrom(course)
-                .where(
-                        containsName(condition.getName()),
-                        containsProfessor(condition.getProfessor()),
-                        eqSubjectCode(condition.getSubjectCode()),
-                        eqAcademicYear(condition.getAcademicYear()),
-                        eqSemester(condition.getSemester()),
-                        eqClassification(condition.getClassification()),
-                        containsDepartment(condition.getDepartment()),
-                        eqGradingMethod(condition.getGradingMethod()),
-                        eqLectureLanguage(condition.getLectureLanguage()),
-                        isAvailable(condition.getIsAvailableOnly()),
-                        eqDayOfWeek(condition.getDayOfWeek()),
-                        eqCredits(condition.getCredits()),
-                        goeMinCredits(condition.getMinCredits()),
-                        eqTargetGrade(condition.getTargetGrade()),
-                        eqDisclosure(condition.getDisclosure()),
-                        eqLectureHours(condition.getLectureHours()),
-                        goeMinLectureHours(condition.getMinLectureHours()),
-                        eqGeneralCategory(condition.getGeneralCategory()),
-                        eqGeneralDetail(condition.getGeneralDetail()),
-                        eqStatus(condition.getStatus()),
-                        containsCourseDirection(condition.getCourseDirection()),
-                        matchSelectedSchedules(condition.getSelectedSchedules()),
-                        inWishlist(condition.getIsWishedOnly(), condition.getUserId()))
-                .orderBy(getOrderSpecifiers(condition))
+        String sortBy = condition.getSortBy();
+        boolean isPopularSort = sortBy == null || "popular".equalsIgnoreCase(sortBy);
+        QWishlist wishlist = QWishlist.wishlist;
+
+        var query = queryFactory
+                .selectFrom(course);
+
+        if (isPopularSort) {
+            query.leftJoin(wishlist).on(wishlist.courseKey.eq(course.courseKey));
+        }
+
+        query.where(
+                containsName(condition.getName()),
+                containsProfessor(condition.getProfessor()),
+                eqSubjectCode(condition.getSubjectCode()),
+                eqAcademicYear(condition.getAcademicYear()),
+                eqSemester(condition.getSemester()),
+                eqClassification(condition.getClassification()),
+                containsDepartment(condition.getDepartment()),
+                eqGradingMethod(condition.getGradingMethod()),
+                eqLectureLanguage(condition.getLectureLanguage()),
+                isAvailable(condition.getIsAvailableOnly()),
+                eqDayOfWeek(condition.getDayOfWeek()),
+                eqCredits(condition.getCredits()),
+                goeMinCredits(condition.getMinCredits()),
+                eqTargetGrade(condition.getTargetGrade()),
+                eqDisclosure(condition.getDisclosure()),
+                eqLectureHours(condition.getLectureHours()),
+                goeMinLectureHours(condition.getMinLectureHours()),
+                eqGeneralCategory(condition.getGeneralCategory()),
+                eqGeneralDetail(condition.getGeneralDetail()),
+                eqStatus(condition.getStatus()),
+                containsCourseDirection(condition.getCourseDirection()),
+                matchSelectedSchedules(condition.getSelectedSchedules()),
+                inWishlist(condition.getIsWishedOnly(), condition.getUserId()));
+
+        if (isPopularSort) {
+            query.groupBy(course.id);
+        }
+
+        query.orderBy(getOrderSpecifiers(condition, isPopularSort ? wishlist : null))
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize() + 1)
-                .fetch();
+                .limit(pageable.getPageSize() + 1);
+
+        List<Course> content = query.fetch();
 
         boolean hasNext = false;
         if (content.size() > pageable.getPageSize()) {
@@ -340,7 +355,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     /**
      * 동적 정렬 조건 생성
      */
-    private OrderSpecifier<?>[] getOrderSpecifiers(CourseSearchCondition condition) {
+    private OrderSpecifier<?>[] getOrderSpecifiers(CourseSearchCondition condition, QWishlist joinedWishlist) {
         String sortBy = condition.getSortBy();
         String sortOrder = condition.getSortOrder();
 
@@ -357,11 +372,12 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
         // 인기순 (찜 횟수 기준): 찜횟수(order) -> 신청인원(DESC) -> 고유키(ASC)
         if ("popular".equalsIgnoreCase(sortBy)) {
-            QWishlist wishlist = QWishlist.wishlist;
             return new OrderSpecifier[] {
-                    new OrderSpecifier<>(order, JPAExpressions.select(wishlist.count())
-                            .from(wishlist)
-                            .where(wishlist.courseKey.eq(course.courseKey))),
+                    new OrderSpecifier<>(order,
+                            joinedWishlist != null ? joinedWishlist.id.count()
+                                    : JPAExpressions.select(QWishlist.wishlist.count())
+                                            .from(QWishlist.wishlist)
+                                            .where(QWishlist.wishlist.courseKey.eq(course.courseKey))),
                     new OrderSpecifier<>(Order.DESC, course.current),
                     new OrderSpecifier<>(Order.ASC, course.courseKey)
             };
@@ -386,11 +402,12 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         }
 
         // default: 인기순 기반 정렬
-        QWishlist wishlist = QWishlist.wishlist;
         return new OrderSpecifier[] {
-                new OrderSpecifier<>(order, JPAExpressions.select(wishlist.count())
-                        .from(wishlist)
-                        .where(wishlist.courseKey.eq(course.courseKey))),
+                new OrderSpecifier<>(order,
+                        joinedWishlist != null ? joinedWishlist.id.count()
+                                : JPAExpressions.select(QWishlist.wishlist.count())
+                                        .from(QWishlist.wishlist)
+                                        .where(QWishlist.wishlist.courseKey.eq(course.courseKey))),
                 new OrderSpecifier<>(Order.DESC, course.current),
                 new OrderSpecifier<>(Order.ASC, course.courseKey)
         };
