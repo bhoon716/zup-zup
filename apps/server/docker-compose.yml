@@ -15,6 +15,7 @@ services:
       REDIS_HOST: sugang-helper-redis
       SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD}
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_FLYWAY_IGNORE_MISSING_MIGRATIONS: "true"
       FIREBASE_CONFIG_PATH: /app/resources/firebase/firebase-key.json
     volumes:
       - ./src/main/resources/firebase/firebase-key.json:/app/resources/firebase/firebase-key.json:ro
