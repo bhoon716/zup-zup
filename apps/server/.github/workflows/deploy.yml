@@ -1,9 +1,10 @@
-name: Deploy Server
+name: Server CI/CD
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -12,12 +13,14 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  # 저장소 이름이 OWNER/REPO 형식이므로 이미지 이름에 적합하게 변환 (소문자 권장)
   IMAGE_NAME: ${{ github.repository_owner }}/jbnu-sugang-helper-server
 
 jobs:
-  build-and-deploy:
+  # 1. 빌드 잡 (PR 생성 시 & Main 머지 시 실행)
+  build:
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,22 +40,27 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # SHA 기반 태그 생성 (예: sha-7353260)
           tags: |
             type=sha,format=short,prefix=sha-
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Docker image
-        id: push
         uses: docker/build-push-action@v6
         with:
           context: .
+          # PR일 때도 빌드 결과물을 푸시하여 롤백/검증 가능하게 함 (속도 향상의 핵심)
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # 2. 배포 잡 (빌드 성공 후 & 오직 Main 머지 시에만 실행)
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -60,53 +68,44 @@ jobs:
           username: ${{ secrets.SERVER_SSH_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            set -e # 오류 발생 시 즉시 중단
+            set -e
 
-            # 서버 워킹 디렉토리 (compose 파일이 있는 곳)
             REPO_DIR=~/jbnu-sugang-helper/server
             cd $REPO_DIR
 
-            # 1. 새로운 이미지 태그 추출 (sha-xxxx 형태)
-            NEW_TAG=$(echo "${{ steps.meta.outputs.tags }}" | grep -o 'sha-[a-z0-9]\{7\}' | head -n1)
+            # 이미 빌드된 이미지 태그 (SHA-XXXX) 사용
+            NEW_TAG="sha-${GITHUB_SHA::7}"
+            echo ">>> 신규 이미지 배포 시작: $NEW_TAG"
 
-            if [ -z "$NEW_TAG" ]; then
-                echo "오류: 새로운 이미지 태그를 찾을 수 없습니다."
-                exit 1
-            fi
-            echo ">>> 배포 시작: $NEW_TAG"
-
-            # 2. .env 파일의 APP_IMAGE_TAG 업데이트 (없으면 생성)
-            # 서버의 .env 위치를 보장 (전역 설정과 분리되어 있을 경우 대비)
             if [ ! -f .env ]; then
-                echo "오류: $REPO_DIR 경로에서 .env 파일을 찾을 수 없습니다."
+                echo "오류: .env 파일을 찾을 수 없습니다."
                 exit 1
             fi
 
+            # 1. .env 업데이트
             sed -i "s/^APP_IMAGE_TAG=.*/APP_IMAGE_TAG=$NEW_TAG/" .env || echo "APP_IMAGE_TAG=$NEW_TAG" >> .env
 
-            # 3. 새로운 이미지만 pull 및 어플리케이션 재시작
-            echo ">>> 신규 이미지 가져오는 중..."
+            # 2. 이미 빌드된 이미지 pull & 컨테이너 재시작
+            echo ">>> 이미지 가져오기 및 컨테이너 재시작..."
             sudo docker compose pull app
-            echo ">>> 컨테이너 재시작 중..."
             sudo docker compose up -d app
 
-            # 4. 배포 후 상태 모니터링 (헬스체크 통과 대기)
-            echo ">>> 애플리케이션 상태 확인 중 (Healthcheck 대기)..."
+            # 3. 헬스체크 대기 (배포 성공 여부 검증)
+            echo ">>> 애플리케이션 상태 확인 중..."
             TIMEOUT=120
-            # 120초간 헬스체크 상태 확인
             for i in $(seq 1 $TIMEOUT); do
                 STATUS=$(sudo docker inspect --format='{{json .State.Health.Status}}' sugang-helper-app | tr -d '"')
                 if [ "$STATUS" = "healthy" ]; then
-                    echo ">>> 배포 성공: 애플리케이션이 정상적으로 동작 중입니다."
+                    echo ">>> 배포 성공: 서비스 정상 가동 중."
                     exit 0
                 fi
                 if [ "$STATUS" = "unhealthy" ]; then
-                    echo ">>> 배포 실패: 애플리케이션 상태가 비정상(unhealthy)입니다."
-                    sudo docker logs --tail=100 sugang-helper-app
+                    echo ">>> 배포 실패: 애플리케이션 상태 비정상."
+                    sudo docker logs --tail=50 sugang-helper-app
                     exit 1
                 fi
                 sleep 1
             done
 
-            echo ">>> 배포 시간 초과: $TIMEOUT초 동안 정상 상태로 전환되지 않았습니다."
+            echo ">>> 배포 타임아웃 ($TIMEOUT초)"
             exit 1
