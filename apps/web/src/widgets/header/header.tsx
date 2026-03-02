@@ -289,7 +289,7 @@ export function Header() {
   const { mutate: logout, isPending } = useLogout();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
   const pathname = usePathname();
-  const { isInstallable, install } = usePWAInstall();
+  const { isInstallable, install, platform } = usePWAInstall();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (pathname === "/onboarding") {
@@ -331,7 +331,7 @@ export function Header() {
               className="hidden md:flex gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
             >
               <Download className="w-4 h-4" />
-              <span className="font-medium">앱 설치</span>
+              <span className="font-medium">{platform === "ios" ? "공유 → 홈 추가" : "앱 설치"}</span>
             </Button>
           )}
 
@@ -370,16 +370,16 @@ export function Header() {
 
                   {isInstallable && (
                     <div className="px-2 mb-2">
-                      <Button
-                        onClick={() => {
-                          install();
-                          closeMenu();
-                        }}
-                        className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-                      >
-                        <Download className="w-4 h-4" />
-                        바로가기 설치하기
-                      </Button>
+                        <Button
+                          onClick={() => {
+                            install();
+                            closeMenu();
+                          }}
+                          className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                        >
+                          <Download className="w-4 h-4" />
+                          {platform === "ios" ? "홈 화면에 추가 안내" : "바로가기 설치하기"}
+                        </Button>
                     </div>
                   )}
 
