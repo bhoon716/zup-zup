@@ -14,6 +14,7 @@ import { FilterSection } from "./filters/filter-section";
 
 interface CourseSearchBarProps {
   onSearch: (condition: CourseSearchCondition) => void;
+  onConditionChange?: (condition: CourseSearchCondition) => void;
   isLoading?: boolean;
   initialCondition?: CourseSearchCondition;
   hideHeader?: boolean;
@@ -21,6 +22,7 @@ interface CourseSearchBarProps {
 
 export function CourseSearchBar({
   onSearch,
+  onConditionChange,
   isLoading,
   initialCondition,
   hideHeader,
@@ -59,6 +61,13 @@ export function CourseSearchBar({
   // UI 상태: 계층형 필터
   const [classificationType, setClassificationType] = useState<string | undefined>();
   const [gradingType, setGradingType] = useState<string | undefined>();
+
+  /**
+   * 로컬 검색 조건이 변경될 때 상위 컴포넌트에 알립니다.
+   */
+  useEffect(() => {
+    onConditionChange?.(condition);
+  }, [condition, onConditionChange]);
 
   /**
    * 검색 버튼 클릭 시 호출되며, 선택된 검색 조건을 부모 컴포넌트로 전달합니다.
@@ -169,6 +178,36 @@ export function CourseSearchBar({
             setGradingType={setGradingType}
           />
         </FilterSection>
+
+        {hideHeader && (
+          <div className="grid grid-cols-3 gap-2 pt-4 pb-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={isLoading}
+              className="col-span-1 h-12 rounded-2xl border-border/40 font-bold text-muted-foreground"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              초기화
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSearch}
+              disabled={isLoading}
+              className="col-span-2 h-12 rounded-2xl bg-primary font-bold text-white shadow-lg shadow-primary/20"
+            >
+              {isLoading ? (
+                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              ) : (
+                <>
+                  <Search className="mr-2 h-4 w-4" />
+                  필터 적용
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
