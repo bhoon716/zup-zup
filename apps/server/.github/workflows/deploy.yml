@@ -1,29 +1,69 @@
 name: Server CI/CD
 
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
+    branches:
+      - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy to production after image build
+        type: boolean
+        required: true
+        default: true
 
-permissions:
-  contents: read
-  packages: write
+concurrency:
+  group: server-cicd-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/jbnu-sugang-helper-server
 
 jobs:
-  # 1. 빌드 잡 (PR 생성 시 & Main 머지 시 실행)
-  build:
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
-    outputs:
-      image_tag: ${{ steps.meta.outputs.version }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Test
+        run: ./gradlew clean test --no-daemon
+
+  build_image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: vars
+        run: echo "image_tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -31,99 +71,138 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GitHub Container Registry
+      - name: Login to GHCR
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker metadata
+      - name: Generate Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,format=short,prefix=sha-
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ steps.vars.outputs.image_tag }}
+            type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Docker image
+      - name: Build (and push on non-PR)
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
-          # PR일 때도 빌드 결과물을 푸시하여 롤백/검증 가능하게 함 (속도 향상의 핵심)
-          push: true
+          pull: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=server-docker
+          cache-to: type=gha,mode=max,scope=server-docker
 
-  # 2. 배포 잡 (빌드 성공 후 & 오직 Main 머지 시에만 실행)
   deploy:
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Deploy to Production
     runs-on: ubuntu-latest
+    needs: build_image
+    timeout-minutes: 20
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.deploy == 'true')
+    permissions:
+      contents: read
+    environment:
+      name: production
     steps:
-      - name: Deploy to Server via SSH
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
+          IMAGE_TAG: ${{ needs.build_image.outputs.image_tag }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.SERVER_SSH_HOST }}
           username: ${{ secrets.SERVER_SSH_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: GITHUB_SHA,GITHUB_TOKEN,GITHUB_ACTOR
+          envs: IMAGE_TAG,GHCR_USERNAME,GHCR_TOKEN
+          script_stop: true
           script: |
-            set -e
+            set -euo pipefail
 
-            REPO_DIR=~/jbnu-sugang-helper/server
-            cd $REPO_DIR
+            REPO_DIR="$HOME/jbnu-sugang-helper/server"
 
-            # 0. 최신 설정 파일 반영을 위한 git pull (설정 정보만 업데이트)
-            echo ">>> 최신 설정 파일 및 compose 파일 업데이트 중..."
-            # 혹시 모르니 remote 설정을 main으로 유지
-            git pull origin main
-
-            # 이미 빌드된 이미지 태그 (SHA-7자리) 사용
-            NEW_TAG="sha-${GITHUB_SHA:0:7}"
-            echo ">>> 신규 이미지 배포 시작: $NEW_TAG"
-
-            # 1. GHCR 로그인 (이미지 pull을 위해 필요)
-            echo "$GITHUB_TOKEN" | sudo docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-
-            if [ ! -f .env ]; then
-                echo "오류: .env 파일을 찾을 수 없습니다."
-                exit 1
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              echo "[ERROR] Deploy repo not found: $REPO_DIR"
+              exit 1
             fi
 
-            # 2. .env 업데이트 (APP_IMAGE_TAG)
-            # - 태그 값이 정확히 박히도록 sed 명령어 보완
-            sed -i "s/^APP_IMAGE_TAG=.*/APP_IMAGE_TAG=$NEW_TAG/" .env
+            cd "$REPO_DIR"
+            git fetch --prune origin main
+            git checkout main
+            git pull --ff-only origin main
 
-            # 3. 이미지 pull 및 컨테이너 재시작
-            echo ">>> 이미지 가져오기 및 컨테이너 재시작..."
-            sudo docker compose pull app
-            sudo docker compose up -d app
+            if [ ! -f .env ]; then
+              echo "[ERROR] Missing .env file in $REPO_DIR"
+              exit 1
+            fi
 
-            # 4. 헬스체크 대기
-            echo ">>> 애플리케이션 상태 확인 중..."
-            TIMEOUT=120
-            for i in $(seq 1 $TIMEOUT); do
-                STATUS=$(sudo docker inspect --format='{{json .State.Health.Status}}' sugang-helper-app | tr -d '"')
-                if [ "$STATUS" = "healthy" ]; then
-                    echo ">>> 배포 성공: 서비스 정상 가동 중."
-                    exit 0
-                fi
-                if [ "$STATUS" = "unhealthy" ]; then
-                    echo ">>> 배포 실패: 애플리케이션 상태 비정상."
-                    sudo docker logs --tail=50 sugang-helper-app
-                    exit 1
-                fi
-                sleep 1
+            update_image_tag() {
+              local next_tag="$1"
+              awk -F= -v next_tag="$next_tag" '
+                BEGIN { updated = 0 }
+                /^APP_IMAGE_TAG=/ {
+                  print "APP_IMAGE_TAG=" next_tag
+                  updated = 1
+                  next
+                }
+                { print }
+                END {
+                  if (updated == 0) {
+                    print "APP_IMAGE_TAG=" next_tag
+                  }
+                }
+              ' .env > .env.tmp
+              mv .env.tmp .env
+            }
+
+            PREV_TAG="$(awk -F= '/^APP_IMAGE_TAG=/{print $2}' .env | tail -n 1)"
+            PREV_TAG="${PREV_TAG:-latest}"
+
+            update_image_tag "$IMAGE_TAG"
+
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+            docker compose pull app
+            docker compose up -d --no-deps app
+
+            APP_CONTAINER_ID="$(docker compose ps -q app)"
+            if [ -z "$APP_CONTAINER_ID" ]; then
+              echo "[ERROR] Failed to resolve app container id"
+              exit 1
+            fi
+
+            MAX_RETRY=90
+            for i in $(seq 1 "$MAX_RETRY"); do
+              HEALTH_STATUS="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$APP_CONTAINER_ID")"
+
+              if [ "$HEALTH_STATUS" = "healthy" ] || [ "$HEALTH_STATUS" = "running" ]; then
+                echo "[OK] Deployment succeeded with tag $IMAGE_TAG"
+                docker image prune -f >/dev/null 2>&1 || true
+                exit 0
+              fi
+
+              if [ "$HEALTH_STATUS" = "unhealthy" ] || [ "$HEALTH_STATUS" = "exited" ] || [ "$HEALTH_STATUS" = "dead" ]; then
+                echo "[ERROR] New container became $HEALTH_STATUS. Rolling back to $PREV_TAG"
+                docker logs --tail=120 "$APP_CONTAINER_ID" || true
+                update_image_tag "$PREV_TAG"
+                docker compose up -d --no-deps app
+                exit 1
+              fi
+
+              sleep 2
             done
 
-            echo ">>> 배포 타임아웃 ($TIMEOUT초)"
+            echo "[ERROR] Health check timed out. Rolling back to $PREV_TAG"
+            docker logs --tail=120 "$APP_CONTAINER_ID" || true
+            update_image_tag "$PREV_TAG"
+            docker compose up -d --no-deps app
             exit 1
