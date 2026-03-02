@@ -8,12 +8,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      deploy:
-        description: Deploy to production after image build
-        type: boolean
-        required: true
-        default: true
 
 concurrency:
   group: server-cicd-${{ github.ref }}
@@ -25,7 +19,7 @@ env:
 
 jobs:
   test:
-    name: Run Tests
+    name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -44,80 +38,54 @@ jobs:
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Test
-        run: ./gradlew clean test --no-daemon
+      - name: Run tests
+        run: ./gradlew test --no-daemon
 
-  build_image:
-    name: Build Docker Image
+  build_and_deploy:
+    name: Build and Deploy
     runs-on: ubuntu-latest
     needs: test
-    timeout-minutes: 30
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 25
     permissions:
       contents: read
       packages: write
-    outputs:
-      image_tag: ${{ steps.vars.outputs.image_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set image tag
         id: vars
-        run: echo "image_tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        run: echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=${{ steps.vars.outputs.image_tag }}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build (and push on non-PR)
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           pull: true
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha,scope=server-docker
           cache-to: type=gha,mode=max,scope=server-docker
 
-  deploy:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: build_image
-    timeout-minutes: 20
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.deploy == 'true')
-    permissions:
-      contents: read
-    environment:
-      name: production
-    steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
-          IMAGE_TAG: ${{ needs.build_image.outputs.image_tag }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -130,45 +98,23 @@ jobs:
             set -euo pipefail
 
             REPO_DIR="$HOME/jbnu-sugang-helper/server"
-
-            if [ ! -d "$REPO_DIR/.git" ]; then
-              echo "[ERROR] Deploy repo not found: $REPO_DIR"
-              exit 1
-            fi
-
             cd "$REPO_DIR"
+
             git fetch --prune origin main
             git checkout main
             git pull --ff-only origin main
 
             if [ ! -f .env ]; then
-              echo "[ERROR] Missing .env file in $REPO_DIR"
+              echo "[ERROR] Missing .env file"
               exit 1
             fi
 
-            update_image_tag() {
-              local next_tag="$1"
-              awk -F= -v next_tag="$next_tag" '
-                BEGIN { updated = 0 }
-                /^APP_IMAGE_TAG=/ {
-                  print "APP_IMAGE_TAG=" next_tag
-                  updated = 1
-                  next
-                }
-                { print }
-                END {
-                  if (updated == 0) {
-                    print "APP_IMAGE_TAG=" next_tag
-                  }
-                }
-              ' .env > .env.tmp
-              mv .env.tmp .env
-            }
-
-            PREV_TAG="$(awk -F= '/^APP_IMAGE_TAG=/{print $2}' .env | tail -n 1)"
-            PREV_TAG="${PREV_TAG:-latest}"
-
-            update_image_tag "$IMAGE_TAG"
+            if grep -q '^APP_IMAGE_TAG=' .env; then
+              sed -i.bak "s/^APP_IMAGE_TAG=.*/APP_IMAGE_TAG=${IMAGE_TAG}/" .env
+            else
+              echo "APP_IMAGE_TAG=${IMAGE_TAG}" >> .env
+            fi
+            rm -f .env.bak
 
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
             docker compose pull app
@@ -176,33 +122,24 @@ jobs:
 
             APP_CONTAINER_ID="$(docker compose ps -q app)"
             if [ -z "$APP_CONTAINER_ID" ]; then
-              echo "[ERROR] Failed to resolve app container id"
+              echo "[ERROR] App container not found"
               exit 1
             fi
 
-            MAX_RETRY=90
-            for i in $(seq 1 "$MAX_RETRY"); do
-              HEALTH_STATUS="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$APP_CONTAINER_ID")"
-
-              if [ "$HEALTH_STATUS" = "healthy" ] || [ "$HEALTH_STATUS" = "running" ]; then
-                echo "[OK] Deployment succeeded with tag $IMAGE_TAG"
-                docker image prune -f >/dev/null 2>&1 || true
+            for i in $(seq 1 60); do
+              STATUS="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$APP_CONTAINER_ID")"
+              if [ "$STATUS" = "healthy" ] || [ "$STATUS" = "running" ]; then
+                echo "[OK] Deployment succeeded"
                 exit 0
               fi
-
-              if [ "$HEALTH_STATUS" = "unhealthy" ] || [ "$HEALTH_STATUS" = "exited" ] || [ "$HEALTH_STATUS" = "dead" ]; then
-                echo "[ERROR] New container became $HEALTH_STATUS. Rolling back to $PREV_TAG"
+              if [ "$STATUS" = "unhealthy" ] || [ "$STATUS" = "exited" ] || [ "$STATUS" = "dead" ]; then
+                echo "[ERROR] Deployment failed with status: $STATUS"
                 docker logs --tail=120 "$APP_CONTAINER_ID" || true
-                update_image_tag "$PREV_TAG"
-                docker compose up -d --no-deps app
                 exit 1
               fi
-
               sleep 2
             done
 
-            echo "[ERROR] Health check timed out. Rolling back to $PREV_TAG"
+            echo "[ERROR] Health check timeout"
             docker logs --tail=120 "$APP_CONTAINER_ID" || true
-            update_image_tag "$PREV_TAG"
-            docker compose up -d --no-deps app
             exit 1
