@@ -20,25 +20,46 @@ jobs:
           username: ${{ secrets.SERVER_SSH_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ~/jbnu-sugang-helper/server
+            set -e # 오류 발생 시 즉시 중단
 
-            # 최신 코드 동기화
+            REPO_DIR=~/jbnu-sugang-helper/server
+            cd $REPO_DIR
+
+            # 1. 최신 코드 가져오기 및 동기화
+            echo ">>> Fetching latest code from main branch..."
             git fetch origin main
             git reset --hard origin/main
 
-            # 1. 운영 환경 설정 파일(application-prod.yml) 복구
+            # 2. 설정 파일 및 보안 파일 복구 (Secrets 사용)
+            # application-prod.yml
+            echo ">>> Restoring application-prod.yml..."
             mkdir -p src/main/resources
-            echo "${{ secrets.APPLICATION_PROD_YML }}" > src/main/resources/application-prod.yml
+            cat << 'EOF' > src/main/resources/application-prod.yml
+            ${{ secrets.APPLICATION_PROD_YML }}
+            EOF
 
-            # 2. Firebase 키 파일 복구
+            # firebase-key.json
+            echo ">>> Restoring firebase-key.json..."
             mkdir -p src/main/resources/firebase
-            echo "${{ secrets.FIREBASE_KEY_JSON }}" > src/main/resources/firebase/firebase-key.json
+            cat << 'EOF' > src/main/resources/firebase/firebase-key.json
+            ${{ secrets.FIREBASE_KEY_JSON }}
+            EOF
 
-            # 3. 환경변수(.env) 복구
-            echo "${{ secrets.SERVER_ENV }}" > .env
+            # .env
+            echo ">>> Restoring .env file..."
+            cat << 'EOF' > .env
+            ${{ secrets.SERVER_ENV }}
+            EOF
 
-            # 4. 도커 컨테이너 재빌드 및 실행
-            sudo docker compose up -d --build app
+            # 3. 도커 컨테이너 빌드 및 실행
+            echo ">>> Rebuilding and starting Docker container..."
+            sudo docker compose up -d --build --remove-orphans app
 
-            # 5. 미사용 이미지 정리 (용량 확보)
+            # 4. 미사용 이미지 정리 (용량 확보)
+            echo ">>> Cleaning up unused Docker images..."
             sudo docker image prune -f
+
+            # 5. 배포 후 상태 확인
+            echo ">>> Deployment completed. Checking container status..."
+            sudo docker ps | grep sugang-helper-app
+            echo ">>> Current server time: $(date)"
