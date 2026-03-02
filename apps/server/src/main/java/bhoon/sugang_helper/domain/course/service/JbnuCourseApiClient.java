@@ -21,6 +21,9 @@ public class JbnuCourseApiClient {
     @Value("${jbnu.api.max-retries}")
     private int maxRetries;
 
+    @Value("${jbnu.api.retry-wait-ms:1000}")
+    private int retryWaitMs;
+
     @Value("${jbnu.crawler.default-year}")
     private String defaultYear;
 
@@ -92,24 +95,29 @@ public class JbnuCourseApiClient {
             } catch (Exception e) {
                 retryCount++;
                 log.warn("[API Client] Failed to request course data (attempt {}/{}): yy={}, shtm={}, reason={}",
-                        retryCount, maxRetries + 1, year, semester, e.getMessage());
+                        retryCount, maxRetries + 1, year, semester, e.toString());
 
                 if (retryCount > maxRetries) {
                     throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR,
-                            "JBNU API 요청 최종 실패: " + e.getMessage());
+                            "JBNU API 요청 최종 실패: " + e.toString());
                 }
 
-                waitBeforeRetry();
+                waitBeforeRetry(retryCount);
             }
         }
     }
 
     /**
-     * 재시도 전 일정 시간 대기합니다.
+     * 재시도 전 일정 시간 대기합니다. (재시도 횟수에 따라 대기 시간 증가)
+     *
+     * @param retryCount 현재 재시도 횟수
      */
-    private void waitBeforeRetry() {
+    private void waitBeforeRetry(int retryCount) {
         try {
-            Thread.sleep(1000); // 1초 대기
+            // 지수적으로 대기 시간을 늘려 서버 부하 방지 (기본 대기 시간 * 재시도 횟수)
+            long waitTime = (long) retryWaitMs * retryCount;
+            log.info("[API Client] Waiting {}ms before retry...", waitTime);
+            Thread.sleep(waitTime);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             throw new CustomException(ErrorCode.INTERNAL_ERROR, "재시도 대기 중 프로세스가 중단되었습니다.");
