@@ -694,3 +694,74 @@ ALTER TABLE notification_histories MODIFY COLUMN channel VARCHAR(20) NOT NULL;
 ### 결과
 
 관리자 기능의 안정성이 확보되었으며, 코드 정적 분석(Lint) 가이드라인을 준수하게 되었습니다.
+
+---
+
+## 33. Oracle Cloud ARM 환경에서의 네트워크 MTU 불일치로 인한 크롤링 타임아웃
+
+### 문제 상황
+
+학교 서버(Oasis)에서 대용량 강의 데이터(XML, 약 7MB 이상)를 수집하는 과정에서 `java.net.SocketTimeoutException: Read timed out` 에러가 지속적으로 발생하며 크롤링이 실패했습니다.
+
+### 원인 분석
+
+1. **MTU(Maximum Transmission Unit) 불일치**: 호스트 서버(Oracle Cloud)의 네트워크 인터페이스는 9000(Jumbo Frames)으로 설정되어 있으나, Docker의 기본 브리지 네트워크는 1500으로 고정되어 있었습니다.
+2. **패킷 유실**: 대용량 XML 데이터를 전송받을 때 패킷 조각화(Fragmentation)가 제대로 이루어지지 않거나 유실되어 세션이 끊기는 현상이 발생했습니다.
+
+### 해결책
+
+`infra/docker-compose.yml`의 네트워크 정의 섹션에 드라이버 옵션을 사용하여 MTU를 호스트와 동일하게 9000으로 설정했습니다.
+
+```yaml
+networks:
+  sugang-helper-network-server:
+    name: sugang-helper-network-server
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 9000
+```
+
+### 결과
+
+네트워크 도로 폭을 호스트와 일치시킴으로써 7MB 이상의 대용량 응답도 끊김 없이 안정적으로 수신하게 되어 크롤링 타임아웃 문제를 완전히 해결했습니다.
+
+---
+
+## 34. 서버 환경(ARM64)과 이미지 플랫폼(AMD64) 불일치 문제
+
+### 문제 상황
+
+서버 실행 시 `The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)` 경고가 발생하며, 컨테이너 성능이 극도로 저하되거나 헬스체크 실패로 인해 무한 재시작되는 현상이 발생했습니다.
+
+### 해결책
+
+서버(ARM64) 환경에서 네이티브 이미지를 직접 생성할 수 있도록 빌드 구조를 개선했습니다.
+
+1.  **Dockerfile 개선**: CI에서 빌드된 JAR에 의존하던 방식에서, Docker 내부에서 직접 Gradle 빌드를 수행하는 **Multi-stage Build** 방식으로 전환했습니다.
+2.  **Compose 설정 변경**: 외부 이미지를 Pull 받는 대신 현재 환경에서 즉시 빌드하여 실행하도록 `build: context` 설정을 추가했습니다.
+
+### 결과
+
+ARM64 환경에 최적화된 네이티브 이미지가 생성되어 에뮬레이션 오버헤드가 사라졌으며, 서버 구동 속도와 안정성이 비약적으로 향상되었습니다.
+
+---
+
+## 35. Flyway 마이그레이션 유효성 검증 실패 (Missing Migration)
+
+### 문제 상황
+
+서버 구동 시 `FlywayValidateException: Validate failed: Detected applied migration not resolved locally: 2` 에러가 발생하며 애플리케이션 시작이 중단되었습니다.
+
+### 원인 분석
+
+과거 유저의 DB에는 `V2` 마이그레이션이 이미 적용되어 기록(`flyway_schema_history`)되어 있었으나, 현재 소스 코드에는 `V2`가 삭제되거나 `V3`로 통합되어 로컬 파일과 DB 기록 간의 불일치가 발생했습니다.
+
+### 해결책
+
+기존 마이그레이션 이력을 유지하면서도 유효성 검증을 통과할 수 있도록 설정을 조정했습니다.
+
+- **설정 추가**: `SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"`를 통해 시작 시 엄격한 검증을 끄고, `SPRING_FLYWAY_IGNORE_MIGRATION_PATTERNS: "*:missing" extinction`을 적용하여 코드에 없는 과거 이력을 무시하도록 했습니다.
+
+### 결과
+
+DB의 기존 데이터를 유지하면서도 새로운 코드 배포 시 중단 없이 서버가 정상적으로 구동되도록 조치되었습니다.
