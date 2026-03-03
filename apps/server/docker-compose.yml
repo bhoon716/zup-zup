@@ -29,12 +29,13 @@ services:
     networks:
       - sugang-helper-network-server
   healthcheck:
+    healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 60s
-    stop_grace_period: 30s
+      stop_grace_period: 30s
     logging:
       driver: json-file
       options:
