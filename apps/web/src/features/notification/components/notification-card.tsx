@@ -23,14 +23,10 @@ export function NotificationCard({ notification }: NotificationCardProps) {
         <span className="text-sm text-slate-500 font-medium whitespace-nowrap min-w-[120px]">
           {sentAt ? format(new Date(sentAt), "yyyy.MM.dd HH:mm") : "-"}
         </span>
-        <div className="flex items-center gap-3">
-          <h4 className="font-bold text-base text-slate-900 truncate max-w-[180px]">
+        <div className="flex-1 min-w-0 py-1">
+          <h4 className="font-bold text-base text-slate-900 break-words line-clamp-2 sm:line-clamp-none">
             {notification.title}
           </h4>
-          <span className="text-xs text-gray-300">|</span>
-          <p className="text-sm text-slate-500 truncate">
-            {notification.courseKey.split(':').slice(2).join(' • ')}
-          </p>
         </div>
       </div>
       
