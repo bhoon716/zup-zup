@@ -3,9 +3,10 @@
 import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
+import type { User } from "@/shared/types/api";
 
 interface UserProfileProps {
-  user: any;
+  user: User | null | undefined;
   isLoading: boolean;
   isPending?: boolean;
   onLogout?: () => void;
