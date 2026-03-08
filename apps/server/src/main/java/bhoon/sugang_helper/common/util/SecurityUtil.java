@@ -13,8 +13,18 @@ public class SecurityUtil {
 
     public static String getCurrentUserEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getName() == null) {
+        if (authentication == null || authentication.getName() == null ||
+                "anonymousUser".equals(authentication.getPrincipal())) {
             throw new CustomException(ErrorCode.INVALID_TOKEN, "인증 정보가 없습니다.");
+        }
+        return authentication.getName();
+    }
+
+    public static String getCurrentUserEmailOrNull() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null ||
+                "anonymousUser".equals(authentication.getPrincipal())) {
+            return null;
         }
         return authentication.getName();
     }
