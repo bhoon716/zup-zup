@@ -52,3 +52,14 @@ out/
 ### Properties ###
 **/application.yml
 **/application-prod.yml
+
+### k6 Performance Test Data ###
+/scripts/k6/data/
+/scripts/k6/generate-tokens.js
+/scripts/k6/package.json
+/scripts/k6/package-lock.json
+/scripts/k6/node_modules/
+
+### Performance Test Results & Logs ###
+results_*.txt
+*.log

@@ -16,6 +16,8 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD}
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "1"
       FIREBASE_CONFIG_PATH: /app/config/firebase-key.json
     ports:
       - "${APP_PORT_HOST:-8080}:8080"
@@ -26,13 +28,14 @@ services:
       - "oasis.jbnu.ac.kr:114.70.191.85"
     networks:
       - sugang-helper-network-server
+  healthcheck:
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 60s
-    stop_grace_period: 30s
+      stop_grace_period: 30s
     logging:
       driver: json-file
       options:
