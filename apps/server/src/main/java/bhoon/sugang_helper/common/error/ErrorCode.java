@@ -48,7 +48,11 @@ public enum ErrorCode {
     MAX_TIMETABLE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "T001", "시간표 생성 개수 제한을 초과했습니다."),
     TIMETABLE_COURSE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "T002", "시간표 강좌 개수 제한을 초과했습니다."),
     TIMETABLE_SCHEDULE_OVERLAP(HttpStatus.BAD_REQUEST, "T003", "시간표 내에 시간이 겹치는 일정이 존재합니다."),
-    ;
+
+    // 강의 평가
+    REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "E001", "강의 리뷰를 찾을 수 없습니다."),
+    REVIEW_UNAUTHORIZED(HttpStatus.FORBIDDEN, "E002", "해당 리뷰에 대한 권한이 없습니다."),
+    REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "E003", "이미 이 강의에 리뷰를 작성하셨습니다.");
 
     private final HttpStatus status;
     private final String code;
