@@ -89,9 +89,10 @@ graph TD
 - **이벤트 기반 아키텍처**: `SeatOpenedEvent` 발행을 통한 수집과 알림 로직의 완전 분리
 - **Redis Dedup**: 10분 이내 동일 과목에 대한 중복 알림을 방지하여 피로도 최소화
 
-### 🛡️ 관리자 관제 센터
+### 🛡️ 관리자 관제 센터 및 커뮤니티
 
 - **실시간 모니터링**: 대시보드 통계(가입자, 알림 발송) 및 실시간 활동 로그 추적
+- **강의 리뷰 시스템**: 별점, 익명 코멘트, 공감 리액션 기능 및 강의별 실시간 통계 집계
 - **운영 유연성**: GUI를 통한 크롤링 타겟(년도/학기) 및 학부 일정 즉시 제어
 
 ---
@@ -108,6 +109,7 @@ src/main/java/bhoon/sugang_helper
     ├── 📅 schedule       # 학사 일정 관리
     ├── 📝 announcement   # 마크다운 공지사항
     ├── 🕒 timetable      # 유저 시간표 관리
+    ├── 📝 review         # 강의 리뷰 및 반응 시스템
     └── 🛠️ admin          # 시스템 통합 관제
 ```
 
@@ -115,5 +117,5 @@ src/main/java/bhoon/sugang_helper
 
 ## � 관련 문서 (Docs)
 
-- 📜 **[릴리스 노트 (v1.0.0)](./docs/feature-updates.md)**
+- 📜 **[릴리스 노트 (v1.1.0)](./docs/feature-updates.md)**
 - 🛠️ **[트러블슈팅 로그](./docs/troubleshooting.md)**
