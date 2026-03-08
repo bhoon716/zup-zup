@@ -16,7 +16,6 @@ import {
 import { useAnnouncement } from "@/features/announcement/hooks/useAnnouncements";
 import { MarkdownViewer } from "@/shared/ui/markdown-viewer";
 import { Button } from "@/shared/ui/button";
-import { cn } from "@/shared/lib/utils";
 
 /**
  * 날짜 문자열을 한국어 양식(YYYY. MM. DD. HH:mm)으로 변환합니다.

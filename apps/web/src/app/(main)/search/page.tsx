@@ -8,7 +8,6 @@ import { CourseTableSkeleton } from "@/features/course/components/course-table-s
 import { useCourses } from "@/features/course/hooks/useCourses";
 import type { CourseSearchCondition } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
-import { cn } from "@/shared/lib/utils";
 import {
   Select,
   SelectContent,
@@ -16,13 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/shared/ui/sheet";
 import { SlidersHorizontal, X, Search, ChevronRight, ListFilter } from "lucide-react";
 
 export const dynamic = "force-dynamic";

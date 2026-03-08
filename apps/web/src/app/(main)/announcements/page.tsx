@@ -3,8 +3,7 @@
 import { useDeferredValue, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { 
-  ArrowRight, 
+import {
   Loader2, 
   Megaphone, 
   Pin, 

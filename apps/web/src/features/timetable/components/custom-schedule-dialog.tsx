@@ -13,6 +13,7 @@ import { useAddCustomSchedule } from '@/features/timetable/hooks/useTimetable';
 import { TimeTableSelector } from '@/features/course/components/time-table-selector';
 import { ScheduleCondition } from '@/shared/types/api';
 import { toEngDayOfWeek } from '@/shared/lib/formatters';
+import { toast } from 'sonner';
 
 const schema = z.object({
   title: z.string().min(1, '과목명(일정 제목)을 입력해주세요.'),
@@ -64,7 +65,7 @@ export function CustomScheduleDialog({ timetableId, open, onOpenChange }: Custom
   const onSubmit = async (values: FormValues) => {
     if (!timetableId) return;
     if (selectedSchedules.length === 0) {
-      alert('최소 하나 이상의 시간대를 선택해주세요.');
+      toast.error('최소 하나 이상의 시간대를 선택해주세요.');
       return;
     }
 
