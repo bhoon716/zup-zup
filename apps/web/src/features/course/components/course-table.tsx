@@ -26,6 +26,7 @@ import {
   Crown,
   Heart,
   MapPin,
+  Star,
   UserRound,
 } from "lucide-react";
 import { CourseDetailDialog } from "./course-detail-dialog";
@@ -318,9 +319,16 @@ export function CourseTable({
                     </div>
 
                     <div
-                      className="mt-0 flex items-center gap-1 md:mt-4 md:w-full md:justify-between md:gap-1.5"
+                      className="mt-0 flex w-full items-center justify-between gap-1 md:mt-4 md:w-full md:gap-1.5"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs font-bold text-gray-700">{course.averageRating ? course.averageRating.toFixed(1) : "0.0"}</span>
+                        <span className="text-[10px] text-gray-400">({course.reviewCount || 0})</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 md:gap-1.5">
                       {!user ? (
                         <Button
                           type="button"
@@ -441,6 +449,7 @@ export function CourseTable({
                           <Bell className={cn("h-4 w-4", subscribed && "fill-white")} />
                         </Button>
                       )}
+                      </div>
                     </div>
                   </div>
                 </div>

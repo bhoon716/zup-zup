@@ -111,6 +111,9 @@ export interface Course {
   currentSeats?: number;
   professorName?: string;
   status?: string;
+  averageRating?: number;
+  reviewCount?: number;
+  isReviewed?: boolean;
   schedules?: {
     dayOfWeek: CourseDayOfWeek;
     startTime: string;
@@ -466,4 +469,26 @@ export interface AnnouncementRequest {
   content: string;
   pinned?: boolean;
   published?: boolean;
+}
+
+// 강의 리뷰 관련
+export interface ReviewResponse {
+  id: number;
+  courseKey: string;
+  rating: number;
+  content: string;
+  likeCount: number;
+  dislikeCount: number;
+  isMine: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewCreateRequest {
+  rating: number;
+  content: string;
+}
+
+export interface ReviewReactionRequest {
+  reactionType: 'LIKE' | 'DISLIKE';
 }
