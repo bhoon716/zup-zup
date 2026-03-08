@@ -11,10 +11,10 @@ import bhoon.sugang_helper.domain.course.response.CourseCategoryResponse;
 import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
+import bhoon.sugang_helper.domain.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -29,6 +29,7 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
     private final UserRepository userRepository;
+    private final CourseReviewRepository reviewRepository;
     private final CourseCrawlerTargetService crawlerTargetService;
 
     /**
@@ -53,7 +54,7 @@ public class CourseService {
         return courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDesc(courseKey)
                 .stream()
                 .map(CourseSeatHistoryResponse::from)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -76,6 +77,15 @@ public class CourseService {
         Course course = courseRepository.findByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "강의를 찾을 수 없습니다: " + courseKey));
         CourseCrawlerTargetService.CrawlTarget target = crawlerTargetService.getCurrentTargetValue();
-        return CourseDetailResponse.from(course, target.year(), target.semester());
+
+        boolean isReviewed = false;
+        String email = SecurityUtil.getCurrentUserEmailOrNull();
+        if (email != null) {
+            isReviewed = userRepository.findByEmail(email)
+                    .map(user -> reviewRepository.existsByCourseKeyAndUserId(courseKey, user.getId()))
+                    .orElse(false);
+        }
+
+        return CourseDetailResponse.from(course, target.year(), target.semester(), isReviewed);
     }
 }

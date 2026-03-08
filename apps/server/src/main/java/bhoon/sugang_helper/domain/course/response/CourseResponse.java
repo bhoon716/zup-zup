@@ -56,6 +56,12 @@ public class CourseResponse {
     @Schema(description = "구독 가능 여부 (현재 추적 중인 학기 여부)", example = "true")
     private final Boolean isSubscribable;
 
+    @Schema(description = "평균 별점", example = "4.5")
+    private final Float averageRating;
+
+    @Schema(description = "리뷰 수", example = "10")
+    private final Integer reviewCount;
+
     @Schema(description = "마지막 크롤링 시간", example = "2024-03-20T10:00:00")
     private final LocalDateTime lastCrawledAt;
 
@@ -82,6 +88,8 @@ public class CourseResponse {
                 .credits(course.getCredits())
                 .classroom(course.getClassroom())
                 .status(status)
+                .averageRating(course.getAverageRating())
+                .reviewCount(course.getReviewCount())
                 .lastCrawledAt(course.getLastCrawledAt())
                 .isSubscribable(isSubscribable)
                 .build();

@@ -14,6 +14,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -32,7 +33,7 @@ import lombok.NoArgsConstructor;
 public class Course extends BaseTimeEntity {
 
     @Id
-    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // 식별자
 
     @Column(unique = true, nullable = false, length = 64)
@@ -86,6 +87,7 @@ public class Course extends BaseTimeEntity {
 
     @Column(length = 10)
     private String credits; // 학점
+
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private DisclosureStatus disclosure; // 공개여부
@@ -127,6 +129,12 @@ public class Course extends BaseTimeEntity {
 
     @Column(nullable = false)
     private LocalDateTime lastCrawledAt; // 마지막 크롤링 시간
+
+    @Column(nullable = false)
+    private Float averageRating = 0.0f; // 평균 별점
+
+    @Column(nullable = false)
+    private Integer reviewCount = 0; // 리뷰 수
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CourseSchedule> schedules = new ArrayList<>();
@@ -172,6 +180,16 @@ public class Course extends BaseTimeEntity {
         this.courseDirection = courseDirection;
         this.classDuration = classDuration;
         this.lastCrawledAt = LocalDateTime.now();
+        this.averageRating = 0.0f;
+        this.reviewCount = 0;
+    }
+
+    /**
+     * 강의 별점 및 리뷰 수 업데이트
+     */
+    public void updateReviewStats(float averageRating, int reviewCount) {
+        this.averageRating = averageRating;
+        this.reviewCount = reviewCount;
     }
 
     /**
