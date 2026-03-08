@@ -63,3 +63,6 @@ out/
 ### Performance Test Results & Logs ###
 results_*.txt
 *.log
+/data/
+*.mv.db
+*.trace.db
