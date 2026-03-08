@@ -33,7 +33,7 @@ import org.springframework.stereotype.Service;
 public class NotificationService {
 
     private static final String NOTIFICATION_KEY_PREFIX = "ALERT:";
-    private static final Duration DEDUP_TTL = Duration.ofMinutes(10);
+    private static final Duration DEDUP_TTL = Duration.ofMinutes(1);
     private static final String USER_TEST_COOLDOWN_KEY_PREFIX = "ALERT:USER_TEST:";
     private static final Duration USER_TEST_COOLDOWN = Duration.ofSeconds(10);
 
