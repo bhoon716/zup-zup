@@ -32,8 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 피드백(건의사항/버그리포트) 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
- * 사용자 피드백 등록, 조회 및 관리자의 답변 기능을 담당합니다.
+ * 문의 및 건의사항(버그 리포트, 기능 제안 등) 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 사용자의 의견 등록, 조회 및 관리자의 답변 관리 기능을 담당합니다.
  */
 @Slf4j
 @Service
@@ -48,7 +48,7 @@ public class FeedbackService {
         private final LocalFileUploadService fileUploadService;
 
         /**
-         * 사용자의 새로운 피드백을 등록하고 첨부 파일을 저장합니다.
+         * 사용자의 새로운 문의 및 건의사항을 등록하고 첨부 파일을 저장합니다.
          */
         @Transactional
         public Long createFeedback(Long userId, FeedbackCreateRequest request, List<MultipartFile> files) {
@@ -85,7 +85,7 @@ public class FeedbackService {
         }
 
         /**
-         * 특정 사용자가 작성한 내 피드백 목록을 페이징하여 조회합니다.
+         * 특정 사용자가 작성한 문의 및 건의 목록을 페이징하여 조회합니다.
          */
         @Transactional(readOnly = true)
         public Page<FeedbackResponse> getMyFeedbacks(Long userId, Pageable pageable) {
@@ -94,7 +94,7 @@ public class FeedbackService {
         }
 
         /**
-         * 특정 피드백의 상세 내용 및 답변 목록을 조회합니다.
+         * 특정 문의 사항의 상세 내용 및 운영진 답변 목록을 조회합니다.
          */
         @Transactional(readOnly = true)
         public FeedbackDetailResponse getMyFeedbackDetail(Long userId, Long feedbackId) {
@@ -109,7 +109,7 @@ public class FeedbackService {
         }
 
         /**
-         * 피드백을 삭제 처리(소프트 삭제) 합니다.
+         * 문의 및 건의 게시글을 삭제 처리(소프트 삭제) 합니다.
          */
         @Transactional
         public void deleteFeedback(Long userId, Long feedbackId) {
@@ -126,7 +126,7 @@ public class FeedbackService {
         /* 관리자 전용 기능 */
 
         /**
-         * 관리자를 위해 시스템의 모든 피드백 목록을 조회합니다.
+         * 관리자를 위해 시스템의 모든 문의 및 건의 목록을 조회합니다.
          */
         @Transactional(readOnly = true)
         public Page<FeedbackResponse> getFeedbacksForAdmin(Pageable pageable) {
@@ -135,7 +135,7 @@ public class FeedbackService {
         }
 
         /**
-         * 관리자용 피드백 상세 조회 로직을 수행합니다.
+         * 관리자용 문의 및 건의 상세 조회 로직을 수행합니다.
          */
         @Transactional(readOnly = true)
         public FeedbackDetailResponse getFeedbackDetailForAdmin(Long feedbackId) {
@@ -145,7 +145,7 @@ public class FeedbackService {
         }
 
         /**
-         * 피드백에 대한 관리자 답변을 생성하고 기록을 남깁니다.
+         * 문의 사항에 대한 운영진 답변을 생성하고 로그를 남깁니다.
          */
         @Transactional
         public Long createFeedbackReply(Long adminId, Long feedbackId, FeedbackReplyCreateRequest request) {
@@ -169,7 +169,7 @@ public class FeedbackService {
         }
 
         /**
-         * 기 등록된 관리자 답변 내용을 수정하고 변경 전 내용을 로그로 기록합니다.
+         * 기 등록된 운영진 답변 내용을 수정하고 변경 전 내용을 로그로 기록합니다.
          */
         @Transactional
         public void updateFeedbackReply(Long adminId, Long replyId, FeedbackReplyUpdateRequest request) {
@@ -187,7 +187,23 @@ public class FeedbackService {
         }
 
         /**
-         * 피드백의 처리 상태를 수동으로 변경하고 액션 로그를 생성합니다.
+         * 등록된 운영진 답변을 영구 삭제하고 액션 로그를 남깁니다.
+         */
+        @Transactional
+        public void deleteFeedbackReply(Long adminId, Long replyId) {
+                User admin = userRepository.findById(adminId)
+                                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+                FeedbackReply reply = feedbackReplyRepository.findById(replyId)
+                                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_REPLY_NOT_FOUND));
+
+                feedbackReplyRepository.delete(reply);
+
+                logAdminAction(admin, ActionType.REPLY_DELETE, TargetType.REPLY, replyId, null);
+        }
+
+        /**
+         * 문의 사항의 처리 상태를 변경하고 액션 로그를 생성합니다.
          */
         @Transactional
         public void updateFeedbackStatus(Long adminId, Long feedbackId, FeedbackStatusUpdateRequest request) {
@@ -205,7 +221,7 @@ public class FeedbackService {
         }
 
         /**
-         * 어드민의 액션(답변 등록/수정, 상태 변경 등)을 히스토리 형식으로 저장합니다.
+         * 운영진의 액션(답변 등록/수정/삭제, 상태 변경 등)을 히스토리 형식으로 저장합니다.
          */
         private void logAdminAction(User admin, ActionType actionType, TargetType targetType, Long targetId,
                         String metaData) {
@@ -220,7 +236,7 @@ public class FeedbackService {
         }
 
         /**
-         * 피드백 요청 빈도 제한을 검증합니다.
+         * 문의 및 건의 요청 빈도 제한을 검증합니다.
          */
         private void validateRateLimit(User user) {
                 // 일회성 로직 구현 생략 (Redis 등 연동 권장)

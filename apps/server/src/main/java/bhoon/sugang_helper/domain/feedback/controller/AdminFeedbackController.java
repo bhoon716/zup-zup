@@ -17,6 +17,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,8 +27,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 관리자용 피드백 관리 API 컨트롤러입니다.
- * 전체 피드백 조회, 상태 변경, 답변 작성 기능을 제공하며 관리자 권한(ROLE_ADMIN)이 필요합니다.
+ * 관리자 전용 문의 및 건의사항 관리 API 컨트롤러입니다.
+ * 전체 목록 조회, 상태 변경, 답변 작성(CRUD) 기능을 제공하며 관리자 권한(ROLE_ADMIN)이 필요합니다.
  */
 @Tag(name = "Admin Feedback", description = "관리자용 피드백 관리 API")
 @RestController
@@ -40,9 +41,9 @@ public class AdminFeedbackController {
     private final UserService userService;
 
     /**
-     * 서비스 전체 피드백 목록을 조회합니다.
+     * 시스템에 등록된 모든 문의 및 건의 사항을 조회합니다.
      */
-    @Operation(summary = "전체 피드백 목록 조회 (관리자)")
+    @Operation(summary = "전체 문의 및 건의 목록 조회 (관리자)")
     @GetMapping
     public ResponseEntity<Page<FeedbackResponse>> getAllFeedbacks(
             @PageableDefault(size = 20) Pageable pageable) {
@@ -50,9 +51,9 @@ public class AdminFeedbackController {
     }
 
     /**
-     * 특정 피드백의 상세 내용을 조회합니다 (사용 데이터 포함).
+     * 특정 문의 사항의 상세 내용 및 메타 정보를 조회합니다.
      */
-    @Operation(summary = "피드백 상세 조회 (관리자)")
+    @Operation(summary = "문의 및 건의 상세 조회 (관리자)")
     @GetMapping("/{feedbackId}")
     public ResponseEntity<FeedbackDetailResponse> getFeedbackDetail(
             @PathVariable Long feedbackId) {
@@ -60,9 +61,9 @@ public class AdminFeedbackController {
     }
 
     /**
-     * 피드백의 처리 상태(대기, 진행중, 완료, 반려)를 변경합니다.
+     * 문의 사항의 처리 상태(대기 중, 처리 중, 완료, 반려)를 수동으로 변경합니다.
      */
-    @Operation(summary = "피드백 상태 변경 (관리자 수동)")
+    @Operation(summary = "문의 및 건의 상태 변경 (관리자 전용)")
     @PatchMapping("/{feedbackId}/status")
     public ResponseEntity<Void> updateFeedbackStatus(
             @PathVariable Long feedbackId,
@@ -74,9 +75,9 @@ public class AdminFeedbackController {
     }
 
     /**
-     * 관리자 답변을 등록합니다.
+     * 문의 사항에 대한 관리자 공식 답변을 등록합니다.
      */
-    @Operation(summary = "피드백 답변 작성 (관리자)")
+    @Operation(summary = "운영진 답변 등록 (관리자)")
     @PostMapping("/{feedbackId}/reply")
     public ResponseEntity<Long> createReply(
             @PathVariable Long feedbackId,
@@ -88,9 +89,9 @@ public class AdminFeedbackController {
     }
 
     /**
-     * 오타 또는 내용 보충을 위해 등록된 답변을 수정합니다.
+     * 등록된 운영진 답변을 수정합니다.
      */
-    @Operation(summary = "피드백 답변 수정 (관리자)")
+    @Operation(summary = "운영진 답변 수정 (관리자)")
     @PatchMapping("/reply/{replyId}")
     public ResponseEntity<Void> updateReply(
             @PathVariable Long replyId,
@@ -99,6 +100,19 @@ public class AdminFeedbackController {
         Long adminId = getAdminId();
         feedbackService.updateFeedbackReply(adminId, replyId, request);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 등록된 운영진 답변을 영구 삭제합니다.
+     */
+    @Operation(summary = "운영진 답변 삭제 (관리자)")
+    @DeleteMapping("/reply/{replyId}")
+    public ResponseEntity<Void> deleteReply(
+            @PathVariable Long replyId) {
+
+        Long adminId = getAdminId();
+        feedbackService.deleteFeedbackReply(adminId, replyId);
+        return ResponseEntity.noContent().build();
     }
 
     /**
