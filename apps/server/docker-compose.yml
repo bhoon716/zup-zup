@@ -2,45 +2,34 @@ name: sugang-helper-server
 
 services:
   app:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-bhoon716}/jbnu-sugang-helper-server:${APP_IMAGE_TAG:-latest}
+    image: sugang-helper-app:latest
     container_name: sugang-helper-app
     restart: unless-stopped
-    pull_policy: always
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      TZ: ${TZ:-Asia/Seoul}
-      JAVA_OPTS: ${JAVA_OPTS:--Duser.timezone=Asia/Seoul}
-      DB_HOST: ${DB_HOST:-sugang-helper-mysql}
-      DB_PORT: ${DB_PORT:-3306}
-      REDIS_HOST: ${REDIS_HOST:-sugang-helper-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD}
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
-      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_BASELINE_VERSION: "1"
+      TZ: Asia/Seoul
       FIREBASE_CONFIG_PATH: /app/config/firebase-key.json
     ports:
-      - "${APP_PORT_HOST:-8080}:8080"
+      - "8080:8080"
     volumes:
-      - ${APP_CONFIG_PATH:-${HOME}/jbnu-sugang-helper/secrets/application-prod.yml}:/app/config/application-prod.yml:ro
-      - ${FIREBASE_KEY_PATH:-${HOME}/jbnu-sugang-helper/secrets/firebase-key.json}:/app/config/firebase-key.json:ro
+      - ~/jbnu-sugang-helper/secrets/application-prod.yml:/app/config/application-prod.yml:ro
+      - ~/jbnu-sugang-helper/secrets/firebase-key.json:/app/config/firebase-key.json:ro
     extra_hosts:
       - "oasis.jbnu.ac.kr:114.70.191.85"
-    networks:
-      - sugang-helper-network-server
-  healthcheck:
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 60s
-      stop_grace_period: 30s
+    stop_grace_period: 30s
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
+    networks:
+      - sugang-helper-network-server
 
 networks:
   sugang-helper-network-server:
