@@ -20,6 +20,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 사용자 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 가입 상태 조회, 프로필 수정, 온보딩 완료, 디스코드 연동 등을 담당합니다.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -188,7 +192,7 @@ public class UserService {
     /**
      * 현재 인증된 사용자 정보를 컨텍스트에서 조회합니다.
      */
-    private User getCurrentUser() {
+    public User getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
