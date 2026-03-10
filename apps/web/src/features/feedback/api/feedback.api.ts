@@ -10,7 +10,7 @@ import type {
 } from '@/shared/types/api';
 
 /**
- * 피드백 등록 (이미지 포함)
+ * 새로운 문의 및 건의사항 등록 (이미지 포함)
  */
 export const createFeedback = async (
   request: FeedbackCreateRequest,
@@ -35,7 +35,7 @@ export const createFeedback = async (
 };
 
 /**
- * 내 피드백 목록 조회
+ * 현재 로그인한 사용자의 문의 및 건의 목록 조회
  */
 export const getMyFeedbacks = async (
   page: number = 0,
@@ -48,7 +48,7 @@ export const getMyFeedbacks = async (
 };
 
 /**
- * 내 피드백 상세 조회
+ * 특정 문의 및 건의사항 상세 조회 (사용자용)
  */
 export const getMyFeedbackDetail = async (
   feedbackId: number
@@ -58,7 +58,7 @@ export const getMyFeedbackDetail = async (
 };
 
 /**
- * 피드백 삭제 (소프트 삭제)
+ * 문의 및 건의 게시글 삭제 (소프트 삭제)
  */
 export const deleteFeedback = async (feedbackId: number): Promise<void> => {
   await api.delete(`/api/v1/feedbacks/${feedbackId}`);
@@ -67,7 +67,7 @@ export const deleteFeedback = async (feedbackId: number): Promise<void> => {
 // ================= Admin APIs =================
 
 /**
- * 전체 피드백 목록 조회 (관리자)
+ * 등록된 모든 문의 및 건의 목록 조회 (관리자용)
  */
 export const getFeedbacksForAdmin = async (
   page: number = 0,
@@ -80,7 +80,7 @@ export const getFeedbacksForAdmin = async (
 };
 
 /**
- * 피드백 상세 조회 (관리자)
+ * 문의 및 건의사항 상세 조회 (관리자용)
  */
 export const getFeedbackDetailForAdmin = async (
   feedbackId: number
@@ -90,7 +90,7 @@ export const getFeedbackDetailForAdmin = async (
 };
 
 /**
- * 피드백 상태 변경 (관리자)
+ * 문의 및 건의사항의 처리 상태 변경 (관리자)
  */
 export const updateFeedbackStatus = async (
   feedbackId: number,
@@ -118,4 +118,13 @@ export const updateFeedbackReply = async (
   request: FeedbackReplyUpdateRequest
 ): Promise<void> => {
   await api.patch(`/api/v1/admin/feedbacks/reply/${replyId}`, request);
+};
+
+/**
+ * 관리자 답변 삭제
+ */
+export const deleteFeedbackReply = async (
+  replyId: number
+): Promise<void> => {
+  await api.delete(`/api/v1/admin/feedbacks/reply/${replyId}`);
 };

@@ -8,7 +8,8 @@ import {
   getFeedbackDetailForAdmin,
   updateFeedbackStatus,
   createFeedbackReply,
-  updateFeedbackReply
+  updateFeedbackReply,
+  deleteFeedbackReply
 } from "../api/feedback.api";
 import { 
   FeedbackCreateRequest, 
@@ -17,7 +18,7 @@ import {
   FeedbackStatusUpdateRequest 
 } from "@/shared/types/api";
 
-// 피드백 관련 React Query 키 정의
+// 문의 및 건의 관련 React Query 키 정의
 export const feedbackKeys = {
   all: ["feedback"] as const,
   myList: (page: number) => [...feedbackKeys.all, "my", { page }] as const,
@@ -28,7 +29,7 @@ export const feedbackKeys = {
 // ================= User Hooks =================
 
 /**
- * 내 피드백 목록을 조회하는 훅
+ * 내 문의 및 건의 목록을 조회하는 훅
  */
 export function useMyFeedbacks(page: number = 0) {
   return useQuery({
@@ -38,7 +39,7 @@ export function useMyFeedbacks(page: number = 0) {
 }
 
 /**
- * 특정 피드백의 상세 내용을 조회하는 훅
+ * 특정 문의 및 건의사항의 상세 내용을 조회하는 훅
  */
 export function useFeedbackDetail(id: number, enabled: boolean = true) {
   return useQuery({
@@ -49,7 +50,7 @@ export function useFeedbackDetail(id: number, enabled: boolean = true) {
 }
 
 /**
- * 새로운 피드백을 생성하는 훅
+ * 새로운 문의 및 건의를 생성하는 훅
  */
 export function useCreateFeedback() {
   const queryClient = useQueryClient();
@@ -63,7 +64,7 @@ export function useCreateFeedback() {
 }
 
 /**
- * 피드백을 삭제하는 훅 (Soft Delete)
+ * 문의 및 건의 게시글을 삭제하는 훅 (Soft Delete)
  */
 export function useDeleteFeedback() {
   const queryClient = useQueryClient();
@@ -78,7 +79,7 @@ export function useDeleteFeedback() {
 // ================= Admin Hooks =================
 
 /**
- * 관리자용 피드백 전체 목록 조회 훅
+ * 관리자용 문의 및 건의 전체 목록 조회 훅
  */
 export function useFeedbacksForAdmin(page: number = 0) {
   return useQuery({
@@ -88,7 +89,7 @@ export function useFeedbacksForAdmin(page: number = 0) {
 }
 
 /**
- * 관리자용 피드백 상세 조회 훅
+ * 관리자용 문의 및 건의 상세 조회 훅
  */
 export function useAdminFeedbackDetail(id: number, enabled: boolean = true) {
   return useQuery({
@@ -99,7 +100,7 @@ export function useAdminFeedbackDetail(id: number, enabled: boolean = true) {
 }
 
 /**
- * 피드백 처리 상태를 변경하는 훅
+ * 문의 및 건의 처리 상태를 변경하는 훅
  */
 export function useUpdateFeedbackStatus() {
   const queryClient = useQueryClient();
@@ -114,7 +115,7 @@ export function useUpdateFeedbackStatus() {
 }
 
 /**
- * 피드백에 대한 관리자 답변을 등록하는 훅
+ * 문의 및 건의에 대한 관리자 답변을 등록하는 훅
  */
 export function useCreateFeedbackReply() {
   const queryClient = useQueryClient();
@@ -136,6 +137,21 @@ export function useUpdateFeedbackReply() {
   return useMutation({
     mutationFn: ({ replyId, request }: { replyId: number; feedbackId: number; request: FeedbackReplyUpdateRequest }) => 
       updateFeedbackReply(replyId, request),
+    onSuccess: (_, { feedbackId }) => {
+      queryClient.invalidateQueries({ queryKey: feedbackKeys.all });
+      queryClient.invalidateQueries({ queryKey: feedbackKeys.detail(feedbackId) });
+    },
+  });
+}
+
+/**
+ * 등록된 관리자 답변을 삭제하는 훅
+ */
+export function useDeleteFeedbackReply() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ replyId }: { replyId: number; feedbackId: number }) => 
+      deleteFeedbackReply(replyId),
     onSuccess: (_, { feedbackId }) => {
       queryClient.invalidateQueries({ queryKey: feedbackKeys.all });
       queryClient.invalidateQueries({ queryKey: feedbackKeys.detail(feedbackId) });
