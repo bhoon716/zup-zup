@@ -25,16 +25,18 @@ jobs:
       - name: application-prod.yml 파일 생성
         env:
           APP_YML: ${{ secrets.APPLICATION_PROD_YML }}
-        run: echo "$APP_YML" > application-prod.yml
+        run: |
+          mkdir -p src/main/resources
+          echo "$APP_YML" > src/main/resources/application-prod.yml
 
-      - name: JAR 및 설정 파일 서버 전송
+      - name: 서버 파일 전송
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "build/libs/app.jar,application-prod.yml"
-          target: "~/jbnu-sugang-helper/deploy/"
+          source: "build/libs/app.jar,src/main/resources/application-prod.yml,Dockerfile,docker-compose.yml"
+          target: "~/jbnu-sugang-helper/server/"
 
       - name: 서버에서 이미지 빌드 및 재배포
         uses: appleboy/ssh-action@v1.0.3
@@ -43,15 +45,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            mkdir -p ~/jbnu-sugang-helper/secrets
-            mkdir -p ~/jbnu-sugang-helper/server/build/libs
-
-            mv ~/jbnu-sugang-helper/deploy/application-prod.yml \
-               ~/jbnu-sugang-helper/secrets/application-prod.yml
-
-            cp ~/jbnu-sugang-helper/deploy/build/libs/app.jar \
-               ~/jbnu-sugang-helper/server/build/libs/app.jar
-
             cd ~/jbnu-sugang-helper/server
             docker build -t sugang-helper-app:latest .
             docker compose up -d --force-recreate

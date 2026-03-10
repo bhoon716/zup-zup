@@ -12,8 +12,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ~/jbnu-sugang-helper/secrets/application-prod.yml:/app/config/application-prod.yml:ro
-      - ~/jbnu-sugang-helper/secrets/firebase-key.json:/app/config/firebase-key.json:ro
+      - ~/jbnu-sugang-helper/server/src/main/resources/application-prod.yml:/app/config/application-prod.yml:ro
+      - ~/jbnu-sugang-helper/server/src/main/resources/firebase/firebase-key.json:/app/config/firebase-key.json:ro
     extra_hosts:
       - "oasis.jbnu.ac.kr:114.70.191.85"
     healthcheck:
