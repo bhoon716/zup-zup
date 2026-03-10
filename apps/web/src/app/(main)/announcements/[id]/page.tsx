@@ -16,7 +16,6 @@ import {
 import { useAnnouncement } from "@/features/announcement/hooks/useAnnouncements";
 import { MarkdownViewer } from "@/shared/ui/markdown-viewer";
 import { Button } from "@/shared/ui/button";
-import { cn } from "@/shared/lib/utils";
 
 /**
  * 날짜 문자열을 한국어 양식(YYYY. MM. DD. HH:mm)으로 변환합니다.
@@ -137,10 +136,10 @@ export default function AnnouncementDetailPage() {
             <footer className="mt-16 sm:mt-24">
               <div className="rounded-3xl bg-slate-50/80 p-6 sm:p-8">
                 <h3 className="mb-2 text-base font-black text-slate-900">도움이 필요하신가요?</h3>
-                <p className="text-sm font-medium text-slate-500">본 공지 내용에 대해 궁금한 점이 있다면 고객센터로 문의해 주세요.</p>
-                <Link href="/support" className="mt-5 inline-flex">
+                <p className="text-sm font-medium text-slate-500">본 공지 내용에 대해 궁금한 점이 있다면 문의 및 건의사항 게시판에 남겨주세요.</p>
+                <Link href="/feedback" className="mt-5 inline-flex">
                   <Button variant="outline" className="h-11 rounded-xl bg-white px-5 font-bold shadow-sm">
-                    문의하기
+                    문의 및 건의하기
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>

@@ -17,19 +17,22 @@ export const usePWAInstall = () => {
     // 플랫폼 감지 및 iOS 여부 확인
     if (typeof window !== "undefined") {
       const userAgent = window.navigator.userAgent.toLowerCase();
-      const isStandalone = (window.navigator as any).standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+      const isStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true || window.matchMedia("(display-mode: standalone)").matches;
 
-      if (userAgent.includes("iphone") || userAgent.includes("ipad") || userAgent.includes("ipod")) {
-        setPlatform("ios");
-        // iOS는 standalone이 아니면 항상 "설치 가능(안내 가능)" 상태로 간주
-        if (!isStandalone) {
-          setIsInstallable(true);
+      // React 향후 렌더링 최적화를 위해 동기적 상태 업데이트를 피하고 즉시 지연 실행으로 처리합니다.
+      setTimeout(() => {
+        if (userAgent.includes("iphone") || userAgent.includes("ipad") || userAgent.includes("ipod")) {
+          setPlatform("ios");
+          // iOS는 standalone이 아니면 항상 "설치 가능(안내 가능)" 상태로 간주
+          if (!isStandalone) {
+            setIsInstallable(true);
+          }
+        } else if (userAgent.includes("android")) {
+          setPlatform("android");
+        } else {
+          setPlatform("other");
         }
-      } else if (userAgent.includes("android")) {
-        setPlatform("android");
-      } else {
-        setPlatform("other");
-      }
+      }, 0);
     }
 
     const handler = (e: Event) => {

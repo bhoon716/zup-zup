@@ -18,7 +18,7 @@ interface DragCell {
 
 interface DragState {
   start: DragCell;
-  current: DragCell;
+  currentCell: DragCell;
   mode: DragMode;
   snapshot: ScheduleCondition[];
 }
@@ -83,7 +83,7 @@ function sortSchedules(schedules: ScheduleCondition[]): ScheduleCondition[] {
  * 드래그 상태를 기반으로 다음 선택된 스케줄 목록을 계산합니다.
  */
 function buildNextSchedulesFromDrag(dragState: DragState): ScheduleCondition[] {
-  const dragCells = getDragCells(dragState.start, dragState.current);
+  const dragCells = getDragCells(dragState.start, dragState.currentCell);
   const nextMap = new Map(dragState.snapshot.map((s) => [toScheduleKey(s), s]));
 
   dragCells.forEach(({ dayIndex, slot }) => {
@@ -115,7 +115,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
   const dragRectKeySet = useMemo(() => {
     if (!dragState) return new Set<string>();
     return new Set(
-      getDragCells(dragState.start, dragState.current).map(({ dayIndex, slot }) =>
+      getDragCells(dragState.start, dragState.currentCell).map(({ dayIndex, slot }) =>
         toScheduleKey(toSchedule(DAYS[dayIndex], slot)),
       ),
     );
@@ -148,7 +148,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
 
     setDragState({
       start: { dayIndex, slot },
-      current: { dayIndex, slot },
+      currentCell: { dayIndex, slot },
       mode,
       snapshot: selected,
     });
@@ -167,8 +167,8 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     setHoveredSlot(slot);
     setDragState((prev) => {
       if (!prev) return prev;
-      if (prev.current.dayIndex === dayIndex && prev.current.slot === slot) return prev;
-      return { ...prev, current: { dayIndex, slot } };
+      if (prev.currentCell.dayIndex === dayIndex && prev.currentCell.slot === slot) return prev;
+      return { ...prev, currentCell: { dayIndex, slot } };
     });
   }, []);
 

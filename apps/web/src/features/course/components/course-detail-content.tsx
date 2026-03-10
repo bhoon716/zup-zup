@@ -7,6 +7,7 @@ import { cn } from "@/shared/lib/utils";
 import { normalizeCourse } from "@/shared/lib/course";
 import { getCampusMapQuery } from "@/shared/lib/map-links";
 import { KakaoMapEmbed } from "@/shared/ui/kakao-map-embed";
+import { CourseReviewSection } from "@/features/review/components/course-review-section";
 
 interface CourseDetailContentProps {
   course: Course;
@@ -59,6 +60,11 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
           available={available} 
         />
       </div>
+
+      <CourseReviewSection 
+        courseKey={course.courseKey} 
+        isReviewed={course.isReviewed} 
+      />
     </div>
   );
 }

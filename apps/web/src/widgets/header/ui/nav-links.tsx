@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
 import { 
-  ShieldCheck, Calendar, Search, Bell, Megaphone, LayoutDashboard, ChevronDown, Settings
+  ShieldCheck, Calendar, Search, Bell, Megaphone, LayoutDashboard, ChevronDown, Settings, MessageCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -65,6 +65,14 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
         </Button>
       </Link>
       {isLoggedIn && (
+        <Link href="/feedback" onClick={handleClick}>
+          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+            <MessageCircle className="w-[1.1rem] h-[1.1rem]" />
+            <span className="text-sm font-medium">문의 및 건의</span>
+          </Button>
+        </Link>
+      )}
+      {isLoggedIn && (
         <Link href="/settings" onClick={handleClick}>
           <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
             <Settings className="w-[1.1rem] h-[1.1rem]" />
@@ -95,6 +103,12 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
                     공지사항 관리
                   </Button>
                 </Link>
+                <Link href="/admin/feedbacks" onClick={onLinkClick}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                    <MessageCircle className="w-4 h-4" />
+                    전체 문의 관리
+                  </Button>
+                </Link>
               </div>
             </>
           ) : (
@@ -121,6 +135,12 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
                     공지사항 관리
                   </DropdownMenuItem>
                 </Link>
+                <Link href="/admin/feedbacks">
+                  <DropdownMenuItem className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
+                    <MessageCircle className="w-4 h-4" />
+                    전체 문의 관리
+                  </DropdownMenuItem>
+                </Link>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -129,3 +149,4 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
     </>
   );
 }
+

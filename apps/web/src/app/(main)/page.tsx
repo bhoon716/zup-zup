@@ -1,7 +1,7 @@
 "use client";
 
-import { Dashboard } from "@/widgets/dashboard/dashboard";
-import { HomeLanding } from "@/widgets/dashboard/home-landing";
+import { Dashboard } from "@/widgets/home/dashboard";
+import { HomeLanding } from "@/widgets/home/home-landing";
 import { useUser } from "@/features/user/hooks/useUser";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -43,7 +43,7 @@ export default function HomePage() {
             <div className="flex gap-6 text-xs font-bold text-muted-foreground">
               <Link href="/terms" className="hover:text-primary transition-colors">이용약관</Link>
               <Link href="/privacy" className="hover:text-primary transition-colors">개인정보 처리방침</Link>
-              <Link href="#" className="hover:text-primary transition-colors">문의하기</Link>
+              <Link href="/feedback" className="hover:text-primary transition-colors">문의 및 건의</Link>
             </div>
             <p className="text-[11px] text-muted-foreground/60 text-center md:text-right">
               © 2026 전북대 수강신청 도우미. All rights reserved.

@@ -111,6 +111,9 @@ export interface Course {
   currentSeats?: number;
   professorName?: string;
   status?: string;
+  averageRating?: number;
+  reviewCount?: number;
+  isReviewed?: boolean;
   schedules?: {
     dayOfWeek: CourseDayOfWeek;
     startTime: string;
@@ -467,3 +470,78 @@ export interface AnnouncementRequest {
   pinned?: boolean;
   published?: boolean;
 }
+
+// 강의 리뷰 관련
+export interface ReviewResponse {
+  id: number;
+  courseKey: string;
+  rating: number;
+  content: string;
+  likeCount: number;
+  dislikeCount: number;
+  isMine: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewCreateRequest {
+  rating: number;
+  content: string;
+}
+
+export interface ReviewReactionRequest {
+  reactionType: 'LIKE' | 'DISLIKE';
+}
+
+// 피드백 (건의사항/버그리포트) 관련
+export type FeedbackType = 'BUG' | 'SUGGESTION' | 'OTHER';
+export type FeedbackStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
+
+export interface FeedbackResponse {
+  id: number;
+  type: FeedbackType;
+  title: string;
+  status: FeedbackStatus;
+  createdAt: string;
+  hasReplies: boolean;
+}
+
+export interface FeedbackDetailResponse {
+  id: number;
+  type: FeedbackType;
+  title: string;
+  content: string;
+  status: FeedbackStatus;
+  metaInfo: string;
+  createdAt: string;
+  imageUrls: string[];
+  replies: FeedbackReplyResponse[];
+}
+
+export interface FeedbackReplyResponse {
+  id: number;
+  adminName: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FeedbackCreateRequest {
+  type: FeedbackType;
+  title: string;
+  content: string;
+  metaInfo: string;
+}
+
+export interface FeedbackStatusUpdateRequest {
+  status: FeedbackStatus;
+}
+
+export interface FeedbackReplyCreateRequest {
+  content: string;
+}
+
+export interface FeedbackReplyUpdateRequest {
+  content: string;
+}
+

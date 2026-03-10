@@ -104,7 +104,7 @@ export function HomeLanding() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* 특징 섹션 */}
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -132,7 +132,7 @@ export function HomeLanding() {
         </div>
       </section>
 
-      {/* Upcoming Schedules Section */}
+      {/* 다가오는 일정 섹션 */}
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-8">
@@ -200,7 +200,7 @@ export function HomeLanding() {
         </div>
       </section>
 
-      {/* Announcements Section */}
+      {/* 공지사항 섹션 */}
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="flex items-center justify-between mb-10">

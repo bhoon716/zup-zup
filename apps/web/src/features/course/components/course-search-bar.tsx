@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import { Filter, RotateCcw, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -31,26 +31,21 @@ export function CourseSearchBar({
     () => ({ ...(initialCondition ?? DEFAULT_CONDITION) }),
   );
 
-  /**
-   * 외부에서 전달된 초기 검색 조건이 변경될 경우(예: 필터 칩 삭제)
-   * 현재 입력 중인 상태와 동기화합니다.
-   */
-  const lastInitialConditionRef = useRef<string>(JSON.stringify(initialCondition));
+  const [prevInitial, setPrevInitial] = useState<string | undefined>(
+    JSON.stringify(initialCondition),
+  );
 
   /**
    * 외부에서 전달된 초기 검색 조건이 실질적으로 변경될 경우(예: 필터 칩 삭제)
-   * 현재 입력 중인 로컬 상태와 동기화합니다.
-   * 로컬 변경 사항이 외부 상태에 의해 덮어씌워지지 않도록 변경된 경우에만 동기화합니다.
+   * 로컬 상태를 갱신합니다.
    */
-  useEffect(() => {
-    if (!initialCondition) return;
-    
+  if (initialCondition) {
     const serializedInitial = JSON.stringify(initialCondition);
-    if (serializedInitial !== lastInitialConditionRef.current) {
+    if (serializedInitial !== prevInitial) {
+      setPrevInitial(serializedInitial);
       setCondition({ ...initialCondition });
-      lastInitialConditionRef.current = serializedInitial;
     }
-  }, [initialCondition]);
+  }
   
   // UI 상태: 접기/펼치기
   const [smartOpen, setSmartOpen] = useState(true);

@@ -5,7 +5,6 @@ import { useUser, useLogout } from "@/features/user/hooks/useUser";
 import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { cn } from "@/shared/lib/utils";
 import {
   Menu,
   Download,
@@ -36,7 +35,7 @@ export function Header() {
   const { mutate: logout, isPending } = useLogout();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
   const pathname = usePathname();
-  const { isInstallable, install, platform } = usePWAInstall();
+  const { install, platform } = usePWAInstall();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (pathname === "/onboarding") {
