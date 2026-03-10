@@ -1,7 +1,7 @@
 "use client";
 
-import { Dashboard } from "@/widgets/dashboard/dashboard";
-import { HomeLanding } from "@/widgets/dashboard/home-landing";
+import { Dashboard } from "@/widgets/home/dashboard";
+import { HomeLanding } from "@/widgets/home/home-landing";
 import { useUser } from "@/features/user/hooks/useUser";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
