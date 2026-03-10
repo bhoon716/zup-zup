@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.domain.notification.service;
 
+import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
@@ -43,6 +44,7 @@ public class NotificationService {
     private final UserDeviceRepository userDeviceRepository;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
+    private final NotificationProperties notificationProperties;
 
     /**
      * 빈자리 발생 이벤트를 처리하여 구독자들에게 알림을 발송합니다.
@@ -70,7 +72,7 @@ public class NotificationService {
 
         for (NotificationChannel channel : channels) {
             log.info("[Notification Test] Attempting to send. channel={}, userId={}", channel, user.getId());
-            sendNotification(user, devices, notification, channel, "TEST", false, true);
+            sendNotification(user, devices, notification, channel, NotificationContext.forTest());
         }
     }
 
@@ -115,30 +117,33 @@ public class NotificationService {
             if (user == null) {
                 continue;
             }
+            dispatchAllChannels(user, deviceMap.get(user.getId()), notification, event.courseKey());
+        }
+    }
 
-            for (NotificationChannel channel : NotificationChannel.values()) {
-                sendNotification(user, deviceMap.get(user.getId()), notification, channel, event.courseKey(), true,
-                        false);
-            }
+    /**
+     * 사용자에게 모든 채널로 실제 알림을 발송합니다.
+     */
+    private void dispatchAllChannels(User user, List<UserDevice> devices, NotificationMessage message,
+            String courseKey) {
+        for (NotificationChannel channel : NotificationChannel.values()) {
+            sendNotification(user, devices, message, channel, NotificationContext.forReal(courseKey));
         }
     }
 
     /**
      * 알림 발송의 핵심 공통 로직을 수행합니다.
-     * 
-     * @param forceSend   활성 상태 설정을 무시하고 강제로 발송할지 여부 (테스트 용도)
-     * @param saveHistory 발송 이력을 DB에 저장할지 여부
      */
     private void sendNotification(User user, List<UserDevice> devices, NotificationMessage message,
-            NotificationChannel channel, String courseKey, boolean saveHistory, boolean forceSend) {
-        if (!forceSend && !isChannelEnabled(user, channel)) {
+            NotificationChannel channel, NotificationContext ctx) {
+        if (!ctx.forceSend() && !isChannelEnabled(user, channel)) {
             return;
         }
 
         List<NotificationTarget> targets = resolveTargets(user, devices, channel);
 
         if (targets.isEmpty()) {
-            if (forceSend) { // 테스트 요청인데 타겟이 없는 경우 예외 발생
+            if (ctx.forceSend()) { // 테스트 요청인데 발송 대상이 없는 경우 예외 발생
                 throw new CustomException(ErrorCode.NOT_FOUND, buildNoTargetMessage(channel));
             }
             return;
@@ -146,8 +151,8 @@ public class NotificationService {
 
         targets.forEach(target -> dispatch(target, message.title(), message.body(), channel));
 
-        if (saveHistory) {
-            saveHistory(user.getId(), courseKey, message, channel);
+        if (ctx.saveHistory()) {
+            saveHistory(user.getId(), ctx.courseKey(), message, channel);
         }
     }
 
@@ -172,14 +177,31 @@ public class NotificationService {
     }
 
     /**
-     * 사용자의 알림 수신 설정이 채널별로 활성화되어 있는지 확인합니다.
+     * 글로벌 채널 설정 및 사용자 개인 수신 설정을 복합 확인합니다.
+     * 글로벌 설정이 꺼져 있으면 사용자 설정과 무관하게 발송을 차단합니다.
      */
     private boolean isChannelEnabled(User user, NotificationChannel channel) {
+        if (!isGlobalChannelEnabled(channel)) {
+            log.debug("[Notification] Channel disabled globally. channel={}", channel);
+            return false;
+        }
         return switch (channel) {
             case EMAIL -> user.isEmailEnabled();
             case DISCORD -> user.isDiscordEnabled() && user.getDiscordId() != null;
             case WEB -> user.isWebPushEnabled();
             case FCM -> user.isFcmEnabled();
+        };
+    }
+
+    /**
+     * application.yml의 글로벌 채널 설정 값을 확인합니다.
+     */
+    private boolean isGlobalChannelEnabled(NotificationChannel channel) {
+        return switch (channel) {
+            case EMAIL -> notificationProperties.email();
+            case DISCORD -> notificationProperties.discord();
+            case WEB -> notificationProperties.webpush();
+            case FCM -> notificationProperties.fcm();
         };
     }
 
@@ -193,7 +215,7 @@ public class NotificationService {
     }
 
     /**
-     * 기기가 없을 경우의 에러 메시지를 생성합니다.
+     * 발송 대상이 없을 때의 에러 메시지를 반환합니다.
      */
     private String buildNoTargetMessage(NotificationChannel channel) {
         return switch (channel) {
@@ -205,7 +227,7 @@ public class NotificationService {
     }
 
     /**
-     * 발신 대상 기기 정보를 통해 NotificationTarget 객체를 생성합니다.
+     * 기기 정보를 통해 NotificationTarget 객체를 생성합니다.
      */
     private NotificationTarget toDeviceTarget(UserDevice device, NotificationChannel channel) {
         if (channel == NotificationChannel.WEB) {
@@ -250,7 +272,7 @@ public class NotificationService {
     }
 
     /**
-     * 알림 발송 객체를 통해 실제로 알림을 발송합니다.
+     * 지정된 채널의 발송 객체를 통해 실제로 알림을 발송합니다.
      */
     private void dispatch(NotificationTarget target, String title, String message, NotificationChannel channel) {
         notificationSenders.stream()
@@ -272,9 +294,23 @@ public class NotificationService {
                 .build());
     }
 
-    /**
-     * 알림 메시지 구조체 (내부 레코드)
-     */
+    /** 알림 메시지 구조체 */
     private record NotificationMessage(String title, String body) {
+    }
+
+    /**
+     * 알림 발송 컨텍스트: 이력 저장 여부, 강제 발송 여부, 과목 코드를 묶은 VO입니다.
+     */
+    private record NotificationContext(boolean saveHistory, boolean forceSend, String courseKey) {
+
+        /** 실제 알림 발송 컨텍스트를 생성합니다. */
+        static NotificationContext forReal(String courseKey) {
+            return new NotificationContext(true, false, courseKey);
+        }
+
+        /** 테스트 알림 발송 컨텍스트를 생성합니다. */
+        static NotificationContext forTest() {
+            return new NotificationContext(false, true, "TEST");
+        }
     }
 }
