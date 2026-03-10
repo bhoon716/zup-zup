@@ -492,3 +492,56 @@ export interface ReviewCreateRequest {
 export interface ReviewReactionRequest {
   reactionType: 'LIKE' | 'DISLIKE';
 }
+
+// 피드백 (건의사항/버그리포트) 관련
+export type FeedbackType = 'BUG' | 'SUGGESTION' | 'OTHER';
+export type FeedbackStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
+
+export interface FeedbackResponse {
+  id: number;
+  type: FeedbackType;
+  title: string;
+  status: FeedbackStatus;
+  createdAt: string;
+  hasReplies: boolean;
+}
+
+export interface FeedbackDetailResponse {
+  id: number;
+  type: FeedbackType;
+  title: string;
+  content: string;
+  status: FeedbackStatus;
+  metaInfo: string;
+  createdAt: string;
+  imageUrls: string[];
+  replies: FeedbackReplyResponse[];
+}
+
+export interface FeedbackReplyResponse {
+  id: number;
+  adminName: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FeedbackCreateRequest {
+  type: FeedbackType;
+  title: string;
+  content: string;
+  metaInfo: string;
+}
+
+export interface FeedbackStatusUpdateRequest {
+  status: FeedbackStatus;
+}
+
+export interface FeedbackReplyCreateRequest {
+  content: string;
+}
+
+export interface FeedbackReplyUpdateRequest {
+  content: string;
+}
+

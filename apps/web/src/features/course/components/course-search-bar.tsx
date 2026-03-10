@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import { Filter, RotateCcw, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -31,20 +31,18 @@ export function CourseSearchBar({
     () => ({ ...(initialCondition ?? DEFAULT_CONDITION) }),
   );
 
-  /**
-   * 외부에서 전달된 초기 검색 조건이 변경될 경우(예: 필터 칩 삭제)
-   * 현재 입력 중인 상태와 동기화합니다.
-   */
-  const lastInitialConditionRef = useRef<string>(JSON.stringify(initialCondition));
+  const [prevInitial, setPrevInitial] = useState<string | undefined>(
+    JSON.stringify(initialCondition),
+  );
 
   /**
    * 외부에서 전달된 초기 검색 조건이 실질적으로 변경될 경우(예: 필터 칩 삭제)
-   * 로컬 상태를 갱신합니다. useEffect 대신 렌더링 중 상태를 업데이트합니다.
+   * 로컬 상태를 갱신합니다.
    */
   if (initialCondition) {
     const serializedInitial = JSON.stringify(initialCondition);
-    if (serializedInitial !== lastInitialConditionRef.current) {
-      lastInitialConditionRef.current = serializedInitial;
+    if (serializedInitial !== prevInitial) {
+      setPrevInitial(serializedInitial);
       setCondition({ ...initialCondition });
     }
   }

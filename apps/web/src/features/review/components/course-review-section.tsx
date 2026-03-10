@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import axios from "axios";
 import { Star, ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -48,9 +49,11 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
           toast.success("리뷰가 등록되었습니다.");
         },
         onError: (err: unknown) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const errorMsg = (err as any)?.response?.data?.message;
-          toast.error(errorMsg || "작성에 실패했습니다. 이미 작성하셨을 수 있습니다.");
+          let errorMsg = "작성에 실패했습니다. 이미 작성하셨을 수 있습니다.";
+          if (axios.isAxiosError(err)) {
+            errorMsg = err.response?.data?.message || errorMsg;
+          }
+          toast.error(errorMsg);
         }
       }
     );
