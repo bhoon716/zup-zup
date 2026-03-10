@@ -44,8 +44,8 @@ function FeedbackPageContent() {
     <div className="min-h-screen bg-white dark:bg-[#0F0F0F] py-12 px-4 md:px-8">
       <div className="container max-w-5xl mx-auto space-y-10">
         <div className="border-b border-gray-100 dark:border-gray-800 pb-8 mt-4">
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">건의 게시판</h1>
-          <p className="text-[15px] font-medium text-gray-400">보내주신 소중한 의견들을 확인하실 수 있습니다.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">문의 및 건의사항</h1>
+          <p className="text-[15px] font-medium text-gray-400">사용자분들의 소중한 의견을 바탕으로 더욱 발전하는 서비스를 만들겠습니다.</p>
         </div>
 
         <div className="flex justify-end mb-6">
@@ -53,7 +53,7 @@ function FeedbackPageContent() {
             href="/feedback/write" 
             className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary/90 transition-all shadow-md shadow-primary/10"
           >
-            의견 남기기
+            새 문의 등록
           </Link>
         </div>
 

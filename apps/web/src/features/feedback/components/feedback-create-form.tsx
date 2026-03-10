@@ -44,7 +44,7 @@ interface FeedbackCreateFormProps {
 }
 
 /**
- * 피드백 작성을 위한 폼 컴포넌트
+ * 새로운 문의 및 건의사항 작성을 위한 폼 컴포넌트입니다.
  */
 export function FeedbackCreateForm({
   onSubmit,
@@ -80,7 +80,7 @@ export function FeedbackCreateForm({
             render={({ field }: { field: ControllerRenderProps<FormValues, "type"> }) => (
               <FormItem className="space-y-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">분류</span>
+                  <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">문의 유형</span>
                 </div>
                 <FormControl>
                   <div className="flex flex-wrap gap-2">
@@ -143,7 +143,7 @@ export function FeedbackCreateForm({
                 </div>
                 <FormControl>
                   <Textarea 
-                    placeholder="문의하시고자 하는 내용을 상세하게 입력해주세요." 
+                    placeholder="상세한 내용을 입력해 주시면 더 정확한 답변을 드릴 수 있습니다." 
                     className="min-h-[200px] border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 focus-visible:ring-primary/20 font-medium p-4 resize-none leading-relaxed" 
                     {...field} 
                   />
@@ -199,7 +199,7 @@ export function FeedbackCreateForm({
               className="w-full h-12 text-[15px] font-bold" 
               disabled={isPending}
             >
-              {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 등록 중...</> : "게시글 등록"}
+              {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 전송 중...</> : "문의 등록하기"}
             </Button>
           </div>
         </form>

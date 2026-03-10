@@ -18,7 +18,7 @@ interface FeedbackListProps {
 }
 
 /**
- * 사용자의 피드백 히스토리 목록 컴포넌트
+ * 사용자가 작성한 문의 및 건의 목록을 보여주는 컴포넌트입니다.
  */
 export function FeedbackList({
   isLoading,
@@ -73,7 +73,10 @@ export function FeedbackList({
               </span>
               <div className="flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-400">
                 {getTypeIcon(item.type)}
-                <span className="text-[11px]">{item.type}</span>
+                <span className="text-[11px]">
+                  {item.type === "BUG" ? "버그" : 
+                   item.type === "SUGGESTION" ? "건의" : "기타"}
+                </span>
               </div>
             </div>
 

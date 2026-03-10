@@ -18,7 +18,7 @@ interface FeedbackDetailViewProps {
 }
 
 /**
- * 피드백 상세 내용 및 답변을 보여주는 컴포넌트
+ * 문의 및 건의사항의 상세 내용과 운영진 답변을 보여주는 컴포넌트입니다.
  */
 export function FeedbackDetailView({
   isLoading,
@@ -49,7 +49,8 @@ export function FeedbackDetailView({
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-50 dark:bg-black/20 text-[11px] font-bold text-gray-500">
               {getTypeIcon(feedbackDetail.type)}
-              {feedbackDetail.type}
+              {feedbackDetail.type === "BUG" ? "버그" : 
+               feedbackDetail.type === "SUGGESTION" ? "건의" : "기타"}
             </div>
           </div>
           <Button 
@@ -69,7 +70,12 @@ export function FeedbackDetailView({
         <div className="flex items-center gap-3 text-[12px] text-gray-400 font-medium">
           <span>작성일: {feedbackDetail.createdAt.split('T')[0]}</span>
           <span className="w-px h-3 bg-gray-200 dark:bg-gray-800" />
-          <span>상태: <span className="text-primary font-bold">{feedbackDetail.status}</span></span>
+          <span>상태: <span className="text-primary font-bold">
+            {feedbackDetail.status === "PENDING" ? "대기 중" :
+             feedbackDetail.status === "IN_PROGRESS" ? "처리 중" :
+             feedbackDetail.status === "COMPLETED" ? "완료" :
+             feedbackDetail.status === "REJECTED" ? "반려" : feedbackDetail.status}
+          </span></span>
         </div>
       </div>
       
@@ -91,7 +97,7 @@ export function FeedbackDetailView({
 
       <div className="pt-8 border-t border-gray-100 dark:border-gray-800">
         <h5 className="text-[14px] font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
-          답변 <span className="text-primary">{feedbackDetail.replies.length}</span>
+          운영진 답변 <span className="text-primary">{feedbackDetail.replies.length}</span>
         </h5>
         
         {feedbackDetail.replies.length === 0 ? (
@@ -105,7 +111,7 @@ export function FeedbackDetailView({
                 <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100 dark:border-gray-800/50">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">ADM</div>
-                    <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">{reply.adminName} 관리자</span>
+                    <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">관리자</span>
                   </div>
                   <span className="text-[11px] text-gray-400 font-medium">{reply.createdAt.split('T')[0]}</span>
                 </div>

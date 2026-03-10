@@ -4,16 +4,11 @@ import { useState } from "react";
 import { 
   Loader2, 
   MessageSquare, 
-  ShieldAlert, 
-  Lightbulb, 
-  HelpCircle,
-  Clock,
-  ExternalLink,
   ChevronRight,
   Send,
-  User,
   Monitor,
-  Globe
+  Globe,
+  Check
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -29,18 +24,19 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/shared/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { 
   useFeedbacksForAdmin, 
   useAdminFeedbackDetail, 
   useUpdateFeedbackStatus, 
   useCreateFeedbackReply,
-  useUpdateFeedbackReply
+  useUpdateFeedbackReply,
+  useDeleteFeedbackReply
 } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackStatus, FeedbackType } from "@/shared/types/api";
 
 /**
- * 관리자용 피드백 통합 관리 페이지
+ * 전북대 수강신청 도우미 관리자용 문의 및 건의 통합 관리 페이지입니다.
+ * 모든 사용자의 의견을 리스트로 확인하고 답변을 작성/수정/삭제할 수 있습니다.
  */
 export default function AdminFeedbackPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -54,6 +50,7 @@ export default function AdminFeedbackPage() {
   const updateStatusMutation = useUpdateFeedbackStatus();
   const createReplyMutation = useCreateFeedbackReply();
   const updateReplyMutation = useUpdateFeedbackReply();
+  const deleteReplyMutation = useDeleteFeedbackReply();
 
   const handleStatusChange = async (newStatus: FeedbackStatus) => {
     if (!selectedId) return;
@@ -92,6 +89,16 @@ export default function AdminFeedbackPage() {
     }
   };
 
+  const handleReplyDelete = async (replyId: number) => {
+    if (!selectedId || !window.confirm("정말 이 답변을 삭제하시겠습니까?")) return;
+    try {
+      await deleteReplyMutation.mutateAsync({ replyId, feedbackId: selectedId });
+      toast.success("답변이 삭제되었습니다.");
+    } catch {
+      toast.error("답변 삭제 실패");
+    }
+  };
+
   const startEditReply = (id: number, content: string) => {
     setEditingReplyId(id);
     setReplyContent(content);
@@ -118,8 +125,8 @@ export default function AdminFeedbackPage() {
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#0F0F0F] py-10 px-4">
       <div className="max-w-7xl mx-auto flex flex-col gap-8">
         <div className="border-b border-gray-200 dark:border-gray-800 pb-6">
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-1">피드백 관리 센터</h1>
-          <p className="text-sm text-gray-400 font-medium">사용자들의 의견을 게시판 형식으로 관리합니다.</p>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-1">전체 문의 관리</h1>
+          <p className="text-sm text-gray-400 font-medium">사용자가 등록한 버그 제보 및 건의사항을 관리하고 답변을 등록합니다.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[800px]">
@@ -225,10 +232,11 @@ export default function AdminFeedbackPage() {
                         {detailData.replies.map(reply => (
                           <div key={reply.id} className="bg-primary/5 p-4 rounded-xl border border-primary/10">
                             <div className="flex justify-between items-center mb-2">
-                              <span className="text-[11px] font-bold text-primary">{reply.adminName} 관리자</span>
+                              <span className="text-[11px] font-bold text-primary">관리자</span>
                               <div className="flex items-center gap-2">
                                 <span className="text-[10px] text-gray-400 font-medium">{format(new Date(reply.createdAt), "yyyy-MM-dd HH:mm")}</span>
                                 <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold px-1.5" onClick={() => startEditReply(reply.id, reply.content)}>수정</Button>
+                                <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold px-1.5 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleReplyDelete(reply.id)}>삭제</Button>
                               </div>
                             </div>
                             <p className="text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed font-medium whitespace-pre-wrap">{reply.content}</p>
@@ -253,7 +261,7 @@ export default function AdminFeedbackPage() {
                       disabled={isReplySubmitting || !replyContent.trim()}
                       className="absolute bottom-2 right-2 h-10 w-10 p-0 rounded-lg shadow-md"
                     >
-                      {isReplySubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingReplyId ? <CheckIcon className="w-4 h-4"/> : <Send className="w-4 h-4" />}
+                      {isReplySubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingReplyId ? <Check className="w-4 h-4"/> : <Send className="w-4 h-4" />}
                     </Button>
                   </div>
                   {editingReplyId && (
@@ -272,21 +280,3 @@ export default function AdminFeedbackPage() {
   );
 }
 
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="3" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}

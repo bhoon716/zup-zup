@@ -83,8 +83,8 @@ function FeedbackWritePageContent() {
     <div className="min-h-screen bg-white dark:bg-[#0F0F0F] py-12 px-4 md:px-8">
       <div className="container max-w-4xl mx-auto space-y-10">
         <div className="border-b border-gray-100 dark:border-gray-800 pb-8 mt-4">
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">건의글 작성</h1>
-          <p className="text-[15px] font-medium text-gray-400">사소한 버그부터 기발한 아이디어까지, 무엇이든 환영합니다.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">문의 및 건의 작성</h1>
+          <p className="text-[15px] font-medium text-gray-400">버그 제보부터 서비스 건의까지, 여러분의 소중한 의견을 들려주세요.</p>
         </div>
 
         <div className="flex justify-start mb-6">
