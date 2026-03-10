@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import { 
-  MessageSquare, 
   History,
   Loader2,
 } from "lucide-react";
@@ -15,7 +14,10 @@ import { compressImage } from "@/shared/lib/image";
 import { useCreateFeedback } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackCreateForm } from "@/features/feedback/components/feedback-create-form";
 
-function FeedbackPageContent() {
+/**
+ * 건의사항 작성 페이지 컴포넌트
+ */
+function FeedbackWritePageContent() {
   const router = useRouter();
 
   const [files, setFiles] = useState<File[]>([]);
@@ -24,10 +26,6 @@ function FeedbackPageContent() {
 
   const createFeedbackMutation = useCreateFeedback();
 
-  /**
-   * 사용자가 첨부한 파일을 확인하고 이미지 압축을 수행한 뒤 상태에 저장합니다.
-   * 최대 3장까지만 첨부 가능합니다.
-   */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
     if (files.length + selectedFiles.length > 3) {
@@ -51,10 +49,6 @@ function FeedbackPageContent() {
     }
   };
 
-  /**
-   * 사용자가 첨부한 파일 목록에서 특정 인덱스의 파일을 제거하고, 
-   * 브라우저 메모리에 할당된 미리보기 URL을 해제합니다.
-   */
   const removeFile = (index: number) => {
     if (previews[index]) {
       URL.revokeObjectURL(previews[index]);
@@ -63,10 +57,6 @@ function FeedbackPageContent() {
     setPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  /**
-   * 제보 양식을 제출합니다.
-   * 사용자 기기 및 브라우저 환경 정보를 메타데이터로 함께 서버에 전송합니다.
-   */
   const handleFormSubmit = async (values: { type: "BUG" | "SUGGESTION" | "OTHER"; title: string; content: string }) => {
     try {
       const metaInfo = JSON.stringify({
@@ -82,7 +72,7 @@ function FeedbackPageContent() {
       toast.success("소중한 의견 감사합니다!");
       setFiles([]);
       setPreviews([]);
-      router.push("/feedback/history");
+      router.push("/feedback");
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "피드백 전송에 실패했습니다.";
       toast.error(errorMessage);
@@ -90,30 +80,23 @@ function FeedbackPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50 dark:from-black dark:via-[#0F0F0F] dark:to-[#141414] py-16 px-4 md:px-8">
-      <div className="container max-w-3xl mx-auto space-y-8">
-        <div className="flex flex-col items-center justify-center text-center space-y-4 mb-10">
-          <div className="w-16 h-16 rounded-3xl bg-linear-to-br from-primary/80 to-primary/40 flex items-center justify-center shadow-lg shadow-primary/20 backdrop-blur-md">
-            <MessageSquare className="w-8 h-8 text-white relative z-10" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">현장의 목소리를<br/>들려주세요.</h1>
-            <p className="text-lg font-medium text-gray-500 dark:text-gray-400">사소한 버그부터 기발한 아이디어까지, 무엇이든 환영합니다.</p>
-          </div>
+    <div className="min-h-screen bg-white dark:bg-[#0F0F0F] py-12 px-4 md:px-8">
+      <div className="container max-w-4xl mx-auto space-y-10">
+        <div className="border-b border-gray-100 dark:border-gray-800 pb-8 mt-4">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">건의글 작성</h1>
+          <p className="text-[15px] font-medium text-gray-400">사소한 버그부터 기발한 아이디어까지, 무엇이든 환영합니다.</p>
         </div>
 
-        <div className="bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-2xl border border-gray-100 dark:border-gray-800/80 rounded-[2rem] overflow-hidden shadow-2xl p-6 md:p-10 transition-all duration-300 hover:shadow-primary/5">
-          <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-100 dark:border-gray-800/50 gap-4">
-            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">새로운 제보 작성</h2>
-            <Link 
-              href="/feedback/history" 
-              className="flex items-center gap-2 rounded-2xl bg-gray-50/50 dark:bg-[#2C2C2E]/50 px-5 py-3 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3C3C3E] hover:scale-105 active:scale-95 transition-all outline-none"
-            >
-              <History className="w-4 h-4" /> 내 문의 내역
-            </Link>
-          </div>
+        <div className="flex justify-start mb-6">
+          <Link 
+            href="/feedback" 
+            className="flex items-center gap-1.5 text-sm font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+          >
+            <History className="w-4 h-4" /> 목록으로 돌아가기
+          </Link>
+        </div>
 
-        <div className="max-w-full mx-auto">
+        <div className="bg-white dark:bg-black/10">
           <FeedbackCreateForm
             onSubmit={handleFormSubmit}
             isPending={createFeedbackMutation.isPending}
@@ -124,16 +107,15 @@ function FeedbackPageContent() {
             fileInputRef={fileInputRef}
           />
         </div>
-        </div>
       </div>
     </div>
   );
 }
 
-export default function FeedbackPage() {
+export default function FeedbackWritePage() {
   return (
     <Suspense fallback={<div className="p-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary/30" /></div>}>
-      <FeedbackPageContent />
+      <FeedbackWritePageContent />
     </Suspense>
   );
 }

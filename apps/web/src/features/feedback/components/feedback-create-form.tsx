@@ -64,129 +64,146 @@ export function FeedbackCreateForm({
     },
   });
 
-  /**
-   * 폼 전송 이벤트를 처리하고 폼 내부 상태를 초기화합니다.
-   */
   const handleSubmit = async (values: FormValues) => {
     await onSubmit(values);
     form.reset();
   };
 
   return (
-    <>
-      <p className="text-gray-500 font-medium mb-4 text-sm">
-        서비스를 이용하며 겪은 불편함이나 개선 아이디어를 들려주세요.
-      </p>
-      
+    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-          <div className="flex flex-col gap-4">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }: { field: ControllerRenderProps<FormValues, "type"> }) => (
-                <FormItem>
-                  <FormControl>
-                    <div className="flex bg-gray-100/50 dark:bg-[#202020] p-1.5 rounded-2xl w-full relative">
-                      <button 
-                        type="button" 
-                        onClick={() => field.onChange("BUG")} 
-                        className={cn(
-                          "flex-1 py-3 text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all",
-                          field.value === "BUG" 
-                            ? "bg-white dark:bg-[#2A2A2A] text-gray-900 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]" 
-                            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                        )}
-                      >
-                        <ShieldAlert className={cn("w-4 h-4", field.value === "BUG" ? "text-red-500" : "opacity-60")} />
-                        버그 제보
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => field.onChange("SUGGESTION")} 
-                        className={cn(
-                          "flex-1 py-3 text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all",
-                          field.value === "SUGGESTION" 
-                            ? "bg-white dark:bg-[#2A2A2A] text-gray-900 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]" 
-                            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                        )}
-                      >
-                        <Lightbulb className={cn("w-4 h-4", field.value === "SUGGESTION" ? "text-amber-500" : "opacity-60")} />
-                        기능 건의
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => field.onChange("OTHER")} 
-                        className={cn(
-                          "flex-1 py-3 text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all",
-                          field.value === "OTHER" 
-                            ? "bg-white dark:bg-[#2A2A2A] text-gray-900 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]" 
-                            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                        )}
-                      >
-                        <HelpCircle className={cn("w-4 h-4", field.value === "OTHER" ? "text-primary" : "opacity-60")} />
-                        기타 문의
-                      </button>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full rounded-2xl border-dashed border-gray-200 dark:border-gray-800 h-14 bg-white dark:bg-[#1A1A1A] hover:bg-primary/5 hover:border-primary/30 transition-all gap-2"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <ImageIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-bold text-gray-500 dark:text-gray-400">{files.length > 0 ? `${files.length}장 선택됨` : "사진 첨부 (선택, 최대 3장)"}</span>
-            </Button>
-            <input type="file" className="hidden" accept="image/*" multiple ref={fileInputRef} onChange={onFileChange} />
-          </div>
-
-          {previews.length > 0 && (
-            <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
-              {previews.map((preview, index) => (
-                <div key={index} className="relative flex-none">
-                  <Image src={preview} alt="미리보기" width={64} height={64} className="w-16 h-16 rounded-xl object-cover border border-gray-100" />
-                  <button type="button" onClick={() => onRemoveFile(index)} className="absolute -top-1.5 -right-1.5 bg-gray-900/80 text-white rounded-full p-0.5 border border-white"><X className="w-2.5 h-2.5" /></button>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          {/* 분류 선택 */}
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }: { field: ControllerRenderProps<FormValues, "type"> }) => (
+              <FormItem className="space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">분류</span>
                 </div>
-              ))}
-            </div>
-          )}
+                <FormControl>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: "BUG", label: "버그 제보", icon: ShieldAlert, color: "text-red-500" },
+                      { value: "SUGGESTION", label: "기능 건의", icon: Lightbulb, color: "text-amber-500" },
+                      { value: "OTHER", label: "기타 문의", icon: HelpCircle, color: "text-blue-500" },
+                    ].map((item) => (
+                      <button 
+                        key={item.value}
+                        type="button" 
+                        onClick={() => field.onChange(item.value)} 
+                        className={cn(
+                          "px-4 py-2.5 text-[13px] font-bold rounded-lg border transition-all flex items-center gap-2",
+                          field.value === item.value 
+                            ? "bg-primary text-white border-primary shadow-sm" 
+                            : "bg-white dark:bg-black/20 text-gray-500 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/5"
+                        )}
+                      >
+                        <item.icon className={cn("w-3.5 h-3.5", field.value === item.value ? "text-white" : item.color)} />
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
+          {/* 제목 입력 */}
           <FormField
             control={form.control}
             name="title"
             render={({ field }: { field: ControllerRenderProps<FormValues, "title"> }) => (
-              <FormItem>
+              <FormItem className="space-y-2">
+                <div className="flex items-center gap-1.5 mb-1 text-[13px] font-bold text-gray-900 dark:text-gray-100">
+                  제목
+                </div>
                 <FormControl>
-                  <Input placeholder="제목을 입력해주세요." className="rounded-xl border-gray-100 bg-white h-11 focus:ring-primary/20 font-semibold" {...field} />
+                  <Input 
+                    placeholder="제목을 입력해주세요." 
+                    className="h-12 border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 focus-visible:ring-primary/20 font-bold px-4" 
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
+          {/* 내용 입력 */}
           <FormField
             control={form.control}
             name="content"
             render={({ field }: { field: ControllerRenderProps<FormValues, "content"> }) => (
-              <FormItem>
+              <FormItem className="space-y-2">
+                <div className="flex items-center gap-1.5 mb-1 text-[13px] font-bold text-gray-900 dark:text-gray-100">
+                  내용
+                </div>
                 <FormControl>
-                  <Textarea placeholder="선택하신 유형에 맞게 내용을 상세히 적어주세요." className="rounded-2xl border-gray-100 bg-white min-h-[140px] resize-none focus:ring-primary/20 font-medium leading-relaxed" {...field} />
+                  <Textarea 
+                    placeholder="문의하시고자 하는 내용을 상세하게 입력해주세요." 
+                    className="min-h-[200px] border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 focus-visible:ring-primary/20 font-medium p-4 resize-none leading-relaxed" 
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <Button type="submit" className="w-full rounded-2xl h-12 text-sm font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all" disabled={isPending}>
-            {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 전송 중...</> : "피드백 보내기"}
-          </Button>
+          {/* 이미지 첨부 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">이미지 첨부 (최대 3장)</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 border-gray-200 dark:border-gray-800 text-[12px] font-bold"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <ImageIcon className="w-3.5 h-3.5 mr-1.5" /> 파일 선택
+              </Button>
+            </div>
+            
+            <input type="file" className="hidden" accept="image/*" multiple ref={fileInputRef} onChange={onFileChange} />
+
+            {previews.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-1">
+                {previews.map((preview, index) => (
+                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800">
+                    <Image src={preview} alt="미리보기" fill className="object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={() => onRemoveFile(index)} 
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 hover:bg-black/70 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 border border-dashed border-gray-200 dark:border-gray-800 rounded-lg flex flex-col items-center justify-center bg-gray-50/50 dark:bg-black/10">
+                <ImageIcon className="w-6 h-6 text-gray-300 mb-2" />
+                <p className="text-[12px] text-gray-400 font-medium text-center">관련된 스크린샷이 있다면 첨부해주세요.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-[15px] font-bold" 
+              disabled={isPending}
+            >
+              {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 등록 중...</> : "게시글 등록"}
+            </Button>
+          </div>
         </form>
       </Form>
-    </>
+    </div>
   );
 }

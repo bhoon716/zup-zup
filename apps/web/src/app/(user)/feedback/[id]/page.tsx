@@ -9,6 +9,9 @@ import { useFeedbackDetail, useDeleteFeedback } from "@/features/feedback/hooks/
 import { FeedbackType } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
 
+/**
+ * 건의사항 상세 페이지 컴포넌트
+ */
 export default function FeedbackDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const resolvedParams = use(params);
@@ -30,7 +33,7 @@ export default function FeedbackDetailPage({ params }: { params: Promise<{ id: s
     try {
       await deleteFeedbackMutation.mutateAsync(id);
       toast.success("삭제되었습니다.");
-      router.push("/feedback?tab=list");
+      router.push("/feedback");
     } catch {
       toast.error("삭제에 실패했습니다.");
     }

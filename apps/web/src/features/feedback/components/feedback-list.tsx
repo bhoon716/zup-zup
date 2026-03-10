@@ -1,10 +1,12 @@
 "use client";
 
-import { 
-  Loader2, 
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
-import { FeedbackResponse, FeedbackStatus, FeedbackType } from "@/shared/types/api";
+import {
+  FeedbackResponse,
+  FeedbackStatus,
+  FeedbackType,
+} from "@/shared/types/api";
 
 interface FeedbackListProps {
   isLoading: boolean;
@@ -24,61 +26,82 @@ export function FeedbackList({
   selectedFeedbackId,
   onSelectFeedback,
   getTypeIcon,
-  getStatusBadge
+  getStatusBadge,
 }: FeedbackListProps) {
   if (isLoading) {
-    return <div className="p-10 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary/30" /></div>;
+    return (
+      <div className="p-10 flex justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-primary/30" />
+      </div>
+    );
   }
 
   if (!feedbackList || feedbackList.content.length === 0) {
-    return <div className="py-20 text-center text-gray-400 font-medium text-sm">작성한 문의 내역이 없습니다.</div>;
+    return (
+      <div className="py-20 text-center text-gray-400 font-medium text-sm">
+        작성한 문의 내역이 없습니다.
+      </div>
+    );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {feedbackList.content.map((item) => (
-        <div 
-          key={item.id}
-          onClick={() => onSelectFeedback(item.id)}
-          className={`relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 cursor-pointer group ${
-            selectedFeedbackId === item.id 
-              ? "bg-primary/5 border-primary/30 shadow-md shadow-primary/5" 
-              : "bg-white dark:bg-[#202022] border-gray-100 dark:border-gray-800 hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-white/5 hover:border-gray-200 dark:hover:border-gray-700 hover:-translate-y-1"
-          }`}
-        >
-          {/* 마우스 오버 시 나타나는 은은한 그라디언트 배경 */}
-          <div className="absolute inset-0 bg-linear-to-br from-white/10 to-transparent dark:from-white/0 dark:to-white/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+    <div className="w-full">
+      <div className="hidden md:grid grid-cols-[80px_100px_1fr_120px_100px] gap-4 px-4 py-3 border-y border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+        <div className="text-center">번호</div>
+        <div>유형</div>
+        <div>제목</div>
+        <div className="text-center">작성일</div>
+        <div className="text-center">상태</div>
+      </div>
 
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-gray-50 dark:bg-black/20 text-gray-700 dark:text-gray-300">
-                  {getTypeIcon(item.type)}
-                </div>
-                {getStatusBadge(item.status)}
-              </div>
-              {item.hasReplies && (
-                <Badge className="bg-linear-to-r from-primary/90 to-primary text-white border-none h-6 px-2 shadow-sm font-semibold tracking-wide">
-                  답변 완료
-                </Badge>
-              )}
+      <div className="divide-y divide-gray-100 dark:divide-gray-800 border-b border-gray-100 dark:border-gray-800">
+        {feedbackList.content.map((item, index) => (
+          <div
+            key={item.id}
+            onClick={() => onSelectFeedback(item.id)}
+            className={`group grid grid-cols-1 md:grid-cols-[80px_100px_1fr_120px_100px] gap-2 md:gap-4 px-4 py-4 transition-colors cursor-pointer items-center hover:bg-gray-50/80 dark:hover:bg-white/5 ${
+              selectedFeedbackId === item.id ? "bg-primary/5" : ""
+            }`}
+          >
+            <div className="hidden md:block text-center text-sm text-gray-400 font-medium">
+              {feedbackList.content.length - index}
             </div>
-            
-            <h4 className="text-base font-bold text-gray-900 dark:text-gray-100 line-clamp-2 mt-1 group-hover:text-primary transition-colors leading-relaxed">
-              {item.title}
-            </h4>
-            
-            <div className="flex items-center justify-between mt-4">
-              <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#2A2A2A] px-2.5 py-1 rounded-md">
-                {item.createdAt.split('T')[0]}
+
+            <div className="flex items-center gap-2">
+              <span className="md:hidden text-[10px] font-bold text-gray-400 uppercase">
+                유형:
               </span>
-              <div className="text-primary text-xs font-bold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                상세 보기 &rarr;
+              <div className="flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-400">
+                {getTypeIcon(item.type)}
+                <span className="text-[11px]">{item.type}</span>
               </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <h4 className="text-[15px] font-bold text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors line-clamp-1">
+                {item.title}
+                {item.hasReplies && (
+                  <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                    답변됨
+                  </span>
+                )}
+              </h4>
+            </div>
+
+            <div className="flex items-center md:justify-center gap-2 text-[13px] text-gray-400 font-medium">
+              <span className="md:hidden font-bold">작성일:</span>
+              {item.createdAt.split("T")[0]}
+            </div>
+
+            <div className="flex items-center md:justify-center gap-2">
+              <span className="md:hidden text-[10px] font-bold text-gray-400 uppercase">
+                상태:
+              </span>
+              {getStatusBadge(item.status)}
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
