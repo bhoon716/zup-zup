@@ -18,10 +18,10 @@ services:
       - "oasis.jbnu.ac.kr:114.70.191.85"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 120s
     stop_grace_period: 30s
     logging:
       driver: json-file
