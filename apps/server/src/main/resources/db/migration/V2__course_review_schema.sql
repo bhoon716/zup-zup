@@ -1,5 +1,5 @@
 -- 강의 리뷰 (Course Review) 테이블 생성
-CREATE TABLE course_reviews (
+CREATE TABLE IF NOT EXISTS course_reviews (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     course_key VARCHAR(64) NOT NULL,
     user_id BIGINT NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE course_reviews (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 강의 리뷰 공감/비공감 내역 테이블 생성 (중복 투표 방지)
-CREATE TABLE course_review_reactions (
+CREATE TABLE IF NOT EXISTS course_review_reactions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     review_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
@@ -23,12 +23,24 @@ CREATE TABLE course_review_reactions (
     CONSTRAINT fk_reaction_review FOREIGN KEY (review_id) REFERENCES course_reviews (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- courses 테이블에 리뷰 통계 컬럼 추가
-ALTER TABLE courses ADD COLUMN average_rating FLOAT NOT NULL DEFAULT 0.0 COMMENT '평균 별점';
-ALTER TABLE courses ADD COLUMN review_count INT NOT NULL DEFAULT 0 COMMENT '리뷰 수';
+-- courses 테이블에 리뷰 통계 컬럼 추가 (중복 방지를 위한 프로시저 사용)
+DROP PROCEDURE IF EXISTS AddCourseReviewColumns;
+DELIMITER //
+CREATE PROCEDURE AddCourseReviewColumns()
+BEGIN
+    IF NOT EXISTS (SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'courses' AND COLUMN_NAME = 'average_rating') THEN
+        ALTER TABLE courses ADD COLUMN average_rating FLOAT NOT NULL DEFAULT 0.0 COMMENT '평균 별점';
+    END IF;
+    IF NOT EXISTS (SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'courses' AND COLUMN_NAME = 'review_count') THEN
+        ALTER TABLE courses ADD COLUMN review_count INT NOT NULL DEFAULT 0 COMMENT '리뷰 수';
+    END IF;
+END //
+DELIMITER ;
+CALL AddCourseReviewColumns();
+DROP PROCEDURE AddCourseReviewColumns;
 
 -- 피드백 (건의사항 및 버그 리포트) 테이블 생성
-CREATE TABLE feedbacks (
+CREATE TABLE IF NOT EXISTS feedbacks (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL COMMENT '작성자 ID',
     type VARCHAR(20) NOT NULL COMMENT '분류 (BUG, SUGGESTION, OTHER)',
@@ -45,7 +57,7 @@ CREATE TABLE feedbacks (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 피드백 첨부 이미지 테이블 생성
-CREATE TABLE feedback_attachments (
+CREATE TABLE IF NOT EXISTS feedback_attachments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     feedback_id BIGINT NOT NULL,
     file_url VARCHAR(255) NOT NULL COMMENT '로컬 정적 서빙용 이미지 경로',
@@ -55,7 +67,7 @@ CREATE TABLE feedback_attachments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 피드백 답변(Reply) 관리 테이블 생성 
-CREATE TABLE feedback_replies (
+CREATE TABLE IF NOT EXISTS feedback_replies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     feedback_id BIGINT NOT NULL,
     admin_id BIGINT NOT NULL COMMENT '답변 작성자(관리자) ID',
@@ -67,7 +79,7 @@ CREATE TABLE feedback_replies (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 관리자 액션 로그 테이블 생성
-CREATE TABLE admin_action_logs (
+CREATE TABLE IF NOT EXISTS admin_action_logs (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     admin_id BIGINT NOT NULL COMMENT '행위자 관리자 ID',
     action_type VARCHAR(50) NOT NULL COMMENT 'STATUS_CHANGE, REPLY_CREATE, REPLY_UPDATE, FEEDBACK_DELETE 등',
@@ -76,3 +88,4 @@ CREATE TABLE admin_action_logs (
     meta_data JSON COMMENT '전환된 상태값 등 세부 내역',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
