@@ -68,7 +68,7 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
         <Link href="/feedback" onClick={handleClick}>
           <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
             <MessageCircle className="w-[1.1rem] h-[1.1rem]" />
-            <span className="text-sm font-medium">건의 및 버그 제보</span>
+            <span className="text-sm font-medium">건의 / 버그</span>
           </Button>
         </Link>
       )}
