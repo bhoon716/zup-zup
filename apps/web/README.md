@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🌐 전북대 수강신청 도우미 Frontend
+# 🌐 줍줍 (zup-zup) Frontend
 
-**전북대 수강신청 도우미: Next.js 기반 실시간 여석 알림 및 스마트 커리큘럼 관리 플랫폼**
+**줍줍: Next.js 기반 실시간 여석 알림 및 스마트 커리큘럼 관리 플랫폼**
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-15.1.6-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />

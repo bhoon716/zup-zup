@@ -81,7 +81,7 @@ export function HomeLanding() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-lg md:text-xl text-[#161118]/60 mb-12 max-w-2xl mx-auto leading-relaxed"
           >
-            하루 종일 새로고침만 누르고 계신가요? 전북대 수강신청 도우미가 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
+            하루 종일 새로고침만 누르고 계신가요? 수강신청 빈자리 알림 서비스 '줍줍'이 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
           </motion.p>
 
           <motion.div

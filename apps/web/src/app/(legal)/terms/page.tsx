@@ -25,7 +25,7 @@ export default function TermsPage() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-primary">1. 목적 및 비영리 정책</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              &apos;JBNU Helper&apos;는 전북대학교 학생들을 위한 공익적 목적으로 개발된 <strong>비영리 서비스</strong>입니다. 본 서비스는 어떠한 영리 활동도 수행하지 않으며, 학생들의 수강신청 편의를 돕는 것을 유일한 목적으로 합니다.
+              &apos;줍줍&apos;은 전북대학교 학생들을 위한 공익적 목적으로 개발된 <strong>비영리 서비스</strong>입니다. 본 서비스는 어떠한 영리 활동도 수행하지 않으며, 학생들의 수강신청 편의를 돕는 것을 유일한 목적으로 합니다.
             </p>
           </section>
 

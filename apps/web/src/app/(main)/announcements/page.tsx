@@ -90,7 +90,7 @@ export default function AnnouncementsPage() {
             공지사항
           </h1>
           <p className="mt-2 max-w-2xl text-base font-medium text-slate-500">
-            전북대학교 수강신청 도우미의 새로운 소식과 안내를 확인하세요.
+            &apos;줍줍&apos;의 새로운 소식과 안내를 확인하세요.
           </p>
         </motion.div>
 

@@ -8,7 +8,6 @@ import Image from "next/image";
 import {
   Menu,
   Download,
-  GraduationCap,
   LogOut,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -56,8 +55,8 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2 group transition-all active:scale-95">
-            <GraduationCap className="text-primary w-8 h-8 group-hover:scale-110 transition-transform" />
-            <span className="font-bold text-xl text-primary tracking-tight">전북대 수강신청 도우미</span>
+            <Image src="/zub-zub-logo.png" alt="로고" width={38} height={38} className="w-10 h-10 object-contain group-hover:scale-110 transition-transform" />
+            <span className="font-bold text-xl text-primary tracking-tight">줍줍</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             <NavLinks 
@@ -76,7 +75,7 @@ export function Header() {
             className="hidden md:flex gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
           >
             <Download className="w-4 h-4" />
-            <span className="font-medium">{platform === "ios" ? "공유 → 홈 추가" : "앱 설치"}</span>
+            <span className="font-medium">{platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}</span>
           </Button>
 
           <div className="hidden md:flex items-center gap-3">
@@ -99,8 +98,8 @@ export function Header() {
               <SheetContent side="right" className="w-[280px] sm:w-[350px] p-0 border-l border-white/5 bg-background/95 backdrop-blur-xl flex flex-col h-full">
                 <SheetHeader className="p-6 border-b border-white/5">
                   <SheetTitle className="text-left flex items-center gap-2.5">
-                    <Image src="/jbnu-logo.png" alt="로고" width={24} height={24} className="w-6 h-6 object-contain" />
-                    <span className="bg-linear-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent font-bold tracking-tight">수강신청 도우미</span>
+                    <Image src="/zub-zub-logo.png" alt="로고" width={32} height={32} className="w-8 h-8 object-contain" />
+                    <span className="bg-linear-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent font-bold tracking-tight">줍줍</span>
                   </SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-2 p-4 flex-1 overflow-y-auto min-h-0">
