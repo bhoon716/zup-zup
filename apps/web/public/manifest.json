@@ -1,7 +1,7 @@
 {
-  "name": "전북대 수강신청 도우미",
-  "short_name": "수강도우미",
-  "description": "전북대학교 수강신청 빈자리 알림 도우미",
+  "name": "줍줍",
+  "short_name": "줍줍",
+  "description": "전북대학교 수강신청 빈자리 알림 서비스 '줍줍'",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -10,13 +10,13 @@
   "theme_color": "#6366f1",
   "icons": [
     {
-      "src": "/jbnu-logo.png",
+      "src": "/zub-zub-logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/jbnu-logo.png",
+      "src": "/zub-zub-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

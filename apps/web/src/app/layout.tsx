@@ -17,17 +17,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "전북대 수강신청 도우미",
-  description: "전북대학교 수강신청 빈자리 알림 서비스",
+  title: "줍줍 (zup-zup)",
+  description: "전북대학교 수강신청 빈자리 알림 서비스 '줍줍'",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "전북대 수강신청 도우미",
+    title: "줍줍",
   },
   icons: {
     apple: [
-      { url: "/jbnu-logo.png", sizes: "192x192", type: "image/png" },
+      { url: "/zub-zub-logo.png", sizes: "192x192", type: "image/png" },
     ],
   },
   formatDetection: {
