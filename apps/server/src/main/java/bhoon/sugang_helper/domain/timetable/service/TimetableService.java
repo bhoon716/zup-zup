@@ -45,6 +45,9 @@ public class TimetableService {
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
 
+    /**
+     * 새로운 시간표를 생성합니다.
+     */
     @Transactional
     public TimetableResponse createTimetable(TimetableRequest request) {
         User user = getCurrentUser();
@@ -78,6 +81,9 @@ public class TimetableService {
         log.info("[Timetable] Default timetable created for new user. userId={}", event.userId());
     }
 
+    /**
+     * 현재 로그인한 사용자의 모든 시간표 목록을 조회합니다.
+     */
     public List<TimetableResponse> getMyTimetables() {
         User user = getCurrentUser();
         return timetableRepository.findByUserId(user.getId()).stream()
@@ -85,6 +91,9 @@ public class TimetableService {
                 .toList();
     }
 
+    /**
+     * 현재 로그인한 사용자의 대표 시간표 상세 정보를 조회합니다.
+     */
     public TimetableDetailResponse getPrimaryTimetable() {
         User user = getCurrentUser();
         List<Timetable> primaryTimetables = timetableRepository.findByUserIdAndIsPrimaryTrue(user.getId());
@@ -94,12 +103,18 @@ public class TimetableService {
         return getTimetableDetail(primaryTimetables.get(0));
     }
 
+    /**
+     * 특정 시간표의 상세 정보를 조회합니다.
+     */
     public TimetableDetailResponse getTimetableDetail(Long timetableId) {
         Timetable timetable = getTimetable(timetableId);
         validateOwnership(timetable);
         return getTimetableDetail(timetable);
     }
 
+    /**
+     * 시간표에 강의를 추가합니다.
+     */
     @Transactional
     public void addCourse(Long timetableId, String courseKey) {
         Timetable timetable = getTimetable(timetableId);
@@ -115,6 +130,9 @@ public class TimetableService {
         timetable.addEntry(entry);
     }
 
+    /**
+     * 시간표에서 강의를 삭제합니다.
+     */
     @Transactional
     public void deleteCourse(Long timetableId, String courseKey) {
         Timetable timetable = getTimetable(timetableId);
@@ -127,6 +145,9 @@ public class TimetableService {
         timetableEntryRepository.delete(entry);
     }
 
+    /**
+     * 시간표에 커스텀 일정(강의 외 개인 일정 등)을 추가합니다.
+     */
     @Transactional
     public void addCustomSchedule(Long timetableId, CustomScheduleRequest request) {
         Timetable timetable = getTimetable(timetableId);
@@ -152,6 +173,9 @@ public class TimetableService {
         timetable.addCustomSchedule(schedule);
     }
 
+    /**
+     * 시간표에서 커스텀 일정을 삭제합니다.
+     */
     @Transactional
     public void deleteCustomSchedule(Long timetableId, Long scheduleId) {
         Timetable timetable = getTimetable(timetableId);
@@ -168,6 +192,9 @@ public class TimetableService {
         customScheduleRepository.delete(schedule);
     }
 
+    /**
+     * 특정 시간표를 사용자의 대표 시간표로 설정합니다.
+     */
     @Transactional
     public void setPrimary(Long timetableId) {
         Timetable timetable = getTimetable(timetableId);
@@ -178,6 +205,9 @@ public class TimetableService {
         log.info("[Timetable] Changed representive timetable. timetableId={}", timetableId);
     }
 
+    /**
+     * 시간표를 삭제합니다. (삭제한 시간표가 대표 시간비면 다른 시간표로 위임합니다)
+     */
     @Transactional
     public void deleteTimetable(Long timetableId) {
         Timetable timetable = getTimetable(timetableId);
@@ -194,6 +224,9 @@ public class TimetableService {
         promoteNextPrimary(userId, timetableId);
     }
 
+    /**
+     * 시간표 엔티티를 클라이언트 디테일 응답 DTO로 매핑합니다.
+     */
     private TimetableDetailResponse getTimetableDetail(Timetable timetable) {
         Map<String, Course> courseMap = findCoursesByKey(timetable);
         List<TimetableCourseResponse> courses = mapTimetableCourses(timetable, courseMap);
@@ -201,6 +234,9 @@ public class TimetableService {
         return TimetableDetailResponse.of(timetable, courses, totalCredits);
     }
 
+    /**
+     * 강좌들의 고유 정보를 조회하기 위해 map 형태로 긁어옵니다.
+     */
     private Map<String, Course> findCoursesByKey(Timetable timetable) {
         List<String> courseKeys = timetable.getEntries().stream()
                 .map(TimetableEntry::getCourseKey)
@@ -210,6 +246,9 @@ public class TimetableService {
                 .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
     }
 
+    /**
+     * 시간표 엔티티와 강좌 목록을 대조 매치합니다.
+     */
     private List<TimetableCourseResponse> mapTimetableCourses(Timetable timetable, Map<String, Course> courseMap) {
         return timetable.getEntries().stream()
                 .map(TimetableEntry::getCourseKey)
@@ -219,6 +258,9 @@ public class TimetableService {
                 .toList();
     }
 
+    /**
+     * 담겨있는 모든 강의의 총 학점을 합산합니다.
+     */
     private String calculateTotalCredits(List<TimetableCourseResponse> courses) {
         double totalCredits = courses.stream()
                 .map(TimetableCourseResponse::getCredits)
@@ -239,6 +281,9 @@ public class TimetableService {
         }
     }
 
+    /**
+     * 한 사용자가 가질 수 있는 시간표 생성 개수(최대치)를 검증합니다.
+     */
     private void validateTimetableLimit(Long userId) {
         long currentCount = timetableRepository.countByUserId(userId);
         if (currentCount < MAX_TIMETABLE_COUNT) {
@@ -249,6 +294,9 @@ public class TimetableService {
                 "시간표는 최대 " + MAX_TIMETABLE_COUNT + "개까지 생성 가능합니다.");
     }
 
+    /**
+     * 시간표 하나당 담을 수 있는 강좌 개수 제한을 검증합니다.
+     */
     private void validateCourseLimit(int currentSize) {
         if (currentSize < MAX_COURSE_COUNT) {
             return;
@@ -258,6 +306,9 @@ public class TimetableService {
                 "시간표당 최대 " + MAX_COURSE_COUNT + "개의 강좌만 담을 수 있습니다.");
     }
 
+    /**
+     * 추가하려는 강좌가 실제 수강 데이터에 존재하는지 검증합니다.
+     */
     private void validateCourseExists(String courseKey) {
         if (courseRepository.existsByCourseKey(courseKey)) {
             return;
@@ -266,6 +317,9 @@ public class TimetableService {
         throw new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 강좌입니다.");
     }
 
+    /**
+     * 시간표에 이미 존재하는 강좌를 중복 추가하지 않도록 검증합니다.
+     */
     private void validateCourseNotDuplicated(Long timetableId, String courseKey) {
         if (timetableEntryRepository.findByTimetableIdAndCourseKey(timetableId, courseKey).isEmpty()) {
             return;
@@ -274,6 +328,9 @@ public class TimetableService {
         throw new CustomException(ErrorCode.INVALID_INPUT, "이미 시간표에 존재하는 강좌입니다.");
     }
 
+    /**
+     * 대표 시간표를 삭제 시, 다른 시간표를 예비 대표 시간표로 밀어붙입니다.
+     */
     private void promoteNextPrimary(Long userId, Long deletedTimetableId) {
         timetableRepository.findByUserId(userId).stream()
                 .filter(timetable -> !timetable.getId().equals(deletedTimetableId))
