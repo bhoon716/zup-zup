@@ -35,7 +35,7 @@ import {
 import { FeedbackStatus, FeedbackType } from "@/shared/types/api";
 
 /**
- * 전북대 수강신청 도우미 관리자용 문의 및 건의 통합 관리 페이지입니다.
+ * 줍줍 관리자용 문의 및 건의 통합 관리 페이지입니다.
  * 모든 사용자의 의견을 리스트로 확인하고 답변을 작성/수정/삭제할 수 있습니다.
  */
 export default function AdminFeedbackPage() {
