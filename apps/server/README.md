@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🚀 전북대 수강신청 도우미 Backend
+# 🚀 줍줍 (zup-zup) Backend
 
-**전북대 수강신청 도우미: 실시간 여석 감지 및 멀티 채널 알림 서버**
+**줍줍: 실시간 여석 감지 및 멀티 채널 알림 서버**
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />

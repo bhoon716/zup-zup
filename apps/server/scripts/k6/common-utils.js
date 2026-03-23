@@ -34,7 +34,7 @@ export function getRandomUserAgent() {
     const agents = [
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        'JBNU-Sugang-Helper-Bot/1.0',
+        'Zup-Zup-Bot/1.0',
     ];
     return agents[Math.floor(Math.random() * agents.length)];
 }

@@ -1,6 +1,6 @@
 # 트러블슈팅 및 의사결정 기록 (Troubleshooting & Decisions)
 
-이 문서는 `jbnu-sugang-helper` 개발 과정에서 직면한 주요 기술적 문제와 그 해결 과정을 기록합니다.
+이 문서는 `zup-zup` 개발 과정에서 직면한 주요 기술적 문제와 그 해결 과정을 기록합니다.
 
 ---
 

@@ -256,7 +256,7 @@ public class NotificationService {
      * 빈자리 알림 메시지를 생성합니다.
      */
     private NotificationMessage createSeatOpenedMessage(SeatOpenedEvent event) {
-        String title = String.format("[전북대 수강신청 도우미] 빈자리 알림: %s", event.courseName());
+        String title = String.format("[줍줍] 빈자리 알림: %s", event.courseName());
         String body = String.format("강의명: %s\\n과목코드: %s\\n현재 여석이 발생했습니다! (%d명)",
                 event.courseName(), event.courseKey(), event.currentSeats());
         return new NotificationMessage(title, body);
@@ -267,8 +267,8 @@ public class NotificationService {
      */
     private NotificationMessage createTestMessage() {
         return new NotificationMessage(
-                "[전북대 수강신청 도우미] 시스템 테스트 알림",
-                "전북대 수강신청 도우미 테스트 알림입니다. 수신이 정상적인지 확인해 주세요.");
+                "[줍줍] 시스템 테스트 알림",
+                "줍줍 테스트 알림입니다. 수신이 정상적인지 확인해 주세요.");
     }
 
     /**
