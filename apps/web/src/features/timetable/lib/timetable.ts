@@ -1,5 +1,5 @@
 import { TimetableResponse, CustomScheduleTimeResponse } from '@/shared/types/api';
-import { formatDayOfWeek } from '@/shared/lib/formatters';
+import { formatDayOfWeek, formatClassroom } from '@/shared/lib/formatters';
 
 export const WEEK_DAYS = ['월', '화', '수', '목', '금', '토', '일'] as const;
 const WEEK_DAY_ORDER = new Map(WEEK_DAYS.map((day, index) => [day, index]));
@@ -93,7 +93,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         color: getCourseColor(entry.courseKey),
-        classroom: entry.classroom,
+        classroom: formatClassroom(entry.classroom),
         classification: entry.classification,
         credits: entry.credits,
         courseKey: entry.courseKey,
@@ -112,7 +112,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
         dayOfWeek: formatDayOfWeek(slot.dayOfWeek),
         startTime: slot.startTime,
         endTime: slot.endTime,
-        classroom: slot.classroom,
+        classroom: formatClassroom(slot.classroom),
         color: getCourseColor(schedule.title),
       });
     });

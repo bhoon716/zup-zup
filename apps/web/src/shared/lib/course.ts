@@ -1,3 +1,4 @@
+import { formatClassroom } from "./formatters";
 import type { Course } from "@/shared/types/api";
 
 export interface NormalizedCourse extends Course {
@@ -26,5 +27,6 @@ export function normalizeCourse(course: Partial<Course>): NormalizedCourse {
     current,
     available,
     professor: course.professor || course.professorName || "교수 미지정",
+    classroom: formatClassroom(course.classroom),
   };
 }

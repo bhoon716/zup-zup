@@ -476,7 +476,7 @@ export default function TimetablePage() {
                                   .join(', ') || course.classTime || '시간 정보 없음'}
                               </p>
                               <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500">
-                                <span>{course.classroom || '강의실 미정'}</span>
+                                <span>{course.classroom || '강의실 미배정'}</span>
                                 {course.classification ? <span>• {course.classification}</span> : null}
                               </div>
                             </motion.div>

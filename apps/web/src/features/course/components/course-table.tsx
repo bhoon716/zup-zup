@@ -288,7 +288,7 @@ export function CourseTable({
                       <span className="flex items-center gap-1">
                         <MapPin className="h-3 w-3 text-gray-400 md:h-3.5 md:w-3.5" />
                         <span className="max-w-[100px] truncate md:max-w-none">
-                          {course.classroom || "강의실 미정"}
+                          {course.classroom || "강의실 미배정"}
                         </span>
                       </span>
                     </div>

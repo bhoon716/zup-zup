@@ -213,7 +213,7 @@ function CourseTimeLocation({ course, mapQuery }: { course: Course; mapQuery: st
           <div>
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wide block mb-2">강의실 위치</span>
             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
-              {course.classroom || "장소 미정"}
+              {course.classroom || "강의실 미배정"}
             </h3>
           </div>
           <KakaoMapEmbed
