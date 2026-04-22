@@ -35,12 +35,13 @@ public class JbnuCourseApiClient {
             <Root xmlns="http://www.nexacroplatform.com/platform/dataset">
                 <Parameters>
                     <Parameter id="JSESSIONID" />
-                    <Parameter id="gvYy">2017</Parameter>
-                    <Parameter id="gvShtm">U211600010</Parameter>
+                    <Parameter id="gvYy">%s</Parameter>
+                    <Parameter id="gvShtm">%s</Parameter>
                     <Parameter id="gvRechPrjtNo" />
                     <Parameter id="gvRechDutyr" />
-                    <Parameter id="_fwb">48AUDbfWcQlwqD8plRUMBF.1763450651870</Parameter>
-                    <Parameter id="WMONID">zaIN2L1Cwla</Parameter>
+                    <Parameter id="_fwb">20mzyFXlsiAAzAW4dFmDl2.1772273427418</Parameter>
+                    <Parameter id="WMONID">zun7Ibxjuly</Parameter>
+                    <Parameter id="JSESSIONIDSSO">QmLqIUuTLfXijjk9Lvam9DOMTcLjYxbrlkHJKnJz8PtcUNtKtZcFUJyZNIUvsvHd.amV1c19kb21haW4vc2VydmVyMV8z</Parameter>
                     <Parameter id="yy">%s</Parameter>
                     <Parameter id="shtm">%s</Parameter>
                     <Parameter id="fg" />
@@ -50,7 +51,7 @@ public class JbnuCourseApiClient {
                     <Parameter id="sbjtNm" />
                     <Parameter id="profNm" />
                     <Parameter id="openLectFg" />
-                    <Parameter id="entrYy">2017</Parameter>
+                    <Parameter id="entrYy">%s</Parameter>
                     <Parameter id="sType">EXT1</Parameter>
                     <Parameter id="lang">K</Parameter>
                     <Parameter id="ltLangFg">N</Parameter>
@@ -71,7 +72,7 @@ public class JbnuCourseApiClient {
      * 특정 년도와 학기를 지정하여 JBNU API 서버로부터 강의 데이터를 XML 형식으로 가져옵니다.
      */
     public String fetchCourseDataXml(String year, String semester) {
-        String payload = PAYLOAD_TEMPLATE.formatted(year, semester);
+        String payload = PAYLOAD_TEMPLATE.formatted(year, semester, year, semester, year);
         int retryCount = 0;
 
         while (true) {
@@ -87,7 +88,7 @@ public class JbnuCourseApiClient {
                                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Whale/4.35.351.12 Safari/537.36")
                         .requestBody(payload)
                         .timeout(timeoutMs)
-                        .maxBodySize(0) // 무제한 수신
+                        .maxBodySize(0)
                         .method(Connection.Method.POST)
                         .ignoreContentType(true)
                         .execute()
@@ -114,7 +115,6 @@ public class JbnuCourseApiClient {
      */
     private void waitBeforeRetry(int retryCount) {
         try {
-            // 지수적으로 대기 시간을 늘려 서버 부하 방지 (기본 대기 시간 * 재시도 횟수)
             long waitTime = (long) retryWaitMs * retryCount;
             log.info("[API Client] Waiting {}ms before retry...", waitTime);
             Thread.sleep(waitTime);
