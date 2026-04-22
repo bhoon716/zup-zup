@@ -21,6 +21,7 @@ import {
   SheetTrigger,
 } from "@/shared/ui/sheet";
 import { usePWAInstall } from "@/shared/hooks/usePWAInstall";
+import { useHasMounted } from "@/shared/hooks/useHasMounted";
 
 import { NavLinks } from "./ui/nav-links";
 import { HeaderDesktopUser, HeaderMobileUserStatus } from "./ui/user-status";
@@ -36,6 +37,7 @@ export function Header() {
   const pathname = usePathname();
   const { install, platform } = usePWAInstall();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const hasMounted = useHasMounted();
 
   if (pathname === "/onboarding") {
     return null;
@@ -60,8 +62,8 @@ export function Header() {
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             <NavLinks 
-              isLoggedIn={!!user} 
-              isAdmin={user?.role === "ADMIN"} 
+              isLoggedIn={hasMounted ? !!user : false} 
+              isAdmin={hasMounted ? user?.role === "ADMIN" : false} 
               onGuardedAction={handleGuardedAction} 
             />
           </nav>
@@ -80,8 +82,8 @@ export function Header() {
 
           <div className="hidden md:flex items-center gap-3">
             <HeaderDesktopUser 
-              user={user} 
-              isLoading={isLoading} 
+              user={hasMounted ? user : undefined} 
+              isLoading={hasMounted ? isLoading : true} 
               isPending={isPending} 
               onLogout={() => logout()} 
               onLoginClick={closeMenu}
@@ -105,8 +107,8 @@ export function Header() {
                 <div className="flex flex-col gap-2 p-4 flex-1 overflow-y-auto min-h-0">
                   <div className="mb-4 px-2">
                     <HeaderMobileUserStatus 
-                      user={user} 
-                      isLoading={isLoading} 
+                      user={hasMounted ? user : undefined} 
+                      isLoading={hasMounted ? isLoading : true} 
                       onLinkClick={closeMenu} 
                     />
                   </div>
@@ -128,8 +130,8 @@ export function Header() {
                     <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">메뉴</p>
                     <NavLinks 
                       isMobile 
-                      isLoggedIn={!!user} 
-                      isAdmin={user?.role === "ADMIN"} 
+                      isLoggedIn={hasMounted ? !!user : false} 
+                      isAdmin={hasMounted ? user?.role === "ADMIN" : false} 
                       onGuardedAction={handleGuardedAction} 
                       onLinkClick={closeMenu} 
                     />
