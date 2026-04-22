@@ -8,6 +8,5 @@ export const useAdminOverview = () => {
       const response = await adminApi.getDashboardOverview();
       return response.data;
     },
-    refetchInterval: 30000,
   });
 };
