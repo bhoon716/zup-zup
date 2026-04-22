@@ -267,7 +267,14 @@ public class JbnuCourseParser {
 
     private String getColValue(Element row, String colId) {
         Element col = row.selectFirst("Col[id=" + colId + "]");
-        return col != null ? col.text().trim() : null;
+        return col != null ? normalizeClassroom(col.text().trim()) : null;
+    }
+
+    private String normalizeClassroom(String value) {
+        if (value == null || value.isBlank() || value.equals(":")) {
+            return null;
+        }
+        return value.trim();
     }
 
     private int safeParseInt(String value) {
