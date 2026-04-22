@@ -169,3 +169,12 @@ export function formatRelativeTime(dateString?: string): string {
     return '-';
   }
 }
+
+/**
+ * 강의실 위치 문자열에서 콜론(:)을 제거하고 공백을 정리한다.
+ */
+export function formatClassroom(value?: string): string {
+  if (!value) return '';
+  // 콜론(:)을 공백으로 바꾸고 연속된 공백을 하나로 합친 뒤 앞뒤 공백 제거
+  return value.replace(/:/g, ' ').replace(/\s+/g, ' ').trim();
+}

@@ -13,7 +13,7 @@ export const CLASSIFICATION_GROUPS = [
   {
     label: "교양",
     items: ["교양"],
-    value: "general", // "general" type for special UI
+    value: "general",
   },
   {
     label: "일반선택",
@@ -72,13 +72,13 @@ export const YEARS = ["2026", "2025", "2024"];
 
 export const SEMESTERS = [
   { label: "1학기", value: "U211600010" },
-  { label: "계절학기(하기)", value: "U010200021" },
+  { label: "하기 계절학기", value: "U211600015" },
   { label: "2학기", value: "U211600020" },
-  { label: "계절학기(동기)", value: "U010200022" },
-  { label: "특별학기(여름)", value: "S1" },
-  { label: "특별학기(겨울)", value: "S2" },
-  { label: "특별학기(신입생)", value: "S3" },
-  { label: "특별학기(SW)", value: "S4" },
+  { label: "동기 계절학기", value: "U211600025" },
+  { label: "여름 특별학기", value: "U211600016" },
+  { label: "겨울 특별학기", value: "U211600026" },
+  { label: "신입생 특별학기", value: "U211600009" },
+  { label: "SW 특별학기", value: "U211600008" },
 ];
 
 export const GE_CATEGORIES: Record<string, string[]> = {
