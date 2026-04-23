@@ -17,6 +17,7 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isApiError, setIsApiError] = useState(false);
 
   const mapJsKey = process.env.NEXT_PUBLIC_KAKAO_MAP_JS_KEY ?? "";
   const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
@@ -28,6 +29,7 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
 
     if (!mapJsKey) {
       setErrorMessage("카카오맵 키가 설정되지 않았습니다.");
+      setIsApiError(true);
       return;
     }
 
@@ -36,6 +38,7 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
     const run = async () => {
       setLoading(true);
       setErrorMessage(null);
+      setIsApiError(false);
 
       try {
         const renderResult = await renderKakaoMapByKeyword({
@@ -49,8 +52,12 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
           return;
         }
 
-        if (renderResult.status !== "OK") {
-          setErrorMessage("위치를 정확히 찾지 못했습니다. 외부 지도로 확인해 주세요.");
+        if (renderResult.status === "ZERO_RESULT") {
+          setErrorMessage("검색된 장소가 없습니다. 건물명이나 주소를 다시 확인해 주세요.");
+          setIsApiError(false);
+        } else if (renderResult.status !== "OK") {
+          setErrorMessage("지도를 불러오는 중 오류가 발생했습니다.");
+          setIsApiError(true);
         }
       } catch (error) {
         if (cancelled) {
@@ -61,6 +68,7 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
           ? error.message
           : "지도를 불러오는 중 오류가 발생했습니다.";
         setErrorMessage(message);
+        setIsApiError(true);
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -93,11 +101,23 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
       <div className="px-3 py-2 border-t border-border bg-background space-y-1.5">
         {errorMessage && (
           <div className="space-y-1">
-            <p className="text-[11px] text-amber-600">{errorMessage}</p>
-            {currentOrigin && (
-              <p className="text-[11px] text-muted-foreground">
-                카카오 콘솔 Web 도메인에 <span className="font-medium">{currentOrigin}</span> 등록 여부를 확인해 주세요.
+            <p className="text-[11px] text-amber-600 font-medium">{errorMessage}</p>
+            {isApiError && currentOrigin && (
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                카카오 콘솔 Web 도메인에 <span className="font-bold text-foreground">{currentOrigin}</span> 등록 여부를 확인해 주세요.
               </p>
+            )}
+            {!isApiError && (
+              <div className="flex items-center gap-2 pt-0.5">
+                <a 
+                  href={`https://map.kakao.com/link/search/${encodeURIComponent(query)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-primary hover:underline font-medium"
+                >
+                  카카오맵에서 직접 찾기 →
+                </a>
+              </div>
             )}
           </div>
         )}
