@@ -23,6 +23,11 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
         long start = System.currentTimeMillis();
 
         String uri = request.getRequestURI();
+        if (uri.startsWith("/actuator")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String query = request.getQueryString();
         if (query != null) {
             uri += "?" + query;
