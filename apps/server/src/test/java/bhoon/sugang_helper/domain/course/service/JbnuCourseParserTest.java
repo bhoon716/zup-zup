@@ -324,7 +324,7 @@ class JbnuCourseParserTest {
 
         // then
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getDepartment()).isEqualTo("영어영문");
+        assertThat(courses.get(0).getDepartment()).isEqualTo("영어영문학과");
         assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.GRADE_3);
     }
 
@@ -352,7 +352,89 @@ class JbnuCourseParserTest {
 
         // then
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getDepartment()).isEqualTo("기계시스템, 기계시스템(정밀기계)");
+        assertThat(courses.get(0).getDepartment()).contains("기계시스템공학부", "기계시스템(정밀기계)");
         assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.GRADE_3);
+    }
+
+    @Test
+    @DisplayName("'과학학과'와 같이 '학과'로 끝나는 명칭이 '과학'으로 유실되지 않고 보존되어야 한다")
+    void parseCourses_preserveDepartmentNameEndingWithHakGwa() {
+        // given
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">99999</Col>
+                            <Col id="CLSS">1</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="TLSNOBJFGNM">1학년</Col>
+                            <Col id="SUSTCDNM">과학학과 1</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        // when
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        // then
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getDepartment()).isEqualTo("과학학과");
+        assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.GRADE_1);
+    }
+
+    @Test
+    @DisplayName("'간호 1'과 같이 축약된 명칭이 '간호학과'로 표준화되어야 한다")
+    void parseCourses_standardizeShortDepartmentName() {
+        // given
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">99996</Col>
+                            <Col id="CLSS">1</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="TLSNOBJFGNM">1학년</Col>
+                            <Col id="SUSTCDNM">간호 1</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        // when
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        // then
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getDepartment()).isEqualTo("간호학과");
+    }
+
+    @Test
+    @DisplayName("복수 학과명에서도 각각 표준화가 적용되어야 한다")
+    void parseCourses_standardizeMultipleShortDepartmentNames() {
+        // given
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTCD">99995</Col>
+                            <Col id="CLSS">1</Col>
+                            <Col id="YY">2026</Col>
+                            <Col id="SHTM">10</Col>
+                            <Col id="TLSNOBJFGNM">2학년</Col>
+                            <Col id="SUSTCDNM">경영 2, 경제학 2</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        // when
+        List<Course> courses = parser.parseCourses(xmlData);
+
+        // then
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getDepartment()).contains("경영학과", "경제학");
     }
 }
