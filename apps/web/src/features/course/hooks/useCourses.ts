@@ -58,3 +58,14 @@ export const useCourseDetail = (courseKey: string) => {
     enabled: !!courseKey,
   });
 };
+
+export const useCollegeHierarchy = () => {
+  return useQuery({
+    queryKey: ['college-hierarchy'],
+    queryFn: async () => {
+      const response = await courseApi.getCollegeHierarchy();
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 60, // 1시간 동안 신선한 상태 유지
+  });
+};

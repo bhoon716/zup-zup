@@ -75,27 +75,6 @@ export default function SearchPage() {
     [searchCondition, sortOption, sortOrder],
   );
 
-  /**
-   * 활성화된 필터들을 칩(Chip) 형태로 표시하기 위한 데이터 가공
-   */
-  const activeFilters = useMemo<FilterChip[]>(() => {
-    const filters: FilterChip[] = [];
-
-    if (searchCondition.department) {
-      filters.push({
-        id: "department",
-        label: searchCondition.department,
-        patch: { department: undefined },
-      });
-    }
-
-    if (searchCondition.classification) {
-      filters.push({
-        id: "classification",
-        label: searchCondition.classification,
-        patch: { classification: undefined, generalCategory: undefined, generalDetail: undefined },
-      });
-    }
 
     if (searchCondition.name) {
       filters.push({
