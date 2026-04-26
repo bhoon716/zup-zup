@@ -15,6 +15,7 @@ import bhoon.sugang_helper.domain.course.util.JbnuDepartmentStandardizer;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -36,13 +37,11 @@ public class JbnuCourseParser {
     private final DepartmentRepository departmentRepository;
 
     private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
-    private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("\\s(?<grade>[1-6])(?=[\\s,]|$)");
+    private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("(?<=[\\s,])(?<grade>[1-6])(?=[\\s,]|$)");
     private static final Pattern TRAILING_NUMBER_IN_SUBJECT_PATTERN = Pattern
             .compile("^(?<subjectName>.*?)(?:\\s+)(?<number>\\d+)$");
 
-    /**
-     * XML 데이터를 파싱하여 강의 엔티티 목록으로 변환
-     */
+    /** XML 데이터를 파싱하여 강의 엔티티 목록으로 변환 */
     public List<Course> parseCourses(String xmlData) {
         List<Course> courses = new ArrayList<>();
         Document doc = Jsoup.parse(xmlData, "", org.jsoup.parser.Parser.xmlParser());
@@ -55,66 +54,77 @@ public class JbnuCourseParser {
         return courses;
     }
 
-    /**
-     * XML의 개별 Row 엘리먼트를 Course 엔티티로 변환
-     */
+    /** XML의 개별 Row를 Course 엔티티로 변환 */
     private Course parseCourseRow(Element row) {
         String academicYear = getColValue(row, "YY");
         String semester = getColValue(row, "SHTM");
         String subjectCode = getColValue(row, "SBJTCD");
         String clss = getColValue(row, "CLSS");
+
         String rawDepartment = getColValue(row, "SUSTCDNM");
         String tlsnObjFgnm = getColValue(row, "TLSNOBJFGNM");
-
+        
         TargetGrade targetGrade = parseTargetGrade(tlsnObjFgnm, rawDepartment);
         String subjectName = normalizeSubjectName(getColValue(row, "SBJTNM"), clss);
-        String department = normalizeDepartmentName(rawDepartment, targetGrade);
+        String department = normalizeDepartmentName(rawDepartment);
 
-        // 학과 명칭 기반으로 ID 매핑 수행
         DepartmentIds ids = mapDepartmentIds(department, rawDepartment);
 
         Course course = buildCourseEntity(row, academicYear, semester, subjectCode, clss, targetGrade, subjectName,
-                department, ids.collegeId(), ids.departmentId());
+                department, ids);
 
-        List<CourseSchedule> schedules = parseSchedules(getColValue(row, "DAYTMCTNT"));
-        if (schedules != null) {
-            schedules.forEach(course::addSchedule);
-        }
+        addSchedulesToCourse(row, course);
 
         return course;
     }
 
-    /**
-     * 정규화된 학과명을 기반으로 단과대 및 학과 ID를 매핑
-     */
+    /** 표준화된 학과명을 기반으로 단과대 및 학과 ID 매핑 */
     private DepartmentIds mapDepartmentIds(String department, String rawDepartment) {
-        if (department == null) {
+        if (department == null || department.isBlank()) {
             return new DepartmentIds(null, null);
         }
 
-        // 복수 학과인 경우(콤마로 구분됨) 첫 번째 학과를 기준으로 매핑 시도
-        String primaryDepartment = department.split(",")[0].trim();
-        return departmentRepository.findByName(primaryDepartment)
-                .map(dept -> new DepartmentIds(dept.getCollege().getId(), dept.getId()))
-                .orElseGet(() -> {
-                    log.warn("[Crawler] 미매핑 학과 발견: '{}' (원본: '{}')", primaryDepartment, rawDepartment);
-                    return new DepartmentIds(null, null);
-                });
+        String[] tokens = department.split(",");
+        for (String token : tokens) {
+            String target = token.trim();
+            if (target.isEmpty()) {
+                continue;
+            }
+
+            Optional<DepartmentIds> result = tryMap(target);
+            if (result.isPresent()) {
+                return result.get();
+            }
+
+            // 괄호 제거 후 재시도
+            String stripped = JbnuDepartmentStandardizer.PARENTHESES_PATTERN.matcher(target).replaceAll("").trim();
+            if (!stripped.equals(target)) {
+                result = tryMap(stripped);
+                if (result.isPresent()) {
+                    return result.get();
+                }
+            }
+        }
+
+        log.warn("[Crawler] Unmapped department found: '{}' (Raw: '{}')", department, rawDepartment);
+        return new DepartmentIds(null, null);
     }
 
-    /**
-     * 매핑된 ID 정보를 담는 내부 레코드
-     */
+    /** 부서 명칭으로 DB에서 ID 조회 */
+    private Optional<DepartmentIds> tryMap(String name) {
+        return departmentRepository.findByName(name)
+                .map(dept -> new DepartmentIds(dept.getCollege().getId(), dept.getId()));
+    }
+
+    /** 학과 및 단과대 ID 보관용 레코드 */
     private record DepartmentIds(Long collegeId, Long departmentId) {
     }
 
-    /**
-     * 파싱된 데이터를 바탕으로 Course 엔티티 빌드
-     */
+    /** Course 엔티티 빌더 로직 수행 */
     private Course buildCourseEntity(Element row, String academicYear, String semester, String subjectCode, String clss,
-            TargetGrade targetGrade, String subjectName, String department, Long collegeId, Long departmentId) {
+            TargetGrade targetGrade, String subjectName, String department, DepartmentIds ids) {
         return Course.builder()
-                .courseKey(String.format("%s:%s:%s:%s", academicYear, semester, subjectCode, clss))
+                .courseKey(generateCourseKey(academicYear, semester, subjectCode, clss))
                 .subjectCode(subjectCode)
                 .name(subjectName)
                 .classNumber(clss)
@@ -126,8 +136,8 @@ public class JbnuCourseParser {
                 .semester(semester)
                 .classification(CourseClassification.from(getColValue(row, "CPTNFGNM")))
                 .department(department)
-                .collegeId(collegeId)
-                .departmentId(departmentId)
+                .collegeId(ids.collegeId())
+                .departmentId(ids.departmentId())
                 .gradingMethod(GradingMethod.from(getColValue(row, "SCORTRETFGNM")))
                 .classTime(getColValue(row, "DAYTMCTNT"))
                 .credits(getColValue(row, "PNT"))
@@ -147,6 +157,20 @@ public class JbnuCourseParser {
                 .build();
     }
 
+    /** 강좌 식별용 고유 키 생성 */
+    private String generateCourseKey(String year, String semester, String code, String clss) {
+        return String.format("%s:%s:%s:%s", year, semester, code, clss);
+    }
+
+    /** 엔티티에 파싱된 스케줄 정보 추가 */
+    private void addSchedulesToCourse(Element row, Course course) {
+        List<CourseSchedule> schedules = parseSchedules(getColValue(row, "DAYTMCTNT"));
+        if (schedules != null) {
+            schedules.forEach(course::addSchedule);
+        }
+    }
+
+    /** 대상 학년 정보 파싱 */
     private TargetGrade parseTargetGrade(String tlsnObjFgnm, String deptNm) {
         TargetGrade fromTlsn = TargetGrade.from(tlsnObjFgnm);
         if (fromTlsn != null) {
@@ -160,7 +184,7 @@ public class JbnuCourseParser {
             return null;
         }
 
-        Matcher matcher = GRADE_IN_DEPT_PATTERN.matcher(deptNm);
+        Matcher matcher = GRADE_IN_DEPT_PATTERN.matcher(" " + deptNm + " ");
         String lastMatchedGrade = null;
         while (matcher.find()) {
             lastMatchedGrade = matcher.group("grade");
@@ -169,6 +193,7 @@ public class JbnuCourseParser {
         return lastMatchedGrade != null ? TargetGrade.from(lastMatchedGrade) : null;
     }
 
+    /** 과목명 정규화 (불필요한 분반 번호 제거) */
     private String normalizeSubjectName(String name, String classNumber) {
         if (name == null || classNumber == null) {
             return name;
@@ -178,7 +203,7 @@ public class JbnuCourseParser {
         Matcher matcher = TRAILING_NUMBER_IN_SUBJECT_PATTERN.matcher(name);
 
         if (matcher.matches()) {
-            String number = matcher.group("number");
+            String number = matcher.group("number").replaceFirst("^0+(?!$)", "");
             if (number.equals(normalizedClassNumber)) {
                 return matcher.group("subjectName").trim();
             }
@@ -187,50 +212,39 @@ public class JbnuCourseParser {
         return name.trim();
     }
 
-    private String normalizeDepartmentName(String rawDepartment, TargetGrade targetGrade) {
+    /** 학과 명칭 표준화 유틸 호출 */
+    private String normalizeDepartmentName(String rawDepartment) {
         if (rawDepartment == null || rawDepartment.isBlank()) {
             return null;
         }
 
-        String gradeNumber = extractGradeNumber(targetGrade);
         String[] tokens = rawDepartment.split(",");
         List<String> normalizedTokens = new ArrayList<>();
 
         for (String token : tokens) {
             String trimmedToken = token.trim();
-            if (trimmedToken.isEmpty()) {
-                continue;
-            }
+            if (trimmedToken.isEmpty()) continue;
 
-            String normalizedToken = JbnuDepartmentStandardizer.normalize(trimmedToken, gradeNumber);
+            String normalizedToken = JbnuDepartmentStandardizer.standardize(trimmedToken);
             if (normalizedToken != null && !normalizedToken.isBlank()) {
                 normalizedTokens.add(normalizedToken);
             }
         }
 
-        return normalizedTokens.isEmpty() ? rawDepartment.trim() : String.join(", ", normalizedTokens);
+        return normalizedTokens.isEmpty() ? "" : String.join(", ", normalizedTokens);
     }
 
-    private String extractGradeNumber(TargetGrade targetGrade) {
-        if (targetGrade == null) {
-            return null;
-        }
-        return targetGrade.name().replace("GRADE_", "");
-    }
-
+    /** XML Row에서 특정 컬럼의 텍스트 추출 */
     private String getColValue(Element row, String colId) {
         Element col = row.selectFirst("Col[id=" + colId + "]");
-        if (col == null) {
-            return null;
-        }
+        if (col == null) return null;
         String value = col.text().trim();
         return (value.isEmpty() || value.equals(":")) ? null : value;
     }
 
+    /** 문자열을 정수로 안전하게 변환 */
     private Integer getSafeInt(String value) {
-        if (value == null || value.isBlank()) {
-            return 0;
-        }
+        if (value == null || value.isBlank()) return 0;
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
@@ -238,6 +252,7 @@ public class JbnuCourseParser {
         }
     }
 
+    /** 강의 시간 문자열을 스케줄 목록으로 파싱 */
     public List<CourseSchedule> parseSchedules(String timeContent) {
         if (timeContent == null || timeContent.isBlank()) {
             return List.of();
@@ -245,38 +260,47 @@ public class JbnuCourseParser {
 
         List<CourseSchedule> schedules = new ArrayList<>();
         String[] tokens = timeContent.split(",");
+        CourseDayOfWeek lastDay = null;
 
         for (String token : tokens) {
-            parseAndAddScheduleTokens(token.trim(), schedules);
+            lastDay = parseTokenAndAddSchedules(token.trim(), schedules, lastDay);
         }
 
         return mergeConsecutiveSchedules(schedules);
     }
 
-    private void parseAndAddScheduleTokens(String token, List<CourseSchedule> schedules) {
+    /** 시간 토큰 분석 및 스케줄 추가 */
+    private CourseDayOfWeek parseTokenAndAddSchedules(String token, List<CourseSchedule> schedules, CourseDayOfWeek lastDay) {
         if (token.isEmpty()) {
-            return;
+            return lastDay;
         }
 
         String[] parts = token.split("\\s+");
-        if (parts.length < 2) {
-            return;
+        CourseDayOfWeek currentDay = CourseDayOfWeek.from(parts[0]);
+        int periodStartIndex = (currentDay != null) ? 1 : 0;
+
+        if (currentDay == null) {
+            currentDay = lastDay;
         }
 
-        CourseDayOfWeek dayOfWeek = CourseDayOfWeek.from(parts[0]);
-        if (dayOfWeek == null) {
-            return;
+        if (currentDay == null) {
+            return null;
         }
 
-        for (int i = 1; i < parts.length; i++) {
-            Matcher matcher = PERIOD_TOKEN_PATTERN.matcher(parts[i]);
-            if (matcher.matches()) {
-                addScheduleFromMatcher(matcher, dayOfWeek, schedules);
-            }
+        for (int i = periodStartIndex; i < parts.length; i++) {
+            parsePeriodAndAddSchedule(parts[i], currentDay, schedules);
         }
+        
+        return currentDay;
     }
 
-    private void addScheduleFromMatcher(Matcher matcher, CourseDayOfWeek dayOfWeek, List<CourseSchedule> schedules) {
+    /** 교시 정보를 파싱하여 스케줄 객체 생성 */
+    private void parsePeriodAndAddSchedule(String periodToken, CourseDayOfWeek dayOfWeek, List<CourseSchedule> schedules) {
+        Matcher matcher = PERIOD_TOKEN_PATTERN.matcher(periodToken);
+        if (!matcher.matches()) {
+            return;
+        }
+
         int period = Integer.parseInt(matcher.group(1));
         String subPeriod = matcher.group(2).toUpperCase();
 
@@ -288,6 +312,7 @@ public class JbnuCourseParser {
         }
     }
 
+    /** 연속된 교시 병합 처리 */
     private List<CourseSchedule> mergeConsecutiveSchedules(List<CourseSchedule> schedules) {
         if (schedules.size() <= 1) {
             return schedules;
@@ -305,6 +330,7 @@ public class JbnuCourseParser {
 
         for (int i = 1; i < schedules.size(); i++) {
             CourseSchedule next = schedules.get(i);
+            
             if (current.getDayOfWeek() == next.getDayOfWeek() && current.getEndTime().equals(next.getStartTime())) {
                 current = new CourseSchedule(current.getDayOfWeek(), current.getStartTime(), next.getEndTime());
             } else {
@@ -313,22 +339,24 @@ public class JbnuCourseParser {
             }
         }
         merged.add(current);
+        
         return merged;
     }
 
+    /** 교시별 시작 시간 계산 */
     private LocalTime calculateStartTime(int period, String subPeriod) {
         int hour = 8 + period;
-        int minute = subPeriod.equals("A") ? 0 : 30;
+        int minute = "A".equals(subPeriod) ? 0 : 30;
         return (hour >= 24) ? LocalTime.MAX : LocalTime.of(hour, minute);
     }
 
+    /** 교시별 종료 시간 계산 */
     private LocalTime calculateEndTime(int period, String subPeriod) {
         int hour = 8 + period;
-        int minute = subPeriod.equals("A") ? 30 : 0;
-        if (subPeriod.equals("B")) {
+        int minute = "A".equals(subPeriod) ? 30 : 0;
+        if ("B".equals(subPeriod)) {
             hour++;
         }
-
         return (hour >= 24) ? LocalTime.of(23, 59, 59) : LocalTime.of(hour, minute);
     }
 }
