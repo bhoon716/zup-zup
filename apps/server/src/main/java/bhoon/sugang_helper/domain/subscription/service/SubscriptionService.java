@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.domain.subscription.service;
 
+import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
 import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
 
 import bhoon.sugang_helper.common.error.CustomException;
@@ -70,8 +71,8 @@ public class SubscriptionService {
             throw new CustomException(ErrorCode.MAX_SUBSCRIPTION_LIMIT_EXCEEDED);
         }
 
-        CourseCrawlerTargetService.CrawlTarget target = crawlerTargetService.getCurrentTargetValue();
-        if (!course.isMatchingTarget(target.year(), target.semester())) {
+        CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
+        if (!course.isMatchingTarget(target.year(), target.semester().getCode())) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "현재 추적 중인 학기의 강의만 구독할 수 있습니다.");
         }
     }

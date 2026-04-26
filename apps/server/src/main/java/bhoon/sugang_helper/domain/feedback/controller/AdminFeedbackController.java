@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.domain.feedback.controller;
 
-import bhoon.sugang_helper.domain.feedback.dto.request.FeedbackReplyCreateRequest;
-import bhoon.sugang_helper.domain.feedback.dto.request.FeedbackReplyUpdateRequest;
-import bhoon.sugang_helper.domain.feedback.dto.request.FeedbackStatusUpdateRequest;
-import bhoon.sugang_helper.domain.feedback.dto.response.FeedbackDetailResponse;
-import bhoon.sugang_helper.domain.feedback.dto.response.FeedbackResponse;
+import bhoon.sugang_helper.domain.feedback.request.FeedbackReplyCreateRequest;
+import bhoon.sugang_helper.domain.feedback.request.FeedbackReplyUpdateRequest;
+import bhoon.sugang_helper.domain.feedback.request.FeedbackStatusUpdateRequest;
+import bhoon.sugang_helper.domain.feedback.response.FeedbackDetailResponse;
+import bhoon.sugang_helper.domain.feedback.response.FeedbackResponse;
 import bhoon.sugang_helper.domain.feedback.service.FeedbackService;
 import bhoon.sugang_helper.domain.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.domain.review.dto.response;
+package bhoon.sugang_helper.domain.review.response;
 
 import bhoon.sugang_helper.domain.review.entity.CourseReview;
 import io.swagger.v3.oas.annotations.media.Schema;

@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.domain.feedback.dto.request;
+package bhoon.sugang_helper.domain.feedback.request;
 
 import jakarta.validation.constraints.NotBlank;
 

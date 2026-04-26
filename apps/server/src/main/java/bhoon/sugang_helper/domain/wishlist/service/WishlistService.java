@@ -7,7 +7,7 @@ import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
-import bhoon.sugang_helper.domain.wishlist.dto.response.WishlistToggleResponse;
+import bhoon.sugang_helper.domain.wishlist.response.WishlistToggleResponse;
 import bhoon.sugang_helper.domain.wishlist.entity.Wishlist;
 import bhoon.sugang_helper.domain.wishlist.repository.WishlistRepository;
 import bhoon.sugang_helper.domain.wishlist.response.WishlistResponse;

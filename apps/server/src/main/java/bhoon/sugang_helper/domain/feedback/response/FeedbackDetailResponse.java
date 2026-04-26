@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.domain.feedback.dto.response;
+package bhoon.sugang_helper.domain.feedback.response;
 
 import bhoon.sugang_helper.domain.feedback.entity.Feedback;
 import bhoon.sugang_helper.domain.feedback.entity.FeedbackAttachment;

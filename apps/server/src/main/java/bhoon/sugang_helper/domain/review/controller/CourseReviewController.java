@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.domain.review.controller;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.domain.review.dto.request.ReviewCreateRequest;
-import bhoon.sugang_helper.domain.review.dto.request.ReviewReactionRequest;
-import bhoon.sugang_helper.domain.review.dto.request.ReviewUpdateRequest;
-import bhoon.sugang_helper.domain.review.dto.response.ReviewResponse;
+import bhoon.sugang_helper.domain.review.request.ReviewCreateRequest;
+import bhoon.sugang_helper.domain.review.request.ReviewReactionRequest;
+import bhoon.sugang_helper.domain.review.request.ReviewUpdateRequest;
+import bhoon.sugang_helper.domain.review.response.ReviewResponse;
 import bhoon.sugang_helper.domain.review.service.CourseReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

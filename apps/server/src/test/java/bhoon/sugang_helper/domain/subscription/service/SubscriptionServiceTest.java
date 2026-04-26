@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.domain.subscription.service;
 
+import bhoon.sugang_helper.domain.course.enums.SemesterType;
+import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
 import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,7 +75,7 @@ class SubscriptionServiceTest {
                     .willReturn(Optional.empty());
             given(subscriptionRepository.countByUserIdAndIsActiveTrue(user.getId())).willReturn(0L);
             given(crawlerTargetService.getCurrentTargetValue())
-                    .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+                    .willReturn(new CrawlTargetInfo("2026", SemesterType.fromCode("U211600010")));
 
             Subscription subscription = Subscription.builder()
                     .userId(user.getId())

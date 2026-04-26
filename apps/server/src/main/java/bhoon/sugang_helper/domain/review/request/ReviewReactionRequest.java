@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.domain.review.dto.request;
+package bhoon.sugang_helper.domain.review.request;
 
 import bhoon.sugang_helper.domain.review.enums.ReactionType;
 import io.swagger.v3.oas.annotations.media.Schema;

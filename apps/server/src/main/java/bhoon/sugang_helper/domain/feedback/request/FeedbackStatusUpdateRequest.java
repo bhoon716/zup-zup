@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.domain.feedback.dto.request;
+package bhoon.sugang_helper.domain.feedback.request;
 
 import bhoon.sugang_helper.domain.feedback.entity.enums.FeedbackStatus;
 import jakarta.validation.constraints.NotNull;

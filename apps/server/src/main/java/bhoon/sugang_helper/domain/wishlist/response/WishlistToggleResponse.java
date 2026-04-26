@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.domain.wishlist.dto.response;
+package bhoon.sugang_helper.domain.wishlist.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
