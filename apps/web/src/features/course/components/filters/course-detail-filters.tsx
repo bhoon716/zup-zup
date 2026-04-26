@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Label } from "@/shared/ui/label";
 import {
   Select,
@@ -25,6 +26,37 @@ import type {
   LectureLanguage,
 } from "@/shared/types/api";
 
+interface CourseDetailFiltersProps {
+  condition: CourseSearchCondition;
+  setCondition: React.Dispatch<React.SetStateAction<CourseSearchCondition>>;
+  classificationType: string | undefined;
+  setClassificationType: (value: string | undefined) => void;
+  gradingType: string | undefined;
+  setGradingType: (value: string | undefined) => void;
+}
+
+export function CourseDetailFilters({
+  condition,
+  setCondition,
+  classificationType,
+  setClassificationType,
+  gradingType,
+  setGradingType,
+}: CourseDetailFiltersProps) {
+  // 교양 영역 상세 옵션 계산
+  const availableDetails: string[] =
+    condition.generalCategory && (GE_CATEGORIES as Record<string, string[]>)[condition.generalCategory]
+      ? (GE_CATEGORIES as Record<string, string[]>)[condition.generalCategory]
+      : [];
+
+  const creditSelectValue =
+    condition.minCredits !== undefined && condition.minCredits >= 4
+      ? "4+"
+      : (condition.credits || "all");
+
+  return (
+    <div className="space-y-4">
+      {/* 이수 구분 (대분류 & 중분류) */}
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">이수 구분</Label>
         <Select
