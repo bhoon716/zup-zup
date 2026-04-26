@@ -5,9 +5,12 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.entity.CourseSeatHistory;
+import bhoon.sugang_helper.domain.course.entity.CourseSchedule;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
+import bhoon.sugang_helper.domain.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,13 +29,9 @@ public class CourseCrawlerService {
     private final ApplicationEventPublisher eventPublisher;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
     private final CourseCrawlerTargetService crawlerTargetService;
+    private final AtomicBoolean isCrawling = new AtomicBoolean(false);
     private final TransactionTemplate transactionTemplate;
 
-    private final AtomicBoolean isCrawling = new AtomicBoolean(false);
-
-    /**
-     * 의존성 주입을 위한 생성자
-     */
     public CourseCrawlerService(CourseRepository courseRepository, JbnuCourseApiClient apiClient,
             JbnuCourseParser courseParser, ApplicationEventPublisher eventPublisher,
             CourseSeatHistoryRepository courseSeatHistoryRepository,
@@ -51,8 +50,8 @@ public class CourseCrawlerService {
      * 강의 크롤링 및 저장 수행 (중복 실행 방지 적용)
      */
     public void crawlAndSaveCourses() {
-        CourseCrawlerTargetService.CrawlTarget target = crawlerTargetService.getCurrentTargetValue();
-        crawlAndSaveCourses(target.year(), target.semester());
+        CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
+        crawlAndSaveCourses(target.year(), target.semester().getCode());
     }
 
     /**
@@ -107,7 +106,7 @@ public class CourseCrawlerService {
         try {
             // API 호출은 트랜잭션 외부에서 수행
             String xmlResponse = apiClient.fetchCourseDataXml(year, semester);
-            List<Course> courses = courseParser.parseCourses(xmlResponse);
+            List<ParsedCourseDto> courses = courseParser.parseCourses(xmlResponse);
 
             int savedCount = processCourses(courses);
 
@@ -124,17 +123,17 @@ public class CourseCrawlerService {
     /**
      * 파싱된 강의 목록을 순회하며 개별 강의 처리 프로세스 실행
      */
-    private int processCourses(List<Course> courses) {
+    private int processCourses(List<ParsedCourseDto> courses) {
         if (courses.isEmpty()) {
             throw new CustomException(ErrorCode.CRAWLER_NO_DATA, "강의 데이터가 비어 있습니다.");
         }
 
-        for (Course course : courses) {
+        for (ParsedCourseDto courseDto : courses) {
             try {
                 // 개별 강의별로 트랜잭션을 분리하여 안정성 확보
-                transactionTemplate.executeWithoutResult(status -> processCourse(course));
+                transactionTemplate.executeWithoutResult(status -> processCourse(courseDto));
             } catch (Exception e) {
-                log.error("[Crawler] Error processing course: courseKey={}, reason={}", course.getCourseKey(),
+                log.error("[Crawler] Error processing course: courseKey={}, reason={}", courseDto.courseKey(),
                         e.getMessage());
                 // 개별 강의 실패는 로그만 남기고 계속 진행
             }
@@ -142,14 +141,53 @@ public class CourseCrawlerService {
         return courses.size();
     }
 
-    /**
-     * 개별 강의별로 트랜잭션을 분리하여 락 경합 및 대량 데이터 처리 안정성 확보
-     */
-    private void processCourse(Course crawledCourse) {
+    private void processCourse(ParsedCourseDto courseDto) {
+        Course crawledCourse = mapToEntity(courseDto);
         courseRepository.findByCourseKey(crawledCourse.getCourseKey())
                 .ifPresentOrElse(
                         existingCourse -> updateExistingCourse(existingCourse, crawledCourse),
                         () -> createNewCourse(crawledCourse));
+    }
+
+    /**
+     * ParsedCourseDto를 Course 엔티티로 변환합니다.
+     */
+    private Course mapToEntity(ParsedCourseDto dto) {
+        Course course = Course.builder()
+                .courseKey(dto.courseKey())
+                .subjectCode(dto.subjectCode())
+                .classNumber(dto.classNumber())
+                .name(dto.name())
+                .professor(dto.professor())
+                .capacity(dto.capacity())
+                .current(dto.current())
+                .targetGrade(dto.targetGrade())
+                .academicYear(dto.academicYear())
+                .semester(dto.semester())
+                .classification(dto.classification())
+                .department(dto.department())
+                .gradingMethod(dto.gradingMethod())
+                .lectureLanguage(dto.lectureLanguage())
+                .classTime(dto.classTime())
+                .credits(dto.credits())
+                .disclosure(dto.disclosure())
+                .disclosureReason(dto.disclosureReason())
+                .lectureHours(dto.lectureHours())
+                .generalCategory(dto.generalCategory())
+                .generalDetail(dto.generalDetail())
+                .accreditation(dto.accreditation())
+                .status(dto.status())
+                .classroom(dto.classroom())
+                .hasSyllabus(dto.hasSyllabus())
+                .generalCategoryByYear(dto.generalCategoryByYear())
+                .courseDirection(dto.courseDirection())
+                .classDuration(dto.classDuration())
+                .build();
+
+        if (dto.schedules() != null) {
+            dto.schedules().forEach(s -> course.addSchedule(new CourseSchedule(s.dayOfWeek(), s.startTime(), s.endTime())));
+        }
+        return course;
     }
 
     /**

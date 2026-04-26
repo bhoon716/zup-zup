@@ -1,15 +1,7 @@
 package bhoon.sugang_helper.domain.course.service;
+import bhoon.sugang_helper.domain.course.dto.ParsedCourseDto;
 
-import bhoon.sugang_helper.domain.course.entity.Course;
-import bhoon.sugang_helper.domain.course.entity.CourseSchedule;
-import bhoon.sugang_helper.domain.course.enums.CourseAccreditation;
-import bhoon.sugang_helper.domain.course.enums.CourseClassification;
-import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
-import bhoon.sugang_helper.domain.course.enums.CourseStatus;
-import bhoon.sugang_helper.domain.course.enums.DisclosureStatus;
-import bhoon.sugang_helper.domain.course.enums.GradingMethod;
-import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
-import bhoon.sugang_helper.domain.course.enums.TargetGrade;
+import bhoon.sugang_helper.domain.course.enums.*;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,10 +30,10 @@ public class JbnuCourseParser {
             .compile("^(?<before>.*?)(?:\\s+)(?<grade>[1-6])(?:학년)?(?:\\s*등)?$");
 
     /**
-     * XML 데이터를 파싱하여 강의 리스트로 변환
+     * XML 데이터를 파싱하여 ParsedCourseDto 리스트로 변환합니다.
      */
-    public List<Course> parseCourses(String xmlData) {
-        List<Course> courseList = new ArrayList<>();
+    public List<ParsedCourseDto> parseCourses(String xmlData) {
+        List<ParsedCourseDto> courseList = new ArrayList<>();
         Document doc = Jsoup.parse(xmlData, "", Parser.xmlParser());
 
         Elements rows = doc.select("Dataset[id=" + DATASET_ID + "] > Rows > Row");
@@ -57,9 +49,9 @@ public class JbnuCourseParser {
     }
 
     /**
-     * 단일 행(Row) 데이터를 파싱하여 강의 객체 생성
+     * 단일 행(Row) 데이터를 파싱하여 ParsedCourseDto 객체를 생성합니다.
      */
-    private Optional<Course> processRow(Element row) {
+    private Optional<ParsedCourseDto> processRow(Element row) {
         String sbjtCd = getColValue(row, "SBJTCD");
         String clss = getColValue(row, "CLSS");
         String year = getColValue(row, "YY");
@@ -78,40 +70,37 @@ public class JbnuCourseParser {
         String subjectName = normalizeSubjectName(getColValue(row, "SBJTNM"), clss);
         String department = normalizeDepartmentName(rawDepartment, targetGrade);
 
-        Course course = Course.builder()
-                .courseKey(generateCourseKey(year, semester, sbjtCd, clss))
-                .subjectCode(sbjtCd)
-                .classNumber(clss)
-                .name(subjectName)
-                .professor(getColValue(row, "RPSTPROFNM"))
-                .capacity(safeParseInt(getColValue(row, "LMTRCNT")))
-                .current(safeParseInt(getColValue(row, "TLSNRCNT")))
-                .targetGrade(targetGrade)
-                .academicYear(year)
-                .semester(semester)
-                .classification(CourseClassification.from(getColValue(row, "CPTNFGNM")))
-                .department(department)
-                .gradingMethod(GradingMethod.from(getColValue(row, "SCORTRETFGNM")))
-                .lectureLanguage(LectureLanguage.from(getColValue(row, "LTLANGFGNM")))
-                .classTime(getColValue(row, "DAYTMCTNT"))
-                .credits(getColValue(row, "PNT"))
-                .disclosure(statusInfo.disclosure)
-                .disclosureReason(statusInfo.disclosureReason)
-                .lectureHours(safeParseInt(getColValue(row, "TM")))
-                .generalCategory(liberalArts.category)
-                .generalDetail(liberalArts.detail)
-                .accreditation(CourseAccreditation.from(getColValue(row, "VLDFGNM")))
-                .status(CourseStatus.from(getColValue(row, "OPENLECTFGNM")))
-                .classroom(getColValue(row, "VILROOMNOCTNT"))
-                .hasSyllabus("Y".equalsIgnoreCase(getColValue(row, "SUBPLANYN")))
-                .generalCategoryByYear(getColValue(row, "FLDCONVINFO"))
-                .courseDirection(getColValue(row, "CLSSOPRTDRCT"))
-                .classDuration(getColValue(row, "LESSTMFGNM"))
-                .build();
-
-        parseSchedules(getColValue(row, "DAYTMCTNT")).forEach(course::addSchedule);
-
-        return Optional.of(course);
+        return Optional.of(new ParsedCourseDto(
+                generateCourseKey(year, semester, sbjtCd, clss),
+                sbjtCd,
+                subjectName,
+                clss,
+                getColValue(row, "RPSTPROFNM"),
+                safeParseInt(getColValue(row, "LMTRCNT")),
+                safeParseInt(getColValue(row, "TLSNRCNT")),
+                targetGrade,
+                year,
+                semester,
+                CourseClassification.from(getColValue(row, "CPTNFGNM")),
+                department,
+                GradingMethod.from(getColValue(row, "SCORTRETFGNM")),
+                getColValue(row, "DAYTMCTNT"),
+                getColValue(row, "PNT"),
+                LectureLanguage.from(getColValue(row, "LTLANGFGNM")),
+                statusInfo.disclosure,
+                statusInfo.disclosureReason,
+                safeParseInt(getColValue(row, "TM")),
+                liberalArts.category,
+                liberalArts.detail,
+                CourseAccreditation.from(getColValue(row, "VLDFGNM")),
+                CourseStatus.from(getColValue(row, "OPENLECTFGNM")),
+                getColValue(row, "VILROOMNOCTNT"),
+                "Y".equalsIgnoreCase(getColValue(row, "SUBPLANYN")),
+                getColValue(row, "FLDCONVINFO"),
+                getColValue(row, "CLSSOPRTDRCT"),
+                getColValue(row, "LESSTMFGNM"),
+                parseSchedules(getColValue(row, "DAYTMCTNT"))
+        ));
     }
 
     /**
@@ -286,10 +275,10 @@ public class JbnuCourseParser {
     }
 
     /**
-     * 시간 정보 문자열을 파싱하여 시간표 리스트 생성
+     * 시간 정보 문자열을 파싱하여 스케줄 DTO 리스트를 생성합니다.
      */
-    private List<CourseSchedule> parseSchedules(String timeString) {
-        List<CourseSchedule> schedules = new ArrayList<>();
+    private List<ParsedCourseDto.ScheduleDto> parseSchedules(String timeString) {
+        List<ParsedCourseDto.ScheduleDto> schedules = new ArrayList<>();
         if (timeString == null || timeString.isBlank()) {
             return schedules;
         }
@@ -301,7 +290,7 @@ public class JbnuCourseParser {
                 continue;
             }
 
-            CourseSchedule schedule = parseCourseSchedule(trimmedToken.split("\\s+"));
+            ParsedCourseDto.ScheduleDto schedule = parseCourseSchedule(trimmedToken.split("\\s+"));
             if (schedule == null) {
                 continue;
             }
@@ -310,7 +299,7 @@ public class JbnuCourseParser {
         return mergeConsecutiveSchedules(schedules);
     }
 
-    private CourseSchedule parseCourseSchedule(String[] parts) {
+    private ParsedCourseDto.ScheduleDto parseCourseSchedule(String[] parts) {
         if (parts.length < 2) {
             return null;
         }
@@ -322,39 +311,31 @@ public class JbnuCourseParser {
             return null;
         }
 
-        return CourseSchedule.builder()
-                .dayOfWeek(day)
-                .startTime(timeRange.start())
-                .endTime(timeRange.end())
-                .build();
+        return new ParsedCourseDto.ScheduleDto(day, timeRange.start(), timeRange.end());
     }
 
     /**
-     * 연속된 시간대 정보를 하나의 시간대로 병합 (예: 1A, 1B -> 1시간)
+     * 연속된 시간대 정보를 하나의 시간대로 병합합니다. (예: 1A, 1B -> 1시간)
      */
-    private List<CourseSchedule> mergeConsecutiveSchedules(List<CourseSchedule> schedules) {
+    private List<ParsedCourseDto.ScheduleDto> mergeConsecutiveSchedules(List<ParsedCourseDto.ScheduleDto> schedules) {
         if (schedules.isEmpty()) {
             return schedules;
         }
 
-        List<CourseSchedule> sorted = schedules.stream()
+        List<ParsedCourseDto.ScheduleDto> sorted = schedules.stream()
                 .sorted(Comparator
-                        .comparing((CourseSchedule schedule) -> schedule.getDayOfWeek().ordinal())
-                        .thenComparing(CourseSchedule::getStartTime))
+                        .comparing((ParsedCourseDto.ScheduleDto schedule) -> schedule.dayOfWeek().ordinal())
+                        .thenComparing(ParsedCourseDto.ScheduleDto::startTime))
                 .toList();
 
-        List<CourseSchedule> merged = new ArrayList<>();
-        CourseSchedule current = sorted.get(0);
+        List<ParsedCourseDto.ScheduleDto> merged = new ArrayList<>();
+        ParsedCourseDto.ScheduleDto current = sorted.get(0);
 
         for (int i = 1; i < sorted.size(); i++) {
-            CourseSchedule next = sorted.get(i);
-            if (current.getDayOfWeek() == next.getDayOfWeek()
-                    && current.getEndTime().equals(next.getStartTime())) {
-                current = CourseSchedule.builder()
-                        .dayOfWeek(current.getDayOfWeek())
-                        .startTime(current.getStartTime())
-                        .endTime(next.getEndTime())
-                        .build();
+            ParsedCourseDto.ScheduleDto next = sorted.get(i);
+            if (current.dayOfWeek() == next.dayOfWeek()
+                    && current.endTime().equals(next.startTime())) {
+                current = new ParsedCourseDto.ScheduleDto(current.dayOfWeek(), current.startTime(), next.endTime());
                 continue;
             }
 

@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.domain.course.service;
+import bhoon.sugang_helper.domain.course.dto.ParsedCourseDto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.domain.course.enums.TargetGrade;
 import java.time.LocalTime;
@@ -77,48 +77,48 @@ class JbnuCourseParserTest {
                 """;
 
         // When
-        List<Course> courses = parser.parseCourses(xmlData);
+        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
 
         // Then
         assertThat(courses).hasSize(2);
 
         // 1. 핵심교양과목 검증
-        Course course1 = courses.stream().filter(c -> c.getSubjectCode().equals("10001")).findFirst().orElseThrow();
-        assertThat(course1.getName()).isEqualTo("핵심교양과목");
-        assertThat(course1.getProfessor()).isEqualTo("진교수");
-        assertThat(course1.getCourseKey()).isEqualTo("2026:10:10001:01");
-        assertThat(course1.getGeneralCategory()).isEqualTo("균형교양");
-        assertThat(course1.getGeneralDetail()).isEqualTo("삶과사회");
-        assertThat(course1.getClassification().getDescription()).isEqualTo("교양");
-        assertThat(course1.getCapacity()).isEqualTo(40);
-        assertThat(course1.getCurrent()).isEqualTo(10);
-        assertThat(course1.getAvailable()).isEqualTo(30);
-        assertThat(course1.getHasSyllabus()).isTrue();
-        assertThat(course1.getSchedules()).hasSize(2);
-        assertThat(course1.getSchedules().get(0).getDayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
-        assertThat(course1.getSchedules().get(0).getStartTime()).isEqualTo(LocalTime.of(9, 0));
-        assertThat(course1.getSchedules().get(0).getEndTime()).isEqualTo(LocalTime.of(10, 0));
-        assertThat(course1.getSchedules().get(1).getDayOfWeek()).isEqualTo(CourseDayOfWeek.WEDNESDAY);
-        assertThat(course1.getSchedules().get(1).getStartTime()).isEqualTo(LocalTime.of(9, 0));
-        assertThat(course1.getSchedules().get(1).getEndTime()).isEqualTo(LocalTime.of(9, 30));
+        ParsedCourseDto course1 = courses.stream().filter(c -> c.subjectCode().equals("10001")).findFirst().orElseThrow();
+        assertThat(course1.name()).isEqualTo("핵심교양과목");
+        assertThat(course1.professor()).isEqualTo("진교수");
+        assertThat(course1.courseKey()).isEqualTo("2026:10:10001:01");
+        assertThat(course1.generalCategory()).isEqualTo("균형교양");
+        assertThat(course1.generalDetail()).isEqualTo("삶과사회");
+        assertThat(course1.classification().getDescription()).isEqualTo("교양");
+        assertThat(course1.capacity()).isEqualTo(40);
+        assertThat(course1.current()).isEqualTo(10);
+        assertThat(course1.capacity() - course1.current()).isEqualTo(30);
+        assertThat(course1.hasSyllabus()).isTrue();
+        assertThat(course1.schedules()).hasSize(2);
+        assertThat(course1.schedules().get(0).dayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
+        assertThat(course1.schedules().get(0).startTime()).isEqualTo(LocalTime.of(9, 0));
+        assertThat(course1.schedules().get(0).endTime()).isEqualTo(LocalTime.of(10, 0));
+        assertThat(course1.schedules().get(1).dayOfWeek()).isEqualTo(CourseDayOfWeek.WEDNESDAY);
+        assertThat(course1.schedules().get(1).startTime()).isEqualTo(LocalTime.of(9, 0));
+        assertThat(course1.schedules().get(1).endTime()).isEqualTo(LocalTime.of(9, 30));
 
         // 2. 전공선택과목 검증
-        Course course2 = courses.stream().filter(c -> c.getSubjectCode().equals("20002")).findFirst().orElseThrow();
-        assertThat(course2.getName()).isEqualTo("전공선택과목");
-        assertThat(course2.getClassification().getDescription()).isEqualTo("전공선택");
-        assertThat(course2.getDepartment()).isEqualTo("컴퓨터공학부");
-        assertThat(course2.getLectureHours()).isEqualTo(4);
-        assertThat(course2.getLectureLanguage().getValue()).isEqualTo("영어");
-        assertThat(course2.getDisclosure().getDescription()).isEqualTo("비공개");
-        assertThat(course2.getDisclosureReason()).isEqualTo("학과요청");
-        assertThat(course2.getAccreditation().getDescription()).isEqualTo("공학");
-        assertThat(course2.getGeneralCategory()).isNull();
+        ParsedCourseDto course2 = courses.stream().filter(c -> c.subjectCode().equals("20002")).findFirst().orElseThrow();
+        assertThat(course2.name()).isEqualTo("전공선택과목");
+        assertThat(course2.classification().getDescription()).isEqualTo("전공선택");
+        assertThat(course2.department()).isEqualTo("컴퓨터공학부");
+        assertThat(course2.lectureHours()).isEqualTo(4);
+        assertThat(course2.lectureLanguage().getValue()).isEqualTo("영어");
+        assertThat(course2.disclosure().getDescription()).isEqualTo("비공개");
+        assertThat(course2.disclosureReason()).isEqualTo("학과요청");
+        assertThat(course2.accreditation().getDescription()).isEqualTo("공학");
+        assertThat(course2.generalCategory()).isNull();
 
-        assertThat(course2.getSchedules()).hasSize(2);
-        assertThat(course2.getSchedules().get(0).getStartTime()).isEqualTo(LocalTime.of(11, 0));
-        assertThat(course2.getSchedules().get(0).getEndTime()).isEqualTo(LocalTime.of(12, 0));
-        assertThat(course2.getSchedules().get(1).getStartTime()).isEqualTo(LocalTime.of(11, 0));
-        assertThat(course2.getSchedules().get(1).getEndTime()).isEqualTo(LocalTime.of(12, 0));
+        assertThat(course2.schedules()).hasSize(2);
+        assertThat(course2.schedules().get(0).startTime()).isEqualTo(LocalTime.of(11, 0));
+        assertThat(course2.schedules().get(0).endTime()).isEqualTo(LocalTime.of(12, 0));
+        assertThat(course2.schedules().get(1).startTime()).isEqualTo(LocalTime.of(11, 0));
+        assertThat(course2.schedules().get(1).endTime()).isEqualTo(LocalTime.of(12, 0));
     }
 
     @Test
@@ -138,16 +138,16 @@ class JbnuCourseParserTest {
                 </Dataset>
                 """;
 
-        List<Course> courses = parser.parseCourses(xmlData);
+        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
 
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getSchedules()).hasSize(2);
-        assertThat(courses.get(0).getSchedules().get(0).getDayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
-        assertThat(courses.get(0).getSchedules().get(0).getStartTime()).isEqualTo(LocalTime.of(9, 0));
-        assertThat(courses.get(0).getSchedules().get(0).getEndTime()).isEqualTo(LocalTime.of(10, 0));
-        assertThat(courses.get(0).getSchedules().get(1).getDayOfWeek()).isEqualTo(CourseDayOfWeek.WEDNESDAY);
-        assertThat(courses.get(0).getSchedules().get(1).getStartTime()).isEqualTo(LocalTime.of(9, 0));
-        assertThat(courses.get(0).getSchedules().get(1).getEndTime()).isEqualTo(LocalTime.of(9, 30));
+        assertThat(courses.get(0).schedules()).hasSize(2);
+        assertThat(courses.get(0).schedules().get(0).dayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
+        assertThat(courses.get(0).schedules().get(0).startTime()).isEqualTo(LocalTime.of(9, 0));
+        assertThat(courses.get(0).schedules().get(0).endTime()).isEqualTo(LocalTime.of(10, 0));
+        assertThat(courses.get(0).schedules().get(1).dayOfWeek()).isEqualTo(CourseDayOfWeek.WEDNESDAY);
+        assertThat(courses.get(0).schedules().get(1).startTime()).isEqualTo(LocalTime.of(9, 0));
+        assertThat(courses.get(0).schedules().get(1).endTime()).isEqualTo(LocalTime.of(9, 30));
     }
 
     @Test
@@ -167,13 +167,13 @@ class JbnuCourseParserTest {
                 </Dataset>
                 """;
 
-        List<Course> courses = parser.parseCourses(xmlData);
+        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
 
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getSchedules()).hasSize(1);
-        assertThat(courses.get(0).getSchedules().get(0).getDayOfWeek()).isEqualTo(CourseDayOfWeek.TUESDAY);
-        assertThat(courses.get(0).getSchedules().get(0).getStartTime()).isEqualTo(LocalTime.of(11, 30));
-        assertThat(courses.get(0).getSchedules().get(0).getEndTime()).isEqualTo(LocalTime.of(12, 0));
+        assertThat(courses.get(0).schedules()).hasSize(1);
+        assertThat(courses.get(0).schedules().get(0).dayOfWeek()).isEqualTo(CourseDayOfWeek.TUESDAY);
+        assertThat(courses.get(0).schedules().get(0).startTime()).isEqualTo(LocalTime.of(11, 30));
+        assertThat(courses.get(0).schedules().get(0).endTime()).isEqualTo(LocalTime.of(12, 0));
     }
 
     @Test
@@ -194,10 +194,10 @@ class JbnuCourseParserTest {
                 </Dataset>
                 """;
 
-        List<Course> courses = parser.parseCourses(xmlData);
+        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
 
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getTargetGrade().getDescription()).isEqualTo("3학년");
+        assertThat(courses.get(0).targetGrade().getDescription()).isEqualTo("3학년");
     }
 
     @Test
@@ -218,10 +218,10 @@ class JbnuCourseParserTest {
                 </Dataset>
                 """;
 
-        List<Course> courses = parser.parseCourses(xmlData);
+        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
 
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getTargetGrade().getDescription()).isEqualTo("3학년");
+        assertThat(courses.get(0).targetGrade().getDescription()).isEqualTo("3학년");
     }
 
     @Test
@@ -242,10 +242,10 @@ class JbnuCourseParserTest {
                 </Dataset>
                 """;
 
-        List<Course> courses = parser.parseCourses(xmlData);
+        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
 
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.GRADE_1);
+        assertThat(courses.get(0).targetGrade()).isEqualTo(TargetGrade.GRADE_1);
     }
 
     @Test
@@ -267,11 +267,11 @@ class JbnuCourseParserTest {
                 """;
 
         // when
-        List<Course> courses = parser.parseCourses(xmlData);
+        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
 
         // then
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getName()).isEqualTo("가구와실내디자인");
+        assertThat(courses.get(0).name()).isEqualTo("가구와실내디자인");
     }
 
     @Test
@@ -293,11 +293,11 @@ class JbnuCourseParserTest {
                 """;
 
         // when
-        List<Course> courses = parser.parseCourses(xmlData);
+        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
 
         // then
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getName()).isEqualTo("가구디자인 3");
+        assertThat(courses.get(0).name()).isEqualTo("가구디자인 3");
     }
 
     @Test
@@ -320,12 +320,12 @@ class JbnuCourseParserTest {
                 """;
 
         // when
-        List<Course> courses = parser.parseCourses(xmlData);
+        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
 
         // then
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getDepartment()).isEqualTo("영어영문");
-        assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.GRADE_3);
+        assertThat(courses.get(0).department()).isEqualTo("영어영문");
+        assertThat(courses.get(0).targetGrade()).isEqualTo(TargetGrade.GRADE_3);
     }
 
     @Test
@@ -348,11 +348,11 @@ class JbnuCourseParserTest {
                 """;
 
         // when
-        List<Course> courses = parser.parseCourses(xmlData);
+        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
 
         // then
         assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).getDepartment()).isEqualTo("기계시스템, 기계시스템(정밀기계)");
-        assertThat(courses.get(0).getTargetGrade()).isEqualTo(TargetGrade.GRADE_3);
+        assertThat(courses.get(0).department()).isEqualTo("기계시스템, 기계시스템(정밀기계)");
+        assertThat(courses.get(0).targetGrade()).isEqualTo(TargetGrade.GRADE_3);
     }
 }

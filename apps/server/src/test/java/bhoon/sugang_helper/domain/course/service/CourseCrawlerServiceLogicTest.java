@@ -1,4 +1,5 @@
 package bhoon.sugang_helper.domain.course.service;
+import bhoon.sugang_helper.domain.course.dto.ParsedCourseDto;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -10,6 +11,9 @@ import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
+import bhoon.sugang_helper.domain.course.enums.SemesterType;
+import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
+import java.util.Collections;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -75,19 +79,11 @@ class CourseCrawlerServiceLogicTest {
                 """;
 
         given(crawlerTargetService.getCurrentTargetValue())
-                .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+                .willReturn(new CrawlTargetInfo("2026", SemesterType.fromCode("U211600010")));
         given(apiClient.fetchCourseDataXml("2026", "U211600010")).willReturn(mockXml);
 
-        Course crawledCourse = Course.builder()
-                .courseKey("12345:01")
-                .subjectCode("12345")
-                .classNumber("01")
-                .name("Test Course")
-                .professor("Prof. Test")
-                .capacity(50)
-                .current(49)
-                .build();
-        given(courseParser.parseCourses(mockXml)).willReturn(List.of(crawledCourse));
+        ParsedCourseDto dto = createCourseDto("12345:01", 50, 49);
+        given(courseParser.parseCourses(mockXml)).willReturn(List.of(dto));
 
         Course existingCourse = Course.builder()
                 .courseKey("12345:01")
@@ -132,17 +128,11 @@ class CourseCrawlerServiceLogicTest {
                 """;
 
         given(crawlerTargetService.getCurrentTargetValue())
-                .willReturn(new CourseCrawlerTargetService.CrawlTarget("2026", "U211600010"));
+                .willReturn(new CrawlTargetInfo("2026", SemesterType.fromCode("U211600010")));
         given(apiClient.fetchCourseDataXml("2026", "U211600010")).willReturn(mockXml);
 
-        Course crawledCourse = Course.builder()
-                .courseKey("12345:01")
-                .subjectCode("12345")
-                .classNumber("01")
-                .capacity(50)
-                .current(48)
-                .build();
-        given(courseParser.parseCourses(mockXml)).willReturn(List.of(crawledCourse));
+        ParsedCourseDto dto = createCourseDto("12345:01", 50, 48);
+        given(courseParser.parseCourses(mockXml)).willReturn(List.of(dto));
 
         Course existingCourse = Course.builder()
                 .courseKey("12345:01")
@@ -159,5 +149,14 @@ class CourseCrawlerServiceLogicTest {
 
         // Then
         verify(eventPublisher, never()).publishEvent(any(SeatOpenedEvent.class));
+    }
+    private ParsedCourseDto createCourseDto(String courseKey, int capacity, int current) {
+        return new ParsedCourseDto(
+                courseKey, "12345", "Test Course", "01", "Prof. Test",
+                capacity, current, null, "2026", "U211600010",
+                null, "학과", null, "월 1-A", "3",
+                null, null, null, 3, null,
+                null, null, null, "강의실", true,
+                null, null, null, Collections.emptyList());
     }
 }

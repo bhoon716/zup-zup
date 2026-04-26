@@ -11,6 +11,7 @@ import bhoon.sugang_helper.domain.course.response.CourseCategoryResponse;
 import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
+import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
 import bhoon.sugang_helper.domain.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
@@ -36,7 +37,7 @@ public class CourseService {
      * 필터 조건과 페이징 정보를 사용하여 강의 목록을 검색
      */
     public Slice<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
-        CourseCrawlerTargetService.CrawlTarget target = crawlerTargetService.getCurrentTargetValue();
+        CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
         if (Boolean.TRUE.equals(condition.getIsWishedOnly())) {
             String email = SecurityUtil.getCurrentUserEmail();
             User user = userRepository.findByEmail(email)
@@ -44,7 +45,7 @@ public class CourseService {
             condition.setUserId(user.getId());
         }
         return courseRepository.searchCourses(condition, pageable)
-                .map(course -> CourseResponse.from(course, target.year(), target.semester()));
+                .map(course -> CourseResponse.from(course, target.year(), target.semester().getCode()));
     }
 
     /**
@@ -76,7 +77,7 @@ public class CourseService {
     public CourseDetailResponse getCourse(String courseKey) {
         Course course = courseRepository.findByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "강의를 찾을 수 없습니다: " + courseKey));
-        CourseCrawlerTargetService.CrawlTarget target = crawlerTargetService.getCurrentTargetValue();
+        CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
 
         boolean isReviewed = false;
         String email = SecurityUtil.getCurrentUserEmailOrNull();
@@ -86,6 +87,6 @@ public class CourseService {
                     .orElse(false);
         }
 
-        return CourseDetailResponse.from(course, target.year(), target.semester(), isReviewed);
+        return CourseDetailResponse.from(course, target.year(), target.semester().getCode(), isReviewed);
     }
 }

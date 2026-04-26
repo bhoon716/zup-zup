@@ -6,6 +6,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.CrawlerSetting;
 import bhoon.sugang_helper.domain.course.repository.CrawlerSettingRepository;
 import bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse;
+import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -37,27 +38,27 @@ public class CourseCrawlerTargetService {
      */
     @Transactional
     public AdminCrawlTargetResponse updateTarget(String year, String semester) {
-        CrawlTarget target = normalizeTarget(year, semester);
+        CrawlTargetInfo target = normalizeTarget(year, semester);
         CrawlerSetting setting = getOrCreateSetting();
-        setting.updateTarget(target.year(), target.semester());
+        setting.updateTarget(target.year(), target.semester().getCode());
         return toResponse(setting);
     }
 
     /**
      * 현재 크롤링 타겟의 원시 값(record 형식)을 조회합니다.
      */
-    public CrawlTarget getCurrentTargetValue() {
+    public CrawlTargetInfo getCurrentTargetValue() {
         CrawlerSetting setting = getOrCreateSetting();
-        return new CrawlTarget(setting.getTargetYear(), setting.getTargetSemester());
+        return new CrawlTargetInfo(setting.getTargetYear(), SemesterType.fromCode(setting.getTargetSemester()));
     }
 
     /**
      * 입력된 년도와 학기 문자열을 검증하고 정규화합니다.
      */
-    public CrawlTarget normalizeTarget(String year, String semester) {
+    public CrawlTargetInfo normalizeTarget(String year, String semester) {
         String normalizedYear = normalizeYear(year);
-        String normalizedSemester = normalizeSemester(semester);
-        return new CrawlTarget(normalizedYear, normalizedSemester);
+        SemesterType normalizedSemester = normalizeSemesterType(semester);
+        return new CrawlTargetInfo(normalizedYear, normalizedSemester);
     }
 
     /**
@@ -75,20 +76,27 @@ public class CourseCrawlerTargetService {
     }
 
     /**
-     * 학기 코드 문자열을 검증하고 공백을 제거합니다.
+     * 학기 코드 문자열을 검증하고 SemesterType을 반환합니다.
      */
-    private String normalizeSemester(String semester) {
+    private SemesterType normalizeSemesterType(String semester) {
         if (semester == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "학기 코드는 필수입니다.");
         }
         String normalized = semester.trim();
         try {
-            return SemesterType.fromCode(normalized).getCode();
+            return SemesterType.fromCode(normalized);
         } catch (CustomException e) {
             // 지원하는 학기 목록을 포함한 더 친절한 에러 메시지로 보강
             throw new CustomException(ErrorCode.INVALID_INPUT,
                     "지원하지 않는 학기 코드입니다. (지원대상: 1학기, 2학기, 하기/동기 계절학기, 여름/겨울/신입생/SW 특별학기)");
         }
+    }
+
+    /**
+     * 학기 코드 문자열을 검증하고 공백을 제거합니다.
+     */
+    private String normalizeSemester(String semester) {
+        return normalizeSemesterType(semester).getCode();
     }
 
     /**
@@ -111,11 +119,5 @@ public class CourseCrawlerTargetService {
                 .year(setting.getTargetYear())
                 .semester(setting.getTargetSemester())
                 .build();
-    }
-
-    /**
-     * 크롤링 타겟 정보를 담는 레코드입니다.
-     */
-    public record CrawlTarget(String year, String semester) {
     }
 }

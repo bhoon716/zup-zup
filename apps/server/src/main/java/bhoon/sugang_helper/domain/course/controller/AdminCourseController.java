@@ -3,6 +3,7 @@ package bhoon.sugang_helper.domain.course.controller;
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.domain.course.request.AdminCrawlTargetRequest;
 import bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse;
+import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
 import bhoon.sugang_helper.domain.course.service.CourseCrawlerService;
 import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -64,10 +65,10 @@ public class AdminCourseController {
     @PostMapping("/crawl/target")
     public ResponseEntity<CommonResponse<String>> crawlCoursesByTarget(
             @Valid @RequestBody AdminCrawlTargetRequest request) {
-        CourseCrawlerTargetService.CrawlTarget target = crawlerTargetService.normalizeTarget(request.getYear(),
+        CrawlTargetInfo target = crawlerTargetService.normalizeTarget(request.getYear(),
                 request.getSemester());
-        courseCrawlerService.crawlAndSaveCourses(target.year(), target.semester());
-        String message = String.format("년도 %s, 학기 %s 크롤링 작업을 실행했습니다.", target.year(), target.semester());
+        courseCrawlerService.crawlAndSaveCourses(target.year(), target.semester().getCode());
+        String message = String.format("년도 %s, 학기 %s 크롤링 작업을 실행했습니다.", target.year(), target.semester().getDescription());
         return CommonResponse.ok(message, message);
     }
 }

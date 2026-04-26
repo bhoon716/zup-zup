@@ -1,4 +1,5 @@
 package bhoon.sugang_helper.domain.course.service;
+import bhoon.sugang_helper.domain.course.dto.ParsedCourseDto;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -10,6 +11,7 @@ import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.entity.CourseSeatHistory;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
+import java.util.Collections;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,74 +50,84 @@ class CourseCrawlerServiceTest {
                                 courseSeatHistoryRepository, crawlerTargetService, transactionManager);
         }
 
-        @Test
-        @DisplayName("완전히 새로운 강의는 첫 크롤링 시 반드시 이력을 저장한다")
-        void processCourse_newCourse_savesHistory() {
-                // given
-                Course crawledCourse = createCourse("CK1", 50, 10);
-                given(courseRepository.findByCourseKey("CK1")).willReturn(Optional.empty());
+    @Test
+    @DisplayName("완전히 새로운 강의는 첫 크롤링 시 반드시 이력을 저장한다")
+    void processCourse_newCourse_savesHistory() {
+        // given
+        ParsedCourseDto dto = createCourseDto("CK1", 50, 10);
+        given(courseRepository.findByCourseKey("CK1")).willReturn(Optional.empty());
 
-                // when
-                ReflectionTestUtils.invokeMethod(courseCrawlerService, "processCourse", crawledCourse);
+        // when
+        ReflectionTestUtils.invokeMethod(courseCrawlerService, "processCourse", dto);
 
-                // then
-                verify(courseRepository, times(1)).save(any(Course.class));
-                verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
-        }
+        // then
+        verify(courseRepository, times(1)).save(any(Course.class));
+        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
+    }
 
-        @Test
-        @DisplayName("기존 강의의 인원이 변경된 경우 이력을 저장한다")
-        void processCourse_existingCourse_withChange_savesHistory() {
-                // given
-                Course existingCourse = createCourse("CK1", 50, 10);
-                Course crawledCourse = createCourse("CK1", 50, 15); // 현재 인원 변경 (10 -> 15)
-                given(courseRepository.findByCourseKey("CK1")).willReturn(Optional.of(existingCourse));
+    @Test
+    @DisplayName("기존 강의의 인원이 변경된 경우 이력을 저장한다")
+    void processCourse_existingCourse_withChange_savesHistory() {
+        // given
+        Course existingCourse = createCourse("CK1", 50, 10);
+        ParsedCourseDto dto = createCourseDto("CK1", 50, 15); // 현재 인원 변경 (10 -> 15)
+        given(courseRepository.findByCourseKey("CK1")).willReturn(Optional.of(existingCourse));
 
-                // when
-                ReflectionTestUtils.invokeMethod(courseCrawlerService, "processCourse", crawledCourse);
+        // when
+        ReflectionTestUtils.invokeMethod(courseCrawlerService, "processCourse", dto);
 
-                // then
-                verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
-        }
+        // then
+        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
+    }
 
-        @Test
-        @DisplayName("기존 강의의 인원 변경이 없는 경우 이력을 저장하지 않는다")
-        void processCourse_existingCourse_noChange_doesNotSaveHistory() {
-                // given
-                Course existingCourse = createCourse("CK1", 50, 10);
-                Course crawledCourse = createCourse("CK1", 50, 10); // 동일한 인원 정보
-                given(courseRepository.findByCourseKey("CK1")).willReturn(Optional.of(existingCourse));
+    @Test
+    @DisplayName("기존 강의의 인원 변경이 없는 경우 이력을 저장하지 않는다")
+    void processCourse_existingCourse_noChange_doesNotSaveHistory() {
+        // given
+        Course existingCourse = createCourse("CK1", 50, 10);
+        ParsedCourseDto dto = createCourseDto("CK1", 50, 10); // 동일한 인원 정보
+        given(courseRepository.findByCourseKey("CK1")).willReturn(Optional.of(existingCourse));
 
-                // when
-                ReflectionTestUtils.invokeMethod(courseCrawlerService, "processCourse", crawledCourse);
+        // when
+        ReflectionTestUtils.invokeMethod(courseCrawlerService, "processCourse", dto);
 
-                // then
-                verify(courseSeatHistoryRepository, never()).save(any(CourseSeatHistory.class));
-        }
+        // then
+        verify(courseSeatHistoryRepository, never()).save(any(CourseSeatHistory.class));
+    }
 
-        @Test
-        @DisplayName("정원이 변경된 경우에도 이력을 저장한다")
-        void processCourse_existingCourse_capacityChange_savesHistory() {
-                // given
-                Course existingCourse = createCourse("CK1", 50, 10);
-                Course crawledCourse = createCourse("CK1", 60, 10); // 정원 변경 (50 -> 60)
-                given(courseRepository.findByCourseKey("CK1")).willReturn(Optional.of(existingCourse));
+    @Test
+    @DisplayName("정원이 변경된 경우에도 이력을 저장한다")
+    void processCourse_existingCourse_capacityChange_savesHistory() {
+        // given
+        Course existingCourse = createCourse("CK1", 50, 10);
+        ParsedCourseDto dto = createCourseDto("CK1", 60, 10); // 정원 변경 (50 -> 60)
+        given(courseRepository.findByCourseKey("CK1")).willReturn(Optional.of(existingCourse));
 
-                // when
-                ReflectionTestUtils.invokeMethod(courseCrawlerService, "processCourse", crawledCourse);
+        // when
+        ReflectionTestUtils.invokeMethod(courseCrawlerService, "processCourse", dto);
 
-                // then
-                verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
-        }
+        // then
+        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
+    }
 
-        private Course createCourse(String courseKey, int capacity, int current) {
-                return Course.builder()
-                                .courseKey(courseKey)
-                                .name("테스트 강의")
-                                .capacity(capacity)
-                                .current(current)
-                                .academicYear("2026")
-                                .semester("U211600010")
-                                .build();
-        }
+    private Course createCourse(String courseKey, int capacity, int current) {
+        return Course.builder()
+                .courseKey(courseKey)
+                .name("테스트 강의")
+                .capacity(capacity)
+                .current(current)
+                .academicYear("2026")
+                .semester("U211600010")
+                .build();
+    }
+
+    private ParsedCourseDto createCourseDto(String courseKey, int capacity, int current) {
+        return new ParsedCourseDto(
+                courseKey, "12345", "테스트 강의", "01", "교수",
+                capacity, current, null, "2026", "U211600010",
+                null, "학과", null, "월 1-A", "3",
+                null, null, null, 3, null,
+                null, null, null, "강의실", true,
+                null, null, null, Collections.emptyList());
+    }
 }

@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.domain.course.service;
 
-import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService.CrawlTarget;
+import bhoon.sugang_helper.domain.course.enums.SemesterType;
+import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -91,7 +92,7 @@ class CourseServiceTest {
 
         private void mockCrawlerTarget() {
                 given(crawlerTargetService.getCurrentTargetValue())
-                                .willReturn(new CrawlTarget(ACADEMIC_YEAR, SEMESTER));
+                                .willReturn(new CrawlTargetInfo(ACADEMIC_YEAR, SemesterType.fromCode(SEMESTER)));
         }
 
         @Test
