@@ -4,11 +4,9 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.course.entity.Course;
-import bhoon.sugang_helper.domain.course.repository.CollegeRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
-import bhoon.sugang_helper.domain.course.response.CollegeHierarchyResponse;
 import bhoon.sugang_helper.domain.course.response.CourseCategoryResponse;
 import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
@@ -33,7 +31,6 @@ public class CourseService {
     private final UserRepository userRepository;
     private final CourseReviewRepository reviewRepository;
     private final CourseCrawlerTargetService crawlerTargetService;
-    private final CollegeRepository collegeRepository;
 
     /**
      * 필터 조건과 페이징 정보를 사용하여 강의 목록을 검색
@@ -48,24 +45,6 @@ public class CourseService {
         }
         return courseRepository.searchCourses(condition, pageable)
                 .map(course -> CourseResponse.from(course, target.year(), target.semester()));
-    }
-
-    /**
-     * 단과대 및 학과 계층 구조 조회
-     */
-    public List<CollegeHierarchyResponse> getCollegeHierarchy() {
-        return collegeRepository.findAll().stream()
-                .map(college -> CollegeHierarchyResponse.builder()
-                        .id(college.getId())
-                        .name(college.getName())
-                        .departments(college.getDepartments().stream()
-                                .map(dept -> CollegeHierarchyResponse.DepartmentResponse.builder()
-                                        .id(dept.getId())
-                                        .name(dept.getName())
-                                        .build())
-                                .toList())
-                        .build())
-                .toList();
     }
 
     /**

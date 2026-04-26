@@ -77,8 +77,6 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                 eqStatus(condition.getStatus()),
                 containsCourseDirection(condition.getCourseDirection()),
                 matchSelectedSchedules(condition.getSelectedSchedules()),
-                eqCollegeId(condition.getCollegeId()),
-                eqDepartmentId(condition.getDepartmentId()),
                 inWishlist(condition.getIsWishedOnly(), condition.getUserId()));
 
         if (isPopularSort) {
@@ -112,6 +110,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         QCourseSchedule schedule = QCourseSchedule.courseSchedule;
         BooleanBuilder selectedSlots = buildSelectedSlots(schedule, validConditions);
 
+        // 시간표 검색 조건이 있을 때는 반드시 시간 정보가 있는 강의만 조회하도록 수정
         return course.schedules.isNotEmpty()
                 .and(JPAExpressions.selectOne()
                         .from(schedule)
@@ -120,6 +119,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                         .notExists());
     }
 
+    /**
+     * 검색 조건을 QueryDSL에서 사용 가능한 유효한 시간대 조건으로 변환
+     */
     private List<ValidScheduleCondition> toValidConditions(List<ScheduleCondition> selectedSchedules) {
         if (selectedSchedules == null || selectedSchedules.isEmpty()) {
             return List.of();
@@ -131,6 +133,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                 .toList();
     }
 
+    /**
+     * 단일 시간대 필터 조건을 유효한 포맷으로 변환
+     */
     private Optional<ValidScheduleCondition> toValidCondition(ScheduleCondition condition) {
         if (condition.getDayOfWeek() == null) {
             return Optional.empty();
@@ -145,6 +150,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return Optional.of(new ValidScheduleCondition(condition.getDayOfWeek(), startTime, endTime));
     }
 
+    /**
+     * 선택된 슬롯들을 BooleanBuilder로 결합하여 쿼리 조건 생성
+     */
     private BooleanBuilder buildSelectedSlots(QCourseSchedule schedule, List<ValidScheduleCondition> validConditions) {
         BooleanBuilder selectedSlots = new BooleanBuilder();
         for (ValidScheduleCondition validCondition : validConditions) {
@@ -155,26 +163,44 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return selectedSlots;
     }
 
+    /**
+     * 과목명 포함 여부 필터
+     */
     private BooleanExpression containsName(String name) {
         return StringUtils.hasText(name) ? course.name.contains(name) : null;
     }
 
+    /**
+     * 교수명 포함 여부 필터
+     */
     private BooleanExpression containsProfessor(String professor) {
         return StringUtils.hasText(professor) ? course.professor.contains(professor) : null;
     }
 
+    /**
+     * 과목 코드 일치 여부 필터
+     */
     private BooleanExpression eqSubjectCode(String subjectCode) {
         return StringUtils.hasText(subjectCode) ? course.subjectCode.eq(subjectCode) : null;
     }
 
+    /**
+     * 연도 일치 여부 필터
+     */
     private BooleanExpression eqAcademicYear(String year) {
         return StringUtils.hasText(year) ? course.academicYear.eq(year) : null;
     }
 
+    /**
+     * 학기 일치 여부 필터
+     */
     private BooleanExpression eqSemester(String semester) {
         return StringUtils.hasText(semester) ? course.semester.eq(semester) : null;
     }
 
+    /**
+     * 이수구분 일치 여부 필터
+     */
     private BooleanExpression eqClassification(String classification) {
         if (!StringUtils.hasText(classification)) {
             return null;
@@ -184,10 +210,16 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return enumValue != null ? course.classification.eq(enumValue) : null;
     }
 
+    /**
+     * 학과명 포함 여부 필터
+     */
     private BooleanExpression containsDepartment(String department) {
         return StringUtils.hasText(department) ? course.department.contains(department) : null;
     }
 
+    /**
+     * 성적평가방식 일치 여부 필터
+     */
     private BooleanExpression eqGradingMethod(String gradingMethod) {
         if (!StringUtils.hasText(gradingMethod)) {
             return null;
@@ -197,6 +229,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return enumValue != null ? course.gradingMethod.eq(enumValue) : null;
     }
 
+    /**
+     * 강의언어 일치 여부 필터
+     */
     private BooleanExpression eqLectureLanguage(String lectureLanguage) {
         if (!StringUtils.hasText(lectureLanguage)) {
             return null;
@@ -204,6 +239,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return course.lectureLanguage.eq(LectureLanguage.from(lectureLanguage));
     }
 
+    /**
+     * 강의 요일 필터 (해당 요일에 수업이 하나라도 있는 경우)
+     */
     private BooleanExpression eqDayOfWeek(String dayOfWeekStr) {
         if (!StringUtils.hasText(dayOfWeekStr)) {
             return null;
@@ -216,6 +254,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return course.schedules.any().dayOfWeek.eq(day);
     }
 
+    /**
+     * 문자열 시간(HH:mm)을 LocalTime으로 파싱
+     */
     private LocalTime parseTime(String value) {
         if (!StringUtils.hasText(value)) {
             return null;
@@ -232,6 +273,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         }
     }
 
+    /**
+     * 여석 존재 여부 필터
+     */
     private BooleanExpression isAvailable(Boolean isAvailableOnly) {
         if (isAvailableOnly == null || !isAvailableOnly) {
             return null;
@@ -239,26 +283,44 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return course.capacity.gt(course.current);
     }
 
+    /**
+     * 학점 일치 여부 필터
+     */
     private BooleanExpression eqCredits(String credits) {
         return StringUtils.hasText(credits) ? course.credits.eq(credits) : null;
     }
 
+    /**
+     * 강의 시수 일치 여부 필터
+     */
     private BooleanExpression eqLectureHours(Integer lectureHours) {
         return lectureHours != null ? course.lectureHours.eq(lectureHours) : null;
     }
 
+    /**
+     * 최소 강의 시수 이상 필터
+     */
     private BooleanExpression goeMinLectureHours(Integer minLectureHours) {
         return minLectureHours != null ? course.lectureHours.goe(minLectureHours) : null;
     }
 
+    /**
+     * 교양영역구분 일치 여부 필터
+     */
     private BooleanExpression eqGeneralCategory(String generalCategory) {
         return StringUtils.hasText(generalCategory) ? course.generalCategory.eq(generalCategory) : null;
     }
 
+    /**
+     * 교양세부영역 일치 여부 필터
+     */
     private BooleanExpression eqGeneralDetail(String generalDetail) {
         return StringUtils.hasText(generalDetail) ? course.generalDetail.eq(generalDetail) : null;
     }
 
+    /**
+     * 설강 상태 일치 여부 필터
+     */
     private BooleanExpression eqStatus(String statusStr) {
         if (!StringUtils.hasText(statusStr)) {
             return null;
@@ -267,10 +329,16 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return status != null ? course.status.eq(status) : null;
     }
 
+    /**
+     * 수업운영방향 포함 여부 필터
+     */
     private BooleanExpression containsCourseDirection(String courseDirection) {
         return StringUtils.hasText(courseDirection) ? course.courseDirection.contains(courseDirection) : null;
     }
 
+    /**
+     * 관심 강의(찜) 필터
+     */
     private BooleanExpression inWishlist(Boolean isWishedOnly, Long userId) {
         if (isWishedOnly == null || !isWishedOnly || userId == null) {
             return null;
@@ -284,12 +352,16 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                 .exists();
     }
 
+    /**
+     * 동적 정렬 조건 생성
+     */
     private OrderSpecifier<?>[] getOrderSpecifiers(CourseSearchCondition condition, QWishlist joinedWishlist) {
         String sortBy = condition.getSortBy();
         String sortOrder = condition.getSortOrder();
 
         Order order = "desc".equalsIgnoreCase(sortOrder) ? Order.DESC : Order.ASC;
 
+        // 강의명 순: 강의명(order) -> 과목코드(ASC) -> 분반(ASC)
         if ("name".equalsIgnoreCase(sortBy)) {
             return new OrderSpecifier[] {
                     new OrderSpecifier<>(order, course.name),
@@ -298,6 +370,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
             };
         }
 
+        // 인기순 (찜 횟수 기준): 찜횟수(order) -> 신청인원(DESC) -> 고유키(ASC)
         if ("popular".equalsIgnoreCase(sortBy)) {
             return new OrderSpecifier[] {
                     new OrderSpecifier<>(order,
@@ -310,6 +383,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
             };
         }
 
+        // 신청인원순: 신청인원(order) -> 전체정원(ASC) -> 고유키(ASC)
         if ("current".equalsIgnoreCase(sortBy)) {
             return new OrderSpecifier[] {
                     new OrderSpecifier<>(order, course.current),
@@ -318,6 +392,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
             };
         }
 
+        // 여석순: 여석수(order) -> 전체정원(ASC) -> 고유키(ASC)
         if ("available".equalsIgnoreCase(sortBy)) {
             return new OrderSpecifier[] {
                     new OrderSpecifier<>(order, course.capacity.subtract(course.current)),
@@ -326,6 +401,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
             };
         }
 
+        // default: 인기순 기반 정렬
         return new OrderSpecifier[] {
                 new OrderSpecifier<>(order,
                         joinedWishlist != null ? joinedWishlist.id.count()
@@ -337,13 +413,20 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         };
     }
 
+    /**
+     * 최소 학점 이상 필터 (학점 정보가 문자열이므로 변환 후 비교)
+     */
     private BooleanExpression goeMinCredits(Double minCredits) {
         if (minCredits == null) {
             return null;
         }
+        // JBNU 학점(credits)은 "1", "3", "0.5" 등 문자열 형태임. 숫자로 변환하여 비교 수행.
         return course.credits.castToNum(Double.class).goe(minCredits);
     }
 
+    /**
+     * 대상 학년 일치 여부 필터
+     */
     private BooleanExpression eqTargetGrade(TargetGrade targetGrade) {
         if (targetGrade == null) {
             return null;
@@ -351,6 +434,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return course.targetGrade.eq(targetGrade);
     }
 
+    /**
+     * 공개 여부 및 비공개 사유 일치 여부 필터
+     */
     private BooleanExpression eqDisclosure(String disclosureStr) {
         if (!StringUtils.hasText(disclosureStr)) {
             return null;
@@ -359,14 +445,9 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return status != null ? course.disclosure.eq(status) : null;
     }
 
-    private BooleanExpression eqCollegeId(Long collegeId) {
-        return collegeId != null ? course.collegeId.eq(collegeId) : null;
-    }
-
-    private BooleanExpression eqDepartmentId(Long departmentId) {
-        return departmentId != null ? course.departmentId.eq(departmentId) : null;
-    }
-
+    /**
+     * 유효한 시간대 조건을 담는 내부 레코드
+     */
     private record ValidScheduleCondition(CourseDayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
     }
 }

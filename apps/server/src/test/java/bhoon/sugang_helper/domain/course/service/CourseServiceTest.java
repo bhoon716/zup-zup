@@ -1,9 +1,5 @@
 package bhoon.sugang_helper.domain.course.service;
 
-import bhoon.sugang_helper.domain.course.entity.College;
-import bhoon.sugang_helper.domain.course.entity.Department;
-import bhoon.sugang_helper.domain.course.repository.CollegeRepository;
-import bhoon.sugang_helper.domain.course.response.CollegeHierarchyResponse;
 import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService.CrawlTarget;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,9 +61,6 @@ class CourseServiceTest {
         @Mock
         private CourseReviewRepository reviewRepository;
 
-        @Mock
-        private CollegeRepository collegeRepository;
-
         private CourseService courseService;
         private MockedStatic<SecurityUtil> securityUtilMockedStatic;
 
@@ -75,7 +68,7 @@ class CourseServiceTest {
         void setUp() {
                 securityUtilMockedStatic = mockStatic(SecurityUtil.class);
                 courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userRepository,
-                                reviewRepository, crawlerTargetService, collegeRepository);
+                                reviewRepository, crawlerTargetService);
         }
 
         @AfterEach
@@ -120,26 +113,6 @@ class CourseServiceTest {
                 // then
                 assertThat(responses.getContent()).hasSize(1);
                 assertThat(responses.getContent().get(0).getName()).isEqualTo(COURSE_NAME);
-        }
-
-        @Test
-        @DisplayName("단과대 및 학과 계층 구조 조회 성공")
-        void getCollegeHierarchy_success() {
-                // given
-                College college = College.builder().name("공과대학").build();
-                Department department = Department.builder().name("소프트웨어공학과").college(college).build();
-                college.getDepartments().add(department);
-
-                given(collegeRepository.findAll()).willReturn(List.of(college));
-
-                // when
-                List<CollegeHierarchyResponse> responses = courseService.getCollegeHierarchy();
-
-                // then
-                assertThat(responses).hasSize(1);
-                assertThat(responses.get(0).getName()).isEqualTo("공과대학");
-                assertThat(responses.get(0).getDepartments()).hasSize(1);
-                assertThat(responses.get(0).getDepartments().get(0).getName()).isEqualTo("소프트웨어공학과");
         }
 
         @Test

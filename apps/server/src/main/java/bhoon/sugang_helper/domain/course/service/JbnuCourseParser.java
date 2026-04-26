@@ -10,353 +10,410 @@ import bhoon.sugang_helper.domain.course.enums.DisclosureStatus;
 import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
 import bhoon.sugang_helper.domain.course.enums.TargetGrade;
-import bhoon.sugang_helper.domain.course.repository.DepartmentRepository;
-import bhoon.sugang_helper.domain.course.util.JbnuDepartmentStandardizer;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-/**
- * 전북대학교 오아시스 시스템의 강의 데이터를 파싱하는 서비스 클래스
- */
 @Slf4j
-@Service
-@RequiredArgsConstructor
+@Component
 public class JbnuCourseParser {
 
-    private final DepartmentRepository departmentRepository;
-
+    private static final String DATASET_ID = "GRD_COUR001";
     private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
-    private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("(?<=[\\s,])(?<grade>[1-6])(?=[\\s,]|$)");
+    private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("\\s(?<grade>[1-6])(?=[\\s,]|$)");
     private static final Pattern TRAILING_NUMBER_IN_SUBJECT_PATTERN = Pattern
             .compile("^(?<subjectName>.*?)(?:\\s+)(?<number>\\d+)$");
+    private static final Pattern TRAILING_GRADE_PATTERN_TEMPLATE = Pattern
+            .compile("^(?<before>.*?)(?:\\s+)(?<grade>[1-6])(?:학년)?(?:\\s*등)?$");
 
-    /** XML 데이터를 파싱하여 강의 엔티티 목록으로 변환 */
+    /**
+     * XML 데이터를 파싱하여 강의 리스트로 변환
+     */
     public List<Course> parseCourses(String xmlData) {
-        List<Course> courses = new ArrayList<>();
-        Document doc = Jsoup.parse(xmlData, "", org.jsoup.parser.Parser.xmlParser());
-        Elements rows = doc.select("Dataset[id=GRD_COUR001] Row");
+        List<Course> courseList = new ArrayList<>();
+        Document doc = Jsoup.parse(xmlData, "", Parser.xmlParser());
+
+        Elements rows = doc.select("Dataset[id=" + DATASET_ID + "] > Rows > Row");
 
         for (Element row : rows) {
-            courses.add(parseCourseRow(row));
+            try {
+                processRow(row).ifPresent(courseList::add);
+            } catch (Exception e) {
+                log.warn("Failed to parse course row: {}", e.getMessage());
+            }
         }
-
-        return courses;
+        return courseList;
     }
 
-    /** XML의 개별 Row를 Course 엔티티로 변환 */
-    private Course parseCourseRow(Element row) {
-        String academicYear = getColValue(row, "YY");
-        String semester = getColValue(row, "SHTM");
-        String subjectCode = getColValue(row, "SBJTCD");
+    /**
+     * 단일 행(Row) 데이터를 파싱하여 강의 객체 생성
+     */
+    private Optional<Course> processRow(Element row) {
+        String sbjtCd = getColValue(row, "SBJTCD");
         String clss = getColValue(row, "CLSS");
-
+        String year = getColValue(row, "YY");
+        String semester = getColValue(row, "SHTM");
         String rawDepartment = getColValue(row, "SUSTCDNM");
-        String tlsnObjFgnm = getColValue(row, "TLSNOBJFGNM");
-        
-        TargetGrade targetGrade = parseTargetGrade(tlsnObjFgnm, rawDepartment);
+        String gradeNm = getColValue(row, "TLSNOBJFGNM");
+
+        if (sbjtCd == null || clss == null || year == null || semester == null) {
+            return Optional.empty();
+        }
+
+        LiberalArtsInfo liberalArts = parseLiberalArtsInfo(row);
+        StatusInfo statusInfo = parseStatusAndDisclosureInfo(row);
+        TargetGrade targetGrade = parseTargetGrade(gradeNm, rawDepartment);
+
         String subjectName = normalizeSubjectName(getColValue(row, "SBJTNM"), clss);
-        String department = normalizeDepartmentName(rawDepartment);
+        String department = normalizeDepartmentName(rawDepartment, targetGrade);
 
-        DepartmentIds ids = mapDepartmentIds(department, rawDepartment);
-
-        Course course = buildCourseEntity(row, academicYear, semester, subjectCode, clss, targetGrade, subjectName,
-                department, ids);
-
-        addSchedulesToCourse(row, course);
-
-        return course;
-    }
-
-    /** 표준화된 학과명을 기반으로 단과대 및 학과 ID 매핑 */
-    private DepartmentIds mapDepartmentIds(String department, String rawDepartment) {
-        if (department == null || department.isBlank()) {
-            return new DepartmentIds(null, null);
-        }
-
-        String[] tokens = department.split(",");
-        for (String token : tokens) {
-            String target = token.trim();
-            if (target.isEmpty()) {
-                continue;
-            }
-
-            Optional<DepartmentIds> result = tryMap(target);
-            if (result.isPresent()) {
-                return result.get();
-            }
-
-            // 괄호 제거 후 재시도
-            String stripped = JbnuDepartmentStandardizer.PARENTHESES_PATTERN.matcher(target).replaceAll("").trim();
-            if (!stripped.equals(target)) {
-                result = tryMap(stripped);
-                if (result.isPresent()) {
-                    return result.get();
-                }
-            }
-        }
-
-        log.warn("[Crawler] Unmapped department found: '{}' (Raw: '{}')", department, rawDepartment);
-        return new DepartmentIds(null, null);
-    }
-
-    /** 부서 명칭으로 DB에서 ID 조회 */
-    private Optional<DepartmentIds> tryMap(String name) {
-        return departmentRepository.findByName(name)
-                .map(dept -> new DepartmentIds(dept.getCollege().getId(), dept.getId()));
-    }
-
-    /** 학과 및 단과대 ID 보관용 레코드 */
-    private record DepartmentIds(Long collegeId, Long departmentId) {
-    }
-
-    /** Course 엔티티 빌더 로직 수행 */
-    private Course buildCourseEntity(Element row, String academicYear, String semester, String subjectCode, String clss,
-            TargetGrade targetGrade, String subjectName, String department, DepartmentIds ids) {
-        return Course.builder()
-                .courseKey(generateCourseKey(academicYear, semester, subjectCode, clss))
-                .subjectCode(subjectCode)
-                .name(subjectName)
+        Course course = Course.builder()
+                .courseKey(generateCourseKey(year, semester, sbjtCd, clss))
+                .subjectCode(sbjtCd)
                 .classNumber(clss)
+                .name(subjectName)
                 .professor(getColValue(row, "RPSTPROFNM"))
-                .capacity(getSafeInt(getColValue(row, "LMTRCNT")))
-                .current(getSafeInt(getColValue(row, "TLSNRCNT")))
+                .capacity(safeParseInt(getColValue(row, "LMTRCNT")))
+                .current(safeParseInt(getColValue(row, "TLSNRCNT")))
                 .targetGrade(targetGrade)
-                .academicYear(academicYear)
+                .academicYear(year)
                 .semester(semester)
                 .classification(CourseClassification.from(getColValue(row, "CPTNFGNM")))
                 .department(department)
-                .collegeId(ids.collegeId())
-                .departmentId(ids.departmentId())
                 .gradingMethod(GradingMethod.from(getColValue(row, "SCORTRETFGNM")))
+                .lectureLanguage(LectureLanguage.from(getColValue(row, "LTLANGFGNM")))
                 .classTime(getColValue(row, "DAYTMCTNT"))
                 .credits(getColValue(row, "PNT"))
-                .lectureLanguage(LectureLanguage.from(getColValue(row, "LTLANGFGNM")))
-                .disclosure(DisclosureStatus.from(getColValue(row, "PUBCYN")))
-                .disclosureReason(getColValue(row, "NOPUBCRESNNM"))
-                .lectureHours(getSafeInt(getColValue(row, "TM")))
-                .generalCategory(getColValue(row, "FLDFGNM"))
-                .generalDetail(getColValue(row, "FLDDETAFGNM"))
+                .disclosure(statusInfo.disclosure)
+                .disclosureReason(statusInfo.disclosureReason)
+                .lectureHours(safeParseInt(getColValue(row, "TM")))
+                .generalCategory(liberalArts.category)
+                .generalDetail(liberalArts.detail)
                 .accreditation(CourseAccreditation.from(getColValue(row, "VLDFGNM")))
                 .status(CourseStatus.from(getColValue(row, "OPENLECTFGNM")))
                 .classroom(getColValue(row, "VILROOMNOCTNT"))
                 .hasSyllabus("Y".equalsIgnoreCase(getColValue(row, "SUBPLANYN")))
                 .generalCategoryByYear(getColValue(row, "FLDCONVINFO"))
-                .courseDirection(getColValue(row, "OPENLECTFGNM"))
-                .classDuration(getColValue(row, "LECT_QU_FGNM"))
+                .courseDirection(getColValue(row, "CLSSOPRTDRCT"))
+                .classDuration(getColValue(row, "LESSTMFGNM"))
                 .build();
+
+        parseSchedules(getColValue(row, "DAYTMCTNT")).forEach(course::addSchedule);
+
+        return Optional.of(course);
     }
 
-    /** 강좌 식별용 고유 키 생성 */
-    private String generateCourseKey(String year, String semester, String code, String clss) {
-        return String.format("%s:%s:%s:%s", year, semester, code, clss);
-    }
-
-    /** 엔티티에 파싱된 스케줄 정보 추가 */
-    private void addSchedulesToCourse(Element row, Course course) {
-        List<CourseSchedule> schedules = parseSchedules(getColValue(row, "DAYTMCTNT"));
-        if (schedules != null) {
-            schedules.forEach(course::addSchedule);
+    /**
+     * 과목명 끝 숫자가 분반(CLSS)과 동일하면 과목명에서 제거한다.
+     */
+    private String normalizeSubjectName(String rawSubjectName, String classNumber) {
+        if (rawSubjectName == null || rawSubjectName.isBlank()) {
+            return rawSubjectName;
         }
+
+        if (classNumber == null || classNumber.isBlank()) {
+            return rawSubjectName;
+        }
+
+        Matcher matcher = TRAILING_NUMBER_IN_SUBJECT_PATTERN.matcher(rawSubjectName);
+        if (!matcher.matches()) {
+            return rawSubjectName;
+        }
+
+        String suffixNumber = matcher.group("number");
+        String normalizedClassNumber = classNumber.replaceFirst("^0+(?!$)", "");
+        if (!suffixNumber.equals(normalizedClassNumber)) {
+            return rawSubjectName;
+        }
+
+        return matcher.group("subjectName").trim();
     }
 
-    /** 대상 학년 정보 파싱 */
-    private TargetGrade parseTargetGrade(String tlsnObjFgnm, String deptNm) {
-        TargetGrade fromTlsn = TargetGrade.from(tlsnObjFgnm);
-        if (fromTlsn != null) {
-            if (deptNm != null && deptNm.contains("계열") && deptNm.contains("1")) {
-                return TargetGrade.GRADE_1;
+    /**
+     * 학과명 끝의 학년 표기(예: "영어영문 3")를 제거하여 학과명만 보존한다.
+     */
+    private String normalizeDepartmentName(String rawDepartment, TargetGrade targetGrade) {
+        if (rawDepartment == null || rawDepartment.isBlank()) {
+            return rawDepartment;
+        }
+
+        String gradeNumber = extractGradeNumber(targetGrade);
+        if (gradeNumber == null) {
+            return rawDepartment.trim();
+        }
+
+        List<String> normalizedDepartments = new ArrayList<>();
+        for (String token : rawDepartment.split(",")) {
+            String trimmedToken = token.trim();
+            if (trimmedToken.isEmpty()) {
+                continue;
             }
-            return fromTlsn;
+
+            String normalizedToken = removeTrailingGradeToken(trimmedToken, gradeNumber);
+            if (!normalizedToken.isBlank()) {
+                normalizedDepartments.add(normalizedToken);
+            }
         }
 
-        if (deptNm == null) {
+        if (normalizedDepartments.isEmpty()) {
+            return rawDepartment.trim();
+        }
+
+        return String.join(", ", normalizedDepartments);
+    }
+
+    private String removeTrailingGradeToken(String departmentToken, String gradeNumber) {
+        String current = departmentToken;
+        while (true) {
+            Matcher matcher = TRAILING_GRADE_PATTERN_TEMPLATE.matcher(current);
+            if (!matcher.matches()) {
+                return current.trim();
+            }
+
+            String suffixGrade = matcher.group("grade");
+            if (!gradeNumber.equals(suffixGrade)) {
+                return current.trim();
+            }
+
+            String before = matcher.group("before");
+            if (before == null || before.isBlank()) {
+                return current.trim();
+            }
+            current = before.trim();
+        }
+    }
+
+    private String extractGradeNumber(TargetGrade targetGrade) {
+        if (targetGrade == null || targetGrade == TargetGrade.GRADUATE) {
             return null;
         }
 
-        Matcher matcher = GRADE_IN_DEPT_PATTERN.matcher(" " + deptNm + " ");
+        String name = targetGrade.name();
+        if (name.startsWith("GRADE_") && name.length() == "GRADE_".length() + 1) {
+            return name.substring("GRADE_".length());
+        }
+        return null;
+    }
+
+    /**
+     * 강의 고유 키 생성 (연도:학기:과목코드:분반)
+     */
+    private String generateCourseKey(String year, String semester, String sbjtCd, String clss) {
+        return String.format("%s:%s:%s:%s", year, semester, sbjtCd, clss);
+    }
+
+    /**
+     * 대상 학년 정보 추출 (기본 컬럼 외에 학과 정보의 학년 필드도 분석)
+     */
+    private TargetGrade parseTargetGrade(String gradeNm, String deptNm) {
+        TargetGrade grade = TargetGrade.from(gradeNm);
+
+        // 구체적인 학년이나 대학원이 파싱되면 즉시 반환
+        if (grade != null) {
+            return grade;
+        }
+
+        if (deptNm == null || deptNm.isBlank()) {
+            return null;
+        }
+
+        // "계열"이 포함된 경우 1학년으로 간주하여 얼리 리턴
+        if (deptNm.contains("계열")) {
+            return TargetGrade.GRADE_1;
+        }
+
+        // "학과명 3", "학과명 3,학과명 3" 형식에서 마지막 숫자를 학년으로 간주
+        Matcher matcher = GRADE_IN_DEPT_PATTERN.matcher(deptNm);
         String lastMatchedGrade = null;
         while (matcher.find()) {
             lastMatchedGrade = matcher.group("grade");
         }
 
-        return lastMatchedGrade != null ? TargetGrade.from(lastMatchedGrade) : null;
+        if (lastMatchedGrade != null) {
+            return TargetGrade.from(lastMatchedGrade);
+        }
+
+        return null;
     }
 
-    /** 과목명 정규화 (불필요한 분반 번호 제거) */
-    private String normalizeSubjectName(String name, String classNumber) {
-        if (name == null || classNumber == null) {
-            return name;
-        }
-
-        String normalizedClassNumber = classNumber.replaceFirst("^0+(?!$)", "");
-        Matcher matcher = TRAILING_NUMBER_IN_SUBJECT_PATTERN.matcher(name);
-
-        if (matcher.matches()) {
-            String number = matcher.group("number").replaceFirst("^0+(?!$)", "");
-            if (number.equals(normalizedClassNumber)) {
-                return matcher.group("subjectName").trim();
-            }
-        }
-
-        return name.trim();
+    /**
+     * 교양 과목 정보(영역, 상세영역) 추출
+     */
+    private LiberalArtsInfo parseLiberalArtsInfo(Element row) {
+        String category = getColValue(row, "FLDFGNM");
+        String detail = getColValue(row, "FLDDETAFGNM");
+        return new LiberalArtsInfo(category, detail);
     }
 
-    /** 학과 명칭 표준화 유틸 호출 */
-    private String normalizeDepartmentName(String rawDepartment) {
-        if (rawDepartment == null || rawDepartment.isBlank()) {
-            return null;
-        }
-
-        String[] tokens = rawDepartment.split(",");
-        List<String> normalizedTokens = new ArrayList<>();
-
-        for (String token : tokens) {
-            String trimmedToken = token.trim();
-            if (trimmedToken.isEmpty()) continue;
-
-            String normalizedToken = JbnuDepartmentStandardizer.standardize(trimmedToken);
-            if (normalizedToken != null && !normalizedToken.isBlank()) {
-                normalizedTokens.add(normalizedToken);
-            }
-        }
-
-        return normalizedTokens.isEmpty() ? "" : String.join(", ", normalizedTokens);
+    /**
+     * 강의 상태 및 공개 여부 정보 추출
+     */
+    private StatusInfo parseStatusAndDisclosureInfo(Element row) {
+        DisclosureStatus disclosure = DisclosureStatus.from(getColValue(row, "PUBCYN"));
+        String disclosureReason = getColValue(row, "NOPUBCRESNNM");
+        return new StatusInfo(disclosure, disclosureReason);
     }
 
-    /** XML Row에서 특정 컬럼의 텍스트 추출 */
     private String getColValue(Element row, String colId) {
         Element col = row.selectFirst("Col[id=" + colId + "]");
-        if (col == null) return null;
-        String value = col.text().trim();
-        return (value.isEmpty() || value.equals(":")) ? null : value;
+        return col != null ? normalizeClassroom(col.text().trim()) : null;
     }
 
-    /** 문자열을 정수로 안전하게 변환 */
-    private Integer getSafeInt(String value) {
-        if (value == null || value.isBlank()) return 0;
+    private String normalizeClassroom(String value) {
+        if (value == null || value.isBlank() || value.equals(":")) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private int safeParseInt(String value) {
         try {
-            return Integer.parseInt(value);
+            return value != null && !value.isEmpty() ? Integer.parseInt(value) : 0;
         } catch (NumberFormatException e) {
             return 0;
         }
     }
 
-    /** 강의 시간 문자열을 스케줄 목록으로 파싱 */
-    public List<CourseSchedule> parseSchedules(String timeContent) {
-        if (timeContent == null || timeContent.isBlank()) {
-            return List.of();
-        }
-
+    /**
+     * 시간 정보 문자열을 파싱하여 시간표 리스트 생성
+     */
+    private List<CourseSchedule> parseSchedules(String timeString) {
         List<CourseSchedule> schedules = new ArrayList<>();
-        String[] tokens = timeContent.split(",");
-        CourseDayOfWeek lastDay = null;
-
-        for (String token : tokens) {
-            lastDay = parseTokenAndAddSchedules(token.trim(), schedules, lastDay);
-        }
-
-        return mergeConsecutiveSchedules(schedules);
-    }
-
-    /** 시간 토큰 분석 및 스케줄 추가 */
-    private CourseDayOfWeek parseTokenAndAddSchedules(String token, List<CourseSchedule> schedules, CourseDayOfWeek lastDay) {
-        if (token.isEmpty()) {
-            return lastDay;
-        }
-
-        String[] parts = token.split("\\s+");
-        CourseDayOfWeek currentDay = CourseDayOfWeek.from(parts[0]);
-        int periodStartIndex = (currentDay != null) ? 1 : 0;
-
-        if (currentDay == null) {
-            currentDay = lastDay;
-        }
-
-        if (currentDay == null) {
-            return null;
-        }
-
-        for (int i = periodStartIndex; i < parts.length; i++) {
-            parsePeriodAndAddSchedule(parts[i], currentDay, schedules);
-        }
-        
-        return currentDay;
-    }
-
-    /** 교시 정보를 파싱하여 스케줄 객체 생성 */
-    private void parsePeriodAndAddSchedule(String periodToken, CourseDayOfWeek dayOfWeek, List<CourseSchedule> schedules) {
-        Matcher matcher = PERIOD_TOKEN_PATTERN.matcher(periodToken);
-        if (!matcher.matches()) {
-            return;
-        }
-
-        int period = Integer.parseInt(matcher.group(1));
-        String subPeriod = matcher.group(2).toUpperCase();
-
-        LocalTime startTime = calculateStartTime(period, subPeriod);
-        LocalTime endTime = calculateEndTime(period, subPeriod);
-
-        if (startTime != null && endTime != null) {
-            schedules.add(new CourseSchedule(dayOfWeek, startTime, endTime));
-        }
-    }
-
-    /** 연속된 교시 병합 처리 */
-    private List<CourseSchedule> mergeConsecutiveSchedules(List<CourseSchedule> schedules) {
-        if (schedules.size() <= 1) {
+        if (timeString == null || timeString.isBlank()) {
             return schedules;
         }
 
-        schedules.sort((a, b) -> {
-            if (a.getDayOfWeek() != b.getDayOfWeek()) {
-                return a.getDayOfWeek().compareTo(b.getDayOfWeek());
+        String[] tokens = timeString.split(",");
+        for (String token : tokens) {
+            String trimmedToken = token.trim();
+            if (trimmedToken.isEmpty()) {
+                continue;
             }
-            return a.getStartTime().compareTo(b.getStartTime());
-        });
+
+            CourseSchedule schedule = parseCourseSchedule(trimmedToken.split("\\s+"));
+            if (schedule == null) {
+                continue;
+            }
+            schedules.add(schedule);
+        }
+        return mergeConsecutiveSchedules(schedules);
+    }
+
+    private CourseSchedule parseCourseSchedule(String[] parts) {
+        if (parts.length < 2) {
+            return null;
+        }
+
+        CourseDayOfWeek day = CourseDayOfWeek.from(parts[0]);
+        TimeRange timeRange = parseTimeRange(parts[1]);
+
+        if (day == null || timeRange == null) {
+            return null;
+        }
+
+        return CourseSchedule.builder()
+                .dayOfWeek(day)
+                .startTime(timeRange.start())
+                .endTime(timeRange.end())
+                .build();
+    }
+
+    /**
+     * 연속된 시간대 정보를 하나의 시간대로 병합 (예: 1A, 1B -> 1시간)
+     */
+    private List<CourseSchedule> mergeConsecutiveSchedules(List<CourseSchedule> schedules) {
+        if (schedules.isEmpty()) {
+            return schedules;
+        }
+
+        List<CourseSchedule> sorted = schedules.stream()
+                .sorted(Comparator
+                        .comparing((CourseSchedule schedule) -> schedule.getDayOfWeek().ordinal())
+                        .thenComparing(CourseSchedule::getStartTime))
+                .toList();
 
         List<CourseSchedule> merged = new ArrayList<>();
-        CourseSchedule current = schedules.get(0);
+        CourseSchedule current = sorted.get(0);
 
-        for (int i = 1; i < schedules.size(); i++) {
-            CourseSchedule next = schedules.get(i);
-            
-            if (current.getDayOfWeek() == next.getDayOfWeek() && current.getEndTime().equals(next.getStartTime())) {
-                current = new CourseSchedule(current.getDayOfWeek(), current.getStartTime(), next.getEndTime());
-            } else {
-                merged.add(current);
-                current = next;
+        for (int i = 1; i < sorted.size(); i++) {
+            CourseSchedule next = sorted.get(i);
+            if (current.getDayOfWeek() == next.getDayOfWeek()
+                    && current.getEndTime().equals(next.getStartTime())) {
+                current = CourseSchedule.builder()
+                        .dayOfWeek(current.getDayOfWeek())
+                        .startTime(current.getStartTime())
+                        .endTime(next.getEndTime())
+                        .build();
+                continue;
             }
+
+            merged.add(current);
+            current = next;
         }
+
         merged.add(current);
-        
         return merged;
     }
 
-    /** 교시별 시작 시간 계산 */
-    private LocalTime calculateStartTime(int period, String subPeriod) {
-        int hour = 8 + period;
-        int minute = "A".equals(subPeriod) ? 0 : 30;
-        return (hour >= 24) ? LocalTime.MAX : LocalTime.of(hour, minute);
+    /**
+     * 교시 토큰(예: 1-A)을 파싱하여 시간 범위로 변환
+     */
+    private TimeRange parseTimeRange(String periodToken) {
+        if (periodToken == null) {
+            return null;
+        }
+
+        Matcher matcher = PERIOD_TOKEN_PATTERN.matcher(periodToken.trim());
+        if (!matcher.matches()) {
+            return null;
+        }
+
+        int slot = Integer.parseInt(matcher.group(1));
+        if (slot < 0 || slot > 15) {
+            return null;
+        }
+
+        String half = matcher.group(2).toUpperCase();
+        int hour = 8 + slot;
+
+        // A 교시는 정각부터 30분간
+        if ("A".equals(half)) {
+            return new TimeRange(LocalTime.of(hour, 0), LocalTime.of(hour, 30));
+        }
+
+        // B 교시는 30분부터 다음 정각까지 (15교시는 예외 처리)
+        if (slot == 15) {
+            return new TimeRange(LocalTime.of(23, 30), LocalTime.of(23, 59));
+        }
+        return new TimeRange(LocalTime.of(hour, 30), LocalTime.of(hour + 1, 0));
     }
 
-    /** 교시별 종료 시간 계산 */
-    private LocalTime calculateEndTime(int period, String subPeriod) {
-        int hour = 8 + period;
-        int minute = "A".equals(subPeriod) ? 30 : 0;
-        if ("B".equals(subPeriod)) {
-            hour++;
-        }
-        return (hour >= 24) ? LocalTime.of(23, 59, 59) : LocalTime.of(hour, minute);
+    /**
+     * 교양 과목 정보를 담는 내부 레코드
+     */
+    private record LiberalArtsInfo(String category, String detail) {
+    }
+
+    /**
+     * 강의 상태 정보를 담는 내부 레코드
+     */
+    private record StatusInfo(DisclosureStatus disclosure, String disclosureReason) {
+    }
+
+    /**
+     * 시간 범위를 담는 내부 레코드
+     */
+    private record TimeRange(LocalTime start, LocalTime end) {
     }
 }
