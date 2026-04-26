@@ -1,6 +1,9 @@
 package bhoon.sugang_helper.domain.course.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.entity.CourseSchedule;
@@ -9,6 +12,7 @@ import bhoon.sugang_helper.domain.course.enums.TargetGrade;
 import bhoon.sugang_helper.domain.course.repository.DepartmentRepository;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,35 +34,37 @@ class JbnuCourseParserTest {
     void parseCourses_comprehensive() {
         // Given
         String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">10001</Col>
-                            <Col id="CLSS">01</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="SBJTNM">핵심교양과목</Col>
-                            <Col id="RPSTPROFNM">진교수</Col>
-                            <Col id="SUSTCDNM">컴퓨터공학</Col>
-                            <Col id="CPTNFGNM">교양</Col>
-                            <Col id="LMTRCNT">40</Col>
-                            <Col id="TLSNRCNT">25</Col>
-                            <Col id="SCORTRETFGNM">절대평가</Col>
-                            <Col id="DAYTMCTNT">월 1-A, 1-B, 수 2-A</Col>
-                            <Col id="PNT">3</Col>
-                            <Col id="LTLANGFGNM">한국어</Col>
-                            <Col id="PUBCYN">Y</Col>
-                            <Col id="NOPUBCRESNNM"></Col>
-                            <Col id="TM">3</Col>
-                            <Col id="FLDFGNM">인문</Col>
-                            <Col id="FLDDETAFGNM">일반</Col>
-                            <Col id="VLDFGNM">인증</Col>
-                            <Col id="OPENLECTFGNM">정상</Col>
-                            <Col id="VILROOMNOCTNT">공대 7호관</Col>
-                            <Col id="SUBPLANYN">Y</Col>
-                            <Col id="FLDCONVINFO">핵심</Col>
-                        </Row>
-                    </Rows>
+                <Root>
+                    <Dataset id="GRD_COUR001">
+                        <Rows>
+                            <Row>
+                                <Col id="SBJTCD">10001</Col>
+                                <Col id="CLSS">01</Col>
+                                <Col id="YY">2026</Col>
+                                <Col id="SHTM">10</Col>
+                                <Col id="SBJTNM">핵심교양과목</Col>
+                                <Col id="RPSTPROFNM">진교수</Col>
+                                <Col id="SUSTCDNM">컴퓨터공학</Col>
+                                <Col id="CPTNFGNM">교양</Col>
+                                <Col id="LMTRCNT">40</Col>
+                                <Col id="TLSNRCNT">25</Col>
+                                <Col id="SCORTRETFGNM">절대평가</Col>
+                                <Col id="DAYTMCTNT">월 1-A, 1-B, 수 2-A</Col>
+                                <Col id="PNT">3</Col>
+                                <Col id="LTLANGFGNM">한국어</Col>
+                                <Col id="PUBCYN">Y</Col>
+                                <Col id="NOPUBCRESNNM"></Col>
+                                <Col id="TM">3</Col>
+                                <Col id="FLDFGNM">인문</Col>
+                                <Col id="FLDDETAFGNM">일반</Col>
+                                <Col id="VLDFGNM">인증</Col>
+                                <Col id="OPENLECTFGNM">정상</Col>
+                                <Col id="VILROOMNOCTNT">공대 7호관</Col>
+                                <Col id="SUBPLANYN">Y</Col>
+                                <Col id="FLDCONVINFO">핵심</Col>
+                            </Row>
+                        </Rows>
+                    </Dataset>
                 </Root>
                 """;
         
@@ -69,7 +75,7 @@ class JbnuCourseParserTest {
         assertThat(result).hasSize(1);
         Course course = result.get(0);
         assertThat(course.getName()).isEqualTo("핵심교양과목");
-        assertThat(course.getDepartment()).isEqualTo("컴퓨터공학부");
+        assertThat(course.getDepartment()).isEqualTo("소프트웨어공학과");
         assertThat(course.getCapacity()).isEqualTo(40);
         assertThat(course.getSchedules()).hasSize(2);
     }
@@ -80,10 +86,12 @@ class JbnuCourseParserTest {
         // Given
         String xmlData = """
                 <Dataset id="GRD_COUR001">
-                    <Row>
-                        <Col id="SUSTCDNM">전자공 2</Col>
-                        <Col id="TLSNOBJFGNM">2학년</Col>
-                    </Row>
+                    <Rows>
+                        <Row>
+                            <Col id="SUSTCDNM">전자공 2</Col>
+                            <Col id="TLSNOBJFGNM">2학년</Col>
+                        </Row>
+                    </Rows>
                 </Dataset>
                 """;
 
@@ -97,15 +105,76 @@ class JbnuCourseParserTest {
     }
 
     @Test
+    @DisplayName("계열 정보 및 기호(.)가 포함된 복잡한 학과명을 정규화합니다.")
+    void normalizeDepartmentName_complexCases() {
+        // Given
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SUSTCDNM">공학계열 1 1</Col>
+                        </Row>
+                        <Row>
+                            <Col id="SUSTCDNM">고분자.나노공 2</Col>
+                        </Row>
+                        <Row>
+                            <Col id="SUSTCDNM">수 3</Col>
+                        </Row>
+                        <Row>
+                            <Col id="SUSTCDNM">화공부(생명) 3</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+
+        // When
+        List<Course> result = parser.parseCourses(xmlData);
+
+        // Then
+        assertThat(result).hasSize(4);
+        assertThat(result.get(0).getDepartment()).isEqualTo("공학계열 1");
+        assertThat(result.get(1).getDepartment()).isEqualTo("고분자·나노공학과");
+        assertThat(result.get(2).getDepartment()).isEqualTo("수학과");
+        assertThat(result.get(3).getDepartment()).isEqualTo("화학공학부");
+    }
+
+    @Test
+    @DisplayName("괄호가 포함된 학과명의 경우 괄호 제거 전후로 매핑을 시도합니다.")
+    void mapDepartmentIds_withParenthesesRetry() {
+        // Given
+        String xmlData = """
+                <Dataset id="GRD_COUR001">
+                    <Rows>
+                        <Row>
+                            <Col id="SUSTCDNM">융합학부(농생명·바이오) 3</Col>
+                        </Row>
+                    </Rows>
+                </Dataset>
+                """;
+        
+        given(departmentRepository.findByName("융합학부(농생명·바이오)")).willReturn(Optional.empty());
+        given(departmentRepository.findByName("융합학부")).willReturn(Optional.empty());
+
+        // When
+        parser.parseCourses(xmlData);
+
+        // Then
+        verify(departmentRepository, atLeastOnce()).findByName("융합학부(농생명·바이오)");
+        verify(departmentRepository, atLeastOnce()).findByName("융합학부");
+    }
+
+    @Test
     @DisplayName("과목명 뒤에 붙은 불필요한 분반 번호를 제거합니다.")
     void normalizeSubjectName_removesClassNumber() {
         // Given
         String xmlData = """
                 <Dataset id="GRD_COUR001">
-                    <Row>
-                        <Col id="SBJTNM">수학 001</Col>
-                        <Col id="CLSS">01</Col>
-                    </Row>
+                    <Rows>
+                        <Row>
+                            <Col id="SBJTNM">수학 001</Col>
+                            <Col id="CLSS">01</Col>
+                        </Row>
+                    </Rows>
                 </Dataset>
                 """;
 
@@ -139,9 +208,11 @@ class JbnuCourseParserTest {
         // Given
         String xmlData = """
                 <Dataset id="GRD_COUR001">
-                    <Row>
-                        <Col id="SUSTCDNM">회계 3, 경영 4</Col>
-                    </Row>
+                    <Rows>
+                        <Row>
+                            <Col id="SUSTCDNM">회계 3, 경영 4</Col>
+                        </Row>
+                    </Rows>
                 </Dataset>
                 """;
 
