@@ -56,6 +56,58 @@ public class JbnuCourseParser {
         return courses;
     }
 
+    /**
+     * XML의 개별 Row 엘리먼트를 Course 엔티티로 변환
+     */
+    private Course parseCourseRow(Element row) {
+        String academicYear = getColValue(row, "YY");
+        String semester = getColValue(row, "SHTM");
+        String subjectCode = getColValue(row, "SBJTCD");
+        String clss = getColValue(row, "CLSS");
+        String rawDepartment = getColValue(row, "SUSTCDNM");
+        String tlsnObjFgnm = getColValue(row, "TLSNOBJFGNM");
+
+        TargetGrade targetGrade = parseTargetGrade(tlsnObjFgnm, rawDepartment);
+        String subjectName = normalizeSubjectName(getColValue(row, "SBJTNM"), clss);
+        String department = normalizeDepartmentName(rawDepartment, targetGrade);
+
+        // 학과 명칭 기반으로 ID 매핑 수행
+        DepartmentIds ids = mapDepartmentIds(department, rawDepartment);
+
+        Course course = buildCourseEntity(row, academicYear, semester, subjectCode, clss, targetGrade, subjectName,
+                department, ids.collegeId(), ids.departmentId());
+
+        List<CourseSchedule> schedules = parseSchedules(getColValue(row, "DAYTMCTNT"));
+        if (schedules != null) {
+            schedules.forEach(course::addSchedule);
+        }
+
+        return course;
+    }
+
+    /**
+     * 정규화된 학과명을 기반으로 단과대 및 학과 ID를 매핑
+     */
+    private DepartmentIds mapDepartmentIds(String department, String rawDepartment) {
+        if (department == null) {
+            return new DepartmentIds(null, null);
+        }
+
+        // 복수 학과인 경우(콤마로 구분됨) 첫 번째 학과를 기준으로 매핑 시도
+        String primaryDepartment = department.split(",")[0].trim();
+        return departmentRepository.findByName(primaryDepartment)
+                .map(dept -> new DepartmentIds(dept.getCollege().getId(), dept.getId()))
+                .orElseGet(() -> {
+                    log.warn("[Crawler] 미매핑 학과 발견: '{}' (원본: '{}')", primaryDepartment, rawDepartment);
+                    return new DepartmentIds(null, null);
+                });
+    }
+
+    /**
+     * 매핑된 ID 정보를 담는 내부 레코드
+     */
+    private record DepartmentIds(Long collegeId, Long departmentId) {
+    }
 
     /**
      * 파싱된 데이터를 바탕으로 Course 엔티티 빌드
@@ -92,7 +144,7 @@ public class JbnuCourseParser {
                 .hasSyllabus("Y".equalsIgnoreCase(getColValue(row, "SUBPLANYN")))
                 .generalCategoryByYear(getColValue(row, "FLDCONVINFO"))
                 .courseDirection(getColValue(row, "OPENLECTFGNM"))
-                .classDuration(getColValue(row, "LECT_QU_FGNM")) // 수업운영주차 필드 추가 (필요시)
+                .classDuration(getColValue(row, "LECT_QU_FGNM"))
                 .build();
     }
 
