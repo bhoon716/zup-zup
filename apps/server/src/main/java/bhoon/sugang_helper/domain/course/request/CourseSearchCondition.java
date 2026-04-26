@@ -47,7 +47,7 @@ public class CourseSearchCondition {
     private Boolean isAvailableOnly;
 
     @Schema(description = "요일", example = "MO")
-    private String dayOfWeek; // 예: MO, TU
+    private String dayOfWeek;
 
     @Schema(description = "선택된 시간표 슬롯 리스트")
     private List<ScheduleCondition> selectedSchedules;
@@ -97,9 +97,12 @@ public class CourseSearchCondition {
     @Schema(description = "사용자 ID (내부용)", hidden = true)
     private Long userId;
 
-    /**
-     * 강의 검색 조건을 생성하기 위한 빌더 생성자
-     */
+    @Schema(description = "단과대 ID", example = "3")
+    private Long collegeId;
+
+    @Schema(description = "학과 ID", example = "101")
+    private Long departmentId;
+
     @Builder
     public CourseSearchCondition(String name, String professor, String subjectCode, String academicYear,
             String semester, String classification,
@@ -108,7 +111,7 @@ public class CourseSearchCondition {
             Integer minLectureHours, String generalCategory, String generalDetail,
             List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly,
             String status, String courseDirection, Double minCredits, TargetGrade targetGrade, String disclosure,
-            String sortBy, String sortOrder, Long userId) {
+            String sortBy, String sortOrder, Long userId, Long collegeId, Long departmentId) {
         this.name = name;
         this.professor = professor;
         this.subjectCode = subjectCode;
@@ -136,5 +139,7 @@ public class CourseSearchCondition {
         this.sortBy = sortBy;
         this.sortOrder = sortOrder;
         this.userId = userId;
+        this.collegeId = collegeId;
+        this.departmentId = departmentId;
     }
 }

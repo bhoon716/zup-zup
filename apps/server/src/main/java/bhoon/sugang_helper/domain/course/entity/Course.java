@@ -35,7 +35,9 @@ import lombok.NoArgsConstructor;
 @Table(name = "courses", indexes = {
         @Index(name = "idx_course_key", columnList = "courseKey", unique = true),
         @Index(name = "idx_subject_code", columnList = "subjectCode"),
-        @Index(name = "idx_department", columnList = "department")
+        @Index(name = "idx_department", columnList = "department"),
+        @Index(name = "idx_college_id", columnList = "collegeId"),
+        @Index(name = "idx_department_id", columnList = "departmentId")
 })
 public class Course {
 
@@ -120,13 +122,18 @@ public class Course {
     @Column(nullable = false)
     private Integer reviewCount = 0; // 리뷰 총 개수
 
+    private Long collegeId; // 단과대 ID
+
+    private Long departmentId; // 학과 ID
+
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CourseSchedule> schedules = new ArrayList<>();
 
     @Builder
     public Course(String courseKey, String subjectCode, String name, String classNumber, String professor,
             Integer capacity, Integer current, TargetGrade targetGrade, String academicYear, String semester,
-            CourseClassification classification, String department, GradingMethod gradingMethod,
+            CourseClassification classification, String department, Long collegeId, Long departmentId,
+            GradingMethod gradingMethod,
             String classTime, String credits, LectureLanguage lectureLanguage,
             DisclosureStatus disclosure, String disclosureReason, Integer lectureHours, String generalCategory,
             String generalDetail,
@@ -144,6 +151,8 @@ public class Course {
         this.semester = semester;
         this.classification = classification;
         this.department = department;
+        this.collegeId = collegeId;
+        this.departmentId = departmentId;
         this.gradingMethod = gradingMethod;
         this.classTime = classTime;
         this.credits = credits;
@@ -174,6 +183,8 @@ public class Course {
         this.targetGrade = other.getTargetGrade();
         this.classification = other.getClassification();
         this.department = other.getDepartment();
+        this.collegeId = other.getCollegeId();
+        this.departmentId = other.getDepartmentId();
         this.gradingMethod = other.getGradingMethod();
         this.classTime = other.getClassTime();
         this.credits = other.getCredits();
