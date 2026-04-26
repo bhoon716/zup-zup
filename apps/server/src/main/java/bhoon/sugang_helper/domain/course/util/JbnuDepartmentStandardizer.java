@@ -58,7 +58,10 @@ public class JbnuDepartmentStandardizer {
             Map.entry("농생물", "식물의학과"),
             Map.entry("음악학과", "음악과"),
             Map.entry("사회복지", "사회복지학과"),
-            Map.entry("국제학", "국제학부")
+            Map.entry("국제학", "국제학부"),
+            Map.entry("소학", "소프트웨어공학과"),
+            Map.entry("컴공", "컴퓨터공학부"),
+            Map.entry("컴퓨터공학", "컴퓨터공학부")
     );
 
     /**

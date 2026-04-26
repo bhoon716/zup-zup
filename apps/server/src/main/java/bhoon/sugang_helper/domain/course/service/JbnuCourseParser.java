@@ -2,6 +2,7 @@ package bhoon.sugang_helper.domain.course.service;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.entity.CourseSchedule;
+import bhoon.sugang_helper.domain.course.entity.Department;
 import bhoon.sugang_helper.domain.course.enums.CourseAccreditation;
 import bhoon.sugang_helper.domain.course.enums.CourseClassification;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
@@ -10,12 +11,14 @@ import bhoon.sugang_helper.domain.course.enums.DisclosureStatus;
 import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
 import bhoon.sugang_helper.domain.course.enums.TargetGrade;
+import bhoon.sugang_helper.domain.course.repository.DepartmentRepository;
 import bhoon.sugang_helper.domain.course.util.JbnuDepartmentStandardizer;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -28,7 +31,10 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class JbnuCourseParser {
+
+    private final DepartmentRepository departmentRepository;
 
     private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
     private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("\\s(?<grade>[1-6])(?=[\\s,]|$)");
@@ -37,9 +43,6 @@ public class JbnuCourseParser {
 
     /**
      * XML 데이터를 파싱하여 강의 엔티티 목록으로 변환
-     *
-     * @param xmlData 오아시스에서 받아온 원본 XML 데이터
-     * @return 파싱된 강의 엔티티 리스트
      */
     public List<Course> parseCourses(String xmlData) {
         List<Course> courses = new ArrayList<>();
@@ -53,37 +56,12 @@ public class JbnuCourseParser {
         return courses;
     }
 
-    /**
-     * XML의 개별 Row 엘리먼트를 Course 엔티티로 변환
-     */
-    private Course parseCourseRow(Element row) {
-        String academicYear = getColValue(row, "YY");
-        String semester = getColValue(row, "SHTM");
-        String subjectCode = getColValue(row, "SBJTCD");
-        String clss = getColValue(row, "CLSS");
-        String rawDepartment = getColValue(row, "SUSTCDNM");
-        String tlsnObjFgnm = getColValue(row, "TLSNOBJFGNM");
-
-        TargetGrade targetGrade = parseTargetGrade(tlsnObjFgnm, rawDepartment);
-        String subjectName = normalizeSubjectName(getColValue(row, "SBJTNM"), clss);
-        String department = normalizeDepartmentName(rawDepartment, targetGrade);
-
-        Course course = buildCourseEntity(row, academicYear, semester, subjectCode, clss, targetGrade, subjectName,
-                department);
-
-        List<CourseSchedule> schedules = parseSchedules(getColValue(row, "DAYTMCTNT"));
-        if (schedules != null) {
-            schedules.forEach(course::addSchedule);
-        }
-
-        return course;
-    }
 
     /**
      * 파싱된 데이터를 바탕으로 Course 엔티티 빌드
      */
     private Course buildCourseEntity(Element row, String academicYear, String semester, String subjectCode, String clss,
-            TargetGrade targetGrade, String subjectName, String department) {
+            TargetGrade targetGrade, String subjectName, String department, Long collegeId, Long departmentId) {
         return Course.builder()
                 .courseKey(String.format("%s:%s:%s:%s", academicYear, semester, subjectCode, clss))
                 .subjectCode(subjectCode)
@@ -97,6 +75,8 @@ public class JbnuCourseParser {
                 .semester(semester)
                 .classification(CourseClassification.from(getColValue(row, "CPTNFGNM")))
                 .department(department)
+                .collegeId(collegeId)
+                .departmentId(departmentId)
                 .gradingMethod(GradingMethod.from(getColValue(row, "SCORTRETFGNM")))
                 .classTime(getColValue(row, "DAYTMCTNT"))
                 .credits(getColValue(row, "PNT"))
@@ -112,16 +92,13 @@ public class JbnuCourseParser {
                 .hasSyllabus("Y".equalsIgnoreCase(getColValue(row, "SUBPLANYN")))
                 .generalCategoryByYear(getColValue(row, "FLDCONVINFO"))
                 .courseDirection(getColValue(row, "OPENLECTFGNM"))
+                .classDuration(getColValue(row, "LECT_QU_FGNM")) // 수업운영주차 필드 추가 (필요시)
                 .build();
     }
 
-    /**
-     * 대상 학년 정보를 추출 (수강대상 컬럼과 학과명에 포함된 숫자를 조합)
-     */
     private TargetGrade parseTargetGrade(String tlsnObjFgnm, String deptNm) {
         TargetGrade fromTlsn = TargetGrade.from(tlsnObjFgnm);
         if (fromTlsn != null) {
-            // '환경생명자원계열 1'과 같은 특정 케이스 보정
             if (deptNm != null && deptNm.contains("계열") && deptNm.contains("1")) {
                 return TargetGrade.GRADE_1;
             }
@@ -132,7 +109,6 @@ public class JbnuCourseParser {
             return null;
         }
 
-        // 학과명 내의 마지막 숫자 추출 (예: '경영 4' -> 4학년)
         Matcher matcher = GRADE_IN_DEPT_PATTERN.matcher(deptNm);
         String lastMatchedGrade = null;
         while (matcher.find()) {
@@ -142,9 +118,6 @@ public class JbnuCourseParser {
         return lastMatchedGrade != null ? TargetGrade.from(lastMatchedGrade) : null;
     }
 
-    /**
-     * 과목명 끝에 붙은 불필요한 분반 숫자 제거 (예: '수학 001' -> '수학')
-     */
     private String normalizeSubjectName(String name, String classNumber) {
         if (name == null || classNumber == null) {
             return name;
@@ -163,9 +136,6 @@ public class JbnuCourseParser {
         return name.trim();
     }
 
-    /**
-     * 학과명을 쉼표 단위로 분리하여 각각 표준화 후 재결합
-     */
     private String normalizeDepartmentName(String rawDepartment, TargetGrade targetGrade) {
         if (rawDepartment == null || rawDepartment.isBlank()) {
             return null;
@@ -197,9 +167,6 @@ public class JbnuCourseParser {
         return targetGrade.name().replace("GRADE_", "");
     }
 
-    /**
-     * XML의 특정 Column 값을 가져오며 강의실 위치 등 특수 문자 정규화
-     */
     private String getColValue(Element row, String colId) {
         Element col = row.selectFirst("Col[id=" + colId + "]");
         if (col == null) {
@@ -220,9 +187,6 @@ public class JbnuCourseParser {
         }
     }
 
-    /**
-     * 강의 시간표 문자열을 파싱하여 스케줄 리스트로 변환
-     */
     public List<CourseSchedule> parseSchedules(String timeContent) {
         if (timeContent == null || timeContent.isBlank()) {
             return List.of();
@@ -238,9 +202,6 @@ public class JbnuCourseParser {
         return mergeConsecutiveSchedules(schedules);
     }
 
-    /**
-     * 요일별 시간 토큰 파싱 (예: '월 1-A, 1-B')
-     */
     private void parseAndAddScheduleTokens(String token, List<CourseSchedule> schedules) {
         if (token.isEmpty()) {
             return;
@@ -276,9 +237,6 @@ public class JbnuCourseParser {
         }
     }
 
-    /**
-     * 연속된 강의 시간을 하나의 스케줄로 병합
-     */
     private List<CourseSchedule> mergeConsecutiveSchedules(List<CourseSchedule> schedules) {
         if (schedules.size() <= 1) {
             return schedules;
