@@ -2,7 +2,6 @@ package bhoon.sugang_helper.domain.course.service;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.entity.CourseSchedule;
-import bhoon.sugang_helper.domain.course.entity.Department;
 import bhoon.sugang_helper.domain.course.enums.CourseAccreditation;
 import bhoon.sugang_helper.domain.course.enums.CourseClassification;
 import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
