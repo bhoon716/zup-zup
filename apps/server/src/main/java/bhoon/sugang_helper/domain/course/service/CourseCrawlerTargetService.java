@@ -8,7 +8,6 @@ import bhoon.sugang_helper.domain.course.repository.CrawlerSettingRepository;
 import bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,17 +18,11 @@ public class CourseCrawlerTargetService {
 
     private final CrawlerSettingRepository crawlerSettingRepository;
 
-    @Value("${jbnu.crawler.default-year}")
-    private String defaultYear;
-
-    @Value("${jbnu.crawler.default-semester}")
-    private String defaultSemester;
-
     /**
      * 현재 DB에 저장된 크롤링 타겟(년도, 학기)을 조회합니다.
      */
     public AdminCrawlTargetResponse getCurrentTarget() {
-        CrawlerSetting setting = getOrCreateSetting();
+        CrawlerSetting setting = getSetting();
         return toResponse(setting);
     }
 
@@ -39,7 +32,7 @@ public class CourseCrawlerTargetService {
     @Transactional
     public AdminCrawlTargetResponse updateTarget(String year, String semester) {
         CrawlTargetInfo target = normalizeTarget(year, semester);
-        CrawlerSetting setting = getOrCreateSetting();
+        CrawlerSetting setting = getSetting();
         setting.updateTarget(target.year(), target.semester().getCode());
         return toResponse(setting);
     }
@@ -48,7 +41,7 @@ public class CourseCrawlerTargetService {
      * 현재 크롤링 타겟의 원시 값(record 형식)을 조회합니다.
      */
     public CrawlTargetInfo getCurrentTargetValue() {
-        CrawlerSetting setting = getOrCreateSetting();
+        CrawlerSetting setting = getSetting();
         return new CrawlTargetInfo(setting.getTargetYear(), SemesterType.fromCode(setting.getTargetSemester()));
     }
 
@@ -93,22 +86,11 @@ public class CourseCrawlerTargetService {
     }
 
     /**
-     * 학기 코드 문자열을 검증하고 공백을 제거합니다.
+     * DB에서 크롤링 설정을 조회합니다. 없을 경우 예외를 발생시킵니다.
      */
-    private String normalizeSemester(String semester) {
-        return normalizeSemesterType(semester).getCode();
-    }
-
-    /**
-     * DB에서 크롤링 설정을 조회하거나, 없을 경우 기본값으로 생성합니다.
-     */
-    @Transactional
-    protected CrawlerSetting getOrCreateSetting() {
+    private CrawlerSetting getSetting() {
         return crawlerSettingRepository.findTopByOrderByIdAsc()
-                .orElseGet(() -> crawlerSettingRepository.save(CrawlerSetting.builder()
-                        .targetYear(normalizeYear(defaultYear))
-                        .targetSemester(normalizeSemester(defaultSemester))
-                        .build()));
+                .orElseThrow(() -> new CustomException(ErrorCode.CRAWLER_SETTING_NOT_FOUND));
     }
 
     /**

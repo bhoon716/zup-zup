@@ -24,11 +24,6 @@ public class JbnuCourseApiClient {
     @Value("${jbnu.api.retry-wait-ms:1000}")
     private int retryWaitMs;
 
-    @Value("${jbnu.crawler.default-year}")
-    private String defaultYear;
-
-    @Value("${jbnu.crawler.default-semester}")
-    private String defaultSemester;
 
     private static final String PAYLOAD_TEMPLATE = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -59,14 +54,6 @@ public class JbnuCourseApiClient {
             </Root>
             """;
 
-    /**
-     * 기본 서버 설정값(defaultYear, defaultSemester)을 사용하여 강의 데이터를 가져옵니다.
-     */
-    public String fetchCourseDataXml() {
-        String year = (defaultYear == null || defaultYear.isBlank()) ? "2026" : defaultYear;
-        String semester = (defaultSemester == null || defaultSemester.isBlank()) ? "U211600010" : defaultSemester;
-        return fetchCourseDataXml(year, semester);
-    }
 
     /**
      * 특정 년도와 학기를 지정하여 JBNU API 서버로부터 강의 데이터를 XML 형식으로 가져옵니다.
