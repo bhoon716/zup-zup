@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import { Filter, RotateCcw, Search, SlidersHorizontal, Sparkles } from "lucide-react";

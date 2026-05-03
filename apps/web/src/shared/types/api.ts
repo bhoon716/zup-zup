@@ -156,11 +156,22 @@ export interface CourseSearchCondition {
   courseDirection?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  collegeId?: number;
+  departmentId?: number;
 }
 
 export interface CourseCategoryResponse {
   category: string;
   details: string[];
+}
+
+export interface CollegeHierarchyResponse {
+  id: number;
+  name: string;
+  departments: {
+    id: number;
+    name: string;
+  }[];
 }
 
 export interface CourseSeatHistory {
