@@ -60,21 +60,21 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                 eqSubjectCode(condition.getSubjectCode()),
                 eqAcademicYear(condition.getAcademicYear()),
                 eqSemester(condition.getSemester()),
-                eqClassification(condition.getClassification()),
+                inClassifications(condition.getClassifications()),
                 containsDepartment(condition.getDepartment()),
-                eqGradingMethod(condition.getGradingMethod()),
-                eqLectureLanguage(condition.getLectureLanguage()),
+                inGradingMethods(condition.getGradingMethods()),
+                inLectureLanguages(condition.getLectureLanguages()),
                 isAvailable(condition.getIsAvailableOnly()),
                 eqDayOfWeek(condition.getDayOfWeek()),
-                eqCredits(condition.getCredits()),
+                inCredits(condition.getCredits()),
                 goeMinCredits(condition.getMinCredits()),
-                eqTargetGrade(condition.getTargetGrade()),
+                inTargetGrades(condition.getTargetGrades()),
                 eqDisclosure(condition.getDisclosure()),
                 eqLectureHours(condition.getLectureHours()),
                 goeMinLectureHours(condition.getMinLectureHours()),
                 eqGeneralCategory(condition.getGeneralCategory()),
                 eqGeneralDetail(condition.getGeneralDetail()),
-                eqStatus(condition.getStatus()),
+                inStatuses(condition.getStatuses()),
                 containsCourseDirection(condition.getCourseDirection()),
                 matchSelectedSchedules(condition.getSelectedSchedules()),
                 inWishlist(condition.getIsWishedOnly(), condition.getUserId()));
@@ -199,15 +199,24 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     /**
-     * 이수구분 일치 여부 필터
+     * 문자열 리스트를 특정 Enum 리스트로 변환 (null 및 유효하지 않은 값 제외)
      */
-    private BooleanExpression eqClassification(String classification) {
-        if (!StringUtils.hasText(classification)) {
-            return null;
+    private <T extends Enum<T>> List<T> toEnumList(List<String> values, java.util.function.Function<String, T> mapper) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
         }
+        return values.stream()
+                .map(mapper)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+    }
 
-        CourseClassification enumValue = CourseClassification.from(classification);
-        return enumValue != null ? course.classification.eq(enumValue) : null;
+    /**
+     * 이수구분 리스트 포함 여부 필터
+     */
+    private BooleanExpression inClassifications(List<String> classifications) {
+        List<CourseClassification> enumValues = toEnumList(classifications, CourseClassification::from);
+        return !enumValues.isEmpty() ? course.classification.in(enumValues) : null;
     }
 
     /**
@@ -218,25 +227,19 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     /**
-     * 성적평가방식 일치 여부 필터
+     * 성적평가방식 리스트 포함 여부 필터
      */
-    private BooleanExpression eqGradingMethod(String gradingMethod) {
-        if (!StringUtils.hasText(gradingMethod)) {
-            return null;
-        }
-
-        GradingMethod enumValue = GradingMethod.from(gradingMethod);
-        return enumValue != null ? course.gradingMethod.eq(enumValue) : null;
+    private BooleanExpression inGradingMethods(List<String> gradingMethods) {
+        List<GradingMethod> enumValues = toEnumList(gradingMethods, GradingMethod::from);
+        return !enumValues.isEmpty() ? course.gradingMethod.in(enumValues) : null;
     }
 
     /**
-     * 강의언어 일치 여부 필터
+     * 강의언어 리스트 포함 여부 필터
      */
-    private BooleanExpression eqLectureLanguage(String lectureLanguage) {
-        if (!StringUtils.hasText(lectureLanguage)) {
-            return null;
-        }
-        return course.lectureLanguage.eq(LectureLanguage.from(lectureLanguage));
+    private BooleanExpression inLectureLanguages(List<String> lectureLanguages) {
+        List<LectureLanguage> enumValues = toEnumList(lectureLanguages, LectureLanguage::from);
+        return !enumValues.isEmpty() ? course.lectureLanguage.in(enumValues) : null;
     }
 
     /**
@@ -284,10 +287,10 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     /**
-     * 학점 일치 여부 필터
+     * 학점 리스트 포함 여부 필터
      */
-    private BooleanExpression eqCredits(String credits) {
-        return StringUtils.hasText(credits) ? course.credits.eq(credits) : null;
+    private BooleanExpression inCredits(List<String> credits) {
+        return credits != null && !credits.isEmpty() ? course.credits.in(credits) : null;
     }
 
     /**
@@ -319,14 +322,11 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     /**
-     * 설강 상태 일치 여부 필터
+     * 설강 상태 리스트 포함 여부 필터
      */
-    private BooleanExpression eqStatus(String statusStr) {
-        if (!StringUtils.hasText(statusStr)) {
-            return null;
-        }
-        CourseStatus status = CourseStatus.from(statusStr);
-        return status != null ? course.status.eq(status) : null;
+    private BooleanExpression inStatuses(List<String> statusStrs) {
+        List<CourseStatus> statuses = toEnumList(statusStrs, CourseStatus::from);
+        return !statuses.isEmpty() ? course.status.in(statuses) : null;
     }
 
     /**
@@ -392,6 +392,15 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
             };
         }
 
+        // 평점순: 평점(order) -> 리뷰수(DESC) -> 고유키(ASC)
+        if ("rating".equalsIgnoreCase(sortBy)) {
+            return new OrderSpecifier[] {
+                    new OrderSpecifier<>(order, course.averageRating),
+                    new OrderSpecifier<>(Order.DESC, course.reviewCount),
+                    new OrderSpecifier<>(Order.ASC, course.courseKey)
+            };
+        }
+
         // 여석순: 여석수(order) -> 전체정원(ASC) -> 고유키(ASC)
         if ("available".equalsIgnoreCase(sortBy)) {
             return new OrderSpecifier[] {
@@ -425,13 +434,13 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     /**
-     * 대상 학년 일치 여부 필터
+     * 대상 학년 리스트 포함 여부 필터
      */
-    private BooleanExpression eqTargetGrade(TargetGrade targetGrade) {
-        if (targetGrade == null) {
+    private BooleanExpression inTargetGrades(List<TargetGrade> targetGrades) {
+        if (targetGrades == null || targetGrades.isEmpty()) {
             return null;
         }
-        return course.targetGrade.eq(targetGrade);
+        return course.targetGrade.in(targetGrades);
     }
 
     /**
