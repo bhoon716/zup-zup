@@ -100,7 +100,6 @@ function FeedbackWritePageContent() {
           <FeedbackCreateForm
             onSubmit={handleFormSubmit}
             isPending={createFeedbackMutation.isPending}
-            files={files}
             previews={previews}
             onFileChange={handleFileChange}
             onRemoveFile={removeFile}
