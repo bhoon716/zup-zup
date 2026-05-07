@@ -15,3 +15,8 @@ export const unsubscribe = async (id: number): Promise<CommonResponse<void>> => 
   const { data } = await api.delete(`/api/v1/subscriptions/${id}`);
   return data;
 };
+
+export const unsubscribeAll = async (): Promise<CommonResponse<void>> => {
+  const { data } = await api.delete('/api/v1/subscriptions');
+  return data;
+};
