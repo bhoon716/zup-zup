@@ -22,6 +22,7 @@ export const dynamic = "force-dynamic";
 const DEFAULT_CONDITION: CourseSearchCondition = {
   academicYear: "2026",
   semester: "U211600010",
+  disclosure: "공개",
 };
 
 interface FilterChip {
@@ -158,7 +159,6 @@ export default function SearchPage() {
     if (searchCondition.lectureLanguage) count++;
     if (searchCondition.status) count++;
     if (searchCondition.selectedSchedules?.length) count++;
-    if (searchCondition.disclosure === "공개") count++;
     return count;
   }, [searchCondition]);
 

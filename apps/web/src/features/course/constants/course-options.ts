@@ -3,6 +3,7 @@ import { CourseDayOfWeek, LectureLanguage } from "@/shared/types/api";
 export const DEFAULT_CONDITION = {
   academicYear: "2026",
   semester: "U211600010",
+  disclosure: "공개",
 };
 
 export const CLASSIFICATION_GROUPS = [
@@ -53,7 +54,6 @@ export const LANGUAGES: LectureLanguage[] = [
 
 export const CREDITS = ["0.5", "1", "2", "3", "4+"];
 export const TARGET_GRADES = ["1", "2", "3", "4", "5", "6", "GRADUATE"];
-export const DISCLOSURES = ["공개", "비공개"];
 export const COURSE_DIRECTIONS = [
   "일반",
   "원격강좌(콘텐츠)",

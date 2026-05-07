@@ -12,7 +12,6 @@ import {
 import {
   CLASSIFICATION_GROUPS,
   CREDITS,
-  DISCLOSURES,
   GE_CATEGORIES,
   GRADING_GROUPS,
   LANGUAGES,
@@ -274,57 +273,30 @@ export function CourseDetailFilters({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold text-muted-foreground">학점</Label>
-          <Select
-            value={creditSelectValue}
-            onValueChange={(value) =>
-              setCondition((prev) => ({
-                ...prev,
-                credits: value === "all" || value === "4+" ? undefined : value,
-                minCredits: value === "4+" ? 4 : undefined,
-              }))
-            }
-          >
-            <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
-              <SelectValue placeholder="- 선택 -" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">- 선택 -</SelectItem>
-              {CREDITS.map((credit) => (
-                <SelectItem key={credit} value={credit}>
-                  {credit}학점
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold text-muted-foreground">공개 여부</Label>
-          <Select
-            value={condition.disclosure || "all"}
-            onValueChange={(value) =>
-              setCondition((prev) => ({
-                ...prev,
-                disclosure: value === "all" ? undefined : value,
-              }))
-            }
-          >
-            <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
-              <SelectValue placeholder="- 선택 -" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">- 선택 -</SelectItem>
-              {DISCLOSURES.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-1.5">
+        <Label className="text-[11px] font-bold text-muted-foreground">학점</Label>
+        <Select
+          value={creditSelectValue}
+          onValueChange={(value) =>
+            setCondition((prev) => ({
+              ...prev,
+              credits: value === "all" || value === "4+" ? undefined : value,
+              minCredits: value === "4+" ? 4 : undefined,
+            }))
+          }
+        >
+          <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+            <SelectValue placeholder="- 선택 -" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">- 선택 -</SelectItem>
+            {CREDITS.map((credit) => (
+              <SelectItem key={credit} value={credit}>
+                {credit}학점
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-1.5">
