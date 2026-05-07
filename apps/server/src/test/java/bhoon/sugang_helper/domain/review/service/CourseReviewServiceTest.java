@@ -134,6 +134,38 @@ class CourseReviewServiceTest {
     }
 
     @Test
+    @DisplayName("리뷰 작성 성공 - 코멘트 없이 별점만 작성")
+    void createReview_Success_WithoutContent() {
+        // given
+        User user = createUser(USER_ID, Role.USER);
+        mockCurrentUser(user);
+        ReviewCreateRequest request = new ReviewCreateRequest(5, "   ");
+
+        Course course = Course.builder().courseKey(COURSE_KEY).build();
+        lenient().when(courseRepository.existsByCourseKey(COURSE_KEY)).thenReturn(true);
+        lenient().when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
+        lenient().when(reviewRepository.existsByCourseKeyAndUserId(COURSE_KEY, user.getId())).thenReturn(false);
+
+        CourseReview savedReview = CourseReview.builder()
+                .courseKey(COURSE_KEY)
+                .userId(user.getId())
+                .rating(request.rating())
+                .content(request.content())
+                .build();
+
+        when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(savedReview);
+        mockCourseStats(COURSE_KEY, 5.0, 1L);
+
+        // when
+        ReviewResponse response = reviewService.createReview(COURSE_KEY, request);
+
+        // then
+        assertThat(response.rating()).isEqualTo(5);
+        assertThat(response.content()).isNull();
+        verify(reviewRepository).saveAndFlush(argThat(review -> review.getContent() == null));
+    }
+
+    @Test
     @DisplayName("리뷰 작성 실패 - 없는 강의")
     void createReview_Fail_CourseNotFound() {
         // given
@@ -215,6 +247,31 @@ class CourseReviewServiceTest {
         assertThat(response.rating()).isEqualTo(2);
         assertThat(response.content()).isEqualTo("Bad Course");
         assertThat(review.getRating()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("리뷰 수정 성공 - 코멘트 제거")
+    void updateReview_Success_RemoveContent() {
+        // given
+        User user = createUser(USER_ID, Role.USER);
+        mockCurrentUser(user);
+
+        CourseReview review = createReview(COURSE_KEY, user.getId());
+        ReviewUpdateRequest request = new ReviewUpdateRequest(4, " ");
+
+        when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
+
+        Course course = Course.builder().courseKey(COURSE_KEY).build();
+        when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
+        mockCourseStats(COURSE_KEY, 4.0, 1L);
+
+        // when
+        ReviewResponse response = reviewService.updateReview(REVIEW_ID, request);
+
+        // then
+        assertThat(response.rating()).isEqualTo(4);
+        assertThat(response.content()).isNull();
+        assertThat(review.getContent()).isNull();
     }
 
     @Test

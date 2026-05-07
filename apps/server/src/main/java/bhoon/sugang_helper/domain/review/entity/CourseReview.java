@@ -31,7 +31,7 @@ public class CourseReview extends BaseEntity {
     @Column(nullable = false)
     private int rating;
 
-    @Column(nullable = false)
+    @Column(length = 255)
     private String content;
 
     @Column(nullable = false)
