@@ -150,7 +150,8 @@ public class Course extends BaseTimeEntity {
             DisclosureStatus disclosure, String disclosureReason, Integer lectureHours, String generalCategory,
             String generalDetail,
             CourseAccreditation accreditation, CourseStatus status, String classroom, Boolean hasSyllabus,
-            String generalCategoryByYear, String courseDirection, String classDuration) {
+            String generalCategoryByYear, String courseDirection, String classDuration,
+            Float averageRating, Integer reviewCount) {
         this.courseKey = courseKey;
         this.subjectCode = subjectCode;
         this.name = name;
@@ -180,8 +181,8 @@ public class Course extends BaseTimeEntity {
         this.courseDirection = courseDirection;
         this.classDuration = classDuration;
         this.lastCrawledAt = LocalDateTime.now();
-        this.averageRating = 0.0f;
-        this.reviewCount = 0;
+        this.averageRating = averageRating != null ? averageRating : 0.0f;
+        this.reviewCount = reviewCount != null ? reviewCount : 0;
     }
 
     /**
