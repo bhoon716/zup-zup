@@ -4,6 +4,7 @@ import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useNotifications } from './useNotifications';
 import { createQueryWrapper, createTestQueryClient } from '@/test/query-client';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 const mockNotifications = [
   {
@@ -36,6 +37,10 @@ describe('useNotifications hook', () => {
   it('fetches notifications successfully', async () => {
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
+    
+    // 알림 조회는 로그인 상태에서만 활성화되므로 상태를 주입한다.
+    useAuthStore.setState({ isAuthenticated: true });
+    
     const { result } = renderHook(() => useNotifications(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
