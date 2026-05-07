@@ -57,7 +57,7 @@ export default function HomePage() {
         </div>
       </footer>
 
-      <style jsx global>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }
