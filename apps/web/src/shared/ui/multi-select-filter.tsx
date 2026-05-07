@@ -82,6 +82,7 @@ export function MultiSelectFilter({
                 <X
                   className="h-3 w-3 cursor-pointer opacity-50 hover:opacity-100"
                   onClick={() => toggleOption(val)}
+                  data-testid={`remove-option-${val}`}
                 />
               </Badge>
             );
