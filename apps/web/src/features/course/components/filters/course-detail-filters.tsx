@@ -2,13 +2,7 @@
 
 import React from "react";
 import { Label } from "@/shared/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
+import { MultiSelectFilter } from "@/shared/ui/multi-select-filter";
 import {
   CLASSIFICATION_GROUPS,
   CREDITS,
@@ -28,326 +22,148 @@ import type {
 interface CourseDetailFiltersProps {
   condition: CourseSearchCondition;
   setCondition: React.Dispatch<React.SetStateAction<CourseSearchCondition>>;
-  classificationType: string | undefined;
-  setClassificationType: (value: string | undefined) => void;
-  gradingType: string | undefined;
-  setGradingType: (value: string | undefined) => void;
 }
 
 export function CourseDetailFilters({
   condition,
   setCondition,
-  classificationType,
-  setClassificationType,
-  gradingType,
-  setGradingType,
 }: CourseDetailFiltersProps) {
-  // 교양 영역 상세 옵션 계산
-  const availableDetails: string[] =
-    condition.generalCategory && (GE_CATEGORIES as Record<string, string[]>)[condition.generalCategory]
-      ? (GE_CATEGORIES as Record<string, string[]>)[condition.generalCategory]
-      : [];
+  // 이수 구분 옵션들 평탄화 (그룹별 라벨 포함)
+  const classificationOptions = React.useMemo(() => CLASSIFICATION_GROUPS.flatMap((group) =>
+    group.items.map((item) => ({
+      label: `${group.label}: ${item}`,
+      value: item,
+    })),
+  ), []);
 
-  const creditSelectValue =
-    condition.minCredits !== undefined && condition.minCredits >= 4
-      ? "4+"
-      : (condition.credits || "all");
+  // 성적 평가 옵션들 평탄화
+  const gradingOptions = React.useMemo(() => GRADING_GROUPS.flatMap((group) =>
+    group.items.map((item) => ({
+      label: `${group.label}: ${item}`,
+      value: item,
+    })),
+  ), []);
+
+  // 강의 언어 옵션
+  const languageOptions = React.useMemo(() => LANGUAGES.map((lang) => ({
+    label: lang,
+    value: lang,
+  })), []);
+
+  // 학점 옵션
+  const creditOptions = React.useMemo(() => CREDITS.map((credit) => ({
+    label: `${credit}학점`,
+    value: credit,
+  })), []);
+
+  // 강의 방식 옵션
+  const directionOptions = React.useMemo(() => COURSE_DIRECTIONS.map((dir) => ({
+    label: dir,
+    value: dir,
+  })), []);
+
+  // 대상 학년 옵션
+  const gradeOptions = React.useMemo(() => TARGET_GRADES.map((grade) => ({
+    label: grade === "GRADUATE" ? "대학원" : `${grade}학년`,
+    value: grade,
+  })), []);
 
   return (
     <div className="space-y-4">
-      {/* 이수 구분 (대분류 & 중분류) */}
+      {/* 이수 구분 */}
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">이수 구분</Label>
-        <Select
-          value={classificationType || "all"}
-          onValueChange={(value) => {
-            if (value === "all") {
-              setClassificationType(undefined);
-              setCondition((prev) => ({
-                ...prev,
-                classification: undefined,
-                generalCategory: undefined,
-                generalDetail: undefined,
-              }));
-              return;
-            }
-
-            const group = CLASSIFICATION_GROUPS.find((g) => g.label === value);
-            setClassificationType(value);
-
+        <MultiSelectFilter
+          options={classificationOptions}
+          selected={condition.classifications || []}
+          onChange={(values) =>
             setCondition((prev) => ({
               ...prev,
-              classification: group?.value
-                ? (group.items[0] as CourseClassification)
-                : undefined,
-              generalCategory: undefined,
-              generalDetail: undefined,
-            }));
-          }}
-        >
-          <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
-            <SelectValue placeholder="- 선택 -" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">- 선택 -</SelectItem>
-            {CLASSIFICATION_GROUPS.map((group) => (
-              <SelectItem key={group.label} value={group.label}>
-                {group.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              classifications: values as CourseClassification[],
+            }))
+          }
+          placeholder="이수 구분 선택"
+        />
       </div>
 
-      {/* 중분류: 전공/기타 세부 구분 */}
-      {classificationType && !["교양", "일반선택"].includes(classificationType) && (
-        <div className="mt-2">
-          <Select
-            value={condition.classification || "all"}
-            onValueChange={(value) =>
-              setCondition((prev) => ({
-                ...prev,
-                classification:
-                  value === "all" ? undefined : (value as CourseClassification),
-              }))
-            }
-          >
-            <SelectTrigger className="h-10 w-full rounded-xl bg-muted/30 text-sm">
-              <SelectValue placeholder="- 선택 -" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">- 선택 -</SelectItem>
-              {CLASSIFICATION_GROUPS.find(
-                (g) => g.label === classificationType,
-              )?.items.map((item) => (
-                <SelectItem key={item} value={item}>
-                  {item}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* 중분류: 교양 영역 */}
-      {classificationType === "교양" && (
-        <div className="flex flex-col gap-2 mt-2">
-          <Select
-            value={condition.generalCategory || "all"}
-            onValueChange={(value) =>
-              setCondition((prev) => ({
-                ...prev,
-                generalCategory: value === "all" ? undefined : value,
-                generalDetail: undefined,
-              }))
-            }
-          >
-            <SelectTrigger className="h-10 w-full rounded-xl bg-muted/30 text-sm">
-              <SelectValue placeholder="- 선택 -" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">- 선택 -</SelectItem>
-              {Object.keys(GE_CATEGORIES).map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {condition.generalCategory && (
-            <Select
-              value={condition.generalDetail || "all"}
-              onValueChange={(value) =>
-                setCondition((prev) => ({
-                  ...prev,
-                  generalDetail: value === "all" ? undefined : value,
-                }))
-              }
-            >
-              <SelectTrigger className="h-10 w-full rounded-xl bg-muted/30 text-sm">
-                <SelectValue placeholder="- 선택 -" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">- 선택 -</SelectItem>
-                {availableDetails.map((detail) => (
-                  <SelectItem key={detail} value={detail}>
-                    {detail}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      )}
-
-      {/* 기타 상세 필터 (그리드 레이아웃) */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold text-muted-foreground">강의 언어</Label>
-          <Select
-            value={condition.lectureLanguage || "all"}
-            onValueChange={(value) =>
-              setCondition((prev) => ({
-                ...prev,
-                lectureLanguage:
-                  value === "all" ? undefined : (value as LectureLanguage),
-              }))
-            }
-          >
-            <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
-              <SelectValue placeholder="- 선택 -" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">- 선택 -</SelectItem>
-              {LANGUAGES.map((language) => (
-                <SelectItem key={language} value={language}>
-                  {language}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5 ">
-          <Label className="text-[11px] font-bold text-muted-foreground">성적 평가</Label>
-          <div className="flex flex-col gap-2">
-            <Select
-              value={gradingType || "all"}
-              onValueChange={(value) => {
-                if (value === "all") {
-                  setGradingType(undefined);
-                  setCondition((prev) => ({
-                    ...prev,
-                    gradingMethod: undefined,
-                  }));
-                  return;
-                }
-                setGradingType(value);
-                setCondition((prev) => ({
-                  ...prev,
-                  gradingMethod: undefined,
-                }));
-              }}
-            >
-              <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
-                <SelectValue placeholder="- 선택 -" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">- 선택 -</SelectItem>
-                {GRADING_GROUPS.map((group) => (
-                  <SelectItem key={group.label} value={group.label}>
-                    {group.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {gradingType && (
-              <Select
-                value={condition.gradingMethod || "all"}
-                onValueChange={(value) =>
-                  setCondition((prev) => ({
-                    ...prev,
-                    gradingMethod:
-                      value === "all" ? undefined : (value as GradingMethod),
-                  }))
-                }
-              >
-                <SelectTrigger className="h-10 w-full rounded-xl bg-muted/30 text-sm">
-                  <SelectValue placeholder="- 선택 -" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">- 선택 -</SelectItem>
-                  {GRADING_GROUPS.find((g) => g.label === gradingType)?.items.map(
-                    (item) => (
-                      <SelectItem key={item} value={item}>
-                        {item}
-                      </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </div>
+      {/* 강의 언어 */}
+      <div className="space-y-1.5">
+        <Label className="text-[11px] font-bold text-muted-foreground">강의 언어</Label>
+        <MultiSelectFilter
+          options={languageOptions}
+          selected={condition.lectureLanguages || []}
+          onChange={(values) =>
+            setCondition((prev) => ({
+              ...prev,
+              lectureLanguages: values as LectureLanguage[],
+            }))
+          }
+          placeholder="강의 언어 선택"
+        />
       </div>
 
+      {/* 성적 평가 */}
+      <div className="space-y-1.5">
+        <Label className="text-[11px] font-bold text-muted-foreground">성적 평가</Label>
+        <MultiSelectFilter
+          options={gradingOptions}
+          selected={condition.gradingMethods || []}
+          onChange={(values) =>
+            setCondition((prev) => ({
+              ...prev,
+              gradingMethods: values as GradingMethod[],
+            }))
+          }
+          placeholder="성적 평가 선택"
+        />
+      </div>
+
+      {/* 학점 */}
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">학점</Label>
-        <Select
-          value={creditSelectValue}
-          onValueChange={(value) =>
+        <MultiSelectFilter
+          options={creditOptions}
+          selected={condition.credits || []}
+          onChange={(values) =>
             setCondition((prev) => ({
               ...prev,
-              credits: value === "all" || value === "4+" ? undefined : value,
-              minCredits: value === "4+" ? 4 : undefined,
+              credits: values,
             }))
           }
-        >
-          <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
-            <SelectValue placeholder="- 선택 -" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">- 선택 -</SelectItem>
-            {CREDITS.map((credit) => (
-              <SelectItem key={credit} value={credit}>
-                {credit}학점
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder="학점 선택"
+        />
       </div>
 
+      {/* 강의 방식 */}
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">강의 방식</Label>
-        <Select
-          value={condition.status || "all"}
-          onValueChange={(value) =>
+        <MultiSelectFilter
+          options={directionOptions}
+          selected={condition.statuses || []}
+          onChange={(values) =>
             setCondition((prev) => ({
               ...prev,
-              status: value === "all" ? undefined : value,
-              courseDirection: undefined,
+              statuses: values,
             }))
           }
-        >
-          <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
-            <SelectValue placeholder="- 선택 -" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">- 선택 -</SelectItem>
-            {COURSE_DIRECTIONS.map((direction) => (
-              <SelectItem key={direction} value={direction}>
-                {direction}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder="강의 방식 선택"
+        />
       </div>
 
+      {/* 대상 학년 */}
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">대상 학년</Label>
-        <Select
-          value={condition.targetGrade || "all"}
-          onValueChange={(value) =>
+        <MultiSelectFilter
+          options={gradeOptions}
+          selected={condition.targetGrades || []}
+          onChange={(values) =>
             setCondition((prev) => ({
               ...prev,
-              targetGrade: value === "all" ? undefined : value,
+              targetGrades: values,
             }))
           }
-        >
-          <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
-            <SelectValue placeholder="- 선택 -" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">- 선택 -</SelectItem>
-            {TARGET_GRADES.map((grade) => (
-              <SelectItem key={grade} value={grade}>
-                {grade === "GRADUATE" ? "대학원" : `${grade}학년`}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder="대상 학년 선택"
+        />
       </div>
     </div>
   );

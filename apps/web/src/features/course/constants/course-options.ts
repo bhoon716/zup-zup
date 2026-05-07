@@ -33,8 +33,12 @@ export const GRADING_GROUPS = [
     items: ["상대평가Ⅰ", "상대평가Ⅱ", "상대평가Ⅲ"],
   },
   {
-    label: "절대평가/P.F",
-    items: ["절대평가", "Pass/Fail"],
+    label: "절대평가",
+    items: ["절대평가"],
+  },
+  {
+    label: "Pass/Fail",
+    items: ["Pass/Fail"],
   },
   {
     label: "기타",

@@ -51,9 +51,6 @@ export function CourseSearchBar({
   const [detailOpen, setDetailOpen] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
-  // UI 상태: 계층형 필터
-  const [classificationType, setClassificationType] = useState<string | undefined>();
-  const [gradingType, setGradingType] = useState<string | undefined>();
 
   /**
    * 로컬 검색 조건이 변경될 때 상위 컴포넌트에 알립니다.
@@ -80,8 +77,6 @@ export function CourseSearchBar({
    */
   const handleReset = () => {
     setCondition({ ...DEFAULT_CONDITION });
-    setClassificationType(undefined);
-    setGradingType(undefined);
     onSearch({ ...DEFAULT_CONDITION });
     toast.success("검색 조건을 초기화했습니다.");
   };
@@ -165,10 +160,6 @@ export function CourseSearchBar({
           <CourseDetailFilters
             condition={condition}
             setCondition={setCondition}
-            classificationType={classificationType}
-            setClassificationType={setClassificationType}
-            gradingType={gradingType}
-            setGradingType={setGradingType}
           />
         </FilterSection>
 

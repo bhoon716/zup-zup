@@ -95,11 +95,69 @@ export default function SearchPage() {
       });
     }
 
-    if (searchCondition.classification) {
+    if (searchCondition.classifications?.length) {
+      const label = searchCondition.classifications.length === 1
+        ? searchCondition.classifications[0]
+        : `이수구분 ${searchCondition.classifications.length}개`;
       filters.push({
-        id: "classification",
-        label: searchCondition.classification,
-        patch: { classification: undefined, generalCategory: undefined, generalDetail: undefined },
+        id: "classifications",
+        label,
+        patch: { classifications: undefined },
+      });
+    }
+
+    if (searchCondition.gradingMethods?.length) {
+      const label = searchCondition.gradingMethods.length === 1
+        ? searchCondition.gradingMethods[0]
+        : `성적평가 ${searchCondition.gradingMethods.length}개`;
+      filters.push({
+        id: "gradingMethods",
+        label,
+        patch: { gradingMethods: undefined },
+      });
+    }
+
+    if (searchCondition.lectureLanguages?.length) {
+      const label = searchCondition.lectureLanguages.length === 1
+        ? searchCondition.lectureLanguages[0]
+        : `강의언어 ${searchCondition.lectureLanguages.length}개`;
+      filters.push({
+        id: "lectureLanguages",
+        label,
+        patch: { lectureLanguages: undefined },
+      });
+    }
+
+    if (searchCondition.credits?.length) {
+      const label = searchCondition.credits.length === 1
+        ? `${searchCondition.credits[0]}학점`
+        : `학점 ${searchCondition.credits.length}개`;
+      filters.push({
+        id: "credits",
+        label,
+        patch: { credits: undefined },
+      });
+    }
+
+    if (searchCondition.statuses?.length) {
+      const label = searchCondition.statuses.length === 1
+        ? searchCondition.statuses[0]
+        : `강의방식 ${searchCondition.statuses.length}개`;
+      filters.push({
+        id: "statuses",
+        label,
+        patch: { statuses: undefined },
+      });
+    }
+
+    if (searchCondition.targetGrades?.length) {
+      const label = searchCondition.targetGrades.length === 1
+        ? (searchCondition.targetGrades[0] === "GRADUATE" ? "대학원" : `${searchCondition.targetGrades[0]}학년`)
+        : `학년 ${searchCondition.targetGrades.length}개`;
+      filters.push({
+        id: "targetGrades",
+        label,
+        patch: { targetGrades: undefined },
       });
     }
 
@@ -151,14 +209,15 @@ export default function SearchPage() {
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (searchCondition.classification) count++;
-    if (searchCondition.gradingMethod) count++;
-    if (searchCondition.credits) count++;
+    if (searchCondition.classifications?.length) count++;
+    if (searchCondition.gradingMethods?.length) count++;
+    if (searchCondition.credits?.length) count++;
     if (searchCondition.department) count++;
 
-    if (searchCondition.lectureLanguage) count++;
-    if (searchCondition.status) count++;
+    if (searchCondition.lectureLanguages?.length) count++;
+    if (searchCondition.statuses?.length) count++;
     if (searchCondition.selectedSchedules?.length) count++;
+    if (searchCondition.targetGrades?.length) count++;
     return count;
   }, [searchCondition]);
 
@@ -307,6 +366,7 @@ export default function SearchPage() {
                     <SelectContent>
                       <SelectItem value="name">강의명</SelectItem>
                       <SelectItem value="popular">인기(찜)</SelectItem>
+                      <SelectItem value="rating">평점순</SelectItem>
                       <SelectItem value="current">현재 신청 인원</SelectItem>
                       <SelectItem value="available">여석 수</SelectItem>
                     </SelectContent>

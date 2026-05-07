@@ -23,8 +23,8 @@ export function CourseBasicFilters({
 }: CourseBasicFiltersProps) {
   return (
     <div className="space-y-4">
-      {/* 학년도 및 학기 */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* 학년도 및 학기 (세로 1줄 레이아웃) */}
+      <div className="flex flex-col gap-4">
         <div className="space-y-1.5">
           <Label className="text-[11px] font-bold text-muted-foreground">학년도</Label>
           <Select
@@ -33,7 +33,7 @@ export function CourseBasicFilters({
               setCondition((prev) => ({ ...prev, academicYear: value }))
             }
           >
-            <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+            <SelectTrigger className="h-10 w-full rounded-xl bg-muted/30 text-sm">
               <SelectValue placeholder="- 선택 -" />
             </SelectTrigger>
             <SelectContent>
@@ -54,7 +54,7 @@ export function CourseBasicFilters({
               setCondition((prev) => ({ ...prev, semester: value }))
             }
           >
-            <SelectTrigger className="h-10 rounded-xl bg-muted/30 text-sm">
+            <SelectTrigger className="h-10 w-full rounded-xl bg-muted/30 text-sm">
               <SelectValue placeholder="- 선택 -" />
             </SelectTrigger>
             <SelectContent>
@@ -68,8 +68,8 @@ export function CourseBasicFilters({
         </div>
       </div>
 
-      {/* 교수명 및 학과명 직접 입력 (보조 기능) */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* 교수명 및 학과명 직접 입력 (세로 1줄 레이아웃) */}
+      <div className="flex flex-col gap-4">
         <div className="space-y-1.5">
           <Label className="text-[11px] font-bold text-muted-foreground">교수명</Label>
           <Input
@@ -78,7 +78,7 @@ export function CourseBasicFilters({
               setCondition((prev) => ({ ...prev, professor: e.target.value }))
             }
             placeholder="예: 홍길동"
-            className="h-10 rounded-xl bg-muted/30 text-xs"
+            className="h-10 w-full rounded-xl bg-muted/30 text-xs"
           />
         </div>
         <div className="space-y-1.5">
@@ -89,7 +89,7 @@ export function CourseBasicFilters({
               setCondition((prev) => ({ ...prev, department: e.target.value }))
             }
             placeholder="예: 소프트웨어"
-            className="h-10 rounded-xl bg-muted/30 text-xs"
+            className="h-10 w-full rounded-xl bg-muted/30 text-xs"
           />
         </div>
       </div>
