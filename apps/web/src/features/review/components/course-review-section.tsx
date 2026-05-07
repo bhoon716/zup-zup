@@ -4,7 +4,7 @@ import { useState } from "react";
 import axios from "axios";
 import { Star, ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
+import { Textarea } from "@/shared/ui/textarea";
 import { useReviews, useCreateReview, useToggleReviewReaction } from "@/features/review/hooks/useReviews";
 import { formatRelativeTime } from "@/shared/lib/formatters";
 import { cn } from "@/shared/lib/utils";
@@ -35,13 +35,9 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
       toast.error("별점을 선택해주세요.");
       return;
     }
-    if (content.trim().length === 0) {
-      toast.error("리뷰 내용을 입력해주세요.");
-      return;
-    }
 
     createReview(
-      { rating, content },
+      { rating, content: content.trim() || undefined },
       {
         onSuccess: () => {
           setRating(0);
@@ -108,12 +104,12 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
               </div>
               
               <div className="flex gap-3">
-                <Input
+                <Textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="강의 리뷰를 남겨주세요."
+                  placeholder="강의 리뷰를 남겨주세요. (선택사항)"
                   maxLength={255}
-                  className="flex-1 bg-gray-50 dark:bg-black/20 focus-visible:ring-primary/50"
+                  className="flex-1 min-h-[80px] bg-gray-50 dark:bg-black/20 focus-visible:ring-primary/50"
                 />
                 <Button type="submit" disabled={isCreating} className="font-bold">
                   {isCreating ? "등록 중..." : "등록"}
@@ -166,8 +162,11 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
                   </span>
                 </div>
                 
-                <p className="text-sm md:text-base text-gray-800 dark:text-gray-200 leading-relaxed break-all">
-                  {review.content}
+                <p className={cn(
+                  "text-sm md:text-base leading-relaxed break-all",
+                  review.content ? "text-gray-800 dark:text-gray-200" : "text-gray-400 dark:text-gray-500 italic"
+                )}>
+                  {review.content || "작성된 코멘트가 없습니다."}
                 </p>
 
                 <div className="flex items-center gap-3 mt-4">
