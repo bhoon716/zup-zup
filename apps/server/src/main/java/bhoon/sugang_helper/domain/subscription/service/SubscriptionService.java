@@ -95,6 +95,16 @@ public class SubscriptionService {
     }
 
     /**
+     * 현재 로그인한 사용자의 모든 구독 내역을 일괄 삭제
+     */
+    @Transactional
+    public void unsubscribeAll() {
+        User user = getCurrentUser();
+        subscriptionRepository.deleteAllByUserId(user.getId());
+        log.info("[Subscription] Deleted All: userId={}", user.getId());
+    }
+
+    /**
      * 현재 로그인한 사용자의 모든 구독 목록을 조회
      */
     public List<SubscriptionResponse> getMySubscriptions() {
