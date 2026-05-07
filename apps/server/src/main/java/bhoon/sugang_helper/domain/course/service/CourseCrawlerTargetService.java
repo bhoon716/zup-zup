@@ -8,6 +8,7 @@ import bhoon.sugang_helper.domain.course.repository.CrawlerSettingRepository;
 import bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +19,18 @@ public class CourseCrawlerTargetService {
 
     private final CrawlerSettingRepository crawlerSettingRepository;
 
+    @Value("${jbnu.crawler.default-year}")
+    private String defaultYear;
+
+    @Value("${jbnu.crawler.default-semester}")
+    private String defaultSemester;
+
     /**
      * 현재 DB에 저장된 크롤링 타겟(년도, 학기)을 조회합니다.
      */
+    @Transactional
     public AdminCrawlTargetResponse getCurrentTarget() {
-        CrawlerSetting setting = getSetting();
+        CrawlerSetting setting = getOrInitSetting();
         return toResponse(setting);
     }
 
@@ -32,7 +40,7 @@ public class CourseCrawlerTargetService {
     @Transactional
     public AdminCrawlTargetResponse updateTarget(String year, String semester) {
         CrawlTargetInfo target = normalizeTarget(year, semester);
-        CrawlerSetting setting = getSetting();
+        CrawlerSetting setting = getOrInitSetting();
         setting.updateTarget(target.year(), target.semester().getCode());
         return toResponse(setting);
     }
@@ -40,8 +48,9 @@ public class CourseCrawlerTargetService {
     /**
      * 현재 크롤링 타겟의 원시 값(record 형식)을 조회합니다.
      */
+    @Transactional
     public CrawlTargetInfo getCurrentTargetValue() {
-        CrawlerSetting setting = getSetting();
+        CrawlerSetting setting = getOrInitSetting();
         return new CrawlTargetInfo(setting.getTargetYear(), SemesterType.fromCode(setting.getTargetSemester()));
     }
 
@@ -86,11 +95,17 @@ public class CourseCrawlerTargetService {
     }
 
     /**
-     * DB에서 크롤링 설정을 조회합니다. 없을 경우 예외를 발생시킵니다.
+     * DB에서 크롤링 설정을 조회합니다. 없을 경우 설정 파일의 기본값으로 초기화하여 반환합니다.
      */
-    private CrawlerSetting getSetting() {
+    private CrawlerSetting getOrInitSetting() {
         return crawlerSettingRepository.findTopByOrderByIdAsc()
-                .orElseThrow(() -> new CustomException(ErrorCode.CRAWLER_SETTING_NOT_FOUND));
+                .orElseGet(() -> {
+                    CrawlerSetting defaultSetting = CrawlerSetting.builder()
+                            .targetYear(defaultYear)
+                            .targetSemester(defaultSemester)
+                            .build();
+                    return crawlerSettingRepository.save(defaultSetting);
+                });
     }
 
     /**
