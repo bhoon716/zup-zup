@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CourseSearchBar } from "@/features/course/components/course-search-bar";
 import { CourseTable } from "@/features/course/components/course-table";
 import { CourseTableSkeleton } from "@/features/course/components/course-table-skeleton";
-import { useCourses, useCollegeHierarchy } from "@/features/course/hooks/useCourses";
+import { useCourses } from "@/features/course/hooks/useCourses";
 import type { CourseSearchCondition } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
 import {
@@ -53,7 +53,7 @@ export default function SearchPage() {
     sortOrder,
   });
 
-  const { data: hierarchy } = useCollegeHierarchy();
+
 
   const handleSearch = useCallback((condition: CourseSearchCondition) => {
     setSearchCondition(condition);
@@ -83,30 +83,7 @@ export default function SearchPage() {
   const activeFilters = useMemo<FilterChip[]>(() => {
     const filters: FilterChip[] = [];
 
-    // 단과대 필터 칩
-    if (searchCondition.collegeId && hierarchy) {
-      const college = hierarchy.find(c => c.id === searchCondition.collegeId);
-      if (college) {
-        filters.push({
-          id: "college",
-          label: college.name,
-          patch: { collegeId: undefined, departmentId: undefined },
-        });
-      }
-    }
 
-    // 학과 필터 칩
-    if (searchCondition.departmentId && hierarchy) {
-      const college = hierarchy.find(c => c.id === searchCondition.collegeId);
-      const dept = college?.departments.find(d => d.id === searchCondition.departmentId);
-      if (dept) {
-        filters.push({
-          id: "departmentId",
-          label: dept.name,
-          patch: { departmentId: undefined },
-        });
-      }
-    }
 
     // 기존 텍스트 기반 학과 검색 칩
     if (searchCondition.department) {
@@ -166,7 +143,7 @@ export default function SearchPage() {
     }
 
     return filters;
-  }, [searchCondition, hierarchy]);
+  }, [searchCondition]);
 
   const keyword = draftCondition.name || "";
   const setKeyword = (name: string) => setDraftCondition(prev => ({ ...prev, name }));
@@ -177,8 +154,7 @@ export default function SearchPage() {
     if (searchCondition.gradingMethod) count++;
     if (searchCondition.credits) count++;
     if (searchCondition.department) count++;
-    if (searchCondition.collegeId) count++;
-    if (searchCondition.departmentId) count++;
+
     if (searchCondition.lectureLanguage) count++;
     if (searchCondition.status) count++;
     if (searchCondition.selectedSchedules?.length) count++;
