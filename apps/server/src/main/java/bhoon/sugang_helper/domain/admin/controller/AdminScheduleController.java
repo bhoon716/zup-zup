@@ -52,7 +52,7 @@ public class AdminScheduleController {
     @Operation(summary = "기존 일정 수정")
     @PutMapping("/{id}")
     public ResponseEntity<ScheduleResponse> updateSchedule(@PathVariable Long id,
-            @RequestBody @Valid ScheduleRequest request) {
+                                                           @RequestBody @Valid ScheduleRequest request) {
         return ResponseEntity.ok(scheduleService.updateSchedule(id, request));
     }
 

@@ -16,8 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 피드백에 첨부된 파일 정보를 관리하는 엔티티 클래스입니다.
- * 원본 파일명과 서버에 저장된 파일 URL을 기록합니다.
+ * 피드백에 첨부된 파일 정보를 관리하는 엔티티 클래스입니다. 원본 파일명과 서버에 저장된 파일 URL을 기록합니다.
  */
 @Entity
 @Getter

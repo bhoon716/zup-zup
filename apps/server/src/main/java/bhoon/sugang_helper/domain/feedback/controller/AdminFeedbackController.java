@@ -27,8 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 관리자 전용 문의 및 건의사항 관리 API 컨트롤러입니다.
- * 전체 목록 조회, 상태 변경, 답변 작성(CRUD) 기능을 제공하며 관리자 권한(ROLE_ADMIN)이 필요합니다.
+ * 관리자 전용 문의 및 건의사항 관리 API 컨트롤러입니다. 전체 목록 조회, 상태 변경, 답변 작성(CRUD) 기능을 제공하며 관리자 권한(ROLE_ADMIN)이 필요합니다.
  */
 @Tag(name = "Admin Feedback", description = "관리자용 피드백 관리 API")
 @RestController

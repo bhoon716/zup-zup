@@ -39,12 +39,12 @@ public class GlobalExceptionHandler {
         return response(req, ErrorCode.INVALID_INPUT, details.toString());
     }
 
-    @ExceptionHandler({ ExpiredJwtException.class, JwtException.class })
+    @ExceptionHandler({ExpiredJwtException.class, JwtException.class})
     public ResponseEntity<ErrorResponse> handleJwt(HttpServletRequest req, JwtException e) {
         return response(req, ErrorCode.INVALID_TOKEN, ErrorCode.INVALID_TOKEN.getMessage());
     }
 
-    @ExceptionHandler({ AuthorizationDeniedException.class, AccessDeniedException.class })
+    @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
     public ResponseEntity<ErrorResponse> handleForbidden(HttpServletRequest req, RuntimeException e) {
         return response(req, ErrorCode.FORBIDDEN, ErrorCode.FORBIDDEN.getMessage());
     }

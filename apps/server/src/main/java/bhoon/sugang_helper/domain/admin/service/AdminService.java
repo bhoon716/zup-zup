@@ -2,6 +2,7 @@ package bhoon.sugang_helper.domain.admin.service;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardResponse;
 import bhoon.sugang_helper.domain.admin.response.AdminHourlyTrafficResponse;
 import bhoon.sugang_helper.domain.admin.response.AdminOverviewResponse;
@@ -14,7 +15,6 @@ import bhoon.sugang_helper.domain.notification.service.NotificationService;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
-import bhoon.sugang_helper.common.util.SecurityUtil;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -221,14 +221,18 @@ public class AdminService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, "email: " + email));
 
         List<NotificationChannel> channels = new ArrayList<>();
-        if (user.isEmailEnabled())
+        if (user.isEmailEnabled()) {
             channels.add(NotificationChannel.EMAIL);
-        if (user.isFcmEnabled())
+        }
+        if (user.isFcmEnabled()) {
             channels.add(NotificationChannel.FCM);
-        if (user.isWebPushEnabled())
+        }
+        if (user.isWebPushEnabled()) {
             channels.add(NotificationChannel.WEB);
-        if (user.isDiscordEnabled())
+        }
+        if (user.isDiscordEnabled()) {
             channels.add(NotificationChannel.DISCORD);
+        }
 
         if (channels.isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "활성화된 알림 채널이 없습니다. 설정에서 알림을 활성화해주세요.");

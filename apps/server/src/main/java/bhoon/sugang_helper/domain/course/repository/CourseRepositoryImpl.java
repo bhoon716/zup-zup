@@ -363,7 +363,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
         // 강의명 순: 강의명(order) -> 과목코드(ASC) -> 분반(ASC)
         if ("name".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier[] {
+            return new OrderSpecifier[]{
                     new OrderSpecifier<>(order, course.name),
                     new OrderSpecifier<>(Order.ASC, course.subjectCode),
                     new OrderSpecifier<>(Order.ASC, course.classNumber)
@@ -372,7 +372,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
         // 인기순 (찜 횟수 기준): 찜횟수(order) -> 신청인원(DESC) -> 고유키(ASC)
         if ("popular".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier[] {
+            return new OrderSpecifier[]{
                     new OrderSpecifier<>(order,
                             joinedWishlist != null ? joinedWishlist.id.count()
                                     : JPAExpressions.select(QWishlist.wishlist.count())
@@ -385,7 +385,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
         // 신청인원순: 신청인원(order) -> 전체정원(ASC) -> 고유키(ASC)
         if ("current".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier[] {
+            return new OrderSpecifier[]{
                     new OrderSpecifier<>(order, course.current),
                     new OrderSpecifier<>(Order.ASC, course.capacity),
                     new OrderSpecifier<>(Order.ASC, course.courseKey)
@@ -394,7 +394,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
         // 평점순: 평점(order) -> 리뷰수(DESC) -> 고유키(ASC)
         if ("rating".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier[] {
+            return new OrderSpecifier[]{
                     new OrderSpecifier<>(order, course.averageRating),
                     new OrderSpecifier<>(Order.DESC, course.reviewCount),
                     new OrderSpecifier<>(Order.ASC, course.courseKey)
@@ -403,7 +403,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
 
         // 여석순: 여석수(order) -> 전체정원(ASC) -> 고유키(ASC)
         if ("available".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier[] {
+            return new OrderSpecifier[]{
                     new OrderSpecifier<>(order, course.capacity.subtract(course.current)),
                     new OrderSpecifier<>(Order.ASC, course.capacity),
                     new OrderSpecifier<>(Order.ASC, course.courseKey)
@@ -411,7 +411,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         }
 
         // default: 인기순 기반 정렬
-        return new OrderSpecifier[] {
+        return new OrderSpecifier[]{
                 new OrderSpecifier<>(order,
                         joinedWishlist != null ? joinedWishlist.id.count()
                                 : JPAExpressions.select(QWishlist.wishlist.count())

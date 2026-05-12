@@ -144,14 +144,14 @@ public class Course extends BaseTimeEntity {
      */
     @Builder
     public Course(String courseKey, String subjectCode, String name, String classNumber, String professor,
-            Integer capacity, Integer current, TargetGrade targetGrade, String academicYear, String semester,
-            CourseClassification classification, String department, GradingMethod gradingMethod,
-            String classTime, String credits, LectureLanguage lectureLanguage,
-            DisclosureStatus disclosure, String disclosureReason, Integer lectureHours, String generalCategory,
-            String generalDetail,
-            CourseAccreditation accreditation, CourseStatus status, String classroom, Boolean hasSyllabus,
-            String generalCategoryByYear, String courseDirection, String classDuration,
-            Float averageRating, Integer reviewCount) {
+                  Integer capacity, Integer current, TargetGrade targetGrade, String academicYear, String semester,
+                  CourseClassification classification, String department, GradingMethod gradingMethod,
+                  String classTime, String credits, LectureLanguage lectureLanguage,
+                  DisclosureStatus disclosure, String disclosureReason, Integer lectureHours, String generalCategory,
+                  String generalDetail,
+                  CourseAccreditation accreditation, CourseStatus status, String classroom, Boolean hasSyllabus,
+                  String generalCategoryByYear, String courseDirection, String classDuration,
+                  Float averageRating, Integer reviewCount) {
         this.courseKey = courseKey;
         this.subjectCode = subjectCode;
         this.name = name;

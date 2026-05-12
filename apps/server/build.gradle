@@ -46,6 +46,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 
+	// AWS SES (이메일 발송)
+	implementation 'io.awspring.cloud:spring-cloud-aws-starter-ses:3.3.0'
+
+	// 테스트 의존성
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'io.github.cdimascio:java-dotenv:5.2.2'
@@ -61,40 +65,40 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
-	// test
+	// JUnit 플랫폼 런처
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-	// jwt
+	// JWT (토큰 인증)
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
 	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
 	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
 
-	// Documentation
+	// 문서화 (Swagger/OpenAPI)
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
 
-	// QueryDSL
+	// QueryDSL (동적 쿼리)
 	implementation "com.querydsl:querydsl-jpa:5.1.0:jakarta"
 	annotationProcessor "com.querydsl:querydsl-apt:5.1.0:jakarta"
 	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
-	// prometheus
+	// 모니터링 (Prometheus)
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 
-	// jsoup
+	// HTML 파싱 (Jsoup)
 	implementation 'org.jsoup:jsoup:1.18.3'
 
-	// session
+	// 세션 관리 (Redis)
 	implementation 'org.springframework.session:spring-session-data-redis'
 
-	// firebase
+	// 파이어베이스 (푸시 알림)
 	implementation 'com.google.firebase:firebase-admin:9.7.0'
 
-	// web push
+	// 웹 푸시
 	implementation 'nl.martijndwars:web-push:5.1.1'
 	implementation 'org.bouncycastle:bcprov-jdk18on:1.83'
 
-	// Tika for file validation
+	// 파일 유효성 검사 (Tika)
 	implementation 'org.apache.tika:tika-core:2.9.1'
 }
 

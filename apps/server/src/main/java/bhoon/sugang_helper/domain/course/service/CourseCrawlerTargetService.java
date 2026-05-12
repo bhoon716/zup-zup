@@ -1,9 +1,9 @@
 package bhoon.sugang_helper.domain.course.service;
 
-import bhoon.sugang_helper.domain.course.enums.SemesterType;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.CrawlerSetting;
+import bhoon.sugang_helper.domain.course.enums.SemesterType;
 import bhoon.sugang_helper.domain.course.repository.CrawlerSettingRepository;
 import bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;

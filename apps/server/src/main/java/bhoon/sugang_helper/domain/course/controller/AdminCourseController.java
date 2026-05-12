@@ -68,7 +68,8 @@ public class AdminCourseController {
         CrawlTargetInfo target = crawlerTargetService.normalizeTarget(request.getYear(),
                 request.getSemester());
         courseCrawlerService.crawlAndSaveCourses(target.year(), target.semester().getCode());
-        String message = String.format("년도 %s, 학기 %s 크롤링 작업을 실행했습니다.", target.year(), target.semester().getDescription());
+        String message = String.format("년도 %s, 학기 %s 크롤링 작업을 실행했습니다.", target.year(),
+                target.semester().getDescription());
         return CommonResponse.ok(message, message);
     }
 }

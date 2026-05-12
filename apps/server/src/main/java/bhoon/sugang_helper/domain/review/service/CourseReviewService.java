@@ -4,15 +4,15 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
-import bhoon.sugang_helper.domain.review.request.ReviewCreateRequest;
-import bhoon.sugang_helper.domain.review.request.ReviewReactionRequest;
-import bhoon.sugang_helper.domain.review.request.ReviewUpdateRequest;
-import bhoon.sugang_helper.domain.review.response.ReviewResponse;
 import bhoon.sugang_helper.domain.review.entity.CourseReview;
 import bhoon.sugang_helper.domain.review.entity.CourseReviewReaction;
 import bhoon.sugang_helper.domain.review.enums.ReactionType;
 import bhoon.sugang_helper.domain.review.repository.CourseReviewReactionRepository;
 import bhoon.sugang_helper.domain.review.repository.CourseReviewRepository;
+import bhoon.sugang_helper.domain.review.request.ReviewCreateRequest;
+import bhoon.sugang_helper.domain.review.request.ReviewReactionRequest;
+import bhoon.sugang_helper.domain.review.request.ReviewUpdateRequest;
+import bhoon.sugang_helper.domain.review.response.ReviewResponse;
 import bhoon.sugang_helper.domain.user.entity.Role;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
@@ -180,7 +180,7 @@ public class CourseReviewService {
      * 기존 반응을 취소하거나 변경합니다.
      */
     private void handleExistingReaction(CourseReview review, CourseReviewReaction existing, ReactionType targetType,
-            Long userId) {
+                                        Long userId) {
         if (existing.getReactionType() == targetType) {
             reactionRepository.delete(existing);
             decrementReactionCount(review, targetType);
@@ -200,20 +200,22 @@ public class CourseReviewService {
      * 반응 타입에 따라 리뷰의 공감/비공감 카운트를 증가시킵니다.
      */
     private void incrementReactionCount(CourseReview review, ReactionType type) {
-        if (type == ReactionType.LIKE)
+        if (type == ReactionType.LIKE) {
             review.increaseLikeCount();
-        else
+        } else {
             review.increaseDislikeCount();
+        }
     }
 
     /**
      * 반응 타입에 따라 리뷰의 공감/비공감 카운트를 감소시킵니다.
      */
     private void decrementReactionCount(CourseReview review, ReactionType type) {
-        if (type == ReactionType.LIKE)
+        if (type == ReactionType.LIKE) {
             review.decreaseLikeCount();
-        else
+        } else {
             review.decreaseDislikeCount();
+        }
     }
 
     /**

@@ -43,7 +43,7 @@ graph TD
     subgraph "Messaging Hub"
         Notify --> FCM["Firebase (FCM)"]
         Notify --> WebPush["Web Push (VAPID)"]
-        Notify --> SMTP["Email (JavaMail)"]
+        Notify --> SES["AWS SES"]
         Notify --> Discord["Discord Bot"]
     end
 
@@ -72,7 +72,7 @@ graph TD
 
 - **Firebase Admin SDK** (FCM)
 - **WebPush (VAPID)**
-- **JavaMail** (SMTP)
+- **AWS SES** (Email)
 - **Discord Bot API**
 
 ---
@@ -86,12 +86,12 @@ graph TD
 - **시간 범위 검색**: `dayOfWeek + startTime + endTime` 기반의 정밀 필터링 (QueryDSL 최적화)
 
 ### 🚀 비동기 멀티 채널 알림
-... (중략) ...
----
+
+## ... (중략) ...
 
 ## 📂 프로젝트 구조 (Structure)
-... (중략) ...
----
+
+## ... (중략) ...
 
 ## 📚 관련 문서 (Docs)
 

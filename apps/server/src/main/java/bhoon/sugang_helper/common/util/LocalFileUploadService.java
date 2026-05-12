@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.common.util;
 
-import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,16 +9,14 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
- * 로컬 파일 시스템에 파일을 업로드하고 관리하는 서비스 클래스입니다.
- * 파일의 무결성 검증(MIME 타입 및 확장자) 및 보안 처리를 담당합니다.
+ * 로컬 파일 시스템에 파일을 업로드하고 관리하는 서비스 클래스입니다. 파일의 무결성 검증(MIME 타입 및 확장자) 및 보안 처리를 담당합니다.
  */
 @Component
 @Slf4j
@@ -54,8 +52,9 @@ public class LocalFileUploadService {
         }
 
         for (MultipartFile file : files) {
-            if (file.isEmpty())
+            if (file.isEmpty()) {
                 continue;
+            }
 
             validateImageFile(file);
             String savedUrl = saveFileToLocal(file, uploadPath);

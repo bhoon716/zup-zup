@@ -102,14 +102,15 @@ public class CourseSearchCondition {
      */
     @Builder
     public CourseSearchCondition(String name, String professor, String subjectCode, String academicYear,
-            String semester, List<String> classifications,
-            String department, List<String> gradingMethods, List<String> lectureLanguages,
-            Boolean isAvailableOnly, String dayOfWeek, List<String> credits, Integer lectureHours,
-            Integer minLectureHours, String generalCategory, String generalDetail,
-            List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly,
-            List<String> statuses, String courseDirection, Double minCredits, List<TargetGrade> targetGrades,
-            String disclosure,
-            String sortBy, String sortOrder, Long userId) {
+                                 String semester, List<String> classifications,
+                                 String department, List<String> gradingMethods, List<String> lectureLanguages,
+                                 Boolean isAvailableOnly, String dayOfWeek, List<String> credits, Integer lectureHours,
+                                 Integer minLectureHours, String generalCategory, String generalDetail,
+                                 List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly,
+                                 List<String> statuses, String courseDirection, Double minCredits,
+                                 List<TargetGrade> targetGrades,
+                                 String disclosure,
+                                 String sortBy, String sortOrder, Long userId) {
         this.name = name;
         this.professor = professor;
         this.subjectCode = subjectCode;

@@ -36,7 +36,7 @@ public class ScheduleRequest {
     private LocalTime endTime;
 
     public ScheduleRequest(String scheduleType, LocalDate startDate, LocalDate endDate,
-            LocalTime startTime, LocalTime endTime) {
+                           LocalTime startTime, LocalTime endTime) {
         this.scheduleType = scheduleType;
         this.startDate = startDate;
         this.endDate = endDate;

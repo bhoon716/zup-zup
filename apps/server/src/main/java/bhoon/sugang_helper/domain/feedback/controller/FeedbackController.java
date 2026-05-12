@@ -26,8 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 일반 사용자용 피드백 API 컨트롤러입니다.
- * 건의사항 및 버그 리포트 등록, 조회, 삭제 기능을 제공합니다.
+ * 일반 사용자용 피드백 API 컨트롤러입니다. 건의사항 및 버그 리포트 등록, 조회, 삭제 기능을 제공합니다.
  */
 @Tag(name = "Feedback", description = "건의사항 및 버그 리포트 API")
 @RestController
