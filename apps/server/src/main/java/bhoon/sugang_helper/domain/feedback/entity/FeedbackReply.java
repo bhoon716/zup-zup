@@ -11,17 +11,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
 import org.hibernate.annotations.SQLRestriction;
-import java.time.LocalDateTime;
 
 /**
- * 사용자의 피드백에 대해 관리자가 남긴 답변을 관리하는 엔티티 클래스입니다.
- * 답변 내용과 작성자(관리자) 정보를 포함합니다.
+ * 사용자의 피드백에 대해 관리자가 남긴 답변을 관리하는 엔티티 클래스입니다. 답변 내용과 작성자(관리자) 정보를 포함합니다.
  */
 @Entity
 @Getter

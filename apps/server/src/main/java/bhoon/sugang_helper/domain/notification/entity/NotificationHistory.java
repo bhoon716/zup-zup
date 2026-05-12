@@ -46,7 +46,7 @@ public class NotificationHistory extends BaseTimeEntity {
 
     @Builder
     private NotificationHistory(Long userId, String courseKey, String title, String message,
-                               NotificationChannel channel) {
+                                NotificationChannel channel) {
         this.userId = userId;
         this.courseKey = courseKey;
         this.title = title;

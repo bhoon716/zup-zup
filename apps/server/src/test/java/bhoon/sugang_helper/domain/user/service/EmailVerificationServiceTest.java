@@ -15,8 +15,10 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
+import bhoon.sugang_helper.common.util.EmailTemplateService;
 import jakarta.mail.internet.MimeMessage;
 import java.time.Duration;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +37,9 @@ class EmailVerificationServiceTest {
     @Mock
     private RedisService redisService;
 
+    @Mock
+    private EmailTemplateService templateService;
+
     @InjectMocks
     private EmailVerificationService emailVerificationService;
 
@@ -49,6 +54,7 @@ class EmailVerificationServiceTest {
 
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(templateService.loadTemplate(eq("verification_code"), any(Map.class))).thenReturn("<html>HTML</html>");
 
         // when
         emailVerificationService.sendCode(userId, email);
@@ -69,6 +75,7 @@ class EmailVerificationServiceTest {
         ReflectionTestUtils.setField(emailVerificationService, "fromName", "SugangHelper");
 
         when(javaMailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));
+        when(templateService.loadTemplate(eq("verification_code"), any(Map.class))).thenReturn("<html>HTML</html>");
         doThrow(new RuntimeException("Mail server error")).when(javaMailSender).send(any(MimeMessage.class));
 
         // when & then

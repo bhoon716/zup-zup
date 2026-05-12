@@ -2,9 +2,9 @@ package bhoon.sugang_helper.domain.course.enums;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import java.util.Arrays;
 
 /**
  * 전북대학교 학기 구분 코드와 명칭을 관리하는 열거형입니다.

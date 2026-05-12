@@ -25,7 +25,7 @@ public class ScheduleResponse {
 
     /**
      * 강의 일정 정보를 ScheduleResponse DTO로 변환
-     * 
+     *
      * @param schedule 강의 일정 엔티티
      * @return HH:mm 형식의 시간이 포함된 DTO
      */

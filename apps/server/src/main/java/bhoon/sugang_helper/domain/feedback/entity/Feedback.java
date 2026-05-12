@@ -27,8 +27,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
 /**
- * 피드백(건의사항/버그리포트)의 기본 정보를 관리하는 엔티티 클래스입니다.
- * 작성자 정보, 피드백 유형, 내용 및 처리 상태를 포함합니다.
+ * 피드백(건의사항/버그리포트)의 기본 정보를 관리하는 엔티티 클래스입니다. 작성자 정보, 피드백 유형, 내용 및 처리 상태를 포함합니다.
  */
 @Entity
 @Getter

@@ -31,7 +31,7 @@ public class CourseReview extends BaseEntity {
     @Column(nullable = false)
     private int rating;
 
-    @Column(nullable = false)
+    @Column(length = 255)
     private String content;
 
     @Column(nullable = false)
@@ -60,8 +60,9 @@ public class CourseReview extends BaseEntity {
     }
 
     public void decreaseLikeCount() {
-        if (this.likeCount > 0)
+        if (this.likeCount > 0) {
             this.likeCount--;
+        }
     }
 
     public void increaseDislikeCount() {
@@ -69,7 +70,8 @@ public class CourseReview extends BaseEntity {
     }
 
     public void decreaseDislikeCount() {
-        if (this.dislikeCount > 0)
+        if (this.dislikeCount > 0) {
             this.dislikeCount--;
+        }
     }
 }

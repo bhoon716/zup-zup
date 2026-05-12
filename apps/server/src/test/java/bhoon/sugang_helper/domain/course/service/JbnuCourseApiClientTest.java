@@ -33,7 +33,7 @@ class JbnuCourseApiClientTest {
         ReflectionTestUtils.setField(client, "apiUrl", realApiUrl);
 
         // When
-        String result = client.fetchCourseDataXml();
+        String result = client.fetchCourseDataXml("2026", "U211600010");
 
         // Then
         System.out.println(

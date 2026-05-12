@@ -5,8 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 /**
- * 서비스 전반에서 발생하는 예외 상황을 정의하는 에러 코드 Enum입니다.
- * 각 상수는 HTTP 상태 코드, 고유 에러 코드, 사용자에게 전달될 메시지를 포함합니다.
+ * 서비스 전반에서 발생하는 예외 상황을 정의하는 에러 코드 Enum입니다. 각 상수는 HTTP 상태 코드, 고유 에러 코드, 사용자에게 전달될 메시지를 포함합니다.
  */
 @Getter
 @RequiredArgsConstructor

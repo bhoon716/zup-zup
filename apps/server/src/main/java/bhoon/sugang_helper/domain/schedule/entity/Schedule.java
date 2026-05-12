@@ -41,7 +41,7 @@ public class Schedule extends BaseTimeEntity {
 
     @Builder
     public Schedule(String scheduleType, LocalDate startDate, LocalDate endDate, LocalTime startTime,
-            LocalTime endTime) {
+                    LocalTime endTime) {
         this.scheduleType = scheduleType;
         this.startDate = startDate;
         this.endDate = endDate;
@@ -50,7 +50,7 @@ public class Schedule extends BaseTimeEntity {
     }
 
     public void update(String scheduleType, LocalDate startDate, LocalDate endDate, LocalTime startTime,
-            LocalTime endTime) {
+                       LocalTime endTime) {
         this.scheduleType = scheduleType;
         this.startDate = startDate;
         this.endDate = endDate;

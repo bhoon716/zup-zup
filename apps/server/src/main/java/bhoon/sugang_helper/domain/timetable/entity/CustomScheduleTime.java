@@ -46,7 +46,7 @@ public class CustomScheduleTime extends BaseTimeEntity {
 
     @Builder
     public CustomScheduleTime(CustomSchedule customSchedule, String dayOfWeek, LocalTime startTime, LocalTime endTime,
-            String classroom) {
+                              String classroom) {
         this.customSchedule = customSchedule;
         this.dayOfWeek = dayOfWeek;
         this.startTime = startTime;

@@ -1,13 +1,11 @@
 package bhoon.sugang_helper.domain.course.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.course.entity.CrawlerSetting;
 import bhoon.sugang_helper.domain.course.enums.SemesterType;
 import bhoon.sugang_helper.domain.course.repository.CrawlerSettingRepository;
@@ -20,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class CourseCrawlerTargetServiceTest {
@@ -49,15 +48,21 @@ class CourseCrawlerTargetServiceTest {
     }
 
     @Test
-    @DisplayName("DB에 설정이 존재하지 않으면 CRAWLER_SETTING_NOT_FOUND 예외가 발생한다")
-    void getCurrentTarget_NotFound_ThrowsException() {
+    @DisplayName("DB에 설정이 존재하지 않으면 기본 설정값으로 초기화하여 반환한다")
+    void getCurrentTarget_NotFound_ReturnsDefaultValue() {
         // given
+        ReflectionTestUtils.setField(crawlerTargetService, "defaultYear", "2026");
+        ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
+        given(crawlerSettingRepository.save(any(CrawlerSetting.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-        // when & then
-        assertThatThrownBy(() -> crawlerTargetService.getCurrentTarget())
-                .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CRAWLER_SETTING_NOT_FOUND);
+        // when
+        AdminCrawlTargetResponse response = crawlerTargetService.getCurrentTarget();
+
+        // then
+        assertThat(response.getYear()).isEqualTo("2026");
+        assertThat(response.getSemester()).isEqualTo(SemesterType.FIRST_SEMESTER.getCode());
+        verify(crawlerSettingRepository, times(1)).save(any(CrawlerSetting.class));
     }
 
     @Test

@@ -31,17 +31,17 @@ public class CourseSearchCondition {
     @Schema(description = "학기", example = "U211600010")
     private String semester;
 
-    @Schema(description = "이수구분", example = "전공선택")
-    private String classification;
+    @Schema(description = "이수구분 리스트", example = "[\"전공선택\", \"전공필수\"]")
+    private List<String> classifications;
 
     @Schema(description = "학과", example = "소프트웨어공학과")
     private String department;
 
-    @Schema(description = "성적평가방식", example = "상대평가Ⅰ")
-    private String gradingMethod;
+    @Schema(description = "성적평가방식 리스트", example = "[\"상대평가Ⅰ\", \"절대평가\"]")
+    private List<String> gradingMethods;
 
-    @Schema(description = "강의언어", example = "한국어")
-    private String lectureLanguage;
+    @Schema(description = "강의언어 리스트", example = "[\"한국어\", \"영어\"]")
+    private List<String> lectureLanguages;
 
     @Schema(description = "잔여석 존재 여부", example = "true")
     private Boolean isAvailableOnly;
@@ -52,8 +52,8 @@ public class CourseSearchCondition {
     @Schema(description = "선택된 시간표 슬롯 리스트")
     private List<ScheduleCondition> selectedSchedules;
 
-    @Schema(description = "학점", example = "3")
-    private String credits;
+    @Schema(description = "학점 리스트", example = "[\"2\", \"3\"]")
+    private List<String> credits;
 
     @Schema(description = "강의시간(시수)", example = "3")
     private Integer lectureHours;
@@ -73,8 +73,8 @@ public class CourseSearchCondition {
     @Schema(description = "찜한 강의만 보기 여부", example = "true")
     private Boolean isWishedOnly;
 
-    @Schema(description = "강의방식(설강상태)", example = "일반")
-    private String status;
+    @Schema(description = "강의방식(설강상태) 리스트", example = "[\"일반\", \"원격\"]")
+    private List<String> statuses;
 
     @Schema(description = "수업 운영 방향", example = "대면수업")
     private String courseDirection;
@@ -82,8 +82,8 @@ public class CourseSearchCondition {
     @Schema(description = "최소 학점", example = "4")
     private Double minCredits;
 
-    @Schema(description = "대상 학년", example = "1")
-    private TargetGrade targetGrade;
+    @Schema(description = "대상 학년 리스트", example = "[\"GRADE_1\", \"GRADE_2\"]")
+    private List<TargetGrade> targetGrades;
 
     @Schema(description = "공개 여부", example = "공개")
     private String disclosure;
@@ -102,22 +102,24 @@ public class CourseSearchCondition {
      */
     @Builder
     public CourseSearchCondition(String name, String professor, String subjectCode, String academicYear,
-            String semester, String classification,
-            String department, String gradingMethod, String lectureLanguage,
-            Boolean isAvailableOnly, String dayOfWeek, String credits, Integer lectureHours,
-            Integer minLectureHours, String generalCategory, String generalDetail,
-            List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly,
-            String status, String courseDirection, Double minCredits, TargetGrade targetGrade, String disclosure,
-            String sortBy, String sortOrder, Long userId) {
+                                 String semester, List<String> classifications,
+                                 String department, List<String> gradingMethods, List<String> lectureLanguages,
+                                 Boolean isAvailableOnly, String dayOfWeek, List<String> credits, Integer lectureHours,
+                                 Integer minLectureHours, String generalCategory, String generalDetail,
+                                 List<ScheduleCondition> selectedSchedules, Long timetableId, Boolean isWishedOnly,
+                                 List<String> statuses, String courseDirection, Double minCredits,
+                                 List<TargetGrade> targetGrades,
+                                 String disclosure,
+                                 String sortBy, String sortOrder, Long userId) {
         this.name = name;
         this.professor = professor;
         this.subjectCode = subjectCode;
         this.academicYear = academicYear;
         this.semester = semester;
-        this.classification = classification;
+        this.classifications = classifications;
         this.department = department;
-        this.gradingMethod = gradingMethod;
-        this.lectureLanguage = lectureLanguage;
+        this.gradingMethods = gradingMethods;
+        this.lectureLanguages = lectureLanguages;
         this.isAvailableOnly = isAvailableOnly;
         this.dayOfWeek = dayOfWeek;
         this.credits = credits;
@@ -128,10 +130,10 @@ public class CourseSearchCondition {
         this.selectedSchedules = selectedSchedules;
         this.timetableId = timetableId;
         this.isWishedOnly = isWishedOnly;
-        this.status = status;
+        this.statuses = statuses;
         this.courseDirection = courseDirection;
         this.minCredits = minCredits;
-        this.targetGrade = targetGrade;
+        this.targetGrades = targetGrades;
         this.disclosure = disclosure;
         this.sortBy = sortBy;
         this.sortOrder = sortOrder;

@@ -1,7 +1,14 @@
 package bhoon.sugang_helper.domain.course.service;
-import bhoon.sugang_helper.domain.course.dto.ParsedCourseDto;
 
-import bhoon.sugang_helper.domain.course.enums.*;
+import bhoon.sugang_helper.domain.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.domain.course.enums.CourseAccreditation;
+import bhoon.sugang_helper.domain.course.enums.CourseClassification;
+import bhoon.sugang_helper.domain.course.enums.CourseDayOfWeek;
+import bhoon.sugang_helper.domain.course.enums.CourseStatus;
+import bhoon.sugang_helper.domain.course.enums.DisclosureStatus;
+import bhoon.sugang_helper.domain.course.enums.GradingMethod;
+import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
+import bhoon.sugang_helper.domain.course.enums.TargetGrade;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;

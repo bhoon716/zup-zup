@@ -28,6 +28,9 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+/**
+ * 사용자에게 다양한 채널(Email, FCM, WebPush, Discord)을 통해 알림을 발송하는 통합 서비스입니다. 중복 발송 방지 및 알림 이력 관리 기능을 포함합니다.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -125,7 +128,7 @@ public class NotificationService {
      * 사용자에게 모든 채널로 실제 알림을 발송합니다.
      */
     private void dispatchAllChannels(User user, List<UserDevice> devices, NotificationMessage message,
-            String courseKey) {
+                                     String courseKey) {
         for (NotificationChannel channel : NotificationChannel.values()) {
             sendNotification(user, devices, message, channel, NotificationContext.forReal(courseKey));
         }
@@ -135,7 +138,7 @@ public class NotificationService {
      * 알림 발송의 핵심 공통 로직을 수행합니다.
      */
     private void sendNotification(User user, List<UserDevice> devices, NotificationMessage message,
-            NotificationChannel channel, NotificationContext ctx) {
+                                  NotificationChannel channel, NotificationContext ctx) {
         if (!ctx.forceSend() && !isChannelEnabled(user, channel)) {
             return;
         }
@@ -163,10 +166,11 @@ public class NotificationService {
         return switch (channel) {
             case EMAIL -> List.of(NotificationTarget.of(resolveNotificationEmail(user)));
             case DISCORD ->
-                user.getDiscordId() != null ? List.of(NotificationTarget.of(user.getDiscordId())) : List.of();
+                    user.getDiscordId() != null ? List.of(NotificationTarget.of(user.getDiscordId())) : List.of();
             case WEB, FCM -> {
-                if (devices == null)
+                if (devices == null) {
                     yield List.of();
+                }
                 DeviceType type = (channel == NotificationChannel.WEB) ? DeviceType.WEB : DeviceType.FCM;
                 yield devices.stream()
                         .filter(d -> d.getType() == type)
@@ -177,8 +181,7 @@ public class NotificationService {
     }
 
     /**
-     * 글로벌 채널 설정 및 사용자 개인 수신 설정을 복합 확인합니다.
-     * 글로벌 설정이 꺼져 있으면 사용자 설정과 무관하게 발송을 차단합니다.
+     * 글로벌 채널 설정 및 사용자 개인 수신 설정을 복합 확인합니다. 글로벌 설정이 꺼져 있으면 사용자 설정과 무관하게 발송을 차단합니다.
      */
     private boolean isChannelEnabled(User user, NotificationChannel channel) {
         if (!isGlobalChannelEnabled(channel)) {
@@ -256,9 +259,10 @@ public class NotificationService {
      * 빈자리 알림 메시지를 생성합니다.
      */
     private NotificationMessage createSeatOpenedMessage(SeatOpenedEvent event) {
-        String title = String.format("[줍줍] 빈자리 알림: %s", event.courseName());
-        String body = String.format("강의명: %s\\n과목코드: %s\\n현재 여석이 발생했습니다! (%d명)",
-                event.courseName(), event.courseKey(), event.currentSeats());
+        String professor = (event.professor() != null && !event.professor().isBlank()) ? event.professor() : "미지정";
+        String title = String.format("[줍줍] %s (%s) 여석 발생!", event.courseName(), professor);
+        String body = String.format("과목명: %s (%s)\\n과목코드: %s\\n현재 여석이 발생했습니다! (%d명)",
+                event.courseName(), professor, event.courseKey(), event.currentSeats());
         return new NotificationMessage(title, body);
     }
 
@@ -284,7 +288,7 @@ public class NotificationService {
      * 알림 발송 이력을 저장합니다.
      */
     private void saveHistory(Long userId, String courseKey, NotificationMessage notification,
-            NotificationChannel channel) {
+                             NotificationChannel channel) {
         notificationHistoryRepository.save(NotificationHistory.builder()
                 .userId(userId)
                 .courseKey(courseKey)
@@ -294,7 +298,9 @@ public class NotificationService {
                 .build());
     }
 
-    /** 알림 메시지 구조체 */
+    /**
+     * 알림 메시지 구조체
+     */
     private record NotificationMessage(String title, String body) {
     }
 
@@ -303,12 +309,16 @@ public class NotificationService {
      */
     private record NotificationContext(boolean saveHistory, boolean forceSend, String courseKey) {
 
-        /** 실제 알림 발송 컨텍스트를 생성합니다. */
+        /**
+         * 실제 알림 발송 컨텍스트를 생성합니다.
+         */
         static NotificationContext forReal(String courseKey) {
             return new NotificationContext(true, false, courseKey);
         }
 
-        /** 테스트 알림 발송 컨텍스트를 생성합니다. */
+        /**
+         * 테스트 알림 발송 컨텍스트를 생성합니다.
+         */
         static NotificationContext forTest() {
             return new NotificationContext(false, true, "TEST");
         }

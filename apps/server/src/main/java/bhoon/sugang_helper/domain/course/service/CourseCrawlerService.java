@@ -1,24 +1,27 @@
 package bhoon.sugang_helper.domain.course.service;
 
-import bhoon.sugang_helper.domain.course.enums.SemesterType;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.domain.course.dto.ParsedCourseDto;
 import bhoon.sugang_helper.domain.course.entity.Course;
-import bhoon.sugang_helper.domain.course.entity.CourseSeatHistory;
 import bhoon.sugang_helper.domain.course.entity.CourseSchedule;
+import bhoon.sugang_helper.domain.course.entity.CourseSeatHistory;
+import bhoon.sugang_helper.domain.course.enums.SemesterType;
 import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
-import bhoon.sugang_helper.domain.course.dto.ParsedCourseDto;
 import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * 전북대학교 오아시스 시스템으로부터 강의 정보를 크롤링하고 데이터베이스에 동기화하는 서비스입니다. 강의 여석 발생 시 이벤트를 발행하는 역할도 담당합니다.
+ */
 @Service
 @Slf4j
 public class CourseCrawlerService {
@@ -33,10 +36,10 @@ public class CourseCrawlerService {
     private final TransactionTemplate transactionTemplate;
 
     public CourseCrawlerService(CourseRepository courseRepository, JbnuCourseApiClient apiClient,
-            JbnuCourseParser courseParser, ApplicationEventPublisher eventPublisher,
-            CourseSeatHistoryRepository courseSeatHistoryRepository,
-            CourseCrawlerTargetService crawlerTargetService,
-            PlatformTransactionManager transactionManager) {
+                                JbnuCourseParser courseParser, ApplicationEventPublisher eventPublisher,
+                                CourseSeatHistoryRepository courseSeatHistoryRepository,
+                                CourseCrawlerTargetService crawlerTargetService,
+                                PlatformTransactionManager transactionManager) {
         this.courseRepository = courseRepository;
         this.apiClient = apiClient;
         this.courseParser = courseParser;
@@ -185,7 +188,8 @@ public class CourseCrawlerService {
                 .build();
 
         if (dto.schedules() != null) {
-            dto.schedules().forEach(s -> course.addSchedule(new CourseSchedule(s.dayOfWeek(), s.startTime(), s.endTime())));
+            dto.schedules()
+                    .forEach(s -> course.addSchedule(new CourseSchedule(s.dayOfWeek(), s.startTime(), s.endTime())));
         }
         return course;
     }
@@ -240,6 +244,7 @@ public class CourseCrawlerService {
         eventPublisher.publishEvent(new SeatOpenedEvent(
                 course.getCourseKey(),
                 course.getName(),
+                course.getProfessor(),
                 0,
                 course.getAvailable()));
     }

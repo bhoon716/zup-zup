@@ -2,7 +2,6 @@ package bhoon.sugang_helper.domain.review.response;
 
 import bhoon.sugang_helper.domain.review.entity.CourseReview;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.time.LocalDateTime;
 
 @Schema(description = "강의 리뷰 응답 정보 (익명 보장)")

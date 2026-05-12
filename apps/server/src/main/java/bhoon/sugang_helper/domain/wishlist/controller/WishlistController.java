@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.domain.wishlist.controller;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.domain.wishlist.response.WishlistToggleResponse;
 import bhoon.sugang_helper.domain.wishlist.response.WishlistResponse;
+import bhoon.sugang_helper.domain.wishlist.response.WishlistToggleResponse;
 import bhoon.sugang_helper.domain.wishlist.service.WishlistService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

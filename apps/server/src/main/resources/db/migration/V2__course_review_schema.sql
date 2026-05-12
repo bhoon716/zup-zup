@@ -8,9 +8,9 @@ CREATE TABLE IF NOT EXISTS course_reviews (
     like_count INT NOT NULL DEFAULT 0 COMMENT '공감 수',
     dislike_count INT NOT NULL DEFAULT 0 COMMENT '비공감 수',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     INDEX idx_course_key (course_key)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- 강의 리뷰 공감/비공감 내역 테이블 생성 (중복 투표 방지)
 CREATE TABLE IF NOT EXISTS course_review_reactions (
@@ -21,23 +21,11 @@ CREATE TABLE IF NOT EXISTS course_review_reactions (
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     UNIQUE KEY uk_review_user (review_id, user_id),
     CONSTRAINT fk_reaction_review FOREIGN KEY (review_id) REFERENCES course_reviews (id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- courses 테이블에 리뷰 통계 컬럼 추가 (중복 방지를 위한 프로시저 사용)
-DROP PROCEDURE IF EXISTS AddCourseReviewColumns;
-DELIMITER //
-CREATE PROCEDURE AddCourseReviewColumns()
-BEGIN
-    IF NOT EXISTS (SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'courses' AND COLUMN_NAME = 'average_rating') THEN
-        ALTER TABLE courses ADD COLUMN average_rating FLOAT NOT NULL DEFAULT 0.0 COMMENT '평균 별점';
-    END IF;
-    IF NOT EXISTS (SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'courses' AND COLUMN_NAME = 'review_count') THEN
-        ALTER TABLE courses ADD COLUMN review_count INT NOT NULL DEFAULT 0 COMMENT '리뷰 수';
-    END IF;
-END //
-DELIMITER ;
-CALL AddCourseReviewColumns();
-DROP PROCEDURE AddCourseReviewColumns;
+ALTER TABLE courses ADD COLUMN average_rating FLOAT NOT NULL DEFAULT 0.0 COMMENT '평균 별점';
+ALTER TABLE courses ADD COLUMN review_count INT NOT NULL DEFAULT 0 COMMENT '리뷰 수';
 
 -- 피드백 (건의사항 및 버그 리포트) 테이블 생성
 CREATE TABLE IF NOT EXISTS feedbacks (
@@ -49,12 +37,12 @@ CREATE TABLE IF NOT EXISTS feedbacks (
     meta_info JSON COMMENT '발생 URL, OS, 브라우저 정보 등 환경 데이터',
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '진행 상태 (PENDING, IN_PROGRESS, COMPLETED, REJECTED)',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     deleted_at DATETIME(6) COMMENT '소프트 삭제 일시',
     INDEX idx_feedback_user (user_id),
     INDEX idx_feedback_status_type (status, type),
     INDEX idx_feedback_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- 피드백 첨부 이미지 테이블 생성
 CREATE TABLE IF NOT EXISTS feedback_attachments (
@@ -64,7 +52,7 @@ CREATE TABLE IF NOT EXISTS feedback_attachments (
     original_name VARCHAR(255) NOT NULL COMMENT '원본 파일명',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT fk_attachment_feedback FOREIGN KEY (feedback_id) REFERENCES feedbacks (id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- 피드백 답변(Reply) 관리 테이블 생성 
 CREATE TABLE IF NOT EXISTS feedback_replies (
@@ -73,10 +61,10 @@ CREATE TABLE IF NOT EXISTS feedback_replies (
     admin_id BIGINT NOT NULL COMMENT '답변 작성자(관리자) ID',
     content TEXT NOT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     deleted_at DATETIME(6) COMMENT '소프트 삭제 일시',
     CONSTRAINT fk_reply_feedback FOREIGN KEY (feedback_id) REFERENCES feedbacks (id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- 관리자 액션 로그 테이블 생성
 CREATE TABLE IF NOT EXISTS admin_action_logs (
@@ -87,5 +75,4 @@ CREATE TABLE IF NOT EXISTS admin_action_logs (
     target_id BIGINT NOT NULL COMMENT '대상 엔티티 ID',
     meta_data JSON COMMENT '전환된 상태값 등 세부 내역',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+);

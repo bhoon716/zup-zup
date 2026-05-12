@@ -144,13 +144,14 @@ public class Course extends BaseTimeEntity {
      */
     @Builder
     public Course(String courseKey, String subjectCode, String name, String classNumber, String professor,
-            Integer capacity, Integer current, TargetGrade targetGrade, String academicYear, String semester,
-            CourseClassification classification, String department, GradingMethod gradingMethod,
-            String classTime, String credits, LectureLanguage lectureLanguage,
-            DisclosureStatus disclosure, String disclosureReason, Integer lectureHours, String generalCategory,
-            String generalDetail,
-            CourseAccreditation accreditation, CourseStatus status, String classroom, Boolean hasSyllabus,
-            String generalCategoryByYear, String courseDirection, String classDuration) {
+                  Integer capacity, Integer current, TargetGrade targetGrade, String academicYear, String semester,
+                  CourseClassification classification, String department, GradingMethod gradingMethod,
+                  String classTime, String credits, LectureLanguage lectureLanguage,
+                  DisclosureStatus disclosure, String disclosureReason, Integer lectureHours, String generalCategory,
+                  String generalDetail,
+                  CourseAccreditation accreditation, CourseStatus status, String classroom, Boolean hasSyllabus,
+                  String generalCategoryByYear, String courseDirection, String classDuration,
+                  Float averageRating, Integer reviewCount) {
         this.courseKey = courseKey;
         this.subjectCode = subjectCode;
         this.name = name;
@@ -180,8 +181,8 @@ public class Course extends BaseTimeEntity {
         this.courseDirection = courseDirection;
         this.classDuration = classDuration;
         this.lastCrawledAt = LocalDateTime.now();
-        this.averageRating = 0.0f;
-        this.reviewCount = 0;
+        this.averageRating = averageRating != null ? averageRating : 0.0f;
+        this.reviewCount = reviewCount != null ? reviewCount : 0;
     }
 
     /**

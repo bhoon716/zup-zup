@@ -1,13 +1,12 @@
 package bhoon.sugang_helper.domain.subscription.service;
 
-import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
-import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
-
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
+import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
 import bhoon.sugang_helper.domain.subscription.entity.Subscription;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
 import bhoon.sugang_helper.domain.subscription.request.SubscriptionRequest;
@@ -92,6 +91,16 @@ public class SubscriptionService {
 
         subscriptionRepository.delete(subscription);
         log.info("[Subscription] Deleted: userId={}, subscriptionId={}", user.getId(), subscriptionId);
+    }
+
+    /**
+     * 현재 로그인한 사용자의 모든 구독 내역을 일괄 삭제
+     */
+    @Transactional
+    public void unsubscribeAll() {
+        User user = getCurrentUser();
+        subscriptionRepository.deleteAllByUserId(user.getId());
+        log.info("[Subscription] Deleted All: userId={}", user.getId());
     }
 
     /**

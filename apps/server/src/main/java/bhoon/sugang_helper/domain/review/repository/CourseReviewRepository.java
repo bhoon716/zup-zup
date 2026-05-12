@@ -26,7 +26,7 @@ public interface CourseReviewRepository extends JpaRepository<CourseReview, Long
     @Query("SELECT r FROM CourseReview r WHERE r.courseKey = :courseKey " +
             "ORDER BY CASE WHEN r.userId = :userId THEN 0 ELSE 1 END ASC, r.createdAt DESC")
     Page<CourseReview> findByCourseKeyWithMyReviewFirst(@Param("courseKey") String courseKey,
-            @Param("userId") Long userId, Pageable pageable);
+                                                        @Param("userId") Long userId, Pageable pageable);
 
     /**
      * 특정 사용자가 해당 강의에 리뷰를 작성했는지 여부를 확인합니다.
