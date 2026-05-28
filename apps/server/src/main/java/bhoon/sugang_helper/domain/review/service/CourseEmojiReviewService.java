@@ -20,11 +20,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class CourseEmojiReviewService {
-
-    /** 시스템 고정 6종 이모지 (커스텀 불가) */
-    static final List<String> SUPPORTED_EMOJIS =
-            List.of("👍", "🔥", "🎓", "📝", "😴", "🚨");
-
     private final CourseEmojiReviewRepository emojiReviewRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
@@ -34,8 +29,8 @@ public class CourseEmojiReviewService {
      */
     @Transactional
     public void toggleEmoji(String courseKey, String emoji) {
-        if (!SUPPORTED_EMOJIS.contains(emoji)) {
-            throw new CustomException(ErrorCode.NOT_FOUND, "지원하지 않는 이모지입니다.");
+        if (emoji == null || emoji.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "이모지는 비어 있을 수 없습니다.");
         }
         if (!courseRepository.existsByCourseKey(courseKey)) {
             throw new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다.");
@@ -59,18 +54,23 @@ public class CourseEmojiReviewService {
     }
 
     /**
-     * 강의의 6종 이모지 통계(카운트 + 본인 탭 여부)를 반환합니다.
+     * 강의의 이모지 통계(카운트 + 본인 탭 여부)를 반환합니다.
      */
     @Transactional(readOnly = true)
     public List<CourseEmojiReviewResponse> getCourseEmojiStats(String courseKey) {
         Long currentUserId = getCurrentUserIdOrNull();
-        return SUPPORTED_EMOJIS.stream()
-                .map(emoji -> CourseEmojiReviewResponse.builder()
-                        .emoji(emoji)
-                        .count(emojiReviewRepository.countByCourseKeyAndEmoji(courseKey, emoji))
-                        .isMine(currentUserId != null &&
-                                emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(courseKey, currentUserId, emoji))
-                        .build())
+        return emojiReviewRepository.findEmojiStatsByCourseKey(courseKey).stream()
+                .map(row -> {
+                    String emoji = (String) row[0];
+                    long count = ((Number) row[1]).longValue();
+                    boolean isMine = currentUserId != null &&
+                            emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(courseKey, currentUserId, emoji);
+                    return CourseEmojiReviewResponse.builder()
+                            .emoji(emoji)
+                            .count(count)
+                            .isMine(isMine)
+                            .build();
+                })
                 .toList();
     }
 

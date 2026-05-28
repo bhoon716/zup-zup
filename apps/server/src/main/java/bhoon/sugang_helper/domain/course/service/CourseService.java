@@ -12,6 +12,7 @@ import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
+import bhoon.sugang_helper.domain.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import java.util.List;
@@ -29,6 +30,7 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
     private final UserRepository userRepository;
+    private final CourseReviewRepository reviewRepository;
 
     private final CourseCrawlerTargetService crawlerTargetService;
 
@@ -77,7 +79,14 @@ public class CourseService {
         Course course = courseRepository.findByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "강의를 찾을 수 없습니다: " + courseKey));
         CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
+        boolean isReviewed = false;
+        String email = SecurityUtil.getCurrentUserEmailOrNull();
+        if (email != null) {
+            isReviewed = userRepository.findByEmail(email)
+                    .map(user -> reviewRepository.existsByCourseKeyAndUserId(courseKey, user.getId()))
+                    .orElse(false);
+        }
 
-        return CourseDetailResponse.from(course, target.year(), target.semester().getCode(), false);
+        return CourseDetailResponse.from(course, target.year(), target.semester().getCode(), isReviewed);
     }
 }

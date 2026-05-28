@@ -29,7 +29,7 @@ public class CourseEmojiReview {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(nullable = false, length = 16)
+    @Column(nullable = false, length = 64)
     private String emoji;
 
     @CreatedDate

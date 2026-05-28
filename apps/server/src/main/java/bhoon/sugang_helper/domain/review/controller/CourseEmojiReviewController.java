@@ -19,12 +19,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/courses")
 @RequiredArgsConstructor
-@Tag(name = "Course Emoji Review", description = "강의 이모지 리뷰 API (슬랙/디스코드 스타일 리액션)")
+@Tag(name = "Course Emoji Review", description = "강의 이모지 리뷰 API (시스템 이모지 전반 지원)")
 public class CourseEmojiReviewController {
 
     private final CourseEmojiReviewService emojiReviewService;
 
-    @Operation(summary = "이모지 리뷰 통계 조회", description = "강의에 달린 6종 이모지(👍🔥🎓📝😴🚨)의 카운트 및 본인 탭 여부를 반환합니다.")
+    @Operation(summary = "이모지 리뷰 통계 조회", description = "강의에 달린 이모지의 카운트 및 본인 탭 여부를 반환합니다.")
     @GetMapping("/{courseKey}/emojis")
     public ResponseEntity<CommonResponse<List<CourseEmojiReviewResponse>>> getCourseEmojiStats(
             @PathVariable String courseKey) {
@@ -32,7 +32,7 @@ public class CourseEmojiReviewController {
         return CommonResponse.ok(result, "이모지 리뷰 통계를 조회했습니다.");
     }
 
-    @Operation(summary = "이모지 리뷰 토글", description = "선택한 이모지를 토글합니다. 처음 탭하면 추가, 재탭하면 취소. (지원 이모지: 👍🔥🎓📝😴🚨)")
+    @Operation(summary = "이모지 리뷰 토글", description = "선택한 이모지를 토글합니다. 처음 탭하면 추가, 재탭하면 취소.")
     @PostMapping("/{courseKey}/emojis/toggle")
     public ResponseEntity<CommonResponse<Void>> toggleEmoji(
             @PathVariable String courseKey,

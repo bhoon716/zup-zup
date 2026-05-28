@@ -18,6 +18,7 @@ import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
 import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
+import bhoon.sugang_helper.domain.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.user.entity.User;
@@ -56,6 +57,9 @@ class CourseServiceTest {
         private UserRepository userRepository;
 
         @Mock
+        private CourseReviewRepository reviewRepository;
+
+        @Mock
         private CourseCrawlerTargetService crawlerTargetService;
 
 
@@ -66,7 +70,7 @@ class CourseServiceTest {
         void setUp() {
                 securityUtilMockedStatic = mockStatic(SecurityUtil.class);
                 courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userRepository,
-                                crawlerTargetService);
+                                reviewRepository, crawlerTargetService);
         }
 
         @AfterEach
@@ -165,8 +169,13 @@ class CourseServiceTest {
         @DisplayName("강좌 상세 조회 성공 - 로그인 상태")
         void getCourse_withLogin() {
                 // given
+                Long userId = 1L;
+                User user = User.builder().id(userId).email(USER_EMAIL).build();
                 Course course = createCourse();
+                securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(USER_EMAIL);
                 given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(course));
+                given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+                given(reviewRepository.existsByCourseKeyAndUserId(COURSE_KEY, userId)).willReturn(true);
                 mockCrawlerTarget();
 
                 // when
@@ -175,5 +184,6 @@ class CourseServiceTest {
                 // then
                 assertThat(response).isNotNull();
                 assertThat(response.getCourseKey()).isEqualTo(COURSE_KEY);
+                assertThat(response.getIsReviewed()).isTrue();
         }
 }

@@ -35,6 +35,7 @@ class CourseEmojiReviewServiceTest {
     private static final Long USER_ID = 1L;
     private static final String EMOJI_THUMB = "👍";
     private static final String EMOJI_FIRE = "🔥";
+    private static final String EMOJI_LAUGH = "😂";
 
     @InjectMocks
     private CourseEmojiReviewService emojiReviewService;
@@ -95,6 +96,23 @@ class CourseEmojiReviewServiceTest {
     }
 
     @Test
+    @DisplayName("이모지 토글 - 커스텀 시스템 이모지도 추가 가능")
+    void toggleEmoji_AddCustomEmoji() {
+        // given
+        User user = createUser(USER_ID);
+        mockCurrentUser(user);
+        when(courseRepository.existsByCourseKey(COURSE_KEY)).thenReturn(true);
+        when(emojiReviewRepository.findByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_LAUGH))
+                .thenReturn(Optional.empty());
+
+        // when
+        emojiReviewService.toggleEmoji(COURSE_KEY, EMOJI_LAUGH);
+
+        // then
+        verify(emojiReviewRepository).save(any(CourseEmojiReview.class));
+    }
+
+    @Test
     @DisplayName("이모지 토글 - 동일 이모지 재탭 시 기존 리액션 삭제(취소)")
     void toggleEmoji_Cancel() {
         // given
@@ -116,16 +134,16 @@ class CourseEmojiReviewServiceTest {
     }
 
     @Test
-    @DisplayName("이모지 토글 - 지원하지 않는 이모지는 거부한다")
-    void toggleEmoji_UnsupportedEmoji_throwsException() {
+    @DisplayName("이모지 토글 - 빈 이모지는 거부한다")
+    void toggleEmoji_BlankEmoji_throwsException() {
         // given
         User user = createUser(USER_ID);
         mockCurrentUser(user);
 
         // when & then
-        assertThatThrownBy(() -> emojiReviewService.toggleEmoji(COURSE_KEY, "❌"))
+        assertThatThrownBy(() -> emojiReviewService.toggleEmoji(COURSE_KEY, " "))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
         verifyNoInteractions(courseRepository, emojiReviewRepository);
     }
 
@@ -163,25 +181,27 @@ class CourseEmojiReviewServiceTest {
     }
 
     @Test
-    @DisplayName("이모지 통계 조회 - 6종 이모지 카운트 및 본인 탭 여부 반환")
+    @DisplayName("이모지 통계 조회 - 모든 등록 이모지의 카운트 및 본인 탭 여부 반환")
     void getCourseEmojiStats_ReturnsMergedStats() {
         // given
         User user = createUser(USER_ID);
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
 
-        when(emojiReviewRepository.countByCourseKeyAndEmoji(COURSE_KEY, EMOJI_THUMB)).thenReturn(3L);
-        when(emojiReviewRepository.countByCourseKeyAndEmoji(COURSE_KEY, EMOJI_FIRE)).thenReturn(1L);
-        when(emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_THUMB))
-                .thenReturn(true);
-        when(emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_FIRE))
-                .thenReturn(false);
+        when(emojiReviewRepository.findEmojiStatsByCourseKey(COURSE_KEY)).thenReturn(List.<Object[]>of(
+                new Object[]{EMOJI_THUMB, 3L},
+                new Object[]{EMOJI_FIRE, 1L},
+                new Object[]{EMOJI_LAUGH, 1L}
+        ));
+        when(emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_THUMB)).thenReturn(true);
+        when(emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_FIRE)).thenReturn(false);
+        when(emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_LAUGH)).thenReturn(false);
 
         // when
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
         // then
-        assertThat(result).hasSize(6);
+        assertThat(result).hasSize(3);
         CourseEmojiReviewResponse thumbResponse = result.stream()
                 .filter(r -> r.getEmoji().equals(EMOJI_THUMB))
                 .findFirst().orElseThrow();
@@ -193,6 +213,12 @@ class CourseEmojiReviewServiceTest {
                 .findFirst().orElseThrow();
         assertThat(fireResponse.getCount()).isEqualTo(1L);
         assertThat(fireResponse.isMine()).isFalse();
+
+        CourseEmojiReviewResponse laughResponse = result.stream()
+                .filter(r -> r.getEmoji().equals(EMOJI_LAUGH))
+                .findFirst().orElseThrow();
+        assertThat(laughResponse.getCount()).isEqualTo(1L);
+        assertThat(laughResponse.isMine()).isFalse();
     }
 
     @Test
@@ -200,13 +226,15 @@ class CourseEmojiReviewServiceTest {
     void getCourseEmojiStats_AnonymousUser_DoesNotSetMine() {
         // given
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(null);
-        when(emojiReviewRepository.countByCourseKeyAndEmoji(COURSE_KEY, EMOJI_THUMB)).thenReturn(2L);
+        when(emojiReviewRepository.findEmojiStatsByCourseKey(COURSE_KEY)).thenReturn(List.<Object[]>of(
+                new Object[]{EMOJI_THUMB, 2L}
+        ));
 
         // when
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
         // then
-        assertThat(result).hasSize(6);
+        assertThat(result).hasSize(1);
         CourseEmojiReviewResponse thumbResponse = result.stream()
                 .filter(r -> r.getEmoji().equals(EMOJI_THUMB))
                 .findFirst().orElseThrow();
