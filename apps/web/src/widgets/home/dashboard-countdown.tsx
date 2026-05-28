@@ -3,13 +3,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Clock, CalendarDays, Zap } from "lucide-react";
-
-/**
- * 2026학년도 1학기 종강일 타겟 (6월 19일 18:00)
- */
-const TARGET_END_DATE = new Date("2026-06-19T18:00:00");
+import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
 
 export function DashboardCountdown() {
+  const { data: upcomingSchedules } = useUpcomingSchedules();
+  
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [ddayString, setDdayString] = useState("");
   const [timeLeftString, setTimeLeftString] = useState("");
@@ -20,8 +18,21 @@ export function DashboardCountdown() {
       const now = new Date();
       setCurrentTime(now);
 
-      // 종강 D-Day 계산
-      const diffMs = TARGET_END_DATE.getTime() - now.getTime();
+      // 1. 백엔드 일정 목록에서 '종강' 키워드가 들어간 일정을 검색
+      const endOfSemesterEvent = upcomingSchedules?.find((s) => 
+        s.scheduleType.includes("종강")
+      );
+
+      // 2. 동적 타겟 날짜 판별 (없을 시 기본 폴백인 2026-06-19T18:00:00 사용)
+      let targetDate = new Date("2026-06-19T18:00:00");
+      if (endOfSemesterEvent) {
+        const timePart = endOfSemesterEvent.endTime ? endOfSemesterEvent.endTime : "18:00:00";
+        // 'YYYY-MM-DDTHH:mm:ss' 포맷 조립
+        targetDate = new Date(`${endOfSemesterEvent.endDate}T${timePart}`);
+      }
+
+      // 3. 종강 D-Day 계산
+      const diffMs = targetDate.getTime() - now.getTime();
       if (diffMs <= 0) {
         setDdayString("D-Day");
         setTimeLeftString("즐거운 종강입니다! 🎉");
@@ -44,7 +55,7 @@ export function DashboardCountdown() {
       clearTimeout(initTimer);
       clearInterval(intervalTimer);
     };
-  }, []);
+  }, [upcomingSchedules]);
 
   if (!currentTime) {
     return (

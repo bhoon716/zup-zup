@@ -8,6 +8,7 @@ import { cn } from "@/shared/lib/utils";
 import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
 import { useAnnouncements } from "@/features/announcement/hooks/useAnnouncements";
 import { Loader2 } from "lucide-react";
+import { DashboardCountdown } from "./dashboard-countdown";
 
 /**
  * 날짜를 포맷팅하는 유틸리티 함수입니다.
@@ -101,6 +102,10 @@ export function HomeLanding() {
               </Button>
             </Link>
           </motion.div>
+
+          <div className="mt-12 w-full flex justify-center">
+            <DashboardCountdown />
+          </div>
         </div>
       </section>
 
