@@ -6,7 +6,6 @@ import { MultiSelectFilter } from "@/shared/ui/multi-select-filter";
 import {
   CLASSIFICATION_GROUPS,
   CREDITS,
-  GE_CATEGORIES,
   GRADING_GROUPS,
   LANGUAGES,
   TARGET_GRADES,

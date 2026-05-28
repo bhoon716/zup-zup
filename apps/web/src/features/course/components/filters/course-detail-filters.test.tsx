@@ -4,9 +4,16 @@ import { describe, expect, it, vi } from "vitest";
 import { CourseDetailFilters } from "./course-detail-filters";
 import type { CourseSearchCondition } from "@/shared/types/api";
 
+interface MultiSelectFilterProps {
+  options: { label: string; value: string }[];
+  selected?: string[];
+  onChange: (values: string[]) => void;
+  placeholder: string;
+}
+
 // MultiSelectFilter 모킹
 vi.mock("@/shared/ui/multi-select-filter", () => ({
-  MultiSelectFilter: ({ options, selected, onChange, placeholder }: any) => (
+  MultiSelectFilter: ({ options, onChange, placeholder }: MultiSelectFilterProps) => (
     <div data-testid={`multi-select-${placeholder}`}>
       <button 
         data-testid={`btn-${placeholder}`}

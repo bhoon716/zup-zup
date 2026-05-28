@@ -36,7 +36,7 @@ describe("useReviews hooks", () => {
         last: true,
         number: 0,
       },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof reviewApi.getReviews>>);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -54,7 +54,7 @@ describe("useReviews hooks", () => {
       code: "SUCCESS",
       message: "ok",
       data: { id: 2, content: "새 리뷰" },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof reviewApi.createReview>>);
 
     const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
@@ -76,7 +76,7 @@ describe("useReviews hooks", () => {
       code: "SUCCESS",
       message: "ok",
       data: null,
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof reviewApi.toggleReviewReaction>>);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
