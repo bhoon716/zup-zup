@@ -24,12 +24,13 @@ export function Dashboard() {
 
   return (
     <main className="grow py-8 md:py-12 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto w-full">
-      {/* 환영 헤더 섹션: 좌측 인사말 + 우측 컴팩트 일정 바 */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-8">
+      {/* 환영 헤더 섹션: 좌측 인사말 + 우측 종강 D-Day 바 (오른쪽 벽 정렬) */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-8 gap-6 w-full">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="min-w-0"
         >
           <div className="flex items-center gap-2 text-primary uppercase tracking-[0.2em] text-[10px] font-black mb-2">
             <div className="w-8 h-px bg-primary/30" />
@@ -41,7 +42,9 @@ export function Dashboard() {
           </h1>
         </motion.div>
 
-        <DashboardCountdown />
+        <div className="w-full xl:w-auto flex justify-end shrink-0">
+          <DashboardCountdown />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
