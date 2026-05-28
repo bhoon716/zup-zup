@@ -21,5 +21,3 @@ CREATE TABLE IF NOT EXISTS course_review_reactions (
     UNIQUE KEY uk_review_user (review_id, user_id),
     CONSTRAINT fk_reaction_review FOREIGN KEY (review_id) REFERENCES course_reviews (id) ON DELETE CASCADE
 );
-
-ALTER TABLE course_emoji_reviews MODIFY emoji VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;
