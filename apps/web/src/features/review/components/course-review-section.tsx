@@ -128,44 +128,38 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
         <div className="flex flex-col gap-4 border-b border-gray-100 pb-5 dark:border-gray-800">
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">별점 리뷰</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">코멘트 없이 별점만 남길 수 있습니다.</p>
           </div>
 
           {user ? (
             !isReviewed ? (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">별점</span>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setRating(star)}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        aria-label={`${star}점`}
-                        className="focus:outline-hidden"
-                      >
-                        <Star
-                          className={cn(
-                            "h-6 w-6 transition-colors",
-                            star <= (hoverRating || rating)
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300 dark:text-gray-600"
-                          )}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                  {rating > 0 && <span className="text-sm font-bold text-primary">{rating}점</span>}
+              <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">별점</span>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      aria-label={`${star}점`}
+                      className="focus:outline-hidden"
+                    >
+                      <Star
+                        className={cn(
+                          "h-6 w-6 transition-colors",
+                          star <= (hoverRating || rating)
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-300 dark:text-gray-600"
+                        )}
+                      />
+                    </button>
+                  ))}
                 </div>
-
-                <div className="flex justify-end">
-                  <Button type="submit" disabled={isCreating} className="font-bold">
-                    {isCreating ? "등록 중..." : "등록"}
-                  </Button>
-                </div>
+                {rating > 0 && <span className="text-sm font-bold text-primary">{rating}점</span>}
+                <Button type="submit" disabled={isCreating} className="ml-auto font-bold">
+                  {isCreating ? "등록 중..." : "등록"}
+                </Button>
               </form>
             ) : (
               <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
@@ -182,31 +176,25 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
         <div className="mt-5 flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <Smile className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">이모지 반응</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">이모지 리뷰</h3>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {visibleEmojiStats.length > 0 ? (
-              visibleEmojiStats.map((item) => (
-                <span
-                  key={item.emoji}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium",
-                    item.isMine
-                      ? "border-primary/30 bg-primary/10 text-primary dark:border-primary/40 dark:bg-primary/15 dark:text-primary-light"
-                      : "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-300"
-                  )}
-                >
-                  <span>{item.emoji}</span>
-                  <span className="tabular-nums">{item.count}</span>
-                  {item.isMine && <span className="text-[10px] font-bold uppercase tracking-wide">내 반응</span>}
-                </span>
-              ))
-            ) : (
-              <span className="rounded-full border border-dashed border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
-                아직 등록된 이모지가 없습니다.
+            {visibleEmojiStats.map((item) => (
+              <span
+                key={item.emoji}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium",
+                  item.isMine
+                    ? "border-primary/30 bg-primary/10 text-primary dark:border-primary/40 dark:bg-primary/15 dark:text-primary-light"
+                    : "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-300"
+                )}
+              >
+                <span>{item.emoji}</span>
+                <span className="tabular-nums">{item.count}</span>
+                {item.isMine && <span className="text-[10px] font-bold uppercase tracking-wide">내 반응</span>}
               </span>
-            )}
+            ))}
 
             <Button
               type="button"

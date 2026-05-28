@@ -108,7 +108,9 @@ describe("CourseReviewSection", () => {
     expect(screen.getByRole("heading", { name: "강의 리뷰" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "등록" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "이모지 추가" })).toBeInTheDocument();
-    expect(screen.queryByText("😂")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "이모지 리뷰" })).toBeInTheDocument();
+    expect(screen.queryByText("코멘트 없이 별점만 남길 수 있습니다.")).not.toBeInTheDocument();
+    expect(screen.queryByText("아직 등록된 이모지가 없습니다.")).not.toBeInTheDocument();
   });
 
   it("별점을 선택하고 등록하면 리뷰 생성 훅을 호출한다", () => {
