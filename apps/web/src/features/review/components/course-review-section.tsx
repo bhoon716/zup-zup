@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import axios from "axios";
-import { AlertCircle, Loader2, MessageSquare, Smile, Star, ThumbsDown, ThumbsUp } from "lucide-react";
+import { AlertCircle, Loader2, MessageSquare, Plus, Smile, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
@@ -12,7 +12,7 @@ import { useUser } from "@/features/user/hooks/useUser";
 import { formatRelativeTime } from "@/shared/lib/formatters";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 
 interface CourseReviewSectionProps {
   courseKey: string;
@@ -26,6 +26,23 @@ const PRESET_EMOJIS = [
   "📝",
   "😴",
   "🚨",
+] as const;
+
+const EXTRA_SYSTEM_EMOJIS = [
+  "😂",
+  "🥹",
+  "😭",
+  "😍",
+  "🤔",
+  "👏",
+  "🙏",
+  "💯",
+  "👀",
+  "✨",
+  "😎",
+  "😅",
+  "🫡",
+  "✅",
 ] as const;
 
 /**
@@ -43,7 +60,7 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
 
   const [rating, setRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
-  const [emojiInput, setEmojiInput] = useState<string>("");
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
 
   if (!courseKey) {
     return null;
@@ -95,20 +112,32 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
     toggleEmoji(emoji);
   };
 
-  const handleCustomEmojiSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const emoji = emojiInput.trim();
-
-    if (!emoji) {
-      toast.error("이모지를 입력해주세요.");
+  const handleEmojiPickerOpenChange = (open: boolean) => {
+    if (open && !user) {
+      setLoginModalOpen(true);
       return;
     }
 
-    handleEmojiToggle(emoji);
-    setEmojiInput("");
+    setIsEmojiPickerOpen(open);
   };
 
-  const emojiStatsMap = new Map((emojiStats ?? []).map((item) => [item.emoji, item]));
+  const renderEmojiPickerButton = (emoji: string) => (
+    <Button
+      key={emoji}
+      type="button"
+      variant="ghost"
+      size="icon-lg"
+      onClick={() => {
+        handleEmojiToggle(emoji);
+        setIsEmojiPickerOpen(false);
+      }}
+      disabled={isEmojiToggling || isUserLoading}
+      aria-label={emoji}
+      className="h-11 w-11 rounded-xl text-xl transition-transform hover:scale-105"
+    >
+      <span>{emoji}</span>
+    </Button>
+  );
 
   return (
     <section className="flex flex-col gap-6 mt-8">
@@ -180,60 +209,9 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">이모지 반응</h3>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {PRESET_EMOJIS.map((emoji) => {
-              const stat = emojiStatsMap.get(emoji);
-              const count = stat?.count ?? 0;
-              const isMine = stat?.isMine ?? false;
-
-              return (
-                <Button
-                  key={emoji}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEmojiToggle(emoji)}
-                  disabled={isEmojiToggling || isUserLoading}
-                  aria-pressed={isMine}
-                  aria-label={`${emoji} ${count}개`}
-                  className={cn(
-                    "h-10 rounded-full border-gray-200 px-3 text-base transition-all hover:border-primary/30 hover:bg-primary/5 dark:border-gray-700 dark:hover:border-primary/40 dark:hover:bg-primary/10",
-                    isMine &&
-                      "border-primary/40 bg-primary/10 text-primary dark:border-primary/50 dark:bg-primary/15 dark:text-primary-light"
-                  )}
-                >
-                  <span>{emoji}</span>
-                  <span className="text-xs font-semibold tabular-nums">{count}</span>
-                </Button>
-              );
-            })}
-          </div>
-
-          <form onSubmit={handleCustomEmojiSubmit} className="flex flex-col gap-3 sm:flex-row">
-            <Input
-              value={emojiInput}
-              onChange={(e) => setEmojiInput(e.target.value)}
-              placeholder="다른 시스템 이모지 입력, 예: 😂"
-              className="flex-1"
-            />
-            <Button type="submit" variant="outline" disabled={isEmojiToggling || isUserLoading}>
-              토글
-            </Button>
-          </form>
-
-          {emojiStatus === "pending" ? (
-            <div className="flex items-center justify-center gap-2 py-6 text-sm text-gray-500 dark:text-gray-400">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              이모지 통계를 불러오는 중입니다.
-            </div>
-          ) : emojiStatus === "error" ? (
-            <div className="flex items-center gap-2 rounded-2xl border border-dashed border-red-200 bg-red-50/60 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-900/10 dark:text-red-300">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>이모지 통계를 불러오지 못했습니다.</span>
-            </div>
-          ) : (emojiStats?.length ?? 0) > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {emojiStats?.map((item) => (
+          <div className="flex flex-wrap items-center gap-2">
+            {emojiStats?.length ? (
+              emojiStats.map((item) => (
                 <span
                   key={item.emoji}
                   className={cn(
@@ -247,13 +225,62 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
                   <span className="tabular-nums">{item.count}</span>
                   {item.isMine && <span className="text-[10px] font-bold uppercase tracking-wide">내 반응</span>}
                 </span>
-              ))}
+              ))
+            ) : (
+              <span className="rounded-full border border-dashed border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
+                아직 등록된 이모지가 없습니다.
+              </span>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              onClick={() => handleEmojiPickerOpenChange(true)}
+              disabled={isEmojiToggling || isUserLoading}
+              aria-label="이모지 추가"
+              className="h-9 w-9 rounded-full border-dashed border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 dark:border-primary/40 dark:bg-primary/10"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Dialog open={isEmojiPickerOpen} onOpenChange={handleEmojiPickerOpenChange}>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>이모지 선택</DialogTitle>
+                <DialogDescription>반응을 남길 이모지를 골라주세요. 선택하면 바로 반영됩니다.</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-5">
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">고정 이모지</p>
+                  <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
+                    {PRESET_EMOJIS.map(renderEmojiPickerButton)}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">다른 시스템 이모지</p>
+                  <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
+                    {EXTRA_SYSTEM_EMOJIS.map(renderEmojiPickerButton)}
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {emojiStatus === "pending" ? (
+            <div className="flex items-center justify-center gap-2 py-6 text-sm text-gray-500 dark:text-gray-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              이모지 통계를 불러오는 중입니다.
             </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
-              아직 등록된 이모지가 없습니다.
+          ) : emojiStatus === "error" ? (
+            <div className="flex items-center gap-2 rounded-2xl border border-dashed border-red-200 bg-red-50/60 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-900/10 dark:text-red-300">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>이모지 통계를 불러오지 못했습니다.</span>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 

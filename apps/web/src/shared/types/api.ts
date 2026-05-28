@@ -504,7 +504,7 @@ export interface ReviewReactionRequest {
   reactionType: 'LIKE' | 'DISLIKE';
 }
 
-// 강의 이모지 리뷰 관련
+// 강의 리뷰 관련
 export interface EmojiReviewResponse {
   emoji: string;
   count: number;

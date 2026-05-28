@@ -94,8 +94,7 @@ describe("CourseReviewSection", () => {
 
     expect(screen.getByRole("heading", { name: "강의 리뷰" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "등록" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "👍 3개" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByPlaceholderText("다른 시스템 이모지 입력, 예: 😂")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "이모지 추가" })).toBeInTheDocument();
   });
 
   it("별점을 선택하고 등록하면 리뷰 생성 훅을 호출한다", () => {
@@ -107,13 +106,12 @@ describe("CourseReviewSection", () => {
     expect(mockCreateReview).toHaveBeenCalledWith({ rating: 5 }, expect.any(Object));
   });
 
-  it("다른 시스템 이모지를 입력하면 토글 훅을 호출한다", () => {
+  it("이모지 추가 버튼을 누르면 선택 모달이 열리고 이모지를 고르면 토글 훅을 호출한다", () => {
     render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
 
-    fireEvent.change(screen.getByPlaceholderText("다른 시스템 이모지 입력, 예: 😂"), {
-      target: { value: "🥹" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "토글" }));
+    fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
+    expect(screen.getByRole("heading", { name: "이모지 선택" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "🥹" }));
 
     expect(mockToggleEmoji).toHaveBeenCalledWith("🥹");
   });
@@ -126,7 +124,7 @@ describe("CourseReviewSection", () => {
 
     render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "👍 3개" }));
+    fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
 
     expect(mockSetLoginModalOpen).toHaveBeenCalledWith(true);
     expect(mockToggleEmoji).not.toHaveBeenCalled();
