@@ -9,6 +9,7 @@ import { RecentNotifications } from "./recent-notifications";
 import { DashboardAnnouncements } from "./dashboard-announcements";
 import { DashboardTimetable } from "./dashboard-timetable";
 import { DashboardDDayBlock } from "./dashboard-dday-block";
+import { DashboardCountdown } from "./dashboard-countdown";
 
 /**
  * 사용자의 개인 대시보드를 렌더링하는 메인 컴포넌트입니다.
@@ -39,6 +40,8 @@ export function Dashboard() {
             안녕하세요, <span className="text-primary">{user.name}님!</span>
           </h1>
         </motion.div>
+
+        <DashboardCountdown />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
