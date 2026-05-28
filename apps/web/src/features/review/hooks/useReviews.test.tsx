@@ -1,92 +1,79 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import * as reviewApi from "@/features/review/api/review.api";
-import { useReviews, useCreateReview, useToggleReviewReaction } from "./useReviews";
+import { useCourseEmojis, useToggleCourseEmoji } from "./useReviews";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
+import type { EmojiReviewResponse } from "@/shared/types/api";
 
 vi.mock("@/features/review/api/review.api", () => ({
-  getReviews: vi.fn(),
-  createReview: vi.fn(),
-  toggleReviewReaction: vi.fn(),
+  getCourseEmojis: vi.fn(),
+  toggleCourseEmoji: vi.fn(),
 }));
 
-describe("useReviews hooks", () => {
+describe("이모지 리뷰 훅", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   const COURSE_KEY = "TEST-COURSE";
 
-  it("리뷰 목록을 성공적으로 불러온다", async () => {
-    const mockedGetReviews = vi.mocked(reviewApi.getReviews);
-    mockedGetReviews.mockResolvedValue({
+  const MOCK_EMOJIS: EmojiReviewResponse[] = [
+    { emoji: "👍", count: 3, isMine: true },
+    { emoji: "🔥", count: 1, isMine: false },
+    { emoji: "🎓", count: 0, isMine: false },
+    { emoji: "📝", count: 0, isMine: false },
+    { emoji: "😴", count: 0, isMine: false },
+    { emoji: "🚨", count: 0, isMine: false },
+  ];
+
+  it("강의 이모지 통계를 성공적으로 불러온다", async () => {
+    vi.mocked(reviewApi.getCourseEmojis).mockResolvedValue({
       code: "SUCCESS",
       message: "ok",
-      data: {
-        content: [
-          {
-            id: 1,
-            content: "좋은 강의입니다.",
-            rating: 5,
-            userId: 1,
-            nickname: "학생1",
-            createdAt: "2024-03-07T00:00:00",
-          },
-        ],
-        last: true,
-        number: 0,
-      },
-    } as unknown as Awaited<ReturnType<typeof reviewApi.getReviews>>);
+      data: MOCK_EMOJIS,
+    } as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
-    const { result } = renderHook(() => useReviews(COURSE_KEY), { wrapper });
+    const { result } = renderHook(() => useCourseEmojis(COURSE_KEY), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data?.pages[0].content).toHaveLength(1);
-    expect(result.current.data?.pages[0].content[0].content).toBe("좋은 강의입니다.");
+    expect(result.current.data).toHaveLength(6);
+    expect(result.current.data![0].emoji).toBe("👍");
+    expect(result.current.data![0].count).toBe(3);
+    expect(result.current.data![0].isMine).toBe(true);
   });
 
-  it("리뷰를 생성하고 관련 쿼리를 무효화한다", async () => {
-    const mockedCreateReview = vi.mocked(reviewApi.createReview);
-    mockedCreateReview.mockResolvedValue({
+  it("이모지 토글 후 캐시를 무효화한다", async () => {
+    vi.mocked(reviewApi.toggleCourseEmoji).mockResolvedValue({
       code: "SUCCESS",
       message: "ok",
-      data: { id: 2, content: "새 리뷰" },
-    } as unknown as Awaited<ReturnType<typeof reviewApi.createReview>>);
+      data: undefined,
+    } as Awaited<ReturnType<typeof reviewApi.toggleCourseEmoji>>);
 
     const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     const wrapper = createQueryWrapper(queryClient);
-    
-    const { result } = renderHook(() => useCreateReview(COURSE_KEY), { wrapper });
+
+    const { result } = renderHook(() => useToggleCourseEmoji(COURSE_KEY), { wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync({ content: "새 리뷰", rating: 4 });
+      await result.current.mutateAsync("👍");
     });
 
-    expect(mockedCreateReview).toHaveBeenCalledWith(COURSE_KEY, { content: "새 리뷰", rating: 4 });
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["reviews", COURSE_KEY] }));
+    expect(reviewApi.toggleCourseEmoji).toHaveBeenCalledWith(COURSE_KEY, "👍");
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ["course-emojis", COURSE_KEY] })
+    );
   });
 
-  it("리뷰 반응(좋아요/싫어요)을 토글한다", async () => {
-    const mockedToggleReaction = vi.mocked(reviewApi.toggleReviewReaction);
-    mockedToggleReaction.mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: null,
-    } as unknown as Awaited<ReturnType<typeof reviewApi.toggleReviewReaction>>);
-
+  it("courseKey가 없으면 쿼리를 실행하지 않는다", () => {
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
-    
-    const { result } = renderHook(() => useToggleReviewReaction(COURSE_KEY), { wrapper });
+    const { result } = renderHook(() => useCourseEmojis(""), { wrapper });
 
-    await act(async () => {
-      await result.current.mutateAsync({ reviewId: 1, request: { reactionType: "LIKE" } });
-    });
-
-    expect(mockedToggleReaction).toHaveBeenCalledWith(1, { reactionType: "LIKE" });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(reviewApi.getCourseEmojis).not.toHaveBeenCalled();
   });
 });
