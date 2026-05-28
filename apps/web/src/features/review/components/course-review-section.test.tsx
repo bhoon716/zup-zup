@@ -1,25 +1,21 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CourseReviewSection } from "./course-review-section";
 import * as reviewHooks from "@/features/review/hooks/useReviews";
 import * as userHooks from "@/features/user/hooks/useUser";
 
-const { mockMutate, mockSetLoginModalOpen } = vi.hoisted(() => ({
-  mockMutate: vi.fn(),
+const { mockCreateReview, mockToggleReaction, mockToggleEmoji, mockSetLoginModalOpen } = vi.hoisted(() => ({
+  mockCreateReview: vi.fn(),
+  mockToggleReaction: vi.fn(),
+  mockToggleEmoji: vi.fn(),
   mockSetLoginModalOpen: vi.fn(),
 }));
 
-const EMOJI_STATS = [
-  { emoji: "👍", count: 3, isMine: true },
-  { emoji: "🔥", count: 1, isMine: false },
-  { emoji: "🎓", count: 0, isMine: false },
-  { emoji: "📝", count: 0, isMine: false },
-  { emoji: "😴", count: 0, isMine: false },
-  { emoji: "🚨", count: 0, isMine: false },
-];
-
 vi.mock("@/features/review/hooks/useReviews", () => ({
+  useReviews: vi.fn(),
+  useCreateReview: vi.fn(),
+  useToggleReviewReaction: vi.fn(),
   useCourseEmojis: vi.fn(),
   useToggleCourseEmoji: vi.fn(),
 }));
@@ -33,55 +29,106 @@ vi.mock("@/features/auth/store/useAuthStore", () => ({
     selector({ setLoginModalOpen: mockSetLoginModalOpen }),
 }));
 
-const mockedUseCourseEmojis = vi.mocked(reviewHooks.useCourseEmojis);
-const mockedUseToggleCourseEmoji = vi.mocked(reviewHooks.useToggleCourseEmoji);
-const mockedUseUser = vi.mocked(userHooks.useUser);
-
 describe("CourseReviewSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedUseCourseEmojis.mockReturnValue({
-      data: EMOJI_STATS,
+
+    vi.mocked(reviewHooks.useReviews).mockReturnValue({
+      data: {
+        pages: [
+          {
+            content: [
+              {
+                id: 1,
+                courseKey: "TEST-COURSE",
+                rating: 5,
+                content: null,
+                likeCount: 2,
+                dislikeCount: 0,
+                isMine: true,
+                createdAt: "2024-03-07T00:00:00",
+                updatedAt: "2024-03-07T00:00:00",
+              },
+            ],
+            last: true,
+            number: 0,
+          },
+        ],
+      },
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
       status: "success",
     } as never);
-    mockedUseToggleCourseEmoji.mockReturnValue({
-      mutate: mockMutate,
+
+    vi.mocked(reviewHooks.useCreateReview).mockReturnValue({
+      mutate: mockCreateReview,
       isPending: false,
     } as never);
-    mockedUseUser.mockReturnValue({
+
+    vi.mocked(reviewHooks.useToggleReviewReaction).mockReturnValue({
+      mutate: mockToggleReaction,
+    } as never);
+
+    vi.mocked(reviewHooks.useCourseEmojis).mockReturnValue({
+      data: [
+        { emoji: "👍", count: 3, isMine: true },
+        { emoji: "😂", count: 1, isMine: false },
+      ],
+      status: "success",
+    } as never);
+
+    vi.mocked(reviewHooks.useToggleCourseEmoji).mockReturnValue({
+      mutate: mockToggleEmoji,
+      isPending: false,
+    } as never);
+
+    vi.mocked(userHooks.useUser).mockReturnValue({
       data: { id: 1, email: "user@test.com", name: "테스트", role: "USER" },
       isPending: false,
     } as never);
   });
 
-  it("이모지 통계와 본인 반응 상태를 보여준다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" />);
+  it("강의 리뷰 문구와 별점 폼, 이모지 반응을 함께 보여준다", () => {
+    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
 
-    expect(screen.getByRole("button", { name: "공감 3개" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "뜨거움 1개" })).toHaveTextContent("1");
-    expect(screen.getByText("내 반응")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "강의 리뷰" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "등록" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "👍 3개" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByPlaceholderText("다른 시스템 이모지 입력, 예: 😂")).toBeInTheDocument();
   });
 
-  it("로그인 상태에서는 이모지를 탭하면 토글 훅을 호출한다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" />);
+  it("별점을 선택하고 등록하면 리뷰 생성 훅을 호출한다", () => {
+    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "뜨거움 1개" }));
+    fireEvent.click(screen.getByRole("button", { name: /5점/ }));
+    fireEvent.click(screen.getByRole("button", { name: "등록" }));
 
-    expect(mockMutate).toHaveBeenCalledWith("🔥");
-    expect(mockSetLoginModalOpen).not.toHaveBeenCalled();
+    expect(mockCreateReview).toHaveBeenCalledWith({ rating: 5 }, expect.any(Object));
+  });
+
+  it("다른 시스템 이모지를 입력하면 토글 훅을 호출한다", () => {
+    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+
+    fireEvent.change(screen.getByPlaceholderText("다른 시스템 이모지 입력, 예: 😂"), {
+      target: { value: "🥹" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "토글" }));
+
+    expect(mockToggleEmoji).toHaveBeenCalledWith("🥹");
   });
 
   it("비로그인 상태에서는 로그인 모달을 연다", () => {
-    mockedUseUser.mockReturnValueOnce({
+    vi.mocked(userHooks.useUser).mockReturnValueOnce({
       data: null,
       isPending: false,
     } as never);
 
-    render(<CourseReviewSection courseKey="TEST-COURSE" />);
+    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "뜨거움 1개" }));
+    fireEvent.click(screen.getByRole("button", { name: "👍 3개" }));
 
     expect(mockSetLoginModalOpen).toHaveBeenCalledWith(true);
-    expect(mockMutate).not.toHaveBeenCalled();
+    expect(mockToggleEmoji).not.toHaveBeenCalled();
   });
 });

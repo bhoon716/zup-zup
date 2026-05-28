@@ -482,6 +482,28 @@ export interface AnnouncementRequest {
   published?: boolean;
 }
 
+// 강의 리뷰 관련
+export interface ReviewResponse {
+  id: number;
+  courseKey: string;
+  rating: number;
+  content: string | null;
+  likeCount: number;
+  dislikeCount: number;
+  isMine: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewCreateRequest {
+  rating: number;
+  content?: string;
+}
+
+export interface ReviewReactionRequest {
+  reactionType: 'LIKE' | 'DISLIKE';
+}
+
 // 강의 이모지 리뷰 관련
 export interface EmojiReviewResponse {
   emoji: string;
@@ -540,4 +562,3 @@ export interface FeedbackReplyCreateRequest {
 export interface FeedbackReplyUpdateRequest {
   content: string;
 }
-
