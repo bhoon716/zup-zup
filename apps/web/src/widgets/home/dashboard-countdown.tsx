@@ -113,10 +113,10 @@ export function DashboardCountdown() {
             종강 COUNTDOWN
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
+            <span className="text-xl font-black text-gray-900 dark:text-gray-100 tracking-tight whitespace-nowrap">
               {ddayString}
             </span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold font-mono tabular-nums truncate max-w-[120px] sm:max-w-none">
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold font-mono tabular-nums truncate max-w-[140px] sm:max-w-none whitespace-nowrap">
               ({timeLeftString})
             </span>
           </div>
