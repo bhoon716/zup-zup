@@ -24,6 +24,19 @@ vi.mock("@/features/user/hooks/useUser", () => ({
   useUser: vi.fn(),
 }));
 
+vi.mock("@emoji-mart/react", () => ({
+  default: ({ onEmojiSelect }: { onEmojiSelect: (emoji: { native: string }) => void }) => (
+    <div data-testid="emoji-picker">
+      <button type="button" onClick={() => onEmojiSelect({ native: "🥹" })}>
+        🥹
+      </button>
+      <button type="button" onClick={() => onEmojiSelect({ native: "😂" })}>
+        😂
+      </button>
+    </div>
+  ),
+}));
+
 vi.mock("@/features/auth/store/useAuthStore", () => ({
   useAuthStore: (selector: (state: { setLoginModalOpen: (open: boolean) => void }) => unknown) =>
     selector({ setLoginModalOpen: mockSetLoginModalOpen }),
@@ -73,7 +86,7 @@ describe("CourseReviewSection", () => {
     vi.mocked(reviewHooks.useCourseEmojis).mockReturnValue({
       data: [
         { emoji: "👍", count: 3, isMine: true },
-        { emoji: "😂", count: 1, isMine: false },
+        { emoji: "😂", count: 0, isMine: false },
       ],
       status: "success",
     } as never);
@@ -95,6 +108,7 @@ describe("CourseReviewSection", () => {
     expect(screen.getByRole("heading", { name: "강의 리뷰" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "등록" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "이모지 추가" })).toBeInTheDocument();
+    expect(screen.queryByText("😂")).not.toBeInTheDocument();
   });
 
   it("별점을 선택하고 등록하면 리뷰 생성 훅을 호출한다", () => {
@@ -110,7 +124,7 @@ describe("CourseReviewSection", () => {
     render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
 
     fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
-    expect(screen.getByRole("heading", { name: "이모지 선택" })).toBeInTheDocument();
+    expect(screen.getByTestId("emoji-picker")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "🥹" }));
 
     expect(mockToggleEmoji).toHaveBeenCalledWith("🥹");

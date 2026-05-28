@@ -1,6 +1,15 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as reviewApi from '@/features/review/api/review.api';
-import type { ReviewCreateRequest, ReviewReactionRequest } from "@/shared/types/api";
+import type { EmojiReviewResponse, ReviewCreateRequest, ReviewReactionRequest } from "@/shared/types/api";
+
+const sortEmojiStats = (items: EmojiReviewResponse[]) =>
+  [...items].sort((left, right) => {
+    if (right.count !== left.count) {
+      return right.count - left.count;
+    }
+
+    return left.emoji.localeCompare(right.emoji);
+  });
 
 export const useReviews = (courseKey: string, sort: string = "createdAt,desc") => {
   return useInfiniteQuery({
@@ -63,6 +72,38 @@ export const useToggleCourseEmoji = (courseKey: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (emoji: string) => reviewApi.toggleCourseEmoji(courseKey, emoji),
+    onMutate: async (emoji: string) => {
+      await queryClient.cancelQueries({ queryKey: ["course-emojis", courseKey] });
+
+      const previousEmojis = queryClient.getQueryData<EmojiReviewResponse[]>(["course-emojis", courseKey]);
+
+      queryClient.setQueryData<EmojiReviewResponse[]>(["course-emojis", courseKey], (current = []) => {
+        const next = new Map(current.map((item) => [item.emoji, { ...item }]));
+        const existing = next.get(emoji);
+
+        if (existing?.isMine) {
+          const count = existing.count - 1;
+          if (count <= 0) {
+            next.delete(emoji);
+          } else {
+            next.set(emoji, { ...existing, count, isMine: false });
+          }
+        } else if (existing) {
+          next.set(emoji, { ...existing, count: existing.count + 1, isMine: true });
+        } else {
+          next.set(emoji, { emoji, count: 1, isMine: true });
+        }
+
+        return sortEmojiStats([...next.values()].filter((item) => item.count > 0));
+      });
+
+      return { previousEmojis };
+    },
+    onError: (_error, _emoji, context) => {
+      if (!context) return;
+
+      queryClient.setQueryData(["course-emojis", courseKey], context.previousEmojis);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["course-emojis", courseKey] });
     },

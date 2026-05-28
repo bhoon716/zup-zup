@@ -135,4 +135,41 @@ describe("강의 리뷰 훅", () => {
     expect(reviewApi.toggleCourseEmoji).toHaveBeenCalledWith(COURSE_KEY, "😂");
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["course-emojis", COURSE_KEY] }));
   });
+
+  it("이모지 토글 시 캐시를 즉시 반영하고 0개가 되면 제거한다", async () => {
+    vi.mocked(reviewApi.toggleCourseEmoji).mockResolvedValue({
+      code: "SUCCESS",
+      message: "ok",
+      data: undefined,
+    } as Awaited<ReturnType<typeof reviewApi.toggleCourseEmoji>>);
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    queryClient.setQueryData(["course-emojis", COURSE_KEY], [
+      { emoji: "👍", count: 3, isMine: true },
+      { emoji: "😂", count: 1, isMine: false },
+      { emoji: "🥹", count: 1, isMine: true },
+    ]);
+
+    const { result } = renderHook(() => useToggleCourseEmoji(COURSE_KEY), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync("😂");
+    });
+
+    expect(queryClient.getQueryData(["course-emojis", COURSE_KEY])).toEqual([
+      { emoji: "👍", count: 3, isMine: true },
+      { emoji: "😂", count: 2, isMine: true },
+      { emoji: "🥹", count: 1, isMine: true },
+    ]);
+
+    await act(async () => {
+      await result.current.mutateAsync("🥹");
+    });
+
+    expect(queryClient.getQueryData(["course-emojis", COURSE_KEY])).toEqual([
+      { emoji: "👍", count: 3, isMine: true },
+      { emoji: "😂", count: 2, isMine: true },
+    ]);
+  });
 });
