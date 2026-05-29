@@ -3,6 +3,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogTitle,
 } from "@/shared/ui/dialog";
 import type { Course } from "@/shared/types/api";
@@ -27,6 +28,9 @@ export function CourseDetailDialog({ course, open, onOpenChange }: CourseDetailD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-0 bg-transparent shadow-none flex flex-col">
         <DialogTitle className="sr-only">강의 상세 정보</DialogTitle>
+        <DialogDescription className="sr-only">
+          선택한 강의의 상세 정보를 확인하는 대화상자입니다.
+        </DialogDescription>
         <div className="relative w-full bg-white dark:bg-[#121212] rounded-3xl overflow-y-auto shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 max-h-[90vh]">
           {isLoading ? (
             <div className="flex items-center justify-center p-20 min-h-[400px]">
