@@ -97,7 +97,7 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
       return;
     }
 
-    if (pendingEmojiRef.current === emoji) {
+    if (pendingEmojiRef.current !== null) {
       return;
     }
 

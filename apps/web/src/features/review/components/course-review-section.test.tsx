@@ -154,6 +154,24 @@ describe("CourseReviewSection", () => {
     expect(mockToggleEmoji).toHaveBeenCalledWith("👍", expect.objectContaining({ onSettled: expect.any(Function) }));
   });
 
+  it("이모지 토글 대기 중에는 다른 이모지도 추가로 보내지 않는다", () => {
+    vi.mocked(reviewHooks.useCourseEmojis).mockReturnValueOnce({
+      data: [
+        { emoji: "👍", count: 3, isMine: true },
+        { emoji: "😂", count: 2, isMine: false },
+      ],
+      status: "success",
+    } as never);
+
+    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "👍 3개" }));
+    fireEvent.click(screen.getByRole("button", { name: "😂 2개" }));
+
+    expect(mockToggleEmoji).toHaveBeenCalledTimes(1);
+    expect(mockToggleEmoji).toHaveBeenCalledWith("👍", expect.objectContaining({ onSettled: expect.any(Function) }));
+  });
+
   it("비로그인 상태에서는 로그인 모달을 연다", () => {
     vi.mocked(userHooks.useUser).mockReturnValueOnce({
       data: null,
