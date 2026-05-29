@@ -57,12 +57,12 @@ export function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48 rounded-2xl border-gray-100 bg-white p-1.5 shadow-xl">
           {JBNU_SITES.map((site) => (
-            <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer">
-              <DropdownMenuItem className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary cursor-pointer transition-colors group">
+            <DropdownMenuItem asChild key={site.url} className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary cursor-pointer transition-colors group">
+              <a href={site.url} target="_blank" rel="noopener noreferrer">
                 <span className="font-medium">{site.name}</span>
                 <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </DropdownMenuItem>
-            </a>
+              </a>
+            </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
