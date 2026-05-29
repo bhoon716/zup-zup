@@ -33,12 +33,12 @@ export function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
         </p>
         <div className="flex flex-col gap-0.5 pl-3">
           {JBNU_SITES.map((site) => (
-            <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer" onClick={onLinkClick}>
-              <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium hover:bg-primary/5 text-gray-600">
+            <Button asChild key={site.url} variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium hover:bg-primary/5 text-gray-600">
+              <a href={site.url} target="_blank" rel="noopener noreferrer" onClick={onLinkClick}>
                 <ExternalLink className="w-4 h-4 opacity-50" />
                 {site.name}
-              </Button>
-            </a>
+              </a>
+            </Button>
           ))}
         </div>
       </div>

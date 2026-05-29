@@ -37,48 +37,48 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
   return (
     <>
       {isLoggedIn && (
-        <Link href="/timetable" onClick={handleClick}>
-          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+        <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Link href="/timetable" onClick={handleClick}>
             <Calendar className="w-[1.1rem] h-[1.1rem]" />
             <span className="text-sm font-medium">내 시간표</span>
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       )}
-      <Link href="/search" onClick={onLinkClick}>
-        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+      <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+        <Link href="/search" onClick={onLinkClick}>
           <Search className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">강의 검색</span>
-        </Button>
-      </Link>
+        </Link>
+      </Button>
       {isLoggedIn && (
-        <Link href="/notifications" onClick={handleClick}>
-          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+        <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Link href="/notifications" onClick={handleClick}>
             <Bell className="w-[1.1rem] h-[1.1rem]" />
             <span className="text-sm font-medium">알림 / 구독</span>
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       )}
-      <Link href="/announcements" onClick={onLinkClick}>
-        <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+      <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+        <Link href="/announcements" onClick={onLinkClick}>
           <Megaphone className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">공지사항</span>
-        </Button>
-      </Link>
+        </Link>
+      </Button>
       {isLoggedIn && (
-        <Link href="/feedback" onClick={handleClick}>
-          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+        <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Link href="/feedback" onClick={handleClick}>
             <MessageCircle className="w-[1.1rem] h-[1.1rem]" />
             <span className="text-sm font-medium">건의 / 버그</span>
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       )}
       {isLoggedIn && (
-        <Link href="/settings" onClick={handleClick}>
-          <Button variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+        <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Link href="/settings" onClick={handleClick}>
             <Settings className="w-[1.1rem] h-[1.1rem]" />
             <span className="text-sm font-medium">설정</span>
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       )}
 
       <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} />
@@ -91,24 +91,24 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
                 관리 메뉴
               </p>
               <div className="flex flex-col gap-0.5 pl-3">
-                <Link href="/admin" onClick={onLinkClick}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                  <Link href="/admin" onClick={onLinkClick}>
                     <LayoutDashboard className="w-4 h-4" />
                     대시보드
-                  </Button>
-                </Link>
-                <Link href="/admin/announcements" onClick={onLinkClick}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                  </Link>
+                </Button>
+                <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                  <Link href="/admin/announcements" onClick={onLinkClick}>
                     <Megaphone className="w-4 h-4" />
                     공지사항 관리
-                  </Button>
-                </Link>
-                <Link href="/admin/feedbacks" onClick={onLinkClick}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                  </Link>
+                </Button>
+                <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                  <Link href="/admin/feedbacks" onClick={onLinkClick}>
                     <MessageCircle className="w-4 h-4" />
                     건의/버그 관리
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
             </>
           ) : (
@@ -149,4 +149,3 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
     </>
   );
 }
-

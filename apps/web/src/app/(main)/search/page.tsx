@@ -348,14 +348,14 @@ export default function SearchPage() {
 
           <section className="min-w-0 space-y-6">
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h1 className="text-xl font-bold text-foreground">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h1 className="min-w-0 truncate text-xl font-bold text-foreground">
                   {searchCondition.name || searchCondition.professor 
                     ? `"${searchCondition.name || searchCondition.professor}"` 
                     : "강의 목록"}
                 </h1>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                   <Select
                     value={sortOption}
                     onValueChange={(value) => setSortOption(value)}
