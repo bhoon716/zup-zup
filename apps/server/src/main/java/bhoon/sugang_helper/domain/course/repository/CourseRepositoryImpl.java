@@ -18,9 +18,11 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.StringExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
+import java.util.Arrays;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -171,10 +173,11 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     /**
-     * 교수명 포함 여부 필터
+     * 교수명 포함 여부 필터.
+     * 쉼표/줄바꿈/세미콜론으로 여러 값을 입력하면 OR 조건으로 처리합니다.
      */
     private BooleanExpression containsProfessor(String professor) {
-        return StringUtils.hasText(professor) ? course.professor.contains(professor) : null;
+        return containsAnyText(course.professor, professor);
     }
 
     /**
@@ -220,10 +223,43 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     }
 
     /**
-     * 학과명 포함 여부 필터
+     * 학과명 포함 여부 필터.
+     * 쉼표/줄바꿈/세미콜론으로 여러 값을 입력하면 OR 조건으로 처리합니다.
      */
     private BooleanExpression containsDepartment(String department) {
-        return StringUtils.hasText(department) ? course.department.contains(department) : null;
+        return containsAnyText(course.department, department);
+    }
+
+    /**
+     * 하나의 텍스트 필드를 대상으로 여러 검색어를 OR 조건으로 결합합니다.
+     */
+    private BooleanExpression containsAnyText(StringExpression field, String rawValue) {
+        List<String> terms = splitSearchTerms(rawValue);
+        if (terms.isEmpty()) {
+            return null;
+        }
+
+        BooleanExpression expression = null;
+        for (String term : terms) {
+            BooleanExpression predicate = field.contains(term);
+            expression = expression == null ? predicate : expression.or(predicate);
+        }
+        return expression;
+    }
+
+    /**
+     * 쉼표/줄바꿈/세미콜론 기준으로 검색어를 분리하고 중복을 제거합니다.
+     */
+    private List<String> splitSearchTerms(String rawValue) {
+        if (!StringUtils.hasText(rawValue)) {
+            return List.of();
+        }
+
+        return Arrays.stream(rawValue.split("[,\\n;]+"))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
     }
 
     /**
