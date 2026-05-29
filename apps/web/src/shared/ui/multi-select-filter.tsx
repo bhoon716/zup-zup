@@ -91,11 +91,18 @@ export function MultiSelectFilter({
                 className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
               >
                 {option?.label || val}
-                <X
-                  className="h-3 w-3 cursor-pointer opacity-50 hover:opacity-100"
-                  onClick={() => toggleOption(val)}
+                <button
+                  type="button"
+                  aria-label={`${option?.label || val} 선택 해제`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleOption(val);
+                  }}
                   data-testid={`remove-option-${val}`}
-                />
+                  className="inline-flex h-4 w-4 items-center justify-center rounded-full opacity-50 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </Badge>
             );
           })}

@@ -57,7 +57,7 @@ describe("MultiSelectFilter", () => {
 
     expect(screen.getByTestId("selected-count")).toHaveTextContent("1");
     // Trigger should now show "옵션1"
-    const trigger = screen.getByRole("button");
+    const trigger = screen.getByRole("button", { name: "옵션1" });
     expect(trigger).toHaveTextContent("옵션1");
   });
 
@@ -71,7 +71,7 @@ describe("MultiSelectFilter", () => {
   it("배지의 X 버튼을 누르면 선택이 해제된다", () => {
     render(<FilterHarness initial={["OPT1"]} />);
     
-    const xButton = screen.getByTestId("remove-option-OPT1");
+    const xButton = screen.getByRole("button", { name: "옵션1 선택 해제" });
     fireEvent.click(xButton);
 
     expect(screen.getByTestId("selected-count")).toHaveTextContent("0");
