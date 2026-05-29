@@ -81,9 +81,12 @@ export function CourseBasicFilters({
             onChange={(e) =>
               setCondition((prev) => ({ ...prev, professor: e.target.value }))
             }
-            placeholder="예: 홍길동"
+            placeholder="예: 홍길동, 김철수"
             className="h-10 w-full rounded-xl bg-muted/30 text-xs"
           />
+          <p className="text-[10px] leading-snug text-muted-foreground">
+            쉼표(,)로 여러 명을 입력하면 OR 조건으로 검색됩니다.
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label className="text-[11px] font-bold text-muted-foreground">학과명 직접 입력</Label>
@@ -92,9 +95,12 @@ export function CourseBasicFilters({
             onChange={(e) =>
               setCondition((prev) => ({ ...prev, department: e.target.value }))
             }
-            placeholder="예: 소프트웨어"
+            placeholder="예: 소프트웨어, 컴퓨터공학부"
             className="h-10 w-full rounded-xl bg-muted/30 text-xs"
           />
+          <p className="text-[10px] leading-snug text-muted-foreground">
+            쉼표(,)로 여러 학과를 입력하면 OR 조건으로 검색됩니다.
+          </p>
         </div>
       </div>
     </div>
