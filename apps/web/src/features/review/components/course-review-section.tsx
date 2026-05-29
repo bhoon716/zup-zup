@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import emojiData from "@emoji-mart/data";
 import koI18n from "@emoji-mart/data/i18n/ko.json";
@@ -47,6 +47,7 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
   const [rating, setRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const pendingEmojiRef = useRef<string | null>(null);
 
   if (!courseKey) {
     return null;
@@ -96,7 +97,18 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
       return;
     }
 
-    toggleEmoji(emoji);
+    if (pendingEmojiRef.current === emoji) {
+      return;
+    }
+
+    pendingEmojiRef.current = emoji;
+    toggleEmoji(emoji, {
+      onSettled: () => {
+        if (pendingEmojiRef.current === emoji) {
+          pendingEmojiRef.current = null;
+        }
+      },
+    });
   };
 
   const handleEmojiSelect = (emoji: { native?: string }) => {
@@ -176,24 +188,33 @@ export function CourseReviewSection({ courseKey, isReviewed }: CourseReviewSecti
         <div className="mt-5 flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <Smile className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex flex-col gap-1">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">이모지 리뷰</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">이 강의에 어울리는 이모지를 골라주세요 😊</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {visibleEmojiStats.map((item) => (
-              <span
+              <Button
                 key={item.emoji}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleEmojiToggle(item.emoji)}
+                disabled={isEmojiToggling || isUserLoading}
+                aria-pressed={item.isMine}
+                aria-label={`${item.emoji} ${item.count}개`}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium",
+                  "h-9 rounded-full border px-3 py-1 text-sm font-medium transition-all hover:scale-[1.01]",
                   item.isMine
-                    ? "border-primary/30 bg-primary/10 text-primary dark:border-primary/40 dark:bg-primary/15 dark:text-primary-light"
+                    ? "border-primary/40 bg-primary/20 text-primary dark:border-primary/50 dark:bg-primary/25 dark:text-primary-light shadow-sm"
                     : "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-300"
                 )}
               >
                 <span>{item.emoji}</span>
                 <span className="tabular-nums">{item.count}</span>
-                {item.isMine && <span className="text-[10px] font-bold uppercase tracking-wide">내 반응</span>}
-              </span>
+              </Button>
             ))}
 
             <Button

@@ -133,7 +133,9 @@ describe("강의 리뷰 훅", () => {
     });
 
     expect(reviewApi.toggleCourseEmoji).toHaveBeenCalledWith(COURSE_KEY, "😂");
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["course-emojis", COURSE_KEY] }));
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ["course-emojis", COURSE_KEY], refetchType: "none" })
+    );
   });
 
   it("이모지 토글 시 캐시를 즉시 반영하고 0개가 되면 제거한다", async () => {

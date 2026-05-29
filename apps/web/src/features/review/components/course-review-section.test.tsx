@@ -109,8 +109,11 @@ describe("CourseReviewSection", () => {
     expect(screen.getByRole("button", { name: "등록" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "이모지 추가" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "이모지 리뷰" })).toBeInTheDocument();
+    expect(screen.getByText("이 강의에 어울리는 이모지를 골라주세요 😊")).toBeInTheDocument();
     expect(screen.queryByText("코멘트 없이 별점만 남길 수 있습니다.")).not.toBeInTheDocument();
     expect(screen.queryByText("아직 등록된 이모지가 없습니다.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "👍 3개" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "👍 3개" })).toHaveClass("bg-primary/20");
   });
 
   it("별점을 선택하고 등록하면 리뷰 생성 훅을 호출한다", () => {
@@ -129,7 +132,26 @@ describe("CourseReviewSection", () => {
     expect(screen.getByTestId("emoji-picker")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "🥹" }));
 
-    expect(mockToggleEmoji).toHaveBeenCalledWith("🥹");
+    expect(mockToggleEmoji).toHaveBeenCalledWith("🥹", expect.objectContaining({ onSettled: expect.any(Function) }));
+  });
+
+  it("내가 단 이모지 버튼을 다시 누르면 같은 이모지를 토글한다", () => {
+    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "👍 3개" }));
+
+    expect(mockToggleEmoji).toHaveBeenCalledWith("👍", expect.objectContaining({ onSettled: expect.any(Function) }));
+  });
+
+  it("같은 이모지를 연속으로 눌러도 중복 토글 요청은 보내지 않는다", () => {
+    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+
+    const thumbButton = screen.getByRole("button", { name: "👍 3개" });
+    fireEvent.click(thumbButton);
+    fireEvent.click(thumbButton);
+
+    expect(mockToggleEmoji).toHaveBeenCalledTimes(1);
+    expect(mockToggleEmoji).toHaveBeenCalledWith("👍", expect.objectContaining({ onSettled: expect.any(Function) }));
   });
 
   it("비로그인 상태에서는 로그인 모달을 연다", () => {

@@ -105,7 +105,7 @@ export const useToggleCourseEmoji = (courseKey: string) => {
       queryClient.setQueryData(["course-emojis", courseKey], context.previousEmojis);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["course-emojis", courseKey] });
+      queryClient.invalidateQueries({ queryKey: ["course-emojis", courseKey], refetchType: "none" });
     },
   });
 };
