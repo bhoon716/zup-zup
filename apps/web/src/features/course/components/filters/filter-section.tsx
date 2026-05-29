@@ -8,6 +8,7 @@ import { cn } from "@/shared/lib/utils";
 import type { ReactNode } from "react";
 
 interface FilterSectionProps {
+  idBase: string;
   title: string;
   icon?: ReactNode;
   children: ReactNode;
@@ -17,6 +18,7 @@ interface FilterSectionProps {
 }
 
 export function FilterSection({
+  idBase,
   title,
   icon,
   children,
@@ -24,10 +26,13 @@ export function FilterSection({
   onOpenChange,
   className,
 }: FilterSectionProps) {
+  const triggerId = `${idBase}-trigger`;
+  const contentId = `${idBase}-content`;
+
   return (
     <Collapsible open={open} onOpenChange={onOpenChange} className={className}>
       <div className="rounded-2xl border border-border/40 bg-white/50 shadow-sm backdrop-blur-sm transition-all hover:bg-white/80">
-        <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3">
+        <CollapsibleTrigger id={triggerId} aria-controls={contentId} className="flex w-full items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             {icon}
             <span className="text-sm font-bold text-foreground/80">{title}</span>
@@ -41,7 +46,7 @@ export function FilterSection({
             <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-300" />
           </div>
         </CollapsibleTrigger>
-        <CollapsibleContent className="border-t border-border/70 px-4 pb-4 pt-3 data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+        <CollapsibleContent id={contentId} className="border-t border-border/70 px-4 pb-4 pt-3 data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
           {children}
         </CollapsibleContent>
       </div>

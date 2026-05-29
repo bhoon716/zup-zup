@@ -355,15 +355,15 @@ export default function SearchPage() {
                     : "강의 목록"}
                 </h1>
 
-                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-                  <Select
-                    value={sortOption}
-                    onValueChange={(value) => setSortOption(value)}
-                  >
-                    <SelectTrigger className="h-9 min-w-[120px] rounded-lg border-border/60 bg-transparent text-xs font-medium">
+              <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                <Select
+                  value={sortOption}
+                  onValueChange={(value) => setSortOption(value)}
+                >
+                    <SelectTrigger id="course-sort-trigger" aria-controls="course-sort-content" className="h-9 min-w-[120px] rounded-lg border-border/60 bg-transparent text-xs font-medium">
                       <SelectValue placeholder="정렬" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent id="course-sort-content">
                       <SelectItem value="name">강의명</SelectItem>
                       <SelectItem value="popular">인기(찜)</SelectItem>
                       <SelectItem value="rating">평점순</SelectItem>

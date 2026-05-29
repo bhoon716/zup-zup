@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Filter, RotateCcw, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -25,25 +25,27 @@ export function CourseSearchBar({
   initialCondition,
   hideHeader,
 }: CourseSearchBarProps) {
+  const initialSnapshot = JSON.stringify(initialCondition ?? DEFAULT_CONDITION);
   const [condition, setCondition] = useState<CourseSearchCondition>(
     () => ({ ...(initialCondition ?? DEFAULT_CONDITION) }),
   );
-
-  const [prevInitial, setPrevInitial] = useState<string | undefined>(
-    JSON.stringify(initialCondition),
-  );
+  const prevInitialRef = useRef(initialSnapshot);
 
   /**
    * 외부에서 전달된 초기 검색 조건이 실질적으로 변경될 경우(예: 필터 칩 삭제)
    * 로컬 상태를 갱신합니다.
    */
-  if (initialCondition) {
-    const serializedInitial = JSON.stringify(initialCondition);
-    if (serializedInitial !== prevInitial) {
-      setPrevInitial(serializedInitial);
-      setCondition({ ...initialCondition });
-    }
-  }
+  useEffect(() => {
+    const nextSnapshot = JSON.stringify(initialCondition ?? DEFAULT_CONDITION);
+    if (nextSnapshot === prevInitialRef.current) return;
+
+    prevInitialRef.current = nextSnapshot;
+    const timeoutId = window.setTimeout(() => {
+      setCondition({ ...(initialCondition ?? DEFAULT_CONDITION) });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initialCondition]);
   
   // UI 상태: 접기/펼치기
   const [smartOpen, setSmartOpen] = useState(true);
@@ -127,6 +129,7 @@ export function CourseSearchBar({
       <div className={cn("space-y-3 pr-1 scrollbar-hide", !hideHeader ? "flex-1 overflow-y-auto" : "h-auto overflow-visible")}>
         {/* 스마트 필터 섹션 */}
         <FilterSection
+          idBase="course-search-smart"
           title="스마트 필터"
           icon={<Sparkles className="h-4 w-4 text-violet-500" />}
           open={smartOpen}
@@ -142,16 +145,22 @@ export function CourseSearchBar({
 
         {/* 기본 정보 섹션 */}
         <FilterSection
+          idBase="course-search-basic"
           title="기본 정보"
           icon={<Filter className="h-4 w-4 text-primary/80" />}
           open={basicOpen}
           onOpenChange={setBasicOpen}
         >
-          <CourseBasicFilters condition={condition} setCondition={setCondition} />
+          <CourseBasicFilters
+            condition={condition}
+            setCondition={setCondition}
+            idBasePrefix="course-search-basic"
+          />
         </FilterSection>
 
         {/* 강의 상세 섹션 */}
         <FilterSection
+          idBase="course-search-detail"
           title="강의 상세"
           icon={<SlidersHorizontal className="h-4 w-4 text-primary/80" />}
           open={detailOpen}

@@ -43,6 +43,8 @@ export function CourseSmartFilters({
   scheduleOpen,
   setScheduleOpen,
 }: CourseSmartFiltersProps) {
+  const timetableMenuTriggerId = "course-smart-timetable-trigger";
+  const timetableMenuContentId = "course-smart-timetable-content";
   const { data: user } = useUser();
   const { data: timetables, refetch: refetchTimetables } = useTimetables();
 
@@ -160,6 +162,8 @@ export function CourseSmartFilters({
             <DropdownMenu onOpenChange={(open) => open && refetchTimetables()}>
               <DropdownMenuTrigger asChild>
                 <Button
+                  id={timetableMenuTriggerId}
+                  aria-controls={timetableMenuContentId}
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
@@ -174,7 +178,7 @@ export function CourseSmartFilters({
                   <CalendarPlus className="h-4 w-4 text-muted-foreground transition-colors hover:text-primary" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent id={timetableMenuContentId} aria-labelledby={timetableMenuTriggerId} align="end" className="w-48">
                 <DropdownMenuLabel className="text-xs font-semibold">내 시간표 선택</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {!user ? (

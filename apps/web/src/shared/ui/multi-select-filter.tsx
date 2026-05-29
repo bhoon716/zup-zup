@@ -18,6 +18,7 @@ interface MultiSelectFilterProps {
   onChange: (selected: string[]) => void;
   placeholder?: string;
   className?: string;
+  idBase?: string;
 }
 
 export function MultiSelectFilter({
@@ -26,7 +27,16 @@ export function MultiSelectFilter({
   onChange,
   placeholder = "선택",
   className,
+  idBase,
 }: MultiSelectFilterProps) {
+  const safeBase = (idBase ?? placeholder ?? "multi-select")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  const triggerId = `${safeBase}-trigger`;
+  const contentId = `${safeBase}-content`;
+
   const toggleOption = (value: string) => {
     const newSelected = selected.includes(value)
       ? selected.filter((s) => s !== value)
@@ -43,6 +53,8 @@ export function MultiSelectFilter({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            id={triggerId}
+            aria-controls={contentId}
             variant="outline"
             className="h-10 w-full justify-between rounded-xl bg-muted/30 px-3 text-left font-normal hover:bg-muted/50"
           >
@@ -54,7 +66,7 @@ export function MultiSelectFilter({
             <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 max-h-[300px] overflow-y-auto" align="start">
+        <DropdownMenuContent id={contentId} aria-labelledby={triggerId} className="w-56 max-h-[300px] overflow-y-auto" align="start">
           {options.map((option) => (
             <DropdownMenuCheckboxItem
               key={option.value}

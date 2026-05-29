@@ -32,6 +32,8 @@ import { HeaderDesktopUser, HeaderMobileUserStatus } from "./ui/user-status";
  * 서비스 로고, 내비게이션 메뉴, PWA 설치 유도 및 사용자 인증 상태(로그인/로그아웃)를 관리합니다.
  */
 export function Header() {
+  const mobileMenuTriggerId = "header-mobile-menu-trigger";
+  const mobileMenuContentId = "header-mobile-menu-content";
   const { data: user, isLoading } = useUser();
   const { mutate: logout, isPending } = useLogout();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
@@ -96,11 +98,11 @@ export function Header() {
           <div className="flex md:hidden items-center gap-2">
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-xl w-10 h-10 hover:bg-accent/50">
+                <Button id={mobileMenuTriggerId} aria-controls={mobileMenuContentId} variant="ghost" size="icon" className="rounded-xl w-10 h-10 hover:bg-accent/50">
                   <Menu className="w-6 h-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[350px] p-0 border-l border-white/5 bg-background/95 backdrop-blur-xl flex flex-col h-full">
+              <SheetContent id={mobileMenuContentId} side="right" className="w-[280px] sm:w-[350px] p-0 border-l border-white/5 bg-background/95 backdrop-blur-xl flex flex-col h-full">
                 <SheetHeader className="p-6 border-b border-white/5">
                   <SheetTitle className="text-left flex items-center gap-2.5">
                     <Image src="/zub-zub-logo.png" alt="로고" width={32} height={32} className="w-8 h-8 object-contain" />

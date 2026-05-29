@@ -15,12 +15,16 @@ import type { CourseSearchCondition } from "@/shared/types/api";
 interface CourseBasicFiltersProps {
   condition: CourseSearchCondition;
   setCondition: React.Dispatch<React.SetStateAction<CourseSearchCondition>>;
+  idBasePrefix?: string;
 }
 
 export function CourseBasicFilters({
   condition,
   setCondition,
+  idBasePrefix = "course-basic",
 }: CourseBasicFiltersProps) {
+  const academicYearSelectId = `${idBasePrefix}-academic-year-select`;
+  const semesterSelectId = `${idBasePrefix}-semester-select`;
   return (
     <div className="space-y-4">
       {/* 학년도 및 학기 (세로 1줄 레이아웃) */}
@@ -33,10 +37,10 @@ export function CourseBasicFilters({
               setCondition((prev) => ({ ...prev, academicYear: value }))
             }
           >
-            <SelectTrigger className="h-10 w-full rounded-xl bg-muted/30 text-sm">
+            <SelectTrigger id={academicYearSelectId} aria-controls={`${academicYearSelectId}-content`} className="h-10 w-full rounded-xl bg-muted/30 text-sm">
               <SelectValue placeholder="- 선택 -" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent id={`${academicYearSelectId}-content`}>
               {YEARS.map((year) => (
                 <SelectItem key={year} value={year}>
                   {year}
@@ -54,10 +58,10 @@ export function CourseBasicFilters({
               setCondition((prev) => ({ ...prev, semester: value }))
             }
           >
-            <SelectTrigger className="h-10 w-full rounded-xl bg-muted/30 text-sm">
+            <SelectTrigger id={semesterSelectId} aria-controls={`${semesterSelectId}-content`} className="h-10 w-full rounded-xl bg-muted/30 text-sm">
               <SelectValue placeholder="- 선택 -" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent id={`${semesterSelectId}-content`}>
               {SEMESTERS.map((sem) => (
                 <SelectItem key={sem.value} value={sem.value}>
                   {sem.label}
