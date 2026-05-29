@@ -10,12 +10,23 @@ vi.mock("@/shared/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div data-testid="dropdown-content">{children}</div>,
-  DropdownMenuCheckboxItem: ({ children, checked, onCheckedChange }: { children: React.ReactNode; checked: boolean; onCheckedChange: (checked: boolean) => void }) => (
+  DropdownMenuItem: ({
+    children,
+    onClick,
+    "aria-checked": ariaChecked,
+    ...props
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+    "aria-checked"?: boolean;
+    [key: string]: unknown;
+  }) => (
     <div 
-      data-testid="checkbox-item" 
-      onClick={() => onCheckedChange(!checked)}
-      role="checkbox"
-      aria-checked={checked}
+      data-testid="checkbox-item"
+      role="menuitemcheckbox"
+      aria-checked={ariaChecked}
+      onClick={onClick}
+      {...props}
     >
       {children}
     </div>
@@ -56,6 +67,7 @@ describe("MultiSelectFilter", () => {
     fireEvent.click(items[0]); // OPT1 선택
 
     expect(screen.getByTestId("selected-count")).toHaveTextContent("1");
+    expect(items[0]).toHaveAttribute("aria-checked", "true");
     // Trigger should now show "옵션1"
     const trigger = screen.getByRole("button", { name: "옵션1" });
     expect(trigger).toHaveTextContent("옵션1");

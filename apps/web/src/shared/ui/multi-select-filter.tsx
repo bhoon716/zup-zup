@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, X } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { Badge } from "@/shared/ui/badge";
@@ -68,14 +68,32 @@ export function MultiSelectFilter({
         </DropdownMenuTrigger>
         <DropdownMenuContent id={contentId} aria-labelledby={triggerId} className="w-56 max-h-[300px] overflow-y-auto" align="start">
           {options.map((option) => (
-            <DropdownMenuCheckboxItem
+            <DropdownMenuItem
               key={option.value}
-              checked={selected.includes(option.value)}
-              onCheckedChange={() => toggleOption(option.value)}
-              onSelect={(e) => e.preventDefault()}
+              role="menuitemcheckbox"
+              aria-checked={selected.includes(option.value)}
+              onSelect={(event) => event.preventDefault()}
+              onClick={() => toggleOption(option.value)}
+              className={cn(
+                "flex items-center gap-2 rounded-sm px-2 py-2 text-sm outline-hidden select-none",
+                selected.includes(option.value)
+                  ? "bg-primary/5 text-foreground"
+                  : "text-foreground",
+              )}
             >
-              {option.label}
-            </DropdownMenuCheckboxItem>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border transition-colors",
+                  selected.includes(option.value)
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-background",
+                )}
+              >
+                {selected.includes(option.value) && <Check className="h-3 w-3" />}
+              </span>
+              <span className="flex-1 text-left">{option.label}</span>
+            </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
