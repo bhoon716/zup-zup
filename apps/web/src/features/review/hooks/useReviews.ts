@@ -55,17 +55,15 @@ const updateCourseReviewStats = (course: Course, previousRating: number | null, 
   };
 };
 
-const updateCourseLists = (
-  current: CourseInfiniteCache | undefined,
-  updatedCourse: Course
-) => {
-  if (!current) {
+const updateCourseLists = (current: unknown, updatedCourse: Course) => {
+  if (!current || typeof current !== "object" || !("pages" in current) || !Array.isArray((current as CourseInfiniteCache).pages)) {
     return current;
   }
 
+  const cache = current as CourseInfiniteCache;
   return {
-    ...current,
-    pages: current.pages.map((page) => ({
+    ...cache,
+    pages: cache.pages.map((page) => ({
       ...page,
       content: page.content.map((course) =>
         course.courseKey === updatedCourse.courseKey ? { ...course, ...updatedCourse } : course
@@ -98,7 +96,7 @@ export const useCreateReview = (courseKey: string) => {
       if (previousCourse) {
         const updatedCourse = updateCourseReviewStats(previousCourse, previousReview?.rating ?? null, response.data.rating);
         queryClient.setQueryData(["course-detail", courseKey], updatedCourse);
-        queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current as CourseInfiniteCache | undefined, updatedCourse));
+        queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current, updatedCourse));
       }
     },
   });
@@ -118,7 +116,7 @@ export const useUpdateReview = (courseKey: string) => {
       if (previousCourse) {
         const updatedCourse = updateCourseReviewStats(previousCourse, previousReview?.rating ?? null, response.data.rating);
         queryClient.setQueryData(["course-detail", courseKey], updatedCourse);
-        queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current as CourseInfiniteCache | undefined, updatedCourse));
+        queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current, updatedCourse));
       }
     },
   });

@@ -86,6 +86,7 @@ describe("강의 리뷰 훅", () => {
       ],
       pageParams: [0],
     });
+    queryClient.setQueryData(["courses", "search-default-semester"], { semester: "U211600025" });
     const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => useCreateReview(COURSE_KEY), { wrapper });
 
@@ -107,6 +108,7 @@ describe("강의 리뷰 훅", () => {
     expect(updatedCourses?.pages[0].content[0].averageRating).toBeCloseTo(4.1, 1);
     expect(updatedCourses?.pages[0].content[0].reviewCount).toBe(11);
     expect(updatedCourses?.pages[0].content[0].isReviewed).toBe(true);
+    expect(queryClient.getQueryData(["courses", "search-default-semester"])).toEqual({ semester: "U211600025" });
   });
 
   it("리뷰를 수정하고 관련 캐시와 쿼리를 갱신한다", async () => {
@@ -132,6 +134,7 @@ describe("강의 리뷰 훅", () => {
       ],
       pageParams: [0],
     });
+    queryClient.setQueryData(["courses", "search-default-semester"], { semester: "U211600025" });
     const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => useUpdateReview(COURSE_KEY), { wrapper });
 
@@ -153,6 +156,7 @@ describe("강의 리뷰 훅", () => {
     expect(updatedCourses?.pages[0].content[0].averageRating).toBeCloseTo(4.2, 1);
     expect(updatedCourses?.pages[0].content[0].reviewCount).toBe(10);
     expect(updatedCourses?.pages[0].content[0].isReviewed).toBe(true);
+    expect(queryClient.getQueryData(["courses", "search-default-semester"])).toEqual({ semester: "U211600025" });
   });
 
   it("리뷰 반응(좋아요/싫어요)을 토글한다", async () => {
