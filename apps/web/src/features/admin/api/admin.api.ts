@@ -2,6 +2,7 @@ import api from "@/shared/api/client";
 import type {
   CommonResponse,
   AdminDashboardResponse,
+  AdminDashboardSnapshotResponse,
   AdminOverviewResponse,
   AdminCrawlTargetRequest,
   AdminCrawlTargetResponse,
@@ -22,6 +23,14 @@ export const getDashboardStats = async (): Promise<CommonResponse<AdminDashboard
  */
 export const getDashboardOverview = async (): Promise<CommonResponse<AdminOverviewResponse>> => {
   const { data } = await api.get('/api/v1/admin/overview');
+  return data;
+};
+
+/**
+ * 관리자 페이지에서 필요한 개요와 크롤링 타겟을 한 번에 조회합니다.
+ */
+export const getDashboardSnapshot = async (): Promise<CommonResponse<AdminDashboardSnapshotResponse>> => {
+  const { data } = await api.get('/api/v1/admin/dashboard');
   return data;
 };
 

@@ -49,8 +49,7 @@ describe("useAdminActions hooks", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "stats"] });
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "overview"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "dashboard-snapshot"] });
     expect(toast.success).toHaveBeenCalledWith("크롤링 시작");
   });
 
@@ -126,7 +125,7 @@ describe("useAdminActions hooks", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "crawl-target"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "dashboard-snapshot"] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["courses", "search-default-semester"] });
     expect(toast.success).toHaveBeenCalledWith("저장 완료");
   });
@@ -149,8 +148,7 @@ describe("useAdminActions hooks", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "stats"] });
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "overview"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "dashboard-snapshot"] });
     expect(toast.success).toHaveBeenCalledWith("특정 타겟 크롤링 시작");
   });
 

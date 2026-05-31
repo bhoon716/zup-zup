@@ -13,8 +13,7 @@ export const useCrawlCourses = () => {
   return useMutation({
     mutationFn: () => adminApi.crawlCourses(),
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'overview'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard-snapshot'] });
       toast.success(response.message || '크롤링이 성공적으로 시작되었습니다.');
     },
     onError: (error: AxiosError<{ message: string }>) => {
@@ -62,7 +61,7 @@ export const useUpdateAdminCrawlTarget = () => {
   return useMutation({
     mutationFn: (request: AdminCrawlTargetRequest) => adminApi.updateCrawlTarget(request),
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'crawl-target'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard-snapshot'] });
       queryClient.invalidateQueries({ queryKey: ['courses', 'search-default-semester'] });
       toast.success(response.message || '기본 크롤링 타겟을 저장했습니다.');
     },
@@ -82,8 +81,7 @@ export const useCrawlCoursesByTarget = () => {
   return useMutation({
     mutationFn: (request: AdminCrawlTargetRequest) => adminApi.crawlCoursesByTarget(request),
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'overview'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard-snapshot'] });
       toast.success(response.message || '특정 타겟 크롤링이 시작되었습니다.');
     },
     onError: (error: AxiosError<{ message: string }>) => {

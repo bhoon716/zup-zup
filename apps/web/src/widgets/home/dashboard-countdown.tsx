@@ -6,8 +6,14 @@ import { CalendarDays } from "lucide-react";
 import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
 import type { ScheduleResponse } from "@/shared/types/api";
 
-export function DashboardCountdown({ upcomingSchedules }: { upcomingSchedules?: ScheduleResponse[] } = {}) {
-  const { data: fetchedUpcomingSchedules } = useUpcomingSchedules(upcomingSchedules === undefined);
+export function DashboardCountdown({
+  upcomingSchedules,
+  suppressFetch = false,
+}: {
+  upcomingSchedules?: ScheduleResponse[];
+  suppressFetch?: boolean;
+} = {}) {
+  const { data: fetchedUpcomingSchedules } = useUpcomingSchedules(upcomingSchedules === undefined && !suppressFetch);
   const schedules = upcomingSchedules ?? fetchedUpcomingSchedules;
   const [ddayString, setDdayString] = useState("");
 

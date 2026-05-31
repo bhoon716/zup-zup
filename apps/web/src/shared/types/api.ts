@@ -317,6 +317,11 @@ export interface AdminOverviewResponse {
   recentLogs: AdminRecentLogResponse[];
 }
 
+export interface AdminDashboardSnapshotResponse {
+  overview: AdminOverviewResponse;
+  crawlTarget: AdminCrawlTargetResponse;
+}
+
 /**
  * 관리자 크롤링 타겟 설정을 위한 요청 데이터 인터페이스입니다.
  */

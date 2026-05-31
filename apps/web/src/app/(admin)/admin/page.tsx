@@ -5,9 +5,8 @@ import { motion } from "framer-motion";
 import { AlertCircle, BellRing, CloudCog, Gauge, Loader2, RefreshCcw, Users } from "lucide-react";
 import Link from "next/link";
 
-import { useAdminOverview } from "@/features/admin/hooks/useAdminOverview";
+import { useAdminDashboardSnapshot } from "@/features/admin/hooks/useAdminDashboard";
 import {
-  useAdminCrawlTarget,
   useCrawlCourses,
   useCrawlCoursesByTarget,
   useSendTestNotification,
@@ -38,20 +37,22 @@ import {
  */
 export default function AdminDashboardPage() {
   const {
-    data: overview,
-    isLoading: isOverviewLoading,
-    isError: isOverviewError,
-    refetch: refetchOverview,
-  } = useAdminOverview();
+    data: snapshot,
+    isLoading: isSnapshotLoading,
+    isError: isSnapshotError,
+    refetch: refetchSnapshot,
+  } = useAdminDashboardSnapshot();
 
   const { mutate: crawlCourses, isPending: isCrawling } = useCrawlCourses();
   const { mutate: crawlCoursesByTarget, isPending: isCustomCrawling } = useCrawlCoursesByTarget();
   const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
-  const { data: crawlTarget, isLoading: isCrawlTargetLoading } = useAdminCrawlTarget();
   const { mutate: updateCrawlTarget, isPending: isUpdatingCrawlTarget } = useUpdateAdminCrawlTarget();
 
   const [configuredDraft, setConfiguredDraft] = useState<{ year: string; semester: string } | null>(null);
   const [runDraft, setRunDraft] = useState<{ year: string; semester: string } | null>(null);
+
+  const overview = snapshot?.overview;
+  const crawlTarget = snapshot?.crawlTarget;
 
   const configuredYear = configuredDraft?.year ?? crawlTarget?.year ?? "";
   const configuredSemester = configuredDraft?.semester ?? crawlTarget?.semester ?? "";
@@ -64,11 +65,11 @@ export default function AdminDashboardPage() {
    * 모든 대시보드 데이터를 최신 상태로 갱신합니다.
    */
   const handleRefresh = () => {
-    void refetchOverview();
+    void refetchSnapshot();
   };
 
   // 로딩 상태 처리
-  if (isOverviewLoading) {
+  if (isSnapshotLoading) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
@@ -80,7 +81,7 @@ export default function AdminDashboardPage() {
   }
 
   // 에러 발생 혹은 데이터 부재 처리
-  if (isOverviewError || !overview) {
+  if (isSnapshotError || !snapshot || !overview || !crawlTarget) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 px-6">
         <motion.div
@@ -194,7 +195,7 @@ export default function AdminDashboardPage() {
               });
             }}
             onRunConfiguredTarget={() => crawlCourses()}
-            isConfiguredTargetLoading={isCrawlTargetLoading}
+            isConfiguredTargetLoading={isSnapshotLoading}
             isSavingConfiguredTarget={isUpdatingCrawlTarget}
             isRunningConfiguredTarget={isCrawling}
             canSaveConfiguredTarget={canSaveConfiguredTarget}

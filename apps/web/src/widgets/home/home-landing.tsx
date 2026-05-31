@@ -104,7 +104,7 @@ export function HomeLanding() {
           </motion.div>
 
           <div className="mt-12 w-full flex justify-center">
-            <DashboardCountdown />
+            <DashboardCountdown upcomingSchedules={upcomingSchedules} suppressFetch={isScheduleLoading} />
           </div>
         </div>
       </section>
