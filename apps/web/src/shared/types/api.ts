@@ -340,6 +340,14 @@ export interface SearchDefaultSemesterResponse {
   semester: string;
 }
 
+export interface DashboardSnapshotResponse {
+  user: User;
+  notifications: NotificationHistory[];
+  primaryTimetable: TimetableDetailResponse | null;
+  upcomingSchedules: ScheduleResponse[];
+  announcements: AnnouncementListItemResponse[];
+}
+
 // 찜 관련
 export interface WishlistResponse {
   id: number;

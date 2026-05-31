@@ -6,7 +6,6 @@ import { AlertCircle, BellRing, CloudCog, Gauge, Loader2, RefreshCcw, Users } fr
 import Link from "next/link";
 
 import { useAdminOverview } from "@/features/admin/hooks/useAdminOverview";
-import { useHealth } from "@/features/admin/hooks/useHealth";
 import {
   useAdminCrawlTarget,
   useCrawlCourses,
@@ -44,9 +43,7 @@ export default function AdminDashboardPage() {
     isError: isOverviewError,
     refetch: refetchOverview,
   } = useAdminOverview();
-  
-  const { isLoading: isHealthLoading, refetch: refetchHealth } = useHealth();
-  
+
   const { mutate: crawlCourses, isPending: isCrawling } = useCrawlCourses();
   const { mutate: crawlCoursesByTarget, isPending: isCustomCrawling } = useCrawlCoursesByTarget();
   const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
@@ -67,11 +64,11 @@ export default function AdminDashboardPage() {
    * 모든 대시보드 데이터를 최신 상태로 갱신합니다.
    */
   const handleRefresh = () => {
-    void Promise.all([refetchOverview(), refetchHealth()]);
+    void refetchOverview();
   };
 
   // 로딩 상태 처리
-  if (isOverviewLoading || isHealthLoading) {
+  if (isOverviewLoading) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">

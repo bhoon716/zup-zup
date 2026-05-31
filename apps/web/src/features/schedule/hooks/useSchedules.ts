@@ -5,7 +5,7 @@ import type { ScheduleResponse, ScheduleRequest } from '@/shared/types/api';
 /**
  * 예정된 일정 목록을 조회하는 훅 (유저용 - 비로그인 유저도 허용)
  */
-export const useUpcomingSchedules = () => {
+export const useUpcomingSchedules = (enabled = true) => {
   return useQuery({
     queryKey: ['schedules', 'upcoming'],
     queryFn: async () => {
@@ -13,6 +13,7 @@ export const useUpcomingSchedules = () => {
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5분
+    enabled,
   });
 };
 

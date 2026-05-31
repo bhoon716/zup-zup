@@ -4,15 +4,17 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CalendarDays } from "lucide-react";
 import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
+import type { ScheduleResponse } from "@/shared/types/api";
 
-export function DashboardCountdown() {
-  const { data: upcomingSchedules } = useUpcomingSchedules();
+export function DashboardCountdown({ upcomingSchedules }: { upcomingSchedules?: ScheduleResponse[] } = {}) {
+  const { data: fetchedUpcomingSchedules } = useUpcomingSchedules(upcomingSchedules === undefined);
+  const schedules = upcomingSchedules ?? fetchedUpcomingSchedules;
   const [ddayString, setDdayString] = useState("");
 
   useEffect(() => {
     const handleInitialSetup = () => {
       const now = new Date();
-      const endOfSemesterEvent = upcomingSchedules?.find((s) => 
+      const endOfSemesterEvent = schedules?.find((s) =>
         s.scheduleType.includes("종강")
       );
 
@@ -35,7 +37,7 @@ export function DashboardCountdown() {
     const intervalTimer = setInterval(handleInitialSetup, 60000); // 1분 단위 갱신
 
     return () => clearInterval(intervalTimer);
-  }, [upcomingSchedules]);
+  }, [schedules]);
 
   if (!ddayString) return null;
 
