@@ -10,7 +10,7 @@ import { AlertCircle, Loader2, MessageSquare, Plus, Star } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
-import { useCourseEmojis, useReviews, useToggleCourseEmoji, useCreateReview, useUpdateReview } from "@/features/review/hooks/useReviews";
+import { useCourseEmojis, useCreateReview, useReviews, useToggleCourseEmoji, useUpdateReview } from "@/features/review/hooks/useReviews";
 import { useUser } from "@/features/user/hooks/useUser";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
@@ -42,7 +42,7 @@ export function CourseReviewSection({
   reviewCount,
   isReviewed,
 }: CourseReviewSectionProps) {
-  const { data: reviewData, status: reviewStatus } = useReviews(courseKey);
+  const { data: myReview, status: reviewStatus } = useReviews(courseKey);
   const { mutate: createReview, isPending: isCreating } = useCreateReview(courseKey);
   const { mutate: updateReview, isPending: isUpdating } = useUpdateReview(courseKey);
   const { data: emojiStats, status: emojiStatus } = useCourseEmojis(courseKey);
@@ -56,7 +56,6 @@ export function CourseReviewSection({
   const pendingEmojiRef = useRef<string | null>(null);
 
   const visibleEmojiStats = (emojiStats ?? []).filter((item) => item.count > 0);
-  const myReview = reviewData?.pages.flatMap((page) => page.content).find((review) => review.isMine);
   const currentRating = draftRating ?? myReview?.rating ?? 0;
   const hasAverageRating = (reviewCount ?? 0) > 0;
   const averageRatingText = hasAverageRating ? (averageRating ?? 0).toFixed(1) : "0";
@@ -83,6 +82,7 @@ export function CourseReviewSection({
         { reviewId: myReview.id, request: { rating: currentRating } },
         {
           onSuccess: () => {
+            setDraftRating(null);
             toast.success("리뷰가 수정되었습니다.");
           },
           onError: (err: unknown) => {
@@ -101,6 +101,7 @@ export function CourseReviewSection({
       { rating: currentRating },
       {
         onSuccess: () => {
+          setDraftRating(null);
           toast.success("리뷰가 등록되었습니다.");
         },
         onError: (err: unknown) => {
@@ -225,7 +226,7 @@ export function CourseReviewSection({
                   </div>
                   {currentRating > 0 && <span className="text-sm font-bold text-primary">{currentRating}점</span>}
                   <Button type="submit" disabled={isSubmittingReview || !isReviewReady} className="ml-auto font-bold">
-                    {isSubmittingReview ? "처리 중..." : isEditingReview ? "수정" : "등록"}
+                    {isEditingReview ? "수정" : "등록"}
                   </Button>
                 </form>
               ) : (

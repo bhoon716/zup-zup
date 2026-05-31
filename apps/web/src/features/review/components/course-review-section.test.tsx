@@ -58,29 +58,15 @@ describe("CourseReviewSection", () => {
 
     vi.mocked(reviewHooks.useReviews).mockReturnValue({
       data: {
-        pages: [
-          {
-            content: [
-              {
-                id: 77,
-                courseKey: "TEST-COURSE",
-                rating: 3,
-                content: null,
-                likeCount: 0,
-                dislikeCount: 0,
-                isMine: true,
-                createdAt: "2024-03-07T00:00:00",
-                updatedAt: "2024-03-07T00:00:00",
-              },
-            ],
-            last: true,
-            number: 0,
-          },
-        ],
+        id: 77,
+        courseKey: "TEST-COURSE",
+        rating: 3,
+        likeCount: 0,
+        dislikeCount: 0,
+        isMine: true,
+        createdAt: "2024-03-07T00:00:00",
+        updatedAt: "2024-03-07T00:00:00",
       },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
       status: "success",
     } as never);
 
@@ -135,13 +121,7 @@ describe("CourseReviewSection", () => {
   });
 
   it("평균 별점이 없으면 0점과 0개로 표시한다", () => {
-    vi.mocked(reviewHooks.useReviews).mockReturnValueOnce({
-      data: { pages: [], pageParams: [] },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-      status: "success",
-    } as never);
+    vi.mocked(reviewHooks.useReviews).mockReturnValue({ data: null, status: "success" } as never);
 
     render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
 
@@ -150,13 +130,7 @@ describe("CourseReviewSection", () => {
   });
 
   it("별점을 선택하고 등록하면 리뷰 생성 훅을 호출한다", () => {
-    vi.mocked(reviewHooks.useReviews).mockReturnValue({
-      data: { pages: [], pageParams: [] },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-      status: "success",
-    } as never);
+    vi.mocked(reviewHooks.useReviews).mockReturnValue({ data: null, status: "success" } as never);
 
     render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} isReviewed={false} />);
 

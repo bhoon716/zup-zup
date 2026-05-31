@@ -1,6 +1,14 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as reviewApi from '@/features/review/api/review.api';
-import type { EmojiReviewResponse, ReviewCreateRequest, ReviewReactionRequest, ReviewUpdateRequest } from "@/shared/types/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import * as reviewApi from "@/features/review/api/review.api";
+import type {
+  Course,
+  EmojiReviewResponse,
+  ReviewCreateRequest,
+  ReviewReactionRequest,
+  ReviewResponse,
+  ReviewUpdateRequest,
+} from "@/shared/types/api";
 
 const sortEmojiStats = (items: EmojiReviewResponse[]) =>
   [...items].sort((left, right) => {
@@ -11,23 +19,68 @@ const sortEmojiStats = (items: EmojiReviewResponse[]) =>
     return left.emoji.localeCompare(right.emoji);
   });
 
-export const useReviews = (courseKey: string, sort: string = "createdAt,desc") => {
-  return useInfiniteQuery({
-    queryKey: ["reviews", courseKey, sort],
-    queryFn: async ({ pageParam = 0 }) => {
-      const response = await reviewApi.getReviews(courseKey, pageParam as number, 20, sort);
-      const sliceData = response.data;
-      return {
-        content: sliceData.content,
-        last: sliceData.last,
-        number: sliceData.number,
-      };
+type CourseInfiniteCache = {
+  pages: Array<{
+    content: Course[];
+    last: boolean;
+    number: number;
+  }>;
+  pageParams: unknown[];
+};
+
+const updateCourseReviewStats = (course: Course, previousRating: number | null, nextRating: number) => {
+  const currentCount = course.reviewCount ?? 0;
+  const currentAverage = course.averageRating ?? 0;
+
+  if (previousRating === null) {
+    const nextCount = currentCount + 1;
+    const nextAverage = nextCount > 0 ? ((currentAverage * currentCount) + nextRating) / nextCount : nextRating;
+    return {
+      ...course,
+      averageRating: nextAverage,
+      reviewCount: nextCount,
+      isReviewed: true,
+    };
+  }
+
+  const nextAverage = currentCount > 0
+    ? ((currentAverage * currentCount) - previousRating + nextRating) / currentCount
+    : nextRating;
+
+  return {
+    ...course,
+    averageRating: nextAverage,
+    reviewCount: currentCount,
+    isReviewed: true,
+  };
+};
+
+const updateCourseLists = (
+  current: CourseInfiniteCache | undefined,
+  updatedCourse: Course
+) => {
+  if (!current) {
+    return current;
+  }
+
+  return {
+    ...current,
+    pages: current.pages.map((page) => ({
+      ...page,
+      content: page.content.map((course) =>
+        course.courseKey === updatedCourse.courseKey ? { ...course, ...updatedCourse } : course
+      ),
+    })),
+  };
+};
+
+export const useReviews = (courseKey: string) => {
+  return useQuery<ReviewResponse | null>({
+    queryKey: ["review", courseKey],
+    queryFn: async () => {
+      const response = await reviewApi.getReviews(courseKey, 0, 1);
+      return response.data.content[0] ?? null;
     },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.last) return undefined;
-      return lastPage.number + 1;
-    },
-    initialPageParam: 0,
     enabled: !!courseKey,
   });
 };
@@ -36,10 +89,17 @@ export const useCreateReview = (courseKey: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (request: ReviewCreateRequest) => reviewApi.createReview(courseKey, request),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reviews", courseKey] });
-      queryClient.invalidateQueries({ queryKey: ["course-detail", courseKey] });
-      queryClient.invalidateQueries({ queryKey: ["courses"] });
+    onSuccess: (response) => {
+      const previousReview = queryClient.getQueryData<ReviewResponse | null>(["review", courseKey]);
+      const previousCourse = queryClient.getQueryData<Course>(["course-detail", courseKey]);
+
+      queryClient.setQueryData(["review", courseKey], response.data);
+
+      if (previousCourse) {
+        const updatedCourse = updateCourseReviewStats(previousCourse, previousReview?.rating ?? null, response.data.rating);
+        queryClient.setQueryData(["course-detail", courseKey], updatedCourse);
+        queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current as CourseInfiniteCache | undefined, updatedCourse));
+      }
     },
   });
 };
@@ -49,10 +109,17 @@ export const useUpdateReview = (courseKey: string) => {
   return useMutation({
     mutationFn: ({ reviewId, request }: { reviewId: number; request: ReviewUpdateRequest }) =>
       reviewApi.updateReview(reviewId, request),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reviews", courseKey] });
-      queryClient.invalidateQueries({ queryKey: ["course-detail", courseKey] });
-      queryClient.invalidateQueries({ queryKey: ["courses"] });
+    onSuccess: (response) => {
+      const previousReview = queryClient.getQueryData<ReviewResponse | null>(["review", courseKey]);
+      const previousCourse = queryClient.getQueryData<Course>(["course-detail", courseKey]);
+
+      queryClient.setQueryData(["review", courseKey], response.data);
+
+      if (previousCourse) {
+        const updatedCourse = updateCourseReviewStats(previousCourse, previousReview?.rating ?? null, response.data.rating);
+        queryClient.setQueryData(["course-detail", courseKey], updatedCourse);
+        queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current as CourseInfiniteCache | undefined, updatedCourse));
+      }
     },
   });
 };
@@ -63,7 +130,7 @@ export const useToggleReviewReaction = (courseKey: string) => {
     mutationFn: ({ reviewId, request }: { reviewId: number; request: ReviewReactionRequest }) =>
       reviewApi.toggleReviewReaction(reviewId, request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reviews", courseKey] });
+      queryClient.invalidateQueries({ queryKey: ["review", courseKey] });
     },
   });
 };

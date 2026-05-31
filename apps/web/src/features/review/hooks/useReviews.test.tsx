@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 
 import * as reviewApi from "@/features/review/api/review.api";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
-import type { EmojiReviewResponse, ReviewResponse } from "@/shared/types/api";
+import type { Course, EmojiReviewResponse, ReviewResponse } from "@/shared/types/api";
 import { useCourseEmojis, useCreateReview, useReviews, useToggleCourseEmoji, useToggleReviewReaction, useUpdateReview } from "./useReviews";
 
 vi.mock("@/features/review/api/review.api", () => ({
@@ -26,7 +26,6 @@ describe("강의 리뷰 훅", () => {
     id: 1,
     courseKey: COURSE_KEY,
     rating: 5,
-    content: null,
     likeCount: 2,
     dislikeCount: 0,
     isMine: true,
@@ -34,12 +33,22 @@ describe("강의 리뷰 훅", () => {
     updatedAt: "2024-03-07T00:00:00",
   };
 
+  const MOCK_COURSE: Course = {
+    courseKey: COURSE_KEY,
+    subjectCode: "CSE101",
+    name: "자료구조",
+    classNumber: "01",
+    averageRating: 4,
+    reviewCount: 10,
+    isReviewed: false,
+  };
+
   const MOCK_EMOJIS: EmojiReviewResponse[] = [
     { emoji: "👍", count: 3, isMine: true },
     { emoji: "😂", count: 1, isMine: false },
   ];
 
-  it("강의 리뷰 목록을 성공적으로 불러온다", async () => {
+  it("강의 리뷰를 단건으로 불러온다", async () => {
     vi.mocked(reviewApi.getReviews).mockResolvedValue({
       code: "SUCCESS",
       message: "ok",
@@ -55,11 +64,10 @@ describe("강의 리뷰 훅", () => {
     const { result } = renderHook(() => useReviews(COURSE_KEY), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.pages[0].content).toHaveLength(1);
-    expect(result.current.data?.pages[0].content[0].rating).toBe(5);
+    expect(result.current.data?.rating).toBe(5);
   });
 
-  it("리뷰를 생성하고 관련 쿼리를 무효화한다", async () => {
+  it("리뷰를 생성하고 관련 캐시와 쿼리를 갱신한다", async () => {
     vi.mocked(reviewApi.createReview).mockResolvedValue({
       code: "SUCCESS",
       message: "ok",
@@ -67,7 +75,17 @@ describe("강의 리뷰 훅", () => {
     } as Awaited<ReturnType<typeof reviewApi.createReview>>);
 
     const queryClient = createTestQueryClient();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    queryClient.setQueryData(["course-detail", COURSE_KEY], MOCK_COURSE);
+    queryClient.setQueryData(["courses", { name: "자료" }], {
+      pages: [
+        {
+          content: [MOCK_COURSE],
+          last: true,
+          number: 0,
+        },
+      ],
+      pageParams: [0],
+    });
     const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => useCreateReview(COURSE_KEY), { wrapper });
 
@@ -76,12 +94,22 @@ describe("강의 리뷰 훅", () => {
     });
 
     expect(reviewApi.createReview).toHaveBeenCalledWith(COURSE_KEY, { rating: 5 });
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["reviews", COURSE_KEY] }));
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["course-detail", COURSE_KEY] }));
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["courses"] }));
+    expect(queryClient.getQueryData(["review", COURSE_KEY])).toEqual(MOCK_REVIEW);
+    const updatedCourse = queryClient.getQueryData<Course>(["course-detail", COURSE_KEY]);
+    expect(updatedCourse?.averageRating).toBeCloseTo(4.1, 1);
+    expect(updatedCourse?.reviewCount).toBe(11);
+    expect(updatedCourse?.isReviewed).toBe(true);
+
+    const updatedCourses = queryClient.getQueryData<{
+      pages: Array<{ content: Course[]; last: boolean; number: number }>;
+      pageParams: number[];
+    }>(["courses", { name: "자료" }]);
+    expect(updatedCourses?.pages[0].content[0].averageRating).toBeCloseTo(4.1, 1);
+    expect(updatedCourses?.pages[0].content[0].reviewCount).toBe(11);
+    expect(updatedCourses?.pages[0].content[0].isReviewed).toBe(true);
   });
 
-  it("리뷰를 수정하고 관련 쿼리를 무효화한다", async () => {
+  it("리뷰를 수정하고 관련 캐시와 쿼리를 갱신한다", async () => {
     vi.mocked(reviewApi.updateReview).mockResolvedValue({
       code: "SUCCESS",
       message: "ok",
@@ -89,7 +117,21 @@ describe("강의 리뷰 훅", () => {
     } as Awaited<ReturnType<typeof reviewApi.updateReview>>);
 
     const queryClient = createTestQueryClient();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    queryClient.setQueryData(["review", COURSE_KEY], {
+      ...MOCK_REVIEW,
+      rating: 3,
+    });
+    queryClient.setQueryData(["course-detail", COURSE_KEY], MOCK_COURSE);
+    queryClient.setQueryData(["courses", { name: "자료" }], {
+      pages: [
+        {
+          content: [{ ...MOCK_COURSE }],
+          last: true,
+          number: 0,
+        },
+      ],
+      pageParams: [0],
+    });
     const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => useUpdateReview(COURSE_KEY), { wrapper });
 
@@ -98,9 +140,19 @@ describe("강의 리뷰 훅", () => {
     });
 
     expect(reviewApi.updateReview).toHaveBeenCalledWith(1, { rating: 4 });
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["reviews", COURSE_KEY] }));
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["course-detail", COURSE_KEY] }));
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["courses"] }));
+    expect(queryClient.getQueryData(["review", COURSE_KEY])).toEqual(MOCK_REVIEW);
+    const updatedCourse = queryClient.getQueryData<Course>(["course-detail", COURSE_KEY]);
+    expect(updatedCourse?.averageRating).toBeCloseTo(4.2, 1);
+    expect(updatedCourse?.reviewCount).toBe(10);
+    expect(updatedCourse?.isReviewed).toBe(true);
+
+    const updatedCourses = queryClient.getQueryData<{
+      pages: Array<{ content: Course[]; last: boolean; number: number }>;
+      pageParams: number[];
+    }>(["courses", { name: "자료" }]);
+    expect(updatedCourses?.pages[0].content[0].averageRating).toBeCloseTo(4.2, 1);
+    expect(updatedCourses?.pages[0].content[0].reviewCount).toBe(10);
+    expect(updatedCourses?.pages[0].content[0].isReviewed).toBe(true);
   });
 
   it("리뷰 반응(좋아요/싫어요)을 토글한다", async () => {
@@ -120,7 +172,7 @@ describe("강의 리뷰 훅", () => {
     });
 
     expect(reviewApi.toggleReviewReaction).toHaveBeenCalledWith(1, { reactionType: "LIKE" });
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["reviews", COURSE_KEY] }));
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["review", COURSE_KEY] }));
   });
 
   it("이모지 통계를 성공적으로 불러온다", async () => {

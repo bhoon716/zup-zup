@@ -494,7 +494,6 @@ export interface ReviewResponse {
   id: number;
   courseKey: string;
   rating: number;
-  content: string | null;
   likeCount: number;
   dislikeCount: number;
   isMine: boolean;
