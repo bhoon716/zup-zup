@@ -113,8 +113,12 @@ export function MultiSelectFilter({
                   type="button"
                   aria-label={`${option?.label || val} 선택 해제`}
                   onClick={(event) => {
+                    event.preventDefault();
                     event.stopPropagation();
                     toggleOption(val);
+                  }}
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
                   }}
                   data-testid={`remove-option-${val}`}
                   className="inline-flex h-4 w-4 items-center justify-center rounded-full opacity-50 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
