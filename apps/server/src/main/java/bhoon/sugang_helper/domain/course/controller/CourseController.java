@@ -6,7 +6,9 @@ import bhoon.sugang_helper.domain.course.response.CourseCategoryResponse;
 import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
+import bhoon.sugang_helper.domain.course.response.SearchDefaultSemesterResponse;
 import bhoon.sugang_helper.domain.course.service.CourseService;
+import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -35,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CourseController {
 
     private final CourseService courseService;
+    private final CourseCrawlerTargetService courseCrawlerTargetService;
 
     @Operation(summary = "과목 검색", description = "검색 조건에 맞는 과목 목록을 조회합니다. (페이징: Slice)")
     @ApiResponses(value = {
@@ -140,5 +143,12 @@ public class CourseController {
             @PathVariable String courseKey) {
         CourseDetailResponse course = courseService.getCourse(courseKey);
         return CommonResponse.ok(course, "과목 상세 정보입니다.");
+    }
+
+    @Operation(summary = "검색 기본 학기 조회", description = "강의 검색 페이지에서 사용할 기본 학기를 조회합니다.")
+    @GetMapping("/search-default-semester")
+    public ResponseEntity<CommonResponse<SearchDefaultSemesterResponse>> getSearchDefaultSemester() {
+        SearchDefaultSemesterResponse response = courseCrawlerTargetService.getSearchDefaultSemester();
+        return CommonResponse.ok(response, "검색 기본 학기를 조회했습니다.");
     }
 }

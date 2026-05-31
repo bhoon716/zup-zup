@@ -30,13 +30,17 @@ public class CrawlerSetting {
     @Column(name = "target_semester", nullable = false, length = 20)
     private String targetSemester;
 
+    @Column(name = "search_default_semester", nullable = false, length = 20)
+    private String searchDefaultSemester;
+
     /**
      * 새로운 크롤링 설정을 생성합니다.
      */
     @Builder
-    public CrawlerSetting(String targetYear, String targetSemester) {
+    public CrawlerSetting(String targetYear, String targetSemester, String searchDefaultSemester) {
         this.targetYear = targetYear;
         this.targetSemester = targetSemester;
+        this.searchDefaultSemester = searchDefaultSemester;
     }
 
     /**
@@ -45,5 +49,12 @@ public class CrawlerSetting {
     public void updateTarget(String targetYear, String targetSemester) {
         this.targetYear = targetYear;
         this.targetSemester = targetSemester;
+    }
+
+    /**
+     * 검색 페이지의 기본 학기를 업데이트합니다.
+     */
+    public void updateSearchDefaultSemester(String searchDefaultSemester) {
+        this.searchDefaultSemester = searchDefaultSemester;
     }
 }

@@ -7,6 +7,7 @@ import bhoon.sugang_helper.domain.course.enums.SemesterType;
 import bhoon.sugang_helper.domain.course.repository.CrawlerSettingRepository;
 import bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
+import bhoon.sugang_helper.domain.course.response.SearchDefaultSemesterResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,15 @@ public class CourseCrawlerTargetService {
     }
 
     /**
+     * 검색 페이지에서 사용할 기본 학기를 조회합니다.
+     */
+    @Transactional
+    public SearchDefaultSemesterResponse getSearchDefaultSemester() {
+        CrawlerSetting setting = getOrInitSetting();
+        return toSearchDefaultSemesterResponse(setting);
+    }
+
+    /**
      * 크롤링 타겟(년도, 학기)을 수정하고 저장합니다.
      */
     @Transactional
@@ -43,6 +53,17 @@ public class CourseCrawlerTargetService {
         CrawlerSetting setting = getOrInitSetting();
         setting.updateTarget(target.year(), target.semester().getCode());
         return toResponse(setting);
+    }
+
+    /**
+     * 검색 페이지의 기본 학기를 수정하고 저장합니다.
+     */
+    @Transactional
+    public SearchDefaultSemesterResponse updateSearchDefaultSemester(String semester) {
+        SemesterType normalizedSemester = normalizeSemesterType(semester);
+        CrawlerSetting setting = getOrInitSetting();
+        setting.updateSearchDefaultSemester(normalizedSemester.getCode());
+        return toSearchDefaultSemesterResponse(setting);
     }
 
     /**
@@ -99,10 +120,17 @@ public class CourseCrawlerTargetService {
      */
     private CrawlerSetting getOrInitSetting() {
         return crawlerSettingRepository.findTopByOrderByIdAsc()
+                .map(setting -> {
+                    if (setting.getSearchDefaultSemester() == null || setting.getSearchDefaultSemester().isBlank()) {
+                        setting.updateSearchDefaultSemester(setting.getTargetSemester());
+                    }
+                    return setting;
+                })
                 .orElseGet(() -> {
                     CrawlerSetting defaultSetting = CrawlerSetting.builder()
                             .targetYear(defaultYear)
                             .targetSemester(defaultSemester)
+                            .searchDefaultSemester(defaultSemester)
                             .build();
                     return crawlerSettingRepository.save(defaultSetting);
                 });
@@ -115,6 +143,15 @@ public class CourseCrawlerTargetService {
         return AdminCrawlTargetResponse.builder()
                 .year(setting.getTargetYear())
                 .semester(setting.getTargetSemester())
+                .build();
+    }
+
+    /**
+     * CrawlerSetting 엔티티를 검색 기본 학기 응답 DTO로 변환합니다.
+     */
+    private SearchDefaultSemesterResponse toSearchDefaultSemesterResponse(CrawlerSetting setting) {
+        return SearchDefaultSemesterResponse.builder()
+                .semester(setting.getSearchDefaultSemester())
                 .build();
     }
 }
