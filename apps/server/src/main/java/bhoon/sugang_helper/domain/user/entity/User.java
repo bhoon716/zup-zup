@@ -34,22 +34,22 @@ public class User extends BaseEntity {
     private String notificationEmail;
 
     @Column(nullable = false)
-    private boolean emailEnabled = true;
+    private boolean emailEnabled;
 
     @Column(nullable = false)
-    private boolean webPushEnabled = true;
+    private boolean webPushEnabled;
 
     @Column(nullable = false)
-    private boolean fcmEnabled = true;
+    private boolean fcmEnabled;
 
     @Column(nullable = false)
-    private boolean onboardingCompleted = false;
+    private boolean onboardingCompleted;
 
     @Column
     private String discordId;
 
     @Column(nullable = false)
-    private boolean discordEnabled = false;
+    private boolean discordEnabled;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -86,6 +86,7 @@ public class User extends BaseEntity {
         this.discordEnabled = true;
     }
 
+    @SuppressWarnings("PMD.NullAssignment")
     public void unlinkDiscord() {
         this.discordId = null;
         this.discordEnabled = false;

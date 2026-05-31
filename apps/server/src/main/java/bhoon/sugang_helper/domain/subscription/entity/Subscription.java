@@ -33,7 +33,7 @@ public class Subscription extends BaseTimeEntity {
     private String courseKey;
 
     @Column(nullable = false)
-    private boolean isActive = true;
+    private boolean isActive;
 
     @Builder
     public Subscription(Long userId, String courseKey, boolean isActive) {

@@ -11,7 +11,6 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.domain.announcement.entity.Announcement;
 import bhoon.sugang_helper.domain.announcement.repository.AnnouncementRepository;
 import bhoon.sugang_helper.domain.announcement.request.AnnouncementRequest;
-import bhoon.sugang_helper.domain.announcement.request.AnnouncementSearchType;
 import bhoon.sugang_helper.domain.announcement.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.domain.announcement.response.AnnouncementListResponse;
 import java.util.List;

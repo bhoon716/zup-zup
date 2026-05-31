@@ -131,10 +131,10 @@ public class Course extends BaseTimeEntity {
     private LocalDateTime lastCrawledAt; // 마지막 크롤링 시간
 
     @Column(nullable = false)
-    private Float averageRating = 0.0f; // 평균 별점
+    private Float averageRating; // 평균 별점
 
     @Column(nullable = false)
-    private Integer reviewCount = 0; // 리뷰 수
+    private Integer reviewCount; // 리뷰 수
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CourseSchedule> schedules = new ArrayList<>();

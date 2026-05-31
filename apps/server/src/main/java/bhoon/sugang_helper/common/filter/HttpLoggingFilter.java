@@ -44,13 +44,13 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
     }
 
     private void logByStatus(String method, String uri, int status, long tookMs) {
-        status = status == 0 ? HttpServletResponse.SC_OK : status;
-        if (status >= 500) {
-            log.error("[HTTP] {} {} -> {} ({} ms)", method, uri, status, tookMs);
-        } else if (status >= 400) {
-            log.warn("[HTTP] {} {} -> {} ({} ms)", method, uri, status, tookMs);
+        int resolvedStatus = status == 0 ? HttpServletResponse.SC_OK : status;
+        if (resolvedStatus >= 500) {
+            log.error("[HTTP] {} {} -> {} ({} ms)", method, uri, resolvedStatus, tookMs);
+        } else if (resolvedStatus >= 400) {
+            log.warn("[HTTP] {} {} -> {} ({} ms)", method, uri, resolvedStatus, tookMs);
         } else {
-            log.info("[HTTP] {} {} -> {} ({} ms)", method, uri, status, tookMs);
+            log.info("[HTTP] {} {} -> {} ({} ms)", method, uri, resolvedStatus, tookMs);
         }
     }
 }
