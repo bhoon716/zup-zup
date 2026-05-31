@@ -22,7 +22,6 @@ import {
 } from "@/shared/ui/sheet";
 import { usePWAInstall } from "@/shared/hooks/usePWAInstall";
 import { useHasMounted } from "@/shared/hooks/useHasMounted";
-import { DashboardCountdown } from "@/widgets/home/dashboard-countdown";
 
 import { NavLinks } from "./ui/nav-links";
 import { HeaderDesktopUser, HeaderMobileUserStatus } from "./ui/user-status";
@@ -73,8 +72,6 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          <DashboardCountdown />
-
           <Button
             onClick={install}
             variant="outline"
