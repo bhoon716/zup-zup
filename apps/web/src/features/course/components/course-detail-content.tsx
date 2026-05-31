@@ -65,6 +65,7 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
         courseKey={course.courseKey} 
         averageRating={course.averageRating}
         reviewCount={course.reviewCount}
+        isReviewed={course.isReviewed}
       />
     </div>
   );

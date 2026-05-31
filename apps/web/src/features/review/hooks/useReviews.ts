@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as reviewApi from '@/features/review/api/review.api';
-import type { EmojiReviewResponse, ReviewCreateRequest, ReviewReactionRequest } from "@/shared/types/api";
+import type { EmojiReviewResponse, ReviewCreateRequest, ReviewReactionRequest, ReviewUpdateRequest } from "@/shared/types/api";
 
 const sortEmojiStats = (items: EmojiReviewResponse[]) =>
   [...items].sort((left, right) => {
@@ -36,6 +36,19 @@ export const useCreateReview = (courseKey: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (request: ReviewCreateRequest) => reviewApi.createReview(courseKey, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reviews", courseKey] });
+      queryClient.invalidateQueries({ queryKey: ["course-detail", courseKey] });
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+    },
+  });
+};
+
+export const useUpdateReview = (courseKey: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reviewId, request }: { reviewId: number; request: ReviewUpdateRequest }) =>
+      reviewApi.updateReview(reviewId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reviews", courseKey] });
       queryClient.invalidateQueries({ queryKey: ["course-detail", courseKey] });

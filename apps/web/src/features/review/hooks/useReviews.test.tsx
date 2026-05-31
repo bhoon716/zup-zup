@@ -4,11 +4,12 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import * as reviewApi from "@/features/review/api/review.api";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
 import type { EmojiReviewResponse, ReviewResponse } from "@/shared/types/api";
-import { useCourseEmojis, useCreateReview, useReviews, useToggleCourseEmoji, useToggleReviewReaction } from "./useReviews";
+import { useCourseEmojis, useCreateReview, useReviews, useToggleCourseEmoji, useToggleReviewReaction, useUpdateReview } from "./useReviews";
 
 vi.mock("@/features/review/api/review.api", () => ({
   getReviews: vi.fn(),
   createReview: vi.fn(),
+  updateReview: vi.fn(),
   toggleReviewReaction: vi.fn(),
   getCourseEmojis: vi.fn(),
   toggleCourseEmoji: vi.fn(),
@@ -75,6 +76,28 @@ describe("강의 리뷰 훅", () => {
     });
 
     expect(reviewApi.createReview).toHaveBeenCalledWith(COURSE_KEY, { rating: 5 });
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["reviews", COURSE_KEY] }));
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["course-detail", COURSE_KEY] }));
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["courses"] }));
+  });
+
+  it("리뷰를 수정하고 관련 쿼리를 무효화한다", async () => {
+    vi.mocked(reviewApi.updateReview).mockResolvedValue({
+      code: "SUCCESS",
+      message: "ok",
+      data: MOCK_REVIEW,
+    } as Awaited<ReturnType<typeof reviewApi.updateReview>>);
+
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const wrapper = createQueryWrapper(queryClient);
+    const { result } = renderHook(() => useUpdateReview(COURSE_KEY), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ reviewId: 1, request: { rating: 4 } });
+    });
+
+    expect(reviewApi.updateReview).toHaveBeenCalledWith(1, { rating: 4 });
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["reviews", COURSE_KEY] }));
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["course-detail", COURSE_KEY] }));
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["courses"] }));

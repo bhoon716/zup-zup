@@ -506,6 +506,10 @@ export interface ReviewCreateRequest {
   rating: number;
 }
 
+export interface ReviewUpdateRequest {
+  rating: number;
+}
+
 export interface ReviewReactionRequest {
   reactionType: 'LIKE' | 'DISLIKE';
 }

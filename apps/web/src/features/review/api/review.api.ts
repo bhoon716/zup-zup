@@ -5,6 +5,7 @@ import type {
   ReviewCreateRequest,
   ReviewReactionRequest,
   ReviewResponse,
+  ReviewUpdateRequest,
   SliceResponse,
 } from "@/shared/types/api";
 
@@ -25,6 +26,14 @@ export const createReview = async (
   request: ReviewCreateRequest
 ): Promise<CommonResponse<ReviewResponse>> => {
   const { data } = await api.post(`/api/v1/courses/${encodeURIComponent(courseKey)}/reviews`, request);
+  return data;
+};
+
+export const updateReview = async (
+  reviewId: number,
+  request: ReviewUpdateRequest
+): Promise<CommonResponse<ReviewResponse>> => {
+  const { data } = await api.put(`/api/v1/courses/reviews/${reviewId}`, request);
   return data;
 };
 
