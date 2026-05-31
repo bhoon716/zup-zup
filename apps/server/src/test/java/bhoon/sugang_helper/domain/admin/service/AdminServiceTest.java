@@ -14,6 +14,7 @@ import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardResponse;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
 import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.domain.notification.service.NotificationService;
@@ -82,7 +83,7 @@ class AdminServiceTest {
         when(notificationHistoryRepository.countByCreatedAtAfter(any(LocalDateTime.class))).thenReturn(20L);
         when(courseRepository.findMaxLastCrawledAt()).thenReturn(Optional.of(LocalDateTime.now()));
         when(courseCrawlerTargetService.getCurrentTarget()).thenReturn(
-                bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse.builder()
+                AdminCrawlTargetResponse.builder()
                         .year("2026")
                         .semester("U211600020")
                         .build()

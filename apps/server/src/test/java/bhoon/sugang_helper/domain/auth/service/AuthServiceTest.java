@@ -12,6 +12,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.domain.user.entity.Role;
 import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
@@ -67,7 +68,7 @@ class AuthServiceTest {
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
         given(redisService.getValues(REDIS_REFRESH_TOKEN_PREFIX + email)).willReturn(refreshToken);
 
-        User user = User.builder().email(email).role(bhoon.sugang_helper.domain.user.entity.Role.USER).build();
+        User user = User.builder().email(email).role(Role.USER).build();
         given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
         given(jwtProvider.createAccessToken(anyString(), anyString())).willReturn("new-access-token");
         given(jwtProvider.createRefreshToken(anyString())).willReturn("new-refresh-token");

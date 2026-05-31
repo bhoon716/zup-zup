@@ -18,6 +18,8 @@ import bhoon.sugang_helper.domain.notification.service.NotificationService;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
 import bhoon.sugang_helper.domain.user.entity.Role;
 import bhoon.sugang_helper.domain.user.entity.User;
+import bhoon.sugang_helper.domain.user.request.OnboardingRequest;
+import bhoon.sugang_helper.domain.user.request.UserSettingsRequest;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import bhoon.sugang_helper.domain.user.response.UserResponse;
 import java.util.Optional;
@@ -151,7 +153,7 @@ class UserServiceTest {
                 .role(Role.USER)
                 .build();
 
-        bhoon.sugang_helper.domain.user.request.UserSettingsRequest request = new bhoon.sugang_helper.domain.user.request.UserSettingsRequest(
+        UserSettingsRequest request = new UserSettingsRequest(
                 "new@example.com", true, true, false, true);
 
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
@@ -181,8 +183,7 @@ class UserServiceTest {
                 .onboardingCompleted(false)
                 .build();
 
-        bhoon.sugang_helper.domain.user.request.OnboardingRequest request = mock(
-                bhoon.sugang_helper.domain.user.request.OnboardingRequest.class);
+        OnboardingRequest request = mock(OnboardingRequest.class);
         when(request.getNotificationEmail()).thenReturn("notify@example.com");
         when(request.isEmailEnabled()).thenReturn(true);
         when(request.isWebPushEnabled()).thenReturn(true);
