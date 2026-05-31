@@ -2,6 +2,7 @@ package bhoon.sugang_helper.domain.admin.controller;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardResponse;
+import bhoon.sugang_helper.domain.admin.response.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.domain.admin.response.AdminOverviewResponse;
 import bhoon.sugang_helper.domain.admin.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -90,6 +91,16 @@ public class AdminController {
     public ResponseEntity<CommonResponse<AdminOverviewResponse>> getDashboardOverview() {
         AdminOverviewResponse response = adminService.getDashboardOverview();
         return CommonResponse.ok(response, "관리자 대시보드 개요 정보입니다.");
+    }
+
+    /**
+     * 관리자 페이지에서 필요한 개요와 크롤링 타겟 정보를 한 번에 조회합니다.
+     */
+    @Operation(summary = "관리자 대시보드 스냅샷", description = "대시보드 렌더링에 필요한 개요와 크롤링 타겟을 함께 조회합니다.")
+    @GetMapping("/dashboard")
+    public ResponseEntity<CommonResponse<AdminDashboardSnapshotResponse>> getDashboardSnapshot() {
+        AdminDashboardSnapshotResponse response = adminService.getDashboardSnapshot();
+        return CommonResponse.ok(response, "관리자 대시보드 스냅샷 정보입니다.");
     }
 
     /**

@@ -12,7 +12,9 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardResponse;
+import bhoon.sugang_helper.domain.admin.response.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
 import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.domain.notification.service.NotificationService;
 import bhoon.sugang_helper.domain.subscription.repository.SubscriptionRepository;
@@ -46,6 +48,9 @@ class AdminServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private CourseCrawlerTargetService courseCrawlerTargetService;
+
     @InjectMocks
     private AdminService adminService;
 
@@ -66,6 +71,31 @@ class AdminServiceTest {
         assertThat(result.getTotalActiveSubscriptions()).isEqualTo(50L);
         assertThat(result.getTodayNotificationCount()).isEqualTo(20L);
         assertThat(result.getCrawlingStatus()).isEqualTo("RUNNING");
+    }
+
+    @Test
+    @DisplayName("관리자 대시보드 스냅샷을 한 번에 조회한다")
+    void getDashboardSnapshot() {
+        // given
+        when(userRepository.count()).thenReturn(100L);
+        when(subscriptionRepository.countByIsActiveTrue()).thenReturn(50L);
+        when(notificationHistoryRepository.countByCreatedAtAfter(any(LocalDateTime.class))).thenReturn(20L);
+        when(courseRepository.findMaxLastCrawledAt()).thenReturn(Optional.of(LocalDateTime.now()));
+        when(courseCrawlerTargetService.getCurrentTarget()).thenReturn(
+                bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse.builder()
+                        .year("2026")
+                        .semester("U211600020")
+                        .build()
+        );
+
+        // when
+        AdminDashboardSnapshotResponse result = adminService.getDashboardSnapshot();
+
+        // then
+        assertThat(result.getOverview().getTotalUsers()).isEqualTo(100L);
+        assertThat(result.getOverview().getTotalActiveSubscriptions()).isEqualTo(50L);
+        assertThat(result.getCrawlTarget().getYear()).isEqualTo("2026");
+        assertThat(result.getCrawlTarget().getSemester()).isEqualTo("U211600020");
     }
 
     @Test

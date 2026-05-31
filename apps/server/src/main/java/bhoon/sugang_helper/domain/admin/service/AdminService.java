@@ -4,10 +4,13 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.admin.response.AdminDashboardResponse;
+import bhoon.sugang_helper.domain.admin.response.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.domain.admin.response.AdminHourlyTrafficResponse;
 import bhoon.sugang_helper.domain.admin.response.AdminOverviewResponse;
 import bhoon.sugang_helper.domain.admin.response.AdminRecentLogResponse;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse;
+import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
 import bhoon.sugang_helper.domain.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.domain.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.domain.notification.sender.NotificationChannel;
@@ -37,6 +40,7 @@ public class AdminService {
     private final SubscriptionRepository subscriptionRepository;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final NotificationService notificationService;
+    private final CourseCrawlerTargetService courseCrawlerTargetService;
 
     private static final DateTimeFormatter HOUR_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final long CRAWLER_DELAY_MINUTES = 15L;
@@ -81,6 +85,19 @@ public class AdminService {
                 .serverTime(now)
                 .notificationTraffic(buildHourlyNotificationTraffic(now))
                 .recentLogs(buildRecentLogs(now, lastCrawledAt))
+                .build();
+    }
+
+    /**
+     * 관리자 페이지에서 필요한 개요와 크롤링 타겟을 한 번에 조회합니다.
+     */
+    public AdminDashboardSnapshotResponse getDashboardSnapshot() {
+        AdminOverviewResponse overview = getDashboardOverview();
+        AdminCrawlTargetResponse crawlTarget = courseCrawlerTargetService.getCurrentTarget();
+
+        return AdminDashboardSnapshotResponse.builder()
+                .overview(overview)
+                .crawlTarget(crawlTarget)
                 .build();
     }
 
