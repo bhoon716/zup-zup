@@ -123,11 +123,10 @@ public class AdminService {
                 .withSecond(0)
                 .withNano(0);
 
-        List<NotificationHistory> histories = notificationHistoryRepository.findByCreatedAtAfter(startHour);
+        List<LocalDateTime> histories = notificationHistoryRepository.findCreatedAtByCreatedAtAfter(startHour);
         long[] hourlyCounts = new long[24];
 
-        for (NotificationHistory history : histories) {
-            LocalDateTime createdAt = history.getCreatedAt();
+        for (LocalDateTime createdAt : histories) {
             if (createdAt == null || createdAt.isBefore(startHour)) {
                 continue;
             }

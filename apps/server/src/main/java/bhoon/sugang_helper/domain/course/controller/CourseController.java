@@ -2,7 +2,6 @@ package bhoon.sugang_helper.domain.course.controller;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
-import bhoon.sugang_helper.domain.course.response.CourseCategoryResponse;
 import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
@@ -75,15 +74,6 @@ public class CourseController {
     return CommonResponse.ok(histories, "해당 과목의 인원 변동 이력입니다.");
   }
 
-  @Operation(summary = "교양 카테고리 조회", description = "교양 영역/상세 영역 목록을 조회합니다.")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "카테고리 조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
-  })
-  @GetMapping("/categories")
-  public ResponseEntity<CommonResponse<List<CourseCategoryResponse>>> getCourseCategories() {
-    List<CourseCategoryResponse> categories = courseService.getCourseCategories();
-    return CommonResponse.ok(categories, "교양 카테고리 목록입니다.");
-  }
 
   @Operation(summary = "과목 상세 조회", description = "특정 과목의 상세 정보를 조회합니다.")
   @ApiResponses(value = {

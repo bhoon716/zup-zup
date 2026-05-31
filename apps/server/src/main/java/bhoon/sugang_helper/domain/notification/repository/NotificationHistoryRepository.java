@@ -4,6 +4,8 @@ import bhoon.sugang_helper.domain.notification.entity.NotificationHistory;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface NotificationHistoryRepository extends JpaRepository<NotificationHistory, Long> {
     /**
@@ -30,4 +32,10 @@ public interface NotificationHistoryRepository extends JpaRepository<Notificatio
      * 특정 시점 이후에 발생한 전체 알림 목록을 조회합니다.
      */
     List<NotificationHistory> findByCreatedAtAfter(LocalDateTime start);
+
+    /**
+     * 특정 시점 이후에 발생한 전체 알림의 생성 시각만 고속으로 조회합니다 (성능 최적화).
+     */
+    @Query("SELECT n.createdAt FROM NotificationHistory n WHERE n.createdAt >= :start")
+    List<LocalDateTime> findCreatedAtByCreatedAtAfter(@Param("start") LocalDateTime start);
 }
