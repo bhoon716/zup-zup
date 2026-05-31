@@ -5,10 +5,12 @@ import { useRef, useState } from "react";
 import emojiData from "@emoji-mart/data";
 import koI18n from "@emoji-mart/data/i18n/ko.json";
 import Picker from "@emoji-mart/react";
+import axios from "axios";
 import { AlertCircle, Loader2, MessageSquare, Plus, Star } from "lucide-react";
+import { toast } from "sonner";
 
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
-import { useCourseEmojis, useToggleCourseEmoji } from "@/features/review/hooks/useReviews";
+import { useCourseEmojis, useCreateReview, useToggleCourseEmoji } from "@/features/review/hooks/useReviews";
 import { useUser } from "@/features/user/hooks/useUser";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
@@ -18,6 +20,7 @@ interface CourseReviewSectionProps {
   courseKey: string;
   averageRating?: number;
   reviewCount?: number;
+  isReviewed?: boolean;
 }
 
 const emojiPickerI18n = {
@@ -31,14 +34,22 @@ const emojiPickerI18n = {
 
 /**
  * 강의 상세 화면의 리뷰 섹션입니다.
- * 전체 평균 별점과 이모지 반응만 제공합니다.
+ * 전체 평균 별점, 별점 입력, 이모지 반응만 제공합니다.
  */
-export function CourseReviewSection({ courseKey, averageRating, reviewCount }: CourseReviewSectionProps) {
+export function CourseReviewSection({
+  courseKey,
+  averageRating,
+  reviewCount,
+  isReviewed,
+}: CourseReviewSectionProps) {
+  const { mutate: createReview, isPending: isCreating } = useCreateReview(courseKey);
   const { data: emojiStats, status: emojiStatus } = useCourseEmojis(courseKey);
   const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(courseKey);
   const { data: user, isPending: isUserLoading } = useUser();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
 
+  const [rating, setRating] = useState<number>(0);
+  const [hoverRating, setHoverRating] = useState<number>(0);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const pendingEmojiRef = useRef<string | null>(null);
 
@@ -47,7 +58,36 @@ export function CourseReviewSection({ courseKey, averageRating, reviewCount }: C
   }
 
   const visibleEmojiStats = (emojiStats ?? []).filter((item) => item.count > 0);
-  const hasAverageRating = typeof averageRating === "number" && reviewCount !== undefined && reviewCount > 0;
+  const hasAverageRating = (reviewCount ?? 0) > 0;
+  const averageRatingText = hasAverageRating ? (averageRating ?? 0).toFixed(1) : "0";
+  const averageReviewCount = reviewCount ?? 0;
+  const averageStars = Math.round(averageRating ?? 0);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (rating === 0) {
+      toast.error("별점을 선택해주세요.");
+      return;
+    }
+
+    createReview(
+      { rating },
+      {
+        onSuccess: () => {
+          setRating(0);
+          toast.success("리뷰가 등록되었습니다.");
+        },
+        onError: (err: unknown) => {
+          let errorMsg = "작성에 실패했습니다. 이미 작성하셨을 수 있습니다.";
+          if (axios.isAxiosError(err)) {
+            errorMsg = err.response?.data?.message || errorMsg;
+          }
+          toast.error(errorMsg);
+        },
+      }
+    );
+  };
 
   const handleEmojiToggle = (emoji: string) => {
     if (!user) {
@@ -95,86 +135,130 @@ export function CourseReviewSection({ courseKey, averageRating, reviewCount }: C
       </div>
 
       <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#1E1E1E]">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">전체 평균 별점</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">모든 별점 리뷰의 평균입니다.</p>
-            </div>
+        <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-gray-900/30">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">전체 평균 별점</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }, (_, index) => {
+                    const starNumber = index + 1;
+                    return (
+                      <Star
+                        key={starNumber}
+                        className={cn(
+                          "h-5 w-5",
+                          starNumber <= averageStars
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-300 dark:text-gray-600"
+                        )}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
 
-            {hasAverageRating ? (
-              <div className="flex items-center gap-1">
-                {Array.from({ length: 5 }, (_, index) => {
-                  const starNumber = index + 1;
-                  return (
-                    <Star
-                      key={starNumber}
-                      className={cn(
-                        "h-5 w-5",
-                        starNumber <= Math.round(averageRating)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300 dark:text-gray-600"
-                      )}
-                    />
-                  );
-                })}
-                <span className="ml-2 text-lg font-bold text-primary">{averageRating.toFixed(1)}</span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">({reviewCount}개)</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black tracking-tight text-primary">{averageRatingText}점</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">({averageReviewCount}개)</span>
               </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
-                아직 등록된 별점 리뷰가 없습니다.
-              </div>
-            )}
+            </div>
           </div>
 
-          <div className="flex flex-col gap-2 pt-1">
-            <div className="flex flex-col gap-1">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">이모지 리뷰</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">이 강의에 어울리는 이모지를 골라주세요 😊</p>
-            </div>
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-[#151515]">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">별점 리뷰 등록</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">별점만 남길 수 있습니다.</p>
+              </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              {visibleEmojiStats.length > 0 ? (
-                visibleEmojiStats.map((item) => (
-                  <Button
-                    key={item.emoji}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEmojiToggle(item.emoji)}
-                  disabled={isEmojiToggling || isUserLoading}
-                  aria-pressed={item.isMine}
-                  aria-label={`${item.emoji} ${item.count}개`}
-                  className={cn(
-                    "h-9 rounded-full border px-3 py-1 text-sm font-medium transition-all hover:scale-[1.01]",
-                    item.isMine
-                      ? "border-primary/40 bg-primary/20 text-primary dark:border-primary/50 dark:bg-primary/25 dark:text-primary-light shadow-sm"
-                      : "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-300"
-                  )}
-                >
-                    <span>{item.emoji}</span>
-                    <span className="tabular-nums">{item.count}</span>
-                  </Button>
-                ))
+              {user ? (
+                !isReviewed ? (
+                  <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">별점</span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setRating(star)}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          aria-label={`${star}점`}
+                          className="focus:outline-hidden"
+                        >
+                          <Star
+                            className={cn(
+                              "h-6 w-6 transition-colors",
+                              star <= (hoverRating || rating)
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-gray-300 dark:text-gray-600"
+                            )}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    {rating > 0 && <span className="text-sm font-bold text-primary">{rating}점</span>}
+                    <Button type="submit" disabled={isCreating} className="ml-auto font-bold">
+                      {isCreating ? "등록 중..." : "등록"}
+                    </Button>
+                  </form>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
+                    이미 별점 리뷰를 남겼습니다.
+                  </div>
+                )
               ) : (
-                <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
-                  아직 등록된 이모지가 없습니다. 첫 반응을 남겨주세요.
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
+                  리뷰를 작성하려면 로그인이 필요합니다.
                 </div>
               )}
+            </div>
+          </div>
+        </div>
 
+        <div className="mt-5 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">이모지 리뷰</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">이모지만 남길 수 있습니다.</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {visibleEmojiStats.map((item) => (
               <Button
+                key={item.emoji}
                 type="button"
                 variant="outline"
-                size="icon-sm"
-                onClick={() => handleEmojiPickerOpenChange(true)}
+                size="sm"
+                onClick={() => handleEmojiToggle(item.emoji)}
                 disabled={isEmojiToggling || isUserLoading}
-                aria-label="이모지 추가"
-                className="h-9 w-9 rounded-full border-dashed border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 dark:border-primary/40 dark:bg-primary/10"
+                aria-pressed={item.isMine}
+                aria-label={`${item.emoji} ${item.count}개`}
+                className={cn(
+                  "h-9 rounded-full border px-3 py-1 text-sm font-medium transition-all hover:scale-[1.01]",
+                  item.isMine
+                    ? "border-primary/40 bg-primary/20 text-primary dark:border-primary/50 dark:bg-primary/25 dark:text-primary-light shadow-sm"
+                    : "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-300"
+                )}
               >
-                <Plus className="h-4 w-4" />
+                <span>{item.emoji}</span>
+                <span className="tabular-nums">{item.count}</span>
               </Button>
-            </div>
+            ))}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              onClick={() => handleEmojiPickerOpenChange(true)}
+              disabled={isEmojiToggling || isUserLoading}
+              aria-label="이모지 추가"
+              className="h-9 w-9 rounded-full border-dashed border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 dark:border-primary/40 dark:bg-primary/10"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
 
           <Dialog open={isEmojiPickerOpen} onOpenChange={handleEmojiPickerOpenChange}>
