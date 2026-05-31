@@ -5,17 +5,12 @@ import { CourseReviewSection } from "./course-review-section";
 import * as reviewHooks from "@/features/review/hooks/useReviews";
 import * as userHooks from "@/features/user/hooks/useUser";
 
-const { mockCreateReview, mockToggleReaction, mockToggleEmoji, mockSetLoginModalOpen } = vi.hoisted(() => ({
-  mockCreateReview: vi.fn(),
-  mockToggleReaction: vi.fn(),
+const { mockToggleEmoji, mockSetLoginModalOpen } = vi.hoisted(() => ({
   mockToggleEmoji: vi.fn(),
   mockSetLoginModalOpen: vi.fn(),
 }));
 
 vi.mock("@/features/review/hooks/useReviews", () => ({
-  useReviews: vi.fn(),
-  useCreateReview: vi.fn(),
-  useToggleReviewReaction: vi.fn(),
   useCourseEmojis: vi.fn(),
   useToggleCourseEmoji: vi.fn(),
 }));
@@ -46,43 +41,6 @@ describe("CourseReviewSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.mocked(reviewHooks.useReviews).mockReturnValue({
-      data: {
-        pages: [
-          {
-            content: [
-              {
-                id: 1,
-                courseKey: "TEST-COURSE",
-                rating: 5,
-                content: null,
-                likeCount: 2,
-                dislikeCount: 0,
-                isMine: true,
-                createdAt: "2024-03-07T00:00:00",
-                updatedAt: "2024-03-07T00:00:00",
-              },
-            ],
-            last: true,
-            number: 0,
-          },
-        ],
-      },
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-      status: "success",
-    } as never);
-
-    vi.mocked(reviewHooks.useCreateReview).mockReturnValue({
-      mutate: mockCreateReview,
-      isPending: false,
-    } as never);
-
-    vi.mocked(reviewHooks.useToggleReviewReaction).mockReturnValue({
-      mutate: mockToggleReaction,
-    } as never);
-
     vi.mocked(reviewHooks.useCourseEmojis).mockReturnValue({
       data: [
         { emoji: "👍", count: 3, isMine: true },
@@ -102,30 +60,30 @@ describe("CourseReviewSection", () => {
     } as never);
   });
 
-  it("강의 리뷰 문구와 별점 폼, 이모지 반응을 함께 보여준다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+  it("전체 평균 별점과 이모지 반응만 보여주고 별점 목록 패널은 숨긴다", () => {
+    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} />);
 
     expect(screen.getByRole("heading", { name: "강의 리뷰" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "등록" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "이모지 추가" })).toBeInTheDocument();
+    expect(screen.getByText("전체 평균 별점")).toBeInTheDocument();
+    expect(screen.getByText("4.2")).toBeInTheDocument();
+    expect(screen.getByText("(13개)")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "이모지 리뷰" })).toBeInTheDocument();
     expect(screen.getByText("이 강의에 어울리는 이모지를 골라주세요 😊")).toBeInTheDocument();
-    expect(screen.queryByText("아직 등록된 이모지가 없습니다.")).not.toBeInTheDocument();
+    expect(screen.queryByText("별점 리뷰")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "등록" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "별점 리뷰 목록" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "👍 3개" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "👍 3개" })).toHaveClass("bg-primary/20");
   });
 
-  it("별점을 선택하고 등록하면 리뷰 생성 훅을 호출한다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+  it("평균 별점이 없으면 안내 문구를 보여준다", () => {
+    render(<CourseReviewSection courseKey="TEST-COURSE" />);
 
-    fireEvent.click(screen.getByRole("button", { name: /5점/ }));
-    fireEvent.click(screen.getByRole("button", { name: "등록" }));
-
-    expect(mockCreateReview).toHaveBeenCalledWith({ rating: 5 }, expect.any(Object));
+    expect(screen.getByText("아직 등록된 별점 리뷰가 없습니다.")).toBeInTheDocument();
   });
 
   it("이모지 추가 버튼을 누르면 선택 모달이 열리고 이모지를 고르면 토글 훅을 호출한다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} />);
 
     fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
     expect(screen.getByTestId("emoji-picker")).toBeInTheDocument();
@@ -135,7 +93,7 @@ describe("CourseReviewSection", () => {
   });
 
   it("내가 단 이모지 버튼을 다시 누르면 같은 이모지를 토글한다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} />);
 
     fireEvent.click(screen.getByRole("button", { name: "👍 3개" }));
 
@@ -143,7 +101,7 @@ describe("CourseReviewSection", () => {
   });
 
   it("같은 이모지를 연속으로 눌러도 중복 토글 요청은 보내지 않는다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} />);
 
     const thumbButton = screen.getByRole("button", { name: "👍 3개" });
     fireEvent.click(thumbButton);
@@ -162,7 +120,7 @@ describe("CourseReviewSection", () => {
       status: "success",
     } as never);
 
-    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} />);
 
     fireEvent.click(screen.getByRole("button", { name: "👍 3개" }));
     fireEvent.click(screen.getByRole("button", { name: "😂 2개" }));
@@ -177,7 +135,7 @@ describe("CourseReviewSection", () => {
       isPending: false,
     } as never);
 
-    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} />);
 
     fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
 
