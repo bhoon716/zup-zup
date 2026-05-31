@@ -6,8 +6,8 @@ import { AxiosError } from 'axios';
 
 import { useUser } from "@/features/user/hooks/useUser";
 
-export const useSubscriptions = () => {
-  const { data: user } = useUser();
+export const useSubscriptions = (enabled = true) => {
+  const { data: user } = useUser({ enabled });
   
   return useQuery({
     queryKey: ['subscriptions'],
@@ -15,7 +15,7 @@ export const useSubscriptions = () => {
       const response = await subscriptionApi.getMySubscriptions();
       return response.data ?? null;
     },
-    enabled: !!user,
+    enabled: enabled && !!user,
   });
 };
 

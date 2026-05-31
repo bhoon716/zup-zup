@@ -9,6 +9,7 @@ import { CourseBasicFilters } from "./filters/course-basic-filters";
 import { CourseDetailFilters } from "./filters/course-detail-filters";
 import { CourseSmartFilters } from "./filters/course-smart-filters";
 import { FilterSection } from "./filters/filter-section";
+import type { TimetableResponse, User } from "@/shared/types/api";
 
 interface CourseSearchBarProps {
   onSearch: (condition: CourseSearchCondition) => void;
@@ -17,6 +18,8 @@ interface CourseSearchBarProps {
   initialCondition?: CourseSearchCondition;
   defaultCondition?: CourseSearchCondition;
   hideHeader?: boolean;
+  initialUser?: User | null;
+  initialTimetables?: TimetableResponse[];
 }
 
 export function CourseSearchBar({
@@ -26,6 +29,8 @@ export function CourseSearchBar({
   initialCondition,
   defaultCondition,
   hideHeader,
+  initialUser,
+  initialTimetables,
 }: CourseSearchBarProps) {
   const resolvedDefaultCondition = defaultCondition ?? DEFAULT_CONDITION;
   const initialSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
@@ -143,6 +148,8 @@ export function CourseSearchBar({
             setCondition={setCondition}
             scheduleOpen={scheduleOpen}
             setScheduleOpen={setScheduleOpen}
+            initialUser={initialUser}
+            initialTimetables={initialTimetables}
           />
         </FilterSection>
 

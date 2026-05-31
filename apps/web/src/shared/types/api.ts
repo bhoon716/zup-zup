@@ -345,6 +345,14 @@ export interface SearchDefaultSemesterResponse {
   semester: string;
 }
 
+
+export interface CourseSearchPageResponse {
+  content: Course[];
+  last: boolean;
+  number: number;
+}
+
+
 export interface DashboardSnapshotResponse {
   user: User;
   notifications: NotificationHistory[];

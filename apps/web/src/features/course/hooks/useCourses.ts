@@ -1,11 +1,18 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import * as courseApi from '@/features/course/api/course.api';
-import type { CourseSearchCondition, Course, SearchDefaultSemesterResponse } from '@/shared/types/api';
+import type { CourseSearchCondition, Course, SearchDefaultSemesterResponse, CourseSearchPageResponse } from '@/shared/types/api';
 import { normalizeCourse } from '@/shared/lib/course';
 
-export const useCourses = (condition: CourseSearchCondition) => {
+export const useCourses = (
+  condition: CourseSearchCondition,
+  options?: {
+    enabled?: boolean;
+    initialPage?: CourseSearchPageResponse;
+  },
+) => {
   return useInfiniteQuery({
     queryKey: ['courses', condition],
+    enabled: options?.enabled ?? true,
     queryFn: async ({ pageParam = 0 }) => {
       const response = await courseApi.searchCourses(condition, pageParam as number);
       const sliceData = response.data;
@@ -26,11 +33,18 @@ export const useCourses = (condition: CourseSearchCondition) => {
           number: 'number' in sliceData ? sliceData.number : pageParam
       };
     },
+    initialData: options?.initialPage
+      ? {
+          pages: [options.initialPage],
+          pageParams: [0],
+        }
+      : undefined,
     getNextPageParam: (lastPage) => {
       if (lastPage.last) return undefined;
       return (lastPage.number as number) + 1;
     },
     initialPageParam: 0,
+    staleTime: options?.initialPage ? 1000 * 60 * 5 : 0,
   });
 };
 
@@ -80,3 +94,4 @@ export const useSearchDefaultSemester = () => {
     staleTime: 1000 * 60 * 60,
   });
 };
+

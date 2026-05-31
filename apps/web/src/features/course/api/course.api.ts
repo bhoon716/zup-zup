@@ -45,3 +45,4 @@ export const getSearchDefaultSemester = async (): Promise<CommonResponse<SearchD
   const { data } = await api.get('/api/v1/courses/search-default-semester');
   return data;
 };
+

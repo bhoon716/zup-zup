@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import * as courseApi from "@/features/course/api/course.api";
 import { useCourseDetail, useCourseHistory, useCourses, useSearchDefaultSemester } from "./useCourses";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
-import type { CourseSearchCondition } from "@/shared/types/api";
+import type { CourseSearchCondition, CourseSearchPageResponse } from "@/shared/types/api";
 
 vi.mock("@/features/course/api/course.api", () => ({
   searchCourses: vi.fn(),
@@ -140,5 +140,32 @@ describe("useCourses hooks", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ semester: "U211600025" });
+  });
+
+  it("초기 페이지가 있으면 첫 검색 요청을 다시 보내지 않는다", async () => {
+    const mockedSearchCourses = vi.mocked(courseApi.searchCourses);
+    const initialPage: CourseSearchPageResponse = {
+      content: [
+        {
+          courseKey: "CSE-401",
+          subjectCode: "CSE401",
+          name: "분산시스템",
+          classNumber: "01",
+          capacity: 30,
+          current: 10,
+          available: 20,
+          professor: "이교수",
+        },
+      ],
+      last: true,
+      number: 0,
+    };
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    const condition: CourseSearchCondition = { name: "분산" };
+    renderHook(() => useCourses(condition, { initialPage }), { wrapper });
+
+    await waitFor(() => expect(mockedSearchCourses).not.toHaveBeenCalled());
   });
 });

@@ -6,15 +6,15 @@ import { CustomScheduleRequest } from '@/shared/types/api';
 
 import { useUser } from "@/features/user/hooks/useUser";
 
-export const useTimetables = () => {
-  const { data: user } = useUser();
+export const useTimetables = (enabled = true) => {
+  const { data: user } = useUser({ enabled });
   return useQuery({
     queryKey: ['timetables'],
     queryFn: async () => {
       const response = await timetableApi.getTimetables();
       return response.data ?? null;
     },
-    enabled: !!user,
+    enabled: enabled && !!user,
   });
 };
 

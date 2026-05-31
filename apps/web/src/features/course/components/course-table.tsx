@@ -30,13 +30,17 @@ import {
   UserRound,
 } from "lucide-react";
 import { CourseDetailDialog } from "./course-detail-dialog";
-import type { Course } from "@/shared/types/api";
+import type { Course, Subscription, TimetableResponse, User, WishlistResponse } from "@/shared/types/api";
 
 interface CourseTableProps {
   courses: Course[];
   onLoadMore?: () => void;
   hasMore?: boolean;
   isFetchingNextPage?: boolean;
+  initialUser?: User | null;
+  initialSubscriptions?: Subscription[];
+  initialWishlist?: WishlistResponse[];
+  initialTimetables?: TimetableResponse[];
 }
 
 /**
@@ -99,18 +103,27 @@ export function CourseTable({
   onLoadMore,
   hasMore,
   isFetchingNextPage,
+  initialUser,
+  initialSubscriptions,
+  initialWishlist,
+  initialTimetables,
 }: CourseTableProps) {
-  const { data: subscriptions } = useSubscriptions();
-  const { data: wishlist } = useWishlist();
+  const { data: subscriptions } = useSubscriptions(!initialSubscriptions);
+  const { data: wishlist } = useWishlist(!initialWishlist);
   const { mutate: toggleWishlist } = useToggleWishlist();
   const { mutate: subscribe, isPending: isSubscribing } = useSubscribe();
   const { mutate: unsubscribe, isPending: isUnsubscribing } = useUnsubscribe();
-  const { data: user } = useUser();
+  const { data: user } = useUser({ enabled: initialUser === undefined });
 
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
 
-  const { data: timetableList } = useTimetables();
+  const { data: timetableList } = useTimetables(!initialTimetables);
   const { mutate: addToTimetable, isPending: isAdding } = useAddCourseToTimetable();
+
+  const resolvedUser = initialUser !== undefined ? initialUser : user;
+  const resolvedSubscriptions = initialSubscriptions ?? subscriptions;
+  const resolvedWishlist = initialWishlist ?? wishlist;
+  const resolvedTimetables = initialTimetables ?? timetableList;
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -118,13 +131,13 @@ export function CourseTable({
   const loadMoreTarget = useRef<HTMLDivElement>(null);
 
   const subscriptionMap = useMemo(
-    () => new Map(subscriptions?.map((sub) => [sub.courseKey, sub]) ?? []),
-    [subscriptions],
+    () => new Map(resolvedSubscriptions?.map((sub) => [sub.courseKey, sub]) ?? []),
+    [resolvedSubscriptions],
   );
 
   const wishlistSet = useMemo(
-    () => new Set(wishlist?.map((item) => item.courseKey) ?? []),
-    [wishlist],
+    () => new Set(resolvedWishlist?.map((item) => item.courseKey) ?? []),
+    [resolvedWishlist],
   );
 
   /**
@@ -163,7 +176,7 @@ export function CourseTable({
    * 여석 알림 구독 상태를 토글 (구독 신청 또는 취소)
    */
   const handleSubscribe = (courseKey: string) => {
-    if (!user) {
+    if (!resolvedUser) {
       setLoginModalOpen(true);
       return;
     }
@@ -329,7 +342,7 @@ export function CourseTable({
                       </div>
                       
                       <div className="flex items-center gap-1 md:gap-1.5">
-                      {!user ? (
+                      {!resolvedUser ? (
                         <Button
                           type="button"
                           variant="outline"
@@ -359,8 +372,8 @@ export function CourseTable({
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
 
-                            {Array.isArray(timetableList) && timetableList.length > 0 ? (
-                              [...timetableList]
+                            {Array.isArray(resolvedTimetables) && resolvedTimetables.length > 0 ? (
+                              [...resolvedTimetables]
                                 .sort((a, b) => Number(b.primary) - Number(a.primary))
                                 .map((timetable) => (
                                   <DropdownMenuItem
@@ -396,7 +409,7 @@ export function CourseTable({
                         size="icon"
                         className="h-7 w-7 rounded-lg border-gray-200 text-gray-500 md:h-8 md:w-8"
                         onClick={() => {
-                          if (!user) {
+                          if (!resolvedUser) {
                             setLoginModalOpen(true);
                             return;
                           }

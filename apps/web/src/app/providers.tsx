@@ -45,7 +45,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     // Firebase SDK를 앱 시작 시 한 번 초기화한다.
     getFirebaseApp();
 
-    if (pathname !== "/") {
+    if (pathname !== "/" && pathname !== "/search") {
       checkSession();
     }
 

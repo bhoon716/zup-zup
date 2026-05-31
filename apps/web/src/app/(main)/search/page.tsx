@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CourseSearchBar } from "@/features/course/components/course-search-bar";
 import { CourseTable } from "@/features/course/components/course-table";
@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { SlidersHorizontal, X, Search, ChevronRight, ListFilter } from "lucide-react";
+import { useUser } from "@/features/user/hooks/useUser";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ const FALLBACK_DEFAULT_CONDITION: CourseSearchCondition = {
   academicYear: "2026",
   semester: "U211600010",
   disclosure: "공개",
+  sortBy: "name",
+  sortOrder: "asc",
 };
 
 interface FilterChip {
@@ -35,38 +38,38 @@ interface FilterChip {
  * 강의 검색 페이지 메인 컴포넌트
  */
 export default function SearchPage() {
-  const { data: searchDefaultSemester } = useSearchDefaultSemester();
-  const resolvedDefaultCondition = useMemo<CourseSearchCondition>(
-    () => ({
-      ...FALLBACK_DEFAULT_CONDITION,
-      semester: searchDefaultSemester?.semester ?? FALLBACK_DEFAULT_CONDITION.semester,
-    }),
-    [searchDefaultSemester?.semester],
-  );
-  const previousDefaultSemesterRef = useRef(FALLBACK_DEFAULT_CONDITION.semester);
+  const { data: defaultSemester, isLoading: isSemesterLoading } = useSearchDefaultSemester();
+  const { data: user } = useUser();
 
-  const [searchCondition, setSearchCondition] = useState<CourseSearchCondition>(resolvedDefaultCondition);
-  const [draftCondition, setDraftCondition] = useState<CourseSearchCondition>(resolvedDefaultCondition);
+  // 사용자가 변경한 검색 조건 (학기 제외)
+  const [userCondition, setUserCondition] = useState<Omit<CourseSearchCondition, 'semester'>>({
+    academicYear: FALLBACK_DEFAULT_CONDITION.academicYear,
+    disclosure: FALLBACK_DEFAULT_CONDITION.disclosure,
+    sortBy: FALLBACK_DEFAULT_CONDITION.sortBy,
+    sortOrder: FALLBACK_DEFAULT_CONDITION.sortOrder,
+  });
+  const [draftCondition, setDraftCondition] = useState<CourseSearchCondition>(FALLBACK_DEFAULT_CONDITION);
   const [sortOption, setSortOption] = useState<string>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
-  useEffect(() => {
-    const previousDefaultSemester = previousDefaultSemesterRef.current;
+  // 서버 학기 + 사용자 조건을 합쳐 최종 검색 조건 파생 (useEffect 없이 자동 동기화)
+  const searchCondition = useMemo<CourseSearchCondition>(
+    () => ({
+      ...FALLBACK_DEFAULT_CONDITION,
+      ...userCondition,
+      semester: defaultSemester?.semester ?? FALLBACK_DEFAULT_CONDITION.semester,
+    }),
+    [defaultSemester, userCondition],
+  );
 
-    setSearchCondition((prev) => (
-      prev.semester === previousDefaultSemester
-        ? { ...prev, semester: resolvedDefaultCondition.semester }
-        : prev
-    ));
-    setDraftCondition((prev) => (
-      prev.semester === previousDefaultSemester
-        ? { ...prev, semester: resolvedDefaultCondition.semester }
-        : prev
-    ));
-
-    previousDefaultSemesterRef.current = resolvedDefaultCondition.semester;
-  }, [resolvedDefaultCondition.semester]);
+  const resolvedDefaultCondition = useMemo<CourseSearchCondition>(
+    () => ({
+      ...FALLBACK_DEFAULT_CONDITION,
+      semester: defaultSemester?.semester ?? FALLBACK_DEFAULT_CONDITION.semester,
+    }),
+    [defaultSemester],
+  );
 
   const {
     data,
@@ -79,15 +82,17 @@ export default function SearchPage() {
     ...searchCondition,
     sortBy: sortOption,
     sortOrder,
+  }, {
+    enabled: !isSemesterLoading,
   });
 
-
-
   const handleSearch = useCallback((condition: CourseSearchCondition) => {
-    setSearchCondition(condition);
+    setUserCondition(condition);
     setDraftCondition(condition);
     setIsFilterExpanded(false);
   }, []);
+
+
 
   /**
    * 무한 페이징 데이터를 평탄화하여 전체 강의 리스트 생성
@@ -253,7 +258,7 @@ export default function SearchPage() {
    * 선택된 필터 속성만 검색 조건에서 제거합니다.
    */
   const clearSingleFilter = useCallback((patch: Partial<CourseSearchCondition>) => {
-    setSearchCondition((prev) => ({ ...prev, ...patch }));
+    setUserCondition((prev) => ({ ...prev, ...patch }));
     setDraftCondition((prev) => ({ ...prev, ...patch }));
   }, []);
 
@@ -262,9 +267,22 @@ export default function SearchPage() {
    * 검색 조건을 초기 상태로 되돌리고 입력 중인 키워드도 비웁니다.
    */
   const resetAllFilters = useCallback(() => {
-    setSearchCondition(resolvedDefaultCondition);
+    setUserCondition(resolvedDefaultCondition);
     setDraftCondition(resolvedDefaultCondition);
+    setSortOption(resolvedDefaultCondition.sortBy || "name");
+    setSortOrder((resolvedDefaultCondition.sortOrder as "asc" | "desc") || "asc");
   }, [resolvedDefaultCondition]);
+
+  if (isSemesterLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa] dark:bg-black">
+        <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+          검색 데이터를 불러오는 중입니다.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
@@ -339,15 +357,16 @@ export default function SearchPage() {
                 className="overflow-y-auto overflow-x-hidden max-h-[70vh] px-0.5 pb-2 will-change-[height]"
               >
                 <div className="rounded-2xl border border-border/70 bg-white p-4 shadow-lg my-1 transform-gpu">
-                  <CourseSearchBar
-                    key="mobile-search-bar"
-                    onSearch={handleSearch}
-                    onConditionChange={setDraftCondition}
-                    isLoading={isLoading}
-                    initialCondition={draftCondition}
-                    defaultCondition={resolvedDefaultCondition}
-                    hideHeader
-                  />
+                <CourseSearchBar
+                  key="mobile-search-bar"
+                  onSearch={handleSearch}
+                  onConditionChange={setDraftCondition}
+                  isLoading={isLoading}
+                  initialCondition={draftCondition}
+                  defaultCondition={resolvedDefaultCondition}
+                  hideHeader
+                  initialUser={user ?? null}
+                />
                 </div>
               </motion.div>
             )}
@@ -371,6 +390,7 @@ export default function SearchPage() {
                 isLoading={isLoading}
                 initialCondition={draftCondition}
                 defaultCondition={resolvedDefaultCondition}
+                initialUser={user ?? null}
               />
             </div>
           </aside>
@@ -474,6 +494,7 @@ export default function SearchPage() {
                 onLoadMore={fetchNextPage}
                 hasMore={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
+                initialUser={user ?? null}
               />
             )}
           </section>

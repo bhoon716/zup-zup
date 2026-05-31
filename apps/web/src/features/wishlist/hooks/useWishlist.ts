@@ -6,8 +6,8 @@ import { WishlistResponse } from '@/shared/types/api';
 
 import { useUser } from "@/features/user/hooks/useUser";
 
-export const useWishlist = () => {
-  const { data: user } = useUser();
+export const useWishlist = (enabled = true) => {
+  const { data: user } = useUser({ enabled });
   
   return useQuery({
     queryKey: ['wishlist'],
@@ -15,7 +15,7 @@ export const useWishlist = () => {
       const response = await wishlistApi.getMyWishlist();
       return response.data ?? null;
     },
-    enabled: !!user,
+    enabled: enabled && !!user,
   });
 };
 

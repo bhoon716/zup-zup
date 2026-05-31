@@ -11,7 +11,7 @@ import { useUser } from "@/features/user/hooks/useUser";
 import { useTimetables } from "@/features/timetable/hooks/useTimetable";
 import { timetableApi } from "@/features/timetable/api/timetable.api";
 import { buildFreeSchedulesFromTimetable } from "../../lib/course-utils";
-import type { CourseSearchCondition, ScheduleCondition } from "@/shared/types/api";
+import type { CourseSearchCondition, ScheduleCondition, TimetableResponse, User } from "@/shared/types/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,8 @@ interface CourseSmartFiltersProps {
   setCondition: React.Dispatch<React.SetStateAction<CourseSearchCondition>>;
   scheduleOpen: boolean;
   setScheduleOpen: (open: boolean) => void;
+  initialUser?: User | null;
+  initialTimetables?: TimetableResponse[];
 }
 
 /**
@@ -37,22 +39,26 @@ export function CourseSmartFilters({
   setCondition,
   scheduleOpen,
   setScheduleOpen,
+  initialUser,
+  initialTimetables,
 }: CourseSmartFiltersProps) {
   const timetableMenuTriggerId = "course-smart-timetable-trigger";
   const timetableMenuContentId = "course-smart-timetable-content";
   const timetableSectionTriggerId = "course-smart-schedule-trigger";
   const timetableSectionContentId = "course-smart-schedule-content";
-  const { data: user } = useUser();
-  const { data: timetables, refetch: refetchTimetables } = useTimetables();
+  const { data: user } = useUser({ enabled: initialUser === undefined });
+  const { data: timetables, refetch: refetchTimetables } = useTimetables(!initialTimetables);
+  const resolvedUser = initialUser !== undefined ? initialUser : user;
+  const resolvedTimetables = initialTimetables ?? timetables;
 
   // 찜한 강의만 보기 토글 핸들러
   const handleWishedOnlyChange = useCallback((checked: boolean) => {
-    if (checked && !user) {
+    if (checked && !resolvedUser) {
       toast.error("찜한 강의 필터는 로그인 후 사용할 수 있습니다.");
       return;
     }
     setCondition((prev) => ({ ...prev, isWishedOnly: checked || undefined }));
-  }, [user, setCondition]);
+  }, [resolvedUser, setCondition]);
 
   const handleAvailableOnlyChange = useCallback((checked: boolean) => {
     setCondition((prev) => ({ ...prev, isAvailableOnly: checked || undefined }));
@@ -152,7 +158,7 @@ export function CourseSmartFilters({
               )}
           </div>
           <div className="flex items-center gap-1">
-            <DropdownMenu onOpenChange={(open) => open && refetchTimetables()}>
+            <DropdownMenu onOpenChange={(open) => open && !initialTimetables && refetchTimetables()}>
               <DropdownMenuTrigger asChild>
                 <Button
                   id={timetableMenuTriggerId}
@@ -162,7 +168,7 @@ export function CourseSmartFilters({
                   className="h-8 w-8"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!user) {
+                    if (!resolvedUser) {
                       toast.error("내 시간표에서 선택하기는 로그인 후 사용할 수 있습니다.");
                     }
                   }}
@@ -174,16 +180,16 @@ export function CourseSmartFilters({
               <DropdownMenuContent id={timetableMenuContentId} aria-labelledby={timetableMenuTriggerId} align="end" className="w-48">
                 <DropdownMenuLabel className="text-xs font-semibold">내 시간표 선택</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {!user ? (
+                {!resolvedUser ? (
                   <div className="px-2 py-3 text-center text-xs text-muted-foreground">
                     로그인이 필요합니다.
                   </div>
-                ) : !timetables || timetables.length === 0 ? (
+                ) : !resolvedTimetables || resolvedTimetables.length === 0 ? (
                   <div className="px-2 py-3 text-center text-xs text-muted-foreground">
                     생성된 시간표가 없습니다.
                   </div>
                 ) : (
-                  timetables.map((timetable) => (
+                  resolvedTimetables.map((timetable) => (
                     <DropdownMenuItem
                       key={timetable.id}
                       onClick={() => handleImportFromTimetable(timetable.id, timetable.name)}
