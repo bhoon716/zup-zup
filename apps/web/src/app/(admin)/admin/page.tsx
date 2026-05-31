@@ -12,8 +12,10 @@ import {
   useCrawlCourses,
   useCrawlCoursesByTarget,
   useSendTestNotification,
+  useUpdateSearchDefaultSemester,
   useUpdateAdminCrawlTarget,
 } from "@/features/admin/hooks/useAdminActions";
+import { useSearchDefaultSemester } from "@/features/course/hooks/useCourses";
 
 import { Button } from "@/shared/ui/button";
 
@@ -23,6 +25,7 @@ import { AdminQuickActions } from "@/features/admin/components/admin-quick-actio
 import { AdminActivityLog } from "@/features/admin/components/admin-activity-log";
 import { AdminOverview } from "@/features/admin/components/admin-overview";
 import { AdminCrawlTargetPanel } from "@/features/admin/components/admin-crawl-target-panel";
+import { AdminSearchDefaultSemesterPanel } from "@/features/admin/components/admin-search-default-semester-panel";
 import { AdminSchedulePanel } from "@/features/admin/components/admin-schedule-panel";
 import {
   formatDateTime,
@@ -52,16 +55,27 @@ export default function AdminDashboardPage() {
   const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
   const { data: crawlTarget, isLoading: isCrawlTargetLoading } = useAdminCrawlTarget();
   const { mutate: updateCrawlTarget, isPending: isUpdatingCrawlTarget } = useUpdateAdminCrawlTarget();
+  const {
+    data: searchDefaultSemester,
+    isLoading: isSearchDefaultSemesterLoading,
+  } = useSearchDefaultSemester();
+  const {
+    mutate: updateSearchDefaultSemester,
+    isPending: isUpdatingSearchDefaultSemester,
+  } = useUpdateSearchDefaultSemester();
 
   const [configuredDraft, setConfiguredDraft] = useState<{ year: string; semester: string } | null>(null);
   const [runDraft, setRunDraft] = useState<{ year: string; semester: string } | null>(null);
+  const [searchDefaultDraft, setSearchDefaultDraft] = useState<string | null>(null);
 
   const configuredYear = configuredDraft?.year ?? crawlTarget?.year ?? "";
   const configuredSemester = configuredDraft?.semester ?? crawlTarget?.semester ?? "";
   const runYear = runDraft?.year ?? crawlTarget?.year ?? "";
   const runSemester = runDraft?.semester ?? crawlTarget?.semester ?? "";
+  const searchDefaultSemesterValue = searchDefaultDraft ?? searchDefaultSemester?.semester ?? "";
   const canSaveConfiguredTarget = /^\d{4}$/.test(configuredYear.trim()) && configuredSemester.trim().length > 0;
   const canRunCustomTarget = /^\d{4}$/.test(runYear.trim()) && runSemester.trim().length > 0;
+  const canSaveSearchDefaultSemester = searchDefaultSemesterValue.trim().length > 0;
 
   /**
    * 모든 대시보드 데이터를 최신 상태로 갱신합니다.
@@ -223,6 +237,32 @@ export default function AdminDashboardPage() {
             }}
             isRunningCustomTarget={isCustomCrawling}
             canRunCustomTarget={canRunCustomTarget}
+          />
+
+          <AdminSearchDefaultSemesterPanel
+            configuredSemester={searchDefaultSemesterValue}
+            onConfiguredSemesterChange={(value) => setSearchDefaultDraft(value)}
+            onSaveConfiguredSemester={() => {
+              updateSearchDefaultSemester(
+                { semester: searchDefaultSemesterValue.trim() },
+                {
+                  onSuccess: () => setSearchDefaultDraft(null),
+                },
+              );
+            }}
+            onSyncWithCrawlTarget={() => {
+              if (!crawlTarget?.semester) return;
+              updateSearchDefaultSemester(
+                { semester: crawlTarget.semester },
+                {
+                  onSuccess: () => setSearchDefaultDraft(null),
+                },
+              );
+            }}
+            crawlTargetSemester={crawlTarget?.semester ?? ""}
+            isConfiguredSemesterLoading={isSearchDefaultSemesterLoading || isCrawlTargetLoading}
+            isSavingConfiguredSemester={isUpdatingSearchDefaultSemester}
+            canSaveConfiguredSemester={canSaveSearchDefaultSemester}
           />
 
           <AdminSchedulePanel />

@@ -333,6 +333,20 @@ export interface AdminCrawlTargetResponse {
   semester: string;
 }
 
+/**
+ * 검색 기본 학기 설정 요청 데이터 인터페이스입니다.
+ */
+export interface SearchDefaultSemesterRequest {
+  semester: string;
+}
+
+/**
+ * 검색 기본 학기 설정 조회/응답 데이터 인터페이스입니다.
+ */
+export interface SearchDefaultSemesterResponse {
+  semester: string;
+}
+
 // 찜 관련
 export interface WishlistResponse {
   id: number;

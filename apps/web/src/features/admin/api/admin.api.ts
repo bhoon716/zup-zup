@@ -5,6 +5,8 @@ import type {
   AdminOverviewResponse,
   AdminCrawlTargetRequest,
   AdminCrawlTargetResponse,
+  SearchDefaultSemesterRequest,
+  SearchDefaultSemesterResponse,
   AnnouncementRequest,
   AnnouncementDetailResponse,
 } from '@/shared/types/api';
@@ -58,6 +60,16 @@ export const updateCrawlTarget = async (
   request: AdminCrawlTargetRequest
 ): Promise<CommonResponse<AdminCrawlTargetResponse>> => {
   const { data } = await api.put('/api/v1/admin/courses/crawl-target', request);
+  return data;
+};
+
+/**
+ * 검색 기본 학기를 수정합니다.
+ */
+export const updateSearchDefaultSemester = async (
+  request: SearchDefaultSemesterRequest
+): Promise<CommonResponse<SearchDefaultSemesterResponse>> => {
+  const { data } = await api.put('/api/v1/admin/courses/search-default-semester', request);
   return data;
 };
 

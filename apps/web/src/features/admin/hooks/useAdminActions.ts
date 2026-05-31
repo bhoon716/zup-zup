@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as adminApi from '@/features/admin/api/admin.api';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
-import type { AdminCrawlTargetRequest } from '@/shared/types/api';
+import type { AdminCrawlTargetRequest, SearchDefaultSemesterRequest } from '@/shared/types/api';
 
 /**
  * 기본 타겟으로 강의 크롤링을 실행하는 훅입니다.
@@ -67,6 +67,25 @@ export const useUpdateAdminCrawlTarget = () => {
     },
     onError: (error: AxiosError<{ message: string }>) => {
       const errorMessage = error.response?.data?.message || '기본 크롤링 타겟 저장 중 오류가 발생했습니다.';
+      toast.error(errorMessage);
+    },
+  });
+};
+
+/**
+ * 검색 기본 학기를 수정하고 저장하는 훅입니다.
+ */
+export const useUpdateSearchDefaultSemester = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: SearchDefaultSemesterRequest) => adminApi.updateSearchDefaultSemester(request),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['courses', 'search-default-semester'] });
+      toast.success(response.message || '검색 기본 학기를 저장했습니다.');
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      const errorMessage = error.response?.data?.message || '검색 기본 학기 저장 중 오류가 발생했습니다.';
       toast.error(errorMessage);
     },
   });

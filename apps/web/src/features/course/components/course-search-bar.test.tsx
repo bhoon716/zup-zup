@@ -61,4 +61,25 @@ describe("CourseSearchBar", () => {
       }),
     );
   });
+
+  it("초기화 버튼은 주입된 기본 조건으로 되돌린다", () => {
+    const onSearch = vi.fn();
+    render(
+      <CourseSearchBar
+        onSearch={onSearch}
+        initialCondition={{ academicYear: "2026", semester: "U211600025", name: "강의명" }}
+        defaultCondition={{ academicYear: "2026", semester: "U211600020", disclosure: "공개" }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "검색 조건 초기화" }));
+
+    expect(onSearch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        academicYear: "2026",
+        semester: "U211600020",
+        disclosure: "공개",
+      }),
+    );
+  });
 });

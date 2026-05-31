@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CourseSearchBar } from "@/features/course/components/course-search-bar";
 import { CourseTable } from "@/features/course/components/course-table";
 import { CourseTableSkeleton } from "@/features/course/components/course-table-skeleton";
-import { useCourses } from "@/features/course/hooks/useCourses";
+import { useCourses, useSearchDefaultSemester } from "@/features/course/hooks/useCourses";
 import type { CourseSearchCondition } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
 import {
@@ -19,7 +19,7 @@ import { SlidersHorizontal, X, Search, ChevronRight, ListFilter } from "lucide-r
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_CONDITION: CourseSearchCondition = {
+const FALLBACK_DEFAULT_CONDITION: CourseSearchCondition = {
   academicYear: "2026",
   semester: "U211600010",
   disclosure: "공개",
@@ -35,11 +35,38 @@ interface FilterChip {
  * 강의 검색 페이지 메인 컴포넌트
  */
 export default function SearchPage() {
-  const [searchCondition, setSearchCondition] = useState<CourseSearchCondition>(DEFAULT_CONDITION);
-  const [draftCondition, setDraftCondition] = useState<CourseSearchCondition>(DEFAULT_CONDITION);
+  const { data: searchDefaultSemester } = useSearchDefaultSemester();
+  const resolvedDefaultCondition = useMemo<CourseSearchCondition>(
+    () => ({
+      ...FALLBACK_DEFAULT_CONDITION,
+      semester: searchDefaultSemester?.semester ?? FALLBACK_DEFAULT_CONDITION.semester,
+    }),
+    [searchDefaultSemester?.semester],
+  );
+  const previousDefaultSemesterRef = useRef(FALLBACK_DEFAULT_CONDITION.semester);
+
+  const [searchCondition, setSearchCondition] = useState<CourseSearchCondition>(resolvedDefaultCondition);
+  const [draftCondition, setDraftCondition] = useState<CourseSearchCondition>(resolvedDefaultCondition);
   const [sortOption, setSortOption] = useState<string>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+
+  useEffect(() => {
+    const previousDefaultSemester = previousDefaultSemesterRef.current;
+
+    setSearchCondition((prev) => (
+      prev.semester === previousDefaultSemester
+        ? { ...prev, semester: resolvedDefaultCondition.semester }
+        : prev
+    ));
+    setDraftCondition((prev) => (
+      prev.semester === previousDefaultSemester
+        ? { ...prev, semester: resolvedDefaultCondition.semester }
+        : prev
+    ));
+
+    previousDefaultSemesterRef.current = resolvedDefaultCondition.semester;
+  }, [resolvedDefaultCondition.semester]);
 
   const {
     data,
@@ -235,9 +262,9 @@ export default function SearchPage() {
    * 검색 조건을 초기 상태로 되돌리고 입력 중인 키워드도 비웁니다.
    */
   const resetAllFilters = useCallback(() => {
-    setSearchCondition(DEFAULT_CONDITION);
-    setDraftCondition(DEFAULT_CONDITION);
-  }, []);
+    setSearchCondition(resolvedDefaultCondition);
+    setDraftCondition(resolvedDefaultCondition);
+  }, [resolvedDefaultCondition]);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
@@ -318,6 +345,7 @@ export default function SearchPage() {
                     onConditionChange={setDraftCondition}
                     isLoading={isLoading}
                     initialCondition={draftCondition}
+                    defaultCondition={resolvedDefaultCondition}
                     hideHeader
                   />
                 </div>
@@ -342,6 +370,7 @@ export default function SearchPage() {
                 onConditionChange={setDraftCondition}
                 isLoading={isLoading}
                 initialCondition={draftCondition}
+                defaultCondition={resolvedDefaultCondition}
               />
             </div>
           </aside>

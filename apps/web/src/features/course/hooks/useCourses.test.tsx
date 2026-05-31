@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import * as courseApi from "@/features/course/api/course.api";
-import { useCourseDetail, useCourseHistory, useCourses } from "./useCourses";
+import { useCourseDetail, useCourseHistory, useCourses, useSearchDefaultSemester } from "./useCourses";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
 import type { CourseSearchCondition } from "@/shared/types/api";
 
@@ -9,6 +9,7 @@ vi.mock("@/features/course/api/course.api", () => ({
   searchCourses: vi.fn(),
   getCourseHistory: vi.fn(),
   getCourseDetail: vi.fn(),
+  getSearchDefaultSemester: vi.fn(),
 }));
 
 describe("useCourses hooks", () => {
@@ -123,5 +124,21 @@ describe("useCourses hooks", () => {
     expect(result.current.data?.current).toBe(18);
     expect(result.current.data?.available).toBe(12);
     expect(result.current.data?.professor).toBe("이교수");
+  });
+
+  it("검색 기본 학기 조회 결과를 반환한다", async () => {
+    const mockedDefaultSemester = vi.mocked(courseApi.getSearchDefaultSemester);
+    mockedDefaultSemester.mockResolvedValue({
+      code: "SUCCESS",
+      message: "ok",
+      data: { semester: "U211600025" },
+    } as never);
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    const { result } = renderHook(() => useSearchDefaultSemester(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual({ semester: "U211600025" });
   });
 });

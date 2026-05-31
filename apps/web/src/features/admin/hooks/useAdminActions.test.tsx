@@ -6,6 +6,7 @@ import {
   useAdminCrawlTarget,
   useCrawlCourses,
   useCrawlCoursesByTarget,
+  useUpdateSearchDefaultSemester,
   useSendTestNotification,
   useUpdateAdminCrawlTarget,
 } from "./useAdminActions";
@@ -16,6 +17,7 @@ vi.mock("@/features/admin/api/admin.api", () => ({
   crawlCoursesByTarget: vi.fn(),
   getCrawlTarget: vi.fn(),
   updateCrawlTarget: vi.fn(),
+  updateSearchDefaultSemester: vi.fn(),
   sendTestNotification: vi.fn(),
 }));
 
@@ -151,5 +153,27 @@ describe("useAdminActions hooks", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "stats"] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "overview"] });
     expect(toast.success).toHaveBeenCalledWith("특정 타겟 크롤링 시작");
+  });
+
+  it("검색 기본 학기 저장 성공 시 관련 쿼리를 무효화하고 토스트를 노출한다", async () => {
+    const mockedUpdateSearchDefaultSemester = vi.mocked(adminApi.updateSearchDefaultSemester);
+    mockedUpdateSearchDefaultSemester.mockResolvedValue({
+      code: "SUCCESS",
+      message: "검색 기본 학기 저장 완료",
+      data: { semester: "U211600010" },
+    } as never);
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useUpdateSearchDefaultSemester(), { wrapper });
+
+    act(() => {
+      result.current.mutate({ semester: "U211600010" });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["courses", "search-default-semester"] });
+    expect(toast.success).toHaveBeenCalledWith("검색 기본 학기 저장 완료");
   });
 });

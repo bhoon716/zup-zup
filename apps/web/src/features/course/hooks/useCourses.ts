@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import * as courseApi from '@/features/course/api/course.api';
-import type { CourseSearchCondition, Course } from '@/shared/types/api';
+import type { CourseSearchCondition, Course, SearchDefaultSemesterResponse } from '@/shared/types/api';
 import { normalizeCourse } from '@/shared/lib/course';
 
 export const useCourses = (condition: CourseSearchCondition) => {
@@ -67,5 +67,16 @@ export const useCollegeHierarchy = () => {
       return response.data;
     },
     staleTime: 1000 * 60 * 60, // 1시간 동안 신선한 상태 유지
+  });
+};
+
+export const useSearchDefaultSemester = () => {
+  return useQuery<SearchDefaultSemesterResponse>({
+    queryKey: ['courses', 'search-default-semester'],
+    queryFn: async () => {
+      const response = await courseApi.getSearchDefaultSemester();
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 60,
   });
 };

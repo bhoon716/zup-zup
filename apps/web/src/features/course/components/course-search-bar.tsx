@@ -15,6 +15,7 @@ interface CourseSearchBarProps {
   onConditionChange?: (condition: CourseSearchCondition) => void;
   isLoading?: boolean;
   initialCondition?: CourseSearchCondition;
+  defaultCondition?: CourseSearchCondition;
   hideHeader?: boolean;
 }
 
@@ -23,11 +24,13 @@ export function CourseSearchBar({
   onConditionChange,
   isLoading,
   initialCondition,
+  defaultCondition,
   hideHeader,
 }: CourseSearchBarProps) {
-  const initialSnapshot = JSON.stringify(initialCondition ?? DEFAULT_CONDITION);
+  const resolvedDefaultCondition = defaultCondition ?? DEFAULT_CONDITION;
+  const initialSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
   const [condition, setCondition] = useState<CourseSearchCondition>(
-    () => ({ ...(initialCondition ?? DEFAULT_CONDITION) }),
+    () => ({ ...(initialCondition ?? resolvedDefaultCondition) }),
   );
   const prevInitialRef = useRef(initialSnapshot);
 
@@ -36,16 +39,16 @@ export function CourseSearchBar({
    * 로컬 상태를 갱신합니다.
    */
   useEffect(() => {
-    const nextSnapshot = JSON.stringify(initialCondition ?? DEFAULT_CONDITION);
+    const nextSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
     if (nextSnapshot === prevInitialRef.current) return;
 
     prevInitialRef.current = nextSnapshot;
     const timeoutId = window.setTimeout(() => {
-      setCondition({ ...(initialCondition ?? DEFAULT_CONDITION) });
+      setCondition({ ...(initialCondition ?? resolvedDefaultCondition) });
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [initialCondition]);
+  }, [initialCondition, resolvedDefaultCondition]);
   
   // UI 상태: 접기/펼치기
   const [smartOpen, setSmartOpen] = useState(true);
@@ -78,8 +81,8 @@ export function CourseSearchBar({
    * 초기화 성공 시 토스트 메시지를 표시합니다.
    */
   const handleReset = () => {
-    setCondition({ ...DEFAULT_CONDITION });
-    onSearch({ ...DEFAULT_CONDITION });
+    setCondition({ ...resolvedDefaultCondition });
+    onSearch({ ...resolvedDefaultCondition });
     toast.success("검색 조건을 초기화했습니다.");
   };
 
