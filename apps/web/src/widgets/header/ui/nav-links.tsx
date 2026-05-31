@@ -98,6 +98,12 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
                 </Link>
               </Button>
               <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                <Link href="/admin/settings" onClick={onLinkClick}>
+                  <Settings className="w-4 h-4" />
+                  설정 및 제어
+                </Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
                 <Link href="/admin/announcements" onClick={onLinkClick}>
                   <Megaphone className="w-4 h-4" />
                   공지사항 관리
@@ -127,6 +133,12 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
                 <Link href="/admin">
                   <LayoutDashboard className="w-4 h-4" />
                   대시보드
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
+                <Link href="/admin/settings">
+                  <Settings className="w-4 h-4" />
+                  설정 및 제어
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
