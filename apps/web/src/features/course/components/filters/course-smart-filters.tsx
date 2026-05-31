@@ -4,11 +4,6 @@ import { useCallback } from "react";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { Switch } from "@/shared/ui/switch";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/shared/ui/collapsible";
 import { CalendarPlus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { TimeTableSelector } from "../time-table-selector";
@@ -45,6 +40,8 @@ export function CourseSmartFilters({
 }: CourseSmartFiltersProps) {
   const timetableMenuTriggerId = "course-smart-timetable-trigger";
   const timetableMenuContentId = "course-smart-timetable-content";
+  const timetableSectionTriggerId = "course-smart-schedule-trigger";
+  const timetableSectionContentId = "course-smart-schedule-content";
   const { data: user } = useUser();
   const { data: timetables, refetch: refetchTimetables } = useTimetables();
 
@@ -143,11 +140,7 @@ export function CourseSmartFilters({
       </div>
 
       {/* 공강 시간표 설정 */}
-      <Collapsible
-        open={scheduleOpen}
-        onOpenChange={setScheduleOpen}
-        className="space-y-2"
-      >
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Label className="text-sm font-medium">공강 시간표 설정</Label>
@@ -207,25 +200,32 @@ export function CourseSmartFilters({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
-                    scheduleOpen ? "rotate-180" : ""
-                  }`}
-                />
-                <span className="sr-only">Toggle</span>
-              </Button>
-            </CollapsibleTrigger>
+            <Button
+              id={timetableSectionTriggerId}
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-controls={timetableSectionContentId}
+              aria-expanded={scheduleOpen}
+              className="h-8 w-8 p-0"
+              onClick={() => setScheduleOpen(!scheduleOpen)}
+            >
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                  scheduleOpen ? "rotate-180" : ""
+                }`}
+              />
+              <span className="sr-only">Toggle</span>
+            </Button>
           </div>
         </div>
-        <CollapsibleContent>
+        <div id={timetableSectionContentId} hidden={!scheduleOpen}>
           <TimeTableSelector
             selected={condition.selectedSchedules ?? []}
             onChange={handleSchedulesChange}
           />
-        </CollapsibleContent>
-      </Collapsible>
+        </div>
+      </div>
     </div>
   );
 }
