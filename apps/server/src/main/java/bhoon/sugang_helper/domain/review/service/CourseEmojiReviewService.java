@@ -81,7 +81,9 @@ public class CourseEmojiReviewService {
 
     private Long getCurrentUserIdOrNull() {
         String email = SecurityUtil.getCurrentUserEmailOrNull();
-        if (email == null) return null;
+        if (email == null) {
+            return null;
+        }
         return userRepository.findByEmail(email).map(User::getId).orElse(null);
     }
 }
