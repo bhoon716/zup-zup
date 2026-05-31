@@ -36,7 +36,6 @@ class CourseCrawlerTargetServiceTest {
         CrawlerSetting setting = CrawlerSetting.builder()
                 .targetYear("2026")
                 .targetSemester(SemesterType.SUMMER_SESSION.getCode())
-                .searchDefaultSemester(SemesterType.FIRST_SEMESTER.getCode())
                 .build();
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.of(setting));
 
@@ -84,51 +83,12 @@ class CourseCrawlerTargetServiceTest {
     }
 
     @Test
-    @DisplayName("타겟 정보를 수정하면 정상적으로 DB에 저장된다")
-    void updateTarget_Success() {
-        // given
-        CrawlerSetting setting = CrawlerSetting.builder()
-                .targetYear("2026")
-                .targetSemester(SemesterType.FIRST_SEMESTER.getCode())
-                .searchDefaultSemester(SemesterType.SUMMER_SESSION.getCode())
-                .build();
-        given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.of(setting));
-
-        // when
-        AdminCrawlTargetResponse response = crawlerTargetService.updateTarget("2026", SemesterType.SUMMER_SESSION.getCode());
-
-        // then
-        assertThat(response.getSemester()).isEqualTo(SemesterType.SUMMER_SESSION.getCode());
-        assertThat(setting.getTargetSemester()).isEqualTo(SemesterType.SUMMER_SESSION.getCode());
-    }
-
-    @Test
-    @DisplayName("검색 기본 학기를 수정하면 정상적으로 DB에 저장된다")
-    void updateSearchDefaultSemester_Success() {
-        // given
-        CrawlerSetting setting = CrawlerSetting.builder()
-                .targetYear("2026")
-                .targetSemester(SemesterType.FIRST_SEMESTER.getCode())
-                .searchDefaultSemester(SemesterType.SECOND_SEMESTER.getCode())
-                .build();
-        given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.of(setting));
-
-        // when
-        var response = crawlerTargetService.updateSearchDefaultSemester(SemesterType.WINTER_SESSION.getCode());
-
-        // then
-        assertThat(response.getSemester()).isEqualTo(SemesterType.WINTER_SESSION.getCode());
-        assertThat(setting.getSearchDefaultSemester()).isEqualTo(SemesterType.WINTER_SESSION.getCode());
-    }
-
-    @Test
     @DisplayName("현재 타겟의 원시 값(Record)을 정상적으로 조회한다")
     void getCurrentTargetValue_Success() {
         // given
         CrawlerSetting setting = CrawlerSetting.builder()
                 .targetYear("2026")
                 .targetSemester(SemesterType.WINTER_SESSION.getCode())
-                .searchDefaultSemester(SemesterType.FIRST_SEMESTER.getCode())
                 .build();
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.of(setting));
 

@@ -2,10 +2,8 @@ package bhoon.sugang_helper.domain.course.controller;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.domain.course.request.AdminCrawlTargetRequest;
-import bhoon.sugang_helper.domain.course.request.SearchDefaultSemesterRequest;
 import bhoon.sugang_helper.domain.course.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
-import bhoon.sugang_helper.domain.course.response.SearchDefaultSemesterResponse;
 import bhoon.sugang_helper.domain.course.service.CourseCrawlerService;
 import bhoon.sugang_helper.domain.course.service.CourseCrawlerTargetService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,17 +46,6 @@ public class AdminCourseController {
             @Valid @RequestBody AdminCrawlTargetRequest request) {
         AdminCrawlTargetResponse response = crawlerTargetService.updateTarget(request.getYear(), request.getSemester());
         return CommonResponse.ok(response, "기본 크롤링 타겟을 저장했습니다.");
-    }
-
-    /**
-     * 검색 페이지의 기본 학기를 저장합니다.
-     */
-    @Operation(summary = "검색 기본 학기 저장", description = "강의 검색 페이지에서 사용할 기본 학기를 저장합니다.")
-    @PutMapping("/search-default-semester")
-    public ResponseEntity<CommonResponse<SearchDefaultSemesterResponse>> updateSearchDefaultSemester(
-            @Valid @RequestBody SearchDefaultSemesterRequest request) {
-        SearchDefaultSemesterResponse response = crawlerTargetService.updateSearchDefaultSemester(request.getSemester());
-        return CommonResponse.ok(response, "검색 기본 학기를 저장했습니다.");
     }
 
     /**
