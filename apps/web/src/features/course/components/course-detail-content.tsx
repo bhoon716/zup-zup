@@ -62,8 +62,7 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
       </div>
 
       <CourseReviewSection 
-        courseKey={course.courseKey} 
-        isReviewed={course.isReviewed} 
+        courseKey={course.courseKey}
       />
     </div>
   );
