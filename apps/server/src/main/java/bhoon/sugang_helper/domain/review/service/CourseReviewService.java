@@ -73,7 +73,6 @@ public class CourseReviewService {
                 .courseKey(courseKey)
                 .userId(user.getId())
                 .rating(request.rating())
-                .content(request.content())
                 .build();
 
         CourseReview saved = reviewRepository.saveAndFlush(review);
@@ -107,7 +106,7 @@ public class CourseReviewService {
 
         validateReviewOwner(review, user);
 
-        review.update(request.rating(), request.content());
+        review.update(request.rating());
         reviewRepository.saveAndFlush(review);
         log.info("[Review] Updated. reviewId={}, userId={}", reviewId, user.getId());
 

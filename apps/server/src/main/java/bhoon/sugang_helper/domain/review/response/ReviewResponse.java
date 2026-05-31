@@ -12,8 +12,6 @@ public record ReviewResponse(
 
         @Schema(description = "별점 (1~5)", example = "5") int rating,
 
-        @Schema(description = "리뷰 내용", example = "정말 유익한 강의였습니다!") String content,
-
         @Schema(description = "공감 수", example = "12") int likeCount,
 
         @Schema(description = "비공감 수", example = "1") int dislikeCount,
@@ -28,7 +26,6 @@ public record ReviewResponse(
                 review.getId(),
                 review.getCourseKey(),
                 review.getRating(),
-                review.getContent(),
                 review.getLikeCount(),
                 review.getDislikeCount(),
                 review.getUserId().equals(currentUserId),

@@ -37,7 +37,7 @@ public class CourseReviewController {
 
     private final CourseReviewService reviewService;
 
-    @Operation(summary = "강의 리뷰 작성", description = "선택한 과목에 1~5점의 별점 리뷰를 등록합니다. 코멘트는 선택 사항입니다.")
+    @Operation(summary = "강의 리뷰 작성", description = "선택한 과목에 1~5점의 별점 리뷰를 등록합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "작성 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
                     {
@@ -47,7 +47,6 @@ public class CourseReviewController {
                         "id": 1,
                         "courseKey": "2026:U12345:0001:1",
                         "rating": 5,
-                        "content": "이 강의 최고에요!",
                         "likeCount": 0,
                         "dislikeCount": 0,
                         "isMine": true,
@@ -66,7 +65,7 @@ public class CourseReviewController {
         return CommonResponse.ok(response, "리뷰가 성공적으로 작성되었습니다.");
     }
 
-    @Operation(summary = "해당 강의의 리뷰 목록 조회", description = "페이징 처리된 리뷰 목록을 반환합니다. (기본 최신순, 공감순 정렬 가능)")
+    @Operation(summary = "해당 강의의 리뷰 조회", description = "리뷰를 페이징 처리하여 반환합니다. (기본 최신순, 공감순 정렬 가능)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
                     {
@@ -78,7 +77,6 @@ public class CourseReviewController {
                             "id": 1,
                             "courseKey": "2026:U12345:0001:1",
                             "rating": 5,
-                            "content": "정말 유익한 시간!",
                             "likeCount": 12,
                             "dislikeCount": 1,
                             "isMine": false,

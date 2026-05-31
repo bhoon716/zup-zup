@@ -31,9 +31,6 @@ public class CourseReview extends BaseEntity {
     @Column(nullable = false)
     private int rating;
 
-    @Column(length = 255)
-    private String content;
-
     @Column(nullable = false)
     private int likeCount;
 
@@ -41,18 +38,16 @@ public class CourseReview extends BaseEntity {
     private int dislikeCount;
 
     @Builder
-    public CourseReview(String courseKey, Long userId, int rating, String content) {
+    public CourseReview(String courseKey, Long userId, int rating) {
         this.courseKey = courseKey;
         this.userId = userId;
         this.rating = rating;
-        this.content = content;
         this.likeCount = 0;
         this.dislikeCount = 0;
     }
 
-    public void update(int rating, String content) {
+    public void update(int rating) {
         this.rating = rating;
-        this.content = content;
     }
 
     public void increaseLikeCount() {

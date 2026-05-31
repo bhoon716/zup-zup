@@ -45,8 +45,6 @@ class CourseReviewServiceTest {
     private static final Long USER_ID = 1L;
     private static final Long OTHER_USER_ID = 2L;
     private static final Long REVIEW_ID = 100L;
-    private static final String REVIEW_CONTENT = "Good Course";
-
     @InjectMocks
     private CourseReviewService reviewService;
 
@@ -90,7 +88,6 @@ class CourseReviewServiceTest {
                 .courseKey(courseKey)
                 .userId(userId)
                 .rating(5)
-                .content("Good")
                 .build();
     }
 
@@ -110,7 +107,7 @@ class CourseReviewServiceTest {
     void createReview_Success() {
         User user = createUser(USER_ID, Role.USER);
         mockCurrentUser(user);
-        ReviewCreateRequest request = new ReviewCreateRequest(5, REVIEW_CONTENT);
+        ReviewCreateRequest request = new ReviewCreateRequest(5);
 
         Course course = Course.builder().courseKey(COURSE_KEY).build();
         lenient().when(courseRepository.existsByCourseKey(COURSE_KEY)).thenReturn(true);
@@ -118,7 +115,7 @@ class CourseReviewServiceTest {
         lenient().when(reviewRepository.existsByCourseKeyAndUserId(COURSE_KEY, user.getId())).thenReturn(false);
 
         CourseReview savedReview = CourseReview.builder()
-                .courseKey(COURSE_KEY).userId(user.getId()).rating(request.rating()).content(request.content()).build();
+                .courseKey(COURSE_KEY).userId(user.getId()).rating(request.rating()).build();
 
         when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(savedReview);
         mockCourseStats(COURSE_KEY, 5.0, 1L);
@@ -126,7 +123,6 @@ class CourseReviewServiceTest {
         ReviewResponse response = reviewService.createReview(COURSE_KEY, request);
 
         assertThat(response.rating()).isEqualTo(5);
-        assertThat(response.content()).isEqualTo(REVIEW_CONTENT);
         verify(reviewRepository).saveAndFlush(any());
     }
 
@@ -135,7 +131,7 @@ class CourseReviewServiceTest {
     void createReview_Success_WithoutContent() {
         User user = createUser(USER_ID, Role.USER);
         mockCurrentUser(user);
-        ReviewCreateRequest request = new ReviewCreateRequest(5, "   ");
+        ReviewCreateRequest request = new ReviewCreateRequest(5);
 
         Course course = Course.builder().courseKey(COURSE_KEY).build();
         lenient().when(courseRepository.existsByCourseKey(COURSE_KEY)).thenReturn(true);
@@ -146,7 +142,6 @@ class CourseReviewServiceTest {
                 .courseKey(COURSE_KEY)
                 .userId(user.getId())
                 .rating(request.rating())
-                .content(request.content())
                 .build();
 
         when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(savedReview);
@@ -155,8 +150,7 @@ class CourseReviewServiceTest {
         ReviewResponse response = reviewService.createReview(COURSE_KEY, request);
 
         assertThat(response.rating()).isEqualTo(5);
-        assertThat(response.content()).isNull();
-        verify(reviewRepository).saveAndFlush(argThat(review -> review.getContent() == null));
+        verify(reviewRepository).saveAndFlush(any());
     }
 
     @Test
@@ -166,7 +160,7 @@ class CourseReviewServiceTest {
         mockCurrentUser(user);
 
         String invalidCourseKey = "INVALID";
-        ReviewCreateRequest request = new ReviewCreateRequest(5, "Good");
+        ReviewCreateRequest request = new ReviewCreateRequest(5);
 
         when(courseRepository.existsByCourseKey(invalidCourseKey)).thenReturn(false);
 
@@ -180,7 +174,7 @@ class CourseReviewServiceTest {
     void createReview_Fail_AlreadyReviewed() {
         User user = createUser(USER_ID, Role.USER);
         mockCurrentUser(user);
-        ReviewCreateRequest request = new ReviewCreateRequest(5, "Good");
+        ReviewCreateRequest request = new ReviewCreateRequest(5);
 
         lenient().when(courseRepository.existsByCourseKey(COURSE_KEY)).thenReturn(true);
         lenient().when(reviewRepository.existsByCourseKeyAndUserId(COURSE_KEY, user.getId())).thenReturn(true);
@@ -218,7 +212,7 @@ class CourseReviewServiceTest {
         mockCurrentUser(user);
 
         CourseReview review = createReview(COURSE_KEY, user.getId());
-        ReviewUpdateRequest request = new ReviewUpdateRequest(2, "Bad Course");
+        ReviewUpdateRequest request = new ReviewUpdateRequest(2);
 
         when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
 
@@ -229,30 +223,7 @@ class CourseReviewServiceTest {
         ReviewResponse response = reviewService.updateReview(REVIEW_ID, request);
 
         assertThat(response.rating()).isEqualTo(2);
-        assertThat(response.content()).isEqualTo("Bad Course");
         assertThat(review.getRating()).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("리뷰 수정 성공 - 코멘트 제거")
-    void updateReview_Success_RemoveContent() {
-        User user = createUser(USER_ID, Role.USER);
-        mockCurrentUser(user);
-
-        CourseReview review = createReview(COURSE_KEY, user.getId());
-        ReviewUpdateRequest request = new ReviewUpdateRequest(4, " ");
-
-        when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
-
-        Course course = Course.builder().courseKey(COURSE_KEY).build();
-        when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
-        mockCourseStats(COURSE_KEY, 4.0, 1L);
-
-        ReviewResponse response = reviewService.updateReview(REVIEW_ID, request);
-
-        assertThat(response.rating()).isEqualTo(4);
-        assertThat(response.content()).isNull();
-        assertThat(review.getContent()).isNull();
     }
 
     @Test
@@ -262,7 +233,7 @@ class CourseReviewServiceTest {
         mockCurrentUser(user);
 
         CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
-        ReviewUpdateRequest request = new ReviewUpdateRequest(2, "Bad");
+        ReviewUpdateRequest request = new ReviewUpdateRequest(2);
 
         when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
 
