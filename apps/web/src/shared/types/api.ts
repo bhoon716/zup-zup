@@ -504,7 +504,6 @@ export interface ReviewResponse {
 
 export interface ReviewCreateRequest {
   rating: number;
-  content?: string;
 }
 
 export interface ReviewReactionRequest {
