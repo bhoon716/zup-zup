@@ -7,6 +7,10 @@ import bhoon.sugang_helper.common.security.constant.SecurityConstant;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SecurityException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
@@ -91,12 +95,12 @@ public class JwtProvider {
                 return false;
             }
             return true;
-        } catch (io.jsonwebtoken.security.SecurityException | io.jsonwebtoken.MalformedJwtException e) {
-            log.error("[JWT] Invalid signature or token format: {}", e.getMessage());
-        } catch (io.jsonwebtoken.ExpiredJwtException e) {
-            log.warn("[JWT] Expired token: {}", e.getMessage());
-        } catch (io.jsonwebtoken.UnsupportedJwtException e) {
-            log.error("[JWT] Unsupported token format: {}", e.getMessage());
+        } catch (SecurityException | MalformedJwtException e) {
+            log.error("잘못된 JWT 서명입니다.");
+        } catch (ExpiredJwtException e) {
+            log.error("만료된 JWT 토큰입니다.");
+        } catch (UnsupportedJwtException e) {
+            log.error("지원되지 않는 JWT 토큰입니다.");
         } catch (IllegalArgumentException e) {
             log.error("[JWT] Empty token claims: {}", e.getMessage());
         } catch (Exception e) {

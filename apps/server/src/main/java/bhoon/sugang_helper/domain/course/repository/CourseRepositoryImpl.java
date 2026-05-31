@@ -26,7 +26,10 @@ import java.util.Arrays;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
@@ -204,14 +207,14 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     /**
      * 문자열 리스트를 특정 Enum 리스트로 변환 (null 및 유효하지 않은 값 제외)
      */
-    private <T extends Enum<T>> List<T> toEnumList(List<String> values, java.util.function.Function<String, T> mapper) {
+    private <T extends Enum<T>> List<T> toEnumList(List<String> values, Function<String, T> mapper) {
         if (values == null || values.isEmpty()) {
             return List.of();
         }
         return values.stream()
                 .map(mapper)
-                .filter(java.util.Objects::nonNull)
-                .toList();
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     /**

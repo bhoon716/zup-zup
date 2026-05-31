@@ -8,6 +8,7 @@ import bhoon.sugang_helper.domain.course.enums.DisclosureStatus;
 import bhoon.sugang_helper.domain.course.enums.GradingMethod;
 import bhoon.sugang_helper.domain.course.enums.LectureLanguage;
 import bhoon.sugang_helper.domain.course.enums.TargetGrade;
+import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -49,8 +50,8 @@ public record ParsedCourseDto(
      */
     public record ScheduleDto(
             CourseDayOfWeek dayOfWeek,
-            java.time.LocalTime startTime,
-            java.time.LocalTime endTime
+            LocalTime startTime,
+            LocalTime endTime
     ) {
     }
 }

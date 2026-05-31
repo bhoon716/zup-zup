@@ -11,6 +11,7 @@ import bhoon.sugang_helper.domain.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
 import bhoon.sugang_helper.domain.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.domain.course.response.CrawlTargetInfo;
+import java.time.Year;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
@@ -83,7 +84,7 @@ public class CourseCrawlerService {
         }
 
         try {
-            int currentYear = java.time.Year.now().getValue();
+            int currentYear = Year.now().getValue();
             for (int y = currentYear; y > currentYear - 3; y--) {
                 String year = String.valueOf(y);
                 for (SemesterType semester : SemesterType.values()) {
