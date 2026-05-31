@@ -1,6 +1,6 @@
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import {
   useTimetables,
@@ -9,6 +9,7 @@ import {
   useAddCourseToTimetable,
 } from './useTimetable';
 import { createQueryWrapper, createTestQueryClient } from '@/test/query-client';
+import * as timetableApi from '@/features/timetable/api/timetable.api';
 
 const mockUser = {
   id: 1,
@@ -98,6 +99,16 @@ describe('useTimetable hooks', () => {
     const { result } = renderHook(() => useTimetableDetail(1), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.id).toBe(1);
+  });
+
+  it('useTimetableDetail does not fetch when disabled', async () => {
+    const spy = vi.spyOn(timetableApi.timetableApi, 'getTimetable');
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    renderHook(() => useTimetableDetail(1, false), { wrapper });
+
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 
   it('usePrimaryTimetable fetches the primary timetable', async () => {

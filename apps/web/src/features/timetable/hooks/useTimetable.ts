@@ -18,8 +18,9 @@ export const useTimetables = () => {
   });
 };
 
-export const useTimetableDetail = (id: number | null) => {
-  const { data: user } = useUser();
+export const useTimetableDetail = (id: number | null, enabled = true) => {
+  const queryEnabled = !!id && enabled;
+  const { data: user } = useUser({ enabled: queryEnabled });
   return useQuery({
     queryKey: ['timetable', id],
     queryFn: async () => {
@@ -27,7 +28,7 @@ export const useTimetableDetail = (id: number | null) => {
       const response = await timetableApi.getTimetable(id);
       return response.data ?? null;
     },
-    enabled: !!id && !!user,
+    enabled: queryEnabled && !!user,
   });
 };
 

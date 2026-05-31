@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 import { AxiosError } from 'axios';
 
-export const useUser = () => {
+export const useUser = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['user', 'me'],
     queryFn: async () => {
@@ -20,6 +20,7 @@ export const useUser = () => {
         throw error;
       }
     },
+    enabled: options?.enabled ?? true,
     retry: false,
     staleTime: 1000 * 60 * 5,
   });

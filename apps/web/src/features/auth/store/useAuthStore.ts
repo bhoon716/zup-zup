@@ -1,12 +1,6 @@
 import { create } from 'zustand';
 import * as userApi from '@/features/user/api/user.api';
-
-interface User {
-  id: number;
-  email: string;
-  name: string;
-  role: string;
-}
+import type { User } from '@/shared/types/api';
 
 interface AuthState {
   user: User | null;

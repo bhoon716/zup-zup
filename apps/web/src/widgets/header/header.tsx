@@ -1,7 +1,7 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import { useUser, useLogout } from "@/features/user/hooks/useUser";
+import { useLogout } from "@/features/user/hooks/useUser";
 import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 import Image from "next/image";
@@ -33,7 +33,8 @@ import { HeaderDesktopUser, HeaderMobileUserStatus } from "./ui/user-status";
 export function Header() {
   const mobileMenuTriggerId = "header-mobile-menu-trigger";
   const mobileMenuContentId = "header-mobile-menu-content";
-  const { data: user, isLoading } = useUser();
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
   const { mutate: logout, isPending } = useLogout();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
   const pathname = usePathname();

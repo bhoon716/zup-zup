@@ -7,7 +7,6 @@ import { useEffect, useState, Suspense } from "react";
 import { Toaster, toast } from "sonner";
 import { LoginModal } from "@/widgets/auth/login-modal";
 
-import { useUser } from "@/features/user/hooks/useUser";
 import { usePathname, useRouter } from "next/navigation";
 import { TooltipProvider } from "@/shared/ui/tooltip";
 
@@ -15,7 +14,8 @@ import { TooltipProvider } from "@/shared/ui/tooltip";
  * 온보딩 완료 여부를 체크하여 미완료 시 온보딩 페이지로 강제 이동시키는 가드 컴포넌트입니다.
  */
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
-  const { data: user, isLoading } = useUser();
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -39,11 +39,15 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
  */
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
+  const pathname = usePathname();
 
   useEffect(() => {
     // Firebase SDK를 앱 시작 시 한 번 초기화한다.
     getFirebaseApp();
-    checkSession();
+
+    if (pathname !== "/") {
+      checkSession();
+    }
 
     // 서비스 워커 등록 (PWA 설치 가능성 확보)
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
@@ -83,7 +87,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       }
     };
-  }, [checkSession]);
+  }, [checkSession, pathname]);
 
   return <OnboardingGuard>{children}</OnboardingGuard>;
 }

@@ -1,44 +1,19 @@
 "use client";
 
-import { Loader2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { RecentNotifications } from "./recent-notifications";
 import { DashboardAnnouncements } from "./dashboard-announcements";
 import { DashboardTimetable } from "./dashboard-timetable";
 import { DashboardDDayBlock } from "./dashboard-dday-block";
 import { DashboardCountdown } from "./dashboard-countdown";
-import { useDashboardSnapshot } from "./hooks/useDashboard";
-import { Button } from "@/shared/ui/button";
+import type { DashboardSnapshotResponse } from "@/shared/types/api";
 
 /**
  * 사용자의 개인 대시보드를 렌더링하는 메인 컴포넌트입니다.
  * 환영 메시지, 수강신청 일정(세로), 공지사항, 대표 시간표, 최근 알림 및 찜한 강의 요약을 포함합니다.
  */
-export function Dashboard() {
-  const { data: snapshot, isLoading, isError, refetch } = useDashboardSnapshot();
-
-  if (isLoading || !snapshot) {
-    if (isError) {
-      return (
-        <main className="grow flex items-center justify-center py-8 md:py-12 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto w-full">
-          <div className="rounded-3xl border border-red-100 bg-white p-8 text-center shadow-sm">
-            <p className="text-sm font-bold text-slate-900">대시보드 데이터를 불러오지 못했습니다.</p>
-            <p className="mt-2 text-xs text-slate-500">잠시 후 다시 시도해 주세요.</p>
-            <Button className="mt-4" onClick={() => void refetch()}>
-              다시 시도
-            </Button>
-          </div>
-        </main>
-      );
-    }
-
-    return (
-      <main className="grow flex items-center justify-center py-8 md:py-12 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto w-full">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </main>
-    );
-  }
-
+export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse }) {
   const { user, notifications, primaryTimetable, upcomingSchedules, announcements } = snapshot;
 
   return (

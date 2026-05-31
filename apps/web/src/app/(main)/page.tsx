@@ -1,15 +1,29 @@
 "use client";
 
-import { Dashboard } from "@/widgets/home/dashboard";
-import { HomeLanding } from "@/widgets/home/home-landing";
-import { useUser } from "@/features/user/hooks/useUser";
+import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import { Dashboard } from "@/widgets/home/dashboard";
+import { HomeLanding } from "@/widgets/home/home-landing";
+import { useDashboardSnapshot } from "@/widgets/home/hooks/useDashboard";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  const { data: user, isLoading } = useUser();
+  const { data: snapshot, isLoading, isError } = useDashboardSnapshot();
+  const setUser = useAuthStore((state) => state.setUser);
+
+  useEffect(() => {
+    if (snapshot) {
+      setUser(snapshot.user);
+      return;
+    }
+
+    if (!isLoading) {
+      setUser(null);
+    }
+  }, [isLoading, setUser, snapshot]);
 
   if (isLoading) {
     return (
@@ -19,20 +33,29 @@ export default function HomePage() {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa] dark:bg-black px-4">
+        <div className="rounded-3xl border border-red-100 bg-white p-8 text-center shadow-sm">
+          <p className="text-sm font-bold text-slate-900">메인 화면을 불러오지 못했습니다.</p>
+          <p className="mt-2 text-xs text-slate-500">잠시 후 다시 시도해 주세요.</p>
+          <Link href="/" className="mt-4 inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">
+            다시 시도
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-black selection:bg-primary/10 selection:text-primary">
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: "2s" }} />
       </div>
 
-      {!user ? (
-        <HomeLanding />
-      ) : (
-        <Dashboard />
-      )}
+      {snapshot ? <Dashboard snapshot={snapshot} /> : <HomeLanding />}
 
-      {/* 푸터 섹션 */}
       <footer className="bg-white border-t border-gray-100 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">

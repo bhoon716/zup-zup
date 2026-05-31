@@ -1,8 +1,9 @@
 import { renderHook, waitFor } from "@testing-library/react";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
+import * as dashboardApi from "@/widgets/home/api/dashboard.api";
 import { useDashboardSnapshot } from "./useDashboard";
 
 const mockSnapshot = {
@@ -85,5 +86,20 @@ describe("useDashboardSnapshot hook", () => {
     expect(result.current.data?.primaryTimetable?.name).toBe("대표 시간표");
     expect(result.current.data?.upcomingSchedules).toHaveLength(1);
     expect(result.current.data?.announcements).toHaveLength(1);
+  });
+
+  it("401 응답은 게스트 상태로 처리한다", async () => {
+    const spy = vi.spyOn(dashboardApi, "getDashboardSnapshot").mockRejectedValueOnce({
+      response: { status: 401 },
+    } as never);
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+
+    const { result } = renderHook(() => useDashboardSnapshot(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBeNull();
+    spy.mockRestore();
   });
 });
