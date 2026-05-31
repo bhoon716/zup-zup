@@ -12,6 +12,11 @@ public interface NotificationHistoryRepository extends JpaRepository<Notificatio
     List<NotificationHistory> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     /**
+     * 특정 사용자의 최신 알림 수신 내역 일부만 조회합니다.
+     */
+    List<NotificationHistory> findTop3ByUserIdOrderByCreatedAtDesc(Long userId);
+
+    /**
      * 특정 시점 이후에 발생한 알림의 총 개수를 집계합니다.
      */
     long countByCreatedAtAfter(LocalDateTime start);

@@ -4,6 +4,7 @@ import bhoon.sugang_helper.domain.announcement.entity.Announcement;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,6 +19,11 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
      * 공개된 공지사항을 고정 및 최신순으로 조회합니다.
      */
     List<Announcement> findByPublishedTrueOrderByPinnedDescCreatedAtDesc();
+
+    /**
+     * 공개된 공지사항을 고정 및 최신순으로 일부만 조회합니다.
+     */
+    List<Announcement> findByPublishedTrueOrderByPinnedDescCreatedAtDesc(Pageable pageable);
 
     /**
      * 공개된 특정 공지사항을 ID로 조회합니다.
