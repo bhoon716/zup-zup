@@ -30,25 +30,26 @@ class CourseCrawlerTargetServiceTest {
     private CourseCrawlerTargetService crawlerTargetService;
 
     @Test
-    @DisplayName("DB에 설정이 존재하면 정상적으로 현재 타겟을 조회한다")
-    void getCurrentTarget_Success() {
+    @DisplayName("검색 기본 학기는 현재 크롤링 타겟 학기를 따른다")
+    void getSearchDefaultSemester_ReturnsCurrentTargetSemester() {
         // given
         CrawlerSetting setting = CrawlerSetting.builder()
                 .targetYear("2026")
                 .targetSemester(SemesterType.SUMMER_SESSION.getCode())
                 .build();
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.of(setting));
+        ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
 
         // when
-        AdminCrawlTargetResponse response = crawlerTargetService.getCurrentTarget();
+        var response = crawlerTargetService.getSearchDefaultSemester();
 
         // then
-        assertThat(response.getYear()).isEqualTo("2026");
         assertThat(response.getSemester()).isEqualTo(SemesterType.SUMMER_SESSION.getCode());
+        verify(crawlerSettingRepository).findTopByOrderByIdAsc();
     }
 
     @Test
-    @DisplayName("DB에 설정이 존재하지 않으면 기본 설정값으로 초기화하여 반환한다")
+    @DisplayName("DB에 설정이 존재하지 않으면 현재 타겟은 기본 설정값으로 초기화하여 반환한다")
     void getCurrentTarget_NotFound_ReturnsDefaultValue() {
         // given
         ReflectionTestUtils.setField(crawlerTargetService, "defaultYear", "2026");
@@ -62,23 +63,6 @@ class CourseCrawlerTargetServiceTest {
         // then
         assertThat(response.getYear()).isEqualTo("2026");
         assertThat(response.getSemester()).isEqualTo(SemesterType.FIRST_SEMESTER.getCode());
-        verify(crawlerSettingRepository, times(1)).save(any(CrawlerSetting.class));
-    }
-
-    @Test
-    @DisplayName("DB에 설정이 존재하지 않으면 검색 기본 학기도 기본값으로 초기화한다")
-    void getSearchDefaultSemester_NotFound_ReturnsDefaultValue() {
-        // given
-        ReflectionTestUtils.setField(crawlerTargetService, "defaultYear", "2026");
-        ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.SECOND_SEMESTER.getCode());
-        given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
-        given(crawlerSettingRepository.save(any(CrawlerSetting.class))).willAnswer(invocation -> invocation.getArgument(0));
-
-        // when
-        var response = crawlerTargetService.getSearchDefaultSemester();
-
-        // then
-        assertThat(response.getSemester()).isEqualTo(SemesterType.SECOND_SEMESTER.getCode());
         verify(crawlerSettingRepository, times(1)).save(any(CrawlerSetting.class));
     }
 
