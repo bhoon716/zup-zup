@@ -6,6 +6,7 @@ import { CourseSearchBar } from "@/features/course/components/course-search-bar"
 import { CourseTable } from "@/features/course/components/course-table";
 import { CourseTableSkeleton } from "@/features/course/components/course-table-skeleton";
 import { useCourses, useSearchDefaultSemester } from "@/features/course/hooks/useCourses";
+import { getDefaultCourseSortOrder, type CourseSortOption, type CourseSortOrder } from "@/features/course/lib/course-sort";
 import type { CourseSearchCondition } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
 import {
@@ -49,8 +50,8 @@ export default function SearchPage() {
     sortOrder: FALLBACK_DEFAULT_CONDITION.sortOrder,
   });
   const [draftCondition, setDraftCondition] = useState<CourseSearchCondition>(FALLBACK_DEFAULT_CONDITION);
-  const [sortOption, setSortOption] = useState<string>("name");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortOption, setSortOption] = useState<CourseSortOption>("name");
+  const [sortOrder, setSortOrder] = useState<CourseSortOrder>("asc");
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
   // 서버 학기 + 사용자 조건을 합쳐 최종 검색 조건 파생 (useEffect 없이 자동 동기화)
@@ -90,6 +91,11 @@ export default function SearchPage() {
     setUserCondition(condition);
     setDraftCondition(condition);
     setIsFilterExpanded(false);
+  }, []);
+
+  const handleSortOptionChange = useCallback((value: CourseSortOption) => {
+    setSortOption(value);
+    setSortOrder(getDefaultCourseSortOrder(value));
   }, []);
 
 
@@ -269,8 +275,8 @@ export default function SearchPage() {
   const resetAllFilters = useCallback(() => {
     setUserCondition(resolvedDefaultCondition);
     setDraftCondition(resolvedDefaultCondition);
-    setSortOption(resolvedDefaultCondition.sortBy || "name");
-    setSortOrder((resolvedDefaultCondition.sortOrder as "asc" | "desc") || "asc");
+    setSortOption((resolvedDefaultCondition.sortBy as CourseSortOption | undefined) || "name");
+    setSortOrder((resolvedDefaultCondition.sortOrder as CourseSortOrder | undefined) || "asc");
   }, [resolvedDefaultCondition]);
 
   if (isSemesterLoading) {
@@ -407,7 +413,7 @@ export default function SearchPage() {
               <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                 <Select
                   value={sortOption}
-                  onValueChange={(value) => setSortOption(value)}
+                  onValueChange={(value) => handleSortOptionChange(value as CourseSortOption)}
                 >
                     <SelectTrigger id="course-sort-trigger" aria-controls="course-sort-content" className="h-9 min-w-[120px] rounded-lg border-border/60 bg-transparent text-xs font-medium">
                       <SelectValue placeholder="정렬" />
