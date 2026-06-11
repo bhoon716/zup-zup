@@ -26,6 +26,18 @@ public interface CourseRepository extends JpaRepository<Course, Long>, CourseRep
     List<Course> findByCourseKeyIn(List<String> courseKeys);
 
     /**
+     * 같은 과목코드와 교수명을 가진 강의들을 조회합니다.
+     */
+    @Query("""
+            select c
+            from Course c
+            where c.subjectCode = :subjectCode
+              and coalesce(trim(c.professor), '') = :professor
+            """)
+    List<Course> findBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
+                                                @Param("professor") String professor);
+
+    /**
      * 전체 강의 중 가장 최근에 크롤링된 시각을 조회합니다.
      */
     @Query("select max(c.lastCrawledAt) from Course c")

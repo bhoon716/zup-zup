@@ -3,7 +3,9 @@ package bhoon.sugang_helper.domain.review.service;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import bhoon.sugang_helper.domain.review.ReviewScopeKey;
 import bhoon.sugang_helper.domain.review.entity.CourseReview;
 import bhoon.sugang_helper.domain.review.entity.CourseReviewReaction;
 import bhoon.sugang_helper.domain.review.enums.ReactionType;
@@ -61,11 +63,11 @@ public class CourseReviewService {
     public ReviewResponse createReview(String courseKey, ReviewCreateRequest request) {
         User user = getCurrentUser();
 
-        if (!courseRepository.existsByCourseKey(courseKey)) {
-            throw new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다.");
-        }
+        Course course = getCourse(courseKey);
+        ReviewScopeKey scope = ReviewScopeKey.from(course);
 
-        if (reviewRepository.existsByCourseKeyAndUserId(courseKey, user.getId())) {
+        if (reviewRepository.countBySubjectCodeAndProfessorAndUserId(scope.subjectCode(), scope.professor(),
+                user.getId()) > 0) {
             throw new CustomException(ErrorCode.REVIEW_ALREADY_EXISTS);
         }
 
@@ -76,10 +78,10 @@ public class CourseReviewService {
                 .build();
 
         CourseReview saved = reviewRepository.saveAndFlush(review);
-        log.info("[Review] Created. reviewId={}, courseKey={}, userId={}", saved.getId(), courseKey,
-                user.getId());
+        log.info("[Review] Created. reviewId={}, courseKey={}, subjectCode={}, professor={}, userId={}",
+                saved.getId(), courseKey, scope.subjectCode(), scope.professor(), user.getId());
 
-        updateCourseReviewStats(courseKey);
+        updateCourseReviewStats(course);
 
         return ReviewResponse.of(saved, user.getId());
     }
@@ -90,7 +92,11 @@ public class CourseReviewService {
     @Transactional(readOnly = true)
     public Page<ReviewResponse> getReviews(String courseKey, Pageable pageable) {
         Long currentUserId = getCurrentUserIdOrNull();
-        return reviewRepository.findByCourseKeyWithMyReviewFirst(courseKey, currentUserId, pageable)
+        Course course = getCourse(courseKey);
+        ReviewScopeKey scope = ReviewScopeKey.from(course);
+
+        return reviewRepository.findBySubjectCodeAndProfessorWithMyReviewFirst(scope.subjectCode(), scope.professor(),
+                        currentUserId, pageable)
                 .map(review -> ReviewResponse.of(review, currentUserId));
     }
 
@@ -110,7 +116,7 @@ public class CourseReviewService {
         reviewRepository.saveAndFlush(review);
         log.info("[Review] Updated. reviewId={}, userId={}", reviewId, user.getId());
 
-        updateCourseReviewStats(review.getCourseKey());
+        updateCourseReviewStats(getCourse(review.getCourseKey()));
 
         return ReviewResponse.of(review, user.getId());
     }
@@ -132,7 +138,7 @@ public class CourseReviewService {
         reviewRepository.flush();
         log.info("[Review] Deleted. reviewId={}, userId={}", reviewId, user.getId());
 
-        updateCourseReviewStats(courseKey);
+        updateCourseReviewStats(getCourse(courseKey));
     }
 
     /**
@@ -220,11 +226,16 @@ public class CourseReviewService {
     /**
      * 특정 강의의 전체 리뷰 통계(평균 별점, 리뷰 수)를 업데이트합니다.
      */
-    private void updateCourseReviewStats(String courseKey) {
-        courseRepository.findByCourseKey(courseKey).ifPresent(course -> {
-            long count = reviewRepository.countByCourseKey(courseKey);
-            Double avg = reviewRepository.getAverageRatingByCourseKey(courseKey);
-            course.updateReviewStats(avg != null ? avg.floatValue() : 0.0f, (int) count);
-        });
+    private void updateCourseReviewStats(Course course) {
+        ReviewScopeKey scope = ReviewScopeKey.from(course);
+        long count = reviewRepository.countBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor());
+        Double avg = reviewRepository.getAverageRatingBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor());
+        courseRepository.findBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor())
+                .forEach(target -> target.updateReviewStats(avg != null ? avg.floatValue() : 0.0f, (int) count));
+    }
+
+    private Course getCourse(String courseKey) {
+        return courseRepository.findByCourseKey(courseKey)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다."));
     }
 }

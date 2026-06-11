@@ -19,6 +19,7 @@ import bhoon.sugang_helper.domain.course.response.CourseDetailResponse;
 import bhoon.sugang_helper.domain.course.response.CourseResponse;
 import bhoon.sugang_helper.domain.course.response.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.domain.review.repository.CourseReviewRepository;
+import bhoon.sugang_helper.domain.review.ReviewScopeKey;
 import bhoon.sugang_helper.domain.user.repository.UserRepository;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.user.entity.User;
@@ -43,6 +44,9 @@ class CourseServiceTest {
 
         private static final String COURSE_KEY = "CK1";
         private static final String COURSE_NAME = "Test Course";
+        private static final String SUBJECT_CODE = "CSE101";
+        private static final String PROFESSOR = "김교수";
+        private static final String NORMALIZED_PROFESSOR = ReviewScopeKey.normalizeProfessor(PROFESSOR);
         private static final String ACADEMIC_YEAR = "2026";
         private static final String SEMESTER = "U211600010";
         private static final String USER_EMAIL = "user@test.com";
@@ -83,9 +87,13 @@ class CourseServiceTest {
         private Course createCourse() {
                 return Course.builder()
                                 .courseKey(COURSE_KEY)
+                                .subjectCode(SUBJECT_CODE)
                                 .name(COURSE_NAME)
+                                .professor(PROFESSOR)
                                 .capacity(50)
                                 .current(10)
+                                .averageRating(4.0f)
+                                .reviewCount(10)
                                 .academicYear(ACADEMIC_YEAR)
                                 .semester(SEMESTER)
                                 .build();
@@ -175,7 +183,8 @@ class CourseServiceTest {
                 securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(USER_EMAIL);
                 given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(course));
                 given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
-                given(reviewRepository.existsByCourseKeyAndUserId(COURSE_KEY, userId)).willReturn(true);
+                given(reviewRepository.countBySubjectCodeAndProfessorAndUserId(SUBJECT_CODE, NORMALIZED_PROFESSOR,
+                                userId)).willReturn(1L);
                 mockCrawlerTarget();
 
                 // when

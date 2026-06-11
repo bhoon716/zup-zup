@@ -4,6 +4,8 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.domain.course.repository.CourseRepository;
+import bhoon.sugang_helper.domain.course.entity.Course;
+import bhoon.sugang_helper.domain.review.ReviewScopeKey;
 import bhoon.sugang_helper.domain.review.entity.CourseEmojiReview;
 import bhoon.sugang_helper.domain.review.repository.CourseEmojiReviewRepository;
 import bhoon.sugang_helper.domain.review.response.CourseEmojiReviewResponse;
@@ -32,23 +34,25 @@ public class CourseEmojiReviewService {
         if (emoji == null || emoji.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "이모지는 비어 있을 수 없습니다.");
         }
-        if (!courseRepository.existsByCourseKey(courseKey)) {
-            throw new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다.");
-        }
 
+        Course course = getCourse(courseKey);
+        ReviewScopeKey scope = ReviewScopeKey.from(course);
         User user = getCurrentUser();
 
-        emojiReviewRepository.findByCourseKeyAndUserIdAndEmoji(courseKey, user.getId(), emoji)
+        emojiReviewRepository.findBySubjectCodeAndProfessorAndUserIdAndEmoji(scope.subjectCode(), scope.professor(),
+                        user.getId(), emoji)
                 .ifPresentOrElse(
                         existing -> {
                             emojiReviewRepository.delete(existing);
-                            log.info("[EmojiReview] Removed. courseKey={}, userId={}, emoji={}", courseKey, user.getId(), emoji);
+                            log.info("[EmojiReview] Removed. courseKey={}, subjectCode={}, professor={}, userId={}, emoji={}",
+                                    courseKey, scope.subjectCode(), scope.professor(), user.getId(), emoji);
                         },
                         () -> {
                             emojiReviewRepository.save(
                                     CourseEmojiReview.builder().courseKey(courseKey).userId(user.getId()).emoji(emoji).build()
                             );
-                            log.info("[EmojiReview] Added. courseKey={}, userId={}, emoji={}", courseKey, user.getId(), emoji);
+                            log.info("[EmojiReview] Added. courseKey={}, subjectCode={}, professor={}, userId={}, emoji={}",
+                                    courseKey, scope.subjectCode(), scope.professor(), user.getId(), emoji);
                         }
                 );
     }
@@ -58,13 +62,16 @@ public class CourseEmojiReviewService {
      */
     @Transactional(readOnly = true)
     public List<CourseEmojiReviewResponse> getCourseEmojiStats(String courseKey) {
+        Course course = getCourse(courseKey);
+        ReviewScopeKey scope = ReviewScopeKey.from(course);
         Long currentUserId = getCurrentUserIdOrNull();
-        return emojiReviewRepository.findEmojiStatsByCourseKey(courseKey).stream()
+        return emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor()).stream()
                 .map(row -> {
                     String emoji = (String) row[0];
                     long count = ((Number) row[1]).longValue();
                     boolean isMine = currentUserId != null &&
-                            emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(courseKey, currentUserId, emoji);
+                            emojiReviewRepository.countBySubjectCodeAndProfessorAndUserIdAndEmoji(
+                                    scope.subjectCode(), scope.professor(), currentUserId, emoji) > 0;
                     return CourseEmojiReviewResponse.builder()
                             .emoji(emoji)
                             .count(count)
@@ -85,5 +92,10 @@ public class CourseEmojiReviewService {
             return null;
         }
         return userRepository.findByEmail(email).map(User::getId).orElse(null);
+    }
+
+    private Course getCourse(String courseKey) {
+        return courseRepository.findByCourseKey(courseKey)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다."));
     }
 }

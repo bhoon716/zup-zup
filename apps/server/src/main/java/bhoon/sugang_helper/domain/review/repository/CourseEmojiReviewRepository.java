@@ -15,6 +15,46 @@ public interface CourseEmojiReviewRepository extends JpaRepository<CourseEmojiRe
     boolean existsByCourseKeyAndUserIdAndEmoji(String courseKey, Long userId, String emoji);
 
     @Query("""
+            select r
+            from CourseEmojiReview r
+            join Course c on c.courseKey = r.courseKey
+            where c.subjectCode = :subjectCode
+              and coalesce(trim(c.professor), '') = :professor
+              and r.userId = :userId
+              and r.emoji = :emoji
+            """)
+    Optional<CourseEmojiReview> findBySubjectCodeAndProfessorAndUserIdAndEmoji(@Param("subjectCode") String subjectCode,
+                                                                                @Param("professor") String professor,
+                                                                                @Param("userId") Long userId,
+                                                                                @Param("emoji") String emoji);
+
+    @Query("""
+            select count(r)
+            from CourseEmojiReview r
+            join Course c on c.courseKey = r.courseKey
+            where c.subjectCode = :subjectCode
+              and coalesce(trim(c.professor), '') = :professor
+              and r.emoji = :emoji
+            """)
+    long countBySubjectCodeAndProfessorAndEmoji(@Param("subjectCode") String subjectCode,
+                                                @Param("professor") String professor,
+                                                @Param("emoji") String emoji);
+
+    @Query("""
+            select count(r)
+            from CourseEmojiReview r
+            join Course c on c.courseKey = r.courseKey
+            where c.subjectCode = :subjectCode
+              and coalesce(trim(c.professor), '') = :professor
+              and r.userId = :userId
+              and r.emoji = :emoji
+            """)
+    long countBySubjectCodeAndProfessorAndUserIdAndEmoji(@Param("subjectCode") String subjectCode,
+                                                          @Param("professor") String professor,
+                                                          @Param("userId") Long userId,
+                                                          @Param("emoji") String emoji);
+
+    @Query("""
             select r.emoji, count(r)
             from CourseEmojiReview r
             where r.courseKey = :courseKey
@@ -22,4 +62,16 @@ public interface CourseEmojiReviewRepository extends JpaRepository<CourseEmojiRe
             order by count(r) desc, r.emoji asc
             """)
     List<Object[]> findEmojiStatsByCourseKey(@Param("courseKey") String courseKey);
+
+    @Query("""
+            select r.emoji, count(r)
+            from CourseEmojiReview r
+            join Course c on c.courseKey = r.courseKey
+            where c.subjectCode = :subjectCode
+              and coalesce(trim(c.professor), '') = :professor
+            group by r.emoji
+            order by count(r) desc, r.emoji asc
+            """)
+    List<Object[]> findEmojiStatsBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
+                                                           @Param("professor") String professor);
 }
