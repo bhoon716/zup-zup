@@ -482,6 +482,21 @@ export interface ScheduleRequest {
   endTime?: string; // "HH:mm"
 }
 
+// D-Day 관련
+export interface DdaySettingResponse {
+  id: number;
+  title: string;
+  targetDate: string; // "YYYY-MM-DD"
+  targetTime?: string; // "HH:mm"
+  dDay: string;
+}
+
+export interface DdaySettingRequest {
+  title: string;
+  targetDate: string; // "YYYY-MM-DD"
+  targetTime?: string; // "HH:mm"
+}
+
 // 공지사항 관련
 export type AnnouncementSearchType = "TITLE" | "CONTENT" | "TITLE_CONTENT";
 

@@ -18,6 +18,7 @@ import { Button } from "@/shared/ui/button";
 import { AdminQuickActions } from "@/features/admin/components/admin-quick-actions";
 import { AdminCrawlTargetPanel } from "@/features/admin/components/admin-crawl-target-panel";
 import { AdminSchedulePanel } from "@/features/admin/components/admin-schedule-panel";
+import { AdminDdayPanel } from "@/features/admin/components/admin-dday-panel";
 
 /**
  * 관리자 제어 및 설정 관리 페이지 컴포넌트입니다.
@@ -199,6 +200,7 @@ export default function AdminSettingsPage() {
 
         {/* 주요 D-Day 학사 일정 관리 섹션 */}
         <AdminSchedulePanel />
+        <AdminDdayPanel />
       </main>
     </div>
   );
