@@ -398,7 +398,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         String sortBy = condition.getSortBy();
         String sortOrder = condition.getSortOrder();
 
-        Order order = "desc".equalsIgnoreCase(sortOrder) ? Order.DESC : Order.ASC;
+        Order order = resolveSortOrder(sortBy, sortOrder);
 
         // 강의명 순: 강의명(order) -> 과목코드(ASC) -> 분반(ASC)
         if ("name".equalsIgnoreCase(sortBy)) {
@@ -459,6 +459,21 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                 new OrderSpecifier<>(Order.DESC, course.current),
                 new OrderSpecifier<>(Order.ASC, course.courseKey)
         };
+    }
+
+    private Order resolveSortOrder(String sortBy, String sortOrder) {
+        if (StringUtils.hasText(sortOrder)) {
+            return "desc".equalsIgnoreCase(sortOrder) ? Order.DESC : Order.ASC;
+        }
+
+        if (sortBy == null || "popular".equalsIgnoreCase(sortBy)
+                || "rating".equalsIgnoreCase(sortBy)
+                || "current".equalsIgnoreCase(sortBy)
+                || "available".equalsIgnoreCase(sortBy)) {
+            return Order.DESC;
+        }
+
+        return Order.ASC;
     }
 
     /**

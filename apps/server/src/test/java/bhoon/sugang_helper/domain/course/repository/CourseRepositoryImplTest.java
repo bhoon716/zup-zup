@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.domain.course.entity.Course;
 import bhoon.sugang_helper.domain.course.request.CourseSearchCondition;
+import bhoon.sugang_helper.domain.wishlist.entity.Wishlist;
+import bhoon.sugang_helper.domain.wishlist.repository.WishlistRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,9 @@ class CourseRepositoryImplTest {
 
     @Autowired
     private CourseRepository courseRepository;
+
+    @Autowired
+    private WishlistRepository wishlistRepository;
 
     @Test
     @DisplayName("교수명에 여러 값을 입력하면 OR 조건으로 검색한다")
@@ -60,6 +65,31 @@ class CourseRepositoryImplTest {
                 .containsExactlyInAnyOrder("자료구조", "운영체제");
     }
 
+    @Test
+    @DisplayName("인기순 정렬은 찜 수 내림차순으로 정렬하고 찜이 없는 강의도 포함한다")
+    void searchCourses_sortsByPopularityWithoutFilteringUnwishedCourses() {
+        // given
+        saveCourse("CK1", "알고리즘", "김교수", "컴퓨터공학부");
+        saveCourse("CK2", "자료구조", "이교수", "컴퓨터공학부");
+        saveCourse("CK3", "운영체제", "박교수", "컴퓨터공학부");
+        saveWishlist(1L, "CK1");
+        saveWishlist(2L, "CK2");
+        saveWishlist(3L, "CK2");
+        saveWishlist(4L, "CK2");
+
+        CourseSearchCondition condition = baseCondition()
+                .sortBy("popular")
+                .build();
+
+        // when
+        var response = courseRepository.searchCourses(condition, PageRequest.of(0, 10));
+
+        // then
+        assertThat(response.getContent())
+                .extracting(Course::getName)
+                .containsExactly("자료구조", "알고리즘", "운영체제");
+    }
+
     private CourseSearchCondition.CourseSearchConditionBuilder baseCondition() {
         return CourseSearchCondition.builder()
                 .academicYear("2026")
@@ -80,5 +110,12 @@ class CourseRepositoryImplTest {
                         .semester("U211600010")
                         .department(department)
                         .build());
+    }
+
+    private void saveWishlist(Long userId, String courseKey) {
+        wishlistRepository.save(Wishlist.builder()
+                .userId(userId)
+                .courseKey(courseKey)
+                .build());
     }
 }
