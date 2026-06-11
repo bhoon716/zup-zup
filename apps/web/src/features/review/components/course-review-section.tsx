@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/shared/
 
 interface CourseReviewSectionProps {
   courseKey: string;
+  reviewScopeKey: string;
   averageRating?: number;
   reviewCount?: number;
   isReviewed?: boolean;
@@ -38,15 +39,16 @@ const emojiPickerI18n = {
  */
 export function CourseReviewSection({
   courseKey,
+  reviewScopeKey,
   averageRating,
   reviewCount,
   isReviewed,
 }: CourseReviewSectionProps) {
-  const { data: myReview, status: reviewStatus } = useReviews(courseKey);
-  const { mutate: createReview, isPending: isCreating } = useCreateReview(courseKey);
-  const { mutate: updateReview, isPending: isUpdating } = useUpdateReview(courseKey);
-  const { data: emojiStats, status: emojiStatus } = useCourseEmojis(courseKey);
-  const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(courseKey);
+  const { data: myReview, status: reviewStatus } = useReviews(reviewScopeKey, courseKey);
+  const { mutate: createReview, isPending: isCreating } = useCreateReview(reviewScopeKey, courseKey);
+  const { mutate: updateReview, isPending: isUpdating } = useUpdateReview(reviewScopeKey, courseKey);
+  const { data: emojiStats, status: emojiStatus } = useCourseEmojis(reviewScopeKey, courseKey);
+  const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(reviewScopeKey, courseKey);
   const { data: user, isPending: isUserLoading } = useUser();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
 
@@ -65,7 +67,7 @@ export function CourseReviewSection({
   const isEditingReview = Boolean(myReview) || Boolean(isReviewed);
   const isSubmittingReview = isCreating || isUpdating;
 
-  if (!courseKey) {
+  if (!courseKey || !reviewScopeKey) {
     return null;
   }
 

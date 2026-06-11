@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import * as reviewApi from "@/features/review/api/review.api";
+import { getReviewScopeKey } from "@/shared/lib/course";
 import type {
   Course,
   EmojiReviewResponse,
@@ -61,101 +62,117 @@ const updateCourseLists = (current: unknown, updatedCourse: Course) => {
   }
 
   const cache = current as CourseInfiniteCache;
+  const updatedScopeKey = getReviewScopeKey(updatedCourse);
+
   return {
     ...cache,
     pages: cache.pages.map((page) => ({
       ...page,
       content: page.content.map((course) =>
-        course.courseKey === updatedCourse.courseKey ? { ...course, ...updatedCourse } : course
+        getReviewScopeKey(course) === updatedScopeKey ? { ...course, ...updatedCourse } : course
       ),
     })),
   };
 };
 
-export const useReviews = (courseKey: string) => {
+const updateCourseDetailCaches = (queryClient: ReturnType<typeof useQueryClient>, updatedCourse: Course) => {
+  const updatedScopeKey = getReviewScopeKey(updatedCourse);
+
+  queryClient.getQueriesData<Course>({ queryKey: ["course-detail"] }).forEach(([queryKey, currentCourse]) => {
+    if (!currentCourse || getReviewScopeKey(currentCourse) !== updatedScopeKey) {
+      return;
+    }
+
+    queryClient.setQueryData(queryKey, { ...currentCourse, ...updatedCourse });
+  });
+};
+
+export const useReviews = (reviewScopeKey: string, courseKey: string) => {
   return useQuery<ReviewResponse | null>({
-    queryKey: ["review", courseKey],
+    queryKey: ["review", reviewScopeKey],
     queryFn: async () => {
       const response = await reviewApi.getReviews(courseKey, 0, 1);
       return response.data.content[0] ?? null;
     },
-    enabled: !!courseKey,
+    enabled: !!reviewScopeKey && !!courseKey,
   });
 };
 
-export const useCreateReview = (courseKey: string) => {
+export const useCreateReview = (reviewScopeKey: string, courseKey: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (request: ReviewCreateRequest) => reviewApi.createReview(courseKey, request),
     onSuccess: (response) => {
-      const previousReview = queryClient.getQueryData<ReviewResponse | null>(["review", courseKey]);
+      const previousReview = queryClient.getQueryData<ReviewResponse | null>(["review", reviewScopeKey]);
       const previousCourse = queryClient.getQueryData<Course>(["course-detail", courseKey]);
 
-      queryClient.setQueryData(["review", courseKey], response.data);
+      queryClient.setQueryData(["review", reviewScopeKey], response.data);
 
       if (previousCourse) {
         const updatedCourse = updateCourseReviewStats(previousCourse, previousReview?.rating ?? null, response.data.rating);
         queryClient.setQueryData(["course-detail", courseKey], updatedCourse);
         queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current, updatedCourse));
+        updateCourseDetailCaches(queryClient, updatedCourse);
       }
     },
   });
 };
 
-export const useUpdateReview = (courseKey: string) => {
+export const useUpdateReview = (reviewScopeKey: string, courseKey: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ reviewId, request }: { reviewId: number; request: ReviewUpdateRequest }) =>
       reviewApi.updateReview(reviewId, request),
     onSuccess: (response) => {
-      const previousReview = queryClient.getQueryData<ReviewResponse | null>(["review", courseKey]);
+      const previousReview = queryClient.getQueryData<ReviewResponse | null>(["review", reviewScopeKey]);
       const previousCourse = queryClient.getQueryData<Course>(["course-detail", courseKey]);
 
-      queryClient.setQueryData(["review", courseKey], response.data);
+      queryClient.setQueryData(["review", reviewScopeKey], response.data);
 
       if (previousCourse) {
         const updatedCourse = updateCourseReviewStats(previousCourse, previousReview?.rating ?? null, response.data.rating);
         queryClient.setQueryData(["course-detail", courseKey], updatedCourse);
         queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current, updatedCourse));
+        updateCourseDetailCaches(queryClient, updatedCourse);
       }
     },
   });
 };
 
-export const useToggleReviewReaction = (courseKey: string) => {
+export const useToggleReviewReaction = (reviewScopeKey: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ reviewId, request }: { reviewId: number; request: ReviewReactionRequest }) =>
       reviewApi.toggleReviewReaction(reviewId, request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["review", courseKey] });
+      queryClient.invalidateQueries({ queryKey: ["review", reviewScopeKey] });
     },
   });
 };
 
 /** 강의의 이모지 리뷰 통계를 실시간 조회합니다. */
-export const useCourseEmojis = (courseKey: string) => {
+export const useCourseEmojis = (reviewScopeKey: string, courseKey: string) => {
   return useQuery({
-    queryKey: ["course-emojis", courseKey],
+    queryKey: ["course-emojis", reviewScopeKey],
     queryFn: async () => {
       const response = await reviewApi.getCourseEmojis(courseKey);
       return response.data;
     },
-    enabled: !!courseKey,
+    enabled: !!reviewScopeKey && !!courseKey,
   });
 };
 
 /** 이모지를 토글합니다. 성공 시 해당 강의 이모지 캐시를 자동 무효화합니다. */
-export const useToggleCourseEmoji = (courseKey: string) => {
+export const useToggleCourseEmoji = (reviewScopeKey: string, courseKey: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (emoji: string) => reviewApi.toggleCourseEmoji(courseKey, emoji),
     onMutate: async (emoji: string) => {
-      await queryClient.cancelQueries({ queryKey: ["course-emojis", courseKey] });
+      await queryClient.cancelQueries({ queryKey: ["course-emojis", reviewScopeKey] });
 
-      const previousEmojis = queryClient.getQueryData<EmojiReviewResponse[]>(["course-emojis", courseKey]);
+      const previousEmojis = queryClient.getQueryData<EmojiReviewResponse[]>(["course-emojis", reviewScopeKey]);
 
-      queryClient.setQueryData<EmojiReviewResponse[]>(["course-emojis", courseKey], (current = []) => {
+      queryClient.setQueryData<EmojiReviewResponse[]>(["course-emojis", reviewScopeKey], (current = []) => {
         const next = new Map(current.map((item) => [item.emoji, { ...item }]));
         const existing = next.get(emoji);
 
@@ -180,10 +197,10 @@ export const useToggleCourseEmoji = (courseKey: string) => {
     onError: (_error, _emoji, context) => {
       if (!context) return;
 
-      queryClient.setQueryData(["course-emojis", courseKey], context.previousEmojis);
+      queryClient.setQueryData(["course-emojis", reviewScopeKey], context.previousEmojis);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["course-emojis", courseKey], refetchType: "none" });
+      queryClient.invalidateQueries({ queryKey: ["course-emojis", reviewScopeKey], refetchType: "none" });
     },
   });
 };

@@ -43,6 +43,8 @@ vi.mock("@/features/auth/store/useAuthStore", () => ({
 }));
 
 describe("CourseReviewSection", () => {
+  const REVIEW_SCOPE_KEY = "CSE101::김교수";
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -90,7 +92,15 @@ describe("CourseReviewSection", () => {
   });
 
   it("평균 별점, 별점 등록 폼, 이모지 리뷰만 보여주고 목록 패널은 숨긴다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} isReviewed={false} />);
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey={REVIEW_SCOPE_KEY}
+        averageRating={4.2}
+        reviewCount={13}
+        isReviewed={false}
+      />
+    );
 
     expect(screen.getByRole("heading", { name: "강의 리뷰" })).toBeInTheDocument();
     expect(screen.getByText("전체 평균 별점")).toBeInTheDocument();
@@ -107,7 +117,15 @@ describe("CourseReviewSection", () => {
   });
 
   it("내가 이미 남긴 별점은 수정 폼에 반영되고 수정 요청을 보낸다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} isReviewed />);
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey={REVIEW_SCOPE_KEY}
+        averageRating={4.2}
+        reviewCount={13}
+        isReviewed
+      />
+    );
 
     expect(screen.getByRole("button", { name: "수정" })).toBeInTheDocument();
 
@@ -123,7 +141,7 @@ describe("CourseReviewSection", () => {
   it("평균 별점이 없으면 0점과 0개로 표시한다", () => {
     vi.mocked(reviewHooks.useReviews).mockReturnValue({ data: null, status: "success" } as never);
 
-    render(<CourseReviewSection courseKey="TEST-COURSE" isReviewed={false} />);
+    render(<CourseReviewSection courseKey="TEST-COURSE" reviewScopeKey={REVIEW_SCOPE_KEY} isReviewed={false} />);
 
     expect(screen.getByText("0점")).toBeInTheDocument();
     expect(screen.getByText("(0개)")).toBeInTheDocument();
@@ -132,7 +150,15 @@ describe("CourseReviewSection", () => {
   it("별점을 선택하고 등록하면 리뷰 생성 훅을 호출한다", () => {
     vi.mocked(reviewHooks.useReviews).mockReturnValue({ data: null, status: "success" } as never);
 
-    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} isReviewed={false} />);
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey={REVIEW_SCOPE_KEY}
+        averageRating={4.2}
+        reviewCount={13}
+        isReviewed={false}
+      />
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /5점/ }));
     fireEvent.click(screen.getByRole("button", { name: "등록" }));
@@ -141,7 +167,15 @@ describe("CourseReviewSection", () => {
   });
 
   it("이모지 추가 버튼을 누르면 선택 모달이 열리고 이모지를 고르면 토글 훅을 호출한다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} isReviewed={false} />);
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey={REVIEW_SCOPE_KEY}
+        averageRating={4.2}
+        reviewCount={13}
+        isReviewed={false}
+      />
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
     expect(screen.getByTestId("emoji-picker")).toBeInTheDocument();
@@ -151,7 +185,15 @@ describe("CourseReviewSection", () => {
   });
 
   it("내가 단 이모지 버튼을 다시 누르면 같은 이모지를 토글한다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} isReviewed={false} />);
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey={REVIEW_SCOPE_KEY}
+        averageRating={4.2}
+        reviewCount={13}
+        isReviewed={false}
+      />
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "👍 3개" }));
 
@@ -159,7 +201,15 @@ describe("CourseReviewSection", () => {
   });
 
   it("같은 이모지를 연속으로 눌러도 중복 토글 요청은 보내지 않는다", () => {
-    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} isReviewed={false} />);
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey={REVIEW_SCOPE_KEY}
+        averageRating={4.2}
+        reviewCount={13}
+        isReviewed={false}
+      />
+    );
 
     const thumbButton = screen.getByRole("button", { name: "👍 3개" });
     fireEvent.click(thumbButton);
@@ -178,7 +228,15 @@ describe("CourseReviewSection", () => {
       status: "success",
     } as never);
 
-    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} isReviewed={false} />);
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey={REVIEW_SCOPE_KEY}
+        averageRating={4.2}
+        reviewCount={13}
+        isReviewed={false}
+      />
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "👍 3개" }));
     fireEvent.click(screen.getByRole("button", { name: "😂 2개" }));
@@ -193,7 +251,15 @@ describe("CourseReviewSection", () => {
       isPending: false,
     } as never);
 
-    render(<CourseReviewSection courseKey="TEST-COURSE" averageRating={4.2} reviewCount={13} isReviewed={false} />);
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey={REVIEW_SCOPE_KEY}
+        averageRating={4.2}
+        reviewCount={13}
+        isReviewed={false}
+      />
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
 
