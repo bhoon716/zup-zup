@@ -41,8 +41,8 @@ export default function SearchPage() {
   const { data: defaultSemester, isLoading: isSemesterLoading } = useSearchDefaultSemester();
   const { data: user } = useUser();
 
-  // 사용자가 변경한 검색 조건 (학기 제외)
-  const [userCondition, setUserCondition] = useState<Omit<CourseSearchCondition, 'semester'>>({
+  // 사용자가 변경한 검색 조건
+  const [userCondition, setUserCondition] = useState<CourseSearchCondition>({
     academicYear: FALLBACK_DEFAULT_CONDITION.academicYear,
     disclosure: FALLBACK_DEFAULT_CONDITION.disclosure,
     sortBy: FALLBACK_DEFAULT_CONDITION.sortBy,
@@ -58,7 +58,7 @@ export default function SearchPage() {
     () => ({
       ...FALLBACK_DEFAULT_CONDITION,
       ...userCondition,
-      semester: defaultSemester?.semester ?? FALLBACK_DEFAULT_CONDITION.semester,
+      semester: userCondition.semester ?? defaultSemester?.semester ?? FALLBACK_DEFAULT_CONDITION.semester,
     }),
     [defaultSemester, userCondition],
   );
