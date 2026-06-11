@@ -30,6 +30,9 @@ public enum CourseClassification {
         if ("교직(대)".equals(normalized)) {
             return TEACHING_PROFESSION_GRAD;
         }
+        if ("전공(대학원)".equals(normalized) || "전공(대)".equals(normalized)) {
+            return MAJOR;
+        }
 
         return Arrays.stream(values())
                 .filter(c -> c.description.equals(normalized))
