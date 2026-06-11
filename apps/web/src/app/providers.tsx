@@ -45,7 +45,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     // Firebase SDK를 앱 시작 시 한 번 초기화한다.
     getFirebaseApp();
 
-    if (pathname !== "/" && pathname !== "/search") {
+    // 검색 페이지는 useUser()만으로는 auth store가 채워지지 않으므로,
+    // 헤더의 로그인 CTA와 인증 전용 네비게이션을 복구하려면 세션 부트스트랩이 필요하다.
+    if (pathname !== "/") {
       checkSession();
     }
 
