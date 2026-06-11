@@ -15,7 +15,8 @@ interface MultiSelectFilterProps {
 vi.mock("@/shared/ui/multi-select-filter", () => ({
   MultiSelectFilter: ({ options, onChange, placeholder }: MultiSelectFilterProps) => (
     <div data-testid={`multi-select-${placeholder}`}>
-      <button 
+      <p data-testid={`options-${placeholder}`}>{options.map((option) => option.label).join(",")}</p>
+      <button
         data-testid={`btn-${placeholder}`}
         onClick={() => onChange([options[0].value])}
       >
@@ -60,5 +61,12 @@ describe("CourseDetailFilters", () => {
     const condition = JSON.parse(screen.getByTestId("condition-json").textContent || "{}");
     expect(condition.lectureLanguages).toBeDefined();
     expect(condition.credits).toBeDefined();
+  });
+
+  it("성적 평가 옵션에는 그룹 prefix가 붙지 않는다", () => {
+    render(<FiltersHarness />);
+
+    expect(screen.getByTestId("options-성적 평가 선택")).toHaveTextContent("상대평가Ⅰ");
+    expect(screen.getByTestId("options-성적 평가 선택")).not.toHaveTextContent("상대평가: ");
   });
 });

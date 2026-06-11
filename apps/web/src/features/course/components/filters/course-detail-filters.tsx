@@ -36,12 +36,13 @@ export function CourseDetailFilters({
   ), []);
 
   // 성적 평가 옵션들 평탄화
-  const gradingOptions = React.useMemo(() => GRADING_GROUPS.flatMap((group) =>
-    group.items.map((item) => ({
-      label: `${group.label}: ${item}`,
-      value: item,
-    })),
-  ), []);
+  const gradingOptions = React.useMemo(() =>
+    GRADING_GROUPS.flatMap((group) =>
+      group.items.map((item) => ({
+        label: item,
+        value: item,
+      })),
+    ), []);
 
   // 강의 언어 옵션
   const languageOptions = React.useMemo(() => LANGUAGES.map((lang) => ({

@@ -7,6 +7,7 @@ import { CourseTable } from "@/features/course/components/course-table";
 import { CourseTableSkeleton } from "@/features/course/components/course-table-skeleton";
 import { useCourses, useSearchDefaultSemester } from "@/features/course/hooks/useCourses";
 import { getDefaultCourseSortOrder, type CourseSortOption, type CourseSortOrder } from "@/features/course/lib/course-sort";
+import { resolveVisibleSearchCondition } from "@/features/course/lib/course-utils";
 import type { CourseSearchCondition } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
 import {
@@ -70,6 +71,14 @@ export default function SearchPage() {
       semester: defaultSemester?.semester ?? FALLBACK_DEFAULT_CONDITION.semester,
     }),
     [defaultSemester],
+  );
+  const visibleDraftCondition = useMemo(
+    () => resolveVisibleSearchCondition(
+      draftCondition,
+      resolvedDefaultCondition,
+      FALLBACK_DEFAULT_CONDITION,
+    ),
+    [draftCondition, resolvedDefaultCondition],
   );
 
   const {
@@ -368,7 +377,7 @@ export default function SearchPage() {
                   onSearch={handleSearch}
                   onConditionChange={setDraftCondition}
                   isLoading={isLoading}
-                  initialCondition={draftCondition}
+                  initialCondition={visibleDraftCondition}
                   defaultCondition={resolvedDefaultCondition}
                   hideHeader
                   initialUser={user ?? null}
@@ -394,7 +403,7 @@ export default function SearchPage() {
                 onSearch={handleSearch}
                 onConditionChange={setDraftCondition}
                 isLoading={isLoading}
-                initialCondition={draftCondition}
+                initialCondition={visibleDraftCondition}
                 defaultCondition={resolvedDefaultCondition}
                 initialUser={user ?? null}
               />
