@@ -3,6 +3,7 @@ package bhoon.sugang_helper.domain.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -18,7 +19,6 @@ import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import jakarta.mail.internet.MimeMessage;
 import java.time.Duration;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,7 +54,7 @@ class EmailVerificationServiceTest {
 
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(templateService.loadTemplate(eq("verification_code"), any(Map.class))).thenReturn("<html>HTML</html>");
+        when(templateService.loadTemplate(eq("verification_code"), anyMap())).thenReturn("<html>HTML</html>");
 
         // when
         emailVerificationService.sendCode(userId, email);
@@ -75,7 +75,7 @@ class EmailVerificationServiceTest {
         ReflectionTestUtils.setField(emailVerificationService, "fromName", "SugangHelper");
 
         when(javaMailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));
-        when(templateService.loadTemplate(eq("verification_code"), any(Map.class))).thenReturn("<html>HTML</html>");
+        when(templateService.loadTemplate(eq("verification_code"), anyMap())).thenReturn("<html>HTML</html>");
         doThrow(new RuntimeException("Mail server error")).when(javaMailSender).send(any(MimeMessage.class));
 
         // when & then

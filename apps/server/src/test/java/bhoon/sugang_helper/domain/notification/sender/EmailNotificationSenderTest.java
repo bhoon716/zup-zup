@@ -2,6 +2,7 @@ package bhoon.sugang_helper.domain.notification.sender;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -10,7 +11,6 @@ import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import jakarta.mail.internet.MimeMessage;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,14 +42,14 @@ class EmailNotificationSenderTest {
         String title = "제목";
         String content = "내용";
         given(mailSender.createMimeMessage()).willReturn(mock(MimeMessage.class));
-        given(templateService.loadTemplate(eq("notification"), any(Map.class))).willReturn("<html>HTML Content</html>");
+        given(templateService.loadTemplate(eq("notification"), anyMap())).willReturn("<html>HTML Content</html>");
 
         // when
         emailNotificationSender.send(NotificationTarget.of(to), title, content);
 
         // then
         verify(mailSender, times(1)).send(any(MimeMessage.class));
-        verify(templateService, times(1)).loadTemplate(eq("notification"), any(Map.class));
+        verify(templateService, times(1)).loadTemplate(eq("notification"), anyMap());
     }
 
     @Test
