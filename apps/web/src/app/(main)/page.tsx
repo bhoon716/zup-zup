@@ -54,7 +54,7 @@ export default function HomePage() {
         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: "2s" }} />
       </div>
 
-      {snapshot ? <Dashboard snapshot={snapshot} /> : <HomeLanding />}
+      {snapshot?.user ? <Dashboard snapshot={snapshot} /> : <HomeLanding />}
 
       <footer className="bg-white border-t border-gray-100 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

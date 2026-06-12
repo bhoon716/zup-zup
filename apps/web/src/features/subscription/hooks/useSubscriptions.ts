@@ -5,9 +5,11 @@ import type { SubscriptionRequest } from '@/shared/types/api';
 import { AxiosError } from 'axios';
 
 import { useUser } from "@/features/user/hooks/useUser";
+import type { User } from "@/shared/types/api";
 
-export const useSubscriptions = (enabled = true) => {
-  const { data: user } = useUser({ enabled });
+export const useSubscriptions = (enabled = true, initialUser?: User | null) => {
+  const { data: user } = useUser({ enabled: enabled && initialUser === undefined });
+  const resolvedUser = initialUser !== undefined ? initialUser : user;
   
   return useQuery({
     queryKey: ['subscriptions'],
@@ -15,7 +17,7 @@ export const useSubscriptions = (enabled = true) => {
       const response = await subscriptionApi.getMySubscriptions();
       return response.data ?? null;
     },
-    enabled: enabled && !!user,
+    enabled: enabled && !!resolvedUser,
   });
 };
 

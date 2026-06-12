@@ -1,6 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Providers from "./providers";
+import Providers, { getAppQueryClient } from "./providers";
 
 const mockCheckSession = vi.fn();
 const mockReplace = vi.fn();
@@ -51,7 +51,7 @@ describe("Providers", () => {
     mockedUseRouter.mockReturnValue({ replace: mockReplace } as never);
   });
 
-  it("search 페이지에서도 세션을 확인해서 헤더 auth state를 초기화한다", async () => {
+  it("search 페이지에서는 세션 부트스트랩을 건너뛴다", async () => {
     mockedUsePathname.mockReturnValue("/search");
 
     render(
@@ -60,6 +60,13 @@ describe("Providers", () => {
       </Providers>
     );
 
-    await waitFor(() => expect(mockCheckSession).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockCheckSession).not.toHaveBeenCalled());
+  });
+
+  it("브라우저에서는 QueryClient를 재사용한다", () => {
+    const first = getAppQueryClient();
+    const second = getAppQueryClient();
+
+    expect(first).toBe(second);
   });
 });

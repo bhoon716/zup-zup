@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { CalendarDays } from "lucide-react";
 import { useActiveDday } from "@/features/admin/hooks/useDday";
+import { useClientReady } from "@/shared/lib/use-client-ready";
 import type { ScheduleResponse } from "@/shared/types/api";
 
 export function DashboardCountdown({
@@ -11,7 +12,9 @@ export function DashboardCountdown({
   upcomingSchedules?: ScheduleResponse[];
   suppressFetch?: boolean;
 } = {}) {
-  const { data: activeDday } = useActiveDday(!suppressFetch);
+  const isClientReady = useClientReady();
+
+  const { data: activeDday } = useActiveDday(isClientReady && !suppressFetch);
 
   if (!activeDday) return null;
 

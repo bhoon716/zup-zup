@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardCountdown } from "./dashboard-countdown";
 import { useActiveDday } from "@/features/admin/hooks/useDday";
@@ -21,5 +21,12 @@ describe("DashboardCountdown", () => {
     );
 
     expect(useActiveDday).toHaveBeenCalledWith(false);
+    expect(useActiveDday).not.toHaveBeenCalledWith(true);
+  });
+
+  it("마운트가 끝나면 기본적으로 활성 D-Day를 조회한다", async () => {
+    render(<DashboardCountdown />);
+
+    await waitFor(() => expect(useActiveDday).toHaveBeenCalledWith(true));
   });
 });

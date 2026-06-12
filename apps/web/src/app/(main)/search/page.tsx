@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CourseSearchBar } from "@/features/course/components/course-search-bar";
 import { CourseTable } from "@/features/course/components/course-table";
@@ -19,6 +19,7 @@ import {
 } from "@/shared/ui/select";
 import { SlidersHorizontal, X, Search, ChevronRight, ListFilter } from "lucide-react";
 import { useUser } from "@/features/user/hooks/useUser";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,15 @@ interface FilterChip {
  */
 export default function SearchPage() {
   const { data: defaultSemester, isLoading: isSemesterLoading } = useSearchDefaultSemester();
-  const { data: user } = useUser();
+  const { data: user, isLoading: isUserLoading } = useUser({ skipAuthRefresh: true });
+  const setUser = useAuthStore((state) => state.setUser);
+  const skipPersonalFetch = isUserLoading || !user;
+
+  useEffect(() => {
+    if (!isUserLoading) {
+      setUser(user ?? null);
+    }
+  }, [isUserLoading, setUser, user]);
 
   // 사용자가 변경한 검색 조건
   const [userCondition, setUserCondition] = useState<CourseSearchCondition>({
@@ -377,11 +386,12 @@ export default function SearchPage() {
                   onSearch={handleSearch}
                   onConditionChange={setDraftCondition}
                   isLoading={isLoading}
-                  initialCondition={visibleDraftCondition}
-                  defaultCondition={resolvedDefaultCondition}
-                  hideHeader
-                  initialUser={user ?? null}
-                />
+                initialCondition={visibleDraftCondition}
+                defaultCondition={resolvedDefaultCondition}
+                hideHeader
+                initialUser={user ?? null}
+                skipPersonalFetch={skipPersonalFetch}
+              />
                 </div>
               </motion.div>
             )}
@@ -406,6 +416,7 @@ export default function SearchPage() {
                 initialCondition={visibleDraftCondition}
                 defaultCondition={resolvedDefaultCondition}
                 initialUser={user ?? null}
+                skipPersonalFetch={skipPersonalFetch}
               />
             </div>
           </aside>
@@ -424,7 +435,12 @@ export default function SearchPage() {
                   value={sortOption}
                   onValueChange={(value) => handleSortOptionChange(value as CourseSortOption)}
                 >
-                    <SelectTrigger id="course-sort-trigger" aria-controls="course-sort-content" className="h-9 min-w-[120px] rounded-lg border-border/60 bg-transparent text-xs font-medium">
+                    <SelectTrigger
+                      id="course-sort-trigger"
+                      aria-controls="course-sort-content"
+                      aria-label="정렬 기준"
+                      className="h-9 min-w-[120px] rounded-lg border-border/60 bg-transparent text-xs font-medium"
+                    >
                       <SelectValue placeholder="정렬" />
                     </SelectTrigger>
                     <SelectContent id="course-sort-content">
@@ -442,6 +458,7 @@ export default function SearchPage() {
                     size="icon"
                     className="h-9 w-9 rounded-lg border-border/60 text-muted-foreground"
                     onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+                    aria-label={sortOrder === "asc" ? "정렬 방향 오름차순" : "정렬 방향 내림차순"}
                     title={sortOrder === "asc" ? "오름차순 (작은 값 우선)" : "내림차순 (큰 값 우선)"}
                   >
                     {sortOrder === "asc" ? (
@@ -510,6 +527,7 @@ export default function SearchPage() {
                 hasMore={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
                 initialUser={user ?? null}
+                skipPersonalFetch={skipPersonalFetch}
               />
             )}
           </section>

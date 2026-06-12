@@ -5,22 +5,25 @@ import { AxiosError } from 'axios';
 import { CustomScheduleRequest } from '@/shared/types/api';
 
 import { useUser } from "@/features/user/hooks/useUser";
+import type { User } from "@/shared/types/api";
 
-export const useTimetables = (enabled = true) => {
-  const { data: user } = useUser({ enabled });
+export const useTimetables = (enabled = true, initialUser?: User | null) => {
+  const { data: user } = useUser({ enabled: enabled && initialUser === undefined });
+  const resolvedUser = initialUser !== undefined ? initialUser : user;
   return useQuery({
     queryKey: ['timetables'],
     queryFn: async () => {
       const response = await timetableApi.getTimetables();
       return response.data ?? null;
     },
-    enabled: enabled && !!user,
+    enabled: enabled && !!resolvedUser,
   });
 };
 
-export const useTimetableDetail = (id: number | null, enabled = true) => {
+export const useTimetableDetail = (id: number | null, enabled = true, initialUser?: User | null) => {
   const queryEnabled = !!id && enabled;
-  const { data: user } = useUser({ enabled: queryEnabled });
+  const { data: user } = useUser({ enabled: queryEnabled && initialUser === undefined });
+  const resolvedUser = initialUser !== undefined ? initialUser : user;
   return useQuery({
     queryKey: ['timetable', id],
     queryFn: async () => {
@@ -28,19 +31,20 @@ export const useTimetableDetail = (id: number | null, enabled = true) => {
       const response = await timetableApi.getTimetable(id);
       return response.data ?? null;
     },
-    enabled: queryEnabled && !!user,
+    enabled: queryEnabled && !!resolvedUser,
   });
 };
 
-export const usePrimaryTimetable = () => {
-  const { data: user } = useUser();
+export const usePrimaryTimetable = (initialUser?: User | null) => {
+  const { data: user } = useUser({ enabled: initialUser === undefined });
+  const resolvedUser = initialUser !== undefined ? initialUser : user;
   return useQuery({
     queryKey: ['timetable', 'primary'],
     queryFn: async () => {
       const response = await timetableApi.getPrimaryTimetable();
       return response.data ?? null;
     },
-    enabled: !!user,
+    enabled: !!resolvedUser,
   });
 };
 

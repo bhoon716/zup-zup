@@ -5,12 +5,12 @@ import { toast } from 'sonner';
 
 import { AxiosError } from 'axios';
 
-export const useUser = (options?: { enabled?: boolean }) => {
+export const useUser = (options?: { enabled?: boolean; skipAuthRefresh?: boolean }) => {
   return useQuery({
-    queryKey: ['user', 'me'],
+    queryKey: options?.skipAuthRefresh ? ['user', 'me', 'public'] : ['user', 'me'],
     queryFn: async () => {
       try {
-        const response = await userApi.getMyProfile();
+        const response = await userApi.getMyProfile({ skipAuthRefresh: options?.skipAuthRefresh });
         return response.data ?? null;
       } catch (error: unknown) {
         const axiosError = error as AxiosError<{ message?: string }>;

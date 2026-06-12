@@ -102,4 +102,38 @@ describe("useDashboardSnapshot hook", () => {
     expect(result.current.data).toBeNull();
     spy.mockRestore();
   });
+
+  it("게스트 스냅샷은 null로 처리한다", async () => {
+    server.use(
+      http.get("*/api/v1/dashboard", () => {
+        return HttpResponse.json({
+          code: "SUCCESS",
+          message: "ok",
+          data: {
+            ...mockSnapshot,
+            user: null,
+          },
+        });
+      }),
+    );
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+
+    const { result } = renderHook(() => useDashboardSnapshot(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBeNull();
+  });
+
+  it("비활성화되면 스냅샷을 조회하지 않는다", () => {
+    const spy = vi.spyOn(dashboardApi, "getDashboardSnapshot");
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+
+    renderHook(() => useDashboardSnapshot({ enabled: false }), { wrapper });
+
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
 });

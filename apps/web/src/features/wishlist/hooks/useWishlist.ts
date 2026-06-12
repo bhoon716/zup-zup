@@ -5,9 +5,11 @@ import { AxiosError } from 'axios';
 import { WishlistResponse } from '@/shared/types/api';
 
 import { useUser } from "@/features/user/hooks/useUser";
+import type { User } from "@/shared/types/api";
 
-export const useWishlist = (enabled = true) => {
-  const { data: user } = useUser({ enabled });
+export const useWishlist = (enabled = true, initialUser?: User | null) => {
+  const { data: user } = useUser({ enabled: enabled && initialUser === undefined });
+  const resolvedUser = initialUser !== undefined ? initialUser : user;
   
   return useQuery({
     queryKey: ['wishlist'],
@@ -15,7 +17,7 @@ export const useWishlist = (enabled = true) => {
       const response = await wishlistApi.getMyWishlist();
       return response.data ?? null;
     },
-    enabled: enabled && !!user,
+    enabled: enabled && !!resolvedUser,
   });
 };
 

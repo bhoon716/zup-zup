@@ -20,6 +20,7 @@ interface CourseSearchBarProps {
   hideHeader?: boolean;
   initialUser?: User | null;
   initialTimetables?: TimetableResponse[];
+  skipPersonalFetch?: boolean;
 }
 
 export function CourseSearchBar({
@@ -31,6 +32,7 @@ export function CourseSearchBar({
   hideHeader,
   initialUser,
   initialTimetables,
+  skipPersonalFetch,
 }: CourseSearchBarProps) {
   const resolvedDefaultCondition = defaultCondition ?? DEFAULT_CONDITION;
   const initialSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
@@ -150,6 +152,7 @@ export function CourseSearchBar({
             setScheduleOpen={setScheduleOpen}
             initialUser={initialUser}
             initialTimetables={initialTimetables}
+            skipPersonalFetch={skipPersonalFetch}
           />
         </FilterSection>
 

@@ -96,7 +96,14 @@ export function Header() {
           <div className="flex md:hidden items-center gap-2">
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
-                <Button id={mobileMenuTriggerId} aria-controls={mobileMenuContentId} variant="ghost" size="icon" className="rounded-xl w-10 h-10 hover:bg-accent/50">
+                <Button
+                  id={mobileMenuTriggerId}
+                  aria-controls={mobileMenuContentId}
+                  aria-label="메뉴 열기"
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl w-10 h-10 hover:bg-accent/50"
+                >
                   <Menu className="w-6 h-6" />
                 </Button>
               </SheetTrigger>

@@ -28,6 +28,7 @@ interface CourseSmartFiltersProps {
   setScheduleOpen: (open: boolean) => void;
   initialUser?: User | null;
   initialTimetables?: TimetableResponse[];
+  skipPersonalFetch?: boolean;
 }
 
 /**
@@ -41,13 +42,14 @@ export function CourseSmartFilters({
   setScheduleOpen,
   initialUser,
   initialTimetables,
+  skipPersonalFetch,
 }: CourseSmartFiltersProps) {
   const timetableMenuTriggerId = "course-smart-timetable-trigger";
   const timetableMenuContentId = "course-smart-timetable-content";
   const timetableSectionTriggerId = "course-smart-schedule-trigger";
   const timetableSectionContentId = "course-smart-schedule-content";
-  const { data: user } = useUser({ enabled: initialUser === undefined });
-  const { data: timetables, refetch: refetchTimetables } = useTimetables(!initialTimetables);
+  const { data: user } = useUser({ enabled: initialUser === undefined && !skipPersonalFetch });
+  const { data: timetables, refetch: refetchTimetables } = useTimetables(!initialTimetables && !skipPersonalFetch, initialUser);
   const resolvedUser = initialUser !== undefined ? initialUser : user;
   const resolvedTimetables = initialTimetables ?? timetables;
 
@@ -163,6 +165,7 @@ export function CourseSmartFilters({
                 <Button
                   id={timetableMenuTriggerId}
                   aria-controls={timetableMenuContentId}
+                  aria-label="내 시간표에서 공강 불러오기"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
@@ -213,6 +216,7 @@ export function CourseSmartFilters({
               size="sm"
               aria-controls={timetableSectionContentId}
               aria-expanded={scheduleOpen}
+              aria-label={scheduleOpen ? "공강 시간표 접기" : "공강 시간표 펼치기"}
               className="h-8 w-8 p-0"
               onClick={() => setScheduleOpen(!scheduleOpen)}
             >
@@ -221,7 +225,6 @@ export function CourseSmartFilters({
                   scheduleOpen ? "rotate-180" : ""
                 }`}
               />
-              <span className="sr-only">Toggle</span>
             </Button>
           </div>
         </div>

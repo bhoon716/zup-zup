@@ -814,3 +814,43 @@ Google은 임베디드 웹뷰(WebView)에서의 OAuth 요청을 보안상의 이
 
 * 검색 페이지에서 강력 새로고침해도 로그인 버튼이 정상 표시됩니다.
 * 로그인 상태에서는 인증 전용 네비게이션이 다시 노출됩니다.
+
+---
+
+## 39. 검색 페이지 진입 시 개인화 API 중복 호출
+
+### 문제 상황
+
+검색 페이지(`/search`)에 진입하면 로그인 여부와 관계없이 `useUser`, `useSubscriptions`, `useWishlist`, `useTimetables`가 각자 독립적으로 실행되어 `/api/v1/users/me`와 개인화 API가 중복 호출되었습니다. 비로그인 상태에서는 401 응답과 불필요한 refresh 시도까지 겹쳐 네트워크 요청이 과해졌습니다.
+
+### 해결책
+
+1. **검색 페이지 전용 사용자 조회 분리**: `/search` 진입 시에는 `skipAuthRefresh` 옵션으로 사용자 조회를 수행해 guest 상태를 빠르게 판별하고, 이후 개인화 훅들은 이 결과를 재사용하도록 했습니다.
+2. **초기 사용자 주입**: `CourseSearchBar`, `CourseTable`, `CourseSmartFilters`에 `initialUser`와 `skipPersonalFetch`를 전달해, 이미 확인된 사용자 정보를 하위 훅에서 다시 조회하지 않도록 정리했습니다.
+3. **개인화 훅 조건부 실행**: `useSubscriptions`, `useWishlist`, `useTimetables`는 초기 사용자 정보가 있으면 `useUser`를 다시 부르지 않고 그 값을 그대로 사용하도록 바꿨습니다.
+
+### 결과
+
+* 검색 페이지 진입 시 `/api/v1/users/me` 호출 수가 1회로 줄었습니다.
+* 로그인 상태에서도 찜/구독/시간표 관련 API가 불필요하게 중복 호출되지 않게 되었습니다.
+* 비로그인 상태에서는 개인화 API가 아예 실행되지 않아 콘솔 401 노이즈와 낭비 트래픽이 줄었습니다.
+
+---
+
+## 40. 모바일 Lighthouse에서 폰트 로딩이 렌더링을 지연
+
+### 문제 상황
+
+모바일 Lighthouse에서 `/search` 페이지의 초기 렌더링이 늦게 끝났고, 원인 중 하나로 Google Fonts 요청과 과도한 폰트 weight 로딩이 잡혔습니다.
+
+### 해결책
+
+1. **`next/font` 전환**: 외부 `fonts.googleapis.com` CSS import를 제거하고 `next/font/google`로 폰트를 로딩하도록 변경했습니다.
+2. **폰트 weight 축소**: `Noto Sans KR`는 실제 사용에 필요한 `400`, `700`, `900`만 로드하도록 줄였습니다.
+3. **불필요한 sans fallback 제거**: 전역 sans stack에서 추가 fallback을 제거해 폰트 경로를 단순화했습니다.
+
+### 결과
+
+* 외부 Google Fonts render-blocking 요청이 줄었습니다.
+* 모바일 Lighthouse에서 폰트 요청이 LCP 경로를 붙잡는 시간이 감소했습니다.
+* 실제 UI 스타일은 유지하면서 초기 로딩 비용만 낮췄습니다.

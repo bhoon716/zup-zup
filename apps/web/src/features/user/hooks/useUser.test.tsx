@@ -52,6 +52,20 @@ describe("useUser hook", () => {
     expect(result.current.data).toBeNull();
   });
 
+  it("skipAuthRefresh 옵션은 세션 갱신 없이 프로필을 조회한다", async () => {
+    vi.mocked(userApi.getMyProfile).mockResolvedValue({
+      code: "SUCCESS",
+      message: "ok",
+      data: null,
+    } as never);
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    renderHook(() => useUser({ skipAuthRefresh: true }), { wrapper });
+
+    await waitFor(() => expect(userApi.getMyProfile).toHaveBeenCalledWith({ skipAuthRefresh: true }));
+  });
+
   it("disabled 상태에서는 사용자 조회를 실행하지 않는다", async () => {
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);

@@ -16,6 +16,10 @@ import type { DashboardSnapshotResponse } from "@/shared/types/api";
 export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse }) {
   const { user, notifications, primaryTimetable, upcomingSchedules, announcements } = snapshot;
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <main className="grow py-8 md:py-12 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto w-full">
       {/* 환영 헤더 섹션: 좌측 인사말 + 우측 종강 D-Day 바 (오른쪽 벽 정렬) */}

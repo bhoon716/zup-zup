@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AxiosError, type AxiosRequestConfig } from 'axios';
 import api from '@/shared/api/client';
 import type { DdaySettingRequest, DdaySettingResponse } from '@/shared/types/api';
 
@@ -9,9 +10,18 @@ export const useActiveDday = (enabled = true) => {
   return useQuery({
     queryKey: ['dday', 'active'],
     queryFn: async () => {
-      const response = await api.get<DdaySettingResponse | null>('/api/v1/ddays/active');
-      // 204 No Content일 경우 response.data가 비어있을 수 있으므로 null 처리
-      return response.status === 204 ? null : response.data;
+      try {
+        const config = { skipAuthRefresh: true } as AxiosRequestConfig & { skipAuthRefresh: boolean };
+        const response = await api.get<DdaySettingResponse | null>('/api/v1/ddays/active', config);
+        // 204 No Content일 경우 response.data가 비어있을 수 있으므로 null 처리
+        return response.status === 204 ? null : response.data;
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status === 401) {
+          return null;
+        }
+        throw error;
+      }
     },
     staleTime: 5 * 60 * 1000, // 5분
     enabled,

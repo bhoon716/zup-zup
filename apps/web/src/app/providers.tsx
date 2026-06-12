@@ -10,6 +10,38 @@ import { LoginModal } from "@/widgets/auth/login-modal";
 import { usePathname, useRouter } from "next/navigation";
 import { TooltipProvider } from "@/shared/ui/tooltip";
 
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60 * 1000,
+        refetchOnWindowFocus: false,
+        // 401 에러는 재시도해도 실패할 가능성이 높으므로 즉시 중단한다.
+        retry: (failureCount, error: unknown) => {
+          if (error && typeof error === "object" && "response" in error) {
+            const responseError = error as { response?: { status?: number } };
+            if (responseError.response?.status === 401) return false;
+          }
+          return failureCount < 3;
+        },
+      },
+    },
+  });
+
+let browserQueryClient: QueryClient | undefined;
+
+export const getAppQueryClient = () => {
+  if (typeof window === "undefined") {
+    return createQueryClient();
+  }
+
+  if (!browserQueryClient) {
+    browserQueryClient = createQueryClient();
+  }
+
+  return browserQueryClient;
+};
+
 /**
  * 온보딩 완료 여부를 체크하여 미완료 시 온보딩 페이지로 강제 이동시키는 가드 컴포넌트입니다.
  */
@@ -45,9 +77,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     // Firebase SDK를 앱 시작 시 한 번 초기화한다.
     getFirebaseApp();
 
-    // 검색 페이지는 useUser()만으로는 auth store가 채워지지 않으므로,
-    // 헤더의 로그인 CTA와 인증 전용 네비게이션을 복구하려면 세션 부트스트랩이 필요하다.
-    if (pathname !== "/") {
+    // 공개 페이지는 세션 부트스트랩을 건너뛰어 불필요한 401/refresh를 막는다.
+    if (pathname !== "/" && pathname !== "/search") {
       checkSession();
     }
 
@@ -99,25 +130,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
  * React Query, Toaster, Tooltip 등 전역 상태 및 UI 프로바이더들을 통합 관리하는 컴포넌트입니다.
  */
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000,
-            refetchOnWindowFocus: false,
-            // 401 에러는 재시도해도 실패할 가능성이 높으므로 즉시 중단한다.
-            retry: (failureCount, error: unknown) => {
-              if (error && typeof error === "object" && "response" in error) {
-                const responseError = error as { response?: { status?: number } };
-                if (responseError.response?.status === 401) return false;
-              }
-              return failureCount < 3;
-            },
-          },
-        },
-      })
-  );
+  const [queryClient] = useState(getAppQueryClient);
 
   return (
     <QueryClientProvider client={queryClient}>

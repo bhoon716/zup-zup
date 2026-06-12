@@ -9,6 +9,7 @@ import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
 import { useAnnouncements } from "@/features/announcement/hooks/useAnnouncements";
 import { Loader2 } from "lucide-react";
 import { DashboardCountdown } from "./dashboard-countdown";
+import { useClientReady } from "@/shared/lib/use-client-ready";
 
 /**
  * 날짜를 포맷팅하는 유틸리티 함수입니다.
@@ -56,8 +57,12 @@ const features = [
  * 인덱스 페이지에서 서비스를 소개하고 핵심 기능을 보여주는 랜딩용 섹션입니다.
  */
 export function HomeLanding() {
-  const { data: upcomingSchedules, isLoading: isScheduleLoading } = useUpcomingSchedules();
-  const { data: announcements, isLoading: isAnnouncementLoading } = useAnnouncements();
+  const isClientReady = useClientReady();
+
+  const { data: upcomingSchedules, isLoading: upcomingSchedulesLoading } = useUpcomingSchedules(isClientReady);
+  const { data: announcements, isLoading: announcementsLoading } = useAnnouncements({ enabled: isClientReady });
+  const isScheduleLoading = !isClientReady || upcomingSchedulesLoading;
+  const isAnnouncementLoading = !isClientReady || announcementsLoading;
   
   const latestAnnouncements = (announcements ?? []).slice(0, 4);
 
@@ -104,7 +109,7 @@ export function HomeLanding() {
           </motion.div>
 
           <div className="mt-12 w-full flex justify-center">
-            <DashboardCountdown upcomingSchedules={upcomingSchedules} suppressFetch={isScheduleLoading} />
+            <DashboardCountdown upcomingSchedules={upcomingSchedules} suppressFetch={!isClientReady || isScheduleLoading} />
           </div>
         </div>
       </section>

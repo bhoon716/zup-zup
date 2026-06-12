@@ -354,7 +354,7 @@ export interface CourseSearchPageResponse {
 
 
 export interface DashboardSnapshotResponse {
-  user: User;
+  user: User | null;
   notifications: NotificationHistory[];
   primaryTimetable: TimetableDetailResponse | null;
   upcomingSchedules: ScheduleResponse[];
