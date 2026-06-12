@@ -44,6 +44,8 @@ public class SecurityConfig {
     };
 
     private static final String[] PERMIT_GET_ENDPOINTS = new String[]{
+            "/api/v1/dashboard",
+            "/api/v1/ddays/**",
             "/api/v1/courses/**",
             "/api/v1/announcements/**",
             "/api/v1/schedules/**"

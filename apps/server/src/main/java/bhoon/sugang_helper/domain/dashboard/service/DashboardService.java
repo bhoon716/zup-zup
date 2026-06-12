@@ -9,9 +9,11 @@ import bhoon.sugang_helper.domain.schedule.response.ScheduleResponse;
 import bhoon.sugang_helper.domain.schedule.service.ScheduleService;
 import bhoon.sugang_helper.domain.timetable.response.TimetableDetailResponse;
 import bhoon.sugang_helper.domain.timetable.service.TimetableService;
+import bhoon.sugang_helper.domain.user.entity.User;
 import bhoon.sugang_helper.domain.user.response.UserResponse;
 import bhoon.sugang_helper.domain.user.service.UserService;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -31,7 +33,26 @@ public class DashboardService {
     private final AnnouncementRepository announcementRepository;
 
     public DashboardSnapshotResponse getDashboardSnapshot() {
-        UserResponse user = userService.getMyProfile();
+        List<ScheduleResponse> upcomingSchedules = scheduleService.getUpcomingSchedules();
+        List<AnnouncementListResponse> announcements = announcementRepository
+                .findByPublishedTrueOrderByPinnedDescCreatedAtDesc(PageRequest.of(0, DASHBOARD_ANNOUNCEMENT_LIMIT))
+                .stream()
+                .map(AnnouncementListResponse::from)
+                .toList();
+
+        Optional<User> currentUser = userService.getCurrentUserOrNull();
+        if (currentUser.isEmpty()) {
+            return DashboardSnapshotResponse.builder()
+                    .user(null)
+                    .notifications(List.of())
+                    .primaryTimetable(null)
+                    .upcomingSchedules(upcomingSchedules)
+                    .announcements(announcements)
+                    .build();
+        }
+
+        User user = currentUser.get();
+        UserResponse userResponse = UserResponse.from(user);
         Long userId = user.getId();
 
         List<NotificationHistoryResponse> notifications = notificationHistoryRepository
@@ -41,15 +62,9 @@ public class DashboardService {
                 .toList();
 
         TimetableDetailResponse primaryTimetable = timetableService.getPrimaryTimetable();
-        List<ScheduleResponse> upcomingSchedules = scheduleService.getUpcomingSchedules();
-        List<AnnouncementListResponse> announcements = announcementRepository
-                .findByPublishedTrueOrderByPinnedDescCreatedAtDesc(PageRequest.of(0, DASHBOARD_ANNOUNCEMENT_LIMIT))
-                .stream()
-                .map(AnnouncementListResponse::from)
-                .toList();
 
         return DashboardSnapshotResponse.builder()
-                .user(user)
+                .user(userResponse)
                 .notifications(notifications)
                 .primaryTimetable(primaryTimetable)
                 .upcomingSchedules(upcomingSchedules)

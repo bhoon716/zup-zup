@@ -15,6 +15,7 @@ import bhoon.sugang_helper.domain.user.request.UserSettingsRequest;
 import bhoon.sugang_helper.domain.user.response.UserResponse;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,18 @@ public class UserService {
     public UserResponse getMyProfile() {
         User user = getCurrentUser();
         return UserResponse.from(user);
+    }
+
+    /**
+     * 현재 인증된 사용자가 있으면 반환하고, 없으면 비워 둡니다.
+     */
+    public Optional<User> getCurrentUserOrNull() {
+        String email = SecurityUtil.getCurrentUserEmailOrNull();
+        if (email == null) {
+            return Optional.empty();
+        }
+
+        return userRepository.findByEmail(email);
     }
 
     /**
