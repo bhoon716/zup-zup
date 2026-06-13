@@ -20,6 +20,7 @@ import {
 import { SlidersHorizontal, X, Search, ChevronRight, ListFilter } from "lucide-react";
 import { useUser } from "@/features/user/hooks/useUser";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
+import { CourseGuideModal } from "@/features/course/components/course-guide-modal";
 
 export const dynamic = "force-dynamic";
 
@@ -431,6 +432,7 @@ export default function SearchPage() {
                 </h1>
 
               <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                <CourseGuideModal />
                 <Select
                   value={sortOption}
                   onValueChange={(value) => handleSortOptionChange(value as CourseSortOption)}

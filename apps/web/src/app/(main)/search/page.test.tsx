@@ -2,6 +2,24 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import SearchPage from "./page";
+import { COURSE_GUIDE_MODAL_STORAGE_KEY } from "@/features/course/components/course-guide-modal";
+
+const createLocalStorageMock = () => {
+  const store = new Map<string, string>();
+
+  return {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+  };
+};
 
 const { mockSetUser, mockUseCourses } = vi.hoisted(() => ({
   mockSetUser: vi.fn(),
@@ -45,6 +63,11 @@ vi.mock("@/features/course/components/course-table-skeleton", () => ({
 describe("SearchPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, "localStorage", {
+      value: createLocalStorageMock(),
+      configurable: true,
+    });
+    window.localStorage.setItem(COURSE_GUIDE_MODAL_STORAGE_KEY, "seen");
     mockUseCourses.mockReturnValue({
       data: { pages: [{ content: [] }] },
       isLoading: false,
@@ -60,5 +83,6 @@ describe("SearchPage", () => {
 
     expect(screen.getByRole("combobox", { name: "정렬 기준" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "정렬 방향 오름차순" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "사용법" })).toBeInTheDocument();
   });
 });
