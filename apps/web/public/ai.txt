@@ -1,0 +1,19 @@
+User-agent: *
+Disallow: /admin
+Disallow: /settings
+Disallow: /api/v1/admin
+
+# AI Agent Specific Directives
+User-agent: GPTBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+# Extra info
+Mcp-Server: none
+Rate-limit: 100 requests per minute per IP
+Preferred-Format: application/json

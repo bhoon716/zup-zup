@@ -4,6 +4,21 @@
 
 ---
 
+## [v1.2.2] - 2026-06-16 ✨
+
+검색 엔진 최적화(SEO) 강화, AI 크롤러 차단 룰 및 사이트 학습용 지침서(ai.txt, llms.txt)가 도입되었습니다.
+
+### Added
+
+- **AI 및 LLM 지침 파일**: AI 봇이 참고할 수 있도록 `/ai.txt` 및 `/llms.txt` 정적 지침 파일을 루트에 배치
+- **검색 크롤링 자동화**: 정적 핵심 URL을 담아 검색 엔진 수집을 돕는 `/sitemap.xml` 및 AI 봇(GPTBot, ClaudeBot, Google-Extended) 차단 지침을 포함하는 `/robots.txt` 적용
+
+### Changed
+
+- **SEO 및 메타데이터**: 메인 타이틀 정교화 및 OpenGraph 태그를 `https://zup-zup.com` 도메인 기준으로 최적화
+
+---
+
 ## [v1.2.1] - 2026-06-13 ✨
 
 검색 페이지 첫 진입 시 핵심 사용법을 짧게 안내하는 가이드 모달이 추가되었습니다.
