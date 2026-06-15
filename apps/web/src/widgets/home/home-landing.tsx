@@ -90,6 +90,10 @@ export function HomeLanding() {
             하루 종일 새로고침만 누르고 계신가요? 수강신청 빈자리 알림 서비스 &apos;줍줍&apos;이 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
           </motion.p>
 
+          <div className="mb-8 w-full flex justify-center">
+            <DashboardCountdown upcomingSchedules={upcomingSchedules} suppressFetch={!isClientReady || isScheduleLoading} />
+          </div>
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -107,10 +111,6 @@ export function HomeLanding() {
               </Button>
             </Link>
           </motion.div>
-
-          <div className="mt-12 w-full flex justify-center">
-            <DashboardCountdown upcomingSchedules={upcomingSchedules} suppressFetch={!isClientReady || isScheduleLoading} />
-          </div>
         </div>
       </section>
 

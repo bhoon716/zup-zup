@@ -854,3 +854,32 @@ Google은 임베디드 웹뷰(WebView)에서의 OAuth 요청을 보안상의 이
 * 외부 Google Fonts render-blocking 요청이 줄었습니다.
 * 모바일 Lighthouse에서 폰트 요청이 LCP 경로를 붙잡는 시간이 감소했습니다.
 * 실제 UI 스타일은 유지하면서 초기 로딩 비용만 낮췄습니다.
+
+---
+
+## 41. 비로그인 대시보드 D-day 위젯 위치 및 모바일 반응형 버그
+
+### 문제 상황
+
+1. **모바일 미노출**: 수강신청 D-day 잔여일을 나타내는 카운트다운 위젯이 모바일 화면(너비 768px 미만) 환경에서 보이지 않고 완전히 사라졌습니다.
+2. **비로그인 레이아웃 어색함**: 비로그인 사용자가 메인 랜딩 페이지([home-landing.tsx](file:///Users/bhoon/Desktop/jbnu-sugang-helper/web/src/widgets/home/home-landing.tsx))에 진입할 경우, 카운트다운 위젯이 화면 최하단 중앙에 덩그러니 놓여 있어 디자인상 통일성과 집중도가 떨어지는 형태였습니다.
+
+### 원인 분석
+
+1. **CSS 미디어 쿼리 제한**: [dashboard-countdown.tsx](file:///Users/bhoon/Desktop/jbnu-sugang-helper/web/src/widgets/home/dashboard-countdown.tsx) 위젯의 기저 CSS 스타일 클래스에 `hidden md:flex`가 선언되어 모바일 해상도에서 컴포넌트가 숨김(`display: none`) 처리되었습니다.
+2. **컴포넌트 배치 오설정**: [home-landing.tsx](file:///Users/bhoon/Desktop/jbnu-sugang-helper/web/src/widgets/home/home-landing.tsx) 파일 내부 Hero 소개 텍스트 및 시작 버튼 그룹과 거리를 둔 하단 영역인 `<div className="mt-12 w-full flex justify-center">`에 마운트되도록 정적으로 하드코딩 되어 있었습니다.
+
+### 해결책
+
+1. **반응형 CSS 적용**:
+   - [dashboard-countdown.tsx](file:///Users/bhoon/Desktop/jbnu-sugang-helper/web/src/widgets/home/dashboard-countdown.tsx)의 `hidden md:flex`를 걷어내고 `flex`를 기본으로 부여하였습니다.
+   - 모바일 해상도의 좁은 뷰포트에서도 영역이 깨지거나 가로 넘침이 발생하지 않도록, `text-[10px] sm:text-xs`, `px-2.5 sm:px-3`, `h-8 sm:h-9` 등의 최적화된 모바일 전용 폰트 및 패딩 스타일을 적용했습니다.
+2. **렌더링 레이아웃 재배치**:
+   - [home-landing.tsx](file:///Users/bhoon/Desktop/jbnu-sugang-helper/web/src/widgets/home/home-landing.tsx)에서 기존 Hero 하단의 어색했던 카운트다운 마운트 위치를 삭제했습니다.
+   - 랜딩 페이지의 메인 슬로건 설명글 바로 아래이자 액션 버튼 컨테이너("지금 시작하기") 바로 위의 중앙 상단 영역으로 D-day 카운트다운 노출 위치를 상향 재배치했습니다.
+
+### 결과
+
+- 모바일 디바이스로 메인 및 대시보드 접근 시에도 D-day 카운트다운 정보가 레이아웃 깨짐 없이 올바르게 노출됩니다.
+- 로그인 전 첫 화면 진입 시 핵심 버튼과 D-day 일정이 유기적으로 조화를 이루며 사용자의 첫 방문 인지도가 향상되었습니다.
+
