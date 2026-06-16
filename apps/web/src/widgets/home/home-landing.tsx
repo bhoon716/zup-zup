@@ -74,14 +74,14 @@ const formatDate = (value: string) => {
 const features = [
   {
     title: "실시간 여석 알림",
-    description: "원하는 강의에 빈자리가 생기면 즉시 푸시 알림과 문자로 알려드립니다. 더 이상 모니터 앞에서 대기하지 마세요.",
+    description: "원하는 강의에 빈자리가 생기면 즉시 웹 푸시 알림으로 알려드립니다. 더 이상 모니터 앞에서 대기하지 마세요.",
     icon: Bell,
     color: "text-primary",
     bgColor: "bg-primary/10",
   },
   {
     title: "스마트 시간표 관리",
-    description: "복잡한 경우의 수를 고려하여 최적의 시간표를 시뮬레이션 해보세요. 중복 시간대와 이동 동선까지 체크합니다.",
+    description: "복잡한 경우의 수를 고려하여 최적의 시간표를 시뮬레이션 해보세요. 중복되는 시간대와 총 이수 학점까지 실시간으로 체크합니다.",
     icon: Calendar,
     color: "text-primary",
     bgColor: "bg-primary/10",
