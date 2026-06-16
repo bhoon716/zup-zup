@@ -19,6 +19,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 class JwtProviderTest {
 
+    private static final String EMAIL = "test@example.com";
+    private static final String ROLE = "ROLE_USER";
+
     @Mock
     private RedisService redisService;
 
@@ -41,11 +44,8 @@ class JwtProviderTest {
     @DisplayName("Access Token 생성 테스트")
     void createAccessToken() {
         // given
-        String email = "test@example.com";
-        String role = "ROLE_USER";
-
         // when
-        String token = jwtProvider.createAccessToken(email, role);
+        String token = jwtProvider.createAccessToken(EMAIL, ROLE);
 
         // then
         assertThat(token).isNotNull();
@@ -56,10 +56,8 @@ class JwtProviderTest {
     @DisplayName("Refresh Token 생성 테스트")
     void createRefreshToken() {
         // given
-        String email = "test@example.com";
-
         // when
-        String token = jwtProvider.createRefreshToken(email);
+        String token = jwtProvider.createRefreshToken(EMAIL);
 
         // then
         assertThat(token).isNotNull();
@@ -70,7 +68,7 @@ class JwtProviderTest {
     @DisplayName("토큰 유효성 검사 - 유효한 토큰")
     void validateToken_valid() {
         // given
-        String token = jwtProvider.createAccessToken("test@example.com", "ROLE_USER");
+        String token = jwtProvider.createAccessToken(EMAIL, ROLE);
 
         // when
         boolean isValid = jwtProvider.validateToken(token);
@@ -83,7 +81,7 @@ class JwtProviderTest {
     @DisplayName("토큰 유효성 검사 - 블랙리스트 토큰")
     void validateToken_blacklist() {
         // given
-        String token = jwtProvider.createAccessToken("test@example.com", "ROLE_USER");
+        String token = jwtProvider.createAccessToken(EMAIL, ROLE);
         given(redisService.hasKey("BL:" + token)).willReturn(true);
 
         // when
@@ -97,16 +95,14 @@ class JwtProviderTest {
     @DisplayName("Authentication 조회 테스트")
     void getAuthentication() {
         // given
-        String email = "test@example.com";
-        String role = "ROLE_USER";
-        String token = jwtProvider.createAccessToken(email, role);
+        String token = jwtProvider.createAccessToken(EMAIL, ROLE);
 
         // when
         Authentication authentication = jwtProvider.getAuthentication(token);
 
         // then
-        assertThat(authentication.getName()).isEqualTo(email);
+        assertThat(authentication.getName()).isEqualTo(EMAIL);
         assertThat(authentication.getAuthorities()).hasSize(1);
-        assertThat(authentication.getAuthorities().iterator().next().getAuthority()).isEqualTo(role);
+        assertThat(authentication.getAuthorities().iterator().next().getAuthority()).isEqualTo(ROLE);
     }
 }

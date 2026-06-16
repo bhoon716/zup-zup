@@ -1,9 +1,9 @@
 package bhoon.sugang_helper.common.security.oauth;
 
-import bhoon.sugang_helper.domain.user.entity.Role;
-import bhoon.sugang_helper.domain.user.entity.User;
-import bhoon.sugang_helper.domain.user.event.UserRegisteredEvent;
-import bhoon.sugang_helper.domain.user.repository.UserRepository;
+import bhoon.sugang_helper.user.domain.Role;
+import bhoon.sugang_helper.user.domain.User;
+import bhoon.sugang_helper.user.domain.UserRegisteredEvent;
+import bhoon.sugang_helper.user.infra.UserRepository;
 import java.util.Collections;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;

@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.manual;
 
-import bhoon.sugang_helper.domain.notification.sender.EmailNotificationSender;
-import bhoon.sugang_helper.domain.notification.sender.NotificationTarget;
-import bhoon.sugang_helper.domain.user.service.EmailVerificationService;
+import bhoon.sugang_helper.notification.infra.EmailNotificationSender;
+import bhoon.sugang_helper.notification.infra.NotificationTarget;
+import bhoon.sugang_helper.user.application.EmailVerificationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
