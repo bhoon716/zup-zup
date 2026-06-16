@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.crawling.domain.CrawlerSetting;
 import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.crawling.infra.CrawlerSettingRepository;
+import bhoon.sugang_helper.crawling.domain.CrawlerSettingRepository;
 import bhoon.sugang_helper.crawling.presentation.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.crawling.presentation.CrawlTargetInfo;
 import java.util.Optional;

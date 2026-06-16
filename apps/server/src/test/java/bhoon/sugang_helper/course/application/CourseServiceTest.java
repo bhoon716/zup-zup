@@ -11,17 +11,18 @@ import static org.mockito.BDDMockito.given;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.course.domain.Course;
+import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.CourseSeatHistory;
-import bhoon.sugang_helper.course.infra.CourseRepository;
-import bhoon.sugang_helper.course.infra.CourseSeatHistoryRepository;
+import bhoon.sugang_helper.course.domain.CourseRepository;
+import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.course.presentation.CourseSearchCondition;
 import bhoon.sugang_helper.course.presentation.CourseDetailResponse;
 import bhoon.sugang_helper.course.presentation.CourseResponse;
 import bhoon.sugang_helper.course.presentation.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
-import bhoon.sugang_helper.review.infra.CourseReviewRepository;
+import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.review.domain.ReviewScopeKey;
-import bhoon.sugang_helper.user.infra.UserRepository;
+import bhoon.sugang_helper.user.domain.UserRepository;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.user.domain.User;
 import java.util.List;
@@ -114,8 +115,8 @@ class CourseServiceTest {
                                 .build();
                 Course course = createCourse();
 
-                given(courseRepository.searchCourses(any(CourseSearchCondition.class), any(Pageable.class)))
-                                .willReturn(new SliceImpl<>(List.of(course)));
+                given(courseRepository.searchCourses(any(CourseSearchCriteria.class), any(Pageable.class)))
+                        .willReturn(new SliceImpl<>(List.of(course)));
                 mockCrawlerTarget();
 
                 // when

@@ -3,7 +3,7 @@ package bhoon.sugang_helper.dday.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.dday.domain.DdaySetting;
-import bhoon.sugang_helper.dday.infra.DdaySettingRepository;
+import bhoon.sugang_helper.dday.domain.DdaySettingRepository;
 import bhoon.sugang_helper.dday.presentation.DdaySettingRequest;
 import bhoon.sugang_helper.dday.presentation.DdaySettingResponse;
 import java.time.LocalDate;

@@ -3,9 +3,10 @@ package bhoon.sugang_helper.course.infra;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.course.domain.Course;
-import bhoon.sugang_helper.course.presentation.CourseSearchCondition;
+import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
+import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.wishlist.domain.Wishlist;
-import bhoon.sugang_helper.wishlist.infra.WishlistRepository;
+import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +39,7 @@ class CourseRepositoryImplTest {
         saveCourse("CK2", DS, "이교수", EE);
         saveCourse("CK3", OS, "박교수", ME);
 
-        CourseSearchCondition condition = baseCondition()
+        CourseSearchCriteria condition = baseCondition()
                 .professor("김교수, 박교수")
                 .sortBy("name")
                 .build();
@@ -60,7 +61,7 @@ class CourseRepositoryImplTest {
         saveCourse("CK2", DS, "이교수", EE);
         saveCourse("CK3", OS, "박교수", ME);
 
-        CourseSearchCondition condition = baseCondition()
+        CourseSearchCriteria condition = baseCondition()
                 .department("전자공학부,\n기계공학부")
                 .sortBy("name")
                 .build();
@@ -86,7 +87,7 @@ class CourseRepositoryImplTest {
         saveWishlist(3L, "CK2");
         saveWishlist(4L, "CK2");
 
-        CourseSearchCondition condition = baseCondition()
+        CourseSearchCriteria condition = baseCondition()
                 .sortBy("popular")
                 .build();
 
@@ -99,8 +100,8 @@ class CourseRepositoryImplTest {
                 .containsExactly(DS, ALG, OS);
     }
 
-    private CourseSearchCondition.CourseSearchConditionBuilder baseCondition() {
-        return CourseSearchCondition.builder()
+    private CourseSearchCriteria.CourseSearchCriteriaBuilder baseCondition() {
+        return CourseSearchCriteria.builder()
                 .academicYear(ACADEMIC_YEAR)
                 .semester(SEMESTER_CODE);
     }

@@ -7,10 +7,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.announcement.domain.Announcement;
-import bhoon.sugang_helper.announcement.infra.AnnouncementRepository;
+import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
 import bhoon.sugang_helper.dashboard.presentation.DashboardSnapshotResponse;
 import bhoon.sugang_helper.notification.domain.NotificationHistory;
-import bhoon.sugang_helper.notification.infra.NotificationHistoryRepository;
+import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.schedule.domain.Schedule;
 import bhoon.sugang_helper.schedule.presentation.ScheduleResponse;

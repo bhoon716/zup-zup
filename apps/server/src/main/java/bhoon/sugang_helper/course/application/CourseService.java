@@ -4,8 +4,9 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.course.domain.Course;
-import bhoon.sugang_helper.course.infra.CourseRepository;
-import bhoon.sugang_helper.course.infra.CourseSeatHistoryRepository;
+import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
+import bhoon.sugang_helper.course.domain.CourseRepository;
+import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.course.presentation.CourseSearchCondition;
 import bhoon.sugang_helper.course.presentation.CourseCategoryResponse;
 import bhoon.sugang_helper.course.presentation.CourseDetailResponse;
@@ -14,9 +15,9 @@ import bhoon.sugang_helper.course.presentation.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.crawling.presentation.CrawlTargetInfo;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
 import bhoon.sugang_helper.review.domain.ReviewScopeKey;
-import bhoon.sugang_helper.review.infra.CourseReviewRepository;
+import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.user.domain.User;
-import bhoon.sugang_helper.user.infra.UserRepository;
+import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -41,13 +42,15 @@ public class CourseService {
      */
     public Slice<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
         CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
+        Long userId = condition.getUserId();
         if (Boolean.TRUE.equals(condition.getIsWishedOnly())) {
             String email = SecurityUtil.getCurrentUserEmail();
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
-            condition.setUserId(user.getId());
+            userId = user.getId();
         }
-        return courseRepository.searchCourses(condition, pageable)
+        CourseSearchCriteria criteria = condition.toCriteria(userId);
+        return courseRepository.searchCourses(criteria, pageable)
                 .map(course -> CourseResponse.from(course, target.year(), target.semester().getCode()));
     }
 

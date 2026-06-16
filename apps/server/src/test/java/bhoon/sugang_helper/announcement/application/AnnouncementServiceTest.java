@@ -9,7 +9,7 @@ import static org.mockito.Mockito.verify;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.announcement.domain.Announcement;
-import bhoon.sugang_helper.announcement.infra.AnnouncementRepository;
+import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
 import bhoon.sugang_helper.announcement.presentation.AnnouncementRequest;
 import bhoon.sugang_helper.announcement.presentation.AnnouncementDetailResponse;
 import bhoon.sugang_helper.announcement.presentation.AnnouncementListResponse;

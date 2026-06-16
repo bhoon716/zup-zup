@@ -1,9 +1,9 @@
 package bhoon.sugang_helper.dashboard.application;
 
-import bhoon.sugang_helper.announcement.infra.AnnouncementRepository;
+import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
 import bhoon.sugang_helper.announcement.presentation.AnnouncementListResponse;
 import bhoon.sugang_helper.dashboard.presentation.DashboardSnapshotResponse;
-import bhoon.sugang_helper.notification.infra.NotificationHistoryRepository;
+import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.presentation.NotificationHistoryResponse;
 import bhoon.sugang_helper.schedule.presentation.ScheduleResponse;
 import bhoon.sugang_helper.schedule.application.ScheduleService;

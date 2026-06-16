@@ -6,7 +6,7 @@ import bhoon.sugang_helper.common.security.constant.SecurityConstant;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.auth.application.AuthService;
 import bhoon.sugang_helper.user.domain.User;
-import bhoon.sugang_helper.user.infra.UserRepository;
+import bhoon.sugang_helper.user.domain.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;

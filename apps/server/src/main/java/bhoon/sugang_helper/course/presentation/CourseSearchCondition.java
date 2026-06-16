@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.course.presentation;
 
+import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.TargetGrade;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
@@ -139,5 +140,43 @@ public class CourseSearchCondition {
         this.sortBy = sortBy;
         this.sortOrder = sortOrder;
         this.userId = userId;
+    }
+
+    public CourseSearchCriteria toCriteria(Long userId) {
+        return CourseSearchCriteria.builder()
+                .name(name)
+                .professor(professor)
+                .subjectCode(subjectCode)
+                .academicYear(academicYear)
+                .semester(semester)
+                .classifications(classifications)
+                .department(department)
+                .gradingMethods(gradingMethods)
+                .lectureLanguages(lectureLanguages)
+                .isAvailableOnly(isAvailableOnly)
+                .dayOfWeek(dayOfWeek)
+                .selectedSchedules(selectedSchedules == null ? null : selectedSchedules.stream()
+                        .map(schedule -> CourseSearchCriteria.SelectedSchedule.builder()
+                                .dayOfWeek(schedule.getDayOfWeek())
+                                .startTime(schedule.getStartTime())
+                                .endTime(schedule.getEndTime())
+                                .build())
+                        .toList())
+                .credits(credits)
+                .lectureHours(lectureHours)
+                .minLectureHours(minLectureHours)
+                .generalCategory(generalCategory)
+                .generalDetail(generalDetail)
+                .timetableId(timetableId)
+                .isWishedOnly(isWishedOnly)
+                .statuses(statuses)
+                .courseDirection(courseDirection)
+                .minCredits(minCredits)
+                .targetGrades(targetGrades)
+                .disclosure(disclosure)
+                .sortBy(sortBy)
+                .sortOrder(sortOrder)
+                .userId(userId)
+                .build();
     }
 }

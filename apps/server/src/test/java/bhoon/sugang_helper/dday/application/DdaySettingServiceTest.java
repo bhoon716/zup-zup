@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.dday.domain.DdaySetting;
-import bhoon.sugang_helper.dday.infra.DdaySettingRepository;
+import bhoon.sugang_helper.dday.domain.DdaySettingRepository;
 import bhoon.sugang_helper.dday.presentation.DdaySettingResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;

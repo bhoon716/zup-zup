@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.schedule.domain.Schedule;
-import bhoon.sugang_helper.schedule.infra.ScheduleRepository;
+import bhoon.sugang_helper.schedule.domain.ScheduleRepository;
 import bhoon.sugang_helper.schedule.presentation.ScheduleRequest;
 import bhoon.sugang_helper.schedule.presentation.ScheduleResponse;
 import java.time.LocalDate;
