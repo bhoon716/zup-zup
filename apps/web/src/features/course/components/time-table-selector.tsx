@@ -4,9 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } 
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import type { CourseDayOfWeek, ScheduleCondition } from "@/shared/types/api";
+import {
+  SMART_FILTER_START_MINUTES,
+  SMART_FILTER_SLOT_MINUTES,
+  SMART_FILTER_SLOT_COUNT,
+} from "../constants/course-options";
 
 const DAYS: CourseDayOfWeek[] = ["월", "화", "수", "목", "금", "토"];
-const SLOT_NUMBERS = Array.from({ length: 13 }, (_, i) => i);
+const SLOT_NUMBERS = Array.from({ length: SMART_FILTER_SLOT_COUNT }, (_, i) => i);
 const GRID_COLUMNS_CLASS = "grid-cols-[34px_repeat(6,minmax(0,1fr))]";
 
 type DragMode = "select" | "deselect";
@@ -35,8 +40,8 @@ function toTimeText(minutes: number): string {
 }
 
 function getSlotRange(slot: number): { startTime: string; endTime: string; label: string } {
-  const startMinutes = 9 * 60 + slot * 60;
-  const endMinutes = startMinutes + 60;
+  const startMinutes = SMART_FILTER_START_MINUTES + slot * SMART_FILTER_SLOT_MINUTES;
+  const endMinutes = startMinutes + SMART_FILTER_SLOT_MINUTES;
   return {
     startTime: toTimeText(startMinutes),
     endTime: toTimeText(endMinutes),
@@ -303,7 +308,9 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
               <div key={slot} className={cn("grid gap-1 rounded-sm transition-colors", GRID_COLUMNS_CLASS, slot % 2 === 1 && "bg-muted/5", hoveredSlot === slot && "bg-muted/10")}>
                 <div className={cn("flex flex-col items-center justify-center rounded-sm border border-border/60 bg-muted transition-colors", hoveredSlot === slot && "bg-muted/80")}>
                   <span className="text-[10px] font-black leading-none text-foreground">{slotRange.label}</span>
-                  <span className="text-[8px] font-bold text-foreground/80">{slot + 1}교시</span>
+                  <span className="text-[8px] font-bold text-foreground/80">
+                    {Math.floor(SMART_FILTER_START_MINUTES / 60) - 8 + slot}교시
+                  </span>
                 </div>
 
                 {DAYS.map((day) => {
@@ -326,7 +333,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
                       type="button"
                       data-day={day}
                       data-slot={slot}
-                      aria-label={`${day} ${slot + 1}교시`}
+                      aria-label={`${day} ${Math.floor(SMART_FILTER_START_MINUTES / 60) - 8 + slot}교시`}
                       className={cn("h-10 rounded-sm transition-all duration-100", cellClassName)}
                       onPointerDown={(e) => handlePointerDownCell(e, day, slot)}
                       onPointerEnter={(e) => activePointerIdRef.current === e.pointerId && updateDragCell(day, slot)}

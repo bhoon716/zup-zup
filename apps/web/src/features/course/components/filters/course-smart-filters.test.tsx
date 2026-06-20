@@ -50,7 +50,7 @@ describe("CourseSmartFilters", () => {
 
     render(<Harness />);
 
-    const toggleButton = screen.getByRole("button", { name: "Toggle" });
+    const toggleButton = screen.getByRole("button", { name: "공강 시간표 펼치기" });
     const selector = screen.getByTestId("time-table-selector").parentElement as HTMLElement;
 
     expect(selector).toHaveAttribute("hidden");

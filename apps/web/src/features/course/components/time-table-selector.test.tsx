@@ -93,8 +93,8 @@ describe("TimeTableSelector", () => {
     render(<SelectorHarness initial={[]} />);
     const selectAll = screen.getByRole("button", { name: "전체 선택" });
     fireEvent.click(selectAll);
-    // 6 days * 13 slots = 78
-    expect(screen.getByTestId("selected-count")).toHaveTextContent("78");
+    // 6 days * 14 slots = 84
+    expect(screen.getByTestId("selected-count")).toHaveTextContent("84");
   });
 
   it("전체 해제 버튼을 누르면 모든 선택이 해제된다", () => {

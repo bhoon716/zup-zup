@@ -93,6 +93,6 @@ export const GE_CATEGORIES: Record<string, string[]> = {
 };
 
 export const SMART_FILTER_DAYS: CourseDayOfWeek[] = ["월", "화", "수", "목", "금", "토"];
-export const SMART_FILTER_START_MINUTES = 9 * 60;
+export const SMART_FILTER_START_MINUTES = 8 * 60;
 export const SMART_FILTER_SLOT_MINUTES = 60;
-export const SMART_FILTER_SLOT_COUNT = 13;
+export const SMART_FILTER_SLOT_COUNT = 14;
