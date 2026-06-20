@@ -100,6 +100,76 @@ class CourseRepositoryImplTest {
                 .containsExactly(DS, ALG, OS);
     }
 
+    @Test
+    @DisplayName("평점 정렬은 평점 내림차순, 리뷰 개수 내림차순, 과목 키 오름차순으로 정렬한다")
+    void searchCourses_sortsByRating() {
+        // given
+        courseRepository.save(Course.builder()
+                .courseKey("CK1").subjectCode("CK1").name(ALG).classNumber("1")
+                .academicYear(ACADEMIC_YEAR).semester(SEMESTER_CODE)
+                .capacity(50).current(10).averageRating(4.5f).reviewCount(20).build());
+        courseRepository.save(Course.builder()
+                .courseKey("CK2").subjectCode("CK2").name(DS).classNumber("1")
+                .academicYear(ACADEMIC_YEAR).semester(SEMESTER_CODE)
+                .capacity(50).current(10).averageRating(3.0f).reviewCount(50).build());
+        courseRepository.save(Course.builder()
+                .courseKey("CK3").subjectCode("CK3").name(OS).classNumber("1")
+                .academicYear(ACADEMIC_YEAR).semester(SEMESTER_CODE)
+                .capacity(50).current(10).averageRating(5.0f).reviewCount(10).build());
+
+        CourseSearchCriteria condition = baseCondition()
+                .sortBy("rating")
+                .sortOrder("desc")
+                .build();
+
+        // when
+        var response = courseRepository.searchCourses(condition, PageRequest.of(0, 10));
+
+        // then
+        assertThat(response.getContent())
+                .extracting(Course::getName)
+                .containsExactly(OS, ALG, DS); // CK3(5.0, 10), CK1(4.5, 20), CK2(3.0, 50)
+    }
+
+    @Test
+    @DisplayName("여석 정렬은 여석(정원-신청인원) 내림차순, 과목명 오름차순, 과목 키 오름차순으로 정렬한다")
+    void searchCourses_sortsByAvailableSeats() {
+        // given
+        courseRepository.save(Course.builder()
+                .courseKey("CK1").subjectCode("CK1").name(ALG).classNumber("1")
+                .academicYear(ACADEMIC_YEAR).semester(SEMESTER_CODE)
+                .capacity(50).current(10) // 여석: 40
+                .build());
+        courseRepository.save(Course.builder()
+                .courseKey("CK2").subjectCode("CK2").name(DS).classNumber("1")
+                .academicYear(ACADEMIC_YEAR).semester(SEMESTER_CODE)
+                .capacity(50).current(40) // 여석: 10
+                .build());
+        courseRepository.save(Course.builder()
+                .courseKey("CK3").subjectCode("CK3").name(OS).classNumber("1")
+                .academicYear(ACADEMIC_YEAR).semester(SEMESTER_CODE)
+                .capacity(50).current(20) // 여석: 30
+                .build());
+        courseRepository.save(Course.builder()
+                .courseKey("CK4").subjectCode("CK4").name("네트워크").classNumber("1")
+                .academicYear(ACADEMIC_YEAR).semester(SEMESTER_CODE)
+                .capacity(50).current(20) // 여석: 30
+                .build());
+
+        CourseSearchCriteria condition = baseCondition()
+                .sortBy("available")
+                .sortOrder("desc")
+                .build();
+
+        // when
+        var response = courseRepository.searchCourses(condition, PageRequest.of(0, 10));
+
+        // then
+        assertThat(response.getContent())
+                .extracting(Course::getName)
+                .containsExactly(ALG, "네트워크", OS, DS); // CK1(40), CK4(30, 네트워크), CK3(30, 운영체제), CK2(10)
+    }
+
     private CourseSearchCriteria.CourseSearchCriteriaBuilder baseCondition() {
         return CourseSearchCriteria.builder()
                 .academicYear(ACADEMIC_YEAR)

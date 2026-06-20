@@ -324,9 +324,25 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
             };
         }
 
+        if ("rating".equalsIgnoreCase(sortBy)) {
+            return new OrderSpecifier<?>[]{
+                    new OrderSpecifier<>(order, course.averageRating),
+                    new OrderSpecifier<>(Order.DESC, course.reviewCount),
+                    new OrderSpecifier<>(Order.ASC, course.courseKey)
+            };
+        }
+
         if ("current".equalsIgnoreCase(sortBy)) {
             return new OrderSpecifier<?>[]{
                     new OrderSpecifier<>(order, course.current),
+                    new OrderSpecifier<>(Order.ASC, course.courseKey)
+            };
+        }
+
+        if ("available".equalsIgnoreCase(sortBy)) {
+            return new OrderSpecifier<?>[]{
+                    new OrderSpecifier<>(order, course.capacity.subtract(course.current)),
+                    new OrderSpecifier<>(Order.ASC, course.name),
                     new OrderSpecifier<>(Order.ASC, course.courseKey)
             };
         }
