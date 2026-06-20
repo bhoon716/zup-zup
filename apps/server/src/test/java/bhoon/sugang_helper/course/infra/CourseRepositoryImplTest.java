@@ -5,8 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.CourseRepository;
+import bhoon.sugang_helper.course.domain.CourseSchedule;
+import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
 import bhoon.sugang_helper.wishlist.domain.Wishlist;
 import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
+import java.time.LocalTime;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -197,5 +201,107 @@ class CourseRepositoryImplTest {
                 .userId(userId)
                 .courseKey(courseKey)
                 .build());
+    }
+
+    @Test
+    @DisplayName("연속된 공강 슬롯이 선택되었을 때, 해당 연속된 시간대 내에 속하는 긴 강의를 검색한다")
+    void searchCourses_matchesContiguousFreeTimeSlots() {
+        // given
+        Course course = Course.builder()
+                .courseKey("CK_CT")
+                .subjectCode("CK_CT")
+                .name("긴강의")
+                .classNumber("1")
+                .professor("김교수")
+                .capacity(50)
+                .current(10)
+                .academicYear(ACADEMIC_YEAR)
+                .semester(SEMESTER_CODE)
+                .build();
+        course.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(11, 0)));
+        courseRepository.save(course);
+
+        // 사용자가 월요일 9-10시, 10-11시 두 슬롯을 선택함
+        CourseSearchCriteria condition = baseCondition()
+                .selectedSchedules(List.of(
+                        CourseSearchCriteria.SelectedSchedule.builder()
+                                .dayOfWeek(CourseDayOfWeek.MONDAY)
+                                .startTime("09:00:00")
+                                .endTime("10:00:00")
+                                .build(),
+                        CourseSearchCriteria.SelectedSchedule.builder()
+                                .dayOfWeek(CourseDayOfWeek.MONDAY)
+                                .startTime("10:00:00")
+                                .endTime("11:00:00")
+                                .build()
+                ))
+                .build();
+
+        // when
+        var response = courseRepository.searchCourses(condition, PageRequest.of(0, 10));
+
+        // then
+        assertThat(response.getContent())
+                .extracting(Course::getName)
+                .containsExactly("긴강의");
+    }
+
+    @Test
+    @DisplayName("여러 개의 요일별 공강이 선택되었을 때, 모든 수업 요일/시간이 공강 내에 포함되는지 확인한다")
+    void searchCourses_matchesMultipleSchedules() {
+        // given
+        Course course1 = Course.builder()
+                .courseKey("CK_MULT")
+                .subjectCode("CK_MULT")
+                .name("여러시간강의")
+                .classNumber("1")
+                .professor("김교수")
+                .capacity(50)
+                .current(10)
+                .academicYear(ACADEMIC_YEAR)
+                .semester(SEMESTER_CODE)
+                .build();
+        course1.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
+        course1.addSchedule(new CourseSchedule(CourseDayOfWeek.WEDNESDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)));
+        courseRepository.save(course1);
+
+        Course course2 = Course.builder()
+                .courseKey("CK_OUT")
+                .subjectCode("CK_OUT")
+                .name("범위외강의")
+                .classNumber("1")
+                .professor("김교수")
+                .capacity(50)
+                .current(10)
+                .academicYear(ACADEMIC_YEAR)
+                .semester(SEMESTER_CODE)
+                .build();
+        course2.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
+        course2.addSchedule(new CourseSchedule(CourseDayOfWeek.FRIDAY, LocalTime.of(13, 0), LocalTime.of(14, 0))); // 금요일은 비선택
+        courseRepository.save(course2);
+
+        // 사용자가 월요일 9-10시, 수요일 13-14시를 선택함
+        CourseSearchCriteria condition = baseCondition()
+                .selectedSchedules(List.of(
+                        CourseSearchCriteria.SelectedSchedule.builder()
+                                .dayOfWeek(CourseDayOfWeek.MONDAY)
+                                .startTime("09:00:00")
+                                .endTime("10:00:00")
+                                .build(),
+                        CourseSearchCriteria.SelectedSchedule.builder()
+                                .dayOfWeek(CourseDayOfWeek.WEDNESDAY)
+                                .startTime("13:00:00")
+                                .endTime("14:00:00")
+                                .build()
+                ))
+                .build();
+
+        // when
+        var response = courseRepository.searchCourses(condition, PageRequest.of(0, 10));
+
+        // then
+        assertThat(response.getContent())
+                .extracting(Course::getName)
+                .containsExactly("여러시간강의");
     }
 }

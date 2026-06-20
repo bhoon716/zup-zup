@@ -35,6 +35,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.util.StringUtils;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Map;
 
 @SuppressWarnings({"PMD.TooManyMethods", "PMD.CyclomaticComplexity"})
 public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
@@ -105,8 +108,10 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
             return null;
         }
 
+        List<ValidScheduleCondition> mergedConditions = mergeContiguousConditions(validConditions);
+
         QCourseSchedule schedule = QCourseSchedule.courseSchedule;
-        BooleanBuilder selectedSlots = buildSelectedSlots(schedule, validConditions);
+        BooleanBuilder selectedSlots = buildSelectedSlots(schedule, mergedConditions);
 
         return course.schedules.isNotEmpty()
                 .and(JPAExpressions.selectOne()
@@ -114,6 +119,41 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
                         .where(schedule.course.eq(course)
                                 .and(selectedSlots.not()))
                         .notExists());
+    }
+
+    private List<ValidScheduleCondition> mergeContiguousConditions(List<ValidScheduleCondition> conditions) {
+        if (conditions.size() <= 1) {
+            return conditions;
+        }
+
+        Map<CourseDayOfWeek, List<ValidScheduleCondition>> grouped = conditions.stream()
+                .collect(Collectors.groupingBy(ValidScheduleCondition::dayOfWeek));
+
+        List<ValidScheduleCondition> mergedAll = new ArrayList<>();
+
+        for (Map.Entry<CourseDayOfWeek, List<ValidScheduleCondition>> entry : grouped.entrySet()) {
+            CourseDayOfWeek day = entry.getKey();
+            List<ValidScheduleCondition> dayConditions = new ArrayList<>(entry.getValue());
+            dayConditions.sort(Comparator.comparing(ValidScheduleCondition::startTime));
+
+            List<ValidScheduleCondition> mergedDay = new ArrayList<>();
+            ValidScheduleCondition currentMerged = dayConditions.get(0);
+
+            for (int i = 1; i < dayConditions.size(); i++) {
+                ValidScheduleCondition next = dayConditions.get(i);
+                if (!next.startTime().isAfter(currentMerged.endTime())) {
+                    LocalTime newEndTime = next.endTime().isAfter(currentMerged.endTime()) ? next.endTime() : currentMerged.endTime();
+                    currentMerged = new ValidScheduleCondition(day, currentMerged.startTime(), newEndTime);
+                } else {
+                    mergedDay.add(currentMerged);
+                    currentMerged = next;
+                }
+            }
+            mergedDay.add(currentMerged);
+            mergedAll.addAll(mergedDay);
+        }
+
+        return mergedAll;
     }
 
     private List<ValidScheduleCondition> toValidConditions(List<CourseSearchCriteria.SelectedSchedule> selectedSchedules) {
