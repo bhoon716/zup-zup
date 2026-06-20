@@ -2,53 +2,36 @@ package bhoon.sugang_helper.crawling.application;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.course.domain.ParsedCourseDto;
-import bhoon.sugang_helper.course.domain.Course;
-import bhoon.sugang_helper.course.domain.CourseSchedule;
-import bhoon.sugang_helper.course.domain.CourseSeatHistory;
 import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
-import bhoon.sugang_helper.crawling.infra.JbnuCourseApiClient;
-import bhoon.sugang_helper.course.domain.CourseRepository;
-import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.crawling.presentation.CrawlTargetInfo;
 import java.time.Year;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * 전북대학교 오아시스 시스템으로부터 강의 정보를 크롤링하고 데이터베이스에 동기화하는 서비스입니다. 강의 여석 발생 시 이벤트를 발행하는 역할도 담당합니다.
+ * 전북대학교 오아시스 시스템으로부터 강의 정보를 크롤링하고 데이터베이스에 동기화하는 서비스입니다.
+ * Spring Batch의 JobLauncher를 통해 배치 작업을 수행합니다.
  */
 @Service
 @Slf4j
 public class CourseCrawlerService {
 
-    private final CourseRepository courseRepository;
-    private final JbnuCourseApiClient apiClient;
-    private final JbnuCourseParser courseParser;
-    private final ApplicationEventPublisher eventPublisher;
-    private final CourseSeatHistoryRepository courseSeatHistoryRepository;
+    private final JobLauncher jobLauncher;
+    private final Job crawlJob;
     private final CourseCrawlerTargetService crawlerTargetService;
     private final AtomicBoolean isCrawling = new AtomicBoolean(false);
-    private final TransactionTemplate transactionTemplate;
 
-    public CourseCrawlerService(CourseRepository courseRepository, JbnuCourseApiClient apiClient,
-                                JbnuCourseParser courseParser, ApplicationEventPublisher eventPublisher,
-                                CourseSeatHistoryRepository courseSeatHistoryRepository,
-                                CourseCrawlerTargetService crawlerTargetService,
-                                PlatformTransactionManager transactionManager) {
-        this.courseRepository = courseRepository;
-        this.apiClient = apiClient;
-        this.courseParser = courseParser;
-        this.eventPublisher = eventPublisher;
-        this.courseSeatHistoryRepository = courseSeatHistoryRepository;
+    public CourseCrawlerService(JobLauncher jobLauncher, Job crawlJob,
+                                CourseCrawlerTargetService crawlerTargetService) {
+        this.jobLauncher = jobLauncher;
+        this.crawlJob = crawlJob;
         this.crawlerTargetService = crawlerTargetService;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     /**
@@ -104,150 +87,31 @@ public class CourseCrawlerService {
     }
 
     /**
-     * 실제 크롤링 로직을 실행합니다. (중복 체크 및 Lock 관리는 호출부에서 담당)
+     * Spring Batch Job을 실행하여 실제 크롤링 로직을 수행합니다.
      */
     private void executeCrawl(String year, String semester) {
-        log.info("[Crawler] Starting course crawl. year={}, semester={}", year, semester);
+        log.info("[Crawler] Starting Spring Batch course crawl. year={}, semester={}", year, semester);
         try {
-            // API 호출은 트랜잭션 외부에서 수행
-            String xmlResponse = apiClient.fetchCourseDataXml(year, semester);
-            List<ParsedCourseDto> courses = courseParser.parseCourses(xmlResponse);
+            JobParameters jobParameters = new JobParametersBuilder()
+                    .addString("year", year)
+                    .addString("semester", semester)
+                    .addLong("time", System.currentTimeMillis())
+                    .toJobParameters();
 
-            int savedCount = processCourses(courses);
+            JobExecution execution = jobLauncher.run(crawlJob, jobParameters);
 
-            log.info("[Crawler] Completed course crawl. year={}, semester={}, count={}",
-                    year, semester, savedCount);
+            if (execution.getStatus().isUnsuccessful()) {
+                log.error("[Crawler] Batch crawl job failed with status: {}, exitDescription: {}",
+                        execution.getStatus(), execution.getExitStatus().getExitDescription());
+                throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR, "크롤링 배치 작업 실패");
+            }
+
+            log.info("[Crawler] Completed Spring Batch course crawl. year={}, semester={}", year, semester);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[Crawler] Unknown error during crawling: {}", e.getMessage());
+            log.error("[Crawler] Unknown error during batch crawling: {}", e.getMessage());
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         }
-    }
-
-    /**
-     * 파싱된 강의 목록을 순회하며 개별 강의 처리 프로세스 실행
-     */
-    private int processCourses(List<ParsedCourseDto> courses) {
-        if (courses.isEmpty()) {
-            throw new CustomException(ErrorCode.CRAWLER_NO_DATA, "강의 데이터가 비어 있습니다.");
-        }
-
-        for (ParsedCourseDto courseDto : courses) {
-            try {
-                // 개별 강의별로 트랜잭션을 분리하여 안정성 확보
-                transactionTemplate.executeWithoutResult(status -> processCourse(courseDto));
-            } catch (Exception e) {
-                log.error("[Crawler] Error processing course: courseKey={}, reason={}", courseDto.courseKey(),
-                        e.getMessage());
-                // 개별 강의 실패는 로그만 남기고 계속 진행
-            }
-        }
-        return courses.size();
-    }
-
-    private void processCourse(ParsedCourseDto courseDto) {
-        Course crawledCourse = mapToEntity(courseDto);
-        courseRepository.findByCourseKey(crawledCourse.getCourseKey())
-                .ifPresentOrElse(
-                        existingCourse -> updateExistingCourse(existingCourse, crawledCourse),
-                        () -> createNewCourse(crawledCourse));
-    }
-
-    /**
-     * ParsedCourseDto를 Course 엔티티로 변환합니다.
-     */
-    private Course mapToEntity(ParsedCourseDto dto) {
-        Course course = Course.builder()
-                .courseKey(dto.courseKey())
-                .subjectCode(dto.subjectCode())
-                .classNumber(dto.classNumber())
-                .name(dto.name())
-                .professor(dto.professor())
-                .capacity(dto.capacity())
-                .current(dto.current())
-                .targetGrade(dto.targetGrade())
-                .academicYear(dto.academicYear())
-                .semester(dto.semester())
-                .classification(dto.classification())
-                .department(dto.department())
-                .gradingMethod(dto.gradingMethod())
-                .lectureLanguage(dto.lectureLanguage())
-                .classTime(dto.classTime())
-                .credits(dto.credits())
-                .disclosure(dto.disclosure())
-                .disclosureReason(dto.disclosureReason())
-                .lectureHours(dto.lectureHours())
-                .generalCategory(dto.generalCategory())
-                .generalDetail(dto.generalDetail())
-                .accreditation(dto.accreditation())
-                .status(dto.status())
-                .classroom(dto.classroom())
-                .hasSyllabus(dto.hasSyllabus())
-                .generalCategoryByYear(dto.generalCategoryByYear())
-                .courseDirection(dto.courseDirection())
-                .classDuration(dto.classDuration())
-                .build();
-
-        if (dto.schedules() != null) {
-            dto.schedules()
-                    .forEach(s -> course.addSchedule(new CourseSchedule(s.dayOfWeek(), s.startTime(), s.endTime())));
-        }
-        return course;
-    }
-
-    /**
-     * 신규 강의 정보를 데이터베이스에 저장하고 이력 기록
-     */
-    private void createNewCourse(Course course) {
-        courseRepository.save(course);
-        saveSeatHistory(course);
-    }
-
-    /**
-     * 기존 강의 정보를 업데이트하고, 빈자리 발생 시 알림 이벤트 발행
-     */
-    private void updateExistingCourse(Course existingCourse, Course crawledCourse) {
-        boolean wasFull = existingCourse.getAvailable() <= 0;
-        // 정원 또는 현재 인원에 변동이 있는지 확인
-        boolean seatsChanged = !existingCourse.getCapacity().equals(crawledCourse.getCapacity()) ||
-                !existingCourse.getCurrent().equals(crawledCourse.getCurrent());
-
-        existingCourse.updateMetadata(crawledCourse);
-        courseRepository.save(existingCourse);
-
-        // 변경 사항이 있을 때만 이력 저장 (저장 공간 최적화)
-        if (seatsChanged) {
-            saveSeatHistory(existingCourse);
-        }
-
-        if (wasFull && existingCourse.getAvailable() > 0) {
-            publishSeatOpenedEvent(existingCourse);
-        }
-    }
-
-    /**
-     * 강의의 현재 수강 인원 상태를 이력 테이블에 저장
-     */
-    private void saveSeatHistory(Course course) {
-        courseSeatHistoryRepository.save(CourseSeatHistory.builder()
-                .courseKey(course.getCourseKey())
-                .capacity(course.getCapacity())
-                .current(course.getCurrent())
-                .build());
-    }
-
-    /**
-     * 빈자리 발생 알림 이벤트를 시스템에 발행
-     */
-    private void publishSeatOpenedEvent(Course course) {
-        log.info("[Crawler] Seat opening detected. courseName={}, available={}", course.getName(),
-                course.getAvailable());
-        eventPublisher.publishEvent(new SeatOpenedEvent(
-                course.getCourseKey(),
-                course.getName(),
-                course.getProfessor(),
-                0,
-                course.getAvailable()));
     }
 }

@@ -2,150 +2,50 @@ package bhoon.sugang_helper.crawling.application;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.course.domain.ParsedCourseDto;
-import bhoon.sugang_helper.course.domain.Course;
-import bhoon.sugang_helper.course.domain.CourseSeatHistory;
 import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
-import bhoon.sugang_helper.crawling.infra.JbnuCourseApiClient;
-import bhoon.sugang_helper.course.domain.CourseRepository;
-import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.crawling.presentation.CrawlTargetInfo;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.launch.JobLauncher;
 
 @ExtendWith(MockitoExtension.class)
 class CourseCrawlerServiceTest {
 
-    private static final String COURSE_KEY = "12345:01";
-    private static final String NEW_COURSE_KEY = "NEW:01";
-    private static final String SAME_COURSE_KEY = "SAME:01";
-    private static final String ACADEMIC_YEAR = "2026";
-    private static final String SEMESTER_CODE = "U211600010";
-
     @Mock
-    private CourseRepository courseRepository;
+    private JobLauncher jobLauncher;
     @Mock
-    private JbnuCourseApiClient apiClient;
-    @Mock
-    private JbnuCourseParser courseParser;
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
-    @Mock
-    private CourseSeatHistoryRepository courseSeatHistoryRepository;
+    private Job crawlJob;
     @Mock
     private CourseCrawlerTargetService crawlerTargetService;
     @Mock
-    private PlatformTransactionManager transactionManager;
+    private JobExecution jobExecution;
 
     @InjectMocks
     private CourseCrawlerService courseCrawlerService;
 
     @Test
-    @DisplayName("여석 발생 감지: 0명에서 1명으로 변경 시 이벤트 발행 및 이력 저장")
-    void detectSeatOpening_SavesHistoryAndPublishesEvent() throws IOException {
+    @DisplayName("crawlAndSaveCourses 실행 시 JobLauncher를 통해 배치 Job이 성공적으로 실행된다")
+    void crawlAndSaveCourses_LaunchesJobSuccessfully() throws Exception {
         // given
-        setupMockCrawlData(List.of(createCourseDto(COURSE_KEY, 50, 49)));
-
-        Course existingFullCourse = createCourse(COURSE_KEY, 50, 50);
-        given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(existingFullCourse));
+        CrawlTargetInfo target = new CrawlTargetInfo("2026", SemesterType.FIRST_SEMESTER);
+        given(crawlerTargetService.getCurrentTargetValue()).willReturn(target);
+        given(jobLauncher.run(any(Job.class), any(JobParameters.class))).willReturn(jobExecution);
+        given(jobExecution.getStatus()).willReturn(org.springframework.batch.core.BatchStatus.COMPLETED);
 
         // when
         courseCrawlerService.crawlAndSaveCourses();
 
         // then
-        verify(eventPublisher, times(1)).publishEvent(any(SeatOpenedEvent.class));
-        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
-    }
-
-    @Test
-    @DisplayName("여석 유지 시: 이미 여석이 있었던 경우 이벤트는 미발행하고 이력만 저장")
-    void alreadyAvailable_SavesHistoryOnly() throws IOException {
-        // given
-        setupMockCrawlData(List.of(createCourseDto(COURSE_KEY, 50, 48)));
-
-        Course existingAvailableCourse = createCourse(COURSE_KEY, 50, 49);
-        given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(existingAvailableCourse));
-
-        // when
-        courseCrawlerService.crawlAndSaveCourses();
-
-        // then
-        verify(eventPublisher, never()).publishEvent(any(SeatOpenedEvent.class));
-        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
-    }
-
-    @Test
-    @DisplayName("새로운 강의 발견 시: 강의 정보를 저장하고 첫 이력을 기록")
-    void newCourseFound_SavesCourseAndHistory() throws IOException {
-        // given
-        setupMockCrawlData(List.of(createCourseDto(NEW_COURSE_KEY, 50, 40)));
-        given(courseRepository.findByCourseKey(NEW_COURSE_KEY)).willReturn(Optional.empty());
-
-        // when
-        courseCrawlerService.crawlAndSaveCourses();
-
-        // then
-        verify(courseRepository, times(1)).save(any(Course.class));
-        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
-    }
-
-    @Test
-    @DisplayName("데이터 변경 없는 경우: 이력을 저장하지 않음")
-    void noChange_DoesNotSaveHistory() throws IOException {
-        // given
-        setupMockCrawlData(List.of(createCourseDto(SAME_COURSE_KEY, 50, 10)));
-
-        Course existingCourse = createCourse(SAME_COURSE_KEY, 50, 10);
-        given(courseRepository.findByCourseKey(SAME_COURSE_KEY)).willReturn(Optional.of(existingCourse));
-
-        // when
-        courseCrawlerService.crawlAndSaveCourses();
-
-        // then
-        verify(courseSeatHistoryRepository, never()).save(any(CourseSeatHistory.class));
-    }
-
-    private void setupMockCrawlData(List<ParsedCourseDto> dtoList) throws IOException {
-        String mockXml = "<mock></mock>";
-        given(crawlerTargetService.getCurrentTargetValue())
-                .willReturn(new CrawlTargetInfo(ACADEMIC_YEAR, SemesterType.FIRST_SEMESTER));
-        given(apiClient.fetchCourseDataXml(ACADEMIC_YEAR, SemesterType.FIRST_SEMESTER.getCode())).willReturn(mockXml);
-        given(courseParser.parseCourses(mockXml)).willReturn(dtoList);
-    }
-
-    private Course createCourse(String courseKey, int capacity, int current) {
-        return Course.builder()
-                .courseKey(courseKey)
-                .name("테스트 강의")
-                .capacity(capacity)
-                .current(current)
-                .academicYear(ACADEMIC_YEAR)
-                .semester(SEMESTER_CODE)
-                .build();
-    }
-
-    private ParsedCourseDto createCourseDto(String courseKey, int capacity, int current) {
-        return new ParsedCourseDto(
-                courseKey, "12345", "테스트 강의", "01", "김교수",
-                capacity, current, null, ACADEMIC_YEAR, SEMESTER_CODE,
-                null, "컴퓨터공학부", null, "월 1-A", "3",
-                null, null, null, 3, null,
-                null, null, null, "7호관 101호", true,
-                null, null, null, Collections.emptyList());
+        verify(jobLauncher, times(1)).run(any(Job.class), any(JobParameters.class));
     }
 }
