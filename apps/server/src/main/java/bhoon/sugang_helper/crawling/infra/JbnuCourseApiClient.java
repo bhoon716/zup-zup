@@ -2,6 +2,8 @@ package bhoon.sugang_helper.crawling.infra;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import java.io.IOException;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -34,9 +36,9 @@ public class JbnuCourseApiClient {
                     <Parameter id="gvShtm">%s</Parameter>
                     <Parameter id="gvRechPrjtNo" />
                     <Parameter id="gvRechDutyr" />
-                    <Parameter id="_fwb">20mzyFXlsiAAzAW4dFmDl2.1772273427418</Parameter>
-                    <Parameter id="WMONID">zun7Ibxjuly</Parameter>
-                    <Parameter id="JSESSIONIDSSO">QmLqIUuTLfXijjk9Lvam9DOMTcLjYxbrlkHJKnJz8PtcUNtKtZcFUJyZNIUvsvHd.amV1c19kb21haW4vc2VydmVyMV8z</Parameter>
+                    <Parameter id="_fwb" />
+                    <Parameter id="WMONID">%s</Parameter>
+                    <Parameter id="JSESSIONIDSSO">%s</Parameter>
                     <Parameter id="yy">%s</Parameter>
                     <Parameter id="shtm">%s</Parameter>
                     <Parameter id="fg" />
@@ -59,11 +61,21 @@ public class JbnuCourseApiClient {
      * 특정 년도와 학기를 지정하여 JBNU API 서버로부터 강의 데이터를 XML 형식으로 가져옵니다.
      */
     public String fetchCourseDataXml(String year, String semester) {
-        String payload = PAYLOAD_TEMPLATE.formatted(year, semester, year, semester, year);
         int retryCount = 0;
 
         while (true) {
             try {
+                Map<String, String> cookies = fetchSessionCookies();
+                String wmonid = cookies.getOrDefault("WMONID", "");
+                String jsessionidsso = cookies.getOrDefault("JSESSIONIDSSO", "");
+
+                if (wmonid.isBlank() || jsessionidsso.isBlank()) {
+                    log.warn("[API Client] Fetched session cookies are incomplete. WMONID={}, JSESSIONIDSSO={}",
+                            wmonid, jsessionidsso);
+                }
+
+                String payload = PAYLOAD_TEMPLATE.formatted(year, semester, wmonid, jsessionidsso, year, semester, year);
+
                 return Jsoup.connect(apiUrl)
                         .header("Accept", "application/xml, text/xml, */*")
                         .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
@@ -92,6 +104,22 @@ public class JbnuCourseApiClient {
 
                 waitBeforeRetry(retryCount);
             }
+        }
+    }
+
+    /**
+     * 오아시스 로그인 페이지에서 임시 세션 쿠키를 동적으로 가져옵니다.
+     */
+    private Map<String, String> fetchSessionCookies() {
+        try {
+            Connection.Response res = Jsoup.connect("https://oasis.jbnu.ac.kr/com/login.do")
+                    .method(Connection.Method.GET)
+                    .timeout(timeoutMs)
+                    .execute();
+            return res.cookies();
+        } catch (IOException e) {
+            log.warn("[API Client] Failed to fetch session cookies from login page: {}", e.toString());
+            return Map.of();
         }
     }
 
