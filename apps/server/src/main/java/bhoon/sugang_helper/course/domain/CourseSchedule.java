@@ -55,4 +55,14 @@ public class CourseSchedule {
         this.startTime = startTime;
         this.endTime = endTime;
     }
+
+    public boolean isSameSchedule(CourseSchedule other) {
+        if (other == null) {
+            return false;
+        }
+        return this.dayOfWeek == other.dayOfWeek
+                && this.startTime.equals(other.startTime)
+                && this.endTime.equals(other.endTime);
+    }
 }
+

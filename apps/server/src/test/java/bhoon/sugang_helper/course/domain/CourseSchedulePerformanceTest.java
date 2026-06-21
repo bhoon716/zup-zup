@@ -37,56 +37,70 @@ class CourseSchedulePerformanceTest {
     }
 
     @Test
-    @DisplayName("동일한 시간표로 업데이트를 수행할 때 발생하는 SQL DELETE 및 INSERT 횟수를 측정한다")
-    void measureQueryCountOnIdenticalSchedulesUpdate() {
-        // 1. 기존 강의 데이터 생성 (3개의 시간표 포함)
-        Course course = Course.builder()
-                .courseKey("PERF-01")
-                .subjectCode("CSE-PERF")
-                .name("성능측정용과목")
-                .classNumber("1")
-                .professor("홍길동")
-                .capacity(50)
-                .current(10)
-                .academicYear("2026")
-                .semester("U211600010")
-                .build();
+    @DisplayName("1. 청크 크기(100개 과목) 성능 측정: 동일한 시간표로 업데이트 시 발생하는 DELETE 및 INSERT 횟수를 측정한다")
+    void measureQueryCountOnIdenticalSchedulesUpdate_chunkSize() {
+        runPerformanceTest(100, "청크 크기(100개 과목)");
+    }
 
-        course.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
-        course.addSchedule(new CourseSchedule(CourseDayOfWeek.WEDNESDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)));
-        course.addSchedule(new CourseSchedule(CourseDayOfWeek.FRIDAY, LocalTime.of(15, 0), LocalTime.of(16, 0)));
+    @Test
+    @DisplayName("2. 전체 학기 크기(5,395개 과목) 성능 측정: 동일한 시간표로 업데이트 시 발생하는 DELETE 및 INSERT 횟수를 측정한다")
+    void measureQueryCountOnIdenticalSchedulesUpdate_totalSize() {
+        runPerformanceTest(5395, "전체 학기 크기(5,395개 과목)");
+    }
 
-        courseRepository.save(course);
+    private void runPerformanceTest(int courseCount, String testLabel) {
+        int schedulesPerCourse = 3;
+
+        // 1. 기존 강의 데이터 생성 (각 3개의 시간표 포함)
+        for (int i = 0; i < courseCount; i++) {
+            Course course = Course.builder()
+                    .courseKey("PERF-" + testLabel + "-" + i)
+                    .subjectCode("CSE-PERF-" + i)
+                    .name("성능측정용과목" + i)
+                    .classNumber("1")
+                    .professor("홍길동")
+                    .capacity(50)
+                    .current(10)
+                    .academicYear("2026")
+                    .semester("U211600010")
+                    .build();
+
+            course.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
+            course.addSchedule(new CourseSchedule(CourseDayOfWeek.WEDNESDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)));
+            course.addSchedule(new CourseSchedule(CourseDayOfWeek.FRIDAY, LocalTime.of(15, 0), LocalTime.of(16, 0)));
+
+            courseRepository.save(course);
+        }
         em.flush();
         em.clear();
 
         // Hibernate 통계 데이터 초기화
         sessionFactory.getStatistics().clear();
 
-        // 2. 저장된 강의를 다시 로드
-        Course existingCourse = courseRepository.findByCourseKey("PERF-01").orElseThrow();
-
-        // 3. 완전히 동일한 3개의 시간표 정보를 가지는 크롤링 결과 더미 데이터 생성
-        Course crawledCourse = Course.builder()
-                .courseKey("PERF-01")
-                .subjectCode("CSE-PERF")
-                .name("성능측정용과목")
-                .classNumber("1")
-                .professor("홍길동")
-                .capacity(50)
-                .current(10)
-                .academicYear("2026")
-                .semester("U211600010")
-                .build();
-
-        crawledCourse.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
-        crawledCourse.addSchedule(new CourseSchedule(CourseDayOfWeek.WEDNESDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)));
-        crawledCourse.addSchedule(new CourseSchedule(CourseDayOfWeek.FRIDAY, LocalTime.of(15, 0), LocalTime.of(16, 0)));
-
-        // 4. 성능 측정 시작
+        // 2. 성능 측정 시작 (완전히 동일한 시간표 정보로 업데이트 수행)
         long startTime = System.nanoTime();
 
-        existingCourse.updateMetadata(crawledCourse);
+        for (int i = 0; i < courseCount; i++) {
+            Course existingCourse = courseRepository.findByCourseKey("PERF-" + testLabel + "-" + i).orElseThrow();
+
+            Course crawledCourse = Course.builder()
+                    .courseKey("PERF-" + testLabel + "-" + i)
+                    .subjectCode("CSE-PERF-" + i)
+                    .name("성능측정용과목" + i)
+                    .classNumber("1")
+                    .professor("홍길동")
+                    .capacity(50)
+                    .current(10)
+                    .academicYear("2026")
+                    .semester("U211600010")
+                    .build();
+
+            crawledCourse.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
+            crawledCourse.addSchedule(new CourseSchedule(CourseDayOfWeek.WEDNESDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)));
+            crawledCourse.addSchedule(new CourseSchedule(CourseDayOfWeek.FRIDAY, LocalTime.of(15, 0), LocalTime.of(16, 0)));
+
+            existingCourse.updateMetadata(crawledCourse);
+        }
         em.flush(); // DB에 반영
 
         long endTime = System.nanoTime();
@@ -95,17 +109,18 @@ class CourseSchedulePerformanceTest {
         Statistics stats = sessionFactory.getStatistics();
         long deleteCount = stats.getEntityDeleteCount();
         long insertCount = stats.getEntityInsertCount();
+        long expectedQueries = courseCount * schedulesPerCourse;
 
         log.info("==================================================================");
-        log.info("성능 측정 결과 (개선 전)");
+        log.info("성능 측정 결과 (개선 후, {})", testLabel);
         log.info("소요 시간: {} ms", String.format("%.2f", durationMs));
         log.info("Entity Delete 횟수: {}", deleteCount);
         log.info("Entity Insert 횟수: {}", insertCount);
         log.info("==================================================================");
 
-        // 개선 전에는 3회의 delete와 3회의 insert가 발생함을 단언
-        // (최적화 후에는 이 단언문이 0으로 변경되어야 함)
-        assertThat(deleteCount).isEqualTo(3);
-        assertThat(insertCount).isEqualTo(3);
+        // 최적화 후에는 동일한 데이터 업데이트 시 delete와 insert가 0회 발생해야 함
+        assertThat(deleteCount).isZero();
+        assertThat(insertCount).isZero();
     }
 }
+

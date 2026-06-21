@@ -240,10 +240,27 @@ public class Course extends BaseTimeEntity {
         this.classDuration = other.getClassDuration();
         this.lastCrawledAt = LocalDateTime.now();
 
-        this.schedules.clear();
-        for (CourseSchedule schedule : other.getSchedules()) {
-            this.addSchedule(
-                    new CourseSchedule(schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()));
+        // 시간표 변경 사항 비교 및 최적화
+        if (!isSameSchedules(other.getSchedules())) {
+            this.schedules.clear();
+            for (CourseSchedule schedule : other.getSchedules()) {
+                this.addSchedule(
+                        new CourseSchedule(schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()));
+            }
         }
     }
+
+    private boolean isSameSchedules(List<CourseSchedule> otherSchedules) {
+        if (this.schedules.size() != otherSchedules.size()) {
+            return false;
+        }
+        for (int i = 0; i < this.schedules.size(); i++) {
+            if (!this.schedules.get(i).isSameSchedule(otherSchedules.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
+
+
