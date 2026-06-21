@@ -1,0 +1,8 @@
+package bhoon.sugang_helper.feedback.infra;
+
+import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
+import bhoon.sugang_helper.feedback.domain.FeedbackAttachmentRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface FeedbackAttachmentJpaRepository extends JpaRepository<FeedbackAttachment, Long>, FeedbackAttachmentRepository {
+}

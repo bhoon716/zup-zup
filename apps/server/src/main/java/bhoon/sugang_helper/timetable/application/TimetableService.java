@@ -1,0 +1,372 @@
+package bhoon.sugang_helper.timetable.application;
+
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.course.domain.Course;
+import bhoon.sugang_helper.course.domain.CourseRepository;
+import bhoon.sugang_helper.timetable.domain.CustomSchedule;
+import bhoon.sugang_helper.timetable.domain.CustomScheduleTime;
+import bhoon.sugang_helper.timetable.domain.Timetable;
+import bhoon.sugang_helper.timetable.domain.TimetableEntry;
+import bhoon.sugang_helper.timetable.domain.CustomScheduleRepository;
+import bhoon.sugang_helper.timetable.domain.TimetableEntryRepository;
+import bhoon.sugang_helper.timetable.domain.TimetableRepository;
+import bhoon.sugang_helper.timetable.presentation.CustomScheduleRequest;
+import bhoon.sugang_helper.timetable.presentation.TimetableRequest;
+import bhoon.sugang_helper.timetable.presentation.TimetableCourseResponse;
+import bhoon.sugang_helper.timetable.presentation.TimetableDetailResponse;
+import bhoon.sugang_helper.timetable.presentation.TimetableResponse;
+import bhoon.sugang_helper.user.domain.User;
+import bhoon.sugang_helper.user.domain.UserRegisteredEvent;
+import bhoon.sugang_helper.user.domain.UserRepository;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+@SuppressWarnings("PMD.TooManyMethods")
+public class TimetableService {
+
+    private static final int MAX_TIMETABLE_COUNT = 10;
+    private static final int MAX_COURSE_COUNT = 10;
+
+    private final TimetableRepository timetableRepository;
+    private final TimetableEntryRepository timetableEntryRepository;
+    private final CustomScheduleRepository customScheduleRepository;
+    private final CourseRepository courseRepository;
+    private final UserRepository userRepository;
+
+    /**
+     * 새로운 시간표를 생성합니다.
+     */
+    @Transactional
+    public TimetableResponse createTimetable(TimetableRequest request) {
+        User user = getCurrentUser();
+        validateTimetableLimit(user.getId());
+
+        if (request.isPrimary()) {
+            resetPrimary(user.getId());
+        }
+
+        Timetable timetable = Timetable.builder()
+                .userId(user.getId())
+                .name(request.getName())
+                .isPrimary(request.isPrimary())
+                .build();
+
+        return TimetableResponse.of(timetableRepository.save(timetable));
+    }
+
+    /**
+     * 신규 사용자 가입 시 기본 시간표를 자동으로 생성합니다.
+     */
+    @EventListener
+    @Transactional
+    public void handleUserRegisteredEvent(UserRegisteredEvent event) {
+        Timetable timetable = Timetable.builder()
+                .userId(event.userId())
+                .name("기본 시간표")
+                .isPrimary(true)
+                .build();
+        timetableRepository.save(timetable);
+        log.info("[Timetable] Default timetable created for new user. userId={}", event.userId());
+    }
+
+    /**
+     * 현재 로그인한 사용자의 모든 시간표 목록을 조회합니다.
+     */
+    public List<TimetableResponse> getMyTimetables() {
+        User user = getCurrentUser();
+        return timetableRepository.findByUserId(user.getId()).stream()
+                .map(TimetableResponse::of)
+                .toList();
+    }
+
+    /**
+     * 현재 로그인한 사용자의 대표 시간표 상세 정보를 조회합니다.
+     */
+    public TimetableDetailResponse getPrimaryTimetable() {
+        User user = getCurrentUser();
+        List<Timetable> primaryTimetables = timetableRepository.findByUserIdAndIsPrimaryTrue(user.getId());
+        if (primaryTimetables.isEmpty()) {
+            return null;
+        }
+        return getTimetableDetail(primaryTimetables.get(0));
+    }
+
+    /**
+     * 특정 시간표의 상세 정보를 조회합니다.
+     */
+    public TimetableDetailResponse getTimetableDetail(Long timetableId) {
+        Timetable timetable = getTimetable(timetableId);
+        validateOwnership(timetable);
+        return getTimetableDetail(timetable);
+    }
+
+    /**
+     * 시간표에 강의를 추가합니다.
+     */
+    @Transactional
+    public void addCourse(Long timetableId, String courseKey) {
+        Timetable timetable = getTimetable(timetableId);
+        validateOwnership(timetable);
+        validateCourseLimit(timetable.getEntries().size());
+        validateCourseExists(courseKey);
+        validateCourseNotDuplicated(timetableId, courseKey);
+
+        TimetableEntry entry = TimetableEntry.builder()
+                .timetable(timetable)
+                .courseKey(courseKey)
+                .build();
+        timetable.addEntry(entry);
+    }
+
+    /**
+     * 시간표에서 강의를 삭제합니다.
+     */
+    @Transactional
+    public void deleteCourse(Long timetableId, String courseKey) {
+        Timetable timetable = getTimetable(timetableId);
+        validateOwnership(timetable);
+
+        TimetableEntry entry = timetableEntryRepository.findByTimetableIdAndCourseKey(timetableId, courseKey)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "시간표에 존재하지 않는 강좌입니다."));
+
+        timetable.removeEntry(entry);
+        timetableEntryRepository.delete(entry);
+    }
+
+    /**
+     * 시간표에 커스텀 일정(강의 외 개인 일정 등)을 추가합니다.
+     */
+    @Transactional
+    public void addCustomSchedule(Long timetableId, CustomScheduleRequest request) {
+        Timetable timetable = getTimetable(timetableId);
+        validateOwnership(timetable);
+
+        CustomSchedule schedule = CustomSchedule.builder()
+                .timetable(timetable)
+                .title(request.getTitle())
+                .professor(request.getProfessor())
+                .build();
+
+        request.getSchedules().forEach(timeRequest -> {
+            CustomScheduleTime time = CustomScheduleTime.builder()
+                    .customSchedule(schedule)
+                    .dayOfWeek(timeRequest.getDayOfWeek())
+                    .startTime(timeRequest.getStartTime())
+                    .endTime(timeRequest.getEndTime())
+                    .classroom(timeRequest.getClassroom())
+                    .build();
+            schedule.addTime(time);
+        });
+
+        timetable.addCustomSchedule(schedule);
+    }
+
+    /**
+     * 시간표에서 커스텀 일정을 삭제합니다.
+     */
+    @Transactional
+    public void deleteCustomSchedule(Long timetableId, Long scheduleId) {
+        Timetable timetable = getTimetable(timetableId);
+        validateOwnership(timetable);
+
+        CustomSchedule schedule = customScheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 일정입니다."));
+
+        if (!schedule.getTimetable().getId().equals(timetableId)) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "해당 시간표의 일정이 아닙니다.");
+        }
+
+        timetable.removeCustomSchedule(schedule);
+        customScheduleRepository.delete(schedule);
+    }
+
+    /**
+     * 특정 시간표를 사용자의 대표 시간표로 설정합니다.
+     */
+    @Transactional
+    public void setPrimary(Long timetableId) {
+        Timetable timetable = getTimetable(timetableId);
+        validateOwnership(timetable);
+
+        resetPrimary(timetable.getUserId());
+        timetable.setPrimary(true);
+        log.info("[Timetable] Changed representive timetable. timetableId={}", timetableId);
+    }
+
+    /**
+     * 시간표를 삭제합니다. (삭제한 시간표가 대표 시간비면 다른 시간표로 위임합니다)
+     */
+    @Transactional
+    public void deleteTimetable(Long timetableId) {
+        Timetable timetable = getTimetable(timetableId);
+        validateOwnership(timetable);
+
+        boolean wasPrimary = timetable.isPrimary();
+        Long userId = timetable.getUserId();
+        timetableRepository.delete(timetable);
+
+        if (!wasPrimary) {
+            return;
+        }
+
+        promoteNextPrimary(userId, timetableId);
+    }
+
+    /**
+     * 시간표 엔티티를 클라이언트 디테일 응답 DTO로 매핑합니다.
+     */
+    private TimetableDetailResponse getTimetableDetail(Timetable timetable) {
+        Map<String, Course> courseMap = findCoursesByKey(timetable);
+        List<TimetableCourseResponse> courses = mapTimetableCourses(timetable, courseMap);
+        String totalCredits = calculateTotalCredits(courses);
+        return TimetableDetailResponse.of(timetable, courses, totalCredits);
+    }
+
+    /**
+     * 강좌들의 고유 정보를 조회하기 위해 map 형태로 긁어옵니다.
+     */
+    private Map<String, Course> findCoursesByKey(Timetable timetable) {
+        List<String> courseKeys = timetable.getEntries().stream()
+                .map(TimetableEntry::getCourseKey)
+                .toList();
+
+        return courseRepository.findByCourseKeyIn(courseKeys).stream()
+                .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
+    }
+
+    /**
+     * 시간표 엔티티와 강좌 목록을 대조 매치합니다.
+     */
+    private List<TimetableCourseResponse> mapTimetableCourses(Timetable timetable, Map<String, Course> courseMap) {
+        return timetable.getEntries().stream()
+                .map(TimetableEntry::getCourseKey)
+                .map(courseMap::get)
+                .filter(course -> course != null)
+                .map(TimetableCourseResponse::of)
+                .toList();
+    }
+
+    /**
+     * 담겨있는 모든 강의의 총 학점을 합산합니다.
+     */
+    private String calculateTotalCredits(List<TimetableCourseResponse> courses) {
+        double totalCredits = courses.stream()
+                .map(TimetableCourseResponse::getCredits)
+                .mapToDouble(this::toCreditValue)
+                .sum();
+        return String.valueOf(totalCredits);
+    }
+
+    private double toCreditValue(String credits) {
+        if (credits == null || credits.isBlank()) {
+            return 0.0;
+        }
+
+        try {
+            return Double.parseDouble(credits);
+        } catch (NumberFormatException ignored) {
+            return 0.0;
+        }
+    }
+
+    /**
+     * 한 사용자가 가질 수 있는 시간표 생성 개수(최대치)를 검증합니다.
+     */
+    private void validateTimetableLimit(Long userId) {
+        long currentCount = timetableRepository.countByUserId(userId);
+        if (currentCount < MAX_TIMETABLE_COUNT) {
+            return;
+        }
+
+        throw new CustomException(ErrorCode.MAX_TIMETABLE_LIMIT_EXCEEDED,
+                "시간표는 최대 " + MAX_TIMETABLE_COUNT + "개까지 생성 가능합니다.");
+    }
+
+    /**
+     * 시간표 하나당 담을 수 있는 강좌 개수 제한을 검증합니다.
+     */
+    private void validateCourseLimit(int currentSize) {
+        if (currentSize < MAX_COURSE_COUNT) {
+            return;
+        }
+
+        throw new CustomException(ErrorCode.TIMETABLE_COURSE_LIMIT_EXCEEDED,
+                "시간표당 최대 " + MAX_COURSE_COUNT + "개의 강좌만 담을 수 있습니다.");
+    }
+
+    /**
+     * 추가하려는 강좌가 실제 수강 데이터에 존재하는지 검증합니다.
+     */
+    private void validateCourseExists(String courseKey) {
+        if (courseRepository.existsByCourseKey(courseKey)) {
+            return;
+        }
+
+        throw new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 강좌입니다.");
+    }
+
+    /**
+     * 시간표에 이미 존재하는 강좌를 중복 추가하지 않도록 검증합니다.
+     */
+    private void validateCourseNotDuplicated(Long timetableId, String courseKey) {
+        if (timetableEntryRepository.findByTimetableIdAndCourseKey(timetableId, courseKey).isEmpty()) {
+            return;
+        }
+
+        throw new CustomException(ErrorCode.INVALID_INPUT, "이미 시간표에 존재하는 강좌입니다.");
+    }
+
+    /**
+     * 대표 시간표를 삭제 시, 다른 시간표를 예비 대표 시간표로 밀어붙입니다.
+     */
+    private void promoteNextPrimary(Long userId, Long deletedTimetableId) {
+        timetableRepository.findByUserId(userId).stream()
+                .filter(timetable -> !timetable.getId().equals(deletedTimetableId))
+                .findFirst()
+                .ifPresent(timetable -> {
+                    timetable.setPrimary(true);
+                    log.info("[Timetable] Automatically delegated representive timetable. timetableId={}",
+                            timetable.getId());
+                });
+    }
+
+    private void resetPrimary(Long userId) {
+        List<Timetable> primaryTimetables = timetableRepository.findByUserIdAndIsPrimaryTrue(userId);
+        for (Timetable primaryTimetable : primaryTimetables) {
+            primaryTimetable.setPrimary(false);
+        }
+    }
+
+    private Timetable getTimetable(Long timetableId) {
+        return timetableRepository.findById(timetableId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 시간표입니다."));
+    }
+
+    private void validateOwnership(Timetable timetable) {
+        User user = getCurrentUser();
+        if (timetable.getUserId().equals(user.getId())) {
+            return;
+        }
+
+        throw new CustomException(ErrorCode.FORBIDDEN);
+    }
+
+    private User getCurrentUser() {
+        String email = SecurityUtil.getCurrentUserEmail();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+    }
+}
