@@ -68,6 +68,8 @@
     "vitest": "^4.0.18"
   },
   "overrides": {
-    "serialize-javascript": "7.0.3"
+    "serialize-javascript": "7.0.3",
+    "react": "$react",
+    "react-dom": "$react-dom"
   }
 }
