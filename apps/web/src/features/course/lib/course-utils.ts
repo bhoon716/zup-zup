@@ -12,6 +12,14 @@ import {
 } from "../constants/course-options";
 import { formatDayOfWeek } from "@/shared/lib/formatters";
 
+const SEARCH_DRAFT_BASE_KEYS: (keyof CourseSearchCondition)[] = [
+  "academicYear",
+  "semester",
+  "disclosure",
+  "sortBy",
+  "sortOrder",
+];
+
 /**
  * "HH:mm" 또는 "HH:mm:ss" 형식의 문자열을 분(minutes) 단위 숫자로 변환
  */
@@ -134,4 +142,26 @@ export function sanitizeCondition(
   });
 
   return sanitized;
+}
+
+/**
+ * 기본 상태만 가진 검색 조건이면 서버 기본 학기를 반영한 조건으로 보여줌
+ */
+export function resolveVisibleSearchCondition(
+  draftCondition: CourseSearchCondition,
+  resolvedDefaultCondition: CourseSearchCondition,
+  fallbackCondition: CourseSearchCondition,
+): CourseSearchCondition {
+  const sanitized = sanitizeCondition(draftCondition);
+  const keys = Object.keys(sanitized) as (keyof CourseSearchCondition)[];
+  const hasOnlyBaseKeys = keys.every((key) => SEARCH_DRAFT_BASE_KEYS.includes(key));
+  if (!hasOnlyBaseKeys) {
+    return draftCondition;
+  }
+
+  const isFallbackBaseCondition = SEARCH_DRAFT_BASE_KEYS.every(
+    (key) => draftCondition[key] === fallbackCondition[key],
+  );
+
+  return isFallbackBaseCondition ? resolvedDefaultCondition : draftCondition;
 }

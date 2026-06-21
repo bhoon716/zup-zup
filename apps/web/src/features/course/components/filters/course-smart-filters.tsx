@@ -4,11 +4,6 @@ import { useCallback } from "react";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { Switch } from "@/shared/ui/switch";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/shared/ui/collapsible";
 import { CalendarPlus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { TimeTableSelector } from "../time-table-selector";
@@ -16,7 +11,7 @@ import { useUser } from "@/features/user/hooks/useUser";
 import { useTimetables } from "@/features/timetable/hooks/useTimetable";
 import { timetableApi } from "@/features/timetable/api/timetable.api";
 import { buildFreeSchedulesFromTimetable } from "../../lib/course-utils";
-import type { CourseSearchCondition, ScheduleCondition } from "@/shared/types/api";
+import type { CourseSearchCondition, ScheduleCondition, TimetableResponse, User } from "@/shared/types/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +26,9 @@ interface CourseSmartFiltersProps {
   setCondition: React.Dispatch<React.SetStateAction<CourseSearchCondition>>;
   scheduleOpen: boolean;
   setScheduleOpen: (open: boolean) => void;
+  initialUser?: User | null;
+  initialTimetables?: TimetableResponse[];
+  skipPersonalFetch?: boolean;
 }
 
 /**
@@ -42,18 +40,27 @@ export function CourseSmartFilters({
   setCondition,
   scheduleOpen,
   setScheduleOpen,
+  initialUser,
+  initialTimetables,
+  skipPersonalFetch,
 }: CourseSmartFiltersProps) {
-  const { data: user } = useUser();
-  const { data: timetables, refetch: refetchTimetables } = useTimetables();
+  const timetableMenuTriggerId = "course-smart-timetable-trigger";
+  const timetableMenuContentId = "course-smart-timetable-content";
+  const timetableSectionTriggerId = "course-smart-schedule-trigger";
+  const timetableSectionContentId = "course-smart-schedule-content";
+  const { data: user } = useUser({ enabled: initialUser === undefined && !skipPersonalFetch });
+  const { data: timetables, refetch: refetchTimetables } = useTimetables(!initialTimetables && !skipPersonalFetch, initialUser);
+  const resolvedUser = initialUser !== undefined ? initialUser : user;
+  const resolvedTimetables = initialTimetables ?? timetables;
 
   // 찜한 강의만 보기 토글 핸들러
   const handleWishedOnlyChange = useCallback((checked: boolean) => {
-    if (checked && !user) {
+    if (checked && !resolvedUser) {
       toast.error("찜한 강의 필터는 로그인 후 사용할 수 있습니다.");
       return;
     }
     setCondition((prev) => ({ ...prev, isWishedOnly: checked || undefined }));
-  }, [user, setCondition]);
+  }, [resolvedUser, setCondition]);
 
   const handleAvailableOnlyChange = useCallback((checked: boolean) => {
     setCondition((prev) => ({ ...prev, isAvailableOnly: checked || undefined }));
@@ -130,19 +137,18 @@ export function CourseSmartFilters({
           <Switch
             id="disclosure-only"
             checked={condition.disclosure === "공개"}
-            onCheckedChange={(checked) => 
-               setCondition((prev) => ({ ...prev, disclosure: checked ? "공개" : undefined }))
+            onCheckedChange={(checked) =>
+              setCondition((prev) => ({
+                ...prev,
+                disclosure: checked ? "공개" : undefined,
+              }))
             }
           />
         </div>
       </div>
 
       {/* 공강 시간표 설정 */}
-      <Collapsible
-        open={scheduleOpen}
-        onOpenChange={setScheduleOpen}
-        className="space-y-2"
-      >
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Label className="text-sm font-medium">공강 시간표 설정</Label>
@@ -154,15 +160,18 @@ export function CourseSmartFilters({
               )}
           </div>
           <div className="flex items-center gap-1">
-            <DropdownMenu onOpenChange={(open) => open && refetchTimetables()}>
+            <DropdownMenu onOpenChange={(open) => open && !initialTimetables && refetchTimetables()}>
               <DropdownMenuTrigger asChild>
                 <Button
+                  id={timetableMenuTriggerId}
+                  aria-controls={timetableMenuContentId}
+                  aria-label="내 시간표에서 공강 불러오기"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!user) {
+                    if (!resolvedUser) {
                       toast.error("내 시간표에서 선택하기는 로그인 후 사용할 수 있습니다.");
                     }
                   }}
@@ -171,19 +180,19 @@ export function CourseSmartFilters({
                   <CalendarPlus className="h-4 w-4 text-muted-foreground transition-colors hover:text-primary" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent id={timetableMenuContentId} aria-labelledby={timetableMenuTriggerId} align="end" className="w-48">
                 <DropdownMenuLabel className="text-xs font-semibold">내 시간표 선택</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {!user ? (
+                {!resolvedUser ? (
                   <div className="px-2 py-3 text-center text-xs text-muted-foreground">
                     로그인이 필요합니다.
                   </div>
-                ) : !timetables || timetables.length === 0 ? (
+                ) : !resolvedTimetables || resolvedTimetables.length === 0 ? (
                   <div className="px-2 py-3 text-center text-xs text-muted-foreground">
                     생성된 시간표가 없습니다.
                   </div>
                 ) : (
-                  timetables.map((timetable) => (
+                  resolvedTimetables.map((timetable) => (
                     <DropdownMenuItem
                       key={timetable.id}
                       onClick={() => handleImportFromTimetable(timetable.id, timetable.name)}
@@ -200,25 +209,32 @@ export function CourseSmartFilters({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
-                    scheduleOpen ? "rotate-180" : ""
-                  }`}
-                />
-                <span className="sr-only">Toggle</span>
-              </Button>
-            </CollapsibleTrigger>
+            <Button
+              id={timetableSectionTriggerId}
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-controls={timetableSectionContentId}
+              aria-expanded={scheduleOpen}
+              aria-label={scheduleOpen ? "공강 시간표 접기" : "공강 시간표 펼치기"}
+              className="h-8 w-8 p-0"
+              onClick={() => setScheduleOpen(!scheduleOpen)}
+            >
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                  scheduleOpen ? "rotate-180" : ""
+                }`}
+              />
+            </Button>
           </div>
         </div>
-        <CollapsibleContent>
+        <div id={timetableSectionContentId} hidden={!scheduleOpen}>
           <TimeTableSelector
             selected={condition.selectedSchedules ?? []}
             onChange={handleSchedulesChange}
           />
-        </CollapsibleContent>
-      </Collapsible>
+        </div>
+      </div>
     </div>
   );
 }

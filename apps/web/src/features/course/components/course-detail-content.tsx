@@ -8,6 +8,7 @@ import { normalizeCourse } from "@/shared/lib/course";
 import { getCampusMapQuery } from "@/shared/lib/map-links";
 import { KakaoMapEmbed } from "@/shared/ui/kakao-map-embed";
 import { CourseReviewSection } from "@/features/review/components/course-review-section";
+import { getReviewScopeKey } from "@/shared/lib/course";
 
 interface CourseDetailContentProps {
   course: Course;
@@ -18,6 +19,7 @@ interface CourseDetailContentProps {
  * 다이얼로그나 모달 내부에서 사용됩니다.
  */
 export function CourseDetailContent({ course: rawCourse }: CourseDetailContentProps) {
+  const reviewScopeKey = getReviewScopeKey(rawCourse);
   const course = normalizeCourse(rawCourse);
   const capacity = course.capacity ?? 0;
   const current = course.current ?? 0;
@@ -63,7 +65,10 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
 
       <CourseReviewSection 
         courseKey={course.courseKey} 
-        isReviewed={course.isReviewed} 
+        reviewScopeKey={reviewScopeKey}
+        averageRating={course.averageRating}
+        reviewCount={course.reviewCount}
+        isReviewed={course.isReviewed}
       />
     </div>
   );

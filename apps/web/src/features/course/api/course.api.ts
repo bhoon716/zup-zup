@@ -4,9 +4,8 @@ import type {
   Course, 
   CourseSearchCondition, 
   CourseSeatHistory, 
-  CourseCategoryResponse, 
   SliceResponse,
-  CollegeHierarchyResponse 
+  SearchDefaultSemesterResponse,
 } from '@/shared/types/api';
 
 export const searchCourses = async (
@@ -25,17 +24,13 @@ export const getCourseHistory = async (courseKey: string): Promise<CommonRespons
   return data;
 };
 
-export const getCourseCategories = async (): Promise<CommonResponse<CourseCategoryResponse[]>> => {
-  const { data } = await api.get('/api/v1/courses/categories');
-  return data;
-};
-
 export const getCourseDetail = async (courseKey: string): Promise<CommonResponse<Course>> => {
   const { data } = await api.get(`/api/v1/courses/${encodeURIComponent(courseKey)}`);
   return data;
 };
 
-export const getCollegeHierarchy = async (): Promise<CommonResponse<CollegeHierarchyResponse[]>> => {
-  const { data } = await api.get('/api/v1/courses/departments/hierarchy');
+export const getSearchDefaultSemester = async (): Promise<CommonResponse<SearchDefaultSemesterResponse>> => {
+  const { data } = await api.get('/api/v1/courses/search-default-semester');
   return data;
 };
+

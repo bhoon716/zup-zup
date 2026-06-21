@@ -5,6 +5,7 @@ import type { AnnouncementSearchType } from "@/shared/types/api";
 interface UseAnnouncementsParams {
   keyword?: string;
   searchType?: AnnouncementSearchType;
+  enabled?: boolean;
 }
 
 export const useAnnouncements = (params: UseAnnouncementsParams = {}) => {
@@ -17,6 +18,7 @@ export const useAnnouncements = (params: UseAnnouncementsParams = {}) => {
       const response = await announcementApi.getAnnouncements({ keyword, searchType });
       return response.data;
     },
+    enabled: params.enabled ?? true,
   });
 };
 

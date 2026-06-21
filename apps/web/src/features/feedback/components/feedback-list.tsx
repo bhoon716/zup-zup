@@ -1,7 +1,6 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { Badge } from "@/shared/ui/badge";
 import {
   FeedbackResponse,
   FeedbackStatus,

@@ -109,8 +109,11 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await getMyProfile();
-        const userData = response.data;
+        const [profileRes, deviceRes] = await Promise.all([
+          getMyProfile(),
+          getDevices(),
+        ]);
+        const userData = profileRes.data;
         setUser(userData);
 
         const initialEmail = userData.notificationEmail || "";
@@ -123,7 +126,6 @@ export default function SettingsPage() {
           discordEnabled: userData.discordEnabled,
         });
 
-        const deviceRes = await getDevices();
         setDevices(deviceRes.data);
       } catch (error) {
         console.error("Failed to fetch profile:", error);

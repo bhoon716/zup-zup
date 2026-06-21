@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CourseSearchBar } from "@/features/course/components/course-search-bar";
 import { CourseTable } from "@/features/course/components/course-table";
 import { CourseTableSkeleton } from "@/features/course/components/course-table-skeleton";
-import { useCourses, useCollegeHierarchy } from "@/features/course/hooks/useCourses";
+import { useCourses, useSearchDefaultSemester } from "@/features/course/hooks/useCourses";
+import { getDefaultCourseSortOrder, type CourseSortOption, type CourseSortOrder } from "@/features/course/lib/course-sort";
+import { resolveVisibleSearchCondition } from "@/features/course/lib/course-utils";
 import type { CourseSearchCondition } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
 import {
@@ -16,12 +18,18 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { SlidersHorizontal, X, Search, ChevronRight, ListFilter } from "lucide-react";
+import { useUser } from "@/features/user/hooks/useUser";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
+import { CourseGuideModal } from "@/features/course/components/course-guide-modal";
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_CONDITION: CourseSearchCondition = {
+const FALLBACK_DEFAULT_CONDITION: CourseSearchCondition = {
   academicYear: "2026",
   semester: "U211600010",
+  disclosure: "공개",
+  sortBy: "name",
+  sortOrder: "asc",
 };
 
 interface FilterChip {
@@ -34,11 +42,54 @@ interface FilterChip {
  * 강의 검색 페이지 메인 컴포넌트
  */
 export default function SearchPage() {
-  const [searchCondition, setSearchCondition] = useState<CourseSearchCondition>(DEFAULT_CONDITION);
-  const [draftCondition, setDraftCondition] = useState<CourseSearchCondition>(DEFAULT_CONDITION);
-  const [sortOption, setSortOption] = useState<string>("name");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const { data: defaultSemester, isLoading: isSemesterLoading } = useSearchDefaultSemester();
+  const { data: user, isLoading: isUserLoading } = useUser({ skipAuthRefresh: true });
+  const setUser = useAuthStore((state) => state.setUser);
+  const skipPersonalFetch = isUserLoading || !user;
+
+  useEffect(() => {
+    if (!isUserLoading) {
+      setUser(user ?? null);
+    }
+  }, [isUserLoading, setUser, user]);
+
+  // 사용자가 변경한 검색 조건
+  const [userCondition, setUserCondition] = useState<CourseSearchCondition>({
+    academicYear: FALLBACK_DEFAULT_CONDITION.academicYear,
+    disclosure: FALLBACK_DEFAULT_CONDITION.disclosure,
+    sortBy: FALLBACK_DEFAULT_CONDITION.sortBy,
+    sortOrder: FALLBACK_DEFAULT_CONDITION.sortOrder,
+  });
+  const [draftCondition, setDraftCondition] = useState<CourseSearchCondition>(FALLBACK_DEFAULT_CONDITION);
+  const [sortOption, setSortOption] = useState<CourseSortOption>("name");
+  const [sortOrder, setSortOrder] = useState<CourseSortOrder>("asc");
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+
+  // 서버 학기 + 사용자 조건을 합쳐 최종 검색 조건 파생 (useEffect 없이 자동 동기화)
+  const searchCondition = useMemo<CourseSearchCondition>(
+    () => ({
+      ...FALLBACK_DEFAULT_CONDITION,
+      ...userCondition,
+      semester: userCondition.semester ?? defaultSemester?.semester ?? FALLBACK_DEFAULT_CONDITION.semester,
+    }),
+    [defaultSemester, userCondition],
+  );
+
+  const resolvedDefaultCondition = useMemo<CourseSearchCondition>(
+    () => ({
+      ...FALLBACK_DEFAULT_CONDITION,
+      semester: defaultSemester?.semester ?? FALLBACK_DEFAULT_CONDITION.semester,
+    }),
+    [defaultSemester],
+  );
+  const visibleDraftCondition = useMemo(
+    () => resolveVisibleSearchCondition(
+      draftCondition,
+      resolvedDefaultCondition,
+      FALLBACK_DEFAULT_CONDITION,
+    ),
+    [draftCondition, resolvedDefaultCondition],
+  );
 
   const {
     data,
@@ -51,15 +102,22 @@ export default function SearchPage() {
     ...searchCondition,
     sortBy: sortOption,
     sortOrder,
+  }, {
+    enabled: !isSemesterLoading,
   });
 
-  const { data: hierarchy } = useCollegeHierarchy();
-
   const handleSearch = useCallback((condition: CourseSearchCondition) => {
-    setSearchCondition(condition);
+    setUserCondition(condition);
     setDraftCondition(condition);
     setIsFilterExpanded(false);
   }, []);
+
+  const handleSortOptionChange = useCallback((value: CourseSortOption) => {
+    setSortOption(value);
+    setSortOrder(getDefaultCourseSortOrder(value));
+  }, []);
+
+
 
   /**
    * 무한 페이징 데이터를 평탄화하여 전체 강의 리스트 생성
@@ -83,30 +141,7 @@ export default function SearchPage() {
   const activeFilters = useMemo<FilterChip[]>(() => {
     const filters: FilterChip[] = [];
 
-    // 단과대 필터 칩
-    if (searchCondition.collegeId && hierarchy) {
-      const college = hierarchy.find(c => c.id === searchCondition.collegeId);
-      if (college) {
-        filters.push({
-          id: "college",
-          label: college.name,
-          patch: { collegeId: undefined, departmentId: undefined },
-        });
-      }
-    }
 
-    // 학과 필터 칩
-    if (searchCondition.departmentId && hierarchy) {
-      const college = hierarchy.find(c => c.id === searchCondition.collegeId);
-      const dept = college?.departments.find(d => d.id === searchCondition.departmentId);
-      if (dept) {
-        filters.push({
-          id: "departmentId",
-          label: dept.name,
-          patch: { departmentId: undefined },
-        });
-      }
-    }
 
     // 기존 텍스트 기반 학과 검색 칩
     if (searchCondition.department) {
@@ -117,11 +152,69 @@ export default function SearchPage() {
       });
     }
 
-    if (searchCondition.classification) {
+    if (searchCondition.classifications?.length) {
+      const label = searchCondition.classifications.length === 1
+        ? searchCondition.classifications[0]
+        : `이수구분 ${searchCondition.classifications.length}개`;
       filters.push({
-        id: "classification",
-        label: searchCondition.classification,
-        patch: { classification: undefined, generalCategory: undefined, generalDetail: undefined },
+        id: "classifications",
+        label,
+        patch: { classifications: undefined },
+      });
+    }
+
+    if (searchCondition.gradingMethods?.length) {
+      const label = searchCondition.gradingMethods.length === 1
+        ? searchCondition.gradingMethods[0]
+        : `성적평가 ${searchCondition.gradingMethods.length}개`;
+      filters.push({
+        id: "gradingMethods",
+        label,
+        patch: { gradingMethods: undefined },
+      });
+    }
+
+    if (searchCondition.lectureLanguages?.length) {
+      const label = searchCondition.lectureLanguages.length === 1
+        ? searchCondition.lectureLanguages[0]
+        : `강의언어 ${searchCondition.lectureLanguages.length}개`;
+      filters.push({
+        id: "lectureLanguages",
+        label,
+        patch: { lectureLanguages: undefined },
+      });
+    }
+
+    if (searchCondition.credits?.length) {
+      const label = searchCondition.credits.length === 1
+        ? `${searchCondition.credits[0]}학점`
+        : `학점 ${searchCondition.credits.length}개`;
+      filters.push({
+        id: "credits",
+        label,
+        patch: { credits: undefined },
+      });
+    }
+
+    if (searchCondition.statuses?.length) {
+      const label = searchCondition.statuses.length === 1
+        ? searchCondition.statuses[0]
+        : `강의방식 ${searchCondition.statuses.length}개`;
+      filters.push({
+        id: "statuses",
+        label,
+        patch: { statuses: undefined },
+      });
+    }
+
+    if (searchCondition.targetGrades?.length) {
+      const label = searchCondition.targetGrades.length === 1
+        ? (searchCondition.targetGrades[0] === "GRADUATE" ? "대학원" : `${searchCondition.targetGrades[0]}학년`)
+        : `학년 ${searchCondition.targetGrades.length}개`;
+      filters.push({
+        id: "targetGrades",
+        label,
+        patch: { targetGrades: undefined },
       });
     }
 
@@ -166,23 +259,22 @@ export default function SearchPage() {
     }
 
     return filters;
-  }, [searchCondition, hierarchy]);
+  }, [searchCondition]);
 
   const keyword = draftCondition.name || "";
   const setKeyword = (name: string) => setDraftCondition(prev => ({ ...prev, name }));
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (searchCondition.classification) count++;
-    if (searchCondition.gradingMethod) count++;
-    if (searchCondition.credits) count++;
+    if (searchCondition.classifications?.length) count++;
+    if (searchCondition.gradingMethods?.length) count++;
+    if (searchCondition.credits?.length) count++;
     if (searchCondition.department) count++;
-    if (searchCondition.collegeId) count++;
-    if (searchCondition.departmentId) count++;
-    if (searchCondition.lectureLanguage) count++;
-    if (searchCondition.status) count++;
+
+    if (searchCondition.lectureLanguages?.length) count++;
+    if (searchCondition.statuses?.length) count++;
     if (searchCondition.selectedSchedules?.length) count++;
-    if (searchCondition.disclosure === "공개") count++;
+    if (searchCondition.targetGrades?.length) count++;
     return count;
   }, [searchCondition]);
 
@@ -191,7 +283,7 @@ export default function SearchPage() {
    * 선택된 필터 속성만 검색 조건에서 제거합니다.
    */
   const clearSingleFilter = useCallback((patch: Partial<CourseSearchCondition>) => {
-    setSearchCondition((prev) => ({ ...prev, ...patch }));
+    setUserCondition((prev) => ({ ...prev, ...patch }));
     setDraftCondition((prev) => ({ ...prev, ...patch }));
   }, []);
 
@@ -200,9 +292,22 @@ export default function SearchPage() {
    * 검색 조건을 초기 상태로 되돌리고 입력 중인 키워드도 비웁니다.
    */
   const resetAllFilters = useCallback(() => {
-    setSearchCondition(DEFAULT_CONDITION);
-    setDraftCondition(DEFAULT_CONDITION);
-  }, []);
+    setUserCondition(resolvedDefaultCondition);
+    setDraftCondition(resolvedDefaultCondition);
+    setSortOption((resolvedDefaultCondition.sortBy as CourseSortOption | undefined) || "name");
+    setSortOrder((resolvedDefaultCondition.sortOrder as CourseSortOrder | undefined) || "asc");
+  }, [resolvedDefaultCondition]);
+
+  if (isSemesterLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa] dark:bg-black">
+        <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+          검색 데이터를 불러오는 중입니다.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
@@ -277,14 +382,17 @@ export default function SearchPage() {
                 className="overflow-y-auto overflow-x-hidden max-h-[70vh] px-0.5 pb-2 will-change-[height]"
               >
                 <div className="rounded-2xl border border-border/70 bg-white p-4 shadow-lg my-1 transform-gpu">
-                  <CourseSearchBar
-                    key="mobile-search-bar"
-                    onSearch={handleSearch}
-                    onConditionChange={setDraftCondition}
-                    isLoading={isLoading}
-                    initialCondition={draftCondition}
-                    hideHeader
-                  />
+                <CourseSearchBar
+                  key="mobile-search-bar"
+                  onSearch={handleSearch}
+                  onConditionChange={setDraftCondition}
+                  isLoading={isLoading}
+                initialCondition={visibleDraftCondition}
+                defaultCondition={resolvedDefaultCondition}
+                hideHeader
+                initialUser={user ?? null}
+                skipPersonalFetch={skipPersonalFetch}
+              />
                 </div>
               </motion.div>
             )}
@@ -306,31 +414,41 @@ export default function SearchPage() {
                 onSearch={handleSearch}
                 onConditionChange={setDraftCondition}
                 isLoading={isLoading}
-                initialCondition={draftCondition}
+                initialCondition={visibleDraftCondition}
+                defaultCondition={resolvedDefaultCondition}
+                initialUser={user ?? null}
+                skipPersonalFetch={skipPersonalFetch}
               />
             </div>
           </aside>
 
           <section className="min-w-0 space-y-6">
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h1 className="text-xl font-bold text-foreground">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h1 className="min-w-0 truncate text-xl font-bold text-foreground">
                   {searchCondition.name || searchCondition.professor 
                     ? `"${searchCondition.name || searchCondition.professor}"` 
                     : "강의 목록"}
                 </h1>
 
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={sortOption}
-                    onValueChange={(value) => setSortOption(value)}
-                  >
-                    <SelectTrigger className="h-9 min-w-[120px] rounded-lg border-border/60 bg-transparent text-xs font-medium">
+              <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                <CourseGuideModal />
+                <Select
+                  value={sortOption}
+                  onValueChange={(value) => handleSortOptionChange(value as CourseSortOption)}
+                >
+                    <SelectTrigger
+                      id="course-sort-trigger"
+                      aria-controls="course-sort-content"
+                      aria-label="정렬 기준"
+                      className="h-9 min-w-[120px] rounded-lg border-border/60 bg-transparent text-xs font-medium"
+                    >
                       <SelectValue placeholder="정렬" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent id="course-sort-content">
                       <SelectItem value="name">강의명</SelectItem>
                       <SelectItem value="popular">인기(찜)</SelectItem>
+                      <SelectItem value="rating">평점순</SelectItem>
                       <SelectItem value="current">현재 신청 인원</SelectItem>
                       <SelectItem value="available">여석 수</SelectItem>
                     </SelectContent>
@@ -342,6 +460,7 @@ export default function SearchPage() {
                     size="icon"
                     className="h-9 w-9 rounded-lg border-border/60 text-muted-foreground"
                     onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+                    aria-label={sortOrder === "asc" ? "정렬 방향 오름차순" : "정렬 방향 내림차순"}
                     title={sortOrder === "asc" ? "오름차순 (작은 값 우선)" : "내림차순 (큰 값 우선)"}
                   >
                     {sortOrder === "asc" ? (
@@ -409,6 +528,8 @@ export default function SearchPage() {
                 onLoadMore={fetchNextPage}
                 hasMore={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
+                initialUser={user ?? null}
+                skipPersonalFetch={skipPersonalFetch}
               />
             )}
           </section>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useSubscriptions, useUnsubscribe } from "@/features/subscription/hooks/useSubscriptions";
-import { Loader2, Bookmark, Trash2 } from "lucide-react";
+import { useSubscriptions, useUnsubscribe, useUnsubscribeAll } from "@/features/subscription/hooks/useSubscriptions";
+import { Loader2, Bookmark, Trash2, XCircle } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
 import type { Course, Subscription } from "@/shared/types/api";
 
@@ -14,6 +15,7 @@ import type { Course, Subscription } from "@/shared/types/api";
 export function SubscriptionList() {
   const { data: subscriptions, isLoading } = useSubscriptions();
   const { mutate: unsubscribe, isPending: isUnsubscribing } = useUnsubscribe();
+  const { mutate: unsubscribeAll, isPending: isUnsubscribingAll } = useUnsubscribeAll();
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -52,14 +54,32 @@ export function SubscriptionList() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between mb-1 mt-2">
-        <h2 className="text-lg font-bold flex items-center gap-2 text-slate-900">
-          <Bookmark className="text-primary w-5 h-5 fill-primary" />
-          나의 구독 강의
-        </h2>
-        <span className="text-[10px] px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg font-bold">
-          {subscriptions.length}개 구독 중
-        </span>
+      <div className="flex flex-col gap-1.5 mb-1 mt-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold flex items-center gap-2 text-slate-900">
+            <Bookmark className="text-primary w-5 h-5 fill-primary" />
+            나의 구독 강의
+          </h2>
+          <span className="text-[10px] px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg font-bold">
+            {subscriptions.length}개 구독 중
+          </span>
+        </div>
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (confirm('현재 구독 중인 모든 강의 알림을 해제하시겠습니까?')) {
+                unsubscribeAll();
+              }
+            }}
+            disabled={isUnsubscribingAll || subscriptions.length === 0}
+            className="h-7 px-2 text-[11px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 gap-1 rounded-lg"
+          >
+            <XCircle className="w-3 h-3" />
+            구독 전부 삭제
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -98,7 +118,7 @@ export function SubscriptionList() {
                       unsubscribe(sub.id);
                     }
                   }}
-                  disabled={isUnsubscribing}
+                  disabled={isUnsubscribing || isUnsubscribingAll}
                   className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                 >
                   <Trash2 className="w-4 h-4" />

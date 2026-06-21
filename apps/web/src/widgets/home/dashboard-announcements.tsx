@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { ChevronRight, Loader2, Megaphone, Pin } from "lucide-react";
-import { useAnnouncements } from "@/features/announcement/hooks/useAnnouncements";
 import { Button } from "@/shared/ui/button";
+import { useAnnouncements } from "@/features/announcement/hooks/useAnnouncements";
+import type { AnnouncementListItemResponse } from "@/shared/types/api";
 
 const formatDate = (value: string) => {
   const date = new Date(value);
@@ -20,9 +21,10 @@ const formatDate = (value: string) => {
 /**
  * 서비스 및 학사의 주요 공지사항을 보여주는 컴포넌트입니다.
  */
-export function DashboardAnnouncements() {
-  const { data: announcements, isLoading } = useAnnouncements();
-  const latestAnnouncements = (announcements ?? []).slice(0, 4);
+export function DashboardAnnouncements({ announcements }: { announcements?: AnnouncementListItemResponse[] } = {}) {
+  const { data: fetchedAnnouncements, isLoading } = useAnnouncements({ enabled: announcements === undefined });
+  const latestAnnouncements = (announcements ?? fetchedAnnouncements ?? []).slice(0, 4);
+  const loading = announcements ? false : isLoading;
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-7 shadow-floating border border-gray-50 dark:border-gray-800 h-full">
@@ -40,7 +42,7 @@ export function DashboardAnnouncements() {
         </Link>
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <div className="flex h-36 items-center justify-center text-sm text-slate-500">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           공지사항 불러오는 중...

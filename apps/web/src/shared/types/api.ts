@@ -61,7 +61,7 @@ export interface PageResponse<T> {
 
 // 강의 관련
 // 서버 열거형 문자열과 일대일 매핑
-export type CourseClassification = '계열공통' | '교양' | '교직(대학원)' | '교직(대)' | '교직' | '군사학' | '기초필수' | '선수' | '일반선택' | '전공' | '전공선택' | '전공필수';
+export type CourseClassification = '계열공통' | '교양' | '교직(대학원)' | '교직(대)' | '교직' | '군사학' | '기초필수' | '선수' | '일반선택' | '전공' | '전공(대학원)' | '전공(대)' | '전공선택' | '전공필수';
 export type GradingMethod = 'Pass/Fail' | '기타(법전원)' | '상대평가Ⅰ' | '상대평가Ⅱ' | '상대평가Ⅲ' | '절대평가';
 export type LectureLanguage = '한국어' | '영어' | '독일어' | '스페인어' | '일본어' | '중국어' | '프랑스어';
 export type CourseDayOfWeek =
@@ -135,23 +135,23 @@ export interface CourseSearchCondition {
   semester?: string;
   name?: string;
   professor?: string;
-  classification?: CourseClassification;
+  classifications?: CourseClassification[];
   department?: string;
-  gradingMethod?: GradingMethod;
+  gradingMethods?: GradingMethod[];
   subjectCode?: string;
-  lectureLanguage?: LectureLanguage;
+  lectureLanguages?: LectureLanguage[];
   isAvailableOnly?: boolean;
   dayOfWeek?: CourseDayOfWeek;
   selectedSchedules?: ScheduleCondition[];
-  credits?: string;
+  credits?: string[];
   lectureHours?: number;
   minLectureHours?: number;
   generalCategory?: string;
   generalDetail?: string;
   isWishedOnly?: boolean;
-  status?: string;
+  statuses?: string[];
   minCredits?: number;
-  targetGrade?: string;
+  targetGrades?: string[];
   disclosure?: string;
   courseDirection?: string;
   sortBy?: string;
@@ -317,6 +317,11 @@ export interface AdminOverviewResponse {
   recentLogs: AdminRecentLogResponse[];
 }
 
+export interface AdminDashboardSnapshotResponse {
+  overview: AdminOverviewResponse;
+  crawlTarget: AdminCrawlTargetResponse;
+}
+
 /**
  * 관리자 크롤링 타겟 설정을 위한 요청 데이터 인터페이스입니다.
  */
@@ -331,6 +336,29 @@ export interface AdminCrawlTargetRequest {
 export interface AdminCrawlTargetResponse {
   year: string;
   semester: string;
+}
+
+/**
+ * 검색 기본 학기 설정 조회/응답 데이터 인터페이스입니다.
+ */
+export interface SearchDefaultSemesterResponse {
+  semester: string;
+}
+
+
+export interface CourseSearchPageResponse {
+  content: Course[];
+  last: boolean;
+  number: number;
+}
+
+
+export interface DashboardSnapshotResponse {
+  user: User | null;
+  notifications: NotificationHistory[];
+  primaryTimetable: TimetableDetailResponse | null;
+  upcomingSchedules: ScheduleResponse[];
+  announcements: AnnouncementListItemResponse[];
 }
 
 // 찜 관련
@@ -454,6 +482,21 @@ export interface ScheduleRequest {
   endTime?: string; // "HH:mm"
 }
 
+// D-Day 관련
+export interface DdaySettingResponse {
+  id: number;
+  title: string;
+  targetDate: string; // "YYYY-MM-DD"
+  targetTime?: string; // "HH:mm"
+  dDay: string;
+}
+
+export interface DdaySettingRequest {
+  title: string;
+  targetDate: string; // "YYYY-MM-DD"
+  targetTime?: string; // "HH:mm"
+}
+
 // 공지사항 관련
 export type AnnouncementSearchType = "TITLE" | "CONTENT" | "TITLE_CONTENT";
 
@@ -487,7 +530,6 @@ export interface ReviewResponse {
   id: number;
   courseKey: string;
   rating: number;
-  content: string;
   likeCount: number;
   dislikeCount: number;
   isMine: boolean;
@@ -497,11 +539,21 @@ export interface ReviewResponse {
 
 export interface ReviewCreateRequest {
   rating: number;
-  content: string;
+}
+
+export interface ReviewUpdateRequest {
+  rating: number;
 }
 
 export interface ReviewReactionRequest {
   reactionType: 'LIKE' | 'DISLIKE';
+}
+
+// 강의 리뷰 관련
+export interface EmojiReviewResponse {
+  emoji: string;
+  count: number;
+  isMine: boolean;
 }
 
 // 피드백 (건의사항/버그리포트) 관련
@@ -555,4 +607,3 @@ export interface FeedbackReplyCreateRequest {
 export interface FeedbackReplyUpdateRequest {
   content: string;
 }
-

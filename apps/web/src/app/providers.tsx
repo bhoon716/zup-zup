@@ -7,15 +7,47 @@ import { useEffect, useState, Suspense } from "react";
 import { Toaster, toast } from "sonner";
 import { LoginModal } from "@/widgets/auth/login-modal";
 
-import { useUser } from "@/features/user/hooks/useUser";
 import { usePathname, useRouter } from "next/navigation";
 import { TooltipProvider } from "@/shared/ui/tooltip";
+
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60 * 1000,
+        refetchOnWindowFocus: false,
+        // 401 에러는 재시도해도 실패할 가능성이 높으므로 즉시 중단한다.
+        retry: (failureCount, error: unknown) => {
+          if (error && typeof error === "object" && "response" in error) {
+            const responseError = error as { response?: { status?: number } };
+            if (responseError.response?.status === 401) return false;
+          }
+          return failureCount < 3;
+        },
+      },
+    },
+  });
+
+let browserQueryClient: QueryClient | undefined;
+
+export const getAppQueryClient = () => {
+  if (typeof window === "undefined") {
+    return createQueryClient();
+  }
+
+  if (!browserQueryClient) {
+    browserQueryClient = createQueryClient();
+  }
+
+  return browserQueryClient;
+};
 
 /**
  * 온보딩 완료 여부를 체크하여 미완료 시 온보딩 페이지로 강제 이동시키는 가드 컴포넌트입니다.
  */
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
-  const { data: user, isLoading } = useUser();
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -39,11 +71,16 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
  */
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
+  const pathname = usePathname();
 
   useEffect(() => {
     // Firebase SDK를 앱 시작 시 한 번 초기화한다.
     getFirebaseApp();
-    checkSession();
+
+    // 공개 페이지는 세션 부트스트랩을 건너뛰어 불필요한 401/refresh를 막는다.
+    if (pathname !== "/" && pathname !== "/search") {
+      checkSession();
+    }
 
     // 서비스 워커 등록 (PWA 설치 가능성 확보)
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
@@ -83,7 +120,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       }
     };
-  }, [checkSession]);
+  }, [checkSession, pathname]);
 
   return <OnboardingGuard>{children}</OnboardingGuard>;
 }
@@ -93,25 +130,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
  * React Query, Toaster, Tooltip 등 전역 상태 및 UI 프로바이더들을 통합 관리하는 컴포넌트입니다.
  */
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000,
-            refetchOnWindowFocus: false,
-            // 401 에러는 재시도해도 실패할 가능성이 높으므로 즉시 중단한다.
-            retry: (failureCount, error: unknown) => {
-              if (error && typeof error === "object" && "response" in error) {
-                const responseError = error as { response?: { status?: number } };
-                if (responseError.response?.status === 401) return false;
-              }
-              return failureCount < 3;
-            },
-          },
-        },
-      })
-  );
+  const [queryClient] = useState(getAppQueryClient);
 
   return (
     <QueryClientProvider client={queryClient}>

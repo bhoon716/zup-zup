@@ -36,7 +36,6 @@ type FormValues = z.infer<typeof formSchema>;
 interface FeedbackCreateFormProps {
   onSubmit: (values: FormValues) => Promise<void>;
   isPending: boolean;
-  files: File[];
   previews: string[];
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (index: number) => void;
@@ -49,7 +48,6 @@ interface FeedbackCreateFormProps {
 export function FeedbackCreateForm({
   onSubmit,
   isPending,
-  files,
   previews,
   onFileChange,
   onRemoveFile,

@@ -1,11 +1,12 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "",
+  baseURL: apiBaseUrl,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
-    "ngrok-skip-browser-warning": "69420",
   },
   withCredentials: true,
 });
@@ -20,6 +21,7 @@ export const setAccessToken = (token: string | null) => {
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
+  skipAuthRefresh?: boolean;
 }
 
 interface FailedQueueItem {
@@ -53,7 +55,7 @@ api.interceptors.response.use(
     }
 
     // 리프레시 요청 자체가 실패했거나 이미 재시도한 요청인 경우
-    if (originalRequest.url === "/api/auth/refresh" || originalRequest._retry) {
+    if (originalRequest.url === "/api/auth/refresh" || originalRequest._retry || originalRequest.skipAuthRefresh) {
       if (originalRequest.url === "/api/auth/refresh") {
         isRefreshing = false;
         processQueue(error);

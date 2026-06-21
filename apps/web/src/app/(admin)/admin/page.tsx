@@ -1,29 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, BellRing, CloudCog, Gauge, Loader2, RefreshCcw, Users } from "lucide-react";
+import { AlertCircle, BellRing, CloudCog, Gauge, Loader2, RefreshCcw, Users, Settings } from "lucide-react";
 import Link from "next/link";
 
-import { useAdminOverview } from "@/features/admin/hooks/useAdminOverview";
-import { useHealth } from "@/features/admin/hooks/useHealth";
-import {
-  useAdminCrawlTarget,
-  useCrawlCourses,
-  useCrawlCoursesByTarget,
-  useSendTestNotification,
-  useUpdateAdminCrawlTarget,
-} from "@/features/admin/hooks/useAdminActions";
-
+import { useAdminDashboardSnapshot } from "@/features/admin/hooks/useAdminDashboard";
 import { Button } from "@/shared/ui/button";
 
 import { AdminStatCard } from "@/features/admin/components/admin-stat-card";
 import { AdminTrafficChart } from "@/features/admin/components/admin-traffic-chart";
-import { AdminQuickActions } from "@/features/admin/components/admin-quick-actions";
 import { AdminActivityLog } from "@/features/admin/components/admin-activity-log";
 import { AdminOverview } from "@/features/admin/components/admin-overview";
-import { AdminCrawlTargetPanel } from "@/features/admin/components/admin-crawl-target-panel";
-import { AdminSchedulePanel } from "@/features/admin/components/admin-schedule-panel";
 import {
   formatDateTime,
   formatNumber,
@@ -34,58 +21,42 @@ import {
 } from "@/features/admin/lib/formatters";
 
 /**
- * 관리자 대시보드 페이지 메인 컴포넌트입니다.
- * 서비스 전체의 지표, 실시간 트래픽, 시스템 로그 및 제어판을 통합적으로 제공합니다.
+ * 관리자 대시보드 페이지 메인 모니터링 컴포넌트입니다.
+ * 서비스 전체의 핵심 지표, 알림 발송 실시간 트래픽, 최근 활동 로그를 통합 관제합니다.
  */
 export default function AdminDashboardPage() {
   const {
-    data: overview,
-    isLoading: isOverviewLoading,
-    isError: isOverviewError,
-    refetch: refetchOverview,
-  } = useAdminOverview();
-  
-  const { isLoading: isHealthLoading, refetch: refetchHealth } = useHealth();
-  
-  const { mutate: crawlCourses, isPending: isCrawling } = useCrawlCourses();
-  const { mutate: crawlCoursesByTarget, isPending: isCustomCrawling } = useCrawlCoursesByTarget();
-  const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
-  const { data: crawlTarget, isLoading: isCrawlTargetLoading } = useAdminCrawlTarget();
-  const { mutate: updateCrawlTarget, isPending: isUpdatingCrawlTarget } = useUpdateAdminCrawlTarget();
+    data: snapshot,
+    isLoading: isSnapshotLoading,
+    isError: isSnapshotError,
+    refetch: refetchSnapshot,
+  } = useAdminDashboardSnapshot();
 
-  const [configuredDraft, setConfiguredDraft] = useState<{ year: string; semester: string } | null>(null);
-  const [runDraft, setRunDraft] = useState<{ year: string; semester: string } | null>(null);
-
-  const configuredYear = configuredDraft?.year ?? crawlTarget?.year ?? "";
-  const configuredSemester = configuredDraft?.semester ?? crawlTarget?.semester ?? "";
-  const runYear = runDraft?.year ?? crawlTarget?.year ?? "";
-  const runSemester = runDraft?.semester ?? crawlTarget?.semester ?? "";
-  const canSaveConfiguredTarget = /^\d{4}$/.test(configuredYear.trim()) && configuredSemester.trim().length > 0;
-  const canRunCustomTarget = /^\d{4}$/.test(runYear.trim()) && runSemester.trim().length > 0;
+  const overview = snapshot?.overview;
 
   /**
-   * 모든 대시보드 데이터를 최신 상태로 갱신합니다.
+   * 대시보드 모니터링 데이터를 최신 상태로 갱신합니다.
    */
   const handleRefresh = () => {
-    void Promise.all([refetchOverview(), refetchHealth()]);
+    void refetchSnapshot();
   };
 
   // 로딩 상태 처리
-  if (isOverviewLoading || isHealthLoading) {
+  if (isSnapshotLoading) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-50">
+      <div className="flex h-full items-center justify-center bg-slate-50 min-h-[70dvh]">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm font-medium text-slate-500">데이터를 불러오는 중...</p>
+          <p className="text-sm font-medium text-slate-500">대시보드 데이터를 불러오는 중...</p>
         </div>
       </div>
     );
   }
 
   // 에러 발생 혹은 데이터 부재 처리
-  if (isOverviewError || !overview) {
+  if (isSnapshotError || !snapshot || !overview) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-50 px-6">
+      <div className="flex h-full items-center justify-center bg-slate-50 px-6 min-h-[70dvh]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -121,11 +92,11 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="bg-[#f3f4f6] text-slate-900">
+    <div className="bg-[#f3f4f6] text-slate-900 min-h-[calc(100dvh-4rem)]">
       <div className="sticky top-16 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-[1920px] items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 text-sm text-slate-500">
-            <span className="font-medium text-slate-800">시스템 현황 개요</span>
+            <span className="font-medium text-slate-800">시스템 현황 관제</span>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/admin/announcements">
@@ -135,6 +106,16 @@ export default function AdminDashboardPage() {
                 className="h-8 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
               >
                 공지사항 관리
+              </Button>
+            </Link>
+            <Link href="/admin/settings">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 gap-1.5 rounded-lg border-indigo-200 bg-indigo-50/50 px-3 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                시스템 제어 & 설정
               </Button>
             </Link>
             <Button
@@ -161,71 +142,12 @@ export default function AdminDashboardPage() {
             ))}
           </section>
 
+          {/* 트래픽 시각화 차트 섹션 (가독성 향상을 위해 더 넓게 배치) */}
           <section className="grid grid-cols-1 gap-12 lg:grid-cols-3">
-            {/* 트래픽 시각화 섹션 */}
-            <AdminTrafficChart traffic={overview.notificationTraffic ?? []} />
-
-            {/* 퀵 컨트롤 센터 섹션 */}
-            <AdminQuickActions 
-              onRefresh={handleRefresh}
-              onCrawl={() => crawlCourses()}
-              onSendTest={() => sendTestNotification()}
-              isCrawling={isCrawling}
-              isSendingTest={isSendingTest}
-            />
+            <div className="lg:col-span-3">
+              <AdminTrafficChart traffic={overview.notificationTraffic ?? []} />
+            </div>
           </section>
-
-          <AdminCrawlTargetPanel
-            configuredYear={configuredYear}
-            configuredSemester={configuredSemester}
-            onConfiguredYearChange={(value) => {
-              setConfiguredDraft((prev) => ({
-                year: value,
-                semester: prev?.semester ?? crawlTarget?.semester ?? "",
-              }));
-            }}
-            onConfiguredSemesterChange={(value) => {
-              setConfiguredDraft((prev) => ({
-                year: prev?.year ?? crawlTarget?.year ?? "",
-                semester: value,
-              }));
-            }}
-            onSaveConfiguredTarget={() => {
-              updateCrawlTarget({
-                year: configuredYear.trim(),
-                semester: configuredSemester.trim(),
-              });
-            }}
-            onRunConfiguredTarget={() => crawlCourses()}
-            isConfiguredTargetLoading={isCrawlTargetLoading}
-            isSavingConfiguredTarget={isUpdatingCrawlTarget}
-            isRunningConfiguredTarget={isCrawling}
-            canSaveConfiguredTarget={canSaveConfiguredTarget}
-            runYear={runYear}
-            runSemester={runSemester}
-            onRunYearChange={(value) => {
-              setRunDraft((prev) => ({
-                year: value,
-                semester: prev?.semester ?? crawlTarget?.semester ?? "",
-              }));
-            }}
-            onRunSemesterChange={(value) => {
-              setRunDraft((prev) => ({
-                year: prev?.year ?? crawlTarget?.year ?? "",
-                semester: value,
-              }));
-            }}
-            onRunCustomTarget={() => {
-              crawlCoursesByTarget({
-                year: runYear.trim(),
-                semester: runSemester.trim(),
-              });
-            }}
-            isRunningCustomTarget={isCustomCrawling}
-            canRunCustomTarget={canRunCustomTarget}
-          />
-
-          <AdminSchedulePanel />
 
           {/* 시스템 활동 로그 섹션 */}
           <AdminActivityLog 
@@ -238,7 +160,7 @@ export default function AdminDashboardPage() {
           <footer className="py-20 text-center">
             <div className="flex items-center justify-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.3em] mb-4">
                <div className="h-px w-8 bg-slate-100"></div>
-               내부 대시보드
+               내부 대시보드 관제
                <div className="h-px w-8 bg-slate-100"></div>
             </div>
             <p className="text-xs font-bold text-slate-400">

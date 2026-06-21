@@ -54,13 +54,13 @@ Docker 환경에서 `next dev` 실행 시, `package.json`에 명시된 `@radix-u
 
 ### 해결책
 
-1. **기본값 설정**: `SearchPage`의 초기 상태를 `2026-1학기`로 설정하여 진입 즉시 데이터가 노출되도록 수정했습니다.
+1. **기본값 설정**: `SearchPage`의 초기 상태를 현재 크롤링 타겟 학기로 설정하여, 강의 검색 페이지 진입 시 기본 정보 필터와 결과 목록이 같은 학기를 바라보도록 수정했습니다.
 2. **스켈레톤 UI 도입**: 데이터 로딩 중 빈 화면 대신 테이블 형태의 **Skeleton Loader**를 보여주어 로딩 중임을 명확히 인지시켰습니다.
 3. **버튼 상태 관리**: API 요청 중에는 검색 버튼 내부에 스피너를 표시하고 클릭을 방지(`disabled`)했습니다.
 
 ### 결과
 
-사용자가 페이지 진입 시점부터 검색 완료 시점까지 끊김 없는(Seamless) 경험을 하게 되었으며, "고장"이라는 오인을 원천 차단했습니다.
+사용자가 페이지 진입 시점부터 검색 완료 시점까지 끊김 없는(Seamless) 경험을 하게 되었으며, 기본값이 따로 노는 문제와 "고장"이라는 오인을 원천 차단했습니다.
 
 ### 4. 테이블 헤더 고정 (Sticky Header) 이슈
 
@@ -750,4 +750,136 @@ Google은 임베디드 웹뷰(WebView)에서의 OAuth 요청을 보안상의 이
 
 - 하이드레이션 오류가 완벽히 해결됨.
 - 레이아웃이 급격하게 변하지 않으면서도 안정적인 인증 UI 제공 가능.
+
+---
+
+## 36. 이수구분 '전공(대학원)' 프론트엔드 API 타입 추가
+
+### 문제 상황
+
+* JBNU 수강신청 API 응답 중 대학원 전공 강의의 이수구분 텍스트 규격(`"전공(대학원)"` 및 `"전공(대)"`)이 프론트엔드 타입 명세에서 빠져 있어 정적 분석 단계에서 타입 안정성이 저해됨.
+
+### 해결책
+
+* `web/src/shared/types/api.ts` 파일의 `CourseClassification` 유니온 타입에 `'전공(대학원)'` 및 `'전공(대)'`를 수동으로 매핑하여 추가함.
+
+### 결과
+
+* 타입 안전성을 확보하고, 추후 관련 도메인 필터링 필드 확장 시의 런타임 잠재적 경고 문제를 예방했습니다.
+
+---
+
+## 37. 프론트엔드 학기(Semester) 바인딩 고정 버그
+
+### 문제 상황
+
+* 사용자가 강의 검색 화면의 학기 필터를 '1학기'(`U211600010`) 등으로 명시 선택했음에도, 실제 API 요청 및 쿼리 파라미터에는 서버의 기본 학기(예: 하기 계절학기 `U211600015`)로 고정 바인딩되어 데이터가 잘못 조회되던 문제.
+
+### 원인 분석
+
+* `web/src/app/(main)/search/page.tsx` 내부에서 사용자가 클릭한 조건인 `userCondition`과 서버 기본값(`defaultSemester`)을 취합하여 호출하는 `searchCondition` 파생 `useMemo` 블록이 존재함.
+* 해당 `useMemo` 내부에서 사용자가 수동 선택한 `userCondition.semester` 상태를 우선시하지 않고, 항상 `defaultSemester?.semester`를 최우선 순위로 고정 덮어쓰도록 작성되어 변경 사항이 소실됨.
+
+### 해결책
+
+* 사용자의 선택이 존재하면 그 값을 우선 채택하고, 누락된 경우에만 서버 기본값 및 FALLBACK 디폴트 값으로 순차 대입되도록 바인딩 규칙을 수정함.
+  ```typescript
+  // 수정 후
+  semester: userCondition.semester ?? defaultSemester?.semester ?? FALLBACK_DEFAULT_CONDITION.semester,
+  ```
+
+### 결과
+
+* 사용자가 드롭다운에서 선택한 학기 쿼리 파라미터가 유실 없이 백엔드로 올바르게 도달하며 데이터 조회가 정상 동기화됨을 확인했습니다.
+
+---
+
+## 38. 강력 새로고침 후 검색 페이지 인증 UI 누락
+
+### 문제 상황
+
+* 강력 새로고침 후 `'/search'` 페이지에서 로그인 버튼이 보이지 않고, 로그인 상태에서만 보여야 하는 헤더 내비게이션 버튼도 함께 사라지는 현상이 발생했습니다.
+
+### 원인 분석
+
+* `web/src/app/providers.tsx`의 `AuthProvider`가 `'/search'` 경로에서 `checkSession()`을 건너뛰고 있었습니다.
+* `web/src/app/(main)/search/page.tsx`는 `useUser()`로 현재 사용자 데이터를 조회하지만, 그 결과를 `useAuthStore`에 다시 주입하지 않기 때문에 헤더의 인증 상태가 초기화되지 않았습니다.
+
+### 해결책
+
+* `AuthProvider`가 `'/search'`에서도 세션을 확인하도록 수정했습니다.
+* 이로 인해 강력 새로고침 후에도 `useAuthStore`의 `isLoading`과 `user`가 정상적으로 초기화되고, 헤더가 로그인 CTA 또는 인증 상태에 맞는 메뉴를 다시 렌더링합니다.
+
+### 결과
+
+* 검색 페이지에서 강력 새로고침해도 로그인 버튼이 정상 표시됩니다.
+* 로그인 상태에서는 인증 전용 네비게이션이 다시 노출됩니다.
+
+---
+
+## 39. 검색 페이지 진입 시 개인화 API 중복 호출
+
+### 문제 상황
+
+검색 페이지(`/search`)에 진입하면 로그인 여부와 관계없이 `useUser`, `useSubscriptions`, `useWishlist`, `useTimetables`가 각자 독립적으로 실행되어 `/api/v1/users/me`와 개인화 API가 중복 호출되었습니다. 비로그인 상태에서는 401 응답과 불필요한 refresh 시도까지 겹쳐 네트워크 요청이 과해졌습니다.
+
+### 해결책
+
+1. **검색 페이지 전용 사용자 조회 분리**: `/search` 진입 시에는 `skipAuthRefresh` 옵션으로 사용자 조회를 수행해 guest 상태를 빠르게 판별하고, 이후 개인화 훅들은 이 결과를 재사용하도록 했습니다.
+2. **초기 사용자 주입**: `CourseSearchBar`, `CourseTable`, `CourseSmartFilters`에 `initialUser`와 `skipPersonalFetch`를 전달해, 이미 확인된 사용자 정보를 하위 훅에서 다시 조회하지 않도록 정리했습니다.
+3. **개인화 훅 조건부 실행**: `useSubscriptions`, `useWishlist`, `useTimetables`는 초기 사용자 정보가 있으면 `useUser`를 다시 부르지 않고 그 값을 그대로 사용하도록 바꿨습니다.
+
+### 결과
+
+* 검색 페이지 진입 시 `/api/v1/users/me` 호출 수가 1회로 줄었습니다.
+* 로그인 상태에서도 찜/구독/시간표 관련 API가 불필요하게 중복 호출되지 않게 되었습니다.
+* 비로그인 상태에서는 개인화 API가 아예 실행되지 않아 콘솔 401 노이즈와 낭비 트래픽이 줄었습니다.
+
+---
+
+## 40. 모바일 Lighthouse에서 폰트 로딩이 렌더링을 지연
+
+### 문제 상황
+
+모바일 Lighthouse에서 `/search` 페이지의 초기 렌더링이 늦게 끝났고, 원인 중 하나로 Google Fonts 요청과 과도한 폰트 weight 로딩이 잡혔습니다.
+
+### 해결책
+
+1. **`next/font` 전환**: 외부 `fonts.googleapis.com` CSS import를 제거하고 `next/font/google`로 폰트를 로딩하도록 변경했습니다.
+2. **폰트 weight 축소**: `Noto Sans KR`는 실제 사용에 필요한 `400`, `700`, `900`만 로드하도록 줄였습니다.
+3. **불필요한 sans fallback 제거**: 전역 sans stack에서 추가 fallback을 제거해 폰트 경로를 단순화했습니다.
+
+### 결과
+
+* 외부 Google Fonts render-blocking 요청이 줄었습니다.
+* 모바일 Lighthouse에서 폰트 요청이 LCP 경로를 붙잡는 시간이 감소했습니다.
+* 실제 UI 스타일은 유지하면서 초기 로딩 비용만 낮췄습니다.
+
+---
+
+## 41. 비로그인 대시보드 D-day 위젯 위치 및 모바일 반응형 버그
+
+### 문제 상황
+
+1. **모바일 미노출**: 수강신청 D-day 잔여일을 나타내는 카운트다운 위젯이 모바일 화면(너비 768px 미만) 환경에서 보이지 않고 완전히 사라졌습니다.
+2. **비로그인 레이아웃 어색함**: 비로그인 사용자가 메인 랜딩 페이지([home-landing.tsx](file:///Users/bhoon/Desktop/jbnu-sugang-helper/web/src/widgets/home/home-landing.tsx))에 진입할 경우, 카운트다운 위젯이 화면 최하단 중앙에 덩그러니 놓여 있어 디자인상 통일성과 집중도가 떨어지는 형태였습니다.
+
+### 원인 분석
+
+1. **CSS 미디어 쿼리 제한**: [dashboard-countdown.tsx](file:///Users/bhoon/Desktop/jbnu-sugang-helper/web/src/widgets/home/dashboard-countdown.tsx) 위젯의 기저 CSS 스타일 클래스에 `hidden md:flex`가 선언되어 모바일 해상도에서 컴포넌트가 숨김(`display: none`) 처리되었습니다.
+2. **컴포넌트 배치 오설정**: [home-landing.tsx](file:///Users/bhoon/Desktop/jbnu-sugang-helper/web/src/widgets/home/home-landing.tsx) 파일 내부 Hero 소개 텍스트 및 시작 버튼 그룹과 거리를 둔 하단 영역인 `<div className="mt-12 w-full flex justify-center">`에 마운트되도록 정적으로 하드코딩 되어 있었습니다.
+
+### 해결책
+
+1. **반응형 CSS 적용**:
+   - [dashboard-countdown.tsx](file:///Users/bhoon/Desktop/jbnu-sugang-helper/web/src/widgets/home/dashboard-countdown.tsx)의 `hidden md:flex`를 걷어내고 `flex`를 기본으로 부여하였습니다.
+   - 모바일 해상도의 좁은 뷰포트에서도 영역이 깨지거나 가로 넘침이 발생하지 않도록, `text-[10px] sm:text-xs`, `px-2.5 sm:px-3`, `h-8 sm:h-9` 등의 최적화된 모바일 전용 폰트 및 패딩 스타일을 적용했습니다.
+2. **렌더링 레이아웃 재배치**:
+   - [home-landing.tsx](file:///Users/bhoon/Desktop/jbnu-sugang-helper/web/src/widgets/home/home-landing.tsx)에서 기존 Hero 하단의 어색했던 카운트다운 마운트 위치를 삭제했습니다.
+   - 랜딩 페이지의 메인 슬로건 설명글 바로 아래이자 액션 버튼 컨테이너("지금 시작하기") 바로 위의 중앙 상단 영역으로 D-day 카운트다운 노출 위치를 상향 재배치했습니다.
+
+### 결과
+
+- 모바일 디바이스로 메인 및 대시보드 접근 시에도 D-day 카운트다운 정보가 레이아웃 깨짐 없이 올바르게 노출됩니다.
+- 로그인 전 첫 화면 진입 시 핵심 버튼과 D-day 일정이 유기적으로 조화를 이루며 사용자의 첫 방문 인지도가 향상되었습니다.
 

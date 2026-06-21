@@ -1,5 +1,6 @@
 import api from "@/shared/api/client";
 import type { CommonResponse, User, UserDeviceRequest, UserUpdateRequest, UserSettingsRequest, OnboardingRequest, EmailRequest, EmailVerificationRequest, UserDeviceResponse } from '@/shared/types/api';
+import type { AxiosRequestConfig } from "axios";
 
 
 /**
@@ -28,10 +29,20 @@ export const verifyEmail = async (request: EmailVerificationRequest): Promise<Co
 
 let profilePromise: Promise<CommonResponse<User>> | null = null;
 
+export const clearMyProfileRequestCache = () => {
+  profilePromise = null;
+};
+
 /**
  * 현재 로그인한 사용자의 프로필 정보를 조회합니다. (중복 호출 방지 로직 포함)
  */
-export const getMyProfile = async (): Promise<CommonResponse<User>> => {
+export const getMyProfile = async (options?: { skipAuthRefresh?: boolean }): Promise<CommonResponse<User>> => {
+  if (options?.skipAuthRefresh) {
+    const config = { skipAuthRefresh: true } as AxiosRequestConfig & { skipAuthRefresh: boolean };
+    const { data } = await api.get('/api/v1/users/me', config);
+    return data;
+  }
+
   if (profilePromise) return profilePromise;
 
   profilePromise = (async () => {
@@ -40,7 +51,7 @@ export const getMyProfile = async (): Promise<CommonResponse<User>> => {
       return data;
     } finally {
       // 짧은 간격의 중복 호출만 합치고 곧바로 해제한다.
-      setTimeout(() => { profilePromise = null; }, 100); 
+      setTimeout(() => { profilePromise = null; }, 100);
     }
   })();
 

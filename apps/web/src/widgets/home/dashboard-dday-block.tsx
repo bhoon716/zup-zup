@@ -4,9 +4,12 @@ import { motion } from "framer-motion";
 import { Timer, ClipboardList, Loader2 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
+import type { ScheduleResponse } from "@/shared/types/api";
 
-export function DashboardDDayBlock() {
-  const { data: upcomingSchedules, isLoading } = useUpcomingSchedules();
+export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: ScheduleResponse[] } = {}) {
+  const { data: fetchedUpcomingSchedules, isLoading } = useUpcomingSchedules(upcomingSchedules === undefined);
+  const schedules = upcomingSchedules ?? fetchedUpcomingSchedules;
+  const loading = upcomingSchedules ? false : isLoading;
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-7 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
@@ -23,17 +26,17 @@ export function DashboardDDayBlock() {
       </div>
 
       <div className="flex flex-col gap-3 flex-1 overflow-y-auto min-h-0 pr-1">
-        {isLoading ? (
+        {loading ? (
           <div className="flex items-center justify-center h-full min-h-[150px]">
             <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
           </div>
-        ) : upcomingSchedules?.length === 0 ? (
+        ) : schedules?.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full min-h-[150px] text-center gap-2 text-gray-400">
             <ClipboardList className="w-8 h-8 opacity-20" />
             <p className="text-sm font-medium">현재 등록된 주요 일정이 없습니다.</p>
           </div>
         ) : (
-          upcomingSchedules?.map((event, idx) => {
+          schedules?.map((event, idx) => {
             const isDDay = event.dDay === "D-Day";
             return (
               <motion.div

@@ -22,11 +22,11 @@ export function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLogi
   
   if (!user) {
     return (
-      <Link href="/login" onClick={onLoginClick}>
-        <Button size="sm" className="bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-sm">
+      <Button asChild size="sm" className="bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-sm">
+        <Link href="/login" onClick={onLoginClick}>
           로그인
-        </Button>
-      </Link>
+        </Link>
+      </Button>
     );
   }
 
@@ -58,11 +58,11 @@ export function HeaderMobileUserStatus({ user, isLoading, onLinkClick }: Omit<Us
 
   if (!user) {
     return (
-      <Link href="/login" className="block" onClick={onLinkClick}>
-        <Button className="w-full gap-2 rounded-xl h-11 bg-primary shadow-lg shadow-primary/20">
+      <Button asChild className="w-full gap-2 rounded-xl h-11 bg-primary shadow-lg shadow-primary/20">
+        <Link href="/login" onClick={onLinkClick}>
           로그인하고 시작하기
-        </Button>
-      </Link>
+        </Link>
+      </Button>
     );
   }
 

@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/shared/ui/dialog";
 import { Input } from '@/shared/ui/input';
@@ -129,6 +130,9 @@ export function TimetableSelect({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>새 시간표 생성</DialogTitle>
+            <DialogDescription className="sr-only">
+              새로운 시간표 이름을 입력하는 대화상자입니다.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input

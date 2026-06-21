@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Filter, RotateCcw, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -9,13 +9,18 @@ import { CourseBasicFilters } from "./filters/course-basic-filters";
 import { CourseDetailFilters } from "./filters/course-detail-filters";
 import { CourseSmartFilters } from "./filters/course-smart-filters";
 import { FilterSection } from "./filters/filter-section";
+import type { TimetableResponse, User } from "@/shared/types/api";
 
 interface CourseSearchBarProps {
   onSearch: (condition: CourseSearchCondition) => void;
   onConditionChange?: (condition: CourseSearchCondition) => void;
   isLoading?: boolean;
   initialCondition?: CourseSearchCondition;
+  defaultCondition?: CourseSearchCondition;
   hideHeader?: boolean;
+  initialUser?: User | null;
+  initialTimetables?: TimetableResponse[];
+  skipPersonalFetch?: boolean;
 }
 
 export function CourseSearchBar({
@@ -23,27 +28,34 @@ export function CourseSearchBar({
   onConditionChange,
   isLoading,
   initialCondition,
+  defaultCondition,
   hideHeader,
+  initialUser,
+  initialTimetables,
+  skipPersonalFetch,
 }: CourseSearchBarProps) {
+  const resolvedDefaultCondition = defaultCondition ?? DEFAULT_CONDITION;
+  const initialSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
   const [condition, setCondition] = useState<CourseSearchCondition>(
-    () => ({ ...(initialCondition ?? DEFAULT_CONDITION) }),
+    () => ({ ...(initialCondition ?? resolvedDefaultCondition) }),
   );
-
-  const [prevInitial, setPrevInitial] = useState<string | undefined>(
-    JSON.stringify(initialCondition),
-  );
+  const prevInitialRef = useRef(initialSnapshot);
 
   /**
    * 외부에서 전달된 초기 검색 조건이 실질적으로 변경될 경우(예: 필터 칩 삭제)
    * 로컬 상태를 갱신합니다.
    */
-  if (initialCondition) {
-    const serializedInitial = JSON.stringify(initialCondition);
-    if (serializedInitial !== prevInitial) {
-      setPrevInitial(serializedInitial);
-      setCondition({ ...initialCondition });
-    }
-  }
+  useEffect(() => {
+    const nextSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
+    if (nextSnapshot === prevInitialRef.current) return;
+
+    prevInitialRef.current = nextSnapshot;
+    const timeoutId = window.setTimeout(() => {
+      setCondition({ ...(initialCondition ?? resolvedDefaultCondition) });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initialCondition, resolvedDefaultCondition]);
   
   // UI 상태: 접기/펼치기
   const [smartOpen, setSmartOpen] = useState(true);
@@ -51,9 +63,6 @@ export function CourseSearchBar({
   const [detailOpen, setDetailOpen] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
-  // UI 상태: 계층형 필터
-  const [classificationType, setClassificationType] = useState<string | undefined>();
-  const [gradingType, setGradingType] = useState<string | undefined>();
 
   /**
    * 로컬 검색 조건이 변경될 때 상위 컴포넌트에 알립니다.
@@ -79,10 +88,8 @@ export function CourseSearchBar({
    * 초기화 성공 시 토스트 메시지를 표시합니다.
    */
   const handleReset = () => {
-    setCondition({ ...DEFAULT_CONDITION });
-    setClassificationType(undefined);
-    setGradingType(undefined);
-    onSearch({ ...DEFAULT_CONDITION });
+    setCondition({ ...resolvedDefaultCondition });
+    onSearch({ ...resolvedDefaultCondition });
     toast.success("검색 조건을 초기화했습니다.");
   };
 
@@ -132,6 +139,7 @@ export function CourseSearchBar({
       <div className={cn("space-y-3 pr-1 scrollbar-hide", !hideHeader ? "flex-1 overflow-y-auto" : "h-auto overflow-visible")}>
         {/* 스마트 필터 섹션 */}
         <FilterSection
+          idBase="course-search-smart"
           title="스마트 필터"
           icon={<Sparkles className="h-4 w-4 text-violet-500" />}
           open={smartOpen}
@@ -142,21 +150,30 @@ export function CourseSearchBar({
             setCondition={setCondition}
             scheduleOpen={scheduleOpen}
             setScheduleOpen={setScheduleOpen}
+            initialUser={initialUser}
+            initialTimetables={initialTimetables}
+            skipPersonalFetch={skipPersonalFetch}
           />
         </FilterSection>
 
         {/* 기본 정보 섹션 */}
         <FilterSection
+          idBase="course-search-basic"
           title="기본 정보"
           icon={<Filter className="h-4 w-4 text-primary/80" />}
           open={basicOpen}
           onOpenChange={setBasicOpen}
         >
-          <CourseBasicFilters condition={condition} setCondition={setCondition} />
+          <CourseBasicFilters
+            condition={condition}
+            setCondition={setCondition}
+            idBasePrefix="course-search-basic"
+          />
         </FilterSection>
 
         {/* 강의 상세 섹션 */}
         <FilterSection
+          idBase="course-search-detail"
           title="강의 상세"
           icon={<SlidersHorizontal className="h-4 w-4 text-primary/80" />}
           open={detailOpen}
@@ -165,10 +182,6 @@ export function CourseSearchBar({
           <CourseDetailFilters
             condition={condition}
             setCondition={setCondition}
-            classificationType={classificationType}
-            setClassificationType={setClassificationType}
-            gradingType={gradingType}
-            setGradingType={setGradingType}
           />
         </FilterSection>
 

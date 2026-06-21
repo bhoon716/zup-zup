@@ -14,13 +14,16 @@ export const usePWAInstall = () => {
   const [platform, setPlatform] = useState<"android" | "ios" | "other" | null>(null);
 
   useEffect(() => {
+    const isDevelopment = process.env.NODE_ENV === "development";
+
     // 플랫폼 감지 및 iOS 여부 확인
+    let timeoutId: number | undefined;
     if (typeof window !== "undefined") {
       const userAgent = window.navigator.userAgent.toLowerCase();
       const isStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true || window.matchMedia("(display-mode: standalone)").matches;
 
       // React 향후 렌더링 최적화를 위해 동기적 상태 업데이트를 피하고 즉시 지연 실행으로 처리합니다.
-      setTimeout(() => {
+      timeoutId = window.setTimeout(() => {
         if (userAgent.includes("iphone") || userAgent.includes("ipad") || userAgent.includes("ipod")) {
           setPlatform("ios");
           // iOS는 standalone이 아니면 항상 "설치 가능(안내 가능)" 상태로 간주
@@ -35,6 +38,12 @@ export const usePWAInstall = () => {
       }, 0);
     }
 
+    if (isDevelopment) {
+      return () => {
+        if (timeoutId) window.clearTimeout(timeoutId);
+      };
+    }
+
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -44,6 +53,7 @@ export const usePWAInstall = () => {
     window.addEventListener("beforeinstallprompt", handler);
 
     return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
       window.removeEventListener("beforeinstallprompt", handler);
     };
   }, []);

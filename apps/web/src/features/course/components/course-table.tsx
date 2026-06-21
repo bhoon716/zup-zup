@@ -30,13 +30,18 @@ import {
   UserRound,
 } from "lucide-react";
 import { CourseDetailDialog } from "./course-detail-dialog";
-import type { Course } from "@/shared/types/api";
+import type { Course, Subscription, TimetableResponse, User, WishlistResponse } from "@/shared/types/api";
 
 interface CourseTableProps {
   courses: Course[];
   onLoadMore?: () => void;
   hasMore?: boolean;
   isFetchingNextPage?: boolean;
+  initialUser?: User | null;
+  initialSubscriptions?: Subscription[];
+  initialWishlist?: WishlistResponse[];
+  initialTimetables?: TimetableResponse[];
+  skipPersonalFetch?: boolean;
 }
 
 /**
@@ -46,7 +51,7 @@ function getSeatStatus(available: number) {
   if (available <= 0) {
     return {
       label: "마감됨",
-      badgeClass: "bg-red-50 text-red-600",
+      badgeClass: "bg-red-100 text-red-800",
       barClass: "bg-red-500",
     };
   }
@@ -54,14 +59,14 @@ function getSeatStatus(available: number) {
   if (available <= 5) {
     return {
       label: "마감 임박",
-      badgeClass: "bg-amber-50 text-amber-600",
+      badgeClass: "bg-amber-100 text-amber-800",
       barClass: "bg-amber-500",
     };
   }
 
   return {
     label: "여석 있음",
-    badgeClass: "bg-emerald-50 text-emerald-600",
+    badgeClass: "bg-emerald-100 text-emerald-800",
     barClass: "bg-emerald-500",
   };
 }
@@ -99,18 +104,28 @@ export function CourseTable({
   onLoadMore,
   hasMore,
   isFetchingNextPage,
+  initialUser,
+  initialSubscriptions,
+  initialWishlist,
+  initialTimetables,
+  skipPersonalFetch,
 }: CourseTableProps) {
-  const { data: subscriptions } = useSubscriptions();
-  const { data: wishlist } = useWishlist();
+  const { data: subscriptions } = useSubscriptions(!initialSubscriptions && !skipPersonalFetch, initialUser);
+  const { data: wishlist } = useWishlist(!initialWishlist && !skipPersonalFetch, initialUser);
   const { mutate: toggleWishlist } = useToggleWishlist();
   const { mutate: subscribe, isPending: isSubscribing } = useSubscribe();
   const { mutate: unsubscribe, isPending: isUnsubscribing } = useUnsubscribe();
-  const { data: user } = useUser();
+  const { data: user } = useUser({ enabled: initialUser === undefined && !skipPersonalFetch });
 
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
 
-  const { data: timetableList } = useTimetables();
+  const { data: timetableList } = useTimetables(!initialTimetables && !skipPersonalFetch, initialUser);
   const { mutate: addToTimetable, isPending: isAdding } = useAddCourseToTimetable();
+
+  const resolvedUser = initialUser !== undefined ? initialUser : user;
+  const resolvedSubscriptions = initialSubscriptions ?? subscriptions;
+  const resolvedWishlist = initialWishlist ?? wishlist;
+  const resolvedTimetables = initialTimetables ?? timetableList;
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -118,13 +133,13 @@ export function CourseTable({
   const loadMoreTarget = useRef<HTMLDivElement>(null);
 
   const subscriptionMap = useMemo(
-    () => new Map(subscriptions?.map((sub) => [sub.courseKey, sub]) ?? []),
-    [subscriptions],
+    () => new Map(resolvedSubscriptions?.map((sub) => [sub.courseKey, sub]) ?? []),
+    [resolvedSubscriptions],
   );
 
   const wishlistSet = useMemo(
-    () => new Set(wishlist?.map((item) => item.courseKey) ?? []),
-    [wishlist],
+    () => new Set(resolvedWishlist?.map((item) => item.courseKey) ?? []),
+    [resolvedWishlist],
   );
 
   /**
@@ -163,7 +178,7 @@ export function CourseTable({
    * 여석 알림 구독 상태를 토글 (구독 신청 또는 취소)
    */
   const handleSubscribe = (courseKey: string) => {
-    if (!user) {
+    if (!resolvedUser) {
       setLoginModalOpen(true);
       return;
     }
@@ -235,15 +250,15 @@ export function CourseTable({
                             {course.credits || 0}학점
                           </span>
                           {course.subjectCode && (
-                            <span className="text-[10px] font-semibold tracking-wide text-gray-400">
+                          <span className="text-[10px] font-semibold tracking-wide text-gray-600">
                               {course.subjectCode}
                             </span>
                           )}
                         </div>
 
-                        <h3 className="mb-1 truncate text-sm font-bold text-foreground transition-colors group-hover:text-primary md:mb-1.5 md:text-base">
+                        <h2 className="mb-1 truncate text-sm font-bold text-foreground transition-colors group-hover:text-primary md:mb-1.5 md:text-base">
                           {course.name}
-                        </h3>
+                        </h2>
                       </div>
 
                       {/* 모바일용 상단 우측 여석 상태 */}
@@ -325,17 +340,19 @@ export function CourseTable({
                       <div className="flex items-center gap-1">
                         <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                         <span className="text-xs font-bold text-gray-700">{course.averageRating ? course.averageRating.toFixed(1) : "0.0"}</span>
-                        <span className="text-[10px] text-gray-400">({course.reviewCount || 0})</span>
+                        <span className="text-[10px] text-gray-600">({course.reviewCount || 0})</span>
                       </div>
                       
                       <div className="flex items-center gap-1 md:gap-1.5">
-                      {!user ? (
+                      {!resolvedUser ? (
                         <Button
                           type="button"
                           variant="outline"
                           size="icon"
                           className="h-7 w-7 rounded-lg border-gray-200 text-gray-500 md:h-8 md:w-8"
                           onClick={() => setLoginModalOpen(true)}
+                          aria-label={`${course.name}를 시간표에 추가하려면 로그인`}
+                          title="로그인 후 시간표에 추가"
                         >
                           <CalendarPlus className="h-4 w-4" />
                         </Button>
@@ -348,6 +365,8 @@ export function CourseTable({
                               size="icon"
                               className="h-7 w-7 rounded-lg border-gray-200 text-gray-500 md:h-8 md:w-8"
                               disabled={isAdding}
+                              aria-label={`${course.name}를 시간표에 추가`}
+                              title="시간표에 추가"
                             >
                               <CalendarPlus className="h-4 w-4" />
                             </Button>
@@ -359,8 +378,8 @@ export function CourseTable({
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
 
-                            {Array.isArray(timetableList) && timetableList.length > 0 ? (
-                              [...timetableList]
+                            {Array.isArray(resolvedTimetables) && resolvedTimetables.length > 0 ? (
+                              [...resolvedTimetables]
                                 .sort((a, b) => Number(b.primary) - Number(a.primary))
                                 .map((timetable) => (
                                   <DropdownMenuItem
@@ -396,12 +415,14 @@ export function CourseTable({
                         size="icon"
                         className="h-7 w-7 rounded-lg border-gray-200 text-gray-500 md:h-8 md:w-8"
                         onClick={() => {
-                          if (!user) {
+                          if (!resolvedUser) {
                             setLoginModalOpen(true);
                             return;
                           }
                           toggleWishlist(course.courseKey);
                         }}
+                        aria-label={wished ? `${course.name} 관심 강의 해제` : `${course.name} 관심 강의 추가`}
+                        title={wished ? "관심 강의 해제" : "관심 강의 추가"}
                       >
                         <Heart
                           className={cn(
@@ -420,8 +441,10 @@ export function CourseTable({
                                   type="button"
                                   variant="outline"
                                   size="icon"
-                                  className="h-7 w-7 rounded-lg border-gray-100 text-gray-300 pointer-events-none md:h-8 md:w-8"
+                                  className="h-7 w-7 rounded-lg border-gray-100 text-gray-400 pointer-events-none md:h-8 md:w-8"
                                   disabled
+                                  aria-label="현재 추적 중인 학기가 아닙니다"
+                                  title="현재 추적 중인 학기가 아닙니다"
                                 >
                                   <Bell className="h-4 w-4" />
                                 </Button>
@@ -445,6 +468,8 @@ export function CourseTable({
                           )}
                           onClick={() => handleSubscribe(course.courseKey)}
                           disabled={isSubscribing || isUnsubscribing}
+                          aria-label={subscribed ? `${course.name} 여석 알림 해제` : `${course.name} 여석 알림 받기`}
+                          title={subscribed ? "여석 알림 해제" : "여석 알림 받기"}
                         >
                           <Bell className={cn("h-4 w-4", subscribed && "fill-white")} />
                         </Button>

@@ -1,12 +1,6 @@
 import { create } from 'zustand';
 import * as userApi from '@/features/user/api/user.api';
-
-interface User {
-  id: number;
-  email: string;
-  name: string;
-  role: string;
-}
+import type { User } from '@/shared/types/api';
 
 interface AuthState {
   user: User | null;
@@ -31,36 +25,58 @@ export const useAuthStore = create<AuthState>((set) => ({
   }),
   
   checkSession: async () => {
-    const { isLoading, isAuthenticated } = useAuthStore.getState();
-    // 이미 인증이 완료된 상태면 중복 조회를 피한다.
-    if (isLoading && isAuthenticated) return;
+    const { isAuthenticated } = useAuthStore.getState();
+    if (sessionCheckPromise) {
+      return sessionCheckPromise;
+    }
 
     if (isAuthenticated) {
       set({ isLoading: false });
-      return;
+      return Promise.resolve();
     }
 
     set({ isLoading: true });
-    try {
-      const response = await userApi.getMyProfile();
-      set({ 
-        user: response.data, 
-        isAuthenticated: true, 
-        isLoading: false 
-      });
-    } catch {
-      set({ 
-        user: null,
-        isAuthenticated: false,
-        isLoading: false 
-      });
-    }
+    const requestToken = ++sessionCheckToken;
+    sessionCheckPromise = (async () => {
+      try {
+        const response = await userApi.getMyProfile();
+        if (requestToken !== sessionCheckToken) {
+          return;
+        }
+        set({
+          user: response.data,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      } catch {
+        if (requestToken !== sessionCheckToken) {
+          return;
+        }
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+      } finally {
+        if (requestToken === sessionCheckToken) {
+          sessionCheckPromise = null;
+        }
+      }
+    })();
+
+    return sessionCheckPromise;
   },
 
   logout: () => {
+    sessionCheckToken += 1;
+    sessionCheckPromise = null;
+    userApi.clearMyProfileRequestCache();
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
 
   isLoginModalOpen: false,
   setLoginModalOpen: (open) => set({ isLoginModalOpen: open }),
 }));
+
+let sessionCheckPromise: Promise<void> | null = null;
+let sessionCheckToken = 0;

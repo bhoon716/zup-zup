@@ -180,7 +180,7 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
           )}
           style={{ '--slot-height': isPreview ? '45px' : '42px' } as React.CSSProperties}
         >
-          <style jsx>{`
+          <style>{`
             @media (min-width: 768px) {
               .timetable-grid-content {
                 --slot-height: ${isPreview ? '45px' : '60px'};

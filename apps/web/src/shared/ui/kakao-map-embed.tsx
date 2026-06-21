@@ -34,13 +34,17 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
     }
 
     let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (cancelled) {
+        return;
+      }
 
-    const run = async () => {
       setLoading(true);
       setErrorMessage(null);
       setIsApiError(false);
 
-      try {
+      const run = async () => {
+        try {
         const renderResult = await renderKakaoMapByKeyword({
           container: mapContainerRef.current as HTMLElement,
           appKey: mapJsKey,
@@ -48,38 +52,40 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
           level: 4,
         });
 
-        if (cancelled) {
-          return;
-        }
+          if (cancelled) {
+            return;
+          }
 
-        if (renderResult.status === "ZERO_RESULT") {
-          setErrorMessage("검색된 장소가 없습니다. 건물명이나 주소를 다시 확인해 주세요.");
-          setIsApiError(false);
-        } else if (renderResult.status !== "OK") {
-          setErrorMessage("지도를 불러오는 중 오류가 발생했습니다.");
+          if (renderResult.status === "ZERO_RESULT") {
+            setErrorMessage("검색된 장소가 없습니다. 건물명이나 주소를 다시 확인해 주세요.");
+            setIsApiError(false);
+          } else if (renderResult.status !== "OK") {
+            setErrorMessage("지도를 불러오는 중 오류가 발생했습니다.");
+            setIsApiError(true);
+          }
+        } catch (error) {
+          if (cancelled) {
+            return;
+          }
+
+          const message = error instanceof Error
+            ? error.message
+            : "지도를 불러오는 중 오류가 발생했습니다.";
+          setErrorMessage(message);
           setIsApiError(true);
+        } finally {
+          if (!cancelled) {
+            setLoading(false);
+          }
         }
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
+      };
 
-        const message = error instanceof Error
-          ? error.message
-          : "지도를 불러오는 중 오류가 발생했습니다.";
-        setErrorMessage(message);
-        setIsApiError(true);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    run();
+      void run();
+    }, 0);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
     };
   }, [mapJsKey, query]);
 
