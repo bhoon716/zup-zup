@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 @DataJpaTest
-@Tag("manual")
+@Tag("performance")
 class CourseSchedulePerformanceTest {
 
     private static final Logger log = LoggerFactory.getLogger(CourseSchedulePerformanceTest.class);

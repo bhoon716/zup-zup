@@ -123,12 +123,18 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform {
-		excludeTags 'manual'
+		excludeTags 'manual', 'performance'
 	}
 }
 
 task manualTest(type: Test) {
 	useJUnitPlatform {
 		includeTags 'manual'
+	}
+}
+
+task performanceTest(type: Test) {
+	useJUnitPlatform {
+		includeTags 'performance'
 	}
 }
