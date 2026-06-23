@@ -16,10 +16,12 @@ interface KakaoMapEmbedProps {
 export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isApiError, setIsApiError] = useState(false);
-
   const mapJsKey = process.env.NEXT_PUBLIC_KAKAO_MAP_JS_KEY ?? "";
+  const hasMapKey = Boolean(mapJsKey);
+  const [errorMessage, setErrorMessage] = useState<string | null>(() =>
+    hasMapKey ? null : "카카오맵 키가 설정되지 않았습니다.",
+  );
+  const [isApiError, setIsApiError] = useState(() => !hasMapKey);
   const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
 
   useEffect(() => {
@@ -27,9 +29,7 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
       return;
     }
 
-    if (!mapJsKey) {
-      setErrorMessage("카카오맵 키가 설정되지 않았습니다.");
-      setIsApiError(true);
+    if (!hasMapKey) {
       return;
     }
 
@@ -87,7 +87,7 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [mapJsKey, query]);
+  }, [hasMapKey, mapJsKey, query]);
 
   return (
     <div className={cn("bg-background", className)}>
