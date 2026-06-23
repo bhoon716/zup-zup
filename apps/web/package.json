@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/start-with-file-log.mjs",
+    "start:next": "next start",
     "lint": "eslint",
     "test": "vitest"
   },

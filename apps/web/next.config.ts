@@ -1,24 +1,26 @@
 import type { NextConfig } from "next";
 
+const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
 const nextConfig: NextConfig = {
   output: "standalone",
   async rewrites() {
     return [
       {
         source: "/api/login/oauth2/code/:path*",
-        destination: `${process.env.API_URL}/login/oauth2/code/:path*`,
+        destination: `${apiUrl}/login/oauth2/code/:path*`,
       },
       {
         source: "/api/oauth2/:path*",
-        destination: `${process.env.API_URL}/oauth2/:path*`,
+        destination: `${apiUrl}/oauth2/:path*`,
       },
       {
         source: "/api/:path*",
-        destination: `${process.env.API_URL}/api/:path*`,
+        destination: `${apiUrl}/api/:path*`,
       },
       {
         source: "/uploads/:path*",
-        destination: `${process.env.API_URL}/uploads/:path*`,
+        destination: `${apiUrl}/uploads/:path*`,
       },
     ];
   },

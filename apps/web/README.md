@@ -105,3 +105,11 @@ src/
 
 - 📜 **[릴리스 노트 (v1.1.0)](./docs/feature-updates.md)**
 - 🛠️ **[트러블슈팅 로그](./docs/troubleshooting.md)**
+
+---
+
+## 📋 Logging
+
+- **Host file path**: `/var/log/jbnu-sugang-helper/web/web.log`
+- **Runtime behavior**: `npm start` now runs `web/scripts/start-with-file-log.mjs`, which appends Next.js output to the host log file while still printing to the terminal.
+- **Override**: set `WEB_LOG_FILE` to point at a different host path when needed.
