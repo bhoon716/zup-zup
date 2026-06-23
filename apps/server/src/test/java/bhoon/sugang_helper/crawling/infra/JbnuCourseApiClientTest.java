@@ -15,20 +15,22 @@ import org.springframework.test.util.ReflectionTestUtils;
 @Tag("manual")
 class JbnuCourseApiClientTest {
 
+    private static final String JBNU_API_URL_ENV = "JBNU_API_URL";
+
     @Test
     @DisplayName("실제 강좌 데이터 가져오기")
     void fetchCourseData_RealCall() throws IOException {
         // Given
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-        String realApiUrl = dotenv.get("JBNU_API_URL");
+        String realApiUrl = dotenv.get(JBNU_API_URL_ENV);
 
         if (realApiUrl == null || realApiUrl.isBlank()) {
-            realApiUrl = System.getenv("JBNU_API_URL");
+            realApiUrl = System.getenv(JBNU_API_URL_ENV);
         }
 
         if (realApiUrl == null || realApiUrl.isBlank()) {
             throw new IllegalStateException(
-                    "JBNU_API_URL environment variable is required for manual tests.\n" +
+                    JBNU_API_URL_ENV + " environment variable is required for manual tests.\n" +
                             "Please check your .env file or system environment variables.");
         }
 
@@ -71,9 +73,9 @@ class JbnuCourseApiClientTest {
 
         // 2. Perform API call with these cookies in Payload
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-        String realApiUrl = dotenv.get("JBNU_API_URL");
+        String realApiUrl = dotenv.get(JBNU_API_URL_ENV);
         if (realApiUrl == null || realApiUrl.isBlank()) {
-            realApiUrl = System.getenv("JBNU_API_URL");
+            realApiUrl = System.getenv(JBNU_API_URL_ENV);
         }
         if (realApiUrl == null || realApiUrl.isBlank()) {
             realApiUrl = "https://oasis.jbnu.ac.kr/uni/uni/cour/less/findLessSubjtTblInq.action";
