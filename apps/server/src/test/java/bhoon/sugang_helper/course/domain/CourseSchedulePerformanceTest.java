@@ -116,6 +116,7 @@ class CourseSchedulePerformanceTest {
         log.info("소요 시간: {} ms", String.format("%.2f", durationMs));
         log.info("Entity Delete 횟수: {}", deleteCount);
         log.info("Entity Insert 횟수: {}", insertCount);
+        log.info("개선 전 예상 쿼리 (DELETE & INSERT) 횟수: {}", expectedQueries);
         log.info("==================================================================");
 
         // 최적화 후에는 동일한 데이터 업데이트 시 delete와 insert가 0회 발생해야 함
