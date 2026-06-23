@@ -9,11 +9,13 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       TZ: Asia/Seoul
       FIREBASE_CONFIG_PATH: /app/config/firebase-key.json
+      LOG_FILE: /var/log/jbnu-sugang-helper/server/application.log
     ports:
       - "8080:8080"
     volumes:
       - ./src/main/resources/application-prod.yml:/app/config/application-prod.yml:ro
       - ./src/main/resources/firebase/firebase-key.json:/app/config/firebase-key.json:ro
+      - /var/log/jbnu-sugang-helper/server:/var/log/jbnu-sugang-helper/server
     extra_hosts:
       - "oasis.jbnu.ac.kr:114.70.191.85"
     healthcheck:

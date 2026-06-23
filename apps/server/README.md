@@ -97,3 +97,11 @@ graph TD
 
 - 📜 **[릴리스 노트 (v1.3.1)](./docs/feature-updates.md)**
 - 🛠️ **[트러블슈팅 로그](./docs/troubleshooting.md)**
+
+---
+
+## 📋 Logging
+
+- **Host file path**: `/var/log/jbnu-sugang-helper/server/application.log`
+- **Runtime behavior**: `server/src/main/resources/logback-spring.xml` writes both console output and a rolling file appender to the host-mounted log directory.
+- **Compose hint**: `server/docker-compose.yml` mounts `/var/log/jbnu-sugang-helper/server` into the container and sets `LOG_FILE` to the file path above.
