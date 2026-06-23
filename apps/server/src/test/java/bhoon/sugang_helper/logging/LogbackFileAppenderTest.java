@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.util.StatusPrinter;
+import ch.qos.logback.core.util.StatusPrinter2;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,7 +34,7 @@ class LogbackFileAppenderTest {
 
         Thread.sleep(100);
         context.stop();
-        StatusPrinter.printInCaseOfErrorsOrWarnings(context);
+        new StatusPrinter2().printInCaseOfErrorsOrWarnings(context);
 
         assertTrue(Files.exists(logFile), "log file should be created");
         String contents = Files.readString(logFile, StandardCharsets.UTF_8);
