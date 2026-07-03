@@ -112,4 +112,31 @@ class AuthServiceTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);
     }
+
+    @Test
+    @DisplayName("로그아웃 성공시 리프레시 쿠키를 안전하게 삭제한다")
+    void logout_success_clearsCookieSafely() {
+        // given
+        String refreshToken = "valid-refresh-token";
+        String email = "test@example.com";
+        Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
+        given(request.getCookies()).willReturn(new Cookie[]{cookie});
+        given(jwtProvider.validateToken(refreshToken)).willReturn(true);
+        
+        Authentication authentication = mock(Authentication.class);
+        given(authentication.getName()).willReturn(email);
+        given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
+        given(request.getSession(false)).willReturn(session);
+        ReflectionTestUtils.setField(authService, "refreshCookieSecure", true);
+
+        // when
+        authService.logout(request, response);
+
+        // then
+        ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
+        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
+        assertThat(cookieCaptor.getValue()).contains("Max-Age=0");
+        assertThat(cookieCaptor.getValue()).contains("Secure");
+        assertThat(cookieCaptor.getValue()).contains("SameSite=Lax");
+    }
 }
