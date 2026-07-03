@@ -2,6 +2,7 @@
 
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { getFirebaseApp } from "@/shared/lib/firebase";
+import { getCookie, IS_LOGGED_IN_COOKIE_NAME } from "@/shared/lib/cookie";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, Suspense } from "react";
 import { Toaster, toast } from "sonner";
@@ -77,7 +78,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     getFirebaseApp();
 
     // 앱 진입 시점마다 세션 상태를 한 번 동기화한다.
-    checkSession();
+    const hasCookie = getCookie(IS_LOGGED_IN_COOKIE_NAME) === "true";
+    if (hasCookie) {
+      checkSession();
+    } else {
+      useAuthStore.getState().setUser(null);
+    }
 
     // 서비스 워커 등록 (PWA 설치 가능성 확보)
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {

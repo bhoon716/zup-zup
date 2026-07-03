@@ -1,5 +1,7 @@
 export const redirectToLogin = () => {
   if (typeof window !== "undefined") {
-    window.location.assign("/login");
+    if (window.location.pathname !== "/login") {
+      window.location.assign("/login");
+    }
   }
 };
