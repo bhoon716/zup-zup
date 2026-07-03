@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.error.CustomException;
@@ -86,10 +87,16 @@ class AuthServiceTest {
         // then
         assertThat(result).isEqualTo("new-access-token");
         ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
-        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
-        assertThat(cookieCaptor.getValue()).contains("Secure");
-        assertThat(cookieCaptor.getValue()).contains("HttpOnly");
-        assertThat(cookieCaptor.getValue()).contains("SameSite=Lax");
+        verify(response, times(2)).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
+        java.util.List<String> cookies = cookieCaptor.getAllValues();
+        assertThat(cookies.get(0)).contains("refresh_token");
+        assertThat(cookies.get(0)).contains("Secure");
+        assertThat(cookies.get(0)).contains("HttpOnly");
+        assertThat(cookies.get(0)).contains("SameSite=Lax");
+        assertThat(cookies.get(1)).contains("is_logged_in");
+        assertThat(cookies.get(1)).contains("Secure");
+        assertThat(cookies.get(1)).doesNotContain("HttpOnly");
+        assertThat(cookies.get(1)).contains("SameSite=Lax");
     }
 
     @Test
@@ -134,9 +141,15 @@ class AuthServiceTest {
 
         // then
         ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
-        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
-        assertThat(cookieCaptor.getValue()).contains("Max-Age=0");
-        assertThat(cookieCaptor.getValue()).contains("Secure");
-        assertThat(cookieCaptor.getValue()).contains("SameSite=Lax");
+        verify(response, times(2)).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
+        java.util.List<String> cookies = cookieCaptor.getAllValues();
+        assertThat(cookies.get(0)).contains("refresh_token");
+        assertThat(cookies.get(0)).contains("Max-Age=0");
+        assertThat(cookies.get(0)).contains("Secure");
+        assertThat(cookies.get(0)).contains("SameSite=Lax");
+        assertThat(cookies.get(1)).contains("is_logged_in");
+        assertThat(cookies.get(1)).contains("Max-Age=0");
+        assertThat(cookies.get(1)).contains("Secure");
+        assertThat(cookies.get(1)).contains("SameSite=Lax");
     }
 }

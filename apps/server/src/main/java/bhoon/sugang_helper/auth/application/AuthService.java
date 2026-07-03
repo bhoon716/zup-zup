@@ -124,6 +124,16 @@ public class AuthService {
                 .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        ResponseCookie isLoggedInCookie = ResponseCookie
+                .from("is_logged_in", "true")
+                .httpOnly(false)
+                .secure(refreshCookieSecure)
+                .path("/")
+                .maxAge(REFRESH_TOKEN_COOKIE_MAX_AGE)
+                .sameSite("Lax")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, isLoggedInCookie.toString());
     }
 
     private void deleteRefreshTokenCookie(HttpServletResponse response) {
@@ -136,5 +146,15 @@ public class AuthService {
                 .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        ResponseCookie isLoggedInCookie = ResponseCookie
+                .from("is_logged_in", "")
+                .httpOnly(false)
+                .secure(refreshCookieSecure)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, isLoggedInCookie.toString());
     }
 }
