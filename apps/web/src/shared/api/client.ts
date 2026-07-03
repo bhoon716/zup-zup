@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { redirectToLogin } from "@/shared/lib/navigation";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -84,9 +85,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         isRefreshing = false;
         processQueue(refreshError);
-        
-        // 브라우저 캐시나 상태를 강제로 정리해야 할 수도 있음
-        // window.location.href = '/login'; // 필요시 강제 이동
+        redirectToLogin();
         return Promise.reject(refreshError);
       }
     }
