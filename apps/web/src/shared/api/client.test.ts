@@ -39,6 +39,8 @@ describe("shared api client", () => {
       }),
     };
 
+    const logoutSpy = vi.fn();
+
     vi.doMock("axios", () => ({
       AxiosError: class AxiosError {},
       InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
@@ -51,6 +53,14 @@ describe("shared api client", () => {
       redirectToLogin: redirectSpy,
     }));
 
+    vi.doMock("@/features/auth/store/useAuthStore", () => ({
+      useAuthStore: {
+        getState: () => ({
+          logout: logoutSpy,
+        }),
+      },
+    }));
+
     await import("./client");
 
     const responseError = {
@@ -60,5 +70,6 @@ describe("shared api client", () => {
 
     await expect(responseHandlers.onRejected?.(responseError)).rejects.toThrow("refresh failed");
     expect(redirectSpy).toHaveBeenCalledTimes(1);
+    expect(logoutSpy).toHaveBeenCalledTimes(1);
   });
 });

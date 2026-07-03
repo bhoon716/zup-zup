@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { redirectToLogin } from "@/shared/lib/navigation";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -85,6 +86,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         isRefreshing = false;
         processQueue(refreshError);
+        useAuthStore.getState().logout();
         redirectToLogin();
         return Promise.reject(refreshError);
       }

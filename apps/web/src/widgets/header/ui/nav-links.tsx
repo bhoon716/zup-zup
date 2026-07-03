@@ -21,6 +21,7 @@ interface NavLinksProps {
   isMobile?: boolean;
   isAdmin: boolean;
   isLoggedIn: boolean;
+  isLoading?: boolean;
   onGuardedAction: (e: MouseEvent) => void;
   onLinkClick?: () => void;
 }
@@ -28,7 +29,7 @@ interface NavLinksProps {
 /**
  * 메인 내비게이션 링크들을 렌더링하는 컴포넌트입니다.
  */
-export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedAction, onLinkClick }: NavLinksProps) {
+export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = false, onGuardedAction, onLinkClick }: NavLinksProps) {
   const adminMenuTriggerId = "header-admin-menu-trigger";
   const adminMenuContentId = "header-admin-menu-content";
   const handleClick = (e: MouseEvent) => {
@@ -42,6 +43,35 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onGuardedActio
     !isLoggedIn && "hidden",
   );
   const adminOnlyClass = cn(isMobile ? "mt-4 space-y-1 pt-4 border-t border-gray-100" : "flex items-center", !isAdmin && "hidden");
+
+  if (isLoading) {
+    const skeletonClass = cn(
+      "animate-pulse bg-gray-100 rounded-xl",
+      isMobile ? "w-full h-11" : "h-9 w-20"
+    );
+
+    return (
+      <>
+        <div className={skeletonClass} data-testid="nav-link-skeleton" />
+        <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Link href="/search" onClick={onLinkClick}>
+            <Search className="w-[1.1rem] h-[1.1rem]" />
+            <span className="text-sm font-medium">강의 검색</span>
+          </Link>
+        </Button>
+        <div className={skeletonClass} data-testid="nav-link-skeleton" />
+        <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+          <Link href="/announcements" onClick={onLinkClick}>
+            <Megaphone className="w-[1.1rem] h-[1.1rem]" />
+            <span className="text-sm font-medium">공지사항</span>
+          </Link>
+        </Button>
+        <div className={skeletonClass} data-testid="nav-link-skeleton" />
+        <div className={skeletonClass} data-testid="nav-link-skeleton" />
+        <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} />
+      </>
+    );
+  }
 
   return (
     <>

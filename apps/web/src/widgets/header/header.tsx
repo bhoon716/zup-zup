@@ -65,6 +65,7 @@ export function Header() {
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             <NavLinks 
+              isLoading={hasMounted ? isLoading : true}
               isLoggedIn={hasMounted ? !!user : false} 
               isAdmin={hasMounted ? user?.role === "ADMIN" : false} 
               onGuardedAction={handleGuardedAction} 
@@ -140,6 +141,7 @@ export function Header() {
                     <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">메뉴</p>
                     <NavLinks 
                       isMobile 
+                      isLoading={hasMounted ? isLoading : true}
                       isLoggedIn={hasMounted ? !!user : false} 
                       isAdmin={hasMounted ? user?.role === "ADMIN" : false} 
                       onGuardedAction={handleGuardedAction} 
