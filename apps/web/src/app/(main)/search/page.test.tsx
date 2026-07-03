@@ -85,4 +85,10 @@ describe("SearchPage", () => {
     expect(screen.getByRole("button", { name: "정렬 방향 오름차순" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "사용법" })).toBeInTheDocument();
   });
+
+  it("사용자 정보가 없으면 전역 auth 상태를 지우지 않는다", () => {
+    render(<SearchPage />);
+
+    expect(mockSetUser).not.toHaveBeenCalled();
+  });
 });

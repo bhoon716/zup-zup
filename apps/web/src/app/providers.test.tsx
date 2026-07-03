@@ -51,7 +51,7 @@ describe("Providers", () => {
     mockedUseRouter.mockReturnValue({ replace: mockReplace } as never);
   });
 
-  it("search 페이지에서는 세션 부트스트랩을 건너뛴다", async () => {
+  it("search 페이지에서도 세션 부트스트랩을 수행한다", async () => {
     mockedUsePathname.mockReturnValue("/search");
 
     render(
@@ -60,7 +60,7 @@ describe("Providers", () => {
       </Providers>
     );
 
-    await waitFor(() => expect(mockCheckSession).not.toHaveBeenCalled());
+    await waitFor(() => expect(mockCheckSession).toHaveBeenCalledTimes(1));
   });
 
   it("브라우저에서는 QueryClient를 재사용한다", () => {

@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
 
 const FALLBACK_DEFAULT_CONDITION: CourseSearchCondition = {
   academicYear: "2026",
-  semester: "U211600010",
+  semester: undefined,
   disclosure: "공개",
   sortBy: "name",
   sortOrder: "asc",
@@ -48,10 +48,10 @@ export default function SearchPage() {
   const skipPersonalFetch = isUserLoading || !user;
 
   useEffect(() => {
-    if (!isUserLoading) {
-      setUser(user ?? null);
+    if (user) {
+      setUser(user);
     }
-  }, [isUserLoading, setUser, user]);
+  }, [setUser, user]);
 
   // 사용자가 변경한 검색 조건
   const [userCondition, setUserCondition] = useState<CourseSearchCondition>({

@@ -71,16 +71,13 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
  */
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
-  const pathname = usePathname();
 
   useEffect(() => {
     // Firebase SDK를 앱 시작 시 한 번 초기화한다.
     getFirebaseApp();
 
-    // 공개 페이지는 세션 부트스트랩을 건너뛰어 불필요한 401/refresh를 막는다.
-    if (pathname !== "/" && pathname !== "/search") {
-      checkSession();
-    }
+    // 앱 진입 시점마다 세션 상태를 한 번 동기화한다.
+    checkSession();
 
     // 서비스 워커 등록 (PWA 설치 가능성 확보)
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
@@ -120,7 +117,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       }
     };
-  }, [checkSession, pathname]);
+  }, [checkSession]);
 
   return <OnboardingGuard>{children}</OnboardingGuard>;
 }

@@ -15,15 +15,10 @@ export default function HomePage() {
   const setUser = useAuthStore((state) => state.setUser);
 
   useEffect(() => {
-    if (snapshot) {
+    if (snapshot?.user) {
       setUser(snapshot.user);
-      return;
     }
-
-    if (!isLoading) {
-      setUser(null);
-    }
-  }, [isLoading, setUser, snapshot]);
+  }, [setUser, snapshot]);
 
   if (isLoading) {
     return (
