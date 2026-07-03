@@ -3,10 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Header } from "./header";
 
-const { mockLogout, mockSetLoginModalOpen, mockInstall } = vi.hoisted(() => ({
+const { mockLogout, mockSetLoginModalOpen, mockInstall, mockAuthStore, mockNavLinks } = vi.hoisted(() => ({
   mockLogout: vi.fn(),
   mockSetLoginModalOpen: vi.fn(),
   mockInstall: vi.fn(),
+  mockAuthStore: {
+    user: null as any,
+    isLoading: false,
+    setLoginModalOpen: vi.fn(),
+  },
+  mockNavLinks: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -21,16 +27,7 @@ vi.mock("@/features/user/hooks/useUser", () => ({
 }));
 
 vi.mock("@/features/auth/store/useAuthStore", () => ({
-  useAuthStore: (selector: (state: {
-    user: null;
-    isLoading: boolean;
-    setLoginModalOpen: (open: boolean) => void;
-  }) => unknown) =>
-    selector({
-      user: null,
-      isLoading: false,
-      setLoginModalOpen: mockSetLoginModalOpen,
-    }),
+  useAuthStore: (selector: (state: any) => unknown) => selector(mockAuthStore),
 }));
 
 vi.mock("@/shared/hooks/usePWAInstall", () => ({
@@ -45,7 +42,10 @@ vi.mock("@/shared/hooks/useHasMounted", () => ({
 }));
 
 vi.mock("./ui/nav-links", () => ({
-  NavLinks: () => <nav data-testid="nav-links" />,
+  NavLinks: (props: any) => {
+    mockNavLinks(props);
+    return <nav data-testid="nav-links" />;
+  },
 }));
 
 vi.mock("./ui/user-status", () => ({
@@ -56,11 +56,43 @@ vi.mock("./ui/user-status", () => ({
 describe("Header", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthStore.user = null;
+    mockAuthStore.isLoading = false;
+    document.cookie = "is_logged_in=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
   });
 
   it("모바일 메뉴 버튼에 접근 가능한 이름을 제공한다", () => {
     render(<Header />);
 
     expect(screen.getByRole("button", { name: "메뉴 열기" })).toBeInTheDocument();
+  });
+
+  it("세션이 로딩 중이지만 로그인 힌트 쿠키가 없으면 NavLinks에 isLoading=false를 전달한다", () => {
+    mockAuthStore.isLoading = true;
+    render(<Header />);
+
+    expect(mockNavLinks).toHaveBeenCalledWith(
+      expect.objectContaining({ isLoading: false })
+    );
+  });
+
+  it("세션이 로딩 중이고 로그인 힌트 쿠키가 존재하면 NavLinks에 isLoading=true를 전달한다", () => {
+    mockAuthStore.isLoading = true;
+    document.cookie = "is_logged_in=true; path=/";
+    render(<Header />);
+
+    expect(mockNavLinks).toHaveBeenCalledWith(
+      expect.objectContaining({ isLoading: true })
+    );
+  });
+
+  it("세션 로딩이 완료되면 로그인 힌트 쿠키 여부와 관계없이 NavLinks에 isLoading=false를 전달한다", () => {
+    mockAuthStore.isLoading = false;
+    document.cookie = "is_logged_in=true; path=/";
+    render(<Header />);
+
+    expect(mockNavLinks).toHaveBeenCalledWith(
+      expect.objectContaining({ isLoading: false })
+    );
   });
 });

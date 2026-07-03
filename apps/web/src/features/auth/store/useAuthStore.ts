@@ -71,6 +71,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     sessionCheckToken += 1;
     sessionCheckPromise = null;
     userApi.clearMyProfileRequestCache();
+    if (typeof window !== "undefined") {
+      document.cookie = "is_logged_in=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    }
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
 
