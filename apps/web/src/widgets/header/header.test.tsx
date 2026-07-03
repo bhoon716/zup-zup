@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Header } from "./header";
+import { IS_LOGGED_IN_COOKIE_NAME } from "@/shared/lib/cookie";
 
 const { mockLogout, mockSetLoginModalOpen, mockInstall, mockAuthStore, mockNavLinks } = vi.hoisted(() => ({
   mockLogout: vi.fn(),
@@ -58,7 +59,7 @@ describe("Header", () => {
     vi.clearAllMocks();
     mockAuthStore.user = null;
     mockAuthStore.isLoading = false;
-    document.cookie = "is_logged_in=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
   });
 
   it("모바일 메뉴 버튼에 접근 가능한 이름을 제공한다", () => {
@@ -78,7 +79,7 @@ describe("Header", () => {
 
   it("세션이 로딩 중이고 로그인 힌트 쿠키가 존재하면 NavLinks에 isLoading=true를 전달한다", () => {
     mockAuthStore.isLoading = true;
-    document.cookie = "is_logged_in=true; path=/";
+    document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=true; path=/`;
     render(<Header />);
 
     expect(mockNavLinks).toHaveBeenCalledWith(
@@ -88,11 +89,12 @@ describe("Header", () => {
 
   it("세션 로딩이 완료되면 로그인 힌트 쿠키 여부와 관계없이 NavLinks에 isLoading=false를 전달한다", () => {
     mockAuthStore.isLoading = false;
-    document.cookie = "is_logged_in=true; path=/";
+    document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=true; path=/`;
     render(<Header />);
 
     expect(mockNavLinks).toHaveBeenCalledWith(
       expect.objectContaining({ isLoading: false })
     );
   });
+
 });

@@ -22,15 +22,20 @@ import {
 } from "@/shared/ui/sheet";
 import { usePWAInstall } from "@/shared/hooks/usePWAInstall";
 import { useHasMounted } from "@/shared/hooks/useHasMounted";
+import { getCookie, IS_LOGGED_IN_COOKIE_NAME } from "@/shared/lib/cookie";
 
 import { NavLinks } from "./ui/nav-links";
 import { HeaderDesktopUser, HeaderMobileUserStatus } from "./ui/user-status";
+
+interface HeaderProps {
+  initialIsLoggedIn?: boolean;
+}
 
 /**
  * 애플리케이션의 최상단 공통 헤더 컴포넌트입니다.
  * 서비스 로고, 내비게이션 메뉴, PWA 설치 유도 및 사용자 인증 상태(로그인/로그아웃)를 관리합니다.
  */
-export function Header() {
+export function Header({ initialIsLoggedIn = false }: HeaderProps) {
   const mobileMenuTriggerId = "header-mobile-menu-trigger";
   const mobileMenuContentId = "header-mobile-menu-content";
   const user = useAuthStore((state) => state.user);
@@ -41,8 +46,10 @@ export function Header() {
   const { install, platform } = usePWAInstall();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const hasMounted = useHasMounted();
-  const hasLoggedInCookie = hasMounted && typeof window !== "undefined" && document.cookie.includes("is_logged_in=true");
-  const shouldShowSkeleton = hasMounted ? (isLoading && hasLoggedInCookie) : true;
+  const hasLoggedInCookie = hasMounted
+    ? (typeof window !== "undefined" && getCookie(IS_LOGGED_IN_COOKIE_NAME) === "true")
+    : initialIsLoggedIn;
+  const shouldShowSkeleton = hasMounted ? (isLoading && hasLoggedInCookie) : initialIsLoggedIn;
 
   if (pathname === "/onboarding") {
     return null;
