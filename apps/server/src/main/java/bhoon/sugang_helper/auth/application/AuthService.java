@@ -3,6 +3,7 @@ package bhoon.sugang_helper.auth.application;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.LOGOUT_VALUE;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REDIS_BLACKLIST_PREFIX;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REDIS_REFRESH_TOKEN_PREFIX;
+import static bhoon.sugang_helper.common.security.constant.SecurityConstant.IS_LOGGED_IN_COOKIE_NAME;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_MAX_AGE;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_NAME;
 
@@ -17,6 +18,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.time.Duration;
+import bhoon.sugang_helper.common.security.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -115,46 +117,18 @@ public class AuthService {
     }
 
     public void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-        ResponseCookie cookie = ResponseCookie
-                .from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
-                .httpOnly(true)
-                .secure(refreshCookieSecure)
-                .path("/")
-                .maxAge(REFRESH_TOKEN_COOKIE_MAX_AGE)
-                .sameSite("Lax")
-                .build();
+        ResponseCookie cookie = CookieUtil.createCookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, REFRESH_TOKEN_COOKIE_MAX_AGE, refreshCookieSecure);
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        ResponseCookie isLoggedInCookie = ResponseCookie
-                .from("is_logged_in", "true")
-                .httpOnly(false)
-                .secure(refreshCookieSecure)
-                .path("/")
-                .maxAge(REFRESH_TOKEN_COOKIE_MAX_AGE)
-                .sameSite("Lax")
-                .build();
+        ResponseCookie isLoggedInCookie = CookieUtil.createCookie(IS_LOGGED_IN_COOKIE_NAME, "true", REFRESH_TOKEN_COOKIE_MAX_AGE, refreshCookieSecure);
         response.addHeader(HttpHeaders.SET_COOKIE, isLoggedInCookie.toString());
     }
 
     private void deleteRefreshTokenCookie(HttpServletResponse response) {
-        ResponseCookie cookie = ResponseCookie
-                .from(REFRESH_TOKEN_COOKIE_NAME, "")
-                .httpOnly(true)
-                .secure(refreshCookieSecure)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Lax")
-                .build();
+        ResponseCookie cookie = CookieUtil.deleteCookie(REFRESH_TOKEN_COOKIE_NAME, refreshCookieSecure);
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        ResponseCookie isLoggedInCookie = ResponseCookie
-                .from("is_logged_in", "")
-                .httpOnly(false)
-                .secure(refreshCookieSecure)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Lax")
-                .build();
+        ResponseCookie isLoggedInCookie = CookieUtil.deleteCookie(IS_LOGGED_IN_COOKIE_NAME, refreshCookieSecure);
         response.addHeader(HttpHeaders.SET_COOKIE, isLoggedInCookie.toString());
     }
 }

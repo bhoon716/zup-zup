@@ -5,6 +5,7 @@ public class SecurityConstant {
     public static final String ACCESS_TOKEN_HEADER = "Authorization";
     public static final String TOKEN_PREFIX = "Bearer ";
     public static final String REFRESH_TOKEN_COOKIE_NAME = "refresh_token";
+    public static final String IS_LOGGED_IN_COOKIE_NAME = "is_logged_in";
     public static final String CLAIM_ROLE = "role";
     public static final int REFRESH_TOKEN_COOKIE_MAX_AGE = 14 * 24 * 60 * 60; // 2주
 

@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.auth.application;
 
+import static bhoon.sugang_helper.common.security.constant.SecurityConstant.IS_LOGGED_IN_COOKIE_NAME;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REDIS_REFRESH_TOKEN_PREFIX;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -93,7 +94,7 @@ class AuthServiceTest {
         assertThat(cookies.get(0)).contains("Secure");
         assertThat(cookies.get(0)).contains("HttpOnly");
         assertThat(cookies.get(0)).contains("SameSite=Lax");
-        assertThat(cookies.get(1)).contains("is_logged_in");
+        assertThat(cookies.get(1)).contains(IS_LOGGED_IN_COOKIE_NAME);
         assertThat(cookies.get(1)).contains("Secure");
         assertThat(cookies.get(1)).doesNotContain("HttpOnly");
         assertThat(cookies.get(1)).contains("SameSite=Lax");
@@ -147,7 +148,7 @@ class AuthServiceTest {
         assertThat(cookies.get(0)).contains("Max-Age=0");
         assertThat(cookies.get(0)).contains("Secure");
         assertThat(cookies.get(0)).contains("SameSite=Lax");
-        assertThat(cookies.get(1)).contains("is_logged_in");
+        assertThat(cookies.get(1)).contains(IS_LOGGED_IN_COOKIE_NAME);
         assertThat(cookies.get(1)).contains("Max-Age=0");
         assertThat(cookies.get(1)).contains("Secure");
         assertThat(cookies.get(1)).contains("SameSite=Lax");
