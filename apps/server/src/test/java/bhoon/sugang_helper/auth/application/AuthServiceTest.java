@@ -5,8 +5,10 @@ import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFR
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
@@ -28,6 +30,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpHeaders;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -73,12 +78,18 @@ class AuthServiceTest {
         given(jwtProvider.createAccessToken(anyString(), anyString())).willReturn("new-access-token");
         given(jwtProvider.createRefreshToken(anyString())).willReturn("new-refresh-token");
         given(request.getSession(true)).willReturn(session);
+        ReflectionTestUtils.setField(authService, "refreshCookieSecure", true);
 
         // when
         String result = authService.reissue(request, response);
 
         // then
         assertThat(result).isEqualTo("new-access-token");
+        ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
+        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
+        assertThat(cookieCaptor.getValue()).contains("Secure");
+        assertThat(cookieCaptor.getValue()).contains("HttpOnly");
+        assertThat(cookieCaptor.getValue()).contains("SameSite=Lax");
     }
 
     @Test

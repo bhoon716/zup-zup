@@ -24,6 +24,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
 @Service
@@ -33,6 +34,9 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final RedisService redisService;
     private final UserRepository userRepository;
+
+    @Value("${app.auth.refresh-cookie-secure:false}")
+    private boolean refreshCookieSecure;
 
     @Transactional
     public String reissue(HttpServletRequest request, HttpServletResponse response) {
@@ -114,7 +118,7 @@ public class AuthService {
         ResponseCookie cookie = ResponseCookie
                 .from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
-                .secure(false) // 운영 환경에서는 반드시 활성화해야 한다.
+                .secure(refreshCookieSecure)
                 .path("/")
                 .maxAge(REFRESH_TOKEN_COOKIE_MAX_AGE)
                 .sameSite("Lax")
