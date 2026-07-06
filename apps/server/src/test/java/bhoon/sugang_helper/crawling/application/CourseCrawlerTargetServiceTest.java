@@ -3,7 +3,7 @@ package bhoon.sugang_helper.crawling.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.crawling.domain.CrawlerSetting;
@@ -51,13 +51,12 @@ class CourseCrawlerTargetServiceTest {
     }
 
     @Test
-    @DisplayName("DB에 설정이 존재하지 않으면 현재 타겟은 기본 설정값으로 초기화하여 반환한다")
-    void getCurrentTarget_NotFound_ReturnsDefaultValue() {
+    @DisplayName("DB에 설정이 존재하지 않으면 현재 타겟은 기본 설정값을 조회만 하고 저장하지 않는다")
+    void getCurrentTarget_NotFound_ReturnsDefaultValueWithoutSaving() {
         // given
         ReflectionTestUtils.setField(crawlerTargetService, "defaultYear", ACADEMIC_YEAR);
         ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
-        given(crawlerSettingRepository.save(any(CrawlerSetting.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         AdminCrawlTargetResponse response = crawlerTargetService.getCurrentTarget();
@@ -65,7 +64,40 @@ class CourseCrawlerTargetServiceTest {
         // then
         assertThat(response.getYear()).isEqualTo(ACADEMIC_YEAR);
         assertThat(response.getSemester()).isEqualTo(SemesterType.FIRST_SEMESTER.getCode());
-        verify(crawlerSettingRepository, times(1)).save(any(CrawlerSetting.class));
+        verify(crawlerSettingRepository, never()).save(any(CrawlerSetting.class));
+    }
+
+    @Test
+    @DisplayName("DB에 설정이 존재하지 않으면 검색 기본 학기도 기본값을 조회만 하고 저장하지 않는다")
+    void getSearchDefaultSemester_NotFound_ReturnsDefaultValueWithoutSaving() {
+        // given
+        ReflectionTestUtils.setField(crawlerTargetService, "defaultYear", ACADEMIC_YEAR);
+        ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
+        given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
+
+        // when
+        var response = crawlerTargetService.getSearchDefaultSemester();
+
+        // then
+        assertThat(response.getSemester()).isEqualTo(SemesterType.FIRST_SEMESTER.getCode());
+        verify(crawlerSettingRepository, never()).save(any(CrawlerSetting.class));
+    }
+
+    @Test
+    @DisplayName("DB에 설정이 존재하지 않으면 현재 타겟 원시 값도 기본값을 조회만 하고 저장하지 않는다")
+    void getCurrentTargetValue_NotFound_ReturnsDefaultValueWithoutSaving() {
+        // given
+        ReflectionTestUtils.setField(crawlerTargetService, "defaultYear", ACADEMIC_YEAR);
+        ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
+        given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
+
+        // when
+        CrawlTargetInfo targetInfo = crawlerTargetService.getCurrentTargetValue();
+
+        // then
+        assertThat(targetInfo.year()).isEqualTo(ACADEMIC_YEAR);
+        assertThat(targetInfo.semester()).isEqualTo(SemesterType.FIRST_SEMESTER);
+        verify(crawlerSettingRepository, never()).save(any(CrawlerSetting.class));
     }
 
     @Test

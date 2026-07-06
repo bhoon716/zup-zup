@@ -1,7 +1,9 @@
 package bhoon.sugang_helper.timetable.presentation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalTime;
 import java.util.List;
@@ -21,7 +23,8 @@ public class CustomScheduleRequest {
     private String professor;
 
     @Schema(description = "시간대 목록")
-    @NotNull(message = "최소 하나 이상의 시간대를 선택해주세요.")
+    @NotEmpty(message = "최소 하나 이상의 시간대를 선택해주세요.")
+    @Valid
     private List<CustomScheduleTimeRequest> schedules;
 
     @Getter

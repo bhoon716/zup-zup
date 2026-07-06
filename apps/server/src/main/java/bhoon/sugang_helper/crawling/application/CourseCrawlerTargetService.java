@@ -29,18 +29,18 @@ public class CourseCrawlerTargetService {
     /**
      * 현재 DB에 저장된 크롤링 타겟(년도, 학기)을 조회합니다.
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public AdminCrawlTargetResponse getCurrentTarget() {
-        CrawlerSetting setting = getOrInitSetting();
+        CrawlerSetting setting = resolveCurrentSetting();
         return toResponse(setting);
     }
 
     /**
      * 검색 페이지에서 사용할 기본 학기를 조회합니다.
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public SearchDefaultSemesterResponse getSearchDefaultSemester() {
-        CrawlerSetting setting = getOrInitSetting();
+        CrawlerSetting setting = resolveCurrentSetting();
         return SearchDefaultSemesterResponse.builder()
                 .semester(setting.getTargetSemester())
                 .build();
@@ -52,7 +52,7 @@ public class CourseCrawlerTargetService {
     @Transactional
     public AdminCrawlTargetResponse updateTarget(String year, String semester) {
         CrawlTargetInfo target = normalizeTarget(year, semester);
-        CrawlerSetting setting = getOrInitSetting();
+        CrawlerSetting setting = getOrCreateSetting();
         setting.updateTarget(target.year(), target.semester().getCode());
         return toResponse(setting);
     }
@@ -60,9 +60,9 @@ public class CourseCrawlerTargetService {
     /**
      * 현재 크롤링 타겟의 원시 값(record 형식)을 조회합니다.
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public CrawlTargetInfo getCurrentTargetValue() {
-        CrawlerSetting setting = getOrInitSetting();
+        CrawlerSetting setting = resolveCurrentSetting();
         return new CrawlTargetInfo(setting.getTargetYear(), SemesterType.fromCode(setting.getTargetSemester()));
     }
 
@@ -107,9 +107,20 @@ public class CourseCrawlerTargetService {
     }
 
     /**
-     * DB에서 크롤링 설정을 조회합니다. 없을 경우 설정 파일의 기본값으로 초기화하여 반환합니다.
+     * DB에서 크롤링 설정을 조회합니다. 없으면 기본값을 조회용으로만 반환합니다.
      */
-    private CrawlerSetting getOrInitSetting() {
+    private CrawlerSetting resolveCurrentSetting() {
+        return crawlerSettingRepository.findTopByOrderByIdAsc()
+                .orElseGet(() -> CrawlerSetting.builder()
+                        .targetYear(defaultYear)
+                        .targetSemester(defaultSemester)
+                        .build());
+    }
+
+    /**
+     * DB에서 크롤링 설정을 조회하거나, 없으면 기본값으로 새 레코드를 생성합니다.
+     */
+    private CrawlerSetting getOrCreateSetting() {
         return crawlerSettingRepository.findTopByOrderByIdAsc()
                 .orElseGet(() -> {
                     CrawlerSetting defaultSetting = CrawlerSetting.builder()
