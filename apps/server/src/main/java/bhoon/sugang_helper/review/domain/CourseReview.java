@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,7 +16,9 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "course_reviews")
+@Table(name = "course_reviews", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_course_review_user_course", columnNames = {"userId", "courseKey"})
+})
 public class CourseReview extends BaseEntity {
 
     @Id

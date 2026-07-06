@@ -25,6 +25,8 @@ public interface CourseReviewRepository extends RepositoryContract<CourseReview,
 
     boolean existsByCourseKeyAndUserId(String courseKey, Long userId);
 
+    void deleteAllByUserId(Long userId);
+
     long countBySubjectCodeAndProfessorAndUserId(String subjectCode,
                                                  String professor,
                                                  Long userId);

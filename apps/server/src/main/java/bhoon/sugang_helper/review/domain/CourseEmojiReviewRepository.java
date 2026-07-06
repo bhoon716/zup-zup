@@ -11,6 +11,8 @@ public interface CourseEmojiReviewRepository extends RepositoryContract<CourseEm
     long countByCourseKeyAndEmoji(String courseKey, String emoji);
     boolean existsByCourseKeyAndUserIdAndEmoji(String courseKey, Long userId, String emoji);
 
+    void deleteAllByUserId(Long userId);
+
     Optional<CourseEmojiReview> findBySubjectCodeAndProfessorAndUserIdAndEmoji(String subjectCode,
                                                                                 String professor,
                                                                                 Long userId,

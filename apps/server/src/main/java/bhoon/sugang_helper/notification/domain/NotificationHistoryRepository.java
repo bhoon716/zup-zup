@@ -16,4 +16,6 @@ public interface NotificationHistoryRepository extends RepositoryContract<Notifi
     List<NotificationHistory> findByCreatedAtAfter(LocalDateTime start);
 
     List<LocalDateTime> findCreatedAtByCreatedAtAfter(LocalDateTime start);
+
+    void deleteAllByUserId(Long userId);
 }

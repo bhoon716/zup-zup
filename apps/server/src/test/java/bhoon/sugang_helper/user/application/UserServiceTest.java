@@ -13,16 +13,25 @@ import static org.mockito.ArgumentMatchers.eq;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.notification.application.NotificationService;
+import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
+import bhoon.sugang_helper.review.domain.CourseEmojiReviewRepository;
+import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
+import bhoon.sugang_helper.timetable.domain.Timetable;
+import bhoon.sugang_helper.timetable.domain.TimetableRepository;
+import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.presentation.OnboardingRequest;
 import bhoon.sugang_helper.user.presentation.UserSettingsRequest;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import bhoon.sugang_helper.user.presentation.UserResponse;
+import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
 import java.util.Optional;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -50,6 +59,27 @@ class UserServiceTest {
 
     @Mock
     private SubscriptionRepository subscriptionRepository;
+
+    @Mock
+    private UserDeviceRepository userDeviceRepository;
+
+    @Mock
+    private TimetableRepository timetableRepository;
+
+    @Mock
+    private CourseReviewRepository courseReviewRepository;
+
+    @Mock
+    private CourseEmojiReviewRepository courseEmojiReviewRepository;
+
+    @Mock
+    private NotificationHistoryRepository notificationHistoryRepository;
+
+    @Mock
+    private FeedbackRepository feedbackRepository;
+
+    @Mock
+    private WishlistRepository wishlistRepository;
 
     @Mock
     private EmailVerificationService emailVerificationService;
@@ -95,7 +125,7 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("회원 탈퇴 시 구독 정보를 포함하여 삭제한다")
+    @DisplayName("회원 탈퇴 시 사용자 소유 데이터를 모두 삭제한다")
     void withdraw() {
         // given
         User user = User.builder()
@@ -104,15 +134,34 @@ class UserServiceTest {
                 .name(NAME)
                 .role(Role.USER)
                 .build();
+        Timetable primaryTimetable = Timetable.builder()
+                .userId(1L)
+                .name("대표")
+                .isPrimary(true)
+                .build();
+        Timetable backupTimetable = Timetable.builder()
+                .userId(1L)
+                .name("보조")
+                .isPrimary(false)
+                .build();
 
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
+        when(timetableRepository.findByUserId(1L)).thenReturn(List.of(primaryTimetable, backupTimetable));
 
         // when
         userService.withdraw();
 
         // then
         verify(subscriptionRepository, times(1)).deleteAllByUserId(1L);
+        verify(userDeviceRepository, times(1)).deleteAllByUserId(1L);
+        verify(courseReviewRepository, times(1)).deleteAllByUserId(1L);
+        verify(courseEmojiReviewRepository, times(1)).deleteAllByUserId(1L);
+        verify(notificationHistoryRepository, times(1)).deleteAllByUserId(1L);
+        verify(feedbackRepository, times(1)).deleteAllByUserId(1L);
+        verify(wishlistRepository, times(1)).deleteAllByUserId(1L);
+        verify(timetableRepository, times(1)).delete(primaryTimetable);
+        verify(timetableRepository, times(1)).delete(backupTimetable);
         verify(userRepository, times(1)).delete(user);
     }
 

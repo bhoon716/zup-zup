@@ -3,11 +3,19 @@ package bhoon.sugang_helper.user.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.notification.application.NotificationService;
+import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
+import bhoon.sugang_helper.review.domain.CourseEmojiReviewRepository;
+import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
+import bhoon.sugang_helper.timetable.domain.Timetable;
+import bhoon.sugang_helper.timetable.domain.TimetableRepository;
+import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
+import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
 import bhoon.sugang_helper.user.presentation.EmailRequest;
 import bhoon.sugang_helper.user.presentation.EmailVerificationRequest;
 import bhoon.sugang_helper.user.presentation.OnboardingRequest;
@@ -32,6 +40,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final UserDeviceRepository userDeviceRepository;
+    private final TimetableRepository timetableRepository;
+    private final CourseReviewRepository courseReviewRepository;
+    private final CourseEmojiReviewRepository courseEmojiReviewRepository;
+    private final NotificationHistoryRepository notificationHistoryRepository;
+    private final FeedbackRepository feedbackRepository;
+    private final WishlistRepository wishlistRepository;
     private final EmailVerificationService emailVerificationService;
     private final NotificationService notificationService;
 
@@ -92,17 +107,34 @@ public class UserService {
     }
 
     /**
-     * 회원 탈퇴 처리를 진행하며, 관련 구독 데이터도 모두 삭제합니다.
+     * 회원 탈퇴 처리를 진행하며, 사용자 소유 데이터를 함께 정리합니다.
      */
     @Transactional
     public void withdraw() {
         User user = getCurrentUser();
+        Long userId = user.getId();
 
-        // 구독 정보 함께 삭제
-        subscriptionRepository.deleteAllByUserId(user.getId());
-
+        deleteUserOwnedData(userId);
         userRepository.delete(user);
         log.info("[User] Delete account: userId={}, email={}", user.getId(), user.getEmail());
+    }
+
+    /**
+     * 회원 탈퇴 시 사용자 소유 데이터를 함께 정리합니다.
+     */
+    private void deleteUserOwnedData(Long userId) {
+        subscriptionRepository.deleteAllByUserId(userId);
+        userDeviceRepository.deleteAllByUserId(userId);
+        courseReviewRepository.deleteAllByUserId(userId);
+        courseEmojiReviewRepository.deleteAllByUserId(userId);
+        notificationHistoryRepository.deleteAllByUserId(userId);
+        feedbackRepository.deleteAllByUserId(userId);
+        wishlistRepository.deleteAllByUserId(userId);
+
+        List<Timetable> timetables = timetableRepository.findByUserId(userId);
+        for (Timetable timetable : timetables) {
+            timetableRepository.delete(timetable);
+        }
     }
 
     /**

@@ -6,4 +6,6 @@ import org.springframework.data.domain.Pageable;
 
 public interface FeedbackRepository extends RepositoryContract<Feedback, Long> {
     Page<Feedback> findAllByUserId(Long userId, Pageable pageable);
+
+    void deleteAllByUserId(Long userId);
 }

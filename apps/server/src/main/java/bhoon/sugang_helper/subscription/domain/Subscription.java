@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,6 +18,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "subscriptions", indexes = {
         @Index(name = "idx_subscription_course_key", columnList = "courseKey"),
         @Index(name = "idx_subscription_user_id", columnList = "userId")
+}, uniqueConstraints = {
+        @UniqueConstraint(name = "uk_subscription_user_course", columnNames = {"userId", "courseKey"})
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

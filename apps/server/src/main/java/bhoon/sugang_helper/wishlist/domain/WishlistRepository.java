@@ -9,4 +9,6 @@ public interface WishlistRepository extends RepositoryContract<Wishlist, Long> {
     List<Wishlist> findByUserId(Long userId);
 
     Optional<Wishlist> findByUserIdAndCourseKey(Long userId, String courseKey);
+
+    void deleteAllByUserId(Long userId);
 }
