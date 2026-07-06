@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.notification.application;
 
-import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
@@ -14,7 +13,6 @@ import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserDevice;
-import bhoon.sugang_helper.user.domain.DeviceType;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.time.Duration;
@@ -24,7 +22,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -48,23 +47,29 @@ public class NotificationService {
     private final UserDeviceRepository userDeviceRepository;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
-    private final NotificationProperties notificationProperties;
+    private final NotificationChannelPolicy notificationChannelPolicy;
 
     /**
      * 빈자리 발생 이벤트를 처리하여 구독자들에게 알림을 발송합니다.
      */
     @Async
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleSeatOpenedEvent(SeatOpenedEvent event) {
         String redisKey = NOTIFICATION_KEY_PREFIX + event.courseKey();
-        if (redisService.hasKey(redisKey)) {
+        boolean acquired = redisService.setValuesIfAbsent(redisKey, "PENDING", DEDUP_TTL);
+        if (!acquired) {
             log.debug("[Notification] Skipped duplicate sending. courseKey={}", event.courseKey());
             return;
         }
 
-        notifySubscribers(event);
-        redisService.setValues(redisKey, "SENT", DEDUP_TTL);
-        log.info("[Notification] Completed sending seat opening notifications. courseKey={}", event.courseKey());
+        try {
+            notifySubscribers(event);
+            redisService.setValues(redisKey, "SENT", DEDUP_TTL);
+            log.info("[Notification] Completed sending seat opening notifications. courseKey={}", event.courseKey());
+        } catch (RuntimeException e) {
+            redisService.deleteValues(redisKey);
+            throw e;
+        }
     }
 
     /**
@@ -140,15 +145,15 @@ public class NotificationService {
      */
     private void sendNotification(User user, List<UserDevice> devices, NotificationMessage message,
                                   NotificationChannel channel, NotificationContext ctx) {
-        if (!ctx.forceSend() && !isChannelEnabled(user, channel)) {
+        if (!ctx.forceSend() && !notificationChannelPolicy.isChannelEnabled(user, channel)) {
             return;
         }
 
-        List<NotificationTarget> targets = resolveTargets(user, devices, channel);
+        List<NotificationTarget> targets = notificationChannelPolicy.resolveTargets(user, devices, channel);
 
         if (targets.isEmpty()) {
             if (ctx.forceSend()) { // 테스트 요청인데 발송 대상이 없는 경우 예외 발생
-                throw new CustomException(ErrorCode.NOT_FOUND, buildNoTargetMessage(channel));
+                throw new CustomException(ErrorCode.NOT_FOUND, notificationChannelPolicy.buildNoTargetMessage(channel));
             }
             return;
         }
@@ -158,86 +163,6 @@ public class NotificationService {
         if (ctx.saveHistory()) {
             saveHistory(user.getId(), ctx.courseKey(), message, channel);
         }
-    }
-
-    /**
-     * 채널별 발송 대상(Target)을 추출합니다.
-     */
-    private List<NotificationTarget> resolveTargets(User user, List<UserDevice> devices, NotificationChannel channel) {
-        return switch (channel) {
-            case EMAIL -> List.of(NotificationTarget.of(resolveNotificationEmail(user)));
-            case DISCORD ->
-                    user.getDiscordId() != null ? List.of(NotificationTarget.of(user.getDiscordId())) : List.of();
-            case WEB, FCM -> {
-                if (devices == null) {
-                    yield List.of();
-                }
-                DeviceType type = (channel == NotificationChannel.WEB) ? DeviceType.WEB : DeviceType.FCM;
-                yield devices.stream()
-                        .filter(d -> d.getType() == type)
-                        .map(d -> toDeviceTarget(d, channel))
-                        .toList();
-            }
-        };
-    }
-
-    /**
-     * 글로벌 채널 설정 및 사용자 개인 수신 설정을 복합 확인합니다. 글로벌 설정이 꺼져 있으면 사용자 설정과 무관하게 발송을 차단합니다.
-     */
-    private boolean isChannelEnabled(User user, NotificationChannel channel) {
-        if (!isGlobalChannelEnabled(channel)) {
-            log.debug("[Notification] Channel disabled globally. channel={}", channel);
-            return false;
-        }
-        return switch (channel) {
-            case EMAIL -> user.isEmailEnabled();
-            case DISCORD -> user.isDiscordEnabled() && user.getDiscordId() != null;
-            case WEB -> user.isWebPushEnabled();
-            case FCM -> user.isFcmEnabled();
-        };
-    }
-
-    /**
-     * application.yml의 글로벌 채널 설정 값을 확인합니다.
-     */
-    private boolean isGlobalChannelEnabled(NotificationChannel channel) {
-        return switch (channel) {
-            case EMAIL -> notificationProperties.email();
-            case DISCORD -> notificationProperties.discord();
-            case WEB -> notificationProperties.webpush();
-            case FCM -> notificationProperties.fcm();
-        };
-    }
-
-    /**
-     * 알림을 수신할 이메일 주소를 결정합니다. (설정된 알림 이메일 우선)
-     */
-    private String resolveNotificationEmail(User user) {
-        return (user.getNotificationEmail() != null && !user.getNotificationEmail().isBlank())
-                ? user.getNotificationEmail()
-                : user.getEmail();
-    }
-
-    /**
-     * 발송 대상이 없을 때의 에러 메시지를 반환합니다.
-     */
-    private String buildNoTargetMessage(NotificationChannel channel) {
-        return switch (channel) {
-            case EMAIL -> "등록된 이메일 정보가 없습니다.";
-            case DISCORD -> "디스코드 연동 정보가 없습니다. 먼저 디스코드를 연동해 주세요.";
-            case WEB -> "등록된 웹 푸시 기기가 없습니다. 먼저 기기를 등록해 주세요.";
-            case FCM -> "등록된 앱 푸시 기기가 없습니다. 먼저 기기를 등록해 주세요.";
-        };
-    }
-
-    /**
-     * 기기 정보를 통해 NotificationTarget 객체를 생성합니다.
-     */
-    private NotificationTarget toDeviceTarget(UserDevice device, NotificationChannel channel) {
-        if (channel == NotificationChannel.WEB) {
-            return NotificationTarget.ofWeb(device.getToken(), device.getP256dh(), device.getAuth());
-        }
-        return NotificationTarget.of(device.getToken());
     }
 
     /**

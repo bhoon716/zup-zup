@@ -67,42 +67,46 @@ class NotificationServiceTest {
     void setUp() {
         // 모든 알림 채널 활성화 상태로 초기화
         NotificationProperties props = new NotificationProperties(true, true, true, true);
+        NotificationChannelPolicy notificationChannelPolicy = new NotificationChannelPolicy(props);
         notificationService = new NotificationService(redisService, subscriptionRepository, userRepository,
                 userDeviceRepository, notificationHistoryRepository, List.of(notificationSender),
-                props);
+                notificationChannelPolicy);
     }
 
     @Test
-    @DisplayName("중복 알림 방지 키가 없을 때 알림 발송")
+    @DisplayName("중복 알림 방지 키를 원자적으로 선점한 뒤 알림 발송")
     void sendNotificationIfKeyNotExists() {
         // Given
         SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
         String redisKey = "ALERT:" + COURSE_KEY;
 
-        given(redisService.hasKey(redisKey)).willReturn(false);
+        given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(true);
         given(subscriptionRepository.findByCourseKeyAndIsActiveTrue(COURSE_KEY)).willReturn(List.of());
 
         // When
         notificationService.handleSeatOpenedEvent(event);
 
         // Then
+        verify(redisService, times(1)).setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class));
         verify(redisService, times(1)).setValues(eq(redisKey), eq("SENT"), any(Duration.class));
     }
 
     @Test
-    @DisplayName("중복 알림 방지 키가 있을 때 알림 발송 건너뜀")
+    @DisplayName("중복 알림 방지 키를 선점하지 못하면 알림 발송을 건너뜀")
     void skipNotificationIfKeyExists() {
         // Given
         SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
         String redisKey = "ALERT:" + COURSE_KEY;
 
-        given(redisService.hasKey(redisKey)).willReturn(true);
+        given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(false);
 
         // When
         notificationService.handleSeatOpenedEvent(event);
 
         // Then
+        verify(redisService, times(1)).setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class));
         verify(redisService, never()).setValues(anyString(), anyString(), any(Duration.class));
+        verify(redisService, never()).deleteValues(anyString());
         verify(subscriptionRepository, never()).findByCourseKeyAndIsActiveTrue(anyString());
     }
 
@@ -131,7 +135,8 @@ class NotificationServiceTest {
                 .userId(1L).type(DeviceType.WEB).token("web-endpoint").p256dh("p256").auth("auth")
                 .build();
 
-        given(redisService.hasKey(anyString())).willReturn(false);
+        given(redisService.setValuesIfAbsent(eq("ALERT:" + COURSE_KEY), eq("PENDING"), any(Duration.class)))
+                .willReturn(true);
         given(subscriptionRepository.findByCourseKeyAndIsActiveTrue(anyString()))
                 .willReturn(List.of(subscription));
         given(userRepository.findAllById(anyList())).willReturn(List.of(user));
@@ -146,6 +151,9 @@ class NotificationServiceTest {
         notificationService.handleSeatOpenedEvent(event);
 
         // Then
+        verify(redisService, times(1)).setValuesIfAbsent(eq("ALERT:" + COURSE_KEY), eq("PENDING"),
+                any(Duration.class));
+        verify(redisService, times(1)).setValues(eq("ALERT:" + COURSE_KEY), eq("SENT"), any(Duration.class));
         verify(notificationHistoryRepository, times(4)).save(any(NotificationHistory.class));
     }
 
