@@ -112,11 +112,11 @@ class DashboardServiceTest {
         DashboardSnapshotResponse result = dashboardService.getDashboardSnapshot();
 
         // then
-        assertThat(result.getUser().getName()).isEqualTo("홍길동");
+        assertThat(result.getUser().name()).isEqualTo("홍길동");
         assertThat(result.getNotifications()).hasSize(1);
         assertThat(result.getNotifications().get(0).getCourseKey()).isEqualTo("TEST-101");
         assertThat(result.getPrimaryTimetable()).isNotNull();
-        assertThat(result.getPrimaryTimetable().getName()).isEqualTo("대표 시간표");
+        assertThat(result.getPrimaryTimetable().name()).isEqualTo("대표 시간표");
         assertThat(result.getUpcomingSchedules()).hasSize(1);
         assertThat(result.getAnnouncements()).hasSize(1);
         assertThat(result.getAnnouncements().get(0).getTitle()).isEqualTo("테스트 공지");

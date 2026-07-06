@@ -3,6 +3,8 @@ package bhoon.sugang_helper.dashboard.application;
 import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
 import bhoon.sugang_helper.announcement.application.AnnouncementListResponse;
 import bhoon.sugang_helper.dashboard.application.DashboardSnapshotResponse;
+import bhoon.sugang_helper.dashboard.application.result.DashboardPrimaryTimetableResult;
+import bhoon.sugang_helper.dashboard.application.result.DashboardUserResult;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.application.NotificationHistoryResponse;
 import bhoon.sugang_helper.schedule.application.ScheduleResponse;
@@ -10,7 +12,6 @@ import bhoon.sugang_helper.schedule.application.ScheduleService;
 import bhoon.sugang_helper.timetable.application.TimetableDetailResponse;
 import bhoon.sugang_helper.timetable.application.TimetableService;
 import bhoon.sugang_helper.user.domain.User;
-import bhoon.sugang_helper.user.application.UserResponse;
 import bhoon.sugang_helper.user.application.UserService;
 import java.util.List;
 import java.util.Optional;
@@ -52,7 +53,7 @@ public class DashboardService {
         }
 
         User user = currentUser.get();
-        UserResponse userResponse = UserResponse.from(user);
+        DashboardUserResult userResponse = DashboardUserResult.from(user);
         Long userId = user.getId();
 
         List<NotificationHistoryResponse> notifications = notificationHistoryRepository
@@ -66,7 +67,7 @@ public class DashboardService {
         return DashboardSnapshotResponse.builder()
                 .user(userResponse)
                 .notifications(notifications)
-                .primaryTimetable(primaryTimetable)
+                .primaryTimetable(primaryTimetable == null ? null : DashboardPrimaryTimetableResult.from(primaryTimetable))
                 .upcomingSchedules(upcomingSchedules)
                 .announcements(announcements)
                 .build();

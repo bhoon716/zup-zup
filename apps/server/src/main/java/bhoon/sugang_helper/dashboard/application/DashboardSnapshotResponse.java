@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.dashboard.application;
 
 import bhoon.sugang_helper.announcement.application.AnnouncementListResponse;
+import bhoon.sugang_helper.dashboard.application.result.DashboardPrimaryTimetableResult;
+import bhoon.sugang_helper.dashboard.application.result.DashboardUserResult;
 import bhoon.sugang_helper.notification.application.NotificationHistoryResponse;
 import bhoon.sugang_helper.schedule.application.ScheduleResponse;
-import bhoon.sugang_helper.timetable.application.TimetableDetailResponse;
-import bhoon.sugang_helper.user.application.UserResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.Builder;
@@ -16,13 +16,13 @@ import lombok.Getter;
 public class DashboardSnapshotResponse {
 
     @Schema(description = "사용자 프로필")
-    private UserResponse user;
+    private DashboardUserResult user;
 
     @Schema(description = "최근 알림 목록")
     private List<NotificationHistoryResponse> notifications;
 
     @Schema(description = "대표 시간표")
-    private TimetableDetailResponse primaryTimetable;
+    private DashboardPrimaryTimetableResult primaryTimetable;
 
     @Schema(description = "다가오는 주요 일정")
     private List<ScheduleResponse> upcomingSchedules;
