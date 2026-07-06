@@ -43,6 +43,27 @@ export default function AnnouncementDetailPage() {
   const id = Number(params?.id ?? 0);
   const { data: announcement, isLoading } = useAnnouncement(id);
 
+  const handleShare = async () => {
+    if (!announcement) {
+      return;
+    }
+
+    const shareUrl = window.location.href;
+    const shareData = {
+      title: announcement.title,
+      url: shareUrl,
+    };
+
+    if (navigator.share) {
+      await navigator.share(shareData);
+      return;
+    }
+
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareUrl);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
@@ -80,7 +101,15 @@ export default function AnnouncementDetailPage() {
               <span className="font-bold">목록으로</span>
             </Button>
           </Link>
-          <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl border border-white bg-white/50 shadow-sm ring-1 ring-slate-100 backdrop-blur-md">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-12 w-12 rounded-2xl border border-white bg-white/50 shadow-sm ring-1 ring-slate-100 backdrop-blur-md"
+            aria-label="공지 공유"
+            title="공지 공유"
+            onClick={() => { void handleShare(); }}
+          >
             <Share2 className="h-5 w-5 text-slate-400" />
           </Button>
         </motion.div>

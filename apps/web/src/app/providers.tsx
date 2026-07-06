@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
+import { registerAuthFailureHandler } from "@/shared/api/client";
 import { getFirebaseApp } from "@/shared/lib/firebase";
 import { getCookie, IS_LOGGED_IN_COOKIE_NAME } from "@/shared/lib/cookie";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -74,6 +75,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
 
   useEffect(() => {
+    registerAuthFailureHandler(() => {
+      useAuthStore.getState().logout();
+    });
+
     // Firebase SDK를 앱 시작 시 한 번 초기화한다.
     getFirebaseApp();
 

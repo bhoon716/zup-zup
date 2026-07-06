@@ -1,6 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { redirectToLogin } from "@/shared/lib/navigation";
-import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -33,6 +32,13 @@ interface FailedQueueItem {
 
 let isRefreshing = false;
 let failedQueue: FailedQueueItem[] = [];
+type AuthFailureHandler = () => void;
+
+let authFailureHandler: AuthFailureHandler | null = null;
+
+export const registerAuthFailureHandler = (handler: AuthFailureHandler | null) => {
+  authFailureHandler = handler;
+};
 
 /**
  * 대기 중인 실패 요청들을 순차적으로 처리하거나 거절합니다.
@@ -86,7 +92,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         isRefreshing = false;
         processQueue(refreshError);
-        useAuthStore.getState().logout();
+        authFailureHandler?.();
         redirectToLogin();
         return Promise.reject(refreshError);
       }

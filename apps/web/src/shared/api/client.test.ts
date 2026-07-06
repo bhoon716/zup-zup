@@ -17,6 +17,7 @@ describe("shared api client", () => {
   it("refresh 실패 시 로그인 페이지로 이동한다", async () => {
     const refreshError = new Error("refresh failed");
     const redirectSpy = vi.fn();
+    const logoutSpy = vi.fn();
     const responseHandlers: {
       onRejected?: (error: unknown) => Promise<unknown>;
     } = {};
@@ -39,8 +40,6 @@ describe("shared api client", () => {
       }),
     };
 
-    const logoutSpy = vi.fn();
-
     vi.doMock("axios", () => ({
       AxiosError: class AxiosError {},
       InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
@@ -53,15 +52,9 @@ describe("shared api client", () => {
       redirectToLogin: redirectSpy,
     }));
 
-    vi.doMock("@/features/auth/store/useAuthStore", () => ({
-      useAuthStore: {
-        getState: () => ({
-          logout: logoutSpy,
-        }),
-      },
-    }));
-
-    await import("./client");
+    const { default: api, registerAuthFailureHandler } = await import("./client");
+    registerAuthFailureHandler(logoutSpy);
+    void api;
 
     const responseError = {
       config: { url: "/api/v1/users/me" },

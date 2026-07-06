@@ -2,20 +2,42 @@ import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Providers, { getAppQueryClient } from "./providers";
 
-const mockCheckSession = vi.fn();
-const mockReplace = vi.fn();
-const mockGetCookie = vi.fn();
-const mockSetUser = vi.fn();
+const {
+  mockCheckSession,
+  mockReplace,
+  mockGetCookie,
+  mockSetUser,
+  mockLogout,
+  mockRegisterAuthFailureHandler,
+  mockState,
+} = vi.hoisted(() => {
+  const mockCheckSession = vi.fn();
+  const mockReplace = vi.fn();
+  const mockGetCookie = vi.fn();
+  const mockSetUser = vi.fn();
+  const mockLogout = vi.fn();
+  const mockRegisterAuthFailureHandler = vi.fn();
 
-const mockState = {
-  user: null,
-  isLoading: true,
-  checkSession: mockCheckSession,
-  logout: vi.fn(),
-  isLoginModalOpen: false,
-  setLoginModalOpen: vi.fn(),
-  setUser: mockSetUser,
-};
+  const mockState = {
+    user: null,
+    isLoading: true,
+    checkSession: mockCheckSession,
+    logout: mockLogout,
+    isLoginModalOpen: false,
+    setLoginModalOpen: vi.fn(),
+    setUser: mockSetUser,
+  };
+
+  return {
+    mockCheckSession,
+    mockReplace,
+    mockGetCookie,
+    mockSetUser,
+    mockLogout,
+    mockRegisterAuthFailureHandler,
+    mockState,
+  };
+});
 
 vi.mock("@/shared/lib/firebase", () => ({
   getFirebaseApp: vi.fn(),
@@ -33,6 +55,10 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/shared/lib/cookie", () => ({
   getCookie: (name: string) => mockGetCookie(name),
   IS_LOGGED_IN_COOKIE_NAME: "is_logged_in",
+}));
+
+vi.mock("@/shared/api/client", () => ({
+  registerAuthFailureHandler: (handler: () => void) => mockRegisterAuthFailureHandler(handler),
 }));
 
 vi.mock("@/features/auth/store/useAuthStore", () => {
@@ -55,6 +81,22 @@ describe("Providers", () => {
     vi.clearAllMocks();
     mockedUseRouter.mockReturnValue({ replace: mockReplace } as never);
     mockGetCookie.mockReturnValue("true");
+  });
+
+  it("앱 시작 시 auth 실패 핸들러를 등록한다", async () => {
+    mockedUsePathname.mockReturnValue("/search");
+
+    render(
+      <Providers>
+        <div>child</div>
+      </Providers>
+    );
+
+    await waitFor(() => expect(mockRegisterAuthFailureHandler).toHaveBeenCalledTimes(1));
+
+    const handler = mockRegisterAuthFailureHandler.mock.calls[0]?.[0] as (() => void) | undefined;
+    handler?.();
+    expect(mockLogout).toHaveBeenCalledTimes(1);
   });
 
   it("is_logged_in 쿠키가 true일 때 세션 부트스트랩을 수행한다", async () => {

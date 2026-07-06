@@ -25,10 +25,12 @@ import type { ScheduleResponse, ScheduleRequest } from "@/shared/types/api";
  */
 function TimePicker({ 
   value, 
-  onChange
+  onChange,
+  clearLabel = "선택한 시간 초기화",
 }: { 
   value: string; 
   onChange: (val: string) => void; 
+  clearLabel?: string;
 }) {
   const currentHour = value ? value.split(":")[0] : "";
   const currentMinute = value ? value.split(":")[1] : "";
@@ -76,6 +78,8 @@ function TimePicker({
           variant="ghost" 
           size="icon" 
           className="h-11 w-8 text-slate-300 hover:text-red-500 transition-colors"
+          aria-label={clearLabel}
+          title={clearLabel}
           onClick={() => onChange("")}
         >
           <X className="h-4 w-4" />
@@ -137,7 +141,7 @@ export function AdminSchedulePanel() {
     
     // 기본 프리셋에 없는 경우, 커스텀 타입(기타)으로 간주
     if (!SCHEDULE_TYPE_OPTIONS.includes(schedule.scheduleType)) {
-      setIsCustomType(false);
+      setIsCustomType(true);
     }
     
     setDraftStartDate(schedule.startDate);
@@ -241,6 +245,8 @@ export function AdminSchedulePanel() {
                       variant="outline"
                       size="icon"
                       className="shrink-0 h-11 w-11 rounded-xl border-slate-200"
+                      aria-label="수강 일정 직접 입력 취소"
+                      title="수강 일정 직접 입력 취소"
                       onClick={() => {
                         setIsCustomType(false);
                         setDraftType("");
@@ -268,7 +274,8 @@ export function AdminSchedulePanel() {
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">시작 시간</label>
                     <TimePicker 
                       value={draftStartTime} 
-                      onChange={setDraftStartTime} 
+                      onChange={setDraftStartTime}
+                      clearLabel="시작 시간 초기화"
                     />
                   </div>
                 </div>
@@ -287,7 +294,8 @@ export function AdminSchedulePanel() {
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">종료 시간</label>
                     <TimePicker 
                       value={draftEndTime} 
-                      onChange={setDraftEndTime} 
+                      onChange={setDraftEndTime}
+                      clearLabel="종료 시간 초기화"
                     />
                   </div>
                 </div>
@@ -356,6 +364,8 @@ export function AdminSchedulePanel() {
                       onClick={() => handleEdit(schedule)}
                       disabled={isDeleting || isSaving}
                       className="h-9 w-9 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      aria-label={`${schedule.scheduleType} 수정`}
+                      title={`${schedule.scheduleType} 수정`}
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
@@ -365,6 +375,8 @@ export function AdminSchedulePanel() {
                       onClick={() => deleteSchedule(schedule.id)}
                       disabled={isDeleting || isSaving}
                       className="h-9 w-9 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                      aria-label={`${schedule.scheduleType} 삭제`}
+                      title={`${schedule.scheduleType} 삭제`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

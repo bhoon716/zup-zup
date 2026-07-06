@@ -26,10 +26,12 @@ import type { DdaySettingResponse, DdaySettingRequest } from "@/shared/types/api
  */
 function TimePicker({ 
   value, 
-  onChange
+  onChange,
+  clearLabel = "선택한 시간 초기화",
 }: { 
   value: string; 
   onChange: (val: string) => void; 
+  clearLabel?: string;
 }) {
   const currentHour = value ? value.split(":")[0] : "";
   const currentMinute = value ? value.split(":")[1] : "";
@@ -77,6 +79,8 @@ function TimePicker({
           variant="ghost" 
           size="icon" 
           className="h-11 w-8 text-slate-300 hover:text-red-500 transition-colors"
+          aria-label={clearLabel}
+          title={clearLabel}
           onClick={() => onChange("")}
         >
           <X className="h-4 w-4" />
@@ -229,6 +233,8 @@ export function AdminDdayPanel() {
                       variant="outline"
                       size="icon"
                       className="shrink-0 h-11 w-11 rounded-xl border-slate-200"
+                      aria-label="D-Day 직접 입력 취소"
+                      title="D-Day 직접 입력 취소"
                       onClick={() => {
                         setIsCustomTitle(false);
                         setDraftTitle("");
@@ -256,7 +262,8 @@ export function AdminDdayPanel() {
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">목표 시간 (선택)</label>
                     <TimePicker 
                       value={draftTargetTime} 
-                      onChange={setDraftTargetTime} 
+                      onChange={setDraftTargetTime}
+                      clearLabel="D-Day 시간 초기화"
                     />
                   </div>
                 </div>
@@ -341,24 +348,28 @@ export function AdminDdayPanel() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 self-end sm:self-auto">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(dday)}
-                        disabled={isDeleting || isSaving}
-                        className="h-9 w-9 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteDday(dday.id)}
-                        disabled={isDeleting || isSaving}
-                        className="h-9 w-9 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(dday)}
+                      disabled={isDeleting || isSaving}
+                      className="h-9 w-9 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      aria-label={`${dday.title} D-Day 수정`}
+                      title={`${dday.title} D-Day 수정`}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteDday(dday.id)}
+                      disabled={isDeleting || isSaving}
+                      className="h-9 w-9 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                      aria-label={`${dday.title} D-Day 삭제`}
+                      title={`${dday.title} D-Day 삭제`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                     </div>
                   </div>
                 );

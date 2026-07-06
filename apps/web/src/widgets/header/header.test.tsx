@@ -1,18 +1,40 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { MouseEvent } from "react";
 
 import { Header } from "./header";
 import { IS_LOGGED_IN_COOKIE_NAME } from "@/shared/lib/cookie";
 
-const { mockLogout, mockSetLoginModalOpen, mockInstall, mockAuthStore, mockNavLinks } = vi.hoisted(() => ({
+type MockUser = {
+  id: number;
+  email: string;
+  name: string;
+  role: "USER" | "ADMIN";
+};
+
+type MockAuthStore = {
+  user: MockUser | null;
+  isLoading: boolean;
+  setLoginModalOpen: (open: boolean) => void;
+};
+
+type MockNavLinksProps = {
+  isMobile?: boolean;
+  isAdmin: boolean;
+  isLoggedIn: boolean;
+  isLoading?: boolean;
+  onGuardedAction: (event: MouseEvent) => void;
+  onLinkClick?: () => void;
+};
+
+const { mockLogout, mockInstall, mockAuthStore, mockNavLinks } = vi.hoisted(() => ({
   mockLogout: vi.fn(),
-  mockSetLoginModalOpen: vi.fn(),
   mockInstall: vi.fn(),
   mockAuthStore: {
-    user: null as any,
+    user: null as MockUser | null,
     isLoading: false,
     setLoginModalOpen: vi.fn(),
-  },
+  } as MockAuthStore,
   mockNavLinks: vi.fn(),
 }));
 
@@ -28,7 +50,7 @@ vi.mock("@/features/user/hooks/useUser", () => ({
 }));
 
 vi.mock("@/features/auth/store/useAuthStore", () => ({
-  useAuthStore: (selector: (state: any) => unknown) => selector(mockAuthStore),
+  useAuthStore: (selector: (state: MockAuthStore) => unknown) => selector(mockAuthStore),
 }));
 
 vi.mock("@/shared/hooks/usePWAInstall", () => ({
@@ -43,7 +65,7 @@ vi.mock("@/shared/hooks/useHasMounted", () => ({
 }));
 
 vi.mock("./ui/nav-links", () => ({
-  NavLinks: (props: any) => {
+  NavLinks: (props: MockNavLinksProps) => {
     mockNavLinks(props);
     return <nav data-testid="nav-links" />;
   },
