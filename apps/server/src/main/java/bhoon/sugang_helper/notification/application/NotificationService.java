@@ -62,14 +62,9 @@ public class NotificationService {
             return;
         }
 
-        try {
-            notifySubscribers(event);
-            redisService.setValues(redisKey, "SENT", DEDUP_TTL);
-            log.info("[Notification] Completed sending seat opening notifications. courseKey={}", event.courseKey());
-        } catch (RuntimeException e) {
-            redisService.deleteValues(redisKey);
-            throw e;
-        }
+        notifySubscribers(event);
+        redisService.setValues(redisKey, "SENT", DEDUP_TTL);
+        log.info("[Notification] Completed sending seat opening notifications. courseKey={}", event.courseKey());
     }
 
     /**

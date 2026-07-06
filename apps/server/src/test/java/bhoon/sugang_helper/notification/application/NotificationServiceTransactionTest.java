@@ -3,7 +3,6 @@ package bhoon.sugang_helper.notification.application;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -21,31 +20,34 @@ import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.notification.infra.WebPushNotificationSender;
 import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.user.domain.DeviceType;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
-import bhoon.sugang_helper.user.domain.UserDevice;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.batch.support.transaction.ResourcelessTransactionManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
-@SpringJUnitConfig(classes = NotificationServiceTransactionTest.TestConfig.class)
+@DataJpaTest
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+@Import({NotificationService.class, NotificationChannelPolicy.class, NotificationServiceTransactionTest.TestConfig.class})
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class NotificationServiceTransactionTest {
 
     private static final String COURSE_KEY = "12345-01";
@@ -58,23 +60,23 @@ class NotificationServiceTransactionTest {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
-    @Autowired
+    @MockBean
     private RedisService redisService;
-    @Autowired
+    @MockBean
     private SubscriptionRepository subscriptionRepository;
-    @Autowired
+    @MockBean
     private UserRepository userRepository;
-    @Autowired
+    @MockBean
     private UserDeviceRepository userDeviceRepository;
-    @Autowired
+    @MockBean
     private NotificationHistoryRepository notificationHistoryRepository;
-    @Autowired
+    @MockBean
     private EmailNotificationSender emailNotificationSender;
-    @Autowired
+    @MockBean
     private FcmNotificationSender fcmNotificationSender;
-    @Autowired
+    @MockBean
     private WebPushNotificationSender webPushNotificationSender;
-    @Autowired
+    @MockBean
     private DiscordNotificationSender discordNotificationSender;
 
     @Test
@@ -99,7 +101,6 @@ class NotificationServiceTransactionTest {
                 .thenReturn(true);
         when(subscriptionRepository.findByCourseKeyAndIsActiveTrue(COURSE_KEY)).thenReturn(List.of(subscription));
         when(userRepository.findAllById(List.of(1L))).thenReturn(List.of(user));
-        when(userDeviceRepository.findByUserIdIn(List.of(1L))).thenReturn(List.of());
         when(emailNotificationSender.supports(NotificationChannel.EMAIL)).thenReturn(true);
         when(fcmNotificationSender.supports(NotificationChannel.FCM)).thenReturn(false);
         when(webPushNotificationSender.supports(NotificationChannel.WEB)).thenReturn(false);
@@ -132,10 +133,8 @@ class NotificationServiceTransactionTest {
         verify(emailNotificationSender, never()).send(any(), anyString(), anyString());
     }
 
-    @Configuration
+    @TestConfiguration
     @EnableAsync
-    @EnableTransactionManagement
-    @Import({NotificationService.class, NotificationChannelPolicy.class})
     static class TestConfig {
 
         @Bean
@@ -144,58 +143,8 @@ class NotificationServiceTransactionTest {
         }
 
         @Bean
-        PlatformTransactionManager transactionManager() {
-            return new ResourcelessTransactionManager();
-        }
-
-        @Bean
         TaskExecutor taskExecutor() {
             return new SyncTaskExecutor();
-        }
-
-        @Bean
-        RedisService redisService() {
-            return mock(RedisService.class);
-        }
-
-        @Bean
-        SubscriptionRepository subscriptionRepository() {
-            return mock(SubscriptionRepository.class);
-        }
-
-        @Bean
-        UserRepository userRepository() {
-            return mock(UserRepository.class);
-        }
-
-        @Bean
-        UserDeviceRepository userDeviceRepository() {
-            return mock(UserDeviceRepository.class);
-        }
-
-        @Bean
-        NotificationHistoryRepository notificationHistoryRepository() {
-            return mock(NotificationHistoryRepository.class);
-        }
-
-        @Bean
-        EmailNotificationSender emailNotificationSender() {
-            return mock(EmailNotificationSender.class);
-        }
-
-        @Bean
-        FcmNotificationSender fcmNotificationSender() {
-            return mock(FcmNotificationSender.class);
-        }
-
-        @Bean
-        WebPushNotificationSender webPushNotificationSender() {
-            return mock(WebPushNotificationSender.class);
-        }
-
-        @Bean
-        DiscordNotificationSender discordNotificationSender() {
-            return mock(DiscordNotificationSender.class);
         }
     }
 }

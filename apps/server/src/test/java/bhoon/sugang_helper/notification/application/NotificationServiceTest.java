@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.never;
@@ -108,6 +109,39 @@ class NotificationServiceTest {
         verify(redisService, never()).setValues(anyString(), anyString(), any(Duration.class));
         verify(redisService, never()).deleteValues(anyString());
         verify(subscriptionRepository, never()).findByCourseKeyAndIsActiveTrue(anyString());
+    }
+
+    @Test
+    @DisplayName("알림 발송 중 실패해도 중복 방지 키는 유지한다")
+    void keepDedupKeyWhenDeliveryFails() {
+        // Given
+        SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
+        String redisKey = "ALERT:" + COURSE_KEY;
+        Subscription subscription = Subscription.builder().userId(1L).courseKey(COURSE_KEY).isActive(true)
+                .build();
+        User user = User.builder()
+                .id(1L)
+                .name(USER_NAME)
+                .email(EMAIL)
+                .role(Role.USER)
+                .emailEnabled(true)
+                .build();
+
+        given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(true);
+        given(subscriptionRepository.findByCourseKeyAndIsActiveTrue(COURSE_KEY)).willReturn(List.of(subscription));
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
+        given(userDeviceRepository.findByUserIdIn(anyList())).willReturn(List.of());
+        given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
+        doThrow(new RuntimeException("boom")).when(notificationSender).send(any(), anyString(), anyString());
+
+        // When & Then
+        assertThatThrownBy(() -> notificationService.handleSeatOpenedEvent(event))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("boom");
+
+        verify(redisService, times(1)).setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class));
+        verify(redisService, never()).deleteValues(anyString());
+        verify(redisService, never()).setValues(eq(redisKey), eq("SENT"), any(Duration.class));
     }
 
     @Test
