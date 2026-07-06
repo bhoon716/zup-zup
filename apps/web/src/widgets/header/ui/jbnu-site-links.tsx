@@ -10,10 +10,10 @@ import {
 } from "@/shared/ui/dropdown-menu";
 
 const JBNU_SITES = [
-  { name: "수강신청시스템", url: "https://oasis.jbnu.ac.kr/jbnu/sugang/" },
-  { name: "개설강좌조회", url: "https://oasis.jbnu.ac.kr/jbnu/sugang/sbjt/sbjt.html" },
+  { name: "수강신청시스템", url: "https://sugang.jbnu.ac.kr/index.do" },
+  { name: "개설강좌조회", url: "https://jump.jbnu.ac.kr/link?div=sucrPlan" },
   { name: "전북대학교", url: "https://www.jbnu.ac.kr/web/index.do" },
-  { name: "오아시스 3.0", url: "https://oasis.jbnu.ac.kr/com/login.do" },
+  { name: "전북대 JUMP", url: "https://jump.jbnu.ac.kr/index.do" },
 ];
 
 interface JBNUSiteLinksProps {
