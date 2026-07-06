@@ -1,12 +1,11 @@
 package bhoon.sugang_helper.common.security.exception;
 
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.response.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -28,12 +27,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setCharacterEncoding("UTF-8");
 
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("status", ErrorCode.FORBIDDEN.getStatus().value());
-        errorResponse.put("code", ErrorCode.FORBIDDEN.getCode());
-        errorResponse.put("message", "접근 권한이 없습니다.");
-        errorResponse.put("path", request.getRequestURI());
-
+        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.FORBIDDEN, request.getRequestURI(), accessDeniedException.getMessage());
         objectMapper.writeValue(response.getWriter(), errorResponse);
     }
 }

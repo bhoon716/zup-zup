@@ -1,12 +1,11 @@
 package bhoon.sugang_helper.common.security.exception;
 
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.response.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
@@ -28,12 +27,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setCharacterEncoding("UTF-8");
 
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("status", ErrorCode.INVALID_TOKEN.getStatus().value());
-        errorResponse.put("code", ErrorCode.INVALID_TOKEN.getCode());
-        errorResponse.put("message", "인증에 실패했습니다.");
-        errorResponse.put("path", request.getRequestURI());
-
+        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.INVALID_TOKEN, request.getRequestURI(), authException.getMessage());
         objectMapper.writeValue(response.getWriter(), errorResponse);
     }
 }

@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.dday.presentation;
 
+import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.dday.application.DdaySettingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,9 +20,9 @@ public class DdaySettingController {
 
     @Operation(summary = "활성 D-Day 단 건 조회", description = "현재 시간 기준 가장 가까운 미래의 D-Day 일정을 조회합니다.")
     @GetMapping("/active")
-    public ResponseEntity<DdaySettingResponse> getActiveDday() {
+    public ResponseEntity<?> getActiveDday() {
         return ddaySettingService.getActiveDday()
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.noContent().build());
+                .<ResponseEntity<?>>map(dday -> CommonResponse.ok(dday, "활성 D-Day를 조회했습니다."))
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 }

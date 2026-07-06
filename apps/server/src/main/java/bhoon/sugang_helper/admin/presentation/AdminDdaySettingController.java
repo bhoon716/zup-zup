@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.admin.presentation;
 
+import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.dday.presentation.DdaySettingRequest;
 import bhoon.sugang_helper.dday.presentation.DdaySettingResponse;
 import bhoon.sugang_helper.dday.application.DdaySettingService;
@@ -33,21 +34,22 @@ public class AdminDdaySettingController {
 
     @Operation(summary = "모든 D-Day 설정 목록 조회", description = "어드민 페이지 표시용 전체 D-Day 목록을 조회합니다.")
     @GetMapping
-    public ResponseEntity<List<DdaySettingResponse>> getAllDdays() {
-        return ResponseEntity.ok(ddaySettingService.getAllDdays());
+    public ResponseEntity<CommonResponse<List<DdaySettingResponse>>> getAllDdays() {
+        return CommonResponse.ok(ddaySettingService.getAllDdays(), "전체 D-Day 목록입니다.");
     }
 
     @Operation(summary = "신규 D-Day 설정 생성")
     @PostMapping
-    public ResponseEntity<DdaySettingResponse> createDday(@RequestBody @Valid DdaySettingRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ddaySettingService.createDday(request));
+    public ResponseEntity<CommonResponse<DdaySettingResponse>> createDday(@RequestBody @Valid DdaySettingRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(CommonResponse.success(ddaySettingService.createDday(request), "D-Day 설정을 생성했습니다."));
     }
 
     @Operation(summary = "기존 D-Day 설정 수정")
     @PutMapping("/{id}")
-    public ResponseEntity<DdaySettingResponse> updateDday(@PathVariable Long id,
-                                                         @RequestBody @Valid DdaySettingRequest request) {
-        return ResponseEntity.ok(ddaySettingService.updateDday(id, request));
+    public ResponseEntity<CommonResponse<DdaySettingResponse>> updateDday(@PathVariable Long id,
+                                                                         @RequestBody @Valid DdaySettingRequest request) {
+        return CommonResponse.ok(ddaySettingService.updateDday(id, request), "D-Day 설정을 수정했습니다.");
     }
 
     @Operation(summary = "D-Day 설정 삭제")

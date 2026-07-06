@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.feedback.presentation;
 
+import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.feedback.application.FeedbackService;
 import bhoon.sugang_helper.user.application.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,13 +40,14 @@ public class FeedbackController {
      */
     @Operation(summary = "피드백(건의사항/버그리포트) 등록")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Long> createFeedback(
+    public ResponseEntity<CommonResponse<Long>> createFeedback(
             @Valid @RequestPart("feedback") FeedbackCreateRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
 
         Long userId = getUserId();
         Long feedbackId = feedbackService.createFeedback(userId, request, files);
-        return ResponseEntity.status(HttpStatus.CREATED).body(feedbackId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(CommonResponse.success(feedbackId, "피드백이 등록되었습니다."));
     }
 
     /**
@@ -53,11 +55,11 @@ public class FeedbackController {
      */
     @Operation(summary = "내가 작성한 피드백 목록 조회")
     @GetMapping("/me")
-    public ResponseEntity<Page<FeedbackResponse>> getMyFeedbacks(
+    public ResponseEntity<CommonResponse<Page<FeedbackResponse>>> getMyFeedbacks(
             @PageableDefault(size = 10) Pageable pageable) {
 
         Long userId = getUserId();
-        return ResponseEntity.ok(feedbackService.getMyFeedbacks(userId, pageable));
+        return CommonResponse.ok(feedbackService.getMyFeedbacks(userId, pageable), "내 피드백 목록입니다.");
     }
 
     /**
@@ -65,11 +67,11 @@ public class FeedbackController {
      */
     @Operation(summary = "내가 작성한 피드백 상세 조회")
     @GetMapping("/{feedbackId}")
-    public ResponseEntity<FeedbackDetailResponse> getMyFeedbackDetail(
+    public ResponseEntity<CommonResponse<FeedbackDetailResponse>> getMyFeedbackDetail(
             @PathVariable Long feedbackId) {
 
         Long userId = getUserId();
-        return ResponseEntity.ok(feedbackService.getMyFeedbackDetail(userId, feedbackId));
+        return CommonResponse.ok(feedbackService.getMyFeedbackDetail(userId, feedbackId), "피드백 상세입니다.");
     }
 
     /**

@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.admin.presentation;
 
+import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.schedule.presentation.ScheduleRequest;
 import bhoon.sugang_helper.schedule.presentation.ScheduleResponse;
 import bhoon.sugang_helper.schedule.application.ScheduleService;
@@ -36,8 +37,8 @@ public class AdminScheduleController {
      */
     @Operation(summary = "모든 일정 목록 조회", description = "만료된 일정을 포함해 전체 일정을 조회합니다.")
     @GetMapping
-    public ResponseEntity<List<ScheduleResponse>> getAllSchedules() {
-        return ResponseEntity.ok(scheduleService.getAllSchedules());
+    public ResponseEntity<CommonResponse<List<ScheduleResponse>>> getAllSchedules() {
+        return CommonResponse.ok(scheduleService.getAllSchedules(), "전체 일정 목록입니다.");
     }
 
     /**
@@ -45,15 +46,16 @@ public class AdminScheduleController {
      */
     @Operation(summary = "신규 일정 생성")
     @PostMapping
-    public ResponseEntity<ScheduleResponse> createSchedule(@RequestBody @Valid ScheduleRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(scheduleService.createSchedule(request));
+    public ResponseEntity<CommonResponse<ScheduleResponse>> createSchedule(@RequestBody @Valid ScheduleRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(CommonResponse.success(scheduleService.createSchedule(request), "일정을 생성했습니다."));
     }
 
     @Operation(summary = "기존 일정 수정")
     @PutMapping("/{id}")
-    public ResponseEntity<ScheduleResponse> updateSchedule(@PathVariable Long id,
-                                                           @RequestBody @Valid ScheduleRequest request) {
-        return ResponseEntity.ok(scheduleService.updateSchedule(id, request));
+    public ResponseEntity<CommonResponse<ScheduleResponse>> updateSchedule(@PathVariable Long id,
+                                                                           @RequestBody @Valid ScheduleRequest request) {
+        return CommonResponse.ok(scheduleService.updateSchedule(id, request), "일정을 수정했습니다.");
     }
 
     /**

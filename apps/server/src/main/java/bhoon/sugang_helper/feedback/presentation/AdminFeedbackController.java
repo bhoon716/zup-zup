@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.feedback.presentation;
 
+import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.feedback.application.FeedbackService;
 import bhoon.sugang_helper.user.application.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,9 +40,9 @@ public class AdminFeedbackController {
      */
     @Operation(summary = "전체 문의 및 건의 목록 조회 (관리자)")
     @GetMapping
-    public ResponseEntity<Page<FeedbackResponse>> getAllFeedbacks(
+    public ResponseEntity<CommonResponse<Page<FeedbackResponse>>> getAllFeedbacks(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(feedbackService.getFeedbacksForAdmin(pageable));
+        return CommonResponse.ok(feedbackService.getFeedbacksForAdmin(pageable), "전체 피드백 목록입니다.");
     }
 
     /**
@@ -49,9 +50,9 @@ public class AdminFeedbackController {
      */
     @Operation(summary = "문의 및 건의 상세 조회 (관리자)")
     @GetMapping("/{feedbackId}")
-    public ResponseEntity<FeedbackDetailResponse> getFeedbackDetail(
+    public ResponseEntity<CommonResponse<FeedbackDetailResponse>> getFeedbackDetail(
             @PathVariable Long feedbackId) {
-        return ResponseEntity.ok(feedbackService.getFeedbackDetailForAdmin(feedbackId));
+        return CommonResponse.ok(feedbackService.getFeedbackDetailForAdmin(feedbackId), "피드백 상세입니다.");
     }
 
     /**
@@ -73,13 +74,14 @@ public class AdminFeedbackController {
      */
     @Operation(summary = "운영진 답변 등록 (관리자)")
     @PostMapping("/{feedbackId}/reply")
-    public ResponseEntity<Long> createReply(
+    public ResponseEntity<CommonResponse<Long>> createReply(
             @PathVariable Long feedbackId,
             @Valid @RequestBody FeedbackReplyCreateRequest request) {
 
         Long adminId = getAdminId();
         Long replyId = feedbackService.createFeedbackReply(adminId, feedbackId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(replyId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(CommonResponse.success(replyId, "답변이 등록되었습니다."));
     }
 
     /**
