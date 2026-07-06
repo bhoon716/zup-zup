@@ -51,7 +51,7 @@ out/
 
 ### Properties ###
 **/application.yml
-**/application-prod.yml
+!src/main/resources/application-prod.yml
 
 ### k6 Performance Test Data ###
 /scripts/k6/data/

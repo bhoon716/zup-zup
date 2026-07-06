@@ -5,11 +5,8 @@ services:
     image: sugang-helper-app:latest
     container_name: sugang-helper-app
     restart: unless-stopped
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      TZ: Asia/Seoul
-      FIREBASE_CONFIG_PATH: /app/config/firebase-key.json
-      LOG_FILE: /var/log/jbnu-sugang-helper/server/application.log
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     volumes:

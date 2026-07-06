@@ -1,0 +1,48 @@
+package bhoon.sugang_helper.common.config;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
+
+class ProductionConfigTemplateTest {
+
+    @Test
+    void productionConfigUsesEnvironmentPlaceholdersForExternalizedValues() throws IOException {
+        String content = readClasspathResource("application-prod.yml");
+
+        assertThat(content).contains("password: ${SPRING_DATASOURCE_PASSWORD}");
+        assertThat(content).contains("url: ${SPRING_DATASOURCE_URL}");
+        assertThat(content).contains("username: ${SPRING_DATASOURCE_USERNAME}");
+        assertThat(content).contains("host: ${REDIS_HOST}");
+        assertThat(content).contains("port: ${REDIS_PORT}");
+        assertThat(content).contains("password: ${REDIS_PASSWORD}");
+        assertThat(content).contains("client-id: ${GOOGLE_CLIENT_ID}");
+        assertThat(content).contains("client-secret: ${GOOGLE_CLIENT_SECRET}");
+        assertThat(content).contains("access-key: ${AWS_ACCESS_KEY_ID}");
+        assertThat(content).contains("secret-key: ${AWS_SECRET_ACCESS_KEY}");
+        assertThat(content).contains("secret: ${JWT_SECRET}");
+        assertThat(content).contains("allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}");
+        assertThat(content).contains("success-redirect-uri: ${APP_OAUTH2_SUCCESS_REDIRECT_URI}");
+        assertThat(content).contains("failure-redirect-uri: ${APP_OAUTH2_FAILURE_REDIRECT_URI}");
+        assertThat(content).contains("authorized-redirect-uri: ${APP_OAUTH2_AUTHORIZED_REDIRECT_URI}");
+        assertThat(content).contains("config-path: ${FIREBASE_CONFIG_PATH}");
+        assertThat(content).contains("public-key: ${WEBPUSH_PUBLIC_KEY}");
+        assertThat(content).contains("private-key: ${WEBPUSH_PRIVATE_KEY}");
+        assertThat(content).contains("subject: ${WEBPUSH_SUBJECT}");
+        assertThat(content).contains("bot-token: ${DISCORD_BOT_TOKEN}");
+        assertThat(content).contains("client-id: ${DISCORD_CLIENT_ID}");
+        assertThat(content).contains("client-secret: ${DISCORD_CLIENT_SECRET}");
+        assertThat(content).contains("redirect-uri: ${DISCORD_REDIRECT_URI}");
+    }
+
+    private static String readClasspathResource(String path) throws IOException {
+        ClassPathResource resource = new ClassPathResource(path);
+        try (InputStream inputStream = resource.getInputStream()) {
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+}

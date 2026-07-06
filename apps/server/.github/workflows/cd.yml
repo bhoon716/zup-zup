@@ -22,12 +22,52 @@ jobs:
       - name: JAR 빌드
         run: ./gradlew clean build -x test --no-daemon
 
-      - name: application-prod.yml 파일 생성
+      - name: 서버 환경 파일 생성
         env:
-          APP_YML: ${{ secrets.APPLICATION_PROD_YML }}
+          SERVER_DOTENV: ${{ secrets.SERVER_DOTENV }}
         run: |
-          mkdir -p src/main/resources
-          echo "$APP_YML" > src/main/resources/application-prod.yml
+          if [ -z "$SERVER_DOTENV" ]; then
+            echo "Missing required secret: SERVER_DOTENV" >&2
+            exit 1
+          fi
+
+          printf '%s' "$SERVER_DOTENV" > .env
+
+          required_vars=(
+            SPRING_PROFILES_ACTIVE
+            TZ
+            FIREBASE_CONFIG_PATH
+            LOG_FILE
+            SPRING_DATASOURCE_URL
+            SPRING_DATASOURCE_USERNAME
+            SPRING_DATASOURCE_PASSWORD
+            REDIS_HOST
+            REDIS_PORT
+            REDIS_PASSWORD
+            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET
+            AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY
+            JWT_SECRET
+            APP_CORS_ALLOWED_ORIGINS
+            APP_OAUTH2_SUCCESS_REDIRECT_URI
+            APP_OAUTH2_FAILURE_REDIRECT_URI
+            APP_OAUTH2_AUTHORIZED_REDIRECT_URI
+            WEBPUSH_PUBLIC_KEY
+            WEBPUSH_PRIVATE_KEY
+            WEBPUSH_SUBJECT
+            DISCORD_BOT_TOKEN
+            DISCORD_CLIENT_ID
+            DISCORD_CLIENT_SECRET
+            DISCORD_REDIRECT_URI
+          )
+
+          for var in "${required_vars[@]}"; do
+            if ! grep -Eq "^${var}=.+$" .env; then
+              echo "Missing required .env entry: $var" >&2
+              exit 1
+            fi
+          done
 
       - name: 서버 파일 전송
         uses: appleboy/scp-action@v0.1.7
@@ -35,7 +75,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "build/libs/app.jar,src/main/resources/application-prod.yml,Dockerfile,.dockerignore,docker-compose.yml"
+          source: "build/libs/app.jar,src/main/resources/application-prod.yml,Dockerfile,.dockerignore,docker-compose.yml,.env"
           target: "~/jbnu-sugang-helper/server/"
 
       - name: 서버에서 이미지 빌드 및 재배포
