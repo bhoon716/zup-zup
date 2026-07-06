@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.dashboard.application.result;
 
-import bhoon.sugang_helper.timetable.application.CustomScheduleResponse;
-import bhoon.sugang_helper.timetable.application.TimetableCourseResponse;
-import bhoon.sugang_helper.timetable.application.TimetableDetailResponse;
+import bhoon.sugang_helper.timetable.application.result.CustomScheduleResponse;
+import bhoon.sugang_helper.timetable.application.result.TimetableCourseResponse;
+import bhoon.sugang_helper.timetable.application.result.TimetableDetailResponse;
 import java.util.List;
 
 public record DashboardPrimaryTimetableResult(

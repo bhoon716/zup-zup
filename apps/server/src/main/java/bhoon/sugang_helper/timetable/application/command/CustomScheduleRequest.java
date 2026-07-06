@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.timetable.application;
+package bhoon.sugang_helper.timetable.application.command;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;

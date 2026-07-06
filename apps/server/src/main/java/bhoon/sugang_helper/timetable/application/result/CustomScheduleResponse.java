@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.timetable.application;
+package bhoon.sugang_helper.timetable.application.result;
 
 import bhoon.sugang_helper.timetable.domain.CustomSchedule;
 import bhoon.sugang_helper.timetable.domain.CustomScheduleTime;

@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.timetable.application;
+package bhoon.sugang_helper.timetable.application.result;
 
 import bhoon.sugang_helper.timetable.domain.Timetable;
 import io.swagger.v3.oas.annotations.media.Schema;

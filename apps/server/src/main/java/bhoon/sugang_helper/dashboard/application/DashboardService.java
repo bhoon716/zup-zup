@@ -9,7 +9,7 @@ import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.application.NotificationHistoryResponse;
 import bhoon.sugang_helper.schedule.application.ScheduleResponse;
 import bhoon.sugang_helper.schedule.application.ScheduleService;
-import bhoon.sugang_helper.timetable.application.TimetableDetailResponse;
+import bhoon.sugang_helper.timetable.application.result.TimetableDetailResponse;
 import bhoon.sugang_helper.timetable.application.TimetableService;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.application.UserService;

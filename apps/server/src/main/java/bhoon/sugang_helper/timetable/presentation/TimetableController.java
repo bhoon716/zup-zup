@@ -1,6 +1,11 @@
 package bhoon.sugang_helper.timetable.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
+import bhoon.sugang_helper.timetable.application.command.CustomScheduleRequest;
+import bhoon.sugang_helper.timetable.application.command.TimetableCourseRequest;
+import bhoon.sugang_helper.timetable.application.command.TimetableRequest;
+import bhoon.sugang_helper.timetable.application.result.TimetableDetailResponse;
+import bhoon.sugang_helper.timetable.application.result.TimetableResponse;
 import bhoon.sugang_helper.timetable.application.TimetableService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

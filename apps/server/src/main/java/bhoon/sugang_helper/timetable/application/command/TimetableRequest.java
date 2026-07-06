@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.timetable.application;
+package bhoon.sugang_helper.timetable.application.command;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;

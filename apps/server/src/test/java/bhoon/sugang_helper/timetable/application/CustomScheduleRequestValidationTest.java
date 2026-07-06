@@ -2,6 +2,7 @@ package bhoon.sugang_helper.timetable.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import bhoon.sugang_helper.timetable.application.command.CustomScheduleRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
