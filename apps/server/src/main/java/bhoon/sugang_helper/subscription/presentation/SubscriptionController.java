@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.subscription.presentation;
+package bhoon.sugang_helper.subscription.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.subscription.application.SubscriptionService;

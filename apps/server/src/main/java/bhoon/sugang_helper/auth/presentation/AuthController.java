@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.auth.presentation;
+package bhoon.sugang_helper.auth.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.auth.application.AuthService;

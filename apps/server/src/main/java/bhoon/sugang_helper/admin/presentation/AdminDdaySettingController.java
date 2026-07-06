@@ -1,8 +1,8 @@
-package bhoon.sugang_helper.admin.presentation;
+package bhoon.sugang_helper.admin.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.dday.presentation.DdaySettingRequest;
-import bhoon.sugang_helper.dday.presentation.DdaySettingResponse;
+import bhoon.sugang_helper.dday.application.DdaySettingRequest;
+import bhoon.sugang_helper.dday.application.DdaySettingResponse;
 import bhoon.sugang_helper.dday.application.DdaySettingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

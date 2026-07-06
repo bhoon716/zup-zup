@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.timetable.presentation;
+package bhoon.sugang_helper.timetable.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.timetable.application.TimetableService;

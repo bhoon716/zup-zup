@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.course.application;
 
 import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.crawling.presentation.CrawlTargetInfo;
+import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -15,10 +15,10 @@ import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.CourseSeatHistory;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
-import bhoon.sugang_helper.course.presentation.CourseSearchCondition;
-import bhoon.sugang_helper.course.presentation.CourseDetailResponse;
-import bhoon.sugang_helper.course.presentation.CourseResponse;
-import bhoon.sugang_helper.course.presentation.CourseSeatHistoryResponse;
+import bhoon.sugang_helper.course.application.CourseSearchCondition;
+import bhoon.sugang_helper.course.application.CourseDetailResponse;
+import bhoon.sugang_helper.course.application.CourseResponse;
+import bhoon.sugang_helper.course.application.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
 import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.review.domain.ReviewScopeKey;

@@ -1,8 +1,8 @@
-package bhoon.sugang_helper.admin.presentation;
+package bhoon.sugang_helper.admin.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.announcement.presentation.AnnouncementRequest;
-import bhoon.sugang_helper.announcement.presentation.AnnouncementDetailResponse;
+import bhoon.sugang_helper.announcement.application.AnnouncementRequest;
+import bhoon.sugang_helper.announcement.application.AnnouncementDetailResponse;
 import bhoon.sugang_helper.announcement.application.AnnouncementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

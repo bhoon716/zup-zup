@@ -1,8 +1,8 @@
-package bhoon.sugang_helper.admin.presentation;
+package bhoon.sugang_helper.admin.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.schedule.presentation.ScheduleRequest;
-import bhoon.sugang_helper.schedule.presentation.ScheduleResponse;
+import bhoon.sugang_helper.schedule.application.ScheduleRequest;
+import bhoon.sugang_helper.schedule.application.ScheduleResponse;
 import bhoon.sugang_helper.schedule.application.ScheduleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.dashboard.presentation;
+package bhoon.sugang_helper.dashboard.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.dashboard.application.DashboardService;

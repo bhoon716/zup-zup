@@ -5,7 +5,7 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.dday.domain.DdaySetting;
 import bhoon.sugang_helper.dday.domain.DdaySettingRepository;
-import bhoon.sugang_helper.dday.presentation.DdaySettingResponse;
+import bhoon.sugang_helper.dday.application.DdaySettingResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -62,8 +62,8 @@ class DdaySettingServiceTest {
     void getActiveDdayFilterPassedTime() {
         // given
         LocalDate today = LocalDate.now();
-        LocalTime pastTime = LocalTime.now().minusHours(2);
-        LocalTime futureTime = LocalTime.now().plusHours(2);
+        LocalTime pastTime = LocalTime.MIN;
+        LocalTime futureTime = LocalTime.MAX;
 
         DdaySetting d1 = DdaySetting.builder()
                 .title("오늘 이미 지난 D-Day")

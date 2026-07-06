@@ -3,7 +3,7 @@ package bhoon.sugang_helper.crawling.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.crawling.presentation.CrawlTargetInfo;
+import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import java.time.Year;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;

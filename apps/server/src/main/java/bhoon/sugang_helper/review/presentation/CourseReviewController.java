@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.review.presentation;
+package bhoon.sugang_helper.review.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.review.application.CourseReviewService;

@@ -8,7 +8,7 @@ import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.review.domain.CourseEmojiReview;
 import bhoon.sugang_helper.review.domain.CourseEmojiReviewRepository;
-import bhoon.sugang_helper.review.presentation.CourseEmojiReviewResponse;
+import bhoon.sugang_helper.review.application.CourseEmojiReviewResponse;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.subscription.application;
 
 import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.crawling.presentation.CrawlTargetInfo;
+import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,8 +17,8 @@ import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.subscription.presentation.SubscriptionRequest;
-import bhoon.sugang_helper.subscription.presentation.SubscriptionResponse;
+import bhoon.sugang_helper.subscription.application.SubscriptionRequest;
+import bhoon.sugang_helper.subscription.application.SubscriptionResponse;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.Optional;

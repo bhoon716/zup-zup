@@ -8,14 +8,14 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.announcement.domain.Announcement;
 import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
-import bhoon.sugang_helper.dashboard.presentation.DashboardSnapshotResponse;
+import bhoon.sugang_helper.dashboard.application.DashboardSnapshotResponse;
 import bhoon.sugang_helper.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.schedule.domain.Schedule;
-import bhoon.sugang_helper.schedule.presentation.ScheduleResponse;
+import bhoon.sugang_helper.schedule.application.ScheduleResponse;
 import bhoon.sugang_helper.schedule.application.ScheduleService;
-import bhoon.sugang_helper.timetable.presentation.TimetableDetailResponse;
+import bhoon.sugang_helper.timetable.application.TimetableDetailResponse;
 import bhoon.sugang_helper.timetable.application.TimetableService;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
