@@ -1,6 +1,10 @@
 package bhoon.sugang_helper.user.presentation;
 
 import bhoon.sugang_helper.user.domain.User;
+import bhoon.sugang_helper.user.application.result.UserOnboardingResult;
+import bhoon.sugang_helper.user.application.result.UserProfileResult;
+import bhoon.sugang_helper.user.application.result.UserProfileUpdateResult;
+import bhoon.sugang_helper.user.application.result.UserSettingsResult;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -48,18 +52,104 @@ public class UserResponse {
     private boolean discordEnabled;
 
     public static UserResponse from(User user) {
+        return fromValues(
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getRole().name(),
+                user.getNotificationEmail(),
+                user.isEmailEnabled(),
+                user.isWebPushEnabled(),
+                user.isFcmEnabled(),
+                user.isOnboardingCompleted(),
+                user.getDiscordId(),
+                user.isDiscordEnabled());
+    }
+
+    public static UserResponse from(UserProfileResult result) {
+        return fromValues(
+                result.id(),
+                result.email(),
+                result.name(),
+                result.role(),
+                result.notificationEmail(),
+                result.emailEnabled(),
+                result.webPushEnabled(),
+                result.fcmEnabled(),
+                result.onboardingCompleted(),
+                result.discordId(),
+                result.discordEnabled());
+    }
+
+    public static UserResponse from(UserProfileUpdateResult result) {
+        return fromValues(
+                result.id(),
+                result.email(),
+                result.name(),
+                result.role(),
+                result.notificationEmail(),
+                result.emailEnabled(),
+                result.webPushEnabled(),
+                result.fcmEnabled(),
+                result.onboardingCompleted(),
+                result.discordId(),
+                result.discordEnabled());
+    }
+
+    public static UserResponse from(UserSettingsResult result) {
+        return fromValues(
+                result.id(),
+                result.email(),
+                result.name(),
+                result.role(),
+                result.notificationEmail(),
+                result.emailEnabled(),
+                result.webPushEnabled(),
+                result.fcmEnabled(),
+                result.onboardingCompleted(),
+                result.discordId(),
+                result.discordEnabled());
+    }
+
+    public static UserResponse from(UserOnboardingResult result) {
+        return fromValues(
+                result.id(),
+                result.email(),
+                result.name(),
+                result.role(),
+                result.notificationEmail(),
+                result.emailEnabled(),
+                result.webPushEnabled(),
+                result.fcmEnabled(),
+                result.onboardingCompleted(),
+                result.discordId(),
+                result.discordEnabled());
+    }
+
+    private static UserResponse fromValues(
+            Long id,
+            String email,
+            String name,
+            String role,
+            String notificationEmail,
+            boolean emailEnabled,
+            boolean webPushEnabled,
+            boolean fcmEnabled,
+            boolean onboardingCompleted,
+            String discordId,
+            boolean discordEnabled) {
         return UserResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .name(user.getName())
-                .role(user.getRole().name())
-                .notificationEmail(user.getNotificationEmail())
-                .emailEnabled(user.isEmailEnabled())
-                .webPushEnabled(user.isWebPushEnabled())
-                .fcmEnabled(user.isFcmEnabled())
-                .discordEnabled(user.isDiscordEnabled())
-                .discordId(user.getDiscordId())
-                .onboardingCompleted(user.isOnboardingCompleted())
+                .id(id)
+                .email(email)
+                .name(name)
+                .role(role)
+                .notificationEmail(notificationEmail)
+                .emailEnabled(emailEnabled)
+                .webPushEnabled(webPushEnabled)
+                .fcmEnabled(fcmEnabled)
+                .discordEnabled(discordEnabled)
+                .discordId(discordId)
+                .onboardingCompleted(onboardingCompleted)
                 .build();
     }
 }

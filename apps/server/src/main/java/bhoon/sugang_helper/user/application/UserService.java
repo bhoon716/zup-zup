@@ -12,15 +12,19 @@ import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
 import bhoon.sugang_helper.timetable.domain.Timetable;
 import bhoon.sugang_helper.timetable.domain.TimetableRepository;
+import bhoon.sugang_helper.user.application.command.CompleteOnboardingCommand;
+import bhoon.sugang_helper.user.application.command.SendVerificationCodeCommand;
+import bhoon.sugang_helper.user.application.command.UpdateProfileCommand;
+import bhoon.sugang_helper.user.application.command.UpdateSettingsCommand;
+import bhoon.sugang_helper.user.application.command.VerifyEmailCommand;
+import bhoon.sugang_helper.user.application.result.UserOnboardingResult;
+import bhoon.sugang_helper.user.application.result.UserProfileResult;
+import bhoon.sugang_helper.user.application.result.UserProfileUpdateResult;
+import bhoon.sugang_helper.user.application.result.UserSettingsResult;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
-import bhoon.sugang_helper.user.presentation.EmailRequest;
-import bhoon.sugang_helper.user.presentation.EmailVerificationRequest;
-import bhoon.sugang_helper.user.presentation.OnboardingRequest;
-import bhoon.sugang_helper.user.presentation.UserSettingsRequest;
-import bhoon.sugang_helper.user.presentation.UserResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -53,9 +57,9 @@ public class UserService {
     /**
      * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
      */
-    public UserResponse getMyProfile() {
+    public UserProfileResult getMyProfile() {
         User user = getCurrentUser();
-        return UserResponse.from(user);
+        return UserProfileResult.from(user);
     }
 
     /**
@@ -74,21 +78,21 @@ public class UserService {
      * 사용자의 이름을 수정하고 변경된 프로필 정보를 반환합니다.
      */
     @Transactional
-    public UserResponse updateProfile(String name) {
+    public UserProfileUpdateResult updateProfile(UpdateProfileCommand command) {
         User user = getCurrentUser();
-        user.update(name);
-        log.info("[User] Update profile: userId={}, newName={}", user.getId(), name);
-        return UserResponse.from(user);
+        user.update(command.name());
+        log.info("[User] Update profile: userId={}, newName={}", user.getId(), command.name());
+        return UserProfileUpdateResult.from(user);
     }
 
     /**
      * 사용자의 알림 설정을 수정하고 변경된 정보를 반환합니다.
      */
     @Transactional
-    public UserResponse updateSettings(UserSettingsRequest request) {
+    public UserSettingsResult updateSettings(UpdateSettingsCommand command) {
         User user = getCurrentUser();
 
-        String newEmail = request.getNotificationEmail();
+        String newEmail = command.notificationEmail();
         if (newEmail != null && !newEmail.equals(user.getEmail()) && !newEmail.equals(user.getNotificationEmail())) {
             if (!emailVerificationService.isVerified(user.getId(), newEmail)) {
                 throw new CustomException(ErrorCode.UNVERIFIED_EMAIL);
@@ -96,14 +100,14 @@ public class UserService {
         }
 
         user.updateSettings(
-                request.getNotificationEmail(),
-                request.isEmailEnabled(),
-                request.isWebPushEnabled(),
-                request.isFcmEnabled(),
-                request.isDiscordEnabled());
+                command.notificationEmail(),
+                command.emailEnabled(),
+                command.webPushEnabled(),
+                command.fcmEnabled(),
+                command.discordEnabled());
         log.info("[User] Change settings: userId={}, emailEnabled={}, webPushEnabled={}",
-                user.getId(), request.isEmailEnabled(), request.isWebPushEnabled());
-        return UserResponse.from(user);
+                user.getId(), command.emailEnabled(), command.webPushEnabled());
+        return UserSettingsResult.from(user);
     }
 
     /**
@@ -141,9 +145,9 @@ public class UserService {
      * 신규 가입 유저의 온보딩 절차를 완료합니다.
      */
     @Transactional
-    public UserResponse completeOnboarding(OnboardingRequest request) {
+    public UserOnboardingResult completeOnboarding(CompleteOnboardingCommand command) {
         User user = getCurrentUser();
-        String newEmail = request.getNotificationEmail();
+        String newEmail = command.notificationEmail();
 
         if (newEmail != null && !newEmail.equals(user.getEmail())) {
             if (!emailVerificationService.isVerified(user.getId(), newEmail)) {
@@ -153,30 +157,30 @@ public class UserService {
 
         user.completeOnboarding(
                 newEmail,
-                request.isEmailEnabled(),
-                request.isWebPushEnabled(),
-                request.isFcmEnabled(),
-                request.isDiscordEnabled());
+                command.emailEnabled(),
+                command.webPushEnabled(),
+                command.fcmEnabled(),
+                command.discordEnabled());
         log.info("[User] Onboarding complete: userId={}, email={}", user.getId(), user.getEmail());
-        return UserResponse.from(user);
+        return UserOnboardingResult.from(user);
     }
 
     /**
      * 입령된 이메일로 인증 코드를 발송합니다.
      */
     @Transactional
-    public void sendVerificationCode(EmailRequest request) {
+    public void sendVerificationCode(SendVerificationCodeCommand command) {
         User user = getCurrentUser();
-        emailVerificationService.sendCode(user.getId(), request.getEmail());
+        emailVerificationService.sendCode(user.getId(), command.email());
     }
 
     /**
      * 이메일 인증 코드를 검증합니다.
      */
     @Transactional
-    public void verifyEmail(EmailVerificationRequest request) {
+    public void verifyEmail(VerifyEmailCommand command) {
         User user = getCurrentUser();
-        boolean verified = emailVerificationService.verifyCode(user.getId(), request.getEmail(), request.getCode());
+        boolean verified = emailVerificationService.verifyCode(user.getId(), command.email(), command.code());
         if (!verified) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "인증 코드가 올바르지 않거나 만료되었습니다.");
         }

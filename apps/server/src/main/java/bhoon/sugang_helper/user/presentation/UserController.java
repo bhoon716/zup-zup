@@ -3,6 +3,15 @@ package bhoon.sugang_helper.user.presentation;
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.user.application.DiscordOAuthService;
 import bhoon.sugang_helper.user.application.UserService;
+import bhoon.sugang_helper.user.application.command.CompleteOnboardingCommand;
+import bhoon.sugang_helper.user.application.command.SendVerificationCodeCommand;
+import bhoon.sugang_helper.user.application.command.UpdateProfileCommand;
+import bhoon.sugang_helper.user.application.command.UpdateSettingsCommand;
+import bhoon.sugang_helper.user.application.command.VerifyEmailCommand;
+import bhoon.sugang_helper.user.application.result.UserOnboardingResult;
+import bhoon.sugang_helper.user.application.result.UserProfileResult;
+import bhoon.sugang_helper.user.application.result.UserProfileUpdateResult;
+import bhoon.sugang_helper.user.application.result.UserSettingsResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -47,7 +56,13 @@ public class UserController {
     @PostMapping("/onboard")
     public ResponseEntity<CommonResponse<UserResponse>> completeOnboarding(
             @Valid @RequestBody OnboardingRequest request) {
-        UserResponse response = userService.completeOnboarding(request);
+        UserOnboardingResult result = userService.completeOnboarding(new CompleteOnboardingCommand(
+                request.getNotificationEmail(),
+                request.isEmailEnabled(),
+                request.isWebPushEnabled(),
+                request.isFcmEnabled(),
+                request.isDiscordEnabled()));
+        UserResponse response = UserResponse.from(result);
         return CommonResponse.ok(response, "온보딩 설정이 완료되었습니다.");
     }
 
@@ -67,7 +82,7 @@ public class UserController {
     @PostMapping("/email/code")
     public ResponseEntity<CommonResponse<Void>> sendVerificationCode(
             @Valid @RequestBody EmailRequest request) {
-        userService.sendVerificationCode(request);
+        userService.sendVerificationCode(new SendVerificationCodeCommand(request.getEmail()));
         return CommonResponse.ok(null, "인증 코드가 전송되었습니다. 이메일을 확인해주세요.");
     }
 
@@ -94,7 +109,7 @@ public class UserController {
     @PostMapping("/email/verify")
     public ResponseEntity<CommonResponse<Void>> verifyEmail(
             @Valid @RequestBody EmailVerificationRequest request) {
-        userService.verifyEmail(request);
+        userService.verifyEmail(new VerifyEmailCommand(request.getEmail(), request.getCode()));
         return CommonResponse.ok(null, "이메일 인증이 완료되었습니다.");
     }
 
@@ -118,7 +133,8 @@ public class UserController {
     })
     @GetMapping("/me")
     public ResponseEntity<CommonResponse<UserResponse>> getMyProfile() {
-        UserResponse response = userService.getMyProfile();
+        UserProfileResult result = userService.getMyProfile();
+        UserResponse response = UserResponse.from(result);
         return CommonResponse.ok(response, "사용자 프로필 정보입니다.");
     }
 
@@ -142,7 +158,8 @@ public class UserController {
     })
     @PatchMapping("/me")
     public ResponseEntity<CommonResponse<UserResponse>> updateProfile(@Valid @RequestBody UserUpdateRequest request) {
-        UserResponse response = userService.updateProfile(request.getName());
+        UserProfileUpdateResult result = userService.updateProfile(new UpdateProfileCommand(request.getName()));
+        UserResponse response = UserResponse.from(result);
         return CommonResponse.ok(response, "사용자 프로필 정보가 수정되었습니다.");
     }
 
@@ -167,7 +184,13 @@ public class UserController {
     @PatchMapping("/settings")
     public ResponseEntity<CommonResponse<UserResponse>> updateSettings(
             @Valid @RequestBody UserSettingsRequest request) {
-        UserResponse response = userService.updateSettings(request);
+        UserSettingsResult result = userService.updateSettings(new UpdateSettingsCommand(
+                request.getNotificationEmail(),
+                request.isEmailEnabled(),
+                request.isWebPushEnabled(),
+                request.isFcmEnabled(),
+                request.isDiscordEnabled()));
+        UserResponse response = UserResponse.from(result);
         return CommonResponse.ok(response, "사용자 알림 설정이 수정되었습니다.");
     }
 

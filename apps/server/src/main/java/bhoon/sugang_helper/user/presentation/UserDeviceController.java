@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.user.presentation;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.application.UserDeviceService;
+import bhoon.sugang_helper.user.application.command.RegisterDeviceCommand;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -45,9 +45,12 @@ public class UserDeviceController {
     })
     @GetMapping
     public ResponseEntity<CommonResponse<List<UserDeviceResponse>>> getUserDevices() {
-        User user = userDeviceService.getCurrentUserOrThrow();
-        return ResponseEntity.ok(
-                CommonResponse.success(userDeviceService.getUserDevices(user.getId()), "기기 목록을 조회했습니다."));
+        List<UserDeviceResponse> responses = userDeviceService.getUserDevices(
+                        userDeviceService.getCurrentUserOrThrow().getId())
+                .stream()
+                .map(UserDeviceResponse::from)
+                .toList();
+        return ResponseEntity.ok(CommonResponse.success(responses, "기기 목록을 조회했습니다."));
     }
 
     @Operation(summary = "기기 등록", description = "푸시 알림을 위한 FCM 토큰을 등록합니다. (별칭 포함)")
@@ -62,7 +65,12 @@ public class UserDeviceController {
     })
     @PostMapping
     public ResponseEntity<CommonResponse<Void>> registerDevice(@Valid @RequestBody UserDeviceRequest request) {
-        userDeviceService.registerDevice(request);
+        userDeviceService.registerDevice(new RegisterDeviceCommand(
+                request.getType(),
+                request.getToken(),
+                request.getP256dh(),
+                request.getAuth(),
+                request.getAlias()));
         return CommonResponse.ok(null, "기기가 성공적으로 등록되었습니다.");
     }
 

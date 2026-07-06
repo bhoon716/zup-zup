@@ -3,12 +3,12 @@ package bhoon.sugang_helper.user.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.user.application.command.RegisterDeviceCommand;
+import bhoon.sugang_helper.user.application.result.UserDeviceResult;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserDevice;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
-import bhoon.sugang_helper.user.presentation.UserDeviceRequest;
-import bhoon.sugang_helper.user.presentation.UserDeviceResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,30 +25,30 @@ public class UserDeviceService {
     private final UserRepository userRepository;
 
     @Transactional
-    public void registerDevice(UserDeviceRequest request) {
+    public void registerDevice(RegisterDeviceCommand command) {
         User user = getCurrentUserOrThrow();
 
-        userDeviceRepository.findByToken(request.getToken())
+        userDeviceRepository.findByToken(command.token())
                 .ifPresentOrElse(
                         device -> {
-                            device.updateToken(user.getId(), request.getToken(), request.getP256dh(), request.getAuth(),
-                                    request.getAlias());
+                            device.updateToken(user.getId(), command.token(), command.p256dh(), command.auth(),
+                                    command.alias());
                             log.info("[UserDevice] Updated existing device: userId={}, token={}, alias={}",
                                     user.getId(),
-                                    request.getToken(), request.getAlias());
+                                    command.token(), command.alias());
                         },
                         () -> {
                             UserDevice newDevice = UserDevice.builder()
                                     .userId(user.getId())
-                                    .type(request.getType())
-                                    .token(request.getToken())
-                                    .p256dh(request.getP256dh())
-                                    .auth(request.getAuth())
-                                    .alias(request.getAlias())
+                                    .type(command.type())
+                                    .token(command.token())
+                                    .p256dh(command.p256dh())
+                                    .auth(command.auth())
+                                    .alias(command.alias())
                                     .build();
                             userDeviceRepository.save(newDevice);
                             log.info("[UserDevice] Registered new device: userId={}, token={}, alias={}", user.getId(),
-                                    request.getToken(), request.getAlias());
+                                    command.token(), command.alias());
                         });
     }
 
@@ -87,9 +87,9 @@ public class UserDeviceService {
                 });
     }
 
-    public List<UserDeviceResponse> getUserDevices(Long userId) {
+    public List<UserDeviceResult> getUserDevices(Long userId) {
         return userDeviceRepository.findByUserId(userId).stream()
-                .map(UserDeviceResponse::from)
+                .map(UserDeviceResult::from)
                 .toList();
     }
 

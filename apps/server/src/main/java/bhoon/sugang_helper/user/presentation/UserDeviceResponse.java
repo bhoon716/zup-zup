@@ -2,6 +2,7 @@ package bhoon.sugang_helper.user.presentation;
 
 import bhoon.sugang_helper.user.domain.UserDevice;
 import bhoon.sugang_helper.user.domain.DeviceType;
+import bhoon.sugang_helper.user.application.result.UserDeviceResult;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Builder;
@@ -32,12 +33,21 @@ public class UserDeviceResponse {
         String masked = token.length() > 10 ? token.substring(0, 5) + "..." + token.substring(token.length() - 5)
                 : token;
 
+        return fromValues(device.getId(), device.getType(), device.getAlias(), masked, device.getCreatedAt());
+    }
+
+    public static UserDeviceResponse from(UserDeviceResult result) {
+        return fromValues(result.id(), result.type(), result.alias(), result.maskedToken(), result.registeredAt());
+    }
+
+    private static UserDeviceResponse fromValues(Long id, DeviceType type, String alias, String maskedToken,
+                                                 LocalDateTime registeredAt) {
         return UserDeviceResponse.builder()
-                .id(device.getId())
-                .type(device.getType())
-                .alias(device.getAlias())
-                .maskedToken(masked)
-                .registeredAt(device.getCreatedAt())
+                .id(id)
+                .type(type)
+                .alias(alias)
+                .maskedToken(maskedToken)
+                .registeredAt(registeredAt)
                 .build();
     }
 }

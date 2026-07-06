@@ -14,13 +14,13 @@ import static org.mockito.Mockito.verify;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.user.application.command.RegisterDeviceCommand;
+import bhoon.sugang_helper.user.application.result.UserDeviceResult;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserDevice;
 import bhoon.sugang_helper.user.domain.DeviceType;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
-import bhoon.sugang_helper.user.presentation.UserDeviceRequest;
-import bhoon.sugang_helper.user.presentation.UserDeviceResponse;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -74,13 +74,7 @@ class UserDeviceServiceTest {
     void registerDevice_New_Success() {
         // given
         mockUser();
-        UserDeviceRequest request = UserDeviceRequest.builder()
-                .token(TOKEN)
-                .p256dh("P256DH")
-                .auth("AUTH")
-                .type(DeviceType.WEB)
-                .alias("Alias")
-                .build();
+        RegisterDeviceCommand request = new RegisterDeviceCommand(DeviceType.WEB, TOKEN, "P256DH", "AUTH", "Alias");
         given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.empty());
 
         // when
@@ -95,13 +89,8 @@ class UserDeviceServiceTest {
     void registerDevice_Update_Success() {
         // given
         mockUser();
-        UserDeviceRequest request = UserDeviceRequest.builder()
-                .token(TOKEN)
-                .p256dh("NEW_P256DH")
-                .auth("NEW_AUTH")
-                .type(DeviceType.WEB)
-                .alias("NewAlias")
-                .build();
+        RegisterDeviceCommand request = new RegisterDeviceCommand(
+                DeviceType.WEB, TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
         UserDevice existingDevice = spy(UserDevice.builder()
                 .userId(1L)
                 .token(TOKEN)
@@ -125,12 +114,7 @@ class UserDeviceServiceTest {
         // given
         given(SecurityUtil.getCurrentUserEmail()).willReturn(TEST_EMAIL);
         given(userRepository.findByEmail(TEST_EMAIL)).willReturn(Optional.empty());
-        UserDeviceRequest request = UserDeviceRequest.builder()
-                .token(TOKEN)
-                .p256dh("P256DH")
-                .auth("AUTH")
-                .type(DeviceType.WEB)
-                .build();
+        RegisterDeviceCommand request = new RegisterDeviceCommand(DeviceType.WEB, TOKEN, "P256DH", "AUTH", null);
 
         // when & then
         assertThatThrownBy(() -> userDeviceService.registerDevice(request))
@@ -165,10 +149,10 @@ class UserDeviceServiceTest {
         given(userDeviceRepository.findByUserId(1L)).willReturn(Collections.singletonList(device));
 
         // when
-        List<UserDeviceResponse> result = userDeviceService.getUserDevices(1L);
+        List<UserDeviceResult> result = userDeviceService.getUserDevices(1L);
 
         // then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getAlias()).isEqualTo("Alias");
+        assertThat(result.get(0).alias()).isEqualTo("Alias");
     }
 }

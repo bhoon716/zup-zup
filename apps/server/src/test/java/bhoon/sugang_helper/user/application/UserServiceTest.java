@@ -22,13 +22,17 @@ import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
 import bhoon.sugang_helper.timetable.domain.Timetable;
 import bhoon.sugang_helper.timetable.domain.TimetableRepository;
+import bhoon.sugang_helper.user.application.command.CompleteOnboardingCommand;
+import bhoon.sugang_helper.user.application.command.UpdateProfileCommand;
+import bhoon.sugang_helper.user.application.command.UpdateSettingsCommand;
+import bhoon.sugang_helper.user.application.result.UserOnboardingResult;
+import bhoon.sugang_helper.user.application.result.UserProfileResult;
+import bhoon.sugang_helper.user.application.result.UserProfileUpdateResult;
+import bhoon.sugang_helper.user.application.result.UserSettingsResult;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
-import bhoon.sugang_helper.user.presentation.OnboardingRequest;
-import bhoon.sugang_helper.user.presentation.UserSettingsRequest;
 import bhoon.sugang_helper.user.domain.UserRepository;
-import bhoon.sugang_helper.user.presentation.UserResponse;
 import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
 import java.util.Optional;
 import java.util.List;
@@ -117,10 +121,10 @@ class UserServiceTest {
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
         // when
-        UserResponse result = userService.updateProfile(NEW_NAME);
+        UserProfileUpdateResult result = userService.updateProfile(new UpdateProfileCommand(NEW_NAME));
 
         // then
-        assertThat(result.getName()).isEqualTo(NEW_NAME);
+        assertThat(result.name()).isEqualTo(NEW_NAME);
         assertThat(user.getName()).isEqualTo(NEW_NAME);
     }
 
@@ -180,11 +184,11 @@ class UserServiceTest {
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
         // when
-        UserResponse result = userService.getMyProfile();
+        UserProfileResult result = userService.getMyProfile();
 
         // then
-        assertThat(result.getEmail()).isEqualTo(TEST_EMAIL);
-        assertThat(result.getName()).isEqualTo("Test User");
+        assertThat(result.email()).isEqualTo(TEST_EMAIL);
+        assertThat(result.name()).isEqualTo("Test User");
     }
 
     @Test
@@ -211,7 +215,7 @@ class UserServiceTest {
                 .role(Role.USER)
                 .build();
 
-        UserSettingsRequest request = new UserSettingsRequest(
+        UpdateSettingsCommand request = new UpdateSettingsCommand(
                 NEW_EMAIL, true, true, false, true);
 
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
@@ -219,12 +223,12 @@ class UserServiceTest {
         when(emailVerificationService.isVerified(1L, NEW_EMAIL)).thenReturn(true);
 
         // when
-        UserResponse result = userService.updateSettings(request);
+        UserSettingsResult result = userService.updateSettings(request);
 
         // then
-        assertThat(result.getNotificationEmail()).isEqualTo(NEW_EMAIL);
-        assertThat(result.isEmailEnabled()).isTrue();
-        assertThat(result.isDiscordEnabled()).isTrue();
+        assertThat(result.notificationEmail()).isEqualTo(NEW_EMAIL);
+        assertThat(result.emailEnabled()).isTrue();
+        assertThat(result.discordEnabled()).isTrue();
         assertThat(user.getNotificationEmail()).isEqualTo(NEW_EMAIL);
         assertThat(user.isDiscordEnabled()).isTrue();
     }
@@ -241,20 +245,18 @@ class UserServiceTest {
                 .onboardingCompleted(false)
                 .build();
 
-        OnboardingRequest request = mock(OnboardingRequest.class);
-        when(request.getNotificationEmail()).thenReturn("notify@example.com");
-        when(request.isEmailEnabled()).thenReturn(true);
-        when(request.isWebPushEnabled()).thenReturn(true);
+        CompleteOnboardingCommand request = new CompleteOnboardingCommand(
+                "notify@example.com", true, true, false, false);
 
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
         when(emailVerificationService.isVerified(1L, NOTIFY_EMAIL)).thenReturn(true);
 
         // when
-        UserResponse result = userService.completeOnboarding(request);
+        UserOnboardingResult result = userService.completeOnboarding(request);
 
         // then
-        assertThat(result.isOnboardingCompleted()).isTrue();
+        assertThat(result.onboardingCompleted()).isTrue();
         assertThat(user.isOnboardingCompleted()).isTrue();
         assertThat(user.getNotificationEmail()).isEqualTo(NOTIFY_EMAIL);
     }
