@@ -3,7 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import * as feedbackApi from "@/features/feedback/api/feedback.api";
 import { useMyFeedbacks, useCreateFeedback } from "./useFeedback";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
-import { PageResponse, FeedbackResponse } from "@/shared/types/api";
+import { CommonResponse, PageResponse, FeedbackResponse } from "@/shared/types/api";
 
 vi.mock("@/features/feedback/api/feedback.api", () => ({
   createFeedback: vi.fn(),
@@ -50,7 +50,11 @@ describe("useFeedback hooks", () => {
         }
       };
 
-      vi.mocked(feedbackApi.getMyFeedbacks).mockResolvedValue(mockData);
+      vi.mocked(feedbackApi.getMyFeedbacks).mockResolvedValue({
+        code: "SUCCESS",
+        message: "ok",
+        data: mockData,
+      } as CommonResponse<PageResponse<FeedbackResponse>>);
 
       const queryClient = createTestQueryClient();
       const wrapper = createQueryWrapper(queryClient);
@@ -64,7 +68,11 @@ describe("useFeedback hooks", () => {
 
   describe("useCreateFeedback", () => {
     it("피드백 생성 요청 성공 시 캐시를 무효화한다", async () => {
-      vi.mocked(feedbackApi.createFeedback).mockResolvedValue(1);
+      vi.mocked(feedbackApi.createFeedback).mockResolvedValue({
+        code: "SUCCESS",
+        message: "ok",
+        data: 1,
+      });
 
       const queryClient = createTestQueryClient();
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");

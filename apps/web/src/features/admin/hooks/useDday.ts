@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError, type AxiosRequestConfig } from 'axios';
 import api from '@/shared/api/client';
-import type { DdaySettingRequest, DdaySettingResponse } from '@/shared/types/api';
+import type { CommonResponse, DdaySettingRequest, DdaySettingResponse } from '@/shared/types/api';
 
 /**
  * 활성 D-Day 정보를 조회하는 훅 (유저용 - 비로그인도 사용 가능)
@@ -12,9 +12,9 @@ export const useActiveDday = (enabled = true) => {
     queryFn: async () => {
       try {
         const config = { skipAuthRefresh: true } as AxiosRequestConfig & { skipAuthRefresh: boolean };
-        const response = await api.get<DdaySettingResponse | null>('/api/v1/ddays/active', config);
+        const response = await api.get<CommonResponse<DdaySettingResponse>>('/api/v1/ddays/active', config);
         // 204 No Content일 경우 response.data가 비어있을 수 있으므로 null 처리
-        return response.status === 204 ? null : response.data;
+        return response.status === 204 ? null : response.data.data;
       } catch (error) {
         const axiosError = error as AxiosError;
         if (axiosError.response?.status === 401) {
@@ -35,8 +35,8 @@ export const useAdminDdays = () => {
   return useQuery({
     queryKey: ['adminDdays'],
     queryFn: async () => {
-      const response = await api.get<DdaySettingResponse[]>('/api/v1/admin/ddays');
-      return response.data;
+      const response = await api.get<CommonResponse<DdaySettingResponse[]>>('/api/v1/admin/ddays');
+      return response.data.data;
     },
   });
 };
@@ -49,8 +49,8 @@ export const useCreateDday = () => {
 
   return useMutation({
     mutationFn: async (request: DdaySettingRequest) => {
-      const response = await api.post<DdaySettingResponse>('/api/v1/admin/ddays', request);
-      return response.data;
+      const response = await api.post<CommonResponse<DdaySettingResponse>>('/api/v1/admin/ddays', request);
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminDdays'] });
@@ -67,8 +67,8 @@ export const useUpdateDday = () => {
 
   return useMutation({
     mutationFn: async ({ id, request }: { id: number; request: DdaySettingRequest }) => {
-      const response = await api.put<DdaySettingResponse>(`/api/v1/admin/ddays/${id}`, request);
-      return response.data;
+      const response = await api.put<CommonResponse<DdaySettingResponse>>(`/api/v1/admin/ddays/${id}`, request);
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminDdays'] });

@@ -7,6 +7,6 @@ export const getMyWishlist = async (): Promise<CommonResponse<WishlistResponse[]
 };
 
 export const toggleWishlist = async (courseKey: string): Promise<CommonResponse<WishlistToggleResponse>> => {
-  const { data } = await api.post(`/api/v1/wishlist/${courseKey}`);
+  const { data } = await api.post(`/api/v1/wishlist/${encodeURIComponent(courseKey)}`);
   return data;
 };

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/shared/api/client';
-import type { ScheduleRequest, ScheduleResponse } from '@/shared/types/api';
+import type { CommonResponse, ScheduleRequest, ScheduleResponse } from '@/shared/types/api';
 
 /**
  * 모든 일정 목록을 조회하는 훅 (관리자용)
@@ -9,8 +9,8 @@ export const useAdminSchedules = () => {
   return useQuery({
     queryKey: ['adminSchedules'],
     queryFn: async () => {
-      const response = await api.get<ScheduleResponse[]>('/api/v1/admin/schedules');
-      return response.data;
+      const response = await api.get<CommonResponse<ScheduleResponse[]>>('/api/v1/admin/schedules');
+      return response.data.data;
     },
   });
 };
@@ -23,8 +23,8 @@ export const useCreateSchedule = () => {
 
   return useMutation({
     mutationFn: async (request: ScheduleRequest) => {
-      const response = await api.post<ScheduleResponse>('/api/v1/admin/schedules', request);
-      return response.data;
+      const response = await api.post<CommonResponse<ScheduleResponse>>('/api/v1/admin/schedules', request);
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminSchedules'] });
@@ -41,8 +41,8 @@ export const useUpdateSchedule = () => {
 
   return useMutation({
     mutationFn: async ({ id, request }: { id: number; request: ScheduleRequest }) => {
-      const response = await api.put<ScheduleResponse>(`/api/v1/admin/schedules/${id}`, request);
-      return response.data;
+      const response = await api.put<CommonResponse<ScheduleResponse>>(`/api/v1/admin/schedules/${id}`, request);
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminSchedules'] });

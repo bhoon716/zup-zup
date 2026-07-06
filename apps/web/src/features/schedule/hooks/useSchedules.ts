@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/shared/api/client';
-import type { ScheduleResponse, ScheduleRequest } from '@/shared/types/api';
+import type { CommonResponse, ScheduleResponse, ScheduleRequest } from '@/shared/types/api';
 
 /**
  * 예정된 일정 목록을 조회하는 훅 (유저용 - 비로그인 유저도 허용)
@@ -9,8 +9,8 @@ export const useUpcomingSchedules = (enabled = true) => {
   return useQuery({
     queryKey: ['schedules', 'upcoming'],
     queryFn: async () => {
-      const response = await api.get<ScheduleResponse[]>('/api/v1/schedules');
-      return response.data;
+      const response = await api.get<CommonResponse<ScheduleResponse[]>>('/api/v1/schedules');
+      return response.data.data;
     },
     staleTime: 5 * 60 * 1000, // 5분
     enabled,
@@ -24,8 +24,8 @@ export const useAdminAllSchedules = () => {
   return useQuery({
     queryKey: ['schedules', 'admin-all'],
     queryFn: async () => {
-      const response = await api.get<ScheduleResponse[]>('/api/v1/admin/schedules');
-      return response.data;
+      const response = await api.get<CommonResponse<ScheduleResponse[]>>('/api/v1/admin/schedules');
+      return response.data.data;
     },
     staleTime: 1 * 60 * 1000,
   });
@@ -39,8 +39,8 @@ export const useCreateSchedule = () => {
 
   return useMutation({
     mutationFn: async (request: ScheduleRequest) => {
-      const response = await api.post<ScheduleResponse>('/api/v1/admin/schedules', request);
-      return response.data;
+      const response = await api.post<CommonResponse<ScheduleResponse>>('/api/v1/admin/schedules', request);
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] });
@@ -56,8 +56,8 @@ export const useUpdateSchedule = () => {
 
   return useMutation({
     mutationFn: async ({ id, request }: { id: number; request: ScheduleRequest }) => {
-      const response = await api.put<ScheduleResponse>(`/api/v1/admin/schedules/${id}`, request);
-      return response.data;
+      const response = await api.put<CommonResponse<ScheduleResponse>>(`/api/v1/admin/schedules/${id}`, request);
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] });

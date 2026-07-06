@@ -34,7 +34,10 @@ export const feedbackKeys = {
 export function useMyFeedbacks(page: number = 0) {
   return useQuery({
     queryKey: feedbackKeys.myList(page),
-    queryFn: () => getMyFeedbacks(page),
+    queryFn: async () => {
+      const response = await getMyFeedbacks(page);
+      return response.data;
+    },
   });
 }
 
@@ -44,7 +47,10 @@ export function useMyFeedbacks(page: number = 0) {
 export function useFeedbackDetail(id: number, enabled: boolean = true) {
   return useQuery({
     queryKey: feedbackKeys.detail(id),
-    queryFn: () => getMyFeedbackDetail(id),
+    queryFn: async () => {
+      const response = await getMyFeedbackDetail(id);
+      return response.data;
+    },
     enabled: enabled && !!id,
   });
 }
@@ -84,7 +90,10 @@ export function useDeleteFeedback() {
 export function useFeedbacksForAdmin(page: number = 0) {
   return useQuery({
     queryKey: feedbackKeys.adminList(page),
-    queryFn: () => getFeedbacksForAdmin(page),
+    queryFn: async () => {
+      const response = await getFeedbacksForAdmin(page);
+      return response.data;
+    },
   });
 }
 
@@ -94,7 +103,10 @@ export function useFeedbacksForAdmin(page: number = 0) {
 export function useAdminFeedbackDetail(id: number, enabled: boolean = true) {
   return useQuery({
     queryKey: [...feedbackKeys.detail(id), "admin"],
-    queryFn: () => getFeedbackDetailForAdmin(id),
+    queryFn: async () => {
+      const response = await getFeedbackDetailForAdmin(id);
+      return response.data;
+    },
     enabled: enabled && !!id,
   });
 }

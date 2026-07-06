@@ -50,7 +50,7 @@ export const timetableApi = {
   },
 
   removeCourse: async (timetableId: number, courseKey: string) => {
-    const { data } = await api.delete<CommonResponse<void>>(`${BASE_URL}/${timetableId}/courses/${courseKey}`);
+    const { data } = await api.delete<CommonResponse<void>>(`${BASE_URL}/${timetableId}/courses/${encodeURIComponent(courseKey)}`);
     return data;
   },
 
