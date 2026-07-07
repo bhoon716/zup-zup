@@ -1,0 +1,26 @@
+.DS_Store
+**/.DS_Store
+
+# Legacy standalone repos kept only as migration sources
+/web/
+/server/
+
+# Web build and package artifacts
+**/node_modules/
+**/.next/
+**/.turbo/
+
+# Server build artifacts
+**/.gradle/
+**/build/
+**/out/
+
+# Local env files
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Misc editor/runtime files
+*.swp
+*.swo
