@@ -1,0 +1,83 @@
+{
+  "issue": {
+    "id": "ISSUE-015-LOGIN-PLAN",
+    "type": "bugfix",
+    "title": "[infra] Add log rotation, 30-day retention, and local backups",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-015-LOGIN-PLAN",
+    "createdAt": "2026-06-23T04:10:40.321Z",
+    "updatedAt": "2026-07-01T13:58:19.660Z",
+    "logPath": ".agents/issues/logs/ISSUE-015-LOGIN-PLAN.md",
+    "parentIssueId": "ISSUE-011-INFRA-LOG-STORAGE-PLAN",
+    "goal": "Goal: enforce a 30-day local retention policy and back up log state to a host-local backup path. Acceptance criteria: application logs rotate and compress, Loki retention matches 30 days, the backup job copies the required data to the chosen local backup path, and a restore drill succeeds. Dependencies: the persistent storage issue and the application log path issue. Evidence required: implementation or review evidence and verification output.",
+    "acceptanceCriteria": [
+      "The issue \"[infra] Add log rotation, 30-day retention, and local backups\" is resolved.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Implementation or review evidence",
+      "Verification output"
+    ],
+    "archivedAt": "2026-07-02T10:40:31.823Z"
+  },
+  "description": "Goal: enforce a 30-day local retention policy and back up log state to a host-local backup path. Acceptance criteria: application logs rotate and compress, Loki retention matches 30 days, the backup job copies the required data to the chosen local backup path, and a restore drill succeeds. Dependencies: the persistent storage issue and the application log path issue. Evidence required: implementation or review evidence and verification output.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Intake",
+      "Archived"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-02T10:40:31.823Z",
+    "evidence": [
+      {
+        "kind": "command_output",
+        "title": "Retention and backup drill",
+        "detail": "Set server log retention to 30 days in server/src/main/resources/logback-spring.xml, configured Loki compactor retention to 720h with filesystem-backed storage in infra/loki/loki-config.yaml, and added host-local backup and restore scripts under infra/scripts. Verified compose parsing with docker compose -f docker-compose.yml config, verified the backup/restore drill using temp source and restore roots, and verified server logback still passes ./gradlew test --tests bhoon.sugang_helper.logging.LogbackFileAppenderTest.",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/infra/scripts/backup-log-state.sh"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-015-LOGIN-PLAN/issue.md",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-015-LOGIN-PLAN/issue.json",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-015-LOGIN-PLAN/workflow-state.json",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-015-LOGIN-PLAN.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-015-LOGIN-PLAN.md",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-015-LOGIN-PLAN/decisions/README.md",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-015-LOGIN-PLAN/reviews/README.md",
+        "detail": "Bug Fix step Intake"
+      }
+    ]
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-015-LOGIN-PLAN/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-015-LOGIN-PLAN.md"
+}

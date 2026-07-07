@@ -1,0 +1,49 @@
+{
+  "issue": {
+    "id": "ISSUE-049-SERVER-VERIFY-NOTIFICATION-COMMIT-LISTENER-WITH-REAL-TRANSACTION",
+    "type": "bugfix",
+    "title": "[server] Verify notification commit listener with real transaction",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-049-SERVER-VERIFY-NOTIFICATION-COMMIT-LISTENER-WITH-REAL-TRANSACTION",
+    "createdAt": "2026-07-07T01:50:32+09:00",
+    "updatedAt": "2026-07-07T01:55:02+09:00",
+    "completedAt": "2026-07-07T01:55:02+09:00",
+    "logPath": ".agents/issues/logs/ISSUE-049-SERVER-VERIFY-NOTIFICATION-COMMIT-LISTENER-WITH-REAL-TRANSACTION.md",
+    "goal": "Verify notification dispatch after commit with a real transaction manager instead of a resourceless test transaction so the regression covers production-like commit and rollback behavior.",
+    "acceptanceCriteria": [
+      "The regression test uses a real transactional resource manager or JPA-backed transaction manager.",
+      "Commit and rollback behavior are both covered.",
+      "The test does not rely on a weak stand-in that bypasses transaction synchronization semantics."
+    ],
+    "dependencies": [
+      "Current notification event listener flow",
+      "Test context support for transactional event synchronization"
+    ],
+    "evidenceRequired": [
+      "Implementation diff",
+      "Regression test output",
+      "Review evidence"
+    ]
+  },
+  "description": "The current regression test proves the listener shape, but not the production transaction path. Strengthen it so commit/rollback behavior is exercised through a real transaction manager.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Created",
+      "Intake",
+      "Verify",
+      "Closed"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-07T01:55:02+09:00",
+    "evidence": [
+      "./gradlew test --tests bhoon.sugang_helper.notification.application.NotificationServiceTest --tests bhoon.sugang_helper.notification.application.NotificationChannelPolicyTest --tests bhoon.sugang_helper.notification.application.NotificationServiceTransactionTest",
+      "./gradlew test"
+    ]
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-049-SERVER-VERIFY-NOTIFICATION-COMMIT-LISTENER-WITH-REAL-TRANSACTION/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-049-SERVER-VERIFY-NOTIFICATION-COMMIT-LISTENER-WITH-REAL-TRANSACTION.md"
+}

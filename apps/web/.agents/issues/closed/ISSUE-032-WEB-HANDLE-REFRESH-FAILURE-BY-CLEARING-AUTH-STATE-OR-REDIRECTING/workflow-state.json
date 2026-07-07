@@ -1,0 +1,14 @@
+{
+  "workflowId": "bug-fix",
+  "currentStep": "Closed",
+  "completedSteps": [
+    "Created",
+    "Intake",
+    "Verify",
+    "Closed"
+  ],
+  "failedSteps": [],
+  "blocked": false,
+  "updatedAt": "2026-07-03T13:45:00+09:00",
+  "evidence": []
+}

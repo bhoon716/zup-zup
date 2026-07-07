@@ -1,0 +1,68 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### Secrets ###
+secrets/
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### env ###
+.env
+
+### Mac ###
+.DS_Store
+
+### Firebase ###
+/src/main/resources/firebase/
+/src/main/resources/firebase/*.json
+
+### Properties ###
+**/application.yml
+!src/main/resources/application-prod.yml
+
+### k6 Performance Test Data ###
+/scripts/k6/data/
+/scripts/k6/generate-tokens.js
+/scripts/k6/package.json
+/scripts/k6/package-lock.json
+/scripts/k6/node_modules/
+
+### Performance Test Results & Logs ###
+results_*.txt
+*.log
+/data/
+*.mv.db
+*.trace.db

@@ -1,0 +1,83 @@
+{
+  "issue": {
+    "id": "ISSUE-014-PLAN",
+    "type": "bugfix",
+    "title": "[infra] Persist Loki and Promtail state on host storage",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-014-PLAN",
+    "createdAt": "2026-06-23T04:10:40.308Z",
+    "updatedAt": "2026-07-01T13:53:08.709Z",
+    "logPath": ".agents/issues/logs/ISSUE-014-PLAN.md",
+    "parentIssueId": "ISSUE-011-INFRA-LOG-STORAGE-PLAN",
+    "goal": "Goal: mount durable host storage for Loki and Promtail so their data and positions survive container recreation. Acceptance criteria: Loki uses a host-backed data path instead of /tmp, Promtail positions are stored under /var/lib/promtail, and a restart/recreate check confirms the state persists. Dependencies: the reviewed log storage plan and the application log path issue. Evidence required: implementation or review evidence and verification output.",
+    "acceptanceCriteria": [
+      "The issue \"[infra] Persist Loki and Promtail state on host storage\" is resolved.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Implementation or review evidence",
+      "Verification output"
+    ],
+    "archivedAt": "2026-07-02T10:40:31.823Z"
+  },
+  "description": "Goal: mount durable host storage for Loki and Promtail so their data and positions survive container recreation. Acceptance criteria: Loki uses a host-backed data path instead of /tmp, Promtail positions are stored under /var/lib/promtail, and a restart/recreate check confirms the state persists. Dependencies: the reviewed log storage plan and the application log path issue. Evidence required: implementation or review evidence and verification output.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Intake",
+      "Archived"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-02T10:40:31.823Z",
+    "evidence": [
+      {
+        "kind": "command_output",
+        "title": "Host storage validation",
+        "detail": "Mounted Loki data under /var/lib/jbnu-sugang-helper/loki and Promtail positions under /var/lib/jbnu-sugang-helper/promtail. Updated Loki to use /var/lib/loki for path_prefix and filesystem chunks/rules. Verified with docker compose -f docker-compose.yml config from the infra directory; the host bind mounts render successfully.",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/infra/docker-compose.yml"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-014-PLAN/issue.md",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-014-PLAN/issue.json",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-014-PLAN/workflow-state.json",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-014-PLAN.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-014-PLAN.md",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-014-PLAN/decisions/README.md",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-014-PLAN/reviews/README.md",
+        "detail": "Bug Fix step Intake"
+      }
+    ]
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-014-PLAN/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-014-PLAN.md"
+}

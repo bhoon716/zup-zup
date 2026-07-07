@@ -1,0 +1,48 @@
+{
+  "issue": {
+    "id": "ISSUE-037-SERVER-ADD-DB-CONSTRAINTS-AND-CLEANUP-ORPHANED-USER-DATA",
+    "type": "bugfix",
+    "title": "[server] Add DB constraints and cleanup orphaned user data",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-037-SERVER-ADD-DB-CONSTRAINTS-AND-CLEANUP-ORPHANED-USER-DATA",
+    "createdAt": "2026-07-06T02:46:59+09:00",
+    "updatedAt": "2026-07-06T20:42:19+09:00",
+    "completedAt": "2026-07-06T20:42:19+09:00",
+    "logPath": ".agents/issues/logs/ISSUE-037-SERVER-ADD-DB-CONSTRAINTS-AND-CLEANUP-ORPHANED-USER-DATA.md",
+    "goal": "Add database uniqueness constraints for subscriptions, devices, reviews, and primary timetables, and define a safe cleanup policy so user-owned data does not remain orphaned after account deletion.",
+    "acceptanceCriteria": [
+      "Database constraints prevent duplicate subscriptions, devices, reviews, and multiple primary timetables per user.",
+      "User withdrawal leaves no unintended orphaned user-owned records, or the cleanup policy is explicitly documented and tested.",
+      "Constraint changes are covered by migration or integration verification."
+    ],
+    "dependencies": [
+      "Duplicate cleanup migration plan",
+      "Current schema migration strategy"
+    ],
+    "evidenceRequired": [
+      "Migration diff",
+      "Integration or repository test output",
+      "Review evidence"
+    ]
+  },
+  "description": "Several business invariants are only enforced in application logic today. Add database-level uniqueness and cleanup rules so concurrency and deletion paths cannot create duplicate or orphaned data.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Created",
+      "Intake",
+      "Verify",
+      "Closed"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-06T20:42:19+09:00",
+    "evidence": [
+      "./gradlew test --tests bhoon.sugang_helper.user.application.UserServiceTest --tests bhoon.sugang_helper.user.domain.UserDataConstraintTest"
+    ]
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-037-SERVER-ADD-DB-CONSTRAINTS-AND-CLEANUP-ORPHANED-USER-DATA/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-037-SERVER-ADD-DB-CONSTRAINTS-AND-CLEANUP-ORPHANED-USER-DATA.md"
+}

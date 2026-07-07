@@ -1,0 +1,17 @@
+{
+  "name": "jbnu-sugang-helper",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/shared"
+  ],
+  "scripts": {
+    "web:test": "npm --prefix apps/web run test -- --run",
+    "web:lint": "npm --prefix apps/web run lint",
+    "web:build": "npm --prefix apps/web run build",
+    "server:test": "cd apps/server && ./gradlew test --no-daemon",
+    "server:build": "cd apps/server && ./gradlew build --no-daemon",
+    "infra:verify": "bash infra/scripts/verify-compose-policy.sh infra/docker-compose.yml",
+    "check": "npm run web:test && npm run web:lint && npm run web:build && npm run server:build && npm run infra:verify"
+  }
+}

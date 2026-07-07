@@ -1,0 +1,16 @@
+{
+  "workflowId": "bug-fix",
+  "currentStep": "Closed",
+  "completedSteps": [
+    "Created",
+    "Intake",
+    "Verify",
+    "Closed"
+  ],
+  "failedSteps": [],
+  "blocked": false,
+  "updatedAt": "2026-07-06T20:42:19+09:00",
+  "evidence": [
+    "./gradlew test --tests bhoon.sugang_helper.user.application.UserServiceTest --tests bhoon.sugang_helper.user.domain.UserDataConstraintTest"
+  ]
+}

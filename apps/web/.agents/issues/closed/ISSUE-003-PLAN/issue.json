@@ -1,0 +1,38 @@
+{
+  "issue": {
+    "id": "ISSUE-003-PLAN",
+    "type": "bugfix",
+    "title": "[server] Stop logging OAuth codes and JWTs",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-003-PLAN",
+    "createdAt": "2026-06-23T02:11:26.541Z",
+    "updatedAt": "2026-06-23T02:11:26.541Z",
+    "logPath": ".agents/issues/logs/ISSUE-003-PLAN.md",
+    "goal": "HttpLoggingFilter logs the full request URI including query strings, which exposes OAuth callback codes. JwtProvider also logs the raw blacklisted token value. These values are reusable credentials and should never enter application logs. Evidence: server/src/main/java/bhoon/sugang_helper/common/filter/HttpLoggingFilter.java, server/src/main/java/bhoon/sugang_helper/common/security/jwt/JwtProvider.java.",
+    "acceptanceCriteria": [
+      "The issue \"[server] Stop logging OAuth codes and JWTs\" is resolved.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Implementation or review evidence",
+      "Verification output"
+    ],
+    "archivedAt": "2026-07-02T10:40:31.823Z"
+  },
+  "description": "HttpLoggingFilter logs the full request URI including query strings, which exposes OAuth callback codes. JwtProvider also logs the raw blacklisted token value. These values are reusable credentials and should never enter application logs. Evidence: server/src/main/java/bhoon/sugang_helper/common/filter/HttpLoggingFilter.java, server/src/main/java/bhoon/sugang_helper/common/security/jwt/JwtProvider.java.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Archived"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-02T10:40:31.823Z",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-003-PLAN/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-003-PLAN.md"
+}

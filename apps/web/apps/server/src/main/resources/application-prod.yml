@@ -1,0 +1,115 @@
+spring:
+  application:
+    name: zup-zup
+
+  servlet:
+    session:
+      timeout: 2h
+  session:
+    timeout: 2h
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 3
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: profile,email
+            redirect-uri: https://www.zup-zup.com/api/login/oauth2/code/google
+            authorization-grant-type: authorization_code
+
+  cloud:
+    aws:
+      region:
+        static: us-east-1
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+      ses:
+        enabled: true
+
+  mail:
+    from: no-reply@zup-zup.com
+    from-name: 줍줍
+
+jwt:
+  secret: ${JWT_SECRET}
+  access:
+    expiration: 7200000
+  refresh:
+    expiration: 1209600000
+
+app:
+  auth:
+    refresh-cookie-secure: true
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
+  oauth2:
+    success-redirect-uri: ${APP_OAUTH2_SUCCESS_REDIRECT_URI}
+    failure-redirect-uri: ${APP_OAUTH2_FAILURE_REDIRECT_URI}
+    authorized-redirect-uri: ${APP_OAUTH2_AUTHORIZED_REDIRECT_URI}
+  subscription:
+    max-limit: 10
+  notification:
+    channels:
+      email: true
+      discord: true
+      webpush: true
+      fcm: true
+
+  firebase:
+    config-path: ${FIREBASE_CONFIG_PATH}
+  webpush:
+    public-key: ${WEBPUSH_PUBLIC_KEY}
+    private-key: ${WEBPUSH_PRIVATE_KEY}
+    subject: ${WEBPUSH_SUBJECT}
+  discord:
+    bot-token: ${DISCORD_BOT_TOKEN}
+    client-id: ${DISCORD_CLIENT_ID}
+    client-secret: ${DISCORD_CLIENT_SECRET}
+    redirect-uri: ${DISCORD_REDIRECT_URI}
+
+jbnu:
+  api:
+    url: https://oasis.jbnu.ac.kr/uni/uni/cour/less/findLessSubjtTblInq.action
+    timeout-ms: 180000
+    max-retries: 3
+    retry-wait-ms: 3000
+  crawler:
+    run-on-startup: false
+    cron: "0 * * * * ?"
+    default-year: "2026"
+    default-semester: "U211600010"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    prometheus:
+      enabled: true

@@ -1,0 +1,38 @@
+{
+  "issue": {
+    "id": "ISSUE-007-PLAN",
+    "type": "bugfix",
+    "title": "[server] Harden email verification codes and add rate limiting",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-007-PLAN",
+    "createdAt": "2026-06-23T02:11:28.120Z",
+    "updatedAt": "2026-06-23T02:11:28.120Z",
+    "logPath": ".agents/issues/logs/ISSUE-007-PLAN.md",
+    "goal": "Email verification codes are generated with java.util.Random, and the feedback-style abuse controls are still stubbed elsewhere in the service layer. Use a cryptographically stronger generator and enforce a real request throttle. Evidence: server/src/main/java/bhoon/sugang_helper/user/application/EmailVerificationService.java, server/src/main/java/bhoon/sugang_helper/feedback/application/FeedbackService.java.",
+    "acceptanceCriteria": [
+      "The issue \"[server] Harden email verification codes and add rate limiting\" is resolved.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Implementation or review evidence",
+      "Verification output"
+    ],
+    "archivedAt": "2026-07-02T10:40:31.823Z"
+  },
+  "description": "Email verification codes are generated with java.util.Random, and the feedback-style abuse controls are still stubbed elsewhere in the service layer. Use a cryptographically stronger generator and enforce a real request throttle. Evidence: server/src/main/java/bhoon/sugang_helper/user/application/EmailVerificationService.java, server/src/main/java/bhoon/sugang_helper/feedback/application/FeedbackService.java.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Archived"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-02T10:40:31.823Z",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-007-PLAN/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-007-PLAN.md"
+}

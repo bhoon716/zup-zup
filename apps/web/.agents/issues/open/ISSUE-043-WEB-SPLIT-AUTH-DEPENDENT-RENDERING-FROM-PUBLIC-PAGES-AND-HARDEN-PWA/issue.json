@@ -1,0 +1,42 @@
+{
+  "issue": {
+    "id": "ISSUE-043-WEB-SPLIT-AUTH-DEPENDENT-RENDERING-FROM-PUBLIC-PAGES-AND-HARDEN-PWA",
+    "type": "bugfix",
+    "title": "[web] Split auth-dependent rendering from public pages and harden PWA",
+    "state": "open",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-043-WEB-SPLIT-AUTH-DEPENDENT-RENDERING-FROM-PUBLIC-PAGES-AND-HARDEN-PWA",
+    "createdAt": "2026-07-06T02:46:59+09:00",
+    "updatedAt": "2026-07-06T02:46:59+09:00",
+    "logPath": ".agents/issues/logs/ISSUE-043-WEB-SPLIT-AUTH-DEPENDENT-RENDERING-FROM-PUBLIC-PAGES-AND-HARDEN-PWA.md",
+    "goal": "Move auth-dependent rendering out of public routes, avoid request-time rendering where not needed, and harden the service worker and PWA asset handling.",
+    "acceptanceCriteria": [
+      "Public routes are not forced into request-time rendering by auth-only cookie reads unless that tradeoff is intentional.",
+      "Public detail pages provide the expected server metadata.",
+      "Service worker or PWA URL handling only opens allowed destinations and references correct icons/assets."
+    ],
+    "dependencies": [
+      "Next.js app router behavior",
+      "PWA asset inventory"
+    ],
+    "evidenceRequired": [
+      "Implementation diff",
+      "Frontend verification output",
+      "Review evidence"
+    ]
+  },
+  "description": "The current frontend mixes auth-dependent rendering into public surfaces and lets the service worker open unvetted URLs. Split those concerns and harden the PWA flow so public pages stay fast and predictable.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Intake",
+    "completedSteps": [
+      "Created"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-06T02:46:59+09:00",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/open/ISSUE-043-WEB-SPLIT-AUTH-DEPENDENT-RENDERING-FROM-PUBLIC-PAGES-AND-HARDEN-PWA/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-043-WEB-SPLIT-AUTH-DEPENDENT-RENDERING-FROM-PUBLIC-PAGES-AND-HARDEN-PWA.md"
+}

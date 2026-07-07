@@ -1,0 +1,16 @@
+{
+  "workflowId": "bug-fix",
+  "currentStep": "Closed",
+  "completedSteps": [
+    "Created",
+    "Intake",
+    "Verify",
+    "Closed"
+  ],
+  "failedSteps": [],
+  "blocked": false,
+  "updatedAt": "2026-07-06T20:51:33+09:00",
+  "evidence": [
+    "./gradlew test --tests bhoon.sugang_helper.crawling.application.CourseCrawlerTargetServiceTest --tests bhoon.sugang_helper.timetable.presentation.CustomScheduleRequestValidationTest --tests bhoon.sugang_helper.timetable.application.TimetableServiceTest"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "issue": {
+    "id": "ISSUE-004-LOGIN-PLAN",
+    "type": "bugfix",
+    "title": "[server/infra] Enforce secure auth cookies and HTTPS-only delivery",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-004-LOGIN-PLAN",
+    "createdAt": "2026-06-23T02:11:26.910Z",
+    "updatedAt": "2026-06-23T02:11:26.910Z",
+    "logPath": ".agents/issues/logs/ISSUE-004-LOGIN-PLAN.md",
+    "goal": "The refresh token cookie is emitted with secure(false), and the deployment still exposes the app over plain HTTP paths. This leaves authentication material vulnerable to interception and makes HTTPS enforcement inconsistent across environments. Evidence: server/src/main/java/bhoon/sugang_helper/auth/application/AuthService.java, server/docker-compose.yml, infra/npm/data/nginx/proxy_host/1.conf, infra/npm/data/nginx/proxy_host/2.conf.",
+    "acceptanceCriteria": [
+      "The issue \"[server/infra] Enforce secure auth cookies and HTTPS-only delivery\" is resolved.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Implementation or review evidence",
+      "Verification output"
+    ],
+    "archivedAt": "2026-07-02T10:40:31.823Z"
+  },
+  "description": "The refresh token cookie is emitted with secure(false), and the deployment still exposes the app over plain HTTP paths. This leaves authentication material vulnerable to interception and makes HTTPS enforcement inconsistent across environments. Evidence: server/src/main/java/bhoon/sugang_helper/auth/application/AuthService.java, server/docker-compose.yml, infra/npm/data/nginx/proxy_host/1.conf, infra/npm/data/nginx/proxy_host/2.conf.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Archived"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-02T10:40:31.823Z",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-004-LOGIN-PLAN/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-004-LOGIN-PLAN.md"
+}

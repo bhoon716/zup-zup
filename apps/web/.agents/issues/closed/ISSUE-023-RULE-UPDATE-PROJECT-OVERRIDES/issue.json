@@ -1,0 +1,38 @@
+{
+  "issue": {
+    "id": "ISSUE-023-RULE-UPDATE-PROJECT-OVERRIDES",
+    "type": "bugfix",
+    "title": "[server] Harden refresh reissue with CSRF guard, rotation, reuse detection, and Redis failure policy",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-023-RULE-UPDATE-PROJECT-OVERRIDES",
+    "createdAt": "2026-06-28T09:42:31.013Z",
+    "updatedAt": "2026-06-28T09:42:31.013Z",
+    "logPath": ".agents/issues/logs/ISSUE-023-RULE-UPDATE-PROJECT-OVERRIDES.md",
+    "goal": "Grill log item: secure the refresh-token pipeline. Make /api/auth/reissue POST-only, require a custom request header to reduce CSRF/RTR abuse, add refresh-token rotation with a short grace period and reuse detection, and apply Redis failure policies that fail open for access-token validation while failing closed for refresh-token reissue. Acceptance: refresh reuse is detected and revoked outside the grace window, concurrent legitimate refreshes are handled safely, access-token auth remains usable when Redis blacklist checks are unavailable, and refresh reissue is denied on Redis failure.",
+    "acceptanceCriteria": [
+      "The issue \"[server] Harden refresh reissue with CSRF guard, rotation, reuse detection, and Redis failure policy\" is resolved.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Implementation or review evidence",
+      "Verification output"
+    ],
+    "archivedAt": "2026-07-02T10:40:31.823Z"
+  },
+  "description": "Grill log item: secure the refresh-token pipeline. Make /api/auth/reissue POST-only, require a custom request header to reduce CSRF/RTR abuse, add refresh-token rotation with a short grace period and reuse detection, and apply Redis failure policies that fail open for access-token validation while failing closed for refresh-token reissue. Acceptance: refresh reuse is detected and revoked outside the grace window, concurrent legitimate refreshes are handled safely, access-token auth remains usable when Redis blacklist checks are unavailable, and refresh reissue is denied on Redis failure.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Archived"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-02T10:40:31.823Z",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-023-RULE-UPDATE-PROJECT-OVERRIDES/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-023-RULE-UPDATE-PROJECT-OVERRIDES.md"
+}

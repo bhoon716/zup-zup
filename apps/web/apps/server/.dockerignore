@@ -1,0 +1,11 @@
+.gradle
+build/*
+!build/libs/
+!build/libs/*.jar
+out
+.git
+.idea
+.vscode
+.DS_Store
+*.log
+.env

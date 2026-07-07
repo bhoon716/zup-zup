@@ -1,0 +1,11 @@
+{
+  "workflowId": "refactoring",
+  "currentStep": "Closed",
+  "completedSteps": [
+    "Archived"
+  ],
+  "failedSteps": [],
+  "blocked": false,
+  "updatedAt": "2026-07-02T10:40:31.823Z",
+  "evidence": []
+}

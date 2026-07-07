@@ -1,0 +1,285 @@
+{
+  "issue": {
+    "id": "ISSUE-011-INFRA-LOG-STORAGE-PLAN",
+    "type": "planning",
+    "title": "[infra] Log storage plan for self-hosted server",
+    "state": "closed",
+    "workflowId": "mvp-planning",
+    "directory": "ISSUE-011-INFRA-LOG-STORAGE-PLAN",
+    "createdAt": "2026-06-23T03:49:28.413Z",
+    "updatedAt": "2026-06-23T04:18:00.000Z",
+    "logPath": ".agents/issues/logs/ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+    "goal": "Design a self-hosted log retention and storage plan for the server without AWS or external IaaS. The plan should define where application logs live on the host, how Loki/Promtail state persists across container recreation, how rotation and retention are handled, and how backups are performed to a local or secondary disk. Evidence reviewed so far shows the current Loki and Promtail configs use /tmp, Docker json-file logging is only a transport layer, and promtail currently mounts the Docker socket. Target paths should follow Unix conventions: application logs under /var/log/<service>, Loki/Promtail state under /var/lib/<service>, or another clearly justified host path. Acceptance criteria should include a concrete directory layout, compose volume mapping plan, retention policy, backup strategy, and a migration checklist.",
+    "acceptanceCriteria": [
+      "The issue \"[infra] Log storage plan for self-hosted server\" is resolved.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Implementation or review evidence",
+      "Verification output"
+    ],
+    "childIssueIds": [
+      "ISSUE-013-SERVER-WEB-WRITE-APPLICATION-LOGS-TO-HOST-FILES",
+      "ISSUE-014-PLAN",
+      "ISSUE-015-LOGIN-PLAN",
+      "ISSUE-016-LOGIN-PLAN"
+    ],
+    "archivedAt": "2026-07-02T10:40:31.823Z"
+  },
+  "description": "Design a self-hosted log retention and storage plan for the server without AWS or external IaaS. The plan should define where application logs live on the host, how Loki/Promtail state persists across container recreation, how rotation and retention are handled, and how backups are performed to a local or secondary disk. Evidence reviewed so far shows the current Loki and Promtail configs use /tmp, Docker json-file logging is only a transport layer, and promtail currently mounts the Docker socket. Target paths should follow Unix conventions: application logs under /var/log/<service>, Loki/Promtail state under /var/lib/<service>, or another clearly justified host path. Acceptance criteria should include a concrete directory layout, compose volume mapping plan, retention policy, backup strategy, and a migration checklist.",
+  "workflowState": {
+    "workflowId": "mvp-planning",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Intake",
+      "Requirement Analysis",
+      "Clarifying Questions",
+      "Scope Definition",
+      "MVP Plan",
+      "Plan Review",
+      "Issue Breakdown",
+      "Close",
+      "Archived"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-02T10:40:31.823Z",
+    "evidence": [
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.md",
+        "detail": "MVP Planning step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.json",
+        "detail": "MVP Planning step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/workflow-state.json",
+        "detail": "MVP Planning step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "detail": "MVP Planning step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/decisions/README.md",
+        "detail": "MVP Planning step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/reviews/README.md",
+        "detail": "MVP Planning step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.md",
+        "detail": "MVP Planning step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.json",
+        "detail": "MVP Planning step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/workflow-state.json",
+        "detail": "MVP Planning step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "detail": "MVP Planning step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/decisions/README.md",
+        "detail": "MVP Planning step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/reviews/README.md",
+        "detail": "MVP Planning step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.md",
+        "detail": "MVP Planning step Scope Definition"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.json",
+        "detail": "MVP Planning step Scope Definition"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/workflow-state.json",
+        "detail": "MVP Planning step Scope Definition"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "detail": "MVP Planning step Scope Definition"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/decisions/README.md",
+        "detail": "MVP Planning step Scope Definition"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/reviews/README.md",
+        "detail": "MVP Planning step Scope Definition"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.md",
+        "detail": "MVP Planning step MVP Plan"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.json",
+        "detail": "MVP Planning step MVP Plan"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/workflow-state.json",
+        "detail": "MVP Planning step MVP Plan"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "detail": "MVP Planning step MVP Plan"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/decisions/README.md",
+        "detail": "MVP Planning step MVP Plan"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/reviews/README.md",
+        "detail": "MVP Planning step MVP Plan"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.md",
+        "detail": "MVP Planning step Plan Review"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.json",
+        "detail": "MVP Planning step Plan Review"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/workflow-state.json",
+        "detail": "MVP Planning step Plan Review"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "detail": "MVP Planning step Plan Review"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/decisions/README.md",
+        "detail": "MVP Planning step Plan Review"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/reviews/README.md",
+        "detail": "MVP Planning step Plan Review"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.md",
+        "detail": "MVP Planning step Issue Breakdown"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/issue.json",
+        "detail": "MVP Planning step Issue Breakdown"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/workflow-state.json",
+        "detail": "MVP Planning step Issue Breakdown"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "detail": "MVP Planning step Issue Breakdown"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/decisions/README.md",
+        "detail": "MVP Planning step Issue Breakdown"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/reviews/README.md",
+        "detail": "MVP Planning step Issue Breakdown"
+      },
+      {
+        "kind": "command_output",
+        "title": "Recovery root cause: Commit",
+        "detail": "Evidence review completed after the earlier blocked commit attempt; unblock the workflow state so the commit step can continue."
+      },
+      {
+        "kind": "review",
+        "title": "REVIEW-001-ISSUE-011-INFRA-LOG-STORAGE-PLAN.md",
+        "detail": "Passed; no hard blockers; deferrable performance concern recorded.",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/reviews/REVIEW-001-ISSUE-011-INFRA-LOG-STORAGE-PLAN.md"
+      },
+      {
+        "kind": "command_output",
+        "title": "Recovery root cause: Commit",
+        "detail": "Evidence review is now recorded in the workflow state; unblock the Commit step and resume the normal planning flow."
+      }
+    ]
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-011-INFRA-LOG-STORAGE-PLAN/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-011-INFRA-LOG-STORAGE-PLAN.md"
+}

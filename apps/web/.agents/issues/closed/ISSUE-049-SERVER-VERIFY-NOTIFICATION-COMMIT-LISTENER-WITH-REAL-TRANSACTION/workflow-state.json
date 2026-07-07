@@ -1,0 +1,17 @@
+{
+  "workflowId": "bug-fix",
+  "currentStep": "Closed",
+  "completedSteps": [
+    "Created",
+    "Intake",
+    "Verify",
+    "Closed"
+  ],
+  "failedSteps": [],
+  "blocked": false,
+  "updatedAt": "2026-07-07T01:55:02+09:00",
+  "evidence": [
+    "./gradlew test --tests bhoon.sugang_helper.notification.application.NotificationServiceTest --tests bhoon.sugang_helper.notification.application.NotificationChannelPolicyTest --tests bhoon.sugang_helper.notification.application.NotificationServiceTransactionTest",
+    "./gradlew test"
+  ]
+}

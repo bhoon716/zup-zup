@@ -1,0 +1,42 @@
+{
+  "issue": {
+    "id": "ISSUE-032-WEB-HANDLE-REFRESH-FAILURE-BY-CLEARING-AUTH-STATE-OR-REDIRECTING",
+    "type": "bugfix",
+    "title": "[web] Handle refresh failure by clearing auth state or redirecting",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-032-WEB-HANDLE-REFRESH-FAILURE-BY-CLEARING-AUTH-STATE-OR-REDIRECTING",
+    "createdAt": "2026-07-03T13:13:58+09:00",
+    "updatedAt": "2026-07-03T13:45:00+09:00",
+    "completedAt": "2026-07-03T13:45:00+09:00",
+    "logPath": ".agents/issues/logs/ISSUE-032-WEB-HANDLE-REFRESH-FAILURE-BY-CLEARING-AUTH-STATE-OR-REDIRECTING.md",
+    "goal": "Ensure that when auth refresh fails, the client clears stale authenticated state and moves the user to a safe logged-out state instead of leaving stale auth state behind.",
+    "acceptanceCriteria": [
+      "Refresh failure clears or invalidates the client auth state consistently.",
+      "The user is redirected or otherwise placed into the expected logged-out flow.",
+      "Verification evidence covers the refresh-failure path."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Regression test or reproduction output covering refresh failure.",
+      "Verification output showing the client no longer stays in a stale authenticated state."
+    ]
+  },
+  "description": "Refresh failures can leave stale authenticated state behind in the client.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Created",
+      "Intake",
+      "Verify",
+      "Closed"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-03T13:45:00+09:00",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/open/ISSUE-032-WEB-HANDLE-REFRESH-FAILURE-BY-CLEARING-AUTH-STATE-OR-REDIRECTING/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-032-WEB-HANDLE-REFRESH-FAILURE-BY-CLEARING-AUTH-STATE-OR-REDIRECTING.md"
+}

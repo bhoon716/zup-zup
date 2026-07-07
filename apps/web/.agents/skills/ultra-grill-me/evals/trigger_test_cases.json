@@ -1,0 +1,138 @@
+[
+  {
+    "id": "trigger-001-product-idea",
+    "category": "trigger",
+    "prompt": "새로운 사이드 프로젝트로 개발자용 할일 관리 앱 아이디어가 있는데, 만들기 전에 끝까지 빈틈 좀 털어줘.",
+    "expected_skill_use": true,
+    "expected_reference": "references/product-idea-grill.md",
+    "description": "구체적인 제품 아이디어 검증 요청 시 스킬 활성화 및 product-idea 레퍼런스 로드 여부 테스트"
+  },
+  {
+    "id": "trigger-002-architecture-decision",
+    "category": "trigger",
+    "prompt": "우리 서비스 데이터베이스를 PostgreSQL에서 MongoDB로 전환하려고 해. 이 아키텍처 결정이 맞는지 반대신문하듯이 질문으로 압박 검증해줘.",
+    "expected_skill_use": true,
+    "expected_reference": "references/architecture-decision-grill.md",
+    "description": "아키텍처 결정 tradeoff 압박 검증 요청 시 스킬 활성화 및 architecture-decision 레퍼런스 로드 여부 테스트"
+  },
+  {
+    "id": "trigger-003-personal-decision",
+    "category": "trigger",
+    "prompt": "두 회사에서 합격 오퍼를 받았어. 하나는 연봉이 높은 스타트업이고, 하나는 네임밸류가 있는 대기업이야. 후회 없는 선택을 하고 싶은데, 질문으로 내 생각을 털어줘.",
+    "expected_skill_use": true,
+    "expected_reference": "references/personal-decision-grill.md",
+    "description": "이직 등 개인 의사결정 고민 시 스킬 활성화 및 personal-decision 레퍼런스 로드 여부 테스트"
+  },
+  {
+    "id": "trigger-004-implementation-plan",
+    "category": "trigger",
+    "prompt": "이번 신규 간편결정 기능의 출시 3주 마일스톤 계획을 세웠어. 리스크나 의존성 오류가 없는지 질문으로 털어봐줘.",
+    "expected_skill_use": true,
+    "expected_reference": "references/implementation-plan-grill.md",
+    "description": "구현 마일스톤 일정 리스크 검토 시 스킬 활성화 및 implementation-plan 레퍼런스 로드 여부 테스트"
+  },
+  {
+    "id": "trigger-005-writing-direction",
+    "category": "trigger",
+    "prompt": "다음 달 사내 기술 세미나에서 '마이크로서비스 아키텍처 전환 후기'를 발표하려고 해. 장표 흐름이나 내러티브에 빈틈이 없는지 압박 질문으로 털어줘.",
+    "expected_skill_use": true,
+    "expected_reference": "references/writing-direction-grill.md",
+    "description": "발표자료 내러티브 기획 검토 시 스킬 활성화 및 writing-direction 레퍼런스 로드 여부 테스트"
+  },
+  {
+    "id": "trigger-006-explicit-command",
+    "category": "trigger",
+    "prompt": "/ultra-grill-me 내 React 공부 로드맵 검증 시작해줘.",
+    "expected_skill_use": true,
+    "expected_reference": "references/learning-plan-grill.md",
+    "description": "슬래시 커맨드를 통한 강제 스킬 호출 시 활성화 여부 테스트"
+  },
+  {
+    "id": "non-trigger-001-factual-qa",
+    "category": "non-trigger",
+    "prompt": "PRD와 Technical Design 문서의 가장 큰 차이점이 뭐야?",
+    "expected_skill_use": false,
+    "expected_reference": null,
+    "description": "단순 개념 비교 Q&A 시 스킬이 오발동되지 않는지 테스트"
+  },
+  {
+    "id": "non-trigger-002-brainstorming",
+    "category": "non-trigger",
+    "prompt": "요즘 1인 개발자가 개발해서 출시하기 좋은 간단한 AI 서비스 아이디어 5개만 추천해줘.",
+    "expected_skill_use": false,
+    "expected_reference": null,
+    "description": "일반적인 아이디어 추천/브레인스토밍 요청 시 스킬이 오발동되지 않는지 테스트"
+  },
+  {
+    "id": "non-trigger-003-direct-generation",
+    "category": "non-trigger",
+    "prompt": "아래 기획 요약을 바탕으로, 바로 Next.js 프로젝트 폴더 구조를 설계하고 코드베이스를 작성해줘.",
+    "expected_skill_use": false,
+    "expected_reference": null,
+    "description": "즉각적인 실행/코딩 요청 시 스킬이 오발동되지 않는지 테스트"
+  },
+  {
+    "id": "non-trigger-004-polishing",
+    "category": "non-trigger",
+    "prompt": "이번 아키텍처 결정 내용을 대기업 임원들이 이해할 수 있게, 조금만 더 정중하고 쉬운 비즈니스 어투로 고쳐서 바로 출력해줄래?",
+    "expected_skill_use": false,
+    "expected_reference": null,
+    "description": "단순 문장 교정/어조 변경 요청 시 스킬이 오발동되지 않는지 테스트"
+  },
+  {
+    "id": "non-trigger-005-summarization",
+    "category": "non-trigger",
+    "prompt": "이 MSA 전환 관련 블로그 포스트 주소 줄 테니까, 이거 핵심 요약 3줄로 정리만 딱 해줘.",
+    "expected_skill_use": false,
+    "expected_reference": null,
+    "description": "단순 타사 아티클 요약 요청 시 스킬이 오발동되지 않는지 테스트"
+  },
+  {
+    "id": "non-trigger-006-debugging",
+    "category": "non-trigger",
+    "prompt": "이 React 컴포넌트 실행하면 'Cannot read properties of undefined (reading 'map')' 에러 나는데, 어디서 터진 건지 바로 확인하고 디버깅 코드 짜줘.",
+    "expected_skill_use": false,
+    "expected_reference": null,
+    "description": "런타임 코드 디버깅 및 트러블슈팅 요청 시 스킬이 오발동되지 않는지 테스트"
+  },
+  {
+    "id": "trigger-007-casual-pressure",
+    "category": "trigger",
+    "prompt": "내가 AI 공부 로드맵 서비스 만들려고 하는데, 출시 전에 빈틈없이 파헤쳐줘.",
+    "expected_skill_use": true,
+    "expected_reference": "references/product-idea-grill.md",
+    "description": "casual pressure-test phrasing ('하려고 하는데 파헤쳐줘')에서도 스킬이 발동하는지 테스트"
+  },
+  {
+    "id": "trigger-008-bypass-natural",
+    "category": "trigger",
+    "prompt": "질문은 해도 되니까, 이 발표 자료를 반대신문하듯 털어줘.",
+    "expected_skill_use": true,
+    "expected_reference": "references/writing-direction-grill.md",
+    "description": "자연어로 된 압박 검증 요청이 trigger로 인식되는지 테스트"
+  },
+  {
+    "id": "edge-001-vague-plan",
+    "category": "edge",
+    "prompt": "이 계획이 괜찮은지 봐줘.",
+    "expected_skill_use": true,
+    "expected_reference": "references/implementation-plan-grill.md",
+    "description": "모호하지만 계획 검증 의도는 있는 경계 입력이 trigger 되는지 테스트"
+  },
+  {
+    "id": "non-trigger-007-definition",
+    "category": "non-trigger",
+    "prompt": "ultra-grill-me가 뭐야?",
+    "expected_skill_use": false,
+    "expected_reference": null,
+    "description": "스킬 자체에 대한 단순 정의 질문이 오발동되지 않는지 테스트"
+  },
+  {
+    "id": "non-trigger-008-short-rewrite",
+    "category": "non-trigger",
+    "prompt": "이 문장을 한 줄로 더 짧게 바꿔줘.",
+    "expected_skill_use": false,
+    "expected_reference": null,
+    "description": "단순 압축/문장 수정 요청 시 스킬이 오발동되지 않는지 테스트"
+  }
+]

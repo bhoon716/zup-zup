@@ -1,0 +1,220 @@
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/shared/ui/button";
+import { Filter, RotateCcw, Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/shared/lib/utils";
+import type { CourseSearchCondition } from "@/shared/types/api";
+import { DEFAULT_CONDITION } from "../constants/course-options";
+import { CourseBasicFilters } from "./filters/course-basic-filters";
+import { CourseDetailFilters } from "./filters/course-detail-filters";
+import { CourseSmartFilters } from "./filters/course-smart-filters";
+import { FilterSection } from "./filters/filter-section";
+import type { TimetableResponse, User } from "@/shared/types/api";
+
+interface CourseSearchBarProps {
+  onSearch: (condition: CourseSearchCondition) => void;
+  onConditionChange?: (condition: CourseSearchCondition) => void;
+  isLoading?: boolean;
+  initialCondition?: CourseSearchCondition;
+  defaultCondition?: CourseSearchCondition;
+  hideHeader?: boolean;
+  initialUser?: User | null;
+  initialTimetables?: TimetableResponse[];
+  skipPersonalFetch?: boolean;
+}
+
+export function CourseSearchBar({
+  onSearch,
+  onConditionChange,
+  isLoading,
+  initialCondition,
+  defaultCondition,
+  hideHeader,
+  initialUser,
+  initialTimetables,
+  skipPersonalFetch,
+}: CourseSearchBarProps) {
+  const resolvedDefaultCondition = defaultCondition ?? DEFAULT_CONDITION;
+  const initialSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
+  const [condition, setCondition] = useState<CourseSearchCondition>(
+    () => ({ ...(initialCondition ?? resolvedDefaultCondition) }),
+  );
+  const prevInitialRef = useRef(initialSnapshot);
+
+  /**
+   * 외부에서 전달된 초기 검색 조건이 실질적으로 변경될 경우(예: 필터 칩 삭제)
+   * 로컬 상태를 갱신합니다.
+   */
+  useEffect(() => {
+    const nextSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
+    if (nextSnapshot === prevInitialRef.current) return;
+
+    prevInitialRef.current = nextSnapshot;
+    const timeoutId = window.setTimeout(() => {
+      setCondition({ ...(initialCondition ?? resolvedDefaultCondition) });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initialCondition, resolvedDefaultCondition]);
+  
+  // UI 상태: 접기/펼치기
+  const [smartOpen, setSmartOpen] = useState(true);
+  const [basicOpen, setBasicOpen] = useState(true);
+  const [detailOpen, setDetailOpen] = useState(true);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+
+
+  /**
+   * 로컬 검색 조건이 변경될 때 상위 컴포넌트에 알립니다.
+   */
+  useEffect(() => {
+    onConditionChange?.(condition);
+  }, [condition, onConditionChange]);
+
+  /**
+   * 검색 버튼 클릭 시 호출되며, 선택된 검색 조건을 부모 컴포넌트로 전달합니다.
+   * 학년도와 학기 선택 여부를 검증합니다.
+   */
+  const handleSearch = () => {
+    if (!condition.academicYear || !condition.semester) {
+      toast.error("학년도와 학기를 선택해주세요.");
+      return;
+    }
+    onSearch(condition);
+  };
+
+  /**
+   * 모든 검색 조건을 기본값으로 초기화하고 검색을 수행합니다.
+   * 초기화 성공 시 토스트 메시지를 표시합니다.
+   */
+  const handleReset = () => {
+    setCondition({ ...resolvedDefaultCondition });
+    onSearch({ ...resolvedDefaultCondition });
+    toast.success("검색 조건을 초기화했습니다.");
+  };
+
+  return (
+    <div className={cn("flex min-h-0 flex-col", !hideHeader && "h-full")}>
+      {!hideHeader && (
+        <div className="space-y-3 pb-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="강의명 또는 코드"
+                value={condition.name || ""}
+                onChange={(e) => setCondition((prev) => ({ ...prev, name: e.target.value }))}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="h-12 w-full rounded-2xl border-none bg-muted/50 pl-10 pr-4 text-sm font-bold placeholder:text-muted-foreground/60 focus:bg-white focus:ring-2 focus:ring-primary/20"
+              />
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            </div>
+            <Button
+              type="button"
+              onClick={handleSearch}
+              disabled={isLoading}
+              className="h-12 rounded-2xl bg-primary px-5 font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+            >
+              {isLoading ? (
+                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              ) : (
+                "검색"
+              )}
+            </Button>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleReset}
+            disabled={isLoading}
+            className="h-10 w-full gap-2 rounded-xl border-border/40 bg-white/50 text-xs font-medium text-muted-foreground hover:bg-white/80 hover:text-foreground"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            검색 조건 초기화
+          </Button>
+        </div>
+      )}
+
+      <div className={cn("space-y-3 pr-1 scrollbar-hide", !hideHeader ? "flex-1 overflow-y-auto" : "h-auto overflow-visible")}>
+        {/* 스마트 필터 섹션 */}
+        <FilterSection
+          idBase="course-search-smart"
+          title="스마트 필터"
+          icon={<Sparkles className="h-4 w-4 text-violet-500" />}
+          open={smartOpen}
+          onOpenChange={setSmartOpen}
+        >
+          <CourseSmartFilters
+            condition={condition}
+            setCondition={setCondition}
+            scheduleOpen={scheduleOpen}
+            setScheduleOpen={setScheduleOpen}
+            initialUser={initialUser}
+            initialTimetables={initialTimetables}
+            skipPersonalFetch={skipPersonalFetch}
+          />
+        </FilterSection>
+
+        {/* 기본 정보 섹션 */}
+        <FilterSection
+          idBase="course-search-basic"
+          title="기본 정보"
+          icon={<Filter className="h-4 w-4 text-primary/80" />}
+          open={basicOpen}
+          onOpenChange={setBasicOpen}
+        >
+          <CourseBasicFilters
+            condition={condition}
+            setCondition={setCondition}
+            idBasePrefix="course-search-basic"
+          />
+        </FilterSection>
+
+        {/* 강의 상세 섹션 */}
+        <FilterSection
+          idBase="course-search-detail"
+          title="강의 상세"
+          icon={<SlidersHorizontal className="h-4 w-4 text-primary/80" />}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+        >
+          <CourseDetailFilters
+            condition={condition}
+            setCondition={setCondition}
+          />
+        </FilterSection>
+
+        {hideHeader && (
+          <div className="grid grid-cols-3 gap-2 pt-4 pb-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={isLoading}
+              className="col-span-1 h-12 rounded-2xl border-border/40 font-bold text-muted-foreground"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              초기화
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSearch}
+              disabled={isLoading}
+              className="col-span-2 h-12 rounded-2xl bg-primary font-bold text-white shadow-lg shadow-primary/20"
+            >
+              {isLoading ? (
+                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              ) : (
+                <>
+                  <Search className="mr-2 h-4 w-4" />
+                  필터 적용
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,42 @@
+{
+  "issue": {
+    "id": "ISSUE-030-SERVER-REMOVE-HARDCODED-PRODUCTION-SECRETS-FROM-APPLICATION-PROD",
+    "type": "bugfix",
+    "title": "[server] Remove hardcoded production secrets from application-prod.yml",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-030-SERVER-REMOVE-HARDCODED-PRODUCTION-SECRETS-FROM-APPLICATION-PROD",
+    "createdAt": "2026-07-03T13:13:58+09:00",
+    "updatedAt": "2026-07-06T16:00:00+09:00",
+    "completedAt": "2026-07-06T16:00:00+09:00",
+    "logPath": ".agents/issues/logs/ISSUE-030-SERVER-REMOVE-HARDCODED-PRODUCTION-SECRETS-FROM-APPLICATION-PROD.md",
+    "goal": "Remove hardcoded production secrets from `server/src/main/resources/application-prod.yml` and move them to environment variables or mounted secret files so the production config no longer contains sensitive credentials.",
+    "acceptanceCriteria": [
+      "No production secret values remain committed in `application-prod.yml`.",
+      "Production runtime reads secret values from environment variables or mounted secret sources.",
+      "Verification evidence shows the secrets were removed and the application still resolves required config."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Config diff or grep output showing the secrets were removed.",
+      "Verification output showing the app still boots or loads config with externalized values."
+    ]
+  },
+  "description": "Production configuration contains committed secrets that should be externalized and rotated.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Created",
+      "Intake",
+      "Verify",
+      "Closed"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-06T16:00:00+09:00",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-030-SERVER-REMOVE-HARDCODED-PRODUCTION-SECRETS-FROM-APPLICATION-PROD/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-030-SERVER-REMOVE-HARDCODED-PRODUCTION-SECRETS-FROM-APPLICATION-PROD.md"
+}

@@ -1,0 +1,38 @@
+{
+  "issue": {
+    "id": "ISSUE-018-SERVER-ENHANCE-SESSION-COOKIE-FETCH-ROBUSTNESS-IN-JBNUCOURSEAPICLIENT",
+    "type": "bugfix",
+    "title": "[server] Enhance session cookie fetch robustness in JbnuCourseApiClient",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-018-SERVER-ENHANCE-SESSION-COOKIE-FETCH-ROBUSTNESS-IN-JBNUCOURSEAPICLIENT",
+    "createdAt": "2026-06-23T07:59:13.297Z",
+    "updatedAt": "2026-06-23T07:59:13.297Z",
+    "logPath": ".agents/issues/logs/ISSUE-018-SERVER-ENHANCE-SESSION-COOKIE-FETCH-ROBUSTNESS-IN-JBNUCOURSEAPICLIENT.md",
+    "goal": "JbnuCourseApiClient.fetchSessionCookies()에서 쿠키 획득 실패 시 빈 Map을 반환하고 있습니다. 이로 인해 fetchCourseDataXml() 호출 시 빈 쿠키 값으로 잘못된 API 요청을 보내고 에러를 발생시킨 후 재시도하게 됩니다. 쿠키 획득 실패 시 바로 예외를 던지거나 재시도하도록 개선해야 합니다.",
+    "acceptanceCriteria": [
+      "The issue \"[server] Enhance session cookie fetch robustness in JbnuCourseApiClient\" is resolved.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Implementation or review evidence",
+      "Verification output"
+    ],
+    "archivedAt": "2026-07-02T10:40:31.823Z"
+  },
+  "description": "JbnuCourseApiClient.fetchSessionCookies()에서 쿠키 획득 실패 시 빈 Map을 반환하고 있습니다. 이로 인해 fetchCourseDataXml() 호출 시 빈 쿠키 값으로 잘못된 API 요청을 보내고 에러를 발생시킨 후 재시도하게 됩니다. 쿠키 획득 실패 시 바로 예외를 던지거나 재시도하도록 개선해야 합니다.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Archived"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-02T10:40:31.823Z",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-018-SERVER-ENHANCE-SESSION-COOKIE-FETCH-ROBUSTNESS-IN-JBNUCOURSEAPICLIENT/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-018-SERVER-ENHANCE-SESSION-COOKIE-FETCH-ROBUSTNESS-IN-JBNUCOURSEAPICLIENT.md"
+}

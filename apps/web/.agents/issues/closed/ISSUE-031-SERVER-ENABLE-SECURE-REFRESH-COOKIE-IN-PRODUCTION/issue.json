@@ -1,0 +1,42 @@
+{
+  "issue": {
+    "id": "ISSUE-031-SERVER-ENABLE-SECURE-REFRESH-COOKIE-IN-PRODUCTION",
+    "type": "bugfix",
+    "title": "[server] Enable Secure refresh cookie in production",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-031-SERVER-ENABLE-SECURE-REFRESH-COOKIE-IN-PRODUCTION",
+    "createdAt": "2026-07-03T13:13:58+09:00",
+    "updatedAt": "2026-07-03T14:10:00+09:00",
+    "completedAt": "2026-07-03T14:10:00+09:00",
+    "logPath": ".agents/issues/logs/ISSUE-031-SERVER-ENABLE-SECURE-REFRESH-COOKIE-IN-PRODUCTION.md",
+    "goal": "Make the refresh token cookie secure in production so the cookie is only transmitted over HTTPS in the deployed environment.",
+    "acceptanceCriteria": [
+      "Production refresh cookies are issued with `Secure=true`.",
+      "Existing `HttpOnly`, path, and `SameSite` behavior is preserved unless a documented exception exists.",
+      "Verification evidence shows the production cookie attributes are correct."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Code diff or test output showing the cookie is emitted with secure attributes in production.",
+      "Verification output from the relevant auth path or cookie assertion test."
+    ]
+  },
+  "description": "Refresh token cookies are currently emitted without Secure protection in production.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Created",
+      "Intake",
+      "Verify",
+      "Closed"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-03T14:10:00+09:00",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/open/ISSUE-031-SERVER-ENABLE-SECURE-REFRESH-COOKIE-IN-PRODUCTION/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-031-SERVER-ENABLE-SECURE-REFRESH-COOKIE-IN-PRODUCTION.md"
+}

@@ -1,0 +1,240 @@
+"use client";
+
+import { useCallback } from "react";
+import { Button } from "@/shared/ui/button";
+import { Label } from "@/shared/ui/label";
+import { Switch } from "@/shared/ui/switch";
+import { CalendarPlus, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
+import { TimeTableSelector } from "../time-table-selector";
+import { useUser } from "@/features/user/hooks/useUser";
+import { useTimetables } from "@/features/timetable/hooks/useTimetable";
+import { timetableApi } from "@/features/timetable/api/timetable.api";
+import { buildFreeSchedulesFromTimetable } from "../../lib/course-utils";
+import type { CourseSearchCondition, ScheduleCondition, TimetableResponse, User } from "@/shared/types/api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
+
+interface CourseSmartFiltersProps {
+  condition: CourseSearchCondition;
+  setCondition: React.Dispatch<React.SetStateAction<CourseSearchCondition>>;
+  scheduleOpen: boolean;
+  setScheduleOpen: (open: boolean) => void;
+  initialUser?: User | null;
+  initialTimetables?: TimetableResponse[];
+  skipPersonalFetch?: boolean;
+}
+
+/**
+ * 강의 검색 결과에 적용할 스마트 필터 구성을 제공하는 컴포넌트입니다.
+ * 찜한 강의, 여석 유무, 공강 시간대 등의 추가 필터링 조건을 관리합니다.
+ */
+export function CourseSmartFilters({
+  condition,
+  setCondition,
+  scheduleOpen,
+  setScheduleOpen,
+  initialUser,
+  initialTimetables,
+  skipPersonalFetch,
+}: CourseSmartFiltersProps) {
+  const timetableMenuTriggerId = "course-smart-timetable-trigger";
+  const timetableMenuContentId = "course-smart-timetable-content";
+  const timetableSectionTriggerId = "course-smart-schedule-trigger";
+  const timetableSectionContentId = "course-smart-schedule-content";
+  const { data: user } = useUser({ enabled: initialUser === undefined && !skipPersonalFetch });
+  const { data: timetables, refetch: refetchTimetables } = useTimetables(!initialTimetables && !skipPersonalFetch, initialUser);
+  const resolvedUser = initialUser !== undefined ? initialUser : user;
+  const resolvedTimetables = initialTimetables ?? timetables;
+
+  // 찜한 강의만 보기 토글 핸들러
+  const handleWishedOnlyChange = useCallback((checked: boolean) => {
+    if (checked && !resolvedUser) {
+      toast.error("찜한 강의 필터는 로그인 후 사용할 수 있습니다.");
+      return;
+    }
+    setCondition((prev) => ({ ...prev, isWishedOnly: checked || undefined }));
+  }, [resolvedUser, setCondition]);
+
+  const handleAvailableOnlyChange = useCallback((checked: boolean) => {
+    setCondition((prev) => ({ ...prev, isAvailableOnly: checked || undefined }));
+  }, [setCondition]);
+
+  const handleSchedulesChange = useCallback((selected: ScheduleCondition[]) => {
+    setCondition((prev) => ({
+      ...prev,
+      selectedSchedules: selected.length > 0 ? selected : undefined,
+    }));
+  }, [setCondition]);
+
+  /**
+   * 내 시간표 정보를 가져와서 비어있는 시간대(공강)를 자동으로 선택합니다.
+   */
+  const handleImportFromTimetable = async (timetableId: number, name: string) => {
+    try {
+      const { data: detail } = await timetableApi.getTimetable(timetableId);
+
+      if (!detail) {
+        toast.error(`'${name}' 정보를 불러올 수 없습니다.`);
+        return;
+      }
+
+      const importedSchedules = buildFreeSchedulesFromTimetable(detail);
+      if (importedSchedules.length === 0) {
+        toast.error(`'${name}' 기준 공강 시간대가 없습니다.`);
+        return;
+      }
+
+      setCondition((prev) => ({
+        ...prev,
+        selectedSchedules: importedSchedules,
+      }));
+      setScheduleOpen(true);
+      toast.success(`'${name}' 기준 공강 ${importedSchedules.length}칸을 선택했습니다.`);
+    } catch {
+      toast.error("시간표 정보를 가져오는데 실패했습니다.");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        {/* 찜한 강의만 보기 */}
+        <div className="flex items-center justify-between">
+          <Label htmlFor="wished-only" className="text-sm font-medium">
+            찜한 강의만 보기
+          </Label>
+          <Switch
+            id="wished-only"
+            checked={!!condition.isWishedOnly}
+            onCheckedChange={handleWishedOnlyChange}
+          />
+        </div>
+
+        {/* 여석 있는 강의만 보기 */}
+        <div className="flex items-center justify-between">
+          <Label htmlFor="available-only" className="text-sm font-medium">
+            여석 있는 강의만 보기
+          </Label>
+          <Switch
+            id="available-only"
+            checked={!!condition.isAvailableOnly}
+            onCheckedChange={handleAvailableOnlyChange}
+          />
+        </div>
+
+        {/* 공개 강의만 보기 */}
+        <div className="flex items-center justify-between">
+          <Label htmlFor="disclosure-only" className="text-sm font-medium">
+            공개 강의만 보기
+          </Label>
+          <Switch
+            id="disclosure-only"
+            checked={condition.disclosure === "공개"}
+            onCheckedChange={(checked) =>
+              setCondition((prev) => ({
+                ...prev,
+                disclosure: checked ? "공개" : undefined,
+              }))
+            }
+          />
+        </div>
+      </div>
+
+      {/* 공강 시간표 설정 */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-medium">공강 시간표 설정</Label>
+            {condition.selectedSchedules &&
+              condition.selectedSchedules.length > 0 && (
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                  {condition.selectedSchedules.length}개 선택됨
+                </span>
+              )}
+          </div>
+          <div className="flex items-center gap-1">
+            <DropdownMenu onOpenChange={(open) => open && !initialTimetables && refetchTimetables()}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  id={timetableMenuTriggerId}
+                  aria-controls={timetableMenuContentId}
+                  aria-label="내 시간표에서 공강 불러오기"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!resolvedUser) {
+                      toast.error("내 시간표에서 선택하기는 로그인 후 사용할 수 있습니다.");
+                    }
+                  }}
+                  title="내 시간표에서 공강 불러오기"
+                >
+                  <CalendarPlus className="h-4 w-4 text-muted-foreground transition-colors hover:text-primary" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent id={timetableMenuContentId} aria-labelledby={timetableMenuTriggerId} align="end" className="w-48">
+                <DropdownMenuLabel className="text-xs font-semibold">내 시간표 선택</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {!resolvedUser ? (
+                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    로그인이 필요합니다.
+                  </div>
+                ) : !resolvedTimetables || resolvedTimetables.length === 0 ? (
+                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    생성된 시간표가 없습니다.
+                  </div>
+                ) : (
+                  resolvedTimetables.map((timetable) => (
+                    <DropdownMenuItem
+                      key={timetable.id}
+                      onClick={() => handleImportFromTimetable(timetable.id, timetable.name)}
+                      className="flex cursor-pointer items-center justify-between py-2"
+                    >
+                      <span className="truncate text-xs font-medium">{timetable.name}</span>
+                      {timetable.primary && (
+                        <span className="ml-2 shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                          대표
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              id={timetableSectionTriggerId}
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-controls={timetableSectionContentId}
+              aria-expanded={scheduleOpen}
+              aria-label={scheduleOpen ? "공강 시간표 접기" : "공강 시간표 펼치기"}
+              className="h-8 w-8 p-0"
+              onClick={() => setScheduleOpen(!scheduleOpen)}
+            >
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                  scheduleOpen ? "rotate-180" : ""
+                }`}
+              />
+            </Button>
+          </div>
+        </div>
+        <div id={timetableSectionContentId} hidden={!scheduleOpen}>
+          <TimeTableSelector
+            selected={condition.selectedSchedules ?? []}
+            onChange={handleSchedulesChange}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,304 @@
+{
+  "issue": {
+    "id": "ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS",
+    "type": "bugfix",
+    "title": "[infra] Cap Docker JSON logs for observability stack containers",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS",
+    "createdAt": "2026-07-01T13:44:40.476Z",
+    "updatedAt": "2026-07-01T15:17:42.759Z",
+    "logPath": ".agents/issues/logs/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+    "goal": "Goal: prevent Promtail, Loki, Grafana, and Prometheus container stdout logs from growing without bounds on the host root disk. Acceptance criteria: the observability stack services in docker-compose use explicit json-file rotation limits, the chosen max-size and max-file values are documented, and a restart or log-growth check confirms rotation is active. Dependencies: the disk-full postmortem analysis and the existing observability compose layout. Evidence required: compose diff or review evidence and verification output.",
+    "acceptanceCriteria": [
+      "The issue \"[infra] Cap Docker JSON logs for observability stack containers\" is resolved.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Implementation or review evidence",
+      "Verification output"
+    ],
+    "archivedAt": "2026-07-02T10:40:31.823Z"
+  },
+  "description": "Goal: prevent Promtail, Loki, Grafana, and Prometheus container stdout logs from growing without bounds on the host root disk. Acceptance criteria: the observability stack services in docker-compose use explicit json-file rotation limits, the chosen max-size and max-file values are documented, and a restart or log-growth check confirms rotation is active. Dependencies: the disk-full postmortem analysis and the existing observability compose layout. Evidence required: compose diff or review evidence and verification output.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Intake",
+      "Clarifying Questions",
+      "Reproduction",
+      "Root Cause Analysis",
+      "Fix",
+      "Evidence Review",
+      "Archived"
+    ],
+    "failedSteps": [
+      "Commit"
+    ],
+    "blocked": false,
+    "updatedAt": "2026-07-02T10:40:31.823Z",
+    "evidence": [
+      {
+        "kind": "command_output",
+        "title": "Compose validation",
+        "detail": "Added json-file rotation limits to the Prometheus, Grafana, Loki, and Promtail services in infra/docker-compose.yml. Verified with docker compose -f docker-compose.yml config from the infra directory; the observability services now resolve max-size 10m and max-file 5, and the compose file parses successfully.",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/infra/docker-compose.yml"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.md",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.json",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/workflow-state.json",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/decisions/README.md",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/reviews/README.md",
+        "detail": "Bug Fix step Intake"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.md",
+        "detail": "Bug Fix step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.json",
+        "detail": "Bug Fix step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/workflow-state.json",
+        "detail": "Bug Fix step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "detail": "Bug Fix step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/decisions/README.md",
+        "detail": "Bug Fix step Clarifying Questions"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/reviews/README.md",
+        "detail": "Bug Fix step Clarifying Questions"
+      },
+      {
+        "kind": "command_output",
+        "title": "Runtime log rotation verification",
+        "detail": "Verified on the server that the live observability containers use Docker json-file rotation with max-size=10m and max-file=5. docker inspect on sugang-helper-prometheus, sugang-helper-grafana, sugang-helper-loki, and sugang-helper-promtail showed the expected LogConfig values on 2026-07-01.",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/infra/docker-compose.yml"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.md",
+        "detail": "Bug Fix step Reproduction"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.json",
+        "detail": "Bug Fix step Reproduction"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/workflow-state.json",
+        "detail": "Bug Fix step Reproduction"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "detail": "Bug Fix step Reproduction"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/decisions/README.md",
+        "detail": "Bug Fix step Reproduction"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/reviews/README.md",
+        "detail": "Bug Fix step Reproduction"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.md",
+        "detail": "Bug Fix step Root Cause Analysis"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.json",
+        "detail": "Bug Fix step Root Cause Analysis"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/workflow-state.json",
+        "detail": "Bug Fix step Root Cause Analysis"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "detail": "Bug Fix step Root Cause Analysis"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/decisions/README.md",
+        "detail": "Bug Fix step Root Cause Analysis"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/reviews/README.md",
+        "detail": "Bug Fix step Root Cause Analysis"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.md",
+        "detail": "Bug Fix step Fix"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.json",
+        "detail": "Bug Fix step Fix"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/workflow-state.json",
+        "detail": "Bug Fix step Fix"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "detail": "Bug Fix step Fix"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/decisions/README.md",
+        "detail": "Bug Fix step Fix"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/reviews/README.md",
+        "detail": "Bug Fix step Fix"
+      },
+      {
+        "kind": "file",
+        "title": "issue.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.md",
+        "detail": "Bug Fix step Evidence Review"
+      },
+      {
+        "kind": "file",
+        "title": "issue.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/issue.json",
+        "detail": "Bug Fix step Evidence Review"
+      },
+      {
+        "kind": "file",
+        "title": "workflow-state.json",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/workflow-state.json",
+        "detail": "Bug Fix step Evidence Review"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md",
+        "detail": "Bug Fix step Evidence Review"
+      },
+      {
+        "kind": "file",
+        "title": "decisions/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/decisions/README.md",
+        "detail": "Bug Fix step Evidence Review"
+      },
+      {
+        "kind": "file",
+        "title": "reviews/README.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/reviews/README.md",
+        "detail": "Bug Fix step Evidence Review"
+      },
+      {
+        "kind": "command_output",
+        "title": "Regression test script",
+        "detail": "Scenario: validate json-file rotation on the observability stack services in infra/docker-compose.yml. Baseline: prometheus, grafana, loki, and promtail must resolve json-file logging with max-size 10m and max-file 5. Result: ./scripts/verify-log-policy.sh passed and printed 'log policy verification passed' after checking docker compose config. Workload: one local compose render. Key metric: observability stdout logs are capped at 10m x 5 files. Limitation: this checks compose rendering, not live container growth over time. Raw report path: /Users/bhoon/Project/jbnu-sugang-helper/infra/scripts/verify-log-policy.sh.",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/infra/scripts/verify-log-policy.sh"
+      },
+      {
+        "kind": "command_output",
+        "title": "Compact verification summary",
+        "detail": "Scenario: cap observability container stdout logs. Baseline: prometheus, grafana, loki, and promtail should use json-file rotation. Result: compose rendering and live docker inspect both confirm max-size=10m and max-file=5. Workload: one compose render plus one live container inspect set. Key metric: 10m x 5 log rotation cap. Raw report: /Users/bhoon/Project/jbnu-sugang-helper/infra/scripts/verify-log-policy.sh. Limitations: this does not measure multi-day growth under production load. Follow-up issue: none.",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/infra/scripts/verify-log-policy.sh"
+      },
+      {
+        "kind": "test",
+        "title": "verify-log-policy.sh",
+        "detail": "Passed the local regression check for observability log rotation. ./scripts/verify-log-policy.sh printed 'log policy verification passed' after confirming docker compose config resolves json-file logging with max-size=10m and max-file=5 and live docker inspect reports the same settings. Limitations: this validates the configured policy, not multi-day growth under production load.",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/infra/scripts/verify-log-policy.sh"
+      },
+      {
+        "kind": "file",
+        "title": "infra/docker-compose.yml",
+        "detail": "Prometheus, Grafana, Loki, and Promtail now use json-file logging with max-size 10m and max-file 5 in docker-compose.yml.",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/infra/docker-compose.yml"
+      },
+      {
+        "kind": "command_output",
+        "title": "Recovery root cause: Commit",
+        "detail": "Changed files previously spanned multiple Git repositories: /Users/bhoon/Project/jbnu-sugang-helper, /Users/bhoon/Project/jbnu-sugang-helper/infra. The root-repo issue artifacts were committed separately, so the current re-evaluation should only see the infra repository."
+      }
+    ]
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-026-INFRA-CAP-DOCKER-JSON-LOGS-FOR-OBSERVABILITY-STACK-CONTAINERS.md"
+}

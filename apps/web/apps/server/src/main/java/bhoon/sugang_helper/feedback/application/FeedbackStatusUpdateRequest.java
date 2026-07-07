@@ -1,0 +1,8 @@
+package bhoon.sugang_helper.feedback.application;
+
+import bhoon.sugang_helper.feedback.domain.FeedbackStatus;
+import jakarta.validation.constraints.NotNull;
+
+public record FeedbackStatusUpdateRequest(
+        @NotNull(message = "변경할 상태를 선택해주세요.") FeedbackStatus status) {
+}

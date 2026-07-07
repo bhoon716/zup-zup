@@ -1,0 +1,126 @@
+services:
+  db:
+    image: ${DB_IMAGE}
+    container_name: ${DB_CONTAINER_NAME}
+    restart: unless-stopped
+    command: --binlog-expire-logs-seconds=172800
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      TZ: ${TZ}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - sugang-helper-network-server
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: ${REDIS_IMAGE}
+    container_name: ${REDIS_CONTAINER_NAME}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - sugang-helper-network-server
+
+  prometheus:
+    image: prom/prometheus@sha256:0e698e35e50d1ddc2d11a4a55b089fe62eb71358a5c204dfafd21bdf8ffe04b8
+    container_name: ${PROMETHEUS_CONTAINER_NAME}
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    environment:
+      TZ: ${TZ}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - sugang-helper-network-server
+
+  grafana:
+    image: grafana/grafana@sha256:6ea068891652aa6a65ca9065c26b89de939653803c836426970305c11fd00534
+    container_name: ${GRAFANA_CONTAINER_NAME}
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - TZ=${TZ}
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - /var/lib/jbnu-sugang-helper/grafana:/var/lib/grafana
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - sugang-helper-network-server
+
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager@sha256:99a885f56ca2203a2eb352a5f9e2cd5c1e25786508debd725ad48ebe955d114f
+    container_name: sugang-helper-npm
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "127.0.0.1:81:81"
+      - "443:443"
+    volumes:
+      - ./npm/data:/data
+      - ./npm/letsencrypt:/etc/letsencrypt
+    environment:
+      TZ: ${TZ}
+    networks:
+      - sugang-helper-network-server
+
+  loki:
+    image: grafana/loki@sha256:d14b3a2c419b72fe27cd094c017863bd37a5ea9ac7d72f35bcd25f5bd081dc47
+    container_name: sugang-helper-loki
+    restart: unless-stopped
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - /var/lib/jbnu-sugang-helper/loki:/var/lib/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - sugang-helper-network-server
+
+  promtail:
+    image: grafana/promtail@sha256:238d8562dc29ec83d2f5933c7fd6e9469a90ea316a04f160dcc7cf842910ca94
+    container_name: sugang-helper-promtail
+    restart: unless-stopped
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/jbnu-sugang-helper/promtail:/var/lib/promtail
+      - ./promtail/promtail-config.yaml:/etc/promtail/docker-config.yaml:ro
+    command: -config.file=/etc/promtail/docker-config.yaml
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - sugang-helper-network-server
+
+networks:
+  sugang-helper-network-server:
+    name: sugang-helper-network-server
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 9000
+
+volumes:
+  db_data:
+    name: sugang-helper-db-data

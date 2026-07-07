@@ -1,0 +1,38 @@
+{
+  "issue": {
+    "id": "ISSUE-010-API",
+    "type": "bugfix",
+    "title": "[server] Refresh token must not authenticate normal API requests",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-010-API",
+    "createdAt": "2026-06-23T02:11:29.415Z",
+    "updatedAt": "2026-06-23T02:11:29.415Z",
+    "logPath": ".agents/issues/logs/ISSUE-010-API.md",
+    "goal": "Refresh tokens are currently signed and validated like access tokens, and JwtAuthenticationFilter accepts any valid JWT from the Authorization header or session. A leaked refresh token therefore becomes a bearer credential for normal API access. Evidence: server/src/main/java/bhoon/sugang_helper/common/security/jwt/JwtProvider.java, server/src/main/java/bhoon/sugang_helper/common/security/jwt/JwtAuthenticationFilter.java, server/src/main/java/bhoon/sugang_helper/auth/application/AuthService.java.",
+    "acceptanceCriteria": [
+      "The issue \"[server] Refresh token must not authenticate normal API requests\" is resolved.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [],
+    "evidenceRequired": [
+      "Implementation or review evidence",
+      "Verification output"
+    ],
+    "archivedAt": "2026-07-02T10:40:31.823Z"
+  },
+  "description": "Refresh tokens are currently signed and validated like access tokens, and JwtAuthenticationFilter accepts any valid JWT from the Authorization header or session. A leaked refresh token therefore becomes a bearer credential for normal API access. Evidence: server/src/main/java/bhoon/sugang_helper/common/security/jwt/JwtProvider.java, server/src/main/java/bhoon/sugang_helper/common/security/jwt/JwtAuthenticationFilter.java, server/src/main/java/bhoon/sugang_helper/auth/application/AuthService.java.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Archived"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-02T10:40:31.823Z",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-010-API/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-010-API.md"
+}

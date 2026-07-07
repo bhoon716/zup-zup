@@ -1,0 +1,55 @@
+{
+  "workflowId": "bug-fix",
+  "currentStep": "Closed",
+  "completedSteps": [
+    "Intake",
+    "Archived"
+  ],
+  "failedSteps": [],
+  "blocked": false,
+  "updatedAt": "2026-07-02T10:40:31.823Z",
+  "evidence": [
+    {
+      "kind": "command_output",
+      "title": "Host scrape validation",
+      "detail": "Removed docker.sock and /var/lib/docker/containers mounts from Promtail, and added a host log scrape path for /var/log/jbnu-sugang-helper/*/*.log. Verified with docker compose -f docker-compose.yml config from the infra directory; Promtail now resolves the host log path and no longer requires Docker socket access.",
+      "location": "/Users/bhoon/Project/jbnu-sugang-helper/infra/promtail/promtail-config.yaml"
+    },
+    {
+      "kind": "file",
+      "title": "issue.md",
+      "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-016-LOGIN-PLAN/issue.md",
+      "detail": "Bug Fix step Intake"
+    },
+    {
+      "kind": "file",
+      "title": "issue.json",
+      "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-016-LOGIN-PLAN/issue.json",
+      "detail": "Bug Fix step Intake"
+    },
+    {
+      "kind": "file",
+      "title": "workflow-state.json",
+      "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-016-LOGIN-PLAN/workflow-state.json",
+      "detail": "Bug Fix step Intake"
+    },
+    {
+      "kind": "file",
+      "title": "ISSUE-016-LOGIN-PLAN.md",
+      "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-016-LOGIN-PLAN.md",
+      "detail": "Bug Fix step Intake"
+    },
+    {
+      "kind": "file",
+      "title": "decisions/README.md",
+      "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-016-LOGIN-PLAN/decisions/README.md",
+      "detail": "Bug Fix step Intake"
+    },
+    {
+      "kind": "file",
+      "title": "reviews/README.md",
+      "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/closed/ISSUE-016-LOGIN-PLAN/reviews/README.md",
+      "detail": "Bug Fix step Intake"
+    }
+  ]
+}

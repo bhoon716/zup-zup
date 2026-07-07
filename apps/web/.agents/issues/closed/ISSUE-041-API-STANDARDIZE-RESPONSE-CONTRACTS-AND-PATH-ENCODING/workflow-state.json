@@ -1,0 +1,18 @@
+{
+  "workflowId": "bug-fix",
+  "currentStep": "Closed",
+  "completedSteps": [
+    "Created",
+    "Intake",
+    "Verify",
+    "Closed"
+  ],
+  "failedSteps": [],
+  "blocked": false,
+  "updatedAt": "2026-07-06T21:10:04+09:00",
+  "evidence": [
+    "Server compile output: ./gradlew testClasses passed",
+    "Web test output: vitest run src/features/feedback/hooks/useFeedback.test.tsx src/features/admin/hooks/useDday.test.tsx passed",
+    "Server security regression tests: CustomAccessDeniedHandlerTest and CustomAuthenticationEntryPointTest passed"
+  ]
+}

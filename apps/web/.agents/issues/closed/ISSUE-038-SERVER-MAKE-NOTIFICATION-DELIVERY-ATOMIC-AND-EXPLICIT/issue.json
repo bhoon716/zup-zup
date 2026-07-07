@@ -1,0 +1,49 @@
+{
+  "issue": {
+    "id": "ISSUE-038-SERVER-MAKE-NOTIFICATION-DELIVERY-ATOMIC-AND-EXPLICIT",
+    "type": "bugfix",
+    "title": "[server] Make notification delivery atomic and explicit",
+    "state": "closed",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-038-SERVER-MAKE-NOTIFICATION-DELIVERY-ATOMIC-AND-EXPLICIT",
+    "createdAt": "2026-07-06T02:46:59+09:00",
+    "updatedAt": "2026-07-07T01:42:20+09:00",
+    "completedAt": "2026-07-07T01:42:20+09:00",
+    "logPath": ".agents/issues/logs/ISSUE-038-SERVER-MAKE-NOTIFICATION-DELIVERY-ATOMIC-AND-EXPLICIT.md",
+    "goal": "Make notification deduplication atomic, move dispatch after transaction commit, and extract channel policy so notification delivery cannot double-send or emit false alerts.",
+    "acceptanceCriteria": [
+      "Notification dedupe is atomic under concurrent requests.",
+      "Notification dispatch happens only after commit or through an equivalent outbox-style guarantee.",
+      "Channel policy is split into testable handlers or otherwise documented explicitly."
+    ],
+    "dependencies": [
+      "Current notification delivery flow",
+      "Transaction/event dispatch strategy"
+    ],
+    "evidenceRequired": [
+      "Implementation diff",
+      "Concurrency or integration test output",
+      "Review evidence"
+    ]
+  },
+  "description": "Notification delivery currently has a race window and mixes policy with dispatch. Make the dedupe and publish path atomic, then separate channel decisions so the behavior is testable and predictable.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Created",
+      "Intake",
+      "Verify",
+      "Closed"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-07T01:42:20+09:00",
+    "evidence": [
+      "./gradlew test --tests bhoon.sugang_helper.notification.application.NotificationServiceTest --tests bhoon.sugang_helper.notification.application.NotificationChannelPolicyTest --tests bhoon.sugang_helper.notification.application.NotificationServiceTransactionTest",
+      "./gradlew test"
+    ]
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-038-SERVER-MAKE-NOTIFICATION-DELIVERY-ATOMIC-AND-EXPLICIT/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-038-SERVER-MAKE-NOTIFICATION-DELIVERY-ATOMIC-AND-EXPLICIT.md"
+}

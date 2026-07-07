@@ -1,0 +1,75 @@
+package bhoon.sugang_helper.common.security.oauth;
+
+import bhoon.sugang_helper.user.domain.Role;
+import bhoon.sugang_helper.user.domain.User;
+import bhoon.sugang_helper.user.domain.UserRegisteredEvent;
+import bhoon.sugang_helper.user.domain.UserRepository;
+import java.util.Collections;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
+
+    private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Override
+    @Transactional
+    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+        OAuth2User oAuth2User = getDelegateUser(userRequest);
+
+        String registrationId = userRequest.getClientRegistration().getRegistrationId();
+        String userNameAttributeName = userRequest.getClientRegistration().getProviderDetails()
+                .getUserInfoEndpoint().getUserNameAttributeName();
+
+        Map<String, Object> attributes = oAuth2User.getAttributes();
+
+        String email = (String) attributes.get("email");
+        String name = (String) attributes.get("name");
+
+        log.info("Social login request (OAuth2): provider={}, email={}", registrationId, email);
+        saveOrUpdate(email, name);
+        User user = userRepository.findByEmail(email).orElseThrow();
+        log.info("Social login load complete (OAuth2): userId={}", user.getId());
+
+        return new DefaultOAuth2User(
+                Collections.singleton(new SimpleGrantedAuthority(user.getRole().getKey())),
+                attributes,
+                userNameAttributeName);
+    }
+
+    private void saveOrUpdate(String email, String name) {
+        userRepository.findByEmail(email)
+                .ifPresentOrElse(
+                        user -> log.info("Existing user login: email={}", email),
+                        () -> {
+                            User newUser = User.builder()
+                                    .email(email)
+                                    .name(name)
+                                    .role(Role.USER)
+                                    .build();
+                            User savedUser = userRepository.save(newUser);
+                            log.info("New user sign-up complete: userId={}, email={}", savedUser.getId(), email);
+                            eventPublisher.publishEvent(new UserRegisteredEvent(savedUser.getId(), email));
+                        });
+    }
+
+    protected OAuth2User getDelegateUser(OAuth2UserRequest userRequest) {
+        OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
+        return delegate.loadUser(userRequest);
+    }
+}

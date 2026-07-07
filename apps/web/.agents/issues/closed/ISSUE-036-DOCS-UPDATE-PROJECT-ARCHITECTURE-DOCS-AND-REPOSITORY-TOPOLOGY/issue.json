@@ -1,0 +1,72 @@
+{
+  "issue": {
+    "id": "ISSUE-036-DOCS-UPDATE-PROJECT-ARCHITECTURE-DOCS-AND-REPOSITORY-TOPOLOGY",
+    "type": "planning",
+    "title": "[docs] Update project architecture docs and repository topology",
+    "state": "closed",
+    "workflowId": "mvp-planning",
+    "directory": "ISSUE-036-DOCS-UPDATE-PROJECT-ARCHITECTURE-DOCS-AND-REPOSITORY-TOPOLOGY",
+    "createdAt": "2026-07-06T02:46:59+09:00",
+    "updatedAt": "2026-07-06T19:40:33+09:00",
+    "archivedAt": "2026-07-06T19:40:33+09:00",
+    "logPath": ".agents/issues/logs/ISSUE-036-DOCS-UPDATE-PROJECT-ARCHITECTURE-DOCS-AND-REPOSITORY-TOPOLOGY.md",
+    "goal": "Update the project-level architecture docs so they describe the actual Spring Boot, Next.js, and nested repository layout instead of stale assumptions about the stack and topology.",
+    "acceptanceCriteria": [
+      "Project docs describe the current backend, frontend, infrastructure, and nested repository layout accurately.",
+      "Repository topology is documented with a clear, durable decision.",
+      "Durable decisions are written to docs rather than only to chat or issue notes."
+    ],
+    "dependencies": [
+      "docs/PRD.md",
+      "docs/ARD.md",
+      "docs/index.md"
+    ],
+    "evidenceRequired": [
+      "Updated documentation diff",
+      "Review evidence",
+      "Verification output or doc review notes"
+    ]
+  },
+  "description": "The existing project documentation does not describe the current system topology accurately enough for review, deployment, and maintenance work. Update the durable docs so they match the actual repository layout and stack.",
+  "workflowState": {
+    "workflowId": "mvp-planning",
+    "currentStep": "Closed",
+    "completedSteps": [
+      "Created",
+      "Intake",
+      "Close",
+      "Archived"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-06T19:40:33+09:00",
+    "evidence": [
+      {
+        "kind": "file",
+        "title": "docs/ARD.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/docs/ARD.md",
+        "detail": "Updated architecture and topology summary"
+      },
+      {
+        "kind": "file",
+        "title": "docs/index.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/docs/index.md",
+        "detail": "Added root decision entry"
+      },
+      {
+        "kind": "file",
+        "title": "docs/decisions/2026-07-06-repository-topology.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/docs/decisions/2026-07-06-repository-topology.md",
+        "detail": "Recorded nested multi-repo workspace decision"
+      },
+      {
+        "kind": "file",
+        "title": "ISSUE-036-DOCS-UPDATE-PROJECT-ARCHITECTURE-DOCS-AND-REPOSITORY-TOPOLOGY.md",
+        "location": "/Users/bhoon/Project/jbnu-sugang-helper/.agents/issues/logs/ISSUE-036-DOCS-UPDATE-PROJECT-ARCHITECTURE-DOCS-AND-REPOSITORY-TOPOLOGY.md",
+        "detail": "Completion log and verification notes"
+      }
+    ]
+  },
+  "workflowStatePath": ".agents/issues/closed/ISSUE-036-DOCS-UPDATE-PROJECT-ARCHITECTURE-DOCS-AND-REPOSITORY-TOPOLOGY/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-036-DOCS-UPDATE-PROJECT-ARCHITECTURE-DOCS-AND-REPOSITORY-TOPOLOGY.md"
+}

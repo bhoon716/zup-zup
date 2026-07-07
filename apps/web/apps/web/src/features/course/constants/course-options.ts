@@ -1,0 +1,98 @@
+import { CourseDayOfWeek, LectureLanguage } from "@/shared/types/api";
+
+export const DEFAULT_CONDITION = {
+  academicYear: "2026",
+  semester: "U211600010",
+  disclosure: "공개",
+};
+
+export const CLASSIFICATION_GROUPS = [
+  {
+    label: "전공",
+    items: ["전공필수", "전공선택", "전공(대학원)"],
+  },
+  {
+    label: "교양",
+    items: ["교양"],
+    value: "general",
+  },
+  {
+    label: "일반선택",
+    items: ["일반선택"],
+    value: "elective",
+  },
+  {
+    label: "기타",
+    items: ["기초필수", "계열공통", "교직", "교직(대학원)", "군사학", "선수"],
+  },
+];
+
+export const GRADING_GROUPS = [
+  {
+    label: "상대평가",
+    items: ["상대평가Ⅰ", "상대평가Ⅱ", "상대평가Ⅲ"],
+  },
+  {
+    label: "절대평가",
+    items: ["절대평가"],
+  },
+  {
+    label: "Pass/Fail",
+    items: ["Pass/Fail"],
+  },
+  {
+    label: "기타",
+    items: ["기타(법전원)"],
+  },
+];
+
+export const LANGUAGES: LectureLanguage[] = [
+  "한국어",
+  "영어",
+  "독일어",
+  "스페인어",
+  "일본어",
+  "중국어",
+  "프랑스어",
+];
+
+export const CREDITS = ["0.5", "1", "2", "3", "4+"];
+export const TARGET_GRADES = ["1", "2", "3", "4", "5", "6", "GRADUATE"];
+export const COURSE_DIRECTIONS = [
+  "일반",
+  "원격강좌(콘텐츠)",
+  "원격강좌(실시간)",
+  "플립러닝",
+  "블렌디드러닝",
+  "온·오프라인강좌",
+  "현장실습",
+  "사회봉사",
+  "논문연구",
+  "화상강의",
+  "특별(영어)",
+];
+
+export const YEARS = ["2026", "2025", "2024"];
+
+export const SEMESTERS = [
+  { label: "1학기", value: "U211600010" },
+  { label: "하기 계절학기", value: "U211600015" },
+  { label: "2학기", value: "U211600020" },
+  { label: "동기 계절학기", value: "U211600025" },
+  { label: "여름 특별학기", value: "U211600016" },
+  { label: "겨울 특별학기", value: "U211600026" },
+  { label: "신입생 특별학기", value: "U211600009" },
+  { label: "SW 특별학기", value: "U211600008" },
+];
+
+export const GE_CATEGORIES: Record<string, string[]> = {
+  균형교양: ["AI·SW", "글로컬", "삶과사회", "예술과체육", "외국어", "인간과문화", "자연과과학"],
+  기초교양: ["기초필수", "문제해결", "의사소통"],
+  기타교양: ["타대학개설교양", "예비학기제교양"],
+  진로: ["진로"],
+};
+
+export const SMART_FILTER_DAYS: CourseDayOfWeek[] = ["월", "화", "수", "목", "금", "토"];
+export const SMART_FILTER_START_MINUTES = 8 * 60;
+export const SMART_FILTER_SLOT_MINUTES = 60;
+export const SMART_FILTER_SLOT_COUNT = 14;

@@ -1,0 +1,41 @@
+{
+  "issue": {
+    "id": "ISSUE-029-WEB-REDESIGN-FRONTEND-TO-MATCH-DESIGN-MD",
+    "type": "refactor",
+    "title": "[web] Redesign frontend to match DESIGN.md",
+    "state": "open",
+    "workflowId": "bug-fix",
+    "directory": "ISSUE-029-WEB-REDESIGN-FRONTEND-TO-MATCH-DESIGN-MD",
+    "createdAt": "2026-07-02T20:09:17+09:00",
+    "updatedAt": "2026-07-02T20:09:17+09:00",
+    "logPath": ".agents/issues/logs/ISSUE-029-WEB-REDESIGN-FRONTEND-TO-MATCH-DESIGN-MD.md",
+    "goal": "Refactor the frontend to follow the rules and visual language defined in `DESIGN.md`. Align layout, typography, spacing, color usage, component shapes, and interactive states with the new design system.",
+    "acceptanceCriteria": [
+      "The frontend UI matches `DESIGN.md` for core layout, color, typography, and component styling.",
+      "Existing green-accent usage is removed or replaced where it conflicts with `DESIGN.md`.",
+      "Verification evidence is recorded."
+    ],
+    "dependencies": [
+      "DESIGN.md"
+    ],
+    "evidenceRequired": [
+      "Design implementation evidence",
+      "Review evidence",
+      "Verification output"
+    ]
+  },
+  "description": "The current frontend needs to be reworked to match the new `DESIGN.md` system. The work should cover the main app surfaces, component styles, and brand color usage so the UI is consistent with the documented purple-based visual language.",
+  "workflowState": {
+    "workflowId": "bug-fix",
+    "currentStep": "Intake",
+    "completedSteps": [
+      "Created"
+    ],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-02T20:09:17+09:00",
+    "evidence": []
+  },
+  "workflowStatePath": ".agents/issues/open/ISSUE-029-WEB-REDESIGN-FRONTEND-TO-MATCH-DESIGN-MD/workflow-state.json",
+  "logPath": ".agents/issues/logs/ISSUE-029-WEB-REDESIGN-FRONTEND-TO-MATCH-DESIGN-MD.md"
+}
