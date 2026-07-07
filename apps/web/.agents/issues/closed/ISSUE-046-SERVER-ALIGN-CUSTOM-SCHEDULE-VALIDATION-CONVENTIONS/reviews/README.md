@@ -1,3 +1,0 @@
-# Reviews
-
-Review reports for ISSUE-046-SERVER-ALIGN-CUSTOM-SCHEDULE-VALIDATION-CONVENTIONS live here.

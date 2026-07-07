@@ -1,3 +1,0 @@
-# Reviews
-
-Review reports for ISSUE-041-API-STANDARDIZE-RESPONSE-CONTRACTS-AND-PATH-ENCODING live here.

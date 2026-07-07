@@ -1,5 +1,0 @@
-.env
-npm/data/database.sqlite
-npm/data/keys.json
-npm/data/logs/
-npm/letsencrypt/

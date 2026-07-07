@@ -1,3 +1,0 @@
-# Reviews
-
-Review reports for ISSUE-009-WEB-ESCAPE-KAKAO-PLACE-NAMES-BEFORE-RENDERING-INFOWINDOW live here.
