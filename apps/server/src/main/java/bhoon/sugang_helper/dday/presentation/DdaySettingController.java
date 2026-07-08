@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.dday.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.dday.application.DdaySettingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

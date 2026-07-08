@@ -8,7 +8,6 @@ import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.review.domain.CourseEmojiReview;
 import bhoon.sugang_helper.review.domain.CourseEmojiReviewRepository;
-import bhoon.sugang_helper.review.application.CourseEmojiReviewResponse;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -44,14 +43,17 @@ public class CourseEmojiReviewService {
                 .ifPresentOrElse(
                         existing -> {
                             emojiReviewRepository.delete(existing);
-                            log.info("[EmojiReview] Removed. courseKey={}, subjectCode={}, professor={}, userId={}, emoji={}",
+                            log.info(
+                                    "[EmojiReview] Removed. courseKey={}, subjectCode={}, professor={}, userId={}, emoji={}",
                                     courseKey, scope.subjectCode(), scope.professor(), user.getId(), emoji);
                         },
                         () -> {
                             emojiReviewRepository.save(
-                                    CourseEmojiReview.builder().courseKey(courseKey).userId(user.getId()).emoji(emoji).build()
+                                    CourseEmojiReview.builder().courseKey(courseKey).userId(user.getId()).emoji(emoji)
+                                            .build()
                             );
-                            log.info("[EmojiReview] Added. courseKey={}, subjectCode={}, professor={}, userId={}, emoji={}",
+                            log.info(
+                                    "[EmojiReview] Added. courseKey={}, subjectCode={}, professor={}, userId={}, emoji={}",
                                     courseKey, scope.subjectCode(), scope.professor(), user.getId(), emoji);
                         }
                 );
@@ -65,7 +67,8 @@ public class CourseEmojiReviewService {
         Course course = getCourse(courseKey);
         ReviewScopeKey scope = ReviewScopeKey.from(course);
         Long currentUserId = getCurrentUserIdOrNull();
-        return emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor()).stream()
+        return emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor())
+                .stream()
                 .map(row -> {
                     String emoji = (String) row[0];
                     long count = ((Number) row[1]).longValue();

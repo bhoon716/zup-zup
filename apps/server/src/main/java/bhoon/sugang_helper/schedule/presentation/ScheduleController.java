@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.schedule.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.schedule.application.ScheduleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;

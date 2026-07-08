@@ -8,6 +8,16 @@ if [ ! -f "${compose_file}" ]; then
   exit 1
 fi
 
+# verification 시 .env가 없으면 .env.example을 임시 복사하여 변수 파싱 에러 방지
+if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+  cp .env.example .env
+fi
+
+if [ ! -f "../apps/server/.env" ] && [ -f "../apps/server/.env.example" ]; then
+  cp ../apps/server/.env.example ../apps/server/.env
+fi
+
+
 config_output="$(docker compose -f "${compose_file}" config --format json)"
 tmp_config="$(mktemp)"
 

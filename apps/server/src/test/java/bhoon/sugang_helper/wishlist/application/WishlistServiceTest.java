@@ -19,7 +19,6 @@ import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import bhoon.sugang_helper.wishlist.domain.Wishlist;
 import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
-import bhoon.sugang_helper.wishlist.application.WishlistResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -41,20 +40,15 @@ class WishlistServiceTest {
     private static final String COURSE_KEY = "2024:1:12345:01";
     private static final String COURSE_KEY_1 = "CK1";
     private static final String COURSE_KEY_2 = "CK2";
-
+    private static MockedStatic<SecurityUtil> securityUtil;
     @InjectMocks
     private WishlistService wishlistService;
-
     @Mock
     private WishlistRepository wishlistRepository;
-
     @Mock
     private CourseRepository courseRepository;
-
     @Mock
     private UserRepository userRepository;
-
-    private static MockedStatic<SecurityUtil> securityUtil;
 
     @BeforeEach
     void setUp() {

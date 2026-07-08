@@ -117,10 +117,12 @@ public class AuthService {
     }
 
     public void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-        ResponseCookie cookie = CookieUtil.createCookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, REFRESH_TOKEN_COOKIE_MAX_AGE, refreshCookieSecure);
+        ResponseCookie cookie = CookieUtil.createCookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken,
+                REFRESH_TOKEN_COOKIE_MAX_AGE, refreshCookieSecure);
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        ResponseCookie isLoggedInCookie = CookieUtil.createCookie(IS_LOGGED_IN_COOKIE_NAME, "true", REFRESH_TOKEN_COOKIE_MAX_AGE, refreshCookieSecure);
+        ResponseCookie isLoggedInCookie = CookieUtil.createCookie(IS_LOGGED_IN_COOKIE_NAME, "true",
+                REFRESH_TOKEN_COOKIE_MAX_AGE, refreshCookieSecure);
         response.addHeader(HttpHeaders.SET_COOKIE, isLoggedInCookie.toString());
     }
 

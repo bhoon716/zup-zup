@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.announcement.domain.Announcement;
 import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
-import bhoon.sugang_helper.dashboard.application.DashboardSnapshotResponse;
 import bhoon.sugang_helper.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;

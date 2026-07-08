@@ -1,8 +1,6 @@
 package bhoon.sugang_helper.user.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.user.application.DiscordOAuthService;
-import bhoon.sugang_helper.user.application.UserService;
 import bhoon.sugang_helper.user.application.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.user.application.command.SendVerificationCodeCommand;
 import bhoon.sugang_helper.user.application.command.UpdateProfileCommand;

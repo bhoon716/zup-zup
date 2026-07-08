@@ -8,7 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface NotificationHistoryJpaRepository extends JpaRepository<NotificationHistory, Long>, NotificationHistoryRepository {
+public interface NotificationHistoryJpaRepository extends JpaRepository<NotificationHistory, Long>,
+        NotificationHistoryRepository {
     /**
      * 특정 사용자의 알림 수신 내역을 최신순으로 조회합니다.
      */

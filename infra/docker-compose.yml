@@ -114,6 +114,41 @@ services:
     networks:
       - sugang-helper-network-server
 
+  app:
+    image: sugang-helper-app:latest
+    container_name: ${APP_CONTAINER_NAME}
+    restart: unless-stopped
+    env_file:
+      - .env
+      - ../apps/server/.env
+    ports:
+      - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
+    volumes:
+      - ../apps/server/src/main/resources/application-prod.yml:/app/config/application-prod.yml:ro
+      - ${FIREBASE_CONFIG_PATH}:/app/config/firebase-key.json:ro
+      - /var/log/jbnu-sugang-helper/server:/var/log/jbnu-sugang-helper/server
+    extra_hosts:
+      - "oasis.jbnu.ac.kr:114.70.191.85"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:${APP_PORT_CONTAINER}/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 120s
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - sugang-helper-network-server
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
 networks:
   sugang-helper-network-server:
     name: sugang-helper-network-server

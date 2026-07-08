@@ -6,7 +6,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

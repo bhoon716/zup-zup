@@ -22,6 +22,17 @@ public class CustomScheduleResponse {
     @Schema(description = "시간대 목록")
     private List<CustomScheduleTimeResponse> schedules;
 
+    public static CustomScheduleResponse of(CustomSchedule schedule) {
+        return CustomScheduleResponse.builder()
+                .id(schedule.getId())
+                .title(schedule.getTitle())
+                .professor(schedule.getProfessor())
+                .schedules(schedule.getTimes().stream()
+                        .map(CustomScheduleTimeResponse::of)
+                        .collect(Collectors.toList()))
+                .build();
+    }
+
     @Getter
     @Builder
     public static class CustomScheduleTimeResponse {
@@ -45,16 +56,5 @@ public class CustomScheduleResponse {
                     .classroom(time.getClassroom())
                     .build();
         }
-    }
-
-    public static CustomScheduleResponse of(CustomSchedule schedule) {
-        return CustomScheduleResponse.builder()
-                .id(schedule.getId())
-                .title(schedule.getTitle())
-                .professor(schedule.getProfessor())
-                .schedules(schedule.getTimes().stream()
-                        .map(CustomScheduleTimeResponse::of)
-                        .collect(Collectors.toList()))
-                .build();
     }
 }

@@ -3,7 +3,6 @@ package bhoon.sugang_helper.crawling.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import java.time.Year;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +14,7 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.stereotype.Service;
 
 /**
- * 전북대학교 오아시스 시스템으로부터 강의 정보를 크롤링하고 데이터베이스에 동기화하는 서비스입니다.
- * Spring Batch의 JobLauncher를 통해 배치 작업을 수행합니다.
+ * 전북대학교 오아시스 시스템으로부터 강의 정보를 크롤링하고 데이터베이스에 동기화하는 서비스입니다. Spring Batch의 JobLauncher를 통해 배치 작업을 수행합니다.
  */
 @Service
 @Slf4j

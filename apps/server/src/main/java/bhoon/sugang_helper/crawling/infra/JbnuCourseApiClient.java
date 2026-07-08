@@ -14,19 +14,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class JbnuCourseApiClient {
 
-    @Value("${jbnu.api.url}")
-    private String apiUrl;
-
-    @Value("${jbnu.api.timeout-ms}")
-    private int timeoutMs;
-
-    @Value("${jbnu.api.max-retries}")
-    private int maxRetries;
-
-    @Value("${jbnu.api.retry-wait-ms:1000}")
-    private int retryWaitMs;
-
-
     private static final String PAYLOAD_TEMPLATE = """
             <?xml version="1.0" encoding="UTF-8"?>
             <Root xmlns="http://www.nexacroplatform.com/platform/dataset">
@@ -55,7 +42,14 @@ public class JbnuCourseApiClient {
                 </Parameters>
             </Root>
             """;
-
+    @Value("${jbnu.api.url}")
+    private String apiUrl;
+    @Value("${jbnu.api.timeout-ms}")
+    private int timeoutMs;
+    @Value("${jbnu.api.max-retries}")
+    private int maxRetries;
+    @Value("${jbnu.api.retry-wait-ms:1000}")
+    private int retryWaitMs;
 
     /**
      * 특정 년도와 학기를 지정하여 JBNU API 서버로부터 강의 데이터를 XML 형식으로 가져옵니다.
@@ -74,7 +68,8 @@ public class JbnuCourseApiClient {
                             wmonid, jsessionidsso);
                 }
 
-                String payload = PAYLOAD_TEMPLATE.formatted(year, semester, wmonid, jsessionidsso, year, semester, year);
+                String payload = PAYLOAD_TEMPLATE.formatted(year, semester, wmonid, jsessionidsso, year, semester,
+                        year);
 
                 return Jsoup.connect(apiUrl)
                         .header("Accept", "application/xml, text/xml, */*")

@@ -15,7 +15,8 @@ class NotificationChannelPolicyTest {
 
     @Test
     void resolveTargets_UsesNotificationEmailFallback() {
-        NotificationChannelPolicy policy = new NotificationChannelPolicy(new NotificationProperties(true, true, true, true));
+        NotificationChannelPolicy policy = new NotificationChannelPolicy(
+                new NotificationProperties(true, true, true, true));
         User user = User.builder()
                 .email("user@example.com")
                 .notificationEmail("notify@example.com")
@@ -29,7 +30,8 @@ class NotificationChannelPolicyTest {
 
     @Test
     void resolveTargets_UsesWebDeviceDetails() {
-        NotificationChannelPolicy policy = new NotificationChannelPolicy(new NotificationProperties(true, true, true, true));
+        NotificationChannelPolicy policy = new NotificationChannelPolicy(
+                new NotificationProperties(true, true, true, true));
         User user = User.builder().email("user@example.com").build();
         UserDevice device = UserDevice.builder()
                 .userId(1L)
@@ -49,7 +51,8 @@ class NotificationChannelPolicyTest {
 
     @Test
     void isChannelEnabled_RequiresGlobalAndUserSettings() {
-        NotificationChannelPolicy policy = new NotificationChannelPolicy(new NotificationProperties(true, false, true, true));
+        NotificationChannelPolicy policy = new NotificationChannelPolicy(
+                new NotificationProperties(true, false, true, true));
         User user = User.builder()
                 .emailEnabled(true)
                 .discordEnabled(true)

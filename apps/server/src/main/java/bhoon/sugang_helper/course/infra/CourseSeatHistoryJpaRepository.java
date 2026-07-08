@@ -5,6 +5,7 @@ import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface CourseSeatHistoryJpaRepository extends JpaRepository<CourseSeatHistory, Long>, CourseSeatHistoryRepository {
+public interface CourseSeatHistoryJpaRepository extends JpaRepository<CourseSeatHistory, Long>,
+        CourseSeatHistoryRepository {
     List<CourseSeatHistory> findByCourseKeyOrderByCreatedAtDesc(String courseKey);
 }

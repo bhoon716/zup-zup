@@ -32,7 +32,8 @@ public class NotificationChannelPolicy {
     public List<NotificationTarget> resolveTargets(User user, List<UserDevice> devices, NotificationChannel channel) {
         return switch (channel) {
             case EMAIL -> List.of(NotificationTarget.of(resolveNotificationEmail(user)));
-            case DISCORD -> user.getDiscordId() != null ? List.of(NotificationTarget.of(user.getDiscordId())) : List.of();
+            case DISCORD ->
+                    user.getDiscordId() != null ? List.of(NotificationTarget.of(user.getDiscordId())) : List.of();
             case WEB, FCM -> resolveDeviceTargets(devices, channel);
         };
     }

@@ -27,7 +27,8 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setCharacterEncoding("UTF-8");
 
-        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.FORBIDDEN, request.getRequestURI(), accessDeniedException.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.FORBIDDEN, request.getRequestURI(),
+                accessDeniedException.getMessage());
         objectMapper.writeValue(response.getWriter(), errorResponse);
     }
 }

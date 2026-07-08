@@ -19,6 +19,17 @@ class FlywayMigrationValidationTest {
             .withUsername("test")
             .withPassword("test");
 
+    private static Integer tableCount(JdbcTemplate jdbcTemplate, String tableName) {
+        return jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM information_schema.tables
+                        WHERE table_schema = DATABASE()
+                          AND table_name = ?
+                        """,
+                Integer.class,
+                tableName);
+    }
+
     @Test
     void freshMySqlSchemaMigratesAndSeedsCrawlerSettings() {
         Flyway flyway = Flyway.configure()
@@ -42,16 +53,5 @@ class FlywayMigrationValidationTest {
                 .isEqualTo("2026");
         assertThat(jdbcTemplate.queryForObject("SELECT target_semester FROM crawler_settings LIMIT 1", String.class))
                 .isEqualTo("U211600010");
-    }
-
-    private static Integer tableCount(JdbcTemplate jdbcTemplate, String tableName) {
-        return jdbcTemplate.queryForObject("""
-                        SELECT COUNT(*)
-                        FROM information_schema.tables
-                        WHERE table_schema = DATABASE()
-                          AND table_name = ?
-                        """,
-                Integer.class,
-                tableName);
     }
 }

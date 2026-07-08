@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.subscription.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.subscription.application.SubscriptionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;

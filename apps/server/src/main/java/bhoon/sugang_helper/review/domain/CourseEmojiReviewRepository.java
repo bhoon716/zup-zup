@@ -7,25 +7,28 @@ import java.util.Optional;
 
 public interface CourseEmojiReviewRepository extends RepositoryContract<CourseEmojiReview, Long> {
     Optional<CourseEmojiReview> findByCourseKeyAndUserIdAndEmoji(String courseKey, Long userId, String emoji);
+
     List<CourseEmojiReview> findByCourseKey(String courseKey);
+
     long countByCourseKeyAndEmoji(String courseKey, String emoji);
+
     boolean existsByCourseKeyAndUserIdAndEmoji(String courseKey, Long userId, String emoji);
 
     void deleteAllByUserId(Long userId);
 
     Optional<CourseEmojiReview> findBySubjectCodeAndProfessorAndUserIdAndEmoji(String subjectCode,
-                                                                                String professor,
-                                                                                Long userId,
-                                                                                String emoji);
+                                                                               String professor,
+                                                                               Long userId,
+                                                                               String emoji);
 
     long countBySubjectCodeAndProfessorAndEmoji(String subjectCode,
                                                 String professor,
                                                 String emoji);
 
     long countBySubjectCodeAndProfessorAndUserIdAndEmoji(String subjectCode,
-                                                          String professor,
-                                                          Long userId,
-                                                          String emoji);
+                                                         String professor,
+                                                         Long userId,
+                                                         String emoji);
 
     List<Object[]> findEmojiStatsByCourseKey(String courseKey);
 

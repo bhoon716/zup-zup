@@ -11,8 +11,6 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.admin.application.AdminDashboardResponse;
-import bhoon.sugang_helper.admin.application.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.crawling.application.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;

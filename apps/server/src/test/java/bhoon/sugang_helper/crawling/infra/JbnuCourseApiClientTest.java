@@ -82,33 +82,33 @@ class JbnuCourseApiClientTest {
         }
 
         String payloadTemplate = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <Root xmlns="http://www.nexacroplatform.com/platform/dataset">
-                <Parameters>
-                    <Parameter id="JSESSIONID" />
-                    <Parameter id="gvYy">%s</Parameter>
-                    <Parameter id="gvShtm">%s</Parameter>
-                    <Parameter id="gvRechPrjtNo" />
-                    <Parameter id="gvRechDutyr" />
-                    <Parameter id="_fwb" />
-                    <Parameter id="WMONID">%s</Parameter>
-                    <Parameter id="JSESSIONIDSSO">%s</Parameter>
-                    <Parameter id="yy">%s</Parameter>
-                    <Parameter id="shtm">%s</Parameter>
-                    <Parameter id="fg" />
-                    <Parameter id="value1" />
-                    <Parameter id="value2" />
-                    <Parameter id="value3" />
-                    <Parameter id="sbjtNm" />
-                    <Parameter id="profNm" />
-                    <Parameter id="openLectFg" />
-                    <Parameter id="entrYy">%s</Parameter>
-                    <Parameter id="sType">EXT1</Parameter>
-                    <Parameter id="lang">K</Parameter>
-                    <Parameter id="ltLangFg">N</Parameter>
-                </Parameters>
-            </Root>
-            """;
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Root xmlns="http://www.nexacroplatform.com/platform/dataset">
+                    <Parameters>
+                        <Parameter id="JSESSIONID" />
+                        <Parameter id="gvYy">%s</Parameter>
+                        <Parameter id="gvShtm">%s</Parameter>
+                        <Parameter id="gvRechPrjtNo" />
+                        <Parameter id="gvRechDutyr" />
+                        <Parameter id="_fwb" />
+                        <Parameter id="WMONID">%s</Parameter>
+                        <Parameter id="JSESSIONIDSSO">%s</Parameter>
+                        <Parameter id="yy">%s</Parameter>
+                        <Parameter id="shtm">%s</Parameter>
+                        <Parameter id="fg" />
+                        <Parameter id="value1" />
+                        <Parameter id="value2" />
+                        <Parameter id="value3" />
+                        <Parameter id="sbjtNm" />
+                        <Parameter id="profNm" />
+                        <Parameter id="openLectFg" />
+                        <Parameter id="entrYy">%s</Parameter>
+                        <Parameter id="sType">EXT1</Parameter>
+                        <Parameter id="lang">K</Parameter>
+                        <Parameter id="ltLangFg">N</Parameter>
+                    </Parameters>
+                </Root>
+                """;
 
         String year = "2026";
         String semester = "U211600010";
@@ -121,7 +121,8 @@ class JbnuCourseApiClientTest {
                 .header("Origin", "https://oasis.jbnu.ac.kr")
                 .header("Referer", "https://oasis.jbnu.ac.kr/jbnu/sugang/sbjt/sbjt.html?param=KOR")
                 .header("X-Requested-With", "XMLHttpRequest")
-                .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Whale/4.35.351.12 Safari/537.36")
+                .header("User-Agent",
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Whale/4.35.351.12 Safari/537.36")
                 .requestBody(payload)
                 .timeout(30000)
                 .maxBodySize(0)

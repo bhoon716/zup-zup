@@ -2,7 +2,6 @@ package bhoon.sugang_helper.dashboard.application;
 
 import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
 import bhoon.sugang_helper.announcement.application.AnnouncementListResponse;
-import bhoon.sugang_helper.dashboard.application.DashboardSnapshotResponse;
 import bhoon.sugang_helper.dashboard.application.result.DashboardPrimaryTimetableResult;
 import bhoon.sugang_helper.dashboard.application.result.DashboardUserResult;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
@@ -67,7 +66,8 @@ public class DashboardService {
         return DashboardSnapshotResponse.builder()
                 .user(userResponse)
                 .notifications(notifications)
-                .primaryTimetable(primaryTimetable == null ? null : DashboardPrimaryTimetableResult.from(primaryTimetable))
+                .primaryTimetable(
+                        primaryTimetable == null ? null : DashboardPrimaryTimetableResult.from(primaryTimetable))
                 .upcomingSchedules(upcomingSchedules)
                 .announcements(announcements)
                 .build();

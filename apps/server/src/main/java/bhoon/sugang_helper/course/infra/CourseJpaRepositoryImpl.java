@@ -142,7 +142,8 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
             for (int i = 1; i < dayConditions.size(); i++) {
                 ValidScheduleCondition next = dayConditions.get(i);
                 if (!next.startTime().isAfter(currentMerged.endTime())) {
-                    LocalTime newEndTime = next.endTime().isAfter(currentMerged.endTime()) ? next.endTime() : currentMerged.endTime();
+                    LocalTime newEndTime =
+                            next.endTime().isAfter(currentMerged.endTime()) ? next.endTime() : currentMerged.endTime();
                     currentMerged = new ValidScheduleCondition(day, currentMerged.startTime(), newEndTime);
                 } else {
                     mergedDay.add(currentMerged);
@@ -156,7 +157,8 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
         return mergedAll;
     }
 
-    private List<ValidScheduleCondition> toValidConditions(List<CourseSearchCriteria.SelectedSchedule> selectedSchedules) {
+    private List<ValidScheduleCondition> toValidConditions(
+            List<CourseSearchCriteria.SelectedSchedule> selectedSchedules) {
         if (selectedSchedules == null || selectedSchedules.isEmpty()) {
             return List.of();
         }

@@ -46,7 +46,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import({NotificationService.class, NotificationChannelPolicy.class, NotificationServiceTransactionTest.TestConfig.class})
+@Import({NotificationService.class, NotificationChannelPolicy.class,
+        NotificationServiceTransactionTest.TestConfig.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class NotificationServiceTransactionTest {
 
