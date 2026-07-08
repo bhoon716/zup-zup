@@ -2,11 +2,10 @@ spring:
   application:
     name: zup-zup
 
+server:
   servlet:
     session:
       timeout: 2h
-  session:
-    timeout: 2h
 
   datasource:
     url: ${SPRING_DATASOURCE_URL}
@@ -110,6 +109,3 @@ management:
     web:
       exposure:
         include: health, info, prometheus
-  endpoint:
-    prometheus:
-      enabled: true

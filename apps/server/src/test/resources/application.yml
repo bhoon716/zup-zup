@@ -1,0 +1,134 @@
+spring:
+  application:
+    name: zup-zup
+
+server:
+  servlet:
+    session:
+      timeout: 2h
+
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  flyway:
+    enabled: false
+
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+    show-sql: false
+
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:redispass123}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope:
+              - profile
+              - email
+            redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/login/oauth2/code/google}
+            authorization-grant-type: authorization_code
+
+  cloud:
+    aws:
+      region:
+        static: ${AWS_REGION:us-east-1}
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID:local-access-key}
+        secret-key: ${AWS_SECRET_ACCESS_KEY:local-secret-key}
+      ses:
+        enabled: false
+
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SPRING_MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${SPRING_MAIL_SMTP_STARTTLS_ENABLE:false}
+          connectiontimeout: ${SPRING_MAIL_SMTP_CONNECTIONTIMEOUT:5000}
+          timeout: ${SPRING_MAIL_SMTP_TIMEOUT:5000}
+          writetimeout: ${SPRING_MAIL_SMTP_WRITETIMEOUT:5000}
+    from: ${MAIL_FROM:no-reply@localhost}
+    from-name: ${MAIL_FROM_NAME:줍줍(local)}
+
+jwt:
+  secret: ${JWT_SECRET:local-dev-secret-change-me}
+  access:
+    expiration: ${JWT_ACCESS_EXPIRATION:7200000}
+  refresh:
+    expiration: ${JWT_REFRESH_EXPIRATION:1209600000}
+
+app:
+  auth:
+    refresh-cookie-secure: ${APP_AUTH_REFRESH_COOKIE_SECURE:false}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+  oauth2:
+    success-redirect-uri: ${APP_OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:3000}
+    failure-redirect-uri: ${APP_OAUTH2_FAILURE_REDIRECT_URI:http://localhost:3000/login?error=true}
+    authorized-redirect-uri: ${APP_OAUTH2_AUTHORIZED_REDIRECT_URI:http://localhost:3000}
+  subscription:
+    max-limit: ${APP_SUBSCRIPTION_MAX_LIMIT:10}
+  notification:
+    channels:
+      email: ${APP_NOTIFICATION_EMAIL:true}
+      discord: ${APP_NOTIFICATION_DISCORD:false}
+      webpush: ${APP_NOTIFICATION_WEBPUSH:false}
+      fcm: ${APP_NOTIFICATION_FCM:false}
+
+  firebase:
+    config-path: ${FIREBASE_CONFIG_PATH:./src/main/resources/firebase/firebase-key.json}
+  webpush:
+    public-key: ${APP_WEBPUSH_PUBLIC_KEY:}
+    private-key: ${APP_WEBPUSH_PRIVATE_KEY:}
+    subject: ${APP_WEBPUSH_SUBJECT:mailto:local@example.com}
+  discord:
+    bot-token: ${APP_DISCORD_BOT_TOKEN:}
+    client-id: ${APP_DISCORD_CLIENT_ID:}
+    client-secret: ${APP_DISCORD_CLIENT_SECRET:}
+    redirect-uri: ${APP_DISCORD_REDIRECT_URI:http://localhost:8080/api/v1/users/discord/callback}
+
+jbnu:
+  api:
+    url: ${JBNU_API_URL:https://oasis.jbnu.ac.kr/uni/uni/cour/less/findLessSubjtTblInq.action}
+    timeout-ms: ${JBNU_API_TIMEOUT_MS:180000}
+    max-retries: ${JBNU_API_MAX_RETRIES:3}
+    retry-wait-ms: ${JBNU_API_RETRY_WAIT_MS:3000}
+  crawler:
+    run-on-startup: ${JBNU_CRAWLER_RUN_ON_STARTUP:false}
+    cron: ${JBNU_CRAWLER_CRON:0 * * * * ?}
+    default-year: ${JBNU_CRAWLER_DEFAULT_YEAR:2026}
+    default-semester: ${JBNU_CRAWLER_DEFAULT_SEMESTER:U211600010}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+
+file:
+  upload:
+    dir: ${FILE_UPLOAD_DIR:./data/uploads}
