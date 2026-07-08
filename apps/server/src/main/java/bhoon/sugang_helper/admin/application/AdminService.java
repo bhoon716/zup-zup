@@ -152,15 +152,6 @@ public class AdminService {
         List<AdminRecentLogResponse> allLogs = new ArrayList<>(notificationLogs);
         allLogs.add(buildCrawlerLog(now, lastCrawledAt));
 
-        if (allLogs.isEmpty()) {
-            allLogs.add(AdminRecentLogResponse.builder()
-                    .timestamp(now)
-                    .level("INFO")
-                    .message("표시할 로그가 없습니다.")
-                    .source("AdminService")
-                    .build());
-        }
-
         return allLogs.stream()
                 .sorted((a, b) -> {
                     if (a.getTimestamp() == null && b.getTimestamp() == null) {
