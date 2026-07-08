@@ -9,8 +9,6 @@ import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
 import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.subscription.application.SubscriptionRequest;
-import bhoon.sugang_helper.subscription.application.SubscriptionResponse;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;

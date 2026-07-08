@@ -2,7 +2,6 @@ package bhoon.sugang_helper.course.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.crawling.application.SearchDefaultSemesterResponse;
-import bhoon.sugang_helper.course.application.CourseService;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

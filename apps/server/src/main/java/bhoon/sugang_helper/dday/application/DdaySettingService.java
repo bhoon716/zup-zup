@@ -4,8 +4,6 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.dday.domain.DdaySetting;
 import bhoon.sugang_helper.dday.domain.DdaySettingRepository;
-import bhoon.sugang_helper.dday.application.DdaySettingRequest;
-import bhoon.sugang_helper.dday.application.DdaySettingResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;

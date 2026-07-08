@@ -1,8 +1,6 @@
 package bhoon.sugang_helper.crawling.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.crawling.application.CourseCrawlerService;
-import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

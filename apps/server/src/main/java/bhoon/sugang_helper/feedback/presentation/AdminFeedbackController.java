@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.feedback.application;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.feedback.application.FeedbackService;
 import bhoon.sugang_helper.user.application.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

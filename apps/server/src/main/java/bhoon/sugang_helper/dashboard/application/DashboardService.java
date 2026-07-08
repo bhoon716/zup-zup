@@ -2,7 +2,6 @@ package bhoon.sugang_helper.dashboard.application;
 
 import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
 import bhoon.sugang_helper.announcement.application.AnnouncementListResponse;
-import bhoon.sugang_helper.dashboard.application.DashboardSnapshotResponse;
 import bhoon.sugang_helper.dashboard.application.result.DashboardPrimaryTimetableResult;
 import bhoon.sugang_helper.dashboard.application.result.DashboardUserResult;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
