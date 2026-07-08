@@ -2,11 +2,6 @@ spring:
   application:
     name: zup-zup
 
-server:
-  servlet:
-    session:
-      timeout: 2h
-
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
     username: sa
@@ -71,6 +66,11 @@ server:
     from: ${MAIL_FROM:no-reply@localhost}
     from-name: ${MAIL_FROM_NAME:줍줍(local)}
 
+server:
+  servlet:
+    session:
+      timeout: 2h
+
 jwt:
   secret: ${JWT_SECRET:local-dev-secret-change-me}
   access:
@@ -125,9 +125,6 @@ management:
     web:
       exposure:
         include: health, info, prometheus
-  endpoint:
-    prometheus:
-      enabled: true
 
 file:
   upload:

@@ -2,11 +2,6 @@ spring:
   application:
     name: zup-zup
 
-server:
-  servlet:
-    session:
-      timeout: 2h
-
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -54,6 +49,11 @@ server:
   mail:
     from: no-reply@zup-zup.com
     from-name: 줍줍
+
+server:
+  servlet:
+    session:
+      timeout: 2h
 
 jwt:
   secret: ${JWT_SECRET}

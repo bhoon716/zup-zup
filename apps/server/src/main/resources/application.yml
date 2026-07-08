@@ -2,11 +2,6 @@ spring:
   application:
     name: zup-zup
 
-server:
-  servlet:
-    session:
-      timeout: 2h
-
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/sugang_helper?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${SPRING_DATASOURCE_USERNAME:root}
@@ -69,6 +64,11 @@ server:
           writetimeout: ${SPRING_MAIL_SMTP_WRITETIMEOUT:5000}
     from: ${MAIL_FROM:no-reply@localhost}
     from-name: ${MAIL_FROM_NAME:줍줍(local)}
+
+server:
+  servlet:
+    session:
+      timeout: 2h
 
 jwt:
   secret: ${JWT_SECRET:local-dev-secret-change-me}
