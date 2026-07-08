@@ -49,7 +49,7 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
 
     @Override
     public Slice<Course> searchCourses(CourseSearchCriteria condition, Pageable pageable) {
-        String sortBy = condition.getSortBy();
+        String sortBy = condition.sortBy();
         boolean isPopularSort = sortBy == null || "popular".equalsIgnoreCase(sortBy);
         QWishlist wishlist = QWishlist.wishlist;
 
@@ -59,29 +59,29 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
         }
 
         query.where(
-                containsName(condition.getName()),
-                containsProfessor(condition.getProfessor()),
-                eqSubjectCode(condition.getSubjectCode()),
-                eqAcademicYear(condition.getAcademicYear()),
-                eqSemester(condition.getSemester()),
-                inClassifications(condition.getClassifications()),
-                containsDepartment(condition.getDepartment()),
-                inGradingMethods(condition.getGradingMethods()),
-                inLectureLanguages(condition.getLectureLanguages()),
-                isAvailable(condition.getIsAvailableOnly()),
-                eqDayOfWeek(condition.getDayOfWeek()),
-                inCredits(condition.getCredits()),
-                goeMinCredits(condition.getMinCredits()),
-                inTargetGrades(condition.getTargetGrades()),
-                eqDisclosure(condition.getDisclosure()),
-                eqLectureHours(condition.getLectureHours()),
-                goeMinLectureHours(condition.getMinLectureHours()),
-                eqGeneralCategory(condition.getGeneralCategory()),
-                eqGeneralDetail(condition.getGeneralDetail()),
-                inStatuses(condition.getStatuses()),
-                containsCourseDirection(condition.getCourseDirection()),
-                matchSelectedSchedules(condition.getSelectedSchedules()),
-                inWishlist(condition.getIsWishedOnly(), condition.getUserId()));
+                containsName(condition.name()),
+                containsProfessor(condition.professor()),
+                eqSubjectCode(condition.subjectCode()),
+                eqAcademicYear(condition.academicYear()),
+                eqSemester(condition.semester()),
+                inClassifications(condition.classifications()),
+                containsDepartment(condition.department()),
+                inGradingMethods(condition.gradingMethods()),
+                inLectureLanguages(condition.lectureLanguages()),
+                isAvailable(condition.isAvailableOnly()),
+                eqDayOfWeek(condition.dayOfWeek()),
+                inCredits(condition.credits()),
+                goeMinCredits(condition.minCredits()),
+                inTargetGrades(condition.targetGrades()),
+                eqDisclosure(condition.disclosure()),
+                eqLectureHours(condition.lectureHours()),
+                goeMinLectureHours(condition.minLectureHours()),
+                eqGeneralCategory(condition.generalCategory()),
+                eqGeneralDetail(condition.generalDetail()),
+                inStatuses(condition.statuses()),
+                containsCourseDirection(condition.courseDirection()),
+                matchSelectedSchedules(condition.selectedSchedules()),
+                inWishlist(condition.isWishedOnly(), condition.userId()));
 
         if (isPopularSort) {
             query.groupBy(course.id);
@@ -169,17 +169,17 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
     }
 
     private Optional<ValidScheduleCondition> toValidCondition(CourseSearchCriteria.SelectedSchedule condition) {
-        if (condition.getDayOfWeek() == null) {
+        if (condition.dayOfWeek() == null) {
             return Optional.empty();
         }
 
-        LocalTime startTime = parseTime(condition.getStartTime());
-        LocalTime endTime = parseTime(condition.getEndTime());
+        LocalTime startTime = parseTime(condition.startTime());
+        LocalTime endTime = parseTime(condition.endTime());
         if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
             return Optional.empty();
         }
 
-        return Optional.of(new ValidScheduleCondition(condition.getDayOfWeek(), startTime, endTime));
+        return Optional.of(new ValidScheduleCondition(condition.dayOfWeek(), startTime, endTime));
     }
 
     private BooleanBuilder buildSelectedSlots(QCourseSchedule schedule, List<ValidScheduleCondition> validConditions) {
@@ -346,8 +346,8 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
     }
 
     private OrderSpecifier<?>[] getOrderSpecifiers(CourseSearchCriteria condition, QWishlist joinedWishlist) {
-        String sortBy = condition.getSortBy();
-        String sortOrder = condition.getSortOrder();
+        String sortBy = condition.sortBy();
+        String sortOrder = condition.sortOrder();
         Order order = "asc".equalsIgnoreCase(sortOrder) ? Order.ASC : Order.DESC;
 
         if (sortBy == null || "popular".equalsIgnoreCase(sortBy)) {

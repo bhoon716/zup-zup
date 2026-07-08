@@ -25,7 +25,6 @@ import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -212,33 +211,13 @@ public class UserService {
     @Transactional
     public void sendTestNotification() {
         User user = getCurrentUser();
-        List<NotificationChannel> channels = getEnabledNotificationChannels(user);
+        List<NotificationChannel> channels = user.getEnabledNotificationChannels();
         if (channels.isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "활성화된 알림 채널이 없습니다. 설정에서 알림을 활성화해주세요.");
         }
 
         notificationService.sendUserTestNotification(user, channels);
         log.info("[User] Send test notification: userId={}, channels={}", user.getId(), channels);
-    }
-
-    /**
-     * 사용자가 활성화한 알림 채널 목록을 조회합니다.
-     */
-    private List<NotificationChannel> getEnabledNotificationChannels(User user) {
-        List<NotificationChannel> channels = new ArrayList<>();
-        if (user.isEmailEnabled()) {
-            channels.add(NotificationChannel.EMAIL);
-        }
-        if (user.isFcmEnabled()) {
-            channels.add(NotificationChannel.FCM);
-        }
-        if (user.isWebPushEnabled()) {
-            channels.add(NotificationChannel.WEB);
-        }
-        if (user.isDiscordEnabled()) {
-            channels.add(NotificationChannel.DISCORD);
-        }
-        return channels;
     }
 
     /**

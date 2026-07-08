@@ -230,19 +230,7 @@ public class AdminService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, "email: " + email));
 
-        List<NotificationChannel> channels = new ArrayList<>();
-        if (user.isEmailEnabled()) {
-            channels.add(NotificationChannel.EMAIL);
-        }
-        if (user.isFcmEnabled()) {
-            channels.add(NotificationChannel.FCM);
-        }
-        if (user.isWebPushEnabled()) {
-            channels.add(NotificationChannel.WEB);
-        }
-        if (user.isDiscordEnabled()) {
-            channels.add(NotificationChannel.DISCORD);
-        }
+        List<NotificationChannel> channels = user.getEnabledNotificationChannels();
 
         if (channels.isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "활성화된 알림 채널이 없습니다. 설정에서 알림을 활성화해주세요.");
