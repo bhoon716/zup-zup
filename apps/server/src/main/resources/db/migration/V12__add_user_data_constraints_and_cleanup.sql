@@ -24,12 +24,12 @@ WHERE id IN (SELECT id
              WHERE ranked.rn > 1);
 
 UPDATE timetables
-SET is_primary = 0
+SET is_primary = false
 WHERE id IN (SELECT id
              FROM (SELECT id,
                           ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY id DESC) AS rn
                    FROM timetables
-                   WHERE is_primary = 1) ranked
+                   WHERE is_primary = true) ranked
              WHERE ranked.rn > 1);
 
 ALTER TABLE subscriptions
@@ -44,7 +44,7 @@ ALTER TABLE course_reviews
 ALTER TABLE timetables
     ADD COLUMN primary_user_id BIGINT GENERATED ALWAYS AS (
         CASE
-            WHEN is_primary = 1 THEN user_id
+            WHEN is_primary = true THEN user_id
             ELSE NULL
             END
         );
