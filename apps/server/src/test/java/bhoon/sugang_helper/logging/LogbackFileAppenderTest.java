@@ -7,6 +7,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.util.StatusPrinter2;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,7 +31,7 @@ class LogbackFileAppenderTest {
 
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(context);
-        java.net.URL resource = LogbackFileAppenderTest.class.getClassLoader().getResource("logback-spring.xml");
+        URL resource = LogbackFileAppenderTest.class.getClassLoader().getResource("logback-spring.xml");
         assertThat(resource).describedAs("logback-spring.xml이 존재해야 합니다").isNotNull();
         configurator.doConfigure(resource);
 
