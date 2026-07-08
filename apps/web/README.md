@@ -1,115 +1,85 @@
-<div align="center">
-
-# 🌐 줍줍 (zup-zup) Frontend
-
-**줍줍: Next.js 기반 실시간 여석 알림 및 스마트 커리큘럼 관리 플랫폼**
+# 줍줍 Web
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js-15.1.6-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
-  <img src="https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
-  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" />
-  <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" />
+  사용자가 가장 먼저 마주하는 화면. 검색, 시간표, 리뷰, 알림을 담당하는 프론트엔드.
 </p>
 
----
+줍줍 Web은 사용자가 수강신청 판단을 시작하는 첫 지점입니다.
+빠르게 읽히는 화면, 덜 끊기는 탐색 흐름, 명확한 알림 표현을 중심으로 설계했습니다.
 
-</div>
+## 프로젝트 개요
 
-## 💎 핵심 가치 (Core Values)
+| 항목 | 내용 |
+| --- | --- |
+| 역할 | 사용자 화면, 검색, 시간표, 리뷰, 알림 UI |
+| 성격 | Next.js 기반 프론트엔드 |
+| 배포 | Vercel |
+| 로그 | `/var/log/jbnu-sugang-helper/web/web.log` |
 
-- **⚡ Instant Response**: VAPID 기반 **Web Push**와 **Service Worker**를 활용하여 앱 종료 상태에서도 즉각적인 알림 전달
-- **🎨 Premium UX**: **Bento Grid** 레이아웃과 **Framer Motion**을 활용한 현대적이고 미려한 인터페이스 제공
-- **🧩 Smart Filtering**: 5,000개 이상의 강의 데이터를 조건별(이수구분, 학점, 시간대 등)로 즉시 필터링하는 고성능 검색 엔진
-- **📱 True PWA**: 설치형 앱 지원과 오프라인 대응을 통해 모바일 앱과 동일한 사용자 경험 제공
+## 왜 이 앱이 필요한가
 
----
+- 수강신청은 정보가 빠르게 바뀌기 때문에, 사용자가 즉시 판단할 수 있는 화면이 필요합니다.
+- 검색, 시간표, 리뷰, 알림이 분리되면 맥락을 다시 읽는 비용이 커집니다.
+- 프론트엔드는 기능 목록보다도 흐름의 단순성이 더 중요합니다.
 
-## ️ 기술 스택 (Tech Stack)
+## 핵심 책임
 
-### 🧱 Framework & UI
+- 강의 검색과 필터 조작
+- 시간표 기반 탐색 경험
+- 리뷰와 알림 관련 화면
+- 서버 응답을 읽기 쉬운 형태로 재구성하는 표시 계층
 
-- **Next.js 15 (App Router)**, **React 19**
-- **Tailwind CSS**, **shadcn/ui**, **Lucide Icons**
-- **Framer Motion** (Interaction & Animation)
+## 설계 포인트
 
-### 📡 Data Fetching & State
+| 선택 | 이유 | 효과 |
+| --- | --- | --- |
+| TanStack Query | 서버 상태를 명확하게 관리하기 위해 | 검색, 갱신, 재요청 흐름이 안정적입니다 |
+| Zustand | 가벼운 UI 상태를 분리하기 위해 | 전역 상태가 과도하게 커지지 않습니다 |
+| React Hook Form + Zod | 폼과 검증을 함께 정리하기 위해 | 입력과 검증 로직이 단순해집니다 |
+| Radix UI + Tailwind | 접근성과 일관된 스타일을 동시에 가져가기 위해 | 구현 속도와 UI 품질을 함께 확보합니다 |
+| Framer Motion | 화면 전환과 강조를 부드럽게 전달하기 위해 | 정보의 우선순위가 더 잘 보입니다 |
 
-- **TanStack Query v5** (Server State Management, Infinite Scroll)
-- **Zustand** (Client State Management, Auth Persistence)
-- **Axios** (With Auto Token Refresh Interceptor)
+## UI 관점에서 본 역할
 
-### 🔔 Notification & PWA
+- 검색 결과는 빠르게 읽히는 구조를 우선합니다.
+- 시간표와 목록은 판단에 필요한 정보를 한 번에 보여주는 방향으로 설계합니다.
+- 알림과 리뷰 흐름은 오래 머무르지 않아도 이해되도록 단순하게 유지합니다.
 
-- **Service Worker** & **Web Push API**
-- **VAPID Authorization**
-- **PWA (next-pwa)** (Standalone Mode Support)
+## 기술 스택
 
----
+- Next.js 16.1.6
+- React 19.2.7
+- TanStack Query
+- Zustand
+- React Hook Form
+- Zod
+- Radix UI
+- Tailwind CSS
+- Sonner
+- Framer Motion
 
-## 📚 주요 기능 구현 (Key Features)
+## Local Run
 
-### 🏠 개인화 대시보드 (Bento Grid)
-
-- **Bento Grid System**: 시간표, 공지사항, 최근 알림을 구획화하여 정보 가독성 극대화
-- **실시간 위젯**: 총 신청 학점, 찜한 강의 수, 활성 알림 수를 한눈에 파악하는 통계 카드 제공
-
-### 🔍 정밀 강의 검색 및 무한 스크롤
-
-- **Infinite Scroll**: `useInfiniteQuery`와 `Intersection Observer`를 활용한 끊김 없는 데이터 브라우징
-
-### 📝 강의 리뷰 및 커뮤니티
-
-- **사용자 중심 리액션**: 내가 작성한 리뷰를 최상단에 고정하고, 타 리뷰에 실시간으로 공감/비공감 표현 가능
-- **통계 가시화**: 강의별 평균 별점 및 리뷰 수를 상세 카드와 목록에 시각적으로 구현
-
-### 📅 스마트 시간표 시뮬레이션
-
-- **Interactive Grid**: 드래그 및 클릭 기반의 직관적인 시간표 편집 기능
-- **검색 연동**: 검색 결과에서 즉시 시간표에 추가하고 중복 시간대를 체크하는 통합 UX
-
-### 🚀 멀티 채널 알림 관리
-
-- **Push Dedup**: 포그라운드(Toast)와 백그라운드(시스템 알림)를 구분한 하이브리드 알림 체계
-- **Device Management**: 등록된 기기 목록 관리 및 원격 로그아웃, 알림 테스트 도구 제공
-
----
-
-## 📂 프로젝트 구조 (Structure)
-
-```text
-src/
-├── 📂 app            # Next.js App Router (Page & Layout)
-├── 📂 features       # 도메인 기반 기능 모듈 (Auth, Course, Timetable 등)
-│   ├── 📂 components # 기능별 특화 컴포넌트
-│   ├── 📂 hooks      # React Query 및 커스텀 로직
-│   └── 📂 store      # 도메인별 Zustand Store
-├── 📂 shared         # 공통 컴포넌트, 유틸리티, 타입 정의
-│   ├── 📂 ui         # shadcn/ui 기반 원자 컴포넌트
-│   ├── 📂 api        # Axios 인스턴스 및 인터셉터
-│   └── 📂 lib        # 공통 함수 및 포맷터
-└── 📂 widgets        # 대시보드 등 페이지 구성을 위한 대형 UI 블록
+```bash
+cd apps/web
+npm install
+npm run dev
 ```
 
----
+## Common Commands
 
-## 🛠️ 트러블슈팅 및 성능 최적화
+- `npm run build`
+- `npm run start`
+- `npm run lint`
+- `npm run test`
 
-- **자동 토큰 갱신**: 401 에러 감지 시 인터셉터를 통해 토큰 리프레시 후 실패한 요청을 자동 재시도하는 로직 구현
-- **인앱 브라우저 대응**: 카카오톡/에브리타임 등의 인앱 브라우저에서 Google 로그인 차단 문제를 감지하여 외부 브라우저 실행 가이드 제공
-- **알림 시인성 개선**: `requireInteraction: true` 옵션과 인앱 커스텀 토스트를 연동하여 중요 알림 누락 방지
+## Related Docs
 
----
+- [Project release notes](../../docs/feature-updates.md)
+- [Troubleshooting log](../../docs/troubleshooting.md)
 
-## 🔗 관련 문서 (Docs)
+## Operational Notes
 
-- 📜 **[릴리스 노트 (v1.1.0)](./docs/feature-updates.md)**
-- 🛠️ **[트러블슈팅 로그](./docs/troubleshooting.md)**
-
----
-
-## 📋 Logging
-
-- **Host file path**: `/var/log/jbnu-sugang-helper/web/web.log`
-- **Runtime behavior**: `npm start` now runs `scripts/start-with-file-log.mjs`, which appends Next.js output to the host log file while still printing to the terminal.
-- **Override**: set `WEB_LOG_FILE` to point at a different host path when needed.
+- 배포 기준은 루트 README를 참고합니다.
+- Web 로그는 `/var/log/jbnu-sugang-helper/web/web.log`에 남습니다.
+- 이 문서는 사용자 화면과 정보 구조를 이해하는 데 초점을 둡니다.
