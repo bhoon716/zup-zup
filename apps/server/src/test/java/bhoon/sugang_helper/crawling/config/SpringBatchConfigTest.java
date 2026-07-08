@@ -24,6 +24,9 @@ import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.context.ApplicationEventPublisher;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
+
 @ExtendWith(MockitoExtension.class)
 class SpringBatchConfigTest {
 
@@ -110,6 +113,23 @@ class SpringBatchConfigTest {
         writer.write(new Chunk<>(Collections.singletonList(dto)));
 
         // then
+        verify(courseSeatHistoryRepository, never()).save(any(CourseSeatHistory.class));
+    }
+
+    @Test
+    @DisplayName("과목 저장 실패 시 writer가 예외를 삼키지 않고 전파한다")
+    void newCourseSaveFailure_IsPropagated() {
+        // given
+        ParsedCourseDto dto = createCourseDto(NEW_COURSE_KEY, 50, 40);
+        given(courseRepository.findByCourseKey(NEW_COURSE_KEY)).willReturn(Optional.empty());
+        doThrow(new RuntimeException("save failed")).when(courseRepository).save(any(Course.class));
+
+        ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
+
+        // when / then
+        assertThatThrownBy(() -> writer.write(new Chunk<>(Collections.singletonList(dto))))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("save failed");
         verify(courseSeatHistoryRepository, never()).save(any(CourseSeatHistory.class));
     }
 

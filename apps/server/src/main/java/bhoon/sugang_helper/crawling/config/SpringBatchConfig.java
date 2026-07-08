@@ -78,12 +78,7 @@ public class SpringBatchConfig {
         return chunk -> {
             log.info("[SpringBatchConfig] Writing chunk of {} courses.", chunk.size());
             for (ParsedCourseDto dto : chunk) {
-                try {
-                    processCourse(dto);
-                } catch (Exception e) {
-                    log.error("[SpringBatchConfig] Error processing course in chunk: courseKey={}, reason={}",
-                            dto.courseKey(), e.getMessage());
-                }
+                processCourse(dto);
             }
         };
     }
