@@ -57,11 +57,23 @@ repositories {
 dependencies {
     // 의존성 제약 조건
     constraints {
-        implementation('org.bitbucket.b_c:jose4j:0.9.3') {
-            because 'CVE-2023-31582, CVE-2024-29371, CVE-2023-51775: Weak password iteration / resource exhaustion'
+        implementation('org.bitbucket.b_c:jose4j') {
+            version {
+                strictly '0.9.4'
+            }
+            because 'CVE-2023-31582, CVE-2024-29371, CVE-2023-51775: fixed upstream in 0.9.4'
         }
-        implementation('org.asynchttpclient:async-http-client:3.0.1') {
-            because 'CVE-2024-53990, CVE-2026-40490: Cookie store vulnerability / session leakage'
+        implementation('org.asynchttpclient:async-http-client') {
+            version {
+                strictly '3.0.11'
+            }
+            because 'CVE-2024-53990, CVE-2026-40490: fixed upstream in 3.0.11'
+        }
+        implementation('org.apache.commons:commons-lang3') {
+            version {
+                strictly '3.18.0'
+            }
+            because 'CVE-2025-48924: uncontrolled recursion fixed upstream in 3.18.0'
         }
         implementation('io.grpc:grpc-netty-shaded:1.75.0') {
             because 'CVE-2025-55163: MadeYouReset HTTP/2 DDoS'
@@ -110,7 +122,10 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
     // 문서화 (Swagger/OpenAPI)
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
+    implementation('org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5') {
+        exclude group: 'org.apache.commons', module: 'commons-lang3'
+    }
+    implementation 'org.apache.commons:commons-lang3:3.18.0'
 
     // QueryDSL (동적 쿼리)
     implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.0'
