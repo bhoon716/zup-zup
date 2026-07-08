@@ -10,8 +10,6 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.schedule.domain.Schedule;
 import bhoon.sugang_helper.schedule.domain.ScheduleRepository;
-import bhoon.sugang_helper.schedule.application.ScheduleRequest;
-import bhoon.sugang_helper.schedule.application.ScheduleResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;

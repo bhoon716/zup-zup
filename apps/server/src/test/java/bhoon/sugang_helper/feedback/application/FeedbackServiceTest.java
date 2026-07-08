@@ -11,8 +11,6 @@ import static org.mockito.Mockito.verify;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
-import bhoon.sugang_helper.feedback.application.FeedbackCreateRequest;
-import bhoon.sugang_helper.feedback.application.FeedbackStatusUpdateRequest;
 import bhoon.sugang_helper.feedback.domain.Feedback;
 import bhoon.sugang_helper.feedback.domain.FeedbackStatus;
 import bhoon.sugang_helper.feedback.domain.FeedbackType;

@@ -19,7 +19,6 @@ import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import bhoon.sugang_helper.wishlist.domain.Wishlist;
 import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
-import bhoon.sugang_helper.wishlist.application.WishlistResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

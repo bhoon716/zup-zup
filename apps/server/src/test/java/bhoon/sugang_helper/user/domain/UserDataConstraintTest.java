@@ -8,7 +8,6 @@ import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.infra.SubscriptionJpaRepository;
 import bhoon.sugang_helper.timetable.domain.Timetable;
 import bhoon.sugang_helper.timetable.infra.TimetableJpaRepository;
-import bhoon.sugang_helper.user.domain.DeviceType;
 import bhoon.sugang_helper.user.infra.UserDeviceJpaRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
