@@ -120,6 +120,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+      - ../apps/server/.env
     ports:
       - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
     volumes:
