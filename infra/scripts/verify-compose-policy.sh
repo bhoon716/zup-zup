@@ -13,6 +13,11 @@ if [ ! -f ".env" ] && [ -f ".env.example" ]; then
   cp .env.example .env
 fi
 
+if [ ! -f "../apps/server/.env" ] && [ -f "../apps/server/.env.example" ]; then
+  cp ../apps/server/.env.example ../apps/server/.env
+fi
+
+
 config_output="$(docker compose -f "${compose_file}" config --format json)"
 tmp_config="$(mktemp)"
 

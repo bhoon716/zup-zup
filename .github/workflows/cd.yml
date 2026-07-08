@@ -90,7 +90,12 @@ jobs:
 
       - name: 서버 테스트 및 검사 실행
         working-directory: apps/server
+        env:
+          AWS_ACCESS_KEY_ID: mock-access-key
+          AWS_SECRET_ACCESS_KEY: mock-secret-key
+          AWS_REGION: us-east-1
         run: ./gradlew clean check --no-daemon
+
 
   deploy-server:
     needs:

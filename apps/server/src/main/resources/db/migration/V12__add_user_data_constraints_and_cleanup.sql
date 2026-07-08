@@ -47,7 +47,8 @@ ALTER TABLE timetables
             WHEN is_primary = 1 THEN user_id
             ELSE NULL
             END
-        ) STORED;
+        );
 
 ALTER TABLE timetables
     ADD CONSTRAINT uk_timetable_primary_user UNIQUE (primary_user_id);
+
