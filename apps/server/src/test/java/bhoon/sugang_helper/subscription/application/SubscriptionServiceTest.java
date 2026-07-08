@@ -1,9 +1,5 @@
 package bhoon.sugang_helper.subscription.application;
 
-import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
-import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,6 +11,9 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
+import bhoon.sugang_helper.course.domain.SemesterType;
+import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
+import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
 import bhoon.sugang_helper.user.domain.User;

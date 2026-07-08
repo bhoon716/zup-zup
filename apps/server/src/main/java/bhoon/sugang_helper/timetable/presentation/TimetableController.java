@@ -1,4 +1,6 @@
-package bhoon.sugang_helper.timetable.application;
+package bhoon.sugang_helper.timetable.presentation;
+import bhoon.sugang_helper.timetable.application.TimetableService;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.timetable.application.command.CustomScheduleRequest;

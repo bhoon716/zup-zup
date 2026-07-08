@@ -1,9 +1,9 @@
 package bhoon.sugang_helper.auth.application;
 
+import static bhoon.sugang_helper.common.security.constant.SecurityConstant.IS_LOGGED_IN_COOKIE_NAME;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.LOGOUT_VALUE;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REDIS_BLACKLIST_PREFIX;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REDIS_REFRESH_TOKEN_PREFIX;
-import static bhoon.sugang_helper.common.security.constant.SecurityConstant.IS_LOGGED_IN_COOKIE_NAME;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_MAX_AGE;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_NAME;
 
@@ -11,6 +11,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.common.security.util.CookieUtil;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import jakarta.servlet.http.Cookie;
@@ -18,15 +19,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.time.Duration;
-import bhoon.sugang_helper.common.security.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
 @Service

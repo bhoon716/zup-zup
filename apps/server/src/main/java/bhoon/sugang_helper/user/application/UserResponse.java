@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.user.application;
 
-import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.application.result.UserOnboardingResult;
 import bhoon.sugang_helper.user.application.result.UserProfileResult;
 import bhoon.sugang_helper.user.application.result.UserProfileUpdateResult;
 import bhoon.sugang_helper.user.application.result.UserSettingsResult;
+import bhoon.sugang_helper.user.domain.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

@@ -1,4 +1,6 @@
-package bhoon.sugang_helper.notification.application;
+package bhoon.sugang_helper.notification.presentation;
+import bhoon.sugang_helper.notification.application.NotificationHistoryResponse;
+
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;

@@ -1,4 +1,13 @@
-package bhoon.sugang_helper.user.application;
+package bhoon.sugang_helper.user.presentation;
+import bhoon.sugang_helper.user.application.DiscordOAuthService;
+import bhoon.sugang_helper.user.application.UserService;
+import bhoon.sugang_helper.user.application.UserResponse;
+import bhoon.sugang_helper.user.application.OnboardingRequest;
+import bhoon.sugang_helper.user.application.EmailRequest;
+import bhoon.sugang_helper.user.application.UserSettingsRequest;
+import bhoon.sugang_helper.user.application.EmailVerificationRequest;
+import bhoon.sugang_helper.user.application.UserUpdateRequest;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.user.application.command.CompleteOnboardingCommand;

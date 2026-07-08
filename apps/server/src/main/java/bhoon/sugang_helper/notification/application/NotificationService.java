@@ -22,10 +22,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * 사용자에게 다양한 채널(Email, FCM, WebPush, Discord)을 통해 알림을 발송하는 통합 서비스입니다. 중복 발송 방지 및 알림 이력 관리 기능을 포함합니다.
@@ -33,7 +33,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@SuppressWarnings("PMD.TooManyMethods")
 public class NotificationService {
 
     private static final String NOTIFICATION_KEY_PREFIX = "ALERT:";

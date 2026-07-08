@@ -60,7 +60,6 @@ public class WebPushNotificationSender implements NotificationSender {
     }
 
     @Override
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public void send(NotificationTarget target, String title, String message) {
         if (pushService == null) {
             throw new CustomException(ErrorCode.WEB_PUSH_NOT_INITIALIZED);

@@ -5,9 +5,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import bhoon.sugang_helper.admin.application.AdminController;
+import bhoon.sugang_helper.admin.presentation.AdminController;
 import bhoon.sugang_helper.admin.application.AdminService;
-import bhoon.sugang_helper.announcement.application.AnnouncementController;
+import bhoon.sugang_helper.announcement.presentation.AnnouncementController;
 import bhoon.sugang_helper.announcement.application.AnnouncementSearchType;
 import bhoon.sugang_helper.announcement.application.AnnouncementService;
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;

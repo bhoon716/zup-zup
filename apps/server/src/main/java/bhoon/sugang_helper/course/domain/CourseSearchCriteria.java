@@ -8,7 +8,6 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-@SuppressWarnings("PMD.TooManyFields")
 public class CourseSearchCriteria {
     private final String name;
     private final String professor;

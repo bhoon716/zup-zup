@@ -3,10 +3,10 @@ package bhoon.sugang_helper.course.infra;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.course.domain.Course;
-import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
+import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.course.domain.CourseSchedule;
-import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
+import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.wishlist.domain.Wishlist;
 import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
 import java.time.LocalTime;

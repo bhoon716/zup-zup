@@ -1,6 +1,6 @@
 import http from 'k6/http';
-import { sleep, group } from 'k6';
-import { BASE_URL, validateResponse, getAuthHeaders } from './common-utils.js';
+import {group, sleep} from 'k6';
+import {BASE_URL, getAuthHeaders, validateResponse} from './common-utils.js';
 
 /**
  * [Massive Dispatch Test] 대규모 작업 트리거링 및 시스템 영향도 검증
@@ -21,13 +21,13 @@ export default function () {
             courseKey: '2026:U211600010:ALL_STUDENTS',
             message: '전북대 재학생 여러분, 수강신청 알림 테스트입니다.'
         });
-        
+
         // 관리자 권한(ROLE_ADMIN) 토큰을 사용하여 백그라운드 작업 시작을 트리거합니다.
-        const res = http.post(`${BASE_URL}/api/v1/admin/courses/crawl`, payload, getAuthHeaders({ isAdmin: true }));
+        const res = http.post(`${BASE_URL}/api/v1/admin/courses/crawl`, payload, getAuthHeaders({isAdmin: true}));
 
         // 요청이 서버 큐에 정상적으로 접수되었는지 확인합니다.
         validateResponse(res, 'MassiveDispatchInitiation');
-        
+
         // 서버의 백그라운드 작업 처리 경과를 관찰하기 위해 5초간 대기합니다.
         sleep(5);
     });

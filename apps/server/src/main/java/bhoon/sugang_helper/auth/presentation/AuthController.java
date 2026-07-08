@@ -1,4 +1,6 @@
-package bhoon.sugang_helper.auth.application;
+package bhoon.sugang_helper.auth.presentation;
+import bhoon.sugang_helper.auth.application.AuthService;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;

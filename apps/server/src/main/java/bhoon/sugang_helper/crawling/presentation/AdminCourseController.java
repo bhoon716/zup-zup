@@ -1,4 +1,10 @@
-package bhoon.sugang_helper.crawling.application;
+package bhoon.sugang_helper.crawling.presentation;
+import bhoon.sugang_helper.crawling.application.CourseCrawlerService;
+import bhoon.sugang_helper.crawling.application.AdminCrawlTargetResponse;
+import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
+import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
+import bhoon.sugang_helper.crawling.application.AdminCrawlTargetRequest;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;

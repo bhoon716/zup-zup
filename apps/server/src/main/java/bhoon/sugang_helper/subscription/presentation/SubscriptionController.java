@@ -1,4 +1,8 @@
-package bhoon.sugang_helper.subscription.application;
+package bhoon.sugang_helper.subscription.presentation;
+import bhoon.sugang_helper.subscription.application.SubscriptionResponse;
+import bhoon.sugang_helper.subscription.application.SubscriptionRequest;
+import bhoon.sugang_helper.subscription.application.SubscriptionService;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,4 +1,9 @@
-package bhoon.sugang_helper.feedback.application;
+package bhoon.sugang_helper.feedback.presentation;
+import bhoon.sugang_helper.feedback.application.FeedbackDetailResponse;
+import bhoon.sugang_helper.feedback.application.FeedbackService;
+import bhoon.sugang_helper.feedback.application.FeedbackResponse;
+import bhoon.sugang_helper.feedback.application.FeedbackCreateRequest;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.user.application.UserService;

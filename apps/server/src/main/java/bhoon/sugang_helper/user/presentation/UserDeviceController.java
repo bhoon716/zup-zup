@@ -1,4 +1,8 @@
-package bhoon.sugang_helper.user.application;
+package bhoon.sugang_helper.user.presentation;
+import bhoon.sugang_helper.user.application.UserDeviceService;
+import bhoon.sugang_helper.user.application.UserDeviceRequest;
+import bhoon.sugang_helper.user.application.UserDeviceResponse;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.user.application.command.RegisterDeviceCommand;

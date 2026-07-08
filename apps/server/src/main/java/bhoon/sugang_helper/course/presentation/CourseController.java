@@ -1,4 +1,10 @@
-package bhoon.sugang_helper.course.application;
+package bhoon.sugang_helper.course.presentation;
+import bhoon.sugang_helper.course.application.CourseService;
+import bhoon.sugang_helper.course.application.CourseDetailResponse;
+import bhoon.sugang_helper.course.application.CourseSearchCondition;
+import bhoon.sugang_helper.course.application.CourseResponse;
+import bhoon.sugang_helper.course.application.CourseSeatHistoryResponse;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.crawling.application.SearchDefaultSemesterResponse;

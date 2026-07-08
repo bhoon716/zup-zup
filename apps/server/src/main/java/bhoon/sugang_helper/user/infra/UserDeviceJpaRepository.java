@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.user.infra;
 
+import bhoon.sugang_helper.user.domain.DeviceType;
 import bhoon.sugang_helper.user.domain.UserDevice;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
-import bhoon.sugang_helper.user.domain.DeviceType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

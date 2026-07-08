@@ -5,6 +5,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -38,14 +39,13 @@ public class DiscordNotificationSender implements NotificationSender {
 
         String userId = target.getRecipient();
         try {
-            @SuppressWarnings("unchecked")
             Map<String, Object> channelResponse = restClient.post()
                     .uri("/users/@me/channels")
                     .header("Authorization", "Bot " + botToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of("recipient_id", userId))
                     .retrieve()
-                    .body(Map.class);
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
             if (channelResponse == null || !channelResponse.containsKey("id")) {
                 throw new RuntimeException("디스코드 개인 메시지 채널 생성에 실패했습니다.");

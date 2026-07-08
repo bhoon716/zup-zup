@@ -2,12 +2,11 @@ package bhoon.sugang_helper.review.infra;
 
 import bhoon.sugang_helper.review.domain.CourseEmojiReview;
 import bhoon.sugang_helper.review.domain.CourseEmojiReviewRepository;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-import java.util.List;
-import java.util.Optional;
 
 public interface CourseEmojiReviewJpaRepository extends JpaRepository<CourseEmojiReview, Long>,
         CourseEmojiReviewRepository {

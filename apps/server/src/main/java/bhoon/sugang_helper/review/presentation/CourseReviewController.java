@@ -1,4 +1,10 @@
-package bhoon.sugang_helper.review.application;
+package bhoon.sugang_helper.review.presentation;
+import bhoon.sugang_helper.review.application.CourseReviewService;
+import bhoon.sugang_helper.review.application.ReviewResponse;
+import bhoon.sugang_helper.review.application.ReviewUpdateRequest;
+import bhoon.sugang_helper.review.application.ReviewReactionRequest;
+import bhoon.sugang_helper.review.application.ReviewCreateRequest;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;

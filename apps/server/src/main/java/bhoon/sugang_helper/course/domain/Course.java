@@ -23,7 +23,6 @@ import lombok.NoArgsConstructor;
 @Table(name = "courses")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuppressWarnings("PMD.TooManyFields")
 public class Course extends BaseTimeEntity {
 
     @Id

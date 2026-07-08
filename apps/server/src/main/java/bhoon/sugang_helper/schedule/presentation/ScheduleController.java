@@ -1,4 +1,7 @@
-package bhoon.sugang_helper.schedule.application;
+package bhoon.sugang_helper.schedule.presentation;
+import bhoon.sugang_helper.schedule.application.ScheduleService;
+import bhoon.sugang_helper.schedule.application.ScheduleResponse;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;

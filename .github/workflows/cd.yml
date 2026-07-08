@@ -169,6 +169,16 @@ jobs:
             fi
           done
 
+      - name: 인프라 설정 파일 전송
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "infra/docker-compose.yml,infra/prometheus/**,infra/grafana/**,infra/loki/**,infra/promtail/**"
+          target: "~/jbnu-sugang-helper/infra/"
+          strip_components: 1
+
       - name: 서버 파일 전송
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -177,6 +187,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "apps/server/build/libs/app.jar,apps/server/src/main/resources/application-prod.yml,apps/server/Dockerfile,apps/server/.dockerignore,apps/server/.env"
           target: "~/jbnu-sugang-helper/apps/server/"
+          strip_components: 2
 
       - name: 서버에서 이미지 빌드 및 재배포
         uses: appleboy/ssh-action@v1.0.3

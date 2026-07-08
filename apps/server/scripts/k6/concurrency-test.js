@@ -1,6 +1,6 @@
 import http from 'k6/http';
-import { sleep, group } from 'k6';
-import { BASE_URL, validateResponse, getAuthHeaders } from './common-utils.js';
+import {group} from 'k6';
+import {BASE_URL, getAuthHeaders, validateResponse} from './common-utils.js';
 
 /**
  * [Concurrency Test] 데이터 동시성 무결성 검증
@@ -16,8 +16,8 @@ export default function () {
     group('동시성 처리 요청', function () {
         // 테스트 대상이 될 특정 강좌 키를 설정합니다.
         const targetCourseKey = '2026:U211600010:0000100017:1';
-        const payload = JSON.stringify({ courseKey: targetCourseKey });
-        
+        const payload = JSON.stringify({courseKey: targetCourseKey});
+
         // 인증 풀에서 각 VU별로 할당된 토큰을 사용하여 구독 API를 호출합니다.
         const res = http.post(`${BASE_URL}/api/v1/subscriptions`, payload, getAuthHeaders());
 

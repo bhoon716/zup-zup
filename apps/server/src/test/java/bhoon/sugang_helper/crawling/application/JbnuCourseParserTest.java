@@ -1,10 +1,9 @@
 package bhoon.sugang_helper.crawling.application;
 
-import bhoon.sugang_helper.course.domain.ParsedCourseDto;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
+import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.TargetGrade;
 import java.time.LocalTime;
 import java.util.List;

@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.crawling.application;
 
-import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.CourseAccreditation;
 import bhoon.sugang_helper.course.domain.CourseClassification;
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
@@ -8,6 +7,7 @@ import bhoon.sugang_helper.course.domain.CourseStatus;
 import bhoon.sugang_helper.course.domain.DisclosureStatus;
 import bhoon.sugang_helper.course.domain.GradingMethod;
 import bhoon.sugang_helper.course.domain.LectureLanguage;
+import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.TargetGrade;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -26,7 +26,6 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@SuppressWarnings("PMD.TooManyMethods")
 public class JbnuCourseParser {
 
     private static final String DATASET_ID = "GRD_COUR001";

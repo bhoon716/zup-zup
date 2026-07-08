@@ -6,8 +6,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.crawling.domain.CrawlerSetting;
 import bhoon.sugang_helper.course.domain.SemesterType;
+import bhoon.sugang_helper.crawling.domain.CrawlerSetting;
 import bhoon.sugang_helper.crawling.domain.CrawlerSettingRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;

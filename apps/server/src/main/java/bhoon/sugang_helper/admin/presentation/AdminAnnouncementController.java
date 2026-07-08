@@ -1,4 +1,5 @@
-package bhoon.sugang_helper.admin.application;
+package bhoon.sugang_helper.admin.presentation;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.announcement.application.AnnouncementRequest;

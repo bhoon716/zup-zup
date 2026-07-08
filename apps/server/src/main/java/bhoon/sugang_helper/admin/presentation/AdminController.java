@@ -1,4 +1,7 @@
-package bhoon.sugang_helper.admin.application;
+package bhoon.sugang_helper.admin.presentation;
+import bhoon.sugang_helper.admin.application.AdminService;
+import bhoon.sugang_helper.admin.application.AdminDashboardSnapshotResponse;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;

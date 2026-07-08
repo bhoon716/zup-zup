@@ -5,8 +5,8 @@ import static bhoon.sugang_helper.course.domain.QCourse.course;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseClassification;
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
-import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.CourseRepositoryCustom;
+import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.CourseStatus;
 import bhoon.sugang_helper.course.domain.DisclosureStatus;
 import bhoon.sugang_helper.course.domain.GradingMethod;
@@ -25,8 +25,11 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -35,11 +38,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.util.StringUtils;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Map;
 
-@SuppressWarnings({"PMD.TooManyMethods", "PMD.CyclomaticComplexity"})
 public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;

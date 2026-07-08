@@ -16,7 +16,6 @@ import lombok.ToString;
 @NoArgsConstructor(access = AccessLevel.PUBLIC)
 @ToString
 @Schema(description = "과목 검색 조건 DTO")
-@SuppressWarnings("PMD.TooManyFields")
 public class CourseSearchCondition {
     @Schema(description = "과목명", example = "우리생활과화학")
     private String name;
