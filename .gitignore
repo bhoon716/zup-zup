@@ -20,6 +20,7 @@
 !/.agents/docs/**
 !/.agents/skills/
 !/.agents/skills/**
+/.agents/skills/ultra-grill-me/logs/
 
 # Environment files
 /.env
