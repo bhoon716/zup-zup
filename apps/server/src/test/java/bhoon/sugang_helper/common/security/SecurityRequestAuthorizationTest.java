@@ -30,7 +30,7 @@ import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfig
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.session.SessionAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.context.annotation.Import;
@@ -58,17 +58,17 @@ class SecurityRequestAuthorizationTest {
 
     @Autowired
     private MockMvc mockMvc;
-    @MockBean
+    @MockitoBean
     private JwtProvider jwtProvider;
-    @MockBean
+    @MockitoBean
     private AdminService adminService;
-    @MockBean
+    @MockitoBean
     private AnnouncementService announcementService;
-    @MockBean
+    @MockitoBean
     private CustomOAuth2UserService customOAuth2UserService;
-    @MockBean
+    @MockitoBean
     private OAuth2SuccessHandler oAuth2SuccessHandler;
-    @MockBean
+    @MockitoBean
     private OAuth2FailureHandler oAuth2FailureHandler;
 
     @Test

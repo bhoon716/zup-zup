@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -61,23 +61,23 @@ class NotificationServiceTransactionTest {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
-    @MockBean
+    @MockitoBean
     private RedisService redisService;
-    @MockBean
+    @MockitoBean
     private SubscriptionRepository subscriptionRepository;
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
-    @MockBean
+    @MockitoBean
     private UserDeviceRepository userDeviceRepository;
-    @MockBean
+    @MockitoBean
     private NotificationHistoryRepository notificationHistoryRepository;
-    @MockBean
+    @MockitoBean
     private EmailNotificationSender emailNotificationSender;
-    @MockBean
+    @MockitoBean
     private FcmNotificationSender fcmNotificationSender;
-    @MockBean
+    @MockitoBean
     private WebPushNotificationSender webPushNotificationSender;
-    @MockBean
+    @MockitoBean
     private DiscordNotificationSender discordNotificationSender;
 
     @Test
