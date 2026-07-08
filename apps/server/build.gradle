@@ -18,6 +18,8 @@ group = 'bhoon'
 version = '1.0.0'
 description = 'Demo project for Spring Boot'
 
+ext['netty.version'] = '4.1.132.Final'
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -53,6 +55,19 @@ repositories {
 }
 
 dependencies {
+    // 의존성 제약 조건
+    constraints {
+        implementation('org.bitbucket.b_c:jose4j:0.9.3') {
+            because 'CVE-2023-31582, CVE-2024-29371, CVE-2023-51775: Weak password iteration / resource exhaustion'
+        }
+        implementation('org.asynchttpclient:async-http-client:3.0.1') {
+            because 'CVE-2024-53990, CVE-2026-40490: Cookie store vulnerability / session leakage'
+        }
+        implementation('io.grpc:grpc-netty-shaded:1.75.0') {
+            because 'CVE-2025-55163: MadeYouReset HTTP/2 DDoS'
+        }
+    }
+
     // spring boot
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -90,16 +105,16 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // JWT (토큰 인증)
-    implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
-    implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
-    implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
     // 문서화 (Swagger/OpenAPI)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
 
     // QueryDSL (동적 쿼리)
-    implementation "com.querydsl:querydsl-jpa:5.1.0:jakarta"
-    annotationProcessor "com.querydsl:querydsl-apt:5.1.0:jakarta"
+    implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.0'
+    annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:6.0:jpa'
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
     annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
@@ -117,10 +132,10 @@ dependencies {
 
     // 웹 푸시
     implementation 'nl.martijndwars:web-push:5.1.1'
-    implementation 'org.bouncycastle:bcprov-jdk18on:1.83'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.84'
 
     // 파일 유효성 검사 (Tika)
-    implementation 'org.apache.tika:tika-core:2.9.1'
+    implementation 'org.apache.tika:tika-core:3.3.0'
 }
 
 tasks.named('test') {
