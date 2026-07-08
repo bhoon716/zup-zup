@@ -10,6 +10,13 @@ import org.springframework.core.io.ClassPathResource;
 
 class ProductionConfigTemplateTest {
 
+    private static String readClasspathResource(String path) throws IOException {
+        ClassPathResource resource = new ClassPathResource(path);
+        try (InputStream inputStream = resource.getInputStream()) {
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
     @Test
     void productionConfigUsesEnvironmentPlaceholdersForExternalizedValues() throws IOException {
         String content = readClasspathResource("application-prod.yml");
@@ -37,12 +44,5 @@ class ProductionConfigTemplateTest {
         assertThat(content).contains("client-id: ${DISCORD_CLIENT_ID}");
         assertThat(content).contains("client-secret: ${DISCORD_CLIENT_SECRET}");
         assertThat(content).contains("redirect-uri: ${DISCORD_REDIRECT_URI}");
-    }
-
-    private static String readClasspathResource(String path) throws IOException {
-        ClassPathResource resource = new ClassPathResource(path);
-        try (InputStream inputStream = resource.getInputStream()) {
-            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-        }
     }
 }

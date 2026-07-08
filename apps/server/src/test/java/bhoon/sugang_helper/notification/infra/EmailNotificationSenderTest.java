@@ -31,7 +31,8 @@ class EmailNotificationSenderTest {
 
     @BeforeEach
     void setUp() {
-        emailNotificationSender = new EmailNotificationSender(mailSender, templateService, "test@example.com", "TestSender");
+        emailNotificationSender = new EmailNotificationSender(mailSender, templateService, "test@example.com",
+                "TestSender");
     }
 
     @Test

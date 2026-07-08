@@ -22,7 +22,8 @@ class CustomAuthenticationEntryPointTest {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/me");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        entryPoint.commence(request, response, new AuthenticationException("missing token") {});
+        entryPoint.commence(request, response, new AuthenticationException("missing token") {
+        });
 
         JsonNode json = objectMapper.readTree(response.getContentAsString());
         assertThat(response.getStatus()).isEqualTo(401);

@@ -21,16 +21,13 @@ class JwtProviderTest {
 
     private static final String EMAIL = "test@example.com";
     private static final String ROLE = "ROLE_USER";
-
-    @Mock
-    private RedisService redisService;
-
-    @InjectMocks
-    private JwtProvider jwtProvider;
-
     private static final String TEST_SECRET_KEY = "testSecretKeytestSecretKeytestSecretKeytestSecretKey";
     private static final long ACCESS_TOKEN_EXPIRATION = 1000L * 60 * 30; // 30 min
     private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7; // 7 days
+    @Mock
+    private RedisService redisService;
+    @InjectMocks
+    private JwtProvider jwtProvider;
 
     @BeforeEach
     void setUp() {

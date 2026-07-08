@@ -9,10 +9,14 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface CourseEmojiReviewJpaRepository extends JpaRepository<CourseEmojiReview, Long>, CourseEmojiReviewRepository {
+public interface CourseEmojiReviewJpaRepository extends JpaRepository<CourseEmojiReview, Long>,
+        CourseEmojiReviewRepository {
     Optional<CourseEmojiReview> findByCourseKeyAndUserIdAndEmoji(String courseKey, Long userId, String emoji);
+
     List<CourseEmojiReview> findByCourseKey(String courseKey);
+
     long countByCourseKeyAndEmoji(String courseKey, String emoji);
+
     boolean existsByCourseKeyAndUserIdAndEmoji(String courseKey, Long userId, String emoji);
 
     @Query("""
@@ -25,9 +29,9 @@ public interface CourseEmojiReviewJpaRepository extends JpaRepository<CourseEmoj
               and r.emoji = :emoji
             """)
     Optional<CourseEmojiReview> findBySubjectCodeAndProfessorAndUserIdAndEmoji(@Param("subjectCode") String subjectCode,
-                                                                                @Param("professor") String professor,
-                                                                                @Param("userId") Long userId,
-                                                                                @Param("emoji") String emoji);
+                                                                               @Param("professor") String professor,
+                                                                               @Param("userId") Long userId,
+                                                                               @Param("emoji") String emoji);
 
     @Query("""
             select count(r)
@@ -51,9 +55,9 @@ public interface CourseEmojiReviewJpaRepository extends JpaRepository<CourseEmoj
               and r.emoji = :emoji
             """)
     long countBySubjectCodeAndProfessorAndUserIdAndEmoji(@Param("subjectCode") String subjectCode,
-                                                          @Param("professor") String professor,
-                                                          @Param("userId") Long userId,
-                                                          @Param("emoji") String emoji);
+                                                         @Param("professor") String professor,
+                                                         @Param("userId") Long userId,
+                                                         @Param("emoji") String emoji);
 
     @Query("""
             select r.emoji, count(r)

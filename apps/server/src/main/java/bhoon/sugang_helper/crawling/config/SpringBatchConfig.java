@@ -62,13 +62,13 @@ public class SpringBatchConfig {
             @Value("#{jobParameters['year']}") String year,
             @Value("#{jobParameters['semester']}") String semester) {
         log.info("[SpringBatchConfig] Initializing crawlReader for year={}, semester={}", year, semester);
-        
+
         // Fetch XML and parse
         String xmlResponse = apiClient.fetchCourseDataXml(year, semester);
         List<ParsedCourseDto> parsedCourses = courseParser.parseCourses(xmlResponse);
-        
+
         log.info("[SpringBatchConfig] Successfully parsed {} courses for reader.", parsedCourses.size());
-        
+
         return new IteratorItemReader<>(parsedCourses);
     }
 

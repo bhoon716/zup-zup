@@ -66,7 +66,8 @@ public class DashboardService {
         return DashboardSnapshotResponse.builder()
                 .user(userResponse)
                 .notifications(notifications)
-                .primaryTimetable(primaryTimetable == null ? null : DashboardPrimaryTimetableResult.from(primaryTimetable))
+                .primaryTimetable(
+                        primaryTimetable == null ? null : DashboardPrimaryTimetableResult.from(primaryTimetable))
                 .upcomingSchedules(upcomingSchedules)
                 .announcements(announcements)
                 .build();

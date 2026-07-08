@@ -39,25 +39,19 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 class TimetableServiceTest {
 
+    private static MockedStatic<SecurityUtil> securityUtil;
+    private final String testEmail = "test@example.com";
     @InjectMocks
     private TimetableService timetableService;
-
     @Mock
     private TimetableRepository timetableRepository;
-
     @Mock
     private TimetableEntryRepository timetableEntryRepository;
-
     @Mock
     private CourseRepository courseRepository;
-
     @Mock
     private UserRepository userRepository;
-
-    private static MockedStatic<SecurityUtil> securityUtil;
-
     private User testUser;
-    private final String testEmail = "test@example.com";
 
     @BeforeEach
     void setUp() {

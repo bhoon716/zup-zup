@@ -22,10 +22,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class LocalFileUploadService {
 
+    private final Tika tika = new Tika();
     @Value("${file.upload.dir:./data/uploads}")
     private String uploadDir;
-
-    private final Tika tika = new Tika();
 
     /**
      * 여러 개의 이미지 파일을 업로드하고 저장된 URL 리스트를 반환합니다.

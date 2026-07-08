@@ -1,4 +1,5 @@
 package bhoon.sugang_helper.crawling.application;
+
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -83,7 +84,8 @@ class JbnuCourseParserTest {
         assertThat(courses).hasSize(2);
 
         // 1. 핵심교양과목 검증
-        ParsedCourseDto course1 = courses.stream().filter(c -> c.subjectCode().equals("10001")).findFirst().orElseThrow();
+        ParsedCourseDto course1 = courses.stream().filter(c -> c.subjectCode().equals("10001")).findFirst()
+                .orElseThrow();
         assertThat(course1.name()).isEqualTo("핵심교양과목");
         assertThat(course1.professor()).isEqualTo("진교수");
         assertThat(course1.courseKey()).isEqualTo("2026:10:10001:01");
@@ -103,7 +105,8 @@ class JbnuCourseParserTest {
         assertThat(course1.schedules().get(1).endTime()).isEqualTo(LocalTime.of(9, 30));
 
         // 2. 전공선택과목 검증
-        ParsedCourseDto course2 = courses.stream().filter(c -> c.subjectCode().equals("20002")).findFirst().orElseThrow();
+        ParsedCourseDto course2 = courses.stream().filter(c -> c.subjectCode().equals("20002")).findFirst()
+                .orElseThrow();
         assertThat(course2.name()).isEqualTo("전공선택과목");
         assertThat(course2.classification().getDescription()).isEqualTo("전공선택");
         assertThat(course2.department()).isEqualTo("컴퓨터공학부");

@@ -130,7 +130,7 @@ class AuthServiceTest {
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
         given(request.getCookies()).willReturn(new Cookie[]{cookie});
         given(jwtProvider.validateToken(refreshToken)).willReturn(true);
-        
+
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);

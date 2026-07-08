@@ -95,9 +95,12 @@ class CourseSchedulePerformanceTest {
                     .semester("U211600010")
                     .build();
 
-            crawledCourse.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
-            crawledCourse.addSchedule(new CourseSchedule(CourseDayOfWeek.WEDNESDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)));
-            crawledCourse.addSchedule(new CourseSchedule(CourseDayOfWeek.FRIDAY, LocalTime.of(15, 0), LocalTime.of(16, 0)));
+            crawledCourse.addSchedule(
+                    new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
+            crawledCourse.addSchedule(
+                    new CourseSchedule(CourseDayOfWeek.WEDNESDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)));
+            crawledCourse.addSchedule(
+                    new CourseSchedule(CourseDayOfWeek.FRIDAY, LocalTime.of(15, 0), LocalTime.of(16, 0)));
 
             existingCourse.updateMetadata(crawledCourse);
         }

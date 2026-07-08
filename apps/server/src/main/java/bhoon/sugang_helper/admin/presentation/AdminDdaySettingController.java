@@ -40,7 +40,8 @@ public class AdminDdaySettingController {
 
     @Operation(summary = "신규 D-Day 설정 생성")
     @PostMapping
-    public ResponseEntity<CommonResponse<DdaySettingResponse>> createDday(@RequestBody @Valid DdaySettingRequest request) {
+    public ResponseEntity<CommonResponse<DdaySettingResponse>> createDday(
+            @RequestBody @Valid DdaySettingRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success(ddaySettingService.createDday(request), "D-Day 설정을 생성했습니다."));
     }
@@ -48,7 +49,7 @@ public class AdminDdaySettingController {
     @Operation(summary = "기존 D-Day 설정 수정")
     @PutMapping("/{id}")
     public ResponseEntity<CommonResponse<DdaySettingResponse>> updateDday(@PathVariable Long id,
-                                                                         @RequestBody @Valid DdaySettingRequest request) {
+                                                                          @RequestBody @Valid DdaySettingRequest request) {
         return CommonResponse.ok(ddaySettingService.updateDday(id, request), "D-Day 설정을 수정했습니다.");
     }
 

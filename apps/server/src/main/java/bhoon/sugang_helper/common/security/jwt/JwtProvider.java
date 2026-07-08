@@ -33,16 +33,13 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class JwtProvider {
 
+    private final RedisService redisService;
     @Value("${jwt.secret}")
     private String secretKey;
-
     @Value("${jwt.access.expiration}")
     private long accessTokenExpiration;
-
     @Value("${jwt.refresh.expiration}")
     private long refreshTokenExpiration;
-
-    private final RedisService redisService;
     private SecretKey key;
 
     @PostConstruct

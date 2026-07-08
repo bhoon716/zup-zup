@@ -24,21 +24,18 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EmailVerificationService {
 
-    private final JavaMailSender javaMailSender;
-    private final RedisService redisService;
-    private final EmailTemplateService templateService;
-
-    @Value("${spring.mail.from}")
-    private String from;
-
-    @Value("${spring.mail.from-name}")
-    private String fromName;
-
     private static final String CODE_PREFIX = "EMAIL_CODE:";
     private static final String VERIFIED_PREFIX = "EMAIL_VERIFIED:";
     private static final long CODE_EXPIRATION_MINUTES = 5;
     private static final long VERIFIED_EXPIRATION_MINUTES = 60;
     private static final String EMAIL_SUBJECT = "[수강신청 도우미] 이메일 인증 코드";
+    private final JavaMailSender javaMailSender;
+    private final RedisService redisService;
+    private final EmailTemplateService templateService;
+    @Value("${spring.mail.from}")
+    private String from;
+    @Value("${spring.mail.from-name}")
+    private String fromName;
 
     /**
      * 인증 코드를 생성하여 사용자 이메일로 발송합니다.

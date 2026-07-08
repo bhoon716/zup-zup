@@ -39,19 +39,15 @@ class UserDeviceServiceTest {
 
     private static final String TEST_EMAIL = "test@example.com";
     private static final String TOKEN = "TOKEN";
-
+    private static MockedStatic<SecurityUtil> securityUtil;
     @InjectMocks
     private UserDeviceService userDeviceService;
-
     @Mock
     private UserDeviceRepository userDeviceRepository;
-
     @Mock
     private UserRepository userRepository;
-
-    private static MockedStatic<SecurityUtil> securityUtil;
-
     private User testUser;
+
     @BeforeEach
     void setUp() {
         securityUtil = mockStatic(SecurityUtil.class);

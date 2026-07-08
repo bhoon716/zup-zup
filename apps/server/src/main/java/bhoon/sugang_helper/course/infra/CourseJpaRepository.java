@@ -36,7 +36,7 @@ public interface CourseJpaRepository extends JpaRepository<Course, Long>, Course
               and coalesce(trim(c.professor), '') = :professor
             """)
     List<Course> findBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
-                                                @Param("professor") String professor);
+                                               @Param("professor") String professor);
 
     /**
      * 전체 강의 중 가장 최근에 크롤링된 시각을 조회합니다.

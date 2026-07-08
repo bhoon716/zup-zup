@@ -3,8 +3,7 @@ package bhoon.sugang_helper.review.domain;
 import bhoon.sugang_helper.course.domain.Course;
 
 /**
- * 리뷰를 묶는 기준 키입니다.
- * 같은 과목코드와 교수 조합을 하나의 리뷰 그룹으로 봅니다.
+ * 리뷰를 묶는 기준 키입니다. 같은 과목코드와 교수 조합을 하나의 리뷰 그룹으로 봅니다.
  */
 public record ReviewScopeKey(String subjectCode, String professor) {
 

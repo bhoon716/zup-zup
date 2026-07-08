@@ -27,6 +27,12 @@ public class CustomScheduleRequest {
     @Valid
     private List<CustomScheduleTimeRequest> schedules;
 
+    public CustomScheduleRequest(String title, String professor, List<CustomScheduleTimeRequest> schedules) {
+        this.title = title;
+        this.professor = professor;
+        this.schedules = schedules;
+    }
+
     @Getter
     @NoArgsConstructor
     public static class CustomScheduleTimeRequest {
@@ -51,11 +57,5 @@ public class CustomScheduleRequest {
             this.endTime = endTime;
             this.classroom = classroom;
         }
-    }
-
-    public CustomScheduleRequest(String title, String professor, List<CustomScheduleTimeRequest> schedules) {
-        this.title = title;
-        this.professor = professor;
-        this.schedules = schedules;
     }
 }

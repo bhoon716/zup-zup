@@ -56,16 +56,14 @@ public class SecurityConfig {
             "/api/auth/logout",
             "/api/v1/courses/search"
     };
-
-    @Value("${app.cors.allowed-origins}")
-    private String[] allowedOrigins;
-
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
+    @Value("${app.cors.allowed-origins}")
+    private String[] allowedOrigins;
 
     /**
      * 비밀번호 암호화를 위한 Encoder 빈을 등록합니다.

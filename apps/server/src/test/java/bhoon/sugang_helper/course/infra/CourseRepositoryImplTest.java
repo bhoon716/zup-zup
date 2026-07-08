@@ -277,7 +277,8 @@ class CourseRepositoryImplTest {
                 .semester(SEMESTER_CODE)
                 .build();
         course2.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
-        course2.addSchedule(new CourseSchedule(CourseDayOfWeek.FRIDAY, LocalTime.of(13, 0), LocalTime.of(14, 0))); // 금요일은 비선택
+        course2.addSchedule(
+                new CourseSchedule(CourseDayOfWeek.FRIDAY, LocalTime.of(13, 0), LocalTime.of(14, 0))); // 금요일은 비선택
         courseRepository.save(course2);
 
         // 사용자가 월요일 9-10시, 수요일 13-14시를 선택함

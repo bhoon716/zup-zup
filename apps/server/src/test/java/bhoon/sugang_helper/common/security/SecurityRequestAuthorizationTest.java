@@ -56,45 +56,18 @@ import org.springframework.test.web.servlet.MockMvc;
 })
 class SecurityRequestAuthorizationTest {
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration(exclude = {
-            DataSourceAutoConfiguration.class,
-            HibernateJpaAutoConfiguration.class,
-            JpaRepositoriesAutoConfiguration.class,
-            FlywayAutoConfiguration.class,
-            RedisAutoConfiguration.class,
-            RedisRepositoriesAutoConfiguration.class,
-            SessionAutoConfiguration.class
-    })
-    @Import({
-            SecurityConfig.class,
-            JwtAuthenticationFilter.class,
-            CustomAccessDeniedHandler.class,
-            CustomAuthenticationEntryPoint.class,
-            AdminController.class,
-            AnnouncementController.class
-    })
-    static class TestApplication {
-    }
-
     @Autowired
     private MockMvc mockMvc;
-
     @MockBean
     private JwtProvider jwtProvider;
-
     @MockBean
     private AdminService adminService;
-
     @MockBean
     private AnnouncementService announcementService;
-
     @MockBean
     private CustomOAuth2UserService customOAuth2UserService;
-
     @MockBean
     private OAuth2SuccessHandler oAuth2SuccessHandler;
-
     @MockBean
     private OAuth2FailureHandler oAuth2FailureHandler;
 
@@ -124,5 +97,26 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.message").value("공지사항 목록입니다."));
+    }
+
+    @SpringBootConfiguration
+    @EnableAutoConfiguration(exclude = {
+            DataSourceAutoConfiguration.class,
+            HibernateJpaAutoConfiguration.class,
+            JpaRepositoriesAutoConfiguration.class,
+            FlywayAutoConfiguration.class,
+            RedisAutoConfiguration.class,
+            RedisRepositoriesAutoConfiguration.class,
+            SessionAutoConfiguration.class
+    })
+    @Import({
+            SecurityConfig.class,
+            JwtAuthenticationFilter.class,
+            CustomAccessDeniedHandler.class,
+            CustomAuthenticationEntryPoint.class,
+            AdminController.class,
+            AnnouncementController.class
+    })
+    static class TestApplication {
     }
 }

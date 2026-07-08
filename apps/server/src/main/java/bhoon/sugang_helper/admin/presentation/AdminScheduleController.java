@@ -46,7 +46,8 @@ public class AdminScheduleController {
      */
     @Operation(summary = "신규 일정 생성")
     @PostMapping
-    public ResponseEntity<CommonResponse<ScheduleResponse>> createSchedule(@RequestBody @Valid ScheduleRequest request) {
+    public ResponseEntity<CommonResponse<ScheduleResponse>> createSchedule(
+            @RequestBody @Valid ScheduleRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success(scheduleService.createSchedule(request), "일정을 생성했습니다."));
     }
