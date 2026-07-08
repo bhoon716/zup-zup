@@ -115,7 +115,7 @@ jobs:
         working-directory: apps/server
         run: ./gradlew clean bootJar --no-daemon
 
-       - name: 서버 환경 파일 생성
+      - name: 서버 환경 파일 생성
         env:
           SERVER_DOTENV: ${{ secrets.SERVER_DOTENV }}
         run: |
