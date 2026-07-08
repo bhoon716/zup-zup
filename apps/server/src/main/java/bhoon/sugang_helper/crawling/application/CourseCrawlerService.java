@@ -45,7 +45,7 @@ public class CourseCrawlerService {
      */
     public void crawlAndSaveCourses(String year, String semester) {
         if (!isCrawling.compareAndSet(false, true)) {
-            log.warn("[Crawler] Crawling already in progress. Skipping.");
+            log.warn("[Crawler] Target crawl is already in progress. Skipping.");
             return;
         }
 
@@ -61,7 +61,7 @@ public class CourseCrawlerService {
      */
     public void crawlRecentYears() {
         if (!isCrawling.compareAndSet(false, true)) {
-            log.warn("[Crawler] Crawling already in progress. Skipping.");
+            log.warn("[Crawler] Historical crawl is already in progress. Skipping.");
             return;
         }
 
