@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.logging;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ch.qos.logback.classic.Logger;
@@ -10,13 +11,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
 
 class LogbackFileAppenderTest {
 
+    @TempDir
+    Path tempDir;
+
     @Test
     void writesLogsToTheConfiguredHostFilePath() throws Exception {
-        Path tempDir = Files.createTempDirectory("jbnu-logback-test");
         Path logFile = tempDir.resolve("application.log");
 
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -26,8 +30,9 @@ class LogbackFileAppenderTest {
 
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(context);
-        configurator.doConfigure(
-                LogbackFileAppenderTest.class.getClassLoader().getResource("logback-spring.xml"));
+        java.net.URL resource = LogbackFileAppenderTest.class.getClassLoader().getResource("logback-spring.xml");
+        assertThat(resource).describedAs("logback-spring.xml이 존재해야 합니다").isNotNull();
+        configurator.doConfigure(resource);
 
         Logger logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
         logger.info("host-file-log-test");
