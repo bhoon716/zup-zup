@@ -41,12 +41,10 @@ class JbnuCourseApiClientTest {
         String result = client.fetchCourseDataXml("2026", "U211600010");
 
         // Then
+        assertThat(result).isNotNull();
         System.out.println(
                 "Response excerpt: "
-                        + (result != null && result.length() > 500 ? result.substring(0, 500)
-                        : result));
-
-        assertThat(result).isNotNull();
+                        + (result.length() > 500 ? result.substring(0, 500) : result));
         assertThat(result).as("Server Response Content: %s", result)
                 .doesNotContain("MSG_F001")
                 .contains("Dataset")
@@ -131,11 +129,10 @@ class JbnuCourseApiClientTest {
                 .execute()
                 .body();
 
-        System.out.println("Result length: " + result.length());
         assertThat(result).isNotNull();
+        System.out.println("Result length: " + result.length());
         assertThat(result).doesNotContain("MSG_F001")
                 .contains("Dataset")
                 .contains("SBJTCD");
     }
 }
-
