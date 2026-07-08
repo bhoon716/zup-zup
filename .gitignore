@@ -2,16 +2,22 @@
 **/.DS_Store
 **/.idea/
 **/.vscode/
+**/__pycache__/
 *.iml
 *.iws
 *.ipr
 *.swp
 *.swo
+*.pyc
 *.tmp
 *.bak
 
 # Agents runtime data
 /.agents/*
+!/.agents/scripts/
+!/.agents/scripts/**
+!/.agents/docs/
+!/.agents/docs/**
 !/.agents/skills/
 !/.agents/skills/**
 

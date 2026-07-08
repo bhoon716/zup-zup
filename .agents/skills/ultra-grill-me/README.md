@@ -38,16 +38,16 @@ graph TD
 
 | 도메인 영역 | 대상 파일명 | 중점 검증 및 질문 철학 |
 | :--- | :--- | :--- |
-| **제품 / SaaS 아이디어** | [product-idea-grill.md](file:///skills/ultra-grill-me/references/product-idea-grill.md) | ICP 좁히기, 사용자 페인포인트 정량화, 핵심 1개 기능의 MVP 경계선 확립 |
-| **개발 구현 설계** | [technical-design-grill.md](file:///skills/ultra-grill-me/references/technical-design-grill.md) | Latency/가용성 등 비기능적 요구사항(NFR), 데이터 일관성 및 동시성, 장애 복구 시나리오 |
-| **아키텍처 결정 (ADR)** | [architecture-decision-grill.md](file:///skills/ultra-grill-me/references/architecture-decision-grill.md) | 대안 기술 비교(현상 유지 필수), 아키텍처 결정을 번복할 때의 기회비용(가역성) |
-| **구현 / 일정 계획** | [implementation-plan-grill.md](file:///skills/ultra-grill-me/references/implementation-plan-grill.md) | 완료 조건(DoD), 작업 단위 3일 이내 쪼개기, 외부 심사 의존성 리스크 및 롤백 파이프라인 |
-| **사업 전략 / GTM** | [business-strategy-grill.md](file:///skills/ultra-grill-me/references/business-strategy-grill.md) | 실제 결제 주체와 사용자의 구분, 초기 10명의 유료 고객 확보 채널, 가격 패키징 |
-| **글쓰기 / 내러티브** | [writing-direction-grill.md](file:///skills/ultra-grill-me/references/writing-direction-grill.md) | 타겟 독자의 지식 깊이 정의, 1개 단일 핵심 메시지 추출, 독자가 취할 다음 행동(CTA) |
-| **연구 질문 / 가설** | [research-question-grill.md](file:///skills/ultra-grill-me/references/research-question-grill.md) | 인과관계를 입증할 통제 변수 및 독립 변수 식별, 대조군(Baseline), 통계적 유의미 역치 |
-| **학습 계획 / 로드맵** | [learning-plan-grill.md](file:///skills/ultra-grill-me/references/learning-plan-grill.md) | 자가 평가가 가능한 작은 토이 프로젝트 목표 설정, 주간 가용 시간 한계, 피드백 메커니즘 |
-| **개인 의사결정** | [personal-decision-grill.md](file:///skills/ultra-grill-me/references/personal-decision-grill.md) | 개인의 비타협적 조건(제약) 명시, 기회비용 분석, 최악 시나리오 체험 실험 설계 |
-| **Agent Skill 설계** | [skill-design-grill.md](file:///skills/ultra-grill-me/references/skill-design-grill.md) | 스킬의 좁은 반복 범위(Scope), 발동(Trigger)과 오발동(Non-trigger) 시나리오 경계 |
+| **제품 / SaaS 아이디어** | [product-idea-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/product-idea-grill.md) | ICP 좁히기, 사용자 페인포인트 정량화, 핵심 1개 기능의 MVP 경계선 확립 |
+| **개발 구현 설계** | [technical-design-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/technical-design-grill.md) | Latency/가용성 등 비기능적 요구사항(NFR), 데이터 일관성 및 동시성, 장애 복구 시나리오 |
+| **아키텍처 결정 (ADR)** | [architecture-decision-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/architecture-decision-grill.md) | 대안 기술 비교(현상 유지 필수), 아키텍처 결정을 번복할 때의 기회비용(가역성) |
+| **구현 / 일정 계획** | [implementation-plan-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/implementation-plan-grill.md) | 완료 조건(DoD), 작업 단위 3일 이내 쪼개기, 외부 심사 의존성 리스크 및 롤백 파이프라인 |
+| **사업 전략 / GTM** | [business-strategy-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/business-strategy-grill.md) | 실제 결제 주체와 사용자의 구분, 초기 10명의 유료 고객 확보 채널, 가격 패키징 |
+| **글쓰기 / 내러티브** | [writing-direction-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/writing-direction-grill.md) | 타겟 독자의 지식 깊이 정의, 1개 단일 핵심 메시지 추출, 독자가 취할 다음 행동(CTA) |
+| **연구 질문 / 가설** | [research-question-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/research-question-grill.md) | 인과관계를 입증할 통제 변수 및 독립 변수 식별, 대조군(Baseline), 통계적 유의미 역치 |
+| **학습 계획 / 로드맵** | [learning-plan-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/learning-plan-grill.md) | 자가 평가가 가능한 작은 토이 프로젝트 목표 설정, 주간 가용 시간 한계, 피드백 메커니즘 |
+| **개인 의사결정** | [personal-decision-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/personal-decision-grill.md) | 개인의 비타협적 조건(제약) 명시, 기회비용 분석, 최악 시나리오 체험 실험 설계 |
+| **Agent Skill 설계** | [skill-design-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/skill-design-grill.md) | 스킬의 좁은 반복 범위(Scope), 발동(Trigger)과 오발동(Non-trigger) 시나리오 경계 |
 
 ---
 

@@ -100,7 +100,7 @@
 - Axios 인터셉터 등의 API 클라이언트에서 개별적으로 `document.cookie` 삭제 로직을 흩뿌려 선언하는 것 (책임 분산 방지).
 
 ### 8. 가장 작은 다음 행동
-- 구현 계획 수립을 위한 [implementation_plan.md](file:///Users/bhoon/.gemini/antigravity-ide/brain/d39f55c7-d5c1-44ac-916a-fe05fb503ed6/implementation_plan.md) 작성.
+- 구현 계획 수립을 위한 [implementation-plan-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/implementation-plan-grill.md) 작성.
 
 ### 9. 왜 여기서 멈춰도 되는지
 - 백엔드, 프론트엔드 상태 스토어, UI 컴포넌트 전체에 걸쳐 구체적으로 수정할 소스 코드의 위치와 역할 범위가 완전히 명확해졌으므로 검증 완료를 선언함.

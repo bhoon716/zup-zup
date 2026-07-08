@@ -32,4 +32,4 @@ This workspace is being consolidated into a monorepo-style root repository with 
 
 ## Related Files
 - [PRD](PRD.md)
-- [Repository topology decision](decisions/2026-07-06-repository-topology.md)
+- [Repository topology decision](../../docs/decisions/2026-07-06-repository-topology.md)
