@@ -41,7 +41,7 @@ jobs:
 
   verify-web:
     needs: changes
-    if: needs.changes.outputs.web == 'true'
+    if: needs.changes.outputs.web == 'true' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
 
     steps:
@@ -102,7 +102,9 @@ jobs:
   deploy-server:
     needs:
       - changes
+      - verify-web
       - verify-server
+      - verify-infra
     if: needs.changes.outputs.server == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
@@ -203,7 +205,7 @@ jobs:
 
   verify-infra:
     needs: changes
-    if: needs.changes.outputs.infra == 'true'
+    if: needs.changes.outputs.infra == 'true' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
 
     steps:
