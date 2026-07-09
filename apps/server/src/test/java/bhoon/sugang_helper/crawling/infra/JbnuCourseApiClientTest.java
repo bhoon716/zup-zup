@@ -129,7 +129,7 @@ class JbnuCourseApiClientTest {
                 .execute()
                 .body();
 
-        assertThat(result).isNotNull();
+        assertThat(result).isNotBlank();
         System.out.println("Result length: " + result.length());
         assertThat(result).doesNotContain("MSG_F001")
                 .contains("Dataset")
