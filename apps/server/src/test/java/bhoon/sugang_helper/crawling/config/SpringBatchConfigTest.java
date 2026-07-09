@@ -117,6 +117,24 @@ class SpringBatchConfigTest {
     }
 
     @Test
+    @DisplayName("기존 강의 갱신 시에는 불필요한 save 호출 없이 변경 내용과 이력만 반영한다")
+    void existingCourseUpdate_DoesNotCallSave() throws Exception {
+        // given
+        ParsedCourseDto dto = createCourseDto(SAME_COURSE_KEY, 60, 12);
+        Course existingCourse = createCourse(SAME_COURSE_KEY, 50, 10);
+        given(courseRepository.findByCourseKey(SAME_COURSE_KEY)).willReturn(Optional.of(existingCourse));
+
+        ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
+
+        // when
+        writer.write(new Chunk<>(Collections.singletonList(dto)));
+
+        // then
+        verify(courseRepository, never()).save(any(Course.class));
+        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
+    }
+
+    @Test
     @DisplayName("과목 저장 실패 시 writer가 예외를 삼키지 않고 전파한다")
     void newCourseSaveFailure_IsPropagated() {
         // given

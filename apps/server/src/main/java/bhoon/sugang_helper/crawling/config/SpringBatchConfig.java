@@ -141,7 +141,6 @@ public class SpringBatchConfig {
                 !existingCourse.getCurrent().equals(crawledCourse.getCurrent());
 
         existingCourse.updateMetadata(crawledCourse);
-        courseRepository.save(existingCourse);
 
         if (seatsChanged) {
             saveSeatHistory(existingCourse);
