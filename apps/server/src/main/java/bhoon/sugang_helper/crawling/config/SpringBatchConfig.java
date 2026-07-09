@@ -4,11 +4,12 @@ import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.course.domain.CourseSchedule;
 import bhoon.sugang_helper.course.domain.CourseSeatHistory;
-import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
 import bhoon.sugang_helper.crawling.application.JbnuCourseParser;
 import bhoon.sugang_helper.crawling.infra.JbnuCourseApiClient;
+import bhoon.sugang_helper.course.infra.CourseSeatHistoryJpaRepository;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +38,7 @@ public class SpringBatchConfig {
     private final JbnuCourseApiClient apiClient;
     private final JbnuCourseParser courseParser;
     private final CourseRepository courseRepository;
-    private final CourseSeatHistoryRepository courseSeatHistoryRepository;
+    private final CourseSeatHistoryJpaRepository courseSeatHistoryRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Bean
@@ -77,18 +78,26 @@ public class SpringBatchConfig {
     public ItemWriter<ParsedCourseDto> crawlWriter() {
         return chunk -> {
             log.info("[SpringBatchConfig] Writing chunk of {} courses.", chunk.size());
+            List<CourseSeatHistory> seatHistories = new ArrayList<>();
             for (ParsedCourseDto dto : chunk) {
-                processCourse(dto);
+                CourseSeatHistory seatHistory = processCourse(dto);
+                if (seatHistory != null) {
+                    seatHistories.add(seatHistory);
+                }
+            }
+            if (!seatHistories.isEmpty()) {
+                courseSeatHistoryRepository.saveAll(seatHistories);
             }
         };
     }
 
-    private void processCourse(ParsedCourseDto courseDto) {
+    private CourseSeatHistory processCourse(ParsedCourseDto courseDto) {
         Course crawledCourse = mapToEntity(courseDto);
-        courseRepository.findByCourseKey(crawledCourse.getCourseKey())
-                .ifPresentOrElse(
-                        existingCourse -> updateExistingCourse(existingCourse, crawledCourse),
-                        () -> createNewCourse(crawledCourse));
+        var existingCourse = courseRepository.findByCourseKey(crawledCourse.getCourseKey());
+        if (existingCourse.isPresent()) {
+            return updateExistingCourse(existingCourse.get(), crawledCourse);
+        }
+        return createNewCourse(crawledCourse);
     }
 
     private Course mapToEntity(ParsedCourseDto dto) {
@@ -130,33 +139,31 @@ public class SpringBatchConfig {
         return course;
     }
 
-    private void createNewCourse(Course course) {
+    private CourseSeatHistory createNewCourse(Course course) {
         courseRepository.save(course);
-        saveSeatHistory(course);
+        return toSeatHistory(course);
     }
 
-    private void updateExistingCourse(Course existingCourse, Course crawledCourse) {
+    private CourseSeatHistory updateExistingCourse(Course existingCourse, Course crawledCourse) {
         boolean wasFull = existingCourse.getAvailable() <= 0;
         boolean seatsChanged = !existingCourse.getCapacity().equals(crawledCourse.getCapacity()) ||
                 !existingCourse.getCurrent().equals(crawledCourse.getCurrent());
 
         existingCourse.updateMetadata(crawledCourse);
 
-        if (seatsChanged) {
-            saveSeatHistory(existingCourse);
-        }
-
         if (wasFull && existingCourse.getAvailable() > 0) {
             publishSeatOpenedEvent(existingCourse);
         }
+
+        return seatsChanged ? toSeatHistory(existingCourse) : null;
     }
 
-    private void saveSeatHistory(Course course) {
-        courseSeatHistoryRepository.save(CourseSeatHistory.builder()
+    private CourseSeatHistory toSeatHistory(Course course) {
+        return CourseSeatHistory.builder()
                 .courseKey(course.getCourseKey())
                 .capacity(course.getCapacity())
                 .current(course.getCurrent())
-                .build());
+                .build();
     }
 
     private void publishSeatOpenedEvent(Course course) {

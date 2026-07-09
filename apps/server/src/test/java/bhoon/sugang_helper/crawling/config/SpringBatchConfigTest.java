@@ -5,27 +5,31 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.course.domain.CourseSeatHistory;
-import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
+import bhoon.sugang_helper.course.infra.CourseSeatHistoryJpaRepository;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.context.ApplicationEventPublisher;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
 class SpringBatchConfigTest {
@@ -39,7 +43,7 @@ class SpringBatchConfigTest {
     @Mock
     private CourseRepository courseRepository;
     @Mock
-    private CourseSeatHistoryRepository courseSeatHistoryRepository;
+    private CourseSeatHistoryJpaRepository courseSeatHistoryRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
@@ -61,7 +65,9 @@ class SpringBatchConfigTest {
 
         // then
         verify(eventPublisher, times(1)).publishEvent(any(SeatOpenedEvent.class));
-        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
+        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
+        assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(1);
     }
 
     @Test
@@ -79,7 +85,9 @@ class SpringBatchConfigTest {
 
         // then
         verify(eventPublisher, never()).publishEvent(any(SeatOpenedEvent.class));
-        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
+        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
+        assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(1);
     }
 
     @Test
@@ -96,7 +104,9 @@ class SpringBatchConfigTest {
 
         // then
         verify(courseRepository, times(1)).save(any(Course.class));
-        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
+        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
+        assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(1);
     }
 
     @Test
@@ -113,7 +123,7 @@ class SpringBatchConfigTest {
         writer.write(new Chunk<>(Collections.singletonList(dto)));
 
         // then
-        verify(courseSeatHistoryRepository, never()).save(any(CourseSeatHistory.class));
+        verifyNoInteractions(courseSeatHistoryRepository);
     }
 
     @Test
@@ -131,7 +141,9 @@ class SpringBatchConfigTest {
 
         // then
         verify(courseRepository, never()).save(any(Course.class));
-        verify(courseSeatHistoryRepository, times(1)).save(any(CourseSeatHistory.class));
+        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
+        assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(1);
     }
 
     @Test
@@ -148,7 +160,28 @@ class SpringBatchConfigTest {
         assertThatThrownBy(() -> writer.write(new Chunk<>(Collections.singletonList(dto))))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("save failed");
-        verify(courseSeatHistoryRepository, never()).save(any(CourseSeatHistory.class));
+        verify(courseSeatHistoryRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("한 청크에 여러 이력이 있으면 saveAll 한 번으로 묶어서 저장한다")
+    void chunkWithMultipleSeatHistories_SavesAsBatch() throws Exception {
+        // given
+        ParsedCourseDto firstDto = createCourseDto(NEW_COURSE_KEY, 50, 40);
+        ParsedCourseDto secondDto = createCourseDto(SAME_COURSE_KEY, 60, 12);
+        Course existingCourse = createCourse(SAME_COURSE_KEY, 50, 10);
+        given(courseRepository.findByCourseKey(NEW_COURSE_KEY)).willReturn(Optional.empty());
+        given(courseRepository.findByCourseKey(SAME_COURSE_KEY)).willReturn(Optional.of(existingCourse));
+
+        ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
+
+        // when
+        writer.write(new Chunk<>(List.of(firstDto, secondDto)));
+
+        // then
+        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
+        assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(2);
     }
 
     private Course createCourse(String courseKey, int capacity, int current) {
@@ -170,5 +203,13 @@ class SpringBatchConfigTest {
                 null, null, null, 3, null,
                 null, null, null, "7호관 101호", true,
                 null, null, null, Collections.emptyList());
+    }
+
+    private static <T> List<T> toList(Iterable<T> values) {
+        List<T> items = new ArrayList<>();
+        for (T value : values) {
+            items.add(value);
+        }
+        return items;
     }
 }
