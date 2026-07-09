@@ -11,6 +11,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
@@ -31,8 +32,9 @@ class LogbackFileAppenderTest {
 
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(context);
-        URL resource = LogbackFileAppenderTest.class.getClassLoader().getResource("logback-spring.xml");
-        assertThat(resource).describedAs("logback-spring.xml이 존재해야 합니다").isNotNull();
+        URL resource = Objects.requireNonNull(
+                LogbackFileAppenderTest.class.getClassLoader().getResource("logback-spring.xml"),
+                "logback-spring.xml이 존재해야 합니다");
         configurator.doConfigure(resource);
 
         Logger logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
