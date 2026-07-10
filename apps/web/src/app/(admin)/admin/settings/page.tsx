@@ -125,7 +125,7 @@ export default function AdminSettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-3 border-b border-slate-200/60 pb-5"
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
             <Settings className="h-6 w-6" />
           </div>
           <div>

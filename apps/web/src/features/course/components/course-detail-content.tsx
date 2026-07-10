@@ -151,7 +151,7 @@ function CourseHeader({
                 <span className={cn(
                   "inline-flex items-center px-2 py-0.5 rounded text-xs font-bold",
                   course.disclosure === "공개" 
-                  ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400" 
+                  ? "bg-primary/10 text-primary"
                   : "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"
                 )}>
                   {course.disclosure}

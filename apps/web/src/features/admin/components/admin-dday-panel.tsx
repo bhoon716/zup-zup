@@ -168,7 +168,7 @@ export function AdminDdayPanel() {
     >
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-indigo-50 text-indigo-500 shadow-inner">
+          <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 text-primary shadow-inner">
             <CalendarRange className="h-6 w-6" />
           </div>
           <div>
@@ -283,7 +283,7 @@ export function AdminDdayPanel() {
                 <Button
                   onClick={handleSave}
                   disabled={isSaving || !draftTitle || !draftTargetDate}
-                  className="h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100 font-bold"
+                  className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 font-bold"
                 >
                   {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   저장
@@ -314,7 +314,7 @@ export function AdminDdayPanel() {
                     key={dday.id}
                     className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border p-5 transition-all ${
                       isActive
-                        ? "border-indigo-200 bg-indigo-50/40 shadow-[0_2px_12px_-4px_rgba(79,70,229,0.15)] ring-1 ring-indigo-100"
+                        ? "border-primary/30 bg-primary/10 shadow-[0_2px_12px_-4px_rgba(139,92,246,0.15)] ring-1 ring-primary/30"
                         : isPast
                           ? "border-slate-100/60 bg-slate-50/30 opacity-50"
                           : "border-slate-100 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:border-slate-200 hover:shadow-md"
@@ -323,15 +323,15 @@ export function AdminDdayPanel() {
                     <div className="flex flex-col gap-1.5">
                       <div className="flex flex-wrap items-center gap-2">
                         {isActive && (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-black tracking-widest text-indigo-700">
-                            <Star className="h-3 w-3 fill-indigo-500 text-indigo-500" />
+                          <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-black tracking-widest text-primary">
+                            <Star className="h-3 w-3 fill-primary text-primary" />
                             현재 표시 중
                           </span>
                         )}
                         <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-black tracking-widest ${
                           isPast
                             ? "bg-slate-100 text-slate-400"
-                            : "bg-indigo-50 text-indigo-600"
+                            : "bg-primary/10 text-primary"
                         }`}>
                           {dday.title}
                         </span>

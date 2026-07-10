@@ -117,7 +117,7 @@ export function HomeLanding() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-[#161118] mb-8 leading-[1.1]"
+            className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-foreground mb-8 leading-[1.1]"
           >
             수강신청 빈자리,<br/>
             <span className="text-primary">이제 알림으로 잡으세요.</span>
@@ -127,7 +127,7 @@ export function HomeLanding() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-lg md:text-xl text-[#161118]/60 mb-12 max-w-2xl mx-auto leading-relaxed"
+            className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed"
           >
             하루 종일 새로고침만 누르고 계신가요? 수강신청 빈자리 알림 서비스 &apos;줍줍&apos;이 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
           </motion.p>
@@ -173,8 +173,8 @@ export function HomeLanding() {
                   <feature.icon className={cn("w-8 h-8", feature.color)} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-[#161118] mb-4">{feature.title}</h3>
-                  <p className="text-[#161118]/60 leading-relaxed text-base font-medium">
+                  <h3 className="text-2xl font-bold text-foreground mb-4">{feature.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed text-base font-medium">
                     {feature.description}
                   </p>
                 </div>
@@ -189,10 +189,10 @@ export function HomeLanding() {
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
-              <h3 className="text-2xl md:text-3xl font-bold text-[#161118] dark:text-white flex items-center gap-3">
+              <h3 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-3">
                 생생한 사용자 후기
               </h3>
-              <p className="mt-2 text-[#161118]/60 dark:text-slate-400 text-sm md:text-base font-medium">
+              <p className="mt-2 text-muted-foreground text-sm md:text-base font-medium">
                 줍줍 서비스를 이용한 대학생들의 실제 이용 후기입니다.
               </p>
             </div>
@@ -292,11 +292,11 @@ export function HomeLanding() {
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-8">
-            <h3 className="text-2xl md:text-3xl font-bold text-[#161118] flex items-center gap-3">
-              <Calendar className="text-indigo-500 w-8 h-8" />
+            <h3 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-3">
+              <Calendar className="text-primary w-8 h-8" />
               학사 및 수강신청 주요 일정
             </h3>
-            <p className="mt-2 text-[#161118]/60 text-sm md:text-base font-medium">놓치지 말아야 할 전북대 수강신청 일정을 확인하세요.</p>
+            <p className="mt-2 text-muted-foreground text-sm md:text-base font-medium">놓치지 말아야 할 전북대 수강신청 일정을 확인하세요.</p>
           </div>
 
           {isScheduleLoading ? (
@@ -316,20 +316,20 @@ export function HomeLanding() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: idx * 0.1 }}
-                  className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow hover:border-indigo-100"
+                  className="bg-card p-6 rounded-2xl shadow-sm border border-border flex flex-col justify-between hover:shadow-md transition-shadow hover:border-primary/30"
                 >
                   <div>
                     <div className="flex flex-col gap-2 mb-4">
                       <div className="flex items-center justify-between">
                         <span className={cn(
                           "px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase",
-                          schedule.dDay === "D-Day" ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"
+                          schedule.dDay === "D-Day" ? "bg-red-50 text-red-600" : "bg-primary/10 text-primary"
                         )}>
                           {schedule.dDay}
                         </span>
                       </div>
                     </div>
-                    <h4 className="text-[1.1rem] font-bold text-[#161118] leading-snug break-keep mb-1">
+                    <h4 className="text-[1.1rem] font-bold text-foreground leading-snug break-keep mb-1">
                       {schedule.scheduleType}
                     </h4>
                   </div>
@@ -361,11 +361,11 @@ export function HomeLanding() {
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="flex items-center justify-between mb-10">
             <div>
-              <h3 className="text-2xl md:text-3xl font-bold text-[#161118] flex items-center gap-3 mb-2">
+              <h3 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-3 mb-2">
                 <Megaphone className="text-primary w-8 h-8 fill-primary/10" />
                 공지사항
               </h3>
-              <p className="text-[#161118]/60 text-sm md:text-base font-medium">서비스 및 학사의 주요 공지사항을 확인하세요.</p>
+              <p className="text-muted-foreground text-sm md:text-base font-medium">서비스 및 학사의 주요 공지사항을 확인하세요.</p>
             </div>
             <Link href="/announcements">
               <Button variant="link" className="text-primary font-bold flex items-center gap-1 hover:no-underline group p-0">
@@ -396,7 +396,7 @@ export function HomeLanding() {
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-2.5">
                         {item.pinned ? (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-black text-indigo-600 dark:border-indigo-900/50 dark:bg-indigo-950/50">
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
                             <Pin className="h-3 w-3" />
                             고정
                           </span>

@@ -82,7 +82,7 @@ export function AdminActivityLog({
                       <td className="px-8 py-6">
                         <span className={cn("inline-flex rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider",
                           log.level === "ERROR" ? "bg-red-50 text-red-600" :
-                          log.level === "WARN" ? "bg-amber-50 text-amber-600" : "bg-green-50 text-green-600"
+                          log.level === "WARN" ? "bg-amber-50 text-amber-600" : "bg-primary/10 text-primary"
                         )}>
                           {logMeta.label}
                         </span>

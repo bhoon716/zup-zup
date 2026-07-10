@@ -112,7 +112,7 @@ export default function AdminDashboardPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-8 gap-1.5 rounded-lg border-indigo-200 bg-indigo-50/50 px-3 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
+                className="h-8 gap-1.5 rounded-lg border-primary/30 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20"
               >
                 <Settings className="h-3.5 w-3.5" />
                 시스템 제어 & 설정

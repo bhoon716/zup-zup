@@ -180,7 +180,7 @@ export function AdminSchedulePanel() {
     >
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-indigo-50 text-indigo-500 shadow-inner">
+          <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 text-primary shadow-inner">
             <Calendar className="h-6 w-6" />
           </div>
           <div>
@@ -315,7 +315,7 @@ export function AdminSchedulePanel() {
                 <Button
                   onClick={handleSave}
                   disabled={isSaving || !draftType || !draftStartDate || !draftEndDate}
-                  className="h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100 font-bold"
+                  className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 font-bold"
                 >
                   {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   저장
@@ -344,7 +344,7 @@ export function AdminSchedulePanel() {
                 >
                   <div className="flex flex-col gap-1.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-black tracking-widest text-indigo-600">
+                      <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-black tracking-widest text-primary">
                         {schedule.scheduleType}
                       </span>
                       <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-black tracking-widest text-slate-600">

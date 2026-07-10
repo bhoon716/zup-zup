@@ -45,8 +45,8 @@ export function AdminStatCard({
             "flex h-12 w-12 items-center justify-center rounded-2xl transition-colors sm:h-14 sm:w-14",
             color === "primary" ? "bg-primary/10 text-primary" :
             color === "amber" ? "bg-amber-100 text-amber-600" :
-            color === "green" ? "bg-green-100 text-green-600" :
-            "bg-indigo-100 text-indigo-600"
+            color === "green" ? "bg-primary/10 text-primary" :
+            "bg-primary/10 text-primary"
           )}
         >
           <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
@@ -56,7 +56,7 @@ export function AdminStatCard({
           <span
             className={cn(
               "inline-flex rounded-xl px-3 py-1 text-xs font-bold ring-1 ring-inset",
-              value === "RUNNING" ? "bg-green-50 text-green-600 ring-green-500/20" :
+              value === "RUNNING" ? "bg-primary/10 text-primary ring-primary/20" :
               value === "DEGRADED" ? "bg-amber-50 text-amber-600 ring-amber-500/20" :
               "bg-slate-50 text-slate-500 ring-slate-500/20"
             )}

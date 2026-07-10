@@ -15,8 +15,8 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
     <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-7 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
       <div className="flex justify-between items-center mb-5 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
-            <Timer className="w-5 h-5 text-indigo-600" />
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Timer className="w-5 h-5 text-primary" />
           </div>
           
           <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
@@ -58,7 +58,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
 
                 <div className={cn(
                   "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
-                  isDDay ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"
+                  isDDay ? "bg-red-50 text-red-600" : "bg-primary/10 text-primary"
                 )}>
                   <ClipboardList className="w-6 h-6" />
                 </div>
