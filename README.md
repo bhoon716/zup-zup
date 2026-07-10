@@ -96,6 +96,15 @@ flowchart LR
 
 ## 실행 방법
 
+루트 workspace는 Web과 공유 패키지를 함께 관리하며, Server와 Infra는 각자의 런타임 명령을 루트 스크립트로 연결합니다.
+
+```bash
+npm install
+npm run web:dev
+npm run check
+npm run infra:verify
+```
+
 ### Web
 
 ```bash

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser, useCompleteOnboarding } from "@/features/user/hooks/useUser";
 import { useWebPush } from "@/features/user/hooks/useWebPush";
@@ -49,7 +49,7 @@ export default function OnboardingPage() {
   const [timeLeft, setTimeLeft] = useState(180);
   const DISCORD_CLIENT_ID = "1470147038564847719";
 
-  const { register, handleSubmit, setValue, watch, formState: { errors }, trigger } = useForm<OnboardingForm>({
+  const { control, register, handleSubmit, setValue, formState: { errors }, trigger } = useForm<OnboardingForm>({
     defaultValues: {
       notificationEmail: "",
       emailEnabled: true,
@@ -59,10 +59,11 @@ export default function OnboardingPage() {
     },
   });
 
-  const notificationEmail = watch("notificationEmail");
-  const emailEnabled = watch("emailEnabled");
-  const webPushEnabled = watch("webPushEnabled");
-  const discordEnabled = watch("discordEnabled");
+  const notificationEmail = useWatch({ control, name: "notificationEmail" });
+  const emailEnabled = useWatch({ control, name: "emailEnabled" });
+  const webPushEnabled = useWatch({ control, name: "webPushEnabled" });
+  const discordEnabled = useWatch({ control, name: "discordEnabled" });
+  const deviceName = useWatch({ control, name: "deviceName" });
 
   useEffect(() => {
     if (user) {
@@ -70,7 +71,7 @@ export default function OnboardingPage() {
         // 온보딩이 끝난 사용자는 홈으로 보낸다.
         router.replace("/");
       } else {
-        if (!watch("notificationEmail") && !verified) {
+        if (!notificationEmail && !verified) {
           setValue("notificationEmail", user.email);
         }
         if (user.discordId) {
@@ -78,7 +79,7 @@ export default function OnboardingPage() {
         }
       }
     }
-  }, [user, router, setValue, watch, verified]);
+  }, [user, router, setValue, notificationEmail, verified]);
 
   useEffect(() => {
     if (discordStatus === "success") {
@@ -92,16 +93,22 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
+    let expirationTimer: NodeJS.Timeout;
     if (emailSent && timeLeft > 0 && !verified) {
       // 인증 코드 입력 유효 시간을 초 단위로 감소시킨다.
       timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0) {
-      setEmailSent(false);
-      toast.error("인증 시간이 만료되었습니다. 다시 시도해주세요.");
+      expirationTimer = setTimeout(() => {
+        setEmailSent(false);
+        toast.error("인증 시간이 만료되었습니다. 다시 시도해주세요.");
+      }, 0);
     }
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(expirationTimer);
+    };
   }, [emailSent, timeLeft, verified]);
 
   const formatTime = (seconds: number) => {
@@ -148,8 +155,6 @@ export default function OnboardingPage() {
     const DISCORD_OAUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20applications.commands&integration_type=1&state=onboarding`;
     window.open(DISCORD_OAUTH_URL, "_blank", "noopener,noreferrer");
   };
-
-  const deviceName = watch("deviceName");
 
   const handleRegisterDevice = async () => {
     if (!deviceName?.trim()) {
