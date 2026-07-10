@@ -8,8 +8,6 @@ import { HomeLanding } from "@/widgets/home/home-landing";
 import { useDashboardSnapshot } from "@/widgets/home/hooks/useDashboard";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
-export const dynamic = "force-dynamic";
-
 export default function HomePage() {
   const { data: snapshot, isLoading, isError } = useDashboardSnapshot();
   const setUser = useAuthStore((state) => state.setUser);

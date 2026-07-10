@@ -50,7 +50,26 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const urlToOpen = new URL(event.notification.data.url || "/", self.location.origin).href;
+  const requestedUrl = event.notification.data?.url;
+  const fallbackUrl = new URL("/", self.location.origin).href;
+  let urlToOpen = fallbackUrl;
+
+  try {
+    const url = new URL(requestedUrl || "/", self.location.origin);
+    const allowedExactPaths = ["/", "/search", "/notifications", "/timetable"];
+    const allowedPathPrefixes = ["/courses/", "/announcements/"];
+    const isAllowedPath = allowedExactPaths.includes(url.pathname)
+      || allowedPathPrefixes.some((prefix) => url.pathname.startsWith(prefix)
+        && url.pathname.length > prefix.length);
+
+    if ((url.protocol === "http:" || url.protocol === "https:")
+      && url.origin === self.location.origin
+      && isAllowedPath) {
+      urlToOpen = url.href;
+    }
+  } catch {
+    urlToOpen = fallbackUrl;
+  }
 
   const promiseChain = clients
     .matchAll({

@@ -22,8 +22,6 @@ import { useUser } from "@/features/user/hooks/useUser";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { CourseGuideModal } from "@/features/course/components/course-guide-modal";
 
-export const dynamic = "force-dynamic";
-
 const FALLBACK_DEFAULT_CONDITION: CourseSearchCondition = {
   academicYear: "2026",
   semester: undefined,
