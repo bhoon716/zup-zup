@@ -215,3 +215,6 @@ jobs:
       - name: 인프라 정책 검증
         working-directory: infra
         run: bash scripts/verify-compose-policy.sh docker-compose.yml
+
+      - name: 배포 Compose 정렬 검증
+        run: bash infra/scripts/verify-deployment-alignment.sh .github/workflows/cd.yml
