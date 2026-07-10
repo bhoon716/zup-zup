@@ -5,6 +5,8 @@ import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,7 +15,7 @@ public interface NotificationHistoryJpaRepository extends JpaRepository<Notifica
     /**
      * 특정 사용자의 알림 수신 내역을 최신순으로 조회합니다.
      */
-    List<NotificationHistory> findByUserIdOrderByCreatedAtDesc(Long userId);
+    Slice<NotificationHistory> findByUserIdOrderByCreatedAtDescIdDesc(Long userId, Pageable pageable);
 
     /**
      * 특정 사용자의 최신 알림 수신 내역 일부만 조회합니다.

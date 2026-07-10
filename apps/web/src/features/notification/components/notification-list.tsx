@@ -6,7 +6,7 @@ import { Button } from "@/shared/ui/button";
 import { Loader2, Bell, ChevronDown } from "lucide-react";
 
 export function NotificationList() {
-  const { data, isLoading, error } = useNotifications();
+  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications();
 
   if (isLoading) {
     return (
@@ -52,11 +52,16 @@ export function NotificationList() {
         ))}
       </div>
       
-      {data.length >= 10 && (
+      {hasNextPage && (
         <div className="mt-8 pt-4 border-t border-slate-50 text-center">
-          <button className="inline-flex items-center gap-1 text-sm font-bold text-slate-400 hover:text-primary transition-colors py-2 px-4 rounded-xl hover:bg-slate-50">
-            <span>더 많은 내역 보기</span>
-            <ChevronDown className="w-4 h-4" />
+          <button
+            type="button"
+            onClick={() => { void fetchNextPage(); }}
+            disabled={isFetchingNextPage}
+            className="inline-flex items-center gap-1 text-sm font-bold text-slate-400 hover:text-primary transition-colors py-2 px-4 rounded-xl hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50"
+          >
+            <span>{isFetchingNextPage ? "불러오는 중..." : "더 많은 내역 보기"}</span>
+            {!isFetchingNextPage && <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
       )}

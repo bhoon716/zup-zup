@@ -11,10 +11,8 @@ import bhoon.sugang_helper.course.domain.CourseStatus;
 import bhoon.sugang_helper.course.domain.DisclosureStatus;
 import bhoon.sugang_helper.course.domain.GradingMethod;
 import bhoon.sugang_helper.course.domain.LectureLanguage;
-import bhoon.sugang_helper.course.domain.QCourseSchedule;
 import bhoon.sugang_helper.course.domain.TargetGrade;
 import bhoon.sugang_helper.wishlist.domain.QWishlist;
-import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -23,15 +21,9 @@ import com.querydsl.core.types.dsl.StringExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
-import java.time.LocalTime;
-import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Pageable;
@@ -42,9 +34,11 @@ import org.springframework.util.StringUtils;
 public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
+    private final SelectedSchedulePredicateBuilder selectedSchedulePredicateBuilder;
 
     public CourseJpaRepositoryImpl(EntityManager em) {
         this.queryFactory = new JPAQueryFactory(em);
+        this.selectedSchedulePredicateBuilder = new SelectedSchedulePredicateBuilder();
     }
 
     @Override
@@ -80,7 +74,7 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
                 eqGeneralDetail(condition.generalDetail()),
                 inStatuses(condition.statuses()),
                 containsCourseDirection(condition.courseDirection()),
-                matchSelectedSchedules(condition.selectedSchedules()),
+                selectedSchedulePredicateBuilder.build(condition.selectedSchedules()),
                 inWishlist(condition.isWishedOnly(), condition.userId()));
 
         if (isPopularSort) {
@@ -99,97 +93,6 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
         }
 
         return new SliceImpl<>(content, pageable, hasNext);
-    }
-
-    private BooleanExpression matchSelectedSchedules(List<CourseSearchCriteria.SelectedSchedule> selectedSchedules) {
-        List<ValidScheduleCondition> validConditions = toValidConditions(selectedSchedules);
-        if (validConditions.isEmpty()) {
-            return null;
-        }
-
-        List<ValidScheduleCondition> mergedConditions = mergeContiguousConditions(validConditions);
-
-        QCourseSchedule schedule = QCourseSchedule.courseSchedule;
-        BooleanBuilder selectedSlots = buildSelectedSlots(schedule, mergedConditions);
-
-        return course.schedules.isNotEmpty()
-                .and(JPAExpressions.selectOne()
-                        .from(schedule)
-                        .where(schedule.course.eq(course)
-                                .and(selectedSlots.not()))
-                        .notExists());
-    }
-
-    private List<ValidScheduleCondition> mergeContiguousConditions(List<ValidScheduleCondition> conditions) {
-        if (conditions.size() <= 1) {
-            return conditions;
-        }
-
-        Map<CourseDayOfWeek, List<ValidScheduleCondition>> grouped = conditions.stream()
-                .collect(Collectors.groupingBy(ValidScheduleCondition::dayOfWeek));
-
-        List<ValidScheduleCondition> mergedAll = new ArrayList<>();
-
-        for (Map.Entry<CourseDayOfWeek, List<ValidScheduleCondition>> entry : grouped.entrySet()) {
-            CourseDayOfWeek day = entry.getKey();
-            List<ValidScheduleCondition> dayConditions = new ArrayList<>(entry.getValue());
-            dayConditions.sort(Comparator.comparing(ValidScheduleCondition::startTime));
-
-            List<ValidScheduleCondition> mergedDay = new ArrayList<>();
-            ValidScheduleCondition currentMerged = dayConditions.get(0);
-
-            for (int i = 1; i < dayConditions.size(); i++) {
-                ValidScheduleCondition next = dayConditions.get(i);
-                if (!next.startTime().isAfter(currentMerged.endTime())) {
-                    LocalTime newEndTime =
-                            next.endTime().isAfter(currentMerged.endTime()) ? next.endTime() : currentMerged.endTime();
-                    currentMerged = new ValidScheduleCondition(day, currentMerged.startTime(), newEndTime);
-                } else {
-                    mergedDay.add(currentMerged);
-                    currentMerged = next;
-                }
-            }
-            mergedDay.add(currentMerged);
-            mergedAll.addAll(mergedDay);
-        }
-
-        return mergedAll;
-    }
-
-    private List<ValidScheduleCondition> toValidConditions(
-            List<CourseSearchCriteria.SelectedSchedule> selectedSchedules) {
-        if (selectedSchedules == null || selectedSchedules.isEmpty()) {
-            return List.of();
-        }
-
-        return selectedSchedules.stream()
-                .map(this::toValidCondition)
-                .flatMap(Optional::stream)
-                .toList();
-    }
-
-    private Optional<ValidScheduleCondition> toValidCondition(CourseSearchCriteria.SelectedSchedule condition) {
-        if (condition.dayOfWeek() == null) {
-            return Optional.empty();
-        }
-
-        LocalTime startTime = parseTime(condition.startTime());
-        LocalTime endTime = parseTime(condition.endTime());
-        if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new ValidScheduleCondition(condition.dayOfWeek(), startTime, endTime));
-    }
-
-    private BooleanBuilder buildSelectedSlots(QCourseSchedule schedule, List<ValidScheduleCondition> validConditions) {
-        BooleanBuilder selectedSlots = new BooleanBuilder();
-        for (ValidScheduleCondition validCondition : validConditions) {
-            selectedSlots.or(schedule.dayOfWeek.eq(validCondition.dayOfWeek())
-                    .and(schedule.startTime.goe(validCondition.startTime()))
-                    .and(schedule.endTime.loe(validCondition.endTime())));
-        }
-        return selectedSlots;
     }
 
     private BooleanExpression containsName(String name) {
@@ -430,17 +333,4 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
                 .toList();
     }
 
-    private LocalTime parseTime(String time) {
-        if (!StringUtils.hasText(time)) {
-            return null;
-        }
-        try {
-            return LocalTime.parse(time);
-        } catch (DateTimeParseException e) {
-            return null;
-        }
-    }
-
-    private record ValidScheduleCondition(CourseDayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
-    }
 }

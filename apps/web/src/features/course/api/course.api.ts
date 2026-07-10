@@ -19,8 +19,10 @@ export const searchCourses = async (
   return data;
 };
 
-export const getCourseHistory = async (courseKey: string): Promise<CommonResponse<CourseSeatHistory[]>> => {
-  const { data } = await api.get(`/api/v1/courses/${encodeURIComponent(courseKey)}/history`);
+export const getCourseHistory = async (courseKey: string, page = 0, size = 30): Promise<CommonResponse<SliceResponse<CourseSeatHistory>>> => {
+  const { data } = await api.get(`/api/v1/courses/${encodeURIComponent(courseKey)}/history`, {
+    params: { page, size },
+  });
   return data;
 };
 
@@ -33,4 +35,3 @@ export const getSearchDefaultSemester = async (): Promise<CommonResponse<SearchD
   const { data } = await api.get('/api/v1/courses/search-default-semester');
   return data;
 };
-

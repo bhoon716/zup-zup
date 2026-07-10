@@ -159,15 +159,16 @@ class CourseServiceTest {
                 .capacity(50)
                 .current(10)
                 .build();
-        given(courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDesc(COURSE_KEY))
-                .willReturn(List.of(history));
+        given(courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDescIdDesc(
+                org.mockito.ArgumentMatchers.eq(COURSE_KEY), any(Pageable.class)))
+                .willReturn(new SliceImpl<>(List.of(history)));
 
         // when
-        List<CourseSeatHistoryResponse> responses = courseService.getCourseHistory(COURSE_KEY);
+        Slice<CourseSeatHistoryResponse> responses = courseService.getCourseHistory(COURSE_KEY, PageRequest.of(0, 30));
 
         // then
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getCapacity()).isEqualTo(50);
+        assertThat(responses.getContent().get(0).getCapacity()).isEqualTo(50);
     }
 
     @Test

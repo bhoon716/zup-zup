@@ -14,8 +14,10 @@ import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CourseService {
+
+    private static final int MAX_HISTORY_PAGE_SIZE = 100;
 
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
@@ -52,11 +56,13 @@ public class CourseService {
     /**
      * 특정 강의의 여석 변화 이력을 조회
      */
-    public List<CourseSeatHistoryResponse> getCourseHistory(String courseKey) {
-        return courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDesc(courseKey)
-                .stream()
-                .map(CourseSeatHistoryResponse::from)
-                .toList();
+    public Slice<CourseSeatHistoryResponse> getCourseHistory(String courseKey, Pageable pageable) {
+        Pageable boundedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                Math.min(pageable.getPageSize(), MAX_HISTORY_PAGE_SIZE),
+                Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+        return courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDescIdDesc(courseKey, boundedPageable)
+                .map(CourseSeatHistoryResponse::from);
     }
 
     /**

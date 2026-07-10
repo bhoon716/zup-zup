@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.BatchSize;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,6 +131,7 @@ public class Course extends BaseTimeEntity {
     private Integer reviewCount; // 리뷰 수
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     private List<CourseSchedule> schedules = new ArrayList<>();
 
     /**
@@ -261,5 +263,4 @@ public class Course extends BaseTimeEntity {
         return true;
     }
 }
-
 

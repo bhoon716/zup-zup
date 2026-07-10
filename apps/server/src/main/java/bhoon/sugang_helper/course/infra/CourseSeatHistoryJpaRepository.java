@@ -2,10 +2,11 @@ package bhoon.sugang_helper.course.infra;
 
 import bhoon.sugang_helper.course.domain.CourseSeatHistory;
 import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
-import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 
 public interface CourseSeatHistoryJpaRepository extends JpaRepository<CourseSeatHistory, Long>,
         CourseSeatHistoryRepository {
-    List<CourseSeatHistory> findByCourseKeyOrderByCreatedAtDesc(String courseKey);
+    Slice<CourseSeatHistory> findByCourseKeyOrderByCreatedAtDescIdDesc(String courseKey, Pageable pageable);
 }

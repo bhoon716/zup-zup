@@ -49,13 +49,15 @@ export const useCourses = (
 };
 
 export const useCourseHistory = (courseKey: string) => {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['course-history', courseKey],
-    queryFn: async () => {
-      const response = await courseApi.getCourseHistory(courseKey);
+    queryFn: async ({ pageParam }) => {
+      const response = await courseApi.getCourseHistory(courseKey, pageParam);
       return response.data;
     },
     enabled: !!courseKey,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.last ? undefined : lastPage.number + 1,
   });
 };
 
@@ -82,4 +84,3 @@ export const useSearchDefaultSemester = () => {
     staleTime: 1000 * 60 * 60,
   });
 };
-

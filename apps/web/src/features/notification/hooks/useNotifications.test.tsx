@@ -22,7 +22,11 @@ const handlers = [
     return HttpResponse.json({
       code: 'SUCCESS',
       message: 'Success',
-      data: mockNotifications,
+      data: {
+        content: mockNotifications,
+        number: 0,
+        last: true,
+      },
     });
   }),
 ];

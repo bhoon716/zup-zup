@@ -1,8 +1,9 @@
 package bhoon.sugang_helper.course.domain;
 
 import bhoon.sugang_helper.common.domain.RepositoryContract;
-import java.util.List;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 
 public interface CourseSeatHistoryRepository extends RepositoryContract<CourseSeatHistory, Long> {
-    List<CourseSeatHistory> findByCourseKeyOrderByCreatedAtDesc(String courseKey);
+    Slice<CourseSeatHistory> findByCourseKeyOrderByCreatedAtDescIdDesc(String courseKey, Pageable pageable);
 }

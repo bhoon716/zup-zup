@@ -17,9 +17,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,6 +34,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Tag(name = "Notification", description = "알림 관련 API")
 public class NotificationController {
+
+    private static final int MAX_HISTORY_PAGE_SIZE = 100;
 
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final UserRepository userRepository;
@@ -59,13 +64,16 @@ public class NotificationController {
                     """)))
     })
     @GetMapping("/history")
-    public ResponseEntity<CommonResponse<List<NotificationHistoryResponse>>> getMyNotificationHistory() {
+    public ResponseEntity<CommonResponse<Slice<NotificationHistoryResponse>>> getMyNotificationHistory(
+            @PageableDefault(size = 30) Pageable pageable) {
         User user = getCurrentUser();
-        List<NotificationHistoryResponse> histories = notificationHistoryRepository
-                .findByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream()
-                .map(NotificationHistoryResponse::from)
-                .collect(Collectors.toList());
+        Pageable boundedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                Math.min(pageable.getPageSize(), MAX_HISTORY_PAGE_SIZE),
+                Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+        Slice<NotificationHistoryResponse> histories = notificationHistoryRepository
+                .findByUserIdOrderByCreatedAtDescIdDesc(user.getId(), boundedPageable)
+                .map(NotificationHistoryResponse::from);
         return CommonResponse.ok(histories, "전체 알림 수신 내역입니다.");
     }
 

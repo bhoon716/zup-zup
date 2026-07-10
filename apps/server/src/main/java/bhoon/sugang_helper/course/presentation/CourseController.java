@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -69,9 +68,10 @@ public class CourseController {
                     """)))
     })
     @GetMapping("/{courseKey}/history")
-    public ResponseEntity<CommonResponse<List<CourseSeatHistoryResponse>>> getCourseHistory(
-            @PathVariable String courseKey) {
-        List<CourseSeatHistoryResponse> histories = courseService.getCourseHistory(courseKey);
+    public ResponseEntity<CommonResponse<Slice<CourseSeatHistoryResponse>>> getCourseHistory(
+            @PathVariable String courseKey,
+            @PageableDefault(size = 30) Pageable pageable) {
+        Slice<CourseSeatHistoryResponse> histories = courseService.getCourseHistory(courseKey, pageable);
         return CommonResponse.ok(histories, "해당 과목의 인원 변동 이력입니다.");
     }
 

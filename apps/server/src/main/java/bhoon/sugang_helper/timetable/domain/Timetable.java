@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.BatchSize;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -39,9 +40,11 @@ public class Timetable extends BaseTimeEntity {
     private boolean isPrimary;
 
     @OneToMany(mappedBy = "timetable", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     private List<TimetableEntry> entries = new ArrayList<>();
 
     @OneToMany(mappedBy = "timetable", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     private List<CustomSchedule> customSchedules = new ArrayList<>();
 
     @Builder
