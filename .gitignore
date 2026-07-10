@@ -89,3 +89,4 @@
 # Infrastructure runtime state
 /infra/nginx-proxy-manager/data/
 /infra/nginx-proxy-manager/letsencrypt/
+/infra/secrets/
