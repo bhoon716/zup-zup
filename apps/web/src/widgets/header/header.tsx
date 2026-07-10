@@ -65,7 +65,7 @@ export function Header({ initialIsLoggedIn = false }: HeaderProps) {
   const closeMenu = () => setIsMenuOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2 group transition-all active:scale-95">
@@ -121,7 +121,7 @@ export function Header({ initialIsLoggedIn = false }: HeaderProps) {
                 <SheetHeader className="p-6 border-b border-white/5">
                   <SheetTitle className="text-left flex items-center gap-2.5">
                     <Image src="/zub-zub-logo.png" alt="로고" width={32} height={32} className="w-8 h-8 object-contain" />
-                    <span className="font-bold tracking-tight text-primary">줍줍</span>
+                    <span className="bg-linear-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent font-bold tracking-tight">줍줍</span>
                   </SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-2 p-4 flex-1 overflow-y-auto min-h-0">

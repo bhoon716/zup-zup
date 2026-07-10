@@ -108,7 +108,7 @@ export default function AdminFeedbackPage() {
     switch (status) {
       case "PENDING": return <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-100 rounded-md text-[11px] font-bold">대기</Badge>;
       case "IN_PROGRESS": return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 rounded-md text-[11px] font-bold">처리중</Badge>;
-      case "COMPLETED": return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 rounded-md text-[11px] font-bold">완료</Badge>;
+      case "COMPLETED": return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-100 rounded-md text-[11px] font-bold">완료</Badge>;
       case "REJECTED": return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-100 rounded-md text-[11px] font-bold">반려</Badge>;
     }
   };
@@ -122,7 +122,7 @@ export default function AdminFeedbackPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background py-10 px-4">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-[#0F0F0F] py-10 px-4">
       <div className="max-w-7xl mx-auto flex flex-col gap-8">
         <div className="border-b border-gray-200 dark:border-gray-800 pb-6">
           <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-1">전체 문의 관리</h1>

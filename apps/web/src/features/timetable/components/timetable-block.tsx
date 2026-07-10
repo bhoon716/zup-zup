@@ -14,7 +14,7 @@ interface TimetableBlockProps {
   onClick: (block: RenderingBlock) => void;
 }
 
-const DEFAULT_BLOCK_COLOR = '#8b5cf6';
+const DEFAULT_BLOCK_COLOR = '#56296E';
 
 // HEX 색상 코드를 RGB 객체로 변환합니다.
 const hexToRgb = (color: string) => {

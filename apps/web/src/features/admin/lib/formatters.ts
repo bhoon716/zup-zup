@@ -70,8 +70,8 @@ export function getStatusMeta(status: string) {
   if (status === "RUNNING") {
     return {
       label: "정상 작동",
-      badgeClass: "bg-primary/10 text-primary",
-      dotClass: "bg-primary",
+      badgeClass: "bg-green-100 text-green-700",
+      dotClass: "bg-green-500",
     };
   }
   if (status === "DEGRADED") {
@@ -94,5 +94,5 @@ export function getStatusMeta(status: string) {
 export function getLogMeta(level: string) {
   if (level === "ERROR") return { label: "오류", className: "bg-red-100 text-red-800" };
   if (level === "WARN") return { label: "경고", className: "bg-amber-100 text-amber-800" };
-  return { label: "정보", className: "bg-primary/10 text-primary" };
+  return { label: "정보", className: "bg-green-100 text-green-800" };
 }

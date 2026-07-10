@@ -30,8 +30,8 @@ export function DashboardAnnouncements({ announcements }: { announcements?: Anno
     <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-7 shadow-floating border border-gray-50 dark:border-gray-800 h-full">
       <div className="flex justify-between items-center mb-5">
         <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Megaphone className="w-5 h-5 text-primary" />
+          <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
+            <Megaphone className="w-5 h-5 text-indigo-600" />
           </div>
           공지사항
         </h3>
@@ -57,17 +57,17 @@ export function DashboardAnnouncements({ announcements }: { announcements?: Anno
             <Link
               key={item.id}
               href={`/announcements/${item.id}`}
-              className="group block rounded-2xl border border-border p-3.5 transition-all hover:border-primary/30 hover:bg-primary/10"
+              className="group block rounded-2xl border border-gray-50 p-3.5 transition-all hover:border-indigo-100 hover:bg-indigo-50/30 dark:border-gray-800/50 dark:hover:border-indigo-900/40 dark:hover:bg-indigo-900/10"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2.5">
                   {item.pinned ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-black text-indigo-600 dark:border-indigo-900/50 dark:bg-indigo-950/50">
                       <Pin className="h-3 w-3" />
                       고정
                     </span>
                   ) : null}
-                  <h4 className="truncate text-sm font-bold text-foreground transition-colors group-hover:text-primary">
+                  <h4 className="truncate text-sm font-bold text-gray-800 transition-colors group-hover:text-indigo-600 dark:text-gray-200">
                     {item.title}
                   </h4>
                 </div>

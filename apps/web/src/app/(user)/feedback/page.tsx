@@ -26,7 +26,7 @@ function FeedbackPageContent() {
     switch (status) {
       case "PENDING": return <Badge variant="outline" className="bg-gray-100 dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-800 rounded-md text-[10px]">대기 중</Badge>;
       case "IN_PROGRESS": return <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800 rounded-md text-[10px]">처리 중</Badge>;
-      case "COMPLETED": return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 rounded-md text-[10px]">완료</Badge>;
+      case "COMPLETED": return <Badge variant="outline" className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800 rounded-md text-[10px]">완료</Badge>;
       case "REJECTED": return <Badge variant="outline" className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800 rounded-md text-[10px]">반려</Badge>;
       default: return null;
     }
@@ -41,7 +41,7 @@ function FeedbackPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4 md:px-8">
+    <div className="min-h-screen bg-white dark:bg-[#0F0F0F] py-12 px-4 md:px-8">
       <div className="container max-w-5xl mx-auto space-y-10">
         <div className="border-b border-gray-100 dark:border-gray-800 pb-8 mt-4">
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">문의 및 건의사항</h1>

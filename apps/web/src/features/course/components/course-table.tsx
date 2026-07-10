@@ -66,8 +66,8 @@ function getSeatStatus(available: number) {
 
   return {
     label: "여석 있음",
-      badgeClass: "bg-primary/10 text-primary",
-      barClass: "bg-primary",
+    badgeClass: "bg-emerald-100 text-emerald-800",
+    barClass: "bg-emerald-500",
   };
 }
 
@@ -82,11 +82,11 @@ function getClassificationStripe(classification?: string) {
   }
 
   if (normalized.includes("전공")) {
-    return "bg-primary";
+    return "bg-purple-500";
   }
 
   if (normalized.includes("교양")) {
-    return "bg-primary";
+    return "bg-emerald-500";
   }
 
   if (normalized.includes("교직")) {

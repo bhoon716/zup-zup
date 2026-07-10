@@ -135,7 +135,7 @@ export function DiscordIntegrationSection({
   return (
     <SectionCard
       icon={
-        <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 sm:flex">
+        <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#5865F2] text-white shadow-lg shadow-[#5865F2]/20 sm:flex">
           <MessageSquare className="h-8 w-8" />
         </div>
       }
@@ -143,7 +143,7 @@ export function DiscordIntegrationSection({
       description="디스코드 봇이 개인 DM으로 알림을 즉시 보내드립니다."
       action={
         user?.discordId ? (
-          <Badge variant="outline" className="rounded-lg border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+          <Badge variant="outline" className="rounded-lg border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">
             연동됨
           </Badge>
         ) : null
@@ -153,7 +153,7 @@ export function DiscordIntegrationSection({
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
             <span className="font-mono text-sm font-bold text-slate-700">{user.discordId}</span>
-            <CheckCircle className="h-4 w-4 text-primary" />
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
           </div>
           <Button
             type="button"
@@ -169,7 +169,7 @@ export function DiscordIntegrationSection({
         <Button
           type="button"
           onClick={handleDiscordConnect}
-          className="flex h-13 w-full items-center justify-center gap-3 rounded-xl bg-primary font-bold text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.98] hover:bg-primary/90"
+          className="flex h-13 w-full items-center justify-center gap-3 rounded-xl bg-[#5865F2] font-bold text-white shadow-lg shadow-[#5865F2]/20 transition-all active:scale-[0.98] hover:bg-[#4752C4]"
         >
           <MessageSquare className="h-6 w-6" />
           Discord 계정 연결하기
@@ -232,7 +232,7 @@ export function EmailNotificationSection({
       }
       title="이메일 알림"
       description="중요 알림을 이메일로 받아보세요. 네이버 이메일을 권장합니다."
-      action={(isGoogleEmail || verified) && <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">인증됨</span>}
+      action={(isGoogleEmail || verified) && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-700">인증됨</span>}
     >
       <div className="space-y-3">
         <div className="relative flex items-center gap-2">

@@ -233,10 +233,10 @@ export default function OnboardingPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="bg-card rounded-xl overflow-hidden transition-all border border-transparent hover:border-primary/30">
+              <div className="bg-[#f3f4f6] rounded-xl overflow-hidden transition-all border border-transparent hover:border-indigo-100">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
                       <MessageSquare className="w-5 h-5" />
                     </div>
                     <span className="font-bold text-gray-900">디스코드 DM 알림</span>
@@ -246,7 +246,7 @@ export default function OnboardingPage() {
                     checked={discordEnabled}
                     onCheckedChange={(checked) => setValue("discordEnabled", checked)}
                     disabled={!user.discordId}
-                    className="data-[state=checked]:bg-primary"
+                    className="data-[state=checked]:bg-[#56296E]"
                   />
                 </div>
                 {!user.discordId ? (
@@ -254,22 +254,22 @@ export default function OnboardingPage() {
                     <Button 
                       type="button"
                       onClick={handleDiscordConnect}
-                      className="w-full py-6 bg-primary hover:bg-primary/90 text-white font-bold shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 text-sm rounded-xl border-none"
+                      className="w-full py-6 bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold shadow-md shadow-[#5865F2]/20 transition-all flex items-center justify-center gap-2 text-sm rounded-xl border-none"
                     >
                       <LinkIcon className="w-4 h-4" />
                       디스코드 계정 연동
                     </Button>
                   </div>
                 ) : (
-                  <div className="px-4 pb-4 pt-0 flex items-center gap-2 text-primary text-xs font-semibold">
+                  <div className="px-4 pb-4 pt-0 flex items-center gap-2 text-green-600 text-xs font-semibold">
                     <CheckCircle className="w-3.5 h-3.5" /> 계정이 연동되었습니다.
                   </div>
                 )}
               </div>
-              <div className="bg-card rounded-xl overflow-hidden transition-all border border-transparent hover:border-primary/30">
+              <div className="bg-[#f3f4f6] rounded-xl overflow-hidden transition-all border border-transparent hover:border-purple-100">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-[#56296E]">
                       <Mail className="w-5 h-5" />
                     </div>
                     <span className="font-bold text-gray-900">이메일 알림</span>
@@ -278,7 +278,7 @@ export default function OnboardingPage() {
                     id="emailEnabled" 
                     checked={emailEnabled}
                     onCheckedChange={(checked) => setValue("emailEnabled", checked)}
-                    className="data-[state=checked]:bg-primary"
+                    className="data-[state=checked]:bg-[#56296E]"
                   />
                 </div>
                 <div className="px-4 pb-4 pt-0 space-y-3">
@@ -288,14 +288,14 @@ export default function OnboardingPage() {
                       type="email"
                       readOnly={verified}
                       {...register("notificationEmail", { required: true })}
-                      className="flex-1 p-6 bg-input border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl outline-none transition-all text-foreground text-sm"
+                      className="flex-1 p-6 bg-white border border-gray-200 focus:border-[#56296E] focus:ring-1 focus:ring-[#56296E] rounded-xl outline-none transition-all text-gray-900 text-sm"
                     />
                     {!isGoogleEmail && !verified && (
                       <Button 
                         type="button"
                         onClick={onSendCode}
                         disabled={sending}
-                        className="px-6 h-[50px] bg-transparent border border-border hover:bg-accent text-foreground font-bold rounded-xl text-sm transition-all whitespace-nowrap"
+                        className="px-6 h-[50px] bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl text-sm transition-all whitespace-nowrap"
                       >
                         {sending ? "전송 중" : "인증"}
                       </Button>
@@ -317,7 +317,7 @@ export default function OnboardingPage() {
                             value={authCode}
                             onChange={(e) => setAuthCode(e.target.value)}
                             maxLength={6}
-                            className="w-full p-6 bg-input border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl outline-none transition-all text-foreground text-sm"
+                            className="w-full p-6 bg-white border border-gray-200 focus:border-[#56296E] focus:ring-1 focus:ring-[#56296E] rounded-xl outline-none transition-all text-gray-900 text-sm"
                           />
                           <div className="absolute right-4 top-1/2 -translate-y-1/2 text-red-500 font-bold text-sm tabular-nums">
                             {formatTime(timeLeft)}
@@ -327,7 +327,7 @@ export default function OnboardingPage() {
                           type="button"
                           onClick={onVerifyCode}
                           disabled={verifying || authCode.length !== 6}
-                          className="px-6 h-[50px] bg-primary hover:bg-primary/90 text-white font-bold rounded-xl text-sm transition-all whitespace-nowrap shadow-sm"
+                          className="px-6 h-[50px] bg-[#56296E] hover:bg-[#452059] text-white font-bold rounded-xl text-sm transition-all whitespace-nowrap shadow-sm"
                         >
                           확인
                         </Button>
@@ -337,7 +337,7 @@ export default function OnboardingPage() {
                   
                   {isGoogleEmail && (
                     <div className="space-y-1.5 px-1">
-                      <div className="flex items-center gap-2 text-primary text-xs font-semibold">
+                      <div className="flex items-center gap-2 text-green-600 text-xs font-semibold">
                         <CheckCircle className="w-3.5 h-3.5" /> 구글 계정으로 자동 인증되었습니다.
                       </div>
                       <p className="text-gray-500 text-[11px] font-medium leading-relaxed">
@@ -346,16 +346,16 @@ export default function OnboardingPage() {
                     </div>
                   )}
                   {verified && !isGoogleEmail && (
-                    <div className="flex items-center gap-2 text-primary text-xs font-semibold px-1">
+                    <div className="flex items-center gap-2 text-green-600 text-xs font-semibold px-1">
                       <CheckCircle className="w-3.5 h-3.5" /> 이메일 인증이 완료되었습니다.
                     </div>
                   )}
                 </div>
               </div>
-              <div className="bg-card rounded-xl overflow-hidden transition-all border border-transparent hover:border-primary/30">
+              <div className="bg-[#f3f4f6] rounded-xl overflow-hidden transition-all border border-transparent hover:border-blue-100">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                       <Smartphone className="w-5 h-5" />
                     </div>
                     <span className="font-bold text-gray-900">웹 푸시 (현재 기기)</span>
@@ -373,7 +373,7 @@ export default function OnboardingPage() {
                       }
                     }}
                     disabled={loadingWebPush}
-                    className="data-[state=checked]:bg-primary"
+                    className="data-[state=checked]:bg-[#56296E]"
                   />
                 </div>
                 <div className="px-4 pb-4 pt-0 space-y-3">
@@ -382,7 +382,7 @@ export default function OnboardingPage() {
                       placeholder="기기 이름 (예: 내 노트북, 스마트폰)" 
                       type="text"
                       {...register("deviceName", { required: webPushEnabled })}
-                      className={`w-full p-6 bg-input border ${errors.deviceName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-border focus:border-primary focus:ring-primary'} rounded-xl outline-none transition-all text-foreground text-sm`}
+                      className={`w-full p-6 bg-white border ${errors.deviceName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#56296E] focus:ring-[#56296E]'} rounded-xl outline-none transition-all text-gray-900 text-sm`}
                     />
                     {errors.deviceName && (
                       <p className="text-red-500 text-[11px] font-semibold px-1">
@@ -394,7 +394,7 @@ export default function OnboardingPage() {
                     type="button"
                     onClick={handleRegisterDevice}
                     disabled={loadingWebPush}
-                    className="w-full py-6 bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2"
+                    className="w-full py-6 bg-white border-2 border-[#56296E] text-[#56296E] hover:bg-purple-50 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2"
                   >
                     <Smartphone className="w-4 h-4" />
                     현재 기기 등록
@@ -407,7 +407,7 @@ export default function OnboardingPage() {
               <Button 
                 type="submit" 
                 disabled={isPending}
-                className="w-full sm:w-auto px-12 py-7 bg-primary hover:bg-primary/90 text-white font-black shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 text-lg rounded-xl hover:translate-y-[-2px] active:translate-y-0"
+                className="w-full sm:w-auto px-12 py-7 bg-[#56296E] hover:bg-[#452059] text-white font-black shadow-lg shadow-[#56296E]/30 transition-all flex items-center justify-center gap-2 text-lg rounded-xl hover:translate-y-[-2px] active:translate-y-0"
               >
                 <span>{isPending ? "저장 중..." : "완료"}</span>
                 <Check className="w-6 h-6" />
