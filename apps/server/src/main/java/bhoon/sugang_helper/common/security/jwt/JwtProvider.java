@@ -41,6 +41,9 @@ public class JwtProvider {
     @Value("${jwt.refresh.expiration}")
     private long refreshTokenExpiration;
     private SecretKey key;
+    private static final String CLAIM_TOKEN_TYPE = "token_type";
+    private static final String ACCESS_TOKEN_TYPE = "access";
+    private static final String REFRESH_TOKEN_TYPE = "refresh";
 
     @PostConstruct
     public void init() {
@@ -48,21 +51,22 @@ public class JwtProvider {
     }
 
     public String createAccessToken(String email, String role) {
-        return createToken(email, role, accessTokenExpiration);
+        return createToken(email, role, accessTokenExpiration, ACCESS_TOKEN_TYPE);
     }
 
     public String createRefreshToken(String email) {
-        String refreshToken = createToken(email, null, refreshTokenExpiration);
+        String refreshToken = createToken(email, null, refreshTokenExpiration, REFRESH_TOKEN_TYPE);
         redisService.setValues("RT:" + email, refreshToken, Duration.ofMillis(refreshTokenExpiration));
         return refreshToken;
     }
 
-    private String createToken(String email, String role, long expiration) {
+    private String createToken(String email, String role, long expiration, String tokenType) {
         Date now = new Date();
         var builder = Jwts.builder()
                 .subject(email)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiration))
+                .claim(CLAIM_TOKEN_TYPE, tokenType)
                 .signWith(key);
 
         if (role != null) {
@@ -85,8 +89,19 @@ public class JwtProvider {
     }
 
     public boolean validateToken(String token) {
+        return validateToken(token, ACCESS_TOKEN_TYPE);
+    }
+
+    public boolean validateRefreshToken(String token) {
+        return validateToken(token, REFRESH_TOKEN_TYPE);
+    }
+
+    private boolean validateToken(String token, String expectedTokenType) {
         try {
-            parseClaims(token);
+            Claims claims = parseClaims(token);
+            if (!expectedTokenType.equals(claims.get(CLAIM_TOKEN_TYPE, String.class))) {
+                return false;
+            }
             if (redisService.hasKey(SecurityConstant.REDIS_BLACKLIST_PREFIX + token)) {
                 log.warn("[JWT] Blacklisted token usage detected: {}", token);
                 return false;

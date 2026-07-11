@@ -68,7 +68,7 @@ class AuthServiceTest {
         String email = "test@example.com";
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
         given(request.getCookies()).willReturn(new Cookie[]{cookie});
-        given(jwtProvider.validateToken(refreshToken)).willReturn(true);
+        given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
 
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
@@ -108,7 +108,7 @@ class AuthServiceTest {
         String email = "test@example.com";
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
         given(request.getCookies()).willReturn(new Cookie[]{cookie});
-        given(jwtProvider.validateToken(refreshToken)).willReturn(true);
+        given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
 
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
@@ -129,7 +129,7 @@ class AuthServiceTest {
         String email = "test@example.com";
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
         given(request.getCookies()).willReturn(new Cookie[]{cookie});
-        given(jwtProvider.validateToken(refreshToken)).willReturn(true);
+        given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
 
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);

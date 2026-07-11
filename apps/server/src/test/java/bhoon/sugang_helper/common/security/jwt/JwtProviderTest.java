@@ -47,6 +47,7 @@ class JwtProviderTest {
         // then
         assertThat(token).isNotNull();
         assertTrue(jwtProvider.validateToken(token));
+        assertFalse(jwtProvider.validateRefreshToken(token));
     }
 
     @Test
@@ -58,7 +59,8 @@ class JwtProviderTest {
 
         // then
         assertThat(token).isNotNull();
-        assertTrue(jwtProvider.validateToken(token));
+        assertTrue(jwtProvider.validateRefreshToken(token));
+        assertFalse(jwtProvider.validateToken(token));
     }
 
     @Test

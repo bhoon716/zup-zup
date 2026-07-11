@@ -48,7 +48,7 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_TOKEN, "리프레시 토큰이 없습니다.");
         }
 
-        if (!jwtProvider.validateToken(refreshToken)) {
+        if (!jwtProvider.validateRefreshToken(refreshToken)) {
             throw new CustomException(ErrorCode.INVALID_TOKEN, "유효하지 않은 리프레시 토큰입니다.");
         }
 
@@ -91,7 +91,7 @@ public class AuthService {
             session.invalidate();
         }
 
-        if (StringUtils.hasText(refreshToken) && jwtProvider.validateToken(refreshToken)) {
+        if (StringUtils.hasText(refreshToken) && jwtProvider.validateRefreshToken(refreshToken)) {
             String email = jwtProvider.getAuthentication(refreshToken).getName();
             redisService.deleteValues(REDIS_REFRESH_TOKEN_PREFIX + email);
         }

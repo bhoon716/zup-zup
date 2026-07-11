@@ -75,4 +75,18 @@ class JwtAuthenticationFilterTest {
         verify(filterChain).doFilter(request, response);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isEqualTo(authentication);
     }
+
+    @Test
+    @DisplayName("리프레시 토큰은 Bearer 인증 정보를 저장하지 않는다")
+    void doFilter_withRefreshToken_doesNotAuthenticate() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/timetables");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        given(jwtProvider.resolveToken(request)).willReturn("refresh-token");
+        given(jwtProvider.validateToken("refresh-token")).willReturn(false);
+
+        jwtAuthenticationFilter.doFilter(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
 }
