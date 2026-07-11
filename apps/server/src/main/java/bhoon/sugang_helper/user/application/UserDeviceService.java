@@ -9,6 +9,10 @@ import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserDevice;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,9 +37,9 @@ public class UserDeviceService {
                         device -> {
                             device.updateToken(user.getId(), command.token(), command.p256dh(), command.auth(),
                                     command.alias());
-                            log.info("[UserDevice] Updated existing device: userId={}, token={}, alias={}",
+                            log.info("[UserDevice] Updated existing device: userId={}, tokenFingerprint={}, alias={}",
                                     user.getId(),
-                                    command.token(), command.alias());
+                                    tokenFingerprint(command.token()), command.alias());
                         },
                         () -> {
                             UserDevice newDevice = UserDevice.builder()
@@ -47,8 +51,8 @@ public class UserDeviceService {
                                     .alias(command.alias())
                                     .build();
                             userDeviceRepository.save(newDevice);
-                            log.info("[UserDevice] Registered new device: userId={}, token={}, alias={}", user.getId(),
-                                    command.token(), command.alias());
+                            log.info("[UserDevice] Registered new device: userId={}, tokenFingerprint={}, alias={}",
+                                    user.getId(), tokenFingerprint(command.token()), command.alias());
                         });
     }
 
@@ -57,7 +61,7 @@ public class UserDeviceService {
         userDeviceRepository.findByToken(token)
                 .ifPresent(device -> {
                     userDeviceRepository.delete(device);
-                    log.info("[UserDevice] Unregistered device: token={}", token);
+                    log.info("[UserDevice] Unregistered device: tokenFingerprint={}", tokenFingerprint(token));
                 });
     }
 
@@ -83,7 +87,7 @@ public class UserDeviceService {
         userDeviceRepository.findByToken(token)
                 .ifPresent(device -> {
                     userDeviceRepository.delete(device);
-                    log.info("[UserDevice] Auto-deleted invalid device: token={}", token);
+                    log.info("[UserDevice] Auto-deleted invalid device: tokenFingerprint={}", tokenFingerprint(token));
                 });
     }
 
@@ -97,5 +101,18 @@ public class UserDeviceService {
         String email = SecurityUtil.getCurrentUserEmail();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+    }
+
+    private String tokenFingerprint(String token) {
+        if (token == null) {
+            return "<none>";
+        }
+
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
+            return "sha256:" + HexFormat.of().formatHex(digest, 0, 6);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is required to fingerprint device tokens", e);
+        }
     }
 }

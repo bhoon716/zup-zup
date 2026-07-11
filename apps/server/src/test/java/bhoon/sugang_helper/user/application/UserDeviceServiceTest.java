@@ -21,6 +21,9 @@ import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserDevice;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +36,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 class UserDeviceServiceTest {
@@ -47,16 +51,24 @@ class UserDeviceServiceTest {
     @Mock
     private UserRepository userRepository;
     private User testUser;
+    private Logger userDeviceLogger;
+    private ListAppender<ILoggingEvent> logAppender;
 
     @BeforeEach
     void setUp() {
         securityUtil = mockStatic(SecurityUtil.class);
         testUser = mock(User.class);
         lenient().when(testUser.getId()).thenReturn(1L);
+        userDeviceLogger = (Logger) LoggerFactory.getLogger(UserDeviceService.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        userDeviceLogger.addAppender(logAppender);
     }
 
     @AfterEach
     void tearDown() {
+        userDeviceLogger.detachAppender(logAppender);
+        logAppender.stop();
         securityUtil.close();
     }
 
@@ -102,6 +114,45 @@ class UserDeviceServiceTest {
         // then
         verify(existingDevice, times(1)).updateToken(1L, TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
         verify(userDeviceRepository, times(0)).save(any(UserDevice.class));
+    }
+
+    @Test
+    @DisplayName("디바이스 신규 등록 로그에 원문 토큰을 남기지 않는다")
+    void registerDevice_New_DoesNotLogRawToken() {
+        // given
+        String sensitiveToken = "sensitive-fcm-token-for-log-regression-test";
+        mockUser();
+        given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.empty());
+
+        // when
+        userDeviceService.registerDevice(
+                new RegisterDeviceCommand(DeviceType.FCM, sensitiveToken, null, null, "Personal phone"));
+
+        // then
+        assertThat(logAppender.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .noneMatch(message -> message.contains(sensitiveToken))
+                .anyMatch(message -> message.contains("tokenFingerprint=sha256:"));
+    }
+
+    @Test
+    @DisplayName("기존 디바이스 갱신 로그에 원문 토큰을 남기지 않는다")
+    void registerDevice_Update_DoesNotLogRawToken() {
+        // given
+        String sensitiveToken = "sensitive-web-push-endpoint-for-log-regression-test";
+        mockUser();
+        UserDevice existingDevice = mock(UserDevice.class);
+        given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.of(existingDevice));
+
+        // when
+        userDeviceService.registerDevice(
+                new RegisterDeviceCommand(DeviceType.WEB, sensitiveToken, "P256DH", "AUTH", "Laptop"));
+
+        // then
+        assertThat(logAppender.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .noneMatch(message -> message.contains(sensitiveToken))
+                .anyMatch(message -> message.contains("tokenFingerprint=sha256:"));
     }
 
     @Test
