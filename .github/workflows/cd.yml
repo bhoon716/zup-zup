@@ -107,6 +107,9 @@ jobs:
       - verify-infra
     if: needs.changes.outputs.server == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    concurrency:
+      group: production-server
+      cancel-in-progress: false
 
     steps:
       - name: 코드 체크아웃
@@ -190,6 +193,14 @@ jobs:
           target: "~/jbnu-sugang-helper/infra/"
           strip_components: 1
 
+      - name: release 디렉터리 준비
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: mkdir -p "~/jbnu-sugang-helper/releases/${{ github.sha }}"
+
       - name: 서버 파일 전송
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -197,7 +208,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "apps/server/build/libs/app.jar,apps/server/src/main/resources/application-prod.yml,apps/server/Dockerfile,apps/server/.dockerignore,apps/server/.env"
-          target: "~/jbnu-sugang-helper/apps/server/"
+          target: "~/jbnu-sugang-helper/releases/${{ github.sha }}/"
           strip_components: 2
 
       - name: 서버에서 이미지 빌드 및 재배포
@@ -207,10 +218,17 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ~/jbnu-sugang-helper/apps/server
-            docker build -t sugang-helper-app:latest .
+            release_sha="${{ github.sha }}"
+            release_dir="$HOME/jbnu-sugang-helper/releases/${release_sha}"
+            if [ ! -f "${release_dir}/build/libs/app.jar" ] || [ ! -f "${release_dir}/.env" ]; then
+              echo "Incomplete release ${release_sha}" >&2
+              exit 1
+            fi
+
+            cd "${release_dir}"
+            docker build -t "sugang-helper-app:${release_sha}" .
             cd ~/jbnu-sugang-helper/infra
-            docker compose up -d --no-deps app
+            APP_RELEASE_DIR="${release_dir}" APP_IMAGE_TAG="${release_sha}" docker compose up -d --no-deps app
             container_id=$(docker compose ps -q app)
             if [ -z "${container_id}" ]; then
               echo "App container was not created" >&2

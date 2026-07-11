@@ -25,7 +25,8 @@ if not re.search(
     raise SystemExit("verify-infra does not validate infra/docker-compose.yml")
 
 if not re.search(
-    r'cd ~/jbnu-sugang-helper/infra\s*\n\s*docker compose up -d --no-deps app',
+    r'cd ~/jbnu-sugang-helper/infra\s*\n\s*(?:APP_RELEASE_DIR=.*? )?'
+    r'(?:APP_IMAGE_TAG=.*? )?docker compose up -d --no-deps app',
     workflow,
 ):
     raise SystemExit("deploy does not run Compose from the transferred infra directory")
@@ -42,6 +43,16 @@ if not re.search(r'GOOGLE_REDIRECT_URI', workflow) or not re.search(
     r'GOOGLE_REDIRECT_URI=https://', workflow,
 ):
     raise SystemExit("deploy does not require an HTTPS GOOGLE_REDIRECT_URI")
+
+if not re.search(
+    r'deploy-server:.*?concurrency:\s*\n\s*group:\s*production-server\s*\n\s*cancel-in-progress:\s*false',
+    workflow,
+    re.DOTALL,
+):
+    raise SystemExit("production deploys are not serialized")
+
+if 'github.sha' not in workflow or 'APP_IMAGE_TAG' not in workflow or 'APP_RELEASE_DIR' not in workflow:
+    raise SystemExit("deploy does not bind the release directory and image to the commit SHA")
 
 print("deployment compose alignment passed")
 PY

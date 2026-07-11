@@ -115,16 +115,16 @@ services:
       - sugang-helper-network-server
 
   app:
-    image: sugang-helper-app:latest
+    image: ${APP_IMAGE_NAME:-sugang-helper-app}:${APP_IMAGE_TAG:-latest}
     container_name: ${APP_CONTAINER_NAME}
     restart: unless-stopped
     env_file:
       - .env
-      - ../apps/server/.env
+      - ${APP_RELEASE_DIR:-../apps/server}/.env
     ports:
       - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
     volumes:
-      - ../apps/server/src/main/resources/application-prod.yml:/app/config/application-prod.yml:ro
+      - ${APP_RELEASE_DIR:-../apps/server}/src/main/resources/application-prod.yml:/app/config/application-prod.yml:ro
       - ${FIREBASE_CONFIG_PATH}:/app/config/firebase-key.json:ro
       - /var/log/jbnu-sugang-helper/server:/var/log/jbnu-sugang-helper/server
       - /var/lib/jbnu-sugang-helper/uploads:/app/data/uploads
