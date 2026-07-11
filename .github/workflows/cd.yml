@@ -139,6 +139,7 @@ jobs:
             SPRING_PROFILES_ACTIVE
             TZ
             FIREBASE_CONFIG_PATH
+            FILE_UPLOAD_DIR
             LOG_FILE
             SPRING_DATASOURCE_URL
             SPRING_DATASOURCE_USERNAME

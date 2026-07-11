@@ -102,6 +102,16 @@ if not any(
 ):
     fail("promtail state volume is missing")
 
+app_volumes = services.get("app", {}).get("volumes", [])
+if not any(
+    volume.get("type") == "bind"
+    and volume.get("source") == "/var/lib/jbnu-sugang-helper/uploads"
+    and volume.get("target") == "/app/data/uploads"
+    and not volume.get("read_only", False)
+    for volume in app_volumes
+):
+    fail("app upload storage must be a writable host bind mount")
+
 print("compose policy verification passed")
 PY
 
