@@ -61,7 +61,6 @@ export const useSettingsPage = () => {
   const [testCooldownSeconds, setTestCooldownSeconds] = useState(0);
 
   const { subscribe, loading: loadingWebPush } = useWebPush();
-  const DISCORD_CLIENT_ID = "1470147038564847719";
 
   const {
     register,
@@ -195,9 +194,7 @@ export const useSettingsPage = () => {
   };
 
   const handleDiscordConnect = () => {
-    const redirectUri = encodeURIComponent(`${window.location.origin}/api/v1/users/discord/callback`);
-    const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20applications.commands&integration_type=1&state=settings`;
-    window.location.href = oauthUrl;
+    window.location.href = "/api/v1/users/discord/authorize?returnPath=/settings";
   };
 
   const handleDiscordUnlink = async () => {

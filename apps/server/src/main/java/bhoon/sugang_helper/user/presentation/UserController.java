@@ -27,6 +27,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpSession;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +57,13 @@ public class UserController {
 
     @Value("${app.oauth2.authorized-redirect-uri}")
     private String frontendBaseUrl;
+    @Value("${app.discord.client-id}")
+    private String discordClientId;
+    @Value("${app.discord.redirect-uri}")
+    private String discordRedirectUri;
+
+    private static final String DISCORD_STATE_ATTRIBUTE = "DISCORD_OAUTH_STATE";
+    private static final String DISCORD_RETURN_PATH_ATTRIBUTE = "DISCORD_OAUTH_RETURN_PATH";
 
     /**
      * 신규 가입 유저의 초기 설정(알림 이메일 등)을 저장하고 온보딩 상태를 완료로 변경합니다.
@@ -263,18 +275,39 @@ public class UserController {
         return CommonResponse.ok(null, "디스코드 연동이 해제되었습니다.");
     }
 
+    @GetMapping("/discord/authorize")
+    public ResponseEntity<Void> startDiscordAuthorization(@RequestParam(defaultValue = "/settings") String returnPath,
+                                                           HttpSession session) {
+        String safeReturnPath = "/onboarding".equals(returnPath) ? "/onboarding" : "/settings";
+        String state = createState();
+        session.setAttribute(DISCORD_STATE_ATTRIBUTE, state);
+        session.setAttribute(DISCORD_RETURN_PATH_ATTRIBUTE, safeReturnPath);
+
+        String location = "https://discord.com/api/oauth2/authorize?client_id=" + discordClientId
+                + "&redirect_uri=" + URLEncoder.encode(discordRedirectUri, StandardCharsets.UTF_8)
+                + "&response_type=code&scope=identify%20applications.commands&integration_type=1&state=" + state;
+        return ResponseEntity.status(302).header("Location", location).build();
+    }
+
     /**
      * 디스코드 인증 후 리다이렉트되어 연동을 완료하는 콜백 엔드포인트입니다.
      */
     @Operation(summary = "디스코드 OAuth2 콜백", description = "디스코드 인증 후 리다이렉트되어 연동을 완료합니다.")
     @GetMapping("/discord/callback")
-    public ResponseEntity<Void> discordCallback(@RequestParam String code,
-                                                @RequestParam(required = false) String state) {
-        String redirectPath = resolveDiscordRedirectPath(state);
+    public ResponseEntity<Void> discordCallback(@RequestParam String code, @RequestParam String state,
+                                                HttpSession session) {
+        String redirectPath = (String) session.getAttribute(DISCORD_RETURN_PATH_ATTRIBUTE);
+        String expectedState = (String) session.getAttribute(DISCORD_STATE_ATTRIBUTE);
+        session.removeAttribute(DISCORD_STATE_ATTRIBUTE);
+        session.removeAttribute(DISCORD_RETURN_PATH_ATTRIBUTE);
 
         try {
+            if (expectedState == null || !java.security.MessageDigest.isEqual(
+                    expectedState.getBytes(StandardCharsets.UTF_8), state.getBytes(StandardCharsets.UTF_8))) {
+                throw new IllegalArgumentException("Invalid Discord OAuth state");
+            }
             linkDiscordAccount(code);
-            return buildDiscordRedirectResponse(redirectPath, "success");
+            return buildDiscordRedirectResponse(resolveDiscordRedirectPath(redirectPath), "success");
         } catch (Exception e) {
             log.warn("[Discord] Failed to process OAuth callback. state={}, reason={}", state, e.getMessage());
             return buildDiscordRedirectResponse(redirectPath, "error");
@@ -298,6 +331,12 @@ public class UserController {
             return "/onboarding";
         }
         return "/settings";
+    }
+
+    private String createState() {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     /**

@@ -47,7 +47,6 @@ export default function OnboardingPage() {
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
   const [timeLeft, setTimeLeft] = useState(180);
-  const DISCORD_CLIENT_ID = "1470147038564847719";
 
   const { control, register, handleSubmit, setValue, formState: { errors }, trigger } = useForm<OnboardingForm>({
     defaultValues: {
@@ -151,9 +150,7 @@ export default function OnboardingPage() {
   };
 
   const handleDiscordConnect = () => {
-    const DISCORD_REDIRECT_URI = encodeURIComponent(`${window.location.origin}/api/v1/users/discord/callback`);
-    const DISCORD_OAUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20applications.commands&integration_type=1&state=onboarding`;
-    window.open(DISCORD_OAUTH_URL, "_blank", "noopener,noreferrer");
+    window.location.href = "/api/v1/users/discord/authorize?returnPath=/onboarding";
   };
 
   const handleRegisterDevice = async () => {
