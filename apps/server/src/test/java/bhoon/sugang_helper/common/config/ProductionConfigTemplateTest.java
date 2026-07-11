@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
@@ -29,6 +31,7 @@ class ProductionConfigTemplateTest {
         assertThat(content).contains("password: ${REDIS_PASSWORD}");
         assertThat(content).contains("client-id: ${GOOGLE_CLIENT_ID}");
         assertThat(content).contains("client-secret: ${GOOGLE_CLIENT_SECRET}");
+        assertThat(content).contains("redirect-uri: ${GOOGLE_REDIRECT_URI}");
         assertThat(content).contains("access-key: ${AWS_ACCESS_KEY_ID}");
         assertThat(content).contains("secret-key: ${AWS_SECRET_ACCESS_KEY}");
         assertThat(content).contains("secret: ${JWT_SECRET}");
@@ -44,5 +47,12 @@ class ProductionConfigTemplateTest {
         assertThat(content).contains("client-id: ${DISCORD_CLIENT_ID}");
         assertThat(content).contains("client-secret: ${DISCORD_CLIENT_SECRET}");
         assertThat(content).contains("redirect-uri: ${DISCORD_REDIRECT_URI}");
+    }
+
+    @Test
+    void environmentTemplateDeclaresGoogleRedirectUri() throws IOException {
+        String content = Files.readString(Path.of(".env.example"));
+
+        assertThat(content).contains("GOOGLE_REDIRECT_URI=");
     }
 }

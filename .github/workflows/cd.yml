@@ -148,6 +148,7 @@ jobs:
             REDIS_PASSWORD
             GOOGLE_CLIENT_ID
             GOOGLE_CLIENT_SECRET
+            GOOGLE_REDIRECT_URI
             AWS_ACCESS_KEY_ID
             AWS_SECRET_ACCESS_KEY
             JWT_SECRET
@@ -170,6 +171,13 @@ jobs:
               exit 1
             fi
           done
+
+          google_redirect_uri_count=$(grep -Ec '^GOOGLE_REDIRECT_URI=' apps/server/.env)
+          if [ "${google_redirect_uri_count}" -ne 1 ] \
+            || ! grep -Eq '^GOOGLE_REDIRECT_URI=https://[^[:space:]]+$' apps/server/.env; then
+            echo "GOOGLE_REDIRECT_URI must be exactly one non-empty HTTPS URI" >&2
+            exit 1
+          fi
 
       - name: 인프라 설정 파일 전송
         uses: appleboy/scp-action@v0.1.7

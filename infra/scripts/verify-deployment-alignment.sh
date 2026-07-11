@@ -38,5 +38,10 @@ if not re.search(
 ):
     raise SystemExit("deploy does not wait for the app container health status")
 
+if not re.search(r'GOOGLE_REDIRECT_URI', workflow) or not re.search(
+    r'GOOGLE_REDIRECT_URI=https://', workflow,
+):
+    raise SystemExit("deploy does not require an HTTPS GOOGLE_REDIRECT_URI")
+
 print("deployment compose alignment passed")
 PY
