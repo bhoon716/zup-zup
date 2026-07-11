@@ -30,5 +30,13 @@ if not re.search(
 ):
     raise SystemExit("deploy does not run Compose from the transferred infra directory")
 
+if not re.search(
+    r'docker compose up -d --no-deps app\s*\n\s*container_id=\$\(docker compose ps -q app\).*?'
+    r'docker inspect.*State\.Health.*Status.*\$\{container_id\}',
+    workflow,
+    re.DOTALL,
+):
+    raise SystemExit("deploy does not wait for the app container health status")
+
 print("deployment compose alignment passed")
 PY

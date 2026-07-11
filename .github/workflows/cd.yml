@@ -202,6 +202,29 @@ jobs:
             docker build -t sugang-helper-app:latest .
             cd ~/jbnu-sugang-helper/infra
             docker compose up -d --no-deps app
+            container_id=$(docker compose ps -q app)
+            if [ -z "${container_id}" ]; then
+              echo "App container was not created" >&2
+              exit 1
+            fi
+
+            for attempt in $(seq 1 90); do
+              health_status=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container_id}")
+              if [ "${health_status}" = "healthy" ]; then
+                exit 0
+              fi
+
+              if [ "${health_status}" = "exited" ] || [ "${health_status}" = "dead" ]; then
+                docker logs "${container_id}" >&2
+                exit 1
+              fi
+
+              sleep 5
+            done
+
+            echo "App container did not become healthy" >&2
+            docker logs "${container_id}" >&2
+            exit 1
 
   verify-infra:
     needs: changes
