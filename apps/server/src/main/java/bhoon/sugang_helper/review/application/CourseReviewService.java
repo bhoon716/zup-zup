@@ -59,7 +59,7 @@ public class CourseReviewService {
     public ReviewResponse createReview(String courseKey, ReviewCreateRequest request) {
         User user = getCurrentUser();
 
-        Course course = getCourse(courseKey);
+        Course course = getCourseForUpdate(courseKey);
         ReviewScopeKey scope = ReviewScopeKey.from(course);
 
         if (reviewRepository.countBySubjectCodeAndProfessorAndUserId(scope.subjectCode(), scope.professor(),
@@ -108,11 +108,12 @@ public class CourseReviewService {
 
         validateReviewOwner(review, user);
 
+        Course course = getCourseForUpdate(review.getCourseKey());
         review.update(request.rating());
         reviewRepository.saveAndFlush(review);
         log.info("[Review] Updated. reviewId={}, userId={}", reviewId, user.getId());
 
-        updateCourseReviewStats(getCourse(review.getCourseKey()));
+        updateCourseReviewStats(course);
 
         return ReviewResponse.of(review, user.getId());
     }
@@ -129,12 +130,12 @@ public class CourseReviewService {
 
         validateReviewOwner(review, user);
 
-        String courseKey = review.getCourseKey();
+        Course course = getCourseForUpdate(review.getCourseKey());
         reviewRepository.delete(review);
         reviewRepository.flush();
         log.info("[Review] Deleted. reviewId={}, userId={}", reviewId, user.getId());
 
-        updateCourseReviewStats(getCourse(courseKey));
+        updateCourseReviewStats(course);
     }
 
     /**
@@ -232,6 +233,12 @@ public class CourseReviewService {
 
     private Course getCourse(String courseKey) {
         return courseRepository.findByCourseKey(courseKey)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다."));
+    }
+
+    private Course getCourseForUpdate(String courseKey) {
+        return courseRepository.findByCourseKeyForUpdate(courseKey)
+                .or(() -> courseRepository.findByCourseKey(courseKey))
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다."));
     }
 }
