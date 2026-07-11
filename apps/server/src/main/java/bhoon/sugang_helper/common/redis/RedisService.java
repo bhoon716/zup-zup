@@ -58,4 +58,12 @@ public class RedisService {
     public boolean hasKey(String key) {
         return redisTemplate.hasKey(key);
     }
+
+    public long increment(String key, Duration duration) {
+        Long value = redisTemplate.opsForValue().increment(key);
+        if (value != null && value == 1) {
+            redisTemplate.expire(key, duration);
+        }
+        return value == null ? 0 : value;
+    }
 }

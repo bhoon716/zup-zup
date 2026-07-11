@@ -59,6 +59,7 @@ class EmailVerificationServiceTest {
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
         when(templateService.loadTemplate(eq("verification_code"), anyMap())).thenReturn("<html>HTML</html>");
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
 
         // when
         emailVerificationService.sendCode(userId, EMAIL);
@@ -79,12 +80,23 @@ class EmailVerificationServiceTest {
 
         when(javaMailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));
         when(templateService.loadTemplate(eq("verification_code"), anyMap())).thenReturn("<html>HTML</html>");
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         doThrow(new RuntimeException("Mail server error")).when(javaMailSender).send(any(MimeMessage.class));
 
         // when & then
         assertThatThrownBy(() -> emailVerificationService.sendCode(userId, EMAIL))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_SEND_ERROR);
+    }
+
+    @Test
+    void sendCode_RejectsCooldown() {
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
+
+        assertThatThrownBy(() -> emailVerificationService.sendCode(1L, EMAIL))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
+        verify(javaMailSender, never()).send(any(MimeMessage.class));
     }
 
     @Test
@@ -123,6 +135,18 @@ class EmailVerificationServiceTest {
         // then
         assertThat(result).isFalse();
         verify(redisService, never()).deleteValues(anyString());
+    }
+
+    @Test
+    void verifyCode_DeletesCodeAfterMaximumFailedAttempts() {
+        Long userId = 1L;
+        String key = "EMAIL_CODE:" + userId + ":" + EMAIL;
+        when(redisService.getValues(key)).thenReturn(CODE);
+        when(redisService.increment(anyString(), any(Duration.class))).thenReturn(5L);
+
+        assertThat(emailVerificationService.verifyCode(userId, EMAIL, "000000")).isFalse();
+        verify(redisService).deleteValues(key);
+        verify(redisService).deleteValues("EMAIL_CODE_ATTEMPTS:" + userId + ":" + EMAIL);
     }
 
     @Test

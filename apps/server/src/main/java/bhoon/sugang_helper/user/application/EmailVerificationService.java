@@ -8,7 +8,7 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Random;
+import java.security.SecureRandom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,8 +26,12 @@ public class EmailVerificationService {
 
     private static final String CODE_PREFIX = "EMAIL_CODE:";
     private static final String VERIFIED_PREFIX = "EMAIL_VERIFIED:";
+    private static final String SEND_COOLDOWN_PREFIX = "EMAIL_SEND_COOLDOWN:";
+    private static final String ATTEMPT_PREFIX = "EMAIL_CODE_ATTEMPTS:";
     private static final long CODE_EXPIRATION_MINUTES = 5;
     private static final long VERIFIED_EXPIRATION_MINUTES = 60;
+    private static final Duration SEND_COOLDOWN = Duration.ofMinutes(1);
+    private static final int MAX_VERIFY_ATTEMPTS = 5;
     private static final String EMAIL_SUBJECT = "[수강신청 도우미] 이메일 인증 코드";
     private final JavaMailSender javaMailSender;
     private final RedisService redisService;
@@ -41,6 +45,9 @@ public class EmailVerificationService {
      * 인증 코드를 생성하여 사용자 이메일로 발송합니다.
      */
     public void sendCode(Long userId, String email) {
+        if (!acquireSendCooldown(userId, email)) {
+            throw new CustomException(ErrorCode.TOO_MANY_REQUESTS, "인증 코드는 잠시 후 다시 요청할 수 있습니다.");
+        }
         String code = generateCode();
         String key = getCodeKey(userId, email);
 
@@ -65,12 +72,18 @@ public class EmailVerificationService {
 
         if (savedCode.equals(code)) {
             redisService.deleteValues(key);
+            redisService.deleteValues(getAttemptKey(userId, email));
             redisService.setValues(getVerifiedKey(userId, email), "true",
                     Duration.ofMinutes(VERIFIED_EXPIRATION_MINUTES));
             log.info("[EmailVerification] Verified user={}, email={}", userId, email);
             return true;
         }
 
+        long attempts = redisService.increment(getAttemptKey(userId, email), Duration.ofMinutes(CODE_EXPIRATION_MINUTES));
+        if (attempts >= MAX_VERIFY_ATTEMPTS) {
+            redisService.deleteValues(key);
+            redisService.deleteValues(getAttemptKey(userId, email));
+        }
         return false;
     }
 
@@ -106,7 +119,7 @@ public class EmailVerificationService {
      * 6자리 난수 인증 코드를 생성합니다.
      */
     private String generateCode() {
-        Random random = new Random();
+        SecureRandom random = new SecureRandom();
         int code = 100000 + random.nextInt(900000);
         return String.valueOf(code);
     }
@@ -117,5 +130,15 @@ public class EmailVerificationService {
 
     private String getVerifiedKey(Long userId, String email) {
         return VERIFIED_PREFIX + userId + ":" + email;
+    }
+
+    private boolean acquireSendCooldown(Long userId, String email) {
+        boolean userAllowed = redisService.setValuesIfAbsent(SEND_COOLDOWN_PREFIX + "USER:" + userId, "1", SEND_COOLDOWN);
+        boolean emailAllowed = redisService.setValuesIfAbsent(SEND_COOLDOWN_PREFIX + "EMAIL:" + email, "1", SEND_COOLDOWN);
+        return userAllowed && emailAllowed;
+    }
+
+    private String getAttemptKey(Long userId, String email) {
+        return ATTEMPT_PREFIX + userId + ":" + email;
     }
 }
