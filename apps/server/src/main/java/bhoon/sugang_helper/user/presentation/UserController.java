@@ -28,6 +28,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -100,9 +101,17 @@ public class UserController {
     })
     @PostMapping("/email/code")
     public ResponseEntity<CommonResponse<Void>> sendVerificationCode(
-            @Valid @RequestBody EmailRequest request) {
-        userService.sendVerificationCode(new SendVerificationCodeCommand(request.getEmail()));
+            @Valid @RequestBody EmailRequest request, HttpServletRequest httpRequest) {
+        userService.sendVerificationCode(new SendVerificationCodeCommand(request.getEmail()), resolveClientIp(httpRequest));
         return CommonResponse.ok(null, "인증 코드가 전송되었습니다. 이메일을 확인해주세요.");
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",", 2)[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     /**

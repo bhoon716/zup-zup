@@ -169,8 +169,13 @@ public class UserService {
      */
     @Transactional
     public void sendVerificationCode(SendVerificationCodeCommand command) {
+        sendVerificationCode(command, null);
+    }
+
+    @Transactional
+    public void sendVerificationCode(SendVerificationCodeCommand command, String clientIp) {
         User user = getCurrentUser();
-        emailVerificationService.sendCode(user.getId(), command.email());
+        emailVerificationService.sendCode(user.getId(), command.email(), clientIp);
     }
 
     /**

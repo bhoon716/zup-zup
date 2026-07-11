@@ -45,7 +45,11 @@ public class EmailVerificationService {
      * 인증 코드를 생성하여 사용자 이메일로 발송합니다.
      */
     public void sendCode(Long userId, String email) {
-        if (!acquireSendCooldown(userId, email)) {
+        sendCode(userId, email, null);
+    }
+
+    public void sendCode(Long userId, String email, String clientIp) {
+        if (!acquireSendCooldown(userId, email, clientIp)) {
             throw new CustomException(ErrorCode.TOO_MANY_REQUESTS, "인증 코드는 잠시 후 다시 요청할 수 있습니다.");
         }
         String code = generateCode();
@@ -132,10 +136,12 @@ public class EmailVerificationService {
         return VERIFIED_PREFIX + userId + ":" + email;
     }
 
-    private boolean acquireSendCooldown(Long userId, String email) {
+    private boolean acquireSendCooldown(Long userId, String email, String clientIp) {
         boolean userAllowed = redisService.setValuesIfAbsent(SEND_COOLDOWN_PREFIX + "USER:" + userId, "1", SEND_COOLDOWN);
         boolean emailAllowed = redisService.setValuesIfAbsent(SEND_COOLDOWN_PREFIX + "EMAIL:" + email, "1", SEND_COOLDOWN);
-        return userAllowed && emailAllowed;
+        boolean ipAllowed = clientIp == null || clientIp.isBlank()
+                || redisService.setValuesIfAbsent(SEND_COOLDOWN_PREFIX + "IP:" + clientIp, "1", SEND_COOLDOWN);
+        return userAllowed && emailAllowed && ipAllowed;
     }
 
     private String getAttemptKey(Long userId, String email) {
