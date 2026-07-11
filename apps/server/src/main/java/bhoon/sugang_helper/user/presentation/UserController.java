@@ -310,7 +310,7 @@ public class UserController {
             return buildDiscordRedirectResponse(resolveDiscordRedirectPath(redirectPath), "success");
         } catch (Exception e) {
             log.warn("[Discord] Failed to process OAuth callback. state={}, reason={}", state, e.getMessage());
-            return buildDiscordRedirectResponse(redirectPath, "error");
+            return buildDiscordRedirectResponse(resolveDiscordRedirectPath(redirectPath), "error");
         }
     }
 
@@ -327,7 +327,7 @@ public class UserController {
      * 디스코드 연동 시도 시의 상태값에 따른 리다이렉트 경로를 결정합니다.
      */
     private String resolveDiscordRedirectPath(String state) {
-        if ("onboarding".equals(state)) {
+        if ("onboarding".equals(state) || "/onboarding".equals(state)) {
             return "/onboarding";
         }
         return "/settings";
