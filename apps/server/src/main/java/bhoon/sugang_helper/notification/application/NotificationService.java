@@ -152,9 +152,21 @@ public class NotificationService {
             return;
         }
 
-        targets.forEach(target -> dispatch(target, message.title(), message.body(), channel));
+        boolean delivered = false;
+        for (NotificationTarget target : targets) {
+            try {
+                dispatch(target, message.title(), message.body(), channel);
+                delivered = true;
+            } catch (RuntimeException e) {
+                if (ctx.forceSend()) {
+                    throw e;
+                }
+                log.warn("[Notification] Delivery failed but remaining targets will continue. userId={}, channel={}",
+                        user.getId(), channel, e);
+            }
+        }
 
-        if (ctx.saveHistory()) {
+        if (ctx.saveHistory() && delivered) {
             saveHistory(user.getId(), ctx.courseKey(), message, channel);
         }
     }

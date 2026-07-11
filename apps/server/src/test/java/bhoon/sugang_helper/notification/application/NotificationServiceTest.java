@@ -112,12 +112,14 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("알림 발송 중 실패해도 중복 방지 키는 유지한다")
-    void keepDedupKeyWhenDeliveryFails() {
+    @DisplayName("한 대상의 발송 실패가 이후 대상 발송을 중단하지 않는다")
+    void continuesDeliveryWhenOneTargetFails() {
         // Given
         SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
         String redisKey = "ALERT:" + COURSE_KEY;
-        Subscription subscription = Subscription.builder().userId(1L).courseKey(COURSE_KEY).isActive(true)
+        Subscription firstSubscription = Subscription.builder().userId(1L).courseKey(COURSE_KEY).isActive(true)
+                .build();
+        Subscription secondSubscription = Subscription.builder().userId(2L).courseKey(COURSE_KEY).isActive(true)
                 .build();
         User user = User.builder()
                 .id(1L)
@@ -126,22 +128,25 @@ class NotificationServiceTest {
                 .role(Role.USER)
                 .emailEnabled(true)
                 .build();
+        User secondUser = User.builder().id(2L).name("Second").email("second@example.com").role(Role.USER)
+                .emailEnabled(true).build();
 
         given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(true);
-        given(subscriptionRepository.findByCourseKeyAndIsActiveTrue(COURSE_KEY)).willReturn(List.of(subscription));
-        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
+        given(subscriptionRepository.findByCourseKeyAndIsActiveTrue(COURSE_KEY))
+                .willReturn(List.of(firstSubscription, secondSubscription));
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user, secondUser));
         given(userDeviceRepository.findByUserIdIn(anyList())).willReturn(List.of());
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
-        doThrow(new RuntimeException("boom")).when(notificationSender).send(any(), anyString(), anyString());
+        doThrow(new RuntimeException("boom")).doNothing().when(notificationSender)
+                .send(any(), anyString(), anyString());
 
-        // When & Then
-        assertThatThrownBy(() -> notificationService.handleSeatOpenedEvent(event))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("boom");
+        // When
+        notificationService.handleSeatOpenedEvent(event);
 
         verify(redisService, times(1)).setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class));
         verify(redisService, never()).deleteValues(anyString());
-        verify(redisService, never()).setValues(eq(redisKey), eq("SENT"), any(Duration.class));
+        verify(notificationSender, times(2)).send(any(), anyString(), anyString());
+        verify(redisService, times(1)).setValues(eq(redisKey), eq("SENT"), any(Duration.class));
     }
 
     @Test
