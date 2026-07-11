@@ -3,6 +3,7 @@ package bhoon.sugang_helper.notification.infra;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.user.application.UserDeviceService;
+import bhoon.sugang_helper.user.application.WebPushEndpointValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import java.security.Security;
@@ -22,6 +23,7 @@ public class WebPushNotificationSender implements NotificationSender {
     private final String subject;
     private final ObjectMapper objectMapper;
     private final UserDeviceService userDeviceService;
+    private final WebPushEndpointValidator webPushEndpointValidator;
     private PushService pushService;
 
     public WebPushNotificationSender(
@@ -29,12 +31,14 @@ public class WebPushNotificationSender implements NotificationSender {
             @Value("${app.webpush.private-key}") String privateKey,
             @Value("${app.webpush.subject}") String subject,
             ObjectMapper objectMapper,
-            UserDeviceService userDeviceService) {
+            UserDeviceService userDeviceService,
+            WebPushEndpointValidator webPushEndpointValidator) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
         this.subject = subject;
         this.objectMapper = objectMapper;
         this.userDeviceService = userDeviceService;
+        this.webPushEndpointValidator = webPushEndpointValidator;
     }
 
     @PostConstruct
@@ -68,6 +72,8 @@ public class WebPushNotificationSender implements NotificationSender {
         if (target.getP256dh() == null || target.getAuth() == null) {
             throw new CustomException(ErrorCode.WEB_PUSH_MISSING_KEYS);
         }
+
+        webPushEndpointValidator.validate(target.getRecipient());
 
         try {
             String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/"));

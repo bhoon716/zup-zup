@@ -50,6 +50,8 @@ class UserDeviceServiceTest {
     private UserDeviceRepository userDeviceRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private WebPushEndpointValidator webPushEndpointValidator;
     private User testUser;
     private Logger userDeviceLogger;
     private ListAppender<ILoggingEvent> logAppender;

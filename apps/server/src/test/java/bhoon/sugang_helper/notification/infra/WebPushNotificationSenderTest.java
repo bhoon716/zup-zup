@@ -3,6 +3,7 @@ package bhoon.sugang_helper.notification.infra;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.user.application.UserDeviceService;
+import bhoon.sugang_helper.user.application.WebPushEndpointValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +21,8 @@ class WebPushNotificationSenderTest {
     void setUp() {
         webPushNotificationSender = new WebPushNotificationSender("", "", "",
                 new ObjectMapper(),
-                Mockito.mock(UserDeviceService.class));
+                Mockito.mock(UserDeviceService.class),
+                new WebPushEndpointValidator());
     }
 
     @Test

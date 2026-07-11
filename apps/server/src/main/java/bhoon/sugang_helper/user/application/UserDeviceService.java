@@ -27,10 +27,14 @@ public class UserDeviceService {
 
     private final UserDeviceRepository userDeviceRepository;
     private final UserRepository userRepository;
+    private final WebPushEndpointValidator webPushEndpointValidator;
 
     @Transactional
     public void registerDevice(RegisterDeviceCommand command) {
         User user = getCurrentUserOrThrow();
+        if (command.type() == bhoon.sugang_helper.user.domain.DeviceType.WEB) {
+            webPushEndpointValidator.validate(command.token());
+        }
 
         userDeviceRepository.findByToken(command.token())
                 .ifPresentOrElse(
