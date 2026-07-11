@@ -202,9 +202,9 @@ public class CourseReviewService {
      */
     private void incrementReactionCount(CourseReview review, ReactionType type) {
         if (type == ReactionType.LIKE) {
-            review.increaseLikeCount();
+            reviewRepository.incrementLikeCount(review.getId());
         } else {
-            review.increaseDislikeCount();
+            reviewRepository.incrementDislikeCount(review.getId());
         }
     }
 
@@ -213,9 +213,9 @@ public class CourseReviewService {
      */
     private void decrementReactionCount(CourseReview review, ReactionType type) {
         if (type == ReactionType.LIKE) {
-            review.decreaseLikeCount();
+            reviewRepository.decrementLikeCount(review.getId());
         } else {
-            review.decreaseDislikeCount();
+            reviewRepository.decrementDislikeCount(review.getId());
         }
     }
 

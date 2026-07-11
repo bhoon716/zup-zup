@@ -7,9 +7,26 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 
 public interface CourseReviewJpaRepository extends JpaRepository<CourseReview, Long>, CourseReviewRepository {
+
+    @Modifying
+    @Query("update CourseReview r set r.likeCount = r.likeCount + 1 where r.id = :reviewId")
+    void incrementLikeCount(@Param("reviewId") Long reviewId);
+
+    @Modifying
+    @Query("update CourseReview r set r.likeCount = case when r.likeCount > 0 then r.likeCount - 1 else 0 end where r.id = :reviewId")
+    void decrementLikeCount(@Param("reviewId") Long reviewId);
+
+    @Modifying
+    @Query("update CourseReview r set r.dislikeCount = r.dislikeCount + 1 where r.id = :reviewId")
+    void incrementDislikeCount(@Param("reviewId") Long reviewId);
+
+    @Modifying
+    @Query("update CourseReview r set r.dislikeCount = case when r.dislikeCount > 0 then r.dislikeCount - 1 else 0 end where r.id = :reviewId")
+    void decrementDislikeCount(@Param("reviewId") Long reviewId);
 
     /**
      * 특정 사용자가 특정 강의에 작성한 리뷰를 조회합니다.

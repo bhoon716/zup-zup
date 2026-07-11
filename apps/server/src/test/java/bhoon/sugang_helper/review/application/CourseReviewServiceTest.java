@@ -305,7 +305,7 @@ class CourseReviewServiceTest {
 
             reviewService.toggleReaction(REVIEW_ID, request);
 
-            assertThat(review.getLikeCount()).isEqualTo(1);
+            verify(reviewRepository).incrementLikeCount(any());
             verify(reactionRepository).save(any(CourseReviewReaction.class));
         }
 
@@ -328,7 +328,7 @@ class CourseReviewServiceTest {
 
             reviewService.toggleReaction(REVIEW_ID, request);
 
-            assertThat(review.getLikeCount()).isEqualTo(0);
+            verify(reviewRepository).decrementLikeCount(any());
             verify(reactionRepository).delete(existingReaction);
         }
 
@@ -351,8 +351,8 @@ class CourseReviewServiceTest {
 
             reviewService.toggleReaction(REVIEW_ID, request);
 
-            assertThat(review.getLikeCount()).isEqualTo(0);
-            assertThat(review.getDislikeCount()).isEqualTo(1);
+            verify(reviewRepository).decrementLikeCount(any());
+            verify(reviewRepository).incrementDislikeCount(any());
             assertThat(existingReaction.getReactionType()).isEqualTo(ReactionType.DISLIKE);
             verify(reactionRepository, never()).delete(any());
             verify(reactionRepository, never()).save(any());
