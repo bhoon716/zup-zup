@@ -19,6 +19,7 @@ This document merges the web and server release histories.
 - **Redis JWT 원문 저장 제거**: 새 access blacklist는 SHA-256 식별자만 저장하고, refresh registry는 무작위 family와 SHA-256 digest를 Lua CAS로 교체합니다. 이전 refresh 재사용은 같은 family를 폐기하며, Spring Session에는 JWT 원문 대신 인증 주체·권한·access 만료 시각만 저장됩니다. 배포 이전 raw refresh/session 값은 각각 기존 TTL 안에서 자연 정리됩니다.
 - **탈퇴 즉시 차단·데이터 보존 전환**: 탈퇴하면 인증 cookie/session·refresh registry·기기 token을 즉시 폐기하고 이름·이메일·알림 이메일·Discord 식별자를 익명화합니다. 계정과 일반 이력은 soft delete로 보존하고 구독·알림은 즉시 중지하며, feedback과 첨부파일은 일반 경로에서 숨깁니다. 기존 탈퇴 계정은 복구하지 않으며 같은 Google 이메일로 다시 로그인하면 새 계정으로 시작합니다. 보안상 배포 전 UID 없는 인증은 한 번 재로그인이 필요합니다.
 - **구조화된 관리자 감사 로그**: 관리자 상태·답변·첨부파일 접근을 버전 있는 JSON envelope로 기록하고, 답변 원문 대신 길이·키 기반 HMAC-SHA-256 지문만 보존합니다. `GET /api/v1/admin/audit-logs`는 관리자만 최신순 페이지 조회할 수 있으며, V18이 기존 원문형 metadata를 안전한 legacy 표기로 정리합니다.
+- **삭제 피드백 관리자 보존 열람**: 단일 관리자는 활성·삭제 피드백을 상태별로 조회할 수 있고, 탈퇴 작성자는 `탈퇴 사용자`로만 표시됩니다. 목록·상세 JSON에서 직접 식별자·환경 메타 정보·첨부파일 이름/URL을 제외하며, 첨부파일은 화면 확인 뒤 전용 POST 요청으로만 내려받고 성공 열람을 감사 로그에 기록합니다. 수동 피드백·답변 삭제도 물리 삭제 대신 보존용 soft delete를 사용합니다.
 
 ---
 

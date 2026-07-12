@@ -9,7 +9,7 @@
 
 1. `DELETE /api/v1/users/devices/token/{token}`이 현재 사용자와 토큰 소유자의 일치 여부를 확인하지 않아, 토큰을 아는 요청자가 다른 사용자의 기기를 해제할 수 있다.
 2. 알림 worker가 delivery와 target을 모두 직렬 처리한다. Outbox 커밋 후 5초 안에 모든 eligible delivery의 첫 시도를 시작한다는 합의된 SLA를 현재 구조만으로는 보장할 수 없다.
-상태 갱신: 2026-07-13에 081, 082, 090, 091, 092, 103을 종료했다. 토큰 기반 기기 해제는 현재 사용자 ID와 함께 범위를 제한하며, 새 웹 클라이언트는 토큰을 URL이 아닌 요청 본문으로 전송한다. 알림·크롤러·인증 오류는 원문 대신 마스킹·지문·안정 오류 코드와 correlation ID를 사용한다. Redis의 새 blacklist와 refresh registry는 원문 대신 SHA-256 digest·무작위 family를 쓰고, refresh 재사용은 원자적으로 family를 폐기한다. 탈퇴는 식별자·발송 대상을 즉시 제거하고 계정·비식별 이력은 soft delete로 보존하며, 인증은 불변 사용자 ID를 함께 검증한다. 운영 actuator는 별도 내부 management port와 최소 endpoint로 분리하고, Swagger/H2와 wildcard credential CORS를 차단했다. Flyway migration 검증은 기본 피드백 경로에서 분리했지만 PR·배포 gate는 유지했다.
+상태 갱신: 2026-07-13에 081, 082, 083, 085, 090, 091, 092, 103을 종료했다. 토큰 기반 기기 해제는 현재 사용자 ID와 함께 범위를 제한하며, 새 웹 클라이언트는 토큰을 URL이 아닌 요청 본문으로 전송한다. 알림·크롤러·인증 오류는 원문 대신 마스킹·지문·안정 오류 코드와 correlation ID를 사용한다. Redis의 새 blacklist와 refresh registry는 원문 대신 SHA-256 digest·무작위 family를 쓰고, refresh 재사용은 원자적으로 family를 폐기한다. 탈퇴는 식별자·발송 대상을 즉시 제거하고 계정·비식별 이력은 soft delete로 보존하며, 인증은 불변 사용자 ID를 함께 검증한다. 삭제 피드백은 단일 관리자만 별도 projection으로 열람하며, 식별자·환경 메타 정보는 JSON에서 제외하고 첨부파일은 확인·감사 경계를 거친다. 운영 actuator는 별도 내부 management port와 최소 endpoint로 분리하고, Swagger/H2와 wildcard credential CORS를 차단했다. Flyway migration 검증은 기본 피드백 경로에서 분리했지만 PR·배포 gate는 유지했다.
 
 ## 확정된 운영 기준
 
@@ -27,11 +27,11 @@
 
 | 우선순위 | 영역 | 이슈 |
 | --- | --- | --- |
-| P1 | 보안/데이터 | [081 (closed)](../.agents/issues/closed/ISSUE-081-SERVER-OWNERSHIP-CHECK-DEVICE-TOKEN), [082 (closed)](../.agents/issues/closed/ISSUE-082-SERVER-SOFT-DELETE-ACCOUNT-ANONYMIZE), [083](../.agents/issues/open/ISSUE-083-SERVER-ADMIN-DELETED-FEEDBACK-AUDIT), [086](../.agents/issues/open/ISSUE-086-WEB-AUTHENTICATED-ATTACHMENT-RENDERING), [090 (closed)](../.agents/issues/closed/ISSUE-090-SERVER-REDACT-OUTBOUND-SECRETS), [091 (closed)](../.agents/issues/closed/ISSUE-091-SERVER-HASH-REDIS-TOKENS), [092 (closed)](../.agents/issues/closed/ISSUE-092-SERVER-SECURITY-ENDPOINT-CORS-HARDENING) |
+| P1 | 보안/데이터 | [081 (closed)](../.agents/issues/closed/ISSUE-081-SERVER-OWNERSHIP-CHECK-DEVICE-TOKEN), [082 (closed)](../.agents/issues/closed/ISSUE-082-SERVER-SOFT-DELETE-ACCOUNT-ANONYMIZE), [083 (closed)](../.agents/issues/closed/ISSUE-083-SERVER-ADMIN-DELETED-FEEDBACK-AUDIT), [086](../.agents/issues/open/ISSUE-086-WEB-AUTHENTICATED-ATTACHMENT-RENDERING), [090 (closed)](../.agents/issues/closed/ISSUE-090-SERVER-REDACT-OUTBOUND-SECRETS), [091 (closed)](../.agents/issues/closed/ISSUE-091-SERVER-HASH-REDIS-TOKENS), [092 (closed)](../.agents/issues/closed/ISSUE-092-SERVER-SECURITY-ENDPOINT-CORS-HARDENING) |
 | P1 | 알림 | [087](../.agents/issues/open/ISSUE-087-SERVER-NOTIFICATION-FANOUT-SLA), [088](../.agents/issues/open/ISSUE-088-SERVER-NOTIFICATION-IDEMPOTENCY-DLQ-REPLAY), [089](../.agents/issues/open/ISSUE-089-SERVER-NOTIFICATION-PROVIDER-RESILIENCE) |
 | P1 | API/크롤러 | [093](../.agents/issues/open/ISSUE-093-SERVER-API-PAGINATION-GUARDS), [094](../.agents/issues/open/ISSUE-094-SERVER-ANNOUNCEMENT-PAGINATION-SEARCH), [096](../.agents/issues/open/ISSUE-096-SERVER-CRAWLER-BULK-UPSERT), [097](../.agents/issues/open/ISSUE-097-SERVER-CRAWLER-FRESHNESS-UPSTREAM) |
 | P1 | 인프라/운영 | [098](../.agents/issues/open/ISSUE-098-INFRA-REDIS-HEALTH-STARTUP), [099](../.agents/issues/open/ISSUE-099-INFRA-METRICS-ALERTING-DURABILITY), [100](../.agents/issues/open/ISSUE-100-INFRA-DB-LEAST-PRIVILEGE-DR) |
-| P2 | UX/품질 | [084](../.agents/issues/open/ISSUE-084-SERVER-FEEDBACK-METADATA-SAFETY), [085](../.agents/issues/open/ISSUE-085-SERVER-ADMIN-ACTION-LOG-STRUCTURED), [095](../.agents/issues/open/ISSUE-095-SERVER-COURSE-SEARCH-VALIDATION), [101](../.agents/issues/open/ISSUE-101-INFRA-RESOURCE-LIMITS), [102](../.agents/issues/open/ISSUE-102-CI-E2E-CRITICAL-FLOWS), [103 (closed)](../.agents/issues/closed/ISSUE-103-CI-MIGRATION-TASK-ISOLATION), [104](../.agents/issues/open/ISSUE-104-WEB-PREVIEW-DEPENDENCY-STABILITY), [105](../.agents/issues/open/ISSUE-105-SERVER-UPLOAD-IMAGE-LIMITS) |
+| P2 | UX/품질 | [084](../.agents/issues/open/ISSUE-084-SERVER-FEEDBACK-METADATA-SAFETY), [085 (closed)](../.agents/issues/closed/ISSUE-085-SERVER-ADMIN-ACTION-LOG-STRUCTURED), [095](../.agents/issues/open/ISSUE-095-SERVER-COURSE-SEARCH-VALIDATION), [101](../.agents/issues/open/ISSUE-101-INFRA-RESOURCE-LIMITS), [102](../.agents/issues/open/ISSUE-102-CI-E2E-CRITICAL-FLOWS), [103 (closed)](../.agents/issues/closed/ISSUE-103-CI-MIGRATION-TASK-ISOLATION), [104](../.agents/issues/open/ISSUE-104-WEB-PREVIEW-DEPENDENCY-STABILITY), [105](../.agents/issues/open/ISSUE-105-SERVER-UPLOAD-IMAGE-LIMITS) |
 
 ## 근거 요약
 
@@ -39,7 +39,7 @@
 
 - `UserDeviceService.unregisterDevice()`는 token으로 row를 찾은 뒤 바로 삭제하며 현재 사용자 검증이 없다. ID 기반 삭제 메서드에는 검증이 있으므로 구현 불일치가 명확하다.
 - 082에서 `User`가 상속한 `deletedAt`을 사용해 account row를 soft delete한다. 이름·이메일·알림 이메일·Discord 식별자는 제거 또는 익명화하고, refresh registry·현재 세션·기기 token·구독을 즉시 끊는다. 시간표·찜·리뷰·이력은 비식별 `user_id`로 보존하며 feedback과 첨부파일은 논리 삭제한다.
-- `Feedback`는 `@SQLRestriction("deleted_at IS NULL")`을 사용한다. 따라서 현재 관리자 `findAll(pageable)`도 soft-deleted row를 볼 수 없고, 탈퇴 사용자 표시·마스킹·첨부파일 확인 흐름도 없다.
+- `Feedback`는 `@SQLRestriction("deleted_at IS NULL")`을 유지한다. 083은 일반 JPA 경로를 다시 열지 않고 관리자 전용 native scalar projection으로 soft-deleted row를 읽는다. 응답은 generic author label·삭제 상태·첨부 ID만 노출하며, 첨부는 명시 확인 POST와 감사 로그를 거친다.
 - `SecurityConfig`는 `/actuator/**`, Swagger, H2 console을 `permitAll`로 두고, CORS에서 `allowedOriginPatterns`와 credentials를 함께 사용한다. 운영 management endpoint는 같은 애플리케이션 경로에 노출된다.
 - 091 전 `JwtProvider`는 blacklist key에 access token 원문을 사용하고, refresh token을 `RT:<email>` 값으로 저장했다. 이제 새 blacklist는 SHA-256 key, 새 refresh registry는 `v2:<family>:<SHA-256>` record를 사용하며 Lua CAS로 회전한다. 082에서 access/refresh token과 session에 불변 `userId`를 추가해 탈퇴 전 인증이 같은 이메일의 재가입 계정으로 해석되지 않도록 했다.
 - 알림 sender와 crawler가 email, FCM token, Web Push endpoint, session cookie를 로그에 남길 수 있고, `GlobalExceptionHandler`는 `CustomException.detail`을 응답에 그대로 넣는다.
@@ -79,7 +79,7 @@
 
 1. 081 (closed) → 090 (closed) → 092 (closed): 즉시 악용 가능한 기기 삭제, 비밀값 노출, 외부 관리 경로를 먼저 차단했다.
 2. 103 (closed) → 091 (closed) → 082 (closed): migration 검증은 유지한 채 실행 단위를 분리했고, Redis 원문 토큰을 제거한 뒤 탈퇴 soft delete와 identity binding을 적용했다.
-3. 085 → 083 → 104 → 084 → 105 → 086: 관리자 감사 기반을 만든 뒤 삭제 피드백·첨부파일 UX와 입력 안전성을 순서대로 보강한다.
+3. 085 (closed) → 083 (closed) → 104 → 084 → 105 → 086: 관리자 감사 기반을 만든 뒤 삭제 피드백·첨부파일 UX와 입력 안전성을 순서대로 보강한다.
 4. 098 → 100: Redis readiness/저장 상태를 먼저 안전하게 만든 뒤 DB 최소 권한·백업·restore drill을 처리한다. 098은 091 이후에만 Redis 영속화를 도입한다.
 5. 088 → 089 → 087: idempotency·DLQ replay 상태를 먼저 정의하고 provider timeout/실패 분류를 붙인 뒤 bounded fan-out과 5초 SLA를 구현한다. 기존 087~089의 순환 의존은 이 순서로 해소한다.
 6. 096 → 097 → 099 → 101: 매분 크롤러 부하를 줄이고 freshness metric을 만든 다음, 공통 alert route·Prometheus 영속화·자원 한계를 확정한다. 097·098의 실제 알림 연결은 099에서 닫는다.
@@ -87,6 +87,6 @@
 
 ## 검증 상태
 
-081, 082, 090, 091, 092, 103은 이슈별 회귀 테스트와 별도 커밋으로 종료했다. 082는 soft delete·식별자 익명화·device/refresh 폐기·구독 비활성화·feedback soft delete, 탈퇴 전 token/session의 재가입 계정 차단, 탈퇴 사용자 알림 제외, V17의 기존 계정 optimistic-lock version backfill을 검증했다. 091은 raw Redis key/value와 raw JWT session attribute를 새로 쓰지 않는지, 동일 family replay, Redis state 유실 fail-closed, Spring Security session 인증과 access 만료 시각 강제를 검증했다. 기본 server suite와 정적 분석도 통과했다.
+081, 082, 083, 085, 090, 091, 092, 103은 이슈별 회귀 테스트와 별도 커밋으로 종료했다. 082는 soft delete·식별자 익명화·device/refresh 폐기·구독 비활성화·feedback soft delete, 탈퇴 전 token/session의 재가입 계정 차단, 탈퇴 사용자 알림 제외, V17의 기존 계정 optimistic-lock version backfill을 검증했다. 083은 삭제 피드백/답변의 관리자 전용 read model, 일반 첨부 경로의 관리자 우회 차단, 명시 확인·감사 다운로드, 삭제 부모의 답변 mutation 차단, 실제 attachment 보존을 검증했다. 091은 raw Redis key/value와 raw JWT session attribute를 새로 쓰지 않는지, 동일 family replay, Redis state 유실 fail-closed, Spring Security session 인증과 access 만료 시각 강제를 검증했다. 기본 server suite와 정적 분석도 통과했다.
 
 082의 identity binding rollout에서는 `uid` claim 또는 session user ID가 없는 배포 전 인증을 fail-closed한다. 기존 access/refresh token과 session은 한 번 재로그인이 필요하며, 남은 raw Redis value는 기존 TTL 안에 자연 만료된다. 탈퇴 보존표와 purge 금지 runbook은 [account-withdrawal-retention.md](account-withdrawal-retention.md)에 기록했다. Redis는 아직 영속 volume이 없으므로 restart 뒤 refresh는 fail-closed지만 logout blacklist도 사라진다. 이 durability 보장은 098에서 처리한다.

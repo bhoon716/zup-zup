@@ -6,13 +6,11 @@ import {
   MessageSquare, 
   ChevronRight,
   Send,
-  Monitor,
-  Globe,
-  Check
+  Check,
+  Download
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import Image from "next/image";
 
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
@@ -30,9 +28,10 @@ import {
   useUpdateFeedbackStatus, 
   useCreateFeedbackReply,
   useUpdateFeedbackReply,
-  useDeleteFeedbackReply
+  useDeleteFeedbackReply,
+  useAdminFeedbackAttachmentDownload
 } from "@/features/feedback/hooks/useFeedback";
-import { FeedbackStatus, FeedbackType } from "@/shared/types/api";
+import { AdminFeedbackDeletionFilter, FeedbackStatus, FeedbackType } from "@/shared/types/api";
 
 /**
  * 줍줍 관리자용 문의 및 건의 통합 관리 페이지입니다.
@@ -40,17 +39,35 @@ import { FeedbackStatus, FeedbackType } from "@/shared/types/api";
  */
 export default function AdminFeedbackPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [deletionFilter, setDeletionFilter] = useState<AdminFeedbackDeletionFilter>("ALL");
   const [replyContent, setReplyContent] = useState("");
   const [isReplySubmitting, setIsReplySubmitting] = useState(false);
   const [editingReplyId, setEditingReplyId] = useState<number | null>(null);
 
-  const { data: listData, isLoading: isListLoading } = useFeedbacksForAdmin();
+  const { data: listData, isLoading: isListLoading } = useFeedbacksForAdmin(0, deletionFilter);
   const { data: detailData, isLoading: isDetailLoading } = useAdminFeedbackDetail(selectedId!, !!selectedId);
   
   const updateStatusMutation = useUpdateFeedbackStatus();
   const createReplyMutation = useCreateFeedbackReply();
   const updateReplyMutation = useUpdateFeedbackReply();
   const deleteReplyMutation = useDeleteFeedbackReply();
+  const downloadAttachmentMutation = useAdminFeedbackAttachmentDownload();
+
+  const resetReplyDraft = () => {
+    setEditingReplyId(null);
+    setReplyContent("");
+  };
+
+  const handleFeedbackSelection = (feedbackId: number) => {
+    setSelectedId(feedbackId);
+    resetReplyDraft();
+  };
+
+  const handleDeletionFilterChange = (value: string) => {
+    setDeletionFilter(value as AdminFeedbackDeletionFilter);
+    setSelectedId(null);
+    resetReplyDraft();
+  };
 
   const handleStatusChange = async (newStatus: FeedbackStatus) => {
     if (!selectedId) return;
@@ -104,6 +121,23 @@ export default function AdminFeedbackPage() {
     setReplyContent(content);
   };
 
+  const handleAttachmentDownload = async (attachmentId: number) => {
+    if (!selectedId || !window.confirm("보존된 첨부파일을 열람하시겠습니까? 접근 기록이 남습니다.")) return;
+    try {
+      const blob = await downloadAttachmentMutation.mutateAsync({ feedbackId: selectedId, attachmentId });
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `feedback-attachment-${attachmentId}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
+    } catch {
+      toast.error("첨부파일을 열람할 수 없습니다.");
+    }
+  };
+
   const getStatusBadge = (status: FeedbackStatus) => {
     switch (status) {
       case "PENDING": return <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-100 rounded-md text-[11px] font-bold">대기</Badge>;
@@ -134,6 +168,16 @@ export default function AdminFeedbackPage() {
           <div className="lg:col-span-4 bg-white dark:bg-[#151515] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden flex flex-col shadow-sm">
             <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 flex justify-between items-center">
               <span className="text-xs font-black text-gray-500 uppercase tracking-wider">목록 (전체 {listData?.totalElements || 0}건)</span>
+              <Select value={deletionFilter} onValueChange={handleDeletionFilterChange}>
+                <SelectTrigger className="w-[100px] h-8 text-[11px] font-bold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL" className="text-xs">전체</SelectItem>
+                  <SelectItem value="ACTIVE" className="text-xs">활성</SelectItem>
+                  <SelectItem value="DELETED" className="text-xs">삭제됨</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
               {isListLoading ? (
@@ -141,17 +185,19 @@ export default function AdminFeedbackPage() {
               ) : listData?.content.map((item) => (
                 <div 
                   key={item.id}
-                  onClick={() => setSelectedId(item.id)}
+                  onClick={() => handleFeedbackSelection(item.id)}
                   className={`p-4 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5 group ${selectedId === item.id ? "bg-primary/5 border-l-4 border-primary" : ""}`}
                 >
                   <div className="flex flex-col gap-1.5 min-w-0">
                     <div className="flex items-center gap-2">
                       {getStatusBadge(item.status)}
+                      {item.deleted && <Badge variant="outline" className="bg-gray-100 text-gray-500 border-gray-200 rounded-md text-[11px] font-bold">삭제됨</Badge>}
                       <span className="text-[11px] text-gray-400 font-medium">{format(new Date(item.createdAt), "MM.dd HH:mm")}</span>
                     </div>
                     <h3 className={`text-[14px] font-bold truncate ${selectedId === item.id ? "text-primary" : "text-gray-800 dark:text-gray-200"}`}>
                       {getTypeBadge(item.type)} {item.title}
                     </h3>
+                    <span className="text-[11px] text-gray-400 font-medium">{item.authorLabel}</span>
                   </div>
                 </div>
               ))}
@@ -182,8 +228,12 @@ export default function AdminFeedbackPage() {
                       <h2 className="text-xl font-black text-gray-900 dark:text-white leading-tight">
                         {detailData.title}
                       </h2>
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-gray-400">
+                        <span>{detailData.authorLabel}</span>
+                        {detailData.deleted && <Badge variant="outline" className="text-[10px] text-gray-500">삭제됨</Badge>}
+                      </div>
                     </div>
-                    <Select value={detailData.status} onValueChange={(val) => handleStatusChange(val as FeedbackStatus)}>
+                    <Select value={detailData.status} onValueChange={(val) => handleStatusChange(val as FeedbackStatus)} disabled={detailData.deleted}>
                       <SelectTrigger className="w-[110px] h-9 text-xs font-bold rounded-lg px-3">
                         <SelectValue />
                       </SelectTrigger>
@@ -196,10 +246,6 @@ export default function AdminFeedbackPage() {
                     </Select>
                   </div>
                   
-                  <div className="flex gap-4 text-[11px] font-bold text-gray-400">
-                    <div className="flex items-center gap-1"><Monitor className="w-3 h-3" /> {JSON.parse(detailData.metaInfo || "{}").os || "N/A"}</div>
-                    <div className="flex items-center gap-1"><Globe className="w-3 h-3" /> {JSON.parse(detailData.metaInfo || "{}").language || "N/A"}</div>
-                  </div>
                 </div>
 
                 {/* 내용 및 답변 스크롤 영역 */}
@@ -208,12 +254,12 @@ export default function AdminFeedbackPage() {
                     <div className="text-[14px] text-gray-700 dark:text-gray-300 leading-relaxed font-medium whitespace-pre-wrap">
                       {detailData.content}
                     </div>
-                    {detailData.imageUrls.length > 0 && (
+                    {detailData.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                        {detailData.imageUrls.map((url, i) => (
-                          <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 hover:ring-2 ring-primary transition-all">
-                            <Image src={url} alt="첨부" fill className="object-cover" />
-                          </a>
+                        {detailData.attachments.map((attachment, index) => (
+                          <Button key={attachment.id} variant="outline" size="sm" className="text-xs" disabled={downloadAttachmentMutation.isPending} onClick={() => handleAttachmentDownload(attachment.id)}>
+                            <Download className="w-3.5 h-3.5 mr-1" /> 첨부파일 {index + 1}
+                          </Button>
                         ))}
                       </div>
                     )}
@@ -232,11 +278,12 @@ export default function AdminFeedbackPage() {
                         {detailData.replies.map(reply => (
                           <div key={reply.id} className="bg-primary/5 p-4 rounded-xl border border-primary/10">
                             <div className="flex justify-between items-center mb-2">
-                              <span className="text-[11px] font-bold text-primary">관리자</span>
+                              <span className="text-[11px] font-bold text-primary">{reply.authorLabel}</span>
                               <div className="flex items-center gap-2">
+                                {reply.deleted && <Badge variant="outline" className="text-[10px] text-gray-500">삭제됨</Badge>}
                                 <span className="text-[10px] text-gray-400 font-medium">{format(new Date(reply.createdAt), "yyyy-MM-dd HH:mm")}</span>
-                                <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold px-1.5" onClick={() => startEditReply(reply.id, reply.content)}>수정</Button>
-                                <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold px-1.5 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleReplyDelete(reply.id)}>삭제</Button>
+                                {!detailData.deleted && !reply.deleted && <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold px-1.5" onClick={() => startEditReply(reply.id, reply.content)}>수정</Button>}
+                                {!detailData.deleted && !reply.deleted && <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold px-1.5 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleReplyDelete(reply.id)}>삭제</Button>}
                               </div>
                             </div>
                             <p className="text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed font-medium whitespace-pre-wrap">{reply.content}</p>
@@ -248,7 +295,7 @@ export default function AdminFeedbackPage() {
                 </div>
 
                 {/* 답변 입력 */}
-                <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20">
+                {!detailData.deleted && <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20">
                   <div className="relative">
                     <Textarea 
                       placeholder="답변을 입력하세요..." 
@@ -270,7 +317,7 @@ export default function AdminFeedbackPage() {
                       <Button variant="link" className="h-auto p-0 text-[10px] text-gray-400 hover:text-red-500 font-bold" onClick={() => { setEditingReplyId(null); setReplyContent(""); }}>수정 취소</Button>
                     </div>
                   )}
-                </div>
+                </div>}
               </div>
             )}
           </div>

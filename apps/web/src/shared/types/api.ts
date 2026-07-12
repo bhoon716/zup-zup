@@ -589,6 +589,48 @@ export interface FeedbackReplyResponse {
   updatedAt: string;
 }
 
+export type AdminFeedbackDeletionFilter = 'ALL' | 'ACTIVE' | 'DELETED';
+
+export interface AdminFeedbackResponse {
+  id: number;
+  type: FeedbackType;
+  title: string;
+  status: FeedbackStatus;
+  createdAt: string;
+  hasReplies: boolean;
+  deleted: boolean;
+  deletedAt: string | null;
+  authorLabel: string;
+}
+
+export interface AdminFeedbackAttachmentResponse {
+  id: number;
+}
+
+export interface AdminFeedbackReplyResponse {
+  id: number;
+  authorLabel: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  deleted: boolean;
+  deletedAt: string | null;
+}
+
+export interface AdminFeedbackDetailResponse {
+  id: number;
+  type: FeedbackType;
+  title: string;
+  content: string;
+  status: FeedbackStatus;
+  createdAt: string;
+  deleted: boolean;
+  deletedAt: string | null;
+  authorLabel: string;
+  attachments: AdminFeedbackAttachmentResponse[];
+  replies: AdminFeedbackReplyResponse[];
+}
+
 export interface FeedbackCreateRequest {
   type: FeedbackType;
   title: string;

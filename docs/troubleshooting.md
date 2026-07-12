@@ -99,6 +99,13 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Evidence: `AdminAuditServiceTest`, `AdminAuditLogRetentionSchedulerTest`, `FeedbackServiceTest`, `SecurityRequestAuthorizationTest`, and `FlywayMigrationValidationTest`; targeted server tests, static analysis, and `./gradlew migrationTest` passed.
 - Limitation: no DLQ replay action exists yet. `DELIVERY_REPLAY` is the common audit model prepared for `ISSUE-088`, which must call it after a successful replay request.
 
+### Withdrawn feedback administrator access (2026-07-13)
+
+- Scenario: user withdrawal and manual feedback deletion hid feedback through Hibernate soft-delete restrictions, but the sole administrator still needed a narrow, auditable preservation view. The old manual delete also removed attached files and hard-deleted administrator replies.
+- Result: a JDBC scalar read model provides an administrator-only active/deleted filter and detail view without re-enabling deleted data in ordinary JPA paths. JSON exposes generic author labels and attachment IDs only; deleted feedback omits environment metadata. The generic attachment endpoint rejects an administrator role, while the dedicated confirmed POST download resolves the file before recording the minimized attachment-access audit event.
+- Evidence: `FeedbackServiceTest`, `JdbcAdminFeedbackReadRepositoryTest`, `SecurityRequestAuthorizationTest`, and `apps/web/src/features/feedback/hooks/useFeedback.test.tsx`.
+- Limitation: this is a deliberate single-administrator policy, not an MFA or step-up authentication control. The accepted residual risk and no-auto-purge rule are in [account-withdrawal-retention.md](account-withdrawal-retention.md).
+
 ## Web Troubleshooting
 
 이 문서는 `web` 모듈 개발 중 발생한 문제와 기술적 해결책을 기록합니다.

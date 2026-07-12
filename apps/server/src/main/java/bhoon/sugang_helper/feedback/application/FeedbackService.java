@@ -6,6 +6,8 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
 import bhoon.sugang_helper.feedback.domain.Feedback;
+import bhoon.sugang_helper.feedback.domain.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.feedback.domain.AdminFeedbackReadRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
 import bhoon.sugang_helper.feedback.domain.FeedbackAttachmentRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackReply;
@@ -38,6 +40,7 @@ public class FeedbackService {
     private final FeedbackAttachmentRepository feedbackAttachmentRepository;
     private final FeedbackReplyRepository feedbackReplyRepository;
     private final AdminAuditService adminAuditService;
+    private final AdminFeedbackReadRepository adminFeedbackReadRepository;
     private final UserRepository userRepository;
     private final LocalFileUploadService fileUploadService;
     private final RedisService redisService;
@@ -130,28 +133,44 @@ public class FeedbackService {
         }
 
         feedback.delete();
-        fileUploadService.deleteFilesAfterTransactionCommit(feedbackAttachmentRepository.findAllByFeedbackId(feedbackId)
-                .stream()
-                .map(FeedbackAttachment::getFileUrl)
-                .toList());
     }
 
     @Transactional
     public FeedbackAttachmentDownload getAttachment(User requester, Long feedbackId, Long attachmentId) {
-        FeedbackAttachment attachment = feedbackAttachmentRepository.findById(attachmentId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
-        Feedback feedback = attachment.getFeedback();
-        if (!feedbackId.equals(feedback.getId())) {
-            throw new CustomException(ErrorCode.FEEDBACK_NOT_FOUND);
+        if (requester.getRole().equals(Role.ADMIN)) {
+            throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
         }
-        if (!requester.getRole().equals(Role.ADMIN) && !requester.getId().equals(feedback.getUser().getId())) {
+
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+        FeedbackAttachment attachment = feedbackAttachmentRepository.findByIdAndFeedbackId(attachmentId, feedbackId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+        if (!requester.getId().equals(feedback.getUser().getId())) {
             throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
         }
         var resource = fileUploadService.loadFile(attachment.getFileUrl());
-        if (requester.getRole().equals(Role.ADMIN)) {
-            adminAuditService.recordAttachmentAccess(requester, attachmentId, feedbackId);
-        }
         return new FeedbackAttachmentDownload(resource, attachment.getOriginalName());
+    }
+
+    /**
+     * 관리자는 명시적으로 확인한 뒤 전용 경로에서만 보존된 첨부파일을 열람합니다.
+     */
+    @Transactional
+    public FeedbackAttachmentDownload getAttachmentForAdmin(User admin, Long feedbackId, Long attachmentId,
+                                                            boolean confirmed) {
+        if (!admin.getRole().equals(Role.ADMIN)) {
+            throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
+        }
+        if (!confirmed) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "첨부파일 열람을 확인해주세요.");
+        }
+
+        AdminFeedbackReadRepository.FeedbackAttachmentAccess attachment = adminFeedbackReadRepository
+                .findAttachmentForAdmin(feedbackId, attachmentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+        var resource = fileUploadService.loadFile(attachment.fileUrl());
+        adminAuditService.recordAttachmentAccess(admin, attachmentId, feedbackId);
+        return new FeedbackAttachmentDownload(resource, attachment.originalName());
     }
 
     /* 관리자 전용 기능 */
@@ -160,19 +179,52 @@ public class FeedbackService {
      * 관리자를 위해 시스템의 모든 문의 및 건의 목록을 조회합니다.
      */
     @Transactional(readOnly = true)
-    public Page<FeedbackResponse> getFeedbacksForAdmin(Pageable pageable) {
-        return feedbackRepository.findAll(pageable)
-                .map(FeedbackResponse::from);
+    public Page<AdminFeedbackResponse> getFeedbacksForAdmin(Pageable pageable,
+                                                             AdminFeedbackDeletionFilter deletionFilter) {
+        return adminFeedbackReadRepository.findFeedbacks(deletionFilter, pageable)
+                .map(feedback -> new AdminFeedbackResponse(
+                        feedback.id(),
+                        feedback.type(),
+                        feedback.title(),
+                        feedback.status(),
+                        feedback.createdAt(),
+                        feedback.hasReplies(),
+                        feedback.deleted(),
+                        feedback.deletedAt(),
+                        authorLabel(feedback.authorWithdrawn())));
     }
 
     /**
      * 관리자용 문의 및 건의 상세 조회 로직을 수행합니다.
      */
     @Transactional(readOnly = true)
-    public FeedbackDetailResponse getFeedbackDetailForAdmin(Long feedbackId) {
-        Feedback feedback = feedbackRepository.findById(feedbackId)
+    public AdminFeedbackDetailResponse getFeedbackDetailForAdmin(Long feedbackId) {
+        AdminFeedbackReadRepository.FeedbackDetail feedback = adminFeedbackReadRepository
+                .findFeedbackDetail(feedbackId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
-        return FeedbackDetailResponse.from(feedback);
+        return new AdminFeedbackDetailResponse(
+                feedback.id(),
+                feedback.type(),
+                feedback.title(),
+                feedback.content(),
+                feedback.status(),
+                feedback.createdAt(),
+                feedback.deleted(),
+                feedback.deletedAt(),
+                authorLabel(feedback.authorWithdrawn()),
+                adminFeedbackReadRepository.findAttachments(feedbackId).stream()
+                        .map(attachment -> new AdminFeedbackAttachmentResponse(attachment.id()))
+                        .toList(),
+                adminFeedbackReadRepository.findReplies(feedbackId).stream()
+                        .map(reply -> new AdminFeedbackReplyResponse(
+                                reply.id(),
+                                "관리자",
+                                reply.content(),
+                                reply.createdAt(),
+                                reply.updatedAt(),
+                                reply.deleted(),
+                                reply.deletedAt()))
+                        .toList());
     }
 
     /**
@@ -209,15 +261,17 @@ public class FeedbackService {
 
         FeedbackReply reply = feedbackReplyRepository.findById(replyId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_REPLY_NOT_FOUND));
+        Feedback feedback = feedbackRepository.findById(reply.getFeedback().getId())
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
 
         String oldContent = reply.getContent();
         reply.updateContent(request.content());
 
-        adminAuditService.recordReplyUpdated(admin, reply.getId(), reply.getFeedback().getId(), oldContent, request.content());
+        adminAuditService.recordReplyUpdated(admin, reply.getId(), feedback.getId(), oldContent, request.content());
     }
 
     /**
-     * 등록된 운영진 답변을 영구 삭제하고 액션 로그를 남깁니다.
+     * 등록된 운영진 답변을 보존용 soft delete 처리하고 액션 로그를 남깁니다.
      */
     @Transactional
     public void deleteFeedbackReply(Long adminId, Long replyId) {
@@ -226,11 +280,13 @@ public class FeedbackService {
 
         FeedbackReply reply = feedbackReplyRepository.findById(replyId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_REPLY_NOT_FOUND));
+        Feedback feedback = feedbackRepository.findById(reply.getFeedback().getId())
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
 
         String content = reply.getContent();
-        feedbackReplyRepository.delete(reply);
+        reply.delete();
 
-        adminAuditService.recordReplyDeleted(admin, replyId, reply.getFeedback().getId(), content);
+        adminAuditService.recordReplyDeleted(admin, replyId, feedback.getId(), content);
     }
 
     /**
@@ -273,5 +329,9 @@ public class FeedbackService {
         if (limit > 0 && redisService.increment(key, duration) > limit) {
             throw new CustomException(ErrorCode.TOO_MANY_REQUESTS);
         }
+    }
+
+    private String authorLabel(boolean withdrawn) {
+        return withdrawn ? "탈퇴 사용자" : "사용자";
     }
 }

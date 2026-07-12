@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,6 +13,7 @@ import bhoon.sugang_helper.admin.presentation.AdminController;
 import bhoon.sugang_helper.admin.application.AdminService;
 import bhoon.sugang_helper.admin.application.AdminAuditService;
 import bhoon.sugang_helper.admin.presentation.AdminActionLogController;
+import bhoon.sugang_helper.feedback.presentation.AdminFeedbackController;
 import bhoon.sugang_helper.announcement.presentation.AnnouncementController;
 import bhoon.sugang_helper.announcement.application.AnnouncementSearchType;
 import bhoon.sugang_helper.announcement.application.AnnouncementService;
@@ -45,6 +47,7 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -136,6 +139,41 @@ class SecurityRequestAuthorizationTest {
         mockMvc.perform(get("/api/v1/admin/audit-logs?page=1&size=2").session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content").isArray());
+    }
+
+    @Test
+    void adminFeedbackListRequiresAdminRole() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/feedbacks"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+
+        mockMvc.perform(get("/api/v1/admin/feedbacks").session(authenticatedSession("ROLE_USER")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("A002"));
+
+        given(feedbackService.getFeedbacksForAdmin(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .willReturn(org.springframework.data.domain.Page.empty());
+        mockMvc.perform(get("/api/v1/admin/feedbacks?deletion=DELETED")
+                        .session(authenticatedSession("ROLE_ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").isArray());
+    }
+
+    @Test
+    void adminFeedbackAttachmentDownloadRequiresAdminRole() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"confirmed\":true}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+
+        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download")
+                        .session(authenticatedSession("ROLE_USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"confirmed\":true}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("A002"));
     }
 
     @Test
@@ -273,6 +311,7 @@ class SecurityRequestAuthorizationTest {
             CustomAuthenticationEntryPoint.class,
             AdminController.class,
             AdminActionLogController.class,
+            AdminFeedbackController.class,
             AnnouncementController.class,
             FeedbackController.class
     })
