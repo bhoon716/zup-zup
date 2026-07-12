@@ -3,10 +3,12 @@ package bhoon.sugang_helper.common.util;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -33,12 +35,17 @@ public class LocalFileUploadService {
 
     private static final String UPLOAD_URL_PREFIX = "/uploads/";
     private static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of(
-            "image/gif", "image/jpeg", "image/png", "image/webp");
+            "image/jpeg", "image/png", "image/webp");
     private final Tika tika = new Tika();
+    private final ImageUploadSanitizer imageUploadSanitizer;
     @Value("${file.upload.dir:./data/uploads}")
     private String uploadDir;
     @Value("${file.upload.orphan-min-age:PT24H}")
     private Duration orphanMinimumAge;
+
+    public LocalFileUploadService(ImageUploadSanitizer imageUploadSanitizer) {
+        this.imageUploadSanitizer = imageUploadSanitizer;
+    }
 
     /**
      * 여러 개의 이미지 파일을 업로드하고 저장된 URL 리스트를 반환합니다.
@@ -64,14 +71,20 @@ public class LocalFileUploadService {
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
 
-        for (MultipartFile file : files) {
-            if (file.isEmpty()) {
-                continue;
-            }
+        try {
+            for (MultipartFile file : files) {
+                if (file.isEmpty()) {
+                    continue;
+                }
 
-            validateImageFile(file);
-            String savedUrl = saveFileToLocal(file, uploadPath);
-            fileUrls.add(savedUrl);
+                imageUploadSanitizer.validateSourceSize(file);
+                String mimeType = validateImageFile(file);
+                ImageUploadSanitizer.SanitizedImage image = imageUploadSanitizer.sanitize(file, mimeType);
+                fileUrls.add(saveSanitizedImage(image, uploadPath));
+            }
+        } catch (RuntimeException exception) {
+            deleteFiles(fileUrls);
+            throw exception;
         }
 
         return fileUrls;
@@ -80,20 +93,15 @@ public class LocalFileUploadService {
     /**
      * 검증된 단일 이미지 파일을 서버 로컬 디렉토리에 저장하고 접근 URL을 반환합니다.
      */
-    private String saveFileToLocal(MultipartFile file, Path uploadPath) {
-        String originalFilename = file.getOriginalFilename();
-        String extension = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        }
-
-        String savedName = UUID.randomUUID().toString() + extension;
+    private String saveSanitizedImage(ImageUploadSanitizer.SanitizedImage image, Path uploadPath) {
+        String savedName = UUID.randomUUID() + "." + image.extension();
         Path filePath = uploadPath.resolve(savedName);
 
         try {
-            file.transferTo(filePath);
+            Files.write(filePath, image.content(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
             return UPLOAD_URL_PREFIX + savedName;
-        } catch (IOException | IllegalStateException e) {
+        } catch (IOException e) {
+            deleteFile(filePath);
             log.error("Failed to transfer file to {}", filePath, e);
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
@@ -102,9 +110,9 @@ public class LocalFileUploadService {
     /**
      * 이미지 파일 여부를 MIME 타입과 확장자로 검증합니다.
      */
-    private void validateImageFile(MultipartFile file) {
-        try {
-            String mimeType = tika.detect(file.getInputStream());
+    private String validateImageFile(MultipartFile file) {
+        try (InputStream input = file.getInputStream()) {
+            String mimeType = tika.detect(input);
             if (!ALLOWED_IMAGE_MIME_TYPES.contains(mimeType)) {
                 throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
             }
@@ -114,10 +122,11 @@ public class LocalFileUploadService {
             if (originalName != null) {
                 String lowerName = originalName.toLowerCase();
                 if (!lowerName.endsWith(".jpg") && !lowerName.endsWith(".jpeg")
-                        && !lowerName.endsWith(".png") && !lowerName.endsWith(".webp") && !lowerName.endsWith(".gif")) {
+                        && !lowerName.endsWith(".png") && !lowerName.endsWith(".webp")) {
                     throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
                 }
             }
+            return mimeType;
         } catch (IOException e) {
             log.error("Failed to validate image file", e);
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);

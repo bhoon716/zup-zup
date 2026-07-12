@@ -113,6 +113,13 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Evidence: `FeedbackMetadataNormalizerTest`, `FeedbackServiceTest`, `FeedbackControllerTest`, `GlobalExceptionHandlerTest`, `./gradlew check --no-daemon`, 167 Vitest tests, web lint, and production build.
 - Limitation: old rows are intentionally not rewritten because they are not exposed through the administrator projection and no current UI parses them. The server remains the authoritative boundary for non-browser clients.
 
+### Feedback attachment image normalization (2026-07-13)
+
+- Scenario: attachment uploads trusted Tika MIME/extension checks and stored original bytes. A small compressed image could advertise an expensive canvas, and EXIF/GPS/XMP/PNG text data survived into the stored attachment. The web client always submits WebP, while the JDK ImageIO runtime has no WebP reader.
+- Result: multipart ingress allows a 10 MiB file and 11 MiB request envelope, mapping parser rejection to `F008/413`; the application retains its 10 MiB total attachment policy. Tika sniffing is followed by actual ImageIO decoding of static JPEG/PNG/WebP. The pure-Java TwelveMonkeys WebP reader avoids Alpine JNI/glibc coupling. Each accepted source is limited to 4096 pixels per side, 8,388,608 pixels (about 32 MiB for a four-byte raster before decoder overhead), and a 5 MiB sanitized output. One unqueued decoder worker gives callers a 2-second budget. GIF, APNG, and animated WebP are rejected; accepted pixel data is re-encoded as JPEG/PNG without original metadata, and the download filename is changed to that actual output extension.
+- Evidence: `LocalFileUploadServiceTest` covers static WebP decoding, PNG text and JPEG EXIF markers, dimension/pixel bombs, GIF/APNG/animated WebP, timeout, and failed-batch cleanup. `FeedbackServiceTest`, `GlobalExceptionHandlerTest`, and `SecurityRequestAuthorizationTest` cover normalized filename, parser error response, and bound ingress limits. `./gradlew check bootJar --no-daemon` passed; `bootJar` contains the WebP ImageIO SPI and its pure-Java support jars.
+- Limitation: Java interruption cannot hard-kill every decoder implementation. On timeout the request fails and the single no-queue worker is interrupted, so a non-cooperative decoder can temporarily make later image requests fail fast. A hard process sandbox is deferred unless production measurements require it.
+
 ### Web runtime and workspace lockfile policy (2026-07-13)
 
 - Scenario: the web runtime used `next@16.3.0-preview.5`, while README named an older version and `eslint-config-next` was a different release. A direct switch to current stable `16.2.10` restored the vulnerable nested PostCSS `8.4.31` package.

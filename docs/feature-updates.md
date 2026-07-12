@@ -21,6 +21,7 @@ This document merges the web and server release histories.
 - **구조화된 관리자 감사 로그**: 관리자 상태·답변·첨부파일 접근을 버전 있는 JSON envelope로 기록하고, 답변 원문 대신 길이·키 기반 HMAC-SHA-256 지문만 보존합니다. `GET /api/v1/admin/audit-logs`는 관리자만 최신순 페이지 조회할 수 있으며, V18이 기존 원문형 metadata를 안전한 legacy 표기로 정리합니다.
 - **삭제 피드백 관리자 보존 열람**: 단일 관리자는 활성·삭제 피드백을 상태별로 조회할 수 있고, 탈퇴 작성자는 `탈퇴 사용자`로만 표시됩니다. 목록·상세 JSON에서 직접 식별자·환경 메타 정보·첨부파일 이름/URL을 제외하며, 첨부파일은 화면 확인 뒤 전용 POST 요청으로만 내려받고 성공 열람을 감사 로그에 기록합니다. 수동 피드백·답변 삭제도 물리 삭제 대신 보존용 soft delete를 사용합니다.
 - **피드백 환경 메타데이터 최소화·검증**: 새 피드백은 `os`·`language`만 최대 512 UTF-8 bytes 범위에서 전송·저장합니다. 서버는 JSON object·키·값 타입·중복 키·trailing token을 저장 전에 검증하고, 손상된 multipart JSON이나 metaInfo는 `400/G002`로 반환합니다. 전체 URL·user agent·timestamp 수집은 제거했으며 관리자 응답의 metaInfo 비노출 경계는 유지합니다.
+- **피드백 첨부 이미지 안전 정규화**: 서버는 multipart ingress에서 파일 10 MiB·요청 11 MiB를 먼저 제한하고, 초과는 `F008/413`으로 반환합니다. Tika sniff 뒤 실제 decoder로 정적 JPEG·PNG·WebP만 읽어 한 변 4096·8,388,608 pixels·정규화 결과 5 MiB를 제한합니다. GIF·APNG·animated WebP는 거부하며, 통과한 이미지는 새 JPEG/PNG로 재인코딩해 EXIF/GPS/XMP·PNG text 등 원본 metadata를 제거하고 다운로드 이름도 실제 정규화 확장자를 사용합니다. WebP decoder는 Alpine에서도 동작하는 순수 Java TwelveMonkeys plugin을 사용합니다.
 - **웹 런타임 안정화**: Next.js와 `eslint-config-next`를 matching `16.3.0-preview.5`로 고정합니다. 현재 stable `16.2.10`이 취약한 PostCSS를 직접 고정해 preview를 임시 production 예외로 유지하며, 루트 workspace lockfile·Node 22.x를 CI/배포 기준으로 통일하고 매주 production dependency audit을 실행합니다.
 
 ---

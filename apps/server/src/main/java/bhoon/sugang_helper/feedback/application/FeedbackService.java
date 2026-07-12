@@ -85,17 +85,24 @@ public class FeedbackService {
             fileUploadService.deleteFilesAfterTransactionRollback(fileUrls);
 
             for (int i = 0; i < fileUrls.size(); i++) {
-                String originalName = files.get(i).getOriginalFilename();
                 FeedbackAttachment attachment = FeedbackAttachment.builder()
                         .feedback(savedFeedback)
                         .fileUrl(fileUrls.get(i))
-                        .originalName(originalName != null ? originalName : "unknown")
+                        .originalName(sanitizedAttachmentName(files.get(i).getOriginalFilename(), fileUrls.get(i)))
                         .build();
                 feedbackAttachmentRepository.save(attachment);
             }
         }
 
         return savedFeedback.getId();
+    }
+
+    private String sanitizedAttachmentName(String originalName, String fileUrl) {
+        String name = originalName == null || originalName.isBlank() ? "unknown" : originalName;
+        int originalExtensionStart = name.lastIndexOf('.');
+        String baseName = originalExtensionStart > 0 ? name.substring(0, originalExtensionStart) : name;
+        int sanitizedExtensionStart = fileUrl.lastIndexOf('.');
+        return baseName + fileUrl.substring(sanitizedExtensionStart);
     }
 
     /**

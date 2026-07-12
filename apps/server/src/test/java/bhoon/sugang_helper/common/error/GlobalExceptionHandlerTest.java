@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 class GlobalExceptionHandlerTest {
 
@@ -71,6 +72,18 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(ErrorCode.INVALID_INPUT.getStatus());
         assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.INVALID_INPUT.getCode());
+        assertThat(response.getBody().getDetails()).isNull();
+    }
+
+    @Test
+    void multipartSizeLimitReturnsAttachmentSizeResponse() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/feedbacks");
+
+        ResponseEntity<ErrorResponse> response = new GlobalExceptionHandler()
+                .handleMaxUploadSize(request, new MaxUploadSizeExceededException(10_485_760L));
+
+        assertThat(response.getStatusCode()).isEqualTo(ErrorCode.MAX_FILE_UPLOAD_SIZE_EXCEEDED.getStatus());
+        assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.MAX_FILE_UPLOAD_SIZE_EXCEEDED.getCode());
         assertThat(response.getBody().getDetails()).isNull();
     }
 }

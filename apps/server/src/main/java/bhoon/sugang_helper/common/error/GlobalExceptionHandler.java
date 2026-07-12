@@ -14,6 +14,7 @@ import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
@@ -34,6 +35,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUnreadableMessage(HttpServletRequest req,
                                                                    HttpMessageNotReadableException e) {
         return response(req, ErrorCode.INVALID_INPUT, e);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize(HttpServletRequest req,
+                                                              MaxUploadSizeExceededException e) {
+        return response(req, ErrorCode.MAX_FILE_UPLOAD_SIZE_EXCEEDED, e);
     }
 
     @ExceptionHandler({ExpiredJwtException.class, JwtException.class})

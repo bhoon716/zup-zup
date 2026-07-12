@@ -33,6 +33,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.MultipartProperties;
 import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
@@ -56,6 +57,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.util.unit.DataSize;
 
 @SpringBootTest(classes = SecurityRequestAuthorizationTest.TestApplication.class)
 @AutoConfigureMockMvc
@@ -80,6 +82,8 @@ class SecurityRequestAuthorizationTest {
 
     @Autowired
     private MockMvc mockMvc;
+    @Autowired
+    private MultipartProperties multipartProperties;
     @MockitoBean
     private JwtProvider jwtProvider;
     @MockitoBean
@@ -199,6 +203,12 @@ class SecurityRequestAuthorizationTest {
         mockMvc.perform(get("/api/v1/feedbacks/10/attachments/20"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
+    }
+
+    @Test
+    void multipartIngressBudgetMatchesFeedbackAttachmentPolicy() {
+        assertThat(multipartProperties.getMaxFileSize()).isEqualTo(DataSize.ofMegabytes(10));
+        assertThat(multipartProperties.getMaxRequestSize()).isEqualTo(DataSize.ofMegabytes(11));
     }
 
     @Test

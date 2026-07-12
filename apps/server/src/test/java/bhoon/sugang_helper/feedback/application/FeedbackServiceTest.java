@@ -105,6 +105,26 @@ class FeedbackServiceTest {
     }
 
     @Test
+    @DisplayName("정규화된 이미지의 다운로드 이름은 실제 저장 확장자를 사용한다.")
+    void createFeedbackStoresFilenameMatchingSanitizedImage() {
+        Long userId = 1L;
+        User user = User.builder().id(userId).name("유저").build();
+        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
+        MultipartFile webp = mock(MultipartFile.class);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(feedbackRepository.save(any(Feedback.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(fileUploadService.uploadImages(anyList())).willReturn(List.of("/uploads/normalized.jpg"));
+        given(webp.getOriginalFilename()).willReturn("canvas.webp");
+
+        feedbackService.createFeedback(userId, request, List.of(webp));
+
+        org.mockito.ArgumentCaptor<FeedbackAttachment> attachmentCaptor =
+                org.mockito.ArgumentCaptor.forClass(FeedbackAttachment.class);
+        verify(feedbackAttachmentRepository).save(attachmentCaptor.capture());
+        assertThat(attachmentCaptor.getValue().getOriginalName()).isEqualTo("canvas.jpg");
+    }
+
+    @Test
     @DisplayName("손상된 환경 메타데이터는 저장과 요청 카운터 증가 전에 거부한다.")
     void createFeedback_rejectsMalformedMetadataBeforeSaving() {
         Long userId = 1L;

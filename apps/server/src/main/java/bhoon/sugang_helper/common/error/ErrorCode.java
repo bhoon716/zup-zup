@@ -67,7 +67,9 @@ public enum ErrorCode {
     MAX_FILE_UPLOAD_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "F005", "최대 첨부 가능한 파일 수를 초과했습니다."),
     INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST, "F006", "지원하지 않는 파일 형식입니다. 이미지 파일만 업로드 가능합니다."),
     DAILY_FEEDBACK_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "F007", "일일 건의사항 작성 가능 횟수를 초과했습니다."),
-    MAX_FILE_UPLOAD_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "F008", "첨부파일 총 용량 제한을 초과했습니다.");
+    MAX_FILE_UPLOAD_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "F008", "첨부파일 총 용량 제한을 초과했습니다."),
+    INVALID_IMAGE_CONTENT(HttpStatus.BAD_REQUEST, "F009", "이미지 파일을 확인할 수 없습니다."),
+    IMAGE_PROCESSING_LIMIT_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "F010", "이미지 해상도 또는 처리 제한을 초과했습니다.");
 
     private final HttpStatus status;
     private final String code;

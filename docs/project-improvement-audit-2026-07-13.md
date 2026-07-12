@@ -9,7 +9,7 @@
 
 1. `DELETE /api/v1/users/devices/token/{token}`이 현재 사용자와 토큰 소유자의 일치 여부를 확인하지 않아, 토큰을 아는 요청자가 다른 사용자의 기기를 해제할 수 있다.
 2. 알림 worker가 delivery와 target을 모두 직렬 처리한다. Outbox 커밋 후 5초 안에 모든 eligible delivery의 첫 시도를 시작한다는 합의된 SLA를 현재 구조만으로는 보장할 수 없다.
-상태 갱신: 2026-07-13에 081, 082, 083, 084, 085, 090, 091, 092, 103, 104를 종료했다. 토큰 기반 기기 해제는 현재 사용자 ID와 함께 범위를 제한하며, 새 웹 클라이언트는 토큰을 URL이 아닌 요청 본문으로 전송한다. 알림·크롤러·인증 오류는 원문 대신 마스킹·지문·안정 오류 코드와 correlation ID를 사용한다. Redis의 새 blacklist와 refresh registry는 원문 대신 SHA-256 digest·무작위 family를 쓰고, refresh 재사용은 원자적으로 family를 폐기한다. 탈퇴는 식별자·발송 대상을 즉시 제거하고 계정·비식별 이력은 soft delete로 보존하며, 인증은 불변 사용자 ID를 함께 검증한다. 삭제 피드백은 단일 관리자만 별도 projection으로 열람하며, 식별자·환경 메타 정보는 JSON에서 제외하고 첨부파일은 확인·감사 경계를 거친다. 새 피드백 환경 정보는 `os`·`language`만 작은 JSON으로 정규화하며 malformed input은 400으로 차단한다. 웹 runtime은 temporary preview 예외와 audit/rollback 기준을 문서화하고 root lockfile을 CI 기준으로 통일했다. 운영 actuator는 별도 내부 management port와 최소 endpoint로 분리하고, Swagger/H2와 wildcard credential CORS를 차단했다. Flyway migration 검증은 기본 피드백 경로에서 분리했지만 PR·배포 gate는 유지했다.
+상태 갱신: 2026-07-13에 081, 082, 083, 084, 085, 090, 091, 092, 103, 104, 105를 종료했다. 토큰 기반 기기 해제는 현재 사용자 ID와 함께 범위를 제한하며, 새 웹 클라이언트는 토큰을 URL이 아닌 요청 본문으로 전송한다. 알림·크롤러·인증 오류는 원문 대신 마스킹·지문·안정 오류 코드와 correlation ID를 사용한다. Redis의 새 blacklist와 refresh registry는 원문 대신 SHA-256 digest·무작위 family를 쓰고, refresh 재사용은 원자적으로 family를 폐기한다. 탈퇴는 식별자·발송 대상을 즉시 제거하고 계정·비식별 이력은 soft delete로 보존하며, 인증은 불변 사용자 ID를 함께 검증한다. 삭제 피드백은 단일 관리자만 별도 projection으로 열람하며, 식별자·환경 메타 정보는 JSON에서 제외하고 첨부파일은 확인·감사 경계를 거친다. 새 피드백 환경 정보는 `os`·`language`만 작은 JSON으로 정규화하며 malformed input은 400으로 차단한다. 첨부 이미지는 실제 decoder·pixel 예산을 거쳐 metadata 없는 정적 JPEG/PNG로 정규화한다. 웹 runtime은 temporary preview 예외와 audit/rollback 기준을 문서화하고 root lockfile을 CI 기준으로 통일했다. 운영 actuator는 별도 내부 management port와 최소 endpoint로 분리하고, Swagger/H2와 wildcard credential CORS를 차단했다. Flyway migration 검증은 기본 피드백 경로에서 분리했지만 PR·배포 gate는 유지했다.
 
 ## 확정된 운영 기준
 
@@ -31,7 +31,7 @@
 | P1 | 알림 | [087](../.agents/issues/open/ISSUE-087-SERVER-NOTIFICATION-FANOUT-SLA), [088](../.agents/issues/open/ISSUE-088-SERVER-NOTIFICATION-IDEMPOTENCY-DLQ-REPLAY), [089](../.agents/issues/open/ISSUE-089-SERVER-NOTIFICATION-PROVIDER-RESILIENCE) |
 | P1 | API/크롤러 | [093](../.agents/issues/open/ISSUE-093-SERVER-API-PAGINATION-GUARDS), [094](../.agents/issues/open/ISSUE-094-SERVER-ANNOUNCEMENT-PAGINATION-SEARCH), [096](../.agents/issues/open/ISSUE-096-SERVER-CRAWLER-BULK-UPSERT), [097](../.agents/issues/open/ISSUE-097-SERVER-CRAWLER-FRESHNESS-UPSTREAM) |
 | P1 | 인프라/운영 | [098](../.agents/issues/open/ISSUE-098-INFRA-REDIS-HEALTH-STARTUP), [099](../.agents/issues/open/ISSUE-099-INFRA-METRICS-ALERTING-DURABILITY), [100](../.agents/issues/open/ISSUE-100-INFRA-DB-LEAST-PRIVILEGE-DR) |
-| P2 | UX/품질 | [084 (closed)](../.agents/issues/closed/ISSUE-084-SERVER-FEEDBACK-METADATA-SAFETY), [085 (closed)](../.agents/issues/closed/ISSUE-085-SERVER-ADMIN-ACTION-LOG-STRUCTURED), [095](../.agents/issues/open/ISSUE-095-SERVER-COURSE-SEARCH-VALIDATION), [101](../.agents/issues/open/ISSUE-101-INFRA-RESOURCE-LIMITS), [102](../.agents/issues/open/ISSUE-102-CI-E2E-CRITICAL-FLOWS), [103 (closed)](../.agents/issues/closed/ISSUE-103-CI-MIGRATION-TASK-ISOLATION), [104 (closed)](../.agents/issues/closed/ISSUE-104-WEB-PREVIEW-DEPENDENCY-STABILITY), [105](../.agents/issues/open/ISSUE-105-SERVER-UPLOAD-IMAGE-LIMITS) |
+| P2 | UX/품질 | [084 (closed)](../.agents/issues/closed/ISSUE-084-SERVER-FEEDBACK-METADATA-SAFETY), [085 (closed)](../.agents/issues/closed/ISSUE-085-SERVER-ADMIN-ACTION-LOG-STRUCTURED), [095](../.agents/issues/open/ISSUE-095-SERVER-COURSE-SEARCH-VALIDATION), [101](../.agents/issues/open/ISSUE-101-INFRA-RESOURCE-LIMITS), [102](../.agents/issues/open/ISSUE-102-CI-E2E-CRITICAL-FLOWS), [103 (closed)](../.agents/issues/closed/ISSUE-103-CI-MIGRATION-TASK-ISOLATION), [104 (closed)](../.agents/issues/closed/ISSUE-104-WEB-PREVIEW-DEPENDENCY-STABILITY), [105 (closed)](../.agents/issues/closed/ISSUE-105-SERVER-UPLOAD-IMAGE-LIMITS) |
 
 ## 근거 요약
 
@@ -79,7 +79,7 @@
 
 1. 081 (closed) → 090 (closed) → 092 (closed): 즉시 악용 가능한 기기 삭제, 비밀값 노출, 외부 관리 경로를 먼저 차단했다.
 2. 103 (closed) → 091 (closed) → 082 (closed): migration 검증은 유지한 채 실행 단위를 분리했고, Redis 원문 토큰을 제거한 뒤 탈퇴 soft delete와 identity binding을 적용했다.
-3. 085 (closed) → 083 (closed) → 104 (closed) → 084 (closed) → 105 → 086: 관리자 감사 기반을 만든 뒤 삭제 피드백·첨부파일 UX와 입력 안전성을 순서대로 보강한다.
+3. 085 (closed) → 083 (closed) → 104 (closed) → 084 (closed) → 105 (closed) → 086: 관리자 감사 기반을 만든 뒤 삭제 피드백·첨부파일 UX와 입력 안전성을 순서대로 보강한다.
 4. 098 → 100: Redis readiness/저장 상태를 먼저 안전하게 만든 뒤 DB 최소 권한·백업·restore drill을 처리한다. 098은 091 이후에만 Redis 영속화를 도입한다.
 5. 088 → 089 → 087: idempotency·DLQ replay 상태를 먼저 정의하고 provider timeout/실패 분류를 붙인 뒤 bounded fan-out과 5초 SLA를 구현한다. 기존 087~089의 순환 의존은 이 순서로 해소한다.
 6. 096 → 097 → 099 → 101: 매분 크롤러 부하를 줄이고 freshness metric을 만든 다음, 공통 alert route·Prometheus 영속화·자원 한계를 확정한다. 097·098의 실제 알림 연결은 099에서 닫는다.
