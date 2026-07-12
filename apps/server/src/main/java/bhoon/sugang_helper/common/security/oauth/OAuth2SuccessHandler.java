@@ -46,11 +46,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 인증 쿠키는 공통 서비스 로직으로 설정한다.
         authService.addRefreshTokenCookie(response, refreshToken);
 
-        // 토큰은 서버 세션에 저장해 브라우저 노출을 피한다.
-        request.getSession().setAttribute("ACCESS_TOKEN", accessToken);
-        request.getSession().setAttribute("REFRESH_TOKEN", refreshToken);
+        // 세션에는 JWT 원문 대신 Spring Security 인증 주체와 권한만 저장한다.
+        authService.saveSessionAuthentication(request, response, accessToken);
 
-        log.info("[OAuth2] Social login successful. userId={}, sessionSaved=true", user.getId());
+        log.info("[OAuth2] Social login successful. userId={}, authenticationSaved=true", user.getId());
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }
 }

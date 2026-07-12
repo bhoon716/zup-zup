@@ -42,7 +42,12 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -95,9 +100,8 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
     void adminDashboardWithNonAdminUserIsForbidden() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/dashboard"))
+        mockMvc.perform(get("/api/v1/admin/dashboard").session(authenticatedSession("ROLE_USER")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"))
                 .andExpect(jsonPath("$.path").value("/api/v1/admin/dashboard"));
@@ -161,10 +165,38 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void adminCanAccessDeveloperToolsOutsideProduction() throws Exception {
-        mockMvc.perform(get("/v3/api-docs"))
+        mockMvc.perform(get("/v3/api-docs").session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void sessionSecurityContextAuthenticatesProtectedRequestWithoutStoringJwt() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/dashboard").session(authenticatedSession("ROLE_ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void expiredSessionSecurityContextIsRejectedUntilRefreshesAgain() throws Exception {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(new UsernamePasswordAuthenticationToken("admin@example.com", "",
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+        session.setAttribute("AUTHENTICATION_EXPIRES_AT", 0L);
+
+        mockMvc.perform(get("/api/v1/admin/dashboard").session(session))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private MockHttpSession authenticatedSession(String role) {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(new UsernamePasswordAuthenticationToken("admin@example.com", "",
+                List.of(new SimpleGrantedAuthority(role))));
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+        session.setAttribute("AUTHENTICATION_EXPIRES_AT", System.currentTimeMillis() + 60_000L);
+        return session;
     }
 
     @Test

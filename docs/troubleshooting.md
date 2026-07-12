@@ -75,6 +75,14 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Evidence: `apps/server/build/reports/tests/test/index.html` and `apps/server/build/reports/tests/migrationTest/index.html` from the local verification run.
 - Limitation: the two tests retain isolated MySQL containers. Static/reusable containers could save one startup but need explicit schema isolation and local Testcontainers reuse configuration, so they are deferred.
 
+### Redis JWT opaque storage and rotation (2026-07-13)
+
+- Scenario: Redis blacklist key and refresh registry value contained raw JWTs, and Redis-backed HTTP session also stored raw access/refresh JWT attributes.
+- Result: new blacklist entries use `BL:<SHA-256>`; new refresh registry entries use `v2:<random-family>:<SHA-256>`. Redis Lua compare-and-set makes rotation single-use, and a replay in the same family (including a migrated legacy token) revokes that family. Spring Security stores only the authenticated subject, authorities, and access expiry epoch in the session; expiry clears the session and returns to the refresh path.
+- Migration: no new raw data is written. A pre-deployment raw refresh record is read once only when presented and atomically replaced with a v2 record; unused legacy records expire within the existing 14-day refresh TTL. Existing raw session attributes expire within the 2-hour session TTL and are removed on the next refresh/logout.
+- Restart behavior: missing refresh registry state is rejected without minting a new token. Redis persistence is not yet configured, so a restart also loses the access-token logout blacklist; durable revocation is deferred to ISSUE-098.
+- Evidence: `JwtProviderTest`, `AuthServiceTest`, `JwtAuthenticationFilterTest`, `OAuth2SuccessHandlerTest`, `SecurityRequestAuthorizationTest`, and `RedisServiceTest`; default `./gradlew clean test` passed.
+
 ## Web Troubleshooting
 
 이 문서는 `web` 모듈 개발 중 발생한 문제와 기술적 해결책을 기록합니다.

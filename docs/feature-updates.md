@@ -16,6 +16,7 @@ This document merges the web and server release histories.
 - **민감값 로그·오류 응답 보호**: 알림·크롤러·OAuth 로그는 이메일 마스킹, 토큰/endpoint 지문, 안정 오류 코드만 남기고 HTTP query 값은 기록하지 않습니다. 공개 오류 응답은 원문 상세 대신 `X-Error-Id`/`correlationId`를 제공해 서버 로그와 대조할 수 있습니다.
 - **운영 진단 경계 축소**: 운영 actuator는 별도 8081 management port에서 `health`·`prometheus`만 제공하며, 앱→Prometheus→Grafana 내부망으로 격리됩니다. Swagger/OpenAPI·H2 console은 운영에서 비활성화되고, CORS는 명시 HTTPS origin만 credential 요청에 허용합니다. 다음 운영 배포 전 `SERVER_DOTENV`의 `APP_CORS_ALLOWED_ORIGINS`를 실제 서비스 HTTPS origin으로 갱신해야 합니다.
 - **Flyway 검증 분리**: 기본 `./gradlew test`는 빠른 피드백을 위해 migration 검증을 제외하고, `./gradlew migrationTest`가 MySQL fresh schema·checksum·upgrade path를 별도 report로 검증합니다. PR과 main 배포 전 CI는 Docker preflight 후 두 task를 모두 필수 실행합니다.
+- **Redis JWT 원문 저장 제거**: 새 access blacklist는 SHA-256 식별자만 저장하고, refresh registry는 무작위 family와 SHA-256 digest를 Lua CAS로 교체합니다. 이전 refresh 재사용은 같은 family를 폐기하며, Spring Session에는 JWT 원문 대신 인증 주체·권한·access 만료 시각만 저장됩니다. 배포 이전 raw refresh/session 값은 각각 기존 TTL 안에서 자연 정리됩니다.
 
 ---
 
