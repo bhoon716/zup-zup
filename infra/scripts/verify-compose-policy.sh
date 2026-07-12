@@ -103,6 +103,19 @@ if not any(
     fail("promtail state volume is missing")
 
 app_volumes = services.get("app", {}).get("volumes", [])
+app = services.get("app", {})
+if app.get("user") != "10001:10001":
+    fail("app must run as the dedicated non-root UID/GID")
+
+if not app.get("read_only", False):
+    fail("app root filesystem must be read only")
+
+if not any(
+    (tmpfs.get("target") == "/tmp" if isinstance(tmpfs, dict) else str(tmpfs).startswith("/tmp"))
+    for tmpfs in app.get("tmpfs", [])
+):
+    fail("app must provide a writable tmpfs at /tmp")
+
 if not any(
     volume.get("type") == "bind"
     and volume.get("source") == "/var/lib/jbnu-sugang-helper/uploads"
