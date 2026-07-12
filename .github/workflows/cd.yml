@@ -183,13 +183,22 @@ jobs:
             exit 1
           fi
 
+      - name: 롤백 알림 웹훅 검증
+        env:
+          DEPLOYMENT_DISCORD_WEBHOOK_URL: ${{ secrets.DEPLOYMENT_DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "${DEPLOYMENT_DISCORD_WEBHOOK_URL}" ]; then
+            echo "Missing required secret: DEPLOYMENT_DISCORD_WEBHOOK_URL" >&2
+            exit 1
+          fi
+
       - name: 인프라 설정 파일 전송
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "infra/docker-compose.yml,infra/prometheus/**,infra/grafana/**,infra/loki/**,infra/promtail/**"
+          source: "infra/docker-compose.yml,infra/scripts/deploy-app.sh,infra/prometheus/**,infra/grafana/**,infra/loki/**,infra/promtail/**"
           target: "~/jbnu-sugang-helper/infra/"
           strip_components: 1
 
@@ -220,38 +229,11 @@ jobs:
           script: |
             release_sha="${{ github.sha }}"
             release_dir="$HOME/jbnu-sugang-helper/releases/${release_sha}"
-            if [ ! -f "${release_dir}/build/libs/app.jar" ] || [ ! -f "${release_dir}/.env" ]; then
-              echo "Incomplete release ${release_sha}" >&2
-              exit 1
-            fi
-
-            cd "${release_dir}"
-            docker build -t "sugang-helper-app:${release_sha}" .
             cd ~/jbnu-sugang-helper/infra
-            APP_RELEASE_DIR="${release_dir}" APP_IMAGE_TAG="${release_sha}" docker compose up -d --no-deps app
-            container_id=$(docker compose ps -q app)
-            if [ -z "${container_id}" ]; then
-              echo "App container was not created" >&2
-              exit 1
-            fi
-
-            for attempt in $(seq 1 90); do
-              health_status=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container_id}")
-              if [ "${health_status}" = "healthy" ]; then
-                exit 0
-              fi
-
-              if [ "${health_status}" = "exited" ] || [ "${health_status}" = "dead" ]; then
-                docker logs "${container_id}" >&2
-                exit 1
-              fi
-
-              sleep 5
-            done
-
-            echo "App container did not become healthy" >&2
-            docker logs "${container_id}" >&2
-            exit 1
+            RELEASE_SHA="${release_sha}" \
+            RELEASE_DIR="${release_dir}" \
+            DEPLOYMENT_DISCORD_WEBHOOK_URL="${{ secrets.DEPLOYMENT_DISCORD_WEBHOOK_URL }}" \
+            bash scripts/deploy-app.sh
 
   verify-infra:
     needs: changes
