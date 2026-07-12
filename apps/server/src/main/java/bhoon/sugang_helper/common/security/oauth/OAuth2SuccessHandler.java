@@ -40,8 +40,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        String accessToken = jwtProvider.createAccessToken(user.getEmail(), user.getRoleKey());
-        String refreshToken = jwtProvider.createRefreshToken(user.getEmail());
+        String accessToken = jwtProvider.createAccessToken(user.getId(), user.getEmail(), user.getRoleKey());
+        String refreshToken = jwtProvider.createRefreshToken(user.getId(), user.getEmail());
 
         // 인증 쿠키는 공통 서비스 로직으로 설정한다.
         authService.addRefreshTokenCookie(response, refreshToken);

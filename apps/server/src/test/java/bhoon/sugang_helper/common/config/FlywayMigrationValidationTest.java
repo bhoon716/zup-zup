@@ -119,14 +119,25 @@ class FlywayMigrationValidationTest {
 
             assertThat(recordedChecksums).containsAllEntriesOf(APPLIED_MIGRATION_CHECKSUMS);
 
+            String existingUserEmail = "existing-user@example.com";
+            jdbcTemplate.update("""
+                            INSERT INTO users (
+                                discord_enabled, email, email_enabled, fcm_enabled,
+                                name, onboarding_completed, role, web_push_enabled
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                    false, existingUserEmail, false, false, "Existing User", false, "USER", false);
+
             Flyway head = Flyway.configure()
                     .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
                     .locations("classpath:db/migration")
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(4);
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(5);
             head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("16");
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("17");
+            assertThat(jdbcTemplate.queryForObject("SELECT version FROM users WHERE email = ?", Long.class,
+                    existingUserEmail)).isZero();
         }
     }
 }

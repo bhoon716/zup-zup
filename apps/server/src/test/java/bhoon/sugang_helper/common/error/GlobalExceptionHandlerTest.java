@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 class GlobalExceptionHandlerTest {
 
@@ -44,5 +45,17 @@ class GlobalExceptionHandlerTest {
             logger.detachAppender(appender);
             appender.stop();
         }
+    }
+
+    @Test
+    void optimisticLockConflictReturnsRetryableConflictResponse() {
+        MockHttpServletRequest request = new MockHttpServletRequest("PATCH", "/api/v1/users/me");
+
+        ResponseEntity<ErrorResponse> response = new GlobalExceptionHandler()
+                .handleOptimisticLock(request, new ObjectOptimisticLockingFailureException("User", 1L));
+
+        assertThat(response.getStatusCode()).isEqualTo(ErrorCode.CONCURRENT_MODIFICATION.getStatus());
+        assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.CONCURRENT_MODIFICATION.getCode());
+        assertThat(response.getBody().getDetails()).isNull();
     }
 }

@@ -1,4 +1,5 @@
 package bhoon.sugang_helper.user.presentation;
+import bhoon.sugang_helper.auth.application.AuthService;
 import bhoon.sugang_helper.user.application.DiscordOAuthService;
 import bhoon.sugang_helper.user.application.UserService;
 import bhoon.sugang_helper.user.application.UserResponse;
@@ -29,6 +30,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -55,6 +57,7 @@ public class UserController {
 
     private final UserService userService;
     private final DiscordOAuthService discordOAuthService;
+    private final AuthService authService;
 
     @Value("${app.oauth2.authorized-redirect-uri}")
     private String frontendBaseUrl;
@@ -259,7 +262,7 @@ public class UserController {
     /**
      * 사용자 계정을 삭제하고 회원 탈퇴를 처리합니다.
      */
-    @Operation(summary = "회원 탈퇴", description = "사용자 계정을 삭제합니다.")
+    @Operation(summary = "회원 탈퇴", description = "계정을 비식별화하고 현재 인증을 즉시 해제합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "탈퇴 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
                     {
@@ -270,8 +273,9 @@ public class UserController {
                     """)))
     })
     @DeleteMapping("/me")
-    public ResponseEntity<CommonResponse<Void>> withdraw() {
+    public ResponseEntity<CommonResponse<Void>> withdraw(HttpServletRequest request, HttpServletResponse response) {
         userService.withdraw();
+        authService.logout(request, response);
         return CommonResponse.ok(null, "회원 탈퇴가 완료되었습니다.");
     }
 

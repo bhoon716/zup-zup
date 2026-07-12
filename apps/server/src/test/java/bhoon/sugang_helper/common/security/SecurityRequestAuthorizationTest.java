@@ -24,6 +24,7 @@ import bhoon.sugang_helper.common.config.SecurityConfig;
 import bhoon.sugang_helper.feedback.application.FeedbackService;
 import bhoon.sugang_helper.feedback.presentation.FeedbackController;
 import bhoon.sugang_helper.user.application.UserService;
+import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,6 +85,8 @@ class SecurityRequestAuthorizationTest {
     private FeedbackService feedbackService;
     @MockitoBean
     private UserService userService;
+    @MockitoBean
+    private UserRepository userRepository;
     @MockitoBean
     private CustomOAuth2UserService customOAuth2UserService;
     @MockitoBean
@@ -189,6 +192,15 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void deletedAccountSessionIsRejectedBeforeTheOriginalExpiry() throws Exception {
+        MockHttpSession session = authenticatedSession("ROLE_ADMIN");
+        given(userRepository.existsByIdAndEmailAndDeletedAtIsNull(1L, "admin@example.com")).willReturn(false);
+
+        mockMvc.perform(get("/api/v1/admin/dashboard").session(session))
+                .andExpect(status().isUnauthorized());
+    }
+
     private MockHttpSession authenticatedSession(String role) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(new UsernamePasswordAuthenticationToken("admin@example.com", "",
@@ -196,6 +208,8 @@ class SecurityRequestAuthorizationTest {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
         session.setAttribute("AUTHENTICATION_EXPIRES_AT", System.currentTimeMillis() + 60_000L);
+        session.setAttribute("AUTHENTICATION_USER_ID", 1L);
+        given(userRepository.existsByIdAndEmailAndDeletedAtIsNull(1L, "admin@example.com")).willReturn(true);
         return session;
     }
 

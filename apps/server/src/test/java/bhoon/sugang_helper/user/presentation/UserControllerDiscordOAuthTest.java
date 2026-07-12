@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import bhoon.sugang_helper.auth.application.AuthService;
 import bhoon.sugang_helper.user.application.DiscordOAuthService;
 import bhoon.sugang_helper.user.application.UserService;
 import ch.qos.logback.classic.Logger;
@@ -15,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @SuppressWarnings("PMD.AvoidDuplicateLiterals") // Redirect assertions intentionally repeat the HTTP header name.
@@ -22,13 +25,15 @@ class UserControllerDiscordOAuthTest {
 
     private UserService userService;
     private DiscordOAuthService discordOAuthService;
+    private AuthService authService;
     private UserController controller;
 
     @BeforeEach
     void setUp() {
         userService = Mockito.mock(UserService.class);
         discordOAuthService = Mockito.mock(DiscordOAuthService.class);
-        controller = new UserController(userService, discordOAuthService);
+        authService = Mockito.mock(AuthService.class);
+        controller = new UserController(userService, discordOAuthService, authService);
         ReflectionTestUtils.setField(controller, "frontendBaseUrl", "https://web.example.com");
         ReflectionTestUtils.setField(controller, "discordClientId", "client-id");
         ReflectionTestUtils.setField(controller, "discordRedirectUri", "https://api.example.com/api/v1/users/discord/callback");
@@ -81,5 +86,17 @@ class UserControllerDiscordOAuthTest {
             logger.detachAppender(appender);
             appender.stop();
         }
+    }
+
+    @Test
+    void withdrawInvalidatesCurrentAuthenticationCookiesAndSession() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        var result = controller.withdraw(request, response);
+
+        assertThat(result.getBody().getMessage()).isEqualTo("회원 탈퇴가 완료되었습니다.");
+        verify(userService).withdraw();
+        verify(authService).logout(request, response);
     }
 }

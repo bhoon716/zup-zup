@@ -78,10 +78,18 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 ### Redis JWT opaque storage and rotation (2026-07-13)
 
 - Scenario: Redis blacklist key and refresh registry value contained raw JWTs, and Redis-backed HTTP session also stored raw access/refresh JWT attributes.
-- Result: new blacklist entries use `BL:<SHA-256>`; new refresh registry entries use `v2:<random-family>:<SHA-256>`. Redis Lua compare-and-set makes rotation single-use, and a replay in the same family (including a migrated legacy token) revokes that family. Spring Security stores only the authenticated subject, authorities, and access expiry epoch in the session; expiry clears the session and returns to the refresh path.
-- Migration: no new raw data is written. A pre-deployment raw refresh record is read once only when presented and atomically replaced with a v2 record; unused legacy records expire within the existing 14-day refresh TTL. Existing raw session attributes expire within the 2-hour session TTL and are removed on the next refresh/logout.
+- Result: new blacklist entries use `BL:<SHA-256>`; new refresh registry entries use `v2:<random-family>:<SHA-256>`. Redis Lua compare-and-set makes rotation single-use, and a replay in the same family revokes that family. Spring Security stores only the authenticated subject, authorities, access expiry epoch, and immutable user ID in the session; expiry or inactive-account detection clears the session and returns to the refresh path.
+- Migration: no new raw data is written. To prevent a pre-deployment email-only token from becoming a rejoined account, tokens without the immutable `uid` claim and sessions without a user ID are fail-closed; users authenticate once again. Unused legacy Redis values expire within their existing TTL.
 - Restart behavior: missing refresh registry state is rejected without minting a new token. Redis persistence is not yet configured, so a restart also loses the access-token logout blacklist; durable revocation is deferred to ISSUE-098.
 - Evidence: `JwtProviderTest`, `AuthServiceTest`, `JwtAuthenticationFilterTest`, `OAuth2SuccessHandlerTest`, `SecurityRequestAuthorizationTest`, and `RedisServiceTest`; default `./gradlew clean test` passed.
+
+### Account withdrawal soft delete and identity binding (2026-07-13)
+
+- Scenario: account withdrawal physically deleted user-owned rows, while a still-valid email-only token or session could be confused with a later account using the same Google email.
+- Result: withdrawal immediately clears device/refresh/session credentials and direct identifiers, disables subscriptions and notification channels, soft-deletes the user and feedback, and retains non-identifying history. Access/refresh tokens and HTTP sessions now require the immutable user ID together with the active email; the former account cannot authenticate a rejoined account.
+- Schema: `users.deleted_at` and immutable `users.id` already exist in V1. V17 adds a non-null `version` defaulted to `0` for existing rows so a stale profile update cannot restore a withdrawn account; the migration suite verifies the upgrade path.
+- Operational policy: automatic purge is intentionally disabled until retention period and legal basis are reviewed. The compact preservation table and runbook are in [account-withdrawal-retention.md](account-withdrawal-retention.md).
+- Evidence: `UserServiceTest`, `UserDataConstraintTest`, `JwtProviderTest`, `JwtAuthenticationFilterTest`, `AuthServiceTest`, `CustomOAuth2UserServiceTest`, `NotificationChannelPolicyTest`, and `SecurityRequestAuthorizationTest`.
 
 ## Web Troubleshooting
 

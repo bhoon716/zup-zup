@@ -4,6 +4,7 @@ import static bhoon.sugang_helper.common.security.constant.SecurityConstant.IS_L
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_MAX_AGE;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_NAME;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESSION_AUTHENTICATION_EXPIRES_AT;
+import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESSION_AUTHENTICATION_USER_ID;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
@@ -53,7 +54,11 @@ public class AuthService {
         }
 
         String email = jwtProvider.getAuthentication(refreshToken).getName();
-        User user = userRepository.findByEmail(email)
+        Long userId = jwtProvider.getUserId(refreshToken);
+        if (userId == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN, "사용자 식별자가 없는 리프레시 토큰입니다.");
+        }
+        User user = userRepository.findByIdAndEmailAndDeletedAtIsNull(userId, email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
 
         String newRefreshToken = jwtProvider.rotateRefreshToken(email, refreshToken);
@@ -61,7 +66,7 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_TOKEN, "저장된 리프레시 토큰과 일치하지 않습니다.");
         }
 
-        String newAccessToken = jwtProvider.createAccessToken(user.getEmail(), user.getRoleKey());
+        String newAccessToken = jwtProvider.createAccessToken(user.getId(), user.getEmail(), user.getRoleKey());
         saveSessionAuthentication(request, response, newAccessToken);
         log.info("[Auth] Refreshed authenticated session. emailMasked={}", SensitiveDataRedactor.maskEmail(email));
 
@@ -81,7 +86,10 @@ public class AuthService {
 
         if (StringUtils.hasText(refreshToken) && jwtProvider.validateRefreshToken(refreshToken)) {
             String email = jwtProvider.getAuthentication(refreshToken).getName();
-            jwtProvider.revokeRefreshToken(email, refreshToken);
+            Long userId = jwtProvider.getUserId(refreshToken);
+            if (userId != null) {
+                jwtProvider.revokeRefreshToken(email, refreshToken);
+            }
         }
 
         if (StringUtils.hasText(accessToken) && jwtProvider.validateToken(accessToken)) {
@@ -95,6 +103,10 @@ public class AuthService {
      * Redis-backed HTTP session에는 JWT 원문 대신 인증 주체와 권한만 저장합니다.
      */
     public void saveSessionAuthentication(HttpServletRequest request, HttpServletResponse response, String accessToken) {
+        Long userId = jwtProvider.getUserId(accessToken);
+        if (userId == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN, "사용자 식별자가 없는 액세스 토큰입니다.");
+        }
         HttpSession existingSession = request.getSession(false);
         if (existingSession != null) {
             existingSession.removeAttribute("ACCESS_TOKEN");
@@ -109,6 +121,7 @@ public class AuthService {
         if (authenticatedSession != null) {
             long expiresAt = System.currentTimeMillis() + jwtProvider.getExpiration(accessToken);
             authenticatedSession.setAttribute(SESSION_AUTHENTICATION_EXPIRES_AT, expiresAt);
+            authenticatedSession.setAttribute(SESSION_AUTHENTICATION_USER_ID, userId);
         }
     }
 

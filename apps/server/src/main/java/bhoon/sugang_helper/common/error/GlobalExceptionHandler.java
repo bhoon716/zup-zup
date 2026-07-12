@@ -6,6 +6,7 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -46,6 +47,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleIntegrity(HttpServletRequest req, DataIntegrityViolationException e) {
         return response(req, ErrorCode.INVALID_INPUT, e);
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(HttpServletRequest req,
+                                                               OptimisticLockingFailureException e) {
+        return response(req, ErrorCode.CONCURRENT_MODIFICATION, e);
     }
 
     @ExceptionHandler(Exception.class)

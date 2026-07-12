@@ -20,6 +20,7 @@ public enum ErrorCode {
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "G002", "잘못된 입력값입니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "G003", "요청한 리소스를 찾을 수 없습니다."),
     TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "G004", "요청이 너무 많습니다."),
+    CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "G005", "데이터가 변경되었습니다. 다시 시도해주세요."),
 
     /* 사용자 관련 에러 */
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "사용자를 찾을 수 없습니다."),

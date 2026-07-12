@@ -17,6 +17,7 @@ This document merges the web and server release histories.
 - **운영 진단 경계 축소**: 운영 actuator는 별도 8081 management port에서 `health`·`prometheus`만 제공하며, 앱→Prometheus→Grafana 내부망으로 격리됩니다. Swagger/OpenAPI·H2 console은 운영에서 비활성화되고, CORS는 명시 HTTPS origin만 credential 요청에 허용합니다. 다음 운영 배포 전 `SERVER_DOTENV`의 `APP_CORS_ALLOWED_ORIGINS`를 실제 서비스 HTTPS origin으로 갱신해야 합니다.
 - **Flyway 검증 분리**: 기본 `./gradlew test`는 빠른 피드백을 위해 migration 검증을 제외하고, `./gradlew migrationTest`가 MySQL fresh schema·checksum·upgrade path를 별도 report로 검증합니다. PR과 main 배포 전 CI는 Docker preflight 후 두 task를 모두 필수 실행합니다.
 - **Redis JWT 원문 저장 제거**: 새 access blacklist는 SHA-256 식별자만 저장하고, refresh registry는 무작위 family와 SHA-256 digest를 Lua CAS로 교체합니다. 이전 refresh 재사용은 같은 family를 폐기하며, Spring Session에는 JWT 원문 대신 인증 주체·권한·access 만료 시각만 저장됩니다. 배포 이전 raw refresh/session 값은 각각 기존 TTL 안에서 자연 정리됩니다.
+- **탈퇴 즉시 차단·데이터 보존 전환**: 탈퇴하면 인증 cookie/session·refresh registry·기기 token을 즉시 폐기하고 이름·이메일·알림 이메일·Discord 식별자를 익명화합니다. 계정과 일반 이력은 soft delete로 보존하고 구독·알림은 즉시 중지하며, feedback과 첨부파일은 일반 경로에서 숨깁니다. 기존 탈퇴 계정은 복구하지 않으며 같은 Google 이메일로 다시 로그인하면 새 계정으로 시작합니다. 보안상 배포 전 UID 없는 인증은 한 번 재로그인이 필요합니다.
 
 ---
 

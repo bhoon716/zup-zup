@@ -5,15 +5,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
-import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
+import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.feedback.domain.Feedback;
 import bhoon.sugang_helper.feedback.domain.FeedbackAttachmentRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.notification.application.NotificationService;
@@ -21,8 +23,8 @@ import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.review.domain.CourseEmojiReviewRepository;
 import bhoon.sugang_helper.review.domain.CourseReviewRepository;
+import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.timetable.domain.Timetable;
 import bhoon.sugang_helper.timetable.domain.TimetableRepository;
 import bhoon.sugang_helper.user.application.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.user.application.command.UpdateProfileCommand;
@@ -47,6 +49,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -99,6 +102,9 @@ class UserServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private JwtProvider jwtProvider;
+
     @InjectMocks
     private UserService userService;
 
@@ -137,47 +143,90 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("회원 탈퇴 시 사용자 소유 데이터를 모두 삭제한다")
-    void withdraw() {
+    @DisplayName("회원 탈퇴 시 식별자는 익명화하고 비식별 이력은 보존한다")
+    void withdraw_softDeletesAndAnonymizesAccount() {
         // given
+        User user = User.builder()
+                .id(1L)
+                .email(TEST_EMAIL)
+                .name(NAME)
+                .notificationEmail(NOTIFY_EMAIL)
+                .emailEnabled(true)
+                .webPushEnabled(true)
+                .fcmEnabled(true)
+                .discordEnabled(true)
+                .discordId("discord-id")
+                .role(Role.USER)
+                .build();
+        Subscription subscription = Subscription.builder()
+                .userId(1L)
+                .courseKey("CS101")
+                .isActive(true)
+                .build();
+        Feedback feedback = Feedback.builder()
+                .user(user)
+                .type(bhoon.sugang_helper.feedback.domain.FeedbackType.BUG)
+                .title("제목")
+                .content("내용")
+                .build();
+
+        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
+        when(subscriptionRepository.findByUserId(1L)).thenReturn(List.of(subscription));
+        when(feedbackRepository.findAllByUserId(1L)).thenReturn(List.of(feedback));
+
+        // when
+        userService.withdraw();
+
+        // then
+        assertThat(user.isDeleted()).isTrue();
+        assertThat(user.getEmail()).isEqualTo("deleted-1@deleted.invalid");
+        assertThat(user.getName()).isEqualTo("탈퇴한 사용자");
+        assertThat(user.getNotificationEmail()).isNull();
+        assertThat(user.getDiscordId()).isNull();
+        assertThat(user.getEnabledNotificationChannels()).isEmpty();
+        assertThat(subscription.isActive()).isFalse();
+        assertThat(feedback.getDeletedAt()).isNotNull();
+
+        verify(jwtProvider).revokeAllRefreshTokens(TEST_EMAIL);
+        verify(emailVerificationService).clearVerificationState(1L, TEST_EMAIL, NOTIFY_EMAIL);
+        verify(userRepository).saveAndFlush(user);
+        verify(subscriptionRepository).findByUserId(1L);
+        verify(userDeviceRepository, times(1)).deleteAllByUserId(1L);
+        verify(feedbackRepository).findAllByUserId(1L);
+        verify(subscriptionRepository, never()).deleteAllByUserId(1L);
+        verify(courseReviewRepository, never()).deleteAllByUserId(1L);
+        verify(courseEmojiReviewRepository, never()).deleteAllByUserId(1L);
+        verify(notificationHistoryRepository, never()).deleteAllByUserId(1L);
+        verify(feedbackRepository, never()).deleteAllByUserId(1L);
+        verify(fileUploadService, never()).deleteFilesAfterTransactionCommit(org.mockito.ArgumentMatchers.anyList());
+        verify(wishlistRepository, never()).deleteAllByUserId(1L);
+        verify(timetableRepository, never()).delete(org.mockito.ArgumentMatchers.any());
+        verify(userRepository, never()).delete(user);
+    }
+
+    @Test
+    @DisplayName("동시 수정 충돌이면 외부 인증 폐기 전에 탈퇴를 중단한다")
+    void withdraw_optimisticLockConflictStopsBeforeExternalRevocation() {
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
                 .name(NAME)
                 .role(Role.USER)
                 .build();
-        Timetable primaryTimetable = Timetable.builder()
-                .userId(1L)
-                .name("대표")
-                .isPrimary(true)
-                .build();
-        Timetable backupTimetable = Timetable.builder()
-                .userId(1L)
-                .name("보조")
-                .isPrimary(false)
-                .build();
-
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
-        when(timetableRepository.findByUserId(1L)).thenReturn(List.of(primaryTimetable, backupTimetable));
-        when(feedbackAttachmentRepository.findAllByFeedbackUserId(1L)).thenReturn(List.of(
-                FeedbackAttachment.builder().fileUrl("/uploads/withdrawal.png").originalName("withdrawal.png").build()));
+        when(userRepository.saveAndFlush(user))
+                .thenThrow(new ObjectOptimisticLockingFailureException(User.class, 1L));
 
-        // when
-        userService.withdraw();
+        assertThatThrownBy(userService::withdraw)
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
-        // then
-        verify(subscriptionRepository, times(1)).deleteAllByUserId(1L);
-        verify(userDeviceRepository, times(1)).deleteAllByUserId(1L);
-        verify(courseReviewRepository, times(1)).deleteAllByUserId(1L);
-        verify(courseEmojiReviewRepository, times(1)).deleteAllByUserId(1L);
-        verify(notificationHistoryRepository, times(1)).deleteAllByUserId(1L);
-        verify(feedbackRepository, times(1)).deleteAllByUserId(1L);
-        verify(fileUploadService, times(1)).deleteFilesAfterTransactionCommit(List.of("/uploads/withdrawal.png"));
-        verify(wishlistRepository, times(1)).deleteAllByUserId(1L);
-        verify(timetableRepository, times(1)).delete(primaryTimetable);
-        verify(timetableRepository, times(1)).delete(backupTimetable);
-        verify(userRepository, times(1)).delete(user);
+        verify(jwtProvider, never()).revokeAllRefreshTokens(TEST_EMAIL);
+        verify(emailVerificationService, never()).clearVerificationState(
+                org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString());
+        verify(userDeviceRepository, never()).deleteAllByUserId(1L);
     }
 
     @Test

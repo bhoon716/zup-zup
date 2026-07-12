@@ -103,6 +103,26 @@ public class EmailVerificationService {
     }
 
     /**
+     * 탈퇴 시 해당 계정과 이메일에 연결된 단기 인증 상태를 즉시 제거합니다.
+     */
+    public void clearVerificationState(Long userId, String... emails) {
+        redisService.deleteValues(SEND_COOLDOWN_PREFIX + "USER:" + userId);
+        if (emails == null) {
+            return;
+        }
+
+        for (String email : emails) {
+            if (email == null || email.isBlank()) {
+                continue;
+            }
+            redisService.deleteValues(getCodeKey(userId, email));
+            redisService.deleteValues(getVerifiedKey(userId, email));
+            redisService.deleteValues(getAttemptKey(userId, email));
+            redisService.deleteValues(SEND_COOLDOWN_PREFIX + "EMAIL:" + email);
+        }
+    }
+
+    /**
      * 실제 이메일을 발송하는 내부 메서드입니다.
      */
     private void sendEmail(String to, String title, String content) {

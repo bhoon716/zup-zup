@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
@@ -57,25 +58,26 @@ public class JwtProvider {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String createAccessToken(String email, String role) {
-        return createToken(email, role, accessTokenExpiration, ACCESS_TOKEN_TYPE, null);
+    public String createAccessToken(Long userId, String email, String role) {
+        return createToken(userId, email, role, accessTokenExpiration, ACCESS_TOKEN_TYPE, null);
     }
 
     /**
      * 새 로그인용 refresh token을 만들고 원문이 아닌 family와 digest만 Redis에 저장합니다.
      */
-    public String createRefreshToken(String email) {
+    public String createRefreshToken(Long userId, String email) {
         String tokenFamily = UUID.randomUUID().toString();
-        String refreshToken = createRefreshToken(email, tokenFamily);
+        String refreshToken = createRefreshToken(userId, email, tokenFamily);
         redisService.setValues(refreshTokenKey(email), refreshTokenRecord(tokenFamily, refreshToken), refreshTokenDuration());
         return refreshToken;
     }
 
-    private String createRefreshToken(String email, String tokenFamily) {
-        return createToken(email, null, refreshTokenExpiration, REFRESH_TOKEN_TYPE, tokenFamily);
+    private String createRefreshToken(Long userId, String email, String tokenFamily) {
+        return createToken(userId, email, null, refreshTokenExpiration, REFRESH_TOKEN_TYPE, tokenFamily);
     }
 
-    private String createToken(String email, String role, long expiration, String tokenType, String tokenFamily) {
+    private String createToken(Long userId, String email, String role, long expiration, String tokenType,
+                               String tokenFamily) {
         Date now = new Date();
         var builder = Jwts.builder()
                 .subject(email)
@@ -83,6 +85,7 @@ public class JwtProvider {
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiration))
                 .claim(CLAIM_TOKEN_TYPE, tokenType)
+                .claim(SecurityConstant.CLAIM_USER_ID, userId)
                 .signWith(key);
 
         if (role != null) {
@@ -100,11 +103,16 @@ public class JwtProvider {
         String email = claims.getSubject();
         String role = claims.get(CLAIM_ROLE, String.class);
 
-        List<SimpleGrantedAuthority> authorities = StringUtils.hasText(role)
-                ? Collections.singletonList(new SimpleGrantedAuthority(role))
-                : Collections.emptyList();
+        List<SimpleGrantedAuthority> authorities = Optional.ofNullable(role)
+                .filter(StringUtils::hasText)
+                .<List<SimpleGrantedAuthority>>map(value -> Collections.singletonList(new SimpleGrantedAuthority(value)))
+                .orElseGet(Collections::emptyList);
 
         return new UsernamePasswordAuthenticationToken(email, "", authorities);
+    }
+
+    public Long getUserId(String token) {
+        return getUserId(parseClaims(token));
     }
 
     public boolean validateToken(String token) {
@@ -118,7 +126,7 @@ public class JwtProvider {
     private boolean validateToken(String token, String expectedTokenType) {
         try {
             Claims claims = parseClaims(token);
-            if (!expectedTokenType.equals(claims.get(CLAIM_TOKEN_TYPE, String.class))) {
+            if (!expectedTokenType.equals(claims.get(CLAIM_TOKEN_TYPE, String.class)) || getUserId(claims) == null) {
                 return false;
             }
             if (ACCESS_TOKEN_TYPE.equals(expectedTokenType) && isBlacklisted(token)) {
@@ -144,6 +152,7 @@ public class JwtProvider {
      * Refresh token을 단일 사용으로 회전합니다. 기존 raw registry는 한 번만 읽어 opaque record로 전환합니다.
      */
     public String rotateRefreshToken(String email, String presentedToken) {
+        Long userId = getUserId(presentedToken);
         String key = refreshTokenKey(email);
         String storedValue = redisService.getValues(key);
         if (!StringUtils.hasText(storedValue)) {
@@ -152,7 +161,7 @@ public class JwtProvider {
 
         RefreshTokenRecord storedRecord = parseRefreshTokenRecord(storedValue);
         if (storedRecord == null) {
-            return rotateLegacyRefreshToken(key, storedValue, email, presentedToken);
+            return rotateLegacyRefreshToken(key, storedValue, userId, email, presentedToken);
         }
 
         String tokenFamily = getTokenFamily(presentedToken);
@@ -168,7 +177,7 @@ public class JwtProvider {
             return null;
         }
 
-        String newRefreshToken = createRefreshToken(email, tokenFamily);
+        String newRefreshToken = createRefreshToken(userId, email, tokenFamily);
         String newRecord = refreshTokenRecord(tokenFamily, newRefreshToken, storedRecord.legacyTokenHash());
         if (redisService.compareAndSetValues(key, storedRecord.serializedValue(), newRecord, refreshTokenDuration())) {
             return newRefreshToken;
@@ -208,6 +217,13 @@ public class JwtProvider {
     }
 
     /**
+     * 탈퇴처럼 모든 기기의 refresh session을 즉시 끊어야 할 때 현재 registry를 제거합니다.
+     */
+    public void revokeAllRefreshTokens(String email) {
+        redisService.deleteValues(refreshTokenKey(email));
+    }
+
+    /**
      * Access token 원문 대신 SHA-256 식별자로 blacklist를 저장합니다.
      */
     public void blacklistAccessToken(String token) {
@@ -217,13 +233,14 @@ public class JwtProvider {
         }
     }
 
-    private String rotateLegacyRefreshToken(String key, String storedToken, String email, String presentedToken) {
+    private String rotateLegacyRefreshToken(String key, String storedToken, Long userId, String email,
+                                            String presentedToken) {
         if (!constantTimeEquals(storedToken, presentedToken)) {
             return null;
         }
 
         String tokenFamily = UUID.randomUUID().toString();
-        String newRefreshToken = createRefreshToken(email, tokenFamily);
+        String newRefreshToken = createRefreshToken(userId, email, tokenFamily);
         String newRecord = refreshTokenRecord(tokenFamily, newRefreshToken, tokenHash(presentedToken));
         if (redisService.compareAndSetValues(key, storedToken, newRecord, refreshTokenDuration())) {
             return newRefreshToken;
@@ -293,6 +310,12 @@ public class JwtProvider {
 
     private String getTokenFamily(String token) {
         return parseClaims(token).get(CLAIM_TOKEN_FAMILY, String.class);
+    }
+
+    private Long getUserId(Claims claims) {
+        return Optional.ofNullable(claims.get(SecurityConstant.CLAIM_USER_ID, Number.class))
+                .map(Number::longValue)
+                .orElse(null);
     }
 
     private boolean constantTimeEquals(String first, String second) {

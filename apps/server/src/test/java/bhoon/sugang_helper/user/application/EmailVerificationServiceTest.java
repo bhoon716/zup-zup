@@ -166,4 +166,23 @@ class EmailVerificationServiceTest {
         // then
         assertThat(result).isTrue();
     }
+
+    @Test
+    @DisplayName("탈퇴 시 사용자와 이메일에 연결된 단기 인증 상태를 제거한다")
+    void clearVerificationState_removesUserAndEmailScopedKeys() {
+        Long userId = 1L;
+        String notificationEmail = "notify@example.com";
+
+        emailVerificationService.clearVerificationState(userId, EMAIL, notificationEmail);
+
+        verify(redisService).deleteValues("EMAIL_SEND_COOLDOWN:USER:" + userId);
+        verify(redisService).deleteValues("EMAIL_CODE:" + userId + ":" + EMAIL);
+        verify(redisService).deleteValues("EMAIL_VERIFIED:" + userId + ":" + EMAIL);
+        verify(redisService).deleteValues("EMAIL_CODE_ATTEMPTS:" + userId + ":" + EMAIL);
+        verify(redisService).deleteValues("EMAIL_SEND_COOLDOWN:EMAIL:" + EMAIL);
+        verify(redisService).deleteValues("EMAIL_CODE:" + userId + ":" + notificationEmail);
+        verify(redisService).deleteValues("EMAIL_VERIFIED:" + userId + ":" + notificationEmail);
+        verify(redisService).deleteValues("EMAIL_CODE_ATTEMPTS:" + userId + ":" + notificationEmail);
+        verify(redisService).deleteValues("EMAIL_SEND_COOLDOWN:EMAIL:" + notificationEmail);
+    }
 }

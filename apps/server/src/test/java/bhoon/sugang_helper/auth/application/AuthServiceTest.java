@@ -41,6 +41,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 @SuppressWarnings("PMD.AvoidDuplicateLiterals") // Existing cookie contract assertions intentionally repeat attributes.
 class AuthServiceTest {
 
+    private static final Long USER_ID = 1L;
+
     @Mock
     private JwtProvider jwtProvider;
     @Mock
@@ -71,17 +73,19 @@ class AuthServiceTest {
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
         given(request.getCookies()).willReturn(new Cookie[]{cookie});
         given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
+        given(jwtProvider.getUserId(refreshToken)).willReturn(USER_ID);
 
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
 
-        User user = User.builder().email(email).role(Role.USER).build();
-        given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
-        given(jwtProvider.createAccessToken(anyString(), anyString())).willReturn("new-access-token");
+        User user = User.builder().id(USER_ID).email(email).role(Role.USER).build();
+        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.of(user));
+        given(jwtProvider.createAccessToken(USER_ID, email, Role.USER.getKey())).willReturn("new-access-token");
         given(jwtProvider.rotateRefreshToken(email, refreshToken)).willReturn("new-refresh-token");
         Authentication sessionAuthentication = mock(Authentication.class);
         given(jwtProvider.getAuthentication("new-access-token")).willReturn(sessionAuthentication);
+        given(jwtProvider.getUserId("new-access-token")).willReturn(USER_ID);
         ReflectionTestUtils.setField(authService, "refreshCookieSecure", true);
 
         // when
@@ -115,19 +119,20 @@ class AuthServiceTest {
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
         given(request.getCookies()).willReturn(new Cookie[]{cookie});
         given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
+        given(jwtProvider.getUserId(refreshToken)).willReturn(USER_ID);
 
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
-        User user = User.builder().email(email).role(Role.USER).build();
-        given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+        User user = User.builder().id(USER_ID).email(email).role(Role.USER).build();
+        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.of(user));
         given(jwtProvider.rotateRefreshToken(email, refreshToken)).willReturn(null);
 
         // when & then
         assertThatThrownBy(() -> authService.reissue(request, response))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);
-        verify(jwtProvider, never()).createAccessToken(anyString(), anyString());
+        verify(jwtProvider, never()).createAccessToken(org.mockito.ArgumentMatchers.anyLong(), anyString(), anyString());
         verify(securityContextRepository, never()).saveContext(org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
@@ -137,6 +142,7 @@ class AuthServiceTest {
     void saveSessionAuthentication_removesLegacyRawAttributes() {
         Authentication authentication = mock(Authentication.class);
         given(request.getSession(false)).willReturn(session);
+        given(jwtProvider.getUserId("new-access-token")).willReturn(USER_ID);
         given(jwtProvider.getAuthentication("new-access-token")).willReturn(authentication);
         given(jwtProvider.getExpiration("new-access-token")).willReturn(120_000L);
         long beforeSave = System.currentTimeMillis();
@@ -148,6 +154,7 @@ class AuthServiceTest {
         ArgumentCaptor<Long> expiresAtCaptor = ArgumentCaptor.forClass(Long.class);
         verify(session).setAttribute(eq("AUTHENTICATION_EXPIRES_AT"), expiresAtCaptor.capture());
         assertThat(expiresAtCaptor.getValue()).isBetween(beforeSave + 120_000L, System.currentTimeMillis() + 120_000L);
+        verify(session).setAttribute("AUTHENTICATION_USER_ID", USER_ID);
         ArgumentCaptor<SecurityContext> contextCaptor = ArgumentCaptor.forClass(SecurityContext.class);
         verify(securityContextRepository).saveContext(contextCaptor.capture(), eq(request), eq(response));
         assertThat(contextCaptor.getValue().getAuthentication()).isSameAs(authentication);
@@ -162,6 +169,7 @@ class AuthServiceTest {
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
         given(request.getCookies()).willReturn(new Cookie[]{cookie});
         given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
+        given(jwtProvider.getUserId(refreshToken)).willReturn(USER_ID);
 
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
@@ -190,5 +198,26 @@ class AuthServiceTest {
         verify(jwtProvider).blacklistAccessToken("valid-access-token");
         verify(session).invalidate();
         verify(session, never()).getAttribute(anyString());
+    }
+
+    @Test
+    @DisplayName("같은 이메일로 재가입했어도 탈퇴 전 refresh token은 재발급하지 않는다")
+    void reissue_deletedAccountTokenIsRejectedBeforeRotation() {
+        String refreshToken = "old-refresh-token";
+        String email = "rejoined@example.com";
+        given(request.getCookies()).willReturn(new Cookie[]{new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken)});
+        given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
+        given(jwtProvider.getUserId(refreshToken)).willReturn(USER_ID);
+        Authentication authentication = mock(Authentication.class);
+        given(authentication.getName()).willReturn(email);
+        given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
+        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.reissue(request, response))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
+
+        verify(jwtProvider, never()).rotateRefreshToken(anyString(), anyString());
+        verify(jwtProvider, never()).createAccessToken(org.mockito.ArgumentMatchers.anyLong(), anyString(), anyString());
     }
 }

@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,6 +23,9 @@ import java.util.List;
 @Entity
 @Table(name = "users")
 public class User extends BaseEntity {
+
+    private static final String WITHDRAWN_USER_NAME = "탈퇴한 사용자";
+    private static final String WITHDRAWN_EMAIL_DOMAIN = "@deleted.invalid";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -57,6 +61,9 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Version
+    private Long version;
 
     @Builder
     public User(Long id, String name, String email, String notificationEmail, boolean emailEnabled,
@@ -108,6 +115,20 @@ public class User extends BaseEntity {
     public User update(String name) {
         this.name = name;
         return this;
+    }
+
+    @SuppressWarnings("PMD.NullAssignment")
+    public void withdraw() {
+        this.name = WITHDRAWN_USER_NAME;
+        this.email = "deleted-" + this.id + WITHDRAWN_EMAIL_DOMAIN;
+        this.notificationEmail = null;
+        this.emailEnabled = false;
+        this.webPushEnabled = false;
+        this.fcmEnabled = false;
+        this.discordId = null;
+        this.discordEnabled = false;
+        this.onboardingCompleted = false;
+        markDeleted();
     }
 
     public String getRoleKey() {

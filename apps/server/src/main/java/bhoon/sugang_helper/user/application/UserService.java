@@ -2,20 +2,13 @@ package bhoon.sugang_helper.user.application;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.common.util.LocalFileUploadService;
-import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
-import bhoon.sugang_helper.feedback.domain.FeedbackAttachmentRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.notification.application.NotificationService;
-import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.review.domain.CourseEmojiReviewRepository;
-import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.timetable.domain.Timetable;
-import bhoon.sugang_helper.timetable.domain.TimetableRepository;
 import bhoon.sugang_helper.user.application.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.user.application.command.SendVerificationCodeCommand;
 import bhoon.sugang_helper.user.application.command.UpdateProfileCommand;
@@ -28,7 +21,6 @@ import bhoon.sugang_helper.user.application.result.UserSettingsResult;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
-import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -48,16 +40,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final UserDeviceRepository userDeviceRepository;
-    private final TimetableRepository timetableRepository;
-    private final CourseReviewRepository courseReviewRepository;
-    private final CourseEmojiReviewRepository courseEmojiReviewRepository;
-    private final NotificationHistoryRepository notificationHistoryRepository;
     private final FeedbackRepository feedbackRepository;
-    private final FeedbackAttachmentRepository feedbackAttachmentRepository;
-    private final LocalFileUploadService fileUploadService;
-    private final WishlistRepository wishlistRepository;
     private final EmailVerificationService emailVerificationService;
     private final NotificationService notificationService;
+    private final JwtProvider jwtProvider;
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
@@ -76,7 +62,8 @@ public class UserService {
             return Optional.empty();
         }
 
-        return userRepository.findByEmail(email);
+        return userRepository.findByEmail(email)
+                .filter(user -> !user.isDeleted());
     }
 
     /**
@@ -116,39 +103,24 @@ public class UserService {
     }
 
     /**
-     * 회원 탈퇴 처리를 진행하며, 사용자 소유 데이터를 함께 정리합니다.
+     * 회원 탈퇴 시 즉시 접근을 끊고 식별자와 발송 대상만 제거합니다.
+     * 비식별 이력은 관리자 감사 및 통계를 위해 보존합니다.
      */
     @Transactional
     public void withdraw() {
         User user = getCurrentUser();
         Long userId = user.getId();
+        String email = user.getEmail();
+        String notificationEmail = user.getNotificationEmail();
 
-        deleteUserOwnedData(userId);
-        userRepository.delete(user);
-        log.info("[User] Delete account: userId={}, emailMasked={}", user.getId(),
-                SensitiveDataRedactor.maskEmail(user.getEmail()));
-    }
-
-    /**
-     * 회원 탈퇴 시 사용자 소유 데이터를 함께 정리합니다.
-     */
-    private void deleteUserOwnedData(Long userId) {
-        subscriptionRepository.deleteAllByUserId(userId);
+        user.withdraw();
+        userRepository.saveAndFlush(user);
+        jwtProvider.revokeAllRefreshTokens(email);
+        emailVerificationService.clearVerificationState(userId, email, notificationEmail);
+        subscriptionRepository.findByUserId(userId).forEach(subscription -> subscription.cancel());
         userDeviceRepository.deleteAllByUserId(userId);
-        courseReviewRepository.deleteAllByUserId(userId);
-        courseEmojiReviewRepository.deleteAllByUserId(userId);
-        notificationHistoryRepository.deleteAllByUserId(userId);
-        fileUploadService.deleteFilesAfterTransactionCommit(feedbackAttachmentRepository.findAllByFeedbackUserId(userId)
-                .stream()
-                .map(FeedbackAttachment::getFileUrl)
-                .toList());
-        feedbackRepository.deleteAllByUserId(userId);
-        wishlistRepository.deleteAllByUserId(userId);
-
-        List<Timetable> timetables = timetableRepository.findByUserId(userId);
-        for (Timetable timetable : timetables) {
-            timetableRepository.delete(timetable);
-        }
+        feedbackRepository.findAllByUserId(userId).forEach(feedback -> feedback.delete());
+        log.info("[User] Soft-deleted account: userId={}", userId);
     }
 
     /**
@@ -244,6 +216,7 @@ public class UserService {
     public User getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
         return userRepository.findByEmail(email)
+                .filter(user -> !user.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 }

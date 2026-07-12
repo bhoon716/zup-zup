@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.common.security.oauth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -52,12 +51,12 @@ class OAuth2SuccessHandlerTest {
         HttpServletResponse response = new MockHttpServletResponse();
         Authentication authentication = mock(Authentication.class);
         OAuth2User oauth2User = mock(OAuth2User.class);
-        User user = User.builder().email(EMAIL).role(Role.USER).build();
+        User user = User.builder().id(1L).email(EMAIL).role(Role.USER).build();
         given(authentication.getPrincipal()).willReturn(oauth2User);
         given(oauth2User.getAttributes()).willReturn(Map.of("email", EMAIL));
         given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
-        given(jwtProvider.createAccessToken(anyString(), anyString())).willReturn("access-token");
-        given(jwtProvider.createRefreshToken(EMAIL)).willReturn("refresh-token");
+        given(jwtProvider.createAccessToken(1L, EMAIL, Role.USER.getKey())).willReturn("access-token");
+        given(jwtProvider.createRefreshToken(1L, EMAIL)).willReturn("refresh-token");
 
         successHandler.onAuthenticationSuccess(request, response, authentication);
 
