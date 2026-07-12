@@ -30,14 +30,14 @@ pmd {
     toolVersion = "7.5.0"
     ruleSetFiles = files("config/pmd/pmd-ruleset.xml")
     ruleSets = [] // 기본 룰셋 무시하고 명시한 룰셋만 사용
-    ignoreFailures = true // 도입 초기이므로 위반 시 빌드 실패는 방지 (경고만)
+    ignoreFailures = false
     consoleOutput = true
 }
 
 checkstyle {
     toolVersion = "10.12.4"
     configFile = file("config/checkstyle/checkstyle.xml")
-    ignoreFailures = true // 도입 초기이므로 위반 시 빌드 실패는 방지
+    ignoreFailures = false
     showViolations = true
 }
 

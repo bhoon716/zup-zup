@@ -37,6 +37,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Existing cookie contract assertions intentionally repeat attributes.
 class AuthServiceTest {
 
     @Mock

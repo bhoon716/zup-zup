@@ -65,6 +65,7 @@ public class UserController {
 
     private static final String DISCORD_STATE_ATTRIBUTE = "DISCORD_OAUTH_STATE";
     private static final String DISCORD_RETURN_PATH_ATTRIBUTE = "DISCORD_OAUTH_RETURN_PATH";
+    private static final String ONBOARDING_PATH = "/onboarding";
 
     /**
      * 신규 가입 유저의 초기 설정(알림 이메일 등)을 저장하고 온보딩 상태를 완료로 변경합니다.
@@ -287,7 +288,7 @@ public class UserController {
     @GetMapping("/discord/authorize")
     public ResponseEntity<Void> startDiscordAuthorization(@RequestParam(defaultValue = "/settings") String returnPath,
                                                            HttpSession session) {
-        String safeReturnPath = "/onboarding".equals(returnPath) ? "/onboarding" : "/settings";
+        String safeReturnPath = ONBOARDING_PATH.equals(returnPath) ? ONBOARDING_PATH : "/settings";
         String state = createState();
         session.setAttribute(DISCORD_STATE_ATTRIBUTE, state);
         session.setAttribute(DISCORD_RETURN_PATH_ATTRIBUTE, safeReturnPath);
@@ -336,8 +337,8 @@ public class UserController {
      * 디스코드 연동 시도 시의 상태값에 따른 리다이렉트 경로를 결정합니다.
      */
     private String resolveDiscordRedirectPath(String state) {
-        if ("onboarding".equals(state) || "/onboarding".equals(state)) {
-            return "/onboarding";
+        if ("onboarding".equals(state) || ONBOARDING_PATH.equals(state)) {
+            return ONBOARDING_PATH;
         }
         return "/settings";
     }

@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Test fixtures use the persisted configuration key repeatedly.
 class CourseCrawlerTargetServiceTest {
 
     private static final String ACADEMIC_YEAR = "2026";

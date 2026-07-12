@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 @DataJpaTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Constraint scenarios share the same course fixture key.
 class UserDataConstraintTest {
 
     @Autowired

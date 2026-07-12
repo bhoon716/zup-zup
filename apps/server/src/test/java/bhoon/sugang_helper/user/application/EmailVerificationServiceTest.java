@@ -29,6 +29,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Redis key fixtures intentionally repeat the verification namespace.
 class EmailVerificationServiceTest {
 
     private static final String EMAIL = "test@example.com";

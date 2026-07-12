@@ -24,6 +24,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "courses")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuppressWarnings("PMD.TooManyFields") // Course is a direct mapping of the external academic-course record.
 public class Course extends BaseTimeEntity {
 
     @Id
@@ -263,4 +264,3 @@ public class Course extends BaseTimeEntity {
         return true;
     }
 }
-
