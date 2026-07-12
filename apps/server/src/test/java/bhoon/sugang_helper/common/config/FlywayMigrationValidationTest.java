@@ -3,14 +3,17 @@ package bhoon.sugang_helper.common.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.MySQLContainer;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
+@Tag("migration")
 class FlywayMigrationValidationTest {
 
     private static final String DATABASE_NAME = "sugang_helper";
@@ -30,6 +33,17 @@ class FlywayMigrationValidationTest {
             Map.entry("12", -336202670)
     );
 
+    @BeforeAll
+    static void requireDocker() {
+        requireDocker(DockerClientFactory.instance()::isDockerAvailable);
+    }
+
+    static void requireDocker(BooleanSupplier dockerAvailable) {
+        if (!dockerAvailable.getAsBoolean()) {
+            throw new IllegalStateException("Docker is required for migrationTest; Testcontainers cannot validate Flyway migrations");
+        }
+    }
+
     private static Integer tableCount(JdbcTemplate jdbcTemplate, String tableName) {
         return jdbcTemplate.queryForObject("""
                         SELECT COUNT(*)
@@ -43,11 +57,6 @@ class FlywayMigrationValidationTest {
 
     @Test
     void freshMySqlSchemaMigratesAndSeedsCrawlerSettings() {
-        Assumptions.assumeTrue(
-                DockerClientFactory.instance().isDockerAvailable(),
-                "Docker is not available, skipping test"
-        );
-
         try (MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
                 .withDatabaseName(DATABASE_NAME)
                 .withUsername(DATABASE_USER)
@@ -80,11 +89,6 @@ class FlywayMigrationValidationTest {
 
     @Test
     void existingSchemaHistoryValidatesBeforeApplyingNewMigrations() {
-        Assumptions.assumeTrue(
-                DockerClientFactory.instance().isDockerAvailable(),
-                "Docker is not available, skipping test"
-        );
-
         try (MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
                 .withDatabaseName(DATABASE_NAME)
                 .withUsername(DATABASE_USER)

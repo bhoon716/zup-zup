@@ -72,6 +72,7 @@ cd apps/server
 ## Common Commands
 
 - `./gradlew test`
+- `./gradlew migrationTest` (Docker가 필요한 Flyway fresh/upgrade 검증)
 - `./gradlew manualTest`
 - `./gradlew performanceTest`
 - `./gradlew bootJar`

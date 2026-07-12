@@ -88,14 +88,17 @@ jobs:
           cache: gradle
           cache-dependency-path: apps/server/build.gradle
 
-      - name: 서버 테스트 및 검사 실행
+      - name: Docker 확인 (migration validation)
+        run: docker info
+
+      - name: 서버 테스트, migration 및 검사 실행
         working-directory: apps/server
         env:
           AWS_ACCESS_KEY_ID: mock-access-key
           AWS_SECRET_ACCESS_KEY: mock-secret-key
           AWS_REGION: us-east-1
           SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
-        run: ./gradlew clean check --no-daemon
+        run: ./gradlew clean check migrationTest --no-daemon
 
 
 

@@ -15,6 +15,7 @@ This document merges the web and server release histories.
 - **기기 해제 토큰 경로 제거 준비**: 웹 클라이언트는 토큰을 URL이 아닌 `DELETE /api/v1/users/devices` 요청 본문으로 전송하도록 변경했습니다. 기존 `DELETE /api/v1/users/devices/token/{token}` 경로는 배포된 구 클라이언트 호환을 위해 소유자 범위 검사를 거쳐 한시적으로 유지하며, 접근 로그와 웹 번들에서 사용이 사라진 다음 breaking API 릴리스에서 제거합니다.
 - **민감값 로그·오류 응답 보호**: 알림·크롤러·OAuth 로그는 이메일 마스킹, 토큰/endpoint 지문, 안정 오류 코드만 남기고 HTTP query 값은 기록하지 않습니다. 공개 오류 응답은 원문 상세 대신 `X-Error-Id`/`correlationId`를 제공해 서버 로그와 대조할 수 있습니다.
 - **운영 진단 경계 축소**: 운영 actuator는 별도 8081 management port에서 `health`·`prometheus`만 제공하며, 앱→Prometheus→Grafana 내부망으로 격리됩니다. Swagger/OpenAPI·H2 console은 운영에서 비활성화되고, CORS는 명시 HTTPS origin만 credential 요청에 허용합니다. 다음 운영 배포 전 `SERVER_DOTENV`의 `APP_CORS_ALLOWED_ORIGINS`를 실제 서비스 HTTPS origin으로 갱신해야 합니다.
+- **Flyway 검증 분리**: 기본 `./gradlew test`는 빠른 피드백을 위해 migration 검증을 제외하고, `./gradlew migrationTest`가 MySQL fresh schema·checksum·upgrade path를 별도 report로 검증합니다. PR과 main 배포 전 CI는 Docker preflight 후 두 task를 모두 필수 실행합니다.
 
 ---
 

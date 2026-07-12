@@ -11,7 +11,7 @@
 2. 알림 worker가 delivery와 target을 모두 직렬 처리한다. Outbox 커밋 후 5초 안에 모든 eligible delivery의 첫 시도를 시작한다는 합의된 SLA를 현재 구조만으로는 보장할 수 없다.
 3. 회원 탈퇴가 `User`와 연관 데이터를 hard delete한다. 합의한 “접근은 즉시 차단, 계정 row는 soft delete, 식별자·토큰은 즉시 폐기/익명화, 비식별 이력 보존” 정책이 아직 구현되지 않았다.
 
-상태 갱신: 2026-07-13에 081, 090, 092를 종료했다. 토큰 기반 기기 해제는 현재 사용자 ID와 함께 범위를 제한하며, 새 웹 클라이언트는 토큰을 URL이 아닌 요청 본문으로 전송한다. 알림·크롤러·인증 오류는 원문 대신 마스킹·지문·안정 오류 코드와 correlation ID를 사용한다. 운영 actuator는 별도 내부 management port와 최소 endpoint로 분리하고, Swagger/H2와 wildcard credential CORS를 차단했다.
+상태 갱신: 2026-07-13에 081, 090, 092, 103을 종료했다. 토큰 기반 기기 해제는 현재 사용자 ID와 함께 범위를 제한하며, 새 웹 클라이언트는 토큰을 URL이 아닌 요청 본문으로 전송한다. 알림·크롤러·인증 오류는 원문 대신 마스킹·지문·안정 오류 코드와 correlation ID를 사용한다. 운영 actuator는 별도 내부 management port와 최소 endpoint로 분리하고, Swagger/H2와 wildcard credential CORS를 차단했다. Flyway migration 검증은 기본 피드백 경로에서 분리했지만 PR·배포 gate는 유지했다.
 
 ## 확정된 운영 기준
 
@@ -33,7 +33,7 @@
 | P1 | 알림 | [087](../.agents/issues/open/ISSUE-087-SERVER-NOTIFICATION-FANOUT-SLA), [088](../.agents/issues/open/ISSUE-088-SERVER-NOTIFICATION-IDEMPOTENCY-DLQ-REPLAY), [089](../.agents/issues/open/ISSUE-089-SERVER-NOTIFICATION-PROVIDER-RESILIENCE) |
 | P1 | API/크롤러 | [093](../.agents/issues/open/ISSUE-093-SERVER-API-PAGINATION-GUARDS), [094](../.agents/issues/open/ISSUE-094-SERVER-ANNOUNCEMENT-PAGINATION-SEARCH), [096](../.agents/issues/open/ISSUE-096-SERVER-CRAWLER-BULK-UPSERT), [097](../.agents/issues/open/ISSUE-097-SERVER-CRAWLER-FRESHNESS-UPSTREAM) |
 | P1 | 인프라/운영 | [098](../.agents/issues/open/ISSUE-098-INFRA-REDIS-HEALTH-STARTUP), [099](../.agents/issues/open/ISSUE-099-INFRA-METRICS-ALERTING-DURABILITY), [100](../.agents/issues/open/ISSUE-100-INFRA-DB-LEAST-PRIVILEGE-DR) |
-| P2 | UX/품질 | [084](../.agents/issues/open/ISSUE-084-SERVER-FEEDBACK-METADATA-SAFETY), [085](../.agents/issues/open/ISSUE-085-SERVER-ADMIN-ACTION-LOG-STRUCTURED), [095](../.agents/issues/open/ISSUE-095-SERVER-COURSE-SEARCH-VALIDATION), [101](../.agents/issues/open/ISSUE-101-INFRA-RESOURCE-LIMITS), [102](../.agents/issues/open/ISSUE-102-CI-E2E-CRITICAL-FLOWS), [103](../.agents/issues/open/ISSUE-103-CI-MIGRATION-TASK-ISOLATION), [104](../.agents/issues/open/ISSUE-104-WEB-PREVIEW-DEPENDENCY-STABILITY), [105](../.agents/issues/open/ISSUE-105-SERVER-UPLOAD-IMAGE-LIMITS) |
+| P2 | UX/품질 | [084](../.agents/issues/open/ISSUE-084-SERVER-FEEDBACK-METADATA-SAFETY), [085](../.agents/issues/open/ISSUE-085-SERVER-ADMIN-ACTION-LOG-STRUCTURED), [095](../.agents/issues/open/ISSUE-095-SERVER-COURSE-SEARCH-VALIDATION), [101](../.agents/issues/open/ISSUE-101-INFRA-RESOURCE-LIMITS), [102](../.agents/issues/open/ISSUE-102-CI-E2E-CRITICAL-FLOWS), [103 (closed)](../.agents/issues/closed/ISSUE-103-CI-MIGRATION-TASK-ISOLATION), [104](../.agents/issues/open/ISSUE-104-WEB-PREVIEW-DEPENDENCY-STABILITY), [105](../.agents/issues/open/ISSUE-105-SERVER-UPLOAD-IMAGE-LIMITS) |
 
 ## 근거 요약
 
@@ -68,7 +68,7 @@
 - DB compose는 root password만 사용하며, `backup-log-state.sh`는 MySQL·Grafana·Nginx/cert 상태를 백업하지 않는다.
 - 서비스별 CPU/memory/pid limit이 없다.
 - web/server 테스트는 핵심 단위 테스트 중심이며 OAuth, refresh, 인증 첨부파일, 실제 push/fan-out의 browser/contract coverage가 없다.
-- Flyway 검증은 MySQL Testcontainer 2개를 각각 시작한다. 기존 측정에서 약 28초가 걸렸고, 전체 server suite는 약 36초였다. 3분 예산 안에서는 불필요하지 않지만 별도 migration task로 분리하면 로컬 피드백이 빨라진다.
+- Flyway 검증은 MySQL Testcontainer 2개를 각각 시작한다. 103에서 이를 `migrationTest`로 분리했고, 최신 local report 기준 기본 suite는 238개/6.236초, migration suite는 2개/18.261초다. PR·main CI는 둘 다 실행하며 Docker 미가용은 skip이 아니라 명시 실패로 남긴다. static container 재사용은 schema isolation이 필요한 후속 최적화다.
 - `apps/web/package.json`은 Next `16.3.0-preview.5`를 사용하고 README는 16.1.6을 가리킨다.
 
 ## 이미 해결되어 중복 생성하지 않은 항목
@@ -80,7 +80,7 @@
 각 이슈는 아래 순서대로 구현·검증·종료·커밋한다. 독립 항목도 커밋은 이슈별로 분리한다.
 
 1. 081 (closed) → 090 (closed) → 092 (closed): 즉시 악용 가능한 기기 삭제, 비밀값 노출, 외부 관리 경로를 먼저 차단했다.
-2. 103 → 091 → 082: migration 검증은 유지한 채 실행 단위를 분리하고, Redis 원문 토큰을 제거한 뒤 탈퇴 soft delete를 적용한다.
+2. 103 (closed) → 091 → 082: migration 검증은 유지한 채 실행 단위를 분리했고, 다음으로 Redis 원문 토큰을 제거한 뒤 탈퇴 soft delete를 적용한다.
 3. 085 → 083 → 104 → 084 → 105 → 086: 관리자 감사 기반을 만든 뒤 삭제 피드백·첨부파일 UX와 입력 안전성을 순서대로 보강한다.
 4. 098 → 100: Redis readiness/저장 상태를 먼저 안전하게 만든 뒤 DB 최소 권한·백업·restore drill을 처리한다. 098은 091 이후에만 Redis 영속화를 도입한다.
 5. 088 → 089 → 087: idempotency·DLQ replay 상태를 먼저 정의하고 provider timeout/실패 분류를 붙인 뒤 bounded fan-out과 5초 SLA를 구현한다. 기존 087~089의 순환 의존은 이 순서로 해소한다.

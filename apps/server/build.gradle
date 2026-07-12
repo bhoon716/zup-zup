@@ -155,8 +155,21 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform {
-        excludeTags 'manual', 'performance'
+        excludeTags 'manual', 'performance', 'migration'
     }
+}
+
+tasks.register('migrationTest', Test) {
+    group = 'verification'
+    description = 'Runs Flyway migration validation tests with MySQL Testcontainers.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+    useJUnitPlatform {
+        includeTags 'migration'
+    }
+    reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/migrationTest')
+    reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/migrationTest')
 }
 
 task manualTest(type: Test) {
