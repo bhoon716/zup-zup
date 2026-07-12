@@ -122,6 +122,8 @@ def _split_fragment(target: str) -> tuple[str, str | None]:
 
 
 def _resolve_target_path(source: Path, root: Path, raw_target: str) -> tuple[Path | None, str | None]:
+    if raw_target.startswith("file://"):
+        raw_target = raw_target[7:]
     if raw_target.startswith("#"):
         return source, raw_target[1:] or None
 
@@ -188,7 +190,7 @@ def find_broken_links_in_markdown(markdown_path: Path, root: Path) -> list[Broke
             )
             continue
 
-        if fragment:
+        if fragment and resolved_path.suffix == ".md":
             headings = headings_cache.get(resolved_path)
             if headings is None:
                 headings = _extract_headings(resolved_path)
