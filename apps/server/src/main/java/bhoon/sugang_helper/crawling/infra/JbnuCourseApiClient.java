@@ -3,6 +3,8 @@ package bhoon.sugang_helper.crawling.infra;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
@@ -50,11 +52,22 @@ public class JbnuCourseApiClient {
     private int maxRetries;
     @Value("${jbnu.api.retry-wait-ms:1000}")
     private int retryWaitMs;
+    @Value("${jbnu.api.max-response-bytes:10485760}")
+    private int maximumResponseBytes;
 
     /**
      * 특정 년도와 학기를 지정하여 JBNU API 서버로부터 강의 데이터를 XML 형식으로 가져옵니다.
      */
     public String fetchCourseDataXml(String year, String semester) {
+        try (InputStream responseStream = fetchCourseDataStream(year, semester)) {
+            return new String(responseStream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR,
+                    "JBNU API response could not be read: " + e.getMessage());
+        }
+    }
+
+    public InputStream fetchCourseDataStream(String year, String semester) {
         int retryCount = 0;
 
         while (true) {
@@ -71,7 +84,7 @@ public class JbnuCourseApiClient {
                 String payload = PAYLOAD_TEMPLATE.formatted(year, semester, wmonid, jsessionidsso, year, semester,
                         year);
 
-                return Jsoup.connect(apiUrl)
+                Connection.Response response = Jsoup.connect(apiUrl)
                         .header("Accept", "application/xml, text/xml, */*")
                         .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
                         .header("Content-Type", "text/xml")
@@ -82,11 +95,11 @@ public class JbnuCourseApiClient {
                                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Whale/4.35.351.12 Safari/537.36")
                         .requestBody(payload)
                         .timeout(timeoutMs)
-                        .maxBodySize(0)
+                        .maxBodySize(maximumResponseBytes)
                         .method(Connection.Method.POST)
                         .ignoreContentType(true)
-                        .execute()
-                        .body();
+                        .execute();
+                return new BoundedInputStream(response.bodyStream(), maximumResponseBytes);
             } catch (Exception e) {
                 retryCount++;
                 log.warn("[API Client] Failed to request course data (attempt {}/{}): yy={}, shtm={}, reason={}",

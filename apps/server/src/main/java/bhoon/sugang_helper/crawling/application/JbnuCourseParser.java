@@ -9,10 +9,14 @@ import bhoon.sugang_helper.course.domain.GradingMethod;
 import bhoon.sugang_helper.course.domain.LectureLanguage;
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.TargetGrade;
+import java.io.InputStream;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,12 +27,18 @@ import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
+import javax.xml.XMLConstants;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 @Slf4j
 @Component
+@SuppressWarnings("PMD.CyclomaticComplexity") // Supports both legacy DOM parsing and the bounded streaming path.
 public class JbnuCourseParser {
 
     private static final String DATASET_ID = "GRD_COUR001";
+    private static final String CLASS_TIME_COLUMN = "DAYTMCTNT";
     private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
     private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("\\s(?<grade>[1-6])(?=[\\s,]|$)");
     private static final Pattern TRAILING_NUMBER_IN_SUBJECT_PATTERN = Pattern
@@ -53,6 +63,120 @@ public class JbnuCourseParser {
             }
         }
         return courseList;
+    }
+
+    public Iterator<ParsedCourseDto> streamCourses(InputStream xmlStream) {
+        try {
+            XMLInputFactory factory = XMLInputFactory.newFactory();
+            factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+            factory.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
+            factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            return new StaxCourseIterator(factory.createXMLStreamReader(xmlStream));
+        } catch (XMLStreamException | IllegalArgumentException e) {
+            throw new IllegalArgumentException("Malformed crawler XML", e);
+        }
+    }
+
+    private Optional<ParsedCourseDto> processColumns(Map<String, String> columns) {
+        String sbjtCd = columns.get("SBJTCD");
+        String clss = columns.get("CLSS");
+        String year = columns.get("YY");
+        String semester = columns.get("SHTM");
+        String rawDepartment = columns.get("SUSTCDNM");
+        String gradeNm = columns.get("TLSNOBJFGNM");
+
+        if (sbjtCd == null || clss == null || year == null || semester == null) {
+            return Optional.empty();
+        }
+
+        LiberalArtsInfo liberalArts = new LiberalArtsInfo(columns.get("FLDFGNM"), columns.get("FLDDETAFGNM"));
+        StatusInfo statusInfo = new StatusInfo(DisclosureStatus.from(columns.get("PUBCYN")),
+                columns.get("NOPUBCRESNNM"));
+        TargetGrade targetGrade = parseTargetGrade(gradeNm, rawDepartment);
+        String subjectName = normalizeSubjectName(columns.get("SBJTNM"), clss);
+        String department = normalizeDepartmentName(rawDepartment, targetGrade);
+
+        return Optional.of(new ParsedCourseDto(
+                generateCourseKey(year, semester, sbjtCd, clss), sbjtCd, subjectName, clss,
+                columns.get("RPSTPROFNM"), safeParseInt(columns.get("LMTRCNT")),
+                safeParseInt(columns.get("TLSNRCNT")), targetGrade, year, semester,
+                CourseClassification.from(columns.get("CPTNFGNM")), department,
+                GradingMethod.from(columns.get("SCORTRETFGNM")), columns.get(CLASS_TIME_COLUMN),
+                columns.get("PNT"), LectureLanguage.from(columns.get("LTLANGFGNM")), statusInfo.disclosure,
+                statusInfo.disclosureReason, safeParseInt(columns.get("TM")), liberalArts.category,
+                liberalArts.detail, CourseAccreditation.from(columns.get("VLDFGNM")),
+                CourseStatus.from(columns.get("OPENLECTFGNM")), columns.get("VILROOMNOCTNT"),
+                "Y".equalsIgnoreCase(columns.get("SUBPLANYN")), columns.get("FLDCONVINFO"),
+                columns.get("CLSSOPRTDRCT"), columns.get("LESSTMFGNM"),
+                parseSchedules(columns.get(CLASS_TIME_COLUMN))));
+    }
+
+    private final class StaxCourseIterator implements Iterator<ParsedCourseDto> {
+
+        private final XMLStreamReader reader;
+        private ParsedCourseDto next;
+        private boolean inDataset;
+
+        private StaxCourseIterator(XMLStreamReader reader) {
+            this.reader = reader;
+            advance();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return next != null;
+        }
+
+        @Override
+        public ParsedCourseDto next() {
+            ParsedCourseDto current = next;
+            advance();
+            return current;
+        }
+
+        @SuppressWarnings("PMD.NullAssignment")
+        private void advance() {
+            next = null;
+            try {
+                while (reader.hasNext()) {
+                    int event = reader.next();
+                    if (event == XMLStreamReader.START_ELEMENT && "Dataset".equals(reader.getLocalName())) {
+                        inDataset = DATASET_ID.equals(reader.getAttributeValue(null, "id"));
+                    } else if (event == XMLStreamReader.END_ELEMENT && "Dataset".equals(reader.getLocalName())) {
+                        inDataset = false;
+                    } else if (inDataset && event == XMLStreamReader.START_ELEMENT
+                            && "Row".equals(reader.getLocalName())) {
+                        Optional<ParsedCourseDto> parsed = processColumns(readRow());
+                        if (parsed.isPresent()) {
+                            next = parsed.get();
+                            return;
+                        }
+                    }
+                }
+                if (inDataset) {
+                    throw new XMLStreamException("Unexpected end of crawler XML dataset");
+                }
+                reader.close();
+            } catch (XMLStreamException e) {
+                throw new IllegalArgumentException("Malformed crawler XML", e);
+            }
+        }
+
+        private Map<String, String> readRow() throws XMLStreamException {
+            Map<String, String> columns = new HashMap<>();
+            while (reader.hasNext()) {
+                int event = reader.next();
+                if (event == XMLStreamReader.START_ELEMENT && "Col".equals(reader.getLocalName())) {
+                    String id = reader.getAttributeValue(null, "id");
+                    if (id != null) {
+                        columns.put(id, normalizeClassroom(reader.getElementText().trim()));
+                    }
+                } else if (event == XMLStreamReader.END_ELEMENT && "Row".equals(reader.getLocalName())) {
+                    return columns;
+                }
+            }
+            throw new XMLStreamException("Unexpected end of crawler XML row");
+        }
     }
 
     /**
@@ -91,7 +215,7 @@ public class JbnuCourseParser {
                 CourseClassification.from(getColValue(row, "CPTNFGNM")),
                 department,
                 GradingMethod.from(getColValue(row, "SCORTRETFGNM")),
-                getColValue(row, "DAYTMCTNT"),
+                getColValue(row, CLASS_TIME_COLUMN),
                 getColValue(row, "PNT"),
                 LectureLanguage.from(getColValue(row, "LTLANGFGNM")),
                 statusInfo.disclosure,
@@ -106,7 +230,7 @@ public class JbnuCourseParser {
                 getColValue(row, "FLDCONVINFO"),
                 getColValue(row, "CLSSOPRTDRCT"),
                 getColValue(row, "LESSTMFGNM"),
-                parseSchedules(getColValue(row, "DAYTMCTNT"))
+                parseSchedules(getColValue(row, CLASS_TIME_COLUMN))
         ));
     }
 

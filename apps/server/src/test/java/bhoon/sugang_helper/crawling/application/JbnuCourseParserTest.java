@@ -1,16 +1,44 @@
 package bhoon.sugang_helper.crawling.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.TargetGrade;
 import java.time.LocalTime;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class JbnuCourseParserTest {
+
+    @Test
+    void streamCoursesReadsRowsIncrementally() {
+        String xmlData = """
+                <Root><Dataset id="GRD_COUR001"><Rows>
+                  <Row><Col id="SBJTCD">A001</Col><Col id="CLSS">01</Col><Col id="YY">2026</Col><Col id="SHTM">U211600010</Col><Col id="SBJTNM">First</Col></Row>
+                  <Row><Col id="SBJTCD">A002</Col><Col id="CLSS">01</Col><Col id="YY">2026</Col><Col id="SHTM">U211600010</Col><Col id="SBJTNM">Second</Col></Row>
+                </Rows></Dataset></Root>
+                """;
+
+        var iterator = parser.streamCourses(new java.io.ByteArrayInputStream(xmlData.getBytes(StandardCharsets.UTF_8)));
+
+        assertThat(iterator.next().courseKey()).isEqualTo("2026:U211600010:A001:01");
+        assertThat(iterator.next().courseKey()).isEqualTo("2026:U211600010:A002:01");
+        assertThat(iterator.hasNext()).isFalse();
+    }
+
+    @Test
+    void streamCoursesRejectsMalformedXml() {
+        var malformed = new java.io.ByteArrayInputStream(
+                "<Root><Dataset id='GRD_COUR001'><Rows><Row><Col id='SBJTCD'>A".getBytes(StandardCharsets.UTF_8));
+
+        assertThatThrownBy(() -> parser.streamCourses(malformed))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Malformed crawler XML");
+    }
 
     private final JbnuCourseParser parser = new JbnuCourseParser();
 

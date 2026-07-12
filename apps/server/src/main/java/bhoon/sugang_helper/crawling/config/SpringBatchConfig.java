@@ -7,6 +7,7 @@ import bhoon.sugang_helper.course.domain.CourseSeatHistory;
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
 import bhoon.sugang_helper.crawling.application.JbnuCourseParser;
+import bhoon.sugang_helper.crawling.application.JbnuCourseStaxItemReader;
 import bhoon.sugang_helper.crawling.infra.JbnuCourseApiClient;
 import bhoon.sugang_helper.course.infra.CourseSeatHistoryJpaRepository;
 import java.util.ArrayList;
@@ -21,7 +22,6 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.support.IteratorItemReader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -64,13 +64,7 @@ public class SpringBatchConfig {
             @Value("#{jobParameters['semester']}") String semester) {
         log.info("[SpringBatchConfig] Initializing crawlReader for year={}, semester={}", year, semester);
 
-        // Fetch XML and parse
-        String xmlResponse = apiClient.fetchCourseDataXml(year, semester);
-        List<ParsedCourseDto> parsedCourses = courseParser.parseCourses(xmlResponse);
-
-        log.info("[SpringBatchConfig] Successfully parsed {} courses for reader.", parsedCourses.size());
-
-        return new IteratorItemReader<>(parsedCourses);
+        return new JbnuCourseStaxItemReader(apiClient, courseParser, year, semester);
     }
 
     @Bean
