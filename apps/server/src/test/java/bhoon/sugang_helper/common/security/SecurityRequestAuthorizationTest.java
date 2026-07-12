@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bhoon.sugang_helper.admin.presentation.AdminController;
 import bhoon.sugang_helper.admin.application.AdminService;
+import bhoon.sugang_helper.admin.application.AdminAuditService;
+import bhoon.sugang_helper.admin.presentation.AdminActionLogController;
 import bhoon.sugang_helper.announcement.presentation.AnnouncementController;
 import bhoon.sugang_helper.announcement.application.AnnouncementSearchType;
 import bhoon.sugang_helper.announcement.application.AnnouncementService;
@@ -80,6 +82,8 @@ class SecurityRequestAuthorizationTest {
     @MockitoBean
     private AdminService adminService;
     @MockitoBean
+    private AdminAuditService adminAuditService;
+    @MockitoBean
     private AnnouncementService announcementService;
     @MockitoBean
     private FeedbackService feedbackService;
@@ -108,6 +112,30 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"))
                 .andExpect(jsonPath("$.path").value("/api/v1/admin/dashboard"));
+    }
+
+    @Test
+    void adminAuditLogsWithoutAuthenticationAreRejected() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/audit-logs"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+    }
+
+    @Test
+    void adminAuditLogsWithNonAdminUserAreForbidden() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/audit-logs").session(authenticatedSession("ROLE_USER")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("A002"));
+    }
+
+    @Test
+    void adminCanAccessAllAuditLogs() throws Exception {
+        given(adminAuditService.getActionLogs(org.mockito.ArgumentMatchers.any()))
+                .willReturn(org.springframework.data.domain.Page.empty());
+
+        mockMvc.perform(get("/api/v1/admin/audit-logs?page=1&size=2").session(authenticatedSession("ROLE_ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").isArray());
     }
 
     @Test
@@ -244,6 +272,7 @@ class SecurityRequestAuthorizationTest {
             CustomAccessDeniedHandler.class,
             CustomAuthenticationEntryPoint.class,
             AdminController.class,
+            AdminActionLogController.class,
             AnnouncementController.class,
             FeedbackController.class
     })

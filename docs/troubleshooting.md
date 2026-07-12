@@ -91,6 +91,14 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Operational policy: automatic purge is intentionally disabled until retention period and legal basis are reviewed. The compact preservation table and runbook are in [account-withdrawal-retention.md](account-withdrawal-retention.md).
 - Evidence: `UserServiceTest`, `UserDataConstraintTest`, `JwtProviderTest`, `JwtAuthenticationFilterTest`, `AuthServiceTest`, `CustomOAuth2UserServiceTest`, `NotificationChannelPolicyTest`, and `SecurityRequestAuthorizationTest`.
 
+### Structured administrator audit logs (2026-07-13)
+
+- Scenario: reply audit metadata was hand-built JSON that could fail on quotes or newlines and could duplicate reply bodies in the database and backups.
+- Result: metadata now uses the `admin-action` v1 envelope. Status changes keep only the before/after status; reply changes keep only length and an HMAC-SHA-256 fingerprint; attachment access keeps only the feedback ID. The admin-only paged endpoint never returns a `User`, email, or raw metadata.
+- Migration and retention: V18 rewrites reply metadata as `LEGACY_SANITIZED`, while whitelisted legacy enum status transitions become v1 `STATUS_CHANGED`, before making metadata non-null and indexing `(created_at, id)`. A configurable 180-day scheduled cleanup applies only to this minimized audit data; feedback bodies and attachments remain under the separate no-auto-purge policy.
+- Evidence: `AdminAuditServiceTest`, `AdminAuditLogRetentionSchedulerTest`, `FeedbackServiceTest`, `SecurityRequestAuthorizationTest`, and `FlywayMigrationValidationTest`; targeted server tests, static analysis, and `./gradlew migrationTest` passed.
+- Limitation: no DLQ replay action exists yet. `DELIVERY_REPLAY` is the common audit model prepared for `ISSUE-088`, which must call it after a successful replay request.
+
 ## Web Troubleshooting
 
 이 문서는 `web` 모듈 개발 중 발생한 문제와 기술적 해결책을 기록합니다.

@@ -95,6 +95,10 @@ app:
       user-per-minute: ${APP_FEEDBACK_USER_PER_MINUTE:5}
       ip-per-minute: ${APP_FEEDBACK_IP_PER_MINUTE:10}
       daily-quota: ${APP_FEEDBACK_DAILY_QUOTA:5}
+  admin-audit:
+    fingerprint-secret: "${APP_ADMIN_AUDIT_FINGERPRINT_SECRET:${JWT_SECRET:local-dev-admin-audit-fingerprint-secret}}"
+    retention-days: ${APP_ADMIN_AUDIT_RETENTION_DAYS:180}
+    retention-cron: "${APP_ADMIN_AUDIT_RETENTION_CRON:0 15 3 * * *}"
   notification:
     channels:
       email: ${APP_NOTIFICATION_EMAIL:true}

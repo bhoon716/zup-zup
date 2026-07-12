@@ -55,6 +55,19 @@ class FlywayMigrationValidationTest {
                 tableName);
     }
 
+    private static Integer indexCount(JdbcTemplate jdbcTemplate, String tableName, String indexName) {
+        return jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM information_schema.statistics
+                        WHERE table_schema = DATABASE()
+                          AND table_name = ?
+                          AND index_name = ?
+                        """,
+                Integer.class,
+                tableName,
+                indexName);
+    }
+
     @Test
     void freshMySqlSchemaMigratesAndSeedsCrawlerSettings() {
         try (MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
@@ -128,16 +141,72 @@ class FlywayMigrationValidationTest {
                             """,
                     false, existingUserEmail, false, false, "Existing User", false, "USER", false);
 
+            Long existingUserId = jdbcTemplate.queryForObject("SELECT id FROM users WHERE email = ?", Long.class,
+                    existingUserEmail);
+            jdbcTemplate.update("""
+                            INSERT INTO admin_action_logs (admin_id, action_type, target_type, target_id, meta_data)
+                            VALUES (?, 'REPLY_UPDATE', 'REPLY', ?, JSON_OBJECT('oldContent', 'legacy private reply'))
+                            """,
+                    existingUserId, 101L);
+            jdbcTemplate.update("""
+                            INSERT INTO admin_action_logs (admin_id, action_type, target_type, target_id, meta_data)
+                            VALUES (?, 'STATUS_CHANGE', 'FEEDBACK', ?,
+                                    JSON_OBJECT('oldStatus', 'PENDING', 'newStatus', 'COMPLETED'))
+                            """,
+                    existingUserId, 102L);
+            jdbcTemplate.update("""
+                            INSERT INTO admin_action_logs (admin_id, action_type, target_type, target_id, meta_data)
+                            VALUES (?, 'REPLY_DELETE', 'REPLY', ?,
+                                    JSON_OBJECT(
+                                        'schema', 'admin-action',
+                                        'version', 1,
+                                        'event', 'LEGACY_SANITIZED',
+                                        'data', JSON_OBJECT('reason', 'already_safe')
+                                    ))
+                            """,
+                    existingUserId, 103L);
+
             Flyway head = Flyway.configure()
                     .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
                     .locations("classpath:db/migration")
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(5);
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(6);
             head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("17");
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("18");
             assertThat(jdbcTemplate.queryForObject("SELECT version FROM users WHERE email = ?", Long.class,
                     existingUserEmail)).isZero();
+            assertThat(jdbcTemplate.queryForObject("""
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.event'))
+                            FROM admin_action_logs
+                            WHERE target_id = 101
+                            """, String.class)).isEqualTo("LEGACY_SANITIZED");
+            assertThat(jdbcTemplate.queryForObject("""
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.oldContent'))
+                            FROM admin_action_logs
+                            WHERE target_id = 101
+                            """, String.class)).isNull();
+            assertThat(jdbcTemplate.queryForObject("""
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.event'))
+                            FROM admin_action_logs
+                            WHERE target_id = 102
+                            """, String.class)).isEqualTo("STATUS_CHANGED");
+            assertThat(jdbcTemplate.queryForObject("""
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.data.previousStatus'))
+                            FROM admin_action_logs
+                            WHERE target_id = 102
+                            """, String.class)).isEqualTo("PENDING");
+            assertThat(jdbcTemplate.queryForObject("""
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.data.newStatus'))
+                            FROM admin_action_logs
+                            WHERE target_id = 102
+                            """, String.class)).isEqualTo("COMPLETED");
+            assertThat(jdbcTemplate.queryForObject("""
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.data.reason'))
+                            FROM admin_action_logs
+                            WHERE target_id = 103
+                            """, String.class)).isEqualTo("already_safe");
+            assertThat(indexCount(jdbcTemplate, "admin_action_logs", "idx_admin_action_logs_created_at_id")).isEqualTo(2);
         }
     }
 }

@@ -1,12 +1,10 @@
 package bhoon.sugang_helper.feedback.application;
 
+import bhoon.sugang_helper.admin.application.AdminAuditService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
-import bhoon.sugang_helper.feedback.domain.ActionType;
-import bhoon.sugang_helper.feedback.domain.AdminActionLog;
-import bhoon.sugang_helper.feedback.domain.AdminActionLogRepository;
 import bhoon.sugang_helper.feedback.domain.Feedback;
 import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
 import bhoon.sugang_helper.feedback.domain.FeedbackAttachmentRepository;
@@ -14,7 +12,6 @@ import bhoon.sugang_helper.feedback.domain.FeedbackReply;
 import bhoon.sugang_helper.feedback.domain.FeedbackReplyRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackStatus;
-import bhoon.sugang_helper.feedback.domain.TargetType;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
@@ -40,7 +37,7 @@ public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final FeedbackAttachmentRepository feedbackAttachmentRepository;
     private final FeedbackReplyRepository feedbackReplyRepository;
-    private final AdminActionLogRepository adminActionLogRepository;
+    private final AdminAuditService adminAuditService;
     private final UserRepository userRepository;
     private final LocalFileUploadService fileUploadService;
     private final RedisService redisService;
@@ -139,7 +136,7 @@ public class FeedbackService {
                 .toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public FeedbackAttachmentDownload getAttachment(User requester, Long feedbackId, Long attachmentId) {
         FeedbackAttachment attachment = feedbackAttachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
@@ -150,8 +147,11 @@ public class FeedbackService {
         if (!requester.getRole().equals(Role.ADMIN) && !requester.getId().equals(feedback.getUser().getId())) {
             throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
         }
-        return new FeedbackAttachmentDownload(fileUploadService.loadFile(attachment.getFileUrl()),
-                attachment.getOriginalName());
+        var resource = fileUploadService.loadFile(attachment.getFileUrl());
+        if (requester.getRole().equals(Role.ADMIN)) {
+            adminAuditService.recordAttachmentAccess(requester, attachmentId, feedbackId);
+        }
+        return new FeedbackAttachmentDownload(resource, attachment.getOriginalName());
     }
 
     /* 관리자 전용 기능 */
@@ -194,7 +194,7 @@ public class FeedbackService {
 
         FeedbackReply savedReply = feedbackReplyRepository.save(reply);
 
-        logAdminAction(admin, ActionType.REPLY_CREATE, TargetType.REPLY, savedReply.getId(), null);
+        adminAuditService.recordReplyCreated(admin, savedReply.getId(), feedbackId, request.content());
 
         return savedReply.getId();
     }
@@ -213,8 +213,7 @@ public class FeedbackService {
         String oldContent = reply.getContent();
         reply.updateContent(request.content());
 
-        logAdminAction(admin, ActionType.REPLY_UPDATE, TargetType.REPLY, reply.getId(),
-                "{\"oldContent\":\"" + oldContent + "\"}");
+        adminAuditService.recordReplyUpdated(admin, reply.getId(), reply.getFeedback().getId(), oldContent, request.content());
     }
 
     /**
@@ -228,9 +227,10 @@ public class FeedbackService {
         FeedbackReply reply = feedbackReplyRepository.findById(replyId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_REPLY_NOT_FOUND));
 
+        String content = reply.getContent();
         feedbackReplyRepository.delete(reply);
 
-        logAdminAction(admin, ActionType.REPLY_DELETE, TargetType.REPLY, replyId, null);
+        adminAuditService.recordReplyDeleted(admin, replyId, reply.getFeedback().getId(), content);
     }
 
     /**
@@ -247,23 +247,7 @@ public class FeedbackService {
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.updateStatus(request.status());
 
-        logAdminAction(admin, ActionType.STATUS_CHANGE, TargetType.FEEDBACK, feedback.getId(),
-                "{\"oldStatus\":\"" + oldStatus + "\", \"newStatus\":\"" + request.status() + "\"}");
-    }
-
-    /**
-     * 운영진의 액션(답변 등록/수정/삭제, 상태 변경 등)을 히스토리 형식으로 저장합니다.
-     */
-    private void logAdminAction(User admin, ActionType actionType, TargetType targetType, Long targetId,
-                                String metaData) {
-        AdminActionLog actionLog = AdminActionLog.builder()
-                .admin(admin)
-                .actionType(actionType)
-                .targetType(targetType)
-                .targetId(targetId)
-                .metaData(metaData)
-                .build();
-        adminActionLogRepository.save(actionLog);
+        adminAuditService.recordStatusChange(admin, feedbackId, oldStatus, request.status());
     }
 
     /**

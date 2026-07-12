@@ -89,6 +89,9 @@ app:
     authorized-redirect-uri: ${APP_OAUTH2_AUTHORIZED_REDIRECT_URI:http://localhost:3000}
   subscription:
     max-limit: ${APP_SUBSCRIPTION_MAX_LIMIT:10}
+  admin-audit:
+    fingerprint-secret: test-admin-audit-fingerprint-secret
+    retention-days: 0
   notification:
     channels:
       email: ${APP_NOTIFICATION_EMAIL:true}

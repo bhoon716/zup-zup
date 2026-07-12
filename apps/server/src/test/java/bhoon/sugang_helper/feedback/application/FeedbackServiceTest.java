@@ -9,14 +9,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import bhoon.sugang_helper.admin.application.AdminAuditService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
 import bhoon.sugang_helper.common.redis.RedisService;
-import bhoon.sugang_helper.feedback.domain.AdminActionLogRepository;
 import bhoon.sugang_helper.feedback.domain.Feedback;
 import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
 import bhoon.sugang_helper.feedback.domain.FeedbackAttachmentRepository;
+import bhoon.sugang_helper.feedback.domain.FeedbackReply;
 import bhoon.sugang_helper.feedback.domain.FeedbackReplyRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackStatus;
@@ -46,7 +47,7 @@ class FeedbackServiceTest {
     @Mock
     private FeedbackReplyRepository feedbackReplyRepository;
     @Mock
-    private AdminActionLogRepository adminActionLogRepository;
+    private AdminAuditService adminAuditService;
     @Mock
     private UserRepository userRepository;
     @Mock
@@ -176,6 +177,7 @@ class FeedbackServiceTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FEEDBACK_UNAUTHORIZED);
         verify(fileUploadService, never()).loadFile(any());
+        verify(adminAuditService, never()).recordAttachmentAccess(any(), any(), any());
     }
 
     @Test
@@ -201,6 +203,33 @@ class FeedbackServiceTest {
 
         assertThat(download.resource()).isSameAs(resource);
         assertThat(download.originalName()).isEqualTo("private.png");
+        verify(adminAuditService).recordAttachmentAccess(admin, attachmentId, feedbackId);
+    }
+
+    @Test
+    @DisplayName("관리자 첨부파일 리소스 해석이 실패하면 접근 감사 로그를 남기지 않는다.")
+    void getAttachment_doesNotAuditWhenAdminResourceLoadFails() {
+        Long feedbackId = 10L;
+        Long attachmentId = 20L;
+        User owner = User.builder().id(2L).role(Role.USER).build();
+        User admin = User.builder().id(1L).role(Role.ADMIN).build();
+        Feedback feedback = Feedback.builder().user(owner).build();
+        FeedbackAttachment attachment = FeedbackAttachment.builder()
+                .feedback(feedback)
+                .fileUrl("/uploads/missing.png")
+                .originalName("missing.png")
+                .build();
+        org.springframework.test.util.ReflectionTestUtils.setField(feedback, "id", feedbackId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attachment, "id", attachmentId);
+        given(feedbackAttachmentRepository.findById(attachmentId)).willReturn(Optional.of(attachment));
+        given(fileUploadService.loadFile("/uploads/missing.png"))
+                .willThrow(new IllegalStateException("file unavailable"));
+
+        assertThatThrownBy(() -> feedbackService.getAttachment(admin, feedbackId, attachmentId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("file unavailable");
+
+        verify(adminAuditService, never()).recordAttachmentAccess(any(), any(), any());
     }
 
     @Test
@@ -241,6 +270,34 @@ class FeedbackServiceTest {
 
         // then
         assertThat(feedback.getStatus()).isEqualTo(FeedbackStatus.COMPLETED);
-        verify(adminActionLogRepository).save(any());
+        verify(adminAuditService).recordStatusChange(admin, feedbackId, FeedbackStatus.PENDING, FeedbackStatus.COMPLETED);
+    }
+
+    @Test
+    @DisplayName("관리자 답변 생성·수정·삭제는 공통 감사 서비스에 안전한 요약을 기록한다.")
+    void manageFeedbackReply_recordsSharedAuditEvents() {
+        Long adminId = 1L;
+        Long feedbackId = 10L;
+        Long replyId = 20L;
+        User admin = User.builder().id(adminId).build();
+        Feedback feedback = Feedback.builder().title("제목").build();
+        FeedbackReply reply = FeedbackReply.builder().feedback(feedback).admin(admin).content("기존 \"답변\"\n😀").build();
+        FeedbackReplyCreateRequest createRequest = new FeedbackReplyCreateRequest("새 답변");
+        FeedbackReplyUpdateRequest updateRequest = new FeedbackReplyUpdateRequest("수정 답변");
+        org.springframework.test.util.ReflectionTestUtils.setField(feedback, "id", feedbackId);
+        org.springframework.test.util.ReflectionTestUtils.setField(reply, "id", replyId);
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
+        given(feedbackReplyRepository.save(any(FeedbackReply.class))).willReturn(reply);
+        given(feedbackReplyRepository.findById(replyId)).willReturn(Optional.of(reply));
+
+        feedbackService.createFeedbackReply(adminId, feedbackId, createRequest);
+        feedbackService.updateFeedbackReply(adminId, replyId, updateRequest);
+        feedbackService.deleteFeedbackReply(adminId, replyId);
+
+        verify(adminAuditService).recordReplyCreated(admin, replyId, feedbackId, "새 답변");
+        verify(adminAuditService).recordReplyUpdated(admin, replyId, feedbackId, "기존 \"답변\"\n😀", "수정 답변");
+        verify(adminAuditService).recordReplyDeleted(admin, replyId, feedbackId, "수정 답변");
+        verify(feedbackReplyRepository).delete(reply);
     }
 }

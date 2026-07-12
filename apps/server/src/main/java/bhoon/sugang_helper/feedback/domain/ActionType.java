@@ -8,5 +8,7 @@ public enum ActionType {
     REPLY_CREATE, // 운영진 답변 등록
     REPLY_UPDATE, // 운영진 답변 수정
     REPLY_DELETE, // 운영진 답변 삭제
-    FEEDBACK_DELETE // 문의글 삭제
+    FEEDBACK_DELETE, // 문의글 삭제
+    ATTACHMENT_ACCESS, // 첨부파일 접근
+    DELIVERY_REPLAY // DLQ 전송 재처리
 }
