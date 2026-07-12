@@ -106,6 +106,13 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Evidence: `FeedbackServiceTest`, `JdbcAdminFeedbackReadRepositoryTest`, `SecurityRequestAuthorizationTest`, and `apps/web/src/features/feedback/hooks/useFeedback.test.tsx`.
 - Limitation: this is a deliberate single-administrator policy, not an MFA or step-up authentication control. The accepted residual risk and no-auto-purge rule are in [account-withdrawal-retention.md](account-withdrawal-retention.md).
 
+### Feedback metadata validation (2026-07-13)
+
+- Scenario: `metaInfo` was an unchecked string written directly to MySQL JSON, while the browser collected a complete URL, user agent, platform, language, and timestamp. A malformed inner JSON value could fail late and an invalid multipart JSON was previously handled as a 500.
+- Result: the server now accepts only optional textual `os` (128 characters) and `language` (35 characters) in a 512 UTF-8 byte JSON object. It rejects unknown/non-text/duplicate/trailing or malformed content before user lookup, rate-limit increments, file upload, and database save; unreadable multipart JSON returns `400/G002`. The browser sends only the permitted fields, and the administrator projection remains metadata-free.
+- Evidence: `FeedbackMetadataNormalizerTest`, `FeedbackServiceTest`, `FeedbackControllerTest`, `GlobalExceptionHandlerTest`, `./gradlew check --no-daemon`, 167 Vitest tests, web lint, and production build.
+- Limitation: old rows are intentionally not rewritten because they are not exposed through the administrator projection and no current UI parses them. The server remains the authoritative boundary for non-browser clients.
+
 ### Web runtime and workspace lockfile policy (2026-07-13)
 
 - Scenario: the web runtime used `next@16.3.0-preview.5`, while README named an older version and `eslint-config-next` was a different release. A direct switch to current stable `16.2.10` restored the vulnerable nested PostCSS `8.4.31` package.

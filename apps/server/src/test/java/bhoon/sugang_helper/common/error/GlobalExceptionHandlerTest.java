@@ -9,7 +9,9 @@ import ch.qos.logback.core.read.ListAppender;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpInputMessage;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
@@ -56,6 +58,19 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(ErrorCode.CONCURRENT_MODIFICATION.getStatus());
         assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.CONCURRENT_MODIFICATION.getCode());
+        assertThat(response.getBody().getDetails()).isNull();
+    }
+
+    @Test
+    void unreadableJsonReturnsInvalidInputResponse() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/feedbacks");
+
+        ResponseEntity<ErrorResponse> response = new GlobalExceptionHandler()
+                .handleUnreadableMessage(request, new HttpMessageNotReadableException(
+                        "invalid JSON", org.mockito.Mockito.mock(HttpInputMessage.class)));
+
+        assertThat(response.getStatusCode()).isEqualTo(ErrorCode.INVALID_INPUT.getStatus());
+        assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.INVALID_INPUT.getCode());
         assertThat(response.getBody().getDetails()).isNull();
     }
 }

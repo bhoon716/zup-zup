@@ -44,6 +44,7 @@ public class FeedbackService {
     private final UserRepository userRepository;
     private final LocalFileUploadService fileUploadService;
     private final RedisService redisService;
+    private final FeedbackMetadataNormalizer feedbackMetadataNormalizer;
     @Value("${app.feedback.rate-limit.user-per-minute:5}")
     private long userRequestsPerMinute;
     @Value("${app.feedback.rate-limit.ip-per-minute:10}")
@@ -63,6 +64,7 @@ public class FeedbackService {
 
     @Transactional
     public Long createFeedback(Long userId, FeedbackCreateRequest request, List<MultipartFile> files, String clientIp) {
+        String normalizedMetaInfo = feedbackMetadataNormalizer.normalize(request.metaInfo());
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
@@ -73,7 +75,7 @@ public class FeedbackService {
                 .type(request.type())
                 .title(request.title())
                 .content(request.content())
-                .metaInfo(request.metaInfo())
+                .metaInfo(normalizedMetaInfo)
                 .build();
 
         Feedback savedFeedback = feedbackRepository.save(feedback);

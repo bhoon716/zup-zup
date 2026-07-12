@@ -14,6 +14,13 @@ type MockedApiClient = {
   post: ReturnType<typeof vi.fn>;
 };
 
+const readBlobText = (blob: Blob) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result));
+  reader.onerror = () => reject(reader.error);
+  reader.readAsText(blob);
+});
+
 const loadModules = async () => {
   const apiModule = await import("@/shared/api/client");
   const feedbackApi = await import("./feedback.api");
@@ -52,6 +59,29 @@ describe("feedback.api", () => {
       "/api/v1/admin/feedbacks/10/attachments/20/download",
       { confirmed: true },
       { responseType: "blob" }
+    );
+  });
+
+  it("피드백 생성 요청은 JSON metaInfo 문자열을 multipart feedback 파트에 담는다", async () => {
+    const { api, feedbackApi } = await loadModules();
+    api.post.mockResolvedValue({ data: { code: "SUCCESS", message: "ok", data: 10 } });
+
+    await feedbackApi.createFeedback({
+      type: "BUG",
+      title: "제목",
+      content: "내용",
+      metaInfo: JSON.stringify({ os: "MacIntel", language: "ko-KR" }),
+    }, []);
+
+    const formData = api.post.mock.calls[0][1] as FormData;
+    const feedbackPart = formData.get("feedback") as Blob;
+    const request = JSON.parse(await readBlobText(feedbackPart));
+
+    expect(JSON.parse(request.metaInfo)).toEqual({ os: "MacIntel", language: "ko-KR" });
+    expect(api.post).toHaveBeenCalledWith(
+      "/api/v1/feedbacks",
+      expect.any(FormData),
+      { headers: { "Content-Type": "multipart/form-data" } }
     );
   });
 });

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Suspense } from "react";
 
 import { compressImage } from "@/shared/lib/image";
+import { buildFeedbackMetadata } from "@/features/feedback/feedback-metadata";
 import { useCreateFeedback } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackCreateForm } from "@/features/feedback/components/feedback-create-form";
 
@@ -59,13 +60,7 @@ function FeedbackWritePageContent() {
 
   const handleFormSubmit = async (values: { type: "BUG" | "SUGGESTION" | "OTHER"; title: string; content: string }) => {
     try {
-      const metaInfo = JSON.stringify({
-        url: window.location.href,
-        userAgent: navigator.userAgent,
-        os: navigator.platform,
-        language: navigator.language,
-        timestamp: new Date().toISOString(),
-      });
+      const metaInfo = buildFeedbackMetadata(navigator.platform, navigator.language);
 
       await createFeedbackMutation.mutateAsync({ request: { ...values, metaInfo }, files });
 

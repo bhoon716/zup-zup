@@ -2,6 +2,7 @@ package bhoon.sugang_helper.feedback.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import bhoon.sugang_helper.admin.application.AdminAuditService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
@@ -37,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -63,6 +66,8 @@ class FeedbackServiceTest {
     private LocalFileUploadService fileUploadService;
     @Mock
     private RedisService redisService;
+    @Spy
+    private FeedbackMetadataNormalizer feedbackMetadataNormalizer = new FeedbackMetadataNormalizer(new ObjectMapper());
 
     @InjectMocks
     private FeedbackService feedbackService;
@@ -81,7 +86,7 @@ class FeedbackServiceTest {
         // given
         Long userId = 1L;
         User user = User.builder().id(userId).name("유저").build();
-        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "meta");
+        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
         MultipartFile mockFile = mock(MultipartFile.class);
         List<MultipartFile> files = List.of(mockFile);
 
@@ -100,11 +105,46 @@ class FeedbackServiceTest {
     }
 
     @Test
+    @DisplayName("손상된 환경 메타데이터는 저장과 요청 카운터 증가 전에 거부한다.")
+    void createFeedback_rejectsMalformedMetadataBeforeSaving() {
+        Long userId = 1L;
+        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{");
+
+        Throwable thrown = catchThrowable(() -> feedbackService.createFeedback(userId, request, List.of()));
+
+        assertThat(thrown)
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+        verify(userRepository, never()).findById(userId);
+        verify(redisService, never()).increment(any(), any());
+        verify(feedbackRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("허용된 환경 메타데이터는 고정된 허용 키 순서로 저장한다.")
+    void createFeedback_normalizesAllowedMetadataBeforeSaving() {
+        Long userId = 1L;
+        User user = User.builder().id(userId).name("유저").build();
+        FeedbackCreateRequest request = new FeedbackCreateRequest(
+                FeedbackType.BUG, "제목", "내용", "{\"language\":\"ko-KR\",\"os\":\"MacIntel\"}");
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(redisService.increment(any(), any())).willReturn(1L);
+        given(feedbackRepository.save(any(Feedback.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        feedbackService.createFeedback(userId, request, List.of());
+
+        org.mockito.ArgumentCaptor<Feedback> feedbackCaptor = org.mockito.ArgumentCaptor.forClass(Feedback.class);
+        verify(feedbackRepository).save(feedbackCaptor.capture());
+        assertThat(feedbackCaptor.getValue().getMetaInfo())
+                .isEqualTo("{\"os\":\"MacIntel\",\"language\":\"ko-KR\"}");
+    }
+
+    @Test
     @DisplayName("요청 한도를 초과한 사용자는 429 예외를 받는다.")
     void createFeedback_rejectsRateLimitedUser() {
         Long userId = 1L;
         User user = User.builder().id(userId).name("유저").build();
-        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "meta");
+        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(redisService.increment(any(), any())).willReturn(3L);
 
@@ -118,7 +158,7 @@ class FeedbackServiceTest {
     void createFeedback_allowsRequestInNewRateLimitWindow() {
         Long userId = 1L;
         User user = User.builder().id(userId).name("유저").build();
-        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "meta");
+        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(feedbackRepository.save(any(Feedback.class))).willAnswer(invocation -> invocation.getArgument(0));
         given(redisService.increment(any(), any())).willReturn(1L);
@@ -136,7 +176,7 @@ class FeedbackServiceTest {
         Long userId = 1L;
         User user = User.builder().id(userId).name("유저").build();
         MultipartFile oversizedFile = mock(MultipartFile.class);
-        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "meta");
+        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(oversizedFile.getSize()).willReturn(10_485_761L);
 
