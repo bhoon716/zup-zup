@@ -4,7 +4,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +12,7 @@ import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
 import bhoon.sugang_helper.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
+import bhoon.sugang_helper.notification.domain.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.notification.infra.DiscordNotificationSender;
 import bhoon.sugang_helper.notification.infra.EmailNotificationSender;
 import bhoon.sugang_helper.notification.infra.FcmNotificationSender;
@@ -26,6 +26,7 @@ import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.time.Duration;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +47,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import({NotificationService.class, NotificationChannelPolicy.class,
+@Import({NotificationService.class, NotificationChannelPolicy.class, SeatNotificationOutboxService.class,
         NotificationServiceTransactionTest.TestConfig.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class NotificationServiceTransactionTest {
@@ -60,6 +61,8 @@ class NotificationServiceTransactionTest {
 
     @Autowired
     private PlatformTransactionManager transactionManager;
+    @Autowired
+    private SeatNotificationOutboxRepository outboxRepository;
 
     @MockitoBean
     private RedisService redisService;
@@ -80,9 +83,14 @@ class NotificationServiceTransactionTest {
     @MockitoBean
     private DiscordNotificationSender discordNotificationSender;
 
+    @BeforeEach
+    void clearOutbox() {
+        outboxRepository.findAll().forEach(outboxRepository::delete);
+    }
+
     @Test
-    @DisplayName("커밋된 트랜잭션만 알림을 발송한다")
-    void deliversOnlyAfterCommit() {
+    @DisplayName("커밋된 트랜잭션만 outbox에 알림을 저장한다")
+    void persistsOnlyAfterCommit() {
         // given
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
@@ -111,8 +119,8 @@ class NotificationServiceTransactionTest {
         transactionTemplate.executeWithoutResult(status -> eventPublisher.publishEvent(event));
 
         // then
-        verify(notificationHistoryRepository, timeout(1000)).save(any(NotificationHistory.class));
-        verify(redisService, timeout(1000)).setValues(eq("ALERT:" + COURSE_KEY), eq("SENT"), any(Duration.class));
+        org.assertj.core.api.Assertions.assertThat(outboxRepository.count()).isEqualTo(1);
+        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -130,6 +138,7 @@ class NotificationServiceTransactionTest {
 
         // then
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
+        org.assertj.core.api.Assertions.assertThat(outboxRepository.count()).isZero();
         verify(redisService, never()).setValuesIfAbsent(anyString(), anyString(), any(Duration.class));
         verify(emailNotificationSender, never()).send(any(), anyString(), anyString());
     }

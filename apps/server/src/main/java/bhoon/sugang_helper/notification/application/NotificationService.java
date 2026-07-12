@@ -22,10 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * 사용자에게 다양한 채널(Email, FCM, WebPush, Discord)을 통해 알림을 발송하는 통합 서비스입니다. 중복 발송 방지 및 알림 이력 관리 기능을 포함합니다.
@@ -51,8 +48,6 @@ public class NotificationService {
     /**
      * 빈자리 발생 이벤트를 처리하여 구독자들에게 알림을 발송합니다.
      */
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleSeatOpenedEvent(SeatOpenedEvent event) {
         String redisKey = NOTIFICATION_KEY_PREFIX + event.courseKey();
         boolean acquired = redisService.setValuesIfAbsent(redisKey, "PENDING", DEDUP_TTL);
@@ -64,6 +59,32 @@ public class NotificationService {
         notifySubscribers(event);
         redisService.setValues(redisKey, "SENT", DEDUP_TTL);
         log.info("[Notification] Completed sending seat opening notifications. courseKey={}", event.courseKey());
+    }
+
+    public void deliverSeatOpening(Long userId, NotificationChannel channel,
+                                   bhoon.sugang_helper.notification.domain.SeatNotificationOutbox outbox) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        if (!notificationChannelPolicy.isChannelEnabled(user, channel)) {
+            return;
+        }
+        List<NotificationTarget> targets = notificationChannelPolicy.resolveTargets(
+                user, userDeviceRepository.findByUserId(userId), channel);
+        if (targets.isEmpty()) {
+            return;
+        }
+        NotificationSender sender = notificationSenders.stream()
+                .filter(candidate -> candidate.supports(channel))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
+                        "알림 채널 발송기가 없습니다: " + channel));
+        NotificationMessage message = createSeatOpenedMessage(new SeatOpenedEvent(
+                outbox.getCourseKey(), outbox.getCourseName(), outbox.getProfessor(),
+                outbox.getPreviousSeats(), outbox.getCurrentSeats()));
+        for (NotificationTarget target : targets) {
+            sender.send(target, message.title(), message.body());
+        }
+        saveHistory(userId, outbox.getCourseKey(), message, channel);
     }
 
     /**

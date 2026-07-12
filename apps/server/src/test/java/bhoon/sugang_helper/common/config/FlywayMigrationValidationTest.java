@@ -120,9 +120,9 @@ class FlywayMigrationValidationTest {
                     .locations("classpath:db/migration")
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(2);
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(4);
             head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("14");
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("16");
         }
     }
 }

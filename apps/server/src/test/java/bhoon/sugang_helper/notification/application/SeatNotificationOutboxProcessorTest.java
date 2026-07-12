@@ -1,0 +1,114 @@
+package bhoon.sugang_helper.notification.application;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import bhoon.sugang_helper.notification.domain.SeatNotificationDelivery;
+import bhoon.sugang_helper.notification.domain.SeatNotificationDeliveryStatus;
+import bhoon.sugang_helper.notification.domain.SeatNotificationOutbox;
+import bhoon.sugang_helper.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.notification.infra.SeatNotificationDeliveryJpaRepository;
+import bhoon.sugang_helper.notification.infra.SeatNotificationOutboxJpaRepository;
+import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
+import bhoon.sugang_helper.user.domain.UserDeviceRepository;
+import bhoon.sugang_helper.user.domain.UserRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+@ExtendWith(MockitoExtension.class)
+class SeatNotificationOutboxProcessorTest {
+
+    @Mock
+    private SeatNotificationOutboxJpaRepository outboxRepository;
+    @Mock
+    private SeatNotificationDeliveryJpaRepository deliveryRepository;
+    @Mock
+    private SubscriptionRepository subscriptionRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private UserDeviceRepository userDeviceRepository;
+    @Mock
+    private NotificationChannelPolicy notificationChannelPolicy;
+    @Mock
+    private NotificationService notificationService;
+    @Mock
+    private MeterRegistry meterRegistry;
+    @Mock
+    private Counter counter;
+    @InjectMocks
+    private SeatNotificationOutboxProcessor processor;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(processor, "maximumAttempts", 3);
+        ReflectionTestUtils.setField(processor, "batchSize", 10);
+        ReflectionTestUtils.setField(processor, "leaseSeconds", 60L);
+        when(meterRegistry.counter(anyString(), eq("channel"), eq("EMAIL"))).thenReturn(counter);
+    }
+
+    @Test
+    void failedChannelIsRetriedWithoutMarkingTheOutboxComplete() {
+        SeatNotificationDelivery delivery = processingDelivery();
+        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.countByOutboxIdAndStatusIn(eq(10L), org.mockito.ArgumentMatchers.anyList()))
+                .thenReturn(1L);
+        org.mockito.Mockito.doThrow(new RuntimeException("mail unavailable"))
+                .when(notificationService).deliverSeatOpening(eq(1L), eq(NotificationChannel.EMAIL),
+                        eq(delivery.getOutbox()));
+
+        processor.processDelivery(1L);
+
+        assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.PENDING);
+        assertThat(delivery.getAttempts()).isEqualTo(1);
+        verify(counter).increment();
+    }
+
+    @Test
+    void maximumFailuresMoveOnlyThatChannelToDlq() {
+        SeatNotificationDelivery delivery = processingDelivery();
+        ReflectionTestUtils.setField(delivery, "attempts", 2);
+        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.countByOutboxIdAndStatusIn(eq(10L), org.mockito.ArgumentMatchers.anyList()))
+                .thenReturn(0L);
+        when(deliveryRepository.countByOutboxIdAndStatus(10L, SeatNotificationDeliveryStatus.DLQ)).thenReturn(1L);
+        org.mockito.Mockito.doThrow(new RuntimeException("mail unavailable"))
+                .when(notificationService).deliverSeatOpening(eq(1L), eq(NotificationChannel.EMAIL),
+                        eq(delivery.getOutbox()));
+
+        processor.processDelivery(1L);
+
+        assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.DLQ);
+        verify(counter).increment();
+    }
+
+    private SeatNotificationDelivery processingDelivery() {
+        SeatNotificationOutbox outbox = SeatNotificationOutbox.builder()
+                .courseKey("course-key")
+                .courseName("Course")
+                .previousSeats(0)
+                .currentSeats(1)
+                .build();
+        ReflectionTestUtils.setField(outbox, "id", 10L);
+        SeatNotificationDelivery delivery = SeatNotificationDelivery.builder()
+                .outbox(outbox)
+                .userId(1L)
+                .channel(NotificationChannel.EMAIL)
+                .build();
+        ReflectionTestUtils.setField(delivery, "id", 1L);
+        delivery.claim(LocalDateTime.now().plusMinutes(1));
+        return delivery;
+    }
+}

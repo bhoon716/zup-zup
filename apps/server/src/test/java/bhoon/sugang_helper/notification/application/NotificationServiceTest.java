@@ -40,6 +40,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Notification state fixtures intentionally repeat Redis protocol values.
 class NotificationServiceTest {
 
     private static final String EMAIL = "test@example.com";
