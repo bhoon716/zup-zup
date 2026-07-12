@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js-16.1.6-black?logo=nextdotjs" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Next.js-16.3.0--preview.5-black?logo=nextdotjs" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19.2.7-61DAFB?logo=react&logoColor=black" alt="React" />
   <img src="https://img.shields.io/badge/Spring%20Boot-3.5.9-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot" />
   <img src="https://img.shields.io/badge/Docker%20Compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose" />
@@ -70,7 +70,7 @@ flowchart LR
 
 | 구분 | 기술 |
 | --- | --- |
-| Frontend | Next.js 16.1.6, React 19.2.7, TanStack Query, Zustand, React Hook Form, Zod |
+| Frontend | Next.js 16.3.0-preview.5, React 19.2.7, TanStack Query, Zustand, React Hook Form, Zod |
 | Backend | Spring Boot 3.5.9, JPA, Security, Redis, Flyway, Swagger/OpenAPI |
 | Infra | Docker Compose, MySQL, Redis, Prometheus, Grafana, Loki, Promtail, Nginx Proxy Manager |
 | 운영 | Vercel, OCI CPU |
@@ -99,7 +99,7 @@ flowchart LR
 루트 workspace는 Web과 공유 패키지를 함께 관리하며, Server와 Infra는 각자의 런타임 명령을 루트 스크립트로 연결합니다.
 
 ```bash
-npm install
+npm ci
 npm run web:dev
 npm run check
 npm run infra:verify
@@ -107,10 +107,11 @@ npm run infra:verify
 
 ### Web
 
+루트 workspace lockfile을 기준으로 실행합니다.
+
 ```bash
-cd apps/web
-npm install
-npm run dev
+npm ci
+npm run web:dev
 ```
 
 ### Server

@@ -1,0 +1,33 @@
+name: Web dependency audit
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-web:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v5
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: 잠금 의존성 설치
+        run: npm ci
+
+      - name: 프로덕션 의존성 보안 감사
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: 프로덕션 의존성 업데이트 보고
+        run: npm outdated --omit=dev || true

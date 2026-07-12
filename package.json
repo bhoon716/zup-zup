@@ -2,6 +2,9 @@
   "name": "jbnu-sugang-helper",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "workspaces": [
     "apps/web",
     "packages/shared"
@@ -15,5 +18,13 @@
     "server:build": "cd apps/server && ./gradlew build --no-daemon",
     "check": "npm run web:test && npm run web:lint && npm run server:build",
     "infra:verify": "bash infra/scripts/verify-compose-policy.sh infra/docker-compose.yml && bash infra/scripts/verify-log-policy.sh infra/docker-compose.yml"
+  },
+  "dependencies": {
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "typescript": "^5"
   }
 }

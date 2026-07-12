@@ -53,23 +53,19 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: 의존성 설치
-        working-directory: apps/web
         run: npm ci
 
       - name: 웹 테스트 실행
-        working-directory: apps/web
-        run: npm test -- --run
+        run: npm run web:test
 
       - name: 웹 린트 실행
-        working-directory: apps/web
-        run: npm run lint
+        run: npm run web:lint
 
       - name: 웹 빌드 실행
-        working-directory: apps/web
-        run: npm run build
+        run: npm run web:build
 
   verify-server:
     needs: changes

@@ -29,6 +29,7 @@
 /infra/.env
 
 # Web app build output and dependencies
+/node_modules/
 /apps/web/node_modules/
 /apps/web/.pnp
 /apps/web/.pnp.*

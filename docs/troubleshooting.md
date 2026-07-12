@@ -106,6 +106,13 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Evidence: `FeedbackServiceTest`, `JdbcAdminFeedbackReadRepositoryTest`, `SecurityRequestAuthorizationTest`, and `apps/web/src/features/feedback/hooks/useFeedback.test.tsx`.
 - Limitation: this is a deliberate single-administrator policy, not an MFA or step-up authentication control. The accepted residual risk and no-auto-purge rule are in [account-withdrawal-retention.md](account-withdrawal-retention.md).
 
+### Web runtime and workspace lockfile policy (2026-07-13)
+
+- Scenario: the web runtime used `next@16.3.0-preview.5`, while README named an older version and `eslint-config-next` was a different release. A direct switch to current stable `16.2.10` restored the vulnerable nested PostCSS `8.4.31` package.
+- Result: matching Next and ESLint preview versions are explicitly pinned as a temporary production exception because they include PostCSS `8.5.10`. The root workspace lockfile is now the only lockfile, CI installs from the root, and root-declared React/React DOM/ESLint/TypeScript preserve peer resolution after a clean workspace install.
+- Evidence: clean `npm ci`, 164 Vitest tests, lint (8 pre-existing warnings, no errors), production build, and `npm audit --omit=dev` with zero vulnerabilities.
+- Limitation: `@emoji-mart/react` still declares React 18-only peer metadata. Lockfile updates require a reviewed `npm install --package-lock-only --force`; its picker test, clean install, lint, and build remain required. The stable transition condition and weekly audit are in [web-dependency-policy.md](web-dependency-policy.md).
+
 ## Web Troubleshooting
 
 이 문서는 `web` 모듈 개발 중 발생한 문제와 기술적 해결책을 기록합니다.
