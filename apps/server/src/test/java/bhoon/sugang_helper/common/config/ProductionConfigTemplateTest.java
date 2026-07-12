@@ -55,4 +55,21 @@ class ProductionConfigTemplateTest {
 
         assertThat(content).contains("GOOGLE_REDIRECT_URI=");
     }
+
+    @Test
+    void productionConfigRestrictsDiagnosticEndpointsAndDeveloperTools() throws IOException {
+        String content = readClasspathResource("application-prod.yml");
+
+        assertThat(content)
+                .contains("h2:\n    console:\n      enabled: false")
+                .contains("management:\n  server:\n    port: 8081")
+                .contains("access:\n      default: none")
+                .contains("include: health, prometheus")
+                .contains("health:\n      access: read-only")
+                .contains("prometheus:\n      access: read-only")
+                .contains("api-docs:\n    enabled: false")
+                .contains("swagger-ui:\n    enabled: false")
+                .contains("require-https: true")
+                .doesNotContain("include: health, info, prometheus");
+    }
 }

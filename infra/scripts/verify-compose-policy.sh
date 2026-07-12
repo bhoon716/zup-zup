@@ -44,9 +44,16 @@ with open(sys.argv[1], encoding="utf-8") as handle:
     compose = json.load(handle)
 
 services = compose.get("services", {})
+networks = compose.get("networks", {})
 
 def fail(message: str) -> None:
     raise SystemExit(message)
+
+def service_network_names(service: dict) -> set[str]:
+    configured_networks = service.get("networks", {})
+    if isinstance(configured_networks, dict):
+        return set(configured_networks)
+    return set(configured_networks)
 
 for service_name, expected_image in expected_images.items():
     actual_image = services.get(service_name, {}).get("image")
@@ -56,6 +63,26 @@ for service_name, expected_image in expected_images.items():
 for service_name in ("db", "redis", "prometheus", "grafana", "loki", "promtail"):
     if services.get(service_name, {}).get("ports"):
         fail(f"{service_name} should not publish host ports")
+
+expected_internal_network_members = {
+    "sugang-helper-management": {"app", "prometheus"},
+    "sugang-helper-observability": {"prometheus", "grafana"},
+}
+for network_name, expected_members in expected_internal_network_members.items():
+    network = networks.get(network_name)
+    if not network or not network.get("internal", False):
+        fail(f"{network_name} must be an internal network")
+
+    actual_members = {
+        service_name
+        for service_name, service in services.items()
+        if network_name in service_network_names(service)
+    }
+    if actual_members != expected_members:
+        fail(
+            f"{network_name} members must be {sorted(expected_members)!r}: "
+            f"{sorted(actual_members)!r}"
+        )
 
 npm_ports = services.get("nginx-proxy-manager", {}).get("ports", [])
 expected_ports = {
@@ -104,6 +131,16 @@ if not any(
 
 app_volumes = services.get("app", {}).get("volumes", [])
 app = services.get("app", {})
+if any(int(port.get("target", -1)) == 8081 for port in app.get("ports", [])):
+    fail("app management port 8081 must not publish to the host")
+
+healthcheck = app.get("healthcheck", {})
+healthcheck_test = healthcheck.get("test", [])
+if isinstance(healthcheck_test, list):
+    healthcheck_test = " ".join(str(part) for part in healthcheck_test)
+if "127.0.0.1:8081/actuator/health" not in str(healthcheck_test):
+    fail("app healthcheck must use the internal management port")
+
 if app.get("user") != "10001:10001":
     fail("app must run as the dedicated non-root UID/GID")
 
@@ -127,5 +164,16 @@ if not any(
 
 print("compose policy verification passed")
 PY
+
+compose_directory="$(cd "$(dirname "${compose_file}")" && pwd)"
+if ! grep -F -- 'targets: ["app:8081"]' "${compose_directory}/prometheus/prometheus.yml" >/dev/null; then
+  echo "Prometheus must scrape the internal management port" >&2
+  exit 1
+fi
+
+if ! grep -F -- 'url: http://prometheus:9090' "${compose_directory}/grafana/provisioning/datasources/datasource.yml" >/dev/null; then
+  echo "Grafana must use the Prometheus service name on the observability network" >&2
+  exit 1
+fi
 
 "$(dirname "$0")/verify-log-policy.sh" "${compose_file}"

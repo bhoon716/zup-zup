@@ -176,6 +176,31 @@ jobs:
             fi
           done
 
+          active_profile_count=$(grep -Ec '^SPRING_PROFILES_ACTIVE=' apps/server/.env)
+          active_profiles=$(sed -n 's/^SPRING_PROFILES_ACTIVE=//p' apps/server/.env)
+          active_profiles="${active_profiles//[[:space:]]/}"
+          if [ "${active_profile_count}" -ne 1 ] \
+            || [[ ",${active_profiles}," != *",prod,"* ]]; then
+            echo "SPRING_PROFILES_ACTIVE must include prod exactly once" >&2
+            exit 1
+          fi
+
+          cors_origin_count=$(grep -Ec '^APP_CORS_ALLOWED_ORIGINS=' apps/server/.env)
+          cors_origins=$(sed -n 's/^APP_CORS_ALLOWED_ORIGINS=//p' apps/server/.env)
+          if [ "${cors_origin_count}" -ne 1 ]; then
+            echo "APP_CORS_ALLOWED_ORIGINS must be declared exactly once" >&2
+            exit 1
+          fi
+
+          IFS=',' read -r -a cors_origin_list <<< "${cors_origins}"
+          for origin in "${cors_origin_list[@]}"; do
+            origin="${origin//[[:space:]]/}"
+            if [[ -z "${origin}" || "${origin}" != https://* || "${origin}" == *"*"* ]]; then
+              echo "APP_CORS_ALLOWED_ORIGINS must contain only explicit HTTPS origins" >&2
+              exit 1
+            fi
+          done
+
           google_redirect_uri_count=$(grep -Ec '^GOOGLE_REDIRECT_URI=' apps/server/.env)
           if [ "${google_redirect_uri_count}" -ne 1 ] \
             || ! grep -Eq '^GOOGLE_REDIRECT_URI=https://[^[:space:]]+$' apps/server/.env; then

@@ -42,7 +42,8 @@ services:
         max-size: "10m"
         max-file: "5"
     networks:
-      - sugang-helper-network-server
+      - sugang-helper-management
+      - sugang-helper-observability
 
   grafana:
     image: grafana/grafana@sha256:6ea068891652aa6a65ca9065c26b89de939653803c836426970305c11fd00534
@@ -64,6 +65,7 @@ services:
         max-file: "5"
     networks:
       - sugang-helper-network-server
+      - sugang-helper-observability
 
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager@sha256:99a885f56ca2203a2eb352a5f9e2cd5c1e25786508debd725ad48ebe955d114f
@@ -137,7 +139,7 @@ services:
     extra_hosts:
       - "oasis.jbnu.ac.kr:114.70.191.85"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:${APP_PORT_CONTAINER}/actuator/health | grep -q '\"status\":\"UP\"'"]
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 20s
       timeout: 10s
       retries: 15
@@ -150,6 +152,7 @@ services:
         max-file: "5"
     networks:
       - sugang-helper-network-server
+      - sugang-helper-management
     depends_on:
       db:
         condition: service_healthy
@@ -162,6 +165,12 @@ networks:
     driver: bridge
     driver_opts:
       com.docker.network.driver.mtu: 9000
+  sugang-helper-management:
+    name: sugang-helper-management
+    internal: true
+  sugang-helper-observability:
+    name: sugang-helper-observability
+    internal: true
 
 volumes:
   db_data:

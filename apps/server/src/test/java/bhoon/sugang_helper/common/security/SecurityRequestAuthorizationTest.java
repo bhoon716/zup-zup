@@ -1,7 +1,10 @@
 package bhoon.sugang_helper.common.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,6 +40,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -44,7 +49,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest(classes = SecurityRequestAuthorizationTest.TestApplication.class)
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
-        "app.cors.allowed-origins=http://localhost:3000",
+        "app.cors.allowed-origins=https://zup-zup.com",
+        "app.cors.require-https=true",
+        "management.health.mail.enabled=false",
         "app.oauth2.success-redirect-uri=http://localhost:3000",
         "app.oauth2.failure-redirect-uri=http://localhost:3000/login?error=true",
         "app.oauth2.authorized-redirect-uri=http://localhost:3000",
@@ -119,6 +126,60 @@ class SecurityRequestAuthorizationTest {
         mockMvc.perform(get("/api/v1/feedbacks/10/attachments/20"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
+    }
+
+    @Test
+    void actuatorInfoWithoutAuthenticationIsRejected() throws Exception {
+        mockMvc.perform(get("/actuator/info"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+    }
+
+    @Test
+    void internalManagementHealthAndMetricsRemainAvailable() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(result -> assertThat(result.getResponse().getStatus())
+                        .isNotIn(HttpStatus.UNAUTHORIZED.value(), HttpStatus.FORBIDDEN.value()));
+    }
+
+    @Test
+    void developerToolsRequireAdminRole() throws Exception {
+        mockMvc.perform(get("/swagger-ui/index.html"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+
+        mockMvc.perform(get("/h2-console/"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanAccessDeveloperToolsOutsideProduction() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void corsAllowsOnlyTheExplicitOrigin() throws Exception {
+        mockMvc.perform(options("/api/v1/announcements")
+                        .header(HttpHeaders.ORIGIN, "https://zup-zup.com")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "https://zup-zup.com"))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
+
+        mockMvc.perform(options("/api/v1/announcements")
+                        .header(HttpHeaders.ORIGIN, "https://untrusted.example")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
+                .andExpect(status().isForbidden());
     }
 
     @SpringBootConfiguration
