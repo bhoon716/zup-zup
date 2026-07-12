@@ -62,11 +62,12 @@ public class UserDeviceService {
 
     @Transactional
     public void unregisterDevice(String token) {
-        userDeviceRepository.findByToken(token)
-                .ifPresent(device -> {
-                    userDeviceRepository.delete(device);
-                    log.info("[UserDevice] Unregistered device: tokenFingerprint={}", tokenFingerprint(token));
-                });
+        User user = getCurrentUserOrThrow();
+        long deletedCount = userDeviceRepository.deleteByTokenAndUserId(token, user.getId());
+        if (deletedCount > 0) {
+            log.info("[UserDevice] Unregistered device: userId={}, tokenFingerprint={}",
+                    user.getId(), tokenFingerprint(token));
+        }
     }
 
     @Transactional

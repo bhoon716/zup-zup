@@ -15,4 +15,6 @@ public interface UserDeviceJpaRepository extends JpaRepository<UserDevice, Long>
     List<UserDevice> findByUserIdIn(List<Long> userIds);
 
     Optional<UserDevice> findByToken(String token);
+
+    long deleteByTokenAndUserId(String token, Long userId);
 }

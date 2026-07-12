@@ -62,7 +62,7 @@ describe("user.api", () => {
     expect(api.get).toHaveBeenCalledTimes(2);
   });
 
-  it("unregisterDevice는 토큰을 URL 인코딩해 삭제 요청을 보낸다", async () => {
+  it("unregisterDevice는 토큰을 URL이 아닌 요청 본문으로 삭제 요청을 보낸다", async () => {
     const { api, userApi } = await loadModules();
     api.delete.mockResolvedValue({
       data: {
@@ -74,9 +74,9 @@ describe("user.api", () => {
 
     await userApi.unregisterDevice("token/with?unsafe=value");
 
-    expect(api.delete).toHaveBeenCalledWith(
-      "/api/v1/users/devices/token/token%2Fwith%3Funsafe%3Dvalue"
-    );
+    expect(api.delete).toHaveBeenCalledWith("/api/v1/users/devices", {
+      data: { token: "token/with?unsafe=value" },
+    });
   });
 
   it("sendTestNotification은 사용자 테스트 알림 API를 호출한다", async () => {

@@ -99,10 +99,11 @@ export const deleteDevice = async (id: number): Promise<CommonResponse<void>> =>
 };
 
 /**
- * 사용 중단 예정입니다. 토큰 기반 삭제 대신 숫자 식별자 기반 삭제 함수를 사용하세요.
+ * 현재 로그인한 사용자의 토큰에 해당하는 기기를 해제합니다.
+ * 토큰은 URL이 아닌 요청 본문으로 전송합니다.
  */
 export const unregisterDevice = async (token: string): Promise<CommonResponse<void>> => {
-  const { data } = await api.delete(`/api/v1/users/devices/token/${encodeURIComponent(token)}`);
+  const { data } = await api.delete('/api/v1/users/devices', { data: { token } });
   return data;
 };
 

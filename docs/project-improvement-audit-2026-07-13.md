@@ -11,6 +11,8 @@
 2. 알림 worker가 delivery와 target을 모두 직렬 처리한다. Outbox 커밋 후 5초 안에 모든 eligible delivery의 첫 시도를 시작한다는 합의된 SLA를 현재 구조만으로는 보장할 수 없다.
 3. 회원 탈퇴가 `User`와 연관 데이터를 hard delete한다. 합의한 “접근은 즉시 차단, 계정 row는 soft delete, 식별자·토큰은 즉시 폐기/익명화, 비식별 이력 보존” 정책이 아직 구현되지 않았다.
 
+상태 갱신: 2026-07-13에 081을 종료했다. 토큰 기반 기기 해제는 현재 사용자 ID와 함께 범위를 제한하며, 새 웹 클라이언트는 토큰을 URL이 아닌 요청 본문으로 전송한다.
+
 ## 확정된 운영 기준
 
 - 크롤러 주기: 매분.
@@ -27,7 +29,7 @@
 
 | 우선순위 | 영역 | 이슈 |
 | --- | --- | --- |
-| P1 | 보안/데이터 | [081](../.agents/issues/open/ISSUE-081-SERVER-OWNERSHIP-CHECK-DEVICE-TOKEN), [082](../.agents/issues/open/ISSUE-082-SERVER-SOFT-DELETE-ACCOUNT-ANONYMIZE), [083](../.agents/issues/open/ISSUE-083-SERVER-ADMIN-DELETED-FEEDBACK-AUDIT), [086](../.agents/issues/open/ISSUE-086-WEB-AUTHENTICATED-ATTACHMENT-RENDERING), [090](../.agents/issues/open/ISSUE-090-SERVER-REDACT-OUTBOUND-SECRETS), [091](../.agents/issues/open/ISSUE-091-SERVER-HASH-REDIS-TOKENS), [092](../.agents/issues/open/ISSUE-092-SERVER-SECURITY-ENDPOINT-CORS-HARDENING) |
+| P1 | 보안/데이터 | [081 (closed)](../.agents/issues/closed/ISSUE-081-SERVER-OWNERSHIP-CHECK-DEVICE-TOKEN), [082](../.agents/issues/open/ISSUE-082-SERVER-SOFT-DELETE-ACCOUNT-ANONYMIZE), [083](../.agents/issues/open/ISSUE-083-SERVER-ADMIN-DELETED-FEEDBACK-AUDIT), [086](../.agents/issues/open/ISSUE-086-WEB-AUTHENTICATED-ATTACHMENT-RENDERING), [090](../.agents/issues/open/ISSUE-090-SERVER-REDACT-OUTBOUND-SECRETS), [091](../.agents/issues/open/ISSUE-091-SERVER-HASH-REDIS-TOKENS), [092](../.agents/issues/open/ISSUE-092-SERVER-SECURITY-ENDPOINT-CORS-HARDENING) |
 | P1 | 알림 | [087](../.agents/issues/open/ISSUE-087-SERVER-NOTIFICATION-FANOUT-SLA), [088](../.agents/issues/open/ISSUE-088-SERVER-NOTIFICATION-IDEMPOTENCY-DLQ-REPLAY), [089](../.agents/issues/open/ISSUE-089-SERVER-NOTIFICATION-PROVIDER-RESILIENCE) |
 | P1 | API/크롤러 | [093](../.agents/issues/open/ISSUE-093-SERVER-API-PAGINATION-GUARDS), [094](../.agents/issues/open/ISSUE-094-SERVER-ANNOUNCEMENT-PAGINATION-SEARCH), [096](../.agents/issues/open/ISSUE-096-SERVER-CRAWLER-BULK-UPSERT), [097](../.agents/issues/open/ISSUE-097-SERVER-CRAWLER-FRESHNESS-UPSTREAM) |
 | P1 | 인프라/운영 | [098](../.agents/issues/open/ISSUE-098-INFRA-REDIS-HEALTH-STARTUP), [099](../.agents/issues/open/ISSUE-099-INFRA-METRICS-ALERTING-DURABILITY), [100](../.agents/issues/open/ISSUE-100-INFRA-DB-LEAST-PRIVILEGE-DR) |
@@ -77,7 +79,7 @@
 
 각 이슈는 아래 순서대로 구현·검증·종료·커밋한다. 독립 항목도 커밋은 이슈별로 분리한다.
 
-1. 081 → 090 → 092: 즉시 악용 가능한 기기 삭제, 비밀값 노출, 외부 관리 경로를 먼저 차단한다.
+1. 081 (closed) → 090 → 092: 즉시 악용 가능한 기기 삭제, 비밀값 노출, 외부 관리 경로를 먼저 차단한다.
 2. 103 → 091 → 082: migration 검증은 유지한 채 실행 단위를 분리하고, Redis 원문 토큰을 제거한 뒤 탈퇴 soft delete를 적용한다.
 3. 085 → 083 → 104 → 084 → 105 → 086: 관리자 감사 기반을 만든 뒤 삭제 피드백·첨부파일 UX와 입력 안전성을 순서대로 보강한다.
 4. 098 → 100: Redis readiness/저장 상태를 먼저 안전하게 만든 뒤 DB 최소 권한·백업·restore drill을 처리한다. 098은 091 이후에만 Redis 영속화를 도입한다.

@@ -172,17 +172,31 @@ class UserDeviceServiceTest {
     }
 
     @Test
-    @DisplayName("디바이스 해제 - 성공")
+    @DisplayName("디바이스 해제 - 현재 사용자 기기 성공")
     void unregisterDevice_Success() {
         // given
-        UserDevice device = mock(UserDevice.class);
-        given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.of(device));
+        mockUser();
+        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(1L);
 
         // when
         userDeviceService.unregisterDevice(TOKEN);
 
         // then
-        verify(userDeviceRepository, times(1)).delete(device);
+        verify(userDeviceRepository, times(1)).deleteByTokenAndUserId(TOKEN, 1L);
+    }
+
+    @Test
+    @DisplayName("디바이스 해제 - 다른 사용자 기기는 삭제하지 않는다")
+    void unregisterDevice_OtherUsersDevice_IsNoOp() {
+        // given
+        mockUser();
+        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(0L);
+
+        // when
+        userDeviceService.unregisterDevice(TOKEN);
+
+        // then
+        verify(userDeviceRepository, times(1)).deleteByTokenAndUserId(TOKEN, 1L);
     }
 
     @Test

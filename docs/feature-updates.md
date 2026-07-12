@@ -8,6 +8,14 @@ This document merges the web and server release histories.
 
 ---
 
+## Unreleased
+
+### Fixed
+
+- **기기 해제 토큰 경로 제거 준비**: 웹 클라이언트는 토큰을 URL이 아닌 `DELETE /api/v1/users/devices` 요청 본문으로 전송하도록 변경했습니다. 기존 `DELETE /api/v1/users/devices/token/{token}` 경로는 배포된 구 클라이언트 호환을 위해 소유자 범위 검사를 거쳐 한시적으로 유지하며, 접근 로그와 웹 번들에서 사용이 사라진 다음 breaking API 릴리스에서 제거합니다.
+
+---
+
 ## [v1.2.3] - 2026-06-16 ✨
 
 메인 랜딩 페이지에 생생한 사용자 후기 무한 Marquee 슬라이더가 도입되었습니다.
@@ -250,4 +258,3 @@ This document merges the web and server release histories.
 - **DB 마이그레이션 통합**: 산재된 스키마 변경 이력을 `V3__consolidate_schema_updates.sql`로 최적화 및 통합
 - **테스트 알림 정책**: 사용자별 10초 쿨타임 제한 및 운영 통계(히스토리) 제외 처리 적용
 - **도메인 모델 정규화**: 불필요한 `period` 필드 제거 및 시간표 검색 로직 고도화
-
