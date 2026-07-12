@@ -38,10 +38,10 @@ if not re.search(r'GOOGLE_REDIRECT_URI', workflow) or not re.search(
 ):
     raise SystemExit("deploy does not require an HTTPS GOOGLE_REDIRECT_URI")
 
-if 'SPRING_PROFILES_ACTIVE must include prod exactly once' not in workflow:
+if 'prod_profile_count' not in workflow or 'SPRING_PROFILES_ACTIVE must include prod exactly once' not in workflow:
     raise SystemExit("deploy does not require the production profile")
 
-if 'APP_CORS_ALLOWED_ORIGINS must contain only explicit HTTPS origins' not in workflow:
+if 'urlsplit' not in workflow or 'APP_CORS_ALLOWED_ORIGINS must contain only explicit HTTPS origins' not in workflow:
     raise SystemExit("deploy does not require explicit HTTPS CORS origins")
 
 if not re.search(

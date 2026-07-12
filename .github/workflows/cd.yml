@@ -179,8 +179,21 @@ jobs:
           active_profile_count=$(grep -Ec '^SPRING_PROFILES_ACTIVE=' apps/server/.env)
           active_profiles=$(sed -n 's/^SPRING_PROFILES_ACTIVE=//p' apps/server/.env)
           active_profiles="${active_profiles//[[:space:]]/}"
+          IFS=',' read -r -a active_profile_list <<< "${active_profiles}"
+          prod_profile_count=0
+          invalid_profile=false
+          for profile in "${active_profile_list[@]}"; do
+            if [[ -z "${profile}" ]]; then
+              invalid_profile=true
+              continue
+            fi
+            if [[ "${profile}" == "prod" ]]; then
+              ((prod_profile_count += 1))
+            fi
+          done
           if [ "${active_profile_count}" -ne 1 ] \
-            || [[ ",${active_profiles}," != *",prod,"* ]]; then
+            || [ "${prod_profile_count}" -ne 1 ] \
+            || [ "${invalid_profile}" = true ]; then
             echo "SPRING_PROFILES_ACTIVE must include prod exactly once" >&2
             exit 1
           fi
@@ -192,14 +205,35 @@ jobs:
             exit 1
           fi
 
-          IFS=',' read -r -a cors_origin_list <<< "${cors_origins}"
-          for origin in "${cors_origin_list[@]}"; do
-            origin="${origin//[[:space:]]/}"
-            if [[ -z "${origin}" || "${origin}" != https://* || "${origin}" == *"*"* ]]; then
-              echo "APP_CORS_ALLOWED_ORIGINS must contain only explicit HTTPS origins" >&2
-              exit 1
-            fi
-          done
+          if ! python3 - "${cors_origins}" <<'PY'
+          import sys
+          from urllib.parse import urlsplit
+
+          for raw_origin in sys.argv[1].split(","):
+              origin = raw_origin.strip()
+              try:
+                  parsed = urlsplit(origin)
+                  parsed.port
+              except ValueError:
+                  sys.exit(1)
+
+              if (
+                  not origin
+                  or "*" in origin
+                  or parsed.scheme.lower() != "https"
+                  or not parsed.hostname
+                  or parsed.username is not None
+                  or parsed.password is not None
+                  or parsed.path
+                  or parsed.query
+                  or parsed.fragment
+              ):
+                  sys.exit(1)
+          PY
+          then
+            echo "APP_CORS_ALLOWED_ORIGINS must contain only explicit HTTPS origins" >&2
+            exit 1
+          fi
 
           google_redirect_uri_count=$(grep -Ec '^GOOGLE_REDIRECT_URI=' apps/server/.env)
           if [ "${google_redirect_uri_count}" -ne 1 ] \
