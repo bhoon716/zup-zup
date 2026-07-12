@@ -21,7 +21,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ContentDisposition;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.core.io.Resource;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -80,7 +79,7 @@ public class AdminFeedbackController {
         var download = feedbackService.getAttachmentForAdmin(
                 userService.getCurrentUser(), feedbackId, attachmentId, request.confirmed());
         return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(download.contentType())
                 .header("Content-Disposition", ContentDisposition.attachment()
                         .filename(download.originalName(), StandardCharsets.UTF_8)
                         .build()

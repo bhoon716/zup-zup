@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { 
   Loader2, 
   MessageSquare, 
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import { Textarea } from "@/shared/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { 
   Select, 
   SelectContent, 
@@ -33,6 +34,17 @@ import {
 } from "@/features/feedback/hooks/useFeedback";
 import { AdminFeedbackDeletionFilter, FeedbackStatus, FeedbackType } from "@/shared/types/api";
 
+const PREVIEW_FILE_EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+};
+
+type AttachmentPreview = {
+  label: number;
+  objectUrl: string;
+  filename: string;
+};
+
 /**
  * 줍줍 관리자용 문의 및 건의 통합 관리 페이지입니다.
  * 모든 사용자의 의견을 리스트로 확인하고 답변을 작성/수정/삭제할 수 있습니다.
@@ -43,6 +55,9 @@ export default function AdminFeedbackPage() {
   const [replyContent, setReplyContent] = useState("");
   const [isReplySubmitting, setIsReplySubmitting] = useState(false);
   const [editingReplyId, setEditingReplyId] = useState<number | null>(null);
+  const [attachmentPreview, setAttachmentPreview] = useState<AttachmentPreview | null>(null);
+  const selectedFeedbackIdRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
 
   const { data: listData, isLoading: isListLoading } = useFeedbacksForAdmin(0, deletionFilter);
   const { data: detailData, isLoading: isDetailLoading } = useAdminFeedbackDetail(selectedId!, !!selectedId);
@@ -53,19 +68,38 @@ export default function AdminFeedbackPage() {
   const deleteReplyMutation = useDeleteFeedbackReply();
   const downloadAttachmentMutation = useAdminFeedbackAttachmentDownload();
 
+  useEffect(() => {
+    return () => {
+      if (attachmentPreview) {
+        URL.revokeObjectURL(attachmentPreview.objectUrl);
+      }
+    };
+  }, [attachmentPreview]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const resetReplyDraft = () => {
     setEditingReplyId(null);
     setReplyContent("");
   };
 
   const handleFeedbackSelection = (feedbackId: number) => {
+    selectedFeedbackIdRef.current = feedbackId;
     setSelectedId(feedbackId);
+    setAttachmentPreview(null);
     resetReplyDraft();
   };
 
   const handleDeletionFilterChange = (value: string) => {
+    selectedFeedbackIdRef.current = null;
     setDeletionFilter(value as AdminFeedbackDeletionFilter);
     setSelectedId(null);
+    setAttachmentPreview(null);
     resetReplyDraft();
   };
 
@@ -121,14 +155,26 @@ export default function AdminFeedbackPage() {
     setReplyContent(content);
   };
 
-  const handleAttachmentDownload = async (attachmentId: number) => {
-    if (!selectedId || !window.confirm("보존된 첨부파일을 열람하시겠습니까? 접근 기록이 남습니다.")) return;
+  const handleAttachmentDownload = async (attachmentId: number, label: number) => {
+    const feedbackId = selectedId;
+    if (!feedbackId || !window.confirm("보존된 첨부파일을 열람하시겠습니까? 접근 기록이 남습니다.")) return;
     try {
-      const blob = await downloadAttachmentMutation.mutateAsync({ feedbackId: selectedId, attachmentId });
+      const blob = await downloadAttachmentMutation.mutateAsync({ feedbackId, attachmentId });
+      if (!isMountedRef.current || selectedFeedbackIdRef.current !== feedbackId) {
+        return;
+      }
       const objectUrl = URL.createObjectURL(blob);
+      const contentType = blob.type.split(";", 1)[0].toLowerCase();
+      const extension = PREVIEW_FILE_EXTENSIONS[contentType];
+      const filename = `feedback-attachment-${attachmentId}${extension ? `.${extension}` : ""}`;
+      if (extension) {
+        setAttachmentPreview({ label, objectUrl, filename });
+        return;
+      }
+
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download = `feedback-attachment-${attachmentId}`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -157,6 +203,27 @@ export default function AdminFeedbackPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#0F0F0F] py-10 px-4">
+      <Dialog open={attachmentPreview !== null} onOpenChange={(open) => !open && setAttachmentPreview(null)}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>첨부파일 미리보기</DialogTitle>
+            <DialogDescription>인증된 요청으로 받은 정규화 첨부파일입니다.</DialogDescription>
+          </DialogHeader>
+          {attachmentPreview && (
+            <div className="space-y-4">
+              {/* eslint-disable-next-line @next/next/no-img-element -- authenticated Blob URLs are not available to Next Image. */}
+              <img
+                src={attachmentPreview.objectUrl}
+                alt={`첨부파일 ${attachmentPreview.label} 미리보기`}
+                className="max-h-[65vh] w-full rounded-lg border border-gray-200 object-contain dark:border-gray-800"
+              />
+              <Button asChild className="w-full sm:w-auto">
+                <a href={attachmentPreview.objectUrl} download={attachmentPreview.filename}>다운로드</a>
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       <div className="max-w-7xl mx-auto flex flex-col gap-8">
         <div className="border-b border-gray-200 dark:border-gray-800 pb-6">
           <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-1">전체 문의 관리</h1>
@@ -257,7 +324,7 @@ export default function AdminFeedbackPage() {
                     {detailData.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                         {detailData.attachments.map((attachment, index) => (
-                          <Button key={attachment.id} variant="outline" size="sm" className="text-xs" disabled={downloadAttachmentMutation.isPending} onClick={() => handleAttachmentDownload(attachment.id)}>
+                          <Button key={attachment.id} variant="outline" size="sm" className="text-xs" disabled={downloadAttachmentMutation.isPending} onClick={() => handleAttachmentDownload(attachment.id, index + 1)}>
                             <Download className="w-3.5 h-3.5 mr-1" /> 첨부파일 {index + 1}
                           </Button>
                         ))}

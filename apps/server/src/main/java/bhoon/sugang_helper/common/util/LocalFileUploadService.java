@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -21,6 +22,7 @@ import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -36,6 +38,9 @@ public class LocalFileUploadService {
     private static final String UPLOAD_URL_PREFIX = "/uploads/";
     private static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp");
+    private static final Map<String, MediaType> SAFE_PREVIEW_MEDIA_TYPES = Map.of(
+            "image/jpeg", MediaType.IMAGE_JPEG,
+            "image/png", MediaType.IMAGE_PNG);
     private final Tika tika = new Tika();
     private final ImageUploadSanitizer imageUploadSanitizer;
     @Value("${file.upload.dir:./data/uploads}")
@@ -133,15 +138,23 @@ public class LocalFileUploadService {
         }
     }
 
-    public Resource loadFile(String fileUrl) {
+    public LoadedFile loadFile(String fileUrl) {
         Path filePath = resolveStoredFile(fileUrl);
         try {
             Resource resource = new UrlResource(filePath.toUri());
             if (!resource.exists() || !resource.isReadable()) {
                 throw new CustomException(ErrorCode.NOT_FOUND);
             }
-            return resource;
+            return new LoadedFile(resource, safePreviewMediaType(filePath));
         } catch (MalformedURLException e) {
+            throw new CustomException(ErrorCode.NOT_FOUND);
+        }
+    }
+
+    private MediaType safePreviewMediaType(Path filePath) {
+        try (InputStream input = Files.newInputStream(filePath)) {
+            return SAFE_PREVIEW_MEDIA_TYPES.getOrDefault(tika.detect(input), MediaType.APPLICATION_OCTET_STREAM);
+        } catch (IOException e) {
             throw new CustomException(ErrorCode.NOT_FOUND);
         }
     }
@@ -228,5 +241,8 @@ public class LocalFileUploadService {
         } catch (IOException e) {
             log.warn("Failed to delete upload file: {}", filePath, e);
         }
+    }
+
+    public record LoadedFile(Resource resource, MediaType contentType) {
     }
 }

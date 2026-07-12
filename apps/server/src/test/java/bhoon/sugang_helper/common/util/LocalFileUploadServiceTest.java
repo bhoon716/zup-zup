@@ -27,6 +27,7 @@ import javax.imageio.ImageIO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -84,6 +85,24 @@ class LocalFileUploadServiceTest {
 
         assertThat(ImageIO.read(storedPath(fileUrl).toFile())).isNotNull();
         assertThat(stored).isNotEqualTo(source);
+    }
+
+    @Test
+    void storedContentTypeIsSniffedRatherThanTakenFromFilename() throws Exception {
+        configureUploadDirectory();
+        Files.write(uploadDirectory.resolve("mismatch.jpg"), imageBytes("png"));
+
+        assertThat(fileUploadService.loadFile("/uploads/mismatch.jpg").contentType())
+                .isEqualTo(MediaType.IMAGE_PNG);
+    }
+
+    @Test
+    void legacyUnsupportedImageFallsBackToDownloadContentType() throws Exception {
+        configureUploadDirectory();
+        Files.write(uploadDirectory.resolve("legacy.webp"), staticWebpBytes());
+
+        assertThat(fileUploadService.loadFile("/uploads/legacy.webp").contentType())
+                .isEqualTo(MediaType.APPLICATION_OCTET_STREAM);
     }
 
     @Test

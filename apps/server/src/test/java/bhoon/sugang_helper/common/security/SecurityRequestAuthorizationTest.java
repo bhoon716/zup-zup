@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -19,6 +20,9 @@ import bhoon.sugang_helper.announcement.application.AnnouncementSearchType;
 import bhoon.sugang_helper.announcement.application.AnnouncementService;
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.error.GlobalExceptionHandler;
 import bhoon.sugang_helper.common.security.jwt.JwtAuthenticationFilter;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.oauth.CustomOAuth2UserService;
@@ -26,9 +30,12 @@ import bhoon.sugang_helper.common.security.oauth.OAuth2FailureHandler;
 import bhoon.sugang_helper.common.security.oauth.OAuth2SuccessHandler;
 import bhoon.sugang_helper.common.config.SecurityConfig;
 import bhoon.sugang_helper.feedback.application.FeedbackService;
+import bhoon.sugang_helper.feedback.application.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.feedback.presentation.FeedbackController;
 import bhoon.sugang_helper.user.application.UserService;
 import bhoon.sugang_helper.user.domain.UserRepository;
+import bhoon.sugang_helper.user.domain.Role;
+import bhoon.sugang_helper.user.domain.User;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +56,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -178,6 +186,39 @@ class SecurityRequestAuthorizationTest {
                         .content("{\"confirmed\":true}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"));
+    }
+
+    @Test
+    void adminCanPreviewSanitizedAttachmentWithItsActualContentType() throws Exception {
+        User admin = User.builder().id(1L).role(Role.ADMIN).build();
+        given(userService.getCurrentUser()).willReturn(admin);
+        given(feedbackService.getAttachmentForAdmin(admin, 10L, 20L, true)).willReturn(
+                new FeedbackAttachmentDownload(new ByteArrayResource(new byte[] {1, 2, 3}),
+                        "attachment.png", MediaType.IMAGE_PNG));
+
+        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download")
+                        .session(authenticatedSession("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"confirmed\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.IMAGE_PNG))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        org.hamcrest.Matchers.containsString("attachment.png")));
+    }
+
+    @Test
+    void adminAttachmentRequestWithMismatchedFeedbackAndAttachmentReturnsNotFound() throws Exception {
+        User admin = User.builder().id(1L).role(Role.ADMIN).build();
+        given(userService.getCurrentUser()).willReturn(admin);
+        given(feedbackService.getAttachmentForAdmin(admin, 10L, 99L, true))
+                .willThrow(new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+
+        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/99/download")
+                        .session(authenticatedSession("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"confirmed\":true}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("F001"));
     }
 
     @Test
@@ -323,7 +364,8 @@ class SecurityRequestAuthorizationTest {
             AdminActionLogController.class,
             AdminFeedbackController.class,
             AnnouncementController.class,
-            FeedbackController.class
+            FeedbackController.class,
+            GlobalExceptionHandler.class
     })
     static class TestApplication {
     }

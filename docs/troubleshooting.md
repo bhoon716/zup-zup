@@ -120,6 +120,13 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Evidence: `LocalFileUploadServiceTest` covers static WebP decoding, PNG text and JPEG EXIF markers, dimension/pixel bombs, GIF/APNG/animated WebP, timeout, and failed-batch cleanup. `FeedbackServiceTest`, `GlobalExceptionHandlerTest`, and `SecurityRequestAuthorizationTest` cover normalized filename, parser error response, and bound ingress limits. `./gradlew check bootJar --no-daemon` passed; `bootJar` contains the WebP ImageIO SPI and its pure-Java support jars.
 - Limitation: Java interruption cannot hard-kill every decoder implementation. On timeout the request fails and the single no-queue worker is interrupted, so a non-cooperative decoder can temporarily make later image requests fail fast. A hard process sandbox is deferred unless production measurements require it.
 
+### Authenticated administrator attachment preview (2026-07-13)
+
+- Scenario: the administrator-only attachment POST already returned an authenticated blob, but it was always `application/octet-stream` and the UI immediately downloaded it with no preview. A delayed request could also open a preview for feedback that was no longer selected.
+- Result: the server sniffs stored bytes and labels only JPEG/PNG as previewable images; the controller retains attachment disposition and returns `application/octet-stream` for legacy WebP/GIF or unknown bytes. The single administrator's confirmed blob is reused for a dialog preview and extension-safe download. feedback–attachment pair lookup, 401/403 protection, and successful-access audit logging remain intact. Selection changes and unmounts discard late blobs before creating object URLs; active URLs are revoked on close.
+- Evidence: `LocalFileUploadServiceTest`, `FeedbackServiceTest`, `SecurityRequestAuthorizationTest`, and the administrator feedback page Vitest regression. `./gradlew check --no-daemon`, 171 Vitest tests, web lint, and production build passed.
+- Limitation: legacy files outside JPEG/PNG remain downloadable but intentionally have no inline preview; full browser E2E infrastructure remains ISSUE-102 scope.
+
 ### Web runtime and workspace lockfile policy (2026-07-13)
 
 - Scenario: the web runtime used `next@16.3.0-preview.5`, while README named an older version and `eslint-config-next` was a different release. A direct switch to current stable `16.2.10` restored the vulnerable nested PostCSS `8.4.31` package.

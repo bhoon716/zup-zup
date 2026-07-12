@@ -157,8 +157,8 @@ public class FeedbackService {
         if (!requester.getId().equals(feedback.getUser().getId())) {
             throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
         }
-        var resource = fileUploadService.loadFile(attachment.getFileUrl());
-        return new FeedbackAttachmentDownload(resource, attachment.getOriginalName());
+        var file = fileUploadService.loadFile(attachment.getFileUrl());
+        return new FeedbackAttachmentDownload(file.resource(), attachment.getOriginalName(), file.contentType());
     }
 
     /**
@@ -177,9 +177,9 @@ public class FeedbackService {
         AdminFeedbackReadRepository.FeedbackAttachmentAccess attachment = adminFeedbackReadRepository
                 .findAttachmentForAdmin(feedbackId, attachmentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
-        var resource = fileUploadService.loadFile(attachment.fileUrl());
+        var file = fileUploadService.loadFile(attachment.fileUrl());
         adminAuditService.recordAttachmentAccess(admin, attachmentId, feedbackId);
-        return new FeedbackAttachmentDownload(resource, attachment.originalName());
+        return new FeedbackAttachmentDownload(file.resource(), attachment.originalName(), file.contentType());
     }
 
     /* 관리자 전용 기능 */

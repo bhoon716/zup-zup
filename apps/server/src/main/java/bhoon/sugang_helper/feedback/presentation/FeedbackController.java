@@ -90,7 +90,7 @@ public class FeedbackController {
         FeedbackAttachmentDownload download = feedbackService.getAttachment(
                 userService.getCurrentUser(), feedbackId, attachmentId);
         return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(download.contentType())
                 .header("Content-Disposition", ContentDisposition.attachment()
                         .filename(download.originalName(), StandardCharsets.UTF_8)
                         .build()

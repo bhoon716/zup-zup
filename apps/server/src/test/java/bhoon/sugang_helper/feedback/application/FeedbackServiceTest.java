@@ -44,6 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
@@ -294,7 +295,8 @@ class FeedbackServiceTest {
                         attachmentId, feedbackId, "/uploads/private.png", "private.png");
         given(adminFeedbackReadRepository.findAttachmentForAdmin(feedbackId, attachmentId))
                 .willReturn(Optional.of(attachment));
-        given(fileUploadService.loadFile("/uploads/private.png")).willReturn(resource);
+        given(fileUploadService.loadFile("/uploads/private.png"))
+                .willReturn(new LocalFileUploadService.LoadedFile(resource, MediaType.IMAGE_PNG));
 
         assertThatThrownBy(() -> feedbackService.getAttachmentForAdmin(admin, feedbackId, attachmentId, false))
                 .isInstanceOf(CustomException.class)
@@ -304,8 +306,26 @@ class FeedbackServiceTest {
 
         assertThat(download.resource()).isSameAs(resource);
         assertThat(download.originalName()).isEqualTo("private.png");
+        assertThat(download.contentType()).isEqualTo(MediaType.IMAGE_PNG);
         verify(fileUploadService).loadFile("/uploads/private.png");
         verify(adminAuditService).recordAttachmentAccess(admin, attachmentId, feedbackId);
+    }
+
+    @Test
+    @DisplayName("관리자는 다른 피드백의 첨부파일 ID를 섞어 열람할 수 없다.")
+    void getAttachmentForAdmin_rejectsCrossFeedbackAttachment() {
+        Long feedbackId = 10L;
+        Long attachmentId = 20L;
+        User admin = User.builder().id(1L).role(Role.ADMIN).build();
+        given(adminFeedbackReadRepository.findAttachmentForAdmin(feedbackId, attachmentId))
+                .willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> feedbackService.getAttachmentForAdmin(admin, feedbackId, attachmentId, true))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FEEDBACK_NOT_FOUND);
+
+        verify(fileUploadService, never()).loadFile(any());
+        verify(adminAuditService, never()).recordAttachmentAccess(any(), any(), any());
     }
 
     @Test
