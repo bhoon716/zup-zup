@@ -52,7 +52,7 @@ public class DiscordOAuthService {
 
             return (String) response.get("access_token");
         } catch (Exception e) {
-            log.error("[DiscordOAuth] Exchange error: {}", e.getMessage());
+            log.error("[DiscordOAuth] Token exchange failed. exceptionType={}", e.getClass().getSimpleName());
             throw new CustomException(ErrorCode.INVALID_INPUT, "Discord 인증 중 오류가 발생했습니다.");
         }
     }
@@ -72,7 +72,7 @@ public class DiscordOAuthService {
 
             return (String) response.get("id");
         } catch (Exception e) {
-            log.error("[DiscordOAuth] User info error: {}", e.getMessage());
+            log.error("[DiscordOAuth] User info request failed. exceptionType={}", e.getClass().getSimpleName());
             throw new CustomException(ErrorCode.INVALID_INPUT, "Discord 유저 정보를 가져올 수 없습니다.");
         }
     }

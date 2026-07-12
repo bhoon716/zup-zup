@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.notification.application;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.notification.domain.SeatNotificationOutbox;
@@ -82,16 +83,17 @@ public class SeatNotificationOutboxProcessor {
                     delivery.getUserId(), delivery.getChannel(), delivery.getOutbox());
             delivery.markSent();
         } catch (RuntimeException e) {
-            boolean deadLettered = delivery.markFailure(e.getMessage(), maximumAttempts,
+            String failureCode = SensitiveDataRedactor.failureCode(e);
+            boolean deadLettered = delivery.markFailure(failureCode, maximumAttempts,
                     LocalDateTime.now().plusSeconds(backoffSeconds(delivery.getAttempts() + 1)));
             if (deadLettered) {
                 meterRegistry.counter("notification.outbox.dlq", "channel", delivery.getChannel().name()).increment();
-                log.error("[Notification Outbox] Delivery moved to DLQ. deliveryId={}, outboxId={}",
-                        delivery.getId(), delivery.getOutbox().getId(), e);
+                log.error("[Notification Outbox] Delivery moved to DLQ. deliveryId={}, outboxId={}, channel={}, failureCode={}",
+                        delivery.getId(), delivery.getOutbox().getId(), delivery.getChannel(), failureCode);
             } else {
                 meterRegistry.counter("notification.outbox.retry", "channel", delivery.getChannel().name()).increment();
-                log.warn("[Notification Outbox] Delivery scheduled for retry. deliveryId={}, attempts={}",
-                        delivery.getId(), delivery.getAttempts(), e);
+                log.warn("[Notification Outbox] Delivery scheduled for retry. deliveryId={}, attempts={}, channel={}, failureCode={}",
+                        delivery.getId(), delivery.getAttempts(), delivery.getChannel(), failureCode);
             }
         }
         updateOutboxTerminalStatus(delivery.getOutbox());

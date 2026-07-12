@@ -2,6 +2,7 @@ package bhoon.sugang_helper.notification.infra;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -46,6 +47,7 @@ public class EmailNotificationSender implements NotificationSender {
     @Override
     public void send(NotificationTarget target, String title, String message) {
         String recipient = target.getRecipient();
+        String recipientMasked = SensitiveDataRedactor.maskEmail(recipient);
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -58,10 +60,12 @@ public class EmailNotificationSender implements NotificationSender {
             helper.setText(htmlContent, true);
 
             javaMailSender.send(mimeMessage);
-            log.info("[EmailNotification] Dispatched - recipient={}, from={}", recipient, from);
+            log.info("[EmailNotification] Dispatched. recipientMasked={}, fromMasked={}",
+                    recipientMasked, SensitiveDataRedactor.maskEmail(from));
         } catch (Exception e) {
-            log.error("[EmailNotification] Failed to send email to {}", recipient, e);
-            throw new CustomException(ErrorCode.EMAIL_SEND_ERROR, "Recipient: " + recipient);
+            log.error("[EmailNotification] Dispatch failed. recipientMasked={}, failureCode={}, exceptionType={}",
+                    recipientMasked, ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            throw new CustomException(ErrorCode.EMAIL_SEND_ERROR);
         }
     }
 }

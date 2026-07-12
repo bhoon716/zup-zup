@@ -15,16 +15,21 @@ import bhoon.sugang_helper.notification.infra.SeatNotificationOutboxJpaRepositor
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,19 +66,34 @@ class SeatNotificationOutboxProcessorTest {
 
     @Test
     void failedChannelIsRetriedWithoutMarkingTheOutboxComplete() {
+        String secret = "fcm-token-should-not-appear";
         SeatNotificationDelivery delivery = processingDelivery();
         when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
         when(deliveryRepository.countByOutboxIdAndStatusIn(eq(10L), org.mockito.ArgumentMatchers.anyList()))
                 .thenReturn(1L);
-        org.mockito.Mockito.doThrow(new RuntimeException("mail unavailable"))
+        org.mockito.Mockito.doThrow(new RuntimeException(secret))
                 .when(notificationService).deliverSeatOpening(eq(1L), eq(NotificationChannel.EMAIL),
                         eq(delivery.getOutbox()));
+        Logger logger = (Logger) LoggerFactory.getLogger(SeatNotificationOutboxProcessor.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
 
-        processor.processDelivery(1L);
+        try {
+            processor.processDelivery(1L);
 
-        assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.PENDING);
-        assertThat(delivery.getAttempts()).isEqualTo(1);
-        verify(counter).increment();
+            assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.PENDING);
+            assertThat(delivery.getAttempts()).isEqualTo(1);
+            assertThat(delivery.getLastError()).isEqualTo("UNEXPECTED");
+            String messages = appender.list.stream()
+                    .map(ILoggingEvent::getFormattedMessage)
+                    .collect(Collectors.joining("\n"));
+            assertThat(messages).doesNotContain(secret).contains("failureCode=UNEXPECTED");
+            verify(counter).increment();
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
     }
 
     @Test

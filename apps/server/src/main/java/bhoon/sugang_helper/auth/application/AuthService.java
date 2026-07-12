@@ -11,6 +11,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.security.util.CookieUtil;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
@@ -69,7 +70,7 @@ public class AuthService {
         HttpSession session = request.getSession(true);
         session.setAttribute("ACCESS_TOKEN", newAccessToken);
         session.setAttribute("REFRESH_TOKEN", newRefreshToken);
-        log.info("[Auth] Refreshed session token. email={}", email);
+        log.info("[Auth] Refreshed session token. emailMasked={}", SensitiveDataRedactor.maskEmail(email));
 
         addRefreshTokenCookie(response, newRefreshToken);
 

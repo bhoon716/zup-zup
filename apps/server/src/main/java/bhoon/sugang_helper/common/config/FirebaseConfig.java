@@ -3,6 +3,7 @@ package bhoon.sugang_helper.common.config;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import jakarta.annotation.PostConstruct;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -35,10 +36,10 @@ public class FirebaseConfig {
                         .build();
 
                 FirebaseApp.initializeApp(options);
-                log.info("[Firebase] File-based initialization completed. path={}", configPath);
+                log.info("[Firebase] File-based initialization completed.");
             }
         } catch (IOException e) {
-            log.error("[Firebase] Error during initialization: {}", e.getMessage(), e);
+            log.error("[Firebase] Initialization failed. exceptionType={}", SensitiveDataRedactor.exceptionType(e));
         }
     }
 }

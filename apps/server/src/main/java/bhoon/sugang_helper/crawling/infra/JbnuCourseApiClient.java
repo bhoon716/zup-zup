@@ -2,6 +2,7 @@ package bhoon.sugang_helper.crawling.infra;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -62,8 +63,7 @@ public class JbnuCourseApiClient {
         try (InputStream responseStream = fetchCourseDataStream(year, semester)) {
             return new String(responseStream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR,
-                    "JBNU API response could not be read: " + e.getMessage());
+            throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         }
     }
 
@@ -77,8 +77,8 @@ public class JbnuCourseApiClient {
                 String jsessionidsso = cookies.getOrDefault("JSESSIONIDSSO", "");
 
                 if (wmonid.isBlank() || jsessionidsso.isBlank()) {
-                    log.warn("[API Client] Fetched session cookies are incomplete. WMONID={}, JSESSIONIDSSO={}",
-                            wmonid, jsessionidsso);
+                    log.warn("[API Client] Fetched session cookies are incomplete. missingWmonid={}, missingJsessionidSso={}",
+                            wmonid.isBlank(), jsessionidsso.isBlank());
                 }
 
                 String payload = PAYLOAD_TEMPLATE.formatted(year, semester, wmonid, jsessionidsso, year, semester,
@@ -102,12 +102,12 @@ public class JbnuCourseApiClient {
                 return new BoundedInputStream(response.bodyStream(), maximumResponseBytes);
             } catch (Exception e) {
                 retryCount++;
-                log.warn("[API Client] Failed to request course data (attempt {}/{}): yy={}, shtm={}, reason={}",
-                        retryCount, maxRetries + 1, year, semester, e.toString());
+                log.warn("[API Client] Course data request failed. attempt={}/{}, yy={}, shtm={}, failureCode={}, exceptionType={}",
+                        retryCount, maxRetries + 1, year, semester, ErrorCode.CRAWLER_CONNECTION_ERROR.getCode(),
+                        SensitiveDataRedactor.exceptionType(e));
 
                 if (retryCount > maxRetries) {
-                    throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR,
-                            "JBNU API 요청 최종 실패: " + e.toString());
+                    throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
                 }
 
                 waitBeforeRetry(retryCount);
@@ -126,7 +126,8 @@ public class JbnuCourseApiClient {
                     .execute();
             return res.cookies();
         } catch (IOException e) {
-            log.warn("[API Client] Failed to fetch session cookies from login page: {}", e.toString());
+            log.warn("[API Client] Failed to fetch session cookies. failureCode={}, exceptionType={}",
+                    ErrorCode.CRAWLER_CONNECTION_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             return Map.of();
         }
     }

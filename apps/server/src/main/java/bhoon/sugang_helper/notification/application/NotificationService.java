@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.notification.application;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
@@ -182,8 +183,9 @@ public class NotificationService {
                 if (ctx.forceSend()) {
                     throw e;
                 }
-                log.warn("[Notification] Delivery failed but remaining targets will continue. userId={}, channel={}",
-                        user.getId(), channel, e);
+                log.warn("[Notification] Delivery failed but remaining targets will continue. userId={}, channel={}, failureCode={}, exceptionType={}",
+                        user.getId(), channel, SensitiveDataRedactor.failureCode(e),
+                        SensitiveDataRedactor.exceptionType(e));
             }
         }
 

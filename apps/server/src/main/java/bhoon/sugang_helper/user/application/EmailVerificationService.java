@@ -3,6 +3,7 @@ package bhoon.sugang_helper.user.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -60,7 +61,8 @@ public class EmailVerificationService {
         String htmlContent = templateService.loadTemplate("verification_code", Map.of("code", code));
         sendEmail(email, EMAIL_SUBJECT, htmlContent);
 
-        log.info("[EmailVerification] Sent code to user={}, email={}", userId, email);
+        log.info("[EmailVerification] Sent code to user={}, emailMasked={}", userId,
+                SensitiveDataRedactor.maskEmail(email));
     }
 
     /**
@@ -79,7 +81,8 @@ public class EmailVerificationService {
             redisService.deleteValues(getAttemptKey(userId, email));
             redisService.setValues(getVerifiedKey(userId, email), "true",
                     Duration.ofMinutes(VERIFIED_EXPIRATION_MINUTES));
-            log.info("[EmailVerification] Verified user={}, email={}", userId, email);
+            log.info("[EmailVerification] Verified user={}, emailMasked={}", userId,
+                    SensitiveDataRedactor.maskEmail(email));
             return true;
         }
 
@@ -114,7 +117,9 @@ public class EmailVerificationService {
 
             javaMailSender.send(mimeMessage);
         } catch (Exception e) {
-            log.error("[EmailVerification] Failed to send email to {}", to, e);
+            log.error("[EmailVerification] Email dispatch failed. recipientMasked={}, failureCode={}, exceptionType={}",
+                    SensitiveDataRedactor.maskEmail(to), ErrorCode.EMAIL_SEND_ERROR.getCode(),
+                    SensitiveDataRedactor.exceptionType(e));
             throw new CustomException(ErrorCode.EMAIL_SEND_ERROR, "Failed to send verification email");
         }
     }

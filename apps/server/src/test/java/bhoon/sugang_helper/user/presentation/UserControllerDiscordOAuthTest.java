@@ -6,9 +6,14 @@ import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.user.application.DiscordOAuthService;
 import bhoon.sugang_helper.user.application.UserService;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.slf4j.LoggerFactory;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -55,5 +60,26 @@ class UserControllerDiscordOAuthTest {
         assertThat(first.getHeaders().getFirst("Location")).isEqualTo("https://web.example.com/onboarding?discord=success");
         assertThat(replay.getHeaders().getFirst("Location")).isEqualTo("https://web.example.com/settings?discord=error");
         verify(userService).linkDiscordId("discord-user");
+    }
+
+    @Test
+    void rejectedCallbackDoesNotLogOAuthState() {
+        String state = "oauth-state-should-not-appear";
+        Logger logger = (Logger) LoggerFactory.getLogger(UserController.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            controller.discordCallback("oauth-code", state, new MockHttpSession());
+
+            String messages = appender.list.stream()
+                    .map(ILoggingEvent::getFormattedMessage)
+                    .collect(Collectors.joining("\n"));
+            assertThat(messages).doesNotContain(state);
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
     }
 }

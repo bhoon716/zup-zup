@@ -21,14 +21,15 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
-        log.warn("Authentication failed [{}]: {}", request.getRequestURI(), authException.getMessage());
-
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setCharacterEncoding("UTF-8");
 
-        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.INVALID_TOKEN, request.getRequestURI(),
-                authException.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.INVALID_TOKEN, request.getRequestURI());
+        response.setHeader("X-Error-Id", errorResponse.getCorrelationId());
+        log.warn("[AUTHENTICATION_FAILED] correlationId={} method={} path={} exceptionType={}",
+                errorResponse.getCorrelationId(), request.getMethod(), errorResponse.getPath(),
+                authException.getClass().getSimpleName());
         objectMapper.writeValue(response.getWriter(), errorResponse);
     }
 }

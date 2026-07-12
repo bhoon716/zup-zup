@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.crawling.application;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,7 +29,8 @@ public class CourseScheduler {
             try {
                 courseCrawlerService.crawlRecentYears();
             } catch (Exception e) {
-                log.error("[Init] Error during initial crawl, but starting service. Reason: {}", e.getMessage());
+                log.error("[Init] Initial crawl failed while starting service. exceptionType={}",
+                        SensitiveDataRedactor.exceptionType(e));
             }
         }
     }

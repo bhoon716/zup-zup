@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.crawling.application;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.course.domain.CourseAccreditation;
 import bhoon.sugang_helper.course.domain.CourseClassification;
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
@@ -59,7 +60,7 @@ public class JbnuCourseParser {
             try {
                 processRow(row).ifPresent(courseList::add);
             } catch (Exception e) {
-                log.warn("Failed to parse course row: {}", e.getMessage());
+                log.warn("Failed to parse course row. exceptionType={}", SensitiveDataRedactor.exceptionType(e));
             }
         }
         return courseList;

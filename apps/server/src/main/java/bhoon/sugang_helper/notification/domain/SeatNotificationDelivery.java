@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,6 +32,8 @@ import lombok.NoArgsConstructor;
                 columnNames = {"outbox_id", "user_id", "channel"})
 })
 public class SeatNotificationDelivery extends BaseTimeEntity {
+
+    private static final Pattern FAILURE_CODE_PATTERN = Pattern.compile("^(?:[A-Z]\\d{3}|UNEXPECTED)$");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -85,9 +88,11 @@ public class SeatNotificationDelivery extends BaseTimeEntity {
     }
 
     @SuppressWarnings("PMD.NullAssignment")
-    public boolean markFailure(String error, int maximumAttempts, LocalDateTime retryAt) {
+    public boolean markFailure(String failureCode, int maximumAttempts, LocalDateTime retryAt) {
         this.attempts++;
-        this.lastError = error == null ? "delivery failed" : error.substring(0, Math.min(error.length(), 500));
+        this.lastError = failureCode != null && FAILURE_CODE_PATTERN.matcher(failureCode).matches()
+                ? failureCode
+                : "UNEXPECTED";
         this.lockedUntil = null;
         if (this.attempts >= maximumAttempts) {
             this.status = SeatNotificationDeliveryStatus.DLQ;

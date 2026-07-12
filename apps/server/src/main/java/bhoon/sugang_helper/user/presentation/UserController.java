@@ -319,7 +319,8 @@ public class UserController {
             linkDiscordAccount(code);
             return buildDiscordRedirectResponse(resolveDiscordRedirectPath(redirectPath), "success");
         } catch (Exception e) {
-            log.warn("[Discord] Failed to process OAuth callback. state={}, reason={}", state, e.getMessage());
+            log.warn("[Discord] OAuth callback failed. failureCode={}, exceptionType={}",
+                    "INVALID_INPUT", e.getClass().getSimpleName());
             return buildDiscordRedirectResponse(resolveDiscordRedirectPath(redirectPath), "error");
         }
     }

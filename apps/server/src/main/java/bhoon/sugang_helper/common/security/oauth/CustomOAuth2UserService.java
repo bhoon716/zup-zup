@@ -4,6 +4,7 @@ import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRegisteredEvent;
 import bhoon.sugang_helper.user.domain.UserRepository;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import java.util.Collections;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
 
-        log.info("Social login request (OAuth2): provider={}, email={}", registrationId, email);
+        log.info("[OAuth2] Social login request. provider={}, emailMasked={}", registrationId,
+                SensitiveDataRedactor.maskEmail(email));
         saveOrUpdate(email, name);
         User user = userRepository.findByEmail(email).orElseThrow();
         log.info("Social login load complete (OAuth2): userId={}", user.getId());
@@ -55,7 +57,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
     private void saveOrUpdate(String email, String name) {
         userRepository.findByEmail(email)
                 .ifPresentOrElse(
-                        user -> log.info("Existing user login: email={}", email),
+                        user -> log.info("[OAuth2] Existing user login. emailMasked={}",
+                                SensitiveDataRedactor.maskEmail(email)),
                         () -> {
                             User newUser = User.builder()
                                     .email(email)
@@ -63,7 +66,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                                     .role(Role.USER)
                                     .build();
                             User savedUser = userRepository.save(newUser);
-                            log.info("New user sign-up complete: userId={}, email={}", savedUser.getId(), email);
+                            log.info("[OAuth2] New user sign-up complete. userId={}, emailMasked={}",
+                                    savedUser.getId(), SensitiveDataRedactor.maskEmail(email));
                             eventPublisher.publishEvent(new UserRegisteredEvent(savedUser.getId(), email));
                         });
     }

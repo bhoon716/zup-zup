@@ -2,6 +2,7 @@ package bhoon.sugang_helper.crawling.application;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.course.domain.SemesterType;
 import java.time.Year;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -74,8 +75,9 @@ public class CourseCrawlerService {
                         log.info("[Crawler] Automatic crawling: year={}, semester={}", year, semester.getDescription());
                         executeCrawl(year, semester.getCode());
                     } catch (Exception e) {
-                        log.warn("[Crawler] Failed to crawl year={}, semester={} : {}", year, semester.getDescription(),
-                                e.getMessage());
+                        log.warn("[Crawler] Historical crawl failed. year={}, semester={}, failureCode={}, exceptionType={}",
+                                year, semester.getDescription(), SensitiveDataRedactor.failureCode(e),
+                                SensitiveDataRedactor.exceptionType(e));
                     }
                 }
             }
@@ -99,8 +101,8 @@ public class CourseCrawlerService {
             JobExecution execution = jobLauncher.run(crawlJob, jobParameters);
 
             if (execution.getStatus().isUnsuccessful()) {
-                log.error("[Crawler] Batch crawl job failed with status: {}, exitDescription: {}",
-                        execution.getStatus(), execution.getExitStatus().getExitDescription());
+                log.error("[Crawler] Batch crawl job failed. status={}, failureCode={}",
+                        execution.getStatus(), ErrorCode.CRAWLER_CONNECTION_ERROR.getCode());
                 throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR, "크롤링 배치 작업 실패");
             }
 
@@ -108,7 +110,8 @@ public class CourseCrawlerService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[Crawler] Unknown error during batch crawling: {}", e.getMessage());
+            log.error("[Crawler] Batch crawl failed. failureCode={}, exceptionType={}",
+                    ErrorCode.CRAWLER_CONNECTION_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         }
     }

@@ -2,6 +2,7 @@ package bhoon.sugang_helper.notification.infra;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,9 +65,9 @@ public class DiscordNotificationSender implements NotificationSender {
 
             log.info("[Discord] Dispatched private message notification. userId={}", userId);
         } catch (Exception e) {
-            log.error("[Discord] Failed to dispatch private message notification. userId={}, reason={}", userId,
-                    e.getMessage());
-            throw new CustomException(ErrorCode.DISCORD_SEND_ERROR, "디스코드 알림 발송 실패: " + e.getMessage());
+            log.error("[Discord] Private message dispatch failed. userId={}, failureCode={}, exceptionType={}", userId,
+                    ErrorCode.DISCORD_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            throw new CustomException(ErrorCode.DISCORD_SEND_ERROR);
         }
     }
 }

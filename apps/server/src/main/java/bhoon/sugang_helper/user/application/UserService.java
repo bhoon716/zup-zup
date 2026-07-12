@@ -2,6 +2,7 @@ package bhoon.sugang_helper.user.application;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
 import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
@@ -85,7 +86,7 @@ public class UserService {
     public UserProfileUpdateResult updateProfile(UpdateProfileCommand command) {
         User user = getCurrentUser();
         user.update(command.name());
-        log.info("[User] Update profile: userId={}, newName={}", user.getId(), command.name());
+        log.info("[User] Update profile: userId={}", user.getId());
         return UserProfileUpdateResult.from(user);
     }
 
@@ -124,7 +125,8 @@ public class UserService {
 
         deleteUserOwnedData(userId);
         userRepository.delete(user);
-        log.info("[User] Delete account: userId={}, email={}", user.getId(), user.getEmail());
+        log.info("[User] Delete account: userId={}, emailMasked={}", user.getId(),
+                SensitiveDataRedactor.maskEmail(user.getEmail()));
     }
 
     /**
@@ -169,7 +171,8 @@ public class UserService {
                 command.webPushEnabled(),
                 command.fcmEnabled(),
                 command.discordEnabled());
-        log.info("[User] Onboarding complete: userId={}, email={}", user.getId(), user.getEmail());
+        log.info("[User] Onboarding complete: userId={}, emailMasked={}", user.getId(),
+                SensitiveDataRedactor.maskEmail(user.getEmail()));
         return UserOnboardingResult.from(user);
     }
 
@@ -206,7 +209,8 @@ public class UserService {
     public void linkDiscordId(String discordId) {
         User user = getCurrentUser();
         user.linkDiscord(discordId);
-        log.info("[User] Link Discord: userId={}, discordId={}", user.getId(), discordId);
+        log.info("[User] Link Discord: userId={}, discordIdFingerprint={}", user.getId(),
+                SensitiveDataRedactor.fingerprint(discordId));
     }
 
     /**

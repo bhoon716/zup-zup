@@ -2,6 +2,7 @@ package bhoon.sugang_helper.notification.infra;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.user.application.UserDeviceService;
 import bhoon.sugang_helper.user.application.WebPushEndpointValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,6 +75,7 @@ public class WebPushNotificationSender implements NotificationSender {
         }
 
         webPushEndpointValidator.validate(target.getRecipient());
+        String endpointFingerprint = SensitiveDataRedactor.fingerprint(target.getRecipient());
 
         try {
             String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/"));
@@ -84,7 +86,7 @@ public class WebPushNotificationSender implements NotificationSender {
                     target.getAuth(),
                     payload);
 
-            log.info("[WebPush] Starting notification transfer. recipient={}", target.getRecipient());
+            log.info("[WebPush] Starting notification transfer. endpointFingerprint={}", endpointFingerprint);
             var response = pushService.send(notification);
             int statusCode = response.getStatusLine().getStatusCode();
 
@@ -94,14 +96,16 @@ public class WebPushNotificationSender implements NotificationSender {
             }
 
             if (statusCode >= 400) {
-                throw new CustomException(ErrorCode.WEB_PUSH_SEND_ERROR, "상태 코드: " + statusCode);
+                throw new CustomException(ErrorCode.WEB_PUSH_SEND_ERROR);
             }
 
-            log.info("[WebPush] Completed notification transfer. recipient={}", target.getRecipient());
+            log.info("[WebPush] Completed notification transfer. endpointFingerprint={}", endpointFingerprint);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.WEB_PUSH_SEND_ERROR, e.getMessage());
+            log.error("[WebPush] Transfer failed. endpointFingerprint={}, failureCode={}, exceptionType={}",
+                    endpointFingerprint, ErrorCode.WEB_PUSH_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            throw new CustomException(ErrorCode.WEB_PUSH_SEND_ERROR);
         }
     }
 

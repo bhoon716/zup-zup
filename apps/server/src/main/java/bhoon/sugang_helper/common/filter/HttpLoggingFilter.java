@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.filter;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,16 +23,13 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
 
         long start = System.currentTimeMillis();
 
-        String uri = request.getRequestURI();
+        String uri = SensitiveDataRedactor.redactPath(request.getRequestURI());
         if (uri.startsWith("/actuator")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String query = request.getQueryString();
-        if (query != null) {
-            uri += "?" + query;
-        }
+        boolean queryPresent = request.getQueryString() != null;
         String method = request.getMethod();
 
         try {
@@ -39,18 +37,18 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
         } finally {
             long tookMs = System.currentTimeMillis() - start;
             int status = response.getStatus();
-            logByStatus(method, uri, status, tookMs);
+            logByStatus(method, uri, queryPresent, status, tookMs);
         }
     }
 
-    private void logByStatus(String method, String uri, int status, long tookMs) {
+    private void logByStatus(String method, String uri, boolean queryPresent, int status, long tookMs) {
         int resolvedStatus = status == 0 ? HttpServletResponse.SC_OK : status;
         if (resolvedStatus >= 500) {
-            log.error("[HTTP] {} {} -> {} ({} ms)", method, uri, resolvedStatus, tookMs);
+            log.error("[HTTP] {} {} queryPresent={} -> {} ({} ms)", method, uri, queryPresent, resolvedStatus, tookMs);
         } else if (resolvedStatus >= 400) {
-            log.warn("[HTTP] {} {} -> {} ({} ms)", method, uri, resolvedStatus, tookMs);
+            log.warn("[HTTP] {} {} queryPresent={} -> {} ({} ms)", method, uri, queryPresent, resolvedStatus, tookMs);
         } else {
-            log.info("[HTTP] {} {} -> {} ({} ms)", method, uri, resolvedStatus, tookMs);
+            log.info("[HTTP] {} {} queryPresent={} -> {} ({} ms)", method, uri, queryPresent, resolvedStatus, tookMs);
         }
     }
 }

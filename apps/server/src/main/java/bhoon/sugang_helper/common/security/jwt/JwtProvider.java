@@ -117,9 +117,9 @@ public class JwtProvider {
         } catch (UnsupportedJwtException e) {
             log.error("지원되지 않는 JWT 토큰입니다.");
         } catch (IllegalArgumentException e) {
-            log.error("[JWT] Empty token claims: {}", e.getMessage());
+            log.error("[JWT] Empty token claims. exceptionType={}", e.getClass().getSimpleName());
         } catch (Exception e) {
-            log.error("[JWT] Token validation failed: {}", e.getMessage());
+            log.error("[JWT] Token validation failed. exceptionType={}", e.getClass().getSimpleName());
         }
         return false;
     }

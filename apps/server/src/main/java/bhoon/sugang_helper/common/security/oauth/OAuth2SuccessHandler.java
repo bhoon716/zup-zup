@@ -50,7 +50,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         request.getSession().setAttribute("ACCESS_TOKEN", accessToken);
         request.getSession().setAttribute("REFRESH_TOKEN", refreshToken);
 
-        log.info("Social login (OAuth2) successful: email={}, session saved", user.getEmail());
+        log.info("[OAuth2] Social login successful. userId={}, sessionSaved=true", user.getId());
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }
 }

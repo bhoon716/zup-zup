@@ -63,9 +63,6 @@ class JbnuCourseApiClientTest {
         String wmonid = cookies.get("WMONID");
         String jsessionidsso = cookies.get("JSESSIONIDSSO");
 
-        System.out.println("Fetched WMONID: " + wmonid);
-        System.out.println("Fetched JSESSIONIDSSO: " + jsessionidsso);
-
         assertThat(wmonid).isNotNull();
         assertThat(jsessionidsso).isNotNull();
 
