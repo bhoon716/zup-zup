@@ -2,6 +2,7 @@ package bhoon.sugang_helper.feedback.application;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
 import bhoon.sugang_helper.feedback.domain.ActionType;
 import bhoon.sugang_helper.feedback.domain.AdminActionLog;
@@ -14,13 +15,16 @@ import bhoon.sugang_helper.feedback.domain.FeedbackReplyRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackStatus;
 import bhoon.sugang_helper.feedback.domain.TargetType;
+import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,16 +43,30 @@ public class FeedbackService {
     private final AdminActionLogRepository adminActionLogRepository;
     private final UserRepository userRepository;
     private final LocalFileUploadService fileUploadService;
+    private final RedisService redisService;
+    @Value("${app.feedback.rate-limit.user-per-minute:5}")
+    private long userRequestsPerMinute;
+    @Value("${app.feedback.rate-limit.ip-per-minute:10}")
+    private long ipRequestsPerMinute;
+    @Value("${app.feedback.rate-limit.daily-quota:5}")
+    private long dailyQuota;
+    @Value("${app.feedback.max-upload-bytes:10485760}")
+    private long maximumUploadBytes;
 
     /**
      * 사용자의 새로운 문의 및 건의사항을 등록하고 첨부 파일을 저장합니다.
      */
     @Transactional
     public Long createFeedback(Long userId, FeedbackCreateRequest request, List<MultipartFile> files) {
+        return createFeedback(userId, request, files, null);
+    }
+
+    @Transactional
+    public Long createFeedback(Long userId, FeedbackCreateRequest request, List<MultipartFile> files, String clientIp) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        validateRateLimit();
+        validateRateLimit(userId, clientIp, files);
 
         Feedback feedback = Feedback.builder()
                 .user(user)
@@ -62,6 +80,7 @@ public class FeedbackService {
 
         if (files != null && !files.isEmpty()) {
             List<String> fileUrls = fileUploadService.uploadImages(files);
+            fileUploadService.deleteFilesAfterTransactionRollback(fileUrls);
 
             for (int i = 0; i < fileUrls.size(); i++) {
                 String originalName = files.get(i).getOriginalFilename();
@@ -114,6 +133,25 @@ public class FeedbackService {
         }
 
         feedback.delete();
+        fileUploadService.deleteFilesAfterTransactionCommit(feedbackAttachmentRepository.findAllByFeedbackId(feedbackId)
+                .stream()
+                .map(FeedbackAttachment::getFileUrl)
+                .toList());
+    }
+
+    @Transactional(readOnly = true)
+    public FeedbackAttachmentDownload getAttachment(User requester, Long feedbackId, Long attachmentId) {
+        FeedbackAttachment attachment = feedbackAttachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+        Feedback feedback = attachment.getFeedback();
+        if (!feedbackId.equals(feedback.getId())) {
+            throw new CustomException(ErrorCode.FEEDBACK_NOT_FOUND);
+        }
+        if (!requester.getRole().equals(Role.ADMIN) && !requester.getId().equals(feedback.getUser().getId())) {
+            throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
+        }
+        return new FeedbackAttachmentDownload(fileUploadService.loadFile(attachment.getFileUrl()),
+                attachment.getOriginalName());
     }
 
     /* 관리자 전용 기능 */
@@ -231,7 +269,25 @@ public class FeedbackService {
     /**
      * 문의 및 건의 요청 빈도 제한을 검증합니다.
      */
-    private void validateRateLimit() {
-        // 일회성 로직 구현 생략 (Redis 등 연동 권장)
+    private void validateRateLimit(Long userId, String clientIp, List<MultipartFile> files) {
+        long totalUploadBytes = files == null ? 0 : files.stream().mapToLong(MultipartFile::getSize).sum();
+        if (maximumUploadBytes > 0 && totalUploadBytes > maximumUploadBytes) {
+            throw new CustomException(ErrorCode.MAX_FILE_UPLOAD_SIZE_EXCEEDED);
+        }
+
+        requireWithinLimit("FEEDBACK:RATE:USER:" + userId, userRequestsPerMinute, Duration.ofMinutes(1));
+        if (clientIp != null && !clientIp.isBlank()) {
+            requireWithinLimit("FEEDBACK:RATE:IP:" + clientIp.trim(), ipRequestsPerMinute, Duration.ofMinutes(1));
+        }
+
+        if (dailyQuota > 0 && redisService.increment("FEEDBACK:RATE:DAILY:" + userId, Duration.ofDays(1)) > dailyQuota) {
+            throw new CustomException(ErrorCode.DAILY_FEEDBACK_LIMIT_EXCEEDED);
+        }
+    }
+
+    private void requireWithinLimit(String key, long limit, Duration duration) {
+        if (limit > 0 && redisService.increment(key, duration) > limit) {
+            throw new CustomException(ErrorCode.TOO_MANY_REQUESTS);
+        }
     }
 }

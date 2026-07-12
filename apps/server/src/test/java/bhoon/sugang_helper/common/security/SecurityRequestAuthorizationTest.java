@@ -18,6 +18,9 @@ import bhoon.sugang_helper.common.security.oauth.CustomOAuth2UserService;
 import bhoon.sugang_helper.common.security.oauth.OAuth2FailureHandler;
 import bhoon.sugang_helper.common.security.oauth.OAuth2SuccessHandler;
 import bhoon.sugang_helper.common.config.SecurityConfig;
+import bhoon.sugang_helper.feedback.application.FeedbackService;
+import bhoon.sugang_helper.feedback.presentation.FeedbackController;
+import bhoon.sugang_helper.user.application.UserService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +57,7 @@ import org.springframework.test.web.servlet.MockMvc;
         "spring.security.oauth2.client.provider.google.user-info-uri=https://www.googleapis.com/oauth2/v3/userinfo",
         "spring.security.oauth2.client.provider.google.user-name-attribute=sub"
 })
+@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Authorization cases intentionally exercise one protected path.
 class SecurityRequestAuthorizationTest {
 
     @Autowired
@@ -64,6 +68,10 @@ class SecurityRequestAuthorizationTest {
     private AdminService adminService;
     @MockitoBean
     private AnnouncementService announcementService;
+    @MockitoBean
+    private FeedbackService feedbackService;
+    @MockitoBean
+    private UserService userService;
     @MockitoBean
     private CustomOAuth2UserService customOAuth2UserService;
     @MockitoBean
@@ -99,6 +107,20 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(jsonPath("$.message").value("공지사항 목록입니다."));
     }
 
+    @Test
+    void uploadPathWithoutAuthenticationIsRejectedBeforeStaticResourceHandling() throws Exception {
+        mockMvc.perform(get("/uploads/private-feedback.png"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+    }
+
+    @Test
+    void attachmentDownloadWithoutAuthenticationIsRejected() throws Exception {
+        mockMvc.perform(get("/api/v1/feedbacks/10/attachments/20"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+    }
+
     @SpringBootConfiguration
     @EnableAutoConfiguration(exclude = {
             DataSourceAutoConfiguration.class,
@@ -115,7 +137,8 @@ class SecurityRequestAuthorizationTest {
             CustomAccessDeniedHandler.class,
             CustomAuthenticationEntryPoint.class,
             AdminController.class,
-            AnnouncementController.class
+            AnnouncementController.class,
+            FeedbackController.class
     })
     static class TestApplication {
     }

@@ -4,12 +4,17 @@ import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class RedisService {
 
+    private static final DefaultRedisScript<Long> ATOMIC_INCREMENT_WITH_TTL = new DefaultRedisScript<>(
+            "local count = redis.call('INCR', KEYS[1]); "
+                    + "if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return count;",
+            Long.class);
     private final RedisTemplate<String, Object> redisTemplate;
 
     /**
@@ -60,10 +65,8 @@ public class RedisService {
     }
 
     public long increment(String key, Duration duration) {
-        Long value = redisTemplate.opsForValue().increment(key);
-        if (value != null && value == 1) {
-            redisTemplate.expire(key, duration);
-        }
+        Long value = redisTemplate.execute(ATOMIC_INCREMENT_WITH_TTL, java.util.List.of(key),
+                String.valueOf(duration.toMillis()));
         return value == null ? 0 : value;
     }
 }

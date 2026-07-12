@@ -12,6 +12,9 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.util.LocalFileUploadService;
+import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
+import bhoon.sugang_helper.feedback.domain.FeedbackAttachmentRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.notification.application.NotificationService;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
@@ -80,6 +83,12 @@ class UserServiceTest {
 
     @Mock
     private FeedbackRepository feedbackRepository;
+
+    @Mock
+    private FeedbackAttachmentRepository feedbackAttachmentRepository;
+
+    @Mock
+    private LocalFileUploadService fileUploadService;
 
     @Mock
     private WishlistRepository wishlistRepository;
@@ -151,6 +160,8 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
         when(timetableRepository.findByUserId(1L)).thenReturn(List.of(primaryTimetable, backupTimetable));
+        when(feedbackAttachmentRepository.findAllByFeedbackUserId(1L)).thenReturn(List.of(
+                FeedbackAttachment.builder().fileUrl("/uploads/withdrawal.png").originalName("withdrawal.png").build()));
 
         // when
         userService.withdraw();
@@ -162,6 +173,7 @@ class UserServiceTest {
         verify(courseEmojiReviewRepository, times(1)).deleteAllByUserId(1L);
         verify(notificationHistoryRepository, times(1)).deleteAllByUserId(1L);
         verify(feedbackRepository, times(1)).deleteAllByUserId(1L);
+        verify(fileUploadService, times(1)).deleteFilesAfterTransactionCommit(List.of("/uploads/withdrawal.png"));
         verify(wishlistRepository, times(1)).deleteAllByUserId(1L);
         verify(timetableRepository, times(1)).delete(primaryTimetable);
         verify(timetableRepository, times(1)).delete(backupTimetable);

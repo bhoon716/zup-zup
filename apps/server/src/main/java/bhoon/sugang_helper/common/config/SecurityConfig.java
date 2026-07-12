@@ -39,8 +39,7 @@ public class SecurityConfig {
             "/h2-console/**",
             "/error",
             "/favicon.ico",
-            "/oauth2/**",
-            "/uploads/**"
+            "/oauth2/**"
     };
 
     private static final String[] PERMIT_GET_ENDPOINTS = new String[]{

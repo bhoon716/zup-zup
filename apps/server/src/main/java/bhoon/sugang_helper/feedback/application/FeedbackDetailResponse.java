@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.feedback.application;
 
 import bhoon.sugang_helper.feedback.domain.Feedback;
-import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
 import bhoon.sugang_helper.feedback.domain.FeedbackStatus;
 import bhoon.sugang_helper.feedback.domain.FeedbackType;
 import java.time.LocalDateTime;
@@ -27,7 +26,8 @@ public record FeedbackDetailResponse(
                 feedback.getMetaInfo(),
                 feedback.getCreatedAt(),
                 feedback.getAttachments().stream()
-                        .map(FeedbackAttachment::getFileUrl)
+                        .map(attachment -> "/api/v1/feedbacks/%d/attachments/%d".formatted(
+                                feedback.getId(), attachment.getId()))
                         .toList(),
                 feedback.getReplies().stream()
                         .map(FeedbackReplyResponse::from)

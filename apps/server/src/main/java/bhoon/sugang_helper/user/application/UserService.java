@@ -3,6 +3,9 @@ package bhoon.sugang_helper.user.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.util.LocalFileUploadService;
+import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
+import bhoon.sugang_helper.feedback.domain.FeedbackAttachmentRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.notification.application.NotificationService;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
@@ -49,6 +52,8 @@ public class UserService {
     private final CourseEmojiReviewRepository courseEmojiReviewRepository;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final FeedbackRepository feedbackRepository;
+    private final FeedbackAttachmentRepository feedbackAttachmentRepository;
+    private final LocalFileUploadService fileUploadService;
     private final WishlistRepository wishlistRepository;
     private final EmailVerificationService emailVerificationService;
     private final NotificationService notificationService;
@@ -131,6 +136,10 @@ public class UserService {
         courseReviewRepository.deleteAllByUserId(userId);
         courseEmojiReviewRepository.deleteAllByUserId(userId);
         notificationHistoryRepository.deleteAllByUserId(userId);
+        fileUploadService.deleteFilesAfterTransactionCommit(feedbackAttachmentRepository.findAllByFeedbackUserId(userId)
+                .stream()
+                .map(FeedbackAttachment::getFileUrl)
+                .toList());
         feedbackRepository.deleteAllByUserId(userId);
         wishlistRepository.deleteAllByUserId(userId);
 

@@ -6,22 +6,27 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
+import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.feedback.domain.AdminActionLogRepository;
 import bhoon.sugang_helper.feedback.domain.Feedback;
+import bhoon.sugang_helper.feedback.domain.FeedbackAttachment;
 import bhoon.sugang_helper.feedback.domain.FeedbackAttachmentRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackReplyRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.feedback.domain.FeedbackStatus;
 import bhoon.sugang_helper.feedback.domain.FeedbackType;
 import bhoon.sugang_helper.user.domain.User;
+import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Feedback request fixtures intentionally reuse compact payload values.
 class FeedbackServiceTest {
 
     @Mock
@@ -45,9 +51,19 @@ class FeedbackServiceTest {
     private UserRepository userRepository;
     @Mock
     private LocalFileUploadService fileUploadService;
+    @Mock
+    private RedisService redisService;
 
     @InjectMocks
     private FeedbackService feedbackService;
+
+    @BeforeEach
+    void setUpRateLimits() {
+        org.springframework.test.util.ReflectionTestUtils.setField(feedbackService, "userRequestsPerMinute", 2L);
+        org.springframework.test.util.ReflectionTestUtils.setField(feedbackService, "ipRequestsPerMinute", 4L);
+        org.springframework.test.util.ReflectionTestUtils.setField(feedbackService, "dailyQuota", 5L);
+        org.springframework.test.util.ReflectionTestUtils.setField(feedbackService, "maximumUploadBytes", 10_485_760L);
+    }
 
     @Test
     @DisplayName("사용자가 이미지를 포함하여 피드백을 등록한다.")
@@ -74,6 +90,53 @@ class FeedbackServiceTest {
     }
 
     @Test
+    @DisplayName("요청 한도를 초과한 사용자는 429 예외를 받는다.")
+    void createFeedback_rejectsRateLimitedUser() {
+        Long userId = 1L;
+        User user = User.builder().id(userId).name("유저").build();
+        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "meta");
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(redisService.increment(any(), any())).willReturn(3L);
+
+        assertThatThrownBy(() -> feedbackService.createFeedback(userId, request, List.of(), "203.0.113.1"))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
+    }
+
+    @Test
+    @DisplayName("요청 카운터가 만료된 새 윈도우에서는 다시 문의를 작성할 수 있다.")
+    void createFeedback_allowsRequestInNewRateLimitWindow() {
+        Long userId = 1L;
+        User user = User.builder().id(userId).name("유저").build();
+        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "meta");
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(feedbackRepository.save(any(Feedback.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(redisService.increment(any(), any())).willReturn(1L);
+
+        feedbackService.createFeedback(userId, request, List.of(), "203.0.113.1");
+
+        verify(redisService).increment("FEEDBACK:RATE:USER:1", java.time.Duration.ofMinutes(1));
+        verify(redisService).increment("FEEDBACK:RATE:IP:203.0.113.1", java.time.Duration.ofMinutes(1));
+        verify(redisService).increment("FEEDBACK:RATE:DAILY:1", java.time.Duration.ofDays(1));
+    }
+
+    @Test
+    @DisplayName("첨부파일 총 용량이 제한을 넘으면 저장 전에 차단한다.")
+    void createFeedback_rejectsOversizedAttachments() {
+        Long userId = 1L;
+        User user = User.builder().id(userId).name("유저").build();
+        MultipartFile oversizedFile = mock(MultipartFile.class);
+        FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "meta");
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(oversizedFile.getSize()).willReturn(10_485_761L);
+
+        assertThatThrownBy(() -> feedbackService.createFeedback(userId, request, List.of(oversizedFile), "203.0.113.1"))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MAX_FILE_UPLOAD_SIZE_EXCEEDED);
+        verify(fileUploadService, never()).uploadImages(anyList());
+    }
+
+    @Test
     @DisplayName("타인의 피드백을 상세 조회하려고 하면 예외가 발생한다.")
     void getMyFeedbackDetailUnauthorized() {
         // given
@@ -89,6 +152,75 @@ class FeedbackServiceTest {
         assertThatThrownBy(() -> feedbackService.getMyFeedbackDetail(userId, feedbackId))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining(ErrorCode.FEEDBACK_UNAUTHORIZED.getMessage());
+    }
+
+    @Test
+    @DisplayName("작성자가 아닌 사용자는 첨부파일을 다운로드할 수 없다.")
+    void getAttachment_rejectsNonOwner() {
+        Long feedbackId = 10L;
+        Long attachmentId = 20L;
+        User owner = User.builder().id(2L).role(Role.USER).build();
+        User requester = User.builder().id(1L).role(Role.USER).build();
+        Feedback feedback = Feedback.builder().user(owner).build();
+        FeedbackAttachment attachment = FeedbackAttachment.builder()
+                .feedback(feedback)
+                .fileUrl("/uploads/private.png")
+                .originalName("private.png")
+                .build();
+
+        org.springframework.test.util.ReflectionTestUtils.setField(feedback, "id", feedbackId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attachment, "id", attachmentId);
+        given(feedbackAttachmentRepository.findById(attachmentId)).willReturn(Optional.of(attachment));
+
+        assertThatThrownBy(() -> feedbackService.getAttachment(requester, feedbackId, attachmentId))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FEEDBACK_UNAUTHORIZED);
+        verify(fileUploadService, never()).loadFile(any());
+    }
+
+    @Test
+    @DisplayName("관리자는 타인의 첨부파일을 다운로드할 수 있다.")
+    void getAttachment_allowsAdmin() {
+        Long feedbackId = 10L;
+        Long attachmentId = 20L;
+        User owner = User.builder().id(2L).role(Role.USER).build();
+        User admin = User.builder().id(1L).role(Role.ADMIN).build();
+        Feedback feedback = Feedback.builder().user(owner).build();
+        FeedbackAttachment attachment = FeedbackAttachment.builder()
+                .feedback(feedback)
+                .fileUrl("/uploads/private.png")
+                .originalName("private.png")
+                .build();
+        org.springframework.test.util.ReflectionTestUtils.setField(feedback, "id", feedbackId);
+        org.springframework.test.util.ReflectionTestUtils.setField(attachment, "id", attachmentId);
+        org.springframework.core.io.Resource resource = mock(org.springframework.core.io.Resource.class);
+        given(feedbackAttachmentRepository.findById(attachmentId)).willReturn(Optional.of(attachment));
+        given(fileUploadService.loadFile("/uploads/private.png")).willReturn(resource);
+
+        FeedbackAttachmentDownload download = feedbackService.getAttachment(admin, feedbackId, attachmentId);
+
+        assertThat(download.resource()).isSameAs(resource);
+        assertThat(download.originalName()).isEqualTo("private.png");
+    }
+
+    @Test
+    @DisplayName("피드백을 삭제하면 commit 이후 첨부파일 삭제를 예약한다.")
+    void deleteFeedback_schedulesAttachmentDeletion() {
+        Long userId = 1L;
+        Long feedbackId = 10L;
+        User owner = User.builder().id(userId).role(Role.USER).build();
+        Feedback feedback = Feedback.builder().user(owner).build();
+        FeedbackAttachment attachment = FeedbackAttachment.builder()
+                .feedback(feedback)
+                .fileUrl("/uploads/deleted.png")
+                .originalName("deleted.png")
+                .build();
+        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
+        given(feedbackAttachmentRepository.findAllByFeedbackId(feedbackId)).willReturn(List.of(attachment));
+
+        feedbackService.deleteFeedback(userId, feedbackId);
+
+        verify(fileUploadService).deleteFilesAfterTransactionCommit(List.of("/uploads/deleted.png"));
     }
 
     @Test
