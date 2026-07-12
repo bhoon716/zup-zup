@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.given;
 
 import bhoon.sugang_helper.common.redis.RedisService;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 class JwtProviderTest {
@@ -88,6 +92,28 @@ class JwtProviderTest {
 
         // then
         assertFalse(isValid);
+    }
+
+    @Test
+    @DisplayName("블랙리스트 토큰은 로그에 원문이나 이메일을 남기지 않는다")
+    void validateToken_blacklistDoesNotLogCredential() {
+        String token = jwtProvider.createAccessToken(EMAIL, ROLE);
+        given(redisService.hasKey("BL:" + token)).willReturn(true);
+        Logger logger = (Logger) LoggerFactory.getLogger(JwtProvider.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            assertFalse(jwtProvider.validateToken(token));
+
+            String messages = appender.list.stream()
+                    .map(ILoggingEvent::getFormattedMessage)
+                    .reduce("", String::concat);
+            assertThat(messages).doesNotContain(token).doesNotContain(EMAIL);
+        } finally {
+            logger.detachAppender(appender);
+        }
     }
 
     @Test

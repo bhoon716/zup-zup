@@ -14,9 +14,12 @@ import io.jsonwebtoken.security.SecurityException;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HexFormat;
 import java.util.List;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
@@ -103,7 +106,7 @@ public class JwtProvider {
                 return false;
             }
             if (redisService.hasKey(SecurityConstant.REDIS_BLACKLIST_PREFIX + token)) {
-                log.warn("[JWT] Blacklisted token usage detected: {}", token);
+                log.warn("[JWT] Blacklisted token usage detected: tokenFingerprint={}", tokenFingerprint(token));
                 return false;
             }
             return true;
@@ -119,6 +122,15 @@ public class JwtProvider {
             log.error("[JWT] Token validation failed: {}", e.getMessage());
         }
         return false;
+    }
+
+    private String tokenFingerprint(String token) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash, 0, 4);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is unavailable", e);
+        }
     }
 
     private Claims parseClaims(String token) {
