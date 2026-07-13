@@ -24,8 +24,15 @@ if not re.search(
 ):
     raise SystemExit("verify-infra does not validate infra/docker-compose.yml")
 
-if 'infra/scripts/deploy-app.sh' not in workflow:
-    raise SystemExit("deploy source does not include the rollback deployment script")
+for script_name in (
+    'infra/scripts/deploy-app.sh',
+    'infra/scripts/prepare-app-host-directories.sh',
+    'infra/scripts/backup-redis-state.sh',
+    'infra/scripts/restore-redis-state.sh',
+    'infra/scripts/redis-restart-smoke.sh',
+):
+    if script_name not in workflow:
+        raise SystemExit(f"deploy source does not include {script_name}")
 
 if not re.search(r'cd ~/jbnu-sugang-helper/infra\s*\n\s*RELEASE_SHA=.*?bash scripts/deploy-app\.sh', workflow, re.DOTALL):
     raise SystemExit("deploy does not run the rollback script from the transferred infra directory")

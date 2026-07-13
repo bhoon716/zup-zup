@@ -66,10 +66,21 @@ class ProductionConfigTemplateTest {
                 .contains("access:\n      default: none")
                 .contains("include: health, prometheus")
                 .contains("health:\n      access: read-only")
+                .contains("probes:\n        enabled: true")
+                .contains("group:\n        readiness:\n          include: readinessState,db,redis")
                 .contains("prometheus:\n      access: read-only")
                 .contains("api-docs:\n    enabled: false")
                 .contains("swagger-ui:\n    enabled: false")
                 .contains("require-https: true")
                 .doesNotContain("include: health, info, prometheus");
+    }
+
+    @Test
+    void redisClientUsesBoundedConnectionAndCommandTimeouts() throws IOException {
+        String content = readClasspathResource("application.yml");
+
+        assertThat(content)
+                .contains("timeout: 2s")
+                .contains("connect-timeout: 2s");
     }
 }

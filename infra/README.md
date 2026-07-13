@@ -56,6 +56,38 @@ docker compose up -d
 - `./scripts/verify-log-policy.sh`
 - `./scripts/backup-log-state.sh`
 - `./scripts/restore-log-state.sh`
+- `./scripts/test-redis-state-recovery.sh`
+- `./scripts/test-deploy-app.sh`
+
+## Redis 준비와 복구
+
+Redis는 `/var/lib/jbnu-sugang-helper/redis` host bind에 AOF를 저장합니다. 처음 배포하기 전에 root로 mount directory를 준비합니다.
+
+```bash
+sudo bash scripts/prepare-app-host-directories.sh
+```
+
+이 directory는 Redis UID/GID `999:1000`의 owner-only mode `0700`으로 만들어져 session·refresh state를 일반 호스트 계정에서 읽지 못하게 합니다.
+
+Redis는 인증된 `PING`이 성공해야 healthy가 되고, 앱 Docker healthcheck는 DB와 Redis를 포함한 `/actuator/health/readiness`를 확인합니다. 앱 배포도 Redis health preflight를 먼저 통과해야 합니다.
+
+정상 container restart는 AOF state를 보존합니다. 갑작스러운 host/storage 장애에서는 `appendfsync everysec` 정책상 마지막 약 1초의 쓰기가 유실될 수 있습니다. refresh record가 없으면 인증은 fail-closed입니다.
+
+백업은 일관된 AOF archive를 만들기 위해 Redis를 잠시 멈춥니다. 트래픽이 낮은 시간에 실행합니다.
+
+```bash
+sudo bash scripts/backup-redis-state.sh
+sudo CONFIRM_REDIS_RESTORE=RESTORE \
+  bash scripts/restore-redis-state.sh /var/backups/jbnu-sugang-helper/redis-state/redis-state-<timestamp>.tar.gz
+```
+
+restore는 checksum과 archive path를 검증하고, 시작 실패 시 이전 state로 되돌립니다. 성공 뒤 이전 state directory는 root가 검증·정리할 때까지 남깁니다. 배포된 전체 stack의 Redis outage/restart drill은 다음으로 실행합니다.
+
+```bash
+bash scripts/redis-restart-smoke.sh
+```
+
+Redis preflight 실패는 현재 deployment Discord failure channel에 전달됩니다. 지속적인 Prometheus/Alertmanager notification route는 ISSUE-099에서 추가합니다.
 
 ## 관측
 

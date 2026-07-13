@@ -80,8 +80,17 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Scenario: Redis blacklist key and refresh registry value contained raw JWTs, and Redis-backed HTTP session also stored raw access/refresh JWT attributes.
 - Result: new blacklist entries use `BL:<SHA-256>`; new refresh registry entries use `v2:<random-family>:<SHA-256>`. Redis Lua compare-and-set makes rotation single-use, and a replay in the same family revokes that family. Spring Security stores only the authenticated subject, authorities, access expiry epoch, and immutable user ID in the session; expiry or inactive-account detection clears the session and returns to the refresh path.
 - Migration: no new raw data is written. To prevent a pre-deployment email-only token from becoming a rejoined account, tokens without the immutable `uid` claim and sessions without a user ID are fail-closed; users authenticate once again. Unused legacy Redis values expire within their existing TTL.
-- Restart behavior: missing refresh registry state is rejected without minting a new token. Redis persistence is not yet configured, so a restart also loses the access-token logout blacklist; durable revocation is deferred to ISSUE-098.
+- Restart behavior: missing refresh registry state is rejected without minting a new token. Redis is now persisted by ISSUE-098; the durability and recovery boundary is recorded below.
 - Evidence: `JwtProviderTest`, `AuthServiceTest`, `JwtAuthenticationFilterTest`, `OAuth2SuccessHandlerTest`, `SecurityRequestAuthorizationTest`, and `RedisServiceTest`; default `./gradlew clean test` passed.
+
+### Redis readiness and AOF recovery (2026-07-13)
+
+- Scenario: Compose only waited for a running Redis container, while the manually created Lettuce factory used long defaults and Redis restart discarded session, refresh, logout blacklist, rate-limit, and dedupe state.
+- Readiness: Redis uses an authenticated `PING` healthcheck; app startup waits for `service_healthy`. `/actuator/health/readiness` includes `readinessState`, DB, and Redis, so Redis failure returns `DOWN/503` without exposing details. The client has 2-second connect/command limits, reconnects after recovery, and rejects commands while disconnected instead of queueing stale work.
+- Persistence policy: Redis stores its full `/data` directory in `/var/lib/jbnu-sugang-helper/redis` with AOF `appendfsync everysec`. A clean Redis/container restart preserves state. A sudden host or storage failure can lose at most about one second of acknowledged writes; a missing refresh record remains fail-closed. `appendfsync always` was not selected because every Redis write would synchronously flush storage.
+- Recovery: `backup-redis-state.sh` stops a running Redis instance before archiving the complete AOF directory and SHA-256 sidecar, then restores the original service. `restore-redis-state.sh` validates the checksum and archive paths, stages the replacement, rolls back to the prior directory if startup fails, and retains the prior directory after a successful restore until a root operator removes it. The isolated Docker drill writes a sentinel, simulates lost state, restores it, and verifies the sentinel.
+- Alert boundary: a failed Redis preflight blocks server deployment and uses the existing deployment Discord failure channel. The readiness health signal and restart smoke are actionable now; continuous Prometheus/Alertmanager routing is deliberately completed in ISSUE-099, which owns the durable alert route.
+- Evidence: `RedisConfigTest`, `RedisReadinessHealthTest`, `SecurityRequestAuthorizationTest`, `verify-compose-policy.sh`, `test-redis-state-recovery.sh`, and `test-deploy-app.sh`.
 
 ### Account withdrawal soft delete and identity binding (2026-07-13)
 

@@ -133,5 +133,10 @@ management:
     health:
       access: read-only
       show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db,redis
     prometheus:
       access: read-only

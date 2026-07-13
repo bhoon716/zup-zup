@@ -73,6 +73,7 @@ import org.springframework.util.unit.DataSize;
         "app.cors.allowed-origins=https://zup-zup.com",
         "app.cors.require-https=true",
         "management.health.mail.enabled=false",
+        "management.endpoint.health.probes.enabled=true",
         "app.oauth2.success-redirect-uri=http://localhost:3000",
         "app.oauth2.failure-redirect-uri=http://localhost:3000/login?error=true",
         "app.oauth2.authorized-redirect-uri=http://localhost:3000",
@@ -262,6 +263,9 @@ class SecurityRequestAuthorizationTest {
     @Test
     void internalManagementHealthAndMetricsRemainAvailable() throws Exception {
         mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/actuator/prometheus"))

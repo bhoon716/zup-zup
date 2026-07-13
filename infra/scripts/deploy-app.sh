@@ -11,6 +11,8 @@ release_sha="${RELEASE_SHA:?RELEASE_SHA is required}"
 release_dir="${RELEASE_DIR:?RELEASE_DIR is required}"
 health_attempts="${APP_HEALTH_MAX_ATTEMPTS:-90}"
 health_wait_seconds="${APP_HEALTH_WAIT_SECONDS:-5}"
+redis_health_attempts="${REDIS_HEALTH_MAX_ATTEMPTS:-30}"
+redis_health_wait_seconds="${REDIS_HEALTH_WAIT_SECONDS:-2}"
 webhook_url="${DEPLOYMENT_DISCORD_WEBHOOK_URL:-}"
 
 if [ ! -f "${release_dir}/build/libs/app.jar" ] || [ ! -f "${release_dir}/.env" ]; then
@@ -97,6 +99,40 @@ wait_for_healthy() {
   return 1
 }
 
+wait_for_redis_healthy() {
+  local container_id
+  container_id="$(cd "${compose_dir}" && "${docker_bin}" compose ps -q redis)"
+  if [ -z "${container_id}" ]; then
+    echo "Redis container was not created" >&2
+    return 1
+  fi
+
+  for attempt in $(seq 1 "${redis_health_attempts}"); do
+    local health_status
+    health_status="$("${docker_bin}" inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container_id}")"
+    if [ "${health_status}" = "healthy" ]; then
+      return 0
+    fi
+    if [ "${health_status}" = "exited" ] || [ "${health_status}" = "dead" ]; then
+      "${docker_bin}" logs "${container_id}" >&2 || true
+      return 1
+    fi
+    sleep "${redis_health_wait_seconds}"
+  done
+
+  echo "Redis container did not become healthy" >&2
+  "${docker_bin}" logs "${container_id}" >&2 || true
+  return 1
+}
+
+ensure_redis_ready() {
+  (
+    cd "${compose_dir}"
+    "${docker_bin}" compose up -d redis
+  )
+  wait_for_redis_healthy
+}
+
 deploy_release() {
   local sha="$1"
   local directory="$2"
@@ -104,16 +140,26 @@ deploy_release() {
   APP_RELEASE_DIR="${directory}" APP_IMAGE_TAG="${sha}" "${docker_bin}" compose up -d --no-deps app
 }
 
-notify_rollback() {
+notify_deployment_failure() {
   local reason="$1"
+  local outcome="$2"
   if [ -z "${webhook_url}" ]; then
-    echo "DEPLOYMENT_DISCORD_WEBHOOK_URL is not configured; rollback notification was not sent" >&2
+    echo "DEPLOYMENT_DISCORD_WEBHOOK_URL is not configured; deployment failure notification was not sent" >&2
     return 1
   fi
   "${curl_bin}" --fail --silent --show-error \
     -H 'Content-Type: application/json' \
-    --data "{\"content\":\"[JBNU Sugang Helper] deployment ${release_sha} failed (${reason}); rolled back to ${previous_sha}.\"}" \
+    --data "{\"content\":\"[JBNU Sugang Helper] deployment ${release_sha} failed (${reason}); ${outcome}.\"}" \
     "${webhook_url}"
+}
+
+notify_rollback() {
+  local reason="$1"
+  notify_deployment_failure "${reason}" "rolled back to ${previous_sha}"
+}
+
+notify_redis_preflight_failure() {
+  notify_deployment_failure "Redis health check failed before app deployment" "kept ${previous_sha} running"
 }
 
 rollback() {
@@ -135,6 +181,11 @@ write_state "${state_dir}/deployment-start.env" "${previous_sha}" "${previous_re
 
 if ! (cd "${release_dir}" && "${docker_bin}" build -t "sugang-helper-app:${release_sha}" .); then
   rollback "image build failed" || true
+  exit 1
+fi
+
+if ! ensure_redis_ready; then
+  notify_redis_preflight_failure || true
   exit 1
 fi
 

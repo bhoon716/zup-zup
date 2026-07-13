@@ -44,6 +44,7 @@ public class SecurityConfig {
 
     private static final String[] INTERNAL_MANAGEMENT_ENDPOINTS = new String[]{
             "/actuator/health",
+            "/actuator/health/readiness",
             "/actuator/prometheus"
     };
 

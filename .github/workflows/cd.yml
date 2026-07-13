@@ -256,7 +256,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "infra/docker-compose.yml,infra/scripts/deploy-app.sh,infra/prometheus/**,infra/grafana/**,infra/loki/**,infra/promtail/**"
+          source: "infra/docker-compose.yml,infra/scripts/deploy-app.sh,infra/scripts/prepare-app-host-directories.sh,infra/scripts/backup-redis-state.sh,infra/scripts/restore-redis-state.sh,infra/scripts/redis-restart-smoke.sh,infra/prometheus/**,infra/grafana/**,infra/loki/**,infra/promtail/**"
           target: "~/jbnu-sugang-helper/infra/"
           strip_components: 1
 
@@ -305,6 +305,17 @@ jobs:
       - name: 인프라 정책 검증
         working-directory: infra
         run: bash scripts/verify-compose-policy.sh docker-compose.yml
+
+      - name: Redis 상태 복구 검증
+        working-directory: infra
+        run: bash scripts/test-redis-state-recovery.sh
+
+      - name: Redis restart smoke cleanup 검증
+        working-directory: infra
+        run: bash scripts/test-redis-restart-smoke.sh
+
+      - name: 배포 Redis preflight 및 롤백 검증
+        run: bash infra/scripts/test-deploy-app.sh
 
       - name: 배포 Compose 정렬 검증
         run: bash infra/scripts/verify-deployment-alignment.sh .github/workflows/cd.yml

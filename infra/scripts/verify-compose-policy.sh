@@ -138,8 +138,36 @@ healthcheck = app.get("healthcheck", {})
 healthcheck_test = healthcheck.get("test", [])
 if isinstance(healthcheck_test, list):
     healthcheck_test = " ".join(str(part) for part in healthcheck_test)
-if "127.0.0.1:8081/actuator/health" not in str(healthcheck_test):
-    fail("app healthcheck must use the internal management port")
+if "127.0.0.1:8081/actuator/health/readiness" not in str(healthcheck_test):
+    fail("app healthcheck must use the internal readiness endpoint")
+
+redis = services.get("redis", {})
+redis_healthcheck = redis.get("healthcheck", {})
+redis_healthcheck_test = redis_healthcheck.get("test", [])
+if isinstance(redis_healthcheck_test, list):
+    redis_healthcheck_test = " ".join(str(part) for part in redis_healthcheck_test)
+if not all(token in str(redis_healthcheck_test) for token in ("REDISCLI_AUTH", "redis-cli", "ping")):
+    fail("redis healthcheck must authenticate and verify PING")
+
+redis_command = redis.get("command", [])
+if isinstance(redis_command, list):
+    redis_command = " ".join(str(part) for part in redis_command)
+if not all(token in str(redis_command) for token in ("--appendonly", "yes", "--appendfsync", "everysec")):
+    fail("redis must persist state using AOF with appendfsync everysec")
+
+redis_volumes = redis.get("volumes", [])
+if not any(
+    volume.get("type") == "bind"
+    and volume.get("source") == "/var/lib/jbnu-sugang-helper/redis"
+    and volume.get("target") == "/data"
+    and not volume.get("read_only", False)
+    for volume in redis_volumes
+):
+    fail("redis state must use its writable host bind mount")
+
+redis_dependency = app.get("depends_on", {}).get("redis", {})
+if redis_dependency.get("condition") != "service_healthy":
+    fail("app must wait for Redis to become healthy")
 
 if app.get("user") != "10001:10001":
     fail("app must run as the dedicated non-root UID/GID")
@@ -164,6 +192,12 @@ if not any(
 
 print("compose policy verification passed")
 PY
+
+prepare_host_directories_script="$(dirname "$0")/prepare-app-host-directories.sh"
+if ! grep -F -- 'install -d -o 999 -g 1000 -m 0700' "${prepare_host_directories_script}" >/dev/null; then
+  echo "Redis state directory must be owner-only on the host" >&2
+  exit 1
+fi
 
 compose_directory="$(cd "$(dirname "${compose_file}")" && pwd)"
 if ! grep -F -- 'targets: ["app:8081"]' "${compose_directory}/prometheus/prometheus.yml" >/dev/null; then
