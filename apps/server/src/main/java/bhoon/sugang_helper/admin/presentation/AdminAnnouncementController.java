@@ -9,8 +9,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,8 +39,9 @@ public class AdminAnnouncementController {
      */
     @Operation(summary = "공지사항 전체 조회", description = "공개/비공개를 포함한 전체 공지사항을 조회합니다.")
     @GetMapping
-    public ResponseEntity<CommonResponse<List<AnnouncementDetailResponse>>> getAnnouncements() {
-        List<AnnouncementDetailResponse> response = announcementService.getAdminAnnouncements();
+    public ResponseEntity<CommonResponse<Page<AnnouncementDetailResponse>>> getAnnouncements(
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<AnnouncementDetailResponse> response = announcementService.getAdminAnnouncements(pageable);
         return CommonResponse.ok(response, "전체 공지사항 목록입니다.");
     }
 

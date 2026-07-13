@@ -30,6 +30,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.PageImpl;
 
 @ExtendWith(MockitoExtension.class)
 class DashboardServiceTest {
@@ -105,7 +106,7 @@ class DashboardServiceTest {
         when(timetableService.getPrimaryTimetable()).thenReturn(timetable);
         when(scheduleService.getUpcomingSchedules()).thenReturn(List.of(ScheduleResponse.from(schedule)));
         when(announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(PageRequest.of(0, 4)))
-                .thenReturn(List.of(announcement));
+                .thenReturn(new PageImpl<>(List.of(announcement)));
 
         // when
         DashboardSnapshotResponse result = dashboardService.getDashboardSnapshot();
@@ -147,7 +148,7 @@ class DashboardServiceTest {
         when(userService.getCurrentUserOrNull()).thenReturn(Optional.empty());
         when(scheduleService.getUpcomingSchedules()).thenReturn(List.of(ScheduleResponse.from(schedule)));
         when(announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(PageRequest.of(0, 4)))
-                .thenReturn(List.of(announcement));
+                .thenReturn(new PageImpl<>(List.of(announcement)));
 
         // when
         DashboardSnapshotResponse result = dashboardService.getDashboardSnapshot();

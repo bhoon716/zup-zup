@@ -106,8 +106,11 @@ export const replayAdminNotificationDelivery = async (
 /**
  * 관리자 공지사항 목록을 조회합니다. (공개/비공개 포함)
  */
-export const getAdminAnnouncements = async (): Promise<CommonResponse<AnnouncementDetailResponse[]>> => {
-  const { data } = await api.get('/api/v1/admin/announcements');
+export const getAdminAnnouncements = async (
+  page: number = 0,
+  size: number = 20,
+): Promise<CommonResponse<PageResponse<AnnouncementDetailResponse>>> => {
+  const { data } = await api.get('/api/v1/admin/announcements', { params: { page, size } });
   return data;
 };
 

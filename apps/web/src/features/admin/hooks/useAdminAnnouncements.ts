@@ -9,7 +9,7 @@ export const useAdminAnnouncements = () => {
     queryKey: ["admin", "announcements"],
     queryFn: async () => {
       const response = await adminApi.getAdminAnnouncements();
-      return response.data;
+      return response.data.content;
     },
   });
 };

@@ -4,8 +4,13 @@ import bhoon.sugang_helper.announcement.domain.Announcement;
 import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.web.PageableGuard;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,16 +19,36 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AnnouncementService {
 
+    private static final int MAX_KEYWORD_LENGTH = 100;
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final AnnouncementRepository announcementRepository;
+    private final MeterRegistry meterRegistry;
 
     /**
      * 공개된 공지사항 목록을 검색 조건에 따라 조회합니다.
      */
     public List<AnnouncementListResponse> getPublicAnnouncements(String keyword, AnnouncementSearchType searchType) {
-        return findPublicAnnouncements(keyword, searchType)
-                .stream()
-                .map(AnnouncementListResponse::from)
-                .toList();
+        return getPublicAnnouncements(keyword, searchType, PageRequest.of(0, MAX_PAGE_SIZE)).getContent();
+    }
+
+    public Page<AnnouncementListResponse> getPublicAnnouncements(
+            String keyword, AnnouncementSearchType searchType, Pageable pageable) {
+        Pageable bounded = PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, 10_000);
+        String normalizedKeyword = normalizeKeyword(keyword);
+        AnnouncementSearchType effectiveSearchType = searchType == null
+                ? AnnouncementSearchType.TITLE_CONTENT : searchType;
+        long started = System.nanoTime();
+        try {
+            return findPublicAnnouncements(normalizedKeyword, effectiveSearchType, bounded)
+                    .map(AnnouncementListResponse::from);
+        } finally {
+            if (meterRegistry != null) {
+                meterRegistry.timer("announcement.search.latency", "searchType", effectiveSearchType.name(),
+                        "hasKeyword", Boolean.toString(!normalizedKeyword.isEmpty()))
+                        .record(System.nanoTime() - started, java.util.concurrent.TimeUnit.NANOSECONDS);
+            }
+        }
     }
 
     /**
@@ -39,10 +64,13 @@ public class AnnouncementService {
      * 관리자용 전체 공지사항 목록을 조회합니다. (비공개 포함)
      */
     public List<AnnouncementDetailResponse> getAdminAnnouncements() {
-        return announcementRepository.findAllByOrderByPinnedDescCreatedAtDesc()
-                .stream()
-                .map(AnnouncementDetailResponse::from)
-                .toList();
+        return getAdminAnnouncements(PageRequest.of(0, MAX_PAGE_SIZE)).getContent();
+    }
+
+    public Page<AnnouncementDetailResponse> getAdminAnnouncements(Pageable pageable) {
+        return announcementRepository.findAllByOrderByPinnedDescCreatedAtDesc(
+                        PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, 10_000))
+                .map(AnnouncementDetailResponse::from);
     }
 
     /**
@@ -93,19 +121,24 @@ public class AnnouncementService {
     /**
      * 검색 조건에 따른 공개 공지사항 필터링 로직을 수행합니다.
      */
-    private List<Announcement> findPublicAnnouncements(String keyword, AnnouncementSearchType searchType) {
-        if (keyword == null || keyword.isBlank()) {
-            return announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc();
+    private Page<Announcement> findPublicAnnouncements(
+            String keyword, AnnouncementSearchType searchType, Pageable pageable) {
+        if (keyword.isEmpty()) {
+            return announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(pageable);
         }
-
-        String normalizedKeyword = keyword.trim();
-        AnnouncementSearchType effectiveSearchType = searchType == null ? AnnouncementSearchType.TITLE_CONTENT
-                : searchType;
-
-        return switch (effectiveSearchType) {
-            case TITLE -> announcementRepository.searchPublishedByTitle(normalizedKeyword);
-            case CONTENT -> announcementRepository.searchPublishedByContent(normalizedKeyword);
-            case TITLE_CONTENT -> announcementRepository.searchPublishedByTitleOrContent(normalizedKeyword);
+        return switch (searchType) {
+            case TITLE -> announcementRepository.searchPublishedByTitle(keyword, pageable);
+            case CONTENT -> announcementRepository.searchPublishedByContent(keyword, pageable);
+            case TITLE_CONTENT -> announcementRepository.searchPublishedByTitleOrContent(keyword, pageable);
         };
+    }
+
+    private String normalizeKeyword(String keyword) {
+        String normalized = keyword == null ? "" : keyword.trim();
+        if (normalized.length() > MAX_KEYWORD_LENGTH) {
+            throw new CustomException(ErrorCode.INVALID_INPUT,
+                    "검색어는 " + MAX_KEYWORD_LENGTH + "자 이하로 입력해주세요.");
+        }
+        return normalized;
     }
 }

@@ -136,6 +136,7 @@ This document merges the web and server release histories.
 - **그리드 기반 강의 검색**: 드래그 앤 드롭으로 시간을 직접 선택하거나 공강 기간을 자동 반영하는 스마트 필터
 - **실시간 무한 스크롤**: TanStack Query를 활용하여 수천 개의 강의 데이터를 끊김 없이 탐색
 - **공지사항(Announcement) 페이지**: 목록(미리보기)과 상세(마크다운 렌더링) 라우트 분리 및 검색 기능
+- **공지사항 API bounded pagination**: public/admin 목록과 제목·내용 검색은 최대 100건 페이지와 100자 검색어 상한을 사용하고, `announcement.search.latency` metric으로 검색 지연을 관찰한다. 웹 API 계층은 `content`를 기존 배열 화면 모델로 변환해 기존 UI를 유지한다.
 - **통합 관리자 패널**: Recharts 기반의 통계 가시화, 크롤링 타겟 제어, 학사 일정 CRUD 화면
 - **시간표 시뮬레이터**: 수업 시간표 생성 및 겹치는 강의 세로 분할 렌더링 로직 구현
 - **Self-Healing 웹푸시**: VAPID 키 불일치나 만료된 구독을 자동으로 탐지하고 소생시키는 로직

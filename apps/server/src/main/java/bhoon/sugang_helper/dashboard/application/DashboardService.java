@@ -36,7 +36,7 @@ public class DashboardService {
         List<ScheduleResponse> upcomingSchedules = scheduleService.getUpcomingSchedules();
         List<AnnouncementListResponse> announcements = announcementRepository
                 .findByPublishedTrueOrderByPinnedDescCreatedAtDesc(PageRequest.of(0, DASHBOARD_ANNOUNCEMENT_LIMIT))
-                .stream()
+                .getContent().stream()
                 .map(AnnouncementListResponse::from)
                 .toList();
 
