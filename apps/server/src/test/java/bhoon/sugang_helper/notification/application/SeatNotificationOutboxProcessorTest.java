@@ -28,9 +28,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class SeatNotificationOutboxProcessorTest {
@@ -63,7 +65,8 @@ class SeatNotificationOutboxProcessorTest {
         ReflectionTestUtils.setField(processor, "maximumAttempts", 3);
         ReflectionTestUtils.setField(processor, "batchSize", 10);
         ReflectionTestUtils.setField(processor, "leaseSeconds", 60L);
-        when(meterRegistry.counter(anyString(), eq("channel"), eq("EMAIL"))).thenReturn(counter);
+        org.mockito.Mockito.lenient().when(meterRegistry.counter(anyString(), eq("channel"), eq("EMAIL")))
+                .thenReturn(counter);
     }
 
     @Test
@@ -128,6 +131,21 @@ class SeatNotificationOutboxProcessorTest {
 
         verify(settlementService).markFailure(eq(claim), anyString(), eq(1));
         verify(counter).increment();
+    }
+
+    @Test
+    void claimReadyDeliveriesUsesBoundedFifoPageSize() {
+        org.mockito.Mockito.doReturn(java.util.List.of()).when(deliveryRepository).findReadyForUpdate(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(Pageable.class));
+
+        processor.claimReadyDeliveries(4);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(deliveryRepository).findReadyForUpdate(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), pageable.capture());
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(4);
     }
 
     private SeatNotificationDelivery processingDelivery() {

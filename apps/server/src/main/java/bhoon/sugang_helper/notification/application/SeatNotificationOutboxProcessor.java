@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class SeatNotificationOutboxProcessor {
 
+    private static final String CHANNEL_TAG = "channel";
     private static final List<SeatNotificationDeliveryStatus> ACTIVE_DELIVERY_STATUSES = List.of(
             SeatNotificationDeliveryStatus.PENDING, SeatNotificationDeliveryStatus.PROCESSING);
 
@@ -63,15 +64,23 @@ public class SeatNotificationOutboxProcessor {
 
     @Transactional
     public List<SeatNotificationDeliveryClaim> claimReadyDeliveries() {
+        return claimReadyDeliveries(batchSize);
+    }
+
+    @Transactional
+    public List<SeatNotificationDeliveryClaim> claimReadyDeliveries(int limit) {
         LocalDateTime now = LocalDateTime.now();
         List<SeatNotificationDelivery> deliveries = deliveryRepository.findReadyForUpdate(
                 SeatNotificationDeliveryStatus.PENDING,
                 SeatNotificationDeliveryStatus.PROCESSING,
                 now,
-                PageRequest.of(0, batchSize));
+                PageRequest.of(0, Math.max(1, limit)));
         return deliveries.stream()
-                .map(delivery -> new SeatNotificationDeliveryClaim(
-                        delivery.getId(), delivery.claim(now.plusSeconds(leaseSeconds))))
+                .map(delivery -> {
+                    String claimToken = delivery.claim(now.plusSeconds(leaseSeconds));
+                    recordClaimLag(delivery, now);
+                    return new SeatNotificationDeliveryClaim(delivery.getId(), claimToken, now, delivery.getChannel());
+                })
                 .toList();
     }
 
@@ -82,6 +91,7 @@ public class SeatNotificationOutboxProcessor {
         }
 
         try {
+            recordClaimToAttemptLag(claim, dispatch.channel());
             notificationService.deliverSeatOpening(
                     dispatch.userId(), dispatch.channel(), dispatch.outbox(), dispatch.idempotencyKey());
             if (!settlementService.markSent(claim)) {
@@ -95,14 +105,33 @@ public class SeatNotificationOutboxProcessor {
             if (!result.settled()) {
                 log.info("[Notification Outbox] Ignored stale failure settlement. deliveryId={}", claim.deliveryId());
             } else if (result.deadLettered()) {
-                meterRegistry.counter("notification.outbox.dlq", "channel", dispatch.channel().name()).increment();
+                meterRegistry.counter("notification.outbox.dlq", CHANNEL_TAG, dispatch.channel().name()).increment();
                 log.error("[Notification Outbox] Delivery moved to DLQ. deliveryId={}, outboxId={}, channel={}, failureCode={}",
                         claim.deliveryId(), dispatch.outbox().getId(), dispatch.channel(), failureCode);
             } else {
-                meterRegistry.counter("notification.outbox.retry", "channel", dispatch.channel().name()).increment();
+                meterRegistry.counter("notification.outbox.retry", CHANNEL_TAG, dispatch.channel().name()).increment();
                 log.warn("[Notification Outbox] Delivery scheduled for retry. deliveryId={}, attempts={}, channel={}, failureCode={}",
                         claim.deliveryId(), result.attempts(), dispatch.channel(), failureCode);
             }
+        }
+    }
+
+    private void recordClaimLag(SeatNotificationDelivery delivery, LocalDateTime claimedAt) {
+        if (delivery.getCreatedAt() == null) {
+            return;
+        }
+        io.micrometer.core.instrument.Timer timer = meterRegistry.timer(
+                "notification.outbox.claim.lag", CHANNEL_TAG, delivery.getChannel().name());
+        if (timer != null) {
+            timer.record(java.time.Duration.between(delivery.getCreatedAt(), claimedAt));
+        }
+    }
+
+    private void recordClaimToAttemptLag(SeatNotificationDeliveryClaim claim, NotificationChannel channel) {
+        io.micrometer.core.instrument.Timer timer = meterRegistry.timer(
+                "notification.outbox.claim_to_attempt", CHANNEL_TAG, channel.name());
+        if (timer != null) {
+            timer.record(java.time.Duration.between(claim.claimedAt(), LocalDateTime.now()));
         }
     }
 

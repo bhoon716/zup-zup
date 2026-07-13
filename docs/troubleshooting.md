@@ -128,6 +128,10 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 
 알림 provider 호출은 `APP_NOTIFICATION_PROVIDER_TIMEOUT_MS` 기본 5초의 상한을 가지며, Discord의 connect/read timeout과 SMTP의 connection/read/write timeout도 별도로 설정한다. 일시 장애·rate limit·timeout은 outbox 재시도 대상으로 분류하고, 잘못된 Web Push 구독 같은 영구 실패는 즉시 DLQ로 보낸다. provider별 회로 차단은 `APP_NOTIFICATION_PROVIDER_CIRCUIT_FAILURE_THRESHOLD`와 `APP_NOTIFICATION_PROVIDER_CIRCUIT_OPEN_SECONDS`로 제어한다. `notification.provider.latency`, `notification.provider.timeout`, `notification.provider.http.status`, `notification.provider.circuit.open`, `notification.provider.failures` metric으로 상태를 확인한다.
 
+## 알림 fan-out SLA (ISSUE-087)
+
+Outbox worker는 기본 8개 thread와 32개 bounded queue로 FIFO claim을 병렬 처리한다. `APP_NOTIFICATION_OUTBOX_WORKER_THREADS`와 `APP_NOTIFICATION_OUTBOX_QUEUE_CAPACITY`로 용량을 조정하며, permit이 모두 사용되면 새 row를 claim하지 않아 pending delivery가 유실되지 않는다. `notification.outbox.claim.lag`, `notification.outbox.claim_to_attempt`, `notification.outbox.queue.depth`를 channel 태그로 조회해 커밋 이후 claim 지연과 첫 시도 지연을 확인한다.
+
 ### Withdrawn feedback administrator access (2026-07-13)
 
 - Scenario: user withdrawal and manual feedback deletion hid feedback through Hibernate soft-delete restrictions, but the sole administrator still needed a narrow, auditable preservation view. The old manual delete also removed attached files and hard-deleted administrator replies.
