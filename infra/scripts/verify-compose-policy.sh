@@ -51,6 +51,7 @@ import sys
 
 expected_images = {
     "prometheus": "prom/prometheus@sha256:0e698e35e50d1ddc2d11a4a55b089fe62eb71358a5c204dfafd21bdf8ffe04b8",
+    "alertmanager": "prom/alertmanager@sha256:27c475db5fb156cab31d5c18a4251ac7ed567746a2483ff264516437a39b15ba",
     "grafana": "grafana/grafana@sha256:6ea068891652aa6a65ca9065c26b89de939653803c836426970305c11fd00534",
     "nginx-proxy-manager": "jc21/nginx-proxy-manager@sha256:99a885f56ca2203a2eb352a5f9e2cd5c1e25786508debd725ad48ebe955d114f",
     "loki": "grafana/loki@sha256:d14b3a2c419b72fe27cd094c017863bd37a5ea9ac7d72f35bcd25f5bd081dc47",
@@ -93,7 +94,7 @@ for service_name in ("db", "redis", "prometheus", "grafana", "loki", "promtail")
 
 expected_internal_network_members = {
     "sugang-helper-management": {"app", "prometheus"},
-    "sugang-helper-observability": {"prometheus", "grafana"},
+    "sugang-helper-observability": {"alertmanager", "prometheus", "grafana"},
 }
 for network_name, expected_members in expected_internal_network_members.items():
     network = networks.get(network_name)
@@ -143,6 +144,26 @@ if not any(
     for volume in grafana_volumes
 ):
     fail("grafana state volume is missing")
+
+prometheus_volumes = services.get("prometheus", {}).get("volumes", [])
+if not any(
+    volume.get("type") == "bind"
+    and volume.get("source") == "/var/lib/jbnu-sugang-helper/prometheus"
+    and volume.get("target") == "/prometheus"
+    and not volume.get("read_only", False)
+    for volume in prometheus_volumes
+):
+    fail("prometheus state volume is missing")
+
+alertmanager_volumes = services.get("alertmanager", {}).get("volumes", [])
+if not any(
+    volume.get("type") == "bind"
+    and volume.get("source") == "/var/lib/jbnu-sugang-helper/alertmanager"
+    and volume.get("target") == "/alertmanager"
+    and not volume.get("read_only", False)
+    for volume in alertmanager_volumes
+):
+    fail("alertmanager state volume is missing")
 
 promtail_volumes = services.get("promtail", {}).get("volumes", [])
 if not any(volume.get("target") == "/var/log" and volume.get("read_only") for volume in promtail_volumes):
@@ -312,6 +333,17 @@ fi
 
 if ! grep -F -- 'targets: ["app:8081"]' "${compose_directory}/prometheus/prometheus.yml" >/dev/null; then
   echo "Prometheus must scrape the internal management port" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--storage.tsdb.retention.time=30d' "${compose_file}" >/dev/null \
+  || ! grep -F -- '--storage.tsdb.retention.size=20GB' "${compose_file}" >/dev/null; then
+  echo "Prometheus retention policy is missing" >&2
+  exit 1
+fi
+
+if ! grep -F -- 'targets: ["alertmanager:9093"]' "${compose_directory}/prometheus/prometheus.yml" >/dev/null; then
+  echo "Prometheus must route alerts to Alertmanager" >&2
   exit 1
 fi
 

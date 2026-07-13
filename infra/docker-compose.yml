@@ -52,8 +52,15 @@ services:
     image: prom/prometheus@sha256:0e698e35e50d1ddc2d11a4a55b089fe62eb71358a5c204dfafd21bdf8ffe04b8
     container_name: ${PROMETHEUS_CONTAINER_NAME}
     restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=20GB
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - /var/lib/jbnu-sugang-helper/prometheus:/prometheus
     environment:
       TZ: ${TZ}
     logging:
@@ -63,6 +70,23 @@ services:
         max-file: "5"
     networks:
       - sugang-helper-management
+      - sugang-helper-observability
+
+  alertmanager:
+    image: prom/alertmanager@sha256:27c475db5fb156cab31d5c18a4251ac7ed567746a2483ff264516437a39b15ba
+    container_name: ${ALERTMANAGER_CONTAINER_NAME}
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --config.expand-env=true
+      - --storage.path=/alertmanager
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - /var/lib/jbnu-sugang-helper/alertmanager:/alertmanager
+    environment:
+      ALERTMANAGER_WEBHOOK_URL: ${ALERTMANAGER_WEBHOOK_URL}
+      TZ: ${TZ}
+    networks:
       - sugang-helper-observability
 
   grafana:

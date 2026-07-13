@@ -53,6 +53,10 @@ docker compose up -d
 ## 검증 스크립트
 
 - `./scripts/verify-compose-policy.sh`
+
+### Observability durability and alerts
+
+Prometheus stores its TSDB under `/var/lib/jbnu-sugang-helper/prometheus` with a 30-day/20GB retention cap. Alertmanager stores state under `/var/lib/jbnu-sugang-helper/alertmanager` and receives Prometheus SLO, DLQ, provider-circuit, and crawler-freshness alerts. Set `ALERTMANAGER_WEBHOOK_URL` to the reviewed operator/Discord webhook before deployment; the example value is intentionally a placeholder. The Grafana notification dashboard is provisioned from `grafana/dashboards/notification-slo-dashboard.json`.
 - `./scripts/verify-log-policy.sh`
 - `./scripts/backup-log-state.sh`
 - `./scripts/restore-log-state.sh`
