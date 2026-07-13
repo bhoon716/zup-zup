@@ -10,7 +10,12 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import bhoon.sugang_helper.course.domain.SemesterType;
+import bhoon.sugang_helper.course.domain.CourseRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +30,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class CourseCrawlerServiceTest {
 
     @Mock
@@ -35,6 +41,12 @@ class CourseCrawlerServiceTest {
     private CourseCrawlerTargetService crawlerTargetService;
     @Mock
     private JobExecution jobExecution;
+    @Mock
+    private CourseRepository courseRepository;
+    @Mock
+    private MeterRegistry meterRegistry;
+    @Mock
+    private Counter metricCounter;
 
     @InjectMocks
     private CourseCrawlerService courseCrawlerService;
@@ -47,12 +59,17 @@ class CourseCrawlerServiceTest {
         given(crawlerTargetService.getCurrentTargetValue()).willReturn(target);
         given(jobLauncher.run(any(Job.class), any(JobParameters.class))).willReturn(jobExecution);
         given(jobExecution.getStatus()).willReturn(org.springframework.batch.core.BatchStatus.COMPLETED);
+        given(meterRegistry.counter("crawler.runs", "status", "STARTED")).willReturn(metricCounter);
+        given(meterRegistry.counter("crawler.runs", "status", "SUCCEEDED")).willReturn(metricCounter);
 
         // when
-        courseCrawlerService.crawlAndSaveCourses();
+        boolean started = courseCrawlerService.crawlAndSaveCourses();
 
         // then
         verify(jobLauncher, times(1)).run(any(Job.class), any(JobParameters.class));
+        org.assertj.core.api.Assertions.assertThat(started).isTrue();
+        verify(meterRegistry).counter("crawler.runs", "status", "STARTED");
+        verify(meterRegistry).counter("crawler.runs", "status", "SUCCEEDED");
     }
 
     @Test
@@ -62,11 +79,12 @@ class CourseCrawlerServiceTest {
         try {
             setCrawlingFlag(true);
 
-            courseCrawlerService.crawlAndSaveCourses("2026", "U211600010");
+            boolean started = courseCrawlerService.crawlAndSaveCourses("2026", "U211600010");
 
             assertThat(appender.list)
                     .extracting(ILoggingEvent::getFormattedMessage)
                     .contains("[Crawler] Target crawl is already in progress. Skipping.");
+            org.assertj.core.api.Assertions.assertThat(started).isFalse();
         } finally {
             detachAppender(appender);
         }
@@ -84,6 +102,24 @@ class CourseCrawlerServiceTest {
             assertThat(appender.list)
                     .extracting(ILoggingEvent::getFormattedMessage)
                     .contains("[Crawler] Historical crawl is already in progress. Skipping.");
+        } finally {
+            detachAppender(appender);
+        }
+    }
+
+    @Test
+    @DisplayName("마지막 크롤링 데이터가 stale threshold를 넘으면 관리자 경고를 남긴다")
+    void staleDataEmitsAdminAlert() {
+        ReflectionTestUtils.setField(courseCrawlerService, "staleThresholdMinutes", 15L);
+        given(courseRepository.findMaxLastCrawledAt()).willReturn(Optional.of(LocalDateTime.now().minusMinutes(20)));
+        ListAppender<ILoggingEvent> appender = attachAppender();
+        try {
+            courseCrawlerService.checkDataFreshness();
+
+            assertThat(appender.list)
+                    .extracting(ILoggingEvent::getFormattedMessage)
+                    .anyMatch(message -> message.contains("Data freshness is stale")
+                            && message.contains("alert=ADMIN"));
         } finally {
             detachAppender(appender);
         }

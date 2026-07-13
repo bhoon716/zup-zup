@@ -6,7 +6,12 @@ import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.net.SocketTimeoutException;
+import java.net.ConnectException;
 import java.util.Map;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import org.springframework.beans.factory.annotation.Autowired;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -55,6 +60,8 @@ public class JbnuCourseApiClient {
     private int retryWaitMs;
     @Value("${jbnu.api.max-response-bytes:10485760}")
     private int maximumResponseBytes;
+    @Autowired(required = false)
+    private MeterRegistry meterRegistry;
 
     /**
      * 특정 년도와 학기를 지정하여 JBNU API 서버로부터 강의 데이터를 XML 형식으로 가져옵니다.
@@ -71,6 +78,7 @@ public class JbnuCourseApiClient {
         int retryCount = 0;
 
         while (true) {
+            long startedAt = System.nanoTime();
             try {
                 Map<String, String> cookies = fetchSessionCookies();
                 String wmonid = cookies.getOrDefault("WMONID", "");
@@ -99,9 +107,16 @@ public class JbnuCourseApiClient {
                         .method(Connection.Method.POST)
                         .ignoreContentType(true)
                         .execute();
+                recordUpstreamLatency(startedAt);
                 return new BoundedInputStream(response.bodyStream(), maximumResponseBytes);
             } catch (Exception e) {
                 retryCount++;
+                recordUpstreamLatency(startedAt);
+                if (!isTransientFailure(e)) {
+                    log.error("[API Client] Non-transient upstream payload failure. yy={}, shtm={}, failureType=PERMANENT, exceptionType={}",
+                            year, semester, SensitiveDataRedactor.exceptionType(e));
+                    throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
+                }
                 log.warn("[API Client] Course data request failed. attempt={}/{}, yy={}, shtm={}, failureCode={}, exceptionType={}",
                         retryCount, maxRetries + 1, year, semester, ErrorCode.CRAWLER_CONNECTION_ERROR.getCode(),
                         SensitiveDataRedactor.exceptionType(e));
@@ -112,6 +127,27 @@ public class JbnuCourseApiClient {
 
                 waitBeforeRetry(retryCount);
             }
+        }
+    }
+
+    static boolean isTransientFailure(Throwable throwable) {
+        if (throwable == null) {
+            return false;
+        }
+        if (throwable instanceof SocketTimeoutException || throwable instanceof ConnectException
+                || throwable instanceof IOException || throwable instanceof java.util.concurrent.TimeoutException) {
+            return true;
+        }
+        return isTransientFailure(throwable.getCause());
+    }
+
+    private void recordUpstreamLatency(long startedAt) {
+        if (meterRegistry == null) {
+            return;
+        }
+        Timer timer = meterRegistry.timer("crawler.upstream.latency");
+        if (timer != null) {
+            timer.record(System.nanoTime() - startedAt, java.util.concurrent.TimeUnit.NANOSECONDS);
         }
     }
 

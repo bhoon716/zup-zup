@@ -41,7 +41,8 @@ public class CourseScheduler {
     @Scheduled(cron = "${jbnu.crawler.cron}")
     public void runCrawler() {
         log.info("[Scheduler] Starting course crawling task.");
-        courseCrawlerService.crawlAndSaveCourses();
-        log.info("[Scheduler] Completed course crawling task.");
+        boolean started = courseCrawlerService.crawlAndSaveCourses();
+        log.info(started ? "[Scheduler] Completed course crawling task."
+                : "[Scheduler] Skipped course crawling task because another run is active.");
     }
 }

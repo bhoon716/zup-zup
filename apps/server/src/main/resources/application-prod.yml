@@ -139,6 +139,8 @@ jbnu:
     max-retries: 3
     retry-wait-ms: 3000
   crawler:
+    freshness-check-ms: ${JBNU_CRAWLER_FRESHNESS_CHECK_MS:60000}
+    stale-threshold-minutes: ${JBNU_CRAWLER_STALE_THRESHOLD_MINUTES:15}
     run-on-startup: false
     cron: "0 * * * * ?"
     default-year: "2026"

@@ -152,6 +152,8 @@ jbnu:
   crawler:
     run-on-startup: ${JBNU_CRAWLER_RUN_ON_STARTUP:false}
     cron: ${JBNU_CRAWLER_CRON:0 * * * * ?}
+    freshness-check-ms: ${JBNU_CRAWLER_FRESHNESS_CHECK_MS:60000}
+    stale-threshold-minutes: ${JBNU_CRAWLER_STALE_THRESHOLD_MINUTES:15}
     default-year: ${JBNU_CRAWLER_DEFAULT_YEAR:2026}
     default-semester: ${JBNU_CRAWLER_DEFAULT_SEMESTER:U211600010}
 
