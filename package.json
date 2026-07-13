@@ -14,6 +14,7 @@
     "web:test": "npm --workspace web test -- --run",
     "web:lint": "npm --workspace web run lint",
     "web:build": "npm --workspace web run build",
+    "web:e2e": "playwright test --config=playwright.config.ts",
     "server:test": "cd apps/server && ./gradlew test --no-daemon",
     "server:build": "cd apps/server && ./gradlew build --no-daemon",
     "check": "npm run web:test && npm run web:lint && npm run server:build",
@@ -24,7 +25,9 @@
     "react-dom": "19.2.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "eslint": "^9",
+    "@playwright/test": "^1.61.1",
     "typescript": "^5"
   }
 }
