@@ -132,6 +132,10 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 
 Outbox worker는 기본 8개 thread와 32개 bounded queue로 FIFO claim을 병렬 처리한다. `APP_NOTIFICATION_OUTBOX_WORKER_THREADS`와 `APP_NOTIFICATION_OUTBOX_QUEUE_CAPACITY`로 용량을 조정하며, permit이 모두 사용되면 새 row를 claim하지 않아 pending delivery가 유실되지 않는다. `notification.outbox.claim.lag`, `notification.outbox.claim_to_attempt`, `notification.outbox.queue.depth`를 channel 태그로 조회해 커밋 이후 claim 지연과 첫 시도 지연을 확인한다.
 
+## Crawler chunk 비용 (ISSUE-096)
+
+크롤러 writer는 chunk의 course key를 `findByCourseKeyIn`으로 한 번에 조회해 course별 N+1 select를 제거한다. seat-open event와 seat history 조건은 유지하며, `crawler.course.chunk.write` timer와 `crawler.course.chunk.items` counter로 chunk 처리 시간과 처리량을 확인한다.
+
 ### Withdrawn feedback administrator access (2026-07-13)
 
 - Scenario: user withdrawal and manual feedback deletion hid feedback through Hibernate soft-delete restrictions, but the sole administrator still needed a narrow, auditable preservation view. The old manual delete also removed attached files and hard-deleted administrator replies.

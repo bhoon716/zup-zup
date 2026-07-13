@@ -18,7 +18,6 @@ import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
 import bhoon.sugang_helper.course.infra.CourseSeatHistoryJpaRepository;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,7 +55,7 @@ class SpringBatchConfigTest {
         // given
         ParsedCourseDto dto = createCourseDto(COURSE_KEY, 50, 49);
         Course existingFullCourse = createCourse(COURSE_KEY, 50, 50);
-        given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(existingFullCourse));
+        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existingFullCourse));
 
         ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
 
@@ -76,7 +75,7 @@ class SpringBatchConfigTest {
         // given
         ParsedCourseDto dto = createCourseDto(COURSE_KEY, 50, 48);
         Course existingAvailableCourse = createCourse(COURSE_KEY, 50, 49);
-        given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(existingAvailableCourse));
+        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existingAvailableCourse));
 
         ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
 
@@ -95,7 +94,7 @@ class SpringBatchConfigTest {
     void newCourseFound_SavesCourseAndHistory() throws Exception {
         // given
         ParsedCourseDto dto = createCourseDto(NEW_COURSE_KEY, 50, 40);
-        given(courseRepository.findByCourseKey(NEW_COURSE_KEY)).willReturn(Optional.empty());
+        given(courseRepository.findByCourseKeyIn(List.of(NEW_COURSE_KEY))).willReturn(List.of());
 
         ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
 
@@ -115,7 +114,7 @@ class SpringBatchConfigTest {
         // given
         ParsedCourseDto dto = createCourseDto(SAME_COURSE_KEY, 50, 10);
         Course existingCourse = createCourse(SAME_COURSE_KEY, 50, 10);
-        given(courseRepository.findByCourseKey(SAME_COURSE_KEY)).willReturn(Optional.of(existingCourse));
+        given(courseRepository.findByCourseKeyIn(List.of(SAME_COURSE_KEY))).willReturn(List.of(existingCourse));
 
         ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
 
@@ -132,7 +131,7 @@ class SpringBatchConfigTest {
         // given
         ParsedCourseDto dto = createCourseDto(SAME_COURSE_KEY, 60, 12);
         Course existingCourse = createCourse(SAME_COURSE_KEY, 50, 10);
-        given(courseRepository.findByCourseKey(SAME_COURSE_KEY)).willReturn(Optional.of(existingCourse));
+        given(courseRepository.findByCourseKeyIn(List.of(SAME_COURSE_KEY))).willReturn(List.of(existingCourse));
 
         ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
 
@@ -151,7 +150,7 @@ class SpringBatchConfigTest {
     void newCourseSaveFailure_IsPropagated() {
         // given
         ParsedCourseDto dto = createCourseDto(NEW_COURSE_KEY, 50, 40);
-        given(courseRepository.findByCourseKey(NEW_COURSE_KEY)).willReturn(Optional.empty());
+        given(courseRepository.findByCourseKeyIn(List.of(NEW_COURSE_KEY))).willReturn(List.of());
         doThrow(new RuntimeException("save failed")).when(courseRepository).save(any(Course.class));
 
         ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
@@ -170,8 +169,8 @@ class SpringBatchConfigTest {
         ParsedCourseDto firstDto = createCourseDto(NEW_COURSE_KEY, 50, 40);
         ParsedCourseDto secondDto = createCourseDto(SAME_COURSE_KEY, 60, 12);
         Course existingCourse = createCourse(SAME_COURSE_KEY, 50, 10);
-        given(courseRepository.findByCourseKey(NEW_COURSE_KEY)).willReturn(Optional.empty());
-        given(courseRepository.findByCourseKey(SAME_COURSE_KEY)).willReturn(Optional.of(existingCourse));
+        given(courseRepository.findByCourseKeyIn(List.of(NEW_COURSE_KEY, SAME_COURSE_KEY)))
+                .willReturn(List.of(existingCourse));
 
         ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
 
@@ -182,6 +181,7 @@ class SpringBatchConfigTest {
         ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
         verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
         assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(2);
+        verify(courseRepository, times(1)).findByCourseKeyIn(List.of(NEW_COURSE_KEY, SAME_COURSE_KEY));
     }
 
     private Course createCourse(String courseKey, int capacity, int current) {
