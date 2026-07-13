@@ -20,15 +20,23 @@ public class FcmNotificationSender implements NotificationSender {
 
     @Override
     public void send(NotificationTarget target, String title, String message) {
+        send(target, title, message, null);
+    }
+
+    @Override
+    public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         String tokenFingerprint = SensitiveDataRedactor.fingerprint(target.getRecipient());
         try {
-            Message fcmMessage = Message.builder()
+            Message.Builder builder = Message.builder()
                     .setToken(target.getRecipient())
                     .setNotification(Notification.builder()
                             .setTitle(title)
                             .setBody(message)
-                            .build())
-                    .build();
+                            .build());
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+                builder.putData("idempotencyKey", idempotencyKey);
+            }
+            Message fcmMessage = builder.build();
 
             FirebaseMessaging.getInstance().send(fcmMessage);
             log.info("[FCM] Message sent. tokenFingerprint={}", tokenFingerprint);

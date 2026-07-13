@@ -14,6 +14,8 @@ import bhoon.sugang_helper.admin.presentation.AdminController;
 import bhoon.sugang_helper.admin.application.AdminService;
 import bhoon.sugang_helper.admin.application.AdminAuditService;
 import bhoon.sugang_helper.admin.presentation.AdminActionLogController;
+import bhoon.sugang_helper.notification.application.AdminNotificationDeliveryService;
+import bhoon.sugang_helper.notification.presentation.AdminNotificationDeliveryController;
 import bhoon.sugang_helper.feedback.presentation.AdminFeedbackController;
 import bhoon.sugang_helper.announcement.presentation.AnnouncementController;
 import bhoon.sugang_helper.announcement.application.AnnouncementSearchType;
@@ -100,6 +102,8 @@ class SecurityRequestAuthorizationTest {
     @MockitoBean
     private AdminAuditService adminAuditService;
     @MockitoBean
+    private AdminNotificationDeliveryService adminNotificationDeliveryService;
+    @MockitoBean
     private AnnouncementService announcementService;
     @MockitoBean
     private FeedbackService feedbackService;
@@ -152,6 +156,38 @@ class SecurityRequestAuthorizationTest {
         mockMvc.perform(get("/api/v1/admin/audit-logs?page=1&size=2").session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content").isArray());
+    }
+
+    @Test
+    void notificationDeliveryOperationsRequireAdminRole() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/notification-deliveries/dlq"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+
+        mockMvc.perform(get("/api/v1/admin/notification-deliveries/dlq")
+                        .session(authenticatedSession("ROLE_USER")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("A002"));
+
+        given(adminNotificationDeliveryService.getDeadLetters(org.mockito.ArgumentMatchers.any()))
+                .willReturn(org.springframework.data.domain.Page.empty());
+        mockMvc.perform(get("/api/v1/admin/notification-deliveries/dlq")
+                        .session(authenticatedSession("ROLE_ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").isArray());
+
+        mockMvc.perform(post("/api/v1/admin/notification-deliveries/1/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+
+        mockMvc.perform(post("/api/v1/admin/notification-deliveries/1/replay")
+                        .session(authenticatedSession("ROLE_USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("A002"));
     }
 
     @Test
@@ -366,6 +402,7 @@ class SecurityRequestAuthorizationTest {
             CustomAuthenticationEntryPoint.class,
             AdminController.class,
             AdminActionLogController.class,
+            AdminNotificationDeliveryController.class,
             AdminFeedbackController.class,
             AnnouncementController.class,
             FeedbackController.class,

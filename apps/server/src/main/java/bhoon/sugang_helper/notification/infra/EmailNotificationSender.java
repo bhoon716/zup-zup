@@ -46,6 +46,11 @@ public class EmailNotificationSender implements NotificationSender {
      */
     @Override
     public void send(NotificationTarget target, String title, String message) {
+        send(target, title, message, null);
+    }
+
+    @Override
+    public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         String recipient = target.getRecipient();
         String recipientMasked = SensitiveDataRedactor.maskEmail(recipient);
         try {
@@ -58,6 +63,9 @@ public class EmailNotificationSender implements NotificationSender {
             helper.setTo(recipient);
             helper.setSubject(title);
             helper.setText(htmlContent, true);
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+                mimeMessage.setHeader("X-Idempotency-Key", idempotencyKey);
+            }
 
             javaMailSender.send(mimeMessage);
             log.info("[EmailNotification] Dispatched. recipientMasked={}, fromMasked={}",

@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.notification.domain.SeatNotificationDelivery;
-import bhoon.sugang_helper.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.notification.domain.SeatNotificationOutbox;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.notification.infra.SeatNotificationDeliveryJpaRepository;
@@ -21,7 +20,6 @@ import ch.qos.logback.core.read.ListAppender;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +48,8 @@ class SeatNotificationOutboxProcessorTest {
     @Mock
     private NotificationService notificationService;
     @Mock
+    private SeatNotificationDeliverySettlementService settlementService;
+    @Mock
     private MeterRegistry meterRegistry;
     @Mock
     private Counter counter;
@@ -68,23 +68,21 @@ class SeatNotificationOutboxProcessorTest {
     void failedChannelIsRetriedWithoutMarkingTheOutboxComplete() {
         String secret = "fcm-token-should-not-appear";
         SeatNotificationDelivery delivery = processingDelivery();
-        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
-        when(deliveryRepository.countByOutboxIdAndStatusIn(eq(10L), org.mockito.ArgumentMatchers.anyList()))
-                .thenReturn(1L);
+        SeatNotificationDeliveryClaim claim = new SeatNotificationDeliveryClaim(1L, "claim-token");
+        when(settlementService.loadForDispatch(claim)).thenReturn(dispatch(delivery));
+        when(settlementService.markFailure(eq(claim), anyString(), eq(3)))
+                .thenReturn(new SeatNotificationDeliveryFailureResult(true, false, 1));
         org.mockito.Mockito.doThrow(new RuntimeException(secret))
                 .when(notificationService).deliverSeatOpening(eq(1L), eq(NotificationChannel.EMAIL),
-                        eq(delivery.getOutbox()));
+                        eq(delivery.getOutbox()), anyString());
         Logger logger = (Logger) LoggerFactory.getLogger(SeatNotificationOutboxProcessor.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
         logger.addAppender(appender);
 
         try {
-            processor.processDelivery(1L);
+            processor.processDelivery(claim);
 
-            assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.PENDING);
-            assertThat(delivery.getAttempts()).isEqualTo(1);
-            assertThat(delivery.getLastError()).isEqualTo("UNEXPECTED");
             String messages = appender.list.stream()
                     .map(ILoggingEvent::getFormattedMessage)
                     .collect(Collectors.joining("\n"));
@@ -99,18 +97,16 @@ class SeatNotificationOutboxProcessorTest {
     @Test
     void maximumFailuresMoveOnlyThatChannelToDlq() {
         SeatNotificationDelivery delivery = processingDelivery();
-        ReflectionTestUtils.setField(delivery, "attempts", 2);
-        when(deliveryRepository.findById(1L)).thenReturn(Optional.of(delivery));
-        when(deliveryRepository.countByOutboxIdAndStatusIn(eq(10L), org.mockito.ArgumentMatchers.anyList()))
-                .thenReturn(0L);
-        when(deliveryRepository.countByOutboxIdAndStatus(10L, SeatNotificationDeliveryStatus.DLQ)).thenReturn(1L);
+        SeatNotificationDeliveryClaim claim = new SeatNotificationDeliveryClaim(1L, "claim-token");
+        when(settlementService.loadForDispatch(claim)).thenReturn(dispatch(delivery));
+        when(settlementService.markFailure(eq(claim), anyString(), eq(3)))
+                .thenReturn(new SeatNotificationDeliveryFailureResult(true, true, 3));
         org.mockito.Mockito.doThrow(new RuntimeException("mail unavailable"))
                 .when(notificationService).deliverSeatOpening(eq(1L), eq(NotificationChannel.EMAIL),
-                        eq(delivery.getOutbox()));
+                        eq(delivery.getOutbox()), anyString());
 
-        processor.processDelivery(1L);
+        processor.processDelivery(claim);
 
-        assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.DLQ);
         verify(counter).increment();
     }
 
@@ -130,5 +126,10 @@ class SeatNotificationOutboxProcessorTest {
         ReflectionTestUtils.setField(delivery, "id", 1L);
         delivery.claim(LocalDateTime.now().plusMinutes(1));
         return delivery;
+    }
+
+    private SeatNotificationDeliveryDispatch dispatch(SeatNotificationDelivery delivery) {
+        return new SeatNotificationDeliveryDispatch(delivery.getUserId(), delivery.getChannel(),
+                delivery.getOutbox(), delivery.getIdempotencyKey());
     }
 }

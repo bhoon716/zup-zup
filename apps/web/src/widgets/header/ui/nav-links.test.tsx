@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { NavLinks } from "./nav-links";
 
@@ -33,5 +33,17 @@ describe("NavLinks", () => {
     
     const timetableLink = container.querySelector('a[href="/timetable"]');
     expect(timetableLink).toHaveClass("hidden");
+  });
+
+  it("관리자 메뉴는 모바일과 데스크톱에서 알림 DLQ 관리 링크를 제공한다", async () => {
+    const { unmount } = render(<NavLinks {...defaultProps} isAdmin isLoggedIn isMobile />);
+    expect(screen.getByRole("link", { name: "알림 DLQ 관리" }))
+      .toHaveAttribute("href", "/admin/notification-deliveries");
+
+    unmount();
+    render(<NavLinks {...defaultProps} isAdmin isLoggedIn />);
+    fireEvent.pointerDown(screen.getByRole("button", { name: /관리자/ }));
+    expect(await screen.findByRole("menuitem", { name: "알림 DLQ 관리" }))
+      .toHaveAttribute("href", "/admin/notification-deliveries");
   });
 });

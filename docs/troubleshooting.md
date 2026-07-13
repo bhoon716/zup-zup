@@ -114,7 +114,15 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Result: metadata now uses the `admin-action` v1 envelope. Status changes keep only the before/after status; reply changes keep only length and an HMAC-SHA-256 fingerprint; attachment access keeps only the feedback ID. The admin-only paged endpoint never returns a `User`, email, or raw metadata.
 - Migration and retention: V18 rewrites reply metadata as `LEGACY_SANITIZED`, while whitelisted legacy enum status transitions become v1 `STATUS_CHANGED`, before making metadata non-null and indexing `(created_at, id)`. A configurable 180-day scheduled cleanup applies only to this minimized audit data; feedback bodies and attachments remain under the separate no-auto-purge policy.
 - Evidence: `AdminAuditServiceTest`, `AdminAuditLogRetentionSchedulerTest`, `FeedbackServiceTest`, `SecurityRequestAuthorizationTest`, and `FlywayMigrationValidationTest`; targeted server tests, static analysis, and `./gradlew migrationTest` passed.
-- Limitation: no DLQ replay action exists yet. `DELIVERY_REPLAY` is the common audit model prepared for `ISSUE-088`, which must call it after a successful replay request.
+- Connection: DLQ 선택 replay는 이제 성공한 상태 전이와 같은 transaction에서 `DELIVERY_REPLAY`를 기록한다. 원본 key·수신자·provider 예외 원문은 감사 로그에 남기지 않는다.
+
+### Notification delivery idempotency and DLQ replay (2026-07-13)
+
+- Scenario: outbox delivery는 retry 상태만 가져 provider 결과가 불확실한 재시도에서 같은 delivery를 식별하거나 운영자가 안전하게 DLQ를 재처리할 수 없었다.
+- Result: V19는 delivery마다 stable UUID key, claim token, DLQ 전환 시각, optimistic version을 추가한다. provider 호출은 transaction 밖에서 하고 token이 같은 worker만 결과를 정산한다. provider에는 짧은 불투명 key를 전파하며, Web Push service worker는 같은 key를 notification tag로 사용한다.
+- Operations: `ROLE_ADMIN`은 ownership 제한 없이 전체 DLQ 목록과 안전한 상세를 보고, DLQ 하나만 같은 key로 replay한다. `SENT`는 API의 명시 override 외에는 거부하며, 성공 replay는 최소화된 `DELIVERY_REPLAY` 감사 로그에 남는다. DLQ는 실제 전환 시각부터 최소 30일 보존한다.
+- Evidence: `AdminNotificationDeliveryServiceTest`, `AdminNotificationDeliveryReplayConcurrencyTest`, `SeatNotificationDeliverySettlementServiceTest`, `NotificationDeliveryRetentionSchedulerTest`, `NotificationSenderIdempotencyContractTest`, `SecurityRequestAuthorizationTest`, `FlywayMigrationValidationTest`, 관리자 delivery UI/SW Vitest; `./gradlew check`, `./gradlew migrationTest`, web lint/build이 통과했다.
+- Limitation: delivery가 여러 target으로 fan-out된 뒤 일부 target만 실패하면 이미 성공한 target도 다시 요청될 수 있다. provider timeout·circuit breaker는 ISSUE-089, bounded fan-out과 5초 SLA는 ISSUE-087에서 처리한다.
 
 ### Withdrawn feedback administrator access (2026-07-13)
 

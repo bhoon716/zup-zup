@@ -322,6 +322,29 @@ export interface AdminDashboardSnapshotResponse {
   crawlTarget: AdminCrawlTargetResponse;
 }
 
+export type NotificationDeliveryChannel = 'EMAIL' | 'FCM' | 'WEB' | 'DISCORD';
+export type NotificationDeliveryStatus = 'PENDING' | 'PROCESSING' | 'SENT' | 'DLQ';
+
+/**
+ * 관리자에게만 제공되는 delivery DTO입니다. 수신자와 원본 idempotency key는 포함하지 않습니다.
+ */
+export interface AdminNotificationDeliveryResponse {
+  id: number;
+  outboxId: number;
+  courseKey: string;
+  courseName: string;
+  channel: NotificationDeliveryChannel;
+  status: NotificationDeliveryStatus;
+  attempts: number;
+  lastError: string | null;
+  deadLetteredAt: string | null;
+  idempotencyKeyRetained: boolean;
+}
+
+export interface NotificationDeliveryReplayRequest {
+  forceSentReplay?: boolean;
+}
+
 /**
  * 관리자 크롤링 타겟 설정을 위한 요청 데이터 인터페이스입니다.
  */

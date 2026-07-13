@@ -30,6 +30,12 @@ self.addEventListener("push", (event) => {
     requireInteraction: true,
   };
 
+  const idempotencyKey = typeof data.idempotencyKey === "string" ? data.idempotencyKey.trim() : "";
+  if (idempotencyKey) {
+    options.tag = idempotencyKey;
+    options.renotify = false;
+  }
+
   event.waitUntil(
     Promise.all([
       self.registration.showNotification(data.title, options),

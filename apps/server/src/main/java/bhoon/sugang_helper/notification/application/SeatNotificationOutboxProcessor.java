@@ -42,6 +42,7 @@ public class SeatNotificationOutboxProcessor {
     private final UserDeviceRepository userDeviceRepository;
     private final NotificationChannelPolicy notificationChannelPolicy;
     private final NotificationService notificationService;
+    private final SeatNotificationDeliverySettlementService settlementService;
     private final MeterRegistry meterRegistry;
     @Value("${app.notification.outbox.batch-size:50}")
     private int batchSize;
@@ -60,43 +61,47 @@ public class SeatNotificationOutboxProcessor {
     }
 
     @Transactional
-    public List<Long> claimReadyDeliveryIds() {
+    public List<SeatNotificationDeliveryClaim> claimReadyDeliveries() {
         LocalDateTime now = LocalDateTime.now();
         List<SeatNotificationDelivery> deliveries = deliveryRepository.findReadyForUpdate(
                 SeatNotificationDeliveryStatus.PENDING,
                 SeatNotificationDeliveryStatus.PROCESSING,
                 now,
                 PageRequest.of(0, batchSize));
-        deliveries.forEach(delivery -> delivery.claim(now.plusSeconds(leaseSeconds)));
-        return deliveries.stream().map(SeatNotificationDelivery::getId).toList();
+        return deliveries.stream()
+                .map(delivery -> new SeatNotificationDeliveryClaim(
+                        delivery.getId(), delivery.claim(now.plusSeconds(leaseSeconds))))
+                .toList();
     }
 
-    @Transactional
-    public void processDelivery(Long deliveryId) {
-        SeatNotificationDelivery delivery = deliveryRepository.findById(deliveryId).orElse(null);
-        if (delivery == null || delivery.getStatus() != SeatNotificationDeliveryStatus.PROCESSING) {
+    public void processDelivery(SeatNotificationDeliveryClaim claim) {
+        SeatNotificationDeliveryDispatch dispatch = settlementService.loadForDispatch(claim);
+        if (dispatch == null) {
             return;
         }
 
         try {
             notificationService.deliverSeatOpening(
-                    delivery.getUserId(), delivery.getChannel(), delivery.getOutbox());
-            delivery.markSent();
+                    dispatch.userId(), dispatch.channel(), dispatch.outbox(), dispatch.idempotencyKey());
+            if (!settlementService.markSent(claim)) {
+                log.info("[Notification Outbox] Ignored stale success settlement. deliveryId={}", claim.deliveryId());
+            }
         } catch (RuntimeException e) {
             String failureCode = SensitiveDataRedactor.failureCode(e);
-            boolean deadLettered = delivery.markFailure(failureCode, maximumAttempts,
-                    LocalDateTime.now().plusSeconds(backoffSeconds(delivery.getAttempts() + 1)));
-            if (deadLettered) {
-                meterRegistry.counter("notification.outbox.dlq", "channel", delivery.getChannel().name()).increment();
+            SeatNotificationDeliveryFailureResult result = settlementService.markFailure(
+                    claim, failureCode, maximumAttempts);
+            if (!result.settled()) {
+                log.info("[Notification Outbox] Ignored stale failure settlement. deliveryId={}", claim.deliveryId());
+            } else if (result.deadLettered()) {
+                meterRegistry.counter("notification.outbox.dlq", "channel", dispatch.channel().name()).increment();
                 log.error("[Notification Outbox] Delivery moved to DLQ. deliveryId={}, outboxId={}, channel={}, failureCode={}",
-                        delivery.getId(), delivery.getOutbox().getId(), delivery.getChannel(), failureCode);
+                        claim.deliveryId(), dispatch.outbox().getId(), dispatch.channel(), failureCode);
             } else {
-                meterRegistry.counter("notification.outbox.retry", "channel", delivery.getChannel().name()).increment();
+                meterRegistry.counter("notification.outbox.retry", "channel", dispatch.channel().name()).increment();
                 log.warn("[Notification Outbox] Delivery scheduled for retry. deliveryId={}, attempts={}, channel={}, failureCode={}",
-                        delivery.getId(), delivery.getAttempts(), delivery.getChannel(), failureCode);
+                        claim.deliveryId(), result.attempts(), dispatch.channel(), failureCode);
             }
         }
-        updateOutboxTerminalStatus(delivery.getOutbox());
     }
 
     private void materializeDeliveries(SeatNotificationOutbox outbox) {
@@ -136,18 +141,4 @@ public class SeatNotificationOutboxProcessor {
         }
     }
 
-    private void updateOutboxTerminalStatus(SeatNotificationOutbox outbox) {
-        if (deliveryRepository.countByOutboxIdAndStatusIn(outbox.getId(), ACTIVE_DELIVERY_STATUSES) != 0) {
-            return;
-        }
-        if (deliveryRepository.countByOutboxIdAndStatus(outbox.getId(), SeatNotificationDeliveryStatus.DLQ) > 0) {
-            outbox.markDeadLettered();
-        } else {
-            outbox.markCompleted();
-        }
-    }
-
-    private long backoffSeconds(int attempt) {
-        return Math.min(300, 1L << Math.min(attempt - 1, 8));
-    }
 }

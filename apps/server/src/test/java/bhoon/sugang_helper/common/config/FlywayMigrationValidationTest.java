@@ -19,6 +19,7 @@ class FlywayMigrationValidationTest {
     private static final String DATABASE_NAME = "sugang_helper";
     private static final String DATABASE_USER = "test";
     private static final String DATABASE_PASSWORD = "test";
+    private static final String MIGRATION_LOCATION = "classpath:db/migration";
     private static final Map<String, Integer> APPLIED_MIGRATION_CHECKSUMS = Map.ofEntries(
             Map.entry("1", 372551896),
             Map.entry("2", 2027923810),
@@ -78,7 +79,7 @@ class FlywayMigrationValidationTest {
 
             Flyway flyway = Flyway.configure()
                     .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
-                    .locations("classpath:db/migration")
+                    .locations(MIGRATION_LOCATION)
                     .load();
 
             flyway.migrate();
@@ -110,7 +111,7 @@ class FlywayMigrationValidationTest {
 
             Flyway appliedMigrations = Flyway.configure()
                     .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
-                    .locations("classpath:db/migration")
+                    .locations(MIGRATION_LOCATION)
                     .target("12")
                     .load();
             appliedMigrations.migrate();
@@ -166,14 +167,15 @@ class FlywayMigrationValidationTest {
                             """,
                     existingUserId, 103L);
 
-            Flyway head = Flyway.configure()
+            Flyway throughV18 = Flyway.configure()
                     .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
-                    .locations("classpath:db/migration")
+                    .locations(MIGRATION_LOCATION)
+                    .target("18")
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(6);
-            head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("18");
+            assertThat(throughV18.migrate().migrationsExecuted).isEqualTo(6);
+            throughV18.validate();
+            assertThat(throughV18.info().current().getVersion().getVersion()).isEqualTo("18");
             assertThat(jdbcTemplate.queryForObject("SELECT version FROM users WHERE email = ?", Long.class,
                     existingUserEmail)).isZero();
             assertThat(jdbcTemplate.queryForObject("""
@@ -205,8 +207,45 @@ class FlywayMigrationValidationTest {
                             SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.data.reason'))
                             FROM admin_action_logs
                             WHERE target_id = 103
-                            """, String.class)).isEqualTo("already_safe");
+                    """, String.class)).isEqualTo("already_safe");
             assertThat(indexCount(jdbcTemplate, "admin_action_logs", "idx_admin_action_logs_created_at_id")).isEqualTo(2);
+
+            jdbcTemplate.update("""
+                            INSERT INTO seat_notification_outbox (
+                                course_key, course_name, previous_seats, current_seats, status, version
+                            ) VALUES (?, ?, ?, ?, ?, ?)
+                            """,
+                    "delivery-migration-course", "Delivery Migration Course", 0, 1, "DLQ", 0L);
+            Long outboxId = jdbcTemplate.queryForObject(
+                    "SELECT id FROM seat_notification_outbox WHERE course_key = ?", Long.class,
+                    "delivery-migration-course");
+            jdbcTemplate.update("""
+                            INSERT INTO seat_notification_deliveries (
+                                outbox_id, user_id, channel, status, attempts, next_attempt_at, locked_until, last_error
+                            ) VALUES (?, ?, ?, ?, ?, NOW(6), ?, ?)
+                            """,
+                    outboxId, existingUserId, "EMAIL", "DLQ", 5, null, "N001");
+            Long deliveryId = jdbcTemplate.queryForObject(
+                    "SELECT id FROM seat_notification_deliveries WHERE outbox_id = ?", Long.class, outboxId);
+
+            Flyway head = Flyway.configure()
+                    .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
+                    .locations(MIGRATION_LOCATION)
+                    .load();
+
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(1);
+            head.validate();
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("19");
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT idempotency_key FROM seat_notification_deliveries WHERE id = ?", String.class, deliveryId))
+                    .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT dead_lettered_at IS NOT NULL FROM seat_notification_deliveries WHERE id = ?",
+                    Boolean.class, deliveryId)).isTrue();
+            assertThat(indexCount(jdbcTemplate, "seat_notification_deliveries",
+                    "uk_seat_notif_delivery_idempotency_key")).isEqualTo(1);
+            assertThat(indexCount(jdbcTemplate, "seat_notification_deliveries",
+                    "idx_seat_notif_delivery_dlq_retention")).isEqualTo(2);
         }
     }
 }

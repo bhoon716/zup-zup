@@ -15,8 +15,8 @@ public class SeatNotificationOutboxWorker {
     @Scheduled(fixedDelayString = "${app.notification.outbox.poll-ms:5000}")
     public void processPendingNotifications() {
         processor.materializePendingOutboxes();
-        for (Long deliveryId : processor.claimReadyDeliveryIds()) {
-            processor.processDelivery(deliveryId);
+        for (SeatNotificationDeliveryClaim claim : processor.claimReadyDeliveries()) {
+            processor.processDelivery(claim);
         }
     }
 }

@@ -31,7 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import({SeatNotificationOutboxProcessor.class, NotificationChannelPolicy.class,
+@Import({SeatNotificationOutboxProcessor.class, SeatNotificationDeliverySettlementService.class,
+        NotificationChannelPolicy.class,
         SeatNotificationOutboxRecoveryTest.TestConfig.class})
 class SeatNotificationOutboxRecoveryTest {
 
@@ -65,16 +66,16 @@ class SeatNotificationOutboxRecoveryTest {
         when(userDeviceRepository.findByUserIdIn(List.of(1L))).thenReturn(List.of());
 
         processor.materializePendingOutboxes();
-        List<Long> deliveryIds = processor.claimReadyDeliveryIds();
-        deliveryIds.forEach(processor::processDelivery);
+        List<SeatNotificationDeliveryClaim> deliveryClaims = processor.claimReadyDeliveries();
+        deliveryClaims.forEach(processor::processDelivery);
 
-        assertThat(deliveryIds).hasSize(1);
+        assertThat(deliveryClaims).hasSize(1);
         assertThat(deliveryRepository.findAll()).allSatisfy(delivery ->
                 assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.SENT));
         assertThat(outboxRepository.findById(outbox.getId())).get()
                 .extracting(SeatNotificationOutbox::getStatus)
                 .isEqualTo(SeatNotificationOutboxStatus.COMPLETED);
-        verify(notificationService).deliverSeatOpening(any(), any(), any());
+        verify(notificationService).deliverSeatOpening(any(), any(), any(), any());
     }
 
     @TestConfiguration

@@ -4,8 +4,11 @@ import type {
   AdminDashboardSnapshotResponse,
   AdminCrawlTargetRequest,
   AdminCrawlTargetResponse,
+  AdminNotificationDeliveryResponse,
   AnnouncementRequest,
   AnnouncementDetailResponse,
+  NotificationDeliveryReplayRequest,
+  PageResponse,
 } from '@/shared/types/api';
 
 /**
@@ -57,6 +60,46 @@ export const updateCrawlTarget = async (
  */
 export const sendTestNotification = async (): Promise<CommonResponse<void>> => {
   const { data } = await api.post('/api/v1/admin/notifications/test');
+  return data;
+};
+
+/**
+ * 운영자가 원인 확인 후 선택 재처리할 수 있는 DLQ delivery 목록입니다.
+ */
+export const getAdminDlqNotificationDeliveries = async (
+  page: number = 0,
+  size: number = 20,
+): Promise<CommonResponse<PageResponse<AdminNotificationDeliveryResponse>>> => {
+  const { data } = await api.get<CommonResponse<PageResponse<AdminNotificationDeliveryResponse>>>(
+    '/api/v1/admin/notification-deliveries/dlq',
+    { params: { page, size } },
+  );
+  return data;
+};
+
+/**
+ * 선택한 notification delivery의 안전한 운영 상세를 조회합니다.
+ */
+export const getAdminNotificationDelivery = async (
+  deliveryId: number,
+): Promise<CommonResponse<AdminNotificationDeliveryResponse>> => {
+  const { data } = await api.get<CommonResponse<AdminNotificationDeliveryResponse>>(
+    `/api/v1/admin/notification-deliveries/${deliveryId}`,
+  );
+  return data;
+};
+
+/**
+ * 동일 delivery와 idempotency key를 보존한 채 재처리를 요청합니다.
+ */
+export const replayAdminNotificationDelivery = async (
+  deliveryId: number,
+  request: NotificationDeliveryReplayRequest = {},
+): Promise<CommonResponse<AdminNotificationDeliveryResponse>> => {
+  const { data } = await api.post<CommonResponse<AdminNotificationDeliveryResponse>>(
+    `/api/v1/admin/notification-deliveries/${deliveryId}/replay`,
+    request,
+  );
   return data;
 };
 

@@ -19,7 +19,9 @@ import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
 import bhoon.sugang_helper.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
+import bhoon.sugang_helper.notification.domain.SeatNotificationOutbox;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.notification.infra.NotificationDeliveryIdempotencyKey;
 import bhoon.sugang_helper.notification.infra.NotificationSender;
 import bhoon.sugang_helper.notification.infra.NotificationTarget;
 import bhoon.sugang_helper.subscription.domain.Subscription;
@@ -324,5 +326,32 @@ class NotificationServiceTest {
                 .extracting("detail")
                 .asString()
                 .contains("디스코드 연동 정보가 없습니다");
+    }
+
+    @Test
+    @DisplayName("durable delivery는 원본 키를 노출하지 않고 provider-safe key를 전파한다")
+    void deliversSeatOpeningWithProviderSafeIdempotencyKey() {
+        String canonicalKey = "d35e8a1f-3135-4f9b-92b3-635f0c9ea641";
+        User user = User.builder()
+                .id(1L)
+                .email(EMAIL)
+                .role(Role.USER)
+                .emailEnabled(true)
+                .build();
+        SeatNotificationOutbox outbox = SeatNotificationOutbox.builder()
+                .courseKey(COURSE_KEY)
+                .courseName(COURSE_NAME)
+                .professor(PROFESSOR)
+                .previousSeats(0)
+                .currentSeats(1)
+                .build();
+        when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(user));
+        when(userDeviceRepository.findByUserId(1L)).thenReturn(List.of());
+        when(notificationSender.supports(NotificationChannel.EMAIL)).thenReturn(true);
+
+        notificationService.deliverSeatOpening(1L, NotificationChannel.EMAIL, outbox, canonicalKey);
+
+        verify(notificationSender).send(any(NotificationTarget.class), anyString(), anyString(),
+                eq(NotificationDeliveryIdempotencyKey.providerKey(canonicalKey)));
     }
 }

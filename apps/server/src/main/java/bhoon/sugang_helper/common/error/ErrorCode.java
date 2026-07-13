@@ -39,6 +39,8 @@ public enum ErrorCode {
     FCM_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N002", "FCM 발송 중 오류가 발생했습니다."),
     WEB_PUSH_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N003", "Web Push 발송 중 오류가 발생했습니다."),
     DISCORD_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N004", "디스코드 알림 발송 중 오류가 발생했습니다."),
+    NOTIFICATION_DELIVERY_REPLAY_NOT_ALLOWED(HttpStatus.CONFLICT, "N013",
+            "현재 상태의 알림 delivery는 재처리할 수 없습니다."),
 
     /* 웹푸시 전용 에러 */
     WEB_PUSH_NOT_INITIALIZED(HttpStatus.INTERNAL_SERVER_ERROR, "N010", "Web Push 서비스가 초기화되지 않았습니다. (서버 설정 확인 필요)"),

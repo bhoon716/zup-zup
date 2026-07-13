@@ -66,6 +66,11 @@ public class WebPushNotificationSender implements NotificationSender {
 
     @Override
     public void send(NotificationTarget target, String title, String message) {
+        send(target, title, message, null);
+    }
+
+    @Override
+    public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         if (pushService == null) {
             throw new CustomException(ErrorCode.WEB_PUSH_NOT_INITIALIZED);
         }
@@ -78,13 +83,16 @@ public class WebPushNotificationSender implements NotificationSender {
         String endpointFingerprint = SensitiveDataRedactor.fingerprint(target.getRecipient());
 
         try {
-            String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/"));
-
-            Notification notification = new Notification(
-                    target.getRecipient(),
-                    target.getP256dh(),
-                    target.getAuth(),
-                    payload);
+            String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/", idempotencyKey));
+            Notification.NotificationBuilder notificationBuilder = Notification.builder()
+                    .endpoint(target.getRecipient())
+                    .userPublicKey(target.getP256dh())
+                    .userAuth(target.getAuth())
+                    .payload(payload);
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+                notificationBuilder.topic(idempotencyKey);
+            }
+            Notification notification = notificationBuilder.build();
 
             log.info("[WebPush] Starting notification transfer. endpointFingerprint={}", endpointFingerprint);
             var response = pushService.send(notification);
@@ -109,6 +117,6 @@ public class WebPushNotificationSender implements NotificationSender {
         }
     }
 
-    private record WebPushPayload(String title, String body, String url) {
+    private record WebPushPayload(String title, String body, String url, String idempotencyKey) {
     }
 }

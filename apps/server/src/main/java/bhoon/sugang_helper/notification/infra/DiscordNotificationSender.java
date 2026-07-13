@@ -3,6 +3,7 @@ package bhoon.sugang_helper.notification.infra;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,12 +34,18 @@ public class DiscordNotificationSender implements NotificationSender {
 
     @Override
     public void send(NotificationTarget target, String title, String message) {
+        send(target, title, message, null);
+    }
+
+    @Override
+    public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         if (botToken == null || botToken.isBlank() || botToken.equals("<DISCORD_BOT_TOKEN>")) {
             log.warn("[Discord] Skipping notification as bot token is not configured.");
             return;
         }
 
         String userId = target.getRecipient();
+        String userIdFingerprint = SensitiveDataRedactor.fingerprint(userId);
         try {
             Map<String, Object> channelResponse = restClient.post()
                     .uri("/users/@me/channels")
@@ -55,17 +62,24 @@ public class DiscordNotificationSender implements NotificationSender {
             String channelId = (String) channelResponse.get("id");
 
             String content = String.format("**%s**\n\n%s", title, message);
+            Map<String, Object> messagePayload = new HashMap<>();
+            messagePayload.put("content", content);
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+                messagePayload.put("nonce", idempotencyKey);
+                messagePayload.put("enforce_nonce", true);
+            }
             restClient.post()
                     .uri("/channels/{channelId}/messages", channelId)
                     .header("Authorization", "Bot " + botToken)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("content", content))
+                    .body(messagePayload)
                     .retrieve()
                     .toEntity(String.class);
 
-            log.info("[Discord] Dispatched private message notification. userId={}", userId);
+            log.info("[Discord] Dispatched private message notification. userIdFingerprint={}", userIdFingerprint);
         } catch (Exception e) {
-            log.error("[Discord] Private message dispatch failed. userId={}, failureCode={}, exceptionType={}", userId,
+            log.error("[Discord] Private message dispatch failed. userIdFingerprint={}, failureCode={}, exceptionType={}",
+                    userIdFingerprint,
                     ErrorCode.DISCORD_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new CustomException(ErrorCode.DISCORD_SEND_ERROR);
         }

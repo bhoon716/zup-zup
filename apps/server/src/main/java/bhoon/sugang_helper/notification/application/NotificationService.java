@@ -8,6 +8,7 @@ import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
 import bhoon.sugang_helper.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.notification.infra.NotificationDeliveryIdempotencyKey;
 import bhoon.sugang_helper.notification.infra.NotificationSender;
 import bhoon.sugang_helper.notification.infra.NotificationTarget;
 import bhoon.sugang_helper.subscription.domain.Subscription;
@@ -64,6 +65,12 @@ public class NotificationService {
 
     public void deliverSeatOpening(Long userId, NotificationChannel channel,
                                    bhoon.sugang_helper.notification.domain.SeatNotificationOutbox outbox) {
+        deliverSeatOpening(userId, channel, outbox, null);
+    }
+
+    public void deliverSeatOpening(Long userId, NotificationChannel channel,
+                                   bhoon.sugang_helper.notification.domain.SeatNotificationOutbox outbox,
+                                   String idempotencyKey) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         if (!notificationChannelPolicy.isChannelEnabled(user, channel)) {
@@ -82,8 +89,9 @@ public class NotificationService {
         NotificationMessage message = createSeatOpenedMessage(new SeatOpenedEvent(
                 outbox.getCourseKey(), outbox.getCourseName(), outbox.getProfessor(),
                 outbox.getPreviousSeats(), outbox.getCurrentSeats()));
+        String providerKey = NotificationDeliveryIdempotencyKey.providerKey(idempotencyKey);
         for (NotificationTarget target : targets) {
-            sender.send(target, message.title(), message.body());
+            sender.send(target, message.title(), message.body(), providerKey);
         }
         saveHistory(userId, outbox.getCourseKey(), message, channel);
     }

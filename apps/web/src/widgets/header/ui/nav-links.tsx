@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
 import { 
-  ShieldCheck, Calendar, Search, Bell, Megaphone, LayoutDashboard, ChevronDown, Settings, MessageCircle
+  ShieldCheck, Calendar, Search, Bell, Megaphone, LayoutDashboard, ChevronDown, Settings, MessageCircle, RotateCcw
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -145,6 +145,12 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
                   건의/버그 관리
                 </Link>
               </Button>
+              <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+                <Link href="/admin/notification-deliveries" onClick={onLinkClick}>
+                  <RotateCcw className="w-4 h-4" />
+                  알림 DLQ 관리
+                </Link>
+              </Button>
             </div>
           </>
         ) : (
@@ -181,6 +187,12 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
                 <Link href="/admin/feedbacks">
                   <MessageCircle className="w-4 h-4" />
                   건의/버그 관리
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
+                <Link href="/admin/notification-deliveries">
+                  <RotateCcw className="w-4 h-4" />
+                  알림 DLQ 관리
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
