@@ -41,6 +41,7 @@ public class CourseService {
      * 필터 조건과 페이징 정보를 사용하여 강의 목록을 검색
      */
     public Slice<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
+        condition.validateSearchValues();
         CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
         Long userId = condition.getUserId();
         if (Boolean.TRUE.equals(condition.getIsWishedOnly())) {

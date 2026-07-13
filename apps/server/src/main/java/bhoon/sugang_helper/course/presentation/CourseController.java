@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -43,7 +44,7 @@ public class CourseController {
     })
     @PostMapping("/search")
     public ResponseEntity<CommonResponse<Slice<CourseResponse>>> searchCoursesByPost(
-            @RequestBody CourseSearchCondition condition,
+            @Valid @RequestBody CourseSearchCondition condition,
             @PageableDefault(size = 30) Pageable pageable) {
         Slice<CourseResponse> courses = courseService.searchCourses(condition, pageable);
         return CommonResponse.ok(courses, "과목 검색 결과입니다.");
