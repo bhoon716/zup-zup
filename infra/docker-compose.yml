@@ -3,17 +3,28 @@ services:
     image: ${DB_IMAGE}
     container_name: ${DB_CONTAINER_NAME}
     restart: unless-stopped
-    command: --binlog-expire-logs-seconds=172800
+    command:
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --binlog-expire-logs-seconds=604800
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_DATABASE}
+      DB_RUNTIME_USER: ${DB_RUNTIME_USER}
+      DB_RUNTIME_PASSWORD: ${DB_RUNTIME_PASSWORD}
+      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD}
+      DB_BACKUP_USER: ${DB_BACKUP_USER}
+      DB_BACKUP_PASSWORD: ${DB_BACKUP_PASSWORD}
       TZ: ${TZ}
     volumes:
       - db_data:/var/lib/mysql
+      - ./mysql/init/01-provision-service-accounts.sh:/docker-entrypoint-initdb.d/01-provision-service-accounts.sh:ro
     networks:
       - sugang-helper-network-server
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$${MYSQL_ROOT_PASSWORD}\" mysql --protocol=socket -h localhost -uroot -e 'SELECT 1' >/dev/null"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -136,8 +147,12 @@ services:
     tmpfs:
       - /tmp:mode=1777
     env_file:
-      - .env
       - ${APP_RELEASE_DIR:-../apps/server}/.env
+    environment:
+      SPRING_DATASOURCE_URL: ${DB_JDBC_URL}
+      SPRING_DATASOURCE_USERNAME: ${DB_RUNTIME_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_RUNTIME_PASSWORD}
+      SPRING_FLYWAY_ENABLED: "false"
     ports:
       - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
     volumes:
@@ -166,6 +181,32 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+
+  migrate:
+    image: flyway/flyway@sha256:8ace7d9825bb3ad1d6e14ee27b3a830b638ac841ba424b99b2d92aa65a99d484
+    restart: "no"
+    profiles: ["migration"]
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    environment:
+      FLYWAY_URL: ${DB_JDBC_URL}
+      FLYWAY_USER: ${DB_MIGRATOR_USER}
+      FLYWAY_PASSWORD: ${DB_MIGRATOR_PASSWORD}
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+      FLYWAY_BASELINE_VERSION: "3"
+      FLYWAY_CLEAN_DISABLED: "true"
+      FLYWAY_CONNECT_RETRIES: "60"
+    command: migrate
+    volumes:
+      - ${APP_RELEASE_DIR:-../apps/server}/src/main/resources/db/migration:/flyway/sql:ro
+    networks:
+      - sugang-helper-network-server
+    depends_on:
+      db:
         condition: service_healthy
 
 networks:

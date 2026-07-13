@@ -91,3 +91,4 @@
 /infra/nginx-proxy-manager/data/
 /infra/nginx-proxy-manager/letsencrypt/
 /infra/secrets/
+/infra/.operation-lock/

@@ -1,0 +1,20 @@
+name: Disaster recovery drill
+
+on:
+  schedule:
+    - cron: "37 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore-drill:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v5
+
+      - name: 암호화된 DB·첨부파일 clean-host restore drill
+        run: bash infra/scripts/test-dr-state-recovery.sh

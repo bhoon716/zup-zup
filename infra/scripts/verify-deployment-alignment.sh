@@ -30,6 +30,9 @@ for script_name in (
     'infra/scripts/backup-redis-state.sh',
     'infra/scripts/restore-redis-state.sh',
     'infra/scripts/redis-restart-smoke.sh',
+    'infra/scripts/backup-dr-state.sh',
+    'infra/scripts/restore-dr-state.sh',
+    'infra/mysql/**',
 ):
     if script_name not in workflow:
         raise SystemExit(f"deploy source does not include {script_name}")
@@ -39,6 +42,12 @@ if not re.search(r'cd ~/jbnu-sugang-helper/infra\s*\n\s*RELEASE_SHA=.*?bash scri
 
 if 'DEPLOYMENT_DISCORD_WEBHOOK_URL' not in workflow:
     raise SystemExit("deploy does not require a rollback notification webhook")
+
+if 'forbidden_runtime_db_prefixes' not in workflow or 'SPRING_FLYWAY_' not in workflow:
+    raise SystemExit("deploy does not reject every runtime datasource and Flyway prefix")
+
+if 'test-db-service-accounts.sh' not in workflow or 'test-dr-state-recovery.sh' not in workflow:
+    raise SystemExit("verify-infra does not exercise DB least privilege and DR recovery")
 
 if not re.search(r'GOOGLE_REDIRECT_URI', workflow) or not re.search(
     r'GOOGLE_REDIRECT_URI=https://', workflow,
@@ -60,6 +69,9 @@ if not re.search(
 
 if 'github.sha' not in workflow or 'RELEASE_SHA' not in workflow or 'RELEASE_DIR' not in workflow:
     raise SystemExit("deploy does not bind the release directory and image to the commit SHA")
+
+if 'apps/server/src/main/resources/db/migration/**' not in workflow:
+    raise SystemExit("release transfer does not include the migration SQL mounted by the migrator")
 
 print("deployment compose alignment passed")
 PY

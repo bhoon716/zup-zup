@@ -57,6 +57,10 @@ docker compose up -d
 - `./scripts/backup-log-state.sh`
 - `./scripts/restore-log-state.sh`
 - `./scripts/test-redis-state-recovery.sh`
+- `./scripts/test-db-service-accounts.sh`
+- `./scripts/backup-dr-state.sh`
+- `./scripts/restore-dr-state.sh`
+- `./scripts/test-dr-state-recovery.sh`
 - `./scripts/test-deploy-app.sh`
 
 ## Redis 준비와 복구
@@ -88,6 +92,26 @@ bash scripts/redis-restart-smoke.sh
 ```
 
 Redis preflight 실패는 현재 deployment Discord failure channel에 전달됩니다. 지속적인 Prometheus/Alertmanager notification route는 ISSUE-099에서 추가합니다.
+
+## DB 권한과 재해 복구
+
+애플리케이션은 DML 전용 DB 계정으로만 실행합니다. Flyway DDL은 배포 직전 일회성 `migrate` container가 별도 계정으로 수행하므로, runtime app 환경에는 MySQL root·migrator·backup credential이 들어가지 않습니다. 기존 volume에도 배포 preflight가 idempotent하게 계정을 생성·정렬합니다.
+
+DB와 업로드 파일은 같은 복구 시점을 보장하기 위해 백업 중 app, Grafana, NPM을 잠시 멈춥니다. archive는 MySQL dump·binlog·uploads·Grafana·NPM data/cert를 암호화해 묶고 checksum과 14일 보존 정책을 적용합니다.
+
+```bash
+sudo BACKUP_ENCRYPTION_PASSWORD_FILE=/etc/jbnu-sugang-helper/backup-passphrase \
+  BACKUP_AUTHENTICATION_KEY_FILE=/etc/jbnu-sugang-helper/backup-authentication-key \
+  bash scripts/backup-dr-state.sh
+
+sudo CONFIRM_DR_RESTORE=RESTORE \
+  BACKUP_ENCRYPTION_PASSWORD_FILE=/etc/jbnu-sugang-helper/backup-passphrase \
+  BACKUP_AUTHENTICATION_KEY_FILE=/etc/jbnu-sugang-helper/backup-authentication-key \
+  bash scripts/restore-dr-state.sh \
+  /mnt/secondary-backup/dr-state-<timestamp>.tar.gz.enc
+```
+
+운영 backup archive·checksum·HMAC sidecar는 반드시 별도 disk/host에도 보관합니다. passphrase와 별도 HMAC key는 archive storage와 분리된 secret manager 또는 offline escrow에 보관합니다. clean-host 자동 복구 drill은 `scripts/test-dr-state-recovery.sh`이며, 전체 정책과 OAuth 확인 경계는 [disaster-recovery-policy.md](../docs/disaster-recovery-policy.md)를 따릅니다.
 
 ## 관측
 

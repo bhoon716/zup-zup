@@ -50,6 +50,13 @@ class ProductionConfigTemplateTest {
     }
 
     @Test
+    void productionConfigDoesNotRunFlywayInsideTheRuntimeApplication() throws IOException {
+        String content = readClasspathResource("application-prod.yml");
+
+        assertThat(content).contains("enabled: false");
+    }
+
+    @Test
     void environmentTemplateDeclaresGoogleRedirectUri() throws IOException {
         String content = Files.readString(Path.of(".env.example"));
 

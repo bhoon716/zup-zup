@@ -143,9 +143,6 @@ jobs:
             FIREBASE_CONFIG_PATH
             FILE_UPLOAD_DIR
             LOG_FILE
-            SPRING_DATASOURCE_URL
-            SPRING_DATASOURCE_USERNAME
-            SPRING_DATASOURCE_PASSWORD
             REDIS_HOST
             REDIS_PORT
             REDIS_PASSWORD
@@ -171,6 +168,22 @@ jobs:
           for var in "${required_vars[@]}"; do
             if ! grep -Eq "^${var}=.+$" apps/server/.env; then
               echo "Missing required .env entry: $var" >&2
+              exit 1
+            fi
+          done
+
+          forbidden_runtime_db_prefixes=(
+            SPRING_DATASOURCE_
+            SPRING_FLYWAY_
+            DB_
+            MYSQL_
+            FLYWAY_
+          )
+
+          for prefix in "${forbidden_runtime_db_prefixes[@]}"; do
+            var=$(grep -E "^${prefix}[A-Za-z0-9_]*=" apps/server/.env | head -n 1 | cut -d= -f1 || true)
+            if [ -n "${var}" ]; then
+              echo "Release .env must not contain infrastructure DB credentials: ${var}" >&2
               exit 1
             fi
           done
@@ -256,7 +269,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "infra/docker-compose.yml,infra/scripts/deploy-app.sh,infra/scripts/prepare-app-host-directories.sh,infra/scripts/backup-redis-state.sh,infra/scripts/restore-redis-state.sh,infra/scripts/redis-restart-smoke.sh,infra/prometheus/**,infra/grafana/**,infra/loki/**,infra/promtail/**"
+          source: "infra/docker-compose.yml,infra/mysql/**,infra/scripts/deploy-app.sh,infra/scripts/prepare-app-host-directories.sh,infra/scripts/backup-redis-state.sh,infra/scripts/restore-redis-state.sh,infra/scripts/redis-restart-smoke.sh,infra/scripts/backup-dr-state.sh,infra/scripts/restore-dr-state.sh,infra/prometheus/**,infra/grafana/**,infra/loki/**,infra/promtail/**"
           target: "~/jbnu-sugang-helper/infra/"
           strip_components: 1
 
@@ -274,7 +287,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "apps/server/build/libs/app.jar,apps/server/src/main/resources/application-prod.yml,apps/server/Dockerfile,apps/server/.dockerignore,apps/server/.env"
+          source: "apps/server/build/libs/app.jar,apps/server/src/main/resources/application-prod.yml,apps/server/src/main/resources/db/migration/**,apps/server/Dockerfile,apps/server/.dockerignore,apps/server/.env"
           target: "~/jbnu-sugang-helper/releases/${{ github.sha }}/"
           strip_components: 2
 
@@ -309,6 +322,14 @@ jobs:
       - name: Redis 상태 복구 검증
         working-directory: infra
         run: bash scripts/test-redis-state-recovery.sh
+
+      - name: DB 최소 권한 및 전용 migrator 검증
+        working-directory: infra
+        run: bash scripts/test-db-service-accounts.sh
+
+      - name: DB·첨부파일 DR 상태 복구 검증
+        working-directory: infra
+        run: bash scripts/test-dr-state-recovery.sh
 
       - name: Redis restart smoke cleanup 검증
         working-directory: infra

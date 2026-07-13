@@ -92,6 +92,14 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Alert boundary: a failed Redis preflight blocks server deployment and uses the existing deployment Discord failure channel. The readiness health signal and restart smoke are actionable now; continuous Prometheus/Alertmanager routing is deliberately completed in ISSUE-099, which owns the durable alert route.
 - Evidence: `RedisConfigTest`, `RedisReadinessHealthTest`, `SecurityRequestAuthorizationTest`, `verify-compose-policy.sh`, `test-redis-state-recovery.sh`, and `test-deploy-app.sh`.
 
+### DB least privilege and durable-state disaster recovery (2026-07-13)
+
+- Scenario: the application had access to MySQL root credentials and only logs/Loki/Promtail had a backup path. Database rows, feedback attachments, Grafana state, and Nginx Proxy Manager certificates could not be recovered as one tested point.
+- Result: runtime receives only DML privileges; a pinned Flyway 11.7.2 one-shot container owns DDL during deployment, and the backup account is local to the DB container. Deployment preflights DB health, idempotently provisions existing volumes, migrates, and only then replaces the app. The runtime app has neither root nor migrator secret.
+- Recovery: the root-only archive is AES-256-CBC/PBKDF2 encrypted, SHA-256 and HMAC-SHA-256 checked, retains 14 daily recovery points, and includes a logical `--source-data=2` dump, snapshot-time row-format binlogs, uploads, Grafana, and NPM state/certificates. It intentionally pauses writers for a coherent DB/file boundary, rejects tar links/devices/FIFOs before extraction, checks the manifest database before destructive work, and leaves writers stopped if DB rollback cannot be verified.
+- Evidence: `test-db-service-accounts.sh` runs all Flyway migrations under the migrator and proves runtime DDL denial; `test-dr-state-recovery.sh` destroys MySQL and all host-state sentinels before restoring identity, subscription, feedback attachment, Grafana, NPM, certificates, and archived binlogs. The drill is in infra CI and runs every Monday.
+- Boundary: a database fixture can prove restored local identity state but cannot exercise Google OAuth without a dedicated external callback/client. A controlled Google login remains required after a real-host restore. The current scope is a consistent full snapshot, not PITR: post-snapshot binlogs and attachment versions are not continuously exported together. Full policy, passphrase ownership, retention, and recovery limits are in [disaster-recovery-policy.md](disaster-recovery-policy.md).
+
 ### Account withdrawal soft delete and identity binding (2026-07-13)
 
 - Scenario: account withdrawal physically deleted user-owned rows, while a still-valid email-only token or session could be confused with a later account using the same Google email.
