@@ -64,6 +64,19 @@ with open(sys.argv[1], encoding="utf-8") as handle:
 services = compose.get("services", {})
 networks = compose.get("networks", {})
 
+expected_resource_limits = {
+    "db": (2.0, "2147483648", 256),
+    "redis": (0.5, "536870912", 128),
+    "prometheus": (1.0, "1073741824", 256),
+    "alertmanager": (0.25, "268435456", 128),
+    "grafana": (0.75, "805306368", 256),
+    "nginx-proxy-manager": (0.5, "536870912", 256),
+    "loki": (1.0, "1073741824", 512),
+    "promtail": (0.25, "268435456", 128),
+    "app": (2.0, "1610612736", 512),
+    "migrate": (0.5, "536870912", 128),
+}
+
 def fail(message: str) -> None:
     raise SystemExit(message)
 
@@ -87,6 +100,12 @@ for service_name, expected_image in expected_images.items():
     actual_image = services.get(service_name, {}).get("image")
     if actual_image != expected_image:
         fail(f"{service_name} image is not pinned reproducibly: {actual_image!r}")
+
+for service_name, (expected_cpus, expected_memory, expected_pids) in expected_resource_limits.items():
+    service = services.get(service_name, {})
+    if float(service.get("cpus", 0)) != expected_cpus or str(service.get("mem_limit")) != expected_memory \
+            or int(service.get("pids_limit", 0)) != expected_pids:
+        fail(f"{service_name} resource budget is missing or changed")
 
 for service_name in ("db", "redis", "prometheus", "grafana", "loki", "promtail"):
     if services.get(service_name, {}).get("ports"):

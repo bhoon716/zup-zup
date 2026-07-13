@@ -57,6 +57,10 @@ docker compose up -d
 ### Observability durability and alerts
 
 Prometheus stores its TSDB under `/var/lib/jbnu-sugang-helper/prometheus` with a 30-day/20GB retention cap. Alertmanager stores state under `/var/lib/jbnu-sugang-helper/alertmanager` and receives Prometheus SLO, DLQ, provider-circuit, and crawler-freshness alerts. Set `ALERTMANAGER_WEBHOOK_URL` to the reviewed operator/Discord webhook before deployment; the example value is intentionally a placeholder. The Grafana notification dashboard is provisioned from `grafana/dashboards/notification-slo-dashboard.json`.
+
+### Resource budget
+
+The single-host budget is explicit: `db` 2 CPU/2 GiB/256 pids, `app` 2 CPU/1.5 GiB/512 pids, `redis` 0.5 CPU/512 MiB/128 pids, Prometheus 1 CPU/1 GiB/256 pids, Alertmanager 0.25 CPU/256 MiB/128 pids, Grafana 0.75 CPU/768 MiB/256 pids, Loki 1 CPU/1 GiB/512 pids, Promtail 0.25 CPU/256 MiB/128 pids, and Nginx Proxy Manager 0.5 CPU/512 MiB/256 pids. The app uses graceful Spring shutdown with a 30-second phase and the notification worker remains bounded at 8 threads plus a 32-item queue. `verify-compose-policy.sh` rejects missing or changed budgets before deployment.
 - `./scripts/verify-log-policy.sh`
 - `./scripts/backup-log-state.sh`
 - `./scripts/restore-log-state.sh`

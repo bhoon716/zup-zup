@@ -51,6 +51,9 @@ spring:
       ses:
         enabled: true
 
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
   mail:
     from: no-reply@zup-zup.com
     from-name: 줍줍
@@ -62,6 +65,7 @@ spring:
           writetimeout: ${SPRING_MAIL_SMTP_WRITETIMEOUT:5000}
 
 server:
+  shutdown: graceful
   servlet:
     session:
       timeout: 2h

@@ -3,6 +3,9 @@ services:
     image: ${DB_IMAGE}
     container_name: ${DB_CONTAINER_NAME}
     restart: unless-stopped
+    cpus: "2.0"
+    mem_limit: 2g
+    pids_limit: 256
     command:
       - --server-id=1
       - --log-bin=mysql-bin
@@ -33,6 +36,9 @@ services:
     image: ${REDIS_IMAGE}
     container_name: ${REDIS_CONTAINER_NAME}
     restart: unless-stopped
+    cpus: "0.50"
+    mem_limit: 512m
+    pids_limit: 128
     environment:
       TZ: ${TZ}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -52,6 +58,9 @@ services:
     image: prom/prometheus@sha256:0e698e35e50d1ddc2d11a4a55b089fe62eb71358a5c204dfafd21bdf8ffe04b8
     container_name: ${PROMETHEUS_CONTAINER_NAME}
     restart: unless-stopped
+    cpus: "1.0"
+    mem_limit: 1g
+    pids_limit: 256
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -76,6 +85,9 @@ services:
     image: prom/alertmanager@sha256:27c475db5fb156cab31d5c18a4251ac7ed567746a2483ff264516437a39b15ba
     container_name: ${ALERTMANAGER_CONTAINER_NAME}
     restart: unless-stopped
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 128
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
       - --config.expand-env=true
@@ -93,6 +105,9 @@ services:
     image: grafana/grafana@sha256:6ea068891652aa6a65ca9065c26b89de939653803c836426970305c11fd00534
     container_name: ${GRAFANA_CONTAINER_NAME}
     restart: unless-stopped
+    cpus: "0.75"
+    mem_limit: 768m
+    pids_limit: 256
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
@@ -115,6 +130,9 @@ services:
     image: jc21/nginx-proxy-manager@sha256:99a885f56ca2203a2eb352a5f9e2cd5c1e25786508debd725ad48ebe955d114f
     container_name: sugang-helper-nginx-proxy-manager
     restart: unless-stopped
+    cpus: "0.50"
+    mem_limit: 512m
+    pids_limit: 256
     ports:
       - "80:80"
       - "127.0.0.1:81:81"
@@ -131,6 +149,9 @@ services:
     image: grafana/loki@sha256:d14b3a2c419b72fe27cd094c017863bd37a5ea9ac7d72f35bcd25f5bd081dc47
     container_name: sugang-helper-loki
     restart: unless-stopped
+    cpus: "1.0"
+    mem_limit: 1g
+    pids_limit: 512
     volumes:
       - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - /var/lib/jbnu-sugang-helper/loki:/var/lib/loki
@@ -147,6 +168,9 @@ services:
     image: grafana/promtail@sha256:238d8562dc29ec83d2f5933c7fd6e9469a90ea316a04f160dcc7cf842910ca94
     container_name: sugang-helper-promtail
     restart: unless-stopped
+    cpus: "0.25"
+    mem_limit: 256m
+    pids_limit: 128
     volumes:
       - /var/log:/var/log:ro
       - /var/lib/jbnu-sugang-helper/promtail:/var/lib/promtail
@@ -164,6 +188,9 @@ services:
     image: ${APP_IMAGE_NAME:-sugang-helper-app}:${APP_IMAGE_TAG:-latest}
     container_name: ${APP_CONTAINER_NAME}
     restart: unless-stopped
+    cpus: "2.0"
+    mem_limit: 1536m
+    pids_limit: 512
     user: "10001:10001"
     read_only: true
     security_opt:
@@ -208,6 +235,9 @@ services:
   migrate:
     image: flyway/flyway@sha256:8ace7d9825bb3ad1d6e14ee27b3a830b638ac841ba424b99b2d92aa65a99d484
     restart: "no"
+    cpus: "0.50"
+    mem_limit: 512m
+    pids_limit: 128
     profiles: ["migration"]
     read_only: true
     security_opt:

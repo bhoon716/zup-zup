@@ -55,6 +55,9 @@ spring:
       ses:
         enabled: false
 
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
   mail:
     host: ${SPRING_MAIL_HOST:localhost}
     port: ${SPRING_MAIL_PORT:1025}
@@ -73,6 +76,7 @@ spring:
     from-name: ${MAIL_FROM_NAME:줍줍(local)}
 
 server:
+  shutdown: graceful
   servlet:
     session:
       timeout: 2h
