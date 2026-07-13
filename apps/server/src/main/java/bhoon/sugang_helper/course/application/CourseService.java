@@ -3,6 +3,7 @@ package bhoon.sugang_helper.course.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
@@ -49,7 +50,7 @@ public class CourseService {
             userId = user.getId();
         }
         CourseSearchCriteria criteria = condition.toCriteria(userId);
-        return courseRepository.searchCourses(criteria, pageable)
+        return courseRepository.searchCourses(criteria, PageableGuard.requireBounded(pageable))
                 .map(course -> CourseResponse.from(course, target.year(), target.semester().getCode()));
     }
 
@@ -57,9 +58,8 @@ public class CourseService {
      * 특정 강의의 여석 변화 이력을 조회
      */
     public Slice<CourseSeatHistoryResponse> getCourseHistory(String courseKey, Pageable pageable) {
-        Pageable boundedPageable = PageRequest.of(
-                pageable.getPageNumber(),
-                Math.min(pageable.getPageSize(), MAX_HISTORY_PAGE_SIZE),
+        PageableGuard.requireBounded(pageable, MAX_HISTORY_PAGE_SIZE, 10_000);
+        Pageable boundedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
         return courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDescIdDesc(courseKey, boundedPageable)
                 .map(CourseSeatHistoryResponse::from);

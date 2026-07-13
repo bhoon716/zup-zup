@@ -3,6 +3,7 @@ package bhoon.sugang_helper.feedback.application;
 import bhoon.sugang_helper.admin.application.AdminAuditService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
 import bhoon.sugang_helper.feedback.domain.Feedback;
@@ -110,7 +111,7 @@ public class FeedbackService {
      */
     @Transactional(readOnly = true)
     public Page<FeedbackResponse> getMyFeedbacks(Long userId, Pageable pageable) {
-        return feedbackRepository.findAllByUserId(userId, pageable)
+        return feedbackRepository.findAllByUserId(userId, PageableGuard.requireBounded(pageable))
                 .map(FeedbackResponse::from);
     }
 
@@ -190,7 +191,7 @@ public class FeedbackService {
     @Transactional(readOnly = true)
     public Page<AdminFeedbackResponse> getFeedbacksForAdmin(Pageable pageable,
                                                              AdminFeedbackDeletionFilter deletionFilter) {
-        return adminFeedbackReadRepository.findFeedbacks(deletionFilter, pageable)
+        return adminFeedbackReadRepository.findFeedbacks(deletionFilter, PageableGuard.requireBounded(pageable))
                 .map(feedback -> new AdminFeedbackResponse(
                         feedback.id(),
                         feedback.type(),

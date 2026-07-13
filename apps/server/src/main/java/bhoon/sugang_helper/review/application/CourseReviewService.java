@@ -3,6 +3,7 @@ package bhoon.sugang_helper.review.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.review.domain.CourseReview;
@@ -92,7 +93,7 @@ public class CourseReviewService {
         ReviewScopeKey scope = ReviewScopeKey.from(course);
 
         return reviewRepository.findBySubjectCodeAndProfessorWithMyReviewFirst(scope.subjectCode(), scope.professor(),
-                        currentUserId, pageable)
+                        currentUserId, PageableGuard.requireBounded(pageable))
                 .map(review -> ReviewResponse.of(review, currentUserId));
     }
 

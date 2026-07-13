@@ -3,15 +3,14 @@ package bhoon.sugang_helper.notification.application;
 import bhoon.sugang_helper.admin.application.AdminAuditService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.notification.infra.SeatNotificationDeliveryJpaRepository;
 import bhoon.sugang_helper.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,14 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminNotificationDeliveryService {
 
-    private static final int MAX_PAGE_SIZE = 100;
-
     private final SeatNotificationDeliveryJpaRepository deliveryRepository;
     private final AdminAuditService adminAuditService;
 
     public Page<AdminNotificationDeliveryResponse> getDeadLetters(Pageable pageable) {
         return deliveryRepository.findByStatusOrderByDeadLetteredAtDescIdDesc(
-                        SeatNotificationDeliveryStatus.DLQ, bounded(pageable))
+                        SeatNotificationDeliveryStatus.DLQ, PageableGuard.requireBounded(pageable))
                 .map(AdminNotificationDeliveryResponse::from);
     }
 
@@ -60,10 +57,4 @@ public class AdminNotificationDeliveryService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
     }
 
-    private Pageable bounded(Pageable pageable) {
-        return PageRequest.of(
-                Math.max(0, pageable.getPageNumber()),
-                Math.min(Math.max(1, pageable.getPageSize()), MAX_PAGE_SIZE),
-                Sort.by(Sort.Order.desc("deadLetteredAt"), Sort.Order.desc("id")));
-    }
 }

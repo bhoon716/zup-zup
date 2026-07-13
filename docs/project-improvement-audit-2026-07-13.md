@@ -29,7 +29,7 @@
 | --- | --- | --- |
 | P1 | 보안/데이터 | [081 (closed)](../.agents/issues/closed/ISSUE-081-SERVER-OWNERSHIP-CHECK-DEVICE-TOKEN), [082 (closed)](../.agents/issues/closed/ISSUE-082-SERVER-SOFT-DELETE-ACCOUNT-ANONYMIZE), [083 (closed)](../.agents/issues/closed/ISSUE-083-SERVER-ADMIN-DELETED-FEEDBACK-AUDIT), [086 (closed)](../.agents/issues/closed/ISSUE-086-WEB-AUTHENTICATED-ATTACHMENT-RENDERING), [090 (closed)](../.agents/issues/closed/ISSUE-090-SERVER-REDACT-OUTBOUND-SECRETS), [091 (closed)](../.agents/issues/closed/ISSUE-091-SERVER-HASH-REDIS-TOKENS), [092 (closed)](../.agents/issues/closed/ISSUE-092-SERVER-SECURITY-ENDPOINT-CORS-HARDENING) |
 | P1 | 알림 | [087 (closed)](../.agents/issues/closed/ISSUE-087-SERVER-NOTIFICATION-FANOUT-SLA), [088 (closed)](../.agents/issues/closed/ISSUE-088-SERVER-NOTIFICATION-IDEMPOTENCY-DLQ-REPLAY), [089 (closed)](../.agents/issues/closed/ISSUE-089-SERVER-NOTIFICATION-PROVIDER-RESILIENCE) |
-| P1 | API/크롤러 | [093](../.agents/issues/open/ISSUE-093-SERVER-API-PAGINATION-GUARDS), [094](../.agents/issues/open/ISSUE-094-SERVER-ANNOUNCEMENT-PAGINATION-SEARCH), [096 (closed)](../.agents/issues/closed/ISSUE-096-SERVER-CRAWLER-BULK-UPSERT), [097 (closed)](../.agents/issues/closed/ISSUE-097-SERVER-CRAWLER-FRESHNESS-UPSTREAM) |
+| P1 | API/크롤러 | [093 (closed)](../.agents/issues/closed/ISSUE-093-SERVER-API-PAGINATION-GUARDS), [094](../.agents/issues/open/ISSUE-094-SERVER-ANNOUNCEMENT-PAGINATION-SEARCH), [096 (closed)](../.agents/issues/closed/ISSUE-096-SERVER-CRAWLER-BULK-UPSERT), [097 (closed)](../.agents/issues/closed/ISSUE-097-SERVER-CRAWLER-FRESHNESS-UPSTREAM) |
 | P1 | 인프라/운영 | [098 (closed)](../.agents/issues/closed/ISSUE-098-INFRA-REDIS-HEALTH-STARTUP), [099 (closed)](../.agents/issues/closed/ISSUE-099-INFRA-METRICS-ALERTING-DURABILITY), [100 (closed)](../.agents/issues/closed/ISSUE-100-INFRA-DB-LEAST-PRIVILEGE-DR) |
 | P2 | UX/품질 | [084 (closed)](../.agents/issues/closed/ISSUE-084-SERVER-FEEDBACK-METADATA-SAFETY), [085 (closed)](../.agents/issues/closed/ISSUE-085-SERVER-ADMIN-ACTION-LOG-STRUCTURED), [095](../.agents/issues/open/ISSUE-095-SERVER-COURSE-SEARCH-VALIDATION), [101 (closed)](../.agents/issues/closed/ISSUE-101-INFRA-RESOURCE-LIMITS), [102](../.agents/issues/open/ISSUE-102-CI-E2E-CRITICAL-FLOWS), [103 (closed)](../.agents/issues/closed/ISSUE-103-CI-MIGRATION-TASK-ISOLATION), [104 (closed)](../.agents/issues/closed/ISSUE-104-WEB-PREVIEW-DEPENDENCY-STABILITY), [105 (closed)](../.agents/issues/closed/ISSUE-105-SERVER-UPLOAD-IMAGE-LIMITS) |
 
@@ -53,7 +53,7 @@
 
 ### API·크롤러
 
-- `CourseController`의 search는 외부 `Pageable`을 그대로 `CourseService.searchCourses()`에 전달한다. history만 최대 100으로 제한한다.
+- 공통 `PageableGuard`가 course/history/review/feedback/admin audit·DLQ·notification history의 page size를 최대 100, offset을 최대 10,000으로 제한하고 초과 요청은 G002 4xx로 거부한다. 거부 사유는 원문 입력 없이 reason 로그만 남긴다.
 - 공지사항 public/admin API와 검색 repository가 `List`를 반환하며, service가 이미 있는 pageable overload를 사용하지 않는다.
 - `CourseSearchCondition`에는 `@Valid`, 문자열 길이, list 크기, 선택 시간표 개수 제한이 없다.
 - `SpringBatchConfig`는 chunk의 course key를 한 번에 조회하고, schedule/seat history 처리는 기존 동작을 유지한다. `crawler.course.chunk.write` timer와 `crawler.course.chunk.items` counter로 chunk 비용을 확인한다.
@@ -83,11 +83,11 @@
 4. 098 (closed) → 100 (closed): Redis readiness/저장 상태를 먼저 안전하게 만든 뒤 DB 최소 권한·백업·restore drill을 처리했다. 098은 091 이후에만 Redis 영속화를 도입했다.
 5. 088 (closed) → 089 (closed) → 087 (closed): idempotency·DLQ replay 상태를 먼저 정의한 뒤 provider timeout/실패 분류와 bounded fan-out·5초 SLA를 구현했다. 기존 087~089의 순환 의존은 이 순서로 해소했다.
 6. 096 (closed) → 097 (closed) → 099 (closed) → 101 (closed): 매분 크롤러 부하와 upstream 고정 의존을 줄이고 freshness metric/Alertmanager·Prometheus 영속화와 resource limit을 확정했다.
-7. 093 → 094 → 095 → 102: API pagination/input 제한을 정리한 뒤 핵심 HTTP/browser/provider 흐름을 CI smoke와 nightly E2E로 검증한다.
+7. 093 (closed) → 094 → 095 → 102: 공통 API pagination/input 제한을 정리한 뒤 핵심 HTTP/browser/provider 흐름을 CI smoke와 nightly E2E로 검증한다.
 
 ## 검증 상태
 
-087은 bounded FIFO worker·channel별 SLA/queue metric과 부하 회귀 테스트를, 089는 provider deadline·회로 차단·실패 분류와 관련 회귀 테스트를, 096은 chunk bulk lookup·비용 metric과 query-count 회귀 테스트를, 097은 DNS-safe upstream·retry 분류·freshness/skip metric과 stale 관리자 경고 테스트를, 099는 Prometheus/Alertmanager 영속화·실제 route·SLO rule/dashboard smoke를, 101은 서비스별 resource budget·graceful shutdown·concurrency 정책과 compose smoke를 별도 커밋으로 종료했다.
+087은 bounded FIFO worker·channel별 SLA/queue metric과 부하 회귀 테스트를, 089는 provider deadline·회로 차단·실패 분류와 관련 회귀 테스트를, 093은 공통 pageable 상한과 oversized boundary 테스트를, 096은 chunk bulk lookup·비용 metric과 query-count 회귀 테스트를, 097은 DNS-safe upstream·retry 분류·freshness/skip metric과 stale 관리자 경고 테스트를, 099는 Prometheus/Alertmanager 영속화·실제 route·SLO rule/dashboard smoke를, 101은 서비스별 resource budget·graceful shutdown·concurrency 정책과 compose smoke를 별도 커밋으로 종료했다.
 
 081, 082, 083, 084, 085, 086, 088, 090, 091, 092, 098, 100, 103, 104, 105는 이슈별 회귀 테스트와 별도 커밋으로 종료했다. 082는 soft delete·식별자 익명화·device/refresh 폐기·구독 비활성화·feedback soft delete, 탈퇴 전 token/session의 재가입 계정 차단, 탈퇴 사용자 알림 제외, V17의 기존 계정 optimistic-lock version backfill을 검증했다. 083은 삭제 피드백/답변의 관리자 전용 read model, 일반 첨부 경로의 관리자 우회 차단, 명시 확인·감사 다운로드, 삭제 부모의 답변 mutation 차단, 실제 attachment 보존을 검증했다. 086은 actual JPEG/PNG MIME blob preview, legacy download fallback, object URL lifecycle, role/feedback–attachment pair MVC 경계를 검증했다. 088은 V19 backfill·unique key와 DLQ retention, 동일 key replay/SENT override, concurrent replay·stale worker fencing, provider key contract, 관리자 role 경계와 DLQ UI/service worker notification tag를 검증했다. 098은 Redis authenticated healthcheck·DB/Redis readiness·2초 bounded fail-fast reconnect·AOF persistence·checksum restore drill·deploy preflight를 검증했다. 100은 runtime DML·one-shot migration·local backup 계정을 실제 MySQL/Flyway로 검증하고, HMAC·특수 tar 항목 거부·checksum·clean-host DB/uploads/Grafana/NPM recovery drill을 검증했다. 104는 root workspace clean install 뒤 lint/test가 깨지지 않도록 hoisted peer를 root에 선언하고, version mismatch·dual lockfile을 정리했으며, full web suite/build/audit을 통과했다. 091은 raw Redis key/value와 raw JWT session attribute를 새로 쓰지 않는지, 동일 family replay, Redis state 유실 fail-closed, Spring Security session 인증과 access 만료 시각 강제를 검증했다. 기본 server suite와 정적 분석도 통과했다.
 

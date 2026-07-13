@@ -7,12 +7,13 @@ import bhoon.sugang_helper.feedback.domain.FeedbackStatus;
 import bhoon.sugang_helper.feedback.domain.TargetType;
 import bhoon.sugang_helper.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.user.domain.User;
+import bhoon.sugang_helper.common.web.PageableGuard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,9 +73,8 @@ public class AdminAuditService {
     }
 
     public Page<AdminActionLogResponse> getActionLogs(Pageable pageable) {
-        Pageable boundedPageable = PageRequest.of(
-                Math.max(0, pageable.getPageNumber()),
-                Math.min(Math.max(1, pageable.getPageSize()), MAX_PAGE_SIZE),
+        Pageable requested = PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, 10_000);
+        Pageable boundedPageable = PageRequest.of(requested.getPageNumber(), requested.getPageSize(),
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
         return adminActionLogRepository.findAllByOrderByCreatedAtDescIdDesc(boundedPageable)
                 .map(this::toResponse);

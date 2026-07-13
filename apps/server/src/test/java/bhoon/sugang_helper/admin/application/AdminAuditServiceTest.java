@@ -133,7 +133,7 @@ class AdminAuditServiceTest {
         given(adminActionLogRepository.findAllByOrderByCreatedAtDescIdDesc(any(Pageable.class)))
                 .willReturn(new PageImpl<>(List.of(legacyLog), PageRequest.of(3, 100), 301));
 
-        Page<AdminActionLogResponse> response = adminAuditService.getActionLogs(PageRequest.of(3, 999));
+        Page<AdminActionLogResponse> response = adminAuditService.getActionLogs(PageRequest.of(3, 100));
 
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
         verify(adminActionLogRepository).findAllByOrderByCreatedAtDescIdDesc(pageableCaptor.capture());
