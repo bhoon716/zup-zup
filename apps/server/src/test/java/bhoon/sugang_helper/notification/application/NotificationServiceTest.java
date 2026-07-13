@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.common.error.CustomException;
@@ -24,6 +25,7 @@ import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.notification.infra.NotificationDeliveryIdempotencyKey;
 import bhoon.sugang_helper.notification.infra.NotificationSender;
 import bhoon.sugang_helper.notification.infra.NotificationTarget;
+import bhoon.sugang_helper.notification.infra.NotificationProviderResilience;
 import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
 import bhoon.sugang_helper.user.domain.DeviceType;
@@ -64,6 +66,8 @@ class NotificationServiceTest {
     private NotificationHistoryRepository notificationHistoryRepository;
     @Mock
     private UserDeviceRepository userDeviceRepository;
+    @Mock
+    private NotificationProviderResilience notificationProviderResilience;
 
     private NotificationService notificationService;
 
@@ -74,7 +78,11 @@ class NotificationServiceTest {
         NotificationChannelPolicy notificationChannelPolicy = new NotificationChannelPolicy(props);
         notificationService = new NotificationService(redisService, subscriptionRepository, userRepository,
                 userDeviceRepository, notificationHistoryRepository, List.of(notificationSender),
-                notificationChannelPolicy);
+                notificationChannelPolicy, notificationProviderResilience);
+        lenient().doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(1)).run();
+            return null;
+        }).when(notificationProviderResilience).execute(any(), any());
     }
 
     @Test

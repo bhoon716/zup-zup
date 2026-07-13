@@ -46,6 +46,7 @@ public class NotificationService {
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
     private final NotificationChannelPolicy notificationChannelPolicy;
+    private final bhoon.sugang_helper.notification.infra.NotificationProviderResilience notificationProviderResilience;
 
     /**
      * 빈자리 발생 이벤트를 처리하여 구독자들에게 알림을 발송합니다.
@@ -91,7 +92,8 @@ public class NotificationService {
                 outbox.getPreviousSeats(), outbox.getCurrentSeats()));
         String providerKey = NotificationDeliveryIdempotencyKey.providerKey(idempotencyKey);
         for (NotificationTarget target : targets) {
-            sender.send(target, message.title(), message.body(), providerKey);
+            notificationProviderResilience.execute(channel,
+                    () -> sender.send(target, message.title(), message.body(), providerKey));
         }
         saveHistory(userId, outbox.getCourseKey(), message, channel);
     }
@@ -244,7 +246,8 @@ public class NotificationService {
     private void dispatch(NotificationTarget target, String title, String message, NotificationChannel channel) {
         notificationSenders.stream()
                 .filter(sender -> sender.supports(channel))
-                .forEach(sender -> sender.send(target, title, message));
+                .forEach(sender -> notificationProviderResilience.execute(channel,
+                        () -> sender.send(target, title, message)));
     }
 
     /**

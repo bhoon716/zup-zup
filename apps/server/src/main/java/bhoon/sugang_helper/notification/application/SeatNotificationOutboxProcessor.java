@@ -6,6 +6,7 @@ import bhoon.sugang_helper.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.notification.domain.SeatNotificationOutbox;
 import bhoon.sugang_helper.notification.domain.SeatNotificationOutboxStatus;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.notification.infra.NotificationFailureClassifier;
 import bhoon.sugang_helper.notification.infra.SeatNotificationDeliveryJpaRepository;
 import bhoon.sugang_helper.notification.infra.SeatNotificationOutboxJpaRepository;
 import bhoon.sugang_helper.subscription.domain.Subscription;
@@ -88,8 +89,9 @@ public class SeatNotificationOutboxProcessor {
             }
         } catch (RuntimeException e) {
             String failureCode = SensitiveDataRedactor.failureCode(e);
+            int attempts = NotificationFailureClassifier.isRetryable(e) ? maximumAttempts : 1;
             SeatNotificationDeliveryFailureResult result = settlementService.markFailure(
-                    claim, failureCode, maximumAttempts);
+                    claim, failureCode, attempts);
             if (!result.settled()) {
                 log.info("[Notification Outbox] Ignored stale failure settlement. deliveryId={}", claim.deliveryId());
             } else if (result.deadLettered()) {

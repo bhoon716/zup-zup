@@ -122,7 +122,11 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 - Result: V19는 delivery마다 stable UUID key, claim token, DLQ 전환 시각, optimistic version을 추가한다. provider 호출은 transaction 밖에서 하고 token이 같은 worker만 결과를 정산한다. provider에는 짧은 불투명 key를 전파하며, Web Push service worker는 같은 key를 notification tag로 사용한다.
 - Operations: `ROLE_ADMIN`은 ownership 제한 없이 전체 DLQ 목록과 안전한 상세를 보고, DLQ 하나만 같은 key로 replay한다. `SENT`는 API의 명시 override 외에는 거부하며, 성공 replay는 최소화된 `DELIVERY_REPLAY` 감사 로그에 남는다. DLQ는 실제 전환 시각부터 최소 30일 보존한다.
 - Evidence: `AdminNotificationDeliveryServiceTest`, `AdminNotificationDeliveryReplayConcurrencyTest`, `SeatNotificationDeliverySettlementServiceTest`, `NotificationDeliveryRetentionSchedulerTest`, `NotificationSenderIdempotencyContractTest`, `SecurityRequestAuthorizationTest`, `FlywayMigrationValidationTest`, 관리자 delivery UI/SW Vitest; `./gradlew check`, `./gradlew migrationTest`, web lint/build이 통과했다.
-- Limitation: delivery가 여러 target으로 fan-out된 뒤 일부 target만 실패하면 이미 성공한 target도 다시 요청될 수 있다. provider timeout·circuit breaker는 ISSUE-089, bounded fan-out과 5초 SLA는 ISSUE-087에서 처리한다.
+- Limitation: delivery가 여러 target으로 fan-out된 뒤 일부 target만 실패하면 이미 성공한 target도 다시 요청될 수 있다. ISSUE-089에서 provider deadline·circuit breaker·실패 분류를 적용했으며, bounded fan-out과 5초 SLA는 ISSUE-087의 잔여 범위다.
+
+## Provider 알림 장애 대응 (ISSUE-089)
+
+알림 provider 호출은 `APP_NOTIFICATION_PROVIDER_TIMEOUT_MS` 기본 5초의 상한을 가지며, Discord의 connect/read timeout과 SMTP의 connection/read/write timeout도 별도로 설정한다. 일시 장애·rate limit·timeout은 outbox 재시도 대상으로 분류하고, 잘못된 Web Push 구독 같은 영구 실패는 즉시 DLQ로 보낸다. provider별 회로 차단은 `APP_NOTIFICATION_PROVIDER_CIRCUIT_FAILURE_THRESHOLD`와 `APP_NOTIFICATION_PROVIDER_CIRCUIT_OPEN_SECONDS`로 제어한다. `notification.provider.latency`, `notification.provider.timeout`, `notification.provider.http.status`, `notification.provider.circuit.open`, `notification.provider.failures` metric으로 상태를 확인한다.
 
 ### Withdrawn feedback administrator access (2026-07-13)
 

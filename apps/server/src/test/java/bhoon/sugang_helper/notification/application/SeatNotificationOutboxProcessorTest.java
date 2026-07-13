@@ -6,11 +6,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.notification.domain.SeatNotificationOutbox;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.notification.infra.SeatNotificationDeliveryJpaRepository;
 import bhoon.sugang_helper.notification.infra.SeatNotificationOutboxJpaRepository;
+import bhoon.sugang_helper.notification.infra.NotificationProviderException;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
@@ -107,6 +109,24 @@ class SeatNotificationOutboxProcessorTest {
 
         processor.processDelivery(claim);
 
+        verify(counter).increment();
+    }
+
+    @Test
+    void permanentProviderFailureMovesDeliveryToDlqWithoutRetryBudget() {
+        SeatNotificationDelivery delivery = processingDelivery();
+        SeatNotificationDeliveryClaim claim = new SeatNotificationDeliveryClaim(1L, "claim-token");
+        when(settlementService.loadForDispatch(claim)).thenReturn(dispatch(delivery));
+        when(settlementService.markFailure(eq(claim), anyString(), eq(1)))
+                .thenReturn(new SeatNotificationDeliveryFailureResult(true, true, 1));
+        org.mockito.Mockito.doThrow(new NotificationProviderException(
+                        ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION, false, "INVALID_RECIPIENT", 404, null))
+                .when(notificationService).deliverSeatOpening(eq(1L), eq(NotificationChannel.EMAIL),
+                        eq(delivery.getOutbox()), anyString());
+
+        processor.processDelivery(claim);
+
+        verify(settlementService).markFailure(eq(claim), anyString(), eq(1));
         verify(counter).increment();
     }
 

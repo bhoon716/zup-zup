@@ -17,6 +17,7 @@ import bhoon.sugang_helper.notification.infra.DiscordNotificationSender;
 import bhoon.sugang_helper.notification.infra.EmailNotificationSender;
 import bhoon.sugang_helper.notification.infra.FcmNotificationSender;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.notification.infra.NotificationProviderResilience;
 import bhoon.sugang_helper.notification.infra.WebPushNotificationSender;
 import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
@@ -82,6 +83,8 @@ class NotificationServiceTransactionTest {
     private WebPushNotificationSender webPushNotificationSender;
     @MockitoBean
     private DiscordNotificationSender discordNotificationSender;
+    @MockitoBean
+    private NotificationProviderResilience notificationProviderResilience;
 
     @BeforeEach
     void clearOutbox() {

@@ -54,6 +54,12 @@ spring:
   mail:
     from: no-reply@zup-zup.com
     from-name: 줍줍
+    properties:
+      mail:
+        smtp:
+          connectiontimeout: ${SPRING_MAIL_SMTP_CONNECTIONTIMEOUT:5000}
+          timeout: ${SPRING_MAIL_SMTP_TIMEOUT:5000}
+          writetimeout: ${SPRING_MAIL_SMTP_WRITETIMEOUT:5000}
 
 server:
   servlet:
@@ -90,6 +96,14 @@ app:
     retention-days: ${APP_ADMIN_AUDIT_RETENTION_DAYS:180}
     retention-cron: "${APP_ADMIN_AUDIT_RETENTION_CRON:0 15 3 * * *}"
   notification:
+    provider:
+      timeout-ms: ${APP_NOTIFICATION_PROVIDER_TIMEOUT_MS:5000}
+      connect-timeout-ms: ${APP_NOTIFICATION_PROVIDER_CONNECT_TIMEOUT_MS:2000}
+      read-timeout-ms: ${APP_NOTIFICATION_PROVIDER_READ_TIMEOUT_MS:5000}
+      write-timeout-ms: ${APP_NOTIFICATION_PROVIDER_WRITE_TIMEOUT_MS:5000}
+      circuit:
+        failure-threshold: ${APP_NOTIFICATION_PROVIDER_CIRCUIT_FAILURE_THRESHOLD:3}
+        open-seconds: ${APP_NOTIFICATION_PROVIDER_CIRCUIT_OPEN_SECONDS:30}
     outbox:
       poll-ms: ${APP_NOTIFICATION_OUTBOX_POLL_MS:5000}
       batch-size: ${APP_NOTIFICATION_OUTBOX_BATCH_SIZE:50}

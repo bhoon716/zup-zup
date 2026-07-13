@@ -1,14 +1,17 @@
 package bhoon.sugang_helper.notification.infra;
 
-import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -16,13 +19,24 @@ import org.springframework.web.client.RestClient;
 @Slf4j
 public class DiscordNotificationSender implements NotificationSender {
 
-    private final RestClient restClient;
+    private RestClient restClient;
 
     @Value("${app.discord.bot-token:}")
     private String botToken;
 
     public DiscordNotificationSender() {
+        this(2_000, 5_000);
+    }
+
+    @Autowired
+    public DiscordNotificationSender(
+            @Value("${app.notification.provider.connect-timeout-ms:2000}") long connectTimeoutMs,
+            @Value("${app.notification.provider.read-timeout-ms:5000}") long readTimeoutMs) {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofMillis(connectTimeoutMs));
+        requestFactory.setReadTimeout(Duration.ofMillis(readTimeoutMs));
         this.restClient = RestClient.builder()
+                .requestFactory(requestFactory)
                 .baseUrl("https://discord.com/api/v10")
                 .build();
     }
@@ -81,7 +95,12 @@ public class DiscordNotificationSender implements NotificationSender {
             log.error("[Discord] Private message dispatch failed. userIdFingerprint={}, failureCode={}, exceptionType={}",
                     userIdFingerprint,
                     ErrorCode.DISCORD_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
-            throw new CustomException(ErrorCode.DISCORD_SEND_ERROR);
+            Integer statusCode = e instanceof RestClientResponseException responseException
+                    ? responseException.getStatusCode().value() : null;
+            boolean retryable = statusCode == null || statusCode == 429 || statusCode >= 500;
+            String reason = statusCode != null && statusCode == 429 ? "RATE_LIMIT"
+                    : statusCode != null && statusCode >= 500 ? "OUTAGE" : "ERROR";
+            throw new NotificationProviderException(ErrorCode.DISCORD_SEND_ERROR, retryable, reason, statusCode, e);
         }
     }
 }

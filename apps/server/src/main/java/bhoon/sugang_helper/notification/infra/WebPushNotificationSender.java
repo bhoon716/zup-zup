@@ -100,11 +100,15 @@ public class WebPushNotificationSender implements NotificationSender {
 
             if (statusCode == 404 || statusCode == 410) {
                 userDeviceService.deleteDeviceByToken(target.getRecipient());
-                throw new CustomException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION);
+                throw new NotificationProviderException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION,
+                        false, "INVALID_RECIPIENT", statusCode, null);
             }
 
             if (statusCode >= 400) {
-                throw new CustomException(ErrorCode.WEB_PUSH_SEND_ERROR);
+                boolean retryable = statusCode == 429 || statusCode >= 500;
+                String reason = statusCode == 429 ? "RATE_LIMIT" : statusCode >= 500 ? "OUTAGE" : "PERMANENT";
+                throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
+                        retryable, reason, statusCode, null);
             }
 
             log.info("[WebPush] Completed notification transfer. endpointFingerprint={}", endpointFingerprint);
@@ -113,7 +117,8 @@ public class WebPushNotificationSender implements NotificationSender {
         } catch (Exception e) {
             log.error("[WebPush] Transfer failed. endpointFingerprint={}, failureCode={}, exceptionType={}",
                     endpointFingerprint, ErrorCode.WEB_PUSH_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
-            throw new CustomException(ErrorCode.WEB_PUSH_SEND_ERROR);
+            throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
+                    true, "ERROR", null, e);
         }
     }
 
