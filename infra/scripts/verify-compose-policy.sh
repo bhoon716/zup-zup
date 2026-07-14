@@ -111,14 +111,25 @@ for service_name in ("db", "redis", "prometheus", "grafana", "loki", "promtail")
     if services.get(service_name, {}).get("ports"):
         fail(f"{service_name} should not publish host ports")
 
-expected_internal_network_members = {
+expected_network_members = {
+    "sugang-helper-network-server": {"app", "db", "migrate", "redis"},
+    "sugang-helper-edge": {"app", "grafana", "nginx-proxy-manager"},
     "sugang-helper-management": {"app", "prometheus"},
-    "sugang-helper-observability": {"alertmanager", "prometheus", "grafana"},
+    "sugang-helper-observability": {"alertmanager", "grafana", "loki", "prometheus", "promtail"},
 }
-for network_name, expected_members in expected_internal_network_members.items():
+internal_networks = {
+    "sugang-helper-network-server",
+    "sugang-helper-management",
+    "sugang-helper-observability",
+}
+for network_name, expected_members in expected_network_members.items():
     network = networks.get(network_name)
-    if not network or not network.get("internal", False):
+    if not network:
+        fail(f"{network_name} must be defined")
+    if network_name in internal_networks and not network.get("internal", False):
         fail(f"{network_name} must be an internal network")
+    if network_name not in internal_networks and network.get("internal", False):
+        fail(f"{network_name} must remain externally reachable for proxy egress")
 
     actual_members = {
         service_name

@@ -52,6 +52,8 @@ docker compose up -d
 
 `DOCKER_NETWORK_MTU`는 로컬 기본값 `1500`을 사용합니다. OCI 호스트에서 jumbo frame을 실제로 확인한 경우에만 운영용 `infra/.env`에 `DOCKER_NETWORK_MTU=9000`을 설정합니다. Compose 정책 검사는 `1500`과 `9000` 이외의 값을 거부합니다.
 
+네트워크는 데이터(`db`, `redis`, `app`, `migrate`), 엣지(`app`, `grafana`, `nginx-proxy-manager`), 관리(`app`, `prometheus`), 관측(`alertmanager`, `grafana`, `loki`, `prometheus`, `promtail`)으로 분리됩니다. 데이터·관리·관측망은 내부 전용이고, 엣지망만 프록시의 외부 인증서 갱신 egress를 허용합니다.
+
 ## 검증 스크립트
 
 - `./scripts/verify-compose-policy.sh`

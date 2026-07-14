@@ -123,8 +123,8 @@ services:
         max-size: "10m"
         max-file: "5"
     networks:
-      - sugang-helper-network-server
       - sugang-helper-observability
+      - sugang-helper-edge
 
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager@sha256:52b2c59994f3d36acfcf70a1626f29734df0ed8c71bacc0269f78b6f939858bb
@@ -143,7 +143,7 @@ services:
     environment:
       TZ: ${TZ}
     networks:
-      - sugang-helper-network-server
+      - sugang-helper-edge
 
   loki:
     image: grafana/loki@sha256:70b9f699fc9bb868b62f1cfd4f787dfa50242f1fd92e6089787d5d7daea75fe8
@@ -162,7 +162,7 @@ services:
         max-size: "10m"
         max-file: "5"
     networks:
-      - sugang-helper-network-server
+      - sugang-helper-observability
 
   promtail:
     image: grafana/promtail@sha256:6cfa64ec432b24a912d640e2edb940eeae2666f61861a66c121d763dd7241381
@@ -182,7 +182,7 @@ services:
         max-size: "10m"
         max-file: "5"
     networks:
-      - sugang-helper-network-server
+      - sugang-helper-observability
 
   app:
     image: ${APP_IMAGE_NAME:-sugang-helper-app}:${APP_IMAGE_TAG:-latest}
@@ -226,6 +226,7 @@ services:
     networks:
       - sugang-helper-network-server
       - sugang-helper-management
+      - sugang-helper-edge
     depends_on:
       db:
         condition: service_healthy
@@ -265,8 +266,12 @@ networks:
   sugang-helper-network-server:
     name: sugang-helper-network-server
     driver: bridge
+    internal: true
     driver_opts:
       com.docker.network.driver.mtu: "${DOCKER_NETWORK_MTU:-1500}"
+  sugang-helper-edge:
+    name: sugang-helper-edge
+    driver: bridge
   sugang-helper-management:
     name: sugang-helper-management
     internal: true
