@@ -28,7 +28,7 @@ jobs:
         run: npm ci
 
       - name: Chromium 설치
-        run: npx playwright install --with-deps chromium
+        run: npm --workspace web exec playwright install --with-deps chromium
 
       - name: 웹 빌드
         run: npm run web:build
@@ -42,8 +42,8 @@ jobs:
         with:
           name: playwright-report
           path: |
-            playwright-report
-            test-results
+            apps/web/playwright-report
+            apps/web/test-results
           if-no-files-found: ignore
 
   provider-and-reliability-contracts:

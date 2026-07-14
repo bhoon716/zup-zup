@@ -15,7 +15,7 @@ export default defineConfig({
   },
   webServer: {
     command: "npm run start:next -- -p 3100",
-    cwd: "apps/web",
+    cwd: ".",
     url: "http://127.0.0.1:3100",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

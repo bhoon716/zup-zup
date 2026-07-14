@@ -96,7 +96,7 @@ flowchart LR
 
 ## 실행 방법
 
-루트 workspace는 Web과 공유 패키지를 함께 관리하며, Server와 Infra는 각자의 런타임 명령을 루트 스크립트로 연결합니다.
+루트 workspace는 Web을 관리하며, Server와 Infra는 각자의 런타임 명령을 루트 스크립트로 연결합니다.
 
 ```bash
 npm ci
@@ -138,7 +138,7 @@ docker compose up -d
 
 ## 테스트와 검증
 
-- Web은 `npm run test`로 Vitest 기반 검증을 수행합니다.
+- Web은 `npm run web:test`로 Vitest 기반 검증을 수행합니다.
 - Server는 `./gradlew test`, `./gradlew migrationTest`, `./gradlew manualTest`, `./gradlew performanceTest`로 검증합니다. `migrationTest`는 Docker의 MySQL Testcontainer를 사용합니다.
 - Infra는 `infra/scripts/verify-compose-policy.sh`, `infra/scripts/verify-log-policy.sh`로 정책을 확인합니다.
 

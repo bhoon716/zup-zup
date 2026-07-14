@@ -39,6 +39,8 @@
 !/apps/web/.yarn/releases
 !/apps/web/.yarn/versions
 /apps/web/coverage/
+/apps/web/test-results/
+/apps/web/playwright-report/
 /apps/web/.next/
 /apps/web/out/
 /apps/web/build/

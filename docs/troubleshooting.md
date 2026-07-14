@@ -181,7 +181,7 @@ Page size는 100, offset은 10,000까지 허용한다. course/history/review/fee
 
 ## Critical flow E2E (ISSUE-102)
 
-Pull request와 수동 실행에서는 Playwright Chromium smoke가 실제 Next.js 화면에서 세션 401→refresh→재시도와 관리자 feedback attachment preview를 mock API로 검증하고 `playwright-report` artifact를 남긴다. 주간 schedule 또는 수동 provider suite는 `AuthService`, provider resilience, outbox processor, DLQ replay, feedback controller 테스트를 별도 실행해 외부 secret 없이 운영 경계를 점검한다. 브라우저 smoke가 실패하면 artifact의 trace/screenshot/video를 먼저 확인하고, provider suite가 실패하면 서버의 `build/test-results/test` artifact에서 status/timeout/retry 원인을 확인한다.
+Pull request와 수동 실행에서는 `apps/web/e2e`의 Playwright Chromium smoke가 실제 Next.js 화면에서 세션 401→refresh→재시도와 관리자 feedback attachment preview를 mock API로 검증하고 `apps/web/playwright-report` artifact를 남긴다. 주간 schedule 또는 수동 provider suite는 `AuthService`, provider resilience, outbox processor, DLQ replay, feedback controller 테스트를 별도 실행해 외부 secret 없이 운영 경계를 점검한다. 브라우저 smoke가 실패하면 artifact의 trace/screenshot/video를 먼저 확인하고, provider suite가 실패하면 서버의 `build/test-results/test` artifact에서 status/timeout/retry 원인을 확인한다.
 
 ### Web runtime and workspace lockfile policy (2026-07-13)
 

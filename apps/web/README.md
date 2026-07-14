@@ -70,6 +70,7 @@ npm run web:dev
 
 - `npm run build`
 - `npm run start`
+- `npm run e2e`
 - `npm run lint`
 - `npm run test`
 
