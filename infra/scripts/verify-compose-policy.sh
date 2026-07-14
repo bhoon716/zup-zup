@@ -350,6 +350,18 @@ if ! grep -F -- 'install -d -o 999 -g 1000 -m 0700' "${prepare_host_directories_
   exit 1
 fi
 
+if ! grep -F -- 'install -d -o 10001 -g 10001 -m 0750' "${prepare_host_directories_script}" >/dev/null \
+  || ! grep -F -- '/var/lib/jbnu-sugang-helper/loki' "${prepare_host_directories_script}" >/dev/null; then
+  echo "Loki state directory must be prepared for UID 10001" >&2
+  exit 1
+fi
+
+if ! grep -F -- 'install -d -o root -g root -m 0750' "${prepare_host_directories_script}" >/dev/null \
+  || ! grep -F -- '/var/lib/jbnu-sugang-helper/promtail' "${prepare_host_directories_script}" >/dev/null; then
+  echo "Promtail state directory must be prepared with restricted root ownership" >&2
+  exit 1
+fi
+
 if ! grep -F -- 'targets: ["app:8081"]' "${compose_directory}/prometheus/prometheus.yml" >/dev/null; then
   echo "Prometheus must scrape the internal management port" >&2
   exit 1

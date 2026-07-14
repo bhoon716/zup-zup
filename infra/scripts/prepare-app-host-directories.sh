@@ -12,6 +12,7 @@ install -d -o root -g root -m 0755 \
 
 install -d -o 10001 -g 10001 -m 0750 \
   /var/log/jbnu-sugang-helper/server \
+  /var/lib/jbnu-sugang-helper/loki \
   /var/lib/jbnu-sugang-helper/uploads
 
 install -d -o 472 -g 472 -m 0750 \
@@ -23,6 +24,9 @@ install -d -o 999 -g 1000 -m 0700 \
 install -d -o 65534 -g 65534 -m 0750 \
   /var/lib/jbnu-sugang-helper/prometheus \
   /var/lib/jbnu-sugang-helper/alertmanager
+
+install -d -o root -g root -m 0750 \
+  /var/lib/jbnu-sugang-helper/promtail
 
 infra_dir="$(cd "$(dirname "$0")/.." && pwd)"
 install -d -o root -g root -m 0700 \
