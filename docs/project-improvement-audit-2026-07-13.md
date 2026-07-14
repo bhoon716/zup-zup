@@ -5,6 +5,8 @@
 
 ## 결론
 
+2026-07-14 추가 종료: [106 (closed)](../.agents/issues/closed/ISSUE-106-SERVER-REJECT-WEBP-UPLOAD), [107 (closed)](../.agents/issues/closed/ISSUE-107-WEB-LINT-WARNINGS-CLEANUP). 107은 web lint 8개 경고와 Spring 테스트 unchecked 컴파일 경고를 제거했다.
+
 현재 확인된 즉시 차단 수준(P0) 증거는 없지만, P1 개선이 필요한 보안·데이터·알림·운영 문제가 다수 있다. 특히 아래 두 가지는 구현 전까지 운영 리스크가 크다.
 
 1. `DELETE /api/v1/users/devices/token/{token}`이 현재 사용자와 토큰 소유자의 일치 여부를 확인하지 않아, 토큰을 아는 요청자가 다른 사용자의 기기를 해제할 수 있다.
@@ -68,6 +70,8 @@
 - web/server 테스트는 핵심 단위 테스트 중심이며 OAuth, refresh, 인증 첨부파일, 실제 push/fan-out의 browser/contract coverage가 없다.
 - Flyway 검증은 MySQL Testcontainer 2개를 각각 시작한다. 103에서 이를 `migrationTest`로 분리했고, 최신 local report 기준 기본 suite는 238개/6.236초, migration suite는 2개/18.261초다. PR·main CI는 둘 다 실행하며 Docker 미가용은 skip이 아니라 명시 실패로 남긴다. static container 재사용은 schema isolation이 필요한 후속 최적화다.
 - 104는 Next와 `eslint-config-next` preview version을 일치시키고 README·root workspace lockfile·Node 22 CI를 맞췄다. stable `16.2.10`이 PostCSS `8.4.31`을 직접 고정해 현재 preview는 audit-verified temporary exception이며, stable에 보안 수정이 직접 반영되면 전환한다.
+
+107의 정적 검사 보강은 [107 (closed)](../.agents/issues/closed/ISSUE-107-WEB-LINT-WARNINGS-CLEANUP)에서 web lint 0건, Checkstyle/PMD 0건, Java unchecked 컴파일 경고 0건으로 검증했다.
 
 ## 이미 해결되어 중복 생성하지 않은 항목
 

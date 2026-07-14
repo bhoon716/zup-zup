@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as userApi from '@/features/user/api/user.api';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 import { AxiosError } from 'axios';
 
@@ -29,15 +30,14 @@ export const useUser = (options?: { enabled?: boolean; skipAuthRefresh?: boolean
 export const useLogout = () => {
   const logout = useAuthStore((state) => state.logout);
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   return useMutation({
     mutationFn: userApi.logout,
     onSuccess: () => {
       logout();
       queryClient.clear();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
+      router.replace('/login');
     },
     onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '로그아웃에 실패했습니다';
@@ -49,6 +49,7 @@ export const useLogout = () => {
 export const useWithdraw = () => {
   const logout = useAuthStore((state) => state.logout);
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   return useMutation({
     mutationFn: userApi.withdraw,
@@ -56,9 +57,7 @@ export const useWithdraw = () => {
       toast.success(response.message || '회원 탈퇴가 완료되었습니다');
       logout();
       queryClient.clear();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
+      router.replace('/login');
     },
     onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '회원 탈퇴에 실패했습니다';

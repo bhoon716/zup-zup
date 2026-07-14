@@ -18,6 +18,8 @@ export function LoginCard() {
 
   const handleGoogleLogin = () => {
     if (isInApp) return;
+    // OAuth must leave the SPA and navigate to the backend authorization endpoint.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = `${window.location.origin}/api/oauth2/authorization/google`;
   };
 

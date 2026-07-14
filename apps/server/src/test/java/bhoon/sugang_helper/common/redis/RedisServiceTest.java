@@ -49,7 +49,7 @@ class RedisServiceTest {
                 "v2:family:new-digest", Duration.ofDays(14));
 
         assertThat(updated).isTrue();
-        ArgumentCaptor<RedisScript<Long>> scriptCaptor = ArgumentCaptor.forClass(RedisScript.class);
+        ArgumentCaptor<RedisScript<Long>> scriptCaptor = ArgumentCaptor.captor();
         verify(redisTemplate).execute(scriptCaptor.capture(), eq(List.of(REFRESH_TOKEN_KEY)),
                 eq("v2:family:old-digest"), eq("v2:family:new-digest"), eq("1209600000"));
         assertThat(scriptCaptor.getValue().getScriptAsString()).contains("GET", "SET", "PX");
@@ -63,7 +63,7 @@ class RedisServiceTest {
         boolean deleted = redisService.compareAndDeleteValues(REFRESH_TOKEN_KEY, "v2:family:digest");
 
         assertThat(deleted).isTrue();
-        ArgumentCaptor<RedisScript<Long>> scriptCaptor = ArgumentCaptor.forClass(RedisScript.class);
+        ArgumentCaptor<RedisScript<Long>> scriptCaptor = ArgumentCaptor.captor();
         verify(redisTemplate).execute(scriptCaptor.capture(), eq(List.of(REFRESH_TOKEN_KEY)), eq("v2:family:digest"));
         assertThat(scriptCaptor.getValue().getScriptAsString()).contains("GET", "DEL");
     }

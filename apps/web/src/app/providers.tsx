@@ -113,6 +113,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           action: {
             label: '보기',
             onClick: () => {
+              // The sanitized URL may point to an installed PWA route and needs a full navigation.
+              // eslint-disable-next-line @next/next/no-location-assign-relative-destination
               window.location.href = resolveAllowedPwaUrl(event.data.url, window.location.origin);
             },
           }

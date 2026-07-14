@@ -64,7 +64,7 @@ class SpringBatchConfigTest {
 
         // then
         verify(eventPublisher, times(1)).publishEvent(any(SeatOpenedEvent.class));
-        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.captor();
         verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
         assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(1);
     }
@@ -84,7 +84,7 @@ class SpringBatchConfigTest {
 
         // then
         verify(eventPublisher, never()).publishEvent(any(SeatOpenedEvent.class));
-        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.captor();
         verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
         assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(1);
     }
@@ -103,7 +103,7 @@ class SpringBatchConfigTest {
 
         // then
         verify(courseRepository, times(1)).save(any(Course.class));
-        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.captor();
         verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
         assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(1);
     }
@@ -140,7 +140,7 @@ class SpringBatchConfigTest {
 
         // then
         verify(courseRepository, never()).save(any(Course.class));
-        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.captor();
         verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
         assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(1);
     }
@@ -178,7 +178,7 @@ class SpringBatchConfigTest {
         writer.write(new Chunk<>(List.of(firstDto, secondDto)));
 
         // then
-        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.captor();
         verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
         assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(2);
         verify(courseRepository, times(1)).findByCourseKeyIn(List.of(NEW_COURSE_KEY, SAME_COURSE_KEY));

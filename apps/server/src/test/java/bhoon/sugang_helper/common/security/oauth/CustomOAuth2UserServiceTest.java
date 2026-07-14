@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.common.security.oauth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -51,8 +50,10 @@ class CustomOAuth2UserServiceTest {
                 .name("새 사용자")
                 .role(Role.USER)
                 .build();
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.empty(), Optional.of(rejoinedUser));
-        given(userRepository.save(org.mockito.ArgumentMatchers.any(User.class))).willReturn(rejoinedUser);
+        given(userRepository.findByEmail(EMAIL))
+                .willReturn(Optional.<User>empty())
+                .willReturn(Optional.of(rejoinedUser));
+        given(userRepository.save(org.mockito.ArgumentMatchers.<User>any())).willReturn(rejoinedUser);
 
         OAuth2User delegateUser = new DefaultOAuth2User(
                 Collections.singleton(new SimpleGrantedAuthority(Role.USER.getKey())),
@@ -68,7 +69,7 @@ class CustomOAuth2UserServiceTest {
 
         assertThat(withdrawnUser.isDeleted()).isTrue();
         assertThat(result.getName()).isEqualTo("google-subject");
-        verify(userRepository).save(argThat(user -> user.getEmail().equals(EMAIL)
+        verify(userRepository).save(org.mockito.ArgumentMatchers.<User>argThat(user -> user.getEmail().equals(EMAIL)
                 && user.getName().equals("새 사용자") && user.getRole() == Role.USER));
         verify(eventPublisher).publishEvent(new UserRegisteredEvent(2L, EMAIL));
     }

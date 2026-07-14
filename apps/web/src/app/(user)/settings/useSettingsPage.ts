@@ -194,6 +194,8 @@ export const useSettingsPage = () => {
   };
 
   const handleDiscordConnect = () => {
+    // Discord OAuth starts on the backend and must perform a full document navigation.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/api/v1/users/discord/authorize?returnPath=/settings";
   };
 
