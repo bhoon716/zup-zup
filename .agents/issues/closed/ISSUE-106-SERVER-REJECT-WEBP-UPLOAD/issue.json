@@ -1,0 +1,29 @@
+{
+  "issue": {
+    "id": "ISSUE-106-SERVER-REJECT-WEBP-UPLOAD",
+    "type": "feature-dev",
+    "title": "[server/web] 피드백 이미지 업로드에서 WebP 비허용",
+    "state": "closed",
+    "workflowId": "audit",
+    "directory": "ISSUE-106-SERVER-REJECT-WEBP-UPLOAD",
+    "createdAt": "2026-07-14T00:00:00+09:00",
+    "updatedAt": "2026-07-14T19:15:00+09:00",
+    "goal": "피드백 첨부파일의 이미지 포맷을 JPEG/PNG로 단순화하고 WebP decoder 의존성을 제거한다.",
+    "acceptanceCriteria": [
+      "피드백 업로드 API가 JPEG/PNG만 허용하고 WebP를 4xx로 거부한다.",
+      "웹 업로드 압축 결과와 file input 허용 포맷이 JPEG/PNG 계약과 일치한다.",
+      "TwelveMonkeys WebP 의존성·검증 경로와 관련 테스트/문서가 제거된다."
+    ],
+    "dependencies": ["ISSUE-105-SERVER-UPLOAD-IMAGE-LIMITS"],
+    "evidenceRequired": ["multipart/API validation test", "web compression test", "server/web verification"]
+  },
+  "description": "현재 피드백 업로드만 이미지를 사용하지만 웹이 모든 이미지를 WebP로 변환하고 서버가 TwelveMonkeys로 WebP를 디코딩한다. JPEG/PNG만 남겨 업로드 계약과 decoder 의존성을 단순화한다.",
+  "workflowState": {
+    "workflowId": "audit",
+    "currentStep": "Closed",
+    "completedSteps": ["Created", "Investigation", "Implementation", "Verification", "Closed"],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-14T19:15:00+09:00"
+  }
+}

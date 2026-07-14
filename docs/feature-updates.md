@@ -24,7 +24,7 @@ This document merges the web and server release histories.
 - **구조화된 관리자 감사 로그**: 관리자 상태·답변·첨부파일 접근을 버전 있는 JSON envelope로 기록하고, 답변 원문 대신 길이·키 기반 HMAC-SHA-256 지문만 보존합니다. `GET /api/v1/admin/audit-logs`는 관리자만 최신순 페이지 조회할 수 있으며, V18이 기존 원문형 metadata를 안전한 legacy 표기로 정리합니다.
 - **삭제 피드백 관리자 보존 열람**: 단일 관리자는 활성·삭제 피드백을 상태별로 조회할 수 있고, 탈퇴 작성자는 `탈퇴 사용자`로만 표시됩니다. 목록·상세 JSON에서 직접 식별자·환경 메타 정보·첨부파일 이름/URL을 제외하며, 첨부파일은 화면 확인 뒤 전용 POST 요청으로만 내려받고 성공 열람을 감사 로그에 기록합니다. 수동 피드백·답변 삭제도 물리 삭제 대신 보존용 soft delete를 사용합니다.
 - **피드백 환경 메타데이터 최소화·검증**: 새 피드백은 `os`·`language`만 최대 512 UTF-8 bytes 범위에서 전송·저장합니다. 서버는 JSON object·키·값 타입·중복 키·trailing token을 저장 전에 검증하고, 손상된 multipart JSON이나 metaInfo는 `400/G002`로 반환합니다. 전체 URL·user agent·timestamp 수집은 제거했으며 관리자 응답의 metaInfo 비노출 경계는 유지합니다.
-- **피드백 첨부 이미지 안전 정규화**: 서버는 multipart ingress에서 파일 10 MiB·요청 11 MiB를 먼저 제한하고, 초과는 `F008/413`으로 반환합니다. Tika sniff 뒤 실제 decoder로 정적 JPEG·PNG·WebP만 읽어 한 변 4096·8,388,608 pixels·정규화 결과 5 MiB를 제한합니다. GIF·APNG·animated WebP는 거부하며, 통과한 이미지는 새 JPEG/PNG로 재인코딩해 EXIF/GPS/XMP·PNG text 등 원본 metadata를 제거하고 다운로드 이름도 실제 정규화 확장자를 사용합니다. WebP decoder는 Alpine에서도 동작하는 순수 Java TwelveMonkeys plugin을 사용합니다.
+- **피드백 첨부 이미지 안전 정규화**: 서버는 multipart ingress에서 파일 10 MiB·요청 11 MiB를 먼저 제한하고, 초과는 `F008/413`으로 반환합니다. Tika sniff 뒤 실제 decoder로 정적 JPEG·PNG만 읽어 한 변 4096·8,388,608 pixels·정규화 결과 5 MiB를 제한합니다. WebP·GIF·APNG는 거부하며, 통과한 이미지는 새 JPEG/PNG로 재인코딩해 EXIF/GPS/XMP·PNG text 등 원본 metadata를 제거하고 다운로드 이름도 실제 정규화 확장자를 사용합니다.
 - **인증된 관리자 첨부파일 미리보기**: 단일 관리자는 명시 확인 POST로 받은 blob만 object URL로 미리보고 같은 blob을 다운로드합니다. 서버는 저장 파일의 실제 bytes를 다시 sniff해 JPEG/PNG만 image content type으로 내보내며, legacy WebP/GIF·알 수 없는 파일은 inline preview 없이 다운로드합니다. feedback–attachment 쌍 조회·감사 로그 경계는 유지하고, 선택 전환·페이지 이탈 뒤 늦게 도착한 요청은 object URL을 만들지 않습니다.
 - **웹 런타임 안정화**: Next.js와 `eslint-config-next`를 matching `16.3.0-preview.5`로 고정합니다. 현재 stable `16.2.10`이 취약한 PostCSS를 직접 고정해 preview를 임시 production 예외로 유지하며, 루트 workspace lockfile·Node 22.x를 CI/배포 기준으로 통일하고 매주 production dependency audit을 실행합니다.
 
@@ -105,7 +105,7 @@ This document merges the web and server release histories.
 ### Added
 
 - **통합 건의/제보 시스템(Feedback System)**: 버그 리포트, 기능 제안 등을 서비스 내부에서 직접 제출할 수 있는 인터페이스 추가
-- **이미지 최적화 업로드**: 브라우저 단에서 WebP 변환 및 리사이징 처리를 통해 모바일 환경에서도 부담 없는 고속 업로드 구현
+- **이미지 최적화 업로드**: 브라우저 단에서 JPEG/PNG만 선택·검증하고 동일 허용 포맷으로 리사이징·압축해 모바일 환경에서도 부담을 줄인다.
 - **피드백 이력 관리**: 본인이 남긴 문의 내역을 탭 형태로 즉시 확인하고, 관리자의 답변을 실시간으로 피드백 받을 수 있는 UI 구축
 - **관리자 전용 대시보드 확장**: 제보된 피드백의 상태 변경(대기/처리중/완료) 및 답변 등록, 수정 기능이 포함된 대규모 관리 인터페이스 도입
 - **환경 메타데이터 자동 수집**: 제보 시점의 OS, 브라우저, 발생 경로 정보를 함께 전송하여 개발팀의 정확한 재현 및 디버깅 지원

@@ -151,8 +151,6 @@ dependencies {
 
     // 파일 유효성 검사 (Tika)
     implementation 'org.apache.tika:tika-core:3.3.0'
-    // 브라우저가 전송하는 static WebP를 JNI 없이 실제 ImageIO decoder로 검증
-    implementation 'com.twelvemonkeys.imageio:imageio-webp:3.13.1'
 }
 
 tasks.named('test') {

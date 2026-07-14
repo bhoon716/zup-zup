@@ -166,7 +166,7 @@ export function FeedbackCreateForm({
               </Button>
             </div>
             
-            <input type="file" className="hidden" accept="image/*" multiple ref={fileInputRef} onChange={onFileChange} />
+            <input type="file" className="hidden" accept="image/jpeg,image/png" multiple ref={fileInputRef} onChange={onFileChange} />
 
             {previews.length > 0 ? (
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-1">

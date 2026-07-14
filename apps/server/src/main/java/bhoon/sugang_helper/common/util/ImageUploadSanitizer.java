@@ -2,7 +2,6 @@ package bhoon.sugang_helper.common.util;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -20,7 +19,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
@@ -41,8 +39,6 @@ public class ImageUploadSanitizer {
     };
     private static final byte[] PNG_ANIMATION_CONTROL = new byte[] {'a', 'c', 'T', 'L'};
     private static final byte[] PNG_END = new byte[] {'I', 'E', 'N', 'D'};
-    private static final AtomicBoolean IMAGE_IO_PLUGINS_SCANNED = new AtomicBoolean();
-
     private final ExecutorService imageDecodeExecutor = new ThreadPoolExecutor(
             1, 1, 0L, TimeUnit.MILLISECONDS, new SynchronousQueue<>(), runnable -> {
                 Thread thread = new Thread(runnable, "feedback-image-decode");
@@ -62,14 +58,6 @@ public class ImageUploadSanitizer {
     private int maximumSanitizedImageBytes = 5_242_880;
     @Value("${file.upload.image.decode-timeout:PT2S}")
     private Duration imageDecodeTimeout = Duration.ofSeconds(2);
-
-    @PostConstruct
-    void verifyWebpDecoder() {
-        scanImageIoPlugins();
-        if (!ImageIO.getImageReadersByMIMEType("image/webp").hasNext()) {
-            throw new IllegalStateException("WebP ImageIO reader is unavailable");
-        }
-    }
 
     void validateSourceSize(MultipartFile file) {
         if (maximumImageSourceBytes > 0 && file.getSize() > maximumImageSourceBytes) {
@@ -107,7 +95,6 @@ public class ImageUploadSanitizer {
     }
 
     private SanitizedImage decodeAndEncodeImage(MultipartFile file, String mimeType) {
-        scanImageIoPlugins();
         if ("image/png".equals(mimeType) && containsPngAnimation(file)) {
             throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
         }
@@ -126,10 +113,6 @@ public class ImageUploadSanitizer {
             ImageReader reader = readers.next();
             try {
                 reader.setInput(imageInput, false, true);
-                if ("image/webp".equals(mimeType) && reader.getNumImages(false) != 1) {
-                    throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
-                }
-
                 int width = reader.getWidth(0);
                 int height = reader.getHeight(0);
                 validateDimensions(width, height);
@@ -219,13 +202,6 @@ public class ImageUploadSanitizer {
     @PreDestroy
     void stopImageDecoder() {
         imageDecodeExecutor.shutdownNow();
-    }
-
-    private static void scanImageIoPlugins() {
-        if (IMAGE_IO_PLUGINS_SCANNED.compareAndSet(false, true)) {
-            ImageIO.setUseCache(false);
-            ImageIO.scanForPlugins();
-        }
     }
 
     record SanitizedImage(byte[] content, String extension) {

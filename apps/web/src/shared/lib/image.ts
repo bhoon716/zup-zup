@@ -1,6 +1,12 @@
 /**
- * 이미지를 리사이징하고 WebP 형식으로 변환하여 용량을 최적화합니다.
+ * JPEG/PNG 이미지를 리사이징하고 동일한 허용 포맷으로 압축합니다.
  */
+export const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png"] as const;
+
+export function isSupportedImageType(file: Pick<File, "type">): boolean {
+  return SUPPORTED_IMAGE_TYPES.includes(file.type as (typeof SUPPORTED_IMAGE_TYPES)[number]);
+}
+
 export async function compressImage(file: File, maxWidth: number = 1280, quality: number = 0.8): Promise<File> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -30,12 +36,14 @@ export async function compressImage(file: File, maxWidth: number = 1280, quality
 
         ctx.drawImage(img, 0, 0, width, height);
 
-        // WebP 변환 및 압축
+        const outputType = file.type === "image/png" ? "image/png" : "image/jpeg";
+        const outputExtension = outputType === "image/png" ? "png" : "jpg";
+
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
-                type: 'image/webp',
+              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + `.${outputExtension}`, {
+                type: outputType,
                 lastModified: Date.now(),
               });
               resolve(compressedFile);
@@ -43,7 +51,7 @@ export async function compressImage(file: File, maxWidth: number = 1280, quality
               reject(new Error('Canvas toBlob failed'));
             }
           },
-          'image/webp',
+          outputType,
           quality
         );
       };

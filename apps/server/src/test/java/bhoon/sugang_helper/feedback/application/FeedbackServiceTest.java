@@ -111,13 +111,13 @@ class FeedbackServiceTest {
         Long userId = 1L;
         User user = User.builder().id(userId).name("유저").build();
         FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
-        MultipartFile webp = mock(MultipartFile.class);
+        MultipartFile jpeg = mock(MultipartFile.class);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(feedbackRepository.save(any(Feedback.class))).willAnswer(invocation -> invocation.getArgument(0));
         given(fileUploadService.uploadImages(anyList())).willReturn(List.of("/uploads/normalized.jpg"));
-        given(webp.getOriginalFilename()).willReturn("canvas.webp");
+        given(jpeg.getOriginalFilename()).willReturn("canvas.jpg");
 
-        feedbackService.createFeedback(userId, request, List.of(webp));
+        feedbackService.createFeedback(userId, request, List.of(jpeg));
 
         org.mockito.ArgumentCaptor<FeedbackAttachment> attachmentCaptor =
                 org.mockito.ArgumentCaptor.forClass(FeedbackAttachment.class);

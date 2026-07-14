@@ -37,7 +37,7 @@ public class LocalFileUploadService {
 
     private static final String UPLOAD_URL_PREFIX = "/uploads/";
     private static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/webp");
+            "image/jpeg", "image/png");
     private static final Map<String, MediaType> SAFE_PREVIEW_MEDIA_TYPES = Map.of(
             "image/jpeg", MediaType.IMAGE_JPEG,
             "image/png", MediaType.IMAGE_PNG);
@@ -127,7 +127,7 @@ public class LocalFileUploadService {
             if (originalName != null) {
                 String lowerName = originalName.toLowerCase();
                 if (!lowerName.endsWith(".jpg") && !lowerName.endsWith(".jpeg")
-                        && !lowerName.endsWith(".png") && !lowerName.endsWith(".webp")) {
+                        && !lowerName.endsWith(".png")) {
                     throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
                 }
             }

@@ -75,16 +75,15 @@ class LocalFileUploadServiceTest {
     }
 
     @Test
-    void staticWebpIsDecodedAndStoredAsAStandardStillImage() throws Exception {
+    void webpUploadIsRejected() throws Exception {
         configureUploadDirectory();
         byte[] source = staticWebpBytes();
         MockMultipartFile webp = new MockMultipartFile("file", "canvas.webp", "image/webp", source);
 
-        String fileUrl = fileUploadService.uploadImages(List.of(webp)).getFirst();
-        byte[] stored = Files.readAllBytes(storedPath(fileUrl));
-
-        assertThat(ImageIO.read(storedPath(fileUrl).toFile())).isNotNull();
-        assertThat(stored).isNotEqualTo(source);
+        assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(webp)))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FILE_TYPE);
+        assertThat(uploadDirectory).isEmptyDirectory();
     }
 
     @Test
@@ -163,17 +162,11 @@ class LocalFileUploadServiceTest {
     }
 
     @Test
-    void animatedWebpAndApngContainersAreRejectedBeforeDecoding() throws Exception {
+    void animatedPngContainersAreRejectedBeforeDecoding() throws Exception {
         configureUploadDirectory();
-        byte[] animatedWebp = staticWebpBytes();
-        animatedWebp[20] = 0x02;
-        MockMultipartFile webp = new MockMultipartFile("file", "animated.webp", "image/webp", animatedWebp);
         MockMultipartFile apng = new MockMultipartFile(
                 "file", "animated.png", "image/png", pngWithChunk("acTL", new byte[8]));
 
-        assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(webp)))
-                .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_IMAGE_CONTENT);
         assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(apng)))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_IMAGE_CONTENT);
@@ -195,19 +188,18 @@ class LocalFileUploadServiceTest {
     @Test
     void decodeTimeoutRejectsTheUploadWithoutSaving() throws Exception {
         configureUploadDirectory();
-        imageUploadSanitizer.verifyWebpDecoder();
         ReflectionTestUtils.setField(imageUploadSanitizer, "imageDecodeTimeout", Duration.ofMillis(25));
-        byte[] source = staticWebpBytes();
+        byte[] source = imageBytes("png");
         AtomicInteger inputStreams = new AtomicInteger();
-        MultipartFile slowWebp = mock(MultipartFile.class);
-        given(slowWebp.isEmpty()).willReturn(false);
-        given(slowWebp.getSize()).willReturn((long) source.length);
-        given(slowWebp.getOriginalFilename()).willReturn("slow.webp");
-        given(slowWebp.getInputStream()).willAnswer(invocation -> inputStreams.getAndIncrement() == 0
+        MultipartFile slowPng = mock(MultipartFile.class);
+        given(slowPng.isEmpty()).willReturn(false);
+        given(slowPng.getSize()).willReturn((long) source.length);
+        given(slowPng.getOriginalFilename()).willReturn("slow.png");
+        given(slowPng.getInputStream()).willAnswer(invocation -> inputStreams.getAndIncrement() == 0
                 ? new ByteArrayInputStream(source)
                 : slowInput(source));
 
-        assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(slowWebp)))
+        assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(slowPng)))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.IMAGE_PROCESSING_LIMIT_EXCEEDED);
         assertThat(inputStreams.get()).isGreaterThanOrEqualTo(2);
