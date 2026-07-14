@@ -28,8 +28,6 @@ The encrypted archive contains:
 - `/var/lib/jbnu-sugang-helper/grafana`;
 - `infra/nginx-proxy-manager/data` and `infra/nginx-proxy-manager/letsencrypt`.
 
-Prometheus TSDB, Loki chunks/WAL, Alertmanager state, and Promtail positions are intentionally treated as disposable observability data. They are regenerated from the Compose configuration after a clean-host restore and are not included in the encrypted DR archive. Grafana state and Nginx Proxy Manager data/certificates remain durable because they contain operator-managed dashboards, routes, and TLS material.
-
 MySQL uses row-format binary logs and retains them for seven days. A full encrypted archive is retained for 14 days by default. The archive is AES-256-CBC encrypted with PBKDF2 (600,000 iterations, SHA-512), mode `0600`, and accompanied by a SHA-256 checksum plus an HMAC-SHA-256 sidecar. Restore verifies both before decryption. The checksum detects accidental corruption; the HMAC detects an archive or sidecar replacement by a party that does not hold the separate authentication key.
 
 Keep the archive, `.sha256`, and `.hmac` sidecars on a secondary mounted disk or another operator-controlled host. `/var/backups` on the same system protects against accidental deletion, not loss of that host or its disk.
@@ -42,9 +40,7 @@ sudo BACKUP_ENCRYPTION_PASSWORD_FILE=/etc/jbnu-sugang-helper/backup-passphrase \
   bash infra/scripts/backup-dr-state.sh
 ```
 
-Schedule this command once per day during a low-traffic period. The repository provides systemd units under `infra/systemd/`: DR at 03:17, Redis at 03:47, and backup freshness verification at 06:17. Copy `backup.env.example` to `/etc/jbnu-sugang-helper/backup.env`, set `JBNU_PROJECT_ROOT`, secret paths, and `BACKUP_FAILURE_WEBHOOK_URL`, then enable the three timers. The short write pause is intentional: it makes database rows and uploaded files correspond to the same recovery point.
-
-`infra/scripts/backup-log-state.sh` is deprecated and exits without copying live Loki/Promtail state because that path had no encryption or integrity sidecars. Use the encrypted DR backup for durable state and `verify-backup-freshness.sh` for scheduled freshness checks.
+Schedule this command once per day during a low-traffic period. The short write pause is intentional: it makes database rows and uploaded files correspond to the same recovery point.
 
 Deployment, backup, and restore share `infra/.operation-lock`, so they cannot overlap and accidentally restart writers in the middle of a snapshot. If the host is forcibly terminated, inspect the stopped services and the lock owner before manually removing a stale lock.
 

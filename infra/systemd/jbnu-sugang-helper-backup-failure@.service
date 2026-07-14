@@ -1,8 +1,0 @@
-[Unit]
-Description=Alert for failed JBNU Sugang Helper backup unit
-
-[Service]
-Type=oneshot
-User=root
-EnvironmentFile=/etc/jbnu-sugang-helper/backup.env
-ExecStart=/usr/bin/env bash -c 'exec "$${JBNU_PROJECT_ROOT}/infra/scripts/backup-failure-alert.sh" "%i"'

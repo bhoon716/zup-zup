@@ -68,8 +68,8 @@ Prometheus stores its TSDB under `/var/lib/jbnu-sugang-helper/prometheus` with a
 
 The single-host budget is explicit: `db` 2 CPU/2 GiB/256 pids, `app` 2 CPU/1.5 GiB/512 pids, `redis` 0.5 CPU/512 MiB/128 pids, Prometheus 1 CPU/1 GiB/256 pids, Alertmanager 0.25 CPU/256 MiB/128 pids, Grafana 0.75 CPU/768 MiB/256 pids, Loki 1 CPU/1 GiB/512 pids, Promtail 0.25 CPU/256 MiB/128 pids, and Nginx Proxy Manager 0.5 CPU/512 MiB/256 pids. The app uses graceful Spring shutdown with a 30-second phase and the notification worker remains bounded at 8 threads plus a 32-item queue. `verify-compose-policy.sh` rejects missing or changed budgets before deployment.
 - `./scripts/verify-log-policy.sh`
+- `./scripts/backup-log-state.sh`
 - `./scripts/restore-log-state.sh`
-- `./scripts/test-backup-policy.sh`
 - `./scripts/test-redis-state-recovery.sh`
 - `./scripts/test-db-service-accounts.sh`
 - `./scripts/backup-dr-state.sh`
@@ -126,18 +126,6 @@ sudo CONFIRM_DR_RESTORE=RESTORE \
 ```
 
 운영 backup archive·checksum·HMAC sidecar는 반드시 별도 disk/host에도 보관합니다. passphrase와 별도 HMAC key는 archive storage와 분리된 secret manager 또는 offline escrow에 보관합니다. clean-host 자동 복구 drill은 `scripts/test-dr-state-recovery.sh`이며, 전체 정책과 OAuth 확인 경계는 [disaster-recovery-policy.md](../docs/disaster-recovery-policy.md)를 따릅니다.
-
-운영 호스트는 `infra/systemd/`의 unit을 `/etc/systemd/system/`에 설치하고 `/etc/jbnu-sugang-helper/backup.env`에 실제 checkout 경로와 secret/webhook 경로를 설정합니다. DR 백업은 매일 03:17, Redis 백업은 03:47, freshness 검사는 06:17(호스트 시간)에 실행되며, 실패 시 `BACKUP_FAILURE_WEBHOOK_URL`로 알림을 보냅니다. `backup-log-state.sh`는 암호화·무결성 보장이 없는 실시간 로그 복사를 막기 위해 deprecated 상태로 비활성화했습니다.
-
-```bash
-sudo install -d -m 0755 /etc/jbnu-sugang-helper
-sudo install -m 0644 systemd/*.service systemd/*.timer /etc/systemd/system/
-sudo install -m 0600 systemd/backup.env.example /etc/jbnu-sugang-helper/backup.env
-sudo systemctl daemon-reload
-sudo systemctl enable --now jbnu-sugang-helper-dr-backup.timer jbnu-sugang-helper-redis-backup.timer jbnu-sugang-helper-backup-freshness.timer
-```
-
-Prometheus TSDB, Loki chunks/WAL, Alertmanager 상태, Promtail positions는 호스트 장애 시 재생성 가능한 관측 데이터로 분류해 DR archive에서 제외합니다. Grafana 설정/대시보드와 Nginx Proxy Manager data/cert는 운영 구성으로 계속 보존합니다.
 
 ## 관측
 
