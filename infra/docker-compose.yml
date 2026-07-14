@@ -55,7 +55,7 @@ services:
       start_period: 10s
 
   prometheus:
-    image: prom/prometheus@sha256:0e698e35e50d1ddc2d11a4a55b089fe62eb71358a5c204dfafd21bdf8ffe04b8
+    image: prom/prometheus@sha256:c6b27ea434f8389bfe233fbc7be381cf50587c286e871bc842008f5a1b1908a7
     container_name: ${PROMETHEUS_CONTAINER_NAME}
     restart: unless-stopped
     cpus: "1.0"
@@ -102,7 +102,7 @@ services:
       - sugang-helper-observability
 
   grafana:
-    image: grafana/grafana@sha256:6ea068891652aa6a65ca9065c26b89de939653803c836426970305c11fd00534
+    image: grafana/grafana@sha256:121a7a9ece6dc10b969f1f96eed64b4f07dfac0d0b8abc070f7cb83bbde86f63
     container_name: ${GRAFANA_CONTAINER_NAME}
     restart: unless-stopped
     cpus: "0.75"
@@ -127,7 +127,7 @@ services:
       - sugang-helper-observability
 
   nginx-proxy-manager:
-    image: jc21/nginx-proxy-manager@sha256:99a885f56ca2203a2eb352a5f9e2cd5c1e25786508debd725ad48ebe955d114f
+    image: jc21/nginx-proxy-manager@sha256:52b2c59994f3d36acfcf70a1626f29734df0ed8c71bacc0269f78b6f939858bb
     container_name: sugang-helper-nginx-proxy-manager
     restart: unless-stopped
     cpus: "0.50"
@@ -146,7 +146,7 @@ services:
       - sugang-helper-network-server
 
   loki:
-    image: grafana/loki@sha256:d14b3a2c419b72fe27cd094c017863bd37a5ea9ac7d72f35bcd25f5bd081dc47
+    image: grafana/loki@sha256:70b9f699fc9bb868b62f1cfd4f787dfa50242f1fd92e6089787d5d7daea75fe8
     container_name: sugang-helper-loki
     restart: unless-stopped
     cpus: "1.0"
@@ -165,7 +165,7 @@ services:
       - sugang-helper-network-server
 
   promtail:
-    image: grafana/promtail@sha256:238d8562dc29ec83d2f5933c7fd6e9469a90ea316a04f160dcc7cf842910ca94
+    image: grafana/promtail@sha256:6cfa64ec432b24a912d640e2edb940eeae2666f61861a66c121d763dd7241381
     container_name: sugang-helper-promtail
     restart: unless-stopped
     cpus: "0.25"
