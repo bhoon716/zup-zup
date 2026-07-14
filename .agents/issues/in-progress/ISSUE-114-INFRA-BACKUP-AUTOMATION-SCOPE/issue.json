@@ -3,11 +3,11 @@
     "id": "ISSUE-114-INFRA-BACKUP-AUTOMATION-SCOPE",
     "type": "feature-dev",
     "title": "[infra] DR 백업 자동화와 관측 데이터 보존 범위 확정",
-    "state": "open",
+    "state": "in-progress",
     "workflowId": "feature-dev",
     "directory": "ISSUE-114-INFRA-BACKUP-AUTOMATION-SCOPE",
     "createdAt": "2026-07-14T20:30:00+09:00",
-    "updatedAt": "2026-07-14T20:30:00+09:00",
+    "updatedAt": "2026-07-14T22:30:00+09:00",
     "goal": "운영자가 수동 실행하지 않아도 정해진 RPO와 복구 검증을 만족하게 한다.",
     "acceptanceCriteria": [
       "백업 주기·실패 알림·보존·오프호스트 저장이 자동화 또는 운영 런북으로 고정된다.",

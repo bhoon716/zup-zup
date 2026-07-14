@@ -3,11 +3,11 @@
     "id": "ISSUE-111-INFRA-NETWORK-SEGMENTATION",
     "type": "refactoring",
     "title": "[infra] 데이터·엣지·관측 네트워크 세분화",
-    "state": "open",
+    "state": "closed",
     "workflowId": "audit",
     "directory": "ISSUE-111-INFRA-NETWORK-SEGMENTATION",
     "createdAt": "2026-07-14T20:30:00+09:00",
-    "updatedAt": "2026-07-14T20:30:00+09:00",
+    "updatedAt": "2026-07-14T22:30:00+09:00",
     "goal": "서비스 간 네트워크 접근 범위를 실제 통신 계약에 맞게 최소화한다.",
     "acceptanceCriteria": [
       "프록시가 DB·Redis에 직접 접근하지 못한다.",

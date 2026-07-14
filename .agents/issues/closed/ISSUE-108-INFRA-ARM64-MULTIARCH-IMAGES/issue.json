@@ -3,11 +3,11 @@
     "id": "ISSUE-108-INFRA-ARM64-MULTIARCH-IMAGES",
     "type": "refactoring",
     "title": "[infra] ARM64 네이티브 멀티아키텍처 이미지 digest 정리",
-    "state": "open",
+    "state": "closed",
     "workflowId": "audit",
     "directory": "ISSUE-108-INFRA-ARM64-MULTIARCH-IMAGES",
     "createdAt": "2026-07-14T20:30:00+09:00",
-    "updatedAt": "2026-07-14T20:30:00+09:00",
+    "updatedAt": "2026-07-14T22:30:00+09:00",
     "goal": "M1 Mac과 OCI A1에서 관측·프록시 이미지를 ARM64 네이티브로 실행한다.",
     "acceptanceCriteria": [
       "운영 버전을 유지한 멀티아키텍처 manifest digest를 사용한다.",

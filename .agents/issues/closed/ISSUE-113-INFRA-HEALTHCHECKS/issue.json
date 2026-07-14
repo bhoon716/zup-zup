@@ -3,11 +3,11 @@
     "id": "ISSUE-113-INFRA-HEALTHCHECKS",
     "type": "feature-dev",
     "title": "[infra] 관측·프록시 서비스 readiness healthcheck 추가",
-    "state": "open",
+    "state": "closed",
     "workflowId": "feature-dev",
     "directory": "ISSUE-113-INFRA-HEALTHCHECKS",
     "createdAt": "2026-07-14T20:30:00+09:00",
-    "updatedAt": "2026-07-14T20:30:00+09:00",
+    "updatedAt": "2026-07-14T22:30:00+09:00",
     "goal": "관측·프록시 서비스의 프로세스 생존과 실제 readiness를 구분한다.",
     "acceptanceCriteria": [
       "관측·프록시 서비스에 적절한 healthcheck가 있다.",
