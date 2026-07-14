@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily JBNU Sugang Helper backup freshness check
+
+[Timer]
+OnCalendar=*-*-* 06:17:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=jbnu-sugang-helper-backup-freshness.service
+
+[Install]
+WantedBy=timers.target

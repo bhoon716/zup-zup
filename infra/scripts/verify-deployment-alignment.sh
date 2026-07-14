@@ -32,6 +32,10 @@ for script_name in (
     'infra/scripts/redis-restart-smoke.sh',
     'infra/scripts/backup-dr-state.sh',
     'infra/scripts/restore-dr-state.sh',
+    'infra/scripts/backup-failure-alert.sh',
+    'infra/scripts/verify-backup-freshness.sh',
+    'infra/scripts/test-backup-policy.sh',
+    'infra/systemd/**',
     'infra/mysql/**',
 ):
     if script_name not in workflow:

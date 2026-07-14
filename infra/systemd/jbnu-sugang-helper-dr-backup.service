@@ -1,0 +1,12 @@
+[Unit]
+Description=JBNU Sugang Helper encrypted DR backup
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+OnFailure=jbnu-sugang-helper-backup-failure@%n.service
+
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=/etc/jbnu-sugang-helper/backup.env
+ExecStart=/usr/bin/env bash -c 'exec "$${JBNU_PROJECT_ROOT}/infra/scripts/backup-dr-state.sh"'

@@ -269,7 +269,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "infra/docker-compose.yml,infra/mysql/**,infra/scripts/deploy-app.sh,infra/scripts/prepare-app-host-directories.sh,infra/scripts/backup-redis-state.sh,infra/scripts/restore-redis-state.sh,infra/scripts/redis-restart-smoke.sh,infra/scripts/backup-dr-state.sh,infra/scripts/restore-dr-state.sh,infra/prometheus/**,infra/grafana/**,infra/loki/**,infra/promtail/**"
+          source: "infra/docker-compose.yml,infra/mysql/**,infra/scripts/deploy-app.sh,infra/scripts/prepare-app-host-directories.sh,infra/scripts/backup-redis-state.sh,infra/scripts/restore-redis-state.sh,infra/scripts/redis-restart-smoke.sh,infra/scripts/backup-dr-state.sh,infra/scripts/restore-dr-state.sh,infra/scripts/backup-failure-alert.sh,infra/scripts/verify-backup-freshness.sh,infra/scripts/test-backup-policy.sh,infra/systemd/**,infra/prometheus/**,infra/grafana/**,infra/loki/**,infra/promtail/**"
           target: "~/jbnu-sugang-helper/infra/"
           strip_components: 1
 
@@ -330,6 +330,10 @@ jobs:
       - name: DB·첨부파일 DR 상태 복구 검증
         working-directory: infra
         run: bash scripts/test-dr-state-recovery.sh
+
+      - name: 백업 자동화 정책 검증
+        working-directory: infra
+        run: bash scripts/test-backup-policy.sh
 
       - name: Redis restart smoke cleanup 검증
         working-directory: infra

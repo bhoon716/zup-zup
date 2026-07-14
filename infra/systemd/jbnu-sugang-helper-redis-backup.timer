@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily JBNU Sugang Helper Redis backup schedule
+
+[Timer]
+OnCalendar=*-*-* 03:47:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=jbnu-sugang-helper-redis-backup.service
+
+[Install]
+WantedBy=timers.target
