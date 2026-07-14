@@ -410,6 +410,15 @@ if ! grep -F -- 'targets: ["alertmanager:9093"]' "${compose_directory}/prometheu
   exit 1
 fi
 
+if grep -F -- '__path__: /var/log/*log' "${compose_directory}/promtail/promtail-config.yaml" >/dev/null; then
+  echo "Promtail must not scrape wildcard host logs" >&2
+  exit 1
+fi
+if ! grep -F -- '__path__: /var/log/jbnu-sugang-helper/*/*.log' "${compose_directory}/promtail/promtail-config.yaml" >/dev/null; then
+  echo "Promtail must retain the reviewed application log allowlist" >&2
+  exit 1
+fi
+
 if ! grep -F -- 'url: http://prometheus:9090' "${compose_directory}/grafana/provisioning/datasources/datasource.yml" >/dev/null; then
   echo "Grafana must use the Prometheus service name on the observability network" >&2
   exit 1

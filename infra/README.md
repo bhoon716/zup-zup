@@ -54,6 +54,8 @@ docker compose up -d
 
 네트워크는 데이터(`db`, `redis`, `app`, `migrate`), 엣지(`app`, `grafana`, `nginx-proxy-manager`), 관리(`app`, `prometheus`), 관측(`alertmanager`, `grafana`, `loki`, `prometheus`, `promtail`)으로 분리됩니다. 데이터·관리·관측망은 내부 전용이고, 엣지망만 프록시의 외부 인증서 갱신 egress를 허용합니다.
 
+Promtail은 민감한 호스트 로그 전체를 수집하지 않고 `/var/log/jbnu-sugang-helper/*/*.log` 애플리케이션 로그 allowlist만 읽습니다.
+
 ## 검증 스크립트
 
 - `./scripts/verify-compose-policy.sh`
