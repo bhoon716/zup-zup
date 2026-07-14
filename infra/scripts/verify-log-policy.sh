@@ -39,11 +39,42 @@ if [ ! -f "${app_release_dir}/.env" ]; then
 fi
 
 config_output="$(APP_RELEASE_DIR="${app_release_dir}" docker compose --env-file "${compose_env_file}" -f "${compose_file}" config)"
+config_json="${temporary_dir}/compose-config.json"
+APP_RELEASE_DIR="${app_release_dir}" \
+  docker compose --env-file "${compose_env_file}" -f "${compose_file}" config --format json >"${config_json}"
 
 grep -F -- "--binlog-expire-logs-seconds=604800" <<<"${config_output}" >/dev/null
 
 grep -F -- "driver: json-file" <<<"${config_output}" >/dev/null
 grep -F -- "max-size: 10m" <<<"${config_output}" >/dev/null
 grep -F -- "max-file: \"5\"" <<<"${config_output}" >/dev/null
+
+python - "${config_json}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    services = json.load(handle).get("services", {})
+
+long_running_services = (
+    "db",
+    "redis",
+    "prometheus",
+    "alertmanager",
+    "grafana",
+    "nginx-proxy-manager",
+    "loki",
+    "promtail",
+    "app",
+)
+expected_logging = {
+    "driver": "json-file",
+    "options": {"max-size": "10m", "max-file": "5"},
+}
+
+for service_name in long_running_services:
+    if services.get(service_name, {}).get("logging") != expected_logging:
+        raise SystemExit(f"{service_name} must use the bounded json-file log policy")
+PY
 
 echo "log policy verification passed"
