@@ -22,19 +22,23 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: 의존성 설치
-        run: npm ci
+        working-directory: apps/web
+        run: npm ci --legacy-peer-deps
 
       - name: Chromium 설치
-        run: npm --workspace web exec playwright install --with-deps chromium
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
 
       - name: 웹 빌드
-        run: npm run web:build
+        working-directory: apps/web
+        run: npm run build
 
       - name: OAuth·refresh·관리자 첨부 브라우저 smoke
-        run: npm run web:e2e
+        working-directory: apps/web
+        run: npm run e2e
 
       - name: Playwright 결과 보관
         if: always()

@@ -21,13 +21,16 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: 잠금 의존성 설치
-        run: npm ci
+        working-directory: apps/web
+        run: npm ci --legacy-peer-deps
 
       - name: 프로덕션 의존성 보안 감사
-        run: npm audit --omit=dev --audit-level=high
+        working-directory: apps/web
+        run: npm audit --omit=dev --audit-level=high --legacy-peer-deps
 
       - name: 프로덕션 의존성 업데이트 보고
-        run: npm outdated --omit=dev || true
+        working-directory: apps/web
+        run: npm outdated --omit=dev --legacy-peer-deps || true
