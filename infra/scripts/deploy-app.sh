@@ -17,6 +17,7 @@ db_health_wait_seconds="${DB_HEALTH_WAIT_SECONDS:-2}"
 redis_health_attempts="${REDIS_HEALTH_MAX_ATTEMPTS:-30}"
 redis_health_wait_seconds="${REDIS_HEALTH_WAIT_SECONDS:-2}"
 webhook_url="${DEPLOYMENT_DISCORD_WEBHOOK_URL:-}"
+app_image_name="${APP_IMAGE_NAME:-sugang-helper-app}"
 operation_lock_acquired=false
 
 if [ ! -f "${release_dir}/build/libs/app.jar" ] \
@@ -245,7 +246,10 @@ deploy_release() {
   local sha="$1"
   local directory="$2"
   cd "${compose_dir}"
-  APP_RELEASE_DIR="${directory}" APP_IMAGE_TAG="${sha}" "${docker_bin}" compose up -d --no-deps app
+  APP_RELEASE_DIR="${directory}" \
+  APP_IMAGE_NAME="${app_image_name}" \
+  APP_IMAGE_TAG="${sha}" \
+    "${docker_bin}" compose up -d --no-deps app
 }
 
 notify_deployment_failure() {
@@ -309,7 +313,7 @@ fi
 trap release_operation_lock EXIT
 write_state "${state_dir}/deployment-start.env" "${previous_sha}" "${previous_release_dir}" "${previous_image}"
 
-if ! (cd "${release_dir}" && "${docker_bin}" build -t "sugang-helper-app:${release_sha}" .); then
+if ! (cd "${release_dir}" && "${docker_bin}" build -t "${app_image_name}:${release_sha}" .); then
   rollback "image build failed" || true
   exit 1
 fi
@@ -349,5 +353,5 @@ if ! wait_for_healthy; then
   exit 1
 fi
 
-write_state "${state_file}" "${release_sha}" "${release_dir}" "sugang-helper-app:${release_sha}"
+write_state "${state_file}" "${release_sha}" "${release_dir}" "${app_image_name}:${release_sha}"
 echo "Release ${release_sha} is healthy"

@@ -55,6 +55,29 @@ docker compose --env-file .env up -d
 
 `docker-compose.yml`의 필수 보간 변수는 값이 없으면 시작 전에 실패합니다. `.env`를 만들지 않거나 필수값을 비워 둔 상태에서 `docker compose up -d`를 실행하지 않습니다. `.env`에는 비밀값이 포함될 수 있으므로 저장소에 커밋하지 않습니다.
 
+### 로컬 앱 이미지
+
+로컬에서는 서버 JAR를 먼저 만들고 `docker-compose.local.yml` override를 사용합니다. 이 경로는 앱 이미지를 `sugang-helper-app:local`로 직접 빌드하므로 레지스트리 pull이 발생하지 않습니다.
+
+```bash
+cd apps/server
+./gradlew bootJar --no-daemon
+cp .env.example .env
+# apps/server/.env의 외부 연동 비밀값을 환경에 맞게 수정한다.
+
+cd ../../infra
+cp .env.example .env
+# infra/.env의 DB·Redis·Firebase·Alertmanager 값을 환경에 맞게 수정한다.
+bash scripts/verify-compose-policy.sh docker-compose.yml
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  -f docker-compose.local.yml \
+  up -d --build
+```
+
+운영 배포는 `docker-compose.local.yml`을 사용하지 않습니다. `scripts/deploy-app.sh`가 release의 Dockerfile로 `sugang-helper-app:<release-sha>`를 빌드한 뒤 같은 이미지명을 Compose에 전달합니다.
+
 `DOCKER_NETWORK_MTU`는 로컬 기본값 `1500`을 사용합니다. OCI 호스트에서 jumbo frame을 실제로 확인한 경우에만 운영용 `infra/.env`에 `DOCKER_NETWORK_MTU=9000`을 설정합니다. Compose 정책 검사는 `1500`과 `9000` 이외의 값을 거부합니다.
 
 네트워크는 데이터(`db`, `redis`, `app`, `migrate`), 엣지(`app`, `grafana`, `nginx-proxy-manager`), 관리(`app`, `prometheus`), 관측(`alertmanager`, `grafana`, `loki`, `prometheus`, `promtail`)으로 분리됩니다. 데이터·관리·관측망은 내부 전용이고, 엣지망만 프록시의 외부 인증서 갱신 egress를 허용합니다.

@@ -327,6 +327,10 @@ jobs:
         working-directory: infra
         run: bash scripts/test-compose-env.sh
 
+      - name: 로컬·운영 앱 이미지 경로 검증
+        working-directory: infra
+        run: bash scripts/test-local-app-image-flow.sh
+
       - name: Redis 상태 복구 검증
         working-directory: infra
         run: bash scripts/test-redis-state-recovery.sh

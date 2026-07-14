@@ -1,0 +1,9 @@
+services:
+  app:
+    image: sugang-helper-app:local
+    pull_policy: build
+    build:
+      context: ${APP_RELEASE_DIR:-../apps/server}
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: build/libs/app.jar
