@@ -242,6 +242,11 @@ services:
 
   app:
     image: ${APP_IMAGE_NAME:-sugang-helper-app}:${APP_IMAGE_TAG:-latest}
+    build:
+      context: ${APP_RELEASE_DIR:-../apps/server}
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: build/libs/app.jar
     container_name: ${APP_CONTAINER_NAME:?APP_CONTAINER_NAME must be set}
     restart: unless-stopped
     cpus: "2.0"

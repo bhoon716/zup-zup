@@ -50,14 +50,14 @@ cd infra
 cp .env.example .env
 # .env의 비밀값·호스트 경로를 환경에 맞게 수정한다.
 bash scripts/verify-compose-policy.sh docker-compose.yml
-docker compose --env-file .env up -d
+docker compose --env-file .env up -d --build
 ```
 
 `docker-compose.yml`의 필수 보간 변수는 값이 없으면 시작 전에 실패합니다. `.env`를 만들지 않거나 필수값을 비워 둔 상태에서 `docker compose up -d`를 실행하지 않습니다. `.env`에는 비밀값이 포함될 수 있으므로 저장소에 커밋하지 않습니다.
 
 ### 로컬 앱 이미지
 
-로컬에서는 서버 JAR를 먼저 만들고 `docker-compose.local.yml` override를 사용합니다. 이 경로는 앱 이미지를 `sugang-helper-app:local`로 직접 빌드하므로 레지스트리 pull이 발생하지 않습니다.
+기본 `docker-compose.yml`에 앱 Dockerfile의 build context가 포함되어 있으므로 별도 override 파일이 필요하지 않습니다. 서버 JAR를 먼저 만든 뒤 기본 Compose 명령만 실행하면 `sugang-helper-app:latest`를 로컬에서 빌드합니다.
 
 ```bash
 cd apps/server
@@ -69,14 +69,10 @@ cd ../../infra
 cp .env.example .env
 # infra/.env의 DB·Redis·Firebase·Alertmanager 값을 환경에 맞게 수정한다.
 bash scripts/verify-compose-policy.sh docker-compose.yml
-docker compose \
-  --env-file .env \
-  -f docker-compose.yml \
-  -f docker-compose.local.yml \
-  up -d --build
+docker compose --env-file .env up -d --build
 ```
 
-운영 배포는 `docker-compose.local.yml`을 사용하지 않습니다. `scripts/deploy-app.sh`가 release의 Dockerfile로 `sugang-helper-app:<release-sha>`를 빌드한 뒤 같은 이미지명을 Compose에 전달합니다.
+운영 배포도 같은 Dockerfile을 사용하지만, `scripts/deploy-app.sh`가 release의 Dockerfile로 `sugang-helper-app:<release-sha>`를 먼저 빌드한 뒤 같은 이미지명을 Compose에 전달합니다. 운영에서는 배포 스크립트가 `--build` 없이 이미 빌드된 release 이미지를 사용합니다.
 
 `DOCKER_NETWORK_MTU`는 로컬 기본값 `1500`을 사용합니다. OCI 호스트에서 jumbo frame을 실제로 확인한 경우에만 운영용 `infra/.env`에 `DOCKER_NETWORK_MTU=9000`을 설정합니다. Compose 정책 검사는 `1500`과 `9000` 이외의 값을 거부합니다.
 
