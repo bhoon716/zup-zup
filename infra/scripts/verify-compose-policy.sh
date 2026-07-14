@@ -131,6 +131,11 @@ for network_name, expected_members in expected_internal_network_members.items():
             f"{sorted(actual_members)!r}"
         )
 
+server_network = networks.get("sugang-helper-network-server", {})
+server_mtu = str(server_network.get("driver_opts", {}).get("com.docker.network.driver.mtu", ""))
+if server_mtu not in {"1500", "9000"}:
+    fail(f"sugang-helper-network-server MTU must be 1500 or 9000, got {server_mtu!r}")
+
 npm_ports = services.get("nginx-proxy-manager", {}).get("ports", [])
 expected_ports = {
     (80, "80", None),

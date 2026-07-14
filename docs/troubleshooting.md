@@ -1788,7 +1788,7 @@ ALTER TABLE notification_histories MODIFY COLUMN channel VARCHAR(20) NOT NULL;
 
 ### 해결책
 
-`infra/docker-compose.yml`의 네트워크 정의 섹션에 드라이버 옵션을 사용하여 MTU를 호스트와 동일하게 9000으로 설정했습니다.
+`infra/docker-compose.yml`의 네트워크 정의는 `DOCKER_NETWORK_MTU`를 사용합니다. 로컬 기본값은 1500이며, OCI 호스트에서 jumbo frame을 확인한 운영 환경만 `infra/.env`에 9000을 설정합니다.
 
 ```yaml
 networks:
@@ -1796,7 +1796,7 @@ networks:
     name: sugang-helper-network-server
     driver: bridge
     driver_opts:
-      com.docker.network.driver.mtu: 9000
+      com.docker.network.driver.mtu: "${DOCKER_NETWORK_MTU:-1500}"
 ```
 
 ### 결과
