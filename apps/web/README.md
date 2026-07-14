@@ -61,9 +61,9 @@
 ## Local Run
 
 ```bash
-cd ../..
-npm ci
-npm run web:dev
+cd apps/web
+npm ci --legacy-peer-deps
+npm run dev
 ```
 
 ## Common Commands
@@ -82,6 +82,6 @@ npm run web:dev
 ## Operational Notes
 
 - 배포 기준은 루트 README를 참고합니다.
-- Node.js 22.x와 루트 `package-lock.json`이 배포·CI의 기준입니다.
+- Node.js 22.x와 `apps/web/package-lock.json`이 배포·CI의 기준입니다.
 - Web 로그는 `/var/log/jbnu-sugang-helper/web/web.log`에 남습니다.
 - 이 문서는 사용자 화면과 정보 구조를 이해하는 데 초점을 둡니다.

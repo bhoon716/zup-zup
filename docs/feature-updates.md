@@ -26,7 +26,7 @@ This document merges the web and server release histories.
 - **피드백 환경 메타데이터 최소화·검증**: 새 피드백은 `os`·`language`만 최대 512 UTF-8 bytes 범위에서 전송·저장합니다. 서버는 JSON object·키·값 타입·중복 키·trailing token을 저장 전에 검증하고, 손상된 multipart JSON이나 metaInfo는 `400/G002`로 반환합니다. 전체 URL·user agent·timestamp 수집은 제거했으며 관리자 응답의 metaInfo 비노출 경계는 유지합니다.
 - **피드백 첨부 이미지 안전 정규화**: 서버는 multipart ingress에서 파일 10 MiB·요청 11 MiB를 먼저 제한하고, 초과는 `F008/413`으로 반환합니다. Tika sniff 뒤 실제 decoder로 정적 JPEG·PNG만 읽어 한 변 4096·8,388,608 pixels·정규화 결과 5 MiB를 제한합니다. WebP·GIF·APNG는 거부하며, 통과한 이미지는 새 JPEG/PNG로 재인코딩해 EXIF/GPS/XMP·PNG text 등 원본 metadata를 제거하고 다운로드 이름도 실제 정규화 확장자를 사용합니다.
 - **인증된 관리자 첨부파일 미리보기**: 단일 관리자는 명시 확인 POST로 받은 blob만 object URL로 미리보고 같은 blob을 다운로드합니다. 서버는 저장 파일의 실제 bytes를 다시 sniff해 JPEG/PNG만 image content type으로 내보내며, legacy WebP/GIF·알 수 없는 파일은 inline preview 없이 다운로드합니다. feedback–attachment 쌍 조회·감사 로그 경계는 유지하고, 선택 전환·페이지 이탈 뒤 늦게 도착한 요청은 object URL을 만들지 않습니다.
-- **웹 런타임 안정화**: Next.js와 `eslint-config-next`를 matching `16.3.0-preview.5`로 고정합니다. 현재 stable `16.2.10`이 취약한 PostCSS를 직접 고정해 preview를 임시 production 예외로 유지하며, 루트 workspace lockfile·Node 22.x를 CI/배포 기준으로 통일하고 매주 production dependency audit을 실행합니다.
+- **웹 런타임 안정화**: Next.js와 `eslint-config-next`를 matching `16.3.0-preview.5`로 고정합니다. 현재 stable `16.2.10`이 취약한 PostCSS를 직접 고정해 preview를 임시 production 예외로 유지하며, `apps/web/package-lock.json`·Node 22.x를 CI/배포 기준으로 통일하고 매주 production dependency audit을 실행합니다.
 - **웹·Spring 린트 경고 정리**: 로그인·탈퇴 후 내부 `/login` 이동은 Next Router를 사용하고, OAuth·Discord·PWA 전체 문서 이동은 의도적인 ESLint 예외로 구분했습니다. 서버 테스트의 raw generic matcher/captor도 타입 안전 호출로 정리해 web lint와 Spring 정적·컴파일 경고를 0건으로 유지합니다.
 
 ---

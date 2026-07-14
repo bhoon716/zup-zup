@@ -19,7 +19,7 @@ This workspace is being consolidated into a monorepo-style root repository with 
 ## Repository Topology
 - The active source-of-truth layout is the root monorepo with `apps/web`, `apps/server`, and `infra`.
 - `web/` and `server/` legacy standalone directories may remain locally during migration, but they are not the intended long-term topology.
-- The root `package.json` provides workspace scripts for web, server, and infra orchestration; npm workspace linking currently covers `apps/web` only.
+- Web is an independent npm project managed from `apps/web`; server release commands run from `apps/server`, and infra verification and compose operations run from `infra`.
 - Deployment alignment: Vercel should point at `apps/web`; server release commands should run from `apps/server`; infra verification and compose operations should run from `infra`.
 - GitHub Actions should verify path-specific changes and publish the server from `apps/server` to the OCI host.
 - Root documentation is the source of truth for architecture and topology decisions.
