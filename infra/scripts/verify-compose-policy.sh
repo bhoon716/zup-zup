@@ -101,6 +101,22 @@ for service_name, expected_image in expected_images.items():
     if actual_image != expected_image:
         fail(f"{service_name} image is not pinned reproducibly: {actual_image!r}")
 
+healthcheck_requirements = {
+    "prometheus": ("127.0.0.1:9090/-/ready",),
+    "alertmanager": ("127.0.0.1:9093/-/ready",),
+    "grafana": ("127.0.0.1:3000/api/health",),
+    "nginx-proxy-manager": ("127.0.0.1:81",),
+    "loki": ("-verify-config", "/etc/loki/local-config.yaml"),
+    "promtail": ("-check-syntax", "/etc/promtail/docker-config.yaml"),
+}
+for service_name, required_tokens in healthcheck_requirements.items():
+    healthcheck = services.get(service_name, {}).get("healthcheck", {})
+    healthcheck_test = healthcheck.get("test", [])
+    if isinstance(healthcheck_test, list):
+        healthcheck_test = " ".join(str(part) for part in healthcheck_test)
+    if not healthcheck or not all(token in str(healthcheck_test) for token in required_tokens):
+        fail(f"{service_name} healthcheck is missing or does not verify its local readiness contract")
+
 for service_name, (expected_cpus, expected_memory, expected_pids) in expected_resource_limits.items():
     service = services.get(service_name, {})
     if float(service.get("cpus", 0)) != expected_cpus or str(service.get("mem_limit")) != expected_memory \
