@@ -82,7 +82,7 @@ server:
       timeout: 2h
 
 jwt:
-  secret: ${JWT_SECRET:local-dev-secret-change-me}
+  secret: ${JWT_SECRET:local-dev-secret-change-me-please-use-32-bytes}
   access:
     expiration: ${JWT_ACCESS_EXPIRATION:7200000}
   refresh:

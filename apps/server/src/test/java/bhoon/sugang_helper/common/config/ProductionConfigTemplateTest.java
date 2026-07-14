@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
@@ -89,5 +91,14 @@ class ProductionConfigTemplateTest {
         assertThat(content)
                 .contains("timeout: 2s")
                 .contains("connect-timeout: 2s");
+    }
+
+    @Test
+    void localJwtFallbackMeetsJjwtHmacMinimum() throws IOException {
+        String content = readClasspathResource("application.yml");
+        Matcher matcher = Pattern.compile("secret: \\$\\{JWT_SECRET:([^}]+)\\}").matcher(content);
+
+        assertThat(matcher.find()).isTrue();
+        assertThat(matcher.group(1).getBytes(StandardCharsets.UTF_8)).hasSizeGreaterThanOrEqualTo(32);
     }
 }
