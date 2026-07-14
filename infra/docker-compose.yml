@@ -1,7 +1,7 @@
 services:
   db:
-    image: ${DB_IMAGE}
-    container_name: ${DB_CONTAINER_NAME}
+    image: ${DB_IMAGE:?DB_IMAGE must be set}
+    container_name: ${DB_CONTAINER_NAME:?DB_CONTAINER_NAME must be set}
     restart: unless-stopped
     cpus: "2.0"
     mem_limit: 2g
@@ -12,15 +12,15 @@ services:
       - --binlog-format=ROW
       - --binlog-expire-logs-seconds=604800
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_DATABASE}
-      DB_RUNTIME_USER: ${DB_RUNTIME_USER}
-      DB_RUNTIME_PASSWORD: ${DB_RUNTIME_PASSWORD}
-      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER}
-      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD}
-      DB_BACKUP_USER: ${DB_BACKUP_USER}
-      DB_BACKUP_PASSWORD: ${DB_BACKUP_PASSWORD}
-      TZ: ${TZ}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set}
+      MYSQL_DATABASE: ${DB_DATABASE:?DB_DATABASE must be set}
+      DB_RUNTIME_USER: ${DB_RUNTIME_USER:?DB_RUNTIME_USER must be set}
+      DB_RUNTIME_PASSWORD: ${DB_RUNTIME_PASSWORD:?DB_RUNTIME_PASSWORD must be set}
+      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?DB_MIGRATOR_USER must be set}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?DB_MIGRATOR_PASSWORD must be set}
+      DB_BACKUP_USER: ${DB_BACKUP_USER:?DB_BACKUP_USER must be set}
+      DB_BACKUP_PASSWORD: ${DB_BACKUP_PASSWORD:?DB_BACKUP_PASSWORD must be set}
+      TZ: ${TZ:?TZ must be set}
     volumes:
       - db_data:/var/lib/mysql
       - ./mysql/init/01-provision-service-accounts.sh:/docker-entrypoint-initdb.d/01-provision-service-accounts.sh:ro
@@ -38,16 +38,16 @@ services:
         max-file: "5"
 
   redis:
-    image: ${REDIS_IMAGE}
-    container_name: ${REDIS_CONTAINER_NAME}
+    image: ${REDIS_IMAGE:?REDIS_IMAGE must be set}
+    container_name: ${REDIS_CONTAINER_NAME:?REDIS_CONTAINER_NAME must be set}
     restart: unless-stopped
     cpus: "0.50"
     mem_limit: 512m
     pids_limit: 128
     environment:
-      TZ: ${TZ}
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --appendfsync everysec
+      TZ: ${TZ:?TZ must be set}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set} --appendonly yes --appendfsync everysec
     volumes:
       - /var/lib/jbnu-sugang-helper/redis:/data
     networks:
@@ -66,7 +66,7 @@ services:
 
   prometheus:
     image: prom/prometheus@sha256:c6b27ea434f8389bfe233fbc7be381cf50587c286e871bc842008f5a1b1908a7
-    container_name: ${PROMETHEUS_CONTAINER_NAME}
+    container_name: ${PROMETHEUS_CONTAINER_NAME:?PROMETHEUS_CONTAINER_NAME must be set}
     restart: unless-stopped
     cpus: "1.0"
     mem_limit: 1g
@@ -81,7 +81,7 @@ services:
       - ./prometheus/rules:/etc/prometheus/rules:ro
       - /var/lib/jbnu-sugang-helper/prometheus:/prometheus
     environment:
-      TZ: ${TZ}
+      TZ: ${TZ:?TZ must be set}
     logging:
       driver: json-file
       options:
@@ -99,7 +99,7 @@ services:
 
   alertmanager:
     image: prom/alertmanager@sha256:27c475db5fb156cab31d5c18a4251ac7ed567746a2483ff264516437a39b15ba
-    container_name: ${ALERTMANAGER_CONTAINER_NAME}
+    container_name: ${ALERTMANAGER_CONTAINER_NAME:?ALERTMANAGER_CONTAINER_NAME must be set}
     restart: unless-stopped
     cpus: "0.25"
     mem_limit: 256m
@@ -112,8 +112,8 @@ services:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - /var/lib/jbnu-sugang-helper/alertmanager:/alertmanager
     environment:
-      ALERTMANAGER_WEBHOOK_URL: ${ALERTMANAGER_WEBHOOK_URL}
-      TZ: ${TZ}
+      ALERTMANAGER_WEBHOOK_URL: ${ALERTMANAGER_WEBHOOK_URL:?ALERTMANAGER_WEBHOOK_URL must be set}
+      TZ: ${TZ:?TZ must be set}
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:9093/-/ready | grep -q 'Ready'"]
       interval: 30s
@@ -130,15 +130,15 @@ services:
 
   grafana:
     image: grafana/grafana@sha256:121a7a9ece6dc10b969f1f96eed64b4f07dfac0d0b8abc070f7cb83bbde86f63
-    container_name: ${GRAFANA_CONTAINER_NAME}
+    container_name: ${GRAFANA_CONTAINER_NAME:?GRAFANA_CONTAINER_NAME must be set}
     restart: unless-stopped
     cpus: "0.75"
     mem_limit: 768m
     pids_limit: 256
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - TZ=${TZ}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      - TZ=${TZ:?TZ must be set}
     volumes:
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
@@ -174,7 +174,7 @@ services:
       - ./nginx-proxy-manager/data:/data
       - ./nginx-proxy-manager/letsencrypt:/etc/letsencrypt
     environment:
-      TZ: ${TZ}
+      TZ: ${TZ:?TZ must be set}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:81/ >/dev/null"]
       interval: 30s
@@ -242,7 +242,7 @@ services:
 
   app:
     image: ${APP_IMAGE_NAME:-sugang-helper-app}:${APP_IMAGE_TAG:-latest}
-    container_name: ${APP_CONTAINER_NAME}
+    container_name: ${APP_CONTAINER_NAME:?APP_CONTAINER_NAME must be set}
     restart: unless-stopped
     cpus: "2.0"
     mem_limit: 1536m
@@ -256,15 +256,15 @@ services:
     env_file:
       - ${APP_RELEASE_DIR:-../apps/server}/.env
     environment:
-      SPRING_DATASOURCE_URL: ${DB_JDBC_URL}
-      SPRING_DATASOURCE_USERNAME: ${DB_RUNTIME_USER}
-      SPRING_DATASOURCE_PASSWORD: ${DB_RUNTIME_PASSWORD}
+      SPRING_DATASOURCE_URL: ${DB_JDBC_URL:?DB_JDBC_URL must be set}
+      SPRING_DATASOURCE_USERNAME: ${DB_RUNTIME_USER:?DB_RUNTIME_USER must be set}
+      SPRING_DATASOURCE_PASSWORD: ${DB_RUNTIME_PASSWORD:?DB_RUNTIME_PASSWORD must be set}
       SPRING_FLYWAY_ENABLED: "false"
     ports:
-      - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
+      - "${APP_PORT_HOST:?APP_PORT_HOST must be set}:${APP_PORT_CONTAINER:?APP_PORT_CONTAINER must be set}"
     volumes:
       - ${APP_RELEASE_DIR:-../apps/server}/src/main/resources/application-prod.yml:/app/config/application-prod.yml:ro
-      - ${FIREBASE_CONFIG_PATH}:/app/config/firebase-key.json:ro
+      - ${FIREBASE_CONFIG_PATH:?FIREBASE_CONFIG_PATH must be set}:/app/config/firebase-key.json:ro
       - /var/log/jbnu-sugang-helper/server:/var/log/jbnu-sugang-helper/server
       - /var/lib/jbnu-sugang-helper/uploads:/app/data/uploads
     healthcheck:
@@ -302,9 +302,9 @@ services:
     tmpfs:
       - /tmp:mode=1777
     environment:
-      FLYWAY_URL: ${DB_JDBC_URL}
-      FLYWAY_USER: ${DB_MIGRATOR_USER}
-      FLYWAY_PASSWORD: ${DB_MIGRATOR_PASSWORD}
+      FLYWAY_URL: ${DB_JDBC_URL:?DB_JDBC_URL must be set}
+      FLYWAY_USER: ${DB_MIGRATOR_USER:?DB_MIGRATOR_USER must be set}
+      FLYWAY_PASSWORD: ${DB_MIGRATOR_PASSWORD:?DB_MIGRATOR_PASSWORD must be set}
       FLYWAY_BASELINE_ON_MIGRATE: "true"
       FLYWAY_BASELINE_VERSION: "3"
       FLYWAY_CLEAN_DISABLED: "true"

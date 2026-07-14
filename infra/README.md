@@ -47,8 +47,13 @@
 
 ```bash
 cd infra
-docker compose up -d
+cp .env.example .env
+# .env의 비밀값·호스트 경로를 환경에 맞게 수정한다.
+bash scripts/verify-compose-policy.sh docker-compose.yml
+docker compose --env-file .env up -d
 ```
+
+`docker-compose.yml`의 필수 보간 변수는 값이 없으면 시작 전에 실패합니다. `.env`를 만들지 않거나 필수값을 비워 둔 상태에서 `docker compose up -d`를 실행하지 않습니다. `.env`에는 비밀값이 포함될 수 있으므로 저장소에 커밋하지 않습니다.
 
 `DOCKER_NETWORK_MTU`는 로컬 기본값 `1500`을 사용합니다. OCI 호스트에서 jumbo frame을 실제로 확인한 경우에만 운영용 `infra/.env`에 `DOCKER_NETWORK_MTU=9000`을 설정합니다. Compose 정책 검사는 `1500`과 `9000` 이외의 값을 거부합니다.
 

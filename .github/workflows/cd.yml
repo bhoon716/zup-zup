@@ -323,6 +323,10 @@ jobs:
         working-directory: infra
         run: bash scripts/verify-compose-policy.sh docker-compose.yml
 
+      - name: Compose 환경변수 누락 사전 검증
+        working-directory: infra
+        run: bash scripts/test-compose-env.sh
+
       - name: Redis 상태 복구 검증
         working-directory: infra
         run: bash scripts/test-redis-state-recovery.sh
