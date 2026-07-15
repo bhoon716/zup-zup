@@ -29,7 +29,7 @@ public class JbnuCourseStaxItemReader implements ItemStreamReader<ParsedCourseDt
     @Override
     public void open(ExecutionContext executionContext) {
         responseStream = apiClient.fetchCourseDataStream(year, semester);
-        iterator = courseParser.streamCourses(responseStream);
+        iterator = courseParser.streamCourses(responseStream, year, semester);
     }
 
     @Override
