@@ -13,7 +13,7 @@
 
 ### 기대 동작
 1. `ultra-grill-me` 스킬이 즉시 활성화된다.
-2. 바로 조언을 하거나 기획안을 작성하지 않고, [product-idea-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/product-idea-grill.md) reference 파일 하나만 로드한다.
+2. 바로 조언을 하거나 기획안을 작성하지 않고, [product-idea-grill.md](file:///Users/bhoon/Project/skill-forge/skills/ultra-grill-me/references/product-idea-grill.md) reference 파일 하나만 로드한다.
 3. 세션 로그 파일(`logs/`)을 생성한다.
 4. 질문 형식에 맞추어, 대상 사용자를 명확히 좁히는 **가장 작고 구체적인 단일 질문**을 생성한다.
 5. 선택지에 `(추천)` 표시를 포함하고, 마지막에는 항상 `다른 옵션 더 추천받기`와 `직접 답변`을 제공한다.
@@ -37,7 +37,6 @@
 
 번호를 선택하거나, 다른 옵션을 요청하거나, 직접 답해 주세요.
 ```
-
 ---
 
 ## 예시 2. 아키텍처 결정(ADR) 반대신문 요청 (architecture-decision)
@@ -49,7 +48,7 @@
 
 ### 기대 동작
 1. `ultra-grill-me` 스킬이 즉시 활성화된다.
-2. [architecture-decision-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/architecture-decision-grill.md) reference 파일 하나만 로드한다.
+2. [architecture-decision-grill.md](file:///Users/bhoon/Project/skill-forge/skills/ultra-grill-me/references/architecture-decision-grill.md) reference 파일 하나만 로드한다.
 3. 세션 로그 파일(`logs/`)을 생성한다.
 4. 질문 형식에 맞추어, 전환하려는 대안의 명확한 기술적 근거(기준)를 묻는 **가장 작고 구체적인 단일 질문**을 던진다.
 
@@ -84,7 +83,7 @@
 
 ### 기대 동작
 1. `ultra-grill-me` 스킬이 즉시 활성화된다.
-2. [personal-decision-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/personal-decision-grill.md) reference 파일 하나만 로드한다.
+2. [personal-decision-grill.md](file:///Users/bhoon/Project/skill-forge/skills/ultra-grill-me/references/personal-decision-grill.md) reference 파일 하나만 로드한다.
 3. 단정적이고 일방적인 진로나 직무 조언을 피하며 안전 가이드를 준수한다.
 4. 의사결정의 가장 큰 기회비용이나 제약 요소를 파악하기 위한 질문을 하나만 생성하여 제공한다.
 
@@ -119,7 +118,7 @@
 
 ### 기대 동작
 1. `ultra-grill-me` 스킬이 즉시 활성화된다.
-2. [implementation-plan-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/implementation-plan-grill.md) reference 파일 하나만 로드한다.
+2. [implementation-plan-grill.md](file:///Users/bhoon/Project/skill-forge/skills/ultra-grill-me/references/implementation-plan-grill.md) reference 파일 하나만 로드한다.
 3. 세션 로그 파일(`logs/`)을 생성한다.
 4. 구현 일정의 현실성과 가장 불확실한 부분을 확인하기 위한 질문을 하나만 생성하여 제공한다.
 
@@ -154,7 +153,7 @@
 
 ### 기대 동작
 1. `ultra-grill-me` 스킬이 즉시 활성화된다.
-2. [writing-direction-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/writing-direction-grill.md) reference 파일 하나만 로드한다.
+2. [writing-direction-grill.md](file:///Users/bhoon/Project/skill-forge/skills/ultra-grill-me/references/writing-direction-grill.md) reference 파일 하나만 로드한다.
 3. 세션 로그 파일(`logs/`)을 생성한다.
 4. 발표의 1차 청중(독자)이 누구인지를 명확히 좁히는 질문을 우선적으로 수행한다.
 
@@ -189,7 +188,7 @@
 
 ### 기대 동작
 1. `ultra-grill-me` 스킬이 즉시 활성화된다.
-2. [skill-design-grill.md](/Users/bhoon/Project/jbnu-sugang-helper/.agents/skills/ultra-grill-me/references/skill-design-grill.md) reference 파일 하나만 로드한다.
+2. [skill-design-grill.md](file:///Users/bhoon/Project/skill-forge/skills/ultra-grill-me/references/skill-design-grill.md) reference 파일 하나만 로드한다.
 3. 세션 로그 파일(`logs/`)을 생성한다.
 4. 스킬 설계의 핵심인 trigger 조건이나 스펙의 경계를 묻는 질문을 하나 던진다.
 
