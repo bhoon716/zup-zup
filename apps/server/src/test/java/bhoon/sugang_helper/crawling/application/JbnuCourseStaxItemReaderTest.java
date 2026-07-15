@@ -30,7 +30,7 @@ class JbnuCourseStaxItemReaderTest {
         JbnuCourseStaxItemReader reader = new JbnuCourseStaxItemReader(apiClient, parser, YEAR, SEMESTER);
 
         given(apiClient.fetchCourseDataStream(YEAR, SEMESTER)).willReturn(responseStream);
-        given(parser.streamCourses(responseStream)).willReturn(iterator);
+        given(parser.streamCourses(responseStream, YEAR, SEMESTER)).willReturn(iterator);
         given(iterator.hasNext()).willReturn(true, true, false);
         given(iterator.next()).willReturn(firstCourse, secondCourse);
 

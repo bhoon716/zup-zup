@@ -40,6 +40,68 @@ class JbnuCourseParserTest {
                 .hasMessageContaining("Malformed crawler XML");
     }
 
+    @Test
+    @DisplayName("JUMP JSON 응답을 기존 ParsedCourseDto 계약으로 변환합니다.")
+    void parseCourses_jumpJson() {
+        String json = """
+                {
+                  "dsEstSbjList": [
+                    {
+                      "SBJCT_CD": "C101",
+                      "SBJCT_NM": "자료구조",
+                      "DVCLS_NO": "01",
+                      "STDTR_NO": "컴퓨터공학-101",
+                      "STAFFNM": "김교수",
+                      "PRM_NMPR_CNT": 40,
+                      "ATNLC_PSCP_CNT": 40,
+                      "TLSN_RCNT": 12,
+                      "ATNLC_TRGT_DIVCDNM": "3학년",
+                      "YRSA": "2026",
+                      "SEMSTR_CD": "SUSR016.010",
+                      "CMCRS_DIVCDNM": "전공",
+                      "RLT_ABSLT_EVL_DIVCDNM": "절대평가",
+                      "DOW_HR_CN": "월 1-A, 월 1-B",
+                      "ESTBL_PNT": 3,
+                      "HR_CNT": 3,
+                      "LCTR_LANG_DIVCDNM": "한국어",
+                      "RLS_YN": "Y",
+                      "DONG_RMNM_CN": "공대 301",
+                      "RLM_DIVCDNM": "전공",
+                      "CULT_RLM_DIVCDNM": "전공필수",
+                      "LESSN_OPER_DRC_CN": "일반",
+                      "OPNLT_DIVCDNM": "일반",
+                      "LESSN_HR_DIVCDNM": "주 3시간",
+                      "MNG_SCSBJT_CDNM": "컴퓨터공학부"
+                    }
+                  ]
+                }
+                """;
+
+        List<ParsedCourseDto> courses = parser.parseCourses(json);
+
+        assertThat(courses).hasSize(1);
+        ParsedCourseDto course = courses.get(0);
+        assertThat(course.courseKey()).isEqualTo("2026:SUSR016.010:C101:01");
+        assertThat(course.name()).isEqualTo("자료구조");
+        assertThat(course.capacity()).isEqualTo(40);
+        assertThat(course.current()).isEqualTo(12);
+        assertThat(course.targetGrade()).isEqualTo(TargetGrade.GRADE_3);
+        assertThat(course.classification().getDescription()).isEqualTo("전공");
+        assertThat(course.gradingMethod().getDescription()).isEqualTo("절대평가");
+        assertThat(course.schedules()).hasSize(1);
+        assertThat(course.schedules().get(0).startTime()).isEqualTo(LocalTime.of(9, 0));
+        assertThat(course.schedules().get(0).endTime()).isEqualTo(LocalTime.of(10, 0));
+    }
+
+    @Test
+    void parseCourses_rejectsJumpErrorEnvelope() {
+        assertThatThrownBy(() -> parser.parseCourses("""
+                {"ERRMSGINFO":{"ERRCODE":"CCMN002.CCMN@NONE"}}
+                """))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("JUMP returned an error envelope");
+    }
+
     private final JbnuCourseParser parser = new JbnuCourseParser();
 
     @Test

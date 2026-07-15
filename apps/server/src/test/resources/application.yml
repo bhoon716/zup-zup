@@ -120,7 +120,9 @@ app:
 
 jbnu:
   api:
-    url: ${JBNU_API_URL:https://oasis.jbnu.ac.kr/uni/uni/cour/less/findLessSubjtTblInq.action}
+    url: ${JBNU_API_URL:https://jump.jbnu.ac.kr/SCH/SucrLessnSbjctInq/list.do}
+    bootstrap-url: ${JBNU_API_BOOTSTRAP_URL:https://jump.jbnu.ac.kr/link?div=sucrPlan}
+    cert-division: ${JBNU_API_CERT_DIVISION:6}
     timeout-ms: ${JBNU_API_TIMEOUT_MS:180000}
     max-retries: ${JBNU_API_MAX_RETRIES:3}
     retry-wait-ms: ${JBNU_API_RETRY_WAIT_MS:3000}
