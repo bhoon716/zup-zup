@@ -11,8 +11,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableAsync
 @EnableScheduling
 @EnableJpaAuditing
-@EnableConfigurationProperties(NotificationProperties.class)
-@SpringBootApplication
+    @EnableConfigurationProperties(NotificationProperties.class)
+    @SpringBootApplication
 public class SugangHelperApplication {
 
     public static void main(String[] args) {
