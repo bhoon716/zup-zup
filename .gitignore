@@ -31,6 +31,7 @@
 # Web app build output and dependencies
 /node_modules/
 /apps/web/node_modules/
+/infra/node_modules/
 /apps/web/.pnp
 /apps/web/.pnp.*
 /apps/web/.yarn/*
