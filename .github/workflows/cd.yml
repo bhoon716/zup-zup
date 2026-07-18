@@ -1,354 +1,123 @@
-name: CD
+name: Production CD
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_run:
+    workflows: ["PR CI"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "배포할 40자리 commit SHA (비워 두면 현재 SHA)"
+        required: false
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
-  changes:
+  deploy:
+    name: deploy to OCI
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
-    outputs:
-      web: ${{ steps.filter.outputs.web }}
-      server: ${{ steps.filter.outputs.server }}
-      infra: ${{ steps.filter.outputs.infra }}
+    environment: production
+    permissions:
+      contents: read
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag || github.event.workflow_run.head_sha || github.sha }}
+      OCI_HOST: ${{ secrets.OCI_HOST }}
+      OCI_DEPLOY_USER: ${{ secrets.OCI_DEPLOY_USER }}
+      OCI_KNOWN_HOSTS: ${{ secrets.OCI_KNOWN_HOSTS }}
+      API_HOST: ${{ secrets.API_HOST }}
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          ref: ${{ inputs.image_tag || github.event.workflow_run.head_sha || github.sha }}
 
-      - name: 변경 경로 탐지
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            web:
-              - 'apps/web/**'
-              - 'packages/shared/**'
-              - '.github/workflows/**'
-            server:
-              - 'apps/server/**'
-              - 'packages/shared/**'
-              - '.github/workflows/**'
-            infra:
-              - 'infra/**'
-              - '.github/workflows/**'
-
-  verify-web:
-    needs: changes
-    if: needs.changes.outputs.web == 'true' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
-
-      - name: Node.js 설정
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
-
-      - name: 의존성 설치
-        working-directory: apps/web
-        run: npm ci --legacy-peer-deps
-
-      - name: 웹 테스트 실행
-        working-directory: apps/web
-        run: npm run test -- --run
-
-      - name: 웹 린트 실행
-        working-directory: apps/web
-        run: npm run lint
-
-      - name: 웹 빌드 실행
-        working-directory: apps/web
-        run: npm run build
-
-  verify-server:
-    needs: changes
-    if: needs.changes.outputs.server == 'true'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
-
-      - name: JDK 21 설정
-        uses: actions/setup-java@v5
-        with:
-          java-version: "21"
-          distribution: "temurin"
-          cache: gradle
-          cache-dependency-path: apps/server/build.gradle
-
-      - name: Docker 확인 (migration validation)
-        run: docker info
-
-      - name: 서버 테스트, migration 및 검사 실행
-        working-directory: apps/server
-        env:
-          AWS_ACCESS_KEY_ID: mock-access-key
-          AWS_SECRET_ACCESS_KEY: mock-secret-key
-          AWS_REGION: us-east-1
-          SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
-        run: ./gradlew clean check migrationTest --no-daemon
-
-
-
-  deploy-server:
-    needs:
-      - changes
-      - verify-web
-      - verify-server
-      - verify-infra
-    if: needs.changes.outputs.server == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    concurrency:
-      group: production-server
-      cancel-in-progress: false
-
-    steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
-
-      - name: JDK 21 설정
-        uses: actions/setup-java@v5
-        with:
-          java-version: "21"
-          distribution: "temurin"
-          cache: gradle
-          cache-dependency-path: apps/server/build.gradle
-
-      - name: JAR 빌드
-        working-directory: apps/server
-        run: ./gradlew clean bootJar --no-daemon
-
-      - name: 서버 환경 파일 생성
-        env:
-          SERVER_DOTENV: ${{ secrets.SERVER_DOTENV }}
+      - name: release SHA 검증
         run: |
-          if [ -z "$SERVER_DOTENV" ]; then
-            echo "Missing required secret: SERVER_DOTENV" >&2
+          if [[ ! "${IMAGE_TAG}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "IMAGE_TAG must be exactly 40 lowercase hexadecimal characters" >&2
             exit 1
           fi
-
-          printf '%s' "$SERVER_DOTENV" > apps/server/.env
-
-          required_vars=(
-            SPRING_PROFILES_ACTIVE
-            TZ
-            FIREBASE_CONFIG_PATH
-            FILE_UPLOAD_DIR
-            LOG_FILE
-            REDIS_HOST
-            REDIS_PORT
-            REDIS_PASSWORD
-            GOOGLE_CLIENT_ID
-            GOOGLE_CLIENT_SECRET
-            GOOGLE_REDIRECT_URI
-            AWS_ACCESS_KEY_ID
-            AWS_SECRET_ACCESS_KEY
-            JWT_SECRET
-            APP_CORS_ALLOWED_ORIGINS
-            APP_OAUTH2_SUCCESS_REDIRECT_URI
-            APP_OAUTH2_FAILURE_REDIRECT_URI
-            APP_OAUTH2_AUTHORIZED_REDIRECT_URI
-            WEBPUSH_PUBLIC_KEY
-            WEBPUSH_PRIVATE_KEY
-            WEBPUSH_SUBJECT
-            DISCORD_BOT_TOKEN
-            DISCORD_CLIENT_ID
-            DISCORD_CLIENT_SECRET
-            DISCORD_REDIRECT_URI
-          )
-
-          for var in "${required_vars[@]}"; do
-            if ! grep -Eq "^${var}=.+$" apps/server/.env; then
-              echo "Missing required .env entry: $var" >&2
+          for variable in OCI_HOST OCI_DEPLOY_USER OCI_KNOWN_HOSTS API_HOST; do
+            if [ -z "${!variable}" ]; then
+              echo "Missing production variable: ${variable}" >&2
               exit 1
             fi
           done
 
-          forbidden_runtime_db_prefixes=(
-            SPRING_DATASOURCE_
-            SPRING_FLYWAY_
-            DB_
-            MYSQL_
-            FLYWAY_
-          )
-
-          for prefix in "${forbidden_runtime_db_prefixes[@]}"; do
-            var=$(grep -E "^${prefix}[A-Za-z0-9_]*=" apps/server/.env | head -n 1 | cut -d= -f1 || true)
-            if [ -n "${var}" ]; then
-              echo "Release .env must not contain infrastructure DB credentials: ${var}" >&2
-              exit 1
-            fi
-          done
-
-          active_profile_count=$(grep -Ec '^SPRING_PROFILES_ACTIVE=' apps/server/.env)
-          active_profiles=$(sed -n 's/^SPRING_PROFILES_ACTIVE=//p' apps/server/.env)
-          active_profiles="${active_profiles//[[:space:]]/}"
-          IFS=',' read -r -a active_profile_list <<< "${active_profiles}"
-          prod_profile_count=0
-          invalid_profile=false
-          for profile in "${active_profile_list[@]}"; do
-            if [[ -z "${profile}" ]]; then
-              invalid_profile=true
-              continue
-            fi
-            if [[ "${profile}" == "prod" ]]; then
-              ((prod_profile_count += 1))
-            fi
-          done
-          if [ "${active_profile_count}" -ne 1 ] \
-            || [ "${prod_profile_count}" -ne 1 ] \
-            || [ "${invalid_profile}" = true ]; then
-            echo "SPRING_PROFILES_ACTIVE must include prod exactly once" >&2
-            exit 1
-          fi
-
-          cors_origin_count=$(grep -Ec '^APP_CORS_ALLOWED_ORIGINS=' apps/server/.env)
-          cors_origins=$(sed -n 's/^APP_CORS_ALLOWED_ORIGINS=//p' apps/server/.env)
-          if [ "${cors_origin_count}" -ne 1 ]; then
-            echo "APP_CORS_ALLOWED_ORIGINS must be declared exactly once" >&2
-            exit 1
-          fi
-
-          if ! python3 - "${cors_origins}" <<'PY'
-          import sys
-          from urllib.parse import urlsplit
-
-          for raw_origin in sys.argv[1].split(","):
-              origin = raw_origin.strip()
-              try:
-                  parsed = urlsplit(origin)
-                  parsed.port
-              except ValueError:
-                  sys.exit(1)
-
-              if (
-                  not origin
-                  or "*" in origin
-                  or parsed.scheme.lower() != "https"
-                  or not parsed.hostname
-                  or parsed.username is not None
-                  or parsed.password is not None
-                  or parsed.path
-                  or parsed.query
-                  or parsed.fragment
-              ):
-                  sys.exit(1)
-          PY
-          then
-            echo "APP_CORS_ALLOWED_ORIGINS must contain only explicit HTTPS origins" >&2
-            exit 1
-          fi
-
-          google_redirect_uri_count=$(grep -Ec '^GOOGLE_REDIRECT_URI=' apps/server/.env)
-          if [ "${google_redirect_uri_count}" -ne 1 ] \
-            || ! grep -Eq '^GOOGLE_REDIRECT_URI=https://[^[:space:]]+$' apps/server/.env; then
-            echo "GOOGLE_REDIRECT_URI must be exactly one non-empty HTTPS URI" >&2
-            exit 1
-          fi
-
-      - name: 롤백 알림 웹훅 검증
-        env:
-          DEPLOYMENT_DISCORD_WEBHOOK_URL: ${{ secrets.DEPLOYMENT_DISCORD_WEBHOOK_URL }}
+      - name: Compose runtime contract
         run: |
-          if [ -z "${DEPLOYMENT_DISCORD_WEBHOOK_URL}" ]; then
-            echo "Missing required secret: DEPLOYMENT_DISCORD_WEBHOOK_URL" >&2
+          infra/scripts/test-runtime-contract.sh
+          infra/scripts/test-release-layout-contract.sh
+          infra/scripts/test-ghcr-auth-contract.sh
+          infra/scripts/test-nginx-bootstrap-contract.sh
+          docker compose --env-file infra/.env.example -f infra/docker-compose.yml config >/dev/null
+
+      - name: SSH known_hosts 고정
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "${SSH_PRIVATE_KEY}" ]; then
+            echo "Missing production secret: SSH_PRIVATE_KEY" >&2
             exit 1
           fi
+          install -d -m 700 "${HOME}/.ssh"
+          printf '%s\n' "${SSH_PRIVATE_KEY}" >"${HOME}/.ssh/id_ed25519"
+          printf '%s\n' "${OCI_KNOWN_HOSTS}" >"${HOME}/.ssh/known_hosts"
+          chmod 600 "${HOME}/.ssh/id_ed25519" "${HOME}/.ssh/known_hosts"
 
-      - name: 인프라 설정 파일 전송
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "infra/docker-compose.yml,infra/mysql/**,infra/scripts/deploy-app.sh,infra/scripts/prepare-app-host-directories.sh,infra/scripts/backup-redis-state.sh,infra/scripts/restore-redis-state.sh,infra/scripts/redis-restart-smoke.sh,infra/scripts/backup-dr-state.sh,infra/scripts/restore-dr-state.sh,infra/prometheus/**,infra/grafana/**,infra/loki/**,infra/promtail/**"
-          target: "~/jbnu-sugang-helper/infra/"
-          strip_components: 1
+      - name: staging release 준비
+        id: stage
+        env:
+          DEPLOY_MANIFEST_PRIVATE_KEY: ${{ secrets.DEPLOY_MANIFEST_PRIVATE_KEY }}
+        run: |
+          if [ -z "${DEPLOY_MANIFEST_PRIVATE_KEY}" ]; then
+            echo "Missing production secret: DEPLOY_MANIFEST_PRIVATE_KEY" >&2
+            exit 1
+          fi
+          stage_dir="${RUNNER_TEMP}/jbnu-release-${IMAGE_TAG}"
+          mkdir -p "${stage_dir}/src/main/resources/db/migration" "${stage_dir}/mysql/init" "${stage_dir}/nginx/conf.d" "${stage_dir}/nginx/snippets" "${stage_dir}/scripts/oci"
+          cp infra/docker-compose.yml "${stage_dir}/docker-compose.yml"
+          cp infra/mysql/init/01-provision-service-accounts.sh "${stage_dir}/mysql/init/01-provision-service-accounts.sh"
+          cp infra/nginx/conf.d/00-sugang-helper-rate-limit.conf "${stage_dir}/nginx/conf.d/00-sugang-helper-rate-limit.conf"
+          cp infra/nginx/snippets/jbnu-sugang-helper-proxy.conf "${stage_dir}/nginx/snippets/jbnu-sugang-helper-proxy.conf"
+          cp apps/server/src/main/resources/application-prod.yml "${stage_dir}/application-prod.yml"
+          cp apps/server/src/main/resources/db/migration/V*__*.sql "${stage_dir}/src/main/resources/db/migration/"
+          cp infra/scripts/oci/* "${stage_dir}/scripts/oci/"
+          API_HOST="${API_HOST}" infra/scripts/render-nginx-config.sh \
+            "${stage_dir}/nginx/jbnu-sugang-helper.conf"
+          printf '%s\n' "${GITHUB_ACTOR}" >"${stage_dir}/DEPLOY_ACTOR"
+          manifest_key="${RUNNER_TEMP}/deploy-manifest-private.pem"
+          trap 'rm -f "${manifest_key}"' EXIT
+          umask 077
+          printf '%s\n' "${DEPLOY_MANIFEST_PRIVATE_KEY}" >"${manifest_key}"
+          (cd "${stage_dir}" && find . -type f ! -name SHA256SUMS ! -name SHA256SUMS.sig -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          openssl dgst -sha256 -sign "${manifest_key}" -out "${stage_dir}/SHA256SUMS.sig" "${stage_dir}/SHA256SUMS"
+          echo "path=${stage_dir}" >>"${GITHUB_OUTPUT}"
 
-      - name: release 디렉터리 준비
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: mkdir -p "~/jbnu-sugang-helper/releases/${{ github.sha }}"
+      - name: OCI staging 전송
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          target="${OCI_DEPLOY_USER}@${OCI_HOST}"
+          remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
+          ssh -o BatchMode=yes "${target}" "install -d -o ${OCI_DEPLOY_USER} -g ${OCI_DEPLOY_USER} -m 0750 '${remote_stage}'"
+          scp -r "${{ steps.stage.outputs.path }}/." "${target}:${remote_stage}/"
 
-      - name: 서버 파일 전송
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "apps/server/build/libs/app.jar,apps/server/src/main/resources/application-prod.yml,apps/server/src/main/resources/db/migration/**,apps/server/Dockerfile,apps/server/.dockerignore,apps/server/.env"
-          target: "~/jbnu-sugang-helper/releases/${{ github.sha }}/"
-          strip_components: 2
+      - name: allowlisted OCI deploy wrapper 실행
+        run: |
+          target="${OCI_DEPLOY_USER}@${OCI_HOST}"
+          remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
+          ssh -o BatchMode=yes "${target}" \
+            "sudo -n /usr/local/sbin/jbnu-deploy '${IMAGE_TAG}' '${remote_stage}'"
 
-      - name: 서버에서 이미지 빌드 및 재배포
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            release_sha="${{ github.sha }}"
-            release_dir="$HOME/jbnu-sugang-helper/releases/${release_sha}"
-            cd ~/jbnu-sugang-helper/infra
-            RELEASE_SHA="${release_sha}" \
-            RELEASE_DIR="${release_dir}" \
-            DEPLOYMENT_DISCORD_WEBHOOK_URL="${{ secrets.DEPLOYMENT_DISCORD_WEBHOOK_URL }}" \
-            bash scripts/deploy-app.sh
-
-  verify-infra:
-    needs: changes
-    if: needs.changes.outputs.infra == 'true' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
-
-      - name: 인프라 정책 검증
-        working-directory: infra
-        run: bash scripts/verify-compose-policy.sh docker-compose.yml
-
-      - name: Compose 환경변수 누락 사전 검증
-        working-directory: infra
-        run: bash scripts/test-compose-env.sh
-
-      - name: 로컬·운영 앱 이미지 경로 검증
-        working-directory: infra
-        run: bash scripts/test-local-app-image-flow.sh
-
-      - name: Redis 상태 복구 검증
-        working-directory: infra
-        run: bash scripts/test-redis-state-recovery.sh
-
-      - name: DB 최소 권한 및 전용 migrator 검증
-        working-directory: infra
-        run: bash scripts/test-db-service-accounts.sh
-
-      - name: DB·첨부파일 DR 상태 복구 검증
-        working-directory: infra
-        run: bash scripts/test-dr-state-recovery.sh
-
-      - name: Redis restart smoke cleanup 검증
-        working-directory: infra
-        run: bash scripts/test-redis-restart-smoke.sh
-
-      - name: 배포 Redis preflight 및 롤백 검증
-        run: bash infra/scripts/test-deploy-app.sh
-
-      - name: 배포 Compose 정렬 검증
-        run: bash infra/scripts/verify-deployment-alignment.sh .github/workflows/cd.yml
+      - name: 배포 결과 기록
+        if: always()
+        run: |
+          echo "Production CD SHA=${IMAGE_TAG} actor=${GITHUB_ACTOR} result=${{ job.status }}"

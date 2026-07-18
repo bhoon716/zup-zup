@@ -1,20 +1,24 @@
-name: Disaster recovery drill
+name: OCI rebuild contract
 
 on:
-  schedule:
-    - cron: "37 3 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  restore-drill:
+  contract:
     runs-on: ubuntu-latest
-
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v5
 
-      - name: 암호화된 DB·첨부파일 clean-host restore drill
-        run: bash infra/scripts/test-dr-state-recovery.sh
+      - name: runtime·migration 실패 계약 검증
+        run: |
+          infra/scripts/test-runtime-contract.sh
+          infra/scripts/test-migration-failure-path.sh
+          infra/scripts/test-rollback-workflow-contract.sh
+
+      - name: rebuild 절차 안내
+        run: |
+          echo "실제 OCI block volume 재연결·reserved IP cutover는 운영 runbook과 cutover checklist를 따라 수동 검증한다."

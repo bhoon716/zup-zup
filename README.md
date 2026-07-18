@@ -28,7 +28,7 @@
 | 목적 | 전북대 수강신청 경험 개선 |
 | 초점 | 실시간성, 명확한 정보, 운영 단순성 |
 | 운영 사이트 | [zup-zup.com](https://zup-zup.com) |
-| 배포 | Web: Vercel / Server, Infra: OCI CPU + Docker |
+| 배포 | Web: Vercel / Server, Infra: OCI A1 ARM64 + Docker |
 
 ## 왜 만들었나
 
@@ -52,7 +52,7 @@ flowchart LR
   W --> S[apps/server]
   S --> I[infra]
   W -. 배포 .-> V[Vercel]
-  S -. 운영 .-> O[OCI CPU]
+  S -. 운영 .-> O[OCI A1 ARM64]
   I -. 운영 .-> O
 ```
 
@@ -72,8 +72,8 @@ flowchart LR
 | --- | --- |
 | Frontend | Next.js 16.3.0-preview.5, React 19.2.7, TanStack Query, Zustand, React Hook Form, Zod |
 | Backend | Spring Boot 3.5.9, JPA, Security, Redis, Flyway, Swagger/OpenAPI |
-| Infra | Docker Compose, MySQL, Redis, Prometheus, Grafana, Loki, Promtail, Nginx Proxy Manager |
-| 운영 | Vercel, OCI CPU |
+| Infra | Docker Compose, MySQL, Redis, host Nginx, certbot, DuckDNS, external uptime monitor |
+| 운영 | Vercel, OCI A1 ARM64 |
 
 ## 기술 선택과 트레이드오프
 
@@ -81,17 +81,17 @@ flowchart LR
 | --- | --- | --- |
 | 모노레포 스타일 루트 | Web, Server, Infra를 한 곳에서 관리하고 문서를 함께 유지하기 위해 | 초기 구조 이해 비용이 생깁니다 |
 | Web과 Server 분리 | 사용자 경험과 데이터 처리 책임을 분리하기 위해 | API 계약 관리가 필요합니다 |
-| Vercel + OCI CPU | Web은 빠르고 저렴하게, Server와 Infra는 운영 친화적으로 유지하기 위해 | 배포 경로가 둘로 나뉩니다 |
+| Vercel + OCI A1 ARM64 | Web은 빠르고 저렴하게, Server와 Infra는 운영 친화적으로 유지하기 위해 | 배포 경로가 둘로 나뉩니다 |
 | Docker Compose | 로컬과 운영 환경의 차이를 줄이기 위해 | 컨테이너 운영 개념이 필요합니다 |
 | 문서 분리 | 릴리스, 트러블슈팅, 설계를 남기기 위해 | 문서 수가 늘어납니다 |
-| 관측 스택 분리 | 서비스 상태를 숫자와 로그로 추적하기 위해 | 모니터링 구성 요소가 추가됩니다 |
+| 외부 uptime + 호스트 로그 | 단일 OCI 운영에서 필요한 장애 감지만 먼저 제공하기 위해 | 상세 Prometheus/Grafana/Loki 분석은 후속 범위입니다 |
 
 ## 도전과 해결
 
 | 문제 | 해결 | 결과 |
 | --- | --- | --- |
 | 수강신청 정보가 빠르게 바뀌어 사용자가 판단하기 어려움 | 강의 검색, 시간표, 알림 흐름을 한 축으로 묶음 | 필요한 정보를 더 짧은 동작으로 확인할 수 있음 |
-| Web과 운영 인프라의 요구가 달라 배포 경계가 복잡함 | Web은 Vercel, Server와 Infra는 OCI CPU + Docker로 분리 | 비용과 운영 난도를 함께 관리할 수 있음 |
+| Web과 운영 인프라의 요구가 달라 배포 경계가 복잡함 | Web은 Vercel, Server와 Infra는 OCI A1 ARM64 + Docker로 분리 | 비용과 운영 난도를 함께 관리할 수 있음 |
 | 문제 재현과 회고가 채팅으로 흩어짐 | `docs/feature-updates.md`, `docs/troubleshooting.md`로 기록 분리 | 배운 내용과 이슈 추적이 쉬워짐 |
 
 ## 실행 방법
@@ -134,16 +134,16 @@ docker compose up -d
 ## 배포 및 운영
 
 - Web은 Vercel에서 배포합니다.
-- Server와 Infra는 OCI CPU 인스턴스의 Docker 환경에서 운영합니다.
-- Web 로그는 `/var/log/jbnu-sugang-helper/web/web.log`에 남습니다.
-- Server 로그는 `/var/log/jbnu-sugang-helper/server/application.log`에 남습니다.
-- 관측은 Prometheus, Grafana, Loki, Promtail 조합으로 구성합니다.
+- Server와 MySQL·Redis는 OCI A1 ARM64 인스턴스의 Docker Compose에서 운영합니다.
+- 호스트 Nginx가 80/443 reverse proxy와 HTTPS termination을 담당하고, certbot이 인증서를 갱신합니다.
+- 앱은 localhost 포트만 publish하고 DB·Redis host port는 열지 않습니다. 장애 감지는 외부 uptime monitor의 이메일 알림으로 시작합니다.
+- 배포·롤백 세부 절차는 [단일 OCI CI/CD 결정](./docs/decisions/2026-07-19-single-oci-cicd.md)과 [운영 runbook](./docs/operations/deployment.md)을 따릅니다.
 
 ## 테스트와 검증
 
 - Web은 `cd apps/web && npm run test -- --run`으로 Vitest 기반 검증을 수행합니다.
-- Server는 `./gradlew test`, `./gradlew migrationTest`, `./gradlew manualTest`, `./gradlew performanceTest`로 검증합니다. `migrationTest`는 Docker의 MySQL Testcontainer를 사용합니다.
-- Infra는 `infra/scripts/verify-compose-policy.sh`, `infra/scripts/verify-log-policy.sh`로 정책을 확인합니다.
+- Server는 `./gradlew check`와 필요 시 별도 `./gradlew migrationTest`, `./gradlew manualTest`, `./gradlew performanceTest`로 검증합니다. `migrationTest`는 Docker의 MySQL Testcontainer를 사용합니다.
+- Infra는 `infra/scripts/test-runtime-contract.sh`, `test-local-compose.sh`, CI/CD·rollback contract scripts로 정책을 확인합니다.
 
 ## 앞으로의 개선
 
@@ -160,6 +160,8 @@ docker compose up -d
 - [Server README](./apps/server/README.md)
 - [Infra README](./infra/README.md)
 - [모노레포 전환 결정](./docs/decisions/2026-07-08-monorepo-migration-web-vercel-server-infra.md)
+- [단일 OCI CI/CD 설계 결정](./docs/decisions/2026-07-19-single-oci-cicd.md)
+- [배포·rollback·서버 교체 runbook](./docs/operations/deployment.md)
 
 ## 내가 이 프로젝트에서 본 것
 

@@ -1,0 +1,66 @@
+name: Application rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "롤백할 최근 정상 앱 이미지의 40자리 commit SHA"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: rollback application image
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      OCI_HOST: ${{ secrets.OCI_HOST }}
+      OCI_DEPLOY_USER: ${{ secrets.OCI_DEPLOY_USER }}
+      OCI_KNOWN_HOSTS: ${{ secrets.OCI_KNOWN_HOSTS }}
+    steps:
+      - name: release SHA 검증
+        run: |
+          if [[ ! "${IMAGE_TAG}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "IMAGE_TAG must be exactly 40 lowercase hexadecimal characters" >&2
+            exit 1
+          fi
+          for variable in OCI_HOST OCI_DEPLOY_USER OCI_KNOWN_HOSTS; do
+            if [ -z "${!variable}" ]; then
+              echo "Missing production variable: ${variable}" >&2
+              exit 1
+            fi
+          done
+
+      - name: SSH known_hosts 고정
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "${SSH_PRIVATE_KEY}" ]; then
+            echo "Missing production secret: SSH_PRIVATE_KEY" >&2
+            exit 1
+          fi
+          install -d -m 700 "${HOME}/.ssh"
+          printf '%s\n' "${SSH_PRIVATE_KEY}" >"${HOME}/.ssh/id_ed25519"
+          printf '%s\n' "${OCI_KNOWN_HOSTS}" >"${HOME}/.ssh/known_hosts"
+          chmod 600 "${HOME}/.ssh/id_ed25519" "${HOME}/.ssh/known_hosts"
+
+      - name: allowlisted OCI rollback wrapper 실행
+        run: |
+          target="${OCI_DEPLOY_USER}@${OCI_HOST}"
+          ssh -o BatchMode=yes "${target}" \
+            "sudo -n /usr/local/sbin/jbnu-rollback '${IMAGE_TAG}'"
+
+      - name: rollback 결과 기록
+        if: always()
+        run: |
+          echo "Application rollback SHA=${IMAGE_TAG} actor=${GITHUB_ACTOR} result=${{ job.status }}"
