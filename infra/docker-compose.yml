@@ -1,16 +1,10 @@
+name: sugang-helper
+
 services:
   db:
     image: ${DB_IMAGE:?DB_IMAGE must be set}
     container_name: ${DB_CONTAINER_NAME:?DB_CONTAINER_NAME must be set}
     restart: unless-stopped
-    cpus: "2.0"
-    mem_limit: 2g
-    pids_limit: 256
-    command:
-      - --server-id=1
-      - --log-bin=mysql-bin
-      - --binlog-format=ROW
-      - --binlog-expire-logs-seconds=604800
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set}
       MYSQL_DATABASE: ${DB_DATABASE:?DB_DATABASE must be set}
@@ -18,19 +12,21 @@ services:
       DB_RUNTIME_PASSWORD: ${DB_RUNTIME_PASSWORD:?DB_RUNTIME_PASSWORD must be set}
       DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?DB_MIGRATOR_USER must be set}
       DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?DB_MIGRATOR_PASSWORD must be set}
-      DB_BACKUP_USER: ${DB_BACKUP_USER:?DB_BACKUP_USER must be set}
-      DB_BACKUP_PASSWORD: ${DB_BACKUP_PASSWORD:?DB_BACKUP_PASSWORD must be set}
       TZ: ${TZ:?TZ must be set}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     volumes:
       - db_data:/var/lib/mysql
       - ./mysql/init/01-provision-service-accounts.sh:/docker-entrypoint-initdb.d/01-provision-service-accounts.sh:ro
     networks:
-      - sugang-helper-network-server
+      - sugang-helper-runtime
     healthcheck:
       test: ["CMD-SHELL", "MYSQL_PWD=\"$${MYSQL_ROOT_PASSWORD}\" mysql --protocol=socket -h localhost -uroot -e 'SELECT 1' >/dev/null"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 20s
     logging:
       driver: json-file
       options:
@@ -41,217 +37,40 @@ services:
     image: ${REDIS_IMAGE:?REDIS_IMAGE must be set}
     container_name: ${REDIS_CONTAINER_NAME:?REDIS_CONTAINER_NAME must be set}
     restart: unless-stopped
-    cpus: "0.50"
-    mem_limit: 512m
-    pids_limit: 128
     environment:
-      TZ: ${TZ:?TZ must be set}
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
-    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set} --appendonly yes --appendfsync everysec
-    volumes:
-      - /var/lib/jbnu-sugang-helper/redis:/data
+      TZ: ${TZ:?TZ must be set}
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      - --appendonly
+      - "no"
+      - --save
+      - ""
     networks:
-      - sugang-helper-network-server
+      - sugang-helper-runtime
     healthcheck:
       test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -qx PONG"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
       start_period: 10s
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
-
-  prometheus:
-    image: prom/prometheus@sha256:c6b27ea434f8389bfe233fbc7be381cf50587c286e871bc842008f5a1b1908a7
-    container_name: ${PROMETHEUS_CONTAINER_NAME:?PROMETHEUS_CONTAINER_NAME must be set}
-    restart: unless-stopped
-    cpus: "1.0"
-    mem_limit: 1g
-    pids_limit: 256
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=30d
-      - --storage.tsdb.retention.size=20GB
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/rules:/etc/prometheus/rules:ro
-      - /var/lib/jbnu-sugang-helper/prometheus:/prometheus
-    environment:
-      TZ: ${TZ:?TZ must be set}
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:9090/-/ready | grep -q 'Prometheus Server is Ready'"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    networks:
-      - sugang-helper-management
-      - sugang-helper-observability
-
-  alertmanager:
-    image: prom/alertmanager@sha256:27c475db5fb156cab31d5c18a4251ac7ed567746a2483ff264516437a39b15ba
-    container_name: ${ALERTMANAGER_CONTAINER_NAME:?ALERTMANAGER_CONTAINER_NAME must be set}
-    restart: unless-stopped
-    cpus: "0.25"
-    mem_limit: 256m
-    pids_limit: 128
-    command:
-      - --config.file=/etc/alertmanager/alertmanager.yml
-      - --config.expand-env=true
-      - --storage.path=/alertmanager
-    volumes:
-      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - /var/lib/jbnu-sugang-helper/alertmanager:/alertmanager
-    environment:
-      ALERTMANAGER_WEBHOOK_URL: ${ALERTMANAGER_WEBHOOK_URL:?ALERTMANAGER_WEBHOOK_URL must be set}
-      TZ: ${TZ:?TZ must be set}
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:9093/-/ready | grep -q 'Ready'"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    networks:
-      - sugang-helper-observability
-
-  grafana:
-    image: grafana/grafana@sha256:121a7a9ece6dc10b969f1f96eed64b4f07dfac0d0b8abc070f7cb83bbde86f63
-    container_name: ${GRAFANA_CONTAINER_NAME:?GRAFANA_CONTAINER_NAME must be set}
-    restart: unless-stopped
-    cpus: "0.75"
-    mem_limit: 768m
-    pids_limit: 256
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
-      - TZ=${TZ:?TZ must be set}
-    volumes:
-      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - /var/lib/jbnu-sugang-helper/grafana:/var/lib/grafana
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/health | grep -q '\"database\":\"ok\"'"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - sugang-helper-observability
-      - sugang-helper-edge
-
-  nginx-proxy-manager:
-    image: jc21/nginx-proxy-manager@sha256:52b2c59994f3d36acfcf70a1626f29734df0ed8c71bacc0269f78b6f939858bb
-    container_name: sugang-helper-nginx-proxy-manager
-    restart: unless-stopped
-    cpus: "0.50"
-    mem_limit: 512m
-    pids_limit: 256
-    ports:
-      - "80:80"
-      - "127.0.0.1:81:81"
-      - "443:443"
-    volumes:
-      - ./nginx-proxy-manager/data:/data
-      - ./nginx-proxy-manager/letsencrypt:/etc/letsencrypt
-    environment:
-      TZ: ${TZ:?TZ must be set}
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:81/ >/dev/null"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    networks:
-      - sugang-helper-edge
-
-  loki:
-    image: grafana/loki@sha256:70b9f699fc9bb868b62f1cfd4f787dfa50242f1fd92e6089787d5d7daea75fe8
-    container_name: sugang-helper-loki
-    restart: unless-stopped
-    cpus: "1.0"
-    mem_limit: 1g
-    pids_limit: 512
-    volumes:
-      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
-      - /var/lib/jbnu-sugang-helper/loki:/var/lib/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    healthcheck:
-      test: ["CMD", "/usr/bin/loki", "-config.file=/etc/loki/local-config.yaml", "-verify-config"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    networks:
-      - sugang-helper-observability
-
-  promtail:
-    image: grafana/promtail@sha256:6cfa64ec432b24a912d640e2edb940eeae2666f61861a66c121d763dd7241381
-    container_name: sugang-helper-promtail
-    restart: unless-stopped
-    cpus: "0.25"
-    mem_limit: 256m
-    pids_limit: 128
-    volumes:
-      - /var/log:/var/log:ro
-      - /var/lib/jbnu-sugang-helper/promtail:/var/lib/promtail
-      - ./promtail/promtail-config.yaml:/etc/promtail/docker-config.yaml:ro
-    command: -config.file=/etc/promtail/docker-config.yaml
-    healthcheck:
-      test: ["CMD", "/usr/bin/promtail", "-config.file=/etc/promtail/docker-config.yaml", "-check-syntax"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    networks:
-      - sugang-helper-observability
 
   app:
-    image: ${APP_IMAGE_NAME:-sugang-helper-app}:${APP_IMAGE_TAG:-latest}
+    image: ${APP_IMAGE_NAME:-sugang-helper-app}:${IMAGE_TAG:-local}
     build:
-      context: ${APP_RELEASE_DIR:-../apps/server}
+      context: ${APP_BUILD_CONTEXT:-../apps/server}
       dockerfile: Dockerfile
       args:
-        JAR_FILE: build/libs/app.jar
+        JAR_FILE: ${JAR_FILE:-build/libs/app.jar}
     container_name: ${APP_CONTAINER_NAME:?APP_CONTAINER_NAME must be set}
     restart: unless-stopped
-    cpus: "2.0"
-    mem_limit: 1536m
-    pids_limit: 512
     user: "10001:10001"
     read_only: true
     security_opt:
@@ -259,48 +78,54 @@ services:
     tmpfs:
       - /tmp:mode=1777
     env_file:
-      - ${APP_RELEASE_DIR:-../apps/server}/.env
+      - ${APP_ENV_FILE:-../apps/server/.env.example}
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SPRING_DATASOURCE_URL: ${DB_JDBC_URL:?DB_JDBC_URL must be set}
       SPRING_DATASOURCE_USERNAME: ${DB_RUNTIME_USER:?DB_RUNTIME_USER must be set}
       SPRING_DATASOURCE_PASSWORD: ${DB_RUNTIME_PASSWORD:?DB_RUNTIME_PASSWORD must be set}
       SPRING_FLYWAY_ENABLED: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      FIREBASE_CONFIG_PATH: /app/config/firebase-key.json
+      FILE_UPLOAD_DIR: /app/data/uploads
+      LOG_FILE: /tmp/application.log
+      APP_CORS_REQUIRE_HTTPS: "true"
+      APP_AUTH_REFRESH_COOKIE_SECURE: "true"
+      TZ: ${TZ:?TZ must be set}
     ports:
-      - "${APP_PORT_HOST:?APP_PORT_HOST must be set}:${APP_PORT_CONTAINER:?APP_PORT_CONTAINER must be set}"
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT_HOST:-8080}:8080"
+      - "${MANAGEMENT_BIND_ADDRESS:-127.0.0.1}:${MANAGEMENT_PORT_HOST:-8081}:8081"
     volumes:
-      - ${APP_RELEASE_DIR:-../apps/server}/src/main/resources/application-prod.yml:/app/config/application-prod.yml:ro
+      - ${APP_PROD_CONFIG_PATH:-../apps/server/src/main/resources/application-prod.yml}:/app/config/application-prod.yml:ro
       - ${FIREBASE_CONFIG_PATH:?FIREBASE_CONFIG_PATH must be set}:/app/config/firebase-key.json:ro
-      - /var/log/jbnu-sugang-helper/server:/var/log/jbnu-sugang-helper/server
-      - /var/lib/jbnu-sugang-helper/uploads:/app/data/uploads
+      - app_uploads:/app/data/uploads
+    networks:
+      - sugang-helper-runtime
+      - sugang-helper-egress
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8081/actuator/health/readiness | grep -q '\"status\":\"UP\"'"]
-      interval: 20s
-      timeout: 10s
-      retries: 15
-      start_period: 120s
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
     stop_grace_period: 30s
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
-    networks:
-      - sugang-helper-network-server
-      - sugang-helper-management
-      - sugang-helper-edge
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
 
   migrate:
-    image: flyway/flyway@sha256:8ace7d9825bb3ad1d6e14ee27b3a830b638ac841ba424b99b2d92aa65a99d484
-    restart: "no"
-    cpus: "0.50"
-    mem_limit: 512m
-    pids_limit: 128
+    image: ${FLYWAY_IMAGE:?FLYWAY_IMAGE must be set}
     profiles: ["migration"]
+    restart: "no"
     read_only: true
     security_opt:
       - no-new-privileges:true
@@ -310,36 +135,38 @@ services:
       FLYWAY_URL: ${DB_JDBC_URL:?DB_JDBC_URL must be set}
       FLYWAY_USER: ${DB_MIGRATOR_USER:?DB_MIGRATOR_USER must be set}
       FLYWAY_PASSWORD: ${DB_MIGRATOR_PASSWORD:?DB_MIGRATOR_PASSWORD must be set}
-      FLYWAY_BASELINE_ON_MIGRATE: "true"
-      FLYWAY_BASELINE_VERSION: "3"
+      FLYWAY_BASELINE_ON_MIGRATE: "false"
       FLYWAY_CLEAN_DISABLED: "true"
       FLYWAY_CONNECT_RETRIES: "60"
-    command: migrate
+    command: ["migrate"]
     volumes:
-      - ${APP_RELEASE_DIR:-../apps/server}/src/main/resources/db/migration:/flyway/sql:ro
+      - ${APP_BUILD_CONTEXT:-../apps/server}/src/main/resources/db/migration:/flyway/sql:ro
     networks:
-      - sugang-helper-network-server
+      - sugang-helper-runtime
     depends_on:
       db:
         condition: service_healthy
 
 networks:
-  sugang-helper-network-server:
-    name: sugang-helper-network-server
+  sugang-helper-runtime:
+    name: sugang-helper-runtime
     driver: bridge
     internal: true
     driver_opts:
       com.docker.network.driver.mtu: "${DOCKER_NETWORK_MTU:-1500}"
-  sugang-helper-edge:
-    name: sugang-helper-edge
+  sugang-helper-egress:
+    name: sugang-helper-egress
     driver: bridge
-  sugang-helper-management:
-    name: sugang-helper-management
-    internal: true
-  sugang-helper-observability:
-    name: sugang-helper-observability
-    internal: true
+    driver_opts:
+      com.docker.network.driver.mtu: "${DOCKER_NETWORK_MTU:-1500}"
 
 volumes:
   db_data:
-    name: sugang-helper-db-data
+    name: ${DB_VOLUME_NAME:-sugang-helper-db-data}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DB_DATA_DIR:?DB_DATA_DIR must be set}
+  app_uploads:
+    name: ${APP_UPLOAD_VOLUME_NAME:-sugang-helper-app-uploads}

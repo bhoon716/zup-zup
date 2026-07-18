@@ -1,168 +1,120 @@
 # 줍줍 Infra
 
-<p align="center">
-  서비스 운영을 떠받치는 인프라 계층. 데이터, 로그, 메트릭, 프록시를 관리한다.
-</p>
+이 디렉터리는 Vercel 프론트를 제외한 최소 운영 기반을 관리합니다. 현재 목표 런타임은 OCI A1 ARM64 한 대의 Docker Compose이며, 기본 서비스는 앱·MySQL·Redis 세 개입니다.
 
-줍줍 Infra는 서비스가 실제로 돌아가게 만드는 구성 요소를 모아둔 영역입니다.  
-로컬과 운영 환경의 차이를 줄이고, 상태를 관찰하고, 복구 가능한 운영 구성을 유지하는 데 초점을 둡니다.
+## 구성 원칙
 
-## 프로젝트 개요
-
-| 항목 | 내용 |
+| 구성 | 정책 |
 | --- | --- |
-| 역할 | 데이터베이스, 캐시, 메트릭, 로그, 프록시 |
-| 성격 | Docker Compose 기반 운영 스택 |
-| 대상 | OCI CPU 인스턴스의 운영 환경 |
-| 로그 | `/var/log/jbnu-sugang-helper/*` |
+| 앱 | `linux/arm64` commit SHA 이미지. 로컬에서는 Compose build, 운영에서는 GHCR pull |
+| MySQL | Docker named volume이 OCI block-volume mount(`/var/lib/jbnu-sugang-helper/mysql`)을 가리킴 |
+| Redis | 캐시·임시 데이터. persistence와 host port를 제공하지 않음 |
+| Nginx | Compose 밖의 호스트 reverse proxy. 80→443 redirect, TLS termination, 민감 endpoint rate limit |
+| certbot | 호스트 timer가 인증서를 갱신하고 `nginx -t` 성공 뒤 reload |
+| 관측 | 외부 uptime monitor의 sanitized readiness + 이메일. Prometheus/Grafana/Loki/Alertmanager는 기본 stack에 넣지 않음 |
 
-## 왜 이 인프라가 필요한가
+상세 결정은 [단일 OCI CI/CD ADR](../docs/decisions/2026-07-19-single-oci-cicd.md), 실행 순서는 [운영 deployment runbook](../docs/operations/deployment.md)을 참고합니다.
 
-- 서비스는 코드만으로 끝나지 않고, 로그와 메트릭이 있어야 운영할 수 있습니다.
-- 개발 환경과 운영 환경이 너무 다르면 배포할 때마다 예외가 생깁니다.
-- 작은 서비스라도 관측과 복구 절차가 없으면 유지보수가 어렵습니다.
+## 로컬 실행
 
-## 주요 구성
-
-| 구성 요소 | 역할 |
-| --- | --- |
-| MySQL | 주요 영속 데이터 저장 |
-| Redis | 캐시와 상태성 데이터 |
-| Prometheus | 메트릭 수집 |
-| Grafana | 대시보드와 시각화 |
-| Loki | 로그 집계 |
-| Promtail | 로그 수집 에이전트 |
-| Nginx Proxy Manager | 프록시와 TLS/도메인 운영 |
-
-## 설계 포인트
-
-| 선택 | 이유 | 효과 |
-| --- | --- | --- |
-| Docker Compose | 전체 스택을 한 번에 재현하기 위해 | 실행과 복구가 단순해집니다 |
-| MySQL + Redis | 서비스 성격에 맞는 최소 운영 구성을 유지하기 위해 | 비용과 복잡도를 낮출 수 있습니다 |
-| Prometheus + Grafana + Loki + Promtail | 지표와 로그를 함께 보기 위해 | 문제 원인 추적이 쉬워집니다 |
-| Nginx Proxy Manager | 도메인과 프록시 설정을 손쉽게 관리하기 위해 | 운영 변경이 빠릅니다 |
-
-## 실행 방법
+처음 한 번만 예시 환경을 복사하고 실제 로컬 비밀값·Firebase 파일 경로를 입력합니다. 예시 파일이나 실제 비밀값은 commit하지 않습니다.
 
 ```bash
 cd infra
 cp .env.example .env
-# .env의 비밀값·호스트 경로를 환경에 맞게 수정한다.
-bash scripts/verify-compose-policy.sh docker-compose.yml
-docker compose --env-file .env up -d --build
+cp ../apps/server/.env.example ../apps/server/.env
+# infra/.env와 apps/server/.env의 placeholder를 로컬 값으로 채운다.
+
+cd infra
+docker compose up -d --build
 ```
 
-`docker-compose.yml`의 필수 보간 변수는 값이 없으면 시작 전에 실패합니다. `.env`를 만들지 않거나 필수값을 비워 둔 상태에서 `docker compose up -d`를 실행하지 않습니다. `.env`에는 비밀값이 포함될 수 있으므로 저장소에 커밋하지 않습니다.
+`docker-compose.override.yml`은 Compose가 자동으로 읽습니다. 따라서 로컬 기본 실행에서 `-f`나 별도 profile을 지정할 필요가 없습니다. 기본 실행 서비스는 `app`, `db`, `redis`뿐이며 Nginx·관측 컨테이너는 시작되지 않습니다.
+로컬 override는 `Dockerfile.local`에서 Gradle build까지 수행하므로 위 명령 하나로 앱 이미지가 생성됩니다. 운영/CI는 사전 생성한 `bootJar`를 사용하는 `Dockerfile`을 그대로 사용합니다.
+기존 `infra` 프로젝트로 만든 `sugang-helper-app/mysql/redis` 컨테이너가 남아 있으면 첫 전환 때만 해당 컨테이너를 재생성해야 합니다. `docker rm -f sugang-helper-app sugang-helper-mysql sugang-helper-redis`는 컨테이너만 제거하며 named volume 데이터는 삭제하지 않습니다.
 
-### 로컬 앱 이미지
+앱은 DB·Redis 전용 내부망과 외부 provider 호출·localhost 포트 공개를 위한 egress망에 함께 붙고, DB·Redis는 내부망에만 붙습니다.
 
-기본 `docker-compose.yml`에 앱 Dockerfile의 build context가 포함되어 있으므로 별도 override 파일이 필요하지 않습니다. 서버 JAR를 먼저 만든 뒤 기본 Compose 명령만 실행하면 `sugang-helper-app:latest`를 로컬에서 빌드합니다.
+DB migration은 앱 시작과 분리된 one-shot profile입니다.
 
 ```bash
-cd apps/server
-./gradlew bootJar --no-daemon
-cp .env.example .env
-# apps/server/.env의 외부 연동 비밀값을 환경에 맞게 수정한다.
-
-cd ../../infra
-cp .env.example .env
-# infra/.env의 DB·Redis·Firebase·Alertmanager 값을 환경에 맞게 수정한다.
-bash scripts/verify-compose-policy.sh docker-compose.yml
-docker compose --env-file .env up -d --build
+# 새 로컬 DB의 첫 실행: migration을 적용한 뒤 history를 검증한다.
+docker compose --profile migration run --rm migrate migrate
+docker compose --profile migration run --rm migrate validate
 ```
 
-운영 배포도 같은 Dockerfile을 사용하지만, `scripts/deploy-app.sh`가 release의 Dockerfile로 `sugang-helper-app:<release-sha>`를 먼저 빌드한 뒤 같은 이미지명을 Compose에 전달합니다. 운영에서는 배포 스크립트가 `--build` 없이 이미 빌드된 release 이미지를 사용합니다.
+이미 migration history가 있는 DB를 배포할 때는 운영 runbook대로 `validate` 성공 후 `migrate`를 실행합니다. `docker compose up` 자체는 DB schema를 자동 변경하지 않습니다.
 
-`DOCKER_NETWORK_MTU`는 로컬 기본값 `1500`을 사용합니다. OCI 호스트에서 jumbo frame을 실제로 확인한 경우에만 운영용 `infra/.env`에 `DOCKER_NETWORK_MTU=9000`을 설정합니다. Compose 정책 검사는 `1500`과 `9000` 이외의 값을 거부합니다.
+로컬 Redis에는 volume이 없으므로 컨테이너를 재생성하면 데이터가 사라집니다. MySQL은 `sugang-helper-local-db-data` named volume을 사용합니다.
 
-네트워크는 데이터(`db`, `redis`, `app`, `migrate`), 엣지(`app`, `grafana`, `nginx-proxy-manager`), 관리(`app`, `prometheus`), 관측(`alertmanager`, `grafana`, `loki`, `prometheus`, `promtail`)으로 분리됩니다. 데이터·관리·관측망은 내부 전용이고, 엣지망만 프록시의 외부 인증서 갱신 egress를 허용합니다.
+## Compose 계약 검증
 
-Promtail은 민감한 호스트 로그 전체를 수집하지 않고 `/var/log/jbnu-sugang-helper/*/*.log` 애플리케이션 로그 allowlist만 읽습니다.
-
-## 검증 스크립트
-
-- `./scripts/verify-compose-policy.sh`
-
-### Observability durability and alerts
-
-Prometheus stores its TSDB under `/var/lib/jbnu-sugang-helper/prometheus` with a 30-day/20GB retention cap. Alertmanager stores state under `/var/lib/jbnu-sugang-helper/alertmanager` and receives Prometheus SLO, DLQ, provider-circuit, and crawler-freshness alerts. Set `ALERTMANAGER_WEBHOOK_URL` to the reviewed operator/Discord webhook before deployment; the example value is intentionally a placeholder. The Grafana notification dashboard is provisioned from `grafana/dashboards/notification-slo-dashboard.json`.
-
-### Resource budget
-
-The single-host budget is explicit: `db` 2 CPU/2 GiB/256 pids, `app` 2 CPU/1.5 GiB/512 pids, `redis` 0.5 CPU/512 MiB/128 pids, Prometheus 1 CPU/1 GiB/256 pids, Alertmanager 0.25 CPU/256 MiB/128 pids, Grafana 0.75 CPU/768 MiB/256 pids, Loki 1 CPU/1 GiB/512 pids, Promtail 0.25 CPU/256 MiB/128 pids, and Nginx Proxy Manager 0.5 CPU/512 MiB/256 pids. The app uses graceful Spring shutdown with a 30-second phase and the notification worker remains bounded at 8 threads plus a 32-item queue. `verify-compose-policy.sh` rejects missing or changed budgets before deployment.
-- `./scripts/verify-log-policy.sh`
-- `./scripts/backup-log-state.sh`
-- `./scripts/restore-log-state.sh`
-- `./scripts/test-redis-state-recovery.sh`
-- `./scripts/test-db-service-accounts.sh`
-- `./scripts/backup-dr-state.sh`
-- `./scripts/restore-dr-state.sh`
-- `./scripts/test-dr-state-recovery.sh`
-- `./scripts/test-deploy-app.sh`
-
-## Redis 준비와 복구
-
-Redis는 `/var/lib/jbnu-sugang-helper/redis` host bind에 AOF를 저장합니다. 처음 배포하기 전에 root로 mount directory를 준비합니다.
+실제 컨테이너를 띄우지 않고 ARM64/포트/healthcheck/권한/로그/volume 계약을 확인할 수 있습니다.
 
 ```bash
-sudo bash scripts/prepare-app-host-directories.sh
+./scripts/test-runtime-contract.sh
+./scripts/test-local-compose.sh
+./scripts/verify-compose-policy.sh docker-compose.yml
+./scripts/verify-log-policy.sh
 ```
 
-이 directory는 Redis UID/GID `999:1000`의 owner-only mode `0700`으로 만들어져 session·refresh state를 일반 호스트 계정에서 읽지 못하게 합니다.
+기본 Compose config가 실패하면 비어 있는 secret을 임의로 넣지 말고 `.env`와 `apps/server/.env`의 누락 변수를 먼저 확인합니다.
 
-Redis는 인증된 `PING`이 성공해야 healthy가 되고, 앱 Docker healthcheck는 DB와 Redis를 포함한 `/actuator/health/readiness`를 확인합니다. 앱 배포도 Redis health preflight를 먼저 통과해야 합니다.
+## OCI bootstrap 요약
 
-정상 container restart는 AOF state를 보존합니다. 갑작스러운 host/storage 장애에서는 `appendfsync everysec` 정책상 마지막 약 1초의 쓰기가 유실될 수 있습니다. refresh record가 없으면 인증은 fail-closed입니다.
+운영 호스트에서는 다음을 runbook 순서로 수행합니다.
 
-백업은 일관된 AOF archive를 만들기 위해 Redis를 잠시 멈춥니다. 트래픽이 낮은 시간에 실행합니다.
+1. ARM64 OCI A1, reserved public IP, DuckDNS `<API_HOST>`를 준비한다.
+2. 80/443과 key-only SSH 22만 방화벽에서 열고 root/password SSH와 forwarding을 막는다.
+3. OCI block volume을 `/var/lib/jbnu-sugang-helper/mysql`에 mount하고 다음을 root로 실행한다.
+
+   ```bash
+   sudo bash scripts/prepare-app-host-directories.sh
+   ```
+
+4. Docker/Compose, 전용 `deploy` 사용자, root-only runtime secret, GHCR read-only token을 준비한다. 토큰은 임시로 안전한 파일에 저장하고, `GHCR_READ_USERNAME`과 `GHCR_READ_TOKEN_SOURCE`를 설치 명령에만 주입한다. 설치기는 토큰을 `${RELEASE_ROOT}/secrets/ghcr-read-token`에 root 소유 `0600`으로 복사하고 배포·rollback 때 `docker login ghcr.io --password-stdin`으로만 사용한다. `DEPLOY_MANIFEST_PRIVATE_KEY`의 대응 공개키도 별도 안전한 파일로 준비한 뒤 다음처럼 설치한다.
+
+   ```bash
+   sudo env \
+     DEPLOY_MANIFEST_PUBLIC_KEY_SOURCE=/path/to/deploy-manifest-public.pem \
+     GHCR_READ_USERNAME=<github-username> \
+     GHCR_READ_TOKEN_SOURCE=/path/to/ghcr-read-token \
+     bash scripts/install-oci-wrappers.sh
+   ```
+
+   설치 후 `${RELEASE_ROOT}/.env.runtime`에 `GHCR_READ_USERNAME=<github-username>`을 기록한다. 토큰 값과 Actions 개인키는 OCI 문서나 저장소에 넣지 않는다.
+5. 호스트 Nginx를 설치하고 site template을 실제 DuckDNS hostname으로 render한다.
+
+   ```bash
+   sudo API_HOST=<api-duckdns-fqdn> CERTBOT_EMAIL=<운영자-이메일> \
+     bash scripts/bootstrap-nginx.sh
+   ```
+
+   이 스크립트는 rate-limit zone·proxy snippet을 먼저 설치하고, HTTP ACME 설정으로 인증서를 발급한 뒤 최종 TLS site를 적용합니다. `infra/nginx/conf.d/00-sugang-helper-rate-limit.conf`, `infra/nginx/snippets/jbnu-sugang-helper-proxy.conf`를 별도로 먼저 설치하지 않습니다.
+6. certbot timer와 renew hook(`certbot renew → nginx -t → systemctl reload nginx`)이 설정되었는지 확인한다.
+7. `bash scripts/verify-nginx-host-config.sh`와 `curl https://<API_HOST>/health/ready`로 확인한다.
+
+세부적인 atomic file transfer, Flyway baseline/validate/migrate, rollback, cutover, 서버 교체 절차는 runbook을 그대로 따릅니다.
+
+## 외부 uptime monitor
+
+`https://<API_HOST>/health/ready`를 60초마다 확인하고 2회 연속 실패와 복구를 이메일로 알리도록 provider를 설정합니다. 응답에는 secret이나 DB 오류 세부정보를 넣지 않습니다. provider token·수신 주소는 저장소가 아닌 provider secret에 보관합니다. 검증 체크리스트는 [`uptime/README.md`](./uptime/README.md)에 있습니다.
+
+호스트에서 실제 응답과 민감 정보 노출 여부를 확인하려면 다음을 실행합니다.
 
 ```bash
-sudo bash scripts/backup-redis-state.sh
-sudo CONFIRM_REDIS_RESTORE=RESTORE \
-  bash scripts/restore-redis-state.sh /var/backups/jbnu-sugang-helper/redis-state/redis-state-<timestamp>.tar.gz
+API_HOST=<api-duckdns-fqdn> bash scripts/test-uptime-contract.sh
 ```
 
-restore는 checksum과 archive path를 검증하고, 시작 실패 시 이전 state로 되돌립니다. 성공 뒤 이전 state directory는 root가 검증·정리할 때까지 남깁니다. 배포된 전체 stack의 Redis outage/restart drill은 다음으로 실행합니다.
+## 파일과 비밀값
 
-```bash
-bash scripts/redis-restart-smoke.sh
-```
+- `.env`, `secrets/`, host certificate/private key는 저장소에 커밋하지 않습니다.
+- `DB_ROOT_PASSWORD`는 DB container에만, `DB_RUNTIME_PASSWORD`는 앱과 DB init에만, `DB_MIGRATOR_PASSWORD`는 one-shot migration에만 전달합니다.
+- DB backup/restore는 이 최소 구성의 기능이 아닙니다. `DB_BACKUP_*` 변수를 새 runtime contract에 추가하지 않습니다.
+- `infra/nginx-proxy-manager`, Prometheus/Grafana/Loki/Promtail 관련 기존 파일은 새 minimal Compose에서 참조하지 않습니다. 전체 삭제는 별도 cleanup 범위로 분리합니다.
 
-Redis preflight 실패는 현재 deployment Discord failure channel에 전달됩니다. 지속적인 Prometheus/Alertmanager notification route는 ISSUE-099에서 추가합니다.
+## 관련 문서
 
-## DB 권한과 재해 복구
-
-애플리케이션은 DML 전용 DB 계정으로만 실행합니다. Flyway DDL은 배포 직전 일회성 `migrate` container가 별도 계정으로 수행하므로, runtime app 환경에는 MySQL root·migrator·backup credential이 들어가지 않습니다. 기존 volume에도 배포 preflight가 idempotent하게 계정을 생성·정렬합니다.
-
-DB와 업로드 파일은 같은 복구 시점을 보장하기 위해 백업 중 app, Grafana, NPM을 잠시 멈춥니다. archive는 MySQL dump·binlog·uploads·Grafana·NPM data/cert를 암호화해 묶고 checksum과 14일 보존 정책을 적용합니다.
-
-```bash
-sudo BACKUP_ENCRYPTION_PASSWORD_FILE=/etc/jbnu-sugang-helper/backup-passphrase \
-  BACKUP_AUTHENTICATION_KEY_FILE=/etc/jbnu-sugang-helper/backup-authentication-key \
-  bash scripts/backup-dr-state.sh
-
-sudo CONFIRM_DR_RESTORE=RESTORE \
-  BACKUP_ENCRYPTION_PASSWORD_FILE=/etc/jbnu-sugang-helper/backup-passphrase \
-  BACKUP_AUTHENTICATION_KEY_FILE=/etc/jbnu-sugang-helper/backup-authentication-key \
-  bash scripts/restore-dr-state.sh \
-  /mnt/secondary-backup/dr-state-<timestamp>.tar.gz.enc
-```
-
-운영 backup archive·checksum·HMAC sidecar는 반드시 별도 disk/host에도 보관합니다. passphrase와 별도 HMAC key는 archive storage와 분리된 secret manager 또는 offline escrow에 보관합니다. clean-host 자동 복구 drill은 `scripts/test-dr-state-recovery.sh`이며, 전체 정책과 OAuth 확인 경계는 [disaster-recovery-policy.md](../docs/disaster-recovery-policy.md)를 따릅니다.
-
-## 관측
-
-- Prometheus는 `/actuator/prometheus`를 스크랩합니다.
-- Grafana는 Prometheus와 Loki를 데이터소스로 사용합니다.
-- Promtail은 `/var/log/jbnu-sugang-helper/*/*.log` allowlist만 읽어 Loki로 전달합니다.
-
-## Related Docs
-
-- [트러블슈팅 / 측정 기록](../docs/troubleshooting.md)
-- [모노레포 전환 결정](../docs/decisions/2026-07-08-monorepo-migration-web-vercel-server-infra.md)
-
-## Operational Notes
-
-- 인프라는 운영과 복구를 먼저 생각합니다.
-- 이 문서는 Docker Compose, 관측, 로그 정책을 빠르게 파악할 때 유용합니다.
+- [운영 배포·rollback·서버 교체 runbook](../docs/operations/deployment.md)
+- [CI/CD 결정 ADR](../docs/decisions/2026-07-19-single-oci-cicd.md)
+- [장애 복구 정책(기존 문서)](../docs/disaster-recovery-policy.md)
