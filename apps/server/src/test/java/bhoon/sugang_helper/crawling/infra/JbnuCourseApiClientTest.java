@@ -2,6 +2,7 @@ package bhoon.sugang_helper.crawling.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import bhoon.sugang_helper.crawling.application.JbnuCourseParser;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -27,9 +28,10 @@ class JbnuCourseApiClientTest {
         ReflectionTestUtils.setField(client, "maxRetries", 0);
         ReflectionTestUtils.setField(client, "maximumResponseBytes", 10 * 1024 * 1024);
 
-        String result = client.fetchCourseDataXml("2026", "U211600020");
+        String result = client.fetchCourseData("2026", "U211600020");
 
         assertThat(result).contains("dsEstSbjList");
+        assertThat(new JbnuCourseParser().parseCourses(result, "2026", "U211600020")).isNotEmpty();
     }
 
     private String firstNonBlank(String... values) {

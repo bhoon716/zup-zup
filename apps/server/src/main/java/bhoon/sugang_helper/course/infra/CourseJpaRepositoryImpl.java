@@ -23,7 +23,9 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Pageable;
@@ -53,6 +55,7 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
         }
 
         query.where(
+                containsKeyword(condition.keyword()),
                 containsName(condition.name()),
                 containsProfessor(condition.professor()),
                 eqSubjectCode(condition.subjectCode()),
@@ -97,6 +100,17 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
 
     private BooleanExpression containsName(String name) {
         return StringUtils.hasText(name) ? course.name.contains(name) : null;
+    }
+
+    private BooleanExpression containsKeyword(String keyword) {
+        return Optional.ofNullable(keyword)
+                .filter(StringUtils::hasText)
+                .map(value -> {
+                    String normalizedValue = value.trim();
+                    return course.name.contains(normalizedValue)
+                            .or(course.stdtrNo.eq(normalizedValue.toUpperCase(Locale.ROOT)));
+                })
+                .orElse(null);
     }
 
     private BooleanExpression containsProfessor(String professor) {

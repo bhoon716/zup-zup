@@ -24,21 +24,21 @@ describe("CourseSearchBar", () => {
     const { rerender } = render(
       <CourseSearchBar
         onSearch={onSearch}
-        initialCondition={{ academicYear: "2026", semester: "U211600010", name: "첫번째" }}
+        initialCondition={{ academicYear: "2026", semester: "U211600010", keyword: "첫번째" }}
       />,
     );
 
-    expect(screen.getByPlaceholderText("강의명 또는 코드")).toHaveValue("첫번째");
+    expect(screen.getByPlaceholderText("강의명 또는 학수번호")).toHaveValue("첫번째");
 
     rerender(
       <CourseSearchBar
         onSearch={onSearch}
-        initialCondition={{ academicYear: "2026", semester: "U211600010", name: "두번째" }}
+        initialCondition={{ academicYear: "2026", semester: "U211600010", keyword: "두번째" }}
       />,
     );
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText("강의명 또는 코드")).toHaveValue("두번째");
+      expect(screen.getByPlaceholderText("강의명 또는 학수번호")).toHaveValue("두번째");
     });
   });
 
@@ -47,7 +47,7 @@ describe("CourseSearchBar", () => {
     render(
       <CourseSearchBar
         onSearch={onSearch}
-        initialCondition={{ academicYear: "2026", semester: "U211600010", name: "강의명" }}
+        initialCondition={{ academicYear: "2026", semester: "U211600010", keyword: "강의명" }}
       />,
     );
 
@@ -57,7 +57,7 @@ describe("CourseSearchBar", () => {
       expect.objectContaining({
         academicYear: "2026",
         semester: "U211600010",
-        name: "강의명",
+        keyword: "강의명",
       }),
     );
   });
@@ -67,7 +67,7 @@ describe("CourseSearchBar", () => {
     render(
       <CourseSearchBar
         onSearch={onSearch}
-        initialCondition={{ academicYear: "2026", semester: "U211600025", name: "강의명" }}
+        initialCondition={{ academicYear: "2026", semester: "U211600025", keyword: "강의명" }}
         defaultCondition={{ academicYear: "2026", semester: "U211600020", disclosure: "공개" }}
       />,
     );

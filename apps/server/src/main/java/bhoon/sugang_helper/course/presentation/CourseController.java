@@ -86,6 +86,7 @@ public class CourseController {
                       "data": {
                         "courseKey": "CLTR.0031-01",
                         "subjectCode": "CLTR.0031",
+                        "stdtrNo": "GECO178",
                         "name": "기초프로그래밍",
                         "classNumber": "01",
                         "professor": "홍길동",

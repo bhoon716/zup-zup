@@ -13,37 +13,23 @@ import bhoon.sugang_helper.course.domain.LectureLanguage;
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.TargetGrade;
 import java.io.InputStream;
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.parser.Parser;
-import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
-import javax.xml.XMLConstants;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 
 @Slf4j
 @Component
-@SuppressWarnings("PMD.CyclomaticComplexity") // Supports both legacy DOM parsing and the bounded streaming path.
+@SuppressWarnings("PMD.CyclomaticComplexity")
 public class JbnuCourseParser {
 
-    private static final String DATASET_ID = "GRD_COUR001";
-    private static final String CLASS_TIME_COLUMN = "DAYTMCTNT";
     private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
     private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("\\s(?<grade>[1-6])(?=[\\s,]|$)");
     private static final Pattern TRAILING_NUMBER_IN_SUBJECT_PATTERN = Pattern
@@ -59,32 +45,14 @@ public class JbnuCourseParser {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
-     * XML 데이터를 파싱하여 ParsedCourseDto 리스트로 변환합니다.
+     * JUMP JSON 응답을 ParsedCourseDto 리스트로 변환합니다.
      */
-    public List<ParsedCourseDto> parseCourses(String xmlData) {
-        if (looksLikeJson(xmlData)) {
-            return parseJumpCourses(xmlData, null, null);
-        }
-        List<ParsedCourseDto> courseList = new ArrayList<>();
-        Document doc = Jsoup.parse(xmlData, "", Parser.xmlParser());
-
-        Elements rows = doc.select("Dataset[id=" + DATASET_ID + "] > Rows > Row");
-
-        for (Element row : rows) {
-            try {
-                processRow(row).ifPresent(courseList::add);
-            } catch (Exception e) {
-                log.warn("Failed to parse course row. exceptionType={}", SensitiveDataRedactor.exceptionType(e));
-            }
-        }
-        return courseList;
+    public List<ParsedCourseDto> parseCourses(String jsonData) {
+        return parseJumpCourses(jsonData, null, null);
     }
 
-    public List<ParsedCourseDto> parseCourses(String data, String year, String semester) {
-        if (looksLikeJson(data)) {
-            return parseJumpCourses(data, year, semester);
-        }
-        return parseCourses(data);
+    public List<ParsedCourseDto> parseCourses(String jsonData, String year, String semester) {
+        return parseJumpCourses(jsonData, year, semester);
     }
 
     public Iterator<ParsedCourseDto> streamCourses(InputStream responseStream) {
@@ -92,35 +60,11 @@ public class JbnuCourseParser {
     }
 
     public Iterator<ParsedCourseDto> streamCourses(InputStream responseStream, String year, String semester) {
-        BufferedInputStream bufferedStream = responseStream instanceof BufferedInputStream
-                ? (BufferedInputStream) responseStream
-                : new BufferedInputStream(responseStream);
         try {
-            bufferedStream.mark(8192);
-            int firstByte;
-            do {
-                firstByte = bufferedStream.read();
-            } while (firstByte >= 0 && Character.isWhitespace(firstByte));
-            bufferedStream.reset();
-            if (firstByte == '{' || firstByte == '[') {
-                return parseJumpCourses(new String(bufferedStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8),
-                        year, semester).iterator();
-            }
-            return streamXmlCourses(bufferedStream);
+            String jsonData = new String(responseStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            return parseJumpCourses(jsonData, year, semester).iterator();
         } catch (IOException e) {
             throw new IllegalArgumentException("Malformed crawler JSON", e);
-        }
-    }
-
-    private Iterator<ParsedCourseDto> streamXmlCourses(InputStream xmlStream) {
-        try {
-            XMLInputFactory factory = XMLInputFactory.newFactory();
-            factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-            factory.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
-            factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-            return new StaxCourseIterator(factory.createXMLStreamReader(xmlStream));
-        } catch (XMLStreamException | IllegalArgumentException e) {
-            throw new IllegalArgumentException("Malformed crawler XML", e);
         }
     }
 
@@ -128,19 +72,29 @@ public class JbnuCourseParser {
         List<ParsedCourseDto> courseList = new ArrayList<>();
         try {
             JsonNode root = OBJECT_MAPPER.readTree(jsonData);
+            if (root == null || !root.isObject()) {
+                throw new IllegalArgumentException("JUMP response must be a JSON object");
+            }
             if (root.hasNonNull("ERRMSGINFO")) {
                 throw new IllegalArgumentException("JUMP returned an error envelope");
             }
-            JsonNode rows = root.isArray() ? root : root.path("dsEstSbjList");
-            if (!rows.isArray()) {
-                return courseList;
+            JsonNode rows = root.get("dsEstSbjList");
+            if (rows == null || !rows.isArray()) {
+                throw new IllegalArgumentException("JUMP response is missing dsEstSbjList");
             }
+            if (rows.isEmpty()) {
+                throw new IllegalArgumentException("JUMP course list is empty");
+            }
+            int rowIndex = 0;
             for (JsonNode row : rows) {
                 try {
-                    processJumpRow(row, fallbackYear, fallbackSemester).ifPresent(courseList::add);
-                } catch (Exception e) {
-                    log.warn("Failed to parse JUMP course row. exceptionType={}", SensitiveDataRedactor.exceptionType(e));
+                    courseList.add(processJumpRow(row, fallbackYear, fallbackSemester));
+                } catch (RuntimeException e) {
+                    log.warn("Failed to parse JUMP course row. rowIndex={}, exceptionType={}", rowIndex,
+                            SensitiveDataRedactor.exceptionType(e));
+                    throw e;
                 }
+                rowIndex++;
             }
             return courseList;
         } catch (IOException e) {
@@ -148,7 +102,10 @@ public class JbnuCourseParser {
         }
     }
 
-    private Optional<ParsedCourseDto> processJumpRow(JsonNode row, String fallbackYear, String fallbackSemester) {
+    private ParsedCourseDto processJumpRow(JsonNode row, String fallbackYear, String fallbackSemester) {
+        if (row == null || !row.isObject()) {
+            throw new IllegalArgumentException("JUMP course row must be a JSON object");
+        }
         String subjectCode = jsonValue(row, "SBJCT_CD");
         String classNumber = jsonValue(row, "DVCLS_NO");
         String year = fallbackYear != null && !fallbackYear.isBlank() ? fallbackYear : jsonValue(row, "YRSA");
@@ -156,8 +113,9 @@ public class JbnuCourseParser {
                 ? fallbackSemester
                 : jsonValue(row, "SEMSTR_CD");
         if (subjectCode == null || classNumber == null || year == null || semester == null) {
-            return Optional.empty();
+            throw new IllegalArgumentException("JUMP course row is missing required identity fields");
         }
+        String stdtrNo = normalizeCourseNumber(jsonValue(row, "STDTR_NO"));
 
         String targetGradeValue = jsonValue(row, "ATNLC_TRGT_DIVCDNM");
         String department = jsonValue(row, "MNG_SCSBJT_CDNM");
@@ -169,9 +127,10 @@ public class JbnuCourseParser {
                 : DisclosureStatus.from(disclosureValue);
         String operation = firstNonBlank(jsonValue(row, "OPNLT_DIVCDNM"), jsonValue(row, "LESSN_OPER_DRC_CN"));
 
-        return Optional.of(new ParsedCourseDto(
+        return new ParsedCourseDto(
                 generateCourseKey(year, semester, subjectCode, classNumber),
                 subjectCode,
+                stdtrNo,
                 normalizeSubjectName(jsonValue(row, "SBJCT_NM"), classNumber),
                 classNumber,
                 jsonValue(row, "STAFFNM"),
@@ -198,7 +157,7 @@ public class JbnuCourseParser {
                 jsonValue(row, "RLM_DIVCDNM_HIST"),
                 jsonValue(row, "LESSN_OPER_DRC_CN"),
                 jsonValue(row, "LESSN_HR_DIVCDNM"),
-                parseSchedules(jsonValue(row, "DOW_HR_CN"))));
+                parseSchedules(jsonValue(row, "DOW_HR_CN")));
     }
 
     private String jsonValue(JsonNode row, String field) {
@@ -209,172 +168,13 @@ public class JbnuCourseParser {
         return normalizeClassroom(value.asText());
     }
 
+    private String normalizeCourseNumber(String value) {
+        return value == null || value.isBlank() ? null : value.trim().toUpperCase(Locale.ROOT);
+    }
+
     private String firstNonBlank(String first, String second) {
         return first != null && !first.isBlank() ? first : second;
     }
-
-    private boolean looksLikeJson(String value) {
-        return value != null && !value.stripLeading().isEmpty()
-                && (value.stripLeading().charAt(0) == '{' || value.stripLeading().charAt(0) == '[');
-    }
-
-    private Optional<ParsedCourseDto> processColumns(Map<String, String> columns) {
-        String sbjtCd = columns.get("SBJTCD");
-        String clss = columns.get("CLSS");
-        String year = columns.get("YY");
-        String semester = columns.get("SHTM");
-        String rawDepartment = columns.get("SUSTCDNM");
-        String gradeNm = columns.get("TLSNOBJFGNM");
-
-        if (sbjtCd == null || clss == null || year == null || semester == null) {
-            return Optional.empty();
-        }
-
-        LiberalArtsInfo liberalArts = new LiberalArtsInfo(columns.get("FLDFGNM"), columns.get("FLDDETAFGNM"));
-        StatusInfo statusInfo = new StatusInfo(DisclosureStatus.from(columns.get("PUBCYN")),
-                columns.get("NOPUBCRESNNM"));
-        TargetGrade targetGrade = parseTargetGrade(gradeNm, rawDepartment);
-        String subjectName = normalizeSubjectName(columns.get("SBJTNM"), clss);
-        String department = normalizeDepartmentName(rawDepartment, targetGrade);
-
-        return Optional.of(new ParsedCourseDto(
-                generateCourseKey(year, semester, sbjtCd, clss), sbjtCd, subjectName, clss,
-                columns.get("RPSTPROFNM"), safeParseInt(columns.get("LMTRCNT")),
-                safeParseInt(columns.get("TLSNRCNT")), targetGrade, year, semester,
-                CourseClassification.from(columns.get("CPTNFGNM")), department,
-                GradingMethod.from(columns.get("SCORTRETFGNM")), columns.get(CLASS_TIME_COLUMN),
-                columns.get("PNT"), LectureLanguage.from(columns.get("LTLANGFGNM")), statusInfo.disclosure,
-                statusInfo.disclosureReason, safeParseInt(columns.get("TM")), liberalArts.category,
-                liberalArts.detail, CourseAccreditation.from(columns.get("VLDFGNM")),
-                CourseStatus.from(columns.get("OPENLECTFGNM")), columns.get("VILROOMNOCTNT"),
-                "Y".equalsIgnoreCase(columns.get("SUBPLANYN")), columns.get("FLDCONVINFO"),
-                columns.get("CLSSOPRTDRCT"), columns.get("LESSTMFGNM"),
-                parseSchedules(columns.get(CLASS_TIME_COLUMN))));
-    }
-
-    private final class StaxCourseIterator implements Iterator<ParsedCourseDto> {
-
-        private final XMLStreamReader reader;
-        private ParsedCourseDto next;
-        private boolean inDataset;
-
-        private StaxCourseIterator(XMLStreamReader reader) {
-            this.reader = reader;
-            advance();
-        }
-
-        @Override
-        public boolean hasNext() {
-            return next != null;
-        }
-
-        @Override
-        public ParsedCourseDto next() {
-            ParsedCourseDto current = next;
-            advance();
-            return current;
-        }
-
-        @SuppressWarnings("PMD.NullAssignment")
-        private void advance() {
-            next = null;
-            try {
-                while (reader.hasNext()) {
-                    int event = reader.next();
-                    if (event == XMLStreamReader.START_ELEMENT && "Dataset".equals(reader.getLocalName())) {
-                        inDataset = DATASET_ID.equals(reader.getAttributeValue(null, "id"));
-                    } else if (event == XMLStreamReader.END_ELEMENT && "Dataset".equals(reader.getLocalName())) {
-                        inDataset = false;
-                    } else if (inDataset && event == XMLStreamReader.START_ELEMENT
-                            && "Row".equals(reader.getLocalName())) {
-                        Optional<ParsedCourseDto> parsed = processColumns(readRow());
-                        if (parsed.isPresent()) {
-                            next = parsed.get();
-                            return;
-                        }
-                    }
-                }
-                if (inDataset) {
-                    throw new XMLStreamException("Unexpected end of crawler XML dataset");
-                }
-                reader.close();
-            } catch (XMLStreamException e) {
-                throw new IllegalArgumentException("Malformed crawler XML", e);
-            }
-        }
-
-        private Map<String, String> readRow() throws XMLStreamException {
-            Map<String, String> columns = new HashMap<>();
-            while (reader.hasNext()) {
-                int event = reader.next();
-                if (event == XMLStreamReader.START_ELEMENT && "Col".equals(reader.getLocalName())) {
-                    String id = reader.getAttributeValue(null, "id");
-                    if (id != null) {
-                        columns.put(id, normalizeClassroom(reader.getElementText().trim()));
-                    }
-                } else if (event == XMLStreamReader.END_ELEMENT && "Row".equals(reader.getLocalName())) {
-                    return columns;
-                }
-            }
-            throw new XMLStreamException("Unexpected end of crawler XML row");
-        }
-    }
-
-    /**
-     * 단일 행(Row) 데이터를 파싱하여 ParsedCourseDto 객체를 생성합니다.
-     */
-    private Optional<ParsedCourseDto> processRow(Element row) {
-        String sbjtCd = getColValue(row, "SBJTCD");
-        String clss = getColValue(row, "CLSS");
-        String year = getColValue(row, "YY");
-        String semester = getColValue(row, "SHTM");
-        String rawDepartment = getColValue(row, "SUSTCDNM");
-        String gradeNm = getColValue(row, "TLSNOBJFGNM");
-
-        if (sbjtCd == null || clss == null || year == null || semester == null) {
-            return Optional.empty();
-        }
-
-        LiberalArtsInfo liberalArts = parseLiberalArtsInfo(row);
-        StatusInfo statusInfo = parseStatusAndDisclosureInfo(row);
-        TargetGrade targetGrade = parseTargetGrade(gradeNm, rawDepartment);
-
-        String subjectName = normalizeSubjectName(getColValue(row, "SBJTNM"), clss);
-        String department = normalizeDepartmentName(rawDepartment, targetGrade);
-
-        return Optional.of(new ParsedCourseDto(
-                generateCourseKey(year, semester, sbjtCd, clss),
-                sbjtCd,
-                subjectName,
-                clss,
-                getColValue(row, "RPSTPROFNM"),
-                safeParseInt(getColValue(row, "LMTRCNT")),
-                safeParseInt(getColValue(row, "TLSNRCNT")),
-                targetGrade,
-                year,
-                semester,
-                CourseClassification.from(getColValue(row, "CPTNFGNM")),
-                department,
-                GradingMethod.from(getColValue(row, "SCORTRETFGNM")),
-                getColValue(row, CLASS_TIME_COLUMN),
-                getColValue(row, "PNT"),
-                LectureLanguage.from(getColValue(row, "LTLANGFGNM")),
-                statusInfo.disclosure,
-                statusInfo.disclosureReason,
-                safeParseInt(getColValue(row, "TM")),
-                liberalArts.category,
-                liberalArts.detail,
-                CourseAccreditation.from(getColValue(row, "VLDFGNM")),
-                CourseStatus.from(getColValue(row, "OPENLECTFGNM")),
-                getColValue(row, "VILROOMNOCTNT"),
-                "Y".equalsIgnoreCase(getColValue(row, "SUBPLANYN")),
-                getColValue(row, "FLDCONVINFO"),
-                getColValue(row, "CLSSOPRTDRCT"),
-                getColValue(row, "LESSTMFGNM"),
-                parseSchedules(getColValue(row, CLASS_TIME_COLUMN))
-        ));
-    }
-
     /**
      * 과목명 끝 숫자가 분반(CLSS)과 동일하면 과목명에서 제거한다.
      */
@@ -511,26 +311,6 @@ public class JbnuCourseParser {
     /**
      * 교양 과목 정보(영역, 상세영역) 추출
      */
-    private LiberalArtsInfo parseLiberalArtsInfo(Element row) {
-        String category = getColValue(row, "FLDFGNM");
-        String detail = getColValue(row, "FLDDETAFGNM");
-        return new LiberalArtsInfo(category, detail);
-    }
-
-    /**
-     * 강의 상태 및 공개 여부 정보 추출
-     */
-    private StatusInfo parseStatusAndDisclosureInfo(Element row) {
-        DisclosureStatus disclosure = DisclosureStatus.from(getColValue(row, "PUBCYN"));
-        String disclosureReason = getColValue(row, "NOPUBCRESNNM");
-        return new StatusInfo(disclosure, disclosureReason);
-    }
-
-    private String getColValue(Element row, String colId) {
-        Element col = row.selectFirst("Col[id=" + colId + "]");
-        return col != null ? normalizeClassroom(col.text().trim()) : null;
-    }
-
     private String normalizeClassroom(String value) {
         if (value == null || value.isBlank() || value.equals(":")) {
             return null;
@@ -682,18 +462,6 @@ public class JbnuCourseParser {
             return new TimeRange(LocalTime.of(23, 30), LocalTime.of(23, 59));
         }
         return new TimeRange(LocalTime.of(hour, 30), LocalTime.of(hour + 1, 0));
-    }
-
-    /**
-     * 교양 과목 정보를 담는 내부 레코드
-     */
-    private record LiberalArtsInfo(String category, String detail) {
-    }
-
-    /**
-     * 강의 상태 정보를 담는 내부 레코드
-     */
-    private record StatusInfo(DisclosureStatus disclosure, String disclosureReason) {
     }
 
     /**

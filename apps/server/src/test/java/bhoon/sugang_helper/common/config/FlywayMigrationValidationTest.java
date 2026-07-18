@@ -20,6 +20,7 @@ class FlywayMigrationValidationTest {
     private static final String DATABASE_USER = "test";
     private static final String DATABASE_PASSWORD = "test";
     private static final String MIGRATION_LOCATION = "classpath:db/migration";
+    private static final String DELIVERY_TABLE_NAME = "seat_notification_deliveries";
     private static final Map<String, Integer> APPLIED_MIGRATION_CHECKSUMS = Map.ofEntries(
             Map.entry("1", 372551896),
             Map.entry("2", 2027923810),
@@ -67,6 +68,19 @@ class FlywayMigrationValidationTest {
                 Integer.class,
                 tableName,
                 indexName);
+    }
+
+    private static String columnDataType(JdbcTemplate jdbcTemplate, String tableName, String columnName) {
+        return jdbcTemplate.queryForObject("""
+                        SELECT DATA_TYPE
+                        FROM information_schema.columns
+                        WHERE table_schema = DATABASE()
+                          AND table_name = ?
+                          AND column_name = ?
+                        """,
+                String.class,
+                tableName,
+                columnName);
     }
 
     @Test
@@ -233,19 +247,23 @@ class FlywayMigrationValidationTest {
                     .locations(MIGRATION_LOCATION)
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(1);
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(3);
             head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("19");
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("21");
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT idempotency_key FROM seat_notification_deliveries WHERE id = ?", String.class, deliveryId))
                     .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT dead_lettered_at IS NOT NULL FROM seat_notification_deliveries WHERE id = ?",
                     Boolean.class, deliveryId)).isTrue();
-            assertThat(indexCount(jdbcTemplate, "seat_notification_deliveries",
+            assertThat(indexCount(jdbcTemplate, DELIVERY_TABLE_NAME,
                     "uk_seat_notif_delivery_idempotency_key")).isEqualTo(1);
-            assertThat(indexCount(jdbcTemplate, "seat_notification_deliveries",
+            assertThat(indexCount(jdbcTemplate, DELIVERY_TABLE_NAME,
                     "idx_seat_notif_delivery_dlq_retention")).isEqualTo(2);
+            assertThat(columnDataType(jdbcTemplate, DELIVERY_TABLE_NAME, "idempotency_key"))
+                    .isEqualTo("varchar");
+            assertThat(columnDataType(jdbcTemplate, DELIVERY_TABLE_NAME, "claim_token"))
+                    .isEqualTo("varchar");
         }
     }
 }

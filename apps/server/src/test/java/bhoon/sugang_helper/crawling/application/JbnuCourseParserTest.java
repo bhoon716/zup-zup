@@ -6,445 +6,174 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.TargetGrade;
-import java.time.LocalTime;
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalTime;
+import java.util.Iterator;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class JbnuCourseParserTest {
 
-    @Test
-    void streamCoursesReadsRowsIncrementally() {
-        String xmlData = """
-                <Root><Dataset id="GRD_COUR001"><Rows>
-                  <Row><Col id="SBJTCD">A001</Col><Col id="CLSS">01</Col><Col id="YY">2026</Col><Col id="SHTM">U211600010</Col><Col id="SBJTNM">First</Col></Row>
-                  <Row><Col id="SBJTCD">A002</Col><Col id="CLSS">01</Col><Col id="YY">2026</Col><Col id="SHTM">U211600010</Col><Col id="SBJTNM">Second</Col></Row>
-                </Rows></Dataset></Root>
-                """;
-
-        var iterator = parser.streamCourses(new java.io.ByteArrayInputStream(xmlData.getBytes(StandardCharsets.UTF_8)));
-
-        assertThat(iterator.next().courseKey()).isEqualTo("2026:U211600010:A001:01");
-        assertThat(iterator.next().courseKey()).isEqualTo("2026:U211600010:A002:01");
-        assertThat(iterator.hasNext()).isFalse();
-    }
+    private final JbnuCourseParser parser = new JbnuCourseParser();
 
     @Test
-    void streamCoursesRejectsMalformedXml() {
-        var malformed = new java.io.ByteArrayInputStream(
-                "<Root><Dataset id='GRD_COUR001'><Rows><Row><Col id='SBJTCD'>A".getBytes(StandardCharsets.UTF_8));
-
-        assertThatThrownBy(() -> parser.streamCourses(malformed))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Malformed crawler XML");
-    }
-
-    @Test
-    @DisplayName("JUMP JSON 응답을 기존 ParsedCourseDto 계약으로 변환합니다.")
+    @DisplayName("JUMP JSON에서 내부 코드와 학수번호를 분리해 파싱합니다")
     void parseCourses_jumpJson() {
-        String json = """
+        List<ParsedCourseDto> courses = parser.parseCourses(jsonResponse("""
                 {
-                  "dsEstSbjList": [
-                    {
-                      "SBJCT_CD": "C101",
-                      "SBJCT_NM": "자료구조",
-                      "DVCLS_NO": "01",
-                      "STDTR_NO": "컴퓨터공학-101",
-                      "STAFFNM": "김교수",
-                      "PRM_NMPR_CNT": 40,
-                      "ATNLC_PSCP_CNT": 40,
-                      "TLSN_RCNT": 12,
-                      "ATNLC_TRGT_DIVCDNM": "3학년",
-                      "YRSA": "2026",
-                      "SEMSTR_CD": "SUSR016.010",
-                      "CMCRS_DIVCDNM": "전공",
-                      "RLT_ABSLT_EVL_DIVCDNM": "절대평가",
-                      "DOW_HR_CN": "월 1-A, 월 1-B",
-                      "ESTBL_PNT": 3,
-                      "HR_CNT": 3,
-                      "LCTR_LANG_DIVCDNM": "한국어",
-                      "RLS_YN": "Y",
-                      "DONG_RMNM_CN": "공대 301",
-                      "RLM_DIVCDNM": "전공",
-                      "CULT_RLM_DIVCDNM": "전공필수",
-                      "LESSN_OPER_DRC_CN": "일반",
-                      "OPNLT_DIVCDNM": "일반",
-                      "LESSN_HR_DIVCDNM": "주 3시간",
-                      "MNG_SCSBJT_CDNM": "컴퓨터공학부"
-                    }
-                  ]
+                  "SBJCT_CD": "C101",
+                  "SBJCT_NM": "자료구조 1",
+                  "DVCLS_NO": "01",
+                  "STDTR_NO": "  geco178 ",
+                  "STAFFNM": "김교수",
+                  "PRM_NMPR_CNT": 40,
+                  "ATNLC_PSCP_CNT": 40,
+                  "TLSN_RCNT": 12,
+                  "ATNLC_TRGT_DIVCDNM": "3학년",
+                  "YRSA": "2026",
+                  "SEMSTR_CD": "SUSR016.010",
+                  "CMCRS_DIVCDNM": "전공",
+                  "RLT_ABSLT_EVL_DIVCDNM": "절대평가",
+                  "DOW_HR_CN": "월 1-A, 월 1-B",
+                  "ESTBL_PNT": 3,
+                  "HR_CNT": 3,
+                  "LCTR_LANG_DIVCDNM": "한국어",
+                  "RLS_YN": "Y",
+                  "DONG_RMNM_CN": "공대 301",
+                  "RLM_DIVCDNM": "전공",
+                  "CULT_RLM_DIVCDNM": "전공필수",
+                  "LESSN_OPER_DRC_CN": "일반",
+                  "OPNLT_DIVCDNM": "일반",
+                  "LESSN_HR_DIVCDNM": "주 3시간",
+                  "MNG_SCSBJT_CDNM": "컴퓨터공학부"
                 }
-                """;
-
-        List<ParsedCourseDto> courses = parser.parseCourses(json);
+                """));
 
         assertThat(courses).hasSize(1);
         ParsedCourseDto course = courses.get(0);
+        assertThat(course.subjectCode()).isEqualTo("C101");
+        assertThat(course.stdtrNo()).isEqualTo("GECO178");
         assertThat(course.courseKey()).isEqualTo("2026:SUSR016.010:C101:01");
         assertThat(course.name()).isEqualTo("자료구조");
         assertThat(course.capacity()).isEqualTo(40);
         assertThat(course.current()).isEqualTo(12);
         assertThat(course.targetGrade()).isEqualTo(TargetGrade.GRADE_3);
-        assertThat(course.classification().getDescription()).isEqualTo("전공");
-        assertThat(course.gradingMethod().getDescription()).isEqualTo("절대평가");
         assertThat(course.schedules()).hasSize(1);
         assertThat(course.schedules().get(0).startTime()).isEqualTo(LocalTime.of(9, 0));
         assertThat(course.schedules().get(0).endTime()).isEqualTo(LocalTime.of(10, 0));
     }
 
     @Test
+    void streamCoursesReadsJsonRows() {
+        Iterator<ParsedCourseDto> iterator = parser.streamCourses(
+                new ByteArrayInputStream(jsonResponse("""
+                        {
+                          "SBJCT_CD": "A001",
+                          "DVCLS_NO": 1,
+                          "YRSA": "2026",
+                          "SEMSTR_CD": "SUSR016.010",
+                          "STDTR_NO": "GECO001"
+                        }
+                        """).getBytes(StandardCharsets.UTF_8)), "2026", "SUSR016.010");
+
+        assertThat(iterator).toIterable().extracting(ParsedCourseDto::stdtrNo).containsExactly("GECO001");
+    }
+
+    @Test
+    void parseCourses_allowsMissingStdtrNo() {
+        ParsedCourseDto course = parser.parseCourses(jsonResponse("""
+                {
+                  "SBJCT_CD": "A001",
+                  "DVCLS_NO": 1,
+                  "YRSA": "2026",
+                  "SEMSTR_CD": "SUSR016.010"
+                }
+                """)).get(0);
+
+        assertThat(course.stdtrNo()).isNull();
+    }
+
+    @Test
     void parseCourses_rejectsJumpErrorEnvelope() {
-        assertThatThrownBy(() -> parser.parseCourses("""
-                {"ERRMSGINFO":{"ERRCODE":"CCMN002.CCMN@NONE"}}
-                """))
+        assertThatThrownBy(() -> parser.parseCourses("{\"ERRMSGINFO\":{\"ERRCODE\":\"CCMN002.CCMN@NONE\"}}"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("JUMP returned an error envelope");
     }
 
-    private final JbnuCourseParser parser = new JbnuCourseParser();
-
     @Test
-    @DisplayName("XML에서 강좌 및 상세 메타데이터를 정확하게 파싱합니다.")
-    void parseCourses_comprehensive() {
-        // Given
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">10001</Col>
-                            <Col id="CLSS">01</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="SBJTNM">핵심교양과목</Col>
-                            <Col id="RPSTPROFNM">진교수</Col>
-                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
-                            <Col id="CPTNFGNM">교양</Col>
-                            <Col id="SUSTCDNM">교양교육원</Col>
-                            <Col id="SCORTRETFGNM">상대평가Ⅰ</Col>
-                            <Col id="LTLANGFGNM">한국어</Col>
-                            <Col id="DAYTMCTNT">월 1-A,월 1-B,수 1-A</Col>
-                            <Col id="PNT">3</Col>
-                            <Col id="TM">3</Col>
-                            <Col id="LMTRCNT">40</Col>
-                            <Col id="TLSNRCNT">10</Col>
-                            <Col id="FLDFGNM">균형교양</Col>
-                            <Col id="FLDDETAFGNM">삶과사회</Col>
-                            <Col id="FLDCONVINFO">핵심,사회이해의기반</Col>
-                            <Col id="VLDFGNM">일반</Col>
-                            <Col id="OPENLECTFGNM">일반</Col>
-                            <Col id="VILROOMNOCTNT">전주:인문대 101</Col>
-                            <Col id="SUBPLANYN">Y</Col>
-                            <Col id="PUBCYN">공개</Col>
-                        </Row>
-                        <Row>
-                            <Col id="SBJTCD">20002</Col>
-                            <Col id="CLSS">02</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="SBJTNM">전공선택과목</Col>
-                            <Col id="RPSTPROFNM">이전공</Col>
-                            <Col id="TLSNOBJFGNM">3학년</Col>
-                            <Col id="CPTNFGNM">전공선택</Col>
-                            <Col id="SUSTCDNM">컴퓨터공학부</Col>
-                            <Col id="SCORTRETFGNM">절대평가</Col>
-                            <Col id="LTLANGFGNM">English</Col>
-                            <Col id="DAYTMCTNT">화 3-A,화 3-B,목 3-A,목 3-B</Col>
-                            <Col id="PNT">3</Col>
-                            <Col id="TM">4</Col>
-                            <Col id="LMTRCNT">30</Col>
-                            <Col id="TLSNRCNT">30</Col>
-                            <Col id="FLDCONVINFO"></Col>
-                            <Col id="VLDFGNM">공학</Col>
-                            <Col id="OPENLECTFGNM">일반</Col>
-                            <Col id="VILROOMNOCTNT">전주:공대 7호관 301</Col>
-                            <Col id="SUBPLANYN">N</Col>
-                            <Col id="PUBCYN">비공개</Col>
-                            <Col id="NOPUBCRESNNM">학과요청</Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
-
-        // When
-        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
-
-        // Then
-        assertThat(courses).hasSize(2);
-
-        // 1. 핵심교양과목 검증
-        ParsedCourseDto course1 = courses.stream().filter(c -> c.subjectCode().equals("10001")).findFirst()
-                .orElseThrow();
-        assertThat(course1.name()).isEqualTo("핵심교양과목");
-        assertThat(course1.professor()).isEqualTo("진교수");
-        assertThat(course1.courseKey()).isEqualTo("2026:10:10001:01");
-        assertThat(course1.generalCategory()).isEqualTo("균형교양");
-        assertThat(course1.generalDetail()).isEqualTo("삶과사회");
-        assertThat(course1.classification().getDescription()).isEqualTo("교양");
-        assertThat(course1.capacity()).isEqualTo(40);
-        assertThat(course1.current()).isEqualTo(10);
-        assertThat(course1.capacity() - course1.current()).isEqualTo(30);
-        assertThat(course1.hasSyllabus()).isTrue();
-        assertThat(course1.schedules()).hasSize(2);
-        assertThat(course1.schedules().get(0).dayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
-        assertThat(course1.schedules().get(0).startTime()).isEqualTo(LocalTime.of(9, 0));
-        assertThat(course1.schedules().get(0).endTime()).isEqualTo(LocalTime.of(10, 0));
-        assertThat(course1.schedules().get(1).dayOfWeek()).isEqualTo(CourseDayOfWeek.WEDNESDAY);
-        assertThat(course1.schedules().get(1).startTime()).isEqualTo(LocalTime.of(9, 0));
-        assertThat(course1.schedules().get(1).endTime()).isEqualTo(LocalTime.of(9, 30));
-
-        // 2. 전공선택과목 검증
-        ParsedCourseDto course2 = courses.stream().filter(c -> c.subjectCode().equals("20002")).findFirst()
-                .orElseThrow();
-        assertThat(course2.name()).isEqualTo("전공선택과목");
-        assertThat(course2.classification().getDescription()).isEqualTo("전공선택");
-        assertThat(course2.department()).isEqualTo("컴퓨터공학부");
-        assertThat(course2.lectureHours()).isEqualTo(4);
-        assertThat(course2.lectureLanguage().getValue()).isEqualTo("영어");
-        assertThat(course2.disclosure().getDescription()).isEqualTo("비공개");
-        assertThat(course2.disclosureReason()).isEqualTo("학과요청");
-        assertThat(course2.accreditation().getDescription()).isEqualTo("공학");
-        assertThat(course2.generalCategory()).isNull();
-
-        assertThat(course2.schedules()).hasSize(2);
-        assertThat(course2.schedules().get(0).startTime()).isEqualTo(LocalTime.of(11, 0));
-        assertThat(course2.schedules().get(0).endTime()).isEqualTo(LocalTime.of(12, 0));
-        assertThat(course2.schedules().get(1).startTime()).isEqualTo(LocalTime.of(11, 0));
-        assertThat(course2.schedules().get(1).endTime()).isEqualTo(LocalTime.of(12, 0));
+    void parseCourses_rejectsMissingEnvelope() {
+        assertThatThrownBy(() -> parser.parseCourses("{}"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("missing dsEstSbjList");
     }
 
     @Test
-    @DisplayName("연속된 반교시(A/B)는 하나의 시간 구간으로 병합된다")
-    void parseCourses_mergeConsecutiveHalfSlots() {
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">30003</Col>
-                            <Col id="CLSS">01</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="DAYTMCTNT">월 1-A, 월 1-B, 수 1-A</Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
-
-        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
-
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).schedules()).hasSize(2);
-        assertThat(courses.get(0).schedules().get(0).dayOfWeek()).isEqualTo(CourseDayOfWeek.MONDAY);
-        assertThat(courses.get(0).schedules().get(0).startTime()).isEqualTo(LocalTime.of(9, 0));
-        assertThat(courses.get(0).schedules().get(0).endTime()).isEqualTo(LocalTime.of(10, 0));
-        assertThat(courses.get(0).schedules().get(1).dayOfWeek()).isEqualTo(CourseDayOfWeek.WEDNESDAY);
-        assertThat(courses.get(0).schedules().get(1).startTime()).isEqualTo(LocalTime.of(9, 0));
-        assertThat(courses.get(0).schedules().get(1).endTime()).isEqualTo(LocalTime.of(9, 30));
+    void parseCourses_rejectsEmptyCourseList() {
+        assertThatThrownBy(() -> parser.parseCourses("{\"dsEstSbjList\":[]}"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("course list is empty");
     }
 
     @Test
-    @DisplayName("짝이 없는 반교시(B)도 실제 시간 범위로 그대로 보존된다")
-    void parseCourses_preserveSingleHalfSlot() {
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">40004</Col>
-                            <Col id="CLSS">01</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="DAYTMCTNT">화 3-B</Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
-
-        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
-
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).schedules()).hasSize(1);
-        assertThat(courses.get(0).schedules().get(0).dayOfWeek()).isEqualTo(CourseDayOfWeek.TUESDAY);
-        assertThat(courses.get(0).schedules().get(0).startTime()).isEqualTo(LocalTime.of(11, 30));
-        assertThat(courses.get(0).schedules().get(0).endTime()).isEqualTo(LocalTime.of(12, 0));
+    void parseCourses_rejectsMissingRequiredIdentity() {
+        assertThatThrownBy(() -> parser.parseCourses(jsonResponse("""
+                {
+                  "SBJCT_CD": "A001",
+                  "DVCLS_NO": 1,
+                  "YRSA": "2026"
+                }
+                """)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("required identity fields");
     }
 
     @Test
-    @DisplayName("TLSNOBJFGNM이 전체(학부)인 경우 SUSTCDNM에서 학년을 추출한다")
-    void parseCourses_extractGradeFromSustcdnm() {
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">50005</Col>
-                            <Col id="CLSS">01</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
-                            <Col id="SUSTCDNM">영어영문 3</Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
-
-        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
-
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).targetGrade().getDescription()).isEqualTo("3학년");
+    void parseCourses_rejectsMalformedJson() {
+        assertThatThrownBy(() -> parser.parseCourses("{\"dsEstSbjList\":["))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Malformed crawler JSON");
     }
 
     @Test
-    @DisplayName("SUSTCDNM에 여러 숫자가 있는 경우 마지막 숫자를 학년으로 추출한다 (계열 제외)")
-    void parseCourses_extractLastGradeFromSustcdnm() {
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">60006</Col>
-                            <Col id="CLSS">01</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
-                            <Col id="SUSTCDNM">기계시스템 3,기계시스템(정밀기계) 3</Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
+    @DisplayName("대상 학년과 학과의 학년 표기를 분리해 파싱합니다")
+    void parseCourses_extractsGradeAndDepartment() {
+        ParsedCourseDto course = parser.parseCourses(jsonResponse("""
+                {
+                  "SBJCT_CD": "A001",
+                  "DVCLS_NO": 1,
+                  "YRSA": "2026",
+                  "SEMSTR_CD": "SUSR016.010",
+                  "ATNLC_TRGT_DIVCDNM": "전체(학부)",
+                  "SCSBJT_SCYR_NTC_CN": "컴퓨터공학부 3",
+                  "MNG_SCSBJT_CDNM": "컴퓨터공학부 3"
+                }
+                """)).get(0);
 
-        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
-
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).targetGrade().getDescription()).isEqualTo("3학년");
+        assertThat(course.targetGrade()).isEqualTo(TargetGrade.GRADE_3);
+        assertThat(course.department()).isEqualTo("컴퓨터공학부");
     }
 
     @Test
-    @DisplayName("SUSTCDNM에 '계열'이 포함된 경우 1학년으로 파싱한다")
-    void parseCourses_parseGradeForCategoryAsGrade1() {
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">70007</Col>
-                            <Col id="CLSS">01</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
-                            <Col id="SUSTCDNM">공학계열 1 1</Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
+    void parseCourses_preservesSingleHalfSlot() {
+        ParsedCourseDto course = parser.parseCourses(jsonResponse("""
+                {
+                  "SBJCT_CD": "A001",
+                  "DVCLS_NO": 1,
+                  "YRSA": "2026",
+                  "SEMSTR_CD": "SUSR016.010",
+                  "DOW_HR_CN": "화 3-B"
+                }
+                """)).get(0);
 
-        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
-
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).targetGrade()).isEqualTo(TargetGrade.GRADE_1);
+        assertThat(course.schedules()).extracting(ParsedCourseDto.ScheduleDto::dayOfWeek)
+                .containsExactly(CourseDayOfWeek.TUESDAY);
+        assertThat(course.schedules().get(0).startTime()).isEqualTo(LocalTime.of(11, 30));
+        assertThat(course.schedules().get(0).endTime()).isEqualTo(LocalTime.of(12, 0));
     }
 
-    @Test
-    @DisplayName("과목명 끝 숫자가 분반과 같으면 숫자를 제거한다")
-    void parseCourses_removeTrailingClassNumberFromSubjectName() {
-        // given
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">80008</Col>
-                            <Col id="CLSS">1</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="SBJTNM">가구와실내디자인 1</Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
-
-        // when
-        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
-
-        // then
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).name()).isEqualTo("가구와실내디자인");
-    }
-
-    @Test
-    @DisplayName("과목명 끝 숫자가 분반과 다르면 과목명 숫자를 유지한다")
-    void parseCourses_keepTrailingNumberWhenItIsNotClassNumber() {
-        // given
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">90009</Col>
-                            <Col id="CLSS">1</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="SBJTNM">가구디자인 3</Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
-
-        // when
-        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
-
-        // then
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).name()).isEqualTo("가구디자인 3");
-    }
-
-    @Test
-    @DisplayName("학과명 끝 학년 숫자는 제거하고 대상 학년은 별도로 유지한다")
-    void parseCourses_removeTrailingGradeFromDepartment() {
-        // given
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">91010</Col>
-                            <Col id="CLSS">1</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
-                            <Col id="SUSTCDNM">영어영문 3</Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
-
-        // when
-        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
-
-        // then
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).department()).isEqualTo("영어영문");
-        assertThat(courses.get(0).targetGrade()).isEqualTo(TargetGrade.GRADE_3);
-    }
-
-    @Test
-    @DisplayName("복수 학과명에서도 끝 학년 숫자를 제거한다")
-    void parseCourses_removeTrailingGradeFromMultipleDepartments() {
-        // given
-        String xmlData = """
-                <Dataset id="GRD_COUR001">
-                    <Rows>
-                        <Row>
-                            <Col id="SBJTCD">91011</Col>
-                            <Col id="CLSS">1</Col>
-                            <Col id="YY">2026</Col>
-                            <Col id="SHTM">10</Col>
-                            <Col id="TLSNOBJFGNM">전체(학부)</Col>
-                            <Col id="SUSTCDNM">기계시스템 3,기계시스템(정밀기계) 3</Col>
-                        </Row>
-                    </Rows>
-                </Dataset>
-                """;
-
-        // when
-        List<ParsedCourseDto> courses = parser.parseCourses(xmlData);
-
-        // then
-        assertThat(courses).hasSize(1);
-        assertThat(courses.get(0).department()).isEqualTo("기계시스템, 기계시스템(정밀기계)");
-        assertThat(courses.get(0).targetGrade()).isEqualTo(TargetGrade.GRADE_3);
+    private String jsonResponse(String row) {
+        return "{\"dsEstSbjList\":[" + row + "]}";
     }
 }

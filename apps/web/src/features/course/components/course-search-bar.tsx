@@ -101,9 +101,9 @@ export function CourseSearchBar({
             <div className="relative flex-1">
               <input
                 type="text"
-                placeholder="강의명 또는 코드"
-                value={condition.name || ""}
-                onChange={(e) => setCondition((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="강의명 또는 학수번호"
+                value={condition.keyword || ""}
+                onChange={(e) => setCondition((prev) => ({ ...prev, keyword: e.target.value }))}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 className="h-12 w-full rounded-2xl border-none bg-muted/50 pl-10 pr-4 text-sm font-bold placeholder:text-muted-foreground/60 focus:bg-white focus:ring-2 focus:ring-primary/20"
               />

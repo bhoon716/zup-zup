@@ -16,6 +16,6 @@ class JbnuCourseApiClientRetryPolicyTest {
 
     @Test
     void malformedPayloadFailuresAreNotRetriedAsTransportFailures() {
-        assertThat(JbnuCourseApiClient.isTransientFailure(new IllegalArgumentException("malformed XML"))).isFalse();
+        assertThat(JbnuCourseApiClient.isTransientFailure(new IllegalArgumentException("malformed JSON"))).isFalse();
     }
 }

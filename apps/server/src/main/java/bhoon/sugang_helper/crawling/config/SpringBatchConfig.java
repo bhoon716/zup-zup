@@ -7,13 +7,15 @@ import bhoon.sugang_helper.course.domain.CourseSeatHistory;
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
 import bhoon.sugang_helper.crawling.application.JbnuCourseParser;
-import bhoon.sugang_helper.crawling.application.JbnuCourseStaxItemReader;
+import bhoon.sugang_helper.crawling.application.JbnuCourseItemReader;
 import bhoon.sugang_helper.crawling.infra.JbnuCourseApiClient;
 import bhoon.sugang_helper.course.infra.CourseSeatHistoryJpaRepository;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -71,17 +73,19 @@ public class SpringBatchConfig {
             @Value("#{jobParameters['semester']}") String semester) {
         log.info("[SpringBatchConfig] Initializing crawlReader for year={}, semester={}", year, semester);
 
-        return new JbnuCourseStaxItemReader(apiClient, courseParser, year, semester);
+        return new JbnuCourseItemReader(apiClient, courseParser, year, semester);
     }
 
     @Bean
     @StepScope
     public ItemWriter<ParsedCourseDto> crawlWriter() {
+        Set<String> seenStdtrNos = new HashSet<>();
         return chunk -> {
             log.info("[SpringBatchConfig] Writing chunk of {} courses.", chunk.size());
             long startedAt = System.nanoTime();
             List<CourseSeatHistory> seatHistories = new ArrayList<>();
             List<Course> crawledCourses = chunk.getItems().stream().map(this::mapToEntity).toList();
+            recordDuplicateStdtrNos(crawledCourses, seenStdtrNos);
             Map<String, Course> existingCourses = findExistingCourses(crawledCourses);
             for (Course crawledCourse : crawledCourses) {
                 CourseSeatHistory seatHistory = processCourse(crawledCourse, existingCourses);
@@ -119,6 +123,7 @@ public class SpringBatchConfig {
         Course course = Course.builder()
                 .courseKey(dto.courseKey())
                 .subjectCode(dto.subjectCode())
+                .stdtrNo(dto.stdtrNo())
                 .classNumber(dto.classNumber())
                 .name(dto.name())
                 .professor(dto.professor())
@@ -170,6 +175,28 @@ public class SpringBatchConfig {
         io.micrometer.core.instrument.Counter.builder("crawler.course.chunk.items")
                 .register(meterRegistry)
                 .increment(chunkSize);
+    }
+
+    private void recordDuplicateStdtrNos(List<Course> crawledCourses, Set<String> seenStdtrNos) {
+        long duplicateRows = countDuplicateStdtrNos(crawledCourses, seenStdtrNos);
+        if (duplicateRows == 0) {
+            return;
+        }
+        log.warn("[SpringBatchConfig] Duplicate stdtrNo values detected. duplicateRows={}", duplicateRows);
+        if (meterRegistry != null) {
+            meterRegistry.counter("crawler.course.stdtr_no.duplicates").increment(duplicateRows);
+        }
+    }
+
+    long countDuplicateStdtrNos(List<Course> crawledCourses, Set<String> seenStdtrNos) {
+        long duplicateRows = 0;
+        for (Course course : crawledCourses) {
+            String stdtrNo = course.getStdtrNo();
+            if (stdtrNo != null && !seenStdtrNos.add(stdtrNo)) {
+                duplicateRows++;
+            }
+        }
+        return duplicateRows;
     }
 
     private CourseSeatHistory updateExistingCourse(Course existingCourse, Course crawledCourse) {

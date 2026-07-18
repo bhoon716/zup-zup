@@ -75,6 +75,7 @@ export type CourseDayOfWeek =
 export interface Course {
   courseKey: string;
   subjectCode: string;
+  stdtrNo?: string | null;
   name: string;
   classNumber: string;
   professor?: string;
@@ -134,6 +135,7 @@ export interface CourseSearchCondition {
   academicYear?: string;
   semester?: string;
   name?: string;
+  keyword?: string;
   professor?: string;
   classifications?: CourseClassification[];
   department?: string;

@@ -34,4 +34,16 @@ class CourseSearchConditionValidationTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
+
+    @Test
+    void integratedKeywordCannotBeCombinedWithNameFilter() {
+        CourseSearchCondition condition = CourseSearchCondition.builder()
+                .keyword("GECO178")
+                .name("자료구조")
+                .build();
+
+        assertThatThrownBy(condition::validateSearchValues)
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
 }

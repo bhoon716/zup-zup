@@ -37,6 +37,9 @@ public class Course extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private String subjectCode; // 과목 코드
 
+    @Column(name = "stdtr_no", length = 50)
+    private String stdtrNo; // 학수번호
+
     @Column(nullable = false, length = 100)
     private String name; // 과목명
 
@@ -139,7 +142,7 @@ public class Course extends BaseTimeEntity {
      * 강의 엔티티 생성을 위한 빌더 생성자
      */
     @Builder
-    public Course(String courseKey, String subjectCode, String name, String classNumber, String professor,
+    public Course(String courseKey, String subjectCode, String stdtrNo, String name, String classNumber, String professor,
                   Integer capacity, Integer current, TargetGrade targetGrade, String academicYear, String semester,
                   CourseClassification classification, String department, GradingMethod gradingMethod,
                   String classTime, String credits, LectureLanguage lectureLanguage,
@@ -150,6 +153,7 @@ public class Course extends BaseTimeEntity {
                   Float averageRating, Integer reviewCount) {
         this.courseKey = courseKey;
         this.subjectCode = subjectCode;
+        this.stdtrNo = stdtrNo;
         this.name = name;
         this.classNumber = classNumber;
         this.professor = professor;
@@ -215,6 +219,9 @@ public class Course extends BaseTimeEntity {
      * 크롤링된 새로운 정보로 강의 메타데이터 업데이트
      */
     public void updateMetadata(Course other) {
+        if (other.getStdtrNo() != null) {
+            this.stdtrNo = other.getStdtrNo();
+        }
         this.name = other.getName();
         this.professor = other.getProfessor();
         this.capacity = other.getCapacity();

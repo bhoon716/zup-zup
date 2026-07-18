@@ -37,6 +37,10 @@ public class CourseSearchCondition {
     @Size(max = 100)
     private String name;
 
+    @Schema(description = "강의명 또는 학수번호 통합 검색어", example = "GECO178")
+    @Size(max = 100)
+    private String keyword;
+
     @Schema(description = "교수명", example = "김혜진")
     @Size(max = 100)
     private String professor;
@@ -143,7 +147,7 @@ public class CourseSearchCondition {
      * 강의 검색 조건을 생성하기 위한 빌더 생성자
      */
     @Builder
-    public CourseSearchCondition(String name, String professor, String subjectCode, String academicYear,
+    public CourseSearchCondition(String name, String keyword, String professor, String subjectCode, String academicYear,
                                  String semester, List<String> classifications,
                                  String department, List<String> gradingMethods, List<String> lectureLanguages,
                                  Boolean isAvailableOnly, String dayOfWeek, List<String> credits, Integer lectureHours,
@@ -154,6 +158,7 @@ public class CourseSearchCondition {
                                  String disclosure,
                                  String sortBy, String sortOrder, Long userId) {
         this.name = name;
+        this.keyword = keyword;
         this.professor = professor;
         this.subjectCode = subjectCode;
         this.academicYear = academicYear;
@@ -185,6 +190,7 @@ public class CourseSearchCondition {
     public CourseSearchCriteria toCriteria(Long userId) {
         return CourseSearchCriteria.builder()
                 .name(name)
+                .keyword(keyword)
                 .professor(professor)
                 .subjectCode(subjectCode)
                 .academicYear(academicYear)
@@ -221,6 +227,9 @@ public class CourseSearchCondition {
     }
 
     public void validateSearchValues() {
+        if (hasText(keyword) && hasText(name)) {
+            reject("keyword/name");
+        }
         validateEnumValues(classifications, CourseClassification::from, "classifications");
         validateEnumValues(gradingMethods, GradingMethod::from, "gradingMethods");
         validateEnumValues(lectureLanguages, LectureLanguage::from, "lectureLanguages");
@@ -279,5 +288,9 @@ public class CourseSearchCondition {
 
     private void reject(String field) {
         throw new CustomException(ErrorCode.INVALID_INPUT, "검색 조건이 올바르지 않습니다: " + field);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

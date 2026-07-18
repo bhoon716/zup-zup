@@ -6,6 +6,7 @@ import lombok.Builder;
 @Builder
 public record CourseSearchCriteria(
         String name,
+        String keyword,
         String professor,
         String subjectCode,
         String academicYear,

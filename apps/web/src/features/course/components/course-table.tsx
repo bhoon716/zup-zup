@@ -249,11 +249,9 @@ export function CourseTable({
                           <span className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
                             {course.credits || 0}학점
                           </span>
-                          {course.subjectCode && (
                           <span className="text-[10px] font-semibold tracking-wide text-gray-600">
-                              {course.subjectCode}
-                            </span>
-                          )}
+                            {course.stdtrNo || "학수번호 미제공"}
+                          </span>
                         </div>
 
                         <h2 className="mb-1 truncate text-sm font-bold text-foreground transition-colors group-hover:text-primary md:mb-1.5 md:text-base">

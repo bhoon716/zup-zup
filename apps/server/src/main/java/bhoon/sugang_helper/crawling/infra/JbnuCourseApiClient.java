@@ -46,9 +46,9 @@ public class JbnuCourseApiClient {
     private MeterRegistry meterRegistry;
 
     /**
-     * 하위 호환을 위해 메서드명은 유지하지만, 반환값은 JUMP JSON입니다.
+     * JUMP JSON 강의 데이터를 가져옵니다.
      */
-    public String fetchCourseDataXml(String year, String semester) {
+    public String fetchCourseData(String year, String semester) {
         try (InputStream responseStream = fetchCourseDataStream(year, semester)) {
             return new String(responseStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
         } catch (IOException e) {

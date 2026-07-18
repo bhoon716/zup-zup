@@ -18,7 +18,9 @@ import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
 import bhoon.sugang_helper.course.infra.CourseSeatHistoryJpaRepository;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +40,7 @@ class SpringBatchConfigTest {
     private static final String SAME_COURSE_KEY = "SAME:01";
     private static final String ACADEMIC_YEAR = "2026";
     private static final String SEMESTER_CODE = "U211600010";
+    private static final String STDTR_NO = "GECO178";
 
     @Mock
     private CourseRepository courseRepository;
@@ -146,6 +149,29 @@ class SpringBatchConfigTest {
     }
 
     @Test
+    @DisplayName("새 크롤링에서 학수번호가 누락되면 기존 학수번호를 유지한다")
+    void existingCourseUpdate_MissingStdtrNoPreservesExistingValue() throws Exception {
+        ParsedCourseDto dto = createCourseDto(SAME_COURSE_KEY, 50, 10);
+        Course existingCourse = createCourse(SAME_COURSE_KEY, 50, 10);
+        existingCourse = Course.builder()
+                .courseKey(existingCourse.getCourseKey())
+                .stdtrNo(STDTR_NO)
+                .name(existingCourse.getName())
+                .capacity(existingCourse.getCapacity())
+                .current(existingCourse.getCurrent())
+                .academicYear(existingCourse.getAcademicYear())
+                .semester(existingCourse.getSemester())
+                .build();
+        given(courseRepository.findByCourseKeyIn(List.of(SAME_COURSE_KEY))).willReturn(List.of(existingCourse));
+
+        ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
+
+        writer.write(new Chunk<>(Collections.singletonList(dto)));
+
+        assertThat(existingCourse.getStdtrNo()).isEqualTo(STDTR_NO);
+    }
+
+    @Test
     @DisplayName("과목 저장 실패 시 writer가 예외를 삼키지 않고 전파한다")
     void newCourseSaveFailure_IsPropagated() {
         // given
@@ -184,6 +210,17 @@ class SpringBatchConfigTest {
         verify(courseRepository, times(1)).findByCourseKeyIn(List.of(NEW_COURSE_KEY, SAME_COURSE_KEY));
     }
 
+    @Test
+    @DisplayName("청크가 달라도 동일한 학수번호 중복을 감지한다")
+    void duplicateStdtrNoAcrossChunks_IsDetected() {
+        Set<String> seenStdtrNos = new HashSet<>();
+        Course first = Course.builder().courseKey("FIRST").stdtrNo(STDTR_NO).build();
+        Course second = Course.builder().courseKey("SECOND").stdtrNo(STDTR_NO).build();
+
+        assertThat(springBatchConfig.countDuplicateStdtrNos(List.of(first), seenStdtrNos)).isZero();
+        assertThat(springBatchConfig.countDuplicateStdtrNos(List.of(second), seenStdtrNos)).isOne();
+    }
+
     private Course createCourse(String courseKey, int capacity, int current) {
         return Course.builder()
                 .courseKey(courseKey)
@@ -197,7 +234,7 @@ class SpringBatchConfigTest {
 
     private ParsedCourseDto createCourseDto(String courseKey, int capacity, int current) {
         return new ParsedCourseDto(
-                courseKey, "12345", "테스트 강의", "01", "김교수",
+                courseKey, "12345", null, "테스트 강의", "01", "김교수",
                 capacity, current, null, ACADEMIC_YEAR, SEMESTER_CODE,
                 null, "컴퓨터공학부", null, "월 1-A", "3",
                 null, null, null, 3, null,

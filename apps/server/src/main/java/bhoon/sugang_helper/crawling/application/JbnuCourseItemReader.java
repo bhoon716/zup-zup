@@ -9,7 +9,7 @@ import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemStreamReader;
 
-public class JbnuCourseStaxItemReader implements ItemStreamReader<ParsedCourseDto> {
+public class JbnuCourseItemReader implements ItemStreamReader<ParsedCourseDto> {
 
     private final JbnuCourseApiClient apiClient;
     private final JbnuCourseParser courseParser;
@@ -18,8 +18,8 @@ public class JbnuCourseStaxItemReader implements ItemStreamReader<ParsedCourseDt
     private InputStream responseStream;
     private Iterator<ParsedCourseDto> iterator;
 
-    public JbnuCourseStaxItemReader(JbnuCourseApiClient apiClient, JbnuCourseParser courseParser,
-                                    String year, String semester) {
+    public JbnuCourseItemReader(JbnuCourseApiClient apiClient, JbnuCourseParser courseParser,
+                                String year, String semester) {
         this.apiClient = apiClient;
         this.courseParser = courseParser;
         this.year = year;
@@ -39,7 +39,7 @@ public class JbnuCourseStaxItemReader implements ItemStreamReader<ParsedCourseDt
 
     @Override
     public void update(ExecutionContext executionContext) {
-        // The source API does not provide a stable row cursor for restart offsets.
+        // JUMP does not provide a stable row cursor for restart offsets.
     }
 
     @Override
