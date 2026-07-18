@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deep Code Review"
+  short_description: "Orchestrate deep, evidence-based code reviews"
+  default_prompt: "Use $deep-code-review to review this PR or diff with independent specialist lenses, finding verification, and a concise evidence-backed verdict."
