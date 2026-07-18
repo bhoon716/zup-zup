@@ -16,8 +16,9 @@ jobs:
       - name: runtime·migration 실패 계약 검증
         run: |
           infra/scripts/test-runtime-contract.sh
+          infra/scripts/test-observability-contract.sh
           infra/scripts/test-migration-failure-path.sh
-          infra/scripts/test-rollback-workflow-contract.sh
+          infra/scripts/test-minimal-cicd-contract.sh
 
       - name: rebuild 절차 안내
         run: |

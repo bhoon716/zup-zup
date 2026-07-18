@@ -11,7 +11,7 @@
 | Redis | 캐시·임시 데이터. persistence와 host port를 제공하지 않음 |
 | Nginx | Compose 밖의 호스트 reverse proxy. 80→443 redirect, TLS termination, 민감 endpoint rate limit |
 | certbot | 호스트 timer가 인증서를 갱신하고 `nginx -t` 성공 뒤 reload |
-| 관측 | 외부 uptime monitor의 sanitized readiness + 이메일. Prometheus/Grafana/Loki/Alertmanager는 기본 stack에 넣지 않음 |
+| 관측 | Loki + Grafana Alloy + Grafana를 `observability` profile로 운영. Prometheus/Alertmanager는 넣지 않음 |
 
 상세 결정은 [단일 OCI CI/CD ADR](../docs/decisions/2026-07-19-single-oci-cicd.md), 실행 순서는 [운영 deployment runbook](../docs/operations/deployment.md)을 참고합니다.
 
@@ -29,7 +29,7 @@ cd infra
 docker compose up -d --build
 ```
 
-`docker-compose.override.yml`은 Compose가 자동으로 읽습니다. 따라서 로컬 기본 실행에서 `-f`나 별도 profile을 지정할 필요가 없습니다. 기본 실행 서비스는 `app`, `db`, `redis`뿐이며 Nginx·관측 컨테이너는 시작되지 않습니다.
+`docker-compose.override.yml`은 Compose가 자동으로 읽습니다. 따라서 로컬 기본 실행에서 `-f`나 별도 profile을 지정할 필요가 없습니다. 기본 실행 서비스는 `app`, `db`, `redis`뿐이며 Nginx·관측 컨테이너는 시작되지 않습니다. 운영 배포는 `observability` profile을 함께 실행해 Loki, Alloy, Grafana를 유지합니다.
 로컬 override는 `Dockerfile.local`에서 Gradle build까지 수행하므로 위 명령 하나로 앱 이미지가 생성됩니다. 운영/CI는 사전 생성한 `bootJar`를 사용하는 `Dockerfile`을 그대로 사용합니다.
 기존 `infra` 프로젝트로 만든 `sugang-helper-app/mysql/redis` 컨테이너가 남아 있으면 첫 전환 때만 해당 컨테이너를 재생성해야 합니다. `docker rm -f sugang-helper-app sugang-helper-mysql sugang-helper-redis`는 컨테이너만 제거하며 named volume 데이터는 삭제하지 않습니다.
 
@@ -42,6 +42,17 @@ DB migration은 앱 시작과 분리된 one-shot profile입니다.
 docker compose --profile migration run --rm migrate migrate
 docker compose --profile migration run --rm migrate validate
 ```
+
+## 로그 검색
+
+운영 Compose는 `observability` profile에서 Loki, Grafana Alloy, Grafana를 실행합니다. Alloy는 Docker socket을 읽기 전용으로 사용해 Compose 컨테이너의 JSON 로그를 Loki로 전송하고, 호스트 Nginx 로그도 존재할 때 함께 수집합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다.
+
+```bash
+docker compose --profile observability up -d loki alloy grafana
+ssh -L 3000:127.0.0.1:3000 <deploy-user>@<api-host>
+```
+
+현재 Loki는 호스트 filesystem에 30일 retention으로 저장합니다. Object Storage 장기 보존과 복구 rehearsal은 bucket/IAM 계약을 확정한 뒤 별도 운영 이슈로 진행합니다.
 
 이미 migration history가 있는 DB를 배포할 때는 운영 runbook대로 `validate` 성공 후 `migrate`를 실행합니다. `docker compose up` 자체는 DB schema를 자동 변경하지 않습니다.
 
@@ -111,7 +122,7 @@ API_HOST=<api-duckdns-fqdn> bash scripts/test-uptime-contract.sh
 - `.env`, `secrets/`, host certificate/private key는 저장소에 커밋하지 않습니다.
 - `DB_ROOT_PASSWORD`는 DB container에만, `DB_RUNTIME_PASSWORD`는 앱과 DB init에만, `DB_MIGRATOR_PASSWORD`는 one-shot migration에만 전달합니다.
 - DB backup/restore는 이 최소 구성의 기능이 아닙니다. `DB_BACKUP_*` 변수를 새 runtime contract에 추가하지 않습니다.
-- `infra/nginx-proxy-manager`, Prometheus/Grafana/Loki/Promtail 관련 기존 파일은 새 minimal Compose에서 참조하지 않습니다. 전체 삭제는 별도 cleanup 범위로 분리합니다.
+- `infra/nginx-proxy-manager`와 Prometheus/Alertmanager 관련 기존 파일은 새 runtime에서 참조하지 않습니다. Loki/Alloy/Grafana 설정은 production Compose의 `observability` profile에서 참조합니다.
 
 ## 관련 문서
 

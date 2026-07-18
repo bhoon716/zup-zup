@@ -4,12 +4,12 @@
 
 ## `main` branch protection
 
-- direct push 금지
+- main 직접 push 차단
 - pull request merge만 허용
-- required status checks:
-  - `backend + MySQL + Redis + Flyway`
-  - `build ARM64 image (PR)`
-- stale approval dismiss와 force push/delete branch는 저장소 정책에 맞춰 비활성화
+- required status check: `CI`
+- 리뷰 승인 요구 없음
+- merge queue와 up-to-date 요구 없음
+- force push/delete branch는 저장소 기본 보호 정책에 맞춰 금지
 - E2E workflow는 필수 check로 추가하지 않음. 수동/주기 workflow로만 실행
 
 ## `production` Environment
@@ -24,5 +24,5 @@
 - workflow 기본 권한은 `contents: read`
 - GHCR push job만 `packages: write`
 - `GITHUB_TOKEN`을 로그에 출력하지 않음
-- production deploy/rollback workflow는 동일 concurrency group으로 직렬화
-- CD는 `PR CI` workflow의 성공적인 `main` 실행(`workflow_run`) 이후에만 시작
+- GitHub Actions concurrency는 사용하지 않고, OCI deploy/rollback script의 server-side `flock`으로 중복 실행을 거부
+- CD는 `main` push 또는 수동 SHA 입력으로 시작

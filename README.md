@@ -84,7 +84,7 @@ flowchart LR
 | Vercel + OCI A1 ARM64 | Web은 빠르고 저렴하게, Server와 Infra는 운영 친화적으로 유지하기 위해 | 배포 경로가 둘로 나뉩니다 |
 | Docker Compose | 로컬과 운영 환경의 차이를 줄이기 위해 | 컨테이너 운영 개념이 필요합니다 |
 | 문서 분리 | 릴리스, 트러블슈팅, 설계를 남기기 위해 | 문서 수가 늘어납니다 |
-| 외부 uptime + 호스트 로그 | 단일 OCI 운영에서 필요한 장애 감지만 먼저 제공하기 위해 | 상세 Prometheus/Grafana/Loki 분석은 후속 범위입니다 |
+| 외부 uptime + Loki 로그 검색 | 단일 OCI 운영에서 공개 장애 감지와 과거 로그 검색을 함께 제공하기 위해 | Prometheus/Alertmanager metric 분석과 Object Storage 장기 보존은 후속 범위입니다 |
 
 ## 도전과 해결
 

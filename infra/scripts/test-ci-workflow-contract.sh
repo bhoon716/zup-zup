@@ -17,49 +17,32 @@ def require(fragment, message):
     if fragment not in workflow:
         raise SystemExit(message)
 
-def job_block(name):
-    lines = workflow.splitlines()
-    marker = f"  {name}:"
-    try:
-        start = lines.index(marker)
-    except ValueError:
-        raise SystemExit(f"job {name} is missing")
-    block = []
-    for line in lines[start:]:
-        if block and line.startswith("  ") and not line.startswith("    "):
-            break
-        block.append(line)
-    return "\n".join(block)
-
 require("name: PR CI", "workflow name must be PR CI")
 require("pull_request:", "PR trigger is missing")
+if "\n  push:\n" in workflow or "\n  workflow_dispatch:\n" in workflow:
+    raise SystemExit("PR CI must only trigger from pull_request")
+if "concurrency:" in workflow:
+    raise SystemExit("PR CI concurrency must be removed")
 require("permissions:\n  contents: read", "workflow must default to contents: read")
+require("  verify:", "CI must use one aggregate verification job")
+require("    name: CI", "CI aggregate job name is missing")
 require("    services:\n      mysql:", "MySQL service container is missing")
 require("      redis:\n        image: redis:latest", "Redis service container is missing")
-require("name: Flyway validate", "Flyway validate step is missing")
-require("name: Flyway migrate", "Flyway migrate step is missing")
+require("Flyway migrate", "Flyway migrate step is missing")
+require("Flyway validate", "Flyway validate step is missing")
 require("FLYWAY_IMAGE: flyway/flyway@sha256:", "CI Flyway image must be digest-pinned")
 require("./gradlew clean check --no-daemon", "backend check is missing")
 require("./gradlew migrationTest --no-daemon", "existing-schema migration gate is missing")
+require("./gradlew bootJar --no-daemon", "application JAR build is missing")
 require("docker/build-push-action@v6", "Buildx push action is missing")
 require("platforms: linux/arm64", "ARM64 platform is not pinned")
+require("push: false", "PR image build must not push")
 require("ghcr.io/", "GHCR image name is missing")
 require("github.sha", "commit SHA image tag is missing")
-require("PREVIOUS_IMAGE_TAG", "previous image smoke input is missing")
-require('docker pull --platform linux/arm64 "${IMAGE_NAME}:${PREVIOUS_IMAGE_TAG}"', "previous image pull is missing")
-require('"${IMAGE_NAME}:${PREVIOUS_IMAGE_TAG}" -version', "previous image smoke test is missing")
-
-if "packages: write-all" in workflow or "contents: write" in workflow:
-    raise SystemExit("workflow grants broader write permissions than required")
-
-publish = job_block("publish-image")
-if "packages: write" not in publish:
-    raise SystemExit("only publish-image should receive packages: write")
-
-for job_name in ("server-integration", "build-image"):
-    if "packages: write" in job_block(job_name):
-        raise SystemExit(f"job {job_name} must not receive packages: write")
-
+if "packages: write" in workflow or "contents: write" in workflow:
+    raise SystemExit("PR CI must not receive write permissions")
+if "publish-image" in workflow or "workflow_run" in workflow:
+    raise SystemExit("PR CI must not contain a production publish job")
 if "e2e" in workflow.lower() or "playwright" in workflow.lower():
     raise SystemExit("E2E must not be a required PR CI gate")
 

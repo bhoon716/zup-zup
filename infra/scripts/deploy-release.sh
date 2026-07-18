@@ -13,6 +13,7 @@ readonly MANIFEST_PUBLIC_KEY="${RELEASE_ROOT}/secrets/deploy-manifest-public.pem
 readonly GHCR_USERNAME_FILE="${RELEASE_ROOT}/secrets/ghcr-read-username"
 readonly GHCR_TOKEN_FILE="${RELEASE_ROOT}/secrets/ghcr-read-token"
 readonly AUDIT_LOG="/var/log/jbnu-sugang-helper/deploy.log"
+lock_file="${DEPLOY_LOCK_FILE:-/run/lock/jbnu-deploy.lock}"
 
 sha="${1:-}"
 staging_dir="${2:-}"
@@ -31,6 +32,10 @@ fail() {
 if [ "$(id -u)" -ne 0 ]; then
   fail "must run as root"
 fi
+command -v flock >/dev/null || fail "flock is required"
+install -d -o root -g root -m 0755 "$(dirname "${lock_file}")"
+exec 9>"${lock_file}"
+flock -n 9 || fail "another deployment is running"
 if [[ ! "${sha}" =~ ^[0-9a-f]{40}$ ]]; then
   fail "release SHA must be exactly 40 lowercase hexadecimal characters"
 fi
@@ -46,7 +51,10 @@ fi
 if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -f "${staging_dir}/application-prod.yml" ] \
   || [ ! -d "${staging_dir}/src/main/resources/db/migration" ] \
-  || [ ! -f "${staging_dir}/mysql/init/01-provision-service-accounts.sh" ]; then
+  || [ ! -f "${staging_dir}/mysql/init/01-provision-service-accounts.sh" ] \
+  || [ ! -f "${staging_dir}/loki/loki-config.yaml" ] \
+  || [ ! -f "${staging_dir}/alloy/config.alloy" ] \
+  || [ ! -f "${staging_dir}/grafana/provisioning/datasources/datasource.yml" ]; then
   fail "staging release is incomplete"
 fi
 if [ -L "${staging_dir}" ] || find -P "${staging_dir}" -type l -print -quit | grep -q .; then
@@ -144,11 +152,23 @@ if [ -e "${release_dir}" ]; then
 fi
 release_tmp="${release_dir}.tmp.$$"
 stage="release-staging"
-install -d -o root -g root -m 0750 "${release_tmp}/src/main/resources" "${release_tmp}/mysql/init"
+install -d -o root -g root -m 0750 \
+  "${release_tmp}/src/main/resources" \
+  "${release_tmp}/mysql/init" \
+  "${release_tmp}/loki" \
+  "${release_tmp}/alloy" \
+  "${release_tmp}/grafana"
 cp -a "${staging_dir}/src/main/resources/db" "${release_tmp}/src/main/resources/"
+cp -a "${staging_dir}/loki/." "${release_tmp}/loki/"
+cp -a "${staging_dir}/alloy/." "${release_tmp}/alloy/"
+cp -a "${staging_dir}/grafana/." "${release_tmp}/grafana/"
 cp -a "${staging_dir}/application-prod.yml" "${release_tmp}/application-prod.yml"
 cp -a "${staging_dir}/mysql/init/01-provision-service-accounts.sh" "${release_tmp}/mysql/init/"
 cp -a "${staging_dir}/docker-compose.yml" "${release_tmp}/docker-compose.yml"
+find "${release_tmp}/loki" "${release_tmp}/alloy" "${release_tmp}/grafana" \
+  -type d -exec chmod 0755 {} +
+find "${release_tmp}/loki" "${release_tmp}/alloy" "${release_tmp}/grafana" \
+  -type f -exec chmod 0644 {} +
 chmod 0644 "${release_tmp}/application-prod.yml"
 chmod 0644 "${release_tmp}/mysql/init/01-provision-service-accounts.sh"
 chmod 0644 "${release_tmp}/docker-compose.yml"
@@ -167,9 +187,10 @@ FIREBASE_CONFIG_PATH=${RELEASE_ROOT}/secrets/firebase-key.json
 EOF
 chmod 0600 "${release_env}"
 
-compose=(docker compose --project-name sugang-helper --env-file "${RUNTIME_ENV}" --env-file "${release_env}" -f "${staging_dir}/docker-compose.yml")
+compose=(docker compose --project-name sugang-helper --env-file "${RUNTIME_ENV}" --env-file "${release_env}" -f "${release_dir}/docker-compose.yml")
 stage="compose-validate"
-"${compose[@]}" --profile migration config >/dev/null || fail "Compose config validation failed"
+"${compose[@]}" --profile migration --profile observability config >/dev/null \
+  || fail "Compose config validation failed"
 
 stage="disk-preflight"
 available_percent="$(df -P "${RELEASE_ROOT}" | awk 'NR == 2 {gsub(/%/, "", $5); print 100 - $5}')"
@@ -180,12 +201,19 @@ fi
 stage="infra-preflight"
 "${compose[@]}" pull db redis || fail "MySQL/Redis image preflight failed"
 "${compose[@]}" --profile migration pull migrate || fail "Flyway image preflight failed"
-"${compose[@]}" up -d db redis || fail "MySQL/Redis startup failed"
+"${compose[@]}" --profile observability pull loki alloy grafana \
+  || fail "Loki/Alloy/Grafana image preflight failed"
+"${compose[@]}" --profile observability up -d db redis loki alloy grafana \
+  || fail "MySQL/Redis/Loki/Alloy/Grafana startup failed"
 
 wait_healthy() {
   local service="$1"
   local container_id
-  container_id="$("${compose[@]}" ps -q "${service}")"
+  local compose_for_service=("${compose[@]}")
+  case "${service}" in
+    loki|alloy|grafana) compose_for_service+=(--profile observability) ;;
+  esac
+  container_id="$("${compose_for_service[@]}" ps -q "${service}")"
   [ -n "${container_id}" ] || fail "${service} container was not created"
   for _ in $(seq 1 60); do
     health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container_id}")"
@@ -198,6 +226,9 @@ wait_healthy() {
 
 wait_healthy db
 wait_healthy redis
+wait_healthy loki
+wait_healthy alloy
+wait_healthy grafana
 
 stage="db-service-accounts"
 "${compose[@]}" exec -T db bash /docker-entrypoint-initdb.d/01-provision-service-accounts.sh \
@@ -223,60 +254,18 @@ for attempt in $(seq 1 6); do
 done
 docker image inspect "${app_image_name}:${sha}" >/dev/null || fail "application SHA image is missing"
 
-stage="nginx-preflight"
-command -v nginx >/dev/null || fail "host nginx is not installed"
-
-apply_staged_nginx() {
-  local staged_config="${staging_dir}/nginx/jbnu-sugang-helper.conf"
-  local target="/etc/nginx/sites-available/jbnu-sugang-helper.conf"
-  local support_source support_target support_backup
-  local backup_dir="${RELEASE_ROOT}/.nginx-backup.$$"
-  local changed_targets=()
-  local staged_files=(
-    "${staging_dir}/nginx/conf.d/00-sugang-helper-rate-limit.conf:/etc/nginx/conf.d/00-sugang-helper-rate-limit.conf"
-    "${staging_dir}/nginx/snippets/jbnu-sugang-helper-proxy.conf:/etc/nginx/snippets/jbnu-sugang-helper-proxy.conf"
-    "${staged_config}:${target}"
-  )
-
-  install -d -o root -g root -m 0750 "${backup_dir}"
-  for entry in "${staged_files[@]}"; do
-    support_source="${entry%%:*}"
-    support_target="${entry#*:}"
-    [ -f "${support_source}" ] || continue
-    support_backup="${backup_dir}$(printf '%s' "${support_target}" | tr '/' '_')"
-    if [ -f "${support_target}" ]; then
-      cp -a "${support_target}" "${support_backup}"
-    fi
-    install -o root -g root -m 0644 "${support_source}" "${support_target}.tmp.$$"
-    mv "${support_target}.tmp.$$" "${support_target}"
-    changed_targets+=("${support_target}:${support_backup}")
-  done
-
-  if ! nginx -t >/dev/null || ! systemctl reload nginx; then
-    for entry in "${changed_targets[@]}"; do
-      support_target="${entry%%:*}"
-      support_backup="${entry#*:}"
-      if [ -f "${support_backup}" ]; then
-        mv "${support_backup}" "${support_target}"
-      else
-        rm -f "${support_target}"
-      fi
-    done
-    nginx -t >/dev/null 2>&1 || true
-    rm -rf "${backup_dir}"
-    fail "staged Nginx configuration was rejected"
-  fi
-  rm -rf "${backup_dir}"
-}
-
-stage="nginx-apply"
-apply_staged_nginx
-
 stage="promote-runtime-files"
 install -d -o root -g root -m 0750 "${RELEASE_ROOT}/mysql" "${RELEASE_ROOT}/mysql/init"
+install -d -o root -g root -m 0750 \
+  "${RELEASE_ROOT}/loki" \
+  "${RELEASE_ROOT}/alloy" \
+  "${RELEASE_ROOT}/grafana"
 install -o root -g root -m 0644 "${staging_dir}/docker-compose.yml" \
   "${RELEASE_ROOT}/docker-compose.yml.tmp.$$"
 mv "${RELEASE_ROOT}/docker-compose.yml.tmp.$$" "${RELEASE_ROOT}/docker-compose.yml"
+cp -a "${release_dir}/loki/." "${RELEASE_ROOT}/loki/"
+cp -a "${release_dir}/alloy/." "${RELEASE_ROOT}/alloy/"
+cp -a "${release_dir}/grafana/." "${RELEASE_ROOT}/grafana/"
 install -o root -g root -m 0644 "${staging_dir}/mysql/init/01-provision-service-accounts.sh" \
   "${RELEASE_ROOT}/mysql/init/01-provision-service-accounts.sh.tmp.$$"
 mv "${RELEASE_ROOT}/mysql/init/01-provision-service-accounts.sh.tmp.$$" \
@@ -284,9 +273,6 @@ mv "${RELEASE_ROOT}/mysql/init/01-provision-service-accounts.sh.tmp.$$" \
 
 stage="stop-app"
 "${compose[@]}" stop app >/dev/null 2>&1 || true
-
-stage="flyway-validate"
-"${compose[@]}" --profile migration run --rm --no-deps migrate validate || fail "Flyway validate failed; app remains stopped"
 
 stage="flyway-migrate"
 "${compose[@]}" --profile migration run --rm --no-deps migrate migrate || fail "Flyway migrate failed; app remains stopped"

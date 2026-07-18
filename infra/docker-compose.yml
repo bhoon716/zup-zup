@@ -147,6 +147,113 @@ services:
       db:
         condition: service_healthy
 
+  loki:
+    image: grafana/loki@sha256:70b9f699fc9bb868b62f1cfd4f787dfa50242f1fd92e6089787d5d7daea75fe8
+    container_name: ${LOKI_CONTAINER_NAME:?LOKI_CONTAINER_NAME must be set}
+    profiles: ["observability"]
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/var/lib/loki
+    networks:
+      - sugang-helper-runtime
+    healthcheck:
+      test: ["CMD", "/usr/bin/loki", "-config.file=/etc/loki/local-config.yaml", "-verify-config"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  alloy:
+    image: grafana/alloy@sha256:41c41849989b7e054ccbadc17938ee1e5592fe26bfbc56ef3ffc109c0b0b2739
+    container_name: ${ALLOY_CONTAINER_NAME:?ALLOY_CONTAINER_NAME must be set}
+    profiles: ["observability"]
+    restart: unless-stopped
+    read_only: true
+    user: "0:0"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log/nginx:/var/log/nginx:ro
+      - /var/log/jbnu-sugang-helper:/var/log/jbnu-sugang-helper:ro
+    networks:
+      - sugang-helper-runtime
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "/bin/alloy fmt --test /etc/alloy/config.alloy >/dev/null && test -d /var/lib/alloy/data"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  grafana:
+    image: grafana/grafana@sha256:121a7a9ece6dc10b969f1f96eed64b4f07dfac0d0b8abc070f7cb83bbde86f63
+    container_name: ${GRAFANA_CONTAINER_NAME:?GRAFANA_CONTAINER_NAME must be set}
+    profiles: ["observability"]
+    restart: unless-stopped
+    read_only: true
+    user: "472:472"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      TZ: ${TZ:?TZ must be set}
+    ports:
+      - "${GRAFANA_BIND_ADDRESS:-127.0.0.1}:${GRAFANA_PORT_HOST:-3000}:3000"
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - sugang-helper-runtime
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/health | grep -q '\"database\":\"ok\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
 networks:
   sugang-helper-runtime:
     name: sugang-helper-runtime
@@ -170,3 +277,24 @@ volumes:
       device: ${DB_DATA_DIR:?DB_DATA_DIR must be set}
   app_uploads:
     name: ${APP_UPLOAD_VOLUME_NAME:-sugang-helper-app-uploads}
+  loki_data:
+    name: ${LOKI_VOLUME_NAME:-sugang-helper-loki-data}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOKI_DATA_DIR:?LOKI_DATA_DIR must be set}
+  alloy_data:
+    name: ${ALLOY_VOLUME_NAME:-sugang-helper-alloy-data}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${ALLOY_DATA_DIR:?ALLOY_DATA_DIR must be set}
+  grafana_data:
+    name: ${GRAFANA_VOLUME_NAME:-sugang-helper-grafana-data}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${GRAFANA_DATA_DIR:?GRAFANA_DATA_DIR must be set}

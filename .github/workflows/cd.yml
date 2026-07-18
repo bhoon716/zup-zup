@@ -1,42 +1,97 @@
 name: Production CD
 
 on:
-  workflow_run:
-    workflows: ["PR CI"]
-    types: [completed]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "배포할 40자리 commit SHA (비워 두면 현재 SHA)"
+        description: "배포할 40자리 commit SHA (수동 배포 시 필수)"
         required: false
         type: string
 
 permissions:
   contents: read
 
-concurrency:
-  group: production-deploy
-  cancel-in-progress: false
-
 jobs:
+  publish-image:
+    name: publish ARM64 image to GHCR
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v5
+
+      - name: JDK 21 설정
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: gradle
+          cache-dependency-path: apps/server/gradle/wrapper/gradle-wrapper.properties
+
+      - name: 애플리케이션 JAR 빌드
+        working-directory: apps/server
+        run: ./gradlew bootJar --no-daemon
+
+      - name: GHCR 로그인
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: QEMU 설정
+        uses: docker/setup-qemu-action@v3
+
+      - name: Buildx 설정
+        uses: docker/setup-buildx-action@v3
+
+      - name: ARM64 이미지 build/push
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/server
+          file: apps/server/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server:${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   deploy:
     name: deploy to OCI
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    needs: publish-image
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.publish-image.result == 'success')
     runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: read
     env:
-      IMAGE_TAG: ${{ inputs.image_tag || github.event.workflow_run.head_sha || github.sha }}
+      IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server
       OCI_HOST: ${{ secrets.OCI_HOST }}
       OCI_DEPLOY_USER: ${{ secrets.OCI_DEPLOY_USER }}
       OCI_KNOWN_HOSTS: ${{ secrets.OCI_KNOWN_HOSTS }}
-      API_HOST: ${{ secrets.API_HOST }}
+
     steps:
+      - name: 수동 배포 SHA 입력 확인
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          IMAGE_TAG_INPUT: ${{ inputs.image_tag }}
+        run: |
+          if [ -z "${IMAGE_TAG_INPUT}" ]; then
+            echo "image_tag is required for manual deployment" >&2
+            exit 1
+          fi
+
       - name: 코드 체크아웃
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.image_tag || github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ inputs.image_tag || github.sha }}
 
       - name: release SHA 검증
         run: |
@@ -44,7 +99,7 @@ jobs:
             echo "IMAGE_TAG must be exactly 40 lowercase hexadecimal characters" >&2
             exit 1
           fi
-          for variable in OCI_HOST OCI_DEPLOY_USER OCI_KNOWN_HOSTS API_HOST; do
+          for variable in OCI_HOST OCI_DEPLOY_USER OCI_KNOWN_HOSTS; do
             if [ -z "${!variable}" ]; then
               echo "Missing production variable: ${variable}" >&2
               exit 1
@@ -54,9 +109,9 @@ jobs:
       - name: Compose runtime contract
         run: |
           infra/scripts/test-runtime-contract.sh
+          infra/scripts/test-observability-contract.sh
           infra/scripts/test-release-layout-contract.sh
           infra/scripts/test-ghcr-auth-contract.sh
-          infra/scripts/test-nginx-bootstrap-contract.sh
           docker compose --env-file infra/.env.example -f infra/docker-compose.yml config >/dev/null
 
       - name: SSH known_hosts 고정
@@ -82,16 +137,15 @@ jobs:
             exit 1
           fi
           stage_dir="${RUNNER_TEMP}/jbnu-release-${IMAGE_TAG}"
-          mkdir -p "${stage_dir}/src/main/resources/db/migration" "${stage_dir}/mysql/init" "${stage_dir}/nginx/conf.d" "${stage_dir}/nginx/snippets" "${stage_dir}/scripts/oci"
+          mkdir -p "${stage_dir}/src/main/resources/db/migration" "${stage_dir}/mysql/init" "${stage_dir}/scripts/oci"
           cp infra/docker-compose.yml "${stage_dir}/docker-compose.yml"
+          cp -a infra/loki "${stage_dir}/loki"
+          cp -a infra/alloy "${stage_dir}/alloy"
+          cp -a infra/grafana "${stage_dir}/grafana"
           cp infra/mysql/init/01-provision-service-accounts.sh "${stage_dir}/mysql/init/01-provision-service-accounts.sh"
-          cp infra/nginx/conf.d/00-sugang-helper-rate-limit.conf "${stage_dir}/nginx/conf.d/00-sugang-helper-rate-limit.conf"
-          cp infra/nginx/snippets/jbnu-sugang-helper-proxy.conf "${stage_dir}/nginx/snippets/jbnu-sugang-helper-proxy.conf"
           cp apps/server/src/main/resources/application-prod.yml "${stage_dir}/application-prod.yml"
           cp apps/server/src/main/resources/db/migration/V*__*.sql "${stage_dir}/src/main/resources/db/migration/"
           cp infra/scripts/oci/* "${stage_dir}/scripts/oci/"
-          API_HOST="${API_HOST}" infra/scripts/render-nginx-config.sh \
-            "${stage_dir}/nginx/jbnu-sugang-helper.conf"
           printf '%s\n' "${GITHUB_ACTOR}" >"${stage_dir}/DEPLOY_ACTOR"
           manifest_key="${RUNNER_TEMP}/deploy-manifest-private.pem"
           trap 'rm -f "${manifest_key}"' EXIT

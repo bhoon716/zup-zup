@@ -8,6 +8,7 @@ readonly RELEASE_HISTORY="${RELEASE_ROOT}/.release-history"
 readonly GHCR_USERNAME_FILE="${RELEASE_ROOT}/secrets/ghcr-read-username"
 readonly GHCR_TOKEN_FILE="${RELEASE_ROOT}/secrets/ghcr-read-token"
 readonly AUDIT_LOG="/var/log/jbnu-sugang-helper/deploy.log"
+lock_file="${DEPLOY_LOCK_FILE:-/run/lock/jbnu-deploy.lock}"
 
 sha="${1:-}"
 stage="input"
@@ -20,6 +21,10 @@ fail() {
 }
 
 [ "$(id -u)" -eq 0 ] || fail "must run as root"
+command -v flock >/dev/null || fail "flock is required"
+install -d -o root -g root -m 0755 "$(dirname "${lock_file}")"
+exec 9>"${lock_file}"
+flock -n 9 || fail "another deployment is running"
 [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || fail "rollback SHA must be exactly 40 lowercase hexadecimal characters"
 [ -f "${RUNTIME_ENV}" ] || fail "root-only runtime environment is missing"
 [ -f "${RELEASE_ROOT}/docker-compose.yml" ] || fail "active Compose file is missing"

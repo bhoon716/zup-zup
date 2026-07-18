@@ -28,6 +28,17 @@ if ! grep -F 'mysql/init/01-provision-service-accounts.sh' "${deploy_script}" >/
   echo "deploy must promote the DB init support file" >&2
   exit 1
 fi
+for required_path in 'loki/loki-config.yaml' 'alloy/config.alloy' 'grafana/provisioning/datasources/datasource.yml'; do
+  if ! grep -F "${required_path}" "${deploy_script}" >/dev/null; then
+    echo "deploy must promote observability file: ${required_path}" >&2
+    exit 1
+  fi
+done
+if ! grep -F 'find "${release_tmp}/loki"' "${deploy_script}" >/dev/null \
+  || ! grep -F 'cp -a "${release_dir}/grafana/.' "${deploy_script}" >/dev/null; then
+  echo "observability release files must be readable and promoted from the retained release" >&2
+  exit 1
+fi
 if ! grep -F 'compose[@]}" exec -T db bash /docker-entrypoint-initdb.d/01-provision-service-accounts.sh' "${deploy_script}" >/dev/null; then
   echo "deploy must provision DB service accounts on existing volumes" >&2
   exit 1

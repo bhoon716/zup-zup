@@ -10,11 +10,10 @@ from pathlib import Path
 
 content = Path(sys.argv[1]).read_text(encoding="utf-8")
 stop = content.index('stage="stop-app"')
-validate = content.index('stage="flyway-validate"')
 migrate = content.index('stage="flyway-migrate"')
 start = content.index('stage="app-start"')
-if not stop < validate < migrate < start:
-    raise SystemExit("migration stages are not ordered stop -> validate -> migrate -> start")
+if not stop < migrate < start:
+    raise SystemExit("migration stages are not ordered stop -> migrate -> start")
 if "app remains stopped" not in content:
     raise SystemExit("migration failure must leave the app stopped")
 if "automatic DB rollback" in content:

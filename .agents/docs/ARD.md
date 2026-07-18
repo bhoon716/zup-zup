@@ -8,10 +8,10 @@ This workspace is being consolidated into a monorepo-style root repository with 
 ## Stack
 - Backend: Spring Boot 3.5.9 on Java 21, built with Gradle. The backend uses Spring Data JPA, Spring Security, OAuth2, Redis, Flyway, Spring Batch, QueryDSL, and OpenAPI.
 - Frontend: Next.js 16.1.6 App Router on React 19.2.7, built with TypeScript, TanStack Query, Zustand, Vitest, and ESLint.
-- Infrastructure: Docker Compose on a single OCI A1 ARM64 host. The initial runtime provides the backend app, MySQL, Redis, host Nginx, certbot, DuckDNS, and an external uptime monitor; the former Prometheus/Grafana/Loki/Promtail stack is not part of the minimal runtime.
+- Infrastructure: Docker Compose on a single OCI A1 ARM64 host. The runtime provides the backend app, MySQL, Redis, host Nginx, certbot, DuckDNS, an external uptime monitor, and an opt-in Loki/Alloy/Grafana log-search profile. Prometheus and Alertmanager are not part of the minimal runtime.
 
 ## Storage / Auth / Deployment / Scale
-- Database / storage: MySQL uses an OCI block volume mounted at `/var/lib/jbnu-sugang-helper/mysql` through a Docker named volume. Redis is ephemeral, and app uploads use a named volume. Docker JSON logs and host Nginx logs are bounded separately.
+- Database / storage: MySQL uses an OCI block volume mounted at `/var/lib/jbnu-sugang-helper/mysql` through a Docker named volume. Redis is ephemeral, and app uploads use a named volume. Loki uses `/var/lib/jbnu-sugang-helper/loki`, Alloy keeps read positions in `/var/lib/jbnu-sugang-helper/alloy`, and Grafana uses `/var/lib/jbnu-sugang-helper/grafana`.
 - Auth requirement: No new auth surface for the plan itself; preserve existing deployment access controls.
 - Expected scale: Single-host deployment with local log retention sized for one production instance.
 - Deployment target: One OCI A1 ARM64 host managed through GHCR images, Docker Compose, host Nginx/certbot, and a restricted SSH deploy wrapper. The frontend remains on Vercel.
@@ -36,6 +36,6 @@ This workspace is being consolidated into a monorepo-style root repository with 
 
 ## Minimal CI/CD redesign (2026-07-19)
 
-The target operating contract is recorded in the [single OCI CI/CD ADR](../../docs/decisions/2026-07-19-single-oci-cicd.md) and its [deployment runbook](../../docs/operations/deployment.md). It keeps Vercel frontend deployment separate from a single OCI A1 ARM64 backend Compose stack, publishes commit-SHA images to private GHCR, runs Flyway validate/migrate before readiness, and provides manual application-image rollback.
+The operating contract is recorded in the [single OCI CI/CD ADR](../../docs/decisions/2026-07-19-single-oci-cicd.md) and its [deployment runbook](../../docs/operations/deployment.md). It keeps Vercel frontend deployment separate from a single OCI A1 ARM64 backend Compose stack, publishes commit-SHA images to private GHCR, runs a least-privilege one-shot Flyway migration before readiness, and provides manual application-image redeployment by SHA.
 
-This is a target design being implemented through ISSUE-123~127. Existing workflow and infrastructure files may still reflect the legacy stack until those issues are completed; do not infer that every contract in the ADR is active yet. The initial design intentionally does not provide DB backup/restore, automatic DB rollback, or infrastructure-image rollback.
+ISSUE-128 reduces the GitHub path to PR-only CI and push-main CD, removes GitHub concurrency and the dedicated rollback workflow, and uses a server-side deploy lock. Loki/Alloy/Grafana are included as an opt-in production profile for searchable 30-day filesystem logs; Object Storage long-term retention and DB backup remain separate operational work because their bucket, IAM, and restore contracts are not yet defined. The design intentionally does not provide DB automatic rollback or infrastructure-image rollback.

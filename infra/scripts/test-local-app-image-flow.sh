@@ -58,7 +58,7 @@ if local_app.get("build", {}).get("dockerfile") != "Dockerfile.local":
     raise SystemExit("local override must use Dockerfile.local")
 PY
 
-if ! grep -F -- 'APP_IMAGE_NAME="${app_image_name}"' "${repo_root}/infra/scripts/deploy-app.sh" >/dev/null; then
+if ! grep -F -- 'app_image_name="$(read_env_value APP_IMAGE_NAME)"' "${repo_root}/infra/scripts/deploy-release.sh" >/dev/null; then
   echo "deployment must pass the built app image name to Compose" >&2
   exit 1
 fi
