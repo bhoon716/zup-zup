@@ -31,6 +31,7 @@ import bhoon.sugang_helper.common.security.oauth.CustomOAuth2UserService;
 import bhoon.sugang_helper.common.security.oauth.OAuth2FailureHandler;
 import bhoon.sugang_helper.common.security.oauth.OAuth2SuccessHandler;
 import bhoon.sugang_helper.common.config.SecurityConfig;
+import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.feedback.application.FeedbackService;
 import bhoon.sugang_helper.feedback.application.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.feedback.presentation.FeedbackController;
@@ -397,6 +398,7 @@ class SecurityRequestAuthorizationTest {
     })
     @Import({
             SecurityConfig.class,
+            SecurityContextRepositoryConfig.class,
             JwtAuthenticationFilter.class,
             CustomAccessDeniedHandler.class,
             CustomAuthenticationEntryPoint.class,

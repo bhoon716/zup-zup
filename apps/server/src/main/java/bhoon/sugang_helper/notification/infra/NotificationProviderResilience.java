@@ -16,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +34,7 @@ public class NotificationProviderResilience implements AutoCloseable {
     private final ExecutorService executor;
     private final Map<NotificationChannel, Circuit> circuits = new ConcurrentHashMap<>();
 
+    @Autowired
     public NotificationProviderResilience(
             MeterRegistry meterRegistry,
             @Value("${app.notification.provider.timeout-ms:5000}") long timeoutMs,
