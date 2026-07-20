@@ -67,7 +67,7 @@ if [ ! -f "${staging_dir}/SHA256SUMS" ] || [ ! -f "${staging_dir}/SHA256SUMS.sig
   fail "staging manifest and signature are required"
 fi
 
-# The deploy account owns the upload directory. Lock it before any root-side
+# The ubuntu account owns the upload directory. Lock it before any root-side
 # validation or copy so the checked bytes cannot be replaced during execution.
 stage="staging-lock"
 chown -R root:root "${staging_dir}"

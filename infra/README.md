@@ -49,7 +49,7 @@ docker compose --profile migration run --rm migrate validate
 
 ```bash
 docker compose --profile observability up -d loki alloy grafana
-ssh -L 3000:127.0.0.1:3000 <deploy-user>@<api-host>
+ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 ```
 
 현재 Loki는 호스트 filesystem에 30일 retention으로 저장합니다. Object Storage 장기 보존과 복구 rehearsal은 bucket/IAM 계약을 확정한 뒤 별도 운영 이슈로 진행합니다.
@@ -83,7 +83,7 @@ ssh -L 3000:127.0.0.1:3000 <deploy-user>@<api-host>
    sudo bash scripts/prepare-app-host-directories.sh
    ```
 
-4. Docker/Compose, 전용 `deploy` 사용자, root-only runtime secret, GHCR read-only token을 준비한다. 토큰은 임시로 안전한 파일에 저장하고, `GHCR_READ_USERNAME`과 `GHCR_READ_TOKEN_SOURCE`를 설치 명령에만 주입한다. 설치기는 토큰을 `${RELEASE_ROOT}/secrets/ghcr-read-token`에 root 소유 `0600`으로 복사하고 배포·rollback 때 `docker login ghcr.io --password-stdin`으로만 사용한다. `DEPLOY_MANIFEST_PRIVATE_KEY`의 대응 공개키도 별도 안전한 파일로 준비한 뒤 다음처럼 설치한다.
+4. Docker/Compose, OCI 기본 `ubuntu` 사용자, root-only runtime secret, GHCR read-only token을 준비한다. 토큰은 임시로 안전한 파일에 저장하고, `GHCR_READ_USERNAME`과 `GHCR_READ_TOKEN_SOURCE`를 설치 명령에만 주입한다. 설치기는 토큰을 `${RELEASE_ROOT}/secrets/ghcr-read-token`에 root 소유 `0600`으로 복사하고 배포·rollback 때 `docker login ghcr.io --password-stdin`으로만 사용한다. `DEPLOY_MANIFEST_PRIVATE_KEY`의 대응 공개키도 별도 안전한 파일로 준비한 뒤 다음처럼 설치한다.
 
    ```bash
    sudo env \

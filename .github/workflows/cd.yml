@@ -73,7 +73,6 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server
       OCI_HOST: ${{ secrets.OCI_HOST }}
-      OCI_DEPLOY_USER: ${{ secrets.OCI_DEPLOY_USER }}
       OCI_KNOWN_HOSTS: ${{ secrets.OCI_KNOWN_HOSTS }}
 
     steps:
@@ -98,7 +97,7 @@ jobs:
             echo "IMAGE_TAG must be exactly 40 lowercase hexadecimal characters" >&2
             exit 1
           fi
-          for variable in OCI_HOST OCI_DEPLOY_USER OCI_KNOWN_HOSTS; do
+          for variable in OCI_HOST OCI_KNOWN_HOSTS; do
             if [ -z "${!variable}" ]; then
               echo "Missing production variable: ${variable}" >&2
               exit 1
@@ -158,14 +157,14 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          target="${OCI_DEPLOY_USER}@${OCI_HOST}"
+          target="ubuntu@${OCI_HOST}"
           remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
-          ssh -o BatchMode=yes "${target}" "install -d -o ${OCI_DEPLOY_USER} -g ${OCI_DEPLOY_USER} -m 0750 '${remote_stage}'"
+          ssh -o BatchMode=yes "${target}" "install -d -o ubuntu -g ubuntu -m 0750 '${remote_stage}'"
           scp -r "${{ steps.stage.outputs.path }}/." "${target}:${remote_stage}/"
 
       - name: allowlisted OCI deploy wrapper 실행
         run: |
-          target="${OCI_DEPLOY_USER}@${OCI_HOST}"
+          target="ubuntu@${OCI_HOST}"
           remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
           ssh -o BatchMode=yes "${target}" \
             "sudo -n /usr/local/sbin/jbnu-deploy '${IMAGE_TAG}' '${remote_stage}'"

@@ -31,7 +31,7 @@ MIN_FREE_PERCENT=<operator-approved-threshold>
 2. `<API_HOST>`의 DuckDNS 레코드가 reserved IP를 가리키는지 확인한다. 실제 hostname은 이 문서에 하드코딩하지 않는다.
 3. 운영 OS의 보안 업데이트를 적용하고 자동 보안 업데이트를 켜되 자동 재부팅은 켜지 않는다. Docker 업데이트는 이 runbook의 수동 절차로만 수행한다.
 4. 방화벽/security list에서 80/443과 key-only SSH 22만 허용한다. 앱·MySQL·Redis 포트는 public/private host port로 노출하지 않는다.
-5. 전용 `deploy` 사용자를 만들고 password login, root SSH login, 불필요한 forwarding/PTY를 막는다. Actions public key에는 `authorized_keys` command 제한을 적용한다.
+5. OCI 기본 `ubuntu` 사용자를 사용하고 password login, root SSH login, 불필요한 forwarding/PTY를 막는다. Actions public key에는 `authorized_keys` command 제한을 적용한다.
 6. `known_hosts`에는 OCI host key fingerprint를 trusted console에서 확인한 뒤 고정한다. fingerprint를 모른 채 자동 등록하지 않는다.
 
 ### 1.2 Docker와 저장소
@@ -54,7 +54,7 @@ sudo install -o root -g root -m 0600 /dev/null "$RELEASE_ROOT/.env.runtime"
 ```
 
 5. GHCR read-only token이 지정 package만 읽는지 확인하고, 설치기에서 `GHCR_READ_TOKEN_SOURCE`로 복사한 뒤 원본 임시 파일을 즉시 삭제한다. 배포·rollback은 root-only token file을 `docker login ghcr.io --password-stdin`으로 소비한다.
-6. 저장소의 `infra/scripts/install-oci-wrappers.sh`를 검토한 뒤 `DEPLOY_MANIFEST_PUBLIC_KEY_SOURCE=/path/to/deploy-manifest-public.pem bash infra/scripts/install-oci-wrappers.sh`로 root 실행하고, `infra/security/jbnu-deploy.sudoers.example`를 `visudo -c`로 검증해 `deploy` 사용자가 고정 wrapper만 sudo할 수 있게 한다. deploy wrapper는 staging을 root 소유로 잠근 뒤 서명 manifest를 검증한다.
+6. 저장소의 `infra/scripts/install-oci-wrappers.sh`를 검토한 뒤 `DEPLOY_MANIFEST_PUBLIC_KEY_SOURCE=/path/to/deploy-manifest-public.pem bash infra/scripts/install-oci-wrappers.sh`로 root 실행하고, `infra/security/jbnu-deploy.sudoers.example`를 `visudo -c`로 검증해 `ubuntu` 사용자가 고정 wrapper만 sudo할 수 있게 한다. deploy wrapper는 staging을 root 소유로 잠근 뒤 서명 manifest를 검증한다.
 
 ### 1.3 호스트 Nginx와 certbot
 

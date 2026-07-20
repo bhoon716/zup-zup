@@ -14,7 +14,7 @@ This workspace is being consolidated into a monorepo-style root repository with 
 - Database / storage: MySQL uses an OCI block volume mounted at `/var/lib/jbnu-sugang-helper/mysql` through a Docker named volume. Redis is ephemeral, and app uploads use a named volume. Loki uses `/var/lib/jbnu-sugang-helper/loki`, Alloy keeps read positions in `/var/lib/jbnu-sugang-helper/alloy`, and Grafana uses `/var/lib/jbnu-sugang-helper/grafana`.
 - Auth requirement: No new auth surface for the plan itself; preserve existing deployment access controls.
 - Expected scale: Single-host deployment with local log retention sized for one production instance.
-- Deployment target: One OCI A1 ARM64 host managed through GHCR images, Docker Compose, host Nginx/certbot, and a restricted SSH deploy wrapper. The frontend remains on Vercel.
+- Deployment target: One OCI A1 ARM64 host managed through GHCR images, Docker Compose, host Nginx/certbot, and a restricted SSH wrapper accessed by the OCI `ubuntu` account. The frontend remains on Vercel.
 
 ## Repository Topology
 - The active source-of-truth layout is the root monorepo with `apps/web`, `apps/server`, and `infra`.

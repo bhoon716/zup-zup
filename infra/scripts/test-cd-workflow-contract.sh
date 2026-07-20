@@ -36,8 +36,12 @@ require("needs: publish-image", "deploy must wait for the image publish job")
 require("always()", "manual SHA deploy must run when publish job is skipped")
 if "environment: production" in workflow:
     raise SystemExit("CD must use repository-level Actions secrets, not a production Environment")
-for secret in ("OCI_HOST", "OCI_DEPLOY_USER", "OCI_KNOWN_HOSTS", "SSH_PRIVATE_KEY", "DEPLOY_MANIFEST_PRIVATE_KEY"):
+if "OCI_DEPLOY_USER" in workflow:
+    raise SystemExit("CD must use the OCI ubuntu account instead of OCI_DEPLOY_USER")
+for secret in ("OCI_HOST", "OCI_KNOWN_HOSTS", "SSH_PRIVATE_KEY", "DEPLOY_MANIFEST_PRIVATE_KEY"):
     require(f"${{{{ secrets.{secret} }}}}", f"repository Actions secret is missing: {secret}")
+require('target="ubuntu@${OCI_HOST}"', "CD must connect as the OCI ubuntu account")
+require("install -d -o ubuntu -g ubuntu", "staging directory must belong to the OCI ubuntu account")
 require("known_hosts", "pinned known_hosts setup is missing")
 require("SSH_PRIVATE_KEY", "production SSH key is missing")
 require("scp", "staging SCP transfer is missing")

@@ -14,12 +14,11 @@
 
 ## Actions secrets and variables
 
-저장소 `Settings → Secrets and variables → Actions`의 `Repository secrets`에 다음 다섯 값을 등록한다. CD workflow는 Environment를 사용하지 않는다.
+저장소 `Settings → Secrets and variables → Actions`의 `Repository secrets`에 다음 네 값을 등록한다. CD workflow는 Environment를 사용하지 않는다.
 
 - `OCI_HOST`: SSH로 접속할 OCI reserved IP 또는 hostname
-- `OCI_DEPLOY_USER`: 고정 deploy wrapper를 sudo할 수 있는 OCI 배포 사용자
 - `OCI_KNOWN_HOSTS`: 검증한 OCI host key의 `known_hosts` 한 줄
-- `SSH_PRIVATE_KEY`: `OCI_DEPLOY_USER`의 `authorized_keys`에 등록한 Actions 전용 private key
+- `SSH_PRIVATE_KEY`: OCI `ubuntu` 사용자의 `authorized_keys`에 등록한 Actions 전용 private key
 - `DEPLOY_MANIFEST_PRIVATE_KEY`: staging manifest 서명용 private key
 
 OCI runtime secret과 GHCR read-only token은 GitHub secret에 복제하지 않고 OCI root-only file에 저장한다. 설치 시 `GHCR_READ_USERNAME`은 `.env.runtime`, token은 `${RELEASE_ROOT}/secrets/ghcr-read-token`에 둔다.
