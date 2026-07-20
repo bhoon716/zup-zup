@@ -15,5 +15,5 @@ Use this page as the entry point for repo knowledge.
 - [Monorepo migration decision](../../docs/decisions/2026-07-08-monorepo-migration-web-vercel-server-infra.md): current root monorepo layout, Vercel retention, and OCI deployment split.
 - [Single OCI CI/CD decision](../../docs/decisions/2026-07-19-single-oci-cicd.md): target minimal CI/CD, migration, rollback, and cutover contract.
 - [Deployment runbook](../../docs/operations/deployment.md): target bootstrap, deployment, rollback, and server replacement procedures.
-- [GitHub settings checklist](../../docs/operations/github-settings.md): main protection and production Environment settings.
+- [GitHub settings checklist](../../docs/operations/github-settings.md): main protection and repository Actions secrets.
 - [Cutover checklist](../../docs/operations/cutover-checklist.md): old-stack preservation, cutover acceptance, and rebuild rehearsal.

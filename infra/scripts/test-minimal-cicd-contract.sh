@@ -46,6 +46,8 @@ require("loki.source.docker" in observability, "Alloy Docker log collection cont
 require("apply_staged_nginx" not in deploy, "app deploy must not apply Nginx configuration")
 require("main 직접 push 차단" in settings, "branch settings must keep only the minimal direct-push guard")
 require("리뷰 승인 요구 없음" in settings, "branch settings must not require solo-developer review")
+require("Actions secrets and variables" in settings, "repository-level Actions secrets guidance is missing")
+require("production Environment" not in settings, "settings must not require a production Environment")
 PY
 
 if [ -e "${rollback_workflow}" ]; then

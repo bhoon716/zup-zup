@@ -67,7 +67,6 @@ jobs:
     needs: publish-image
     if: always() && (github.event_name == 'workflow_dispatch' || needs.publish-image.result == 'success')
     runs-on: ubuntu-latest
-    environment: production
     permissions:
       contents: read
     env:

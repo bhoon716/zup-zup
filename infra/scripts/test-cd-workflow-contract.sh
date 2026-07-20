@@ -34,7 +34,10 @@ require("docker/build-push-action@v6", "CD must build the production image")
 require("push: true", "CD must push the production image")
 require("needs: publish-image", "deploy must wait for the image publish job")
 require("always()", "manual SHA deploy must run when publish job is skipped")
-require("environment: production", "production Environment is missing")
+if "environment: production" in workflow:
+    raise SystemExit("CD must use repository-level Actions secrets, not a production Environment")
+for secret in ("OCI_HOST", "OCI_DEPLOY_USER", "OCI_KNOWN_HOSTS", "SSH_PRIVATE_KEY", "DEPLOY_MANIFEST_PRIVATE_KEY"):
+    require(f"${{{{ secrets.{secret} }}}}", f"repository Actions secret is missing: {secret}")
 require("known_hosts", "pinned known_hosts setup is missing")
 require("SSH_PRIVATE_KEY", "production SSH key is missing")
 require("scp", "staging SCP transfer is missing")

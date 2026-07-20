@@ -12,12 +12,17 @@
 - force push/delete branch는 저장소 기본 보호 정책에 맞춰 금지
 - E2E workflow는 필수 check로 추가하지 않음. 수동/주기 workflow로만 실행
 
-## `production` Environment
+## Actions secrets and variables
 
-- 사용 가능한 branch를 `main`으로 제한
-- SSH private key와 pinned `known_hosts`, staging manifest 서명용 `DEPLOY_MANIFEST_PRIVATE_KEY`를 production Environment에 저장
-- OCI runtime secret과 GHCR read-only token은 GitHub secret에 복제하지 않고 OCI root-only file에 저장한다. 설치 시 `GHCR_READ_USERNAME`은 `.env.runtime`, token은 `${RELEASE_ROOT}/secrets/ghcr-read-token`에 둔다.
-- 승인 reviewer는 현재 정책상 사용하지 않지만, 운영 규모가 커지면 manual approval을 별도 결정으로 추가
+저장소 `Settings → Secrets and variables → Actions`의 `Repository secrets`에 다음 다섯 값을 등록한다. CD workflow는 Environment를 사용하지 않는다.
+
+- `OCI_HOST`: SSH로 접속할 OCI reserved IP 또는 hostname
+- `OCI_DEPLOY_USER`: 고정 deploy wrapper를 sudo할 수 있는 OCI 배포 사용자
+- `OCI_KNOWN_HOSTS`: 검증한 OCI host key의 `known_hosts` 한 줄
+- `SSH_PRIVATE_KEY`: `OCI_DEPLOY_USER`의 `authorized_keys`에 등록한 Actions 전용 private key
+- `DEPLOY_MANIFEST_PRIVATE_KEY`: staging manifest 서명용 private key
+
+OCI runtime secret과 GHCR read-only token은 GitHub secret에 복제하지 않고 OCI root-only file에 저장한다. 설치 시 `GHCR_READ_USERNAME`은 `.env.runtime`, token은 `${RELEASE_ROOT}/secrets/ghcr-read-token`에 둔다.
 
 ## Actions 권한
 
