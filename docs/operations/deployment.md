@@ -43,9 +43,11 @@ MIN_FREE_PERCENT=<operator-approved-threshold>
 
 ```bash
 sudo install -d -o root -g root -m 0750 "$RELEASE_ROOT"
-sudo install -d -o deploy -g deploy -m 0750 "$STAGING_ROOT"
+sudo install -d -o ubuntu -g ubuntu -m 0750 "$STAGING_ROOT"
 sudo install -d -o root -g root -m 0700 "$RELEASE_ROOT/secrets"
 ```
+
+`SERVER_USER`는 현재 OCI 기본 사용자 `ubuntu`이며, `install-oci-wrappers.sh`도 동일한 staging root를 bootstrap한다. Actions가 staging 파일을 SCP할 수 있도록 이 디렉터리는 `ubuntu:ubuntu` 소유로 유지한다. 배포 wrapper가 파일을 검증하기 직전에 staging tree 전체를 root 소유로 잠근다.
 
 4. root 소유 runtime env를 생성한다. 실제 secret은 password manager 또는 별도 승인된 절차로 입력한다.
 

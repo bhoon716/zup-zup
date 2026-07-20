@@ -5,6 +5,8 @@ repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 compose_file="${repo_root}/infra/docker-compose.yml"
 deploy_script="${repo_root}/infra/scripts/deploy-release.sh"
 rollback_script="${repo_root}/infra/scripts/rollback-release.sh"
+installer_script="${repo_root}/infra/scripts/install-oci-wrappers.sh"
+deployment_doc="${repo_root}/docs/operations/deployment.md"
 
 python3 - "${compose_file}" <<'PY'
 import sys
@@ -45,6 +47,16 @@ if ! grep -F 'compose[@]}" exec -T db bash /docker-entrypoint-initdb.d/01-provis
 fi
 if ! grep -F 'chown -R root:root' "${deploy_script}" >/dev/null; then
   echo "deploy must lock the staging tree before root consumes it" >&2
+  exit 1
+fi
+if ! grep -F 'staging_root="/opt/jbnu-sugang-helper-staging"' "${installer_script}" >/dev/null \
+  || ! grep -F 'staging_user="ubuntu"' "${installer_script}" >/dev/null \
+  || ! grep -F 'install -d -o "${staging_user}" -g "${staging_user}" -m 0750 "${staging_root}"' "${installer_script}" >/dev/null; then
+  echo "OCI bootstrap must prepare an ubuntu-owned staging root" >&2
+  exit 1
+fi
+if ! grep -F 'sudo install -d -o ubuntu -g ubuntu -m 0750 "$STAGING_ROOT"' "${deployment_doc}" >/dev/null; then
+  echo "deployment runbook must prepare the staging root for the configured ubuntu user" >&2
   exit 1
 fi
 if ! grep -F 'staging_dir}/apps/server/.env' "${deploy_script}" >/dev/null; then

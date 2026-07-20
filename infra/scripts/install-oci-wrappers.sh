@@ -8,6 +8,8 @@ fi
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 release_root="/opt/jbnu-sugang-helper"
+staging_root="/opt/jbnu-sugang-helper-staging"
+staging_user="ubuntu"
 ghcr_read_username="${GHCR_READ_USERNAME:-}"
 ghcr_read_token_source="${GHCR_READ_TOKEN_SOURCE:-}"
 if [[ ! "${ghcr_read_username}" =~ ^[A-Za-z0-9-]+$ ]]; then
@@ -21,6 +23,11 @@ if [ -z "${ghcr_read_token_source}" ] || [ ! -f "${ghcr_read_token_source}" ] \
 fi
 install -d -o root -g root -m 0755 /usr/local/sbin /usr/local/libexec/jbnu-sugang-helper
 install -d -o root -g root -m 0700 "${release_root}/secrets"
+if ! id "${staging_user}" >/dev/null 2>&1; then
+  echo "staging user does not exist: ${staging_user}" >&2
+  exit 1
+fi
+install -d -o "${staging_user}" -g "${staging_user}" -m 0750 "${staging_root}"
 printf '%s\n' "${ghcr_read_username}" >"${release_root}/secrets/ghcr-read-username.tmp"
 install -o root -g root -m 0600 "${release_root}/secrets/ghcr-read-username.tmp" \
   "${release_root}/secrets/ghcr-read-username"
