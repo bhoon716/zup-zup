@@ -7,16 +7,16 @@
 ```text
 SERVER_USER=ubuntu
 RELEASE_ROOT=/home/ubuntu/jbnu-sugang-helper
-STAGING_ROOT=/home/ubuntu/jbnu-sugang-helper-staging
-RUNTIME_ENV=/home/ubuntu/jbnu-sugang-helper/.env.runtime
+STAGING_ROOT=/home/ubuntu/jbnu-sugang-helper/.staging
+RUNTIME_ENV=/home/ubuntu/jbnu-sugang-helper/.env
 APP_ENV=/home/ubuntu/jbnu-sugang-helper/apps/server/.env
 APP_IMAGE=ghcr.io/<owner>/<repository>/server
 IMAGE_TAG=<40자리 commit SHA>
 ```
 
-- `SERVER_DOTENV`는 기존 `apps/server/.env` 전체 내용이며 배포 시 `APP_ENV`에 설치한다.
-- `.env.runtime`에는 Compose용 DB·Redis·volume·image·Firebase 경로를 저장한다. 실제 secret은 Ubuntu 운영 파일에만 둔다.
-- `.env.release`에는 마지막으로 readiness까지 성공한 `IMAGE_TAG`와 `APP_IMAGE_NAME`만 기록한다.
+- `SERVER_DOTENV`는 앱 전용 `apps/server/.env` 내용이며 배포 시 `APP_ENV`에 설치한다.
+- root `.env`에는 Compose용 DB·Redis·volume·image·Firebase·관측 경로를 저장한다. 실제 secret은 Ubuntu 운영 파일에만 둔다.
+- `apps/server/.env`에는 앱 전용 설정·secret만 저장한다.
 - 앱 rollback은 이전 SHA를 같은 수동 배포 workflow에 입력하는 방식이다. DB migration은 자동 rollback하지 않는다.
 
 ## 1. 최초 Ubuntu bootstrap
@@ -27,11 +27,11 @@ IMAGE_TAG=<40자리 commit SHA>
 sudo usermod -aG docker ubuntu
 install -d -m 0750 \
   /home/ubuntu/jbnu-sugang-helper \
-  /home/ubuntu/jbnu-sugang-helper-staging
+  /home/ubuntu/jbnu-sugang-helper/.staging
 install -d -m 0700 \
   /home/ubuntu/jbnu-sugang-helper/secrets
-if [ ! -e /home/ubuntu/jbnu-sugang-helper/.env.runtime ]; then
-  install -m 0600 /dev/null /home/ubuntu/jbnu-sugang-helper/.env.runtime
+if [ ! -e /home/ubuntu/jbnu-sugang-helper/.env ]; then
+  install -m 0600 /dev/null /home/ubuntu/jbnu-sugang-helper/.env
 fi
 ```
 
@@ -42,11 +42,11 @@ docker info
 docker compose version
 ```
 
-`.env.runtime`에 다음 종류의 값을 채운다.
+root `.env`에 다음 종류의 값을 채운다.
 
 - `APP_IMAGE_NAME=ghcr.io/<owner>/<repository>/server`
 - `FLYWAY_IMAGE=flyway/flyway@sha256:<digest>`
-- `DB_*`, `REDIS_*`, `DB_DATA_DIR`, `APP_*`, `LOKI_*`, `ALLOY_*`, `GRAFANA_*`, `TZ`
+- `DB_*`, `REDIS_*`, `DB_DATA_DIR`, `APP_*`, `LOKI_*`, `ALLOY_*`, `GRAFANA_*`, `PROMETHEUS_*`, `TZ`
 - `FIREBASE_CONFIG_PATH=/home/ubuntu/jbnu-sugang-helper/secrets/firebase-key.json`
 
 Firebase 파일은 다음 경로에 별도로 설치한다.
@@ -77,23 +77,22 @@ checkout SHA
   → release files + apps/server/.env + deploy.sh staging
   → SSH/SCP to Ubuntu
   → transient GITHUB_TOKEN으로 GHCR login
-  → docker compose infra/logging start
+  → docker compose db/redis/Prometheus/Loki/Alloy/Grafana start
   → app image pull
   → 기존 app stop
   → one-shot Flyway migrate
   → app start + health wait
   → internal readiness 확인
-  → .env.release 갱신
   → GHCR logout
 ```
 
-`Loki`, `Grafana Alloy`, `Grafana`는 `observability` profile로 계속 실행한다. 로그 수집기는 Promtail이 아니라 Alloy다.
+`Prometheus`, `Loki`, `Grafana Alloy`, `Grafana`는 `observability` profile로 계속 실행한다. Prometheus는 앱 Actuator metrics만 수집하고, 로그 수집기는 Promtail이 아니라 Alloy다.
 
 ## 4. 실패 처리
 
 - staging·Compose 검증·infra 시작·image pull 실패: 기존 app을 중지하지 않고 종료한다.
 - Flyway 실패: app은 중지 상태로 두며 DB 자동 rollback, `clean`, 자동 `repair`를 수행하지 않는다.
-- app start/readiness 실패: 새 app을 중지하고 `.env.release`를 갱신하지 않는다.
+- app start/readiness 실패: 새 app을 중지하고 root `.env`는 변경하지 않는다.
 - migration 이후 이전 SHA 재배포는 schema 호환성이 확인된 경우에만 수행한다. 이것은 앱 이미지 재배포이지 DB rollback이 아니다.
 - 반복 배포 후 사용하지 않는 SHA 이미지는 운영자가 확인 후 수동 정리한다. 자동 `docker system prune`은 실행하지 않는다.
 
@@ -103,9 +102,9 @@ checkout SHA
 
 ```bash
 cd /home/ubuntu/jbnu-sugang-helper
-docker compose --env-file .env.runtime --env-file .env.compose \
+docker compose --env-file .env --env-file .env.compose \
   -f docker-compose.yml ps
-docker compose --env-file .env.runtime --env-file .env.compose \
+docker compose --env-file .env --env-file .env.compose \
   -f docker-compose.yml logs --tail=100 app
 ```
 

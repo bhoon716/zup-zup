@@ -12,6 +12,7 @@ This document merges the web and server release histories.
 
 ### Fixed
 
+- **Ubuntu 최소 운영 관측·배포 전환**: Prometheus는 앱 Actuator metrics만 scrape하고 Grafana dashboard로 확인하며, 로그는 Alloy→Loki 경로를 유지합니다. CD는 ARM64 GHCR image, 임시 `.staging`, root `.env`, 앱 전용 `apps/server/.env`, 수동 SHA 재배포만 사용하고 Promtail·Alertmanager·host exporter는 추가하지 않습니다.
 - **알림 delivery 중복·DLQ 운영 경계**: delivery마다 안정적인 key와 lease fencing을 적용해 stale worker의 상태 덮어쓰기를 막고, provider별 중복 완화 key를 전파합니다. 단일 관리자는 전체 DLQ를 안전한 상태 정보로 조회하고 같은 delivery/key만 선택 재처리할 수 있으며, `SENT` 재발송은 기본 차단되고 모든 replay는 감사됩니다. DLQ는 실제 전환 시점부터 최소 30일 보존합니다.
 - **기기 해제 토큰 경로 제거 준비**: 웹 클라이언트는 토큰을 URL이 아닌 `DELETE /api/v1/users/devices` 요청 본문으로 전송하도록 변경했습니다. 기존 `DELETE /api/v1/users/devices/token/{token}` 경로는 배포된 구 클라이언트 호환을 위해 소유자 범위 검사를 거쳐 한시적으로 유지하며, 접근 로그와 웹 번들에서 사용이 사라진 다음 breaking API 릴리스에서 제거합니다.
 - **민감값 로그·오류 응답 보호**: 알림·크롤러·OAuth 로그는 이메일 마스킹, 토큰/endpoint 지문, 안정 오류 코드만 남기고 HTTP query 값은 기록하지 않습니다. 공개 오류 응답은 원문 상세 대신 `X-Error-Id`/`correlationId`를 제공해 서버 로그와 대조할 수 있습니다.

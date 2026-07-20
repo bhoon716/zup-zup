@@ -7,6 +7,7 @@
 - [ ] 작업 시작 시각·operator·현재 앱 SHA를 기록했다.
 - [ ] 기존 Compose 파일과 `.env`의 보관 위치/checksum을 기록했다.
 - [ ] 기존 Nginx site, certificate 경로, DuckDNS hostname/reserved IP를 기록했다.
+- [ ] 기존 NPM database·설정·인증서를 별도 백업하고 checksum을 기록했다. 새 host certbot 인증서를 발급하기 전까지 원본을 삭제하지 않는다.
 - [ ] 기존 MySQL volume 이름·mount·filesystem을 기록했다. volume을 새로 만들지 않았다.
 - [ ] `flyway_schema_history`와 현재 schema를 read-only로 확인했다.
 - [ ] 기존 readiness·핵심 API·기본 데이터 조회 결과를 기준선으로 저장했다.
@@ -14,9 +15,10 @@
 ## 신규 stack 적용
 
 - [ ] ARM64 GHCR image와 배포 대상 SHA를 확인했다.
-- [ ] `/home/ubuntu/jbnu-sugang-helper`·`/home/ubuntu/jbnu-sugang-helper-staging`·Ubuntu 운영 secret 권한을 확인했다.
+- [ ] `/home/ubuntu/jbnu-sugang-helper`·`/home/ubuntu/jbnu-sugang-helper/.staging`·Ubuntu 운영 secret 권한을 확인했다. `.staging`은 배포 후 비어 있어야 한다.
 - [ ] OCI block volume을 기존 DB path에 연결했다.
 - [ ] Compose config, MySQL/Redis healthcheck, host Nginx `nginx -t`를 통과했다.
+- [ ] Prometheus가 앱 `/actuator/prometheus`를 수집하고 Grafana datasource/dashboard가 보인다. Promtail은 실행하지 않는다.
 - [ ] 기존 app을 중지한 뒤 Flyway baseline이 필요한지 확인하고, baseline history를 기록했다.
 - [ ] Flyway `migrate`를 수행했다. migration 파일을 수정하지 않았다.
 - [ ] 새 app readiness, HTTPS `/health/ready`, CORS, 핵심 API, 기본 데이터 조회를 확인했다.
@@ -42,7 +44,7 @@
 - [ ] 새 ARM64 OCI A1과 reserved IP를 만들었다.
 - [ ] 기존 block volume을 재연결하고 filesystem·volume 이름을 확인했다.
 - [ ] Docker/Compose, Nginx/certbot, OCI `ubuntu` 사용자, firewall, SSH 연결을 bootstrap했다.
-- [ ] Ubuntu `.env.runtime`, `apps/server/.env`, Firebase 파일을 별도 경로에서 입력했다.
+- [ ] Ubuntu root `.env`, 앱 전용 `apps/server/.env`, Firebase 파일을 별도 경로에서 입력했다.
 - [ ] 승인된 `IMAGE_TAG`를 pull하고 readiness/HTTPS/smoke를 확인했다.
 - [ ] DuckDNS가 reserved IP를 가리키는지 확인했다.
 - [ ] acceptance와 rollback rehearsal이 끝날 때까지 기존 서버를 폐기하지 않았다.

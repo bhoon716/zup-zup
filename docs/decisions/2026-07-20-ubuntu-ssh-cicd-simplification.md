@@ -11,22 +11,22 @@
 
 Actions는 `SERVER_HOST`, `SERVER_USER`, `SSH_PRIVATE_KEY`, `SERVER_DOTENV`만 사용한다. staging 파일과 `deploy.sh`를 Ubuntu에 SCP하고, 원격에서 단기 `GITHUB_TOKEN`으로 GHCR에 로그인한 뒤 Ubuntu 권한으로 배포 script를 실행한다. 배포 종료 시 GHCR logout을 수행한다.
 
-OCI에는 `/usr/local/sbin` wrapper, root libexec, sudoers allowlist, GHCR read-only token 파일을 설치하지 않는다. release root와 staging root는 `ubuntu` 홈 디렉터리 아래(`/home/ubuntu/jbnu-sugang-helper`, `/home/ubuntu/jbnu-sugang-helper-staging`)에 두고, 배포 파일은 SSH 사용자 권한으로 관리한다. Ubuntu는 Docker 그룹 권한을 사용하며 이 권한은 root equivalent임을 운영 문서에 명시한다.
+OCI에는 `/usr/local/sbin` wrapper, root libexec, sudoers allowlist, GHCR read-only token 파일을 설치하지 않는다. release root는 `/home/ubuntu/jbnu-sugang-helper`, 배포별 임시 staging은 `/home/ubuntu/jbnu-sugang-helper/.staging/<SHA>`에 두고, 배포 파일은 SSH 사용자 권한으로 관리한다. Compose runtime은 release root `.env`, 앱 secret은 `apps/server/.env`로 분리한다. Ubuntu는 Docker 그룹 권한을 사용하며 이 권한은 root equivalent임을 운영 문서에 명시한다.
 
 ## 배포 순서
 
 ```text
 staging Compose 검증
   → runtime 파일 반영
-  → db/redis/Loki/Alloy/Grafana start + wait
+  → db/redis/Prometheus/Loki/Alloy/Grafana start + wait
   → app image pull
   → app stop
   → Flyway migrate
   → app start + readiness
-  → .env.release 갱신
+  → 임시 staging 삭제
 ```
 
-checksum manifest, release history/다중 release 디렉터리, 반복적인 infra image preflight, 별도 rollback script는 제거한다. Loki·Alloy·Grafana, Flyway one-shot migration, 내부 readiness, server-side `flock`은 유지한다.
+checksum manifest, 영구 release history/다중 release 디렉터리, 반복적인 infra image preflight, 별도 rollback script, server-side lock은 제거한다. Prometheus·Loki·Alloy·Grafana, Flyway one-shot migration, 내부 readiness는 유지한다. Prometheus는 앱 Actuator metrics만 scrape하고 host exporter·cAdvisor·Alertmanager는 추가하지 않는다.
 
 ## 복구와 한계
 

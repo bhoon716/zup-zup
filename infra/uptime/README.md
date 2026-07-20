@@ -1,6 +1,6 @@
 # 외부 readiness monitor
 
-외부 uptime provider는 Loki·Grafana Alloy·Grafana 로그 검색과 별도로 공개 readiness를 감시한다. Prometheus/Alertmanager는 사용하지 않으며, provider는 저장소에 고정하지 않고 운영자가 선택한 provider의 비밀값도 저장소에 기록하지 않는다.
+외부 uptime provider는 Loki·Grafana Alloy·Grafana 로그 검색 및 앱 metrics용 Prometheus와 별도로 공개 readiness를 감시한다. Alertmanager는 사용하지 않으며, provider는 저장소에 고정하지 않고 운영자가 선택한 provider의 비밀값도 저장소에 기록하지 않는다.
 
 필수 설정:
 

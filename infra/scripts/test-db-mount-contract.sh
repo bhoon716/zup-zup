@@ -11,4 +11,9 @@ for required in 'mountpoint -q' 'findmnt -n -T' 'DB_DATA_DIR must be an actual m
   fi
 done
 
+if ! grep -F -- '/var/lib/jbnu-sugang-helper/prometheus' "${script}" >/dev/null; then
+  echo "host preparation must create the Prometheus data directory" >&2
+  exit 1
+fi
+
 echo "DB mount contract passed"

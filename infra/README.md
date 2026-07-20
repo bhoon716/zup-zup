@@ -11,9 +11,9 @@
 | Redis | 캐시·임시 데이터. persistence와 host port를 제공하지 않음 |
 | Nginx | Compose 밖의 호스트 reverse proxy. 80→443 redirect, TLS termination, 민감 endpoint rate limit |
 | certbot | 호스트 timer가 인증서를 갱신하고 `nginx -t` 성공 뒤 reload |
-| 관측 | Loki + Grafana Alloy + Grafana를 `observability` profile로 운영. Prometheus/Alertmanager는 넣지 않음 |
+| 관측 | 앱 Actuator metrics는 Prometheus, 로그는 Loki + Grafana Alloy + Grafana를 `observability` profile로 운영. host exporter·cAdvisor·Alertmanager는 넣지 않음 |
 
-상세 결정은 [단일 OCI CI/CD ADR](../docs/decisions/2026-07-19-single-oci-cicd.md), 실행 순서는 [운영 deployment runbook](../docs/operations/deployment.md)을 참고합니다.
+상세 결정은 [Ubuntu SSH-only CI/CD 결정](../docs/decisions/2026-07-20-ubuntu-ssh-cicd-simplification.md), 실행 순서는 [운영 deployment runbook](../docs/operations/deployment.md)을 참고합니다.
 
 ## 로컬 실행
 
@@ -29,7 +29,7 @@ cd infra
 docker compose up -d --build
 ```
 
-`docker-compose.override.yml`은 Compose가 자동으로 읽습니다. 따라서 로컬 기본 실행에서 `-f`나 별도 profile을 지정할 필요가 없습니다. 기본 실행 서비스는 `app`, `db`, `redis`뿐이며 Nginx·관측 컨테이너는 시작되지 않습니다. 운영 배포는 `observability` profile을 함께 실행해 Loki, Alloy, Grafana를 유지합니다.
+`docker-compose.override.yml`은 Compose가 자동으로 읽습니다. 따라서 로컬 기본 실행에서 `-f`나 별도 profile을 지정할 필요가 없습니다. 기본 실행 서비스는 `app`, `db`, `redis`뿐이며 Nginx·관측 컨테이너는 시작되지 않습니다. 운영 배포는 `observability` profile을 함께 실행해 Prometheus, Loki, Alloy, Grafana를 유지합니다.
 로컬 override는 `Dockerfile.local`에서 Gradle build까지 수행하므로 위 명령 하나로 앱 이미지가 생성됩니다. 운영/CI는 사전 생성한 `bootJar`를 사용하는 `Dockerfile`을 그대로 사용합니다.
 기존 `infra` 프로젝트로 만든 `sugang-helper-app/mysql/redis` 컨테이너가 남아 있으면 첫 전환 때만 해당 컨테이너를 재생성해야 합니다. `docker rm -f sugang-helper-app sugang-helper-mysql sugang-helper-redis`는 컨테이너만 제거하며 named volume 데이터는 삭제하지 않습니다.
 
@@ -45,10 +45,10 @@ docker compose --profile migration run --rm migrate validate
 
 ## 로그 검색
 
-운영 Compose는 `observability` profile에서 Loki, Grafana Alloy, Grafana를 실행합니다. Alloy는 Docker socket을 읽기 전용으로 사용해 Compose 컨테이너의 JSON 로그를 Loki로 전송하고, 호스트 Nginx 로그도 존재할 때 함께 수집합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다.
+운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`만 수집하고, Alloy는 Docker socket을 읽기 전용으로 사용해 Compose 컨테이너의 JSON 로그를 Loki로 전송하며 호스트 Nginx 로그도 존재할 때 함께 수집합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다.
 
 ```bash
-docker compose --profile observability up -d loki alloy grafana
+docker compose --profile observability up -d prometheus loki alloy grafana
 ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 ```
 
@@ -83,7 +83,7 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
    sudo bash scripts/prepare-app-host-directories.sh
    ```
 
-4. Docker/Compose와 OCI 기본 `ubuntu` 사용자를 준비하고 `ubuntu`를 Docker 그룹에 추가한다. release root와 staging root는 `ubuntu` 홈 디렉터리 아래(`/home/ubuntu/jbnu-sugang-helper`, `/home/ubuntu/jbnu-sugang-helper-staging`)를 사용하므로 별도 `/opt` 권한 bootstrap이 필요 없다. 상세 명령은 [배포 runbook](../docs/operations/deployment.md)을 따른다. GHCR 인증은 Actions의 단기 `GITHUB_TOKEN`을 배포 시에만 사용하며 서버에 read-only token 파일을 보관하지 않는다.
+4. Docker/Compose와 OCI 기본 `ubuntu` 사용자를 준비하고 `ubuntu`를 Docker 그룹에 추가한다. release root는 `/home/ubuntu/jbnu-sugang-helper`, 배포별 임시 staging은 `/home/ubuntu/jbnu-sugang-helper/.staging/<SHA>`를 사용하므로 별도 `/opt` 권한 bootstrap이나 영구 staging root가 필요 없다. Compose runtime 값은 release root `.env`, 앱 secret은 `apps/server/.env`에 둔다. 상세 명령은 [배포 runbook](../docs/operations/deployment.md)을 따른다. GHCR 인증은 Actions의 단기 `GITHUB_TOKEN`을 배포 시에만 사용하며 서버에 read-only token 파일을 보관하지 않는다.
 5. 호스트 Nginx를 설치하고 site template을 실제 DuckDNS hostname으로 render한다.
 
    ```bash
@@ -112,7 +112,7 @@ API_HOST=<api-duckdns-fqdn> bash scripts/test-uptime-contract.sh
 - `.env`, `secrets/`, host certificate/private key는 저장소에 커밋하지 않습니다.
 - `DB_ROOT_PASSWORD`는 DB container에만, `DB_RUNTIME_PASSWORD`는 앱과 DB init에만, `DB_MIGRATOR_PASSWORD`는 one-shot migration에만 전달합니다.
 - DB backup/restore는 이 최소 구성의 기능이 아닙니다. `DB_BACKUP_*` 변수를 새 runtime contract에 추가하지 않습니다.
-- `infra/nginx-proxy-manager`와 Prometheus/Alertmanager 관련 기존 파일은 새 runtime에서 참조하지 않습니다. Loki/Alloy/Grafana 설정은 production Compose의 `observability` profile에서 참조합니다.
+- 기존 NPM 상태·인증서는 host certbot 전환 전에 백업만 남기고, 새 runtime은 host Nginx/certbot을 사용합니다. Prometheus 설정은 앱 metrics scrape와 Grafana datasource/dashboard만 포함하며 host exporter·cAdvisor·Alertmanager는 참조하지 않습니다. Loki/Alloy/Grafana 설정은 production Compose의 `observability` profile에서 참조합니다.
 
 ## 관련 문서
 
