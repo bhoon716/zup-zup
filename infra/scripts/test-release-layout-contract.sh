@@ -47,10 +47,16 @@ if ! grep -F 'chown -R root:root' "${deploy_script}" >/dev/null; then
   echo "deploy must lock the staging tree before root consumes it" >&2
   exit 1
 fi
-if ! grep -F 'RELEASE_ROOT}/secrets/deploy-manifest-public.pem' "${deploy_script}" >/dev/null; then
-  echo "deploy must verify the root-owned manifest public key" >&2
+if ! grep -F 'staging_dir}/.env.app' "${deploy_script}" >/dev/null; then
+  echo "deploy must promote the SERVER_DOTENV app environment" >&2
   exit 1
 fi
+for forbidden in 'deploy-manifest-public.pem' 'SHA256SUMS.sig' 'openssl dgst -sha256 -verify'; do
+  if grep -F -- "${forbidden}" "${deploy_script}" >/dev/null; then
+    echo "SSH-only deploy must not use ${forbidden}" >&2
+    exit 1
+  fi
+done
 if ! grep -F 'https://${api_host}/health/ready' "${deploy_script}" >/dev/null; then
   echo "deploy must verify public HTTPS readiness" >&2
   exit 1

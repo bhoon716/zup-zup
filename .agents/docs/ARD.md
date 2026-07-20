@@ -28,7 +28,7 @@ This workspace is being consolidated into a monorepo-style root repository with 
 ## Test Strategy / Security
 - Test strategy: Use path-based CI to verify `apps/web`, `apps/server`, and `infra` independently. Add a shared package to the affected path set only when a real cross-application contract is introduced.
 - Lint strategy: Not applicable for this planning document.
-- Security concerns: Keep DB/Redis off host ports, bind the app to localhost, restrict SSH and sudo wrappers, keep runtime secrets root-only, and limit host mounts to MySQL/app data and configuration files.
+- Security concerns: Keep DB/Redis off host ports, bind the app to localhost, restrict SSH and sudo wrappers, keep runtime secrets root-only, and limit host mounts to MySQL/app data and configuration files. The minimal CD uses runtime SSH host-key collection instead of a pinned host-key secret.
 
 ## Related Files
 - [PRD](PRD.md)

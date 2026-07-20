@@ -72,8 +72,8 @@ jobs:
     env:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server
-      OCI_HOST: ${{ secrets.OCI_HOST }}
-      OCI_KNOWN_HOSTS: ${{ secrets.OCI_KNOWN_HOSTS }}
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
 
     steps:
       - name: 수동 배포 SHA 입력 확인
@@ -97,12 +97,16 @@ jobs:
             echo "IMAGE_TAG must be exactly 40 lowercase hexadecimal characters" >&2
             exit 1
           fi
-          for variable in OCI_HOST OCI_KNOWN_HOSTS; do
+          for variable in SERVER_HOST SERVER_USER; do
             if [ -z "${!variable}" ]; then
-              echo "Missing production variable: ${variable}" >&2
+              echo "Missing server setting: ${variable}" >&2
               exit 1
             fi
           done
+          if [[ ! "${SERVER_USER}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
+            echo "SERVER_USER contains unsupported characters" >&2
+            exit 1
+          fi
 
       - name: Compose runtime contract
         run: |
@@ -112,7 +116,7 @@ jobs:
           infra/scripts/test-ghcr-auth-contract.sh
           docker compose --env-file infra/.env.example -f infra/docker-compose.yml config >/dev/null
 
-      - name: SSH known_hosts 고정
+      - name: SSH 키 설정
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
@@ -122,16 +126,20 @@ jobs:
           fi
           install -d -m 700 "${HOME}/.ssh"
           printf '%s\n' "${SSH_PRIVATE_KEY}" >"${HOME}/.ssh/id_ed25519"
-          printf '%s\n' "${OCI_KNOWN_HOSTS}" >"${HOME}/.ssh/known_hosts"
+          ssh-keyscan -T 10 -t ed25519 "${SERVER_HOST}" >"${HOME}/.ssh/known_hosts" 2>/dev/null
+          if [ ! -s "${HOME}/.ssh/known_hosts" ]; then
+            echo "Unable to collect SSH host key from ${SERVER_HOST}" >&2
+            exit 1
+          fi
           chmod 600 "${HOME}/.ssh/id_ed25519" "${HOME}/.ssh/known_hosts"
 
       - name: staging release 준비
         id: stage
         env:
-          DEPLOY_MANIFEST_PRIVATE_KEY: ${{ secrets.DEPLOY_MANIFEST_PRIVATE_KEY }}
+          SERVER_DOTENV: ${{ secrets.SERVER_DOTENV }}
         run: |
-          if [ -z "${DEPLOY_MANIFEST_PRIVATE_KEY}" ]; then
-            echo "Missing production secret: DEPLOY_MANIFEST_PRIVATE_KEY" >&2
+          if [ -z "${SERVER_DOTENV}" ]; then
+            echo "Missing repository secret: SERVER_DOTENV" >&2
             exit 1
           fi
           stage_dir="${RUNNER_TEMP}/jbnu-release-${IMAGE_TAG}"
@@ -144,27 +152,25 @@ jobs:
           cp apps/server/src/main/resources/application-prod.yml "${stage_dir}/application-prod.yml"
           cp apps/server/src/main/resources/db/migration/V*__*.sql "${stage_dir}/src/main/resources/db/migration/"
           cp infra/scripts/oci/* "${stage_dir}/scripts/oci/"
-          printf '%s\n' "${GITHUB_ACTOR}" >"${stage_dir}/DEPLOY_ACTOR"
-          manifest_key="${RUNNER_TEMP}/deploy-manifest-private.pem"
-          trap 'rm -f "${manifest_key}"' EXIT
           umask 077
-          printf '%s\n' "${DEPLOY_MANIFEST_PRIVATE_KEY}" >"${manifest_key}"
-          (cd "${stage_dir}" && find . -type f ! -name SHA256SUMS ! -name SHA256SUMS.sig -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
-          openssl dgst -sha256 -sign "${manifest_key}" -out "${stage_dir}/SHA256SUMS.sig" "${stage_dir}/SHA256SUMS"
+          printf '%s\n' "${SERVER_DOTENV}" >"${stage_dir}/.env.app"
+          chmod 0600 "${stage_dir}/.env.app"
+          printf '%s\n' "${GITHUB_ACTOR}" >"${stage_dir}/DEPLOY_ACTOR"
+          (cd "${stage_dir}" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
           echo "path=${stage_dir}" >>"${GITHUB_OUTPUT}"
 
       - name: OCI staging 전송
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          target="ubuntu@${OCI_HOST}"
+          target="${SERVER_USER}@${SERVER_HOST}"
           remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
-          ssh -o BatchMode=yes "${target}" "install -d -o ubuntu -g ubuntu -m 0750 '${remote_stage}'"
+          ssh -o BatchMode=yes "${target}" "install -d -o ${SERVER_USER} -g ${SERVER_USER} -m 0750 '${remote_stage}'"
           scp -r "${{ steps.stage.outputs.path }}/." "${target}:${remote_stage}/"
 
       - name: allowlisted OCI deploy wrapper 실행
         run: |
-          target="ubuntu@${OCI_HOST}"
+          target="${SERVER_USER}@${SERVER_HOST}"
           remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
           ssh -o BatchMode=yes "${target}" \
             "sudo -n /usr/local/sbin/jbnu-deploy '${IMAGE_TAG}' '${remote_stage}'"

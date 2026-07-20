@@ -59,9 +59,9 @@ preflight, 파일 검증, migration, readiness 중 하나라도 실패하면 다
 
 ### 4. 원격 권한과 파일 적용
 
-- Actions는 저장소 Actions secrets에 저장한 SSH 개인키와 manifest 서명 키만 사용한다.
+- Actions는 저장소 Actions secrets에 저장한 서버 접속 정보, SSH private key, 애플리케이션 dotenv만 사용한다.
 - OCI의 GHCR read-only token과 runtime secret은 root 소유 파일에만 둔다. 배포·rollback wrapper가 token file을 `docker login ghcr.io --password-stdin`으로 소비하며, 실제 값은 저장소 문서에 기록하지 않는다.
-- SSH는 OCI 기본 `ubuntu` 사용자, 고정 `known_hosts` fingerprint, `authorized_keys`의 command 제한·PTY/forwarding 차단을 사용한다.
+- SSH는 OCI 기본 `ubuntu` 사용자와 실행 시 수집하는 host key, `authorized_keys`의 command 제한·PTY/forwarding 차단을 사용한다.
 - `ubuntu` 사용자는 staging 디렉터리에만 쓰고, `sudo`는 SHA·경로를 검증하는 고정 wrapper(`deploy`, `rollback`, `nginx-config-apply`)만 실행한다. `eval`과 임의 문자열 shell 실행은 금지한다. deploy/rollback wrapper는 동일한 host `flock`을 사용한다.
 - Compose와 스크립트는 staging으로 전송한 뒤 checksum과 문법을 확인하고 atomic move한다. Nginx 설정은 앱 배포 경계 밖에서 별도로 관리한다.
 

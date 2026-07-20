@@ -9,7 +9,6 @@ readonly STAGING_ROOT="/opt/jbnu-sugang-helper-staging"
 readonly RUNTIME_ENV="${RELEASE_ROOT}/.env.runtime"
 readonly RELEASE_STATE="${RELEASE_ROOT}/.env.release"
 readonly RELEASE_HISTORY="${RELEASE_ROOT}/.release-history"
-readonly MANIFEST_PUBLIC_KEY="${RELEASE_ROOT}/secrets/deploy-manifest-public.pem"
 readonly GHCR_USERNAME_FILE="${RELEASE_ROOT}/secrets/ghcr-read-username"
 readonly GHCR_TOKEN_FILE="${RELEASE_ROOT}/secrets/ghcr-read-token"
 readonly AUDIT_LOG="/var/log/jbnu-sugang-helper/deploy.log"
@@ -45,11 +44,9 @@ fi
 if [ ! -f "${RUNTIME_ENV}" ]; then
   fail "root-only runtime environment is missing"
 fi
-if [ ! -f "${MANIFEST_PUBLIC_KEY}" ]; then
-  fail "root-owned deploy manifest public key is missing"
-fi
 if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -f "${staging_dir}/application-prod.yml" ] \
+  || [ ! -f "${staging_dir}/.env.app" ] \
   || [ ! -d "${staging_dir}/src/main/resources/db/migration" ] \
   || [ ! -f "${staging_dir}/mysql/init/01-provision-service-accounts.sh" ] \
   || [ ! -f "${staging_dir}/loki/loki-config.yaml" ] \
@@ -63,8 +60,8 @@ fi
 if ! find -P "${staging_dir}" -type f -o -type d | grep -q .; then
   fail "staging release is empty"
 fi
-if [ ! -f "${staging_dir}/SHA256SUMS" ] || [ ! -f "${staging_dir}/SHA256SUMS.sig" ]; then
-  fail "staging manifest and signature are required"
+if [ ! -f "${staging_dir}/SHA256SUMS" ]; then
+  fail "staging checksum manifest is required"
 fi
 
 # The ubuntu account owns the upload directory. Lock it before any root-side
@@ -115,9 +112,6 @@ cleanup_on_exit() {
 trap cleanup_on_exit EXIT
 
 stage="manifest"
-openssl dgst -sha256 -verify "${MANIFEST_PUBLIC_KEY}" \
-  -signature "${staging_dir}/SHA256SUMS.sig" "${staging_dir}/SHA256SUMS" \
-  >/dev/null || fail "staging manifest signature is invalid"
 (cd "${staging_dir}" && sha256sum --check SHA256SUMS) || fail "staging checksum mismatch"
 
 read_env_value() {
@@ -174,6 +168,11 @@ chmod 0644 "${release_tmp}/mysql/init/01-provision-service-accounts.sh"
 chmod 0644 "${release_tmp}/docker-compose.yml"
 mv "${release_tmp}" "${release_dir}"
 release_created=true
+
+stage="app-environment"
+install -o root -g root -m 0600 "${staging_dir}/.env.app" \
+  "${RELEASE_ROOT}/.env.app.tmp.$$"
+mv "${RELEASE_ROOT}/.env.app.tmp.$$" "${RELEASE_ROOT}/.env.app"
 
 release_env="${release_dir}/.env.compose"
 stage="release-contract"

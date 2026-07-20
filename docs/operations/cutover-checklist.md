@@ -41,7 +41,7 @@
 
 - [ ] 새 ARM64 OCI A1과 reserved IP를 만들었다.
 - [ ] 기존 block volume을 재연결하고 filesystem·volume 이름을 확인했다.
-- [ ] Docker/Compose, Nginx/certbot, OCI `ubuntu` 사용자, firewall, pinned known_hosts를 bootstrap했다.
+- [ ] Docker/Compose, Nginx/certbot, OCI `ubuntu` 사용자, firewall, SSH 연결을 bootstrap했다.
 - [ ] root-only runtime/app secret과 GHCR read-only token을 별도 경로에서 입력했다.
 - [ ] 승인된 `IMAGE_TAG`를 pull하고 readiness/HTTPS/smoke를 확인했다.
 - [ ] DuckDNS가 reserved IP를 가리키는지 확인했다.

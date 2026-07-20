@@ -1,4 +1,4 @@
-# GitHub 저장소·Environment 설정 체크리스트
+# GitHub 저장소 설정 체크리스트
 
 이 문서는 workflow가 저장소 보호 설정을 자동으로 만들지 못하므로, 관리자가 GitHub UI에서 한 번 설정해야 하는 항목을 고정한다.
 
@@ -16,10 +16,10 @@
 
 저장소 `Settings → Secrets and variables → Actions`의 `Repository secrets`에 다음 네 값을 등록한다. CD workflow는 Environment를 사용하지 않는다.
 
-- `OCI_HOST`: SSH로 접속할 OCI reserved IP 또는 hostname
-- `OCI_KNOWN_HOSTS`: 검증한 OCI host key의 `known_hosts` 한 줄
-- `SSH_PRIVATE_KEY`: OCI `ubuntu` 사용자의 `authorized_keys`에 등록한 Actions 전용 private key
-- `DEPLOY_MANIFEST_PRIVATE_KEY`: staging manifest 서명용 private key
+- `SERVER_HOST`: SSH로 접속할 OCI reserved IP 또는 hostname
+- `SERVER_USER`: SSH 접속 사용자. 현재는 OCI의 `ubuntu`
+- `SSH_PRIVATE_KEY`: `SERVER_USER`의 `authorized_keys`에 등록한 SSH private key
+- `SERVER_DOTENV`: 애플리케이션 환경 파일 전체 내용. workflow가 OCI의 `${RELEASE_ROOT}/.env.app`에 설치한다.
 
 OCI runtime secret과 GHCR read-only token은 GitHub secret에 복제하지 않고 OCI root-only file에 저장한다. 설치 시 `GHCR_READ_USERNAME`은 `.env.runtime`, token은 `${RELEASE_ROOT}/secrets/ghcr-read-token`에 둔다.
 

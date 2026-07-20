@@ -36,19 +36,18 @@ require("needs: publish-image", "deploy must wait for the image publish job")
 require("always()", "manual SHA deploy must run when publish job is skipped")
 if "environment: production" in workflow:
     raise SystemExit("CD must use repository-level Actions secrets, not a production Environment")
-if "OCI_DEPLOY_USER" in workflow:
-    raise SystemExit("CD must use the OCI ubuntu account instead of OCI_DEPLOY_USER")
-for secret in ("OCI_HOST", "OCI_KNOWN_HOSTS", "SSH_PRIVATE_KEY", "DEPLOY_MANIFEST_PRIVATE_KEY"):
+for secret in ("SERVER_HOST", "SERVER_USER", "SSH_PRIVATE_KEY", "SERVER_DOTENV"):
     require(f"${{{{ secrets.{secret} }}}}", f"repository Actions secret is missing: {secret}")
-require('target="ubuntu@${OCI_HOST}"', "CD must connect as the OCI ubuntu account")
-require("install -d -o ubuntu -g ubuntu", "staging directory must belong to the OCI ubuntu account")
-require("known_hosts", "pinned known_hosts setup is missing")
+require('target="${SERVER_USER}@${SERVER_HOST}"', "CD must use the configured server account")
+require("install -d -o ${SERVER_USER} -g ${SERVER_USER}", "staging directory must belong to the configured server account")
+require("ssh-keyscan", "runtime SSH host key setup is missing")
 require("SSH_PRIVATE_KEY", "production SSH key is missing")
+require("SERVER_DOTENV", "server dotenv secret is missing")
 require("scp", "staging SCP transfer is missing")
 require("sha256sum", "staging checksum validation is missing")
-require("DEPLOY_MANIFEST_PRIVATE_KEY", "signed staging manifest secret is missing")
-require("SHA256SUMS.sig", "signed staging manifest is missing")
-require("openssl dgst -sha256 -sign", "staging manifest signing is missing")
+for forbidden in ("OCI_HOST", "OCI_KNOWN_HOSTS", "OCI_DEPLOY_USER", "DEPLOY_MANIFEST_PRIVATE_KEY", "SHA256SUMS.sig", "openssl dgst -sha256 -sign", "deploy-manifest-public.pem"):
+    if forbidden in workflow or forbidden in deploy_script:
+        raise SystemExit(f"SSH-only CD must not use {forbidden}")
 require("config >/dev/null", "Compose config validation is missing")
 require("test-release-layout-contract.sh", "release layout contract is missing")
 require("test-observability-contract.sh", "observability contract is missing")

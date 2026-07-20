@@ -8,13 +8,8 @@ fi
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 release_root="/opt/jbnu-sugang-helper"
-manifest_public_key_source="${DEPLOY_MANIFEST_PUBLIC_KEY_SOURCE:-}"
 ghcr_read_username="${GHCR_READ_USERNAME:-}"
 ghcr_read_token_source="${GHCR_READ_TOKEN_SOURCE:-}"
-if [ -z "${manifest_public_key_source}" ] || [ ! -f "${manifest_public_key_source}" ]; then
-  echo "DEPLOY_MANIFEST_PUBLIC_KEY_SOURCE must point to the OCI manifest public key" >&2
-  exit 1
-fi
 if [[ ! "${ghcr_read_username}" =~ ^[A-Za-z0-9-]+$ ]]; then
   echo "GHCR_READ_USERNAME must be a GitHub username" >&2
   exit 1
@@ -26,8 +21,6 @@ if [ -z "${ghcr_read_token_source}" ] || [ ! -f "${ghcr_read_token_source}" ] \
 fi
 install -d -o root -g root -m 0755 /usr/local/sbin /usr/local/libexec/jbnu-sugang-helper
 install -d -o root -g root -m 0700 "${release_root}/secrets"
-install -o root -g root -m 0600 "${manifest_public_key_source}" \
-  "${release_root}/secrets/deploy-manifest-public.pem"
 printf '%s\n' "${ghcr_read_username}" >"${release_root}/secrets/ghcr-read-username.tmp"
 install -o root -g root -m 0600 "${release_root}/secrets/ghcr-read-username.tmp" \
   "${release_root}/secrets/ghcr-read-username"
