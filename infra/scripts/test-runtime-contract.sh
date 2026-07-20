@@ -144,9 +144,12 @@ for name in ("db", "redis", "migrate"):
         fail(f"{name} must not attach to the app egress network")
 
 db_volume = compose.get("volumes", {}).get("db_data", {})
-device = db_volume.get("driver_opts", {}).get("device")
-if device != "/var/lib/jbnu-sugang-helper/mysql":
-    fail(f"db_data must point at the OCI block-volume mount: {device!r}")
+if db_volume.get("driver") != "local":
+    fail("db_data must use the local Docker volume driver")
+if db_volume.get("driver_opts"):
+    fail("db_data must not bind to a host Block Volume path")
+if db_volume.get("name") != "sugang-helper-db-data":
+    fail(f"db_data must reuse the reviewed named volume: {db_volume.get('name')!r}")
 
 print("runtime Compose contract passed")
 PY

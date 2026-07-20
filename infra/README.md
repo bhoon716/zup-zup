@@ -7,10 +7,9 @@
 | 구성 | 정책 |
 | --- | --- |
 | 앱 | `linux/arm64` commit SHA 이미지. 로컬에서는 Compose build, 운영에서는 GHCR pull |
-| MySQL | Docker named volume이 OCI block-volume mount(`/var/lib/jbnu-sugang-helper/mysql`)을 가리킴 |
+| MySQL | Docker가 관리하는 `sugang-helper-db-data` named volume. OCI 인스턴스 로컬 백업 script가 logical dump를 주기적으로 저장 |
 | Redis | 캐시·임시 데이터. persistence와 host port를 제공하지 않음 |
-| Nginx | Compose 밖의 호스트 reverse proxy. 80→443 redirect, TLS termination, 민감 endpoint rate limit |
-| certbot | 호스트 timer가 인증서를 갱신하고 `nginx -t` 성공 뒤 reload |
+| 공개 edge | OCI에 이미 설치된 Nginx Proxy Manager(NPM)가 80/443, TLS, upstream proxy를 담당. 저장소와 앱 CD는 NPM 상태를 관리하지 않음 |
 | 관측 | 앱 Actuator metrics는 Prometheus, 로그는 Loki + Grafana Alloy + Grafana를 `observability` profile로 운영. host exporter·cAdvisor·Alertmanager는 넣지 않음 |
 
 상세 결정은 [Ubuntu SSH-only CI/CD 결정](../docs/decisions/2026-07-20-ubuntu-ssh-cicd-simplification.md), 실행 순서는 [운영 deployment runbook](../docs/operations/deployment.md)을 참고합니다.
@@ -29,7 +28,7 @@ cd infra
 docker compose up -d --build
 ```
 
-`docker-compose.override.yml`은 Compose가 자동으로 읽습니다. 따라서 로컬 기본 실행에서 `-f`나 별도 profile을 지정할 필요가 없습니다. 기본 실행 서비스는 `app`, `db`, `redis`뿐이며 Nginx·관측 컨테이너는 시작되지 않습니다. 운영 배포는 `observability` profile을 함께 실행해 Prometheus, Loki, Alloy, Grafana를 유지합니다.
+`docker-compose.override.yml`은 Compose가 자동으로 읽습니다. 따라서 로컬 기본 실행에서 `-f`나 별도 profile을 지정할 필요가 없습니다. 기본 실행 서비스는 `app`, `db`, `redis`뿐이며 공개 edge와 관측 컨테이너는 시작되지 않습니다. 운영 배포는 `observability` profile을 함께 실행해 Prometheus, Loki, Alloy, Grafana를 유지합니다.
 로컬 override는 `Dockerfile.local`에서 Gradle build까지 수행하므로 위 명령 하나로 앱 이미지가 생성됩니다. 운영/CI는 사전 생성한 `bootJar`를 사용하는 `Dockerfile`을 그대로 사용합니다.
 기존 `infra` 프로젝트로 만든 `sugang-helper-app/mysql/redis` 컨테이너가 남아 있으면 첫 전환 때만 해당 컨테이너를 재생성해야 합니다. `docker rm -f sugang-helper-app sugang-helper-mysql sugang-helper-redis`는 컨테이너만 제거하며 named volume 데이터는 삭제하지 않습니다.
 
@@ -45,7 +44,7 @@ docker compose --profile migration run --rm migrate validate
 
 ## 로그 검색
 
-운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`만 수집하고, Alloy는 Docker socket을 읽기 전용으로 사용해 Compose 컨테이너의 JSON 로그를 Loki로 전송하며 호스트 Nginx 로그도 존재할 때 함께 수집합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다.
+운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`만 수집하고, Alloy는 Docker socket을 읽기 전용으로 사용해 Compose 컨테이너의 JSON 로그를 Loki로 전송합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다.
 
 ```bash
 docker compose --profile observability up -d prometheus loki alloy grafana
@@ -77,23 +76,16 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 
 1. ARM64 OCI A1, reserved public IP, DuckDNS `<API_HOST>`를 준비한다.
 2. 80/443과 key-only SSH 22만 방화벽에서 열고 root/password SSH와 forwarding을 막는다.
-3. OCI block volume을 `/var/lib/jbnu-sugang-helper/mysql`에 mount하고 다음을 root로 실행한다.
+3. Docker named volume은 Compose가 생성·관리한다. 다음 script는 MySQL volume이 아닌 Loki·Alloy·Prometheus·Grafana host 디렉터리를 준비하므로 최초 bootstrap 때 root로 실행한다.
 
    ```bash
    sudo bash scripts/prepare-app-host-directories.sh
    ```
 
 4. Docker/Compose와 OCI 기본 `ubuntu` 사용자를 준비하고 `ubuntu`를 Docker 그룹에 추가한다. release root는 `/home/ubuntu/jbnu-sugang-helper`, 배포별 임시 staging은 `/home/ubuntu/jbnu-sugang-helper/.staging/<SHA>`를 사용하므로 별도 `/opt` 권한 bootstrap이나 영구 staging root가 필요 없다. Compose runtime 값은 release root `.env`, 앱 secret은 `apps/server/.env`에 둔다. 상세 명령은 [배포 runbook](../docs/operations/deployment.md)을 따른다. GHCR 인증은 Actions의 단기 `GITHUB_TOKEN`을 배포 시에만 사용하며 서버에 read-only token 파일을 보관하지 않는다.
-5. 호스트 Nginx를 설치하고 site template을 실제 DuckDNS hostname으로 render한다.
-
-   ```bash
-   sudo API_HOST=<api-duckdns-fqdn> CERTBOT_EMAIL=<운영자-이메일> \
-     bash scripts/bootstrap-nginx.sh
-   ```
-
-   이 스크립트는 rate-limit zone·proxy snippet을 먼저 설치하고, HTTP ACME 설정으로 인증서를 발급한 뒤 최종 TLS site를 적용합니다. `infra/nginx/conf.d/00-sugang-helper-rate-limit.conf`, `infra/nginx/snippets/jbnu-sugang-helper-proxy.conf`를 별도로 먼저 설치하지 않습니다.
-6. certbot timer와 renew hook(`certbot renew → nginx -t → systemctl reload nginx`)이 설정되었는지 확인한다.
-7. `bash scripts/verify-nginx-host-config.sh`와 `curl https://<API_HOST>/health/ready`로 확인한다.
+5. 기존 NPM이 80/443에서 TLS를 종료하고 앱의 `127.0.0.1:8080`, readiness의 `127.0.0.1:8081`로 전달하는지 확인한다. NPM 설정·인증서는 저장소나 앱 CD에서 수정하지 않는다.
+6. DuckDNS hostname과 OCI reserved IP가 일치하는지 확인한다.
+7. `curl https://<API_HOST>/health/ready`와 외부 uptime provider로 공개 readiness를 확인한다.
 
 세부적인 staging 전송, Flyway migrate, 수동 SHA 재배포, cutover, 서버 교체 절차는 runbook을 그대로 따른다. 배포 script는 Ubuntu SSH로 직접 실행하며 `/usr/local/sbin` wrapper나 sudoers 파일은 사용하지 않는다.
 
@@ -111,8 +103,8 @@ API_HOST=<api-duckdns-fqdn> bash scripts/test-uptime-contract.sh
 
 - `.env`, `secrets/`, host certificate/private key는 저장소에 커밋하지 않습니다.
 - `DB_ROOT_PASSWORD`는 DB container에만, `DB_RUNTIME_PASSWORD`는 앱과 DB init에만, `DB_MIGRATOR_PASSWORD`는 one-shot migration에만 전달합니다.
-- DB backup/restore는 이 최소 구성의 기능이 아닙니다. `DB_BACKUP_*` 변수를 새 runtime contract에 추가하지 않습니다.
-- 기존 NPM 상태·인증서는 host certbot 전환 전에 백업만 남기고, 새 runtime은 host Nginx/certbot을 사용합니다. Prometheus 설정은 앱 metrics scrape와 Grafana datasource/dashboard만 포함하며 host exporter·cAdvisor·Alertmanager는 참조하지 않습니다. Loki/Alloy/Grafana 설정은 production Compose의 `observability` profile에서 참조합니다.
+- `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh`는 OCI 서버에 직접 설치하는 파일이다. 매주 월요일 04:00(`Asia/Seoul`)에 systemd timer가 앱·DB를 중지하지 않고 MySQL logical dump를 `/home/ubuntu/jbnu-sugang-helper/backups/mysql`에 gzip/checksum과 함께 저장한다. 이 백업은 같은 OCI 인스턴스에 있으므로 host loss 보호가 아니다. `DB_BACKUP_*` 계정은 새 runtime contract에 추가하지 않는다.
+- 기존 NPM 상태·인증서는 서버에 남아 있는 공개 edge 운영 상태이며 저장소에 포함하지 않습니다. Prometheus 설정은 앱 metrics scrape와 Grafana datasource/dashboard만 포함하며 host exporter·cAdvisor·Alertmanager는 참조하지 않습니다. Loki/Alloy/Grafana 설정은 production Compose의 `observability` profile에서 참조합니다.
 
 ## 관련 문서
 

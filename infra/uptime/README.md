@@ -15,7 +15,7 @@
 
 1. `curl --fail --silent --show-error https://<API_HOST>/health/ready`가 성공하는지 확인한다.
 2. 운영자만 읽을 수 있는 provider 화면에서 60초 주기와 2회 실패 조건을 확인한다.
-3. maintenance 시 Nginx 또는 앱을 잠시 중지해 이메일이 정확히 두 번의 연속 실패 뒤 도착하는지 확인한다.
+3. maintenance 시 NPM 또는 앱을 잠시 중지해 이메일이 정확히 두 번의 연속 실패 뒤 도착하는지 확인한다.
 4. 서비스를 복구하고 recovery 이메일이 도착하는지 확인한다.
 
 이 문서는 이메일 수신 주소나 provider API token을 저장하지 않는다. Slack 알림은 후속 운영 이슈로 남긴다.

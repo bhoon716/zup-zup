@@ -15,7 +15,7 @@ IMAGE_TAG=<40자리 commit SHA>
 ```
 
 - `SERVER_DOTENV`는 앱 전용 `apps/server/.env` 내용이며 배포 시 `APP_ENV`에 설치한다.
-- root `.env`에는 Compose용 DB·Redis·volume·image·Firebase·관측 경로를 저장한다. 실제 secret은 Ubuntu 운영 파일에만 둔다.
+- root `.env`에는 Compose용 DB·Redis·named volume·image·Firebase·관측 경로를 저장한다. 실제 secret은 Ubuntu 운영 파일에만 둔다.
 - `apps/server/.env`에는 앱 전용 설정·secret만 저장한다.
 - 앱 rollback은 이전 SHA를 같은 수동 배포 workflow에 입력하는 방식이다. DB migration은 자동 rollback하지 않는다.
 
@@ -46,7 +46,7 @@ root `.env`에 다음 종류의 값을 채운다.
 
 - `APP_IMAGE_NAME=ghcr.io/<owner>/<repository>/server`
 - `FLYWAY_IMAGE=flyway/flyway@sha256:<digest>`
-- `DB_*`, `REDIS_*`, `DB_DATA_DIR`, `APP_*`, `LOKI_*`, `ALLOY_*`, `GRAFANA_*`, `PROMETHEUS_*`, `TZ`
+- `DB_*`, `REDIS_*`, `DB_VOLUME_NAME`, `APP_*`, `LOKI_*`, `ALLOY_*`, `GRAFANA_*`, `PROMETHEUS_*`, `TZ`
 - `FIREBASE_CONFIG_PATH=/home/ubuntu/jbnu-sugang-helper/secrets/firebase-key.json`
 
 Firebase 파일은 다음 경로에 별도로 설치한다.
@@ -84,6 +84,7 @@ checkout SHA
   → app start + health wait
   → internal readiness 확인
   → GHCR logout
+  → OCI local DB backup timer는 별도 systemd timer로 매일 실행
 ```
 
 `Prometheus`, `Loki`, `Grafana Alloy`, `Grafana`는 `observability` profile로 계속 실행한다. Prometheus는 앱 Actuator metrics만 수집하고, 로그 수집기는 Promtail이 아니라 Alloy다.
@@ -118,5 +119,5 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 
 - Ubuntu의 Docker socket 접근은 사실상 root equivalent 권한이다. 이 구성은 단순성을 위해 이를 명시적으로 수용한다.
 - SSH host key는 Actions 실행 시 `ssh-keyscan`으로 수집하는 단순 경로다. 고정 fingerprint 검증은 별도 강화 작업이다.
-- Nginx·certbot·DuckDNS는 앱 CD가 관리하지 않는 host 운영 경계다.
-- MySQL block volume은 backup이 아니며, DB backup/restore와 장기 Loki Object Storage는 별도 운영 이슈다.
+- NPM·DuckDNS는 앱 CD가 관리하지 않는 host 운영 경계다. NPM 설정·인증서는 저장소에 포함하지 않는다.
+- MySQL named volume은 backup이 아니며, OCI local DB dump도 host loss backup은 아니다. 서버에 직접 설치하는 `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh`가 매주 월요일 04:00(`Asia/Seoul`)에 실행되며, off-host backup/Object Storage 이전은 별도 운영 이슈다.

@@ -195,8 +195,6 @@ services:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - alloy_data:/var/lib/alloy
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/log/nginx:/var/log/nginx:ro
-      - /var/log/jbnu-sugang-helper:/var/log/jbnu-sugang-helper:ro
     networks:
       - sugang-helper-runtime
     depends_on:
@@ -304,10 +302,6 @@ volumes:
   db_data:
     name: ${DB_VOLUME_NAME:-sugang-helper-db-data}
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${DB_DATA_DIR:?DB_DATA_DIR must be set}
   app_uploads:
     name: ${APP_UPLOAD_VOLUME_NAME:-sugang-helper-app-uploads}
   loki_data:
