@@ -1,5 +1,4 @@
 # OS / editor files
-**/.DS_Store
 **/.idea/
 **/.vscode/
 **/__pycache__/
@@ -20,6 +19,8 @@
 !/.agents/docs/**
 !/.agents/skills/
 !/.agents/skills/**
+# Keep OS metadata ignored after re-including agent assets.
+**/.DS_Store
 /.agents/skills/ultra-grill-me/logs/
 
 # Environment files
