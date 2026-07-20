@@ -7,10 +7,10 @@ if [[ -z "${api_host}" ]]; then
   exit 1
 fi
 
-response="$(curl --fail --silent --show-error --max-time 10 "https://${api_host}/health/ready")"
+response="$(curl --fail --silent --show-error --max-time 10 "https://${api_host}/health")"
 if grep -Eiq 'password|secret|jdbc|redis|mysql|exception|stacktrace' <<<"${response}"; then
   echo "readiness response appears to expose internal details" >&2
   exit 1
 fi
 
-echo "external readiness endpoint returned HTTP 200 without sensitive detail"
+echo "external health endpoint returned HTTP 200 without sensitive detail"

@@ -35,15 +35,6 @@ loki.process "docker" {
 	forward_to = [loki.write.local.receiver]
 }
 
-// Host Nginx and any legacy file logs remain queryable when present.
-loki.source.file "host" {
-	targets = [
-		{"__path__" = "/var/log/nginx/*.log", "job" = "nginx", "service" = "nginx"},
-		{"__path__" = "/var/log/jbnu-sugang-helper/*/*.log", "job" = "jbnu-sugang-helper", "service" = "server"},
-	]
-	forward_to = [loki.write.local.receiver]
-}
-
 loki.write "local" {
 	endpoint {
 		url = "http://loki:3100/loki/api/v1/push"

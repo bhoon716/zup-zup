@@ -72,7 +72,7 @@ flowchart LR
 | --- | --- |
 | Frontend | Next.js 16.3.0-preview.5, React 19.2.7, TanStack Query, Zustand, React Hook Form, Zod |
 | Backend | Spring Boot 3.5.9, JPA, Security, Redis, Flyway, Swagger/OpenAPI |
-| Infra | Docker Compose, MySQL, Redis, host Nginx, certbot, DuckDNS, external uptime monitor |
+| Infra | Docker Compose, MySQL, Redis, existing Nginx Proxy Manager edge, DuckDNS, external uptime monitor |
 | 운영 | Vercel, OCI A1 ARM64 |
 
 ## 기술 선택과 트레이드오프
@@ -135,7 +135,7 @@ docker compose up -d
 
 - Web은 Vercel에서 배포합니다.
 - Server와 MySQL·Redis는 OCI A1 ARM64 인스턴스의 Docker Compose에서 운영합니다.
-- 호스트 Nginx가 80/443 reverse proxy와 HTTPS termination을 담당하고, certbot이 인증서를 갱신합니다.
+- 기존 Nginx Proxy Manager가 80/443 reverse proxy와 HTTPS termination을 담당합니다. NPM 설정·인증서는 저장소와 앱 CD에서 관리하지 않습니다.
 - 앱은 localhost 포트만 publish하고 DB·Redis host port는 열지 않습니다. 장애 감지는 외부 uptime monitor의 이메일 알림으로 시작합니다.
 - 배포·롤백 세부 절차는 [단일 OCI CI/CD 결정](./docs/decisions/2026-07-19-single-oci-cicd.md)과 [운영 runbook](./docs/operations/deployment.md)을 따릅니다.
 

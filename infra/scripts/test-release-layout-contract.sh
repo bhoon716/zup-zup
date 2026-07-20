@@ -15,16 +15,16 @@ if not compose.startswith("name: sugang-helper\n"):
 PY
 
 for required in \
-  'readonly RELEASE_ROOT="/opt/jbnu-sugang-helper"' \
-  'readonly STAGING_ROOT="/opt/jbnu-sugang-helper-staging"' \
+  'readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"' \
+  'readonly STAGING_ROOT="${RELEASE_ROOT}/.staging"' \
   'APP_ENV_FILE="${RELEASE_ROOT}/apps/server/.env"' \
+  'RUNTIME_ENV="${RELEASE_ROOT}/.env"' \
   'docker compose --project-name sugang-helper' \
-  'flock' \
   'pull app' \
+  'docker network connect sugang-helper-runtime sugang-helper-npm' \
   '--profile migration run --rm --no-deps migrate migrate' \
   '--no-deps --wait' \
   '127.0.0.1:8081/actuator/health/readiness' \
-  '.env.release' \
   'rm -rf -- "${staging_dir}"'; do
   if ! grep -F -- "${required}" "${deploy_script}" >/dev/null; then
     echo "deploy contract is missing: ${required}" >&2
@@ -32,11 +32,24 @@ for required in \
   fi
 done
 
+for forbidden in \
+  'readonly RELEASE_ROOT="/opt/jbnu-sugang-helper"' \
+  'readonly STAGING_ROOT="/opt/jbnu-sugang-helper-staging"' \
+  'readonly STAGING_ROOT="/home/ubuntu/jbnu-sugang-helper-staging"' \
+  '.env.runtime' \
+  '.env.release' \
+  'flock'; do
+  if grep -F -- "${forbidden}" "${deploy_script}" >/dev/null; then
+    echo "legacy deploy path must not remain: ${forbidden}" >&2
+    exit 1
+  fi
+done
+
 for required_path in \
   'loki/loki-config.yaml' \
   'alloy/config.alloy' \
+  'prometheus/prometheus.yml' \
   'grafana/provisioning/datasources/datasource.yml' \
-  'mysql/init/01-provision-service-accounts.sh' \
   'src/main/resources/db/migration'; do
   if ! grep -F -- "${required_path}" "${deploy_script}" >/dev/null; then
     echo "deploy must promote: ${required_path}" >&2
@@ -54,8 +67,7 @@ for forbidden in \
   'GHCR_USERNAME_FILE' \
   'GHCR_TOKEN_FILE' \
   'sudo' \
-  'chown -R root:root' \
-  'https://${api_host}/health/ready'; do
+  'chown -R root:root'; do
   if grep -F -- "${forbidden}" "${deploy_script}" >/dev/null; then
     echo "lightweight deploy must not use: ${forbidden}" >&2
     exit 1

@@ -8,17 +8,12 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set}
       MYSQL_DATABASE: ${DB_DATABASE:?DB_DATABASE must be set}
-      DB_RUNTIME_USER: ${DB_RUNTIME_USER:?DB_RUNTIME_USER must be set}
-      DB_RUNTIME_PASSWORD: ${DB_RUNTIME_PASSWORD:?DB_RUNTIME_PASSWORD must be set}
-      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?DB_MIGRATOR_USER must be set}
-      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?DB_MIGRATOR_PASSWORD must be set}
       TZ: ${TZ:?TZ must be set}
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     volumes:
       - db_data:/var/lib/mysql
-      - ./mysql/init/01-provision-service-accounts.sh:/docker-entrypoint-initdb.d/01-provision-service-accounts.sh:ro
     networks:
       - sugang-helper-runtime
     healthcheck:
@@ -82,8 +77,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SPRING_DATASOURCE_URL: ${DB_JDBC_URL:?DB_JDBC_URL must be set}
-      SPRING_DATASOURCE_USERNAME: ${DB_RUNTIME_USER:?DB_RUNTIME_USER must be set}
-      SPRING_DATASOURCE_PASSWORD: ${DB_RUNTIME_PASSWORD:?DB_RUNTIME_PASSWORD must be set}
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set}
       SPRING_FLYWAY_ENABLED: "false"
       REDIS_HOST: redis
       REDIS_PORT: "6379"
@@ -133,8 +128,8 @@ services:
       - /tmp:mode=1777
     environment:
       FLYWAY_URL: ${DB_JDBC_URL:?DB_JDBC_URL must be set}
-      FLYWAY_USER: ${DB_MIGRATOR_USER:?DB_MIGRATOR_USER must be set}
-      FLYWAY_PASSWORD: ${DB_MIGRATOR_PASSWORD:?DB_MIGRATOR_PASSWORD must be set}
+      FLYWAY_USER: root
+      FLYWAY_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set}
       FLYWAY_BASELINE_ON_MIGRATE: "false"
       FLYWAY_CLEAN_DISABLED: "true"
       FLYWAY_CONNECT_RETRIES: "60"
@@ -195,8 +190,6 @@ services:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - alloy_data:/var/lib/alloy
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/log/nginx:/var/log/nginx:ro
-      - /var/log/jbnu-sugang-helper:/var/log/jbnu-sugang-helper:ro
     networks:
       - sugang-helper-runtime
     depends_on:
@@ -204,6 +197,37 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "/bin/alloy fmt --test /etc/alloy/config.alloy >/dev/null && test -d /var/lib/alloy/data"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  prometheus:
+    image: prom/prometheus@sha256:4a61322ac1103a0e3aea2a61ef1718422a48fa046441f299d71e660a3bc71ae9
+    container_name: ${PROMETHEUS_CONTAINER_NAME:?PROMETHEUS_CONTAINER_NAME must be set}
+    profiles: ["observability"]
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-15d}
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - sugang-helper-runtime
+    healthcheck:
+      test: ["CMD", "promtool", "check", "config", "/etc/prometheus/prometheus.yml"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -242,6 +266,8 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+      prometheus:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/health | grep -Eq '\"database\"[[:space:]]*:[[:space:]]*\"ok\"'"]
       interval: 30s
@@ -271,10 +297,6 @@ volumes:
   db_data:
     name: ${DB_VOLUME_NAME:-sugang-helper-db-data}
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${DB_DATA_DIR:?DB_DATA_DIR must be set}
   app_uploads:
     name: ${APP_UPLOAD_VOLUME_NAME:-sugang-helper-app-uploads}
   loki_data:
@@ -298,3 +320,10 @@ volumes:
       type: none
       o: bind
       device: ${GRAFANA_DATA_DIR:?GRAFANA_DATA_DIR must be set}
+  prometheus_data:
+    name: ${PROMETHEUS_VOLUME_NAME:-sugang-helper-prometheus-data}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PROMETHEUS_DATA_DIR:?PROMETHEUS_DATA_DIR must be set}

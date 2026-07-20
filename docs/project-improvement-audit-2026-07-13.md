@@ -65,7 +65,7 @@
 
 - 098에서 Redis authenticated `PING` healthcheck·`service_healthy` startup·AOF host bind·backup/restore drill을 완료했다. 앱 readiness에는 DB/Redis가 포함되고, Redis preflight 실패는 기존 deployment failure channel로 전달한다. 지속 alert route는 099에서 완성한다.
 - Prometheus는 30일/20GB retention과 host bind volume을 사용하고, Alertmanager는 별도 persistent state volume·webhook route로 배포된다. Loki ruler와 Prometheus 모두 실제 `alertmanager:9093` 경로를 사용한다. SLO/DLQ/provider circuit/crawler freshness rule과 Grafana dashboard를 함께 provision한다.
-- DB compose는 root password만 사용하며, `backup-log-state.sh`는 MySQL·Grafana·Nginx/cert 상태를 백업하지 않는다.
+- DB compose는 root password만 사용하며, 기존 host-local state backup 설계는 MySQL·Grafana·Nginx/cert 상태를 하나의 복구 지점으로 보장하지 않는다. 현재 운영 정책은 서버에 직접 설치하는 MySQL logical dump만 유지한다.
 - 모든 Compose 서비스에 CPU/memory/pid limit과 restart 정책을 명시했다. 앱은 graceful shutdown 30초, notification worker는 8 thread/32 queue로 예산과 concurrency를 연결하고 compose policy smoke가 상한을 검증한다.
 - web/server 테스트는 핵심 단위 테스트 중심이며 OAuth, refresh, 인증 첨부파일, 실제 push/fan-out의 browser/contract coverage가 없다.
 - Flyway 검증은 MySQL Testcontainer 2개를 각각 시작한다. 103에서 이를 `migrationTest`로 분리했고, 최신 local report 기준 기본 suite는 238개/6.236초, migration suite는 2개/18.261초다. PR·main CI는 둘 다 실행하며 Docker 미가용은 skip이 아니라 명시 실패로 남긴다. static container 재사용은 schema isolation이 필요한 후속 최적화다.

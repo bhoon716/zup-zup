@@ -32,11 +32,11 @@ services = compose.get("services", {})
 def fail(message):
     raise SystemExit(message)
 
-expected = {"app", "db", "redis", "loki", "alloy", "grafana"}
+expected = {"app", "db", "redis", "loki", "alloy", "grafana", "prometheus"}
 if set(services) != expected:
-    fail(f"observability profile must contain app/db/redis/loki/alloy/grafana: {sorted(services)}")
+    fail(f"observability profile must contain app/db/redis/loki/alloy/grafana/prometheus: {sorted(services)}")
 
-for name in ("loki", "alloy", "grafana"):
+for name in ("loki", "alloy", "grafana", "prometheus"):
     if services[name].get("profiles") != ["observability"]:
         fail(f"{name} must be opt-in through the observability profile")
     if services[name].get("restart") != "unless-stopped":
@@ -51,6 +51,26 @@ if not str(services["loki"].get("image", "")).startswith("grafana/loki@sha256:")
 loki_mounts = {str(item.get("target")): item for item in services["loki"].get("volumes", [])}
 if "/etc/loki/local-config.yaml" not in loki_mounts or "/var/lib/loki" not in loki_mounts:
     fail("Loki config and persistent data mounts are required")
+
+prometheus = services["prometheus"]
+if not str(prometheus.get("image", "")).startswith("prom/prometheus@sha256:"):
+    fail("Prometheus image must be digest pinned")
+if prometheus.get("ports"):
+    fail("Prometheus must not publish a host port")
+prometheus_mounts = {str(item.get("target")): item for item in prometheus.get("volumes", [])}
+if "/etc/prometheus/prometheus.yml" not in prometheus_mounts or "/prometheus" not in prometheus_mounts:
+    fail("Prometheus config and persistent data mounts are required")
+prometheus_command = " ".join(str(item) for item in prometheus.get("command", []))
+if "--config.file=/etc/prometheus/prometheus.yml" not in prometheus_command:
+    fail("Prometheus must use the staged config file")
+if "--storage.tsdb.path=/prometheus" not in prometheus_command:
+    fail("Prometheus must use the persistent data path")
+if not prometheus.get("healthcheck"):
+    fail("Prometheus must define a healthcheck")
+prometheus_config = (repo_root / "infra/prometheus/prometheus.yml").read_text(encoding="utf-8")
+for required in ("job_name: sugang-helper-app", "metrics_path: /actuator/prometheus", "app:8081"):
+    if required not in prometheus_config:
+        fail(f"Prometheus config must scrape the app Actuator endpoint: {required}")
 
 if not str(services["alloy"].get("image", "")).startswith("grafana/alloy@sha256:"):
     fail("Alloy image must be digest pinned")
@@ -77,15 +97,27 @@ if "grep -Eq" not in grafana_healthcheck or "[[:space:]]*" not in grafana_health
 datasource = (repo_root / "infra/grafana/provisioning/datasources/datasource.yml").read_text(encoding="utf-8")
 if "type: loki" not in datasource or "isDefault: true" not in datasource:
     fail("Grafana must provision Loki as its default datasource")
-if "type: prometheus" in datasource:
-    fail("minimal log stack must not provision a missing Prometheus datasource")
+if "type: prometheus" not in datasource or "url: http://prometheus:9090" not in datasource:
+    fail("Grafana must provision the internal Prometheus datasource")
+if services["grafana"].get("depends_on", {}).get("prometheus", {}).get("condition") != "service_healthy":
+    fail("Grafana must wait for healthy Prometheus")
+
+dashboard_path = repo_root / "infra/grafana/dashboards/application-metrics-dashboard.json"
+if not dashboard_path.exists():
+    fail("Grafana application metrics dashboard is missing")
+dashboard = dashboard_path.read_text(encoding="utf-8")
+for required in ("Prometheus", "http_server_requests_seconds_count", "jvm_memory_used_bytes"):
+    if required not in dashboard:
+        fail(f"application metrics dashboard is missing: {required}")
 
 compose_text = (repo_root / "infra/docker-compose.yml").read_text(encoding="utf-8")
 if "promtail" in compose_text:
     fail("Promtail must not remain in the production Compose contract")
+for obsolete_service in ("alertmanager", "cadvisor", "node_exporter"):
+    if obsolete_service in compose_text:
+        fail(f"unrequested observability service must not remain: {obsolete_service}")
 
 for obsolete in (
-    repo_root / "infra/prometheus",
     repo_root / "infra/alertmanager",
     repo_root / "infra/grafana/dashboards/jvm-dashboard.json",
     repo_root / "infra/grafana/dashboards/notification-slo-dashboard.json",

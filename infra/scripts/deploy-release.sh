@@ -3,12 +3,10 @@ set -euo pipefail
 
 # Ubuntu-owned deploy entrypoint. The workflow copies this file to the fixed
 # release root and executes it over SSH; no privileged wrapper is needed.
-readonly RELEASE_ROOT="/opt/jbnu-sugang-helper"
-readonly STAGING_ROOT="/opt/jbnu-sugang-helper-staging"
-readonly RUNTIME_ENV="${RELEASE_ROOT}/.env.runtime"
+readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"
+readonly STAGING_ROOT="${RELEASE_ROOT}/.staging"
+readonly RUNTIME_ENV="${RELEASE_ROOT}/.env"
 readonly APP_ENV_FILE="${RELEASE_ROOT}/apps/server/.env"
-readonly RELEASE_STATE="${RELEASE_ROOT}/.env.release"
-readonly LOCK_FILE="${RELEASE_ROOT}/.deploy.lock"
 
 sha="${1:-}"
 staging_dir="${2:-}"
@@ -33,6 +31,7 @@ cleanup() {
       --env-file "${runtime_env}" \
       -f "${RELEASE_ROOT}/docker-compose.yml" stop app >/dev/null 2>&1 || true
   fi
+  [ -z "${runtime_env}" ] || rm -f -- "${runtime_env}"
   if [ -n "${staging_dir}" ] && [[ "${staging_dir}" =~ ^${STAGING_ROOT}/[0-9a-f]{40}$ ]]; then
     rm -rf -- "${staging_dir}" || true
   fi
@@ -56,9 +55,9 @@ if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -f "${staging_dir}/application-prod.yml" ] \
   || [ ! -f "${staging_dir}/apps/server/.env" ] \
   || [ ! -d "${staging_dir}/src/main/resources/db/migration" ] \
-  || [ ! -f "${staging_dir}/mysql/init/01-provision-service-accounts.sh" ] \
   || [ ! -f "${staging_dir}/loki/loki-config.yaml" ] \
   || [ ! -f "${staging_dir}/alloy/config.alloy" ] \
+  || [ ! -f "${staging_dir}/prometheus/prometheus.yml" ] \
   || [ ! -f "${staging_dir}/grafana/provisioning/datasources/datasource.yml" ]; then
   fail "staging release is incomplete"
 fi
@@ -67,10 +66,7 @@ if [ -L "${staging_dir}" ] || find -P "${staging_dir}" -type l -print -quit | gr
 fi
 
 command -v docker >/dev/null || fail "docker is required for Ubuntu deploys"
-command -v flock >/dev/null || fail "flock is required"
 mkdir -p "${RELEASE_ROOT}"
-exec 9>"${LOCK_FILE}"
-flock -n 9 || fail "another deployment is running"
 
 read_env_value() {
   local key="$1"
@@ -105,27 +101,24 @@ stage="promote-runtime-files"
 mkdir -p \
   "${RELEASE_ROOT}/apps/server" \
   "${RELEASE_ROOT}/src/main/resources/db" \
-  "${RELEASE_ROOT}/mysql/init" \
   "${RELEASE_ROOT}/loki" \
   "${RELEASE_ROOT}/alloy" \
+  "${RELEASE_ROOT}/prometheus" \
   "${RELEASE_ROOT}/grafana"
 cp "${staging_dir}/docker-compose.yml" "${RELEASE_ROOT}/docker-compose.yml.tmp.$$"
 mv -f "${RELEASE_ROOT}/docker-compose.yml.tmp.$$" "${RELEASE_ROOT}/docker-compose.yml"
 cp "${staging_dir}/application-prod.yml" "${RELEASE_ROOT}/application-prod.yml.tmp.$$"
 mv -f "${RELEASE_ROOT}/application-prod.yml.tmp.$$" "${RELEASE_ROOT}/application-prod.yml"
-cp "${staging_dir}/mysql/init/01-provision-service-accounts.sh" \
-  "${RELEASE_ROOT}/mysql/init/01-provision-service-accounts.sh.tmp.$$"
-mv -f "${RELEASE_ROOT}/mysql/init/01-provision-service-accounts.sh.tmp.$$" \
-  "${RELEASE_ROOT}/mysql/init/01-provision-service-accounts.sh"
 cp -a "${staging_dir}/src/main/resources/db/." "${RELEASE_ROOT}/src/main/resources/db/"
 cp -a "${staging_dir}/loki/." "${RELEASE_ROOT}/loki/"
 cp -a "${staging_dir}/alloy/." "${RELEASE_ROOT}/alloy/"
+cp -a "${staging_dir}/prometheus/." "${RELEASE_ROOT}/prometheus/"
 cp -a "${staging_dir}/grafana/." "${RELEASE_ROOT}/grafana/"
 cp "${staging_dir}/apps/server/.env" "${APP_ENV_FILE}.tmp.$$"
 chmod 0600 "${APP_ENV_FILE}.tmp.$$"
 mv -f "${APP_ENV_FILE}.tmp.$$" "${APP_ENV_FILE}"
 
-runtime_env="${RELEASE_ROOT}/.env.compose"
+runtime_env="${RELEASE_ROOT}/.compose-runtime.${sha}.$$"
 runtime_env_tmp="${runtime_env}.tmp.$$"
 cat >"${runtime_env_tmp}" <<EOF
 APP_IMAGE_NAME=${app_image_name}
@@ -143,8 +136,18 @@ compose=(docker compose --project-name sugang-helper --env-file "${RUNTIME_ENV}"
   || fail "runtime Compose config validation failed"
 
 stage="infra-start"
-"${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis loki alloy grafana \
-  || fail "MySQL/Redis/Loki/Alloy/Grafana startup failed"
+"${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis loki alloy prometheus grafana \
+  || fail "MySQL/Redis/Loki/Alloy/Prometheus/Grafana startup failed"
+
+stage="edge-network"
+if ! docker inspect sugang-helper-npm >/dev/null 2>&1; then
+  fail "existing NPM container sugang-helper-npm is missing"
+fi
+if ! docker network inspect sugang-helper-runtime \
+  --format '{{range .Containers}}{{.Name}}{{"\n"}}{{end}}' | grep -Fxq sugang-helper-npm; then
+  docker network connect sugang-helper-runtime sugang-helper-npm \
+    || fail "NPM could not join sugang-helper-runtime"
+fi
 
 stage="app-image-pull"
 "${compose[@]}" pull app || fail "application image pull failed"
@@ -165,15 +168,6 @@ stage="readiness"
 curl --fail --silent --show-error --max-time 10 \
   http://127.0.0.1:8081/actuator/health/readiness >/dev/null \
   || fail "application readiness failed"
-
-stage="state-update"
-state_tmp="${RELEASE_STATE}.tmp.$$"
-{
-  printf 'APP_IMAGE_NAME=%s\n' "${app_image_name}"
-  printf 'IMAGE_TAG=%s\n' "${sha}"
-} >"${state_tmp}"
-chmod 0600 "${state_tmp}"
-mv -f "${state_tmp}" "${RELEASE_STATE}"
 
 stage="complete"
 echo "deployed ${sha} with Ubuntu SSH-only deploy"

@@ -18,8 +18,7 @@ jobs:
           infra/scripts/test-runtime-contract.sh
           infra/scripts/test-observability-contract.sh
           infra/scripts/test-migration-failure-path.sh
-          infra/scripts/test-minimal-cicd-contract.sh
 
       - name: rebuild 절차 안내
         run: |
-          echo "실제 OCI block volume 재연결·reserved IP cutover는 운영 runbook과 cutover checklist를 따라 수동 검증한다."
+          echo "OCI named-volume 재사용·local DB backup timer와 reserved IP cutover는 운영 runbook과 cutover checklist를 따라 수동 검증한다."

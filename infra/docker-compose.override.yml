@@ -4,7 +4,6 @@ services:
   db:
     volumes: !override
       - local_db_data:/var/lib/mysql
-      - ./mysql/init/01-provision-service-accounts.sh:/docker-entrypoint-initdb.d/01-provision-service-accounts.sh:ro
 
   app:
     build:

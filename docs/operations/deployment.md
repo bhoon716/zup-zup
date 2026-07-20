@@ -6,17 +6,18 @@
 
 ```text
 SERVER_USER=ubuntu
-RELEASE_ROOT=/opt/jbnu-sugang-helper
-STAGING_ROOT=/opt/jbnu-sugang-helper-staging
-RUNTIME_ENV=/opt/jbnu-sugang-helper/.env.runtime
-APP_ENV=/opt/jbnu-sugang-helper/apps/server/.env
+RELEASE_ROOT=/home/ubuntu/jbnu-sugang-helper
+STAGING_ROOT=/home/ubuntu/jbnu-sugang-helper/.staging
+RUNTIME_ENV=/home/ubuntu/jbnu-sugang-helper/.env
+APP_ENV=/home/ubuntu/jbnu-sugang-helper/apps/server/.env
 APP_IMAGE=ghcr.io/<owner>/<repository>/server
 IMAGE_TAG=<40자리 commit SHA>
 ```
 
-- `SERVER_DOTENV`는 기존 `apps/server/.env` 전체 내용이며 배포 시 `APP_ENV`에 설치한다.
-- `.env.runtime`에는 Compose용 DB·Redis·volume·image·Firebase 경로를 저장한다. 실제 secret은 Ubuntu 운영 파일에만 둔다.
-- `.env.release`에는 마지막으로 readiness까지 성공한 `IMAGE_TAG`와 `APP_IMAGE_NAME`만 기록한다.
+- `SERVER_DOTENV`는 앱 전용 `apps/server/.env` 내용이며 배포 시 `APP_ENV`에 설치한다.
+- root `.env`에는 Compose용 DB·Redis·named volume·image·Firebase·관측 경로를 저장한다. 실제 secret은 Ubuntu 운영 파일에만 둔다.
+- `apps/server/.env`에는 앱 전용 설정·secret만 저장한다.
+- MySQL은 기존 `root` 계정을 앱과 one-shot Flyway migration이 함께 사용한다. 별도 runtime/migrator 계정이나 DB 권한 bootstrap은 수행하지 않는다.
 - 앱 rollback은 이전 SHA를 같은 수동 배포 workflow에 입력하는 방식이다. DB migration은 자동 rollback하지 않는다.
 
 ## 1. 최초 Ubuntu bootstrap
@@ -25,13 +26,14 @@ IMAGE_TAG=<40자리 commit SHA>
 
 ```bash
 sudo usermod -aG docker ubuntu
-sudo install -d -o ubuntu -g ubuntu -m 0750 \
-  /opt/jbnu-sugang-helper \
-  /opt/jbnu-sugang-helper-staging
-sudo install -d -o ubuntu -g ubuntu -m 0700 \
-  /opt/jbnu-sugang-helper/secrets
-sudo install -o ubuntu -g ubuntu -m 0600 /dev/null \
-  /opt/jbnu-sugang-helper/.env.runtime
+install -d -m 0750 \
+  /home/ubuntu/jbnu-sugang-helper \
+  /home/ubuntu/jbnu-sugang-helper/.staging
+install -d -m 0700 \
+  /home/ubuntu/jbnu-sugang-helper/secrets
+if [ ! -e /home/ubuntu/jbnu-sugang-helper/.env ]; then
+  install -m 0600 /dev/null /home/ubuntu/jbnu-sugang-helper/.env
+fi
 ```
 
 `ubuntu`로 다시 로그인한 뒤 Docker와 Compose를 확인한다.
@@ -41,18 +43,18 @@ docker info
 docker compose version
 ```
 
-`.env.runtime`에 다음 종류의 값을 채운다.
+root `.env`에 다음 종류의 값을 채운다.
 
 - `APP_IMAGE_NAME=ghcr.io/<owner>/<repository>/server`
 - `FLYWAY_IMAGE=flyway/flyway@sha256:<digest>`
-- `DB_*`, `REDIS_*`, `DB_DATA_DIR`, `APP_*`, `LOKI_*`, `ALLOY_*`, `GRAFANA_*`, `TZ`
-- `FIREBASE_CONFIG_PATH=/opt/jbnu-sugang-helper/secrets/firebase-key.json`
+- `DB_*`, `REDIS_*`, `DB_VOLUME_NAME`, `APP_*`, `LOKI_*`, `ALLOY_*`, `GRAFANA_*`, `PROMETHEUS_*`, `TZ`
+- `FIREBASE_CONFIG_PATH=/home/ubuntu/jbnu-sugang-helper/secrets/firebase-key.json`
 
 Firebase 파일은 다음 경로에 별도로 설치한다.
 
 ```bash
-install -o ubuntu -g ubuntu -m 0600 firebase-key.json \
-  /opt/jbnu-sugang-helper/secrets/firebase-key.json
+install -o 10001 -g 10001 -m 0600 firebase-key.json \
+  /home/ubuntu/jbnu-sugang-helper/secrets/firebase-key.json
 ```
 
 GitHub Actions는 배포 직전에 단기 `GITHUB_TOKEN`으로 GHCR에 로그인하고 종료 시 logout한다. OCI에 GHCR token 파일이나 `install-oci-wrappers.sh`를 만들지 않는다.
@@ -76,23 +78,35 @@ checkout SHA
   → release files + apps/server/.env + deploy.sh staging
   → SSH/SCP to Ubuntu
   → transient GITHUB_TOKEN으로 GHCR login
-  → docker compose infra/logging start
+  → docker compose db/redis/Prometheus/Loki/Alloy/Grafana start
+  → 기존 NPM을 sugang-helper-runtime network에 연결
   → app image pull
   → 기존 app stop
   → one-shot Flyway migrate
   → app start + health wait
   → internal readiness 확인
-  → .env.release 갱신
   → GHCR logout
+  → OCI local DB backup timer는 별도 systemd timer로 매일 실행
 ```
 
-`Loki`, `Grafana Alloy`, `Grafana`는 `observability` profile로 계속 실행한다. 로그 수집기는 Promtail이 아니라 Alloy다.
+`Prometheus`, `Loki`, `Grafana Alloy`, `Grafana`는 `observability` profile로 계속 실행한다. Prometheus는 앱 Actuator metrics만 수집하고, 로그 수집기는 Promtail이 아니라 Alloy다.
+
+기존 NPM은 저장소가 관리하지 않는 별도 컨테이너이지만, 배포 script가 새 runtime network가 처음 만들어진 뒤 upstream 컨테이너 이름을 해석할 수 있도록 연결만 보장한다. 이미 연결돼 있으면 아무 작업도 하지 않는다. 수동으로 Compose를 시작하는 경우에는 다음 명령을 사용한다.
+
+```bash
+if ! docker network inspect sugang-helper-runtime \
+  --format '{{range .Containers}}{{.Name}}{{"\n"}}{{end}}' | grep -qx sugang-helper-npm; then
+  docker network connect sugang-helper-runtime sugang-helper-npm
+fi
+```
+
+Firebase service-account 파일은 앱 컨테이너 사용자 UID `10001`이 읽어야 하므로 소유자 `10001:10001`, 권한 `0600`을 유지한다. 파일 내용은 출력하거나 저장소에 넣지 않는다.
 
 ## 4. 실패 처리
 
 - staging·Compose 검증·infra 시작·image pull 실패: 기존 app을 중지하지 않고 종료한다.
 - Flyway 실패: app은 중지 상태로 두며 DB 자동 rollback, `clean`, 자동 `repair`를 수행하지 않는다.
-- app start/readiness 실패: 새 app을 중지하고 `.env.release`를 갱신하지 않는다.
+- app start/readiness 실패: 새 app을 중지하고 root `.env`는 변경하지 않는다.
 - migration 이후 이전 SHA 재배포는 schema 호환성이 확인된 경우에만 수행한다. 이것은 앱 이미지 재배포이지 DB rollback이 아니다.
 - 반복 배포 후 사용하지 않는 SHA 이미지는 운영자가 확인 후 수동 정리한다. 자동 `docker system prune`은 실행하지 않는다.
 
@@ -101,10 +115,10 @@ checkout SHA
 현재 상태와 로그 확인:
 
 ```bash
-cd /opt/jbnu-sugang-helper
-docker compose --env-file .env.runtime --env-file .env.compose \
+cd /home/ubuntu/jbnu-sugang-helper
+docker compose --env-file .env --env-file .env.compose \
   -f docker-compose.yml ps
-docker compose --env-file .env.runtime --env-file .env.compose \
+docker compose --env-file .env --env-file .env.compose \
   -f docker-compose.yml logs --tail=100 app
 ```
 
@@ -118,5 +132,5 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 
 - Ubuntu의 Docker socket 접근은 사실상 root equivalent 권한이다. 이 구성은 단순성을 위해 이를 명시적으로 수용한다.
 - SSH host key는 Actions 실행 시 `ssh-keyscan`으로 수집하는 단순 경로다. 고정 fingerprint 검증은 별도 강화 작업이다.
-- Nginx·certbot·DuckDNS는 앱 CD가 관리하지 않는 host 운영 경계다.
-- MySQL block volume은 backup이 아니며, DB backup/restore와 장기 Loki Object Storage는 별도 운영 이슈다.
+- NPM·DuckDNS는 앱 CD가 관리하지 않는 host 운영 경계다. NPM 설정·인증서는 저장소에 포함하지 않는다.
+- MySQL named volume은 backup이 아니며, OCI local DB dump도 host loss backup은 아니다. 서버에 직접 설치하는 `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh`가 매주 월요일 04:00(`Asia/Seoul`)에 실행되며, off-host backup/Object Storage 이전은 별도 운영 이슈다.

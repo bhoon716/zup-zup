@@ -57,17 +57,30 @@ require("GITHUB_TOKEN", "the short-lived Actions token must authenticate the rem
 require("docker login ghcr.io", "remote GHCR login is missing")
 require("--password-stdin", "remote GHCR login must not expose the token in arguments")
 require("docker logout ghcr.io", "remote GHCR credentials must be removed after deploy")
-require_deploy('readonly RELEASE_ROOT="/opt/jbnu-sugang-helper"', "fixed Ubuntu release root is missing")
-require_deploy('readonly STAGING_ROOT="/opt/jbnu-sugang-helper-staging"', "fixed staging root is missing")
+require('remote_root="/home/ubuntu/jbnu-sugang-helper"', "CD must use the ubuntu home release root")
+require('remote_stage="${remote_root}/.staging/${IMAGE_TAG}"', "CD must use an ephemeral staging root under the release root")
+require_deploy('readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"', "fixed Ubuntu release root is missing")
+require_deploy('readonly STAGING_ROOT="${RELEASE_ROOT}/.staging"', "ephemeral staging root is missing")
 require_deploy('APP_ENV_FILE="${RELEASE_ROOT}/apps/server/.env"', "deploy must use apps/server/.env")
-require_deploy("flock", "deploy must serialize accidental manual overlap")
+require_deploy('RUNTIME_ENV="${RELEASE_ROOT}/.env"', "deploy must use the root .env runtime contract")
+require_deploy('rm -f -- "${runtime_env}"', "temporary Compose environment must be removed after deploy")
 require_deploy("pull app", "deploy must pull the selected app image")
 require_deploy("--profile migration run --rm --no-deps migrate migrate", "deploy must run one-shot Flyway migration")
 require_deploy("--no-deps --wait", "deploy must wait for app health")
 require_deploy("127.0.0.1:8081/actuator/health/readiness", "internal readiness gate is missing")
-require_deploy(".env.release", "current SHA state file is missing")
 require_deploy("loki/loki-config.yaml", "Loki configuration must be deployed")
 require_deploy("alloy/config.alloy", "Alloy configuration must be deployed")
+require_deploy("prometheus/prometheus.yml", "Prometheus configuration must be deployed")
 require_deploy("grafana/provisioning/datasources/datasource.yml", "Grafana configuration must be deployed")
+for forbidden_path in (
+    "/opt/jbnu-sugang-helper",
+    "/opt/jbnu-sugang-helper-staging",
+    "/home/ubuntu/jbnu-sugang-helper-staging",
+    ".env.runtime",
+    ".env.release",
+    "flock",
+):
+    if forbidden_path in workflow or forbidden_path in deploy_script:
+        raise SystemExit(f"legacy deploy path must not remain: {forbidden_path}")
 print("Ubuntu SSH-only CD workflow contract passed")
 PY
