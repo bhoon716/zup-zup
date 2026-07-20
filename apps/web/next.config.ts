@@ -5,7 +5,6 @@ const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http:/
 
 const nextConfig: NextConfig = {
   agentRules: false,
-  output: "standalone",
   turbopack: {
     root: path.resolve(__dirname, "..", ".."),
   },
