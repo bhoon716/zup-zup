@@ -1,0 +1,51 @@
+logging {
+	level  = "info"
+	format = "logfmt"
+}
+
+// Discover every Compose container so application, database, Redis, Loki,
+// Alloy, and Grafana JSON logs share one searchable Loki stream.
+discovery.docker "containers" {
+	host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+	targets = discovery.docker.containers.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+}
+
+loki.source.docker "containers" {
+	host       = "unix:///var/run/docker.sock"
+	targets    = discovery.relabel.containers.output
+	labels     = {job = "jbnu-sugang-helper"}
+	forward_to = [loki.process.docker.receiver]
+}
+
+loki.process "docker" {
+	stage.docker { }
+	forward_to = [loki.write.local.receiver]
+}
+
+// Host Nginx and any legacy file logs remain queryable when present.
+loki.source.file "host" {
+	targets = [
+		{"__path__" = "/var/log/nginx/*.log", "job" = "nginx", "service" = "nginx"},
+		{"__path__" = "/var/log/jbnu-sugang-helper/*/*.log", "job" = "jbnu-sugang-helper", "service" = "server"},
+	]
+	forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}

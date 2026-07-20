@@ -1,142 +1,185 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.5.9'
-	id 'io.spring.dependency-management' version '1.1.7'
-	id 'pmd'
-	id 'checkstyle'
+    id 'java'
+    id 'org.springframework.boot' version '3.5.9'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'pmd'
+    id 'checkstyle'
 }
 
 springBoot {
-	buildInfo()
+    buildInfo()
 }
 
 bootJar {
-	archiveFileName = 'app.jar'
+    archiveFileName = 'app.jar'
 }
 
 group = 'bhoon'
 version = '1.0.0'
 description = 'Demo project for Spring Boot'
 
+ext['netty.version'] = '4.1.132.Final'
+
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 pmd {
-	toolVersion = "7.5.0"
-	ruleSetFiles = files("config/pmd/pmd-ruleset.xml")
-	ruleSets = [] // 기본 룰셋 무시하고 명시한 룰셋만 사용
-	ignoreFailures = true // 도입 초기이므로 위반 시 빌드 실패는 방지 (경고만)
-	consoleOutput = true
+    toolVersion = "7.5.0"
+    ruleSetFiles = files("config/pmd/pmd-ruleset.xml")
+    ruleSets = [] // 기본 룰셋 무시하고 명시한 룰셋만 사용
+    ignoreFailures = false
+    consoleOutput = true
 }
 
 checkstyle {
-	toolVersion = "10.12.4"
-	configFile = file("config/checkstyle/checkstyle.xml")
-	ignoreFailures = true // 도입 초기이므로 위반 시 빌드 실패는 방지
-	showViolations = true
+    toolVersion = "10.12.4"
+    configFile = file("config/checkstyle/checkstyle.xml")
+    ignoreFailures = false
+    showViolations = true
 }
 
 configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
-	all {
-		exclude group: 'commons-logging', module: 'commons-logging'
-	}
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    all {
+        exclude group: 'commons-logging', module: 'commons-logging'
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-	// spring boot
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-mail'
-	implementation 'org.springframework.boot:spring-boot-starter-batch'
+    // 의존성 제약 조건
+    constraints {
+        implementation('org.bitbucket.b_c:jose4j') {
+            version {
+                strictly '0.9.4'
+            }
+            because 'CVE-2023-31582, CVE-2024-29371, CVE-2023-51775: fixed upstream in 0.9.4'
+        }
+        implementation('org.asynchttpclient:async-http-client') {
+            version {
+                strictly '3.0.11'
+            }
+            because 'CVE-2024-53990, CVE-2026-40490: fixed upstream in 3.0.11'
+        }
+        implementation('org.apache.commons:commons-lang3') {
+            version {
+                strictly '3.18.0'
+            }
+            because 'CVE-2025-48924: uncontrolled recursion fixed upstream in 3.18.0'
+        }
+        implementation('io.grpc:grpc-netty-shaded:1.75.0') {
+            because 'CVE-2025-55163: MadeYouReset HTTP/2 DDoS'
+        }
+    }
 
-	// AWS SES (이메일 발송)
-	implementation 'io.awspring.cloud:spring-cloud-aws-starter-ses:3.3.0'
+    // spring boot
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
 
-	// 테스트 의존성
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
-	testImplementation 'io.github.cdimascio:java-dotenv:5.2.2'
-	testImplementation 'org.springframework.batch:spring-batch-test'
-	testImplementation 'org.testcontainers:junit-jupiter'
-	testImplementation 'org.testcontainers:mysql'
+    // AWS SES (이메일 발송)
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-ses:3.3.0'
 
-	// db
-	implementation 'org.flywaydb:flyway-core'
-	implementation 'org.flywaydb:flyway-mysql'
-	runtimeOnly 'com.mysql:mysql-connector-j'
-	runtimeOnly 'com.h2database:h2'
-	testImplementation 'com.h2database:h2'
+    // 테스트 의존성
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'io.github.cdimascio:java-dotenv:5.2.2'
+    testImplementation 'org.springframework.batch:spring-batch-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
 
-	// lombok
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
+    // db
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    runtimeOnly 'com.h2database:h2'
+    testImplementation 'com.h2database:h2'
 
-	// JUnit 플랫폼 런처
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
 
-	// JWT (토큰 인증)
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
-	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
-	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+    // JUnit 플랫폼 런처
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-	// 문서화 (Swagger/OpenAPI)
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
+    // JWT (토큰 인증)
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-	// QueryDSL (동적 쿼리)
-	implementation "com.querydsl:querydsl-jpa:5.1.0:jakarta"
-	annotationProcessor "com.querydsl:querydsl-apt:5.1.0:jakarta"
-	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
-	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+    // 문서화 (Swagger/OpenAPI)
+    implementation('org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5') {
+        exclude group: 'org.apache.commons', module: 'commons-lang3'
+    }
+    implementation 'org.apache.commons:commons-lang3:3.18.0'
 
-	// 모니터링 (Prometheus)
-	implementation 'io.micrometer:micrometer-registry-prometheus'
+    // QueryDSL (동적 쿼리)
+    implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.0'
+    annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:6.0:jpa'
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
-	// HTML 파싱 (Jsoup)
-	implementation 'org.jsoup:jsoup:1.18.3'
+    // 모니터링 (Prometheus)
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
-	// 세션 관리 (Redis)
-	implementation 'org.springframework.session:spring-session-data-redis'
+    // HTML 파싱 (Jsoup)
+    implementation 'org.jsoup:jsoup:1.18.3'
 
-	// 파이어베이스 (푸시 알림)
-	implementation 'com.google.firebase:firebase-admin:9.7.0'
+    // 세션 관리 (Redis)
+    implementation 'org.springframework.session:spring-session-data-redis'
 
-	// 웹 푸시
-	implementation 'nl.martijndwars:web-push:5.1.1'
-	implementation 'org.bouncycastle:bcprov-jdk18on:1.83'
+    // 파이어베이스 (푸시 알림)
+    implementation 'com.google.firebase:firebase-admin:9.7.0'
 
-	// 파일 유효성 검사 (Tika)
-	implementation 'org.apache.tika:tika-core:2.9.1'
+    // 웹 푸시
+    implementation 'nl.martijndwars:web-push:5.1.1'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.84'
+
+    // 파일 유효성 검사 (Tika)
+    implementation 'org.apache.tika:tika-core:3.3.0'
 }
 
 tasks.named('test') {
-	useJUnitPlatform {
-		excludeTags 'manual', 'performance'
-	}
+    useJUnitPlatform {
+        excludeTags 'manual', 'performance', 'migration'
+    }
+}
+
+tasks.register('migrationTest', Test) {
+    group = 'verification'
+    description = 'Runs Flyway migration validation tests with MySQL Testcontainers.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+    useJUnitPlatform {
+        includeTags 'migration'
+    }
+    reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/migrationTest')
+    reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/migrationTest')
 }
 
 task manualTest(type: Test) {
-	useJUnitPlatform {
-		includeTags 'manual'
-	}
+    useJUnitPlatform {
+        includeTags 'manual'
+    }
 }
 
 task performanceTest(type: Test) {
-	useJUnitPlatform {
-		includeTags 'performance'
-	}
+    useJUnitPlatform {
+        includeTags 'performance'
+    }
 }

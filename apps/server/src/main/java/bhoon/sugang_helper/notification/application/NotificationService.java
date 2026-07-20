@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.notification.application;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
@@ -7,6 +8,7 @@ import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
 import bhoon.sugang_helper.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.notification.infra.NotificationDeliveryIdempotencyKey;
 import bhoon.sugang_helper.notification.infra.NotificationSender;
 import bhoon.sugang_helper.notification.infra.NotificationTarget;
 import bhoon.sugang_helper.subscription.domain.Subscription;
@@ -22,9 +24,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
@@ -33,7 +32,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@SuppressWarnings("PMD.TooManyMethods")
 public class NotificationService {
 
     private static final String NOTIFICATION_KEY_PREFIX = "ALERT:";
@@ -48,12 +46,11 @@ public class NotificationService {
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
     private final NotificationChannelPolicy notificationChannelPolicy;
+    private final bhoon.sugang_helper.notification.infra.NotificationProviderResilience notificationProviderResilience;
 
     /**
      * 빈자리 발생 이벤트를 처리하여 구독자들에게 알림을 발송합니다.
      */
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleSeatOpenedEvent(SeatOpenedEvent event) {
         String redisKey = NOTIFICATION_KEY_PREFIX + event.courseKey();
         boolean acquired = redisService.setValuesIfAbsent(redisKey, "PENDING", DEDUP_TTL);
@@ -65,6 +62,40 @@ public class NotificationService {
         notifySubscribers(event);
         redisService.setValues(redisKey, "SENT", DEDUP_TTL);
         log.info("[Notification] Completed sending seat opening notifications. courseKey={}", event.courseKey());
+    }
+
+    public void deliverSeatOpening(Long userId, NotificationChannel channel,
+                                   bhoon.sugang_helper.notification.domain.SeatNotificationOutbox outbox) {
+        deliverSeatOpening(userId, channel, outbox, null);
+    }
+
+    public void deliverSeatOpening(Long userId, NotificationChannel channel,
+                                   bhoon.sugang_helper.notification.domain.SeatNotificationOutbox outbox,
+                                   String idempotencyKey) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        if (!notificationChannelPolicy.isChannelEnabled(user, channel)) {
+            return;
+        }
+        List<NotificationTarget> targets = notificationChannelPolicy.resolveTargets(
+                user, userDeviceRepository.findByUserId(userId), channel);
+        if (targets.isEmpty()) {
+            return;
+        }
+        NotificationSender sender = notificationSenders.stream()
+                .filter(candidate -> candidate.supports(channel))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
+                        "알림 채널 발송기가 없습니다: " + channel));
+        NotificationMessage message = createSeatOpenedMessage(new SeatOpenedEvent(
+                outbox.getCourseKey(), outbox.getCourseName(), outbox.getProfessor(),
+                outbox.getPreviousSeats(), outbox.getCurrentSeats()));
+        String providerKey = NotificationDeliveryIdempotencyKey.providerKey(idempotencyKey);
+        for (NotificationTarget target : targets) {
+            notificationProviderResilience.execute(channel,
+                    () -> sender.send(target, message.title(), message.body(), providerKey));
+        }
+        saveHistory(userId, outbox.getCourseKey(), message, channel);
     }
 
     /**
@@ -153,9 +184,22 @@ public class NotificationService {
             return;
         }
 
-        targets.forEach(target -> dispatch(target, message.title(), message.body(), channel));
+        boolean delivered = false;
+        for (NotificationTarget target : targets) {
+            try {
+                dispatch(target, message.title(), message.body(), channel);
+                delivered = true;
+            } catch (RuntimeException e) {
+                if (ctx.forceSend()) {
+                    throw e;
+                }
+                log.warn("[Notification] Delivery failed but remaining targets will continue. userId={}, channel={}, failureCode={}, exceptionType={}",
+                        user.getId(), channel, SensitiveDataRedactor.failureCode(e),
+                        SensitiveDataRedactor.exceptionType(e));
+            }
+        }
 
-        if (ctx.saveHistory()) {
+        if (ctx.saveHistory() && delivered) {
             saveHistory(user.getId(), ctx.courseKey(), message, channel);
         }
     }
@@ -202,7 +246,8 @@ public class NotificationService {
     private void dispatch(NotificationTarget target, String title, String message, NotificationChannel channel) {
         notificationSenders.stream()
                 .filter(sender -> sender.supports(channel))
-                .forEach(sender -> sender.send(target, title, message));
+                .forEach(sender -> notificationProviderResilience.execute(channel,
+                        () -> sender.send(target, title, message)));
     }
 
     /**

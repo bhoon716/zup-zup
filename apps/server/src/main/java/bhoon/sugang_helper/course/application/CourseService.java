@@ -3,19 +3,22 @@ package bhoon.sugang_helper.course.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.course.domain.Course;
-import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.CourseRepository;
+import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
-import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
-import bhoon.sugang_helper.review.domain.ReviewScopeKey;
+import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import bhoon.sugang_helper.review.domain.CourseReviewRepository;
+import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CourseService {
+
+    private static final int MAX_HISTORY_PAGE_SIZE = 100;
 
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
@@ -36,6 +41,7 @@ public class CourseService {
      * 필터 조건과 페이징 정보를 사용하여 강의 목록을 검색
      */
     public Slice<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
+        condition.validateSearchValues();
         CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
         Long userId = condition.getUserId();
         if (Boolean.TRUE.equals(condition.getIsWishedOnly())) {
@@ -45,18 +51,19 @@ public class CourseService {
             userId = user.getId();
         }
         CourseSearchCriteria criteria = condition.toCriteria(userId);
-        return courseRepository.searchCourses(criteria, pageable)
+        return courseRepository.searchCourses(criteria, PageableGuard.requireBounded(pageable))
                 .map(course -> CourseResponse.from(course, target.year(), target.semester().getCode()));
     }
 
     /**
      * 특정 강의의 여석 변화 이력을 조회
      */
-    public List<CourseSeatHistoryResponse> getCourseHistory(String courseKey) {
-        return courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDesc(courseKey)
-                .stream()
-                .map(CourseSeatHistoryResponse::from)
-                .toList();
+    public Slice<CourseSeatHistoryResponse> getCourseHistory(String courseKey, Pageable pageable) {
+        PageableGuard.requireBounded(pageable, MAX_HISTORY_PAGE_SIZE, 10_000);
+        Pageable boundedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+        return courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDescIdDesc(courseKey, boundedPageable)
+                .map(CourseSeatHistoryResponse::from);
     }
 
     /**

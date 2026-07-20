@@ -10,7 +10,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Suspense } from "react";
 
-import { compressImage } from "@/shared/lib/image";
+import { compressImage, isSupportedImageType } from "@/shared/lib/image";
+import { buildFeedbackMetadata } from "@/features/feedback/feedback-metadata";
 import { useCreateFeedback } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackCreateForm } from "@/features/feedback/components/feedback-create-form";
 
@@ -28,6 +29,10 @@ function FeedbackWritePageContent() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.some((file) => !isSupportedImageType(file))) {
+      toast.error("JPEG 또는 PNG 이미지만 첨부할 수 있습니다.");
+      return;
+    }
     if (files.length + selectedFiles.length > 3) {
       toast.error("최대 3장까지만 첨부할 수 있습니다.");
       return;
@@ -59,13 +64,7 @@ function FeedbackWritePageContent() {
 
   const handleFormSubmit = async (values: { type: "BUG" | "SUGGESTION" | "OTHER"; title: string; content: string }) => {
     try {
-      const metaInfo = JSON.stringify({
-        url: window.location.href,
-        userAgent: navigator.userAgent,
-        os: navigator.platform,
-        language: navigator.language,
-        timestamp: new Date().toISOString(),
-      });
+      const metaInfo = buildFeedbackMetadata(navigator.platform, navigator.language);
 
       await createFeedbackMutation.mutateAsync({ request: { ...values, metaInfo }, files });
 

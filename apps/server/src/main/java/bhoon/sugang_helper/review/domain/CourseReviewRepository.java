@@ -40,4 +40,12 @@ public interface CourseReviewRepository extends RepositoryContract<CourseReview,
 
     Double getAverageRatingBySubjectCodeAndProfessor(String subjectCode,
                                                      String professor);
+
+    void incrementLikeCount(Long reviewId);
+
+    void decrementLikeCount(Long reviewId);
+
+    void incrementDislikeCount(Long reviewId);
+
+    void decrementDislikeCount(Long reviewId);
 }

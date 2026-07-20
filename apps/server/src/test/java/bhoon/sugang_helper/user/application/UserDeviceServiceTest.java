@@ -16,11 +16,14 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.user.application.command.RegisterDeviceCommand;
 import bhoon.sugang_helper.user.application.result.UserDeviceResult;
+import bhoon.sugang_helper.user.domain.DeviceType;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserDevice;
-import bhoon.sugang_helper.user.domain.DeviceType;
 import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +36,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 class UserDeviceServiceTest {
@@ -46,17 +50,27 @@ class UserDeviceServiceTest {
     private UserDeviceRepository userDeviceRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private WebPushEndpointValidator webPushEndpointValidator;
     private User testUser;
+    private Logger userDeviceLogger;
+    private ListAppender<ILoggingEvent> logAppender;
 
     @BeforeEach
     void setUp() {
         securityUtil = mockStatic(SecurityUtil.class);
         testUser = mock(User.class);
         lenient().when(testUser.getId()).thenReturn(1L);
+        userDeviceLogger = (Logger) LoggerFactory.getLogger(UserDeviceService.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        userDeviceLogger.addAppender(logAppender);
     }
 
     @AfterEach
     void tearDown() {
+        userDeviceLogger.detachAppender(logAppender);
+        logAppender.stop();
         securityUtil.close();
     }
 
@@ -105,6 +119,45 @@ class UserDeviceServiceTest {
     }
 
     @Test
+    @DisplayName("디바이스 신규 등록 로그에 원문 토큰을 남기지 않는다")
+    void registerDevice_New_DoesNotLogRawToken() {
+        // given
+        String sensitiveToken = "sensitive-fcm-token-for-log-regression-test";
+        mockUser();
+        given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.empty());
+
+        // when
+        userDeviceService.registerDevice(
+                new RegisterDeviceCommand(DeviceType.FCM, sensitiveToken, null, null, "Personal phone"));
+
+        // then
+        assertThat(logAppender.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .noneMatch(message -> message.contains(sensitiveToken))
+                .anyMatch(message -> message.contains("tokenFingerprint=sha256:"));
+    }
+
+    @Test
+    @DisplayName("기존 디바이스 갱신 로그에 원문 토큰을 남기지 않는다")
+    void registerDevice_Update_DoesNotLogRawToken() {
+        // given
+        String sensitiveToken = "sensitive-web-push-endpoint-for-log-regression-test";
+        mockUser();
+        UserDevice existingDevice = mock(UserDevice.class);
+        given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.of(existingDevice));
+
+        // when
+        userDeviceService.registerDevice(
+                new RegisterDeviceCommand(DeviceType.WEB, sensitiveToken, "P256DH", "AUTH", "Laptop"));
+
+        // then
+        assertThat(logAppender.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .noneMatch(message -> message.contains(sensitiveToken))
+                .anyMatch(message -> message.contains("tokenFingerprint=sha256:"));
+    }
+
+    @Test
     @DisplayName("디바이스 등록 - 인증되지 않은 사용자 예외 발생")
     void registerDevice_UserNotFound_ThrowsException() {
         // given
@@ -119,17 +172,31 @@ class UserDeviceServiceTest {
     }
 
     @Test
-    @DisplayName("디바이스 해제 - 성공")
+    @DisplayName("디바이스 해제 - 현재 사용자 기기 성공")
     void unregisterDevice_Success() {
         // given
-        UserDevice device = mock(UserDevice.class);
-        given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.of(device));
+        mockUser();
+        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(1L);
 
         // when
         userDeviceService.unregisterDevice(TOKEN);
 
         // then
-        verify(userDeviceRepository, times(1)).delete(device);
+        verify(userDeviceRepository, times(1)).deleteByTokenAndUserId(TOKEN, 1L);
+    }
+
+    @Test
+    @DisplayName("디바이스 해제 - 다른 사용자 기기는 삭제하지 않는다")
+    void unregisterDevice_OtherUsersDevice_IsNoOp() {
+        // given
+        mockUser();
+        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(0L);
+
+        // when
+        userDeviceService.unregisterDevice(TOKEN);
+
+        // then
+        verify(userDeviceRepository, times(1)).deleteByTokenAndUserId(TOKEN, 1L);
     }
 
     @Test

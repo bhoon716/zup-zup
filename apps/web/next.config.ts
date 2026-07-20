@@ -1,9 +1,13 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  turbopack: {
+    root: path.resolve(__dirname, "..", ".."),
+  },
   async rewrites() {
     return [
       {

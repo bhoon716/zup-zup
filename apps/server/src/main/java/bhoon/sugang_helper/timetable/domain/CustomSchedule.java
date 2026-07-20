@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.BatchSize;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -42,6 +43,7 @@ public class CustomSchedule extends BaseTimeEntity {
     private String professor;
 
     @OneToMany(mappedBy = "customSchedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     private List<CustomScheduleTime> times = new ArrayList<>();
 
     @Builder

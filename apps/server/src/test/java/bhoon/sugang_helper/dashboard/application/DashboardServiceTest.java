@@ -11,14 +11,14 @@ import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
 import bhoon.sugang_helper.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.schedule.domain.Schedule;
 import bhoon.sugang_helper.schedule.application.ScheduleResponse;
 import bhoon.sugang_helper.schedule.application.ScheduleService;
-import bhoon.sugang_helper.timetable.application.result.TimetableDetailResponse;
+import bhoon.sugang_helper.schedule.domain.Schedule;
 import bhoon.sugang_helper.timetable.application.TimetableService;
+import bhoon.sugang_helper.timetable.application.result.TimetableDetailResponse;
+import bhoon.sugang_helper.user.application.UserService;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
-import bhoon.sugang_helper.user.application.UserService;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -30,6 +30,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.PageImpl;
 
 @ExtendWith(MockitoExtension.class)
 class DashboardServiceTest {
@@ -105,7 +106,7 @@ class DashboardServiceTest {
         when(timetableService.getPrimaryTimetable()).thenReturn(timetable);
         when(scheduleService.getUpcomingSchedules()).thenReturn(List.of(ScheduleResponse.from(schedule)));
         when(announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(PageRequest.of(0, 4)))
-                .thenReturn(List.of(announcement));
+                .thenReturn(new PageImpl<>(List.of(announcement)));
 
         // when
         DashboardSnapshotResponse result = dashboardService.getDashboardSnapshot();
@@ -147,7 +148,7 @@ class DashboardServiceTest {
         when(userService.getCurrentUserOrNull()).thenReturn(Optional.empty());
         when(scheduleService.getUpcomingSchedules()).thenReturn(List.of(ScheduleResponse.from(schedule)));
         when(announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(PageRequest.of(0, 4)))
-                .thenReturn(List.of(announcement));
+                .thenReturn(new PageImpl<>(List.of(announcement)));
 
         // when
         DashboardSnapshotResponse result = dashboardService.getDashboardSnapshot();

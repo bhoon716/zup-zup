@@ -9,6 +9,7 @@ import java.util.List;
 public record ParsedCourseDto(
         String courseKey,
         String subjectCode,
+        String stdtrNo,
         String name,
         String classNumber,
         String professor,

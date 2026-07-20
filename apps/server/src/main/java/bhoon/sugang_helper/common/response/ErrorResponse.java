@@ -1,10 +1,12 @@
 package bhoon.sugang_helper.common.response;
 
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -33,13 +35,17 @@ public class ErrorResponse {
     @Schema(description = "상세 에러 정보 (필드 에러 등)")
     private final String details;
 
-    public static ErrorResponse of(ErrorCode errorCode, String path, String details) {
+    @Schema(description = "서버 로그와 대조할 수 있는 오류 ID")
+    private final String correlationId;
+
+    public static ErrorResponse of(ErrorCode errorCode, String path) {
         return new ErrorResponse(
                 LocalDateTime.now().toString(),
-                path,
+                SensitiveDataRedactor.redactPath(path),
                 errorCode.getStatus().value(),
                 errorCode.getCode(),
                 errorCode.getMessage(),
-                details);
+                null,
+                UUID.randomUUID().toString());
     }
 }

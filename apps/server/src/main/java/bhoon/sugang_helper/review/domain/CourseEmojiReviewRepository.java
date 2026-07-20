@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.review.domain;
 
 import bhoon.sugang_helper.common.domain.RepositoryContract;
-
 import java.util.List;
 import java.util.Optional;
 

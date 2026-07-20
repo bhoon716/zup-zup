@@ -1,0 +1,22 @@
+{
+  "issue": {
+    "id": "ISSUE-111-INFRA-NETWORK-SEGMENTATION",
+    "type": "refactoring",
+    "title": "[infra] 데이터·엣지·관측 네트워크 세분화",
+    "state": "closed",
+    "workflowId": "audit",
+    "directory": "ISSUE-111-INFRA-NETWORK-SEGMENTATION",
+    "createdAt": "2026-07-14T20:30:00+09:00",
+    "updatedAt": "2026-07-14T22:30:00+09:00",
+    "goal": "서비스 간 네트워크 접근 범위를 실제 통신 계약에 맞게 최소화한다.",
+    "acceptanceCriteria": [
+      "프록시가 DB·Redis에 직접 접근하지 못한다.",
+      "관측 컴포넌트가 observability 네트워크에서 서로 통신한다.",
+      "앱 scrape와 Grafana/NPM 접근은 유지된다.",
+      "네트워크 멤버십 정책 테스트가 통과한다."
+    ],
+    "dependencies": [],
+    "evidenceRequired": ["network graph", "compose policy diff", "connectivity smoke"]
+  },
+  "description": "현재 단일 서버 네트워크에 데이터·프록시·관측 서비스가 과도하게 묶여 있어 lateral movement 범위가 넓다."
+}

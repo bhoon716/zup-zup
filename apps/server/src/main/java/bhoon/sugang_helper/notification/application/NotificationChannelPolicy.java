@@ -17,7 +17,7 @@ public class NotificationChannelPolicy {
     private final NotificationProperties notificationProperties;
 
     public boolean isChannelEnabled(User user, NotificationChannel channel) {
-        if (!isGlobalChannelEnabled(channel)) {
+        if (user.isDeleted() || !isGlobalChannelEnabled(channel)) {
             return false;
         }
 
@@ -30,6 +30,9 @@ public class NotificationChannelPolicy {
     }
 
     public List<NotificationTarget> resolveTargets(User user, List<UserDevice> devices, NotificationChannel channel) {
+        if (user.isDeleted()) {
+            return List.of();
+        }
         return switch (channel) {
             case EMAIL -> List.of(NotificationTarget.of(resolveNotificationEmail(user)));
             case DISCORD ->

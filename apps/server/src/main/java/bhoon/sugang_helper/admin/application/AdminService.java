@@ -6,10 +6,10 @@ import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.crawling.application.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
+import bhoon.sugang_helper.notification.application.NotificationService;
 import bhoon.sugang_helper.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.notification.application.NotificationService;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
@@ -152,15 +152,6 @@ public class AdminService {
         List<AdminRecentLogResponse> allLogs = new ArrayList<>(notificationLogs);
         allLogs.add(buildCrawlerLog(now, lastCrawledAt));
 
-        if (allLogs.isEmpty()) {
-            allLogs.add(AdminRecentLogResponse.builder()
-                    .timestamp(now)
-                    .level("INFO")
-                    .message("표시할 로그가 없습니다.")
-                    .source("AdminService")
-                    .build());
-        }
-
         return allLogs.stream()
                 .sorted((a, b) -> {
                     if (a.getTimestamp() == null && b.getTimestamp() == null) {
@@ -230,19 +221,7 @@ public class AdminService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, "email: " + email));
 
-        List<NotificationChannel> channels = new ArrayList<>();
-        if (user.isEmailEnabled()) {
-            channels.add(NotificationChannel.EMAIL);
-        }
-        if (user.isFcmEnabled()) {
-            channels.add(NotificationChannel.FCM);
-        }
-        if (user.isWebPushEnabled()) {
-            channels.add(NotificationChannel.WEB);
-        }
-        if (user.isDiscordEnabled()) {
-            channels.add(NotificationChannel.DISCORD);
-        }
+        List<NotificationChannel> channels = user.getEnabledNotificationChannels();
 
         if (channels.isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "활성화된 알림 채널이 없습니다. 설정에서 알림을 활성화해주세요.");

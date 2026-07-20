@@ -5,18 +5,18 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
-import bhoon.sugang_helper.timetable.domain.CustomSchedule;
-import bhoon.sugang_helper.timetable.domain.CustomScheduleTime;
-import bhoon.sugang_helper.timetable.domain.Timetable;
-import bhoon.sugang_helper.timetable.domain.TimetableEntry;
-import bhoon.sugang_helper.timetable.domain.CustomScheduleRepository;
-import bhoon.sugang_helper.timetable.domain.TimetableEntryRepository;
-import bhoon.sugang_helper.timetable.domain.TimetableRepository;
 import bhoon.sugang_helper.timetable.application.command.CustomScheduleRequest;
 import bhoon.sugang_helper.timetable.application.command.TimetableRequest;
 import bhoon.sugang_helper.timetable.application.result.TimetableCourseResponse;
 import bhoon.sugang_helper.timetable.application.result.TimetableDetailResponse;
 import bhoon.sugang_helper.timetable.application.result.TimetableResponse;
+import bhoon.sugang_helper.timetable.domain.CustomSchedule;
+import bhoon.sugang_helper.timetable.domain.CustomScheduleRepository;
+import bhoon.sugang_helper.timetable.domain.CustomScheduleTime;
+import bhoon.sugang_helper.timetable.domain.Timetable;
+import bhoon.sugang_helper.timetable.domain.TimetableEntry;
+import bhoon.sugang_helper.timetable.domain.TimetableEntryRepository;
+import bhoon.sugang_helper.timetable.domain.TimetableRepository;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRegisteredEvent;
 import bhoon.sugang_helper.user.domain.UserRepository;
@@ -34,7 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-@SuppressWarnings("PMD.TooManyMethods")
 public class TimetableService {
 
     private static final int MAX_TIMETABLE_COUNT = 10;

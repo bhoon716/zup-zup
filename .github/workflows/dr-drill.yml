@@ -1,0 +1,25 @@
+name: OCI rebuild contract
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v5
+
+      - name: runtime·migration 실패 계약 검증
+        run: |
+          infra/scripts/test-runtime-contract.sh
+          infra/scripts/test-observability-contract.sh
+          infra/scripts/test-migration-failure-path.sh
+          infra/scripts/test-minimal-cicd-contract.sh
+
+      - name: rebuild 절차 안내
+        run: |
+          echo "실제 OCI block volume 재연결·reserved IP cutover는 운영 runbook과 cutover checklist를 따라 수동 검증한다."

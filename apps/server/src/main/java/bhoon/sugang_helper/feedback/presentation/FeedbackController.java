@@ -1,18 +1,28 @@
-package bhoon.sugang_helper.feedback.application;
+package bhoon.sugang_helper.feedback.presentation;
+import bhoon.sugang_helper.feedback.application.FeedbackDetailResponse;
+import bhoon.sugang_helper.feedback.application.FeedbackAttachmentDownload;
+import bhoon.sugang_helper.feedback.application.FeedbackService;
+import bhoon.sugang_helper.feedback.application.FeedbackResponse;
+import bhoon.sugang_helper.feedback.application.FeedbackCreateRequest;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.user.application.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.Resource;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,10 +51,11 @@ public class FeedbackController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CommonResponse<Long>> createFeedback(
             @Valid @RequestPart("feedback") FeedbackCreateRequest request,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
+            HttpServletRequest httpRequest) {
 
         Long userId = getUserId();
-        Long feedbackId = feedbackService.createFeedback(userId, request, files);
+        Long feedbackId = feedbackService.createFeedback(userId, request, files, resolveClientIp(httpRequest));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success(feedbackId, "피드백이 등록되었습니다."));
     }
@@ -73,6 +84,20 @@ public class FeedbackController {
         return CommonResponse.ok(feedbackService.getMyFeedbackDetail(userId, feedbackId), "피드백 상세입니다.");
     }
 
+    @Operation(summary = "피드백 첨부파일 다운로드")
+    @GetMapping("/{feedbackId}/attachments/{attachmentId}")
+    public ResponseEntity<Resource> downloadAttachment(@PathVariable Long feedbackId, @PathVariable Long attachmentId) {
+        FeedbackAttachmentDownload download = feedbackService.getAttachment(
+                userService.getCurrentUser(), feedbackId, attachmentId);
+        return ResponseEntity.ok()
+                .contentType(download.contentType())
+                .header("Content-Disposition", ContentDisposition.attachment()
+                        .filename(download.originalName(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(download.resource());
+    }
+
     /**
      * 작성한 피드백을 삭제합니다 (소프트 삭제 적용).
      */
@@ -90,5 +115,13 @@ public class FeedbackController {
      */
     private Long getUserId() {
         return userService.getCurrentUser().getId();
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",", 2)[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

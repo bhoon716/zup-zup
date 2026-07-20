@@ -5,13 +5,15 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
-import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
+import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -106,18 +108,27 @@ public class SubscriptionService {
      */
     public List<SubscriptionResponse> getMySubscriptions() {
         User user = getCurrentUser();
-        return subscriptionRepository.findByUserId(user.getId()).stream()
-                .map(this::convertToResponse)
+        List<Subscription> subscriptions = subscriptionRepository.findByUserId(user.getId());
+        Map<String, Course> coursesByKey = courseRepository.findByCourseKeyIn(subscriptions.stream()
+                        .map(Subscription::getCourseKey)
+                        .distinct()
+                        .toList())
+                .stream()
+                .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
+
+        return subscriptions.stream()
+                .map(subscription -> convertToResponse(subscription, coursesByKey.get(subscription.getCourseKey())))
                 .collect(Collectors.toList());
     }
 
     /**
      * 구독 엔티티를 응답 DTO로 변환하며 강의 정보를 결합
      */
-    private SubscriptionResponse convertToResponse(Subscription subscription) {
-        return courseRepository.findByCourseKey(subscription.getCourseKey())
-                .map(course -> SubscriptionResponse.of(subscription, course.getName(), course.getProfessor()))
-                .orElseGet(() -> SubscriptionResponse.of(subscription, "Unknown", "Unknown"));
+    private SubscriptionResponse convertToResponse(Subscription subscription, Course course) {
+        if (course == null) {
+            return SubscriptionResponse.of(subscription, "Unknown", "Unknown");
+        }
+        return SubscriptionResponse.of(subscription, course.getName(), course.getProfessor());
     }
 
     /**

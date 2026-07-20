@@ -1,81 +1,26 @@
-name: CD
+name: Production CD
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "배포할 40자리 commit SHA (수동 배포 시 필수)"
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  changes:
+  publish-image:
+    name: publish ARM64 image to GHCR
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    outputs:
-      web: ${{ steps.filter.outputs.web }}
-      server: ${{ steps.filter.outputs.server }}
-      infra: ${{ steps.filter.outputs.infra }}
-    steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: 변경 경로 탐지
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            web:
-              - 'apps/web/**'
-              - 'packages/shared/**'
-              - '.github/workflows/**'
-            server:
-              - 'apps/server/**'
-              - 'packages/shared/**'
-              - '.github/workflows/**'
-            infra:
-              - 'infra/**'
-              - '.github/workflows/**'
-
-  verify-web:
-    needs: changes
-    if: needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
-
-      - name: Node.js 설정
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
-
-      - name: 의존성 설치
-        working-directory: apps/web
-        run: npm ci
-
-      - name: 웹 테스트 실행
-        working-directory: apps/web
-        run: npm test -- --run
-
-      - name: 웹 린트 실행
-        working-directory: apps/web
-        run: npm run lint
-
-      - name: 웹 빌드 실행
-        working-directory: apps/web
-        run: npm run build
-
-  verify-server:
-    needs: changes
-    if: needs.changes.outputs.server == 'true'
-    runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v5
@@ -84,121 +29,153 @@ jobs:
         uses: actions/setup-java@v5
         with:
           java-version: "21"
-          distribution: "temurin"
+          distribution: temurin
           cache: gradle
-          cache-dependency-path: apps/server/build.gradle
+          cache-dependency-path: apps/server/gradle/wrapper/gradle-wrapper.properties
 
-      - name: 서버 테스트 및 검사 실행
+      - name: 애플리케이션 JAR 빌드
         working-directory: apps/server
-        env:
-          AWS_ACCESS_KEY_ID: mock-access-key
-          AWS_SECRET_ACCESS_KEY: mock-secret-key
-          AWS_REGION: us-east-1
-          SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
-        run: ./gradlew clean check --no-daemon
+        run: ./gradlew bootJar --no-daemon
 
+      - name: GHCR 로그인
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: QEMU 설정
+        uses: docker/setup-qemu-action@v3
 
-  deploy-server:
-    needs:
-      - changes
-      - verify-server
-    if: needs.changes.outputs.server == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Buildx 설정
+        uses: docker/setup-buildx-action@v3
+
+      - name: ARM64 이미지 build/push
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/server
+          file: apps/server/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server:${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: deploy to OCI
+    needs: publish-image
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.publish-image.result == 'success')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
 
     steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
-
-      - name: JDK 21 설정
-        uses: actions/setup-java@v5
-        with:
-          java-version: "21"
-          distribution: "temurin"
-          cache: gradle
-          cache-dependency-path: apps/server/build.gradle
-
-      - name: JAR 빌드
-        working-directory: apps/server
-        run: ./gradlew clean bootJar --no-daemon
-
-      - name: 서버 환경 파일 생성
+      - name: 수동 배포 SHA 입력 확인
+        if: github.event_name == 'workflow_dispatch'
         env:
-          SERVER_DOTENV: ${{ secrets.SERVER_DOTENV }}
+          IMAGE_TAG_INPUT: ${{ inputs.image_tag }}
         run: |
-          if [ -z "$SERVER_DOTENV" ]; then
-            echo "Missing required secret: SERVER_DOTENV" >&2
+          if [ -z "${IMAGE_TAG_INPUT}" ]; then
+            echo "image_tag is required for manual deployment" >&2
             exit 1
           fi
 
-          printf '%s' "$SERVER_DOTENV" > apps/server/.env
+      - name: 코드 체크아웃
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.image_tag || github.sha }}
 
-          required_vars=(
-            SPRING_PROFILES_ACTIVE
-            TZ
-            FIREBASE_CONFIG_PATH
-            LOG_FILE
-            SPRING_DATASOURCE_URL
-            SPRING_DATASOURCE_USERNAME
-            SPRING_DATASOURCE_PASSWORD
-            REDIS_HOST
-            REDIS_PORT
-            REDIS_PASSWORD
-            GOOGLE_CLIENT_ID
-            GOOGLE_CLIENT_SECRET
-            AWS_ACCESS_KEY_ID
-            AWS_SECRET_ACCESS_KEY
-            JWT_SECRET
-            APP_CORS_ALLOWED_ORIGINS
-            APP_OAUTH2_SUCCESS_REDIRECT_URI
-            APP_OAUTH2_FAILURE_REDIRECT_URI
-            APP_OAUTH2_AUTHORIZED_REDIRECT_URI
-            WEBPUSH_PUBLIC_KEY
-            WEBPUSH_PRIVATE_KEY
-            WEBPUSH_SUBJECT
-            DISCORD_BOT_TOKEN
-            DISCORD_CLIENT_ID
-            DISCORD_CLIENT_SECRET
-            DISCORD_REDIRECT_URI
-          )
-
-          for var in "${required_vars[@]}"; do
-            if ! grep -Eq "^${var}=.+$" apps/server/.env; then
-              echo "Missing required .env entry: $var" >&2
+      - name: release SHA 검증
+        run: |
+          if [[ ! "${IMAGE_TAG}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "IMAGE_TAG must be exactly 40 lowercase hexadecimal characters" >&2
+            exit 1
+          fi
+          for variable in SERVER_HOST SERVER_USER; do
+            if [ -z "${!variable}" ]; then
+              echo "Missing server setting: ${variable}" >&2
               exit 1
             fi
           done
+          if [[ ! "${SERVER_USER}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
+            echo "SERVER_USER contains unsupported characters" >&2
+            exit 1
+          fi
 
-      - name: 서버 파일 전송
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "apps/server/build/libs/app.jar,apps/server/src/main/resources/application-prod.yml,apps/server/Dockerfile,apps/server/.dockerignore,apps/server/.env"
-          target: "~/jbnu-sugang-helper/apps/server/"
+      - name: Compose runtime contract
+        run: |
+          infra/scripts/test-runtime-contract.sh
+          infra/scripts/test-observability-contract.sh
+          infra/scripts/test-release-layout-contract.sh
+          infra/scripts/test-ghcr-auth-contract.sh
+          docker compose --env-file infra/.env.example -f infra/docker-compose.yml config >/dev/null
 
-      - name: 서버에서 이미지 빌드 및 재배포
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ~/jbnu-sugang-helper/apps/server
-            docker build -t sugang-helper-app:latest .
-            cd ~/jbnu-sugang-helper/infra
-            docker compose up -d --no-deps app
+      - name: SSH 키 설정
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "${SSH_PRIVATE_KEY}" ]; then
+            echo "Missing production secret: SSH_PRIVATE_KEY" >&2
+            exit 1
+          fi
+          install -d -m 700 "${HOME}/.ssh"
+          printf '%s\n' "${SSH_PRIVATE_KEY}" >"${HOME}/.ssh/id_ed25519"
+          ssh-keyscan -T 10 -t ed25519 "${SERVER_HOST}" >"${HOME}/.ssh/known_hosts" 2>/dev/null
+          if [ ! -s "${HOME}/.ssh/known_hosts" ]; then
+            echo "Unable to collect SSH host key from ${SERVER_HOST}" >&2
+            exit 1
+          fi
+          chmod 600 "${HOME}/.ssh/id_ed25519" "${HOME}/.ssh/known_hosts"
 
-  verify-infra:
-    needs: changes
-    if: needs.changes.outputs.infra == 'true'
-    runs-on: ubuntu-latest
+      - name: staging release 준비
+        id: stage
+        env:
+          SERVER_DOTENV: ${{ secrets.SERVER_DOTENV }}
+        run: |
+          if [ -z "${SERVER_DOTENV}" ]; then
+            echo "Missing repository secret: SERVER_DOTENV" >&2
+            exit 1
+          fi
+          stage_dir="${RUNNER_TEMP}/jbnu-release-${IMAGE_TAG}"
+          mkdir -p "${stage_dir}/apps/server" "${stage_dir}/src/main/resources/db/migration" "${stage_dir}/mysql/init" "${stage_dir}/scripts/oci"
+          cp infra/docker-compose.yml "${stage_dir}/docker-compose.yml"
+          cp -a infra/loki "${stage_dir}/loki"
+          cp -a infra/alloy "${stage_dir}/alloy"
+          cp -a infra/grafana "${stage_dir}/grafana"
+          cp infra/mysql/init/01-provision-service-accounts.sh "${stage_dir}/mysql/init/01-provision-service-accounts.sh"
+          cp apps/server/src/main/resources/application-prod.yml "${stage_dir}/application-prod.yml"
+          cp apps/server/src/main/resources/db/migration/V*__*.sql "${stage_dir}/src/main/resources/db/migration/"
+          cp infra/scripts/oci/* "${stage_dir}/scripts/oci/"
+          umask 077
+          printf '%s\n' "${SERVER_DOTENV}" >"${stage_dir}/apps/server/.env"
+          chmod 0600 "${stage_dir}/apps/server/.env"
+          printf '%s\n' "${GITHUB_ACTOR}" >"${stage_dir}/DEPLOY_ACTOR"
+          (cd "${stage_dir}" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          echo "path=${stage_dir}" >>"${GITHUB_OUTPUT}"
 
-    steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
+      - name: OCI staging 전송
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          target="${SERVER_USER}@${SERVER_HOST}"
+          remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
+          ssh -o BatchMode=yes "${target}" "install -d -o ${SERVER_USER} -g ${SERVER_USER} -m 0750 '${remote_stage}'"
+          scp -r "${{ steps.stage.outputs.path }}/." "${target}:${remote_stage}/"
 
-      - name: 인프라 정책 검증
-        working-directory: infra
-        run: bash scripts/verify-compose-policy.sh docker-compose.yml
+      - name: allowlisted OCI deploy wrapper 실행
+        run: |
+          target="${SERVER_USER}@${SERVER_HOST}"
+          remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
+          ssh -o BatchMode=yes "${target}" \
+            "sudo -n /usr/local/sbin/jbnu-deploy '${IMAGE_TAG}' '${remote_stage}'"
+
+      - name: 배포 결과 기록
+        if: always()
+        run: |
+          echo "Production CD SHA=${IMAGE_TAG} actor=${GITHUB_ACTOR} result=${{ job.status }}"

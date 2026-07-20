@@ -7,13 +7,13 @@
 
 ## Decision
 - Consolidate the project into a monorepo-style root repository.
-- Use `apps/web`, `apps/server`, `infra`, and `packages/shared` as the active layout.
+- Use `apps/web`, `apps/server`, and `infra` as the active layout.
 - Keep web deployed on Vercel.
 - Keep server and infra on the OCI host.
 - Use path-based CI separation so web, server, and infra changes can be verified independently.
 
 ## Consequences
-- Shared code and types can live in `packages/shared` instead of being duplicated.
+- Add a shared package only when a real cross-application contract exists; an empty placeholder package is not maintained.
 - Web changes remain isolated from OCI operations, preserving the low-cost Vercel deployment path.
 - Server and infra continue to share the same host/runtime model, reducing deployment churn.
 - The old standalone directories can exist temporarily during migration, but the monorepo layout is the source of truth.

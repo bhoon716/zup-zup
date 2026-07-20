@@ -1,38 +1,35 @@
 package bhoon.sugang_helper.course.application;
 
-import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mockStatic;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.course.domain.Course;
+import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.CourseSeatHistory;
-import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
+import bhoon.sugang_helper.course.domain.SemesterType;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
+import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.review.domain.ReviewScopeKey;
-import bhoon.sugang_helper.user.domain.UserRepository;
-import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.user.domain.User;
+import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;
 import java.util.Optional;
-import org.mockito.MockedStatic;
-
-import static org.mockito.Mockito.mockStatic;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -162,15 +159,16 @@ class CourseServiceTest {
                 .capacity(50)
                 .current(10)
                 .build();
-        given(courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDesc(COURSE_KEY))
-                .willReturn(List.of(history));
+        given(courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDescIdDesc(
+                org.mockito.ArgumentMatchers.eq(COURSE_KEY), any(Pageable.class)))
+                .willReturn(new SliceImpl<>(List.of(history)));
 
         // when
-        List<CourseSeatHistoryResponse> responses = courseService.getCourseHistory(COURSE_KEY);
+        Slice<CourseSeatHistoryResponse> responses = courseService.getCourseHistory(COURSE_KEY, PageRequest.of(0, 30));
 
         // then
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getCapacity()).isEqualTo(50);
+        assertThat(responses.getContent().get(0).getCapacity()).isEqualTo(50);
     }
 
     @Test

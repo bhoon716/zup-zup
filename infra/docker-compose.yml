@@ -1,161 +1,300 @@
+name: sugang-helper
+
 services:
   db:
-    image: ${DB_IMAGE}
-    container_name: ${DB_CONTAINER_NAME}
+    image: ${DB_IMAGE:?DB_IMAGE must be set}
+    container_name: ${DB_CONTAINER_NAME:?DB_CONTAINER_NAME must be set}
     restart: unless-stopped
-    command: --binlog-expire-logs-seconds=172800
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_DATABASE}
-      TZ: ${TZ}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set}
+      MYSQL_DATABASE: ${DB_DATABASE:?DB_DATABASE must be set}
+      DB_RUNTIME_USER: ${DB_RUNTIME_USER:?DB_RUNTIME_USER must be set}
+      DB_RUNTIME_PASSWORD: ${DB_RUNTIME_PASSWORD:?DB_RUNTIME_PASSWORD must be set}
+      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?DB_MIGRATOR_USER must be set}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?DB_MIGRATOR_PASSWORD must be set}
+      TZ: ${TZ:?TZ must be set}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     volumes:
       - db_data:/var/lib/mysql
+      - ./mysql/init/01-provision-service-accounts.sh:/docker-entrypoint-initdb.d/01-provision-service-accounts.sh:ro
     networks:
-      - sugang-helper-network-server
+      - sugang-helper-runtime
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$${MYSQL_ROOT_PASSWORD}\" mysql --protocol=socket -h localhost -uroot -e 'SELECT 1' >/dev/null"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   redis:
-    image: ${REDIS_IMAGE}
-    container_name: ${REDIS_CONTAINER_NAME}
+    image: ${REDIS_IMAGE:?REDIS_IMAGE must be set}
+    container_name: ${REDIS_CONTAINER_NAME:?REDIS_CONTAINER_NAME must be set}
     restart: unless-stopped
     environment:
-      TZ: ${TZ}
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      TZ: ${TZ:?TZ must be set}
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      - --appendonly
+      - "no"
+      - --save
+      - ""
     networks:
-      - sugang-helper-network-server
-
-  prometheus:
-    image: prom/prometheus@sha256:0e698e35e50d1ddc2d11a4a55b089fe62eb71358a5c204dfafd21bdf8ffe04b8
-    container_name: ${PROMETHEUS_CONTAINER_NAME}
-    restart: unless-stopped
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    environment:
-      TZ: ${TZ}
+      - sugang-helper-runtime
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -qx PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
-    networks:
-      - sugang-helper-network-server
-
-  grafana:
-    image: grafana/grafana@sha256:6ea068891652aa6a65ca9065c26b89de939653803c836426970305c11fd00534
-    container_name: ${GRAFANA_CONTAINER_NAME}
-    restart: unless-stopped
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - TZ=${TZ}
-    volumes:
-      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - /var/lib/jbnu-sugang-helper/grafana:/var/lib/grafana
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    networks:
-      - sugang-helper-network-server
-
-  nginx-proxy-manager:
-    image: jc21/nginx-proxy-manager@sha256:99a885f56ca2203a2eb352a5f9e2cd5c1e25786508debd725ad48ebe955d114f
-    container_name: sugang-helper-nginx-proxy-manager
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "127.0.0.1:81:81"
-      - "443:443"
-    volumes:
-      - ./nginx-proxy-manager/data:/data
-      - ./nginx-proxy-manager/letsencrypt:/etc/letsencrypt
-    environment:
-      TZ: ${TZ}
-    networks:
-      - sugang-helper-network-server
-
-  loki:
-    image: grafana/loki@sha256:d14b3a2c419b72fe27cd094c017863bd37a5ea9ac7d72f35bcd25f5bd081dc47
-    container_name: sugang-helper-loki
-    restart: unless-stopped
-    volumes:
-      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
-      - /var/lib/jbnu-sugang-helper/loki:/var/lib/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    networks:
-      - sugang-helper-network-server
-
-  promtail:
-    image: grafana/promtail@sha256:238d8562dc29ec83d2f5933c7fd6e9469a90ea316a04f160dcc7cf842910ca94
-    container_name: sugang-helper-promtail
-    restart: unless-stopped
-    volumes:
-      - /var/log:/var/log:ro
-      - /var/lib/jbnu-sugang-helper/promtail:/var/lib/promtail
-      - ./promtail/promtail-config.yaml:/etc/promtail/docker-config.yaml:ro
-    command: -config.file=/etc/promtail/docker-config.yaml
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    networks:
-      - sugang-helper-network-server
 
   app:
-    image: sugang-helper-app:latest
-    container_name: ${APP_CONTAINER_NAME}
+    image: ${APP_IMAGE_NAME:-sugang-helper-app}:${IMAGE_TAG:-local}
+    build:
+      context: ${APP_BUILD_CONTEXT:-../apps/server}
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: ${JAR_FILE:-build/libs/app.jar}
+    container_name: ${APP_CONTAINER_NAME:?APP_CONTAINER_NAME must be set}
     restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
     env_file:
-      - .env
-      - ../apps/server/.env
+      - ${APP_ENV_FILE:-../apps/server/.env.example}
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_DATASOURCE_URL: ${DB_JDBC_URL:?DB_JDBC_URL must be set}
+      SPRING_DATASOURCE_USERNAME: ${DB_RUNTIME_USER:?DB_RUNTIME_USER must be set}
+      SPRING_DATASOURCE_PASSWORD: ${DB_RUNTIME_PASSWORD:?DB_RUNTIME_PASSWORD must be set}
+      SPRING_FLYWAY_ENABLED: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      FIREBASE_CONFIG_PATH: /app/config/firebase-key.json
+      FILE_UPLOAD_DIR: /app/data/uploads
+      LOG_FILE: /tmp/application.log
+      APP_CORS_REQUIRE_HTTPS: "true"
+      APP_AUTH_REFRESH_COOKIE_SECURE: "true"
+      TZ: ${TZ:?TZ must be set}
     ports:
-      - "${APP_PORT_HOST}:${APP_PORT_CONTAINER}"
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT_HOST:-8080}:8080"
+      - "${MANAGEMENT_BIND_ADDRESS:-127.0.0.1}:${MANAGEMENT_PORT_HOST:-8081}:8081"
     volumes:
-      - ../apps/server/src/main/resources/application-prod.yml:/app/config/application-prod.yml:ro
-      - ${FIREBASE_CONFIG_PATH}:/app/config/firebase-key.json:ro
-      - /var/log/jbnu-sugang-helper/server:/var/log/jbnu-sugang-helper/server
-    extra_hosts:
-      - "oasis.jbnu.ac.kr:114.70.191.85"
+      - ${APP_PROD_CONFIG_PATH:-../apps/server/src/main/resources/application-prod.yml}:/app/config/application-prod.yml:ro
+      - ${FIREBASE_CONFIG_PATH:?FIREBASE_CONFIG_PATH must be set}:/app/config/firebase-key.json:ro
+      - app_uploads:/app/data/uploads
+    networks:
+      - sugang-helper-runtime
+      - sugang-helper-egress
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:${APP_PORT_CONTAINER}/actuator/health | grep -q '\"status\":\"UP\"'"]
-      interval: 20s
-      timeout: 10s
-      retries: 15
-      start_period: 120s
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8081/actuator/health/readiness | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
     stop_grace_period: 30s
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
+
+  migrate:
+    image: ${FLYWAY_IMAGE:?FLYWAY_IMAGE must be set}
+    profiles: ["migration"]
+    restart: "no"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    environment:
+      FLYWAY_URL: ${DB_JDBC_URL:?DB_JDBC_URL must be set}
+      FLYWAY_USER: ${DB_MIGRATOR_USER:?DB_MIGRATOR_USER must be set}
+      FLYWAY_PASSWORD: ${DB_MIGRATOR_PASSWORD:?DB_MIGRATOR_PASSWORD must be set}
+      FLYWAY_BASELINE_ON_MIGRATE: "false"
+      FLYWAY_CLEAN_DISABLED: "true"
+      FLYWAY_CONNECT_RETRIES: "60"
+    command: ["migrate"]
+    volumes:
+      - ${APP_BUILD_CONTEXT:-../apps/server}/src/main/resources/db/migration:/flyway/sql:ro
     networks:
-      - sugang-helper-network-server
+      - sugang-helper-runtime
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_started
+
+  loki:
+    image: grafana/loki@sha256:70b9f699fc9bb868b62f1cfd4f787dfa50242f1fd92e6089787d5d7daea75fe8
+    container_name: ${LOKI_CONTAINER_NAME:?LOKI_CONTAINER_NAME must be set}
+    profiles: ["observability"]
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/var/lib/loki
+    networks:
+      - sugang-helper-runtime
+    healthcheck:
+      test: ["CMD", "/usr/bin/loki", "-config.file=/etc/loki/local-config.yaml", "-verify-config"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  alloy:
+    image: grafana/alloy@sha256:41c41849989b7e054ccbadc17938ee1e5592fe26bfbc56ef3ffc109c0b0b2739
+    container_name: ${ALLOY_CONTAINER_NAME:?ALLOY_CONTAINER_NAME must be set}
+    profiles: ["observability"]
+    restart: unless-stopped
+    read_only: true
+    user: "0:0"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log/nginx:/var/log/nginx:ro
+      - /var/log/jbnu-sugang-helper:/var/log/jbnu-sugang-helper:ro
+    networks:
+      - sugang-helper-runtime
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "/bin/alloy fmt --test /etc/alloy/config.alloy >/dev/null && test -d /var/lib/alloy/data"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  grafana:
+    image: grafana/grafana@sha256:121a7a9ece6dc10b969f1f96eed64b4f07dfac0d0b8abc070f7cb83bbde86f63
+    container_name: ${GRAFANA_CONTAINER_NAME:?GRAFANA_CONTAINER_NAME must be set}
+    profiles: ["observability"]
+    restart: unless-stopped
+    read_only: true
+    user: "472:472"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      TZ: ${TZ:?TZ must be set}
+    ports:
+      - "${GRAFANA_BIND_ADDRESS:-127.0.0.1}:${GRAFANA_PORT_HOST:-3000}:3000"
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - sugang-helper-runtime
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/health | grep -q '\"database\":\"ok\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 networks:
-  sugang-helper-network-server:
-    name: sugang-helper-network-server
+  sugang-helper-runtime:
+    name: sugang-helper-runtime
+    driver: bridge
+    internal: true
+    driver_opts:
+      com.docker.network.driver.mtu: "${DOCKER_NETWORK_MTU:-1500}"
+  sugang-helper-egress:
+    name: sugang-helper-egress
     driver: bridge
     driver_opts:
-      com.docker.network.driver.mtu: 9000
+      com.docker.network.driver.mtu: "${DOCKER_NETWORK_MTU:-1500}"
 
 volumes:
   db_data:
-    name: sugang-helper-db-data
+    name: ${DB_VOLUME_NAME:-sugang-helper-db-data}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DB_DATA_DIR:?DB_DATA_DIR must be set}
+  app_uploads:
+    name: ${APP_UPLOAD_VOLUME_NAME:-sugang-helper-app-uploads}
+  loki_data:
+    name: ${LOKI_VOLUME_NAME:-sugang-helper-loki-data}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOKI_DATA_DIR:?LOKI_DATA_DIR must be set}
+  alloy_data:
+    name: ${ALLOY_VOLUME_NAME:-sugang-helper-alloy-data}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${ALLOY_DATA_DIR:?ALLOY_DATA_DIR must be set}
+  grafana_data:
+    name: ${GRAFANA_VOLUME_NAME:-sugang-helper-grafana-data}
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${GRAFANA_DATA_DIR:?GRAFANA_DATA_DIR must be set}

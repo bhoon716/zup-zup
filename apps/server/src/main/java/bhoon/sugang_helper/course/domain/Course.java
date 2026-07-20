@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.BatchSize;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "courses")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuppressWarnings("PMD.TooManyFields")
+@SuppressWarnings("PMD.TooManyFields") // Course is a direct mapping of the external academic-course record.
 public class Course extends BaseTimeEntity {
 
     @Id
@@ -35,6 +36,9 @@ public class Course extends BaseTimeEntity {
 
     @Column(nullable = false, length = 20)
     private String subjectCode; // 과목 코드
+
+    @Column(name = "stdtr_no", length = 50)
+    private String stdtrNo; // 학수번호
 
     @Column(nullable = false, length = 100)
     private String name; // 과목명
@@ -131,13 +135,14 @@ public class Course extends BaseTimeEntity {
     private Integer reviewCount; // 리뷰 수
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     private List<CourseSchedule> schedules = new ArrayList<>();
 
     /**
      * 강의 엔티티 생성을 위한 빌더 생성자
      */
     @Builder
-    public Course(String courseKey, String subjectCode, String name, String classNumber, String professor,
+    public Course(String courseKey, String subjectCode, String stdtrNo, String name, String classNumber, String professor,
                   Integer capacity, Integer current, TargetGrade targetGrade, String academicYear, String semester,
                   CourseClassification classification, String department, GradingMethod gradingMethod,
                   String classTime, String credits, LectureLanguage lectureLanguage,
@@ -148,6 +153,7 @@ public class Course extends BaseTimeEntity {
                   Float averageRating, Integer reviewCount) {
         this.courseKey = courseKey;
         this.subjectCode = subjectCode;
+        this.stdtrNo = stdtrNo;
         this.name = name;
         this.classNumber = classNumber;
         this.professor = professor;
@@ -213,6 +219,9 @@ public class Course extends BaseTimeEntity {
      * 크롤링된 새로운 정보로 강의 메타데이터 업데이트
      */
     public void updateMetadata(Course other) {
+        if (other.getStdtrNo() != null) {
+            this.stdtrNo = other.getStdtrNo();
+        }
         this.name = other.getName();
         this.professor = other.getProfessor();
         this.capacity = other.getCapacity();
@@ -262,5 +271,3 @@ public class Course extends BaseTimeEntity {
         return true;
     }
 }
-
-

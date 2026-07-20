@@ -4,12 +4,22 @@ import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.course.domain.CourseSchedule;
 import bhoon.sugang_helper.course.domain.CourseSeatHistory;
-import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.SeatOpenedEvent;
 import bhoon.sugang_helper.crawling.application.JbnuCourseParser;
+import bhoon.sugang_helper.crawling.application.JbnuCourseItemReader;
 import bhoon.sugang_helper.crawling.infra.JbnuCourseApiClient;
+import bhoon.sugang_helper.course.infra.CourseSeatHistoryJpaRepository;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -20,7 +30,6 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.support.IteratorItemReader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -37,8 +46,9 @@ public class SpringBatchConfig {
     private final JbnuCourseApiClient apiClient;
     private final JbnuCourseParser courseParser;
     private final CourseRepository courseRepository;
-    private final CourseSeatHistoryRepository courseSeatHistoryRepository;
+    private final CourseSeatHistoryJpaRepository courseSeatHistoryRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final MeterRegistry meterRegistry;
 
     @Bean
     public Job crawlJob(Step crawlStep) {
@@ -63,43 +73,57 @@ public class SpringBatchConfig {
             @Value("#{jobParameters['semester']}") String semester) {
         log.info("[SpringBatchConfig] Initializing crawlReader for year={}, semester={}", year, semester);
 
-        // Fetch XML and parse
-        String xmlResponse = apiClient.fetchCourseDataXml(year, semester);
-        List<ParsedCourseDto> parsedCourses = courseParser.parseCourses(xmlResponse);
-
-        log.info("[SpringBatchConfig] Successfully parsed {} courses for reader.", parsedCourses.size());
-
-        return new IteratorItemReader<>(parsedCourses);
+        return new JbnuCourseItemReader(apiClient, courseParser, year, semester);
     }
 
     @Bean
     @StepScope
     public ItemWriter<ParsedCourseDto> crawlWriter() {
+        Set<String> seenStdtrNos = new HashSet<>();
         return chunk -> {
             log.info("[SpringBatchConfig] Writing chunk of {} courses.", chunk.size());
-            for (ParsedCourseDto dto : chunk) {
-                try {
-                    processCourse(dto);
-                } catch (Exception e) {
-                    log.error("[SpringBatchConfig] Error processing course in chunk: courseKey={}, reason={}",
-                            dto.courseKey(), e.getMessage());
+            long startedAt = System.nanoTime();
+            List<CourseSeatHistory> seatHistories = new ArrayList<>();
+            List<Course> crawledCourses = chunk.getItems().stream().map(this::mapToEntity).toList();
+            recordDuplicateStdtrNos(crawledCourses, seenStdtrNos);
+            Map<String, Course> existingCourses = findExistingCourses(crawledCourses);
+            for (Course crawledCourse : crawledCourses) {
+                CourseSeatHistory seatHistory = processCourse(crawledCourse, existingCourses);
+                if (seatHistory != null) {
+                    seatHistories.add(seatHistory);
                 }
             }
+            if (!seatHistories.isEmpty()) {
+                courseSeatHistoryRepository.saveAll(seatHistories);
+            }
+            recordChunkWriteMetric(chunk.size(), startedAt);
         };
     }
 
-    private void processCourse(ParsedCourseDto courseDto) {
-        Course crawledCourse = mapToEntity(courseDto);
-        courseRepository.findByCourseKey(crawledCourse.getCourseKey())
-                .ifPresentOrElse(
-                        existingCourse -> updateExistingCourse(existingCourse, crawledCourse),
-                        () -> createNewCourse(crawledCourse));
+    private Map<String, Course> findExistingCourses(List<Course> crawledCourses) {
+        if (crawledCourses.isEmpty()) {
+            return new HashMap<>();
+        }
+        List<String> courseKeys = crawledCourses.stream().map(Course::getCourseKey).distinct().toList();
+        return courseRepository.findByCourseKeyIn(courseKeys).stream()
+                .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
+    }
+
+    private CourseSeatHistory processCourse(Course crawledCourse, Map<String, Course> existingCourses) {
+        Course existingCourse = existingCourses.get(crawledCourse.getCourseKey());
+        if (existingCourse != null) {
+            return updateExistingCourse(existingCourse, crawledCourse);
+        }
+        CourseSeatHistory history = createNewCourse(crawledCourse);
+        existingCourses.put(crawledCourse.getCourseKey(), crawledCourse);
+        return history;
     }
 
     private Course mapToEntity(ParsedCourseDto dto) {
         Course course = Course.builder()
                 .courseKey(dto.courseKey())
                 .subjectCode(dto.subjectCode())
+                .stdtrNo(dto.stdtrNo())
                 .classNumber(dto.classNumber())
                 .name(dto.name())
                 .professor(dto.professor())
@@ -135,34 +159,66 @@ public class SpringBatchConfig {
         return course;
     }
 
-    private void createNewCourse(Course course) {
+    private CourseSeatHistory createNewCourse(Course course) {
         courseRepository.save(course);
-        saveSeatHistory(course);
+        return toSeatHistory(course);
     }
 
-    private void updateExistingCourse(Course existingCourse, Course crawledCourse) {
+    private void recordChunkWriteMetric(int chunkSize, long startedAt) {
+        if (meterRegistry == null) {
+            return;
+        }
+        Timer timer = meterRegistry.timer("crawler.course.chunk.write");
+        if (timer != null) {
+            timer.record(System.nanoTime() - startedAt, java.util.concurrent.TimeUnit.NANOSECONDS);
+        }
+        io.micrometer.core.instrument.Counter.builder("crawler.course.chunk.items")
+                .register(meterRegistry)
+                .increment(chunkSize);
+    }
+
+    private void recordDuplicateStdtrNos(List<Course> crawledCourses, Set<String> seenStdtrNos) {
+        long duplicateRows = countDuplicateStdtrNos(crawledCourses, seenStdtrNos);
+        if (duplicateRows == 0) {
+            return;
+        }
+        log.warn("[SpringBatchConfig] Duplicate stdtrNo values detected. duplicateRows={}", duplicateRows);
+        if (meterRegistry != null) {
+            meterRegistry.counter("crawler.course.stdtr_no.duplicates").increment(duplicateRows);
+        }
+    }
+
+    long countDuplicateStdtrNos(List<Course> crawledCourses, Set<String> seenStdtrNos) {
+        long duplicateRows = 0;
+        for (Course course : crawledCourses) {
+            String stdtrNo = course.getStdtrNo();
+            if (stdtrNo != null && !seenStdtrNos.add(stdtrNo)) {
+                duplicateRows++;
+            }
+        }
+        return duplicateRows;
+    }
+
+    private CourseSeatHistory updateExistingCourse(Course existingCourse, Course crawledCourse) {
         boolean wasFull = existingCourse.getAvailable() <= 0;
         boolean seatsChanged = !existingCourse.getCapacity().equals(crawledCourse.getCapacity()) ||
                 !existingCourse.getCurrent().equals(crawledCourse.getCurrent());
 
         existingCourse.updateMetadata(crawledCourse);
-        courseRepository.save(existingCourse);
-
-        if (seatsChanged) {
-            saveSeatHistory(existingCourse);
-        }
 
         if (wasFull && existingCourse.getAvailable() > 0) {
             publishSeatOpenedEvent(existingCourse);
         }
+
+        return seatsChanged ? toSeatHistory(existingCourse) : null;
     }
 
-    private void saveSeatHistory(Course course) {
-        courseSeatHistoryRepository.save(CourseSeatHistory.builder()
+    private CourseSeatHistory toSeatHistory(Course course) {
+        return CourseSeatHistory.builder()
                 .courseKey(course.getCourseKey())
                 .capacity(course.getCapacity())
                 .current(course.getCurrent())
-                .build());
+                .build();
     }
 
     private void publishSeatOpenedEvent(Course course) {

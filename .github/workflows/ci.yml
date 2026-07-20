@@ -1,0 +1,137 @@
+name: PR CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  MYSQL_DATABASE: sugang_helper
+  MYSQL_ROOT_PASSWORD: ci-root-password
+  REDIS_PASSWORD: ""
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server
+  FLYWAY_IMAGE: flyway/flyway@sha256:8ace7d9825bb3ad1d6e14ee27b3a830b638ac841ba424b99b2d92aa65a99d484
+
+jobs:
+  verify:
+    name: CI
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_DATABASE: sugang_helper
+          MYSQL_ROOT_PASSWORD: ci-root-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v5
+
+      - name: JDK 21 설정
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: gradle
+          cache-dependency-path: apps/server/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Flyway migrate (fresh CI database)
+        working-directory: apps/server
+        run: |
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE/apps/server/src/main/resources/db/migration:/flyway/sql:ro" \
+            -e FLYWAY_URL="jdbc:mysql://127.0.0.1:3306/sugang_helper?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul" \
+            -e FLYWAY_USER=root \
+            -e FLYWAY_PASSWORD=ci-root-password \
+            -e FLYWAY_BASELINE_ON_MIGRATE=false \
+            -e FLYWAY_CLEAN_DISABLED=true \
+            "${FLYWAY_IMAGE}" migrate
+
+      - name: Flyway validate (after migration)
+        working-directory: apps/server
+        run: |
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE/apps/server/src/main/resources/db/migration:/flyway/sql:ro" \
+            -e FLYWAY_URL="jdbc:mysql://127.0.0.1:3306/sugang_helper?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul" \
+            -e FLYWAY_USER=root \
+            -e FLYWAY_PASSWORD=ci-root-password \
+            "${FLYWAY_IMAGE}" validate
+
+      - name: 백엔드 테스트·검사
+        working-directory: apps/server
+        env:
+          AWS_ACCESS_KEY_ID: ci-access-key
+          AWS_SECRET_ACCESS_KEY: ci-secret-key
+          AWS_REGION: us-east-1
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/sugang_helper?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: ci-root-password
+          SPRING_FLYWAY_ENABLED: "false"
+          SPRING_REDIS_HOST: 127.0.0.1
+          SPRING_REDIS_PORT: "6379"
+          SPRING_REDIS_PASSWORD: ""
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: "6379"
+          REDIS_PASSWORD: ""
+          APP_CORS_ALLOWED_ORIGINS: http://localhost:3000
+          APP_CORS_REQUIRE_HTTPS: "false"
+          APP_AUTH_REFRESH_COOKIE_SECURE: "false"
+          JWT_SECRET: ci-only-jwt-secret-change-me-32-bytes
+          GOOGLE_CLIENT_ID: ci-google-client
+          GOOGLE_CLIENT_SECRET: ci-google-secret
+          GOOGLE_REDIRECT_URI: http://localhost:8080/login/oauth2/code/google
+          APP_OAUTH2_SUCCESS_REDIRECT_URI: http://localhost:3000
+          APP_OAUTH2_FAILURE_REDIRECT_URI: http://localhost:3000/login?error=true
+          APP_OAUTH2_AUTHORIZED_REDIRECT_URI: http://localhost:3000
+          FIREBASE_CONFIG_PATH: /tmp/ci-firebase.json
+          WEBPUSH_PUBLIC_KEY: ci-webpush-public
+          WEBPUSH_PRIVATE_KEY: ci-webpush-private
+          WEBPUSH_SUBJECT: mailto:ci@example.test
+          DISCORD_BOT_TOKEN: ""
+          DISCORD_CLIENT_ID: ""
+          DISCORD_CLIENT_SECRET: ""
+          DISCORD_REDIRECT_URI: http://localhost:8080/api/v1/users/discord/callback
+        run: |
+          printf '{}' > /tmp/ci-firebase.json
+          ./gradlew clean check --no-daemon
+
+      - name: 기존 스키마 migration 검증
+        working-directory: apps/server
+        run: ./gradlew migrationTest --no-daemon
+
+      - name: 애플리케이션 JAR 빌드
+        working-directory: apps/server
+        run: ./gradlew bootJar --no-daemon
+
+      - name: QEMU 설정
+        uses: docker/setup-qemu-action@v3
+
+      - name: Buildx 설정
+        uses: docker/setup-buildx-action@v3
+
+      - name: ARM64 이미지 빌드 검증 (push 없음)
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/server
+          file: apps/server/Dockerfile
+          platforms: linux/arm64
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

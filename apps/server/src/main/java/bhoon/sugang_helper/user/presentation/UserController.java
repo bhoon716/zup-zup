@@ -1,4 +1,14 @@
-package bhoon.sugang_helper.user.application;
+package bhoon.sugang_helper.user.presentation;
+import bhoon.sugang_helper.auth.application.AuthService;
+import bhoon.sugang_helper.user.application.DiscordOAuthService;
+import bhoon.sugang_helper.user.application.UserService;
+import bhoon.sugang_helper.user.application.UserResponse;
+import bhoon.sugang_helper.user.application.OnboardingRequest;
+import bhoon.sugang_helper.user.application.EmailRequest;
+import bhoon.sugang_helper.user.application.UserSettingsRequest;
+import bhoon.sugang_helper.user.application.EmailVerificationRequest;
+import bhoon.sugang_helper.user.application.UserUpdateRequest;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.user.application.command.CompleteOnboardingCommand;
@@ -18,6 +28,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,9 +57,18 @@ public class UserController {
 
     private final UserService userService;
     private final DiscordOAuthService discordOAuthService;
+    private final AuthService authService;
 
     @Value("${app.oauth2.authorized-redirect-uri}")
     private String frontendBaseUrl;
+    @Value("${app.discord.client-id}")
+    private String discordClientId;
+    @Value("${app.discord.redirect-uri}")
+    private String discordRedirectUri;
+
+    private static final String DISCORD_STATE_ATTRIBUTE = "DISCORD_OAUTH_STATE";
+    private static final String DISCORD_RETURN_PATH_ATTRIBUTE = "DISCORD_OAUTH_RETURN_PATH";
+    private static final String ONBOARDING_PATH = "/onboarding";
 
     /**
      * 신규 가입 유저의 초기 설정(알림 이메일 등)을 저장하고 온보딩 상태를 완료로 변경합니다.
@@ -79,9 +105,17 @@ public class UserController {
     })
     @PostMapping("/email/code")
     public ResponseEntity<CommonResponse<Void>> sendVerificationCode(
-            @Valid @RequestBody EmailRequest request) {
-        userService.sendVerificationCode(new SendVerificationCodeCommand(request.getEmail()));
+            @Valid @RequestBody EmailRequest request, HttpServletRequest httpRequest) {
+        userService.sendVerificationCode(new SendVerificationCodeCommand(request.getEmail()), resolveClientIp(httpRequest));
         return CommonResponse.ok(null, "인증 코드가 전송되었습니다. 이메일을 확인해주세요.");
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",", 2)[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     /**
@@ -228,7 +262,7 @@ public class UserController {
     /**
      * 사용자 계정을 삭제하고 회원 탈퇴를 처리합니다.
      */
-    @Operation(summary = "회원 탈퇴", description = "사용자 계정을 삭제합니다.")
+    @Operation(summary = "회원 탈퇴", description = "계정을 비식별화하고 현재 인증을 즉시 해제합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "탈퇴 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class), examples = @ExampleObject(value = """
                     {
@@ -239,8 +273,9 @@ public class UserController {
                     """)))
     })
     @DeleteMapping("/me")
-    public ResponseEntity<CommonResponse<Void>> withdraw() {
+    public ResponseEntity<CommonResponse<Void>> withdraw(HttpServletRequest request, HttpServletResponse response) {
         userService.withdraw();
+        authService.logout(request, response);
         return CommonResponse.ok(null, "회원 탈퇴가 완료되었습니다.");
     }
 
@@ -254,21 +289,43 @@ public class UserController {
         return CommonResponse.ok(null, "디스코드 연동이 해제되었습니다.");
     }
 
+    @GetMapping("/discord/authorize")
+    public ResponseEntity<Void> startDiscordAuthorization(@RequestParam(defaultValue = "/settings") String returnPath,
+                                                           HttpSession session) {
+        String safeReturnPath = ONBOARDING_PATH.equals(returnPath) ? ONBOARDING_PATH : "/settings";
+        String state = createState();
+        session.setAttribute(DISCORD_STATE_ATTRIBUTE, state);
+        session.setAttribute(DISCORD_RETURN_PATH_ATTRIBUTE, safeReturnPath);
+
+        String location = "https://discord.com/api/oauth2/authorize?client_id=" + discordClientId
+                + "&redirect_uri=" + URLEncoder.encode(discordRedirectUri, StandardCharsets.UTF_8)
+                + "&response_type=code&scope=identify%20applications.commands&integration_type=1&state=" + state;
+        return ResponseEntity.status(302).header("Location", location).build();
+    }
+
     /**
      * 디스코드 인증 후 리다이렉트되어 연동을 완료하는 콜백 엔드포인트입니다.
      */
     @Operation(summary = "디스코드 OAuth2 콜백", description = "디스코드 인증 후 리다이렉트되어 연동을 완료합니다.")
     @GetMapping("/discord/callback")
-    public ResponseEntity<Void> discordCallback(@RequestParam String code,
-                                                @RequestParam(required = false) String state) {
-        String redirectPath = resolveDiscordRedirectPath(state);
+    public ResponseEntity<Void> discordCallback(@RequestParam String code, @RequestParam String state,
+                                                HttpSession session) {
+        String redirectPath = (String) session.getAttribute(DISCORD_RETURN_PATH_ATTRIBUTE);
+        String expectedState = (String) session.getAttribute(DISCORD_STATE_ATTRIBUTE);
+        session.removeAttribute(DISCORD_STATE_ATTRIBUTE);
+        session.removeAttribute(DISCORD_RETURN_PATH_ATTRIBUTE);
 
         try {
+            if (expectedState == null || !java.security.MessageDigest.isEqual(
+                    expectedState.getBytes(StandardCharsets.UTF_8), state.getBytes(StandardCharsets.UTF_8))) {
+                throw new IllegalArgumentException("Invalid Discord OAuth state");
+            }
             linkDiscordAccount(code);
-            return buildDiscordRedirectResponse(redirectPath, "success");
+            return buildDiscordRedirectResponse(resolveDiscordRedirectPath(redirectPath), "success");
         } catch (Exception e) {
-            log.warn("[Discord] Failed to process OAuth callback. state={}, reason={}", state, e.getMessage());
-            return buildDiscordRedirectResponse(redirectPath, "error");
+            log.warn("[Discord] OAuth callback failed. failureCode={}, exceptionType={}",
+                    "INVALID_INPUT", e.getClass().getSimpleName());
+            return buildDiscordRedirectResponse(resolveDiscordRedirectPath(redirectPath), "error");
         }
     }
 
@@ -285,10 +342,16 @@ public class UserController {
      * 디스코드 연동 시도 시의 상태값에 따른 리다이렉트 경로를 결정합니다.
      */
     private String resolveDiscordRedirectPath(String state) {
-        if ("onboarding".equals(state)) {
-            return "/onboarding";
+        if ("onboarding".equals(state) || ONBOARDING_PATH.equals(state)) {
+            return ONBOARDING_PATH;
         }
         return "/settings";
+    }
+
+    private String createState() {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     /**

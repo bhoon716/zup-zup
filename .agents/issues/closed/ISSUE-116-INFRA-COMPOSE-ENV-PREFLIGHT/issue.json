@@ -1,0 +1,23 @@
+{
+  "issue": {
+    "id": "ISSUE-116-INFRA-COMPOSE-ENV-PREFLIGHT",
+    "type": "bugfix",
+    "title": "[infra] 로컬 Compose 환경변수 누락을 사전 검증하고 실행 절차를 명확히 한다",
+    "state": "closed",
+    "workflowId": "audit",
+    "directory": "ISSUE-116-INFRA-COMPOSE-ENV-PREFLIGHT",
+    "createdAt": "2026-07-14T23:00:00+09:00",
+    "updatedAt": "2026-07-14T23:35:00+09:00",
+    "completedAt": "2026-07-14T23:35:00+09:00",
+    "goal": "docker compose up -d 실행 시 필수 환경변수가 빈 문자열로 조용히 치환되지 않고, 로컬 실행자가 필요한 설정을 즉시 알 수 있게 한다.",
+    "acceptanceCriteria": [
+      "필수 Compose 보간 변수가 누락되면 컨테이너 시작 전에 명확한 오류가 발생한다.",
+      "infra/.env.example에서 실제 로컬 실행에 필요한 변수와 선택 변수의 구분이 명확하다.",
+      "환경 파일을 지정한 표준 실행 명령이 README와 검증 스크립트에 일치하게 문서화된다.",
+      "누락 환경변수와 빈 문자열 보간을 검출하는 회귀 검증이 추가된다."
+    ],
+    "dependencies": [],
+    "evidenceRequired": ["compose config output", "missing-env regression check", "updated runbook"]
+  },
+  "description": "infra 디렉터리에서 docker compose up -d를 실행하자 DB·Redis·앱·Alertmanager 관련 변수가 설정되지 않았다는 경고가 다수 발생했다. Compose는 값을 빈 문자열로 치환한 뒤 진행하므로, 실제 원인과 후속 오류를 분리하기 어렵다."
+}

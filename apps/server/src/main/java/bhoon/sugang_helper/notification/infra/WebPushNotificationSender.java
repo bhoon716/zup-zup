@@ -2,7 +2,9 @@ package bhoon.sugang_helper.notification.infra;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.user.application.UserDeviceService;
+import bhoon.sugang_helper.user.application.WebPushEndpointValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import java.security.Security;
@@ -22,6 +24,7 @@ public class WebPushNotificationSender implements NotificationSender {
     private final String subject;
     private final ObjectMapper objectMapper;
     private final UserDeviceService userDeviceService;
+    private final WebPushEndpointValidator webPushEndpointValidator;
     private PushService pushService;
 
     public WebPushNotificationSender(
@@ -29,12 +32,14 @@ public class WebPushNotificationSender implements NotificationSender {
             @Value("${app.webpush.private-key}") String privateKey,
             @Value("${app.webpush.subject}") String subject,
             ObjectMapper objectMapper,
-            UserDeviceService userDeviceService) {
+            UserDeviceService userDeviceService,
+            WebPushEndpointValidator webPushEndpointValidator) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
         this.subject = subject;
         this.objectMapper = objectMapper;
         this.userDeviceService = userDeviceService;
+        this.webPushEndpointValidator = webPushEndpointValidator;
     }
 
     @PostConstruct
@@ -60,8 +65,12 @@ public class WebPushNotificationSender implements NotificationSender {
     }
 
     @Override
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public void send(NotificationTarget target, String title, String message) {
+        send(target, title, message, null);
+    }
+
+    @Override
+    public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         if (pushService == null) {
             throw new CustomException(ErrorCode.WEB_PUSH_NOT_INITIALIZED);
         }
@@ -70,36 +79,49 @@ public class WebPushNotificationSender implements NotificationSender {
             throw new CustomException(ErrorCode.WEB_PUSH_MISSING_KEYS);
         }
 
+        webPushEndpointValidator.validate(target.getRecipient());
+        String endpointFingerprint = SensitiveDataRedactor.fingerprint(target.getRecipient());
+
         try {
-            String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/"));
+            String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/", idempotencyKey));
+            Notification.NotificationBuilder notificationBuilder = Notification.builder()
+                    .endpoint(target.getRecipient())
+                    .userPublicKey(target.getP256dh())
+                    .userAuth(target.getAuth())
+                    .payload(payload);
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+                notificationBuilder.topic(idempotencyKey);
+            }
+            Notification notification = notificationBuilder.build();
 
-            Notification notification = new Notification(
-                    target.getRecipient(),
-                    target.getP256dh(),
-                    target.getAuth(),
-                    payload);
-
-            log.info("[WebPush] Starting notification transfer. recipient={}", target.getRecipient());
+            log.info("[WebPush] Starting notification transfer. endpointFingerprint={}", endpointFingerprint);
             var response = pushService.send(notification);
             int statusCode = response.getStatusLine().getStatusCode();
 
             if (statusCode == 404 || statusCode == 410) {
                 userDeviceService.deleteDeviceByToken(target.getRecipient());
-                throw new CustomException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION);
+                throw new NotificationProviderException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION,
+                        false, "INVALID_RECIPIENT", statusCode, null);
             }
 
             if (statusCode >= 400) {
-                throw new CustomException(ErrorCode.WEB_PUSH_SEND_ERROR, "상태 코드: " + statusCode);
+                boolean retryable = statusCode == 429 || statusCode >= 500;
+                String reason = statusCode == 429 ? "RATE_LIMIT" : statusCode >= 500 ? "OUTAGE" : "PERMANENT";
+                throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
+                        retryable, reason, statusCode, null);
             }
 
-            log.info("[WebPush] Completed notification transfer. recipient={}", target.getRecipient());
+            log.info("[WebPush] Completed notification transfer. endpointFingerprint={}", endpointFingerprint);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.WEB_PUSH_SEND_ERROR, e.getMessage());
+            log.error("[WebPush] Transfer failed. endpointFingerprint={}, failureCode={}, exceptionType={}",
+                    endpointFingerprint, ErrorCode.WEB_PUSH_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
+                    true, "ERROR", null, e);
         }
     }
 
-    private record WebPushPayload(String title, String body, String url) {
+    private record WebPushPayload(String title, String body, String url, String idempotencyKey) {
     }
 }

@@ -1,4 +1,9 @@
-package bhoon.sugang_helper.user.application;
+package bhoon.sugang_helper.user.presentation;
+import bhoon.sugang_helper.user.application.UserDeviceService;
+import bhoon.sugang_helper.user.application.UserDeviceRequest;
+import bhoon.sugang_helper.user.application.UserDeviceResponse;
+import bhoon.sugang_helper.user.application.UserDeviceUnregisterRequest;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.user.application.command.RegisterDeviceCommand;
@@ -73,6 +78,14 @@ public class UserDeviceController {
         return CommonResponse.ok(null, "기기가 성공적으로 등록되었습니다.");
     }
 
+    @Operation(summary = "기기 해제 (토큰 본문 기반)", description = "토큰을 요청 본문으로 전달해 현재 사용자의 기기를 해제합니다.")
+    @DeleteMapping
+    public ResponseEntity<CommonResponse<Void>> unregisterDevice(
+            @Valid @RequestBody UserDeviceUnregisterRequest request) {
+        userDeviceService.unregisterDevice(request.token());
+        return CommonResponse.ok(null, "기기 등록이 해제되었습니다.");
+    }
+
     @Operation(summary = "기기 해제 (ID 기반)", description = "등록된 기기를 ID로 삭제합니다.")
     @DeleteMapping("/{id}")
     public ResponseEntity<CommonResponse<Void>> deleteDevice(@PathVariable Long id) {
@@ -80,7 +93,9 @@ public class UserDeviceController {
         return CommonResponse.ok(null, "기기가 삭제되었습니다.");
     }
 
-    @Operation(summary = "기기 해제 (토큰 기반) - Deprecated", description = "등록된 FCM 토큰을 해제합니다. (ID 기반 삭제 권장)")
+    @Deprecated(since = "2026-07-13", forRemoval = true)
+    @Operation(summary = "기기 해제 (토큰 경로 기반) - Deprecated", deprecated = true,
+            description = "호환성을 위해 유지됩니다. 새 클라이언트는 DELETE 본문 기반 API를 사용하세요.")
     @DeleteMapping("/token/{token}")
     public ResponseEntity<CommonResponse<Void>> unregisterDevice(@PathVariable String token) {
         userDeviceService.unregisterDevice(token);

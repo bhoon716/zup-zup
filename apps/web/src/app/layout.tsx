@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { Header } from "@/widgets/header/header";
-import { IS_LOGGED_IN_COOKIE_NAME } from "@/shared/lib/cookie";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Geist_Mono, Noto_Sans_KR } from "next/font/google";
@@ -50,19 +48,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const isLoggedIn = cookieStore.get(IS_LOGGED_IN_COOKIE_NAME)?.value === "true";
-
   return (
     <html lang="ko" className={`${notoSansKr.variable} ${geistMono.variable}`}>
       <body className="antialiased">
         <Providers>
-          <Header initialIsLoggedIn={isLoggedIn} />
+          <Header />
           {children}
         </Providers>
         <Analytics />

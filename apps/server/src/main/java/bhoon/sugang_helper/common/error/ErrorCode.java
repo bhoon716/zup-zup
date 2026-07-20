@@ -20,6 +20,7 @@ public enum ErrorCode {
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "G002", "잘못된 입력값입니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "G003", "요청한 리소스를 찾을 수 없습니다."),
     TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "G004", "요청이 너무 많습니다."),
+    CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "G005", "데이터가 변경되었습니다. 다시 시도해주세요."),
 
     /* 사용자 관련 에러 */
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "사용자를 찾을 수 없습니다."),
@@ -38,6 +39,8 @@ public enum ErrorCode {
     FCM_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N002", "FCM 발송 중 오류가 발생했습니다."),
     WEB_PUSH_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N003", "Web Push 발송 중 오류가 발생했습니다."),
     DISCORD_SEND_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "N004", "디스코드 알림 발송 중 오류가 발생했습니다."),
+    NOTIFICATION_DELIVERY_REPLAY_NOT_ALLOWED(HttpStatus.CONFLICT, "N013",
+            "현재 상태의 알림 delivery는 재처리할 수 없습니다."),
 
     /* 웹푸시 전용 에러 */
     WEB_PUSH_NOT_INITIALIZED(HttpStatus.INTERNAL_SERVER_ERROR, "N010", "Web Push 서비스가 초기화되지 않았습니다. (서버 설정 확인 필요)"),
@@ -65,7 +68,10 @@ public enum ErrorCode {
     FILE_UPLOAD_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "F004", "파일 업로드 중 오류가 발생했습니다."),
     MAX_FILE_UPLOAD_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "F005", "최대 첨부 가능한 파일 수를 초과했습니다."),
     INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST, "F006", "지원하지 않는 파일 형식입니다. 이미지 파일만 업로드 가능합니다."),
-    DAILY_FEEDBACK_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "F007", "일일 건의사항 작성 가능 횟수를 초과했습니다.");
+    DAILY_FEEDBACK_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "F007", "일일 건의사항 작성 가능 횟수를 초과했습니다."),
+    MAX_FILE_UPLOAD_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "F008", "첨부파일 총 용량 제한을 초과했습니다."),
+    INVALID_IMAGE_CONTENT(HttpStatus.BAD_REQUEST, "F009", "이미지 파일을 확인할 수 없습니다."),
+    IMAGE_PROCESSING_LIMIT_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "F010", "이미지 해상도 또는 처리 제한을 초과했습니다.");
 
     private final HttpStatus status;
     private final String code;

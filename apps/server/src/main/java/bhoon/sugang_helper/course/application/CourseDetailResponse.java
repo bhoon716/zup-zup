@@ -22,6 +22,9 @@ public class CourseDetailResponse {
     @Schema(description = "과목 코드", example = "0000130844")
     private final String subjectCode;
 
+    @Schema(description = "학수번호", example = "GECO178", nullable = true)
+    private final String stdtrNo;
+
     @Schema(description = "과목명", example = "(글로컬)우리생활과화학")
     private final String name;
 
@@ -131,6 +134,7 @@ public class CourseDetailResponse {
         return CourseDetailResponse.builder()
                 .courseKey(course.getCourseKey())
                 .subjectCode(course.getSubjectCode())
+                .stdtrNo(course.getStdtrNo())
                 .name(course.getName())
                 .classNumber(course.getClassNumber())
                 .professor(course.getProfessor())

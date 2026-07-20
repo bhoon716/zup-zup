@@ -1,0 +1,29 @@
+{
+  "issue": {
+    "id": "ISSUE-107-WEB-LINT-WARNINGS-CLEANUP",
+    "type": "refactoring",
+    "title": "[web] 전체 코드 lint 경고 제거",
+    "state": "closed",
+    "workflowId": "audit",
+    "directory": "ISSUE-107-WEB-LINT-WARNINGS-CLEANUP",
+    "createdAt": "2026-07-14T00:00:00+09:00",
+    "updatedAt": "2026-07-14T19:32:00+09:00",
+    "goal": "웹·서버 정적 검사에서 기존 lint 경고를 0건으로 만들고 CI 출력의 신호 대 잡음 비율을 높인다.",
+    "acceptanceCriteria": [
+      "전체 web lint가 오류와 경고 없이 통과한다.",
+      "서버 Checkstyle/PMD와 Java 컴파일러 경고가 0건으로 통과한다.",
+      "내부 이동 로직은 유지하고 경고 원인에 필요한 최소 변경만 한다."
+    ],
+    "dependencies": [],
+    "evidenceRequired": ["lint baseline", "same tests after each transformation", "clean lint/check output"]
+  },
+  "description": "web lint가 React 내부 이동과 OAuth/PWA 전체 문서 이동을 구분하지 못해 내던 8개 경고와 Spring 테스트의 unchecked 컴파일 경고를 함께 제거했다.",
+  "workflowState": {
+    "workflowId": "audit",
+    "currentStep": "Closed",
+    "completedSteps": ["Created", "Investigation", "Implementation", "Verification", "Closed"],
+    "failedSteps": [],
+    "blocked": false,
+    "updatedAt": "2026-07-14T19:32:00+09:00"
+  }
+}

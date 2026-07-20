@@ -2,11 +2,21 @@ package bhoon.sugang_helper.crawling.infra;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.SocketTimeoutException;
+import java.net.ConnectException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -14,121 +24,173 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class JbnuCourseApiClient {
 
-    private static final String PAYLOAD_TEMPLATE = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <Root xmlns="http://www.nexacroplatform.com/platform/dataset">
-                <Parameters>
-                    <Parameter id="JSESSIONID" />
-                    <Parameter id="gvYy">%s</Parameter>
-                    <Parameter id="gvShtm">%s</Parameter>
-                    <Parameter id="gvRechPrjtNo" />
-                    <Parameter id="gvRechDutyr" />
-                    <Parameter id="_fwb" />
-                    <Parameter id="WMONID">%s</Parameter>
-                    <Parameter id="JSESSIONIDSSO">%s</Parameter>
-                    <Parameter id="yy">%s</Parameter>
-                    <Parameter id="shtm">%s</Parameter>
-                    <Parameter id="fg" />
-                    <Parameter id="value1" />
-                    <Parameter id="value2" />
-                    <Parameter id="value3" />
-                    <Parameter id="sbjtNm" />
-                    <Parameter id="profNm" />
-                    <Parameter id="openLectFg" />
-                    <Parameter id="entrYy">%s</Parameter>
-                    <Parameter id="sType">EXT1</Parameter>
-                    <Parameter id="lang">K</Parameter>
-                    <Parameter id="ltLangFg">N</Parameter>
-                </Parameters>
-            </Root>
-            """;
+    private static final String DEFAULT_BOOTSTRAP_URL = "https://jump.jbnu.ac.kr/link?div=sucrPlan";
+    private static final String DEFAULT_CERT_DIVISION = "6";
+    private static final String KOREAN_LANGUAGE_CODE = "CCMN101.KOR";
+
     @Value("${jbnu.api.url}")
     private String apiUrl;
+    @Value("${jbnu.api.bootstrap-url:" + DEFAULT_BOOTSTRAP_URL + "}")
+    private String bootstrapUrl;
+    @Value("${jbnu.api.cert-division:" + DEFAULT_CERT_DIVISION + "}")
+    private String certDivision;
     @Value("${jbnu.api.timeout-ms}")
     private int timeoutMs;
     @Value("${jbnu.api.max-retries}")
     private int maxRetries;
     @Value("${jbnu.api.retry-wait-ms:1000}")
     private int retryWaitMs;
+    @Value("${jbnu.api.max-response-bytes:10485760}")
+    private int maximumResponseBytes;
+    @Autowired(required = false)
+    private MeterRegistry meterRegistry;
 
     /**
-     * 특정 년도와 학기를 지정하여 JBNU API 서버로부터 강의 데이터를 XML 형식으로 가져옵니다.
+     * JUMP JSON 강의 데이터를 가져옵니다.
      */
-    public String fetchCourseDataXml(String year, String semester) {
+    public String fetchCourseData(String year, String semester) {
+        try (InputStream responseStream = fetchCourseDataStream(year, semester)) {
+            return new String(responseStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
+        }
+    }
+
+    public InputStream fetchCourseDataStream(String year, String semester) {
         int retryCount = 0;
 
         while (true) {
+            long startedAt = System.nanoTime();
             try {
                 Map<String, String> cookies = fetchSessionCookies();
-                String wmonid = cookies.getOrDefault("WMONID", "");
-                String jsessionidsso = cookies.getOrDefault("JSESSIONIDSSO", "");
-
-                if (wmonid.isBlank() || jsessionidsso.isBlank()) {
-                    log.warn("[API Client] Fetched session cookies are incomplete. WMONID={}, JSESSIONIDSSO={}",
-                            wmonid, jsessionidsso);
+                if (cookies.isEmpty()) {
+                    throw new IOException("JUMP session cookies are empty");
                 }
 
-                String payload = PAYLOAD_TEMPLATE.formatted(year, semester, wmonid, jsessionidsso, year, semester,
-                        year);
-
-                return Jsoup.connect(apiUrl)
-                        .header("Accept", "application/xml, text/xml, */*")
+                Connection.Response response = Jsoup.connect(apiUrl)
+                        .cookies(cookies)
+                        .header("Accept", "application/json, */*")
                         .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
-                        .header("Content-Type", "text/xml")
-                        .header("Origin", "https://oasis.jbnu.ac.kr")
-                        .header("Referer", "https://oasis.jbnu.ac.kr/jbnu/sugang/sbjt/sbjt.html?param=KOR")
+                        .header("Cache-Control", "no-cache")
+                        .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                        .header("Origin", originOf(apiUrl))
+                        .header("Referer", bootstrapUrl)
+                        .header("Pragma", "no-cache")
+                        .header("User-Agent", "Mozilla/5.0 (compatible; jbnu-sugang-helper-crawler)")
                         .header("X-Requested-With", "XMLHttpRequest")
-                        .header("User-Agent",
-                                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Whale/4.35.351.12 Safari/537.36")
-                        .requestBody(payload)
+                        .header("xb_req_type", "enc")
+                        .requestBody(JbnuJumpRequestEncoder.encode(buildRequest(year, semester)))
                         .timeout(timeoutMs)
-                        .maxBodySize(0)
+                        .maxBodySize(maximumResponseBytes)
                         .method(Connection.Method.POST)
                         .ignoreContentType(true)
-                        .execute()
-                        .body();
+                        .execute();
+                if (response.statusCode() >= 400) {
+                    throw new IOException("JUMP responded with HTTP " + response.statusCode());
+                }
+                recordUpstreamLatency(startedAt);
+                return new BoundedInputStream(response.bodyStream(), maximumResponseBytes);
             } catch (Exception e) {
                 retryCount++;
-                log.warn("[API Client] Failed to request course data (attempt {}/{}): yy={}, shtm={}, reason={}",
-                        retryCount, maxRetries + 1, year, semester, e.toString());
-
-                if (retryCount > maxRetries) {
-                    throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR,
-                            "JBNU API 요청 최종 실패: " + e.toString());
+                recordUpstreamLatency(startedAt);
+                if (!isTransientFailure(e)) {
+                    log.error("[API Client] Non-transient JUMP request failure. yy={}, semester={}, exceptionType={}",
+                            year, semester, SensitiveDataRedactor.exceptionType(e));
+                    throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
                 }
-
+                log.warn("[API Client] JUMP course request failed. attempt={}/{}, yy={}, semester={}, exceptionType={}",
+                        retryCount, maxRetries + 1, year, semester, SensitiveDataRedactor.exceptionType(e));
+                if (retryCount > maxRetries) {
+                    throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
+                }
                 waitBeforeRetry(retryCount);
             }
         }
     }
 
-    /**
-     * 오아시스 로그인 페이지에서 임시 세션 쿠키를 동적으로 가져옵니다.
-     */
-    private Map<String, String> fetchSessionCookies() {
+    static String toJumpSemesterCode(String semester) {
+        return switch (semester) {
+            case "U211600010" -> "SUSR016.010";
+            case "U211600020" -> "SUSR016.020";
+            case "U211600015" -> "SUSR016.015";
+            case "U211600025" -> "SUSR016.025";
+            case "U211600016" -> "SUSR016.016";
+            case "U211600026" -> "SUSR016.026";
+            case "U211600009" -> "SUSR016.009";
+            case "U211600008" -> "SUSR016.008";
+            default -> semester;
+        };
+    }
+
+    private Map<String, String> buildRequest(String year, String semester) {
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("strYrsa", year);
+        values.put("strSemstrCd", toJumpSemesterCode(semester));
+        values.put("strOpnltDivCd", "");
+        values.put("strEngLctrYn", "");
+        values.put("strCertDivCd", certDivision == null || certDivision.isBlank() ? DEFAULT_CERT_DIVISION : certDivision);
+        values.put("strSbjctNm", "");
+        values.put("strProfNo", "");
+        values.put("strProfNm", "");
+        values.put("strMngClgCd", "");
+        values.put("strMngScsbjtCd", "");
+        values.put("strScyrDivCd", "");
+        values.put("strRlmDivCd", "");
+        values.put("strCultDivCd", "");
+        values.put("strMtcltnYr", "");
+        values.put("strGdMngClgCd", "");
+        values.put("strGdMngScsbjtCd", "");
+        values.put("strLanDivcd", KOREAN_LANGUAGE_CODE);
+        values.put("strLang", "ko");
+        return values;
+    }
+
+    private Map<String, String> fetchSessionCookies() throws IOException {
+        Connection.Response response = Jsoup.connect(bootstrapUrl)
+                .header("Accept", "text/html, */*")
+                .header("User-Agent", "Mozilla/5.0 (compatible; jbnu-sugang-helper-crawler)")
+                .timeout(timeoutMs)
+                .method(Connection.Method.GET)
+                .execute();
+        return response.cookies();
+    }
+
+    private String originOf(String url) {
         try {
-            Connection.Response res = Jsoup.connect("https://oasis.jbnu.ac.kr/com/login.do")
-                    .method(Connection.Method.GET)
-                    .timeout(timeoutMs)
-                    .execute();
-            return res.cookies();
-        } catch (IOException e) {
-            log.warn("[API Client] Failed to fetch session cookies from login page: {}", e.toString());
-            return Map.of();
+            URI uri = new URI(url);
+            return uri.getScheme() + "://" + uri.getAuthority();
+        } catch (URISyntaxException e) {
+            return "https://jump.jbnu.ac.kr";
         }
     }
 
-    /**
-     * 재시도 전 일정 시간 대기합니다. (재시도 횟수에 따라 대기 시간 증가)
-     *
-     * @param retryCount 현재 재시도 횟수
-     */
+    static boolean isTransientFailure(Throwable throwable) {
+        if (throwable == null) {
+            return false;
+        }
+        if (throwable instanceof SocketTimeoutException || throwable instanceof ConnectException
+                || throwable instanceof IOException || throwable instanceof java.util.concurrent.TimeoutException) {
+            return true;
+        }
+        return isTransientFailure(throwable.getCause());
+    }
+
+    private void recordUpstreamLatency(long startedAt) {
+        if (meterRegistry == null) {
+            return;
+        }
+        Timer timer = meterRegistry.timer("crawler.upstream.latency");
+        if (timer != null) {
+            timer.record(System.nanoTime() - startedAt, java.util.concurrent.TimeUnit.NANOSECONDS);
+        }
+    }
+
     private void waitBeforeRetry(int retryCount) {
         try {
             long waitTime = (long) retryWaitMs * retryCount;
             log.info("[API Client] Waiting {}ms before retry...", waitTime);
             Thread.sleep(waitTime);
-        } catch (InterruptedException ie) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new CustomException(ErrorCode.INTERNAL_ERROR, "재시도 대기 중 프로세스가 중단되었습니다.");
         }

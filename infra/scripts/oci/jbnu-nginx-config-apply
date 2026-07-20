@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+config_file="${1:-}"
+if [[ ! "${config_file}" =~ ^/opt/jbnu-sugang-helper-staging/[0-9a-f]{40}/nginx/[A-Za-z0-9._/-]+$ ]]; then
+  echo "invalid staged Nginx config path" >&2
+  exit 1
+fi
+if [ ! -f "${config_file}" ]; then
+  echo "staged Nginx config is missing" >&2
+  exit 1
+fi
+nginx -t
+install -o root -g root -m 0644 "${config_file}" /etc/nginx/sites-available/jbnu-sugang-helper.conf
+nginx -t
+systemctl reload nginx

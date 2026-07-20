@@ -175,7 +175,7 @@ class WishlistServiceTest {
 
         // then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getCourseName()).isEqualTo("Course1");
-        assertThat(result.get(1).getCourseName()).isEqualTo("Course2");
+        assertThat(result.get(0).courseName()).isEqualTo("Course1");
+        assertThat(result.get(1).courseName()).isEqualTo("Course2");
     }
 }

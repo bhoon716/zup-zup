@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.user.domain;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bhoon.sugang_helper.review.domain.CourseReview;
@@ -9,6 +10,7 @@ import bhoon.sugang_helper.subscription.infra.SubscriptionJpaRepository;
 import bhoon.sugang_helper.timetable.domain.Timetable;
 import bhoon.sugang_helper.timetable.infra.TimetableJpaRepository;
 import bhoon.sugang_helper.user.infra.UserDeviceJpaRepository;
+import bhoon.sugang_helper.user.infra.UserJpaRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 @DataJpaTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Constraint scenarios share the same course fixture key.
 class UserDataConstraintTest {
 
     @Autowired
@@ -33,6 +36,9 @@ class UserDataConstraintTest {
 
     @Autowired
     private TimetableJpaRepository timetableRepository;
+
+    @Autowired
+    private UserJpaRepository userRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -122,5 +128,24 @@ class UserDataConstraintTest {
                 .isPrimary(true)
                 .build()))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("soft-deleted 사용자는 ID와 이메일 기반 활성 인증 조회에서 제외된다")
+    void activeIdentityQueryExcludesSoftDeletedUser() {
+        String email = "withdrawn@example.com";
+        User user = userRepository.saveAndFlush(User.builder()
+                .email(email)
+                .name("탈퇴 예정 사용자")
+                .role(Role.USER)
+                .build());
+
+        assertThat(userRepository.findByIdAndEmailAndDeletedAtIsNull(user.getId(), email)).contains(user);
+
+        user.withdraw();
+        userRepository.saveAndFlush(user);
+
+        assertThat(userRepository.findByIdAndEmailAndDeletedAtIsNull(user.getId(), email)).isEmpty();
+        assertThat(userRepository.existsByIdAndEmailAndDeletedAtIsNull(user.getId(), email)).isFalse();
     }
 }

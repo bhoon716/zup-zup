@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.security.oauth;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -19,7 +20,7 @@ public class OAuth2FailureHandler extends SimpleUrlAuthenticationFailureHandler 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {
-        log.warn("Social login (OAuth2) failed: {}", exception.getMessage());
+        log.warn("[OAuth2] Social login failed. exceptionType={}", SensitiveDataRedactor.exceptionType(exception));
 
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }

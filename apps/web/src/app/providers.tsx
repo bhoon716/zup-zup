@@ -4,6 +4,7 @@ import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { registerAuthFailureHandler } from "@/shared/api/client";
 import { getFirebaseApp } from "@/shared/lib/firebase";
 import { getCookie, IS_LOGGED_IN_COOKIE_NAME } from "@/shared/lib/cookie";
+import { resolveAllowedPwaUrl } from "@/shared/lib/pwa-navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, Suspense } from "react";
 import { Toaster, toast } from "sonner";
@@ -112,8 +113,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           action: {
             label: '보기',
             onClick: () => {
-              if (event.data.url) window.location.href = event.data.url;
-            }
+              // The sanitized URL may point to an installed PWA route and needs a full navigation.
+              // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+              window.location.href = resolveAllowedPwaUrl(event.data.url, window.location.origin);
+            },
           }
         });
       }

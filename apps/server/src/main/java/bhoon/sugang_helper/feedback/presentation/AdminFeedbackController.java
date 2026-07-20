@@ -1,16 +1,28 @@
-package bhoon.sugang_helper.feedback.application;
+package bhoon.sugang_helper.feedback.presentation;
+import bhoon.sugang_helper.feedback.application.FeedbackReplyCreateRequest;
+import bhoon.sugang_helper.feedback.application.FeedbackReplyUpdateRequest;
+import bhoon.sugang_helper.feedback.application.AdminFeedbackAttachmentDownloadRequest;
+import bhoon.sugang_helper.feedback.application.AdminFeedbackDetailResponse;
+import bhoon.sugang_helper.feedback.application.AdminFeedbackResponse;
+import bhoon.sugang_helper.feedback.application.FeedbackService;
+import bhoon.sugang_helper.feedback.application.FeedbackStatusUpdateRequest;
+import bhoon.sugang_helper.feedback.domain.AdminFeedbackDeletionFilter;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.user.application.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.Resource;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +31,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -39,9 +52,12 @@ public class AdminFeedbackController {
      */
     @Operation(summary = "전체 문의 및 건의 목록 조회 (관리자)")
     @GetMapping
-    public ResponseEntity<CommonResponse<Page<FeedbackResponse>>> getAllFeedbacks(
+    public ResponseEntity<CommonResponse<Page<AdminFeedbackResponse>>> getAllFeedbacks(
+            @RequestParam(required = false) String deletion,
             @PageableDefault(size = 20) Pageable pageable) {
-        return CommonResponse.ok(feedbackService.getFeedbacksForAdmin(pageable), "전체 피드백 목록입니다.");
+        return CommonResponse.ok(
+                feedbackService.getFeedbacksForAdmin(pageable, AdminFeedbackDeletionFilter.from(deletion)),
+                "전체 피드백 목록입니다.");
     }
 
     /**
@@ -49,9 +65,26 @@ public class AdminFeedbackController {
      */
     @Operation(summary = "문의 및 건의 상세 조회 (관리자)")
     @GetMapping("/{feedbackId}")
-    public ResponseEntity<CommonResponse<FeedbackDetailResponse>> getFeedbackDetail(
+    public ResponseEntity<CommonResponse<AdminFeedbackDetailResponse>> getFeedbackDetail(
             @PathVariable Long feedbackId) {
         return CommonResponse.ok(feedbackService.getFeedbackDetailForAdmin(feedbackId), "피드백 상세입니다.");
+    }
+
+    @Operation(summary = "보존 첨부파일 열람", description = "관리자 확인 후에만 첨부파일을 내려받고 접근을 감사 로그에 기록합니다.")
+    @PostMapping("/{feedbackId}/attachments/{attachmentId}/download")
+    public ResponseEntity<Resource> downloadAttachment(
+            @PathVariable Long feedbackId,
+            @PathVariable Long attachmentId,
+            @Valid @RequestBody AdminFeedbackAttachmentDownloadRequest request) {
+        var download = feedbackService.getAttachmentForAdmin(
+                userService.getCurrentUser(), feedbackId, attachmentId, request.confirmed());
+        return ResponseEntity.ok()
+                .contentType(download.contentType())
+                .header("Content-Disposition", ContentDisposition.attachment()
+                        .filename(download.originalName(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(download.resource());
     }
 
     /**
@@ -98,7 +131,7 @@ public class AdminFeedbackController {
     }
 
     /**
-     * 등록된 운영진 답변을 영구 삭제합니다.
+     * 등록된 운영진 답변을 보존용 soft delete 처리합니다.
      */
     @Operation(summary = "운영진 답변 삭제 (관리자)")
     @DeleteMapping("/reply/{replyId}")

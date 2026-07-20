@@ -21,14 +21,15 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
-        log.warn("Access denied: {}", accessDeniedException.getMessage());
-
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setCharacterEncoding("UTF-8");
 
-        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.FORBIDDEN, request.getRequestURI(),
-                accessDeniedException.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.FORBIDDEN, request.getRequestURI());
+        response.setHeader("X-Error-Id", errorResponse.getCorrelationId());
+        log.warn("[ACCESS_DENIED] correlationId={} method={} path={} exceptionType={}",
+                errorResponse.getCorrelationId(), request.getMethod(), errorResponse.getPath(),
+                accessDeniedException.getClass().getSimpleName());
         objectMapper.writeValue(response.getWriter(), errorResponse);
     }
 }

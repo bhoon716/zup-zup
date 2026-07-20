@@ -1,4 +1,6 @@
-package bhoon.sugang_helper.dday.application;
+package bhoon.sugang_helper.dday.presentation;
+import bhoon.sugang_helper.dday.application.DdaySettingService;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;

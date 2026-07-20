@@ -15,9 +15,9 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
-import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.review.domain.CourseEmojiReview;
 import bhoon.sugang_helper.review.domain.CourseEmojiReviewRepository;
+import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
@@ -207,21 +207,21 @@ class CourseEmojiReviewServiceTest {
 
         assertThat(result).hasSize(3);
         CourseEmojiReviewResponse thumbResponse = result.stream()
-                .filter(r -> r.getEmoji().equals(EMOJI_THUMB))
+                .filter(r -> r.emoji().equals(EMOJI_THUMB))
                 .findFirst().orElseThrow();
-        assertThat(thumbResponse.getCount()).isEqualTo(3L);
+        assertThat(thumbResponse.count()).isEqualTo(3L);
         assertThat(thumbResponse.isMine()).isTrue();
 
         CourseEmojiReviewResponse fireResponse = result.stream()
-                .filter(r -> r.getEmoji().equals(EMOJI_FIRE))
+                .filter(r -> r.emoji().equals(EMOJI_FIRE))
                 .findFirst().orElseThrow();
-        assertThat(fireResponse.getCount()).isEqualTo(1L);
+        assertThat(fireResponse.count()).isEqualTo(1L);
         assertThat(fireResponse.isMine()).isFalse();
 
         CourseEmojiReviewResponse laughResponse = result.stream()
-                .filter(r -> r.getEmoji().equals(EMOJI_LAUGH))
+                .filter(r -> r.emoji().equals(EMOJI_LAUGH))
                 .findFirst().orElseThrow();
-        assertThat(laughResponse.getCount()).isEqualTo(1L);
+        assertThat(laughResponse.count()).isEqualTo(1L);
         assertThat(laughResponse.isMine()).isFalse();
     }
 
@@ -239,9 +239,9 @@ class CourseEmojiReviewServiceTest {
 
         assertThat(result).hasSize(1);
         CourseEmojiReviewResponse thumbResponse = result.stream()
-                .filter(r -> r.getEmoji().equals(EMOJI_THUMB))
+                .filter(r -> r.emoji().equals(EMOJI_THUMB))
                 .findFirst().orElseThrow();
-        assertThat(thumbResponse.getCount()).isEqualTo(2L);
+        assertThat(thumbResponse.count()).isEqualTo(2L);
         assertThat(thumbResponse.isMine()).isFalse();
         verify(userRepository, never()).findByEmail(any());
     }

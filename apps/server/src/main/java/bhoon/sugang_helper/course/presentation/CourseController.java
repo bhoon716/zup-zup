@@ -1,4 +1,10 @@
-package bhoon.sugang_helper.course.application;
+package bhoon.sugang_helper.course.presentation;
+import bhoon.sugang_helper.course.application.CourseService;
+import bhoon.sugang_helper.course.application.CourseDetailResponse;
+import bhoon.sugang_helper.course.application.CourseSearchCondition;
+import bhoon.sugang_helper.course.application.CourseResponse;
+import bhoon.sugang_helper.course.application.CourseSeatHistoryResponse;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.crawling.application.SearchDefaultSemesterResponse;
@@ -10,7 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -38,7 +44,7 @@ public class CourseController {
     })
     @PostMapping("/search")
     public ResponseEntity<CommonResponse<Slice<CourseResponse>>> searchCoursesByPost(
-            @RequestBody CourseSearchCondition condition,
+            @Valid @RequestBody CourseSearchCondition condition,
             @PageableDefault(size = 30) Pageable pageable) {
         Slice<CourseResponse> courses = courseService.searchCourses(condition, pageable);
         return CommonResponse.ok(courses, "과목 검색 결과입니다.");
@@ -63,9 +69,10 @@ public class CourseController {
                     """)))
     })
     @GetMapping("/{courseKey}/history")
-    public ResponseEntity<CommonResponse<List<CourseSeatHistoryResponse>>> getCourseHistory(
-            @PathVariable String courseKey) {
-        List<CourseSeatHistoryResponse> histories = courseService.getCourseHistory(courseKey);
+    public ResponseEntity<CommonResponse<Slice<CourseSeatHistoryResponse>>> getCourseHistory(
+            @PathVariable String courseKey,
+            @PageableDefault(size = 30) Pageable pageable) {
+        Slice<CourseSeatHistoryResponse> histories = courseService.getCourseHistory(courseKey, pageable);
         return CommonResponse.ok(histories, "해당 과목의 인원 변동 이력입니다.");
     }
 
@@ -79,6 +86,7 @@ public class CourseController {
                       "data": {
                         "courseKey": "CLTR.0031-01",
                         "subjectCode": "CLTR.0031",
+                        "stdtrNo": "GECO178",
                         "name": "기초프로그래밍",
                         "classNumber": "01",
                         "professor": "홍길동",

@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.common.security.util;
 
-import org.springframework.http.ResponseCookie;
-
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_NAME;
+
+import org.springframework.http.ResponseCookie;
 
 public class CookieUtil {
 

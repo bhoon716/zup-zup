@@ -1,32 +1,33 @@
 package bhoon.sugang_helper.auth.application;
 
-import static bhoon.sugang_helper.common.security.constant.SecurityConstant.LOGOUT_VALUE;
-import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REDIS_BLACKLIST_PREFIX;
-import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REDIS_REFRESH_TOKEN_PREFIX;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.IS_LOGGED_IN_COOKIE_NAME;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_MAX_AGE;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.REFRESH_TOKEN_COOKIE_NAME;
+import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESSION_AUTHENTICATION_EXPIRES_AT;
+import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESSION_AUTHENTICATION_USER_ID;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.common.security.util.CookieUtil;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import java.time.Duration;
-import bhoon.sugang_helper.common.security.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
 @Service
@@ -34,8 +35,8 @@ import org.springframework.beans.factory.annotation.Value;
 public class AuthService {
 
     private final JwtProvider jwtProvider;
-    private final RedisService redisService;
     private final UserRepository userRepository;
+    private final SecurityContextRepository securityContextRepository;
 
     @Value("${app.auth.refresh-cookie-secure:false}")
     private boolean refreshCookieSecure;
@@ -48,28 +49,26 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_TOKEN, "리프레시 토큰이 없습니다.");
         }
 
-        if (!jwtProvider.validateToken(refreshToken)) {
+        if (!jwtProvider.validateRefreshToken(refreshToken)) {
             throw new CustomException(ErrorCode.INVALID_TOKEN, "유효하지 않은 리프레시 토큰입니다.");
         }
 
         String email = jwtProvider.getAuthentication(refreshToken).getName();
-        String savedToken = redisService.getValues(REDIS_REFRESH_TOKEN_PREFIX + email);
+        Long userId = jwtProvider.getUserId(refreshToken);
+        if (userId == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN, "사용자 식별자가 없는 리프레시 토큰입니다.");
+        }
+        User user = userRepository.findByIdAndEmailAndDeletedAtIsNull(userId, email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
 
-        if (!refreshToken.equals(savedToken)) {
+        String newRefreshToken = jwtProvider.rotateRefreshToken(email, refreshToken);
+        if (!StringUtils.hasText(newRefreshToken)) {
             throw new CustomException(ErrorCode.INVALID_TOKEN, "저장된 리프레시 토큰과 일치하지 않습니다.");
         }
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
-
-        String newAccessToken = jwtProvider.createAccessToken(user.getEmail(), user.getRoleKey());
-        String newRefreshToken = jwtProvider.createRefreshToken(user.getEmail());
-
-        // 세션이 없으면 새로 생성해 최신 토큰을 동기화한다.
-        HttpSession session = request.getSession(true);
-        session.setAttribute("ACCESS_TOKEN", newAccessToken);
-        session.setAttribute("REFRESH_TOKEN", newRefreshToken);
-        log.info("[Auth] Refreshed session token. email={}", email);
+        String newAccessToken = jwtProvider.createAccessToken(user.getId(), user.getEmail(), user.getRoleKey());
+        saveSessionAuthentication(request, response, newAccessToken);
+        log.info("[Auth] Refreshed authenticated session. emailMasked={}", SensitiveDataRedactor.maskEmail(email));
 
         addRefreshTokenCookie(response, newRefreshToken);
 
@@ -82,26 +81,48 @@ public class AuthService {
 
         HttpSession session = request.getSession(false);
         if (session != null) {
-            if (accessToken == null) {
-                accessToken = (String) session.getAttribute("ACCESS_TOKEN");
-            }
-            if (refreshToken == null) {
-                refreshToken = (String) session.getAttribute("REFRESH_TOKEN");
-            }
             session.invalidate();
         }
 
-        if (StringUtils.hasText(refreshToken) && jwtProvider.validateToken(refreshToken)) {
+        if (StringUtils.hasText(refreshToken) && jwtProvider.validateRefreshToken(refreshToken)) {
             String email = jwtProvider.getAuthentication(refreshToken).getName();
-            redisService.deleteValues(REDIS_REFRESH_TOKEN_PREFIX + email);
+            Long userId = jwtProvider.getUserId(refreshToken);
+            if (userId != null) {
+                jwtProvider.revokeRefreshToken(email, refreshToken);
+            }
         }
 
         if (StringUtils.hasText(accessToken) && jwtProvider.validateToken(accessToken)) {
-            long expiration = jwtProvider.getExpiration(accessToken);
-            redisService.setValues(REDIS_BLACKLIST_PREFIX + accessToken, LOGOUT_VALUE, Duration.ofMillis(expiration));
+            jwtProvider.blacklistAccessToken(accessToken);
         }
 
         deleteRefreshTokenCookie(response);
+    }
+
+    /**
+     * Redis-backed HTTP session에는 JWT 원문 대신 인증 주체와 권한만 저장합니다.
+     */
+    public void saveSessionAuthentication(HttpServletRequest request, HttpServletResponse response, String accessToken) {
+        Long userId = jwtProvider.getUserId(accessToken);
+        if (userId == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN, "사용자 식별자가 없는 액세스 토큰입니다.");
+        }
+        HttpSession existingSession = request.getSession(false);
+        if (existingSession != null) {
+            existingSession.removeAttribute("ACCESS_TOKEN");
+            existingSession.removeAttribute("REFRESH_TOKEN");
+        }
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(jwtProvider.getAuthentication(accessToken));
+        securityContextRepository.saveContext(context, request, response);
+
+        HttpSession authenticatedSession = request.getSession(false);
+        if (authenticatedSession != null) {
+            long expiresAt = System.currentTimeMillis() + jwtProvider.getExpiration(accessToken);
+            authenticatedSession.setAttribute(SESSION_AUTHENTICATION_EXPIRES_AT, expiresAt);
+            authenticatedSession.setAttribute(SESSION_AUTHENTICATION_USER_ID, userId);
+        }
     }
 
     private String resolveRefreshToken(HttpServletRequest request) {

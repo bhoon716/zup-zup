@@ -18,4 +18,8 @@ public abstract class BaseEntity extends BaseTimeEntity {
     public boolean isDeleted() {
         return deletedAt != null;
     }
+
+    protected void markDeleted() {
+        this.deletedAt = LocalDateTime.now();
+    }
 }

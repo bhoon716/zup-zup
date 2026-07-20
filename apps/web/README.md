@@ -47,7 +47,7 @@
 
 ## 기술 스택
 
-- Next.js 16.1.6
+- Next.js 16.3.0-preview.5
 - React 19.2.7
 - TanStack Query
 - Zustand
@@ -62,7 +62,7 @@
 
 ```bash
 cd apps/web
-npm install
+npm ci --legacy-peer-deps
 npm run dev
 ```
 
@@ -70,6 +70,7 @@ npm run dev
 
 - `npm run build`
 - `npm run start`
+- `npm run e2e`
 - `npm run lint`
 - `npm run test`
 
@@ -81,5 +82,6 @@ npm run dev
 ## Operational Notes
 
 - 배포 기준은 루트 README를 참고합니다.
+- Node.js 22.x와 `apps/web/package-lock.json`이 배포·CI의 기준입니다.
 - Web 로그는 `/var/log/jbnu-sugang-helper/web/web.log`에 남습니다.
 - 이 문서는 사용자 화면과 정보 구조를 이해하는 데 초점을 둡니다.

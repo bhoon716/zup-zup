@@ -29,16 +29,7 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
   const targetGradeLabel = formatTargetGrade(course.targetGrade);
   const departmentLabel = formatDepartmentLabel(course.department, targetGradeLabel);
 
-  /**
-   * 학년도, 학기, 과목코드, 분반 정보를 조합하여 강의 식별용 라벨을 생성합니다.
-   */
-  const classLabel = (() => {
-    const academicYear = course.academicYear ? `${course.academicYear}년 ` : "";
-    const semester = course.semester ? `${course.semester}학기 · ` : "";
-    const subjectCode = course.subjectCode || course.courseKey;
-    const classNumber = course.classNumber ? `-${course.classNumber}` : "";
-    return `${academicYear}${semester}${subjectCode}${classNumber}`.trim();
-  })();
+  const classLabel = course.stdtrNo || "학수번호 미제공";
 
   return (
     <div className="px-6 md:px-8 py-6 space-y-6 bg-white dark:bg-[#121212]">
@@ -150,8 +141,8 @@ function CourseHeader({
                 <span className="text-sm text-gray-300 dark:text-gray-600">|</span>
                 <span className={cn(
                   "inline-flex items-center px-2 py-0.5 rounded text-xs font-bold",
-                  course.disclosure === "공개" 
-                  ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400" 
+                  course.disclosure === "공개"
+                  ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
                   : "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"
                 )}>
                   {course.disclosure}

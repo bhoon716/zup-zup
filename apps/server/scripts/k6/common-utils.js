@@ -1,6 +1,6 @@
-import { check } from 'k6';
-import { SharedArray } from 'k6/data';
-import { scenario } from 'k6/execution';
+import {check} from 'k6';
+import {SharedArray} from 'k6/data';
+import {scenario} from 'k6/execution';
 
 // 성능 테스트의 기본 URL 설정 (환경변수 또는 로컬)
 export const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
@@ -44,9 +44,9 @@ export function getRandomUserAgent() {
  * @param {Object} options token 직접 지정 또는 isAdmin 여부 설정
  */
 export function getAuthHeaders(options = {}) {
-    const { token = null, isAdmin = false } = options;
+    const {token = null, isAdmin = false} = options;
     let finalToken = token;
-    
+
     // 토큰이 직접 전달되지 않은 경우, 로드된 토큰 풀에서 권한에 맞춰 순차적으로 할당합니다.
     if (!finalToken && tokenPool.length > 0) {
         if (isAdmin) {
@@ -55,7 +55,7 @@ export function getAuthHeaders(options = {}) {
             finalToken = tokenPool[scenario.iterationInTest % tokenPool.length];
         }
     }
-    
+
     // 풀에도 토큰이 없는 경우 환경 변수(AUTH_TOKEN)를 최종 폴백으로 사용합니다.
     if (!finalToken) {
         finalToken = __ENV.AUTH_TOKEN;
@@ -70,5 +70,5 @@ export function getAuthHeaders(options = {}) {
         headers['Authorization'] = `Bearer ${finalToken}`;
     }
 
-    return { headers };
+    return {headers};
 }

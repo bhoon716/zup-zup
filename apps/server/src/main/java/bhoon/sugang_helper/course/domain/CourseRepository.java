@@ -9,6 +9,8 @@ public interface CourseRepository extends RepositoryContract<Course, Long>, Cour
 
     Optional<Course> findByCourseKey(String courseKey);
 
+    Optional<Course> findByCourseKeyForUpdate(String courseKey);
+
     boolean existsByCourseKey(String courseKey);
 
     List<Course> findByCourseKeyIn(List<String> courseKeys);

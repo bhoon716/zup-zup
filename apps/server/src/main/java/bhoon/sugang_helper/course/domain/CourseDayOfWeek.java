@@ -19,11 +19,11 @@ public enum CourseDayOfWeek {
     private final String description;
     private final String shortCode;
 
-    public static CourseDayOfWeek from(String description) {
-        if (description == null || description.isBlank()) {
+    private static CourseDayOfWeek parse(String value) {
+        if (value == null || value.isBlank()) {
             return null;
         }
-        String normalized = description.trim();
+        String normalized = value.trim();
         return Arrays.stream(values())
                 .filter(d -> d.name().equalsIgnoreCase(normalized)
                         || d.description.equals(normalized)
@@ -32,18 +32,12 @@ public enum CourseDayOfWeek {
                 .orElse(null);
     }
 
+    public static CourseDayOfWeek from(String description) {
+        return parse(description);
+    }
+
     @JsonCreator
     public static CourseDayOfWeek fromJson(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        String normalized = value.trim();
-        return Arrays.stream(values())
-                .filter(d -> d.name().equalsIgnoreCase(normalized)
-                        || d.description.equals(normalized)
-                        || d.shortCode.equalsIgnoreCase(normalized))
-                .findFirst()
-                .orElse(null);
+        return parse(value);
     }
 }

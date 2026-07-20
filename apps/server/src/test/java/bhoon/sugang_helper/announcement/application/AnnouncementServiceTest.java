@@ -6,12 +6,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.announcement.domain.Announcement;
 import bhoon.sugang_helper.announcement.domain.AnnouncementRepository;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,8 +36,8 @@ class AnnouncementServiceTest {
     void getPublicAnnouncements_success() {
         // given
         Announcement announcement = createAnnouncement("제목", "내용", true, true);
-        given(announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc())
-                .willReturn(List.of(announcement));
+        given(announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(any()))
+                .willReturn(new PageImpl<>(List.of(announcement)));
 
         // when
         List<AnnouncementListResponse> result = announcementService.getPublicAnnouncements(null, null);
@@ -43,6 +45,16 @@ class AnnouncementServiceTest {
         // then
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).isEqualTo("제목");
+    }
+
+    @Test
+    @DisplayName("공지사항 검색어 길이 제한")
+    void getPublicAnnouncements_keywordTooLong() {
+        String keyword = "a".repeat(101);
+
+        assertThatThrownBy(() -> announcementService.getPublicAnnouncements(keyword, null, PageRequest.of(0, 20)))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
 
     @Test

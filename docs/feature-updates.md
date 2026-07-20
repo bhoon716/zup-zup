@@ -8,6 +8,29 @@ This document merges the web and server release histories.
 
 ---
 
+## Unreleased
+
+### Fixed
+
+- **알림 delivery 중복·DLQ 운영 경계**: delivery마다 안정적인 key와 lease fencing을 적용해 stale worker의 상태 덮어쓰기를 막고, provider별 중복 완화 key를 전파합니다. 단일 관리자는 전체 DLQ를 안전한 상태 정보로 조회하고 같은 delivery/key만 선택 재처리할 수 있으며, `SENT` 재발송은 기본 차단되고 모든 replay는 감사됩니다. DLQ는 실제 전환 시점부터 최소 30일 보존합니다.
+- **기기 해제 토큰 경로 제거 준비**: 웹 클라이언트는 토큰을 URL이 아닌 `DELETE /api/v1/users/devices` 요청 본문으로 전송하도록 변경했습니다. 기존 `DELETE /api/v1/users/devices/token/{token}` 경로는 배포된 구 클라이언트 호환을 위해 소유자 범위 검사를 거쳐 한시적으로 유지하며, 접근 로그와 웹 번들에서 사용이 사라진 다음 breaking API 릴리스에서 제거합니다.
+- **민감값 로그·오류 응답 보호**: 알림·크롤러·OAuth 로그는 이메일 마스킹, 토큰/endpoint 지문, 안정 오류 코드만 남기고 HTTP query 값은 기록하지 않습니다. 공개 오류 응답은 원문 상세 대신 `X-Error-Id`/`correlationId`를 제공해 서버 로그와 대조할 수 있습니다.
+- **운영 진단 경계 축소**: 운영 actuator는 별도 8081 management port에서 `health`·`prometheus`만 제공하며, 로그는 Docker JSON → Grafana Alloy → Loki → Grafana 경로로 격리된 내부망에서 검색합니다. Swagger/OpenAPI·H2 console은 운영에서 비활성화되고, CORS는 명시 HTTPS origin만 credential 요청에 허용합니다. 다음 운영 배포 전 `SERVER_DOTENV`의 `APP_CORS_ALLOWED_ORIGINS`를 실제 서비스 HTTPS origin으로 갱신해야 합니다.
+- **Flyway 검증 분리**: 기본 `./gradlew test`는 빠른 피드백을 위해 migration 검증을 제외하고, `./gradlew migrationTest`가 MySQL fresh schema·checksum·upgrade path를 별도 report로 검증합니다. PR과 main 배포 전 CI는 Docker preflight 후 두 task를 모두 필수 실행합니다.
+- **Redis JWT 원문 저장 제거**: 새 access blacklist는 SHA-256 식별자만 저장하고, refresh registry는 무작위 family와 SHA-256 digest를 Lua CAS로 교체합니다. 이전 refresh 재사용은 같은 family를 폐기하며, Spring Session에는 JWT 원문 대신 인증 주체·권한·access 만료 시각만 저장됩니다. 배포 이전 raw refresh/session 값은 각각 기존 TTL 안에서 자연 정리됩니다.
+- **Redis 준비·복구 경계 강화**: Redis는 인증 `PING` healthcheck와 AOF host storage를 사용하고, 앱은 Redis와 DB가 포함된 internal readiness가 `UP`일 때만 기동합니다. Redis 요청은 연결·명령 2초 제한 안에서 재연결하되 단절 중 명령을 queue/replay하지 않습니다. 정상 restart에는 session·refresh·logout blacklist·dedupe 상태가 보존되며, 백업·검증된 restore drill과 배포 전 Redis preflight를 제공합니다.
+- **DB 최소 권한·재해 복구**: runtime app은 DML 전용 MySQL 계정만 받고, Flyway는 배포 전 일회성 migrator container로 분리합니다. root·migrator·backup credential은 runtime JVM에 남지 않습니다. 암호화된 DR archive는 MySQL dump/binlog·uploads·Grafana·NPM data/cert와 SHA-256/HMAC 검증을 보관하며, clean-host drill이 사용자 식별 레코드·구독·피드백 첨부파일·운영 상태를 복구합니다. 세부 정책과 실제 OAuth 확인 경계는 [disaster-recovery-policy.md](disaster-recovery-policy.md)에 기록합니다.
+- **탈퇴 즉시 차단·데이터 보존 전환**: 탈퇴하면 인증 cookie/session·refresh registry·기기 token을 즉시 폐기하고 이름·이메일·알림 이메일·Discord 식별자를 익명화합니다. 계정과 일반 이력은 soft delete로 보존하고 구독·알림은 즉시 중지하며, feedback과 첨부파일은 일반 경로에서 숨깁니다. 기존 탈퇴 계정은 복구하지 않으며 같은 Google 이메일로 다시 로그인하면 새 계정으로 시작합니다. 보안상 배포 전 UID 없는 인증은 한 번 재로그인이 필요합니다.
+- **구조화된 관리자 감사 로그**: 관리자 상태·답변·첨부파일 접근을 버전 있는 JSON envelope로 기록하고, 답변 원문 대신 길이·키 기반 HMAC-SHA-256 지문만 보존합니다. `GET /api/v1/admin/audit-logs`는 관리자만 최신순 페이지 조회할 수 있으며, V18이 기존 원문형 metadata를 안전한 legacy 표기로 정리합니다.
+- **삭제 피드백 관리자 보존 열람**: 단일 관리자는 활성·삭제 피드백을 상태별로 조회할 수 있고, 탈퇴 작성자는 `탈퇴 사용자`로만 표시됩니다. 목록·상세 JSON에서 직접 식별자·환경 메타 정보·첨부파일 이름/URL을 제외하며, 첨부파일은 화면 확인 뒤 전용 POST 요청으로만 내려받고 성공 열람을 감사 로그에 기록합니다. 수동 피드백·답변 삭제도 물리 삭제 대신 보존용 soft delete를 사용합니다.
+- **피드백 환경 메타데이터 최소화·검증**: 새 피드백은 `os`·`language`만 최대 512 UTF-8 bytes 범위에서 전송·저장합니다. 서버는 JSON object·키·값 타입·중복 키·trailing token을 저장 전에 검증하고, 손상된 multipart JSON이나 metaInfo는 `400/G002`로 반환합니다. 전체 URL·user agent·timestamp 수집은 제거했으며 관리자 응답의 metaInfo 비노출 경계는 유지합니다.
+- **피드백 첨부 이미지 안전 정규화**: 서버는 multipart ingress에서 파일 10 MiB·요청 11 MiB를 먼저 제한하고, 초과는 `F008/413`으로 반환합니다. Tika sniff 뒤 실제 decoder로 정적 JPEG·PNG만 읽어 한 변 4096·8,388,608 pixels·정규화 결과 5 MiB를 제한합니다. WebP·GIF·APNG는 거부하며, 통과한 이미지는 새 JPEG/PNG로 재인코딩해 EXIF/GPS/XMP·PNG text 등 원본 metadata를 제거하고 다운로드 이름도 실제 정규화 확장자를 사용합니다.
+- **인증된 관리자 첨부파일 미리보기**: 단일 관리자는 명시 확인 POST로 받은 blob만 object URL로 미리보고 같은 blob을 다운로드합니다. 서버는 저장 파일의 실제 bytes를 다시 sniff해 JPEG/PNG만 image content type으로 내보내며, legacy WebP/GIF·알 수 없는 파일은 inline preview 없이 다운로드합니다. feedback–attachment 쌍 조회·감사 로그 경계는 유지하고, 선택 전환·페이지 이탈 뒤 늦게 도착한 요청은 object URL을 만들지 않습니다.
+- **웹 런타임 안정화**: Next.js와 `eslint-config-next`를 matching `16.3.0-preview.5`로 고정합니다. 현재 stable `16.2.10`이 취약한 PostCSS를 직접 고정해 preview를 임시 production 예외로 유지하며, `apps/web/package-lock.json`·Node 22.x를 CI/배포 기준으로 통일하고 매주 production dependency audit을 실행합니다.
+- **웹·Spring 린트 경고 정리**: 로그인·탈퇴 후 내부 `/login` 이동은 Next Router를 사용하고, OAuth·Discord·PWA 전체 문서 이동은 의도적인 ESLint 예외로 구분했습니다. 서버 테스트의 raw generic matcher/captor도 타입 안전 호출로 정리해 web lint와 Spring 정적·컴파일 경고를 0건으로 유지합니다.
+
+---
+
 ## [v1.2.3] - 2026-06-16 ✨
 
 메인 랜딩 페이지에 생생한 사용자 후기 무한 Marquee 슬라이더가 도입되었습니다.
@@ -83,7 +106,7 @@ This document merges the web and server release histories.
 ### Added
 
 - **통합 건의/제보 시스템(Feedback System)**: 버그 리포트, 기능 제안 등을 서비스 내부에서 직접 제출할 수 있는 인터페이스 추가
-- **이미지 최적화 업로드**: 브라우저 단에서 WebP 변환 및 리사이징 처리를 통해 모바일 환경에서도 부담 없는 고속 업로드 구현
+- **이미지 최적화 업로드**: 브라우저 단에서 JPEG/PNG만 선택·검증하고 동일 허용 포맷으로 리사이징·압축해 모바일 환경에서도 부담을 줄인다.
 - **피드백 이력 관리**: 본인이 남긴 문의 내역을 탭 형태로 즉시 확인하고, 관리자의 답변을 실시간으로 피드백 받을 수 있는 UI 구축
 - **관리자 전용 대시보드 확장**: 제보된 피드백의 상태 변경(대기/처리중/완료) 및 답변 등록, 수정 기능이 포함된 대규모 관리 인터페이스 도입
 - **환경 메타데이터 자동 수집**: 제보 시점의 OS, 브라우저, 발생 경로 정보를 함께 전송하여 개발팀의 정확한 재현 및 디버깅 지원
@@ -114,6 +137,9 @@ This document merges the web and server release histories.
 - **그리드 기반 강의 검색**: 드래그 앤 드롭으로 시간을 직접 선택하거나 공강 기간을 자동 반영하는 스마트 필터
 - **실시간 무한 스크롤**: TanStack Query를 활용하여 수천 개의 강의 데이터를 끊김 없이 탐색
 - **공지사항(Announcement) 페이지**: 목록(미리보기)과 상세(마크다운 렌더링) 라우트 분리 및 검색 기능
+- **공지사항 API bounded pagination**: public/admin 목록과 제목·내용 검색은 최대 100건 페이지와 100자 검색어 상한을 사용하고, `announcement.search.latency` metric으로 검색 지연을 관찰한다. 웹 API 계층은 `content`를 기존 배열 화면 모델로 변환해 기존 UI를 유지한다.
+- **강의 검색 입력 경계**: 검색 조건은 문자열·배열·시간·학점·정렬 whitelist를 Bean Validation으로 제한하고, 분류/요일/공개 상태 등 enum 변환 실패는 쿼리에서 무시하지 않고 `400/G002`로 거부한다.
+- **핵심 흐름 CI E2E**: Playwright browser smoke가 401→refresh→재시도와 관리자 첨부파일 preview를 mock API로 검증하고, 주간/manual provider·auth·outbox·DLQ·feedback contract suite는 별도 artifact로 보관한다.
 - **통합 관리자 패널**: Recharts 기반의 통계 가시화, 크롤링 타겟 제어, 학사 일정 CRUD 화면
 - **시간표 시뮬레이터**: 수업 시간표 생성 및 겹치는 강의 세로 분할 렌더링 로직 구현
 - **Self-Healing 웹푸시**: VAPID 키 불일치나 만료된 구독을 자동으로 탐지하고 소생시키는 로직
@@ -250,4 +276,3 @@ This document merges the web and server release histories.
 - **DB 마이그레이션 통합**: 산재된 스키마 변경 이력을 `V3__consolidate_schema_updates.sql`로 최적화 및 통합
 - **테스트 알림 정책**: 사용자별 10초 쿨타임 제한 및 운영 통계(히스토리) 제외 처리 적용
 - **도메인 모델 정규화**: 불필요한 `period` 필드 제거 및 시간표 검색 로직 고도화
-

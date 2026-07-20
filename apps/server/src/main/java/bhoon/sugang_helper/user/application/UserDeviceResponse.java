@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.user.application;
 
-import bhoon.sugang_helper.user.domain.UserDevice;
-import bhoon.sugang_helper.user.domain.DeviceType;
 import bhoon.sugang_helper.user.application.result.UserDeviceResult;
+import bhoon.sugang_helper.user.domain.DeviceType;
+import bhoon.sugang_helper.user.domain.UserDevice;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Builder;

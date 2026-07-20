@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 
 public interface CourseJpaRepository extends JpaRepository<Course, Long>, CourseRepository {
@@ -15,6 +17,10 @@ public interface CourseJpaRepository extends JpaRepository<Course, Long>, Course
      * 고유 키를 기반으로 강의 정보를 조회합니다.
      */
     Optional<Course> findByCourseKey(String courseKey);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from Course c where c.courseKey = :courseKey")
+    Optional<Course> findByCourseKeyForUpdate(@Param("courseKey") String courseKey);
 
     /**
      * 특정 고유 키를 가진 강의가 존재하는지 확인합니다.

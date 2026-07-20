@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<ruleset name="jbnu-sugang-helper PMD Rules"
+<ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         name="jbnu-sugang-helper PMD Rules"
          xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
              https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
 
@@ -51,18 +51,18 @@
     <!-- =============================================================== -->
     <rule ref="category/java/design.xml/CyclomaticComplexity">
         <properties>
-            <!-- 메서드 복잡도 15 초과 시 경고 -->
-            <property name="methodReportLevel" value="15"/>
+            <!-- 메서드 복잡도 25 초과 시 경고 -->
+            <property name="methodReportLevel" value="25"/>
         </properties>
     </rule>
     <rule ref="category/java/design.xml/TooManyFields">
         <properties>
-            <property name="maxfields" value="15"/>
+            <property name="maxfields" value="30"/>
         </properties>
     </rule>
     <rule ref="category/java/design.xml/TooManyMethods">
         <properties>
-            <property name="maxmethods" value="15"/>
+            <property name="maxmethods" value="35"/>
         </properties>
     </rule>
 

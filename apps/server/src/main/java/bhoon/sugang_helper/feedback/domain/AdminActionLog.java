@@ -46,7 +46,7 @@ public class AdminActionLog extends BaseTimeEntity {
     @Column(nullable = false)
     private Long targetId;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "meta_data", nullable = false, columnDefinition = "JSON")
     private String metaData;
 
     @Builder

@@ -1,4 +1,8 @@
-package bhoon.sugang_helper.wishlist.application;
+package bhoon.sugang_helper.wishlist.presentation;
+import bhoon.sugang_helper.wishlist.application.WishlistService;
+import bhoon.sugang_helper.wishlist.application.WishlistToggleResponse;
+import bhoon.sugang_helper.wishlist.application.WishlistResponse;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;

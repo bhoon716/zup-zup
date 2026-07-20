@@ -14,12 +14,12 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
-import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.review.domain.CourseReview;
 import bhoon.sugang_helper.review.domain.CourseReviewReaction;
-import bhoon.sugang_helper.review.domain.ReactionType;
 import bhoon.sugang_helper.review.domain.CourseReviewReactionRepository;
 import bhoon.sugang_helper.review.domain.CourseReviewRepository;
+import bhoon.sugang_helper.review.domain.ReactionType;
+import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
@@ -305,7 +305,7 @@ class CourseReviewServiceTest {
 
             reviewService.toggleReaction(REVIEW_ID, request);
 
-            assertThat(review.getLikeCount()).isEqualTo(1);
+            verify(reviewRepository).incrementLikeCount(any());
             verify(reactionRepository).save(any(CourseReviewReaction.class));
         }
 
@@ -328,7 +328,7 @@ class CourseReviewServiceTest {
 
             reviewService.toggleReaction(REVIEW_ID, request);
 
-            assertThat(review.getLikeCount()).isEqualTo(0);
+            verify(reviewRepository).decrementLikeCount(any());
             verify(reactionRepository).delete(existingReaction);
         }
 
@@ -351,8 +351,8 @@ class CourseReviewServiceTest {
 
             reviewService.toggleReaction(REVIEW_ID, request);
 
-            assertThat(review.getLikeCount()).isEqualTo(0);
-            assertThat(review.getDislikeCount()).isEqualTo(1);
+            verify(reviewRepository).decrementLikeCount(any());
+            verify(reviewRepository).incrementDislikeCount(any());
             assertThat(existingReaction.getReactionType()).isEqualTo(ReactionType.DISLIKE);
             verify(reactionRepository, never()).delete(any());
             verify(reactionRepository, never()).save(any());

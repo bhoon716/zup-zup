@@ -1,6 +1,6 @@
 import http from 'k6/http';
-import { sleep, group } from 'k6';
-import { BASE_URL, validateResponse, getAuthHeaders } from './common-utils.js';
+import {group, sleep} from 'k6';
+import {BASE_URL, getAuthHeaders} from './common-utils.js';
 
 /**
  * [Resilience Test] 외부 시스템 장애 전파 차단 검증
@@ -17,9 +17,9 @@ export const options = {
 export default function () {
     group('외부 시스템 의존성 탄력성 테스트', function () {
         // 관리자 권한 토큰을 사용하며, 요청 타임아웃을 3초로 제한하여 시스템을 보호합니다.
-        const params = getAuthHeaders({ isAdmin: true });
+        const params = getAuthHeaders({isAdmin: true});
         params.timeout = '3s';
-        params.tags = { name: '외부의존성체크' };
+        params.tags = {name: '외부의존성체크'};
 
         // 관리자 대시보드 조회를 통해 백엔드 스레드 가용성 및 외부 지표 응답을 시뮬레이트합니다.
         const res = http.get(`${BASE_URL}/api/v1/admin/overview`, params);

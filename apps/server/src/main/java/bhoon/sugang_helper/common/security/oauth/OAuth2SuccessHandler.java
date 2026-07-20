@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.common.security.oauth;
 
+import bhoon.sugang_helper.auth.application.AuthService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.constant.SecurityConstant;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
-import bhoon.sugang_helper.auth.application.AuthService;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,17 +40,16 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        String accessToken = jwtProvider.createAccessToken(user.getEmail(), user.getRoleKey());
-        String refreshToken = jwtProvider.createRefreshToken(user.getEmail());
+        String accessToken = jwtProvider.createAccessToken(user.getId(), user.getEmail(), user.getRoleKey());
+        String refreshToken = jwtProvider.createRefreshToken(user.getId(), user.getEmail());
 
         // 인증 쿠키는 공통 서비스 로직으로 설정한다.
         authService.addRefreshTokenCookie(response, refreshToken);
 
-        // 토큰은 서버 세션에 저장해 브라우저 노출을 피한다.
-        request.getSession().setAttribute("ACCESS_TOKEN", accessToken);
-        request.getSession().setAttribute("REFRESH_TOKEN", refreshToken);
+        // 세션에는 JWT 원문 대신 Spring Security 인증 주체와 권한만 저장한다.
+        authService.saveSessionAuthentication(request, response, accessToken);
 
-        log.info("Social login (OAuth2) successful: email={}, session saved", user.getEmail());
+        log.info("[OAuth2] Social login successful. userId={}, authenticationSaved=true", user.getId());
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }
 }

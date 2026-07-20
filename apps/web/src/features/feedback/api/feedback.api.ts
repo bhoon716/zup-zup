@@ -4,6 +4,9 @@ import type {
   PageResponse,
   FeedbackResponse,
   FeedbackDetailResponse,
+  AdminFeedbackDeletionFilter,
+  AdminFeedbackDetailResponse,
+  AdminFeedbackResponse,
   FeedbackCreateRequest,
   FeedbackStatusUpdateRequest,
   FeedbackReplyCreateRequest,
@@ -72,10 +75,11 @@ export const deleteFeedback = async (feedbackId: number): Promise<void> => {
  */
 export const getFeedbacksForAdmin = async (
   page: number = 0,
+  deletion: AdminFeedbackDeletionFilter = 'ALL',
   size: number = 20
-): Promise<CommonResponse<PageResponse<FeedbackResponse>>> => {
-  const { data } = await api.get<CommonResponse<PageResponse<FeedbackResponse>>>('/api/v1/admin/feedbacks', {
-    params: { page, size },
+): Promise<CommonResponse<PageResponse<AdminFeedbackResponse>>> => {
+  const { data } = await api.get<CommonResponse<PageResponse<AdminFeedbackResponse>>>('/api/v1/admin/feedbacks', {
+    params: { page, size, deletion },
   });
   return data;
 };
@@ -85,8 +89,23 @@ export const getFeedbacksForAdmin = async (
  */
 export const getFeedbackDetailForAdmin = async (
   feedbackId: number
-): Promise<CommonResponse<FeedbackDetailResponse>> => {
-  const { data } = await api.get<CommonResponse<FeedbackDetailResponse>>(`/api/v1/admin/feedbacks/${feedbackId}`);
+): Promise<CommonResponse<AdminFeedbackDetailResponse>> => {
+  const { data } = await api.get<CommonResponse<AdminFeedbackDetailResponse>>(`/api/v1/admin/feedbacks/${feedbackId}`);
+  return data;
+};
+
+/**
+ * 관리자 확인 뒤 보존 첨부파일을 인증된 POST 요청으로 내려받는다.
+ */
+export const downloadFeedbackAttachmentForAdmin = async (
+  feedbackId: number,
+  attachmentId: number
+): Promise<Blob> => {
+  const { data } = await api.post<Blob>(
+    `/api/v1/admin/feedbacks/${feedbackId}/attachments/${attachmentId}/download`,
+    { confirmed: true },
+    { responseType: 'blob' }
+  );
   return data;
 };
 

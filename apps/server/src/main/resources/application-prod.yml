@@ -2,12 +2,6 @@ spring:
   application:
     name: zup-zup
 
-  servlet:
-    session:
-      timeout: 2h
-  session:
-    timeout: 2h
-
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -15,7 +9,8 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   flyway:
-    enabled: true
+    # DDL credentials remain in the one-shot Compose migrator, never in the runtime JVM.
+    enabled: false
     baseline-on-migrate: true
     baseline-version: 3
 
@@ -24,6 +19,10 @@ spring:
       ddl-auto: validate
     open-in-view: false
     show-sql: false
+
+  h2:
+    console:
+      enabled: false
 
   data:
     redis:
@@ -39,7 +38,7 @@ spring:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: profile,email
-            redirect-uri: https://www.zup-zup.com/api/login/oauth2/code/google
+            redirect-uri: ${GOOGLE_REDIRECT_URI}
             authorization-grant-type: authorization_code
 
   cloud:
@@ -52,9 +51,30 @@ spring:
       ses:
         enabled: true
 
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
   mail:
     from: no-reply@zup-zup.com
     from-name: 줍줍
+    properties:
+      mail:
+        smtp:
+          connectiontimeout: ${SPRING_MAIL_SMTP_CONNECTIONTIMEOUT:5000}
+          timeout: ${SPRING_MAIL_SMTP_TIMEOUT:5000}
+          writetimeout: ${SPRING_MAIL_SMTP_WRITETIMEOUT:5000}
+
+server:
+  shutdown: graceful
+  servlet:
+    session:
+      timeout: 2h
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 jwt:
   secret: ${JWT_SECRET}
@@ -65,16 +85,38 @@ jwt:
 
 app:
   auth:
-    refresh-cookie-secure: true
+    refresh-cookie-secure: ${APP_AUTH_REFRESH_COOKIE_SECURE:true}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
+    require-https: ${APP_CORS_REQUIRE_HTTPS:true}
   oauth2:
     success-redirect-uri: ${APP_OAUTH2_SUCCESS_REDIRECT_URI}
     failure-redirect-uri: ${APP_OAUTH2_FAILURE_REDIRECT_URI}
     authorized-redirect-uri: ${APP_OAUTH2_AUTHORIZED_REDIRECT_URI}
   subscription:
     max-limit: 10
+  admin-audit:
+    fingerprint-secret: "${APP_ADMIN_AUDIT_FINGERPRINT_SECRET:${JWT_SECRET}}"
+    retention-days: ${APP_ADMIN_AUDIT_RETENTION_DAYS:180}
+    retention-cron: "${APP_ADMIN_AUDIT_RETENTION_CRON:0 15 3 * * *}"
   notification:
+    provider:
+      timeout-ms: ${APP_NOTIFICATION_PROVIDER_TIMEOUT_MS:5000}
+      connect-timeout-ms: ${APP_NOTIFICATION_PROVIDER_CONNECT_TIMEOUT_MS:2000}
+      read-timeout-ms: ${APP_NOTIFICATION_PROVIDER_READ_TIMEOUT_MS:5000}
+      write-timeout-ms: ${APP_NOTIFICATION_PROVIDER_WRITE_TIMEOUT_MS:5000}
+      circuit:
+        failure-threshold: ${APP_NOTIFICATION_PROVIDER_CIRCUIT_FAILURE_THRESHOLD:3}
+        open-seconds: ${APP_NOTIFICATION_PROVIDER_CIRCUIT_OPEN_SECONDS:30}
+    outbox:
+      poll-ms: ${APP_NOTIFICATION_OUTBOX_POLL_MS:5000}
+      worker-threads: ${APP_NOTIFICATION_OUTBOX_WORKER_THREADS:8}
+      queue-capacity: ${APP_NOTIFICATION_OUTBOX_QUEUE_CAPACITY:32}
+      batch-size: ${APP_NOTIFICATION_OUTBOX_BATCH_SIZE:50}
+      max-attempts: ${APP_NOTIFICATION_OUTBOX_MAX_ATTEMPTS:5}
+      lease-seconds: ${APP_NOTIFICATION_OUTBOX_LEASE_SECONDS:60}
+      dlq-retention-days: ${APP_NOTIFICATION_OUTBOX_DLQ_RETENTION_DAYS:30}
+      dlq-retention-cron: "${APP_NOTIFICATION_OUTBOX_DLQ_RETENTION_CRON:0 30 3 * * *}"
     channels:
       email: true
       discord: true
@@ -95,21 +137,38 @@ app:
 
 jbnu:
   api:
-    url: https://oasis.jbnu.ac.kr/uni/uni/cour/less/findLessSubjtTblInq.action
+    url: https://jump.jbnu.ac.kr/SCH/SucrLessnSbjctInq/list.do
+    bootstrap-url: https://jump.jbnu.ac.kr/link?div=sucrPlan
+    cert-division: ${JBNU_API_CERT_DIVISION:6}
     timeout-ms: 180000
+    max-response-bytes: 10485760
     max-retries: 3
     retry-wait-ms: 3000
   crawler:
+    freshness-check-ms: ${JBNU_CRAWLER_FRESHNESS_CHECK_MS:60000}
+    stale-threshold-minutes: ${JBNU_CRAWLER_STALE_THRESHOLD_MINUTES:15}
     run-on-startup: false
     cron: "0 * * * * ?"
     default-year: "2026"
     default-semester: "U211600010"
 
 management:
+  server:
+    port: 8081
   endpoints:
+    access:
+      default: none
     web:
       exposure:
-        include: health, info, prometheus
+        include: health, prometheus
   endpoint:
+    health:
+      access: read-only
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db,redis
     prometheus:
-      enabled: true
+      access: read-only

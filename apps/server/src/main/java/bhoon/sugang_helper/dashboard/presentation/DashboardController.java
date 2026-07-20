@@ -1,4 +1,7 @@
-package bhoon.sugang_helper.dashboard.application;
+package bhoon.sugang_helper.dashboard.presentation;
+import bhoon.sugang_helper.dashboard.application.DashboardSnapshotResponse;
+import bhoon.sugang_helper.dashboard.application.DashboardService;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;

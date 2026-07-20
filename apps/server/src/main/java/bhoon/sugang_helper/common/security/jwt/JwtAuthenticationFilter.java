@@ -1,5 +1,9 @@
 package bhoon.sugang_helper.common.security.jwt;
 
+import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESSION_AUTHENTICATION_EXPIRES_AT;
+import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESSION_AUTHENTICATION_USER_ID;
+
+import bhoon.sugang_helper.user.domain.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -20,6 +25,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
+    private final UserRepository userRepository;
 
     @Override
     @SuppressWarnings("NullableProblems")
@@ -28,21 +34,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 헤더에서 토큰 추출
         String token = jwtProvider.resolveToken(request);
-
-        // 헤더에 토큰이 없으면 세션에서 확인
-        if (!StringUtils.hasText(token)) {
-            HttpSession session = request.getSession(false);
-            if (session != null) {
-                token = (String) session.getAttribute("ACCESS_TOKEN");
-            }
-        }
+        clearInvalidSessionAuthentication(request);
 
         if (StringUtils.hasText(token) && jwtProvider.validateToken(token)) {
             Authentication authentication = jwtProvider.getAuthentication(token);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.debug("Saved authentication info '{}' to SecurityContext", authentication.getName());
+            Long userId = jwtProvider.getUserId(token);
+            if (isActiveUser(userId, authentication)) {
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                log.debug("Saved authentication info '{}' to SecurityContext", authentication.getName());
+            }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void clearInvalidSessionAuthentication(HttpServletRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        HttpSession session = request.getSession(false);
+        if (authentication == null || session == null
+                || session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY) == null) {
+            return;
+        }
+
+        Object expiresAt = session.getAttribute(SESSION_AUTHENTICATION_EXPIRES_AT);
+        Object userId = session.getAttribute(SESSION_AUTHENTICATION_USER_ID);
+        if (!(expiresAt instanceof Long expiresAtMillis) || expiresAtMillis <= System.currentTimeMillis()
+                || !(userId instanceof Long sessionUserId) || !isActiveUser(sessionUserId, authentication)) {
+            SecurityContextHolder.clearContext();
+            session.invalidate();
+        }
+    }
+
+    private boolean isActiveUser(Long userId, Authentication authentication) {
+        return userId != null && authentication != null && StringUtils.hasText(authentication.getName())
+                && userRepository.existsByIdAndEmailAndDeletedAtIsNull(userId, authentication.getName());
     }
 }

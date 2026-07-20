@@ -1,6 +1,8 @@
 package bhoon.sugang_helper.crawling.application;
 
-import bhoon.sugang_helper.course.domain.ParsedCourseDto;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.course.domain.CourseAccreditation;
 import bhoon.sugang_helper.course.domain.CourseClassification;
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
@@ -8,109 +10,171 @@ import bhoon.sugang_helper.course.domain.CourseStatus;
 import bhoon.sugang_helper.course.domain.DisclosureStatus;
 import bhoon.sugang_helper.course.domain.GradingMethod;
 import bhoon.sugang_helper.course.domain.LectureLanguage;
+import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.TargetGrade;
+import java.io.InputStream;
+import java.io.IOException;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.parser.Parser;
-import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@SuppressWarnings("PMD.TooManyMethods")
+@SuppressWarnings("PMD.CyclomaticComplexity")
 public class JbnuCourseParser {
 
-    private static final String DATASET_ID = "GRD_COUR001";
     private static final Pattern PERIOD_TOKEN_PATTERN = Pattern.compile("^(\\d{1,2})-([ABab])$");
     private static final Pattern GRADE_IN_DEPT_PATTERN = Pattern.compile("\\s(?<grade>[1-6])(?=[\\s,]|$)");
     private static final Pattern TRAILING_NUMBER_IN_SUBJECT_PATTERN = Pattern
             .compile("^(?<subjectName>.*?)(?:\\s+)(?<number>\\d+)$");
     private static final Pattern TRAILING_GRADE_PATTERN_TEMPLATE = Pattern
             .compile("^(?<before>.*?)(?:\\s+)(?<grade>[1-6])(?:학년)?(?:\\s*등)?$");
+    private static final Pattern PERIOD_WITH_HALF_PATTERN = Pattern.compile("^(\\d{1,2})([ABab])$");
+    private static final Pattern PERIOD_RANGE_WITH_HALF_PATTERN = Pattern.compile(
+            "^(\\d{1,2})([ABab])\\s*[-~]\\s*(\\d{1,2})([ABab])$");
+    private static final Pattern PERIOD_RANGE_PATTERN = Pattern.compile("^(\\d{1,2})\\s*[-~]\\s*(\\d{1,2})$");
+    private static final Pattern CLOCK_RANGE_PATTERN = Pattern.compile(
+            "^(\\d{1,2}:\\d{2})\\s*[-~]\\s*(\\d{1,2}:\\d{2})$");
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
-     * XML 데이터를 파싱하여 ParsedCourseDto 리스트로 변환합니다.
+     * JUMP JSON 응답을 ParsedCourseDto 리스트로 변환합니다.
      */
-    public List<ParsedCourseDto> parseCourses(String xmlData) {
-        List<ParsedCourseDto> courseList = new ArrayList<>();
-        Document doc = Jsoup.parse(xmlData, "", Parser.xmlParser());
-
-        Elements rows = doc.select("Dataset[id=" + DATASET_ID + "] > Rows > Row");
-
-        for (Element row : rows) {
-            try {
-                processRow(row).ifPresent(courseList::add);
-            } catch (Exception e) {
-                log.warn("Failed to parse course row: {}", e.getMessage());
-            }
-        }
-        return courseList;
+    public List<ParsedCourseDto> parseCourses(String jsonData) {
+        return parseJumpCourses(jsonData, null, null);
     }
 
-    /**
-     * 단일 행(Row) 데이터를 파싱하여 ParsedCourseDto 객체를 생성합니다.
-     */
-    private Optional<ParsedCourseDto> processRow(Element row) {
-        String sbjtCd = getColValue(row, "SBJTCD");
-        String clss = getColValue(row, "CLSS");
-        String year = getColValue(row, "YY");
-        String semester = getColValue(row, "SHTM");
-        String rawDepartment = getColValue(row, "SUSTCDNM");
-        String gradeNm = getColValue(row, "TLSNOBJFGNM");
+    public List<ParsedCourseDto> parseCourses(String jsonData, String year, String semester) {
+        return parseJumpCourses(jsonData, year, semester);
+    }
 
-        if (sbjtCd == null || clss == null || year == null || semester == null) {
-            return Optional.empty();
+    public Iterator<ParsedCourseDto> streamCourses(InputStream responseStream) {
+        return streamCourses(responseStream, null, null);
+    }
+
+    public Iterator<ParsedCourseDto> streamCourses(InputStream responseStream, String year, String semester) {
+        try {
+            String jsonData = new String(responseStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            return parseJumpCourses(jsonData, year, semester).iterator();
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Malformed crawler JSON", e);
         }
+    }
 
-        LiberalArtsInfo liberalArts = parseLiberalArtsInfo(row);
-        StatusInfo statusInfo = parseStatusAndDisclosureInfo(row);
-        TargetGrade targetGrade = parseTargetGrade(gradeNm, rawDepartment);
+    private List<ParsedCourseDto> parseJumpCourses(String jsonData, String fallbackYear, String fallbackSemester) {
+        List<ParsedCourseDto> courseList = new ArrayList<>();
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(jsonData);
+            if (root == null || !root.isObject()) {
+                throw new IllegalArgumentException("JUMP response must be a JSON object");
+            }
+            if (root.hasNonNull("ERRMSGINFO")) {
+                throw new IllegalArgumentException("JUMP returned an error envelope");
+            }
+            JsonNode rows = root.get("dsEstSbjList");
+            if (rows == null || !rows.isArray()) {
+                throw new IllegalArgumentException("JUMP response is missing dsEstSbjList");
+            }
+            if (rows.isEmpty()) {
+                throw new IllegalArgumentException("JUMP course list is empty");
+            }
+            int rowIndex = 0;
+            for (JsonNode row : rows) {
+                try {
+                    courseList.add(processJumpRow(row, fallbackYear, fallbackSemester));
+                } catch (RuntimeException e) {
+                    log.warn("Failed to parse JUMP course row. rowIndex={}, exceptionType={}", rowIndex,
+                            SensitiveDataRedactor.exceptionType(e));
+                    throw e;
+                }
+                rowIndex++;
+            }
+            return courseList;
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Malformed crawler JSON", e);
+        }
+    }
 
-        String subjectName = normalizeSubjectName(getColValue(row, "SBJTNM"), clss);
-        String department = normalizeDepartmentName(rawDepartment, targetGrade);
+    private ParsedCourseDto processJumpRow(JsonNode row, String fallbackYear, String fallbackSemester) {
+        if (row == null || !row.isObject()) {
+            throw new IllegalArgumentException("JUMP course row must be a JSON object");
+        }
+        String subjectCode = jsonValue(row, "SBJCT_CD");
+        String classNumber = jsonValue(row, "DVCLS_NO");
+        String year = fallbackYear != null && !fallbackYear.isBlank() ? fallbackYear : jsonValue(row, "YRSA");
+        String semester = fallbackSemester != null && !fallbackSemester.isBlank()
+                ? fallbackSemester
+                : jsonValue(row, "SEMSTR_CD");
+        if (subjectCode == null || classNumber == null || year == null || semester == null) {
+            throw new IllegalArgumentException("JUMP course row is missing required identity fields");
+        }
+        String stdtrNo = normalizeCourseNumber(jsonValue(row, "STDTR_NO"));
 
-        return Optional.of(new ParsedCourseDto(
-                generateCourseKey(year, semester, sbjtCd, clss),
-                sbjtCd,
-                subjectName,
-                clss,
-                getColValue(row, "RPSTPROFNM"),
-                safeParseInt(getColValue(row, "LMTRCNT")),
-                safeParseInt(getColValue(row, "TLSNRCNT")),
+        String targetGradeValue = jsonValue(row, "ATNLC_TRGT_DIVCDNM");
+        String department = jsonValue(row, "MNG_SCSBJT_CDNM");
+        TargetGrade targetGrade = parseTargetGrade(targetGradeValue,
+                firstNonBlank(jsonValue(row, "SCSBJT_SCYR_NTC_CN"), department));
+        String disclosureValue = jsonValue(row, "RLS_YN");
+        DisclosureStatus disclosure = "Y".equalsIgnoreCase(disclosureValue) ? DisclosureStatus.PUBLIC
+                : "N".equalsIgnoreCase(disclosureValue) ? DisclosureStatus.PRIVATE
+                : DisclosureStatus.from(disclosureValue);
+        String operation = firstNonBlank(jsonValue(row, "OPNLT_DIVCDNM"), jsonValue(row, "LESSN_OPER_DRC_CN"));
+
+        return new ParsedCourseDto(
+                generateCourseKey(year, semester, subjectCode, classNumber),
+                subjectCode,
+                stdtrNo,
+                normalizeSubjectName(jsonValue(row, "SBJCT_NM"), classNumber),
+                classNumber,
+                jsonValue(row, "STAFFNM"),
+                safeParseInt(firstNonBlank(jsonValue(row, "ATNLC_PSCP_CNT"), jsonValue(row, "PRM_NMPR_CNT"))),
+                safeParseInt(jsonValue(row, "TLSN_RCNT")),
                 targetGrade,
                 year,
                 semester,
-                CourseClassification.from(getColValue(row, "CPTNFGNM")),
-                department,
-                GradingMethod.from(getColValue(row, "SCORTRETFGNM")),
-                getColValue(row, "DAYTMCTNT"),
-                getColValue(row, "PNT"),
-                LectureLanguage.from(getColValue(row, "LTLANGFGNM")),
-                statusInfo.disclosure,
-                statusInfo.disclosureReason,
-                safeParseInt(getColValue(row, "TM")),
-                liberalArts.category,
-                liberalArts.detail,
-                CourseAccreditation.from(getColValue(row, "VLDFGNM")),
-                CourseStatus.from(getColValue(row, "OPENLECTFGNM")),
-                getColValue(row, "VILROOMNOCTNT"),
-                "Y".equalsIgnoreCase(getColValue(row, "SUBPLANYN")),
-                getColValue(row, "FLDCONVINFO"),
-                getColValue(row, "CLSSOPRTDRCT"),
-                getColValue(row, "LESSTMFGNM"),
-                parseSchedules(getColValue(row, "DAYTMCTNT"))
-        ));
+                CourseClassification.from(jsonValue(row, "CMCRS_DIVCDNM")),
+                normalizeDepartmentName(department, targetGrade),
+                GradingMethod.from(jsonValue(row, "RLT_ABSLT_EVL_DIVCDNM")),
+                jsonValue(row, "DOW_HR_CN"),
+                jsonValue(row, "ESTBL_PNT"),
+                LectureLanguage.from(jsonValue(row, "LCTR_LANG_DIVCDNM")),
+                disclosure,
+                jsonValue(row, "PRVT_DIVCDNM"),
+                safeParseInt(jsonValue(row, "HR_CNT")),
+                jsonValue(row, "RLM_DIVCDNM"),
+                jsonValue(row, "CULT_RLM_DIVCDNM"),
+                CourseAccreditation.from(jsonValue(row, "CERT_DIVCDNM")),
+                CourseStatus.from(operation),
+                jsonValue(row, "DONG_RMNM_CN"),
+                "Y".equalsIgnoreCase(jsonValue(row, "SUB_PLAN_YN")),
+                jsonValue(row, "RLM_DIVCDNM_HIST"),
+                jsonValue(row, "LESSN_OPER_DRC_CN"),
+                jsonValue(row, "LESSN_HR_DIVCDNM"),
+                parseSchedules(jsonValue(row, "DOW_HR_CN")));
     }
 
+    private String jsonValue(JsonNode row, String field) {
+        JsonNode value = row.get(field);
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        return normalizeClassroom(value.asText());
+    }
+
+    private String normalizeCourseNumber(String value) {
+        return value == null || value.isBlank() ? null : value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String firstNonBlank(String first, String second) {
+        return first != null && !first.isBlank() ? first : second;
+    }
     /**
      * 과목명 끝 숫자가 분반(CLSS)과 동일하면 과목명에서 제거한다.
      */
@@ -247,26 +311,6 @@ public class JbnuCourseParser {
     /**
      * 교양 과목 정보(영역, 상세영역) 추출
      */
-    private LiberalArtsInfo parseLiberalArtsInfo(Element row) {
-        String category = getColValue(row, "FLDFGNM");
-        String detail = getColValue(row, "FLDDETAFGNM");
-        return new LiberalArtsInfo(category, detail);
-    }
-
-    /**
-     * 강의 상태 및 공개 여부 정보 추출
-     */
-    private StatusInfo parseStatusAndDisclosureInfo(Element row) {
-        DisclosureStatus disclosure = DisclosureStatus.from(getColValue(row, "PUBCYN"));
-        String disclosureReason = getColValue(row, "NOPUBCRESNNM");
-        return new StatusInfo(disclosure, disclosureReason);
-    }
-
-    private String getColValue(Element row, String colId) {
-        Element col = row.selectFirst("Col[id=" + colId + "]");
-        return col != null ? normalizeClassroom(col.text().trim()) : null;
-    }
-
     private String normalizeClassroom(String value) {
         if (value == null || value.isBlank() || value.equals(":")) {
             return null;
@@ -364,16 +408,48 @@ public class JbnuCourseParser {
         }
 
         Matcher matcher = PERIOD_TOKEN_PATTERN.matcher(periodToken.trim());
-        if (!matcher.matches()) {
-            return null;
+        String normalizedToken = periodToken.trim();
+        if (matcher.matches()) {
+            return periodTimeRange(Integer.parseInt(matcher.group(1)), matcher.group(2));
         }
 
-        int slot = Integer.parseInt(matcher.group(1));
+        Matcher halfMatcher = PERIOD_WITH_HALF_PATTERN.matcher(normalizedToken);
+        if (halfMatcher.matches()) {
+            return periodTimeRange(Integer.parseInt(halfMatcher.group(1)), halfMatcher.group(2));
+        }
+
+        Matcher halfRangeMatcher = PERIOD_RANGE_WITH_HALF_PATTERN.matcher(normalizedToken);
+        if (halfRangeMatcher.matches()) {
+            TimeRange start = periodTimeRange(Integer.parseInt(halfRangeMatcher.group(1)), halfRangeMatcher.group(2));
+            TimeRange end = periodTimeRange(Integer.parseInt(halfRangeMatcher.group(3)), halfRangeMatcher.group(4));
+            return start == null || end == null ? null : new TimeRange(start.start(), end.end());
+        }
+
+        Matcher periodRangeMatcher = PERIOD_RANGE_PATTERN.matcher(normalizedToken);
+        if (periodRangeMatcher.matches()) {
+            TimeRange start = periodTimeRange(Integer.parseInt(periodRangeMatcher.group(1)), "A");
+            TimeRange end = periodTimeRange(Integer.parseInt(periodRangeMatcher.group(2)), "B");
+            return start == null || end == null ? null : new TimeRange(start.start(), end.end());
+        }
+
+        Matcher clockRangeMatcher = CLOCK_RANGE_PATTERN.matcher(normalizedToken);
+        if (clockRangeMatcher.matches()) {
+            try {
+                return new TimeRange(LocalTime.parse(clockRangeMatcher.group(1)),
+                        LocalTime.parse(clockRangeMatcher.group(2)));
+            } catch (RuntimeException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private TimeRange periodTimeRange(int slot, String halfValue) {
         if (slot < 0 || slot > 15) {
             return null;
         }
 
-        String half = matcher.group(2).toUpperCase();
+        String half = halfValue.toUpperCase();
         int hour = 8 + slot;
 
         // A 교시는 정각부터 30분간
@@ -386,18 +462,6 @@ public class JbnuCourseParser {
             return new TimeRange(LocalTime.of(23, 30), LocalTime.of(23, 59));
         }
         return new TimeRange(LocalTime.of(hour, 30), LocalTime.of(hour + 1, 0));
-    }
-
-    /**
-     * 교양 과목 정보를 담는 내부 레코드
-     */
-    private record LiberalArtsInfo(String category, String detail) {
-    }
-
-    /**
-     * 강의 상태 정보를 담는 내부 레코드
-     */
-    private record StatusInfo(DisclosureStatus disclosure, String disclosureReason) {
     }
 
     /**

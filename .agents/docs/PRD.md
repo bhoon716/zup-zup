@@ -8,12 +8,12 @@ Capture the topic, target users, main problem, core features, non-goals, accepta
 ## Product Topic / Users / Problem
 - Product topic: Self-hosted server log retention and storage for JBNU Sugang Helper.
 - Target users: Operators and maintainers of the self-hosted deployment.
-- Main problem: Application logs, Loki state, and Promtail positions currently rely on ephemeral or loosely defined paths, which makes log retention fragile across container recreation and complicates backup and recovery.
+- Main problem: Application logs, Loki state, and Alloy positions currently rely on ephemeral or loosely defined paths, which makes log retention fragile across container recreation and complicates backup and recovery.
 
 ## Core Features / Non-goals
 - Core features:
   - Define a durable host directory layout for application logs and observability state.
-  - Map compose volumes so Loki and Promtail persist under host-owned storage.
+  - Map compose volumes so Loki and Alloy persist under host-owned storage.
   - Specify rotation, retention, and backup behavior for local storage.
   - Provide a migration checklist from the current `/tmp`-backed configuration.
 - Non-goals:
@@ -21,7 +21,7 @@ Capture the topic, target users, main problem, core features, non-goals, accepta
   - Introducing a distributed logging backend or multi-node cluster design.
   - Redesigning unrelated application logging behavior beyond storage and retention.
 - Acceptance criteria:
-  - The plan states exact host paths for app logs, Loki data, and Promtail state.
+  - The plan states exact host paths for app logs, Loki data, and Alloy state.
   - The plan includes compose volume mappings for those paths.
   - The plan defines retention and rotation policy.
   - The plan defines a backup strategy to a local or secondary disk.

@@ -1,24 +1,26 @@
 package bhoon.sugang_helper.subscription.application;
 
-import bhoon.sugang_helper.course.domain.SemesterType;
-import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
-import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
+import bhoon.sugang_helper.course.domain.SemesterType;
+import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
+import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
 import bhoon.sugang_helper.subscription.domain.Subscription;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -130,6 +132,28 @@ class SubscriptionServiceTest {
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode",
                             ErrorCode.MAX_SUBSCRIPTION_LIMIT_EXCEEDED);
+        }
+    }
+
+    @Test
+    @DisplayName("내 구독 목록의 강의는 한 번의 bulk 조회로 결합한다")
+    void getMySubscriptions_bulkFetchesCourses() {
+        Subscription first = Subscription.builder().userId(user.getId()).courseKey("CK1").isActive(true).build();
+        Subscription second = Subscription.builder().userId(user.getId()).courseKey("CK2").isActive(true).build();
+        Course secondCourse = Course.builder().courseKey("CK2").name("Second Course").professor("Second Prof").build();
+
+        try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
+            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(user.getEmail());
+            given(userRepository.findByEmail(user.getEmail())).willReturn(Optional.of(user));
+            given(subscriptionRepository.findByUserId(user.getId())).willReturn(List.of(first, second));
+            given(courseRepository.findByCourseKeyIn(List.of("CK1", "CK2"))).willReturn(List.of(course, secondCourse));
+
+            List<SubscriptionResponse> responses = subscriptionService.getMySubscriptions();
+
+            assertThat(responses).extracting(SubscriptionResponse::getCourseName)
+                    .containsExactly("Test Course", "Second Course");
+            verify(courseRepository).findByCourseKeyIn(List.of("CK1", "CK2"));
+            verify(courseRepository, never()).findByCourseKey(any());
         }
     }
 }

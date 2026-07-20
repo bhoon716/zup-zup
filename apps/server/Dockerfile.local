@@ -1,0 +1,19 @@
+FROM gradle:8.14.3-jdk21 AS build
+WORKDIR /workspace
+
+COPY . .
+RUN ./gradlew bootJar --no-daemon
+
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+
+RUN addgroup --system --gid 10001 sugang-user \
+    && adduser --system --uid 10001 --ingroup sugang-user --home /app sugang-user \
+    && mkdir -p /app/config /app/data/uploads \
+    && chown -R 10001:10001 /app
+
+COPY --from=build --chown=10001:10001 /workspace/build/libs/app.jar /app/app.jar
+
+EXPOSE 8080
+USER 10001:10001
+ENTRYPOINT ["java", "-Djava.io.tmpdir=/tmp", "-Dspring.config.additional-location=file:/app/config/", "-jar", "/app/app.jar"]

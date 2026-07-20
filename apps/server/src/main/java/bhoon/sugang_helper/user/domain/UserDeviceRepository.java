@@ -13,5 +13,7 @@ public interface UserDeviceRepository extends RepositoryContract<UserDevice, Lon
 
     Optional<UserDevice> findByToken(String token);
 
+    long deleteByTokenAndUserId(String token, Long userId);
+
     void deleteAllByUserId(Long userId);
 }

@@ -1,88 +1,70 @@
 package bhoon.sugang_helper.common.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
-import org.junit.jupiter.api.DisplayName;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 
 @ExtendWith(MockitoExtension.class)
 class RedisServiceTest {
 
+    private static final String REFRESH_TOKEN_KEY = "RT:test@example.com";
+
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
-
-    @Mock
-    private ValueOperations<String, Object> valueOperations;
-
     @InjectMocks
     private RedisService redisService;
 
     @Test
-    @DisplayName("Redis 값 저장 테스트")
-    void setValues() {
-        // given
-        String key = "key";
-        String value = "value";
-        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+    void incrementSetsTheTtlInTheSameRedisScriptExecution() {
+        when(redisTemplate.execute(any(), eq(List.of("feedback-rate")), eq("60000"))).thenReturn(2L);
 
-        // when
-        redisService.setValues(key, value);
+        long count = redisService.increment("feedback-rate", Duration.ofMinutes(1));
 
-        // then
-        verify(valueOperations).set(key, value);
+        assertThat(count).isEqualTo(2L);
+        verify(redisTemplate).execute(any(), eq(List.of("feedback-rate")), eq("60000"));
+        verify(redisTemplate, never()).expire(any(), any());
     }
 
     @Test
-    @DisplayName("Redis 값 저장 (만료시간 포함) 테스트")
-    void setValuesWithDuration() {
-        // given
-        String key = "key";
-        String value = "value";
-        Duration duration = Duration.ofMinutes(1);
-        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+    void compareAndSetRefreshRecordUsesOneRedisScriptExecution() {
+        when(redisTemplate.execute(any(), eq(List.of(REFRESH_TOKEN_KEY)),
+                eq("v2:family:old-digest"), eq("v2:family:new-digest"), eq("1209600000")))
+                .thenReturn(1L);
 
-        // when
-        redisService.setValues(key, value, duration);
+        boolean updated = redisService.compareAndSetValues(REFRESH_TOKEN_KEY, "v2:family:old-digest",
+                "v2:family:new-digest", Duration.ofDays(14));
 
-        // then
-        verify(valueOperations).set(key, value, duration);
+        assertThat(updated).isTrue();
+        ArgumentCaptor<RedisScript<Long>> scriptCaptor = ArgumentCaptor.captor();
+        verify(redisTemplate).execute(scriptCaptor.capture(), eq(List.of(REFRESH_TOKEN_KEY)),
+                eq("v2:family:old-digest"), eq("v2:family:new-digest"), eq("1209600000"));
+        assertThat(scriptCaptor.getValue().getScriptAsString()).contains("GET", "SET", "PX");
     }
 
     @Test
-    @DisplayName("Redis 값 조회 테스트")
-    void getValues() {
-        // given
-        String key = "key";
-        String value = "value";
-        given(redisTemplate.opsForValue()).willReturn(valueOperations);
-        given(valueOperations.get(key)).willReturn(value);
+    void compareAndDeleteRefreshRecordUsesOneRedisScriptExecution() {
+        when(redisTemplate.execute(any(), eq(List.of(REFRESH_TOKEN_KEY)), eq("v2:family:digest")))
+                .thenReturn(1L);
 
-        // when
-        String result = redisService.getValues(key);
+        boolean deleted = redisService.compareAndDeleteValues(REFRESH_TOKEN_KEY, "v2:family:digest");
 
-        // then
-        assertThat(result).isEqualTo(value);
-    }
-
-    @Test
-    @DisplayName("Redis 값 삭제 테스트")
-    void deleteValues() {
-        // given
-        String key = "key";
-
-        // when
-        redisService.deleteValues(key);
-
-        // then
-        verify(redisTemplate).delete(key);
+        assertThat(deleted).isTrue();
+        ArgumentCaptor<RedisScript<Long>> scriptCaptor = ArgumentCaptor.captor();
+        verify(redisTemplate).execute(scriptCaptor.capture(), eq(List.of(REFRESH_TOKEN_KEY)), eq("v2:family:digest"));
+        assertThat(scriptCaptor.getValue().getScriptAsString()).contains("GET", "DEL");
     }
 }

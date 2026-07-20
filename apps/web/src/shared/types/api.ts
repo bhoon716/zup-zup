@@ -75,6 +75,7 @@ export type CourseDayOfWeek =
 export interface Course {
   courseKey: string;
   subjectCode: string;
+  stdtrNo?: string | null;
   name: string;
   classNumber: string;
   professor?: string;
@@ -134,6 +135,7 @@ export interface CourseSearchCondition {
   academicYear?: string;
   semester?: string;
   name?: string;
+  keyword?: string;
   professor?: string;
   classifications?: CourseClassification[];
   department?: string;
@@ -320,6 +322,29 @@ export interface AdminOverviewResponse {
 export interface AdminDashboardSnapshotResponse {
   overview: AdminOverviewResponse;
   crawlTarget: AdminCrawlTargetResponse;
+}
+
+export type NotificationDeliveryChannel = 'EMAIL' | 'FCM' | 'WEB' | 'DISCORD';
+export type NotificationDeliveryStatus = 'PENDING' | 'PROCESSING' | 'SENT' | 'DLQ';
+
+/**
+ * 관리자에게만 제공되는 delivery DTO입니다. 수신자와 원본 idempotency key는 포함하지 않습니다.
+ */
+export interface AdminNotificationDeliveryResponse {
+  id: number;
+  outboxId: number;
+  courseKey: string;
+  courseName: string;
+  channel: NotificationDeliveryChannel;
+  status: NotificationDeliveryStatus;
+  attempts: number;
+  lastError: string | null;
+  deadLetteredAt: string | null;
+  idempotencyKeyRetained: boolean;
+}
+
+export interface NotificationDeliveryReplayRequest {
+  forceSentReplay?: boolean;
 }
 
 /**
@@ -587,6 +612,48 @@ export interface FeedbackReplyResponse {
   content: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export type AdminFeedbackDeletionFilter = 'ALL' | 'ACTIVE' | 'DELETED';
+
+export interface AdminFeedbackResponse {
+  id: number;
+  type: FeedbackType;
+  title: string;
+  status: FeedbackStatus;
+  createdAt: string;
+  hasReplies: boolean;
+  deleted: boolean;
+  deletedAt: string | null;
+  authorLabel: string;
+}
+
+export interface AdminFeedbackAttachmentResponse {
+  id: number;
+}
+
+export interface AdminFeedbackReplyResponse {
+  id: number;
+  authorLabel: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  deleted: boolean;
+  deletedAt: string | null;
+}
+
+export interface AdminFeedbackDetailResponse {
+  id: number;
+  type: FeedbackType;
+  title: string;
+  content: string;
+  status: FeedbackStatus;
+  createdAt: string;
+  deleted: boolean;
+  deletedAt: string | null;
+  authorLabel: string;
+  attachments: AdminFeedbackAttachmentResponse[];
+  replies: AdminFeedbackReplyResponse[];
 }
 
 export interface FeedbackCreateRequest {

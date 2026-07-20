@@ -20,6 +20,7 @@
 !/.agents/docs/**
 !/.agents/skills/
 !/.agents/skills/**
+/.agents/skills/ultra-grill-me/logs/
 
 # Environment files
 /.env
@@ -28,7 +29,9 @@
 /infra/.env
 
 # Web app build output and dependencies
+/node_modules/
 /apps/web/node_modules/
+/infra/node_modules/
 /apps/web/.pnp
 /apps/web/.pnp.*
 /apps/web/.yarn/*
@@ -37,6 +40,8 @@
 !/apps/web/.yarn/releases
 !/apps/web/.yarn/versions
 /apps/web/coverage/
+/apps/web/test-results/
+/apps/web/playwright-report/
 /apps/web/.next/
 /apps/web/out/
 /apps/web/build/
@@ -88,3 +93,5 @@
 # Infrastructure runtime state
 /infra/nginx-proxy-manager/data/
 /infra/nginx-proxy-manager/letsencrypt/
+/infra/secrets/
+/infra/.operation-lock/

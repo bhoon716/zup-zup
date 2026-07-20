@@ -21,7 +21,7 @@ mkdir -p "${staging_dir}/var/lib/jbnu-sugang-helper"
 
 cp -a "${SOURCE_LOG_DIR}" "${staging_dir}/var/log/jbnu-sugang-helper/server"
 cp -a "${SOURCE_STATE_ROOT}/loki" "${staging_dir}/var/lib/jbnu-sugang-helper/"
-cp -a "${SOURCE_STATE_ROOT}/promtail" "${staging_dir}/var/lib/jbnu-sugang-helper/"
+cp -a "${SOURCE_STATE_ROOT}/alloy" "${staging_dir}/var/lib/jbnu-sugang-helper/"
 
 tar -czf "${archive}" -C "${staging_dir}" var
 printf '%s\n' "${archive}"

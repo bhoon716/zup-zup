@@ -1,0 +1,181 @@
+spring:
+  application:
+    name: zup-zup
+
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:11MB}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/sugang_helper?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:strongpassword123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 3
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:redispass123}
+      timeout: 2s
+      connect-timeout: 2s
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope:
+              - profile
+              - email
+            redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/login/oauth2/code/google}
+            authorization-grant-type: authorization_code
+
+  cloud:
+    aws:
+      region:
+        static: ${AWS_REGION:us-east-1}
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID:local-access-key}
+        secret-key: ${AWS_SECRET_ACCESS_KEY:local-secret-key}
+      ses:
+        enabled: false
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SPRING_MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${SPRING_MAIL_SMTP_STARTTLS_ENABLE:false}
+          connectiontimeout: ${SPRING_MAIL_SMTP_CONNECTIONTIMEOUT:5000}
+          timeout: ${SPRING_MAIL_SMTP_TIMEOUT:5000}
+          writetimeout: ${SPRING_MAIL_SMTP_WRITETIMEOUT:5000}
+    from: ${MAIL_FROM:no-reply@localhost}
+    from-name: ${MAIL_FROM_NAME:줍줍(local)}
+
+server:
+  shutdown: graceful
+  servlet:
+    session:
+      timeout: 2h
+
+jwt:
+  secret: ${JWT_SECRET:local-dev-secret-change-me-please-use-32-bytes}
+  access:
+    expiration: ${JWT_ACCESS_EXPIRATION:7200000}
+  refresh:
+    expiration: ${JWT_REFRESH_EXPIRATION:1209600000}
+
+app:
+  auth:
+    refresh-cookie-secure: ${APP_AUTH_REFRESH_COOKIE_SECURE:false}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+    require-https: ${APP_CORS_REQUIRE_HTTPS:false}
+  oauth2:
+    success-redirect-uri: ${APP_OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:3000}
+    failure-redirect-uri: ${APP_OAUTH2_FAILURE_REDIRECT_URI:http://localhost:3000/login?error=true}
+    authorized-redirect-uri: ${APP_OAUTH2_AUTHORIZED_REDIRECT_URI:http://localhost:3000}
+  subscription:
+    max-limit: ${APP_SUBSCRIPTION_MAX_LIMIT:10}
+  feedback:
+    max-upload-bytes: ${APP_FEEDBACK_MAX_UPLOAD_BYTES:10485760}
+    rate-limit:
+      user-per-minute: ${APP_FEEDBACK_USER_PER_MINUTE:5}
+      ip-per-minute: ${APP_FEEDBACK_IP_PER_MINUTE:10}
+      daily-quota: ${APP_FEEDBACK_DAILY_QUOTA:5}
+  admin-audit:
+    fingerprint-secret: "${APP_ADMIN_AUDIT_FINGERPRINT_SECRET:${JWT_SECRET:local-dev-admin-audit-fingerprint-secret}}"
+    retention-days: ${APP_ADMIN_AUDIT_RETENTION_DAYS:180}
+    retention-cron: "${APP_ADMIN_AUDIT_RETENTION_CRON:0 15 3 * * *}"
+  notification:
+    provider:
+      timeout-ms: ${APP_NOTIFICATION_PROVIDER_TIMEOUT_MS:5000}
+      connect-timeout-ms: ${APP_NOTIFICATION_PROVIDER_CONNECT_TIMEOUT_MS:2000}
+      read-timeout-ms: ${APP_NOTIFICATION_PROVIDER_READ_TIMEOUT_MS:5000}
+      write-timeout-ms: ${APP_NOTIFICATION_PROVIDER_WRITE_TIMEOUT_MS:5000}
+      circuit:
+        failure-threshold: ${APP_NOTIFICATION_PROVIDER_CIRCUIT_FAILURE_THRESHOLD:3}
+        open-seconds: ${APP_NOTIFICATION_PROVIDER_CIRCUIT_OPEN_SECONDS:30}
+    outbox:
+      poll-ms: ${APP_NOTIFICATION_OUTBOX_POLL_MS:5000}
+      worker-threads: ${APP_NOTIFICATION_OUTBOX_WORKER_THREADS:8}
+      queue-capacity: ${APP_NOTIFICATION_OUTBOX_QUEUE_CAPACITY:32}
+      batch-size: ${APP_NOTIFICATION_OUTBOX_BATCH_SIZE:50}
+      max-attempts: ${APP_NOTIFICATION_OUTBOX_MAX_ATTEMPTS:5}
+      lease-seconds: ${APP_NOTIFICATION_OUTBOX_LEASE_SECONDS:60}
+      dlq-retention-days: ${APP_NOTIFICATION_OUTBOX_DLQ_RETENTION_DAYS:30}
+      dlq-retention-cron: "${APP_NOTIFICATION_OUTBOX_DLQ_RETENTION_CRON:0 30 3 * * *}"
+    channels:
+      email: ${APP_NOTIFICATION_EMAIL:true}
+      discord: ${APP_NOTIFICATION_DISCORD:false}
+      webpush: ${APP_NOTIFICATION_WEBPUSH:false}
+      fcm: ${APP_NOTIFICATION_FCM:false}
+
+  firebase:
+    config-path: ${FIREBASE_CONFIG_PATH:./src/main/resources/firebase/firebase-key.json}
+  webpush:
+    public-key: ${APP_WEBPUSH_PUBLIC_KEY:}
+    private-key: ${APP_WEBPUSH_PRIVATE_KEY:}
+    subject: ${APP_WEBPUSH_SUBJECT:mailto:local@example.com}
+  discord:
+    bot-token: ${APP_DISCORD_BOT_TOKEN:}
+    client-id: ${APP_DISCORD_CLIENT_ID:}
+    client-secret: ${APP_DISCORD_CLIENT_SECRET:}
+    redirect-uri: ${APP_DISCORD_REDIRECT_URI:http://localhost:8080/api/v1/users/discord/callback}
+
+jbnu:
+  api:
+    url: ${JBNU_API_URL:https://jump.jbnu.ac.kr/SCH/SucrLessnSbjctInq/list.do}
+    bootstrap-url: ${JBNU_API_BOOTSTRAP_URL:https://jump.jbnu.ac.kr/link?div=sucrPlan}
+    cert-division: ${JBNU_API_CERT_DIVISION:6}
+    timeout-ms: ${JBNU_API_TIMEOUT_MS:180000}
+    max-response-bytes: ${JBNU_API_MAX_RESPONSE_BYTES:10485760}
+    max-retries: ${JBNU_API_MAX_RETRIES:3}
+    retry-wait-ms: ${JBNU_API_RETRY_WAIT_MS:3000}
+  crawler:
+    run-on-startup: ${JBNU_CRAWLER_RUN_ON_STARTUP:false}
+    cron: ${JBNU_CRAWLER_CRON:0 * * * * ?}
+    freshness-check-ms: ${JBNU_CRAWLER_FRESHNESS_CHECK_MS:60000}
+    stale-threshold-minutes: ${JBNU_CRAWLER_STALE_THRESHOLD_MINUTES:15}
+    default-year: ${JBNU_CRAWLER_DEFAULT_YEAR:2026}
+    default-semester: ${JBNU_CRAWLER_DEFAULT_SEMESTER:U211600010}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+
+file:
+  upload:
+    dir: ${FILE_UPLOAD_DIR:./data/uploads}
+    image:
+      max-source-bytes: ${FILE_UPLOAD_IMAGE_MAX_SOURCE_BYTES:10485760}
+      max-width: ${FILE_UPLOAD_IMAGE_MAX_WIDTH:4096}
+      max-height: ${FILE_UPLOAD_IMAGE_MAX_HEIGHT:4096}
+      max-pixels: ${FILE_UPLOAD_IMAGE_MAX_PIXELS:8388608}
+      max-output-bytes: ${FILE_UPLOAD_IMAGE_MAX_OUTPUT_BYTES:5242880}
+      decode-timeout: ${FILE_UPLOAD_IMAGE_DECODE_TIMEOUT:PT2S}

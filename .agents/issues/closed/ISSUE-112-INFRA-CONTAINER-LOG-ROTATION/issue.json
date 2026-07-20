@@ -1,0 +1,21 @@
+{
+  "issue": {
+    "id": "ISSUE-112-INFRA-CONTAINER-LOG-ROTATION",
+    "type": "refactoring",
+    "title": "[infra] DB·Redis 컨테이너 로그 로테이션 보장",
+    "state": "closed",
+    "workflowId": "audit",
+    "directory": "ISSUE-112-INFRA-CONTAINER-LOG-ROTATION",
+    "createdAt": "2026-07-14T20:30:00+09:00",
+    "updatedAt": "2026-07-14T22:30:00+09:00",
+    "goal": "모든 장기 실행 컨테이너의 Docker 로그가 bounded storage를 사용하도록 한다.",
+    "acceptanceCriteria": [
+      "DB와 Redis가 10MB/5개 보존 정책을 사용한다.",
+      "정책 검증이 각 서비스별 logging 설정을 검사한다.",
+      "로그 로테이션이 애플리케이션·장애 분석 요구를 만족한다."
+    ],
+    "dependencies": [],
+    "evidenceRequired": ["compose config", "policy test", "log rotation smoke"]
+  },
+  "description": "DB와 Redis만 Docker 기본 무제한 json-file 로그 설정에 남아 있어 디스크 고갈 위험이 있다."
+}

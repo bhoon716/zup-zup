@@ -1,0 +1,22 @@
+{
+  "issue": {
+    "id": "ISSUE-115-INFRA-PROMTAIL-MOUNT-HARDENING",
+    "type": "refactoring",
+    "title": "[infra] Promtail 호스트 로그 마운트 범위 축소",
+    "state": "closed",
+    "workflowId": "audit",
+    "directory": "ISSUE-115-INFRA-PROMTAIL-MOUNT-HARDENING",
+    "createdAt": "2026-07-14T20:30:00+09:00",
+    "updatedAt": "2026-07-14T22:30:00+09:00",
+    "goal": "Promtail이 필요한 로그만 읽고 전송하도록 호스트 접근 범위를 최소화한다.",
+    "acceptanceCriteria": [
+      "전체 /var/log 마운트가 필요한 allowlist 마운트로 대체된다.",
+      "앱 로그와 positions 저장은 회귀 없이 유지된다.",
+      "민감한 시스템 로그 수집 여부와 마스킹 정책이 문서화된다.",
+      "허용 범위 회귀를 검증하는 smoke가 있다."
+    ],
+    "dependencies": ["ISSUE-111-INFRA-NETWORK-SEGMENTATION"],
+    "evidenceRequired": ["mount diff", "promtail config test", "log collection smoke"]
+  },
+  "description": "Promtail의 전체 호스트 로그 마운트는 read-only이지만 필요 이상의 로그 접근과 민감정보 수집 범위를 만든다."
+}

@@ -5,6 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
@@ -29,6 +33,7 @@ class ProductionConfigTemplateTest {
         assertThat(content).contains("password: ${REDIS_PASSWORD}");
         assertThat(content).contains("client-id: ${GOOGLE_CLIENT_ID}");
         assertThat(content).contains("client-secret: ${GOOGLE_CLIENT_SECRET}");
+        assertThat(content).contains("redirect-uri: ${GOOGLE_REDIRECT_URI}");
         assertThat(content).contains("access-key: ${AWS_ACCESS_KEY_ID}");
         assertThat(content).contains("secret-key: ${AWS_SECRET_ACCESS_KEY}");
         assertThat(content).contains("secret: ${JWT_SECRET}");
@@ -44,5 +49,57 @@ class ProductionConfigTemplateTest {
         assertThat(content).contains("client-id: ${DISCORD_CLIENT_ID}");
         assertThat(content).contains("client-secret: ${DISCORD_CLIENT_SECRET}");
         assertThat(content).contains("redirect-uri: ${DISCORD_REDIRECT_URI}");
+    }
+
+    @Test
+    void productionConfigDoesNotRunFlywayInsideTheRuntimeApplication() throws IOException {
+        String content = readClasspathResource("application-prod.yml");
+
+        assertThat(content).contains("enabled: false");
+    }
+
+    @Test
+    void environmentTemplateDeclaresGoogleRedirectUri() throws IOException {
+        String content = Files.readString(Path.of(".env.example"));
+
+        assertThat(content).contains("GOOGLE_REDIRECT_URI=");
+    }
+
+    @Test
+    void productionConfigRestrictsDiagnosticEndpointsAndDeveloperTools() throws IOException {
+        String content = readClasspathResource("application-prod.yml");
+
+        assertThat(content)
+                .contains("h2:\n    console:\n      enabled: false")
+                .contains("management:\n  server:\n    port: 8081")
+                .contains("access:\n      default: none")
+                .contains("include: health, prometheus")
+                .contains("health:\n      access: read-only")
+                .contains("probes:\n        enabled: true")
+                .contains("group:\n        readiness:\n          include: readinessState,db,redis")
+                .contains("prometheus:\n      access: read-only")
+                .contains("api-docs:\n    enabled: false")
+                .contains("swagger-ui:\n    enabled: false")
+                .contains("require-https: ${APP_CORS_REQUIRE_HTTPS:true}")
+                .contains("refresh-cookie-secure: ${APP_AUTH_REFRESH_COOKIE_SECURE:true}")
+                .doesNotContain("include: health, info, prometheus");
+    }
+
+    @Test
+    void redisClientUsesBoundedConnectionAndCommandTimeouts() throws IOException {
+        String content = readClasspathResource("application.yml");
+
+        assertThat(content)
+                .contains("timeout: 2s")
+                .contains("connect-timeout: 2s");
+    }
+
+    @Test
+    void localJwtFallbackMeetsJjwtHmacMinimum() throws IOException {
+        String content = readClasspathResource("application.yml");
+        Matcher matcher = Pattern.compile("secret: \\$\\{JWT_SECRET:([^}]+)\\}").matcher(content);
+
+        assertThat(matcher.find()).isTrue();
+        assertThat(matcher.group(1).getBytes(StandardCharsets.UTF_8)).hasSizeGreaterThanOrEqualTo(32);
     }
 }

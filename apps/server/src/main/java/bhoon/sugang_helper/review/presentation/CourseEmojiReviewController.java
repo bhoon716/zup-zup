@@ -1,4 +1,7 @@
-package bhoon.sugang_helper.review.application;
+package bhoon.sugang_helper.review.presentation;
+import bhoon.sugang_helper.review.application.CourseEmojiReviewService;
+import bhoon.sugang_helper.review.application.CourseEmojiReviewResponse;
+
 
 import bhoon.sugang_helper.common.response.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;

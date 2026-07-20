@@ -3,10 +3,10 @@ package bhoon.sugang_helper.course.infra;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.course.domain.Course;
-import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
+import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.course.domain.CourseSchedule;
-import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
+import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.wishlist.domain.Wishlist;
 import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
 import java.time.LocalTime;
@@ -25,6 +25,7 @@ class CourseRepositoryImplTest {
     private static final String ALG = "알고리즘";
     private static final String DS = "자료구조";
     private static final String OS = "운영체제";
+    private static final String NAME_SORT = "name";
     private static final String CS = "컴퓨터공학부";
     private static final String EE = "전자공학부";
     private static final String ME = "기계공학부";
@@ -45,7 +46,7 @@ class CourseRepositoryImplTest {
 
         CourseSearchCriteria condition = baseCondition()
                 .professor("김교수, 박교수")
-                .sortBy("name")
+                .sortBy(NAME_SORT)
                 .build();
 
         // when
@@ -67,7 +68,7 @@ class CourseRepositoryImplTest {
 
         CourseSearchCriteria condition = baseCondition()
                 .department("전자공학부,\n기계공학부")
-                .sortBy("name")
+                .sortBy(NAME_SORT)
                 .build();
 
         // when
@@ -77,6 +78,25 @@ class CourseRepositoryImplTest {
         assertThat(response.getContent())
                 .extracting(Course::getName)
                 .containsExactlyInAnyOrder(DS, OS);
+    }
+
+    @Test
+    @DisplayName("통합 검색어는 강의명 부분 일치 또는 정규화된 학수번호 완전 일치로 검색한다")
+    void searchCourses_matchesKeywordByNameOrStdtrNo() {
+        // given
+        saveCourseWithStdtrNo("CK1", ALG, "GECO178");
+        saveCourseWithStdtrNo("CK2", DS, "CSE101");
+        saveCourseWithStdtrNo("CK3", OS, null);
+
+        // when
+        var byStdtrNo = courseRepository.searchCourses(
+                baseCondition().keyword(" geco178 ").sortBy(NAME_SORT).build(), PageRequest.of(0, 10));
+        var byName = courseRepository.searchCourses(
+                baseCondition().keyword("자료").sortBy(NAME_SORT).build(), PageRequest.of(0, 10));
+
+        // then
+        assertThat(byStdtrNo.getContent()).extracting(Course::getName).containsExactly(ALG);
+        assertThat(byName.getContent()).extracting(Course::getName).containsExactly(DS);
     }
 
     @Test
@@ -193,6 +213,21 @@ class CourseRepositoryImplTest {
                         .academicYear(ACADEMIC_YEAR)
                         .semester(SEMESTER_CODE)
                         .department(department)
+                        .build());
+    }
+
+    private void saveCourseWithStdtrNo(String courseKey, String name, String stdtrNo) {
+        courseRepository.save(
+                Course.builder()
+                        .courseKey(courseKey)
+                        .subjectCode(courseKey)
+                        .stdtrNo(stdtrNo)
+                        .name(name)
+                        .classNumber("1")
+                        .capacity(50)
+                        .current(10)
+                        .academicYear(ACADEMIC_YEAR)
+                        .semester(SEMESTER_CODE)
                         .build());
     }
 

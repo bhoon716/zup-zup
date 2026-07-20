@@ -66,4 +66,21 @@ class NotificationChannelPolicyTest {
         assertThat(policy.isChannelEnabled(user, NotificationChannel.WEB)).isFalse();
         assertThat(policy.isChannelEnabled(user, NotificationChannel.FCM)).isTrue();
     }
+
+    @Test
+    void isChannelEnabled_RejectsSoftDeletedUser() {
+        NotificationChannelPolicy policy = new NotificationChannelPolicy(
+                new NotificationProperties(true, true, true, true));
+        User user = User.builder()
+                .id(1L)
+                .email("user@example.com")
+                .name("사용자")
+                .emailEnabled(true)
+                .role(bhoon.sugang_helper.user.domain.Role.USER)
+                .build();
+        user.withdraw();
+
+        assertThat(policy.isChannelEnabled(user, NotificationChannel.EMAIL)).isFalse();
+        assertThat(policy.resolveTargets(user, List.of(), NotificationChannel.EMAIL)).isEmpty();
+    }
 }

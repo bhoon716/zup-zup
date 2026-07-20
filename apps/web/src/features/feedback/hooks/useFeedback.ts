@@ -9,12 +9,14 @@ import {
   updateFeedbackStatus,
   createFeedbackReply,
   updateFeedbackReply,
-  deleteFeedbackReply
+  deleteFeedbackReply,
+  downloadFeedbackAttachmentForAdmin,
 } from "../api/feedback.api";
 import { 
   FeedbackCreateRequest, 
   FeedbackReplyCreateRequest, 
   FeedbackReplyUpdateRequest, 
+  AdminFeedbackDeletionFilter,
   FeedbackStatusUpdateRequest 
 } from "@/shared/types/api";
 
@@ -22,7 +24,8 @@ import {
 export const feedbackKeys = {
   all: ["feedback"] as const,
   myList: (page: number) => [...feedbackKeys.all, "my", { page }] as const,
-  adminList: (page: number) => [...feedbackKeys.all, "admin", { page }] as const,
+  adminList: (page: number, deletion: AdminFeedbackDeletionFilter) =>
+    [...feedbackKeys.all, "admin", { page, deletion }] as const,
   detail: (id: number) => [...feedbackKeys.all, "detail", id] as const,
 };
 
@@ -87,13 +90,26 @@ export function useDeleteFeedback() {
 /**
  * 관리자용 문의 및 건의 전체 목록 조회 훅
  */
-export function useFeedbacksForAdmin(page: number = 0) {
+export function useFeedbacksForAdmin(
+  page: number = 0,
+  deletion: AdminFeedbackDeletionFilter = "ALL"
+) {
   return useQuery({
-    queryKey: feedbackKeys.adminList(page),
+    queryKey: feedbackKeys.adminList(page, deletion),
     queryFn: async () => {
-      const response = await getFeedbacksForAdmin(page);
+      const response = await getFeedbacksForAdmin(page, deletion);
       return response.data;
     },
+  });
+}
+
+/**
+ * 확인된 관리자 첨부파일 요청을 수행한다.
+ */
+export function useAdminFeedbackAttachmentDownload() {
+  return useMutation({
+    mutationFn: ({ feedbackId, attachmentId }: { feedbackId: number; attachmentId: number }) =>
+      downloadFeedbackAttachmentForAdmin(feedbackId, attachmentId),
   });
 }
 

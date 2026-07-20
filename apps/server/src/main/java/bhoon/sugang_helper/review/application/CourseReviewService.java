@@ -3,14 +3,15 @@ package bhoon.sugang_helper.review.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
-import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.review.domain.CourseReview;
 import bhoon.sugang_helper.review.domain.CourseReviewReaction;
-import bhoon.sugang_helper.review.domain.ReactionType;
 import bhoon.sugang_helper.review.domain.CourseReviewReactionRepository;
 import bhoon.sugang_helper.review.domain.CourseReviewRepository;
+import bhoon.sugang_helper.review.domain.ReactionType;
+import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
@@ -59,7 +60,7 @@ public class CourseReviewService {
     public ReviewResponse createReview(String courseKey, ReviewCreateRequest request) {
         User user = getCurrentUser();
 
-        Course course = getCourse(courseKey);
+        Course course = getCourseForUpdate(courseKey);
         ReviewScopeKey scope = ReviewScopeKey.from(course);
 
         if (reviewRepository.countBySubjectCodeAndProfessorAndUserId(scope.subjectCode(), scope.professor(),
@@ -92,7 +93,7 @@ public class CourseReviewService {
         ReviewScopeKey scope = ReviewScopeKey.from(course);
 
         return reviewRepository.findBySubjectCodeAndProfessorWithMyReviewFirst(scope.subjectCode(), scope.professor(),
-                        currentUserId, pageable)
+                        currentUserId, PageableGuard.requireBounded(pageable))
                 .map(review -> ReviewResponse.of(review, currentUserId));
     }
 
@@ -108,11 +109,12 @@ public class CourseReviewService {
 
         validateReviewOwner(review, user);
 
+        Course course = getCourseForUpdate(review.getCourseKey());
         review.update(request.rating());
         reviewRepository.saveAndFlush(review);
         log.info("[Review] Updated. reviewId={}, userId={}", reviewId, user.getId());
 
-        updateCourseReviewStats(getCourse(review.getCourseKey()));
+        updateCourseReviewStats(course);
 
         return ReviewResponse.of(review, user.getId());
     }
@@ -129,12 +131,12 @@ public class CourseReviewService {
 
         validateReviewOwner(review, user);
 
-        String courseKey = review.getCourseKey();
+        Course course = getCourseForUpdate(review.getCourseKey());
         reviewRepository.delete(review);
         reviewRepository.flush();
         log.info("[Review] Deleted. reviewId={}, userId={}", reviewId, user.getId());
 
-        updateCourseReviewStats(getCourse(courseKey));
+        updateCourseReviewStats(course);
     }
 
     /**
@@ -202,9 +204,9 @@ public class CourseReviewService {
      */
     private void incrementReactionCount(CourseReview review, ReactionType type) {
         if (type == ReactionType.LIKE) {
-            review.increaseLikeCount();
+            reviewRepository.incrementLikeCount(review.getId());
         } else {
-            review.increaseDislikeCount();
+            reviewRepository.incrementDislikeCount(review.getId());
         }
     }
 
@@ -213,9 +215,9 @@ public class CourseReviewService {
      */
     private void decrementReactionCount(CourseReview review, ReactionType type) {
         if (type == ReactionType.LIKE) {
-            review.decreaseLikeCount();
+            reviewRepository.decrementLikeCount(review.getId());
         } else {
-            review.decreaseDislikeCount();
+            reviewRepository.decrementDislikeCount(review.getId());
         }
     }
 
@@ -232,6 +234,12 @@ public class CourseReviewService {
 
     private Course getCourse(String courseKey) {
         return courseRepository.findByCourseKey(courseKey)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다."));
+    }
+
+    private Course getCourseForUpdate(String courseKey) {
+        return courseRepository.findByCourseKeyForUpdate(courseKey)
+                .or(() -> courseRepository.findByCourseKey(courseKey))
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다."));
     }
 }

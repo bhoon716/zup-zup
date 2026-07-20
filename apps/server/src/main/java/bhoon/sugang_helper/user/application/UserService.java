@@ -2,16 +2,13 @@ package bhoon.sugang_helper.user.application;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
-import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.notification.application.NotificationService;
-import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
-import bhoon.sugang_helper.review.domain.CourseEmojiReviewRepository;
-import bhoon.sugang_helper.review.domain.CourseReviewRepository;
+import bhoon.sugang_helper.notification.infra.NotificationChannel;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.timetable.domain.Timetable;
-import bhoon.sugang_helper.timetable.domain.TimetableRepository;
 import bhoon.sugang_helper.user.application.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.user.application.command.SendVerificationCodeCommand;
 import bhoon.sugang_helper.user.application.command.UpdateProfileCommand;
@@ -21,11 +18,9 @@ import bhoon.sugang_helper.user.application.result.UserOnboardingResult;
 import bhoon.sugang_helper.user.application.result.UserProfileResult;
 import bhoon.sugang_helper.user.application.result.UserProfileUpdateResult;
 import bhoon.sugang_helper.user.application.result.UserSettingsResult;
-import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.User;
+import bhoon.sugang_helper.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.user.domain.UserRepository;
-import bhoon.sugang_helper.wishlist.domain.WishlistRepository;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -45,14 +40,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final UserDeviceRepository userDeviceRepository;
-    private final TimetableRepository timetableRepository;
-    private final CourseReviewRepository courseReviewRepository;
-    private final CourseEmojiReviewRepository courseEmojiReviewRepository;
-    private final NotificationHistoryRepository notificationHistoryRepository;
     private final FeedbackRepository feedbackRepository;
-    private final WishlistRepository wishlistRepository;
     private final EmailVerificationService emailVerificationService;
     private final NotificationService notificationService;
+    private final JwtProvider jwtProvider;
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
@@ -71,7 +62,8 @@ public class UserService {
             return Optional.empty();
         }
 
-        return userRepository.findByEmail(email);
+        return userRepository.findByEmail(email)
+                .filter(user -> !user.isDeleted());
     }
 
     /**
@@ -81,7 +73,7 @@ public class UserService {
     public UserProfileUpdateResult updateProfile(UpdateProfileCommand command) {
         User user = getCurrentUser();
         user.update(command.name());
-        log.info("[User] Update profile: userId={}, newName={}", user.getId(), command.name());
+        log.info("[User] Update profile: userId={}", user.getId());
         return UserProfileUpdateResult.from(user);
     }
 
@@ -111,34 +103,24 @@ public class UserService {
     }
 
     /**
-     * 회원 탈퇴 처리를 진행하며, 사용자 소유 데이터를 함께 정리합니다.
+     * 회원 탈퇴 시 즉시 접근을 끊고 식별자와 발송 대상만 제거합니다.
+     * 비식별 이력은 관리자 감사 및 통계를 위해 보존합니다.
      */
     @Transactional
     public void withdraw() {
         User user = getCurrentUser();
         Long userId = user.getId();
+        String email = user.getEmail();
+        String notificationEmail = user.getNotificationEmail();
 
-        deleteUserOwnedData(userId);
-        userRepository.delete(user);
-        log.info("[User] Delete account: userId={}, email={}", user.getId(), user.getEmail());
-    }
-
-    /**
-     * 회원 탈퇴 시 사용자 소유 데이터를 함께 정리합니다.
-     */
-    private void deleteUserOwnedData(Long userId) {
-        subscriptionRepository.deleteAllByUserId(userId);
+        user.withdraw();
+        userRepository.saveAndFlush(user);
+        jwtProvider.revokeAllRefreshTokens(email);
+        emailVerificationService.clearVerificationState(userId, email, notificationEmail);
+        subscriptionRepository.findByUserId(userId).forEach(subscription -> subscription.cancel());
         userDeviceRepository.deleteAllByUserId(userId);
-        courseReviewRepository.deleteAllByUserId(userId);
-        courseEmojiReviewRepository.deleteAllByUserId(userId);
-        notificationHistoryRepository.deleteAllByUserId(userId);
-        feedbackRepository.deleteAllByUserId(userId);
-        wishlistRepository.deleteAllByUserId(userId);
-
-        List<Timetable> timetables = timetableRepository.findByUserId(userId);
-        for (Timetable timetable : timetables) {
-            timetableRepository.delete(timetable);
-        }
+        feedbackRepository.findAllByUserId(userId).forEach(feedback -> feedback.delete());
+        log.info("[User] Soft-deleted account: userId={}", userId);
     }
 
     /**
@@ -161,7 +143,8 @@ public class UserService {
                 command.webPushEnabled(),
                 command.fcmEnabled(),
                 command.discordEnabled());
-        log.info("[User] Onboarding complete: userId={}, email={}", user.getId(), user.getEmail());
+        log.info("[User] Onboarding complete: userId={}, emailMasked={}", user.getId(),
+                SensitiveDataRedactor.maskEmail(user.getEmail()));
         return UserOnboardingResult.from(user);
     }
 
@@ -170,8 +153,13 @@ public class UserService {
      */
     @Transactional
     public void sendVerificationCode(SendVerificationCodeCommand command) {
+        sendVerificationCode(command, null);
+    }
+
+    @Transactional
+    public void sendVerificationCode(SendVerificationCodeCommand command, String clientIp) {
         User user = getCurrentUser();
-        emailVerificationService.sendCode(user.getId(), command.email());
+        emailVerificationService.sendCode(user.getId(), command.email(), clientIp);
     }
 
     /**
@@ -193,7 +181,8 @@ public class UserService {
     public void linkDiscordId(String discordId) {
         User user = getCurrentUser();
         user.linkDiscord(discordId);
-        log.info("[User] Link Discord: userId={}, discordId={}", user.getId(), discordId);
+        log.info("[User] Link Discord: userId={}, discordIdFingerprint={}", user.getId(),
+                SensitiveDataRedactor.fingerprint(discordId));
     }
 
     /**
@@ -212,7 +201,7 @@ public class UserService {
     @Transactional
     public void sendTestNotification() {
         User user = getCurrentUser();
-        List<NotificationChannel> channels = getEnabledNotificationChannels(user);
+        List<NotificationChannel> channels = user.getEnabledNotificationChannels();
         if (channels.isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "활성화된 알림 채널이 없습니다. 설정에서 알림을 활성화해주세요.");
         }
@@ -222,31 +211,12 @@ public class UserService {
     }
 
     /**
-     * 사용자가 활성화한 알림 채널 목록을 조회합니다.
-     */
-    private List<NotificationChannel> getEnabledNotificationChannels(User user) {
-        List<NotificationChannel> channels = new ArrayList<>();
-        if (user.isEmailEnabled()) {
-            channels.add(NotificationChannel.EMAIL);
-        }
-        if (user.isFcmEnabled()) {
-            channels.add(NotificationChannel.FCM);
-        }
-        if (user.isWebPushEnabled()) {
-            channels.add(NotificationChannel.WEB);
-        }
-        if (user.isDiscordEnabled()) {
-            channels.add(NotificationChannel.DISCORD);
-        }
-        return channels;
-    }
-
-    /**
      * 현재 인증된 사용자 정보를 컨텍스트에서 조회합니다.
      */
     public User getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
         return userRepository.findByEmail(email)
+                .filter(user -> !user.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 }

@@ -112,7 +112,7 @@ class CourseSchedulePerformanceTest {
         Statistics stats = sessionFactory.getStatistics();
         long deleteCount = stats.getEntityDeleteCount();
         long insertCount = stats.getEntityInsertCount();
-        long expectedQueries = courseCount * schedulesPerCourse;
+        long expectedQueries = (long) courseCount * schedulesPerCourse;
 
         log.info("==================================================================");
         log.info("성능 측정 결과 (개선 후, {})", testLabel);
@@ -127,4 +127,3 @@ class CourseSchedulePerformanceTest {
         assertThat(insertCount).isZero();
     }
 }
-

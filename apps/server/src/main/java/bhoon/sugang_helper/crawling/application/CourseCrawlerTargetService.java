@@ -2,8 +2,8 @@ package bhoon.sugang_helper.crawling.application;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.crawling.domain.CrawlerSetting;
 import bhoon.sugang_helper.course.domain.SemesterType;
+import bhoon.sugang_helper.crawling.domain.CrawlerSetting;
 import bhoon.sugang_helper.crawling.domain.CrawlerSettingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

@@ -84,6 +84,7 @@ describe("CourseTable", () => {
             classification: "전공필수",
             credits: 3,
             subjectCode: "0000125258",
+            stdtrNo: "GECO178",
             professor: "이진영",
             classTime: "월 6",
             classroom: "공학관 101",
@@ -99,6 +100,7 @@ describe("CourseTable", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Theories of International Relations", level: 2 })).toBeInTheDocument();
+    expect(screen.getByText("GECO178")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Theories of International Relations를 시간표에 추가하려면 로그인" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Theories of International Relations 관심 강의 추가" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Theories of International Relations 여석 알림 받기" })).toBeInTheDocument();

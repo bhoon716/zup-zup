@@ -6,17 +6,22 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.util.StatusPrinter2;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
 
 class LogbackFileAppenderTest {
 
+    @TempDir
+    Path tempDir;
+
     @Test
     void writesLogsToTheConfiguredHostFilePath() throws Exception {
-        Path tempDir = Files.createTempDirectory("jbnu-logback-test");
         Path logFile = tempDir.resolve("application.log");
 
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -26,8 +31,10 @@ class LogbackFileAppenderTest {
 
         JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(context);
-        configurator.doConfigure(
-                LogbackFileAppenderTest.class.getClassLoader().getResource("logback-spring.xml"));
+        URL resource = Objects.requireNonNull(
+                LogbackFileAppenderTest.class.getClassLoader().getResource("logback-spring.xml"),
+                "logback-spring.xml이 존재해야 합니다");
+        configurator.doConfigure(resource);
 
         Logger logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
         logger.info("host-file-log-test");
