@@ -1,7 +1,0 @@
-# Install as /etc/sudoers.d/jbnu-deploy after `visudo -c` validation.
-# The wrappers validate SHA/path arguments themselves; no shell or raw Docker
-# command is granted to the OCI ubuntu user.
-Cmnd_Alias JBNU_DEPLOY_WRAPPERS = /usr/local/sbin/jbnu-deploy *, \
-    /usr/local/sbin/jbnu-rollback *, \
-    /usr/local/sbin/jbnu-nginx-config-apply *
-ubuntu ALL=(root) NOPASSWD: JBNU_DEPLOY_WRAPPERS

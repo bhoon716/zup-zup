@@ -1,5 +1,7 @@
 # ADR: 단일 OCI 서버 최소 CI/CD 및 복구 구조
 
+> 보존용 역사 문서. 현재 운영 결정은 [Ubuntu SSH-only CI/CD 결정](2026-07-20-ubuntu-ssh-cicd-simplification.md)을 따른다. 아래 내용은 2026-07-19 wrapper 기반 target contract의 기록이다.
+
 - 상태: Accepted (구현 진행 중)
 - 결정일: 2026-07-19
 - 범위: `apps/server`, `infra`, GitHub Actions, OCI 운영 호스트

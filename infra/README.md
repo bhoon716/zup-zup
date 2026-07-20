@@ -83,16 +83,7 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
    sudo bash scripts/prepare-app-host-directories.sh
    ```
 
-4. Docker/Compose, OCI 기본 `ubuntu` 사용자, root-only runtime secret, GHCR read-only token을 준비한다. 토큰은 임시로 안전한 파일에 저장하고, `GHCR_READ_USERNAME`과 `GHCR_READ_TOKEN_SOURCE`를 설치 명령에만 주입한다. 설치기는 토큰을 `${RELEASE_ROOT}/secrets/ghcr-read-token`에 root 소유 `0600`으로 복사하고 배포·rollback 때 `docker login ghcr.io --password-stdin`으로만 사용한다.
-
-   ```bash
-   sudo env \
-     GHCR_READ_USERNAME=<github-username> \
-     GHCR_READ_TOKEN_SOURCE=/path/to/ghcr-read-token \
-     bash scripts/install-oci-wrappers.sh
-   ```
-
-   설치 후 `${RELEASE_ROOT}/.env.runtime`에 `GHCR_READ_USERNAME=<github-username>`을 기록한다. 토큰 값과 Actions 개인키는 OCI 문서나 저장소에 넣지 않는다.
+4. Docker/Compose와 OCI 기본 `ubuntu` 사용자를 준비하고 `ubuntu`를 Docker 그룹에 추가한다. Actions가 staging과 runtime 파일을 직접 갱신할 수 있도록 `/opt/jbnu-sugang-helper`와 `/opt/jbnu-sugang-helper-staging`을 `ubuntu:ubuntu` 소유로 만든다. 상세 명령은 [배포 runbook](../docs/operations/deployment.md)을 따른다. GHCR 인증은 Actions의 단기 `GITHUB_TOKEN`을 배포 시에만 사용하며 서버에 read-only token 파일을 보관하지 않는다.
 5. 호스트 Nginx를 설치하고 site template을 실제 DuckDNS hostname으로 render한다.
 
    ```bash
@@ -104,7 +95,7 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 6. certbot timer와 renew hook(`certbot renew → nginx -t → systemctl reload nginx`)이 설정되었는지 확인한다.
 7. `bash scripts/verify-nginx-host-config.sh`와 `curl https://<API_HOST>/health/ready`로 확인한다.
 
-세부적인 atomic file transfer, Flyway baseline/validate/migrate, rollback, cutover, 서버 교체 절차는 runbook을 그대로 따릅니다.
+세부적인 staging 전송, Flyway migrate, 수동 SHA 재배포, cutover, 서버 교체 절차는 runbook을 그대로 따른다. 배포 script는 Ubuntu SSH로 직접 실행하며 `/usr/local/sbin` wrapper나 sudoers 파일은 사용하지 않는다.
 
 ## 외부 uptime monitor
 
