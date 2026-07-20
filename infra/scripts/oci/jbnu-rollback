@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-sha="${1:-}"
-if [[ ! "${sha}" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "invalid rollback SHA" >&2
-  exit 1
-fi
-exec /usr/local/libexec/jbnu-sugang-helper/rollback-release "${sha}"

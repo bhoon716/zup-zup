@@ -43,6 +43,15 @@ jobs:
       - name: 코드 체크아웃
         uses: actions/checkout@v5
 
+      - name: Infra·CI/CD 계약 검증
+        run: |
+          bash infra/scripts/test-runtime-contract.sh
+          bash infra/scripts/test-observability-contract.sh
+          bash infra/scripts/test-cd-workflow-contract.sh
+          bash infra/scripts/test-release-layout-contract.sh
+          bash infra/scripts/test-migration-failure-path.sh
+          bash infra/scripts/test-local-app-image-flow.sh
+
       - name: JDK 21 설정
         uses: actions/setup-java@v5
         with:

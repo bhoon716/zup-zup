@@ -14,61 +14,12 @@ permissions:
   contents: read
 
 jobs:
-  publish-image:
-    name: publish ARM64 image to GHCR
-    if: github.event_name == 'push'
+  deploy:
+    name: deploy to OCI
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
-
-      - name: JDK 21 설정
-        uses: actions/setup-java@v5
-        with:
-          java-version: "21"
-          distribution: temurin
-          cache: gradle
-          cache-dependency-path: apps/server/gradle/wrapper/gradle-wrapper.properties
-
-      - name: 애플리케이션 JAR 빌드
-        working-directory: apps/server
-        run: ./gradlew bootJar --no-daemon
-
-      - name: GHCR 로그인
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: QEMU 설정
-        uses: docker/setup-qemu-action@v3
-
-      - name: Buildx 설정
-        uses: docker/setup-buildx-action@v3
-
-      - name: ARM64 이미지 build/push
-        uses: docker/build-push-action@v6
-        with:
-          context: apps/server
-          file: apps/server/Dockerfile
-          platforms: linux/arm64
-          push: true
-          tags: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server:${{ github.sha }}
-          labels: org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  deploy:
-    name: deploy to OCI
-    needs: publish-image
-    if: always() && (github.event_name == 'workflow_dispatch' || needs.publish-image.result == 'success')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
     env:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server
@@ -91,7 +42,50 @@ jobs:
         with:
           ref: ${{ inputs.image_tag || github.sha }}
 
-      - name: release SHA 검증
+      - name: JDK 21 설정
+        if: github.event_name == 'push'
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: gradle
+          cache-dependency-path: apps/server/gradle/wrapper/gradle-wrapper.properties
+
+      - name: 애플리케이션 JAR 빌드
+        if: github.event_name == 'push'
+        working-directory: apps/server
+        run: ./gradlew bootJar --no-daemon
+
+      - name: GHCR 로그인
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: QEMU 설정
+        if: github.event_name == 'push'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Buildx 설정
+        if: github.event_name == 'push'
+        uses: docker/setup-buildx-action@v3
+
+      - name: ARM64 이미지 build/push
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/server
+          file: apps/server/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          labels: org.opencontainers.image.revision=${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: release SHA·서버 설정 확인
         run: |
           if [[ ! "${IMAGE_TAG}" =~ ^[0-9a-f]{40}$ ]]; then
             echo "IMAGE_TAG must be exactly 40 lowercase hexadecimal characters" >&2
@@ -107,21 +101,17 @@ jobs:
             echo "SERVER_USER contains unsupported characters" >&2
             exit 1
           fi
-
-      - name: Compose runtime contract
-        run: |
-          infra/scripts/test-runtime-contract.sh
-          infra/scripts/test-observability-contract.sh
-          infra/scripts/test-release-layout-contract.sh
-          infra/scripts/test-ghcr-auth-contract.sh
-          docker compose --env-file infra/.env.example -f infra/docker-compose.yml config >/dev/null
+          if [ "${SERVER_USER}" != "ubuntu" ]; then
+            echo "SERVER_USER must be ubuntu for the direct SSH deploy contract" >&2
+            exit 1
+          fi
 
       - name: SSH 키 설정
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           if [ -z "${SSH_PRIVATE_KEY}" ]; then
-            echo "Missing production secret: SSH_PRIVATE_KEY" >&2
+            echo "Missing repository secret: SSH_PRIVATE_KEY" >&2
             exit 1
           fi
           install -d -m 700 "${HOME}/.ssh"
@@ -133,7 +123,7 @@ jobs:
           fi
           chmod 600 "${HOME}/.ssh/id_ed25519" "${HOME}/.ssh/known_hosts"
 
-      - name: staging release 준비
+      - name: release staging 준비
         id: stage
         env:
           SERVER_DOTENV: ${{ secrets.SERVER_DOTENV }}
@@ -143,39 +133,45 @@ jobs:
             exit 1
           fi
           stage_dir="${RUNNER_TEMP}/jbnu-release-${IMAGE_TAG}"
-          mkdir -p "${stage_dir}/apps/server" "${stage_dir}/src/main/resources/db/migration" "${stage_dir}/mysql/init" "${stage_dir}/scripts/oci"
+          mkdir -p "${stage_dir}/apps/server" \
+            "${stage_dir}/src/main/resources/db/migration" \
+            "${stage_dir}/mysql/init"
           cp infra/docker-compose.yml "${stage_dir}/docker-compose.yml"
           cp -a infra/loki "${stage_dir}/loki"
           cp -a infra/alloy "${stage_dir}/alloy"
           cp -a infra/grafana "${stage_dir}/grafana"
-          cp infra/mysql/init/01-provision-service-accounts.sh "${stage_dir}/mysql/init/01-provision-service-accounts.sh"
-          cp apps/server/src/main/resources/application-prod.yml "${stage_dir}/application-prod.yml"
-          cp apps/server/src/main/resources/db/migration/V*__*.sql "${stage_dir}/src/main/resources/db/migration/"
-          cp infra/scripts/oci/* "${stage_dir}/scripts/oci/"
+          cp infra/mysql/init/01-provision-service-accounts.sh \
+            "${stage_dir}/mysql/init/01-provision-service-accounts.sh"
+          cp apps/server/src/main/resources/application-prod.yml \
+            "${stage_dir}/application-prod.yml"
+          cp apps/server/src/main/resources/db/migration/V*__*.sql \
+            "${stage_dir}/src/main/resources/db/migration/"
+          cp infra/scripts/deploy-release.sh "${stage_dir}/deploy.sh"
           umask 077
           printf '%s\n' "${SERVER_DOTENV}" >"${stage_dir}/apps/server/.env"
           chmod 0600 "${stage_dir}/apps/server/.env"
-          printf '%s\n' "${GITHUB_ACTOR}" >"${stage_dir}/DEPLOY_ACTOR"
-          (cd "${stage_dir}" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          chmod 0755 "${stage_dir}/deploy.sh"
           echo "path=${stage_dir}" >>"${GITHUB_OUTPUT}"
 
-      - name: OCI staging 전송
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Ubuntu staging 전송
         run: |
           target="${SERVER_USER}@${SERVER_HOST}"
-          remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
-          ssh -o BatchMode=yes "${target}" "install -d -o ${SERVER_USER} -g ${SERVER_USER} -m 0750 '${remote_stage}'"
-          scp -r "${{ steps.stage.outputs.path }}/." "${target}:${remote_stage}/"
-
-      - name: allowlisted OCI deploy wrapper 실행
-        run: |
-          target="${SERVER_USER}@${SERVER_HOST}"
+          remote_root="/opt/jbnu-sugang-helper"
           remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
           ssh -o BatchMode=yes "${target}" \
-            "sudo -n /usr/local/sbin/jbnu-deploy '${IMAGE_TAG}' '${remote_stage}'"
+            "mkdir -p '${remote_root}' '${remote_stage}' && chmod 0750 '${remote_root}' '${remote_stage}'"
+          scp -r "${{ steps.stage.outputs.path }}/." "${target}:${remote_stage}/"
+          ssh -o BatchMode=yes "${target}" \
+            "install -m 0755 '${remote_stage}/deploy.sh' '${remote_root}/deploy.sh'"
 
-      - name: 배포 결과 기록
-        if: always()
+      - name: Ubuntu 배포
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          echo "Production CD SHA=${IMAGE_TAG} actor=${GITHUB_ACTOR} result=${{ job.status }}"
+          target="${SERVER_USER}@${SERVER_HOST}"
+          remote_root="/opt/jbnu-sugang-helper"
+          remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
+          printf '%s' "${GITHUB_TOKEN}" | ssh -o BatchMode=yes "${target}" \
+            "set -eu; trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT; \
+            docker login ghcr.io --username github-actions --password-stdin; \
+            '${remote_root}/deploy.sh' '${IMAGE_TAG}' '${remote_stage}'"

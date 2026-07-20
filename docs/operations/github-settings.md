@@ -19,14 +19,14 @@
 - `SERVER_HOST`: SSH로 접속할 OCI reserved IP 또는 hostname
 - `SERVER_USER`: SSH 접속 사용자. 현재는 OCI의 `ubuntu`
 - `SSH_PRIVATE_KEY`: `SERVER_USER`의 `authorized_keys`에 등록한 SSH private key
-- `SERVER_DOTENV`: 기존 `apps/server/.env` 파일 전체 내용. workflow가 OCI의 `${RELEASE_ROOT}/apps/server/.env`에 설치한다.
+- `SERVER_DOTENV`: 기존 `apps/server/.env` 파일 전체 내용. workflow가 OCI의 `/opt/jbnu-sugang-helper/apps/server/.env`에 설치한다.
 
-OCI runtime secret과 GHCR read-only token은 GitHub secret에 복제하지 않고 OCI root-only file에 저장한다. 설치 시 `GHCR_READ_USERNAME`은 `.env.runtime`, token은 `${RELEASE_ROOT}/secrets/ghcr-read-token`에 둔다.
+OCI Compose runtime 값은 `/opt/jbnu-sugang-helper/.env.runtime`에 운영자가 한 번 입력한다. GHCR token은 별도 secret으로 저장하지 않고, CD가 단기 `GITHUB_TOKEN`으로 원격 login/logout한다.
 
 ## Actions 권한
 
 - workflow 기본 권한은 `contents: read`
-- GHCR push job만 `packages: write`
+- Production CD job은 이미지 push와 원격 pull을 위해 `packages: write`를 사용한다.
 - `GITHUB_TOKEN`을 로그에 출력하지 않음
-- GitHub Actions concurrency는 사용하지 않고, OCI deploy/rollback script의 server-side `flock`으로 중복 실행을 거부
+- GitHub Actions concurrency는 사용하지 않고, Ubuntu deploy script의 server-side `flock`으로 accidental overlap을 거부
 - CD는 `main` push 또는 수동 SHA 입력으로 시작
