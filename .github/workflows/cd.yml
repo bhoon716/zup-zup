@@ -143,7 +143,7 @@ jobs:
             exit 1
           fi
           stage_dir="${RUNNER_TEMP}/jbnu-release-${IMAGE_TAG}"
-          mkdir -p "${stage_dir}/src/main/resources/db/migration" "${stage_dir}/mysql/init" "${stage_dir}/scripts/oci"
+          mkdir -p "${stage_dir}/apps/server" "${stage_dir}/src/main/resources/db/migration" "${stage_dir}/mysql/init" "${stage_dir}/scripts/oci"
           cp infra/docker-compose.yml "${stage_dir}/docker-compose.yml"
           cp -a infra/loki "${stage_dir}/loki"
           cp -a infra/alloy "${stage_dir}/alloy"
@@ -153,8 +153,8 @@ jobs:
           cp apps/server/src/main/resources/db/migration/V*__*.sql "${stage_dir}/src/main/resources/db/migration/"
           cp infra/scripts/oci/* "${stage_dir}/scripts/oci/"
           umask 077
-          printf '%s\n' "${SERVER_DOTENV}" >"${stage_dir}/.env.app"
-          chmod 0600 "${stage_dir}/.env.app"
+          printf '%s\n' "${SERVER_DOTENV}" >"${stage_dir}/apps/server/.env"
+          chmod 0600 "${stage_dir}/apps/server/.env"
           printf '%s\n' "${GITHUB_ACTOR}" >"${stage_dir}/DEPLOY_ACTOR"
           (cd "${stage_dir}" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
           echo "path=${stage_dir}" >>"${GITHUB_OUTPUT}"

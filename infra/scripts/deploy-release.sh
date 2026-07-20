@@ -46,7 +46,7 @@ if [ ! -f "${RUNTIME_ENV}" ]; then
 fi
 if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -f "${staging_dir}/application-prod.yml" ] \
-  || [ ! -f "${staging_dir}/.env.app" ] \
+  || [ ! -f "${staging_dir}/apps/server/.env" ] \
   || [ ! -d "${staging_dir}/src/main/resources/db/migration" ] \
   || [ ! -f "${staging_dir}/mysql/init/01-provision-service-accounts.sh" ] \
   || [ ! -f "${staging_dir}/loki/loki-config.yaml" ] \
@@ -170,9 +170,10 @@ mv "${release_tmp}" "${release_dir}"
 release_created=true
 
 stage="app-environment"
-install -o root -g root -m 0600 "${staging_dir}/.env.app" \
-  "${RELEASE_ROOT}/.env.app.tmp.$$"
-mv "${RELEASE_ROOT}/.env.app.tmp.$$" "${RELEASE_ROOT}/.env.app"
+install -d -o root -g root -m 0750 "${RELEASE_ROOT}/apps/server"
+install -o root -g root -m 0600 "${staging_dir}/apps/server/.env" \
+  "${RELEASE_ROOT}/apps/server/.env.tmp.$$"
+mv "${RELEASE_ROOT}/apps/server/.env.tmp.$$" "${RELEASE_ROOT}/apps/server/.env"
 
 release_env="${release_dir}/.env.compose"
 stage="release-contract"
@@ -180,7 +181,7 @@ cat >"${release_env}" <<EOF
 APP_IMAGE_NAME=${app_image_name}
 IMAGE_TAG=${sha}
 APP_BUILD_CONTEXT=${release_dir}
-APP_ENV_FILE=${RELEASE_ROOT}/.env.app
+APP_ENV_FILE=${RELEASE_ROOT}/apps/server/.env
 APP_PROD_CONFIG_PATH=${release_dir}/application-prod.yml
 FIREBASE_CONFIG_PATH=${RELEASE_ROOT}/secrets/firebase-key.json
 EOF

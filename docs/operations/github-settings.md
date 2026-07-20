@@ -19,7 +19,7 @@
 - `SERVER_HOST`: SSH로 접속할 OCI reserved IP 또는 hostname
 - `SERVER_USER`: SSH 접속 사용자. 현재는 OCI의 `ubuntu`
 - `SSH_PRIVATE_KEY`: `SERVER_USER`의 `authorized_keys`에 등록한 SSH private key
-- `SERVER_DOTENV`: 애플리케이션 환경 파일 전체 내용. workflow가 OCI의 `${RELEASE_ROOT}/.env.app`에 설치한다.
+- `SERVER_DOTENV`: 기존 `apps/server/.env` 파일 전체 내용. workflow가 OCI의 `${RELEASE_ROOT}/apps/server/.env`에 설치한다.
 
 OCI runtime secret과 GHCR read-only token은 GitHub secret에 복제하지 않고 OCI root-only file에 저장한다. 설치 시 `GHCR_READ_USERNAME`은 `.env.runtime`, token은 `${RELEASE_ROOT}/secrets/ghcr-read-token`에 둔다.
 

@@ -43,9 +43,10 @@ require("install -d -o ${SERVER_USER} -g ${SERVER_USER}", "staging directory mus
 require("ssh-keyscan", "runtime SSH host key setup is missing")
 require("SSH_PRIVATE_KEY", "production SSH key is missing")
 require("SERVER_DOTENV", "server dotenv secret is missing")
+require('stage_dir}/apps/server/.env', "SERVER_DOTENV must be staged as apps/server/.env")
 require("scp", "staging SCP transfer is missing")
 require("sha256sum", "staging checksum validation is missing")
-for forbidden in ("OCI_HOST", "OCI_KNOWN_HOSTS", "OCI_DEPLOY_USER", "DEPLOY_MANIFEST_PRIVATE_KEY", "SHA256SUMS.sig", "openssl dgst -sha256 -sign", "deploy-manifest-public.pem"):
+for forbidden in ("OCI_HOST", "OCI_KNOWN_HOSTS", "OCI_DEPLOY_USER", "DEPLOY_MANIFEST_PRIVATE_KEY", "SHA256SUMS.sig", "openssl dgst -sha256 -sign", "deploy-manifest-public.pem", ".env.app"):
     if forbidden in workflow or forbidden in deploy_script:
         raise SystemExit(f"SSH-only CD must not use {forbidden}")
 require("config >/dev/null", "Compose config validation is missing")

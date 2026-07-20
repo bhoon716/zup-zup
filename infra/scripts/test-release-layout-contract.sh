@@ -47,11 +47,16 @@ if ! grep -F 'chown -R root:root' "${deploy_script}" >/dev/null; then
   echo "deploy must lock the staging tree before root consumes it" >&2
   exit 1
 fi
-if ! grep -F 'staging_dir}/.env.app' "${deploy_script}" >/dev/null; then
-  echo "deploy must promote the SERVER_DOTENV app environment" >&2
+if ! grep -F 'staging_dir}/apps/server/.env' "${deploy_script}" >/dev/null; then
+  echo "deploy must promote apps/server/.env" >&2
   exit 1
 fi
-for forbidden in 'deploy-manifest-public.pem' 'SHA256SUMS.sig' 'openssl dgst -sha256 -verify'; do
+if ! grep -F 'APP_ENV_FILE=${RELEASE_ROOT}/apps/server/.env' "${deploy_script}" >/dev/null \
+  || ! grep -F 'APP_ENV_FILE=${RELEASE_ROOT}/apps/server/.env' "${rollback_script}" >/dev/null; then
+  echo "Compose must read the deployed apps/server/.env" >&2
+  exit 1
+fi
+for forbidden in 'deploy-manifest-public.pem' 'SHA256SUMS.sig' 'openssl dgst -sha256 -verify' '.env.app'; do
   if grep -F -- "${forbidden}" "${deploy_script}" >/dev/null; then
     echo "SSH-only deploy must not use ${forbidden}" >&2
     exit 1

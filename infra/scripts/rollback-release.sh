@@ -89,7 +89,7 @@ cat >"${release_env}" <<EOF
 APP_IMAGE_NAME=${app_image_name}
 IMAGE_TAG=${sha}
 APP_BUILD_CONTEXT=${release_dir}
-APP_ENV_FILE=${RELEASE_ROOT}/.env.app
+APP_ENV_FILE=${RELEASE_ROOT}/apps/server/.env
 APP_PROD_CONFIG_PATH=${release_dir}/application-prod.yml
 FIREBASE_CONFIG_PATH=${RELEASE_ROOT}/secrets/firebase-key.json
 EOF

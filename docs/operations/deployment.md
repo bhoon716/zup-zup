@@ -20,7 +20,7 @@ MIN_FREE_PERCENT=<operator-approved-threshold>
 
 - SHA는 정확히 `[0-9a-f]{40}`만 허용한다. 임의 shell 문자열, `latest` 앱 tag, 임의 경로를 입력하지 않는다.
 - 운영 secret은 `<RELEASE_ROOT>/.env.runtime` 같은 root 소유 파일에 두고 `chmod 600`, 소유자 `root:root`로 설정한다. 값은 `DB_*`, `GHCR_READ_USERNAME`, OAuth/메일 등 실제 이름과 일치하는 배포 템플릿에서만 채운다. GHCR token 값은 `${RELEASE_ROOT}/secrets/ghcr-read-token`에만 `root:root`, `0600`으로 저장한다.
-- GitHub 저장소 Actions secrets의 `SERVER_DOTENV`는 배포 시 `${RELEASE_ROOT}/.env.app`에 `root:root`, `0600` 권한으로 설치한다. 값은 이미지나 저장소에 기록하지 않는다.
+- GitHub 저장소 Actions secrets의 `SERVER_DOTENV`는 기존 `apps/server/.env` 파일 내용이며, 배포 시 `${RELEASE_ROOT}/apps/server/.env`에 `root:root`, `0600` 권한으로 설치한다. 값은 이미지나 저장소에 기록하지 않는다.
 - GitHub 저장소 Actions secrets에는 서버 주소·사용자·SSH private key·애플리케이션 dotenv만 저장한다. GHCR token과 인프라 runtime secret은 OCI root-only file에 둔다.
 - 모든 실패 단계는 로그의 SHA·actor·시각·stage·result만 남긴다. secret, cookie, authorization header, 전체 환경 변수는 기록하지 않는다.
 
