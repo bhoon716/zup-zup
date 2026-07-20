@@ -95,4 +95,35 @@ for name, expected_name in expected_volume_names.items():
 print("local minimal Compose contract passed")
 PY
 
+observability_config_file="${temporary_dir}/observability.json"
+APP_ENV_FILE="${release_dir}/.env" docker compose \
+  --env-file "${compose_env}" \
+  -f "${compose_dir}/docker-compose.yml" \
+  -f "${compose_dir}/docker-compose.override.yml" \
+  --profile observability \
+  config --format json >"${observability_config_file}"
+
+python - "${observability_config_file}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    compose = json.load(handle)
+
+grafana = compose["services"].get("grafana", {})
+networks = grafana.get("networks", {})
+if "sugang-helper-runtime" not in networks or "sugang-helper-egress" not in networks:
+    raise SystemExit("local Grafana must use the runtime network and localhost-accessible egress network")
+
+ports = grafana.get("ports", [])
+if not any(
+    str(port.get("host_ip")) == "127.0.0.1"
+    and str(port.get("target")) == "3000"
+    for port in ports
+):
+    raise SystemExit("local Grafana must publish its UI on localhost")
+
+print("local observability Compose contract passed")
+PY
+
 echo "local Compose contract passed"

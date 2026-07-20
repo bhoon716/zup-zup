@@ -70,6 +70,9 @@ if not str(services["grafana"].get("image", "")).startswith("grafana/grafana@sha
 grafana_ports = services["grafana"].get("ports", [])
 if not any(str(port.get("host_ip")) == "127.0.0.1" and str(port.get("target")) == "3000" for port in grafana_ports):
     fail("Grafana must be reachable only through localhost")
+grafana_healthcheck = " ".join(str(item) for item in services["grafana"]["healthcheck"].get("test", []))
+if "grep -Eq" not in grafana_healthcheck or "[[:space:]]*" not in grafana_healthcheck:
+    fail("Grafana healthcheck must accept JSON whitespace around the database status")
 
 datasource = (repo_root / "infra/grafana/provisioning/datasources/datasource.yml").read_text(encoding="utf-8")
 if "type: loki" not in datasource or "isDefault: true" not in datasource:

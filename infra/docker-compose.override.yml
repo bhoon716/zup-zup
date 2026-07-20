@@ -19,6 +19,11 @@ services:
       - ${FIREBASE_CONFIG_PATH:?FIREBASE_CONFIG_PATH must be set}:/app/config/firebase-key.json:ro
       - local_app_uploads:/app/data/uploads
 
+  grafana:
+    networks: !override
+      - sugang-helper-runtime
+      - sugang-helper-egress
+
 volumes:
   local_db_data:
     name: sugang-helper-local-db-data
