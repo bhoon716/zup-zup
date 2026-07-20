@@ -55,7 +55,6 @@ if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -f "${staging_dir}/application-prod.yml" ] \
   || [ ! -f "${staging_dir}/apps/server/.env" ] \
   || [ ! -d "${staging_dir}/src/main/resources/db/migration" ] \
-  || [ ! -f "${staging_dir}/mysql/init/01-provision-service-accounts.sh" ] \
   || [ ! -f "${staging_dir}/loki/loki-config.yaml" ] \
   || [ ! -f "${staging_dir}/alloy/config.alloy" ] \
   || [ ! -f "${staging_dir}/prometheus/prometheus.yml" ] \
@@ -102,7 +101,6 @@ stage="promote-runtime-files"
 mkdir -p \
   "${RELEASE_ROOT}/apps/server" \
   "${RELEASE_ROOT}/src/main/resources/db" \
-  "${RELEASE_ROOT}/mysql/init" \
   "${RELEASE_ROOT}/loki" \
   "${RELEASE_ROOT}/alloy" \
   "${RELEASE_ROOT}/prometheus" \
@@ -111,10 +109,6 @@ cp "${staging_dir}/docker-compose.yml" "${RELEASE_ROOT}/docker-compose.yml.tmp.$
 mv -f "${RELEASE_ROOT}/docker-compose.yml.tmp.$$" "${RELEASE_ROOT}/docker-compose.yml"
 cp "${staging_dir}/application-prod.yml" "${RELEASE_ROOT}/application-prod.yml.tmp.$$"
 mv -f "${RELEASE_ROOT}/application-prod.yml.tmp.$$" "${RELEASE_ROOT}/application-prod.yml"
-cp "${staging_dir}/mysql/init/01-provision-service-accounts.sh" \
-  "${RELEASE_ROOT}/mysql/init/01-provision-service-accounts.sh.tmp.$$"
-mv -f "${RELEASE_ROOT}/mysql/init/01-provision-service-accounts.sh.tmp.$$" \
-  "${RELEASE_ROOT}/mysql/init/01-provision-service-accounts.sh"
 cp -a "${staging_dir}/src/main/resources/db/." "${RELEASE_ROOT}/src/main/resources/db/"
 cp -a "${staging_dir}/loki/." "${RELEASE_ROOT}/loki/"
 cp -a "${staging_dir}/alloy/." "${RELEASE_ROOT}/alloy/"

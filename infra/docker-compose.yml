@@ -8,17 +8,12 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set}
       MYSQL_DATABASE: ${DB_DATABASE:?DB_DATABASE must be set}
-      DB_RUNTIME_USER: ${DB_RUNTIME_USER:?DB_RUNTIME_USER must be set}
-      DB_RUNTIME_PASSWORD: ${DB_RUNTIME_PASSWORD:?DB_RUNTIME_PASSWORD must be set}
-      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?DB_MIGRATOR_USER must be set}
-      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?DB_MIGRATOR_PASSWORD must be set}
       TZ: ${TZ:?TZ must be set}
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     volumes:
       - db_data:/var/lib/mysql
-      - ./mysql/init/01-provision-service-accounts.sh:/docker-entrypoint-initdb.d/01-provision-service-accounts.sh:ro
     networks:
       - sugang-helper-runtime
     healthcheck:
@@ -82,8 +77,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SPRING_DATASOURCE_URL: ${DB_JDBC_URL:?DB_JDBC_URL must be set}
-      SPRING_DATASOURCE_USERNAME: ${DB_RUNTIME_USER:?DB_RUNTIME_USER must be set}
-      SPRING_DATASOURCE_PASSWORD: ${DB_RUNTIME_PASSWORD:?DB_RUNTIME_PASSWORD must be set}
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set}
       SPRING_FLYWAY_ENABLED: "false"
       REDIS_HOST: redis
       REDIS_PORT: "6379"
@@ -133,8 +128,8 @@ services:
       - /tmp:mode=1777
     environment:
       FLYWAY_URL: ${DB_JDBC_URL:?DB_JDBC_URL must be set}
-      FLYWAY_USER: ${DB_MIGRATOR_USER:?DB_MIGRATOR_USER must be set}
-      FLYWAY_PASSWORD: ${DB_MIGRATOR_PASSWORD:?DB_MIGRATOR_PASSWORD must be set}
+      FLYWAY_USER: root
+      FLYWAY_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set}
       FLYWAY_BASELINE_ON_MIGRATE: "false"
       FLYWAY_CLEAN_DISABLED: "true"
       FLYWAY_CONNECT_RETRIES: "60"

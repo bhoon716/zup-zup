@@ -49,7 +49,6 @@ for required_path in \
   'alloy/config.alloy' \
   'prometheus/prometheus.yml' \
   'grafana/provisioning/datasources/datasource.yml' \
-  'mysql/init/01-provision-service-accounts.sh' \
   'src/main/resources/db/migration'; do
   if ! grep -F -- "${required_path}" "${deploy_script}" >/dev/null; then
     echo "deploy must promote: ${required_path}" >&2

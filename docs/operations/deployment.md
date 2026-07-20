@@ -17,6 +17,7 @@ IMAGE_TAG=<40자리 commit SHA>
 - `SERVER_DOTENV`는 앱 전용 `apps/server/.env` 내용이며 배포 시 `APP_ENV`에 설치한다.
 - root `.env`에는 Compose용 DB·Redis·named volume·image·Firebase·관측 경로를 저장한다. 실제 secret은 Ubuntu 운영 파일에만 둔다.
 - `apps/server/.env`에는 앱 전용 설정·secret만 저장한다.
+- MySQL은 기존 `root` 계정을 앱과 one-shot Flyway migration이 함께 사용한다. 별도 runtime/migrator 계정이나 DB 권한 bootstrap은 수행하지 않는다.
 - 앱 rollback은 이전 SHA를 같은 수동 배포 workflow에 입력하는 방식이다. DB migration은 자동 rollback하지 않는다.
 
 ## 1. 최초 Ubuntu bootstrap

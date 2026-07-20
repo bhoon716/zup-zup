@@ -78,7 +78,7 @@ if services["app"].get("depends_on", {}).get("redis", {}).get("condition") != "s
     fail("app must wait for a healthy Redis service")
 
 db_environment = env_map(services["db"])
-for key in ("MYSQL_ROOT_PASSWORD", "MYSQL_DATABASE", "DB_RUNTIME_USER", "DB_RUNTIME_PASSWORD"):
+for key in ("MYSQL_ROOT_PASSWORD", "MYSQL_DATABASE"):
     if not db_environment.get(key):
         fail(f"db must receive {key}")
 if any(key.startswith("DB_BACKUP") for key in db_environment):
@@ -96,11 +96,14 @@ if services["redis"].get("volumes"):
     fail("redis must not mount persistent data")
 
 app_environment = env_map(services["app"])
-for forbidden in ("DB_ROOT_PASSWORD", "DB_MIGRATOR_PASSWORD", "DB_BACKUP_PASSWORD", "SPRING_FLYWAY_ENABLED"):
-    if forbidden in app_environment and forbidden != "SPRING_FLYWAY_ENABLED":
-        fail(f"runtime app must not receive {forbidden}")
+if any(key.startswith(("DB_", "MYSQL_", "FLYWAY_")) for key in app_environment):
+    fail("runtime app must not receive raw database or Flyway environment keys")
 if app_environment.get("SPRING_FLYWAY_ENABLED") != "false":
     fail("runtime app must disable automatic Flyway migration")
+if app_environment.get("SPRING_DATASOURCE_USERNAME") != "root":
+    fail("runtime app must use the existing root MySQL account")
+if app_environment.get("SPRING_DATASOURCE_PASSWORD") != db_environment.get("MYSQL_ROOT_PASSWORD"):
+    fail("runtime app and MySQL must use the same root password")
 if app_environment.get("REDIS_HOST") != "redis":
     fail("runtime app must connect to the Compose redis service")
 if app_environment.get("FIREBASE_CONFIG_PATH") != "/app/config/firebase-key.json":
@@ -127,6 +130,11 @@ if services["migrate"].get("restart") != "no":
     fail("migrate must be one-shot")
 if "@sha256:" not in str(services["migrate"].get("image", "")):
     fail("migrate image must be digest-pinned")
+migrate_environment = env_map(services["migrate"])
+if migrate_environment.get("FLYWAY_USER") != "root":
+    fail("one-shot migration must use the existing root MySQL account")
+if migrate_environment.get("FLYWAY_PASSWORD") != db_environment.get("MYSQL_ROOT_PASSWORD"):
+    fail("one-shot migration and MySQL must use the same root password")
 
 networks = compose.get("networks", {})
 runtime = networks.get("sugang-helper-runtime")

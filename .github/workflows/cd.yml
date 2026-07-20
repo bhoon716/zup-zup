@@ -134,15 +134,12 @@ jobs:
           fi
           stage_dir="${RUNNER_TEMP}/jbnu-release-${IMAGE_TAG}"
           mkdir -p "${stage_dir}/apps/server" \
-            "${stage_dir}/src/main/resources/db/migration" \
-            "${stage_dir}/mysql/init"
+            "${stage_dir}/src/main/resources/db/migration"
           cp infra/docker-compose.yml "${stage_dir}/docker-compose.yml"
           cp -a infra/loki "${stage_dir}/loki"
           cp -a infra/alloy "${stage_dir}/alloy"
           cp -a infra/prometheus "${stage_dir}/prometheus"
           cp -a infra/grafana "${stage_dir}/grafana"
-          cp infra/mysql/init/01-provision-service-accounts.sh \
-            "${stage_dir}/mysql/init/01-provision-service-accounts.sh"
           cp apps/server/src/main/resources/application-prod.yml \
             "${stage_dir}/application-prod.yml"
           cp apps/server/src/main/resources/db/migration/V*__*.sql \

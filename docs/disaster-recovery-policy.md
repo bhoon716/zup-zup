@@ -2,20 +2,19 @@
 
 > Current runtime policy (2026-07-20): MySQL uses the Docker named volume `sugang-helper-db-data`, and `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh` runs from an OCI systemd timer. The backup script and timer unit are installed directly on the server and are not part of the git release. The encrypted multi-state archive described below is a legacy design record and is not part of the current minimal Compose runtime.
 
-## Scope and account separation
+## Database access boundary
 
-The production Compose stack uses three non-root MySQL accounts.
+The current minimal runtime deliberately keeps the existing MySQL `root` account. The application and the one-shot Flyway `migrate` service both use `DB_ROOT_PASSWORD`; no runtime account, migrator account, account initializer, or grant rotation is created.
 
-| Account | Where it runs | Privileges |
+| Consumer | Account | Purpose |
 | --- | --- | --- |
-| `DB_RUNTIME_USER` | application container | `SELECT`, `INSERT`, `UPDATE`, `DELETE` on the application schema |
-| `DB_MIGRATOR_USER` | one-shot `migrate` service during deployment only | runtime DML plus `CREATE`, `ALTER`, `DROP`, `INDEX`, `REFERENCES` |
+| MySQL container | `root` | database administration and initialization |
+| application container | `root` | runtime queries and writes |
+| one-shot `migrate` service | `root` | schema migration during deployment |
 
-`DB_ROOT_PASSWORD` stays only in the MySQL service environment. It is used by the first-volume initializer and the root-only restore path; it is never included in the application container environment. The application also has Flyway disabled in production. Deployment runs the `migrate` profile before replacing the application container, so the migrator password is never present in the runtime JVM.
+This is an explicit 1-person-operations trade-off: it removes account bootstrap and credential synchronization, but a compromised application has schema-level privileges. The app still keeps automatic Flyway disabled; deployment runs the one-shot migration before starting the new app.
 
-The host root `.env` must contain `DB_ROOT_PASSWORD`, `DB_JDBC_URL`, and the runtime/migrator credential pairs. Generate distinct high-entropy passwords. The release `apps/server/.env` must not contain any `SPRING_DATASOURCE_*`, `SPRING_FLYWAY_*`, `DB_*`, or root database values; CI rejects them.
-
-Routine deployment only creates missing accounts and reapplies grants; it deliberately does not rotate passwords. Password rotation is a planned maintenance action: quiesce the app, use `ROTATE_DB_SERVICE_PASSWORDS=ROTATE` with the provisioner, verify the new account credentials, and deploy the matching release. This avoids a failed deployment changing credentials underneath the still-running old app.
+The host root `.env` contains `DB_ROOT_PASSWORD` and `DB_JDBC_URL`. The release `apps/server/.env` contains application-only settings and does not contain raw `DB_*` or `SPRING_FLYWAY_*` keys; Compose injects the database and Redis runtime values.
 
 ## Backup policy
 

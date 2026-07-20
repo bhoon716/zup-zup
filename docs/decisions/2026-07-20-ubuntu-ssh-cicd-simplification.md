@@ -28,6 +28,8 @@ staging Compose 검증
 
 checksum manifest, 영구 release history/다중 release 디렉터리, 반복적인 infra image preflight, 별도 rollback script, server-side lock은 제거한다. Prometheus·Loki·Alloy·Grafana, Flyway one-shot migration, 내부 readiness는 유지한다. Prometheus는 앱 Actuator metrics만 scrape하고 host exporter·cAdvisor·Alertmanager는 추가하지 않는다.
 
+DB 권한 분리는 현재 범위에서 사용하지 않는다. 기존 `root` 계정을 앱과 one-shot Flyway migration이 함께 사용하며, `DB_RUNTIME_*`, `DB_MIGRATOR_*`, 계정 초기화 스크립트는 배포 파일에서 제외한다. 이는 1인 운영의 설정·이관 복잡도를 줄이는 대신 애플리케이션이 schema 변경 권한을 갖는 trade-off를 명시적으로 수용하는 결정이다.
+
 MySQL은 OCI block volume 대신 기존 Docker named volume을 유지한다. OCI 서버에는 `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh`와 systemd timer를 직접 설치해 매주 월요일 04:00(`Asia/Seoul`)에 서비스 중지 없이 logical dump·gzip·SHA-256 checksum을 생성한다. 백업 스크립트와 timer unit은 저장소에 포함하지 않는다. 이 backup은 같은 인스턴스의 로컬 보호용이며, Object Storage나 다른 호스트로의 off-host backup은 후속 범위다.
 
 ## 복구와 한계

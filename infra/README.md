@@ -102,7 +102,7 @@ API_HOST=<api-duckdns-fqdn> bash scripts/test-uptime-contract.sh
 ## 파일과 비밀값
 
 - `.env`, `secrets/`, host certificate/private key는 저장소에 커밋하지 않습니다.
-- `DB_ROOT_PASSWORD`는 DB container에만, `DB_RUNTIME_PASSWORD`는 앱과 DB init에만, `DB_MIGRATOR_PASSWORD`는 one-shot migration에만 전달합니다.
+- 현재 운영은 기존 MySQL `root` 계정을 앱과 one-shot migration이 함께 사용합니다. 따라서 `DB_ROOT_PASSWORD`는 DB, 앱, migration에 전달되며 별도 runtime/migrator 계정은 만들지 않습니다. 이 선택은 1인 운영의 단순성을 높이는 대신 앱이 schema 변경 권한까지 갖는 보안 trade-off를 수용합니다.
 - `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh`는 OCI 서버에 직접 설치하는 파일이다. 매주 월요일 04:00(`Asia/Seoul`)에 systemd timer가 앱·DB를 중지하지 않고 MySQL logical dump를 `/home/ubuntu/jbnu-sugang-helper/backups/mysql`에 gzip/checksum과 함께 저장한다. 이 백업은 같은 OCI 인스턴스에 있으므로 host loss 보호가 아니다. `DB_BACKUP_*` 계정은 새 runtime contract에 추가하지 않는다.
 - 기존 NPM 상태·인증서는 서버에 남아 있는 공개 edge 운영 상태이며 저장소에 포함하지 않습니다. Prometheus 설정은 앱 metrics scrape와 Grafana datasource/dashboard만 포함하며 host exporter·cAdvisor·Alertmanager는 참조하지 않습니다. Loki/Alloy/Grafana 설정은 production Compose의 `observability` profile에서 참조합니다.
 
