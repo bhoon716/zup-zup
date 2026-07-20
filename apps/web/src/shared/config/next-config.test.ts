@@ -45,4 +45,10 @@ describe("next config rewrites", () => {
       destination: "https://api.example.com/api/:path*",
     });
   });
+
+  it("leaves standalone output disabled for Vercel", async () => {
+    const { default: nextConfig } = await import("../../../next.config");
+
+    expect(nextConfig.output).toBeUndefined();
+  });
 });
