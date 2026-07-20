@@ -53,7 +53,7 @@ root `.env`에 다음 종류의 값을 채운다.
 Firebase 파일은 다음 경로에 별도로 설치한다.
 
 ```bash
-install -o ubuntu -g ubuntu -m 0600 firebase-key.json \
+install -o 10001 -g 10001 -m 0600 firebase-key.json \
   /home/ubuntu/jbnu-sugang-helper/secrets/firebase-key.json
 ```
 
@@ -79,6 +79,7 @@ checkout SHA
   → SSH/SCP to Ubuntu
   → transient GITHUB_TOKEN으로 GHCR login
   → docker compose db/redis/Prometheus/Loki/Alloy/Grafana start
+  → 기존 NPM을 sugang-helper-runtime network에 연결
   → app image pull
   → 기존 app stop
   → one-shot Flyway migrate
@@ -89,6 +90,17 @@ checkout SHA
 ```
 
 `Prometheus`, `Loki`, `Grafana Alloy`, `Grafana`는 `observability` profile로 계속 실행한다. Prometheus는 앱 Actuator metrics만 수집하고, 로그 수집기는 Promtail이 아니라 Alloy다.
+
+기존 NPM은 저장소가 관리하지 않는 별도 컨테이너이지만, 배포 script가 새 runtime network가 처음 만들어진 뒤 upstream 컨테이너 이름을 해석할 수 있도록 연결만 보장한다. 이미 연결돼 있으면 아무 작업도 하지 않는다. 수동으로 Compose를 시작하는 경우에는 다음 명령을 사용한다.
+
+```bash
+if ! docker network inspect sugang-helper-runtime \
+  --format '{{range .Containers}}{{.Name}}{{"\n"}}{{end}}' | grep -qx sugang-helper-npm; then
+  docker network connect sugang-helper-runtime sugang-helper-npm
+fi
+```
+
+Firebase service-account 파일은 앱 컨테이너 사용자 UID `10001`이 읽어야 하므로 소유자 `10001:10001`, 권한 `0600`을 유지한다. 파일 내용은 출력하거나 저장소에 넣지 않는다.
 
 ## 4. 실패 처리
 

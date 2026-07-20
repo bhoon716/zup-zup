@@ -83,15 +83,15 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
    ```
 
 4. Docker/Compose와 OCI 기본 `ubuntu` 사용자를 준비하고 `ubuntu`를 Docker 그룹에 추가한다. release root는 `/home/ubuntu/jbnu-sugang-helper`, 배포별 임시 staging은 `/home/ubuntu/jbnu-sugang-helper/.staging/<SHA>`를 사용하므로 별도 `/opt` 권한 bootstrap이나 영구 staging root가 필요 없다. Compose runtime 값은 release root `.env`, 앱 secret은 `apps/server/.env`에 둔다. 상세 명령은 [배포 runbook](../docs/operations/deployment.md)을 따른다. GHCR 인증은 Actions의 단기 `GITHUB_TOKEN`을 배포 시에만 사용하며 서버에 read-only token 파일을 보관하지 않는다.
-5. 기존 NPM이 80/443에서 TLS를 종료하고 앱의 `127.0.0.1:8080`, readiness의 `127.0.0.1:8081`로 전달하는지 확인한다. NPM 설정·인증서는 저장소나 앱 CD에서 수정하지 않는다.
+5. 기존 NPM이 80/443에서 TLS를 종료하고 새 `sugang-helper-runtime` network에 연결되어 앱·Grafana upstream을 찾는지 확인한다. 필요하면 최초 연결 때 `docker network connect sugang-helper-runtime sugang-helper-npm`을 실행한다. NPM 설정·인증서는 저장소나 앱 CD에서 수정하지 않는다.
 6. DuckDNS hostname과 OCI reserved IP가 일치하는지 확인한다.
-7. `curl https://<API_HOST>/health/ready`와 외부 uptime provider로 공개 readiness를 확인한다.
+7. `curl https://<API_HOST>/health`와 외부 uptime provider로 공개 health endpoint를 확인한다.
 
 세부적인 staging 전송, Flyway migrate, 수동 SHA 재배포, cutover, 서버 교체 절차는 runbook을 그대로 따른다. 배포 script는 Ubuntu SSH로 직접 실행하며 `/usr/local/sbin` wrapper나 sudoers 파일은 사용하지 않는다.
 
 ## 외부 uptime monitor
 
-`https://<API_HOST>/health/ready`를 60초마다 확인하고 2회 연속 실패와 복구를 이메일로 알리도록 provider를 설정합니다. 응답에는 secret이나 DB 오류 세부정보를 넣지 않습니다. provider token·수신 주소는 저장소가 아닌 provider secret에 보관합니다. 검증 체크리스트는 [`uptime/README.md`](./uptime/README.md)에 있습니다.
+`https://<API_HOST>/health`를 60초마다 확인하고 2회 연속 실패와 복구를 이메일로 알리도록 provider를 설정합니다. 응답에는 secret이나 DB 오류 세부정보를 넣지 않습니다. provider token·수신 주소는 저장소가 아닌 provider secret에 보관합니다. 검증 체크리스트는 [`uptime/README.md`](./uptime/README.md)에 있습니다.
 
 호스트에서 실제 응답과 민감 정보 노출 여부를 확인하려면 다음을 실행합니다.
 

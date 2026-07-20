@@ -21,6 +21,7 @@ for required in \
   'RUNTIME_ENV="${RELEASE_ROOT}/.env"' \
   'docker compose --project-name sugang-helper' \
   'pull app' \
+  'docker network connect sugang-helper-runtime sugang-helper-npm' \
   '--profile migration run --rm --no-deps migrate migrate' \
   '--no-deps --wait' \
   '127.0.0.1:8081/actuator/health/readiness' \
@@ -66,8 +67,7 @@ for forbidden in \
   'GHCR_USERNAME_FILE' \
   'GHCR_TOKEN_FILE' \
   'sudo' \
-  'chown -R root:root' \
-  'https://${api_host}/health/ready'; do
+  'chown -R root:root'; do
   if grep -F -- "${forbidden}" "${deploy_script}" >/dev/null; then
     echo "lightweight deploy must not use: ${forbidden}" >&2
     exit 1

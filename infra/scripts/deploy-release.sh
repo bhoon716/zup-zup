@@ -139,6 +139,16 @@ stage="infra-start"
 "${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis loki alloy prometheus grafana \
   || fail "MySQL/Redis/Loki/Alloy/Prometheus/Grafana startup failed"
 
+stage="edge-network"
+if ! docker inspect sugang-helper-npm >/dev/null 2>&1; then
+  fail "existing NPM container sugang-helper-npm is missing"
+fi
+if ! docker network inspect sugang-helper-runtime \
+  --format '{{range .Containers}}{{.Name}}{{"\n"}}{{end}}' | grep -Fxq sugang-helper-npm; then
+  docker network connect sugang-helper-runtime sugang-helper-npm \
+    || fail "NPM could not join sugang-helper-runtime"
+fi
+
 stage="app-image-pull"
 "${compose[@]}" pull app || fail "application image pull failed"
 

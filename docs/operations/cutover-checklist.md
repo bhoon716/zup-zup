@@ -22,7 +22,7 @@
 - [ ] Prometheus가 앱 `/actuator/prometheus`를 수집하고 Grafana datasource/dashboard가 보인다. Promtail은 실행하지 않는다.
 - [ ] 기존 app을 중지한 뒤 Flyway baseline이 필요한지 확인하고, baseline history를 기록했다.
 - [ ] Flyway `migrate`를 수행했다. migration 파일을 수정하지 않았다.
-- [ ] 새 app readiness, HTTPS `/health/ready`, CORS, 핵심 API, 기본 데이터 조회를 확인했다.
+- [ ] 새 app readiness, HTTPS `/health`, CORS, 핵심 API, 기본 데이터 조회를 확인했다.
 
 ## 실패 복구
 
