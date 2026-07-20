@@ -11,7 +11,7 @@
 
 Actions는 `SERVER_HOST`, `SERVER_USER`, `SSH_PRIVATE_KEY`, `SERVER_DOTENV`만 사용한다. staging 파일과 `deploy.sh`를 Ubuntu에 SCP하고, 원격에서 단기 `GITHUB_TOKEN`으로 GHCR에 로그인한 뒤 Ubuntu 권한으로 배포 script를 실행한다. 배포 종료 시 GHCR logout을 수행한다.
 
-OCI에는 `/usr/local/sbin` wrapper, root libexec, sudoers allowlist, GHCR read-only token 파일을 설치하지 않는다. `/opt/jbnu-sugang-helper`와 staging root는 `ubuntu:ubuntu` 소유이며 Ubuntu는 Docker 그룹 권한을 사용한다. 이 권한은 root equivalent임을 운영 문서에 명시한다.
+OCI에는 `/usr/local/sbin` wrapper, root libexec, sudoers allowlist, GHCR read-only token 파일을 설치하지 않는다. release root와 staging root는 `ubuntu` 홈 디렉터리 아래(`/home/ubuntu/jbnu-sugang-helper`, `/home/ubuntu/jbnu-sugang-helper-staging`)에 두고, 배포 파일은 SSH 사용자 권한으로 관리한다. Ubuntu는 Docker 그룹 권한을 사용하며 이 권한은 root equivalent임을 운영 문서에 명시한다.
 
 ## 배포 순서
 

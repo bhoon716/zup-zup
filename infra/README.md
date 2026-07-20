@@ -83,7 +83,7 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
    sudo bash scripts/prepare-app-host-directories.sh
    ```
 
-4. Docker/Compose와 OCI 기본 `ubuntu` 사용자를 준비하고 `ubuntu`를 Docker 그룹에 추가한다. Actions가 staging과 runtime 파일을 직접 갱신할 수 있도록 `/opt/jbnu-sugang-helper`와 `/opt/jbnu-sugang-helper-staging`을 `ubuntu:ubuntu` 소유로 만든다. 상세 명령은 [배포 runbook](../docs/operations/deployment.md)을 따른다. GHCR 인증은 Actions의 단기 `GITHUB_TOKEN`을 배포 시에만 사용하며 서버에 read-only token 파일을 보관하지 않는다.
+4. Docker/Compose와 OCI 기본 `ubuntu` 사용자를 준비하고 `ubuntu`를 Docker 그룹에 추가한다. release root와 staging root는 `ubuntu` 홈 디렉터리 아래(`/home/ubuntu/jbnu-sugang-helper`, `/home/ubuntu/jbnu-sugang-helper-staging`)를 사용하므로 별도 `/opt` 권한 bootstrap이 필요 없다. 상세 명령은 [배포 runbook](../docs/operations/deployment.md)을 따른다. GHCR 인증은 Actions의 단기 `GITHUB_TOKEN`을 배포 시에만 사용하며 서버에 read-only token 파일을 보관하지 않는다.
 5. 호스트 Nginx를 설치하고 site template을 실제 DuckDNS hostname으로 render한다.
 
    ```bash

@@ -15,8 +15,8 @@ if not compose.startswith("name: sugang-helper\n"):
 PY
 
 for required in \
-  'readonly RELEASE_ROOT="/opt/jbnu-sugang-helper"' \
-  'readonly STAGING_ROOT="/opt/jbnu-sugang-helper-staging"' \
+  'readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"' \
+  'readonly STAGING_ROOT="/home/ubuntu/jbnu-sugang-helper-staging"' \
   'APP_ENV_FILE="${RELEASE_ROOT}/apps/server/.env"' \
   'docker compose --project-name sugang-helper' \
   'flock' \
@@ -28,6 +28,15 @@ for required in \
   'rm -rf -- "${staging_dir}"'; do
   if ! grep -F -- "${required}" "${deploy_script}" >/dev/null; then
     echo "deploy contract is missing: ${required}" >&2
+    exit 1
+  fi
+done
+
+for forbidden in \
+  'readonly RELEASE_ROOT="/opt/jbnu-sugang-helper"' \
+  'readonly STAGING_ROOT="/opt/jbnu-sugang-helper-staging"'; do
+  if grep -F -- "${forbidden}" "${deploy_script}" >/dev/null; then
+    echo "legacy deploy path must not remain: ${forbidden}" >&2
     exit 1
   fi
 done

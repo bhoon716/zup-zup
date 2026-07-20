@@ -14,7 +14,7 @@
 ## 신규 stack 적용
 
 - [ ] ARM64 GHCR image와 배포 대상 SHA를 확인했다.
-- [ ] `/opt/jbnu-sugang-helper`·`/opt/jbnu-sugang-helper-staging`·Ubuntu 운영 secret 권한을 확인했다.
+- [ ] `/home/ubuntu/jbnu-sugang-helper`·`/home/ubuntu/jbnu-sugang-helper-staging`·Ubuntu 운영 secret 권한을 확인했다.
 - [ ] OCI block volume을 기존 DB path에 연결했다.
 - [ ] Compose config, MySQL/Redis healthcheck, host Nginx `nginx -t`를 통과했다.
 - [ ] 기존 app을 중지한 뒤 Flyway baseline이 필요한지 확인하고, baseline history를 기록했다.

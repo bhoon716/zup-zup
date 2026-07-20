@@ -156,8 +156,8 @@ jobs:
       - name: Ubuntu staging 전송
         run: |
           target="${SERVER_USER}@${SERVER_HOST}"
-          remote_root="/opt/jbnu-sugang-helper"
-          remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
+          remote_root="/home/ubuntu/jbnu-sugang-helper"
+          remote_stage="/home/ubuntu/jbnu-sugang-helper-staging/${IMAGE_TAG}"
           ssh -o BatchMode=yes "${target}" \
             "mkdir -p '${remote_root}' '${remote_stage}' && chmod 0750 '${remote_root}' '${remote_stage}'"
           scp -r "${{ steps.stage.outputs.path }}/." "${target}:${remote_stage}/"
@@ -169,8 +169,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           target="${SERVER_USER}@${SERVER_HOST}"
-          remote_root="/opt/jbnu-sugang-helper"
-          remote_stage="/opt/jbnu-sugang-helper-staging/${IMAGE_TAG}"
+          remote_root="/home/ubuntu/jbnu-sugang-helper"
+          remote_stage="/home/ubuntu/jbnu-sugang-helper-staging/${IMAGE_TAG}"
           printf '%s' "${GITHUB_TOKEN}" | ssh -o BatchMode=yes "${target}" \
             "set -eu; trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT; \
             docker login ghcr.io --username github-actions --password-stdin; \

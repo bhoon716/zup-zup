@@ -6,10 +6,10 @@
 
 ```text
 SERVER_USER=ubuntu
-RELEASE_ROOT=/opt/jbnu-sugang-helper
-STAGING_ROOT=/opt/jbnu-sugang-helper-staging
-RUNTIME_ENV=/opt/jbnu-sugang-helper/.env.runtime
-APP_ENV=/opt/jbnu-sugang-helper/apps/server/.env
+RELEASE_ROOT=/home/ubuntu/jbnu-sugang-helper
+STAGING_ROOT=/home/ubuntu/jbnu-sugang-helper-staging
+RUNTIME_ENV=/home/ubuntu/jbnu-sugang-helper/.env.runtime
+APP_ENV=/home/ubuntu/jbnu-sugang-helper/apps/server/.env
 APP_IMAGE=ghcr.io/<owner>/<repository>/server
 IMAGE_TAG=<40자리 commit SHA>
 ```
@@ -25,13 +25,14 @@ IMAGE_TAG=<40자리 commit SHA>
 
 ```bash
 sudo usermod -aG docker ubuntu
-sudo install -d -o ubuntu -g ubuntu -m 0750 \
-  /opt/jbnu-sugang-helper \
-  /opt/jbnu-sugang-helper-staging
-sudo install -d -o ubuntu -g ubuntu -m 0700 \
-  /opt/jbnu-sugang-helper/secrets
-sudo install -o ubuntu -g ubuntu -m 0600 /dev/null \
-  /opt/jbnu-sugang-helper/.env.runtime
+install -d -m 0750 \
+  /home/ubuntu/jbnu-sugang-helper \
+  /home/ubuntu/jbnu-sugang-helper-staging
+install -d -m 0700 \
+  /home/ubuntu/jbnu-sugang-helper/secrets
+if [ ! -e /home/ubuntu/jbnu-sugang-helper/.env.runtime ]; then
+  install -m 0600 /dev/null /home/ubuntu/jbnu-sugang-helper/.env.runtime
+fi
 ```
 
 `ubuntu`로 다시 로그인한 뒤 Docker와 Compose를 확인한다.
@@ -46,13 +47,13 @@ docker compose version
 - `APP_IMAGE_NAME=ghcr.io/<owner>/<repository>/server`
 - `FLYWAY_IMAGE=flyway/flyway@sha256:<digest>`
 - `DB_*`, `REDIS_*`, `DB_DATA_DIR`, `APP_*`, `LOKI_*`, `ALLOY_*`, `GRAFANA_*`, `TZ`
-- `FIREBASE_CONFIG_PATH=/opt/jbnu-sugang-helper/secrets/firebase-key.json`
+- `FIREBASE_CONFIG_PATH=/home/ubuntu/jbnu-sugang-helper/secrets/firebase-key.json`
 
 Firebase 파일은 다음 경로에 별도로 설치한다.
 
 ```bash
 install -o ubuntu -g ubuntu -m 0600 firebase-key.json \
-  /opt/jbnu-sugang-helper/secrets/firebase-key.json
+  /home/ubuntu/jbnu-sugang-helper/secrets/firebase-key.json
 ```
 
 GitHub Actions는 배포 직전에 단기 `GITHUB_TOKEN`으로 GHCR에 로그인하고 종료 시 logout한다. OCI에 GHCR token 파일이나 `install-oci-wrappers.sh`를 만들지 않는다.
@@ -101,7 +102,7 @@ checkout SHA
 현재 상태와 로그 확인:
 
 ```bash
-cd /opt/jbnu-sugang-helper
+cd /home/ubuntu/jbnu-sugang-helper
 docker compose --env-file .env.runtime --env-file .env.compose \
   -f docker-compose.yml ps
 docker compose --env-file .env.runtime --env-file .env.compose \

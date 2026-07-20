@@ -19,9 +19,9 @@
 - `SERVER_HOST`: SSH로 접속할 OCI reserved IP 또는 hostname
 - `SERVER_USER`: SSH 접속 사용자. 현재는 OCI의 `ubuntu`
 - `SSH_PRIVATE_KEY`: `SERVER_USER`의 `authorized_keys`에 등록한 SSH private key
-- `SERVER_DOTENV`: 기존 `apps/server/.env` 파일 전체 내용. workflow가 OCI의 `/opt/jbnu-sugang-helper/apps/server/.env`에 설치한다.
+- `SERVER_DOTENV`: 기존 `apps/server/.env` 파일 전체 내용. workflow가 OCI의 `/home/ubuntu/jbnu-sugang-helper/apps/server/.env`에 설치한다.
 
-OCI Compose runtime 값은 `/opt/jbnu-sugang-helper/.env.runtime`에 운영자가 한 번 입력한다. GHCR token은 별도 secret으로 저장하지 않고, CD가 단기 `GITHUB_TOKEN`으로 원격 login/logout한다.
+OCI Compose runtime 값은 `/home/ubuntu/jbnu-sugang-helper/.env.runtime`에 운영자가 한 번 입력한다. GHCR token은 별도 secret으로 저장하지 않고, CD가 단기 `GITHUB_TOKEN`으로 원격 login/logout한다.
 
 ## Actions 권한
 

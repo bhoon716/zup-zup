@@ -57,8 +57,10 @@ require("GITHUB_TOKEN", "the short-lived Actions token must authenticate the rem
 require("docker login ghcr.io", "remote GHCR login is missing")
 require("--password-stdin", "remote GHCR login must not expose the token in arguments")
 require("docker logout ghcr.io", "remote GHCR credentials must be removed after deploy")
-require_deploy('readonly RELEASE_ROOT="/opt/jbnu-sugang-helper"', "fixed Ubuntu release root is missing")
-require_deploy('readonly STAGING_ROOT="/opt/jbnu-sugang-helper-staging"', "fixed staging root is missing")
+require('remote_root="/home/ubuntu/jbnu-sugang-helper"', "CD must use the ubuntu home release root")
+require('remote_stage="/home/ubuntu/jbnu-sugang-helper-staging/${IMAGE_TAG}"', "CD must use the ubuntu home staging root")
+require_deploy('readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"', "fixed Ubuntu release root is missing")
+require_deploy('readonly STAGING_ROOT="/home/ubuntu/jbnu-sugang-helper-staging"', "fixed staging root is missing")
 require_deploy('APP_ENV_FILE="${RELEASE_ROOT}/apps/server/.env"', "deploy must use apps/server/.env")
 require_deploy("flock", "deploy must serialize accidental manual overlap")
 require_deploy("pull app", "deploy must pull the selected app image")
@@ -69,5 +71,8 @@ require_deploy(".env.release", "current SHA state file is missing")
 require_deploy("loki/loki-config.yaml", "Loki configuration must be deployed")
 require_deploy("alloy/config.alloy", "Alloy configuration must be deployed")
 require_deploy("grafana/provisioning/datasources/datasource.yml", "Grafana configuration must be deployed")
+for forbidden_path in ("/opt/jbnu-sugang-helper", "/opt/jbnu-sugang-helper-staging"):
+    if forbidden_path in workflow or forbidden_path in deploy_script:
+        raise SystemExit(f"legacy deploy path must not remain: {forbidden_path}")
 print("Ubuntu SSH-only CD workflow contract passed")
 PY
