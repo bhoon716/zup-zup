@@ -9,7 +9,7 @@ permissions:
 env:
   MYSQL_DATABASE: sugang_helper
   MYSQL_ROOT_PASSWORD: ci-root-password
-  REDIS_PASSWORD: ""
+  REDIS_PASSWORD: ci-redis-password
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server
   FLYWAY_IMAGE: flyway/flyway@sha256:8ace7d9825bb3ad1d6e14ee27b3a830b638ac841ba424b99b2d92aa65a99d484
 
