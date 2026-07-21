@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import {
@@ -25,6 +26,34 @@ export function CourseBasicFilters({
 }: CourseBasicFiltersProps) {
   const academicYearSelectId = `${idBasePrefix}-academic-year-select`;
   const semesterSelectId = `${idBasePrefix}-semester-select`;
+
+  // 교수명 & 학과명 독립 로컬 상태 및 포커스 관리 (입력 시 한글 IME 조합 깨짐 및 커서 깜빡임 완벽 차단)
+  const [localProf, setLocalProf] = useState(() => condition.professor || "");
+  const [localDept, setLocalDept] = useState(() => condition.department || "");
+  const isProfFocusedRef = useRef(false);
+  const isDeptFocusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isProfFocusedRef.current) {
+      setLocalProf(condition.professor || "");
+    }
+  }, [condition.professor]);
+
+  useEffect(() => {
+    if (!isDeptFocusedRef.current) {
+      setLocalDept(condition.department || "");
+    }
+  }, [condition.department]);
+
+  const handleProfChange = (val: string) => {
+    setLocalProf(val);
+    setCondition((prev) => ({ ...prev, professor: val || undefined }));
+  };
+
+  const handleDeptChange = (val: string) => {
+    setLocalDept(val);
+    setCondition((prev) => ({ ...prev, department: val || undefined }));
+  };
 
   return (
     <div className="space-y-4">
@@ -78,10 +107,14 @@ export function CourseBasicFilters({
         <div className="space-y-1.5">
           <Label className="text-[11px] font-bold text-muted-foreground">교수명</Label>
           <Input
-            value={condition.professor || ""}
-            onChange={(e) =>
-              setCondition((prev) => ({ ...prev, professor: e.target.value || undefined }))
-            }
+            value={localProf}
+            onChange={(e) => handleProfChange(e.target.value)}
+            onFocus={() => {
+              isProfFocusedRef.current = true;
+            }}
+            onBlur={() => {
+              isProfFocusedRef.current = false;
+            }}
             placeholder="예: 홍길동, 김철수"
             className="h-10 w-full rounded-xl bg-muted/30 text-xs"
           />
@@ -90,12 +123,16 @@ export function CourseBasicFilters({
           </p>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold text-muted-foreground">학과명 직접 입력</Label>
+          <Label className="text-[11px] font-bold text-muted-foreground">학과명</Label>
           <Input
-            value={condition.department || ""}
-            onChange={(e) =>
-              setCondition((prev) => ({ ...prev, department: e.target.value || undefined }))
-            }
+            value={localDept}
+            onChange={(e) => handleDeptChange(e.target.value)}
+            onFocus={() => {
+              isDeptFocusedRef.current = true;
+            }}
+            onBlur={() => {
+              isDeptFocusedRef.current = false;
+            }}
             placeholder="예: 소프트웨어, 컴퓨터공학부"
             className="h-10 w-full rounded-xl bg-muted/30 text-xs"
           />
