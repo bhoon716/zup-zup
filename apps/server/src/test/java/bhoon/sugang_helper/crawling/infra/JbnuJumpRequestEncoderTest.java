@@ -23,7 +23,6 @@ class JbnuJumpRequestEncoderTest {
         values.put("strCertDivCd", "6");
 
         String encoded = JbnuJumpRequestEncoder.encode(values);
-        System.out.println("ENCODED_PAYLOAD=" + encoded);
 
         assertThat(encoded).startsWith(XB_DATA_PREFIX);
         String cipherText = URLDecoder.decode(encoded.substring(XB_DATA_PREFIX.length()), StandardCharsets.UTF_8);

@@ -29,7 +29,7 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemStream;
+import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -64,13 +64,12 @@ public class SpringBatchConfig {
                 .<ParsedCourseDto, ParsedCourseDto>chunk(100, transactionManager)
                 .reader(crawlReader)
                 .writer(crawlWriter)
-                .stream((ItemStream) crawlReader)
                 .build();
     }
 
     @Bean
     @StepScope
-    public ItemReader<ParsedCourseDto> crawlReader(
+    public ItemStreamReader<ParsedCourseDto> crawlReader(
             @Value("#{jobParameters['year']}") String year,
             @Value("#{jobParameters['semester']}") String semester) {
         log.info("[SpringBatchConfig] Initializing crawlReader for year={}, semester={}", year, semester);
