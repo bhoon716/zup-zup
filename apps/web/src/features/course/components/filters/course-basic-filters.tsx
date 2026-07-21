@@ -25,6 +25,7 @@ export function CourseBasicFilters({
 }: CourseBasicFiltersProps) {
   const academicYearSelectId = `${idBasePrefix}-academic-year-select`;
   const semesterSelectId = `${idBasePrefix}-semester-select`;
+
   return (
     <div className="space-y-4">
       {/* 학년도 및 학기 (세로 1줄 레이아웃) */}
@@ -79,7 +80,7 @@ export function CourseBasicFilters({
           <Input
             value={condition.professor || ""}
             onChange={(e) =>
-              setCondition((prev) => ({ ...prev, professor: e.target.value }))
+              setCondition((prev) => ({ ...prev, professor: e.target.value || undefined }))
             }
             placeholder="예: 홍길동, 김철수"
             className="h-10 w-full rounded-xl bg-muted/30 text-xs"
@@ -93,7 +94,7 @@ export function CourseBasicFilters({
           <Input
             value={condition.department || ""}
             onChange={(e) =>
-              setCondition((prev) => ({ ...prev, department: e.target.value }))
+              setCondition((prev) => ({ ...prev, department: e.target.value || undefined }))
             }
             placeholder="예: 소프트웨어, 컴퓨터공학부"
             className="h-10 w-full rounded-xl bg-muted/30 text-xs"
