@@ -267,8 +267,11 @@ export default function SearchPage() {
     return filters;
   }, [searchCondition]);
 
-  const keyword = draftCondition.keyword || "";
-  const setKeyword = (value: string) => setDraftCondition(prev => ({ ...prev, keyword: value }));
+  const [mobileKeyword, setMobileKeyword] = useState(() => draftCondition.keyword || "");
+
+  useEffect(() => {
+    setMobileKeyword(draftCondition.keyword || "");
+  }, [draftCondition.keyword]);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -324,7 +327,7 @@ export default function SearchPage() {
           <form 
             onSubmit={(e) => {
               e.preventDefault();
-              handleSearch({ ...draftCondition, keyword: keyword || undefined, name: undefined });
+              handleSearch({ ...draftCondition, keyword: mobileKeyword || undefined, name: undefined });
             }} 
             className="flex items-center gap-2"
           >
@@ -332,8 +335,8 @@ export default function SearchPage() {
               <input
                 type="text"
                 placeholder="강의명 또는 학수번호를 입력하세요"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
+                value={mobileKeyword}
+                onChange={(e) => setMobileKeyword(e.target.value)}
                 className="h-11 w-full rounded-2xl border-none bg-muted/80 pl-11 pr-4 text-sm font-bold placeholder:text-muted-foreground/60 focus:bg-white focus:ring-2 focus:ring-primary/20"
               />
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

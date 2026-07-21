@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Filter, RotateCcw, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ interface CourseSearchBarProps {
   skipPersonalFetch?: boolean;
 }
 
-export function CourseSearchBar({
+export const CourseSearchBar = memo(function CourseSearchBar({
   onSearch,
   onConditionChange,
   isLoading,
@@ -34,13 +34,14 @@ export function CourseSearchBar({
   initialTimetables,
   skipPersonalFetch,
 }: CourseSearchBarProps) {
-  const resolvedDefaultCondition = defaultCondition ?? DEFAULT_CONDITION;
+  const resolvedDefaultCondition: CourseSearchCondition = defaultCondition ?? DEFAULT_CONDITION;
   const initialSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
   const [condition, setCondition] = useState<CourseSearchCondition>(
     () => ({ ...(initialCondition ?? resolvedDefaultCondition) }),
   );
   const [keyword, setKeyword] = useState(() => initialCondition?.keyword || "");
   const prevInitialRef = useRef(initialSnapshot);
+  const isFocusedRef = useRef(false);
 
   /**
    * 외부에서 전달된 초기 검색 조건이 실질적으로 변경될 경우(예: 필터 칩 삭제)
@@ -51,8 +52,15 @@ export function CourseSearchBar({
     if (nextSnapshot === prevInitialRef.current) return;
 
     prevInitialRef.current = nextSnapshot;
+
+    // 사용자가 인풋창에 직접 포커스하여 타이핑 중인 동안에는 외부 Sync로 keyword 상태를 흔들지 않음 (커서 깜빡임 원천 방지)
+    if (isFocusedRef.current) {
+      setCondition({ ...(initialCondition ?? resolvedDefaultCondition) });
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
-      const nextCond = initialCondition ?? resolvedDefaultCondition;
+      const nextCond: CourseSearchCondition = initialCondition ?? resolvedDefaultCondition;
       setCondition({ ...nextCond });
       setKeyword(nextCond.keyword || "");
     }, 0);
@@ -109,6 +117,8 @@ export function CourseSearchBar({
                 placeholder="강의명 또는 학수번호"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
+                onFocus={() => { isFocusedRef.current = true; }}
+                onBlur={() => { isFocusedRef.current = false; }}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 className="h-12 w-full rounded-2xl border-none bg-muted/50 pl-10 pr-4 text-sm font-bold placeholder:text-muted-foreground/60 focus:bg-white focus:ring-2 focus:ring-primary/20"
               />
@@ -222,4 +232,4 @@ export function CourseSearchBar({
       </div>
     </div>
   );
-}
+});
