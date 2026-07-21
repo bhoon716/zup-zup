@@ -39,6 +39,7 @@ export function CourseSearchBar({
   const [condition, setCondition] = useState<CourseSearchCondition>(
     () => ({ ...(initialCondition ?? resolvedDefaultCondition) }),
   );
+  const [keyword, setKeyword] = useState(() => initialCondition?.keyword || "");
   const prevInitialRef = useRef(initialSnapshot);
 
   /**
@@ -51,7 +52,9 @@ export function CourseSearchBar({
 
     prevInitialRef.current = nextSnapshot;
     const timeoutId = window.setTimeout(() => {
-      setCondition({ ...(initialCondition ?? resolvedDefaultCondition) });
+      const nextCond = initialCondition ?? resolvedDefaultCondition;
+      setCondition({ ...nextCond });
+      setKeyword(nextCond.keyword || "");
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
@@ -80,7 +83,7 @@ export function CourseSearchBar({
       toast.error("학년도와 학기를 선택해주세요.");
       return;
     }
-    onSearch(condition);
+    onSearch({ ...condition, keyword: keyword || undefined });
   };
 
   /**
@@ -88,8 +91,10 @@ export function CourseSearchBar({
    * 초기화 성공 시 토스트 메시지를 표시합니다.
    */
   const handleReset = () => {
-    setCondition({ ...resolvedDefaultCondition });
-    onSearch({ ...resolvedDefaultCondition });
+    const resetCond = { ...resolvedDefaultCondition };
+    setCondition(resetCond);
+    setKeyword("");
+    onSearch(resetCond);
     toast.success("검색 조건을 초기화했습니다.");
   };
 
@@ -102,8 +107,8 @@ export function CourseSearchBar({
               <input
                 type="text"
                 placeholder="강의명 또는 학수번호"
-                value={condition.keyword || ""}
-                onChange={(e) => setCondition((prev) => ({ ...prev, keyword: e.target.value }))}
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 className="h-12 w-full rounded-2xl border-none bg-muted/50 pl-10 pr-4 text-sm font-bold placeholder:text-muted-foreground/60 focus:bg-white focus:ring-2 focus:ring-primary/20"
               />
