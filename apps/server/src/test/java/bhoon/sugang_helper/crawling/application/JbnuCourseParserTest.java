@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
 import bhoon.sugang_helper.course.domain.ParsedCourseDto;
 import bhoon.sugang_helper.course.domain.TargetGrade;
+import bhoon.sugang_helper.common.error.CustomException;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalTime;
@@ -21,43 +22,16 @@ class JbnuCourseParserTest {
     @Test
     @DisplayName("JUMP JSON에서 내부 코드와 학수번호를 분리해 파싱합니다")
     void parseCourses_jumpJson() {
-        List<ParsedCourseDto> courses = parser.parseCourses(jsonResponse("""
-                {
-                  "SBJCT_CD": "C101",
-                  "SBJCT_NM": "자료구조 1",
-                  "DVCLS_NO": "01",
-                  "STDTR_NO": "  geco178 ",
-                  "STAFFNM": "김교수",
-                  "PRM_NMPR_CNT": 40,
-                  "ATNLC_PSCP_CNT": 40,
-                  "TLSN_RCNT": 12,
-                  "ATNLC_TRGT_DIVCDNM": "3학년",
-                  "YRSA": "2026",
-                  "SEMSTR_CD": "SUSR016.010",
-                  "CMCRS_DIVCDNM": "전공",
-                  "RLT_ABSLT_EVL_DIVCDNM": "절대평가",
-                  "DOW_HR_CN": "월 1-A, 월 1-B",
-                  "ESTBL_PNT": 3,
-                  "HR_CNT": 3,
-                  "LCTR_LANG_DIVCDNM": "한국어",
-                  "RLS_YN": "Y",
-                  "DONG_RMNM_CN": "공대 301",
-                  "RLM_DIVCDNM": "전공",
-                  "CULT_RLM_DIVCDNM": "전공필수",
-                  "LESSN_OPER_DRC_CN": "일반",
-                  "OPNLT_DIVCDNM": "일반",
-                  "LESSN_HR_DIVCDNM": "주 3시간",
-                  "MNG_SCSBJT_CDNM": "컴퓨터공학부"
-                }
-                """));
+        String json = readFixture("/mock/jump_course_response.json");
+        List<ParsedCourseDto> courses = parser.parseCourses(json);
 
         assertThat(courses).hasSize(1);
         ParsedCourseDto course = courses.get(0);
-        assertThat(course.subjectCode()).isEqualTo("C101");
+        assertThat(course.subjectCode()).isEqualTo("0000131925");
         assertThat(course.stdtrNo()).isEqualTo("GECO178");
-        assertThat(course.courseKey()).isEqualTo("2026:SUSR016.010:C101:01");
+        assertThat(course.courseKey()).isEqualTo("2026:SUSR016.010:0000131925:1");
         assertThat(course.name()).isEqualTo("자료구조");
-        assertThat(course.capacity()).isEqualTo(40);
+        assertThat(course.capacity()).isEqualTo(50);
         assertThat(course.current()).isEqualTo(12);
         assertThat(course.targetGrade()).isEqualTo(TargetGrade.GRADE_3);
         assertThat(course.schedules()).hasSize(1);
@@ -97,23 +71,24 @@ class JbnuCourseParserTest {
 
     @Test
     void parseCourses_rejectsJumpErrorEnvelope() {
-        assertThatThrownBy(() -> parser.parseCourses("{\"ERRMSGINFO\":{\"ERRCODE\":\"CCMN002.CCMN@NONE\"}}"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("JUMP returned an error envelope");
+        String json = readFixture("/mock/jump_error_response.json");
+        assertThatThrownBy(() -> parser.parseCourses(json))
+                .isInstanceOf(CustomException.class)
+                .satisfies(t -> assertThat(((CustomException) t).getDetail()).contains("JUMP returned an error envelope"));
     }
 
     @Test
     void parseCourses_rejectsMissingEnvelope() {
         assertThatThrownBy(() -> parser.parseCourses("{}"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("missing dsEstSbjList");
+                .isInstanceOf(CustomException.class)
+                .satisfies(t -> assertThat(((CustomException) t).getDetail()).contains("missing dsEstSbjList"));
     }
 
     @Test
     void parseCourses_rejectsEmptyCourseList() {
         assertThatThrownBy(() -> parser.parseCourses("{\"dsEstSbjList\":[]}"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("course list is empty");
+                .isInstanceOf(CustomException.class)
+                .satisfies(t -> assertThat(((CustomException) t).getDetail()).contains("course list is empty"));
     }
 
     @Test
@@ -125,15 +100,15 @@ class JbnuCourseParserTest {
                   "YRSA": "2026"
                 }
                 """)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("required identity fields");
+                .isInstanceOf(CustomException.class)
+                .satisfies(t -> assertThat(((CustomException) t).getDetail()).contains("required identity fields"));
     }
 
     @Test
     void parseCourses_rejectsMalformedJson() {
         assertThatThrownBy(() -> parser.parseCourses("{\"dsEstSbjList\":["))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Malformed crawler JSON");
+                .isInstanceOf(CustomException.class)
+                .satisfies(t -> assertThat(((CustomException) t).getDetail()).contains("Malformed crawler JSON"));
     }
 
     @Test
@@ -175,5 +150,16 @@ class JbnuCourseParserTest {
 
     private String jsonResponse(String row) {
         return "{\"dsEstSbjList\":[" + row + "]}";
+    }
+
+    private String readFixture(String path) {
+        try (var is = getClass().getResourceAsStream(path)) {
+            if (is == null) {
+                throw new IllegalArgumentException("Fixture not found: " + path);
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
