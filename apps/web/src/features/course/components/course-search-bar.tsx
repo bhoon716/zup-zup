@@ -34,7 +34,7 @@ export const CourseSearchBar = memo(function CourseSearchBar({
   initialTimetables,
   skipPersonalFetch,
 }: CourseSearchBarProps) {
-  const resolvedDefaultCondition = defaultCondition ?? DEFAULT_CONDITION;
+  const resolvedDefaultCondition: CourseSearchCondition = defaultCondition ?? DEFAULT_CONDITION;
   const initialSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
   const [condition, setCondition] = useState<CourseSearchCondition>(
     () => ({ ...(initialCondition ?? resolvedDefaultCondition) }),
@@ -60,7 +60,7 @@ export const CourseSearchBar = memo(function CourseSearchBar({
     }
 
     const timeoutId = window.setTimeout(() => {
-      const nextCond = initialCondition ?? resolvedDefaultCondition;
+      const nextCond: CourseSearchCondition = initialCondition ?? resolvedDefaultCondition;
       setCondition({ ...nextCond });
       setKeyword(nextCond.keyword || "");
     }, 0);
