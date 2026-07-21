@@ -42,30 +42,24 @@ export const CourseSearchBar = memo(function CourseSearchBar({
   const [keyword, setKeyword] = useState(() => initialCondition?.keyword || "");
   const prevInitialRef = useRef(initialSnapshot);
   const isFocusedRef = useRef(false);
+  const isSyncingRef = useRef(false);
 
   /**
    * 외부에서 전달된 초기 검색 조건이 실질적으로 변경될 경우(예: 필터 칩 삭제)
-   * 로컬 상태를 갱신합니다.
+   * 로컬 상태를 갱신합니다. (isSyncingRef 플래그로 부모 onConditionChange 무한 루프 차단)
    */
   useEffect(() => {
     const nextSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
     if (nextSnapshot === prevInitialRef.current) return;
 
     prevInitialRef.current = nextSnapshot;
+    const nextCond: CourseSearchCondition = initialCondition ?? resolvedDefaultCondition;
 
-    // 사용자가 인풋창에 직접 포커스하여 타이핑 중인 동안에는 외부 Sync로 keyword 상태를 흔들지 않음 (커서 깜빡임 원천 방지)
-    if (isFocusedRef.current) {
-      setCondition({ ...(initialCondition ?? resolvedDefaultCondition) });
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      const nextCond: CourseSearchCondition = initialCondition ?? resolvedDefaultCondition;
-      setCondition({ ...nextCond });
+    isSyncingRef.current = true;
+    setCondition({ ...nextCond });
+    if (!isFocusedRef.current) {
       setKeyword(nextCond.keyword || "");
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
+    }
   }, [initialCondition, resolvedDefaultCondition]);
   
   // UI 상태: 접기/펼치기
@@ -74,11 +68,14 @@ export const CourseSearchBar = memo(function CourseSearchBar({
   const [detailOpen, setDetailOpen] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
-
   /**
-   * 로컬 검색 조건이 변경될 때 상위 컴포넌트에 알립니다.
+   * 사용자가 자식 컴포넌트 내부에서 조작하여 로컬 검색 조건을 변경할 때만 상위 컴포넌트에 알립니다.
    */
   useEffect(() => {
+    if (isSyncingRef.current) {
+      isSyncingRef.current = false;
+      return;
+    }
     onConditionChange?.(condition);
   }, [condition, onConditionChange]);
 
