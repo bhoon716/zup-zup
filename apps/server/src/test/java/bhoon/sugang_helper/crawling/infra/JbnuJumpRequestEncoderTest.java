@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 
 class JbnuJumpRequestEncoderTest {
 
+    private static final String XB_DATA_PREFIX = "xb_data=";
+
     @Test
     void serializesDataMapWithJumpEnvelopeAndEncryptsIt() throws Exception {
         Map<String, String> values = new LinkedHashMap<>();
@@ -22,8 +24,8 @@ class JbnuJumpRequestEncoderTest {
 
         String encoded = JbnuJumpRequestEncoder.encode(values);
 
-        assertThat(encoded).startsWith("xb_data=");
-        String cipherText = URLDecoder.decode(encoded.substring("xb_data=".length()), StandardCharsets.UTF_8);
+        assertThat(encoded).startsWith(XB_DATA_PREFIX);
+        String cipherText = URLDecoder.decode(encoded.substring(XB_DATA_PREFIX.length()), StandardCharsets.UTF_8);
         String store = JbnuJumpRequestEncoder.derivedStore();
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(store.getBytes(StandardCharsets.UTF_8), "AES"),
@@ -54,8 +56,8 @@ class JbnuJumpRequestEncoderTest {
 
         String encoded = JbnuJumpRequestEncoder.encode(values);
 
-        assertThat(encoded).startsWith("xb_data=");
-        String cipherText = URLDecoder.decode(encoded.substring("xb_data=".length()), StandardCharsets.UTF_8);
+        assertThat(encoded).startsWith(XB_DATA_PREFIX);
+        String cipherText = URLDecoder.decode(encoded.substring(XB_DATA_PREFIX.length()), StandardCharsets.UTF_8);
         String store = JbnuJumpRequestEncoder.derivedStore();
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(store.getBytes(StandardCharsets.UTF_8), "AES"),
