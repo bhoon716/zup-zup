@@ -2,6 +2,8 @@ package bhoon.sugang_helper.crawling.application;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.course.domain.CourseAccreditation;
 import bhoon.sugang_helper.course.domain.CourseClassification;
@@ -64,7 +66,7 @@ public class JbnuCourseParser {
             String jsonData = new String(responseStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
             return parseJumpCourses(jsonData, year, semester).iterator();
         } catch (IOException e) {
-            throw new IllegalArgumentException("Malformed crawler JSON", e);
+            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "Malformed crawler JSON: " + e.getMessage());
         }
     }
 
@@ -73,17 +75,18 @@ public class JbnuCourseParser {
         try {
             JsonNode root = OBJECT_MAPPER.readTree(jsonData);
             if (root == null || !root.isObject()) {
-                throw new IllegalArgumentException("JUMP response must be a JSON object");
+                throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP response must be a JSON object");
             }
             if (root.hasNonNull("ERRMSGINFO")) {
-                throw new IllegalArgumentException("JUMP returned an error envelope");
+                throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR, 
+                        "JUMP returned an error envelope: " + root.get("ERRMSGINFO").toString());
             }
             JsonNode rows = root.get("dsEstSbjList");
             if (rows == null || !rows.isArray()) {
-                throw new IllegalArgumentException("JUMP response is missing dsEstSbjList");
+                throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP response is missing dsEstSbjList");
             }
             if (rows.isEmpty()) {
-                throw new IllegalArgumentException("JUMP course list is empty");
+                throw new CustomException(ErrorCode.CRAWLER_NO_DATA, "JUMP course list is empty");
             }
             int rowIndex = 0;
             for (JsonNode row : rows) {
@@ -98,13 +101,13 @@ public class JbnuCourseParser {
             }
             return courseList;
         } catch (IOException e) {
-            throw new IllegalArgumentException("Malformed crawler JSON", e);
+            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "Malformed crawler JSON: " + e.getMessage());
         }
     }
 
     private ParsedCourseDto processJumpRow(JsonNode row, String fallbackYear, String fallbackSemester) {
         if (row == null || !row.isObject()) {
-            throw new IllegalArgumentException("JUMP course row must be a JSON object");
+            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP course row must be a JSON object");
         }
         String subjectCode = jsonValue(row, "SBJCT_CD");
         String classNumber = jsonValue(row, "DVCLS_NO");
@@ -113,7 +116,7 @@ public class JbnuCourseParser {
                 ? fallbackSemester
                 : jsonValue(row, "SEMSTR_CD");
         if (subjectCode == null || classNumber == null || year == null || semester == null) {
-            throw new IllegalArgumentException("JUMP course row is missing required identity fields");
+            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP course row is missing required identity fields");
         }
         String stdtrNo = normalizeCourseNumber(jsonValue(row, "STDTR_NO"));
 

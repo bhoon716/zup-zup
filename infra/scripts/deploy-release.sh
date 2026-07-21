@@ -73,6 +73,20 @@ read_env_value() {
   awk -F= -v wanted="${key}" '$1 == wanted { sub(/^[^=]*=/, ""); print; exit }' "${RUNTIME_ENV}"
 }
 
+require_app_env() {
+  local key="$1"
+  local value
+  value="$(awk -F= -v wanted="${key}" '$1 == wanted { sub(/^[^=]*=/, ""); print; exit }' "${staging_dir}/apps/server/.env")"
+  if [ -z "${value}" ]; then
+    fail "${key} is missing from staging apps/server/.env"
+  fi
+}
+
+stage="app-env-preflight"
+require_app_env GOOGLE_CLIENT_ID
+require_app_env GOOGLE_CLIENT_SECRET
+require_app_env GOOGLE_REDIRECT_URI
+
 app_image_name="$(read_env_value APP_IMAGE_NAME)"
 flyway_image="$(read_env_value FLYWAY_IMAGE)"
 if [[ "${app_image_name}" != ghcr.io/* ]]; then

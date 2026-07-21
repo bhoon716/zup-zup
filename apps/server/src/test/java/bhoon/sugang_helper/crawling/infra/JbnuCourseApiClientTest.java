@@ -24,6 +24,7 @@ class JbnuCourseApiClientTest {
         JbnuCourseApiClient client = new JbnuCourseApiClient();
         ReflectionTestUtils.setField(client, "apiUrl", apiUrl);
         ReflectionTestUtils.setField(client, "bootstrapUrl", bootstrapUrl);
+        ReflectionTestUtils.setField(client, "certDivision", "");
         ReflectionTestUtils.setField(client, "timeoutMs", 30_000);
         ReflectionTestUtils.setField(client, "maxRetries", 0);
         ReflectionTestUtils.setField(client, "maximumResponseBytes", 10 * 1024 * 1024);

@@ -63,6 +63,7 @@ require_deploy('readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"', "fixed
 require_deploy('readonly STAGING_ROOT="${RELEASE_ROOT}/.staging"', "ephemeral staging root is missing")
 require_deploy('APP_ENV_FILE="${RELEASE_ROOT}/apps/server/.env"', "deploy must use apps/server/.env")
 require_deploy('RUNTIME_ENV="${RELEASE_ROOT}/.env"', "deploy must use the root .env runtime contract")
+require_deploy('require_app_env GOOGLE_REDIRECT_URI', "deploy must validate the Google OAuth redirect URI")
 require_deploy('rm -f -- "${runtime_env}"', "temporary Compose environment must be removed after deploy")
 require_deploy("pull app", "deploy must pull the selected app image")
 require_deploy("--profile migration run --rm --no-deps migrate migrate", "deploy must run one-shot Flyway migration")
