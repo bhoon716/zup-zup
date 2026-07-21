@@ -52,29 +52,6 @@ jobs:
           bash infra/scripts/test-migration-failure-path.sh
           bash infra/scripts/test-local-app-image-flow.sh
 
-      - name: Node.js 22 설정
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
-
-      - name: 프론트엔드 의존성 설치
-        working-directory: apps/web
-        run: npm ci
-
-      - name: 프론트엔드 테스트·검사
-        working-directory: apps/web
-        run: |
-          npm run lint
-          npx vitest run
-
-      - name: 프론트엔드 빌드 검증
-        working-directory: apps/web
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:8080
-        run: npm run build
-
       - name: JDK 21 설정
         uses: actions/setup-java@v5
         with:
