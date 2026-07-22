@@ -61,18 +61,22 @@ describe("강의 리뷰 훅", () => {
 
   const REVIEW_SCOPE_KEY = getReviewScopeKey(MOCK_COURSE);
 
-  it("교수명이 비어 있거나 '교수 미지정'이어도 같은 리뷰 키를 사용한다", () => {
+  it("교수 미지정 값은 강의별로, 외부교원N은 교수별로 리뷰 키를 사용한다", () => {
     const rawCourse = {
+      courseKey: COURSE_KEY,
       subjectCode: "CSE101",
       professor: "",
     } as Course;
 
     const normalizedCourse = normalizeCourse({
+      courseKey: COURSE_KEY,
       subjectCode: "CSE101",
     });
 
-    expect(getReviewScopeKey(rawCourse)).toBe("CSE101::");
-    expect(getReviewScopeKey(normalizedCourse)).toBe("CSE101::");
+    expect(getReviewScopeKey(rawCourse)).toBe(`course:${COURSE_KEY}`);
+    expect(getReviewScopeKey(normalizedCourse)).toBe(`course:${COURSE_KEY}`);
+    expect(getReviewScopeKey({ courseKey: COURSE_KEY, subjectCode: "CSE101", professor: "외부교원1" }))
+      .toBe("CSE101::외부교원1");
   });
 
   const MOCK_REVIEW: ReviewResponse = {

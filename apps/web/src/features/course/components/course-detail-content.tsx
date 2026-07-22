@@ -4,11 +4,10 @@ import { AlertCircle, Clock3, User, Users } from "lucide-react";
 import type { Course } from "@/shared/types/api";
 import { formatClassification, formatDayOfWeek, formatGradingMethod, formatLanguage, formatRelativeTime, formatTargetGrade } from "@/shared/lib/formatters";
 import { cn } from "@/shared/lib/utils";
-import { normalizeCourse } from "@/shared/lib/course";
+import { getReviewScopeKey, hasIdentifiableProfessor, normalizeCourse } from "@/shared/lib/course";
 import { getCampusMapQuery } from "@/shared/lib/map-links";
 import { KakaoMapEmbed } from "@/shared/ui/kakao-map-embed";
 import { CourseReviewSection } from "@/features/review/components/course-review-section";
-import { getReviewScopeKey } from "@/shared/lib/course";
 
 interface CourseDetailContentProps {
   course: Course;
@@ -20,6 +19,7 @@ interface CourseDetailContentProps {
  */
 export function CourseDetailContent({ course: rawCourse }: CourseDetailContentProps) {
   const reviewScopeKey = getReviewScopeKey(rawCourse);
+  const isProfessorUnassigned = !hasIdentifiableProfessor(rawCourse);
   const course = normalizeCourse(rawCourse);
   const capacity = course.capacity ?? 0;
   const current = course.current ?? 0;
@@ -60,6 +60,7 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
         averageRating={course.averageRating}
         reviewCount={course.reviewCount}
         isReviewed={course.isReviewed}
+        isProfessorUnassigned={isProfessorUnassigned}
       />
     </div>
   );

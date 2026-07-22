@@ -63,8 +63,7 @@ public class CourseReviewService {
         Course course = getCourseForUpdate(courseKey);
         ReviewScopeKey scope = ReviewScopeKey.from(course);
 
-        if (reviewRepository.countBySubjectCodeAndProfessorAndUserId(scope.subjectCode(), scope.professor(),
-                user.getId()) > 0) {
+        if (hasReviewForScope(course, scope, user.getId())) {
             throw new CustomException(ErrorCode.REVIEW_ALREADY_EXISTS);
         }
 
@@ -92,8 +91,7 @@ public class CourseReviewService {
         Course course = getCourse(courseKey);
         ReviewScopeKey scope = ReviewScopeKey.from(course);
 
-        return reviewRepository.findBySubjectCodeAndProfessorWithMyReviewFirst(scope.subjectCode(), scope.professor(),
-                        currentUserId, PageableGuard.requireBounded(pageable))
+        return findReviewsForScope(course, scope, currentUserId, PageableGuard.requireBounded(pageable))
                 .map(review -> ReviewResponse.of(review, currentUserId));
     }
 
@@ -226,10 +224,36 @@ public class CourseReviewService {
      */
     private void updateCourseReviewStats(Course course) {
         ReviewScopeKey scope = ReviewScopeKey.from(course);
+        if (!scope.hasIdentifiableProfessor()) {
+            long count = reviewRepository.countByCourseKey(course.getCourseKey());
+            Double avg = reviewRepository.getAverageRatingByCourseKey(course.getCourseKey());
+            course.updateReviewStats(avg != null ? avg.floatValue() : 0.0f, (int) count);
+            return;
+        }
+
         long count = reviewRepository.countBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor());
         Double avg = reviewRepository.getAverageRatingBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor());
         courseRepository.findBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor())
                 .forEach(target -> target.updateReviewStats(avg != null ? avg.floatValue() : 0.0f, (int) count));
+    }
+
+    private boolean hasReviewForScope(Course course, ReviewScopeKey scope, Long userId) {
+        if (!scope.hasIdentifiableProfessor()) {
+            return reviewRepository.existsByCourseKeyAndUserId(course.getCourseKey(), userId);
+        }
+
+        return reviewRepository.countBySubjectCodeAndProfessorAndUserId(
+                scope.subjectCode(), scope.professor(), userId) > 0;
+    }
+
+    private Page<CourseReview> findReviewsForScope(Course course, ReviewScopeKey scope, Long currentUserId,
+                                                    Pageable pageable) {
+        if (!scope.hasIdentifiableProfessor()) {
+            return reviewRepository.findByCourseKeyWithMyReviewFirst(course.getCourseKey(), currentUserId, pageable);
+        }
+
+        return reviewRepository.findBySubjectCodeAndProfessorWithMyReviewFirst(
+                scope.subjectCode(), scope.professor(), currentUserId, pageable);
     }
 
     private Course getCourse(String courseKey) {
