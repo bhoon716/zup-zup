@@ -28,7 +28,8 @@ class MigrationValidationTaskConfigurationTest {
 
         assertThat(workflow)
                 .contains("name: PR CI")
-                .contains("image: mysql:latest")
+                .contains("image: mysql:8.4")
+                .doesNotContain("image: mysql:latest")
                 .contains("name: Flyway migrate (fresh CI database)")
                 .contains("name: Flyway validate (after migration)")
                 .contains("./gradlew clean check --no-daemon");

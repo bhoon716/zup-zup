@@ -19,6 +19,7 @@ class FlywayMigrationValidationTest {
     private static final String DATABASE_NAME = "sugang_helper";
     private static final String DATABASE_USER = "test";
     private static final String DATABASE_PASSWORD = "test";
+    private static final String MYSQL_IMAGE = "mysql:8.4";
     private static final String MIGRATION_LOCATION = "classpath:db/migration";
     private static final String DELIVERY_TABLE_NAME = "seat_notification_deliveries";
     private static final String COURSES_TABLE_NAME = "courses";
@@ -100,7 +101,7 @@ class FlywayMigrationValidationTest {
 
     @Test
     void freshMySqlSchemaMigratesAndSeedsCrawlerSettings() {
-        try (MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
+        try (MySQLContainer<?> mysql = new MySQLContainer<>(MYSQL_IMAGE)
                 .withDatabaseName(DATABASE_NAME)
                 .withUsername(DATABASE_USER)
                 .withPassword(DATABASE_PASSWORD)
@@ -157,7 +158,7 @@ class FlywayMigrationValidationTest {
 
     @Test
     void existingSchemaHistoryValidatesBeforeApplyingNewMigrations() {
-        try (MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
+        try (MySQLContainer<?> mysql = new MySQLContainer<>(MYSQL_IMAGE)
                 .withDatabaseName(DATABASE_NAME)
                 .withUsername(DATABASE_USER)
                 .withPassword(DATABASE_PASSWORD)) {

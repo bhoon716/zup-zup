@@ -48,6 +48,8 @@ with open(sys.argv[1], encoding="utf-8") as handle:
 services = compose["services"]
 if set(services) != {"app", "db", "redis", "migrate"}:
     raise SystemExit(f"local Compose must contain only app/db/redis/migrate: {sorted(services)}")
+if services["db"].get("image") != "mysql:8.4":
+    raise SystemExit("local DB image must be pinned to the MySQL 8.4 LTS release line")
 
 def env_map(service):
     environment = service.get("environment", {})

@@ -29,7 +29,7 @@ services:
 
 volumes:
   local_db_data:
-    name: sugang-helper-local-db-data
+    name: ${LOCAL_DB_VOLUME_NAME:-sugang-helper-local-db-data}
     external: true
   local_app_uploads:
     name: sugang-helper-local-app-uploads
