@@ -1,5 +1,0 @@
-{
-  "issue": {"id": "ISSUE-094-SERVER-ANNOUNCEMENT-PAGINATION-SEARCH", "type": "feature-dev", "title": "[server] 공지사항 public/admin 목록·검색을 bounded pagination으로 변경", "state": "closed", "workflowId": "audit", "directory": "ISSUE-094-SERVER-ANNOUNCEMENT-PAGINATION-SEARCH", "createdAt": "2026-07-13T00:00:00+09:00", "updatedAt": "2026-07-13T17:32:00+09:00", "goal": "공지사항 증가가 단일 요청의 메모리·DB 비용을 선형으로 키우지 않게 한다.", "acceptanceCriteria": ["public/admin/search가 bounded Page/Slice다.", "keyword와 ordering 계약이 유지된다.", "query latency와 경계 테스트가 있다."], "dependencies": ["ISSUE-093-SERVER-API-PAGINATION-GUARDS"], "evidenceRequired": ["repository/service/controller diff", "API contract test", "query plan/latency evidence"]},
-  "description": "공지사항 service가 pageable overload와 검색 상한을 사용하지 않고 전체 List를 반환한다.",
-  "workflowState": {"workflowId": "audit", "currentStep": "Closed", "completedSteps": ["Created", "Investigation", "Implementation", "Verification", "Closed"], "failedSteps": [], "blocked": false, "updatedAt": "2026-07-13T17:32:00+09:00"}
-}

@@ -1,5 +1,0 @@
-{
-  "issue": {"id": "ISSUE-102-CI-E2E-CRITICAL-FLOWS", "type": "feature-dev", "title": "[ci] OAuth·refresh·첨부파일·알림 핵심 흐름의 E2E/contract coverage 추가", "state": "closed", "workflowId": "audit", "directory": "ISSUE-102-CI-E2E-CRITICAL-FLOWS", "createdAt": "2026-07-13T00:00:00+09:00", "updatedAt": "2026-07-13T17:40:00+09:00", "goal": "보안·알림·관리자 UX의 cross-layer 회귀를 CI에서 잡는다.", "acceptanceCriteria": ["핵심 browser flow가 있다.", "provider contract와 outbox crash/replay가 HTTP 경계에서 검증된다.", "smoke/nightly 실행 정책이 CI에 있다."], "dependencies": ["ISSUE-081-SERVER-OWNERSHIP-CHECK-DEVICE-TOKEN", "ISSUE-086-WEB-AUTHENTICATED-ATTACHMENT-RENDERING", "ISSUE-088-SERVER-NOTIFICATION-IDEMPOTENCY-DLQ-REPLAY"], "evidenceRequired": ["E2E project/config", "CI workflow", "failure artifact"]},
-  "description": "OAuth·refresh·첨부파일·provider·Outbox 운영 경계를 실제 browser/HTTP 흐름으로 검증하는 E2E가 없다.",
-  "workflowState": {"workflowId": "audit", "currentStep": "Closed", "completedSteps": ["Created", "Investigation", "Implementation", "Verification", "Closed"], "failedSteps": [], "blocked": false, "updatedAt": "2026-07-13T17:40:00+09:00"}
-}
