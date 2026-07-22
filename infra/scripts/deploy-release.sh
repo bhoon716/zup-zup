@@ -7,6 +7,7 @@ readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"
 readonly STAGING_ROOT="${RELEASE_ROOT}/.staging"
 readonly RUNTIME_ENV="${RELEASE_ROOT}/.env"
 readonly APP_ENV_FILE="${RELEASE_ROOT}/apps/server/.env"
+readonly PRODUCTION_GOOGLE_REDIRECT_URI="https://www.zup-zup.com/api/login/oauth2/code/google"
 
 sha="${1:-}"
 staging_dir="${2:-}"
@@ -20,6 +21,47 @@ fail() {
   echo "deploy failed at ${stage}: $*" >&2
   exit 1
 }
+
+read_required_app_env_value() {
+  local env_file="$1"
+  local key="$2"
+  local count
+  local value
+  count="$(awk -F= -v wanted="${key}" '$1 == wanted { count++ } END { print count + 0 }' "${env_file}")"
+  if [ "${count}" -ne 1 ]; then
+    fail "${key} must appear exactly once in staging apps/server/.env"
+  fi
+  value="$(awk -F= -v wanted="${key}" '$1 == wanted { sub(/^[^=]*=/, ""); print }' "${env_file}")"
+  value="$(printf '%s' "${value%$'\r'}" | awk '{ sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); print }')"
+  if [[ "${value}" == \"*\" && "${value}" == *\" ]] \
+    || [[ "${value}" == \'*\' && "${value}" == *\' ]]; then
+    value="${value:1:${#value}-2}"
+  fi
+  if [ -z "${value}" ]; then
+    fail "${key} must not be empty in staging apps/server/.env"
+  fi
+  printf '%s' "${value}"
+}
+
+validate_app_env_file() {
+  local env_file="$1"
+  local google_redirect_uri
+  if [ ! -f "${env_file}" ]; then
+    fail "staging apps/server/.env is missing"
+  fi
+  read_required_app_env_value "${env_file}" GOOGLE_CLIENT_ID >/dev/null
+  read_required_app_env_value "${env_file}" GOOGLE_CLIENT_SECRET >/dev/null
+  google_redirect_uri="$(read_required_app_env_value "${env_file}" GOOGLE_REDIRECT_URI)"
+  if [ "${google_redirect_uri}" != "${PRODUCTION_GOOGLE_REDIRECT_URI}" ]; then
+    fail "GOOGLE_REDIRECT_URI must match the production browser callback"
+  fi
+}
+
+if [ "${sha}" = "--validate-app-env" ]; then
+  stage="app-env-preflight"
+  validate_app_env_file "${staging_dir}"
+  exit 0
+fi
 
 cleanup() {
   local rc=$?
@@ -73,19 +115,8 @@ read_env_value() {
   awk -F= -v wanted="${key}" '$1 == wanted { sub(/^[^=]*=/, ""); print; exit }' "${RUNTIME_ENV}"
 }
 
-require_app_env() {
-  local key="$1"
-  local value
-  value="$(awk -F= -v wanted="${key}" '$1 == wanted { sub(/^[^=]*=/, ""); print; exit }' "${staging_dir}/apps/server/.env")"
-  if [ -z "${value}" ]; then
-    fail "${key} is missing from staging apps/server/.env"
-  fi
-}
-
 stage="app-env-preflight"
-require_app_env GOOGLE_CLIENT_ID
-require_app_env GOOGLE_CLIENT_SECRET
-require_app_env GOOGLE_REDIRECT_URI
+validate_app_env_file "${staging_dir}/apps/server/.env"
 
 app_image_name="$(read_env_value APP_IMAGE_NAME)"
 flyway_image="$(read_env_value FLYWAY_IMAGE)"

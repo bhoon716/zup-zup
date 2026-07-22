@@ -2,7 +2,9 @@ package bhoon.sugang_helper.common.security.oauth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -29,11 +32,36 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 class CustomOAuth2UserServiceTest {
 
     private static final String EMAIL = "rejoined@example.com";
+    private static final String GOOGLE_SUBJECT = "google-subject";
 
     @Mock
     private UserRepository userRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Test
+    void existingGoogleIdentityLogsInWithoutCreatingAnotherAccount() {
+        User existingUser = User.builder()
+                .id(1L)
+                .email(EMAIL)
+                .name("기존 사용자")
+                .role(Role.USER)
+                .build();
+        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(existingUser));
+        OAuth2User delegateUser = new DefaultOAuth2User(
+                Collections.singleton(new SimpleGrantedAuthority(Role.USER.getKey())),
+                Map.of("email", EMAIL, "name", "기존 사용자", "sub", GOOGLE_SUBJECT), "sub");
+        CustomOAuth2UserService service = serviceReturning(delegateUser);
+
+        OAuth2User result = service.loadUser(oauth2UserRequest());
+
+        assertThat(result.getName()).isEqualTo(GOOGLE_SUBJECT);
+        assertThat(result.getAuthorities())
+                .extracting(GrantedAuthority::getAuthority)
+                .containsExactly(Role.USER.getKey());
+        verify(userRepository, never()).save(org.mockito.ArgumentMatchers.<User>any());
+        verifyNoInteractions(eventPublisher);
+    }
 
     @Test
     void withdrawnGoogleIdentityCreatesANewAccountInsteadOfRestoringTheSoftDeletedAccount() {
@@ -57,21 +85,25 @@ class CustomOAuth2UserServiceTest {
 
         OAuth2User delegateUser = new DefaultOAuth2User(
                 Collections.singleton(new SimpleGrantedAuthority(Role.USER.getKey())),
-                Map.of("email", EMAIL, "name", "새 사용자", "sub", "google-subject"), "sub");
-        CustomOAuth2UserService service = new CustomOAuth2UserService(userRepository, eventPublisher) {
+                Map.of("email", EMAIL, "name", "새 사용자", "sub", GOOGLE_SUBJECT), "sub");
+        CustomOAuth2UserService service = serviceReturning(delegateUser);
+
+        OAuth2User result = service.loadUser(oauth2UserRequest());
+
+        assertThat(withdrawnUser.isDeleted()).isTrue();
+        assertThat(result.getName()).isEqualTo(GOOGLE_SUBJECT);
+        verify(userRepository).save(org.mockito.ArgumentMatchers.<User>argThat(user -> user.getEmail().equals(EMAIL)
+                && user.getName().equals("새 사용자") && user.getRole() == Role.USER));
+        verify(eventPublisher).publishEvent(new UserRegisteredEvent(2L, EMAIL));
+    }
+
+    private CustomOAuth2UserService serviceReturning(OAuth2User delegateUser) {
+        return new CustomOAuth2UserService(userRepository, eventPublisher) {
             @Override
             protected OAuth2User getDelegateUser(OAuth2UserRequest userRequest) {
                 return delegateUser;
             }
         };
-
-        OAuth2User result = service.loadUser(oauth2UserRequest());
-
-        assertThat(withdrawnUser.isDeleted()).isTrue();
-        assertThat(result.getName()).isEqualTo("google-subject");
-        verify(userRepository).save(org.mockito.ArgumentMatchers.<User>argThat(user -> user.getEmail().equals(EMAIL)
-                && user.getName().equals("새 사용자") && user.getRole() == Role.USER));
-        verify(eventPublisher).publishEvent(new UserRegisteredEvent(2L, EMAIL));
     }
 
     private OAuth2UserRequest oauth2UserRequest() {
