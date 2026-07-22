@@ -23,6 +23,12 @@
 
 OCI Compose runtime 값은 `/home/ubuntu/jbnu-sugang-helper/.env`에 운영자가 한 번 입력한다. `apps/server/.env`에는 앱 전용 값만 둔다. GHCR token은 별도 secret으로 저장하지 않고, CD가 단기 `GITHUB_TOKEN`으로 원격 login/logout한다.
 
+`Repository variables`에는 다음 공개 값을 등록한다.
+
+- `SSH_HOST_PUBLIC_KEY`: OCI `/etc/ssh/ssh_host_ed25519_key.pub`의 `ssh-ed25519` 공개키. hostname 주석은 생략할 수 있다. `ssh-keyscan` 결과를 검증 없이 등록하지 않는다.
+
+CD는 이 값으로 전용 `known_hosts`를 만들고 `StrictHostKeyChecking=yes`로 서버 신원을 먼저 확인한다. 값이 없거나 실제 서버 key와 다르면 `SERVER_DOTENV` staging과 SCP 전에 실패한다.
+
 ## Actions 권한
 
 - workflow 기본 권한은 `contents: read`
