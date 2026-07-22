@@ -51,6 +51,7 @@ jobs:
           bash infra/scripts/test-release-layout-contract.sh
           bash infra/scripts/test-migration-failure-path.sh
           bash infra/scripts/test-local-app-image-flow.sh
+          bash infra/scripts/test-redis-auth-state-recovery.sh
 
       - name: JDK 21 설정
         uses: actions/setup-java@v5

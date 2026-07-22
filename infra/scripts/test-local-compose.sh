@@ -75,8 +75,8 @@ if volume_source("db", "/var/lib/mysql") != "local_db_data":
     raise SystemExit("local DB must use its named volume")
 if volume_source("app", "/app/data/uploads") != "local_app_uploads":
     raise SystemExit("local uploads must use their named volume")
-if services["redis"].get("volumes"):
-    raise SystemExit("local Redis must remain ephemeral")
+if volume_source("redis", "/data") != "local_redis_data":
+    raise SystemExit("local Redis must preserve authentication state through a named volume")
 
 if services["app"].get("build", {}).get("dockerfile") != "Dockerfile.local":
     raise SystemExit("local Compose must build through Dockerfile.local so one command is sufficient")
@@ -85,6 +85,7 @@ volumes = compose.get("volumes", {})
 expected_volume_names = {
     "local_db_data": "sugang-helper-local-db-data",
     "local_app_uploads": "sugang-helper-local-app-uploads",
+    "local_redis_data": "sugang-helper-local-redis-data",
 }
 for name, expected_name in expected_volume_names.items():
     if name not in volumes:

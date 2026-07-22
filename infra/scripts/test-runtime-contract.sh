@@ -90,10 +90,17 @@ if not redis_environment.get("REDIS_PASSWORD"):
 redis_command = services["redis"].get("command", [])
 if isinstance(redis_command, list):
     redis_command = " ".join(str(part) for part in redis_command)
-if "--appendonly no" not in str(redis_command) or "--save" not in str(redis_command):
-    fail("redis must be explicitly ephemeral")
-if services["redis"].get("volumes"):
-    fail("redis must not mount persistent data")
+if "--appendonly yes" not in str(redis_command) or "--appendfsync everysec" not in str(redis_command):
+    fail("redis must persist authentication state through AOF every second")
+redis_mounts = {str(item.get("target")): item for item in services["redis"].get("volumes", [])}
+if set(redis_mounts) != {"/data"}:
+    fail("redis must mount only its persistent /data volume")
+if redis_mounts["/data"].get("type") != "volume":
+    fail("redis /data must use a named volume")
+redis_health_test = " ".join(str(part) for part in services["redis"].get("healthcheck", {}).get("test", []))
+for required in ("aof_enabled:1", "aof_last_write_status:ok"):
+    if required not in redis_health_test:
+        fail(f"redis healthcheck must fail when AOF persistence is unhealthy: {required}")
 
 app_environment = env_map(services["app"])
 if any(key.startswith(("DB_", "MYSQL_", "FLYWAY_")) for key in app_environment):
@@ -158,6 +165,14 @@ if db_volume.get("driver_opts"):
     fail("db_data must not bind to a host Block Volume path")
 if db_volume.get("name") != "sugang-helper-db-data":
     fail(f"db_data must reuse the reviewed named volume: {db_volume.get('name')!r}")
+
+redis_volume = compose.get("volumes", {}).get("redis_data", {})
+if redis_volume.get("driver") != "local":
+    fail("redis_data must use the local Docker volume driver")
+if redis_volume.get("driver_opts"):
+    fail("redis_data must not bind to a host path")
+if redis_volume.get("name") != "sugang-helper-redis-data":
+    fail(f"redis_data must use the reviewed named volume: {redis_volume.get('name')!r}")
 
 print("runtime Compose contract passed")
 PY

@@ -40,13 +40,17 @@ services:
       - --requirepass
       - ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
       - --appendonly
-      - "no"
+      - "yes"
+      - --appendfsync
+      - everysec
       - --save
       - ""
+    volumes:
+      - redis_data:/data
     networks:
       - sugang-helper-runtime
     healthcheck:
-      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -qx PONG"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -qx PONG && REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli INFO persistence | grep -q 'aof_enabled:1' && REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli INFO persistence | grep -q 'aof_last_write_status:ok'"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -282,7 +286,7 @@ services:
 
 networks:
   sugang-helper-runtime:
-    name: sugang-helper-runtime
+    name: ${RUNTIME_NETWORK_NAME:-sugang-helper-runtime}
     driver: bridge
     internal: true
     driver_opts:
@@ -296,6 +300,9 @@ networks:
 volumes:
   db_data:
     name: ${DB_VOLUME_NAME:-sugang-helper-db-data}
+    driver: local
+  redis_data:
+    name: ${REDIS_VOLUME_NAME:-sugang-helper-redis-data}
     driver: local
   app_uploads:
     name: ${APP_UPLOAD_VOLUME_NAME:-sugang-helper-app-uploads}

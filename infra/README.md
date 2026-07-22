@@ -8,7 +8,7 @@
 | --- | --- |
 | 앱 | `linux/arm64` commit SHA 이미지. 로컬에서는 Compose build, 운영에서는 GHCR pull |
 | MySQL | Docker가 관리하는 `sugang-helper-db-data` named volume. OCI 인스턴스 로컬 백업 script가 logical dump를 주기적으로 저장 |
-| Redis | 캐시·임시 데이터. persistence와 host port를 제공하지 않음 |
+| Redis | 인증 철회·refresh·session 상태를 AOF와 named volume에 보존. host port와 host-loss backup은 제공하지 않음 |
 | 공개 edge | OCI에 이미 설치된 Nginx Proxy Manager(NPM)가 80/443, TLS, upstream proxy를 담당. 저장소와 앱 CD는 NPM 상태를 관리하지 않음 |
 | 관측 | 앱 Actuator metrics는 Prometheus, 로그는 Loki + Grafana Alloy + Grafana를 `observability` profile로 운영. host exporter·cAdvisor·Alertmanager는 넣지 않음 |
 
@@ -55,7 +55,7 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 
 이미 migration history가 있는 DB를 배포할 때는 운영 runbook대로 `validate` 성공 후 `migrate`를 실행합니다. `docker compose up` 자체는 DB schema를 자동 변경하지 않습니다.
 
-로컬 Redis에는 volume이 없으므로 컨테이너를 재생성하면 데이터가 사라집니다. MySQL은 `sugang-helper-local-db-data` named volume을 사용합니다.
+로컬 Redis도 `sugang-helper-local-redis-data` named volume과 AOF를 사용하므로 컨테이너를 재생성해도 인증 상태가 유지됩니다. `docker compose down --volumes`는 테스트·초기화 목적으로 이 상태를 의도적으로 삭제합니다. MySQL은 `sugang-helper-local-db-data` named volume을 사용합니다.
 
 ## Compose 계약 검증
 
@@ -64,6 +64,7 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 ```bash
 ./scripts/test-runtime-contract.sh
 ./scripts/test-local-compose.sh
+./scripts/test-redis-auth-state-recovery.sh
 ./scripts/verify-compose-policy.sh docker-compose.yml
 ./scripts/verify-log-policy.sh
 ```
