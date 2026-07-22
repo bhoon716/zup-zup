@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import SearchPage from "./page";
@@ -90,5 +91,21 @@ describe("SearchPage", () => {
     render(<SearchPage />);
 
     expect(mockSetUser).not.toHaveBeenCalled();
+  });
+
+  it("모바일 검색어를 로컬에서 편집하고 전체 초기화와 동기화한다", async () => {
+    const user = userEvent.setup();
+    render(<SearchPage />);
+
+    const getKeywordInput = () => screen.getByPlaceholderText("강의명 또는 학수번호를 입력하세요");
+    await user.type(getKeywordInput(), "자료구조");
+    await user.click(screen.getByRole("button", { name: "검색" }));
+
+    expect(getKeywordInput()).toHaveValue("자료구조");
+    await user.clear(getKeywordInput());
+    await user.type(getKeywordInput(), "미적분");
+    await user.click(screen.getByRole("button", { name: "초기화" }));
+
+    expect(getKeywordInput()).toHaveValue("");
   });
 });

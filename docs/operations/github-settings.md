@@ -12,6 +12,13 @@
 - force push/delete branch는 저장소 기본 보호 정책에 맞춰 금지
 - E2E workflow는 필수 check로 추가하지 않음. 수동/주기 workflow로만 실행
 
+2026-07-22 GitHub API 확인·적용 결과:
+
+- `main`은 pull request를 거쳐야 하며 승인 수는 0이다.
+- required status check는 `CI`이고 up-to-date branch 요구는 사용하지 않는다.
+- 관리자에게도 보호 규칙을 적용하며 force push와 branch 삭제를 허용하지 않는다.
+- repository ruleset은 별도로 사용하지 않는다.
+
 ## Actions secrets and variables
 
 저장소 `Settings → Secrets and variables → Actions`의 `Repository secrets`에 다음 네 값을 등록한다. CD workflow는 Environment를 사용하지 않는다.
