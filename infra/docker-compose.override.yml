@@ -5,6 +5,10 @@ services:
     volumes: !override
       - local_db_data:/var/lib/mysql
 
+  redis:
+    volumes: !override
+      - local_redis_data:/data
+
   app:
     build:
       dockerfile: Dockerfile.local
@@ -28,3 +32,5 @@ volumes:
     name: sugang-helper-local-db-data
   local_app_uploads:
     name: sugang-helper-local-app-uploads
+  local_redis_data:
+    name: sugang-helper-local-redis-data

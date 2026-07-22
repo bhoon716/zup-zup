@@ -147,6 +147,20 @@ describe("CourseReviewSection", () => {
     expect(screen.getByText("(0개)")).toBeInTheDocument();
   });
 
+  it("교수 정보가 미지정이면 이전 학기 이모지 반응을 연결하지 않는다고 안내한다", () => {
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey="course:TEST-COURSE"
+        isProfessorUnassigned
+      />
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "교수 정보가 없어 이전 학기 반응과 자동 연결하지 않았습니다."
+    );
+  });
+
   it("별점을 선택하고 등록하면 리뷰 생성 훅을 호출한다", () => {
     vi.mocked(reviewHooks.useReviews).mockReturnValue({ data: null, status: "success" } as never);
 
@@ -265,5 +279,18 @@ describe("CourseReviewSection", () => {
 
     expect(mockSetLoginModalOpen).toHaveBeenCalledWith(true);
     expect(mockToggleEmoji).not.toHaveBeenCalled();
+  });
+
+  it("공개 강의 상세에서는 세션 갱신 없이 사용자 정보를 조회한다", () => {
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey={REVIEW_SCOPE_KEY}
+        averageRating={4.2}
+        reviewCount={13}
+      />
+    );
+
+    expect(userHooks.useUser).toHaveBeenCalledWith({ skipAuthRefresh: true });
   });
 });

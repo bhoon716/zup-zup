@@ -1,6 +1,6 @@
 # 운영 배포 runbook
 
-> 현재 배포 경로는 1인 운영용 Ubuntu SSH-only 구성이다. GitHub Actions는 기존 네 개 Repository secret만 사용하고, OCI에는 별도 deploy wrapper나 GHCR read-only token을 설치하지 않는다.
+> 현재 배포 경로는 1인 운영용 Ubuntu SSH-only 구성이다. GitHub Actions는 기존 네 개 Repository secret과 공개 SSH host-key variable 하나를 사용하고, OCI에는 별도 deploy wrapper나 GHCR read-only token을 설치하지 않는다.
 
 ## 0. 경로와 상태
 
@@ -15,7 +15,7 @@ IMAGE_TAG=<40자리 commit SHA>
 ```
 
 - `SERVER_DOTENV`는 앱 전용 `apps/server/.env` 내용이며 배포 시 `APP_ENV`에 설치한다.
-- root `.env`에는 Compose용 DB·Redis·named volume·image·Firebase·관측 경로를 저장한다. 실제 secret은 Ubuntu 운영 파일에만 둔다.
+- root `.env`에는 Compose용 DB·Redis·named volume(`DB_VOLUME_NAME`, `REDIS_VOLUME_NAME`)·image·Firebase·관측 경로를 저장한다. 실제 secret은 Ubuntu 운영 파일에만 둔다.
 - `apps/server/.env`에는 앱 전용 설정·secret만 저장한다.
 - MySQL은 기존 `root` 계정을 앱과 one-shot Flyway migration이 함께 사용한다. 별도 runtime/migrator 계정이나 DB 권한 bootstrap은 수행하지 않는다.
 - 앱 rollback은 이전 SHA를 같은 수동 배포 workflow에 입력하는 방식이다. DB migration은 자동 rollback하지 않는다.
@@ -67,6 +67,20 @@ GitHub Actions는 배포 직전에 단기 `GITHUB_TOKEN`으로 GHCR에 로그인
 - `SERVER_USER`: `ubuntu`
 - `SSH_PRIVATE_KEY`: `ubuntu`의 `authorized_keys`와 짝인 private key
 - `SERVER_DOTENV`: `apps/server/.env` 전체 내용
+
+같은 화면의 `Repository variables`에는 공개 Ed25519 host key를 둔다.
+
+- `SSH_HOST_PUBLIC_KEY`: OCI `/etc/ssh/ssh_host_ed25519_key.pub`의 `ssh-ed25519 ...` 한 줄
+
+workflow는 이 공개키와 `SERVER_HOST`로 전용 `known_hosts`를 만들고 모든 SSH/SCP에 `StrictHostKeyChecking=yes`를 적용한다. 실제 key가 다르면 앱 secret을 staging하기 전에 identity probe에서 실패한다. 실행 중 `ssh-keyscan`으로 새 key를 자동 신뢰하지 않는다.
+
+### SSH host key 교체
+
+1. 배포를 중단하고 OCI Console 또는 이미 검증된 별도 관리 경로에서 새 `/etc/ssh/ssh_host_ed25519_key.pub`를 확인한다.
+2. 같은 신뢰 경로에서 `ssh-keygen -l -E sha256 -f /etc/ssh/ssh_host_ed25519_key.pub`를 실행해 fingerprint를 기록하고, 의도한 서버 교체·key rotation인지 확인한다.
+3. GitHub의 `SSH_HOST_PUBLIC_KEY` Repository variable을 검증한 공개키 한 줄로 교체한다. `ssh-keyscan` 출력만으로 승인하지 않는다.
+4. 수동 Production CD를 실행해 `SSH host identity 확인` 단계가 통과한 뒤에만 정상 배포를 재개한다.
+5. 예상하지 않은 mismatch라면 variable을 바꾸지 말고 DNS/IP 변경, 서버 재설치, 침해 가능성을 먼저 조사한다.
 
 CD는 `main` push 또는 `workflow_dispatch(image_tag)`에서 실행한다. 일반 push는 이미지를 build/push하고, 수동 실행은 기존 SHA 이미지를 pull한다.
 
@@ -131,6 +145,6 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 ## 6. 보안·운영 한계
 
 - Ubuntu의 Docker socket 접근은 사실상 root equivalent 권한이다. 이 구성은 단순성을 위해 이를 명시적으로 수용한다.
-- SSH host key는 Actions 실행 시 `ssh-keyscan`으로 수집하는 단순 경로다. 고정 fingerprint 검증은 별도 강화 작업이다.
+- SSH host key는 검증된 Ed25519 공개키를 Repository variable에 고정하며, mismatch 시 secret staging 전에 배포를 중단한다.
 - NPM·DuckDNS는 앱 CD가 관리하지 않는 host 운영 경계다. NPM 설정·인증서는 저장소에 포함하지 않는다.
 - MySQL named volume은 backup이 아니며, OCI local DB dump도 host loss backup은 아니다. 서버에 직접 설치하는 `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh`가 매주 월요일 04:00(`Asia/Seoul`)에 실행되며, off-host backup/Object Storage 이전은 별도 운영 이슈다.

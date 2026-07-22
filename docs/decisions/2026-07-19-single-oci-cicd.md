@@ -70,7 +70,7 @@ preflight, 파일 검증, migration, readiness 중 하나라도 실패하면 다
 ### 5. 런타임과 네트워크
 
 - MySQL 데이터는 OCI block volume을 backing으로 하는 Docker named volume에 둔다.
-- Redis는 캐시·임시 데이터이며 persistence를 보장하지 않는다.
+- Redis는 authentication state의 일부이므로 AOF `appendfsync everysec`과 Docker named volume으로 정상 restart/recreate를 보존한다. host-loss backup은 제공하지 않으며, 누락된 refresh/session state는 fail-closed로 처리한다.
 - MySQL·Redis healthcheck가 통과한 뒤 앱이 시작되고, 앱 readiness가 통과한 뒤 호스트 Nginx가 proxy한다.
 - 앱은 DB·Redis 전용 `internal` runtime network와 외부 OAuth·메일 provider 호출 및 localhost publish를 위한 별도 egress network에 함께 붙인다. DB·Redis·migration 컨테이너는 runtime network에만 붙인다.
 - 외부 공개 포트는 80/443과 key-only SSH 22뿐이다. 앱은 localhost에만 bind하고 DB·Redis host port는 열지 않는다.

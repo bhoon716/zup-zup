@@ -36,6 +36,48 @@ interface FilterChip {
   patch: Partial<CourseSearchCondition>;
 }
 
+interface MobileKeywordSearchProps {
+  initialKeyword: string;
+  isLoading: boolean;
+  onSearch: (keyword: string) => void;
+}
+
+function MobileKeywordSearch({ initialKeyword, isLoading, onSearch }: MobileKeywordSearchProps) {
+  const [keyword, setKeyword] = useState(initialKeyword);
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSearch(keyword);
+      }}
+      className="flex items-center gap-2"
+    >
+      <div className="relative flex-1">
+        <input
+          type="text"
+          placeholder="강의명 또는 학수번호를 입력하세요"
+          value={keyword}
+          onChange={(event) => setKeyword(event.target.value)}
+          className="h-11 w-full rounded-2xl border-none bg-muted/80 pl-11 pr-4 text-sm font-bold placeholder:text-muted-foreground/60 focus:bg-white focus:ring-2 focus:ring-primary/20"
+        />
+        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      </div>
+      <Button
+        type="submit"
+        disabled={isLoading}
+        className="h-11 rounded-2xl bg-primary px-5 font-bold text-white shadow-lg shadow-primary/20"
+      >
+        {isLoading ? (
+          <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+        ) : (
+          "검색"
+        )}
+      </Button>
+    </form>
+  );
+}
+
 /**
  * 강의 검색 페이지 메인 컴포넌트
  */
@@ -267,12 +309,6 @@ export default function SearchPage() {
     return filters;
   }, [searchCondition]);
 
-  const [mobileKeyword, setMobileKeyword] = useState(() => draftCondition.keyword || "");
-
-  useEffect(() => {
-    setMobileKeyword(draftCondition.keyword || "");
-  }, [draftCondition.keyword]);
-
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (searchCondition.classifications?.length) count++;
@@ -324,35 +360,14 @@ export default function SearchPage() {
       <div className="sticky top-16 z-30 border-b border-border/50 bg-white/95 px-4 py-4 backdrop-blur-md lg:hidden">
         <div className="space-y-3">
           {/* 강의명 검색창 */}
-          <form 
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSearch({ ...draftCondition, keyword: mobileKeyword || undefined, name: undefined });
-            }} 
-            className="flex items-center gap-2"
-          >
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="강의명 또는 학수번호를 입력하세요"
-                value={mobileKeyword}
-                onChange={(e) => setMobileKeyword(e.target.value)}
-                className="h-11 w-full rounded-2xl border-none bg-muted/80 pl-11 pr-4 text-sm font-bold placeholder:text-muted-foreground/60 focus:bg-white focus:ring-2 focus:ring-primary/20"
-              />
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            </div>
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="h-11 rounded-2xl bg-primary px-5 font-bold text-white shadow-lg shadow-primary/20"
-            >
-              {isLoading ? (
-                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              ) : (
-                "검색"
-              )}
-            </Button>
-          </form>
+          <MobileKeywordSearch
+            key={draftCondition.keyword || "empty-mobile-keyword"}
+            initialKeyword={draftCondition.keyword || ""}
+            isLoading={isLoading}
+            onSearch={(keyword) => {
+              handleSearch({ ...draftCondition, keyword: keyword || undefined, name: undefined });
+            }}
+          />
 
           {/* 상세 검색 필터 토글 버튼 */}
           <button

@@ -38,16 +38,29 @@ require("packages: write", "single CD job must publish to GHCR")
 require("actions/checkout@v5", "CD checkout is missing")
 for secret in ("SERVER_HOST", "SERVER_USER", "SSH_PRIVATE_KEY", "SERVER_DOTENV"):
     require(f"${{{{ secrets.{secret} }}}}", f"repository Actions secret is missing: {secret}")
+require("SSH_HOST_PUBLIC_KEY: ${{ vars.SSH_HOST_PUBLIC_KEY }}", "pinned SSH host public key variable is missing")
 for forbidden in (
     "OCI_HOST", "OCI_KNOWN_HOSTS", "OCI_DEPLOY_USER", "DEPLOY_MANIFEST_PRIVATE_KEY",
     "SHA256SUMS", "SHA256SUMS.sig", "GHCR_READ_TOKEN", "GHCR_READ_USERNAME",
     "jbnu-deploy", "jbnu-rollback", "rollback-release", "sudo", "environment: production",
+    "ssh-keyscan",
 ):
     if forbidden in workflow or forbidden in deploy_script:
         raise SystemExit(f"SSH-only CD must not use {forbidden}")
 require('target="${SERVER_USER}@${SERVER_HOST}"', "CD must use the configured server account")
-require("ssh-keyscan", "runtime SSH host key setup is missing")
 require("SSH_PRIVATE_KEY", "SSH private key is missing")
+require("SSH_HOST_PUBLIC_KEY", "SSH host public key is missing")
+require("ssh-keygen -l -E sha256", "pinned SSH host key validation is missing")
+require("StrictHostKeyChecking=yes", "SSH must reject unknown or changed host keys")
+require("UserKnownHostsFile=", "SSH must use the workflow-owned known_hosts file")
+require("SSH host identity 확인", "SSH host identity must be checked before staging secrets")
+connection_count = workflow.count("ssh -o BatchMode=yes") + workflow.count("scp -o BatchMode=yes")
+if connection_count == 0 or workflow.count("-o StrictHostKeyChecking=yes") != connection_count:
+    raise SystemExit("every SSH/SCP connection must use StrictHostKeyChecking=yes")
+if workflow.count("-o UserKnownHostsFile=") != connection_count:
+    raise SystemExit("every SSH/SCP connection must use the workflow-owned known_hosts file")
+if workflow.index("SSH host identity 확인") > workflow.index("release staging 준비"):
+    raise SystemExit("SSH host identity must be checked before SERVER_DOTENV staging")
 require("SERVER_DOTENV", "server dotenv secret is missing")
 require('stage_dir}/apps/server/.env', "SERVER_DOTENV must be staged as apps/server/.env")
 require("scp", "staging SCP transfer is missing")

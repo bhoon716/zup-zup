@@ -89,10 +89,14 @@ class CourseReviewServiceTest {
     }
 
     private Course createCourse() {
+        return createCourse(PROFESSOR);
+    }
+
+    private Course createCourse(String professor) {
         return Course.builder()
                 .courseKey(COURSE_KEY)
                 .subjectCode(SUBJECT_CODE)
-                .professor(PROFESSOR)
+                .professor(professor)
                 .name("자료구조")
                 .averageRating(4.0f)
                 .reviewCount(10)
@@ -183,6 +187,27 @@ class CourseReviewServiceTest {
         }
 
         @Test
+        @DisplayName("교수 미지정 강의는 해당 강의에만 별점 리뷰를 연결한다")
+        void createReview_UnassignedProfessor_UsesCourseKeyOnly() {
+            User user = createUser(USER_ID, Role.USER);
+            mockCurrentUser(user);
+            ReviewCreateRequest request = new ReviewCreateRequest(5);
+            Course course = createCourse("교수 미지정");
+            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
+            when(reviewRepository.existsByCourseKeyAndUserId(COURSE_KEY, user.getId())).thenReturn(false);
+            when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(createReview(COURSE_KEY, user.getId()));
+            when(reviewRepository.countByCourseKey(COURSE_KEY)).thenReturn(1L);
+            when(reviewRepository.getAverageRatingByCourseKey(COURSE_KEY)).thenReturn(5.0);
+
+            reviewService.createReview(COURSE_KEY, request);
+
+            assertThat(course.getAverageRating()).isEqualTo(5.0f);
+            assertThat(course.getReviewCount()).isEqualTo(1);
+            verify(reviewRepository).existsByCourseKeyAndUserId(COURSE_KEY, user.getId());
+            verify(courseRepository, never()).findBySubjectCodeAndProfessor(SUBJECT_CODE, "");
+        }
+
+        @Test
         @DisplayName("리뷰 작성 실패 - 없는 강의")
         void createReview_Fail_CourseNotFound() {
             User user = createUser(USER_ID, Role.USER);
@@ -240,6 +265,48 @@ class CourseReviewServiceTest {
 
             assertThat(responsePage.getContent()).hasSize(1);
             assertThat(responsePage.getContent().get(0).isMine()).isFalse();
+        }
+
+        @Test
+        @DisplayName("교수 미지정 강의의 별점 리뷰는 해당 강의에서만 조회한다")
+        void getReviews_UnassignedProfessor_UsesCourseKeyOnly() {
+            User user = createUser(USER_ID, Role.USER);
+            mockCurrentUser(user);
+
+            PageRequest pageRequest = PageRequest.of(0, 10);
+            CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
+            Page<CourseReview> page = new PageImpl<>(List.of(review));
+            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse("교수 미지정")));
+            when(reviewRepository.findByCourseKeyWithMyReviewFirst(COURSE_KEY, user.getId(), pageRequest))
+                    .thenReturn(page);
+
+            Page<ReviewResponse> responsePage = reviewService.getReviews(COURSE_KEY, pageRequest);
+
+            assertThat(responsePage.getContent()).hasSize(1);
+            verify(reviewRepository).findByCourseKeyWithMyReviewFirst(COURSE_KEY, user.getId(), pageRequest);
+            verify(reviewRepository, never()).findBySubjectCodeAndProfessorWithMyReviewFirst(
+                    SUBJECT_CODE, "", user.getId(), pageRequest);
+        }
+
+        @Test
+        @DisplayName("외부교원N 강의의 별점 리뷰는 같은 교수 식별자 범위에서 조회한다")
+        void getReviews_ExternalInstructor_UsesSharedProfessorScope() {
+            User user = createUser(USER_ID, Role.USER);
+            mockCurrentUser(user);
+
+            PageRequest pageRequest = PageRequest.of(0, 10);
+            CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
+            Page<CourseReview> page = new PageImpl<>(List.of(review));
+            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse("외부교원1")));
+            when(reviewRepository.findBySubjectCodeAndProfessorWithMyReviewFirst(
+                    SUBJECT_CODE, "외부교원1", user.getId(), pageRequest)).thenReturn(page);
+
+            Page<ReviewResponse> responsePage = reviewService.getReviews(COURSE_KEY, pageRequest);
+
+            assertThat(responsePage.getContent()).hasSize(1);
+            verify(reviewRepository).findBySubjectCodeAndProfessorWithMyReviewFirst(
+                    SUBJECT_CODE, "외부교원1", user.getId(), pageRequest);
+            verify(reviewRepository, never()).findByCourseKeyWithMyReviewFirst(COURSE_KEY, user.getId(), pageRequest);
         }
     }
 

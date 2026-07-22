@@ -22,6 +22,7 @@ interface CourseReviewSectionProps {
   averageRating?: number;
   reviewCount?: number;
   isReviewed?: boolean;
+  isProfessorUnassigned?: boolean;
 }
 
 const emojiPickerI18n = {
@@ -43,13 +44,14 @@ export function CourseReviewSection({
   averageRating,
   reviewCount,
   isReviewed,
+  isProfessorUnassigned = false,
 }: CourseReviewSectionProps) {
   const { data: myReview, status: reviewStatus } = useReviews(reviewScopeKey, courseKey);
   const { mutate: createReview, isPending: isCreating } = useCreateReview(reviewScopeKey, courseKey);
   const { mutate: updateReview, isPending: isUpdating } = useUpdateReview(reviewScopeKey, courseKey);
   const { data: emojiStats, status: emojiStatus } = useCourseEmojis(reviewScopeKey, courseKey);
   const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(reviewScopeKey, courseKey);
-  const { data: user, isPending: isUserLoading } = useUser();
+  const { data: user, isPending: isUserLoading } = useUser({ skipAuthRefresh: true });
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
 
   const [draftRating, setDraftRating] = useState<number | null>(null);
@@ -244,6 +246,12 @@ export function CourseReviewSection({
           <div className="flex flex-col gap-1">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">이모지 리뷰</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">이모지만 남길 수 있습니다.</p>
+            {isProfessorUnassigned && (
+              <p className="mt-1 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300" role="status">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                교수 정보가 없어 이전 학기 반응과 자동 연결하지 않았습니다.
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

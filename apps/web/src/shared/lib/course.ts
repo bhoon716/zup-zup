@@ -32,13 +32,26 @@ export function normalizeCourse(course: Partial<Course>): NormalizedCourse {
 }
 
 /**
+ * 교수명이 실제 인물을 식별하는지 판별합니다.
+ */
+export function hasIdentifiableProfessor(course: Partial<Course>) {
+  const professor = (course.professor ?? course.professorName ?? "").trim();
+
+  return professor !== "" && professor !== "교수 미지정";
+}
+
+/**
  * 리뷰를 묶는 공유 캐시 키를 생성합니다.
- * 같은 과목코드와 교수 조합이면 학기와 관계없이 같은 키를 사용합니다.
+ * 같은 과목코드와 식별 가능한 교수 조합이면 학기와 관계없이 같은 키를 사용합니다.
+ * 교수 식별자가 없으면 해당 강의만의 캐시 키를 사용합니다.
  */
 export function getReviewScopeKey(course: Partial<Course>) {
   const subjectCode = course.subjectCode ?? "";
   const professor = (course.professor ?? course.professorName ?? "").trim();
-  const normalizedProfessor = professor === "교수 미지정" ? "" : professor;
 
-  return `${subjectCode}::${normalizedProfessor}`;
+  if (!hasIdentifiableProfessor(course)) {
+    return `course:${course.courseKey ?? ""}`;
+  }
+
+  return `${subjectCode}::${professor}`;
 }

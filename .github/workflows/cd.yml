@@ -25,6 +25,7 @@ jobs:
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
       SERVER_USER: ${{ secrets.SERVER_USER }}
+      SSH_HOST_PUBLIC_KEY: ${{ vars.SSH_HOST_PUBLIC_KEY }}
 
     steps:
       - name: 수동 배포 SHA 입력 확인
@@ -91,12 +92,16 @@ jobs:
             echo "IMAGE_TAG must be exactly 40 lowercase hexadecimal characters" >&2
             exit 1
           fi
-          for variable in SERVER_HOST SERVER_USER; do
+          for variable in SERVER_HOST SERVER_USER SSH_HOST_PUBLIC_KEY; do
             if [ -z "${!variable}" ]; then
               echo "Missing server setting: ${variable}" >&2
               exit 1
             fi
           done
+          if [[ ! "${SERVER_HOST}" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "SERVER_HOST contains unsupported characters" >&2
+            exit 1
+          fi
           if [[ ! "${SERVER_USER}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
             echo "SERVER_USER contains unsupported characters" >&2
             exit 1
@@ -116,12 +121,24 @@ jobs:
           fi
           install -d -m 700 "${HOME}/.ssh"
           printf '%s\n' "${SSH_PRIVATE_KEY}" >"${HOME}/.ssh/id_ed25519"
-          ssh-keyscan -T 10 -t ed25519 "${SERVER_HOST}" >"${HOME}/.ssh/known_hosts" 2>/dev/null
-          if [ ! -s "${HOME}/.ssh/known_hosts" ]; then
-            echo "Unable to collect SSH host key from ${SERVER_HOST}" >&2
+          host_key_file="${RUNNER_TEMP}/ssh-host-key.pub"
+          printf '%s\n' "${SSH_HOST_PUBLIC_KEY}" >"${host_key_file}"
+          if [ "$(wc -l <"${host_key_file}")" -ne 1 ] \
+            || [[ "${SSH_HOST_PUBLIC_KEY}" != ssh-ed25519\ * ]] \
+            || ! ssh-keygen -l -E sha256 -f "${host_key_file}"; then
+            echo "SSH_HOST_PUBLIC_KEY must be one valid Ed25519 public key" >&2
             exit 1
           fi
+          printf '%s %s\n' "${SERVER_HOST}" "${SSH_HOST_PUBLIC_KEY}" \
+            >"${HOME}/.ssh/known_hosts"
           chmod 600 "${HOME}/.ssh/id_ed25519" "${HOME}/.ssh/known_hosts"
+
+      - name: SSH host identity 확인
+        run: |
+          ssh -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${HOME}/.ssh/known_hosts" \
+            "${SERVER_USER}@${SERVER_HOST}" true
 
       - name: release staging 준비
         id: stage
@@ -156,10 +173,17 @@ jobs:
           target="${SERVER_USER}@${SERVER_HOST}"
           remote_root="/home/ubuntu/jbnu-sugang-helper"
           remote_stage="${remote_root}/.staging/${IMAGE_TAG}"
-          ssh -o BatchMode=yes "${target}" \
+          ssh -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${HOME}/.ssh/known_hosts" "${target}" \
             "mkdir -p '${remote_root}' '${remote_stage}' && chmod 0750 '${remote_root}' '${remote_stage}'"
-          scp -r "${{ steps.stage.outputs.path }}/." "${target}:${remote_stage}/"
-          ssh -o BatchMode=yes "${target}" \
+          scp -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${HOME}/.ssh/known_hosts" \
+            -r "${{ steps.stage.outputs.path }}/." "${target}:${remote_stage}/"
+          ssh -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${HOME}/.ssh/known_hosts" "${target}" \
             "install -m 0755 '${remote_stage}/deploy.sh' '${remote_root}/deploy.sh'"
 
       - name: Ubuntu 배포
@@ -169,7 +193,9 @@ jobs:
           target="${SERVER_USER}@${SERVER_HOST}"
           remote_root="/home/ubuntu/jbnu-sugang-helper"
           remote_stage="${remote_root}/.staging/${IMAGE_TAG}"
-          printf '%s' "${GITHUB_TOKEN}" | ssh -o BatchMode=yes "${target}" \
+          printf '%s' "${GITHUB_TOKEN}" | ssh -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${HOME}/.ssh/known_hosts" "${target}" \
             "set -eu; trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT; \
             docker login ghcr.io --username github-actions --password-stdin; \
             '${remote_root}/deploy.sh' '${IMAGE_TAG}' '${remote_stage}'"

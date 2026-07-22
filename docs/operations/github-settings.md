@@ -12,6 +12,13 @@
 - force push/delete branch는 저장소 기본 보호 정책에 맞춰 금지
 - E2E workflow는 필수 check로 추가하지 않음. 수동/주기 workflow로만 실행
 
+2026-07-22 GitHub API 확인·적용 결과:
+
+- `main`은 pull request를 거쳐야 하며 승인 수는 0이다.
+- required status check는 `CI`이고 up-to-date branch 요구는 사용하지 않는다.
+- 관리자에게도 보호 규칙을 적용하며 force push와 branch 삭제를 허용하지 않는다.
+- repository ruleset은 별도로 사용하지 않는다.
+
 ## Actions secrets and variables
 
 저장소 `Settings → Secrets and variables → Actions`의 `Repository secrets`에 다음 네 값을 등록한다. CD workflow는 Environment를 사용하지 않는다.
@@ -22,6 +29,12 @@
 - `SERVER_DOTENV`: 앱 전용 `apps/server/.env` 파일 전체 내용. DB·Redis·Firebase 경로·Flyway runtime 값은 넣지 않는다. workflow가 OCI의 `/home/ubuntu/jbnu-sugang-helper/apps/server/.env`에 설치한다.
 
 OCI Compose runtime 값은 `/home/ubuntu/jbnu-sugang-helper/.env`에 운영자가 한 번 입력한다. `apps/server/.env`에는 앱 전용 값만 둔다. GHCR token은 별도 secret으로 저장하지 않고, CD가 단기 `GITHUB_TOKEN`으로 원격 login/logout한다.
+
+`Repository variables`에는 다음 공개 값을 등록한다.
+
+- `SSH_HOST_PUBLIC_KEY`: OCI `/etc/ssh/ssh_host_ed25519_key.pub`의 `ssh-ed25519` 공개키. hostname 주석은 생략할 수 있다. `ssh-keyscan` 결과를 검증 없이 등록하지 않는다.
+
+CD는 이 값으로 전용 `known_hosts`를 만들고 `StrictHostKeyChecking=yes`로 서버 신원을 먼저 확인한다. 값이 없거나 실제 서버 key와 다르면 `SERVER_DOTENV` staging과 SCP 전에 실패한다.
 
 ## Actions 권한
 

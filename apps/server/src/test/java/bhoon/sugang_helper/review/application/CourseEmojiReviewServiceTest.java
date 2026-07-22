@@ -39,6 +39,8 @@ class CourseEmojiReviewServiceTest {
     private static final String COURSE_KEY = "C1";
     private static final String SUBJECT_CODE = "CSE101";
     private static final String PROFESSOR = "김교수";
+    private static final String UNASSIGNED_PROFESSOR = "교수 미지정";
+    private static final String EXTERNAL_INSTRUCTOR = "외부교원1";
     private static final String NORMALIZED_PROFESSOR = ReviewScopeKey.normalizeProfessor(PROFESSOR);
     private static final Long USER_ID = 1L;
     private static final String EMOJI_THUMB = "👍";
@@ -81,10 +83,14 @@ class CourseEmojiReviewServiceTest {
     }
 
     private Course createCourse() {
+        return createCourse(PROFESSOR);
+    }
+
+    private Course createCourse(String professor) {
         return Course.builder()
                 .courseKey(COURSE_KEY)
                 .subjectCode(SUBJECT_CODE)
-                .professor(PROFESSOR)
+                .professor(professor)
                 .name("자료구조")
                 .build();
     }
@@ -223,6 +229,57 @@ class CourseEmojiReviewServiceTest {
                 .findFirst().orElseThrow();
         assertThat(laughResponse.count()).isEqualTo(1L);
         assertThat(laughResponse.isMine()).isFalse();
+    }
+
+    @Test
+    @DisplayName("교수 미지정 강의는 같은 과목의 이전 학기 이모지를 자동 연결하지 않는다")
+    void getCourseEmojiStats_UnassignedProfessor_UsesCourseKeyOnly() {
+        User user = createUser(USER_ID);
+        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse(UNASSIGNED_PROFESSOR)));
+        when(emojiReviewRepository.findEmojiStatsByCourseKey(COURSE_KEY))
+                .thenReturn(List.<Object[]>of(new Object[]{EMOJI_FIRE, 1L}));
+        when(emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_FIRE))
+                .thenReturn(true);
+
+        List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
+
+        assertThat(result).containsExactly(new CourseEmojiReviewResponse(EMOJI_FIRE, 1L, true));
+        verify(emojiReviewRepository).findEmojiStatsByCourseKey(COURSE_KEY);
+        verify(emojiReviewRepository, never()).findEmojiStatsBySubjectCodeAndProfessor(SUBJECT_CODE, "");
+    }
+
+    @Test
+    @DisplayName("교수 미지정 강의의 이모지 토글은 해당 강의에만 적용한다")
+    void toggleEmoji_UnassignedProfessor_UsesCourseKeyOnly() {
+        User user = createUser(USER_ID);
+        mockCurrentUser(user);
+        when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse(UNASSIGNED_PROFESSOR)));
+        when(emojiReviewRepository.findByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_THUMB))
+                .thenReturn(Optional.empty());
+
+        emojiReviewService.toggleEmoji(COURSE_KEY, EMOJI_THUMB);
+
+        verify(emojiReviewRepository).findByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_THUMB);
+        verify(emojiReviewRepository, never()).findBySubjectCodeAndProfessorAndUserIdAndEmoji(
+                SUBJECT_CODE, "", USER_ID, EMOJI_THUMB);
+        verify(emojiReviewRepository).save(any(CourseEmojiReview.class));
+    }
+
+    @Test
+    @DisplayName("외부교원N 강의는 같은 교수 식별자 범위의 이모지를 조회한다")
+    void getCourseEmojiStats_ExternalInstructor_UsesSharedProfessorScope() {
+        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(null);
+        when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse(EXTERNAL_INSTRUCTOR)));
+        when(emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(SUBJECT_CODE, EXTERNAL_INSTRUCTOR))
+                .thenReturn(List.<Object[]>of(new Object[]{EMOJI_THUMB, 2L}));
+
+        List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
+
+        assertThat(result).containsExactly(new CourseEmojiReviewResponse(EMOJI_THUMB, 2L, false));
+        verify(emojiReviewRepository).findEmojiStatsBySubjectCodeAndProfessor(SUBJECT_CODE, EXTERNAL_INSTRUCTOR);
+        verify(emojiReviewRepository, never()).findEmojiStatsByCourseKey(COURSE_KEY);
     }
 
     @Test

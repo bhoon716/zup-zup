@@ -11,6 +11,7 @@ import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,8 +38,7 @@ public class CourseEmojiReviewService {
         ReviewScopeKey scope = ReviewScopeKey.from(course);
         User user = getCurrentUser();
 
-        emojiReviewRepository.findBySubjectCodeAndProfessorAndUserIdAndEmoji(scope.subjectCode(), scope.professor(),
-                        user.getId(), emoji)
+        findEmojiReview(course, scope, user.getId(), emoji)
                 .ifPresentOrElse(
                         existing -> {
                             emojiReviewRepository.delete(existing);
@@ -66,14 +66,12 @@ public class CourseEmojiReviewService {
         Course course = getCourse(courseKey);
         ReviewScopeKey scope = ReviewScopeKey.from(course);
         Long currentUserId = getCurrentUserIdOrNull();
-        return emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor())
+        return findEmojiStats(course, scope)
                 .stream()
                 .map(row -> {
                     String emoji = (String) row[0];
                     long count = ((Number) row[1]).longValue();
-                    boolean isMine = currentUserId != null &&
-                            emojiReviewRepository.countBySubjectCodeAndProfessorAndUserIdAndEmoji(
-                                    scope.subjectCode(), scope.professor(), currentUserId, emoji) > 0;
+                    boolean isMine = currentUserId != null && hasEmojiReview(course, scope, currentUserId, emoji);
                     return CourseEmojiReviewResponse.builder()
                             .emoji(emoji)
                             .count(count)
@@ -81,6 +79,33 @@ public class CourseEmojiReviewService {
                             .build();
                 })
                 .toList();
+    }
+
+    private Optional<CourseEmojiReview> findEmojiReview(Course course, ReviewScopeKey scope, Long userId,
+                                                         String emoji) {
+        if (!scope.hasIdentifiableProfessor()) {
+            return emojiReviewRepository.findByCourseKeyAndUserIdAndEmoji(course.getCourseKey(), userId, emoji);
+        }
+
+        return emojiReviewRepository.findBySubjectCodeAndProfessorAndUserIdAndEmoji(
+                scope.subjectCode(), scope.professor(), userId, emoji);
+    }
+
+    private List<Object[]> findEmojiStats(Course course, ReviewScopeKey scope) {
+        if (!scope.hasIdentifiableProfessor()) {
+            return emojiReviewRepository.findEmojiStatsByCourseKey(course.getCourseKey());
+        }
+
+        return emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor());
+    }
+
+    private boolean hasEmojiReview(Course course, ReviewScopeKey scope, Long userId, String emoji) {
+        if (!scope.hasIdentifiableProfessor()) {
+            return emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(course.getCourseKey(), userId, emoji);
+        }
+
+        return emojiReviewRepository.countBySubjectCodeAndProfessorAndUserIdAndEmoji(
+                scope.subjectCode(), scope.professor(), userId, emoji) > 0;
     }
 
     private User getCurrentUser() {
