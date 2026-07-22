@@ -30,7 +30,15 @@ services:
 volumes:
   local_db_data:
     name: sugang-helper-local-db-data
+    external: true
   local_app_uploads:
     name: sugang-helper-local-app-uploads
+    external: true
   local_redis_data:
     name: sugang-helper-local-redis-data
+    external: true
+
+networks:
+  sugang-helper-runtime: !override
+    name: sugang-helper-runtime
+    external: true

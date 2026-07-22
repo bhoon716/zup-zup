@@ -183,7 +183,6 @@ public class SpringBatchConfig {
         if (duplicateRows == 0) {
             return;
         }
-        log.warn("[SpringBatchConfig] Duplicate stdtrNo values detected. duplicateRows={}", duplicateRows);
         if (meterRegistry != null) {
             meterRegistry.counter("crawler.course.stdtr_no.duplicates").increment(duplicateRows);
         }

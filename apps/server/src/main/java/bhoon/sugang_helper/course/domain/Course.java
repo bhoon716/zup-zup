@@ -119,7 +119,7 @@ public class Course extends BaseTimeEntity {
     @Column(length = 50)
     private String generalCategoryByYear; // 입학년도기준교양영역구분
 
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String courseDirection; // 수업운영방향
 
     @Column(length = 50)

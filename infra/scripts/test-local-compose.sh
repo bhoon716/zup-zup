@@ -65,6 +65,10 @@ if app_env.get("APP_CORS_REQUIRE_HTTPS") != "false":
 if app_env.get("APP_AUTH_REFRESH_COOKIE_SECURE") != "false":
     raise SystemExit("local refresh cookies must allow HTTP localhost development")
 
+migrate_env = env_map(services["migrate"])
+if migrate_env.get("FLYWAY_LOCATIONS") != "filesystem:/flyway/sql":
+    raise SystemExit("Flyway migration location must be explicit")
+
 def volume_source(service_name, target):
     for volume in services[service_name].get("volumes", []):
         if volume.get("target") == target:
@@ -92,6 +96,14 @@ for name, expected_name in expected_volume_names.items():
         raise SystemExit(f"missing local named volume {name}")
     if volumes[name].get("name") != expected_name:
         raise SystemExit(f"local volume {name} has unexpected Docker name")
+    if not volumes[name].get("external"):
+        raise SystemExit(f"local volume {name} must be explicitly external")
+
+runtime_network = compose.get("networks", {}).get("sugang-helper-runtime", {})
+if runtime_network.get("name") != "sugang-helper-runtime":
+    raise SystemExit("local runtime network has unexpected Docker name")
+if not runtime_network.get("external"):
+    raise SystemExit("local runtime network must be explicitly external")
 
 print("local minimal Compose contract passed")
 PY

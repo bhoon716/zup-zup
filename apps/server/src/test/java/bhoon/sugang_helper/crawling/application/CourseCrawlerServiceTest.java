@@ -13,6 +13,7 @@ import bhoon.sugang_helper.course.domain.SemesterType;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -123,6 +124,17 @@ class CourseCrawlerServiceTest {
         } finally {
             detachAppender(appender);
         }
+    }
+
+    @Test
+    @DisplayName("freshness gauge는 서비스 생성 시 한 번 등록된다")
+    void freshnessGaugesAreRegisteredAtConstruction() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+
+        new CourseCrawlerService(jobLauncher, crawlJob, crawlerTargetService, courseRepository, registry);
+
+        assertThat(registry.find("crawler.data.freshness.age.seconds").gauges()).hasSize(1);
+        assertThat(registry.find("crawler.data.stale").gauges()).hasSize(1);
     }
 
     private ListAppender<ILoggingEvent> attachAppender() {

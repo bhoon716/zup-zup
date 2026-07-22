@@ -18,6 +18,10 @@ spring:
     baseline-on-migrate: true
     baseline-version: 3
 
+  batch:
+    job:
+      enabled: false
+
   jpa:
     hibernate:
       ddl-auto: validate

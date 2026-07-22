@@ -21,6 +21,8 @@ class FlywayMigrationValidationTest {
     private static final String DATABASE_PASSWORD = "test";
     private static final String MIGRATION_LOCATION = "classpath:db/migration";
     private static final String DELIVERY_TABLE_NAME = "seat_notification_deliveries";
+    private static final String COURSES_TABLE_NAME = "courses";
+    private static final String COURSE_KEY_COLUMN_NAME = "course_key";
     private static final Map<String, Integer> APPLIED_MIGRATION_CHECKSUMS = Map.ofEntries(
             Map.entry("1", 372551896),
             Map.entry("2", 2027923810),
@@ -83,12 +85,26 @@ class FlywayMigrationValidationTest {
                 columnName);
     }
 
+    private static String columnCollation(JdbcTemplate jdbcTemplate, String tableName, String columnName) {
+        return jdbcTemplate.queryForObject("""
+                        SELECT COLLATION_NAME
+                        FROM information_schema.columns
+                        WHERE table_schema = DATABASE()
+                          AND table_name = ?
+                          AND column_name = ?
+                        """,
+                String.class,
+                tableName,
+                columnName);
+    }
+
     @Test
     void freshMySqlSchemaMigratesAndSeedsCrawlerSettings() {
         try (MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
                 .withDatabaseName(DATABASE_NAME)
                 .withUsername(DATABASE_USER)
-                .withPassword(DATABASE_PASSWORD)) {
+                .withPassword(DATABASE_PASSWORD)
+                .withCommand("--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci")) {
             mysql.start();
 
             Flyway flyway = Flyway.configure()
@@ -106,12 +122,36 @@ class FlywayMigrationValidationTest {
                     mysql.getPassword()));
 
             assertThat(tableCount(jdbcTemplate, "users")).isEqualTo(1);
-            assertThat(tableCount(jdbcTemplate, "courses")).isEqualTo(1);
+            assertThat(tableCount(jdbcTemplate, COURSES_TABLE_NAME)).isEqualTo(1);
             assertThat(tableCount(jdbcTemplate, "crawler_settings")).isEqualTo(1);
             assertThat(jdbcTemplate.queryForObject("SELECT target_year FROM crawler_settings LIMIT 1", String.class))
                     .isEqualTo("2026");
             assertThat(jdbcTemplate.queryForObject("SELECT target_semester FROM crawler_settings LIMIT 1", String.class))
                     .isEqualTo("U211600010");
+            assertThat(columnDataType(jdbcTemplate, COURSES_TABLE_NAME, "course_direction")).isEqualTo("text");
+            String longCourseDirection = "가".repeat(501);
+            jdbcTemplate.update("""
+                            INSERT INTO courses (
+                                course_key, subject_code, name, class_number, academic_year, semester,
+                                capacity, `current`, course_direction, last_crawled_at, average_rating, review_count
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(6), ?, ?)
+                            """,
+                    "2026:U211600010:LONG_DIRECTION:01", "LONG_DIRECTION", "긴 수업운영방향 강의", "01",
+                    "2026", "U211600010", 30, 0, longCourseDirection, 0.0f, 0);
+            assertThat(jdbcTemplate.queryForObject("""
+                            SELECT CHAR_LENGTH(course_direction)
+                            FROM courses
+                            WHERE course_key = ?
+                            """, Integer.class, "2026:U211600010:LONG_DIRECTION:01")).isEqualTo(501);
+            assertThat(columnCollation(jdbcTemplate, "course_emoji_reviews", COURSE_KEY_COLUMN_NAME))
+                    .isEqualTo(columnCollation(jdbcTemplate, COURSES_TABLE_NAME, COURSE_KEY_COLUMN_NAME));
+            assertThat(columnCollation(jdbcTemplate, "course_reviews", COURSE_KEY_COLUMN_NAME))
+                    .isEqualTo(columnCollation(jdbcTemplate, COURSES_TABLE_NAME, COURSE_KEY_COLUMN_NAME));
+            assertThat(jdbcTemplate.queryForObject("""
+                            SELECT COUNT(*)
+                            FROM course_emoji_reviews emoji_review
+                            JOIN courses course ON course.course_key = emoji_review.course_key
+                            """, Long.class)).isZero();
         }
     }
 
@@ -247,9 +287,9 @@ class FlywayMigrationValidationTest {
                     .locations(MIGRATION_LOCATION)
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(3);
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(6);
             head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("21");
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("24");
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT idempotency_key FROM seat_notification_deliveries WHERE id = ?", String.class, deliveryId))
                     .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
