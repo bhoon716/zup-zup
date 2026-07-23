@@ -148,6 +148,25 @@ class FlywayMigrationValidationTest {
                     .isEqualTo(columnCollation(jdbcTemplate, COURSES_TABLE_NAME, COURSE_KEY_COLUMN_NAME));
             assertThat(columnCollation(jdbcTemplate, "course_reviews", COURSE_KEY_COLUMN_NAME))
                     .isEqualTo(columnCollation(jdbcTemplate, COURSES_TABLE_NAME, COURSE_KEY_COLUMN_NAME));
+            assertThat(columnCollation(jdbcTemplate, "course_emoji_reviews", "emoji"))
+                    .isEqualTo("utf8mb4_0900_bin");
+            jdbcTemplate.update("""
+                            INSERT INTO course_emoji_reviews (course_key, user_id, emoji)
+                            VALUES (?, ?, ?)
+                            """,
+                    "emoji-collation-course", 4242L, "😀");
+            jdbcTemplate.update("""
+                            INSERT INTO course_emoji_reviews (course_key, user_id, emoji)
+                            VALUES (?, ?, ?)
+                            """,
+                    "emoji-collation-course", 4242L, "🤫");
+            assertThat(jdbcTemplate.queryForObject("""
+                            SELECT COUNT(*)
+                            FROM course_emoji_reviews
+                            WHERE course_key = ?
+                              AND user_id = ?
+                            """,
+                    Long.class, "emoji-collation-course", 4242L)).isEqualTo(2L);
             assertThat(jdbcTemplate.queryForObject("""
                             SELECT COUNT(*)
                             FROM course_emoji_reviews emoji_review
@@ -288,9 +307,9 @@ class FlywayMigrationValidationTest {
                     .locations(MIGRATION_LOCATION)
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(6);
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(7);
             head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("24");
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("25");
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT idempotency_key FROM seat_notification_deliveries WHERE id = ?", String.class, deliveryId))
                     .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
