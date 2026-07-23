@@ -110,7 +110,7 @@ class SpringBatchConfigTest {
         writer.write(new Chunk<>(Collections.singletonList(dto)));
 
         // then
-        verify(courseRepository, times(1)).save(any(Course.class));
+        verify(courseRepository, times(1)).saveAll(any());
         ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.captor();
         verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
         assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(1);
@@ -147,7 +147,7 @@ class SpringBatchConfigTest {
         writer.write(new Chunk<>(Collections.singletonList(dto)));
 
         // then
-        verify(courseRepository, never()).save(any(Course.class));
+        verify(courseRepository, never()).saveAll(any());
         ArgumentCaptor<Iterable<CourseSeatHistory>> seatHistoriesCaptor = ArgumentCaptor.captor();
         verify(courseSeatHistoryRepository, times(1)).saveAll(seatHistoriesCaptor.capture());
         assertThat(toList(seatHistoriesCaptor.getValue())).hasSize(1);
@@ -182,7 +182,7 @@ class SpringBatchConfigTest {
         // given
         ParsedCourseDto dto = createCourseDto(NEW_COURSE_KEY, 50, 40);
         given(courseRepository.findByCourseKeyIn(List.of(NEW_COURSE_KEY))).willReturn(List.of());
-        doThrow(new RuntimeException("save failed")).when(courseRepository).save(any(Course.class));
+        doThrow(new RuntimeException("save failed")).when(courseRepository).saveAll(any());
 
         ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
 
