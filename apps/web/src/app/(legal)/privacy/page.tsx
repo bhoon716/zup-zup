@@ -18,7 +18,7 @@ export default function PrivacyPage() {
           <header className="space-y-2 border-b border-border/40 pb-6">
             <h1 className="text-3xl font-black tracking-tight">개인정보 처리방침</h1>
             <p className="text-muted-foreground font-medium text-sm">
-              시행일: 2026년 7월 13일
+              시행일: 2026년 7월 23일
             </p>
           </header>
 
@@ -58,6 +58,18 @@ export default function PrivacyPage() {
             <p className="text-sm text-muted-foreground leading-relaxed">
               탈퇴 요청이 완료되면 즉시 로그아웃되고, 기존 인증 정보로 서비스에 다시 접근할 수 없습니다. 같은 Google 계정으로 다시 로그인하는 경우에는 기존 탈퇴 계정을 복구하지 않고 새 계정으로 시작합니다. 보존 대상은 일반 사용자 경로에서 차단하며, 최종 파기가 확정되면 복구할 수 없는 기술적 방법으로 삭제합니다.
             </p>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold">5. 서비스 이용 분석 도구</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              서비스 품질과 화면 사용성을 개선하기 위해 production 환경에서만 Microsoft Clarity와 Google Analytics 4를 사용할 수 있습니다. 설정값이 없으면 두 분석 도구는 실행되지 않습니다.
+            </p>
+            <ul className="list-disc list-inside text-sm text-muted-foreground pl-2 space-y-1">
+              <li>Clarity에는 화면의 텍스트를 마스킹해 비밀번호·토큰·사용자 식별정보·건의사항 본문이 기록되지 않도록 합니다.</li>
+              <li>Google Analytics 4에는 query가 제거된 화면 경로만 전송하며 사용자 ID, Google Signals 및 광고 개인화를 사용하지 않습니다.</li>
+              <li>수집 결과는 서비스 내부가 아니라 Microsoft Clarity 및 Google Analytics 운영 콘솔에서 확인합니다.</li>
+            </ul>
           </section>
 
           <section className="space-y-4 border-t border-border/40 pt-6">

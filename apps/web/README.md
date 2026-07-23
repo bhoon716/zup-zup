@@ -74,6 +74,17 @@ npm run dev
 - `npm run lint`
 - `npm run test`
 
+## Production Analytics on Vercel
+
+Microsoft Clarity와 Google Analytics 4는 Vercel production deployment에서 ID가 설정된 경우에만 실행됩니다.
+
+1. Vercel 프로젝트의 `Settings → Environment Variables`에서 Production 환경만 선택합니다.
+2. `NEXT_PUBLIC_CLARITY_PROJECT_ID`에 Clarity project ID를 설정합니다.
+3. `NEXT_PUBLIC_GA_MEASUREMENT_ID`에 `G-`로 시작하는 GA4 measurement ID를 설정합니다.
+4. production을 다시 배포한 뒤 각 서비스 콘솔에서 세션과 `page_view` 수집을 확인합니다.
+
+Preview·Development에는 두 변수를 설정하지 않습니다. 코드에서도 `VERCEL_ENV=production`과 올바른 ID 형식을 함께 확인하므로 preview나 로컬 개발에서는 외부 분석 스크립트를 로드하지 않습니다. Clarity는 전체 페이지 텍스트를 기본 마스킹하며, GA4는 query를 제외한 경로만 전송하고 Google Signals와 광고 개인화를 비활성화합니다.
+
 ## Related Docs
 
 - [Project release notes](../../docs/feature-updates.md)

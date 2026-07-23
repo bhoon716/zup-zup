@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Geist_Mono, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import Providers from "@/app/providers";
+import { ThirdPartyAnalytics } from "@/shared/analytics/third-party-analytics";
 
 const notoSansKr = Noto_Sans_KR({
   weight: ["400", "700", "900"],
@@ -55,13 +56,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className={`${notoSansKr.variable} ${geistMono.variable}`}>
-      <body className="antialiased">
+      <body className="antialiased" data-clarity-mask="true">
         <Providers>
           <Header />
           {children}
         </Providers>
         <Analytics />
         <SpeedInsights />
+        <ThirdPartyAnalytics
+          environment={process.env.VERCEL_ENV ?? process.env.NODE_ENV}
+          clarityProjectId={process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID}
+          gaMeasurementId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}
+        />
       </body>
     </html>
   );
