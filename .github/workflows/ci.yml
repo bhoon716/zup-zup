@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:latest
+        image: mysql:8.4
         env:
           MYSQL_DATABASE: sugang_helper
           MYSQL_ROOT_PASSWORD: ci-root-password
@@ -48,6 +48,7 @@ jobs:
           bash infra/scripts/test-runtime-contract.sh
           bash infra/scripts/test-observability-contract.sh
           bash infra/scripts/test-cd-workflow-contract.sh
+          bash infra/scripts/test-app-env-preflight.sh
           bash infra/scripts/test-release-layout-contract.sh
           bash infra/scripts/test-migration-failure-path.sh
           bash infra/scripts/test-local-app-image-flow.sh

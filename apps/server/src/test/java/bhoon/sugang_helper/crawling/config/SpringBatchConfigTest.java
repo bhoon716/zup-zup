@@ -10,6 +10,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.course.domain.CourseSeatHistory;
@@ -31,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.context.ApplicationEventPublisher;
+import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 class SpringBatchConfigTest {
@@ -221,6 +226,32 @@ class SpringBatchConfigTest {
         assertThat(springBatchConfig.countDuplicateStdtrNos(List.of(second), seenStdtrNos)).isOne();
     }
 
+    @Test
+    @DisplayName("예상 가능한 학수번호 중복은 chunk마다 WARN 로그를 남기지 않는다")
+    void duplicateStdtrNoAcrossChunks_DoesNotFloodWarnLogs() throws Exception {
+        ParsedCourseDto first = createCourseDtoWithStdtrNo("FIRST:01", STDTR_NO);
+        ParsedCourseDto second = createCourseDtoWithStdtrNo("SECOND:01", STDTR_NO);
+        given(courseRepository.findByCourseKeyIn(List.of("FIRST:01"))).willReturn(List.of());
+        given(courseRepository.findByCourseKeyIn(List.of("SECOND:01"))).willReturn(List.of());
+        ItemWriter<ParsedCourseDto> writer = springBatchConfig.crawlWriter();
+        Logger logger = (Logger) LoggerFactory.getLogger(SpringBatchConfig.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        logger.addAppender(appender);
+        appender.start();
+        try {
+            writer.write(new Chunk<>(List.of(first)));
+            writer.write(new Chunk<>(List.of(second)));
+
+            assertThat(appender.list)
+                    .filteredOn(event -> event.getLevel() == Level.WARN)
+                    .extracting(ILoggingEvent::getFormattedMessage)
+                    .noneMatch(message -> message.contains("Duplicate stdtrNo"));
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
     private Course createCourse(String courseKey, int capacity, int current) {
         return Course.builder()
                 .courseKey(courseKey)
@@ -240,6 +271,18 @@ class SpringBatchConfigTest {
                 null, null, null, 3, null,
                 null, null, null, "7호관 101호", true,
                 null, null, null, Collections.emptyList());
+    }
+
+    private ParsedCourseDto createCourseDtoWithStdtrNo(String courseKey, String stdtrNo) {
+        ParsedCourseDto dto = createCourseDto(courseKey, 50, 40);
+        return new ParsedCourseDto(
+                dto.courseKey(), dto.subjectCode(), stdtrNo, dto.name(), dto.classNumber(), dto.professor(),
+                dto.capacity(), dto.current(), dto.targetGrade(), dto.academicYear(), dto.semester(),
+                dto.classification(), dto.department(), dto.gradingMethod(), dto.classTime(), dto.credits(),
+                dto.lectureLanguage(), dto.disclosure(), dto.disclosureReason(), dto.lectureHours(),
+                dto.generalCategory(), dto.generalDetail(), dto.accreditation(), dto.status(), dto.classroom(),
+                dto.hasSyllabus(), dto.generalCategoryByYear(), dto.courseDirection(), dto.classDuration(),
+                dto.schedules());
     }
 
     private static <T> List<T> toList(Iterable<T> values) {

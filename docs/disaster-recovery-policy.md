@@ -33,7 +33,7 @@ Restoring a production database is destructive and requires an explicit confirma
 ```bash
 docker run --rm \
   --env MYSQL_ROOT_PASSWORD=<temporary-test-password> \
-  mysql:8.0 \
+  mysql:8.4 \
   bash -ceu 'mysql -h <temporary-db> -uroot -p"$MYSQL_ROOT_PASSWORD" < /backup/sugang_helper.sql'
 ```
 

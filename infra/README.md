@@ -25,6 +25,11 @@ cp ../apps/server/.env.example ../apps/server/.env
 # infra/.env와 apps/server/.env의 placeholder를 로컬 값으로 채운다.
 
 cd infra
+docker volume create sugang-helper-local-db-data
+docker volume create sugang-helper-local-redis-data
+docker volume create sugang-helper-local-app-uploads
+docker network inspect sugang-helper-runtime >/dev/null 2>&1 || \
+  docker network create --driver bridge --internal --opt com.docker.network.driver.mtu=1500 sugang-helper-runtime
 docker compose up -d --build
 ```
 
@@ -55,7 +60,7 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 
 이미 migration history가 있는 DB를 배포할 때는 운영 runbook대로 `validate` 성공 후 `migrate`를 실행합니다. `docker compose up` 자체는 DB schema를 자동 변경하지 않습니다.
 
-로컬 Redis도 `sugang-helper-local-redis-data` named volume과 AOF를 사용하므로 컨테이너를 재생성해도 인증 상태가 유지됩니다. `docker compose down --volumes`는 테스트·초기화 목적으로 이 상태를 의도적으로 삭제합니다. MySQL은 `sugang-helper-local-db-data` named volume을 사용합니다.
+로컬 Redis도 `sugang-helper-local-redis-data` named volume과 AOF를 사용하므로 컨테이너를 재생성해도 인증 상태가 유지됩니다. 로컬 volume은 external이므로 `docker compose down --volumes`로 삭제되지 않습니다. 테스트·초기화 목적으로 삭제할 때는 컨테이너를 내린 뒤 `docker volume rm sugang-helper-local-db-data sugang-helper-local-redis-data sugang-helper-local-app-uploads`처럼 대상을 명시해야 합니다. MySQL은 `sugang-helper-local-db-data` named volume을 사용합니다.
 
 ## Compose 계약 검증
 

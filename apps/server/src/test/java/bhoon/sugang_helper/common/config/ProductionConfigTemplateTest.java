@@ -59,6 +59,13 @@ class ProductionConfigTemplateTest {
     }
 
     @Test
+    void applicationDoesNotAutoLaunchSpringBatchJobsAtStartup() throws IOException {
+        String content = readClasspathResource("application.yml");
+
+        assertThat(content).contains("batch:\n    job:\n      enabled: false");
+    }
+
+    @Test
     void environmentTemplateDeclaresGoogleRedirectUri() throws IOException {
         String content = Files.readString(Path.of(".env.example"));
 

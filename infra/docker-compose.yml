@@ -137,6 +137,7 @@ services:
       FLYWAY_BASELINE_ON_MIGRATE: "false"
       FLYWAY_CLEAN_DISABLED: "true"
       FLYWAY_CONNECT_RETRIES: "60"
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
     command: ["migrate"]
     volumes:
       - ${APP_BUILD_CONTEXT:-../apps/server}/src/main/resources/db/migration:/flyway/sql:ro

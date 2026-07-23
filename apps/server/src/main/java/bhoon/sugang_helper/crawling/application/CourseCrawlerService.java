@@ -49,6 +49,10 @@ public class CourseCrawlerService {
         this.crawlerTargetService = crawlerTargetService;
         this.courseRepository = courseRepository;
         this.meterRegistry = meterRegistry;
+        if (meterRegistry != null) {
+            meterRegistry.gauge("crawler.data.freshness.age.seconds", freshnessAgeSeconds);
+            meterRegistry.gauge("crawler.data.stale", staleGauge);
+        }
     }
 
     /**
@@ -129,10 +133,8 @@ public class CourseCrawlerService {
         long ageSeconds = latest.map(value -> Math.max(0, Duration.between(value, LocalDateTime.now()).toSeconds()))
                 .orElse(-1L);
         freshnessAgeSeconds.set(ageSeconds);
-        meterRegistry.gauge("crawler.data.freshness.age.seconds", freshnessAgeSeconds);
         boolean stale = ageSeconds < 0 || ageSeconds > Duration.ofMinutes(staleThresholdMinutes).toSeconds();
         staleGauge.set(stale ? 1 : 0);
-        meterRegistry.gauge("crawler.data.stale", staleGauge);
         if (stale && staleAlertActive.compareAndSet(false, true)) {
             log.error("[Crawler] Data freshness is stale. ageSeconds={}, thresholdMinutes={}, alert=ADMIN", ageSeconds,
                     staleThresholdMinutes);
