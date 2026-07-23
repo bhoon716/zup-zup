@@ -3,6 +3,7 @@
 Keep this file short. Use it as a map, not a manual.
 
 ## Start Here
+
 - Read `.agents/docs/index.md` first.
 - Read `.agents/issues/index.md` before creating or updating issue files.
 - Use `.agents/docs/PRD.md` for product scope and `.agents/docs/ARD.md` for architecture and deployment constraints.
@@ -11,6 +12,7 @@ Keep this file short. Use it as a map, not a manual.
 - Keep durable decisions in `docs/`, not in chat.
 
 ## Working Notes
+
 - Prefer small, reversible changes.
 - Think before coding: state assumptions, and ask when requirements are ambiguous.
 - Simplicity first: do not add abstractions, patterns, or new structure unless the request needs them.
@@ -20,4 +22,6 @@ Keep this file short. Use it as a map, not a manual.
 - Do not introduce a workflow framework unless the user asks for it.
 
 ## Notes
+
 - Do not paste long transcripts into logs, findings, or reviews.
+- Do not edit or delete existing log content when writing logs; always append new entries. (append-only)
