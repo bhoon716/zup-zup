@@ -254,8 +254,17 @@ export function CourseTable({
                           </span>
                         </div>
 
-                        <h2 className="mb-1 truncate text-sm font-bold text-foreground transition-colors group-hover:text-primary md:mb-1.5 md:text-base">
-                          {course.name}
+                        <h2 className="mb-1 text-sm font-bold text-foreground md:mb-1.5 md:text-base">
+                          <button
+                            type="button"
+                            className="block max-w-full truncate rounded-sm text-left transition-colors group-hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleCourseClick(course);
+                            }}
+                          >
+                            {course.name}
+                          </button>
                         </h2>
                       </div>
 

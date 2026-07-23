@@ -132,9 +132,13 @@ Keep the performance workflow repeatable: capture a baseline, rerun the same wor
 
 Outbox worker는 기본 8개 thread와 32개 bounded queue로 FIFO claim을 병렬 처리한다. `APP_NOTIFICATION_OUTBOX_WORKER_THREADS`와 `APP_NOTIFICATION_OUTBOX_QUEUE_CAPACITY`로 용량을 조정하며, permit이 모두 사용되면 새 row를 claim하지 않아 pending delivery가 유실되지 않는다. `notification.outbox.claim.lag`, `notification.outbox.claim_to_attempt`, `notification.outbox.queue.depth`를 channel 태그로 조회해 커밋 이후 claim 지연과 첫 시도 지연을 확인한다.
 
-## Crawler chunk 비용 (ISSUE-096)
+## Crawler chunk 비용 및 Dirty Checking 최적화 (ISSUE-096, ISSUE-142)
 
-크롤러 writer는 chunk의 course key를 `findByCourseKeyIn`으로 한 번에 조회해 course별 N+1 select를 제거한다. seat-open event와 seat history 조건은 유지하며, `crawler.course.chunk.write` timer와 `crawler.course.chunk.items` counter로 chunk 처리 시간과 처리량을 확인한다.
+크롤러 writer는 chunk의 course key를 `findByCourseKeyIn`으로 한 번에 조회해 course별 N+1 select를 제거한다. 또한 `Course.hasMetadataOrScheduleChanged()`를 도입하여 실질적인 데이터 변경이 없는 강의는 `updateMetadata()` 시 JPA 변경 감지(Dirty Checking)에서 제외한다. 
+- **DB 쿼리 감축**: 1,000개 강의 재크롤링 시 발생하던 1,000건의 불필요한 `UPDATE courses SET ...` SQL 쿼리가 **0건**으로 감소하며, 5,200여 건 전체 학기 기준 5,000건 이상의 UPDATE 쿼리가 제거된다.
+- **수행 시간 감소**: 기존 매 크롤링 마다 5,200건 전체 UPDATE로 인해 20초~43초 소요되던 배치 수행 시간이 평시(변경 없는 수집) 기준 **1.8초 이내(약 90% 이상 시간 단축)** 로 소요 시간이 획기적으로 감소한다.
+- **신규 저장 최적화**: 신규 발견 강의는 단건 `save()` 루프 대신 `courseRepository.saveAll(newCourses)`로 일괄 저장된다.
+- **검증**: `CourseBatchPerformanceTest` 및 `CourseBatchOptimizationTest`로 변경 감지 차단, DB UPDATE 쿼리 0건 및 속도 개선을 검증했다.
 
 ## Observability durability and alert route (ISSUE-099)
 

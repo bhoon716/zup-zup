@@ -15,6 +15,7 @@ import org.hibernate.annotations.BatchSize;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -216,9 +217,50 @@ public class Course extends BaseTimeEntity {
     }
 
     /**
-     * 크롤링된 새로운 정보로 강의 메타데이터 업데이트
+     * 크롤링된 새로운 정보와 현재 강의 정보를 비교하여 변경 사항이 있는지 확인
      */
-    public void updateMetadata(Course other) {
+    @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NPathComplexity"})
+    public boolean hasMetadataOrScheduleChanged(Course other) {
+        if (other.getStdtrNo() != null && !Objects.equals(this.stdtrNo, other.getStdtrNo())) {
+            return true;
+        }
+        if (!Objects.equals(this.name, other.getName())
+                || !Objects.equals(this.professor, other.getProfessor())
+                || !Objects.equals(this.capacity, other.getCapacity())
+                || !Objects.equals(this.current, other.getCurrent())
+                || !Objects.equals(this.targetGrade, other.getTargetGrade())
+                || !Objects.equals(this.academicYear, other.getAcademicYear())
+                || !Objects.equals(this.semester, other.getSemester())
+                || !Objects.equals(this.classification, other.getClassification())
+                || !Objects.equals(this.department, other.getDepartment())
+                || !Objects.equals(this.gradingMethod, other.getGradingMethod())
+                || !Objects.equals(this.lectureLanguage, other.getLectureLanguage())
+                || !Objects.equals(this.classTime, other.getClassTime())
+                || !Objects.equals(this.credits, other.getCredits())
+                || !Objects.equals(this.disclosure, other.getDisclosure())
+                || !Objects.equals(this.disclosureReason, other.getDisclosureReason())
+                || !Objects.equals(this.lectureHours, other.getLectureHours())
+                || !Objects.equals(this.generalCategory, other.getGeneralCategory())
+                || !Objects.equals(this.generalDetail, other.getGeneralDetail())
+                || !Objects.equals(this.accreditation, other.getAccreditation())
+                || !Objects.equals(this.status, other.getStatus())
+                || !Objects.equals(this.classroom, other.getClassroom())
+                || !Objects.equals(this.hasSyllabus, other.getHasSyllabus())
+                || !Objects.equals(this.generalCategoryByYear, other.getGeneralCategoryByYear())
+                || !Objects.equals(this.courseDirection, other.getCourseDirection())
+                || !Objects.equals(this.classDuration, other.getClassDuration())) {
+            return true;
+        }
+        return !isSameSchedules(other.getSchedules());
+    }
+
+    /**
+     * 크롤링된 새로운 정보로 강의 메타데이터 업데이트 (변경점이 있는 경우에만 수행하고 true 반환)
+     */
+    public boolean updateMetadata(Course other) {
+        if (!hasMetadataOrScheduleChanged(other)) {
+            return false;
+        }
         if (other.getStdtrNo() != null) {
             this.stdtrNo = other.getStdtrNo();
         }
@@ -257,6 +299,7 @@ public class Course extends BaseTimeEntity {
                         new CourseSchedule(schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()));
             }
         }
+        return true;
     }
 
     private boolean isSameSchedules(List<CourseSchedule> otherSchedules) {

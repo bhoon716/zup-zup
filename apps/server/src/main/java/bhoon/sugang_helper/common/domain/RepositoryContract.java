@@ -16,6 +16,8 @@ public interface RepositoryContract<T, ID> {
 
     <S extends T> S save(S entity);
 
+    <S extends T> List<S> saveAll(Iterable<S> entities);
+
     <S extends T> S saveAndFlush(S entity);
 
     void delete(T entity);

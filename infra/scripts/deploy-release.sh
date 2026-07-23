@@ -214,5 +214,8 @@ curl --fail --silent --show-error --max-time 10 \
   http://127.0.0.1:8081/actuator/health/readiness >/dev/null \
   || fail "application readiness failed"
 
+stage="image-cleanup"
+docker image prune -f >/dev/null 2>&1 || true
+
 stage="complete"
 echo "deployed ${sha} with Ubuntu SSH-only deploy"

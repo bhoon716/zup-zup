@@ -82,17 +82,21 @@ public class SpringBatchConfig {
     public ItemWriter<ParsedCourseDto> crawlWriter() {
         Set<String> seenStdtrNos = new HashSet<>();
         return chunk -> {
-            log.info("[SpringBatchConfig] Writing chunk of {} courses.", chunk.size());
+            log.debug("[SpringBatchConfig] Writing chunk of {} courses.", chunk.size());
             long startedAt = System.nanoTime();
             List<CourseSeatHistory> seatHistories = new ArrayList<>();
+            List<Course> newCourses = new ArrayList<>();
             List<Course> crawledCourses = chunk.getItems().stream().map(this::mapToEntity).toList();
             recordDuplicateStdtrNos(crawledCourses, seenStdtrNos);
             Map<String, Course> existingCourses = findExistingCourses(crawledCourses);
             for (Course crawledCourse : crawledCourses) {
-                CourseSeatHistory seatHistory = processCourse(crawledCourse, existingCourses);
+                CourseSeatHistory seatHistory = processCourse(crawledCourse, existingCourses, newCourses);
                 if (seatHistory != null) {
                     seatHistories.add(seatHistory);
                 }
+            }
+            if (!newCourses.isEmpty()) {
+                courseRepository.saveAll(newCourses);
             }
             if (!seatHistories.isEmpty()) {
                 courseSeatHistoryRepository.saveAll(seatHistories);
@@ -110,14 +114,20 @@ public class SpringBatchConfig {
                 .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
     }
 
-    private CourseSeatHistory processCourse(Course crawledCourse, Map<String, Course> existingCourses) {
+    private CourseSeatHistory processCourse(Course crawledCourse, Map<String, Course> existingCourses,
+                                              List<Course> newCourses) {
         Course existingCourse = existingCourses.get(crawledCourse.getCourseKey());
         if (existingCourse != null) {
             return updateExistingCourse(existingCourse, crawledCourse);
         }
-        CourseSeatHistory history = createNewCourse(crawledCourse);
+        CourseSeatHistory history = createNewCourse(crawledCourse, newCourses);
         existingCourses.put(crawledCourse.getCourseKey(), crawledCourse);
         return history;
+    }
+
+    private CourseSeatHistory createNewCourse(Course course, List<Course> newCourses) {
+        newCourses.add(course);
+        return toSeatHistory(course);
     }
 
     private Course mapToEntity(ParsedCourseDto dto) {
@@ -158,11 +168,6 @@ public class SpringBatchConfig {
                     .forEach(s -> course.addSchedule(new CourseSchedule(s.dayOfWeek(), s.startTime(), s.endTime())));
         }
         return course;
-    }
-
-    private CourseSeatHistory createNewCourse(Course course) {
-        courseRepository.save(course);
-        return toSeatHistory(course);
     }
 
     private void recordChunkWriteMetric(int chunkSize, long startedAt) {
