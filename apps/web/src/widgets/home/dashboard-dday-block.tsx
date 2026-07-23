@@ -10,6 +10,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
   const { data: fetchedUpcomingSchedules, isLoading } = useUpcomingSchedules(upcomingSchedules === undefined);
   const schedules = upcomingSchedules ?? fetchedUpcomingSchedules;
   const loading = upcomingSchedules ? false : isLoading;
+  const hasSchedules = Boolean(schedules?.length);
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-7 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
@@ -25,9 +26,18 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 flex-1 overflow-y-auto min-h-0 pr-1">
+      <div
+        className="flex-1 min-h-0 max-h-[24rem] md:max-h-[30rem] overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        role={hasSchedules ? "list" : undefined}
+        aria-label={hasSchedules ? "주요 일정 목록" : undefined}
+        tabIndex={hasSchedules ? 0 : undefined}
+      >
         {loading ? (
-          <div className="flex items-center justify-center h-full min-h-[150px]">
+          <div
+            role="status"
+            aria-label="주요 일정 불러오는 중"
+            className="flex items-center justify-center h-full min-h-[150px]"
+          >
             <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
           </div>
         ) : schedules?.length === 0 ? (
@@ -41,13 +51,14 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
             return (
               <motion.div
                 key={event.id}
+                role="listitem"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 * idx }}
                 className={cn(
-                  "relative flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-default group",
-                  isDDay 
-                    ? "bg-white dark:bg-gray-800 border-primary/20 shadow-sm" 
+                  "relative flex w-full min-w-0 items-center gap-4 p-4 rounded-2xl border transition-all cursor-default group",
+                  isDDay
+                    ? "bg-white dark:bg-gray-800 border-primary/20 shadow-sm"
                     : "bg-gray-50/50 dark:bg-gray-900/50 border-transparent hover:bg-white dark:hover:bg-gray-800 hover:border-gray-100 dark:hover:border-gray-700"
                 )}
               >
@@ -76,16 +87,16 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
                     {event.scheduleType}
                   </h4>
                   <p className="text-[11px] text-gray-500 font-medium">
-                    {event.startDate} {event.startTime ? event.startTime : ""} 
-                    {" "}~{" "} 
+                    {event.startDate} {event.startTime ? event.startTime : ""}
+                    {" "}~{" "}
                     {event.endDate} {event.endTime ? event.endTime : ""}
                   </p>
                 </div>
 
                 <div className={cn(
                   "px-3 py-1.5 rounded-xl text-sm font-black tracking-tight shrink-0 flex items-center justify-center min-w-14",
-                  isDDay 
-                    ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                  isDDay
+                    ? "bg-primary text-white shadow-lg shadow-primary/20"
                     : "bg-white dark:bg-gray-800 text-gray-400 border border-gray-100 dark:border-gray-700"
                 )}>
                   {event.dDay}
