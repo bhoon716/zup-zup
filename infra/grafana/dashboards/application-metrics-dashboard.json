@@ -6,93 +6,205 @@
   "graphTooltip": 1,
   "panels": [
     {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "⚡ Key Performance Indicators (KPIs)",
+      "type": "row"
+    },
+    {
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "unit": "reqps"
-        },
-        "overrides": []
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 100 }] }, "unit": "reqps" }
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
       "id": 1,
-      "targets": [
-        {
-          "expr": "sum(rate(http_server_requests_seconds_count[5m]))",
-          "legendFormat": "requests/s",
-          "refId": "A"
-        }
-      ],
-      "title": "HTTP request rate",
-      "type": "timeseries"
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count[1m]))", "legendFormat": "RPS", "refId": "A" }],
+      "title": "Request Rate (RPS)",
+      "type": "stat"
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "unit": "bytes"
-        },
-        "overrides": []
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 200 }, { "color": "red", "value": 500 }] }, "unit": "ms" }
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
       "id": 2,
-      "targets": [
-        {
-          "expr": "sum(jvm_memory_used_bytes)",
-          "legendFormat": "used",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(jvm_memory_max_bytes)",
-          "legendFormat": "max",
-          "refId": "B"
-        }
-      ],
-      "title": "JVM memory",
-      "type": "timeseries"
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p95", "refId": "A" }],
+      "title": "p95 Response Latency",
+      "type": "stat"
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        },
-        "overrides": []
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.01 }] }, "unit": "reqps" }
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
       "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m]))", "legendFormat": "5xx Rate", "refId": "A" }],
+      "title": "5xx Error Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 90 }] }, "unit": "percent" }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "(sum(jvm_memory_used_bytes{area=\"heap\"}) / sum(jvm_memory_max_bytes{area=\"heap\"})) * 100", "legendFormat": "Heap %", "refId": "A" }],
+      "title": "JVM Heap Usage",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 85 }] }, "unit": "percent" }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "system_cpu_usage * 100", "legendFormat": "CPU %", "refId": "A" }],
+      "title": "System CPU Usage",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 8 }, { "color": "red", "value": 10 }] }, "unit": "short" }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "hikaricp_connections_active", "legendFormat": "Active Conn", "refId": "A" }],
+      "title": "Hikari Active Conns",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "🌐 HTTP Traffic & Response Latency",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 6 },
+      "id": 7,
+      "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count[1m])) by (status)", "legendFormat": "HTTP {{status}}", "refId": "A" }],
+      "title": "Requests per Second (by Status)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 6 },
+      "id": 8,
       "targets": [
-        {
-          "expr": "hikaricp_connections_active",
-          "legendFormat": "active",
-          "refId": "A"
-        },
-        {
-          "expr": "hikaricp_connections_pending",
-          "legendFormat": "pending",
-          "refId": "B"
-        }
+        { "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p99", "refId": "C" }
       ],
-      "title": "Database connection pool",
+      "title": "Latency Percentiles (p50, p95, p99)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 6 },
+      "id": 9,
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{status=~\"4..\"}[1m]))", "legendFormat": "4xx Errors", "refId": "A" },
+        { "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m]))", "legendFormat": "5xx Errors", "refId": "B" }
+      ],
+      "title": "HTTP Error Rates (4xx / 5xx)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "id": 102,
+      "title": "☕ JVM Memory, GC & Thread Telemetry",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 14 },
+      "id": 10,
+      "targets": [
+        { "expr": "sum(jvm_memory_used_bytes{area=\"heap\"})", "legendFormat": "Heap Used", "refId": "A" },
+        { "expr": "sum(jvm_memory_committed_bytes{area=\"heap\"})", "legendFormat": "Heap Committed", "refId": "B" },
+        { "expr": "sum(jvm_memory_max_bytes{area=\"heap\"})", "legendFormat": "Heap Max", "refId": "C" }
+      ],
+      "title": "JVM Heap Memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 14 },
+      "id": 11,
+      "targets": [
+        { "expr": "sum(rate(jvm_gc_pause_seconds_sum[5m]))", "legendFormat": "GC Pause Time/s", "refId": "A" }
+      ],
+      "title": "JVM GC Pause Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 14 },
+      "id": 12,
+      "targets": [
+        { "expr": "jvm_threads_live_threads", "legendFormat": "Live Threads", "refId": "A" },
+        { "expr": "jvm_threads_daemon_threads", "legendFormat": "Daemon Threads", "refId": "B" },
+        { "expr": "jvm_threads_peak_threads", "legendFormat": "Peak Threads", "refId": "C" }
+      ],
+      "title": "JVM Thread Count",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "id": 103,
+      "title": "🗄️ Database & HikariCP Pool Monitoring",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 22 },
+      "id": 13,
+      "targets": [
+        { "expr": "hikaricp_connections_active", "legendFormat": "Active", "refId": "A" },
+        { "expr": "hikaricp_connections_idle", "legendFormat": "Idle", "refId": "B" },
+        { "expr": "hikaricp_connections_pending", "legendFormat": "Pending", "refId": "C" },
+        { "expr": "hikaricp_connections_max", "legendFormat": "Max Limit", "refId": "D" }
+      ],
+      "title": "HikariCP Connection Pool Status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 22 },
+      "id": 14,
+      "targets": [
+        { "expr": "hikaricp_connections_acquire_seconds_avg * 1000", "legendFormat": "Avg Acquire Time", "refId": "A" },
+        { "expr": "hikaricp_connections_acquire_seconds_max * 1000", "legendFormat": "Max Acquire Time", "refId": "B" }
+      ],
+      "title": "HikariCP Connection Acquire Latency",
       "type": "timeseries"
     }
   ],
   "schemaVersion": 39,
-  "tags": ["sugang-helper", "application-metrics"],
+  "tags": ["sugang-helper", "application-metrics", "spring-boot"],
   "templating": {
     "list": []
   },
@@ -100,7 +212,7 @@
     "from": "now-1h",
     "to": "now"
   },
-  "title": "Application Metrics",
+  "title": "Application Metrics (Spring Boot & System)",
   "uid": "sugang-helper-metrics",
-  "version": 1
+  "version": 2
 }
