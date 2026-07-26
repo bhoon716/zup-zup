@@ -43,36 +43,41 @@ public class AuthService {
 
     @Transactional
     public String reissue(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = resolveRefreshToken(request);
+        try {
+            String refreshToken = resolveRefreshToken(request);
 
-        if (!StringUtils.hasText(refreshToken)) {
-            throw new CustomException(ErrorCode.INVALID_TOKEN, "리프레시 토큰이 없습니다.");
+            if (!StringUtils.hasText(refreshToken)) {
+                throw new CustomException(ErrorCode.INVALID_TOKEN, "리프레시 토큰이 없습니다.");
+            }
+
+            if (!jwtProvider.validateRefreshToken(refreshToken)) {
+                throw new CustomException(ErrorCode.INVALID_TOKEN, "유효하지 않은 리프레시 토큰입니다.");
+            }
+
+            String email = jwtProvider.getAuthentication(refreshToken).getName();
+            Long userId = jwtProvider.getUserId(refreshToken);
+            if (userId == null) {
+                throw new CustomException(ErrorCode.INVALID_TOKEN, "사용자 식별자가 없는 리프레시 토큰입니다.");
+            }
+            User user = userRepository.findByIdAndEmailAndDeletedAtIsNull(userId, email)
+                    .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+
+            String newRefreshToken = jwtProvider.rotateRefreshToken(email, refreshToken);
+            if (!StringUtils.hasText(newRefreshToken)) {
+                throw new CustomException(ErrorCode.INVALID_TOKEN, "저장된 리프레시 토큰과 일치하지 않습니다.");
+            }
+
+            String newAccessToken = jwtProvider.createAccessToken(user.getId(), user.getEmail(), user.getRoleKey());
+            saveSessionAuthentication(request, response, newAccessToken);
+            log.info("[Auth] Refreshed authenticated session. emailMasked={}", SensitiveDataRedactor.maskEmail(email));
+
+            addRefreshTokenCookie(response, newRefreshToken);
+
+            return newAccessToken;
+        } catch (Exception e) {
+            deleteRefreshTokenCookie(response);
+            throw e;
         }
-
-        if (!jwtProvider.validateRefreshToken(refreshToken)) {
-            throw new CustomException(ErrorCode.INVALID_TOKEN, "유효하지 않은 리프레시 토큰입니다.");
-        }
-
-        String email = jwtProvider.getAuthentication(refreshToken).getName();
-        Long userId = jwtProvider.getUserId(refreshToken);
-        if (userId == null) {
-            throw new CustomException(ErrorCode.INVALID_TOKEN, "사용자 식별자가 없는 리프레시 토큰입니다.");
-        }
-        User user = userRepository.findByIdAndEmailAndDeletedAtIsNull(userId, email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
-
-        String newRefreshToken = jwtProvider.rotateRefreshToken(email, refreshToken);
-        if (!StringUtils.hasText(newRefreshToken)) {
-            throw new CustomException(ErrorCode.INVALID_TOKEN, "저장된 리프레시 토큰과 일치하지 않습니다.");
-        }
-
-        String newAccessToken = jwtProvider.createAccessToken(user.getId(), user.getEmail(), user.getRoleKey());
-        saveSessionAuthentication(request, response, newAccessToken);
-        log.info("[Auth] Refreshed authenticated session. emailMasked={}", SensitiveDataRedactor.maskEmail(email));
-
-        addRefreshTokenCookie(response, newRefreshToken);
-
-        return newAccessToken;
     }
 
     public void logout(HttpServletRequest request, HttpServletResponse response) {
