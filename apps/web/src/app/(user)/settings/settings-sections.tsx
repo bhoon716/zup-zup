@@ -54,6 +54,9 @@ type SettingsSectionProps = {
 type SettingsActionBarProps = {
   isSubmitting: SettingsPageModel["isSubmitting"];
   onCancel: () => void;
+  isSendingTest?: SettingsPageModel["isSendingTest"];
+  testCooldownSeconds?: SettingsPageModel["testCooldownSeconds"];
+  handleSendTestNotification?: SettingsPageModel["handleSendTestNotification"];
 };
 
 function SectionCard({
@@ -312,12 +315,9 @@ export function WebPushSection({
   deviceAlias,
   setDeviceAlias,
   devices,
-  isSendingTest,
-  testCooldownSeconds,
   loadingWebPush,
   watch,
   setValue,
-  handleSendTestNotification,
   handleRegisterDevice,
   handleDeleteDevice,
 }: Pick<
@@ -325,12 +325,9 @@ export function WebPushSection({
   | "deviceAlias"
   | "setDeviceAlias"
   | "devices"
-  | "isSendingTest"
-  | "testCooldownSeconds"
   | "loadingWebPush"
   | "watch"
   | "setValue"
-  | "handleSendTestNotification"
   | "handleRegisterDevice"
   | "handleDeleteDevice"
 >) {
@@ -343,25 +340,6 @@ export function WebPushSection({
       }
       title="웹 푸시 알림"
       description="현재 사용 중인 기기를 등록하여 브라우저 알림을 받습니다."
-      action={
-        <Button
-          type="button"
-          onClick={handleSendTestNotification}
-          disabled={isSendingTest || testCooldownSeconds > 0}
-          className="h-11 rounded-xl bg-primary px-5 text-sm font-bold text-white shadow-sm transition-all active:scale-95 hover:bg-primary-hover disabled:bg-slate-300"
-        >
-          {isSendingTest ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              전송 중...
-            </>
-          ) : testCooldownSeconds > 0 ? (
-            `테스트 쿨타임 ${testCooldownSeconds}s`
-          ) : (
-            "알림 테스트"
-          )}
-        </Button>
-      }
     >
       <div className="mb-6 rounded-2xl border border-slate-100 bg-white p-4 transition-all hover:border-primary/20">
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -447,30 +425,61 @@ export function WebPushSection({
   );
 }
 
-export function SettingsActionBar({ isSubmitting, onCancel }: SettingsActionBarProps) {
+export function SettingsActionBar({
+  isSubmitting,
+  onCancel,
+  isSendingTest = false,
+  testCooldownSeconds = 0,
+  handleSendTestNotification,
+}: SettingsActionBarProps) {
   return (
     <motion.div
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5, type: "spring", damping: 20 }}
-      className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-center gap-4 border-t border-slate-100 bg-white/90 px-8 py-5 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] backdrop-blur-md sm:justify-end"
+      className="fixed bottom-0 left-0 right-0 z-40 flex flex-wrap items-center justify-center gap-3 border-t border-slate-100 bg-white/90 px-6 py-4 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] backdrop-blur-md sm:justify-end sm:gap-4 sm:px-8 sm:py-5"
     >
       <Button
         type="button"
         variant="ghost"
         onClick={onCancel}
-        className="h-12 rounded-full px-8 text-sm font-bold text-slate-500 transition-all active:scale-95 hover:bg-slate-100 hover:text-slate-700"
+        className="h-12 rounded-full px-6 text-sm font-bold text-slate-500 transition-all active:scale-95 hover:bg-slate-100 hover:text-slate-700 sm:px-8"
       >
         변경 취소
       </Button>
       <Button
-      type="submit"
-      disabled={isSubmitting}
-      className="h-12 rounded-full bg-primary px-12 text-sm font-black tracking-tight text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.95] hover:bg-primary-hover hover:shadow-primary/40"
-    >
+        type="submit"
+        disabled={isSubmitting}
+        className="h-12 rounded-full bg-primary px-10 text-sm font-black tracking-tight text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.95] hover:bg-primary-hover hover:shadow-primary/40 sm:px-12"
+      >
         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
         설정 저장하기
       </Button>
+      {handleSendTestNotification && (
+        <>
+          <span className="select-none text-slate-300 font-light" aria-hidden="true">
+            |
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSendTestNotification}
+            disabled={isSendingTest || testCooldownSeconds > 0}
+            className="h-12 rounded-full border-slate-200 bg-white px-6 text-sm font-bold text-slate-700 shadow-xs transition-all active:scale-95 hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400"
+          >
+            {isSendingTest ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                전송 중...
+              </>
+            ) : testCooldownSeconds > 0 ? (
+              `테스트 쿨타임 ${testCooldownSeconds}s`
+            ) : (
+              "알림 테스트"
+            )}
+          </Button>
+        </>
+      )}
     </motion.div>
   );
 }
