@@ -11,6 +11,7 @@ describe("WebPushSection Component", () => {
         id: 1,
         type: "WEB" as const,
         alias: "내 크롬 브라우저",
+        maskedToken: "https://fcm.googleapis.com/...***",
         registeredAt: "2026-07-26T00:00:00Z",
       },
     ],
