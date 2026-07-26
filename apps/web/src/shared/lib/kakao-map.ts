@@ -1,6 +1,16 @@
+import { getCampusMapQuery } from "@/shared/lib/map-links";
+
 const KAKAO_MAP_SCRIPT_ID = "kakao-map-sdk";
 // 기본 중심 좌표: 전북대학교 전주캠퍼스
 const DEFAULT_CENTER = { lat: 35.846521, lng: 127.129558 };
+
+// 전북대학교 캠퍼스 지리적 위경도 범위 (교외 지오코딩 오지정 방지용)
+const JBNU_CAMPUS_BOUNDS = {
+  minLat: 35.8380,
+  maxLat: 35.8580,
+  minLng: 127.1200,
+  maxLng: 127.1420,
+};
 
 interface KakaoLatLngInstance {
   getLat(): number;
@@ -21,7 +31,7 @@ interface KakaoInfoWindowInstance {
   close(): void;
 }
 
-interface KakaoPlaceResult {
+export interface KakaoPlaceResult {
   id: string;
   place_name: string;
   address_name: string;
@@ -30,7 +40,7 @@ interface KakaoPlaceResult {
   y: string;
 }
 
-type KakaoSearchStatus = "OK" | "ZERO_RESULT" | "ERROR";
+export type KakaoSearchStatus = "OK" | "ZERO_RESULT" | "ERROR";
 
 interface KakaoMapApi {
   maps: {
@@ -56,7 +66,7 @@ interface KakaoMapApi {
             data: KakaoPlaceResult[],
             status: KakaoSearchStatus,
           ) => void,
-          options?: { size?: number; page?: number },
+          options?: { location?: KakaoLatLngInstance; radius?: number; size?: number; page?: number },
         ): void;
       };
     };
@@ -150,7 +160,7 @@ export interface KakaoMapRenderResult {
 }
 
 /**
- * 키워드(건물명 등)를 검색하여 해당 위치에 지도를 렌더링하고 마커를 표시합니다.
+ * 키워드(건물명 등)를 정규화 및 캠퍼스 바운딩 검색하여 해당 위치에 지도를 렌더링하고 마커를 표시합니다.
  */
 export async function renderKakaoMapByKeyword(params: {
   container: HTMLElement;
@@ -164,10 +174,12 @@ export async function renderKakaoMapByKeyword(params: {
   const initialCenter = new kakao.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng);
   const map = new kakao.maps.Map(container, { center: initialCenter, level });
 
+  const normalizedKeyword = getCampusMapQuery(keyword) ?? keyword;
+
   return new Promise<KakaoMapRenderResult>((resolve) => {
     const places = new kakao.maps.services.Places();
     places.keywordSearch(
-      keyword,
+      normalizedKeyword,
       (data, status) => {
         if (status !== kakao.maps.services.Status.OK || data.length === 0) {
           map.setCenter(initialCenter);
@@ -175,7 +187,19 @@ export async function renderKakaoMapByKeyword(params: {
           return;
         }
 
-        const place = data[0];
+        // 1. 캠퍼스 내부 위경도 범위에 해당하는 장소를 우선 선택 (교외 오지정 방지)
+        const campusPlace = data.find((p) => {
+          const lat = Number(p.y);
+          const lng = Number(p.x);
+          return (
+            lat >= JBNU_CAMPUS_BOUNDS.minLat &&
+            lat <= JBNU_CAMPUS_BOUNDS.maxLat &&
+            lng >= JBNU_CAMPUS_BOUNDS.minLng &&
+            lng <= JBNU_CAMPUS_BOUNDS.maxLng
+          );
+        });
+
+        const place = campusPlace ?? data[0];
         const lat = Number(place.y);
         const lng = Number(place.x);
         if (Number.isNaN(lat) || Number.isNaN(lng)) {
@@ -195,8 +219,7 @@ export async function renderKakaoMapByKeyword(params: {
 
         resolve({ status, place });
       },
-      { size: 10, page: 1 },
+      { location: initialCenter, radius: 1500, size: 10, page: 1 },
     );
   });
 }
-
