@@ -6,7 +6,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.user.domain.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -38,10 +37,10 @@ class JwtAuthenticationFilterTest {
     private JwtProvider jwtProvider;
 
     @Mock
-    private UserRepository userRepository;
+    private FilterChain filterChain;
 
     @Mock
-    private FilterChain filterChain;
+    private UserAccessRevocationService userAccessRevocationService;
 
     @Mock
     private Authentication authentication;
@@ -50,7 +49,7 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp() {
-        jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtProvider, userRepository);
+        jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtProvider, userAccessRevocationService);
     }
 
     @AfterEach
@@ -85,7 +84,7 @@ class JwtAuthenticationFilterTest {
         given(jwtProvider.getUserId(VALID_TOKEN)).willReturn(1L);
         given(jwtProvider.getAuthentication(VALID_TOKEN)).willReturn(authentication);
         given(authentication.getName()).willReturn("tester@example.com");
-        given(userRepository.existsByIdAndEmailAndDeletedAtIsNull(1L, "tester@example.com")).willReturn(true);
+        given(userAccessRevocationService.isRevoked(1L)).willReturn(false);
 
         // when
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
@@ -105,7 +104,7 @@ class JwtAuthenticationFilterTest {
         given(jwtProvider.getUserId(OLD_ACCOUNT_TOKEN)).willReturn(1L);
         given(jwtProvider.getAuthentication(OLD_ACCOUNT_TOKEN)).willReturn(authentication);
         given(authentication.getName()).willReturn(REJOINED_EMAIL);
-        given(userRepository.existsByIdAndEmailAndDeletedAtIsNull(1L, REJOINED_EMAIL)).willReturn(false);
+        given(userAccessRevocationService.isRevoked(1L)).willReturn(true);
 
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
@@ -193,7 +192,7 @@ class JwtAuthenticationFilterTest {
         given(session.getAttribute(SESSION_EXPIRES_AT)).willReturn(System.currentTimeMillis() + 60_000L);
         given(session.getAttribute(SESSION_USER_ID)).willReturn(1L);
         given(authentication.getName()).willReturn(REJOINED_EMAIL);
-        given(userRepository.existsByIdAndEmailAndDeletedAtIsNull(1L, REJOINED_EMAIL)).willReturn(false);
+        given(userAccessRevocationService.isRevoked(1L)).willReturn(true);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         jwtAuthenticationFilter.doFilter(request, response, filterChain);

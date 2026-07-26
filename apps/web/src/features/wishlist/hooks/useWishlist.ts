@@ -58,6 +58,8 @@ export const useToggleWishlist = () => {
     },
     onSuccess: (response) => {
        toast.success(response.message || '찜 목록이 업데이트되었습니다.');
+    },
+    onSettled: () => {
        queryClient.invalidateQueries({ queryKey: ['wishlist'] });
     },
   });

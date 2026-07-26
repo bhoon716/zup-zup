@@ -52,14 +52,8 @@ export const useAuthStore = create<AuthState>()(
       }),
       
       checkSession: async () => {
-        const { isAuthenticated } = useAuthStore.getState();
         if (sessionCheckPromise) {
           return sessionCheckPromise;
-        }
-
-        if (isAuthenticated) {
-          set({ isLoading: false });
-          return Promise.resolve();
         }
 
         set({ isLoading: true });

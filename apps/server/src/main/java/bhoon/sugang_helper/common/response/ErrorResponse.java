@@ -39,6 +39,11 @@ public class ErrorResponse {
     private final String correlationId;
 
     public static ErrorResponse of(ErrorCode errorCode, String path) {
+        String mdcCorrelationId = org.slf4j.MDC.get("correlationId");
+        String correlationId = (mdcCorrelationId != null && !mdcCorrelationId.isBlank())
+                ? mdcCorrelationId
+                : UUID.randomUUID().toString();
+
         return new ErrorResponse(
                 LocalDateTime.now().toString(),
                 SensitiveDataRedactor.redactPath(path),
@@ -46,6 +51,6 @@ public class ErrorResponse {
                 errorCode.getCode(),
                 errorCode.getMessage(),
                 null,
-                UUID.randomUUID().toString());
+                correlationId);
     }
 }

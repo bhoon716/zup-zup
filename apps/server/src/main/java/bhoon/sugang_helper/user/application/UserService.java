@@ -3,6 +3,7 @@ package bhoon.sugang_helper.user.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.feedback.domain.FeedbackRepository;
@@ -44,6 +45,7 @@ public class UserService {
     private final EmailVerificationService emailVerificationService;
     private final NotificationService notificationService;
     private final JwtProvider jwtProvider;
+    private final UserAccessRevocationService userAccessRevocationService;
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
@@ -116,6 +118,7 @@ public class UserService {
         user.withdraw();
         userRepository.saveAndFlush(user);
         jwtProvider.revokeAllRefreshTokens(email);
+        userAccessRevocationService.revoke(userId);
         emailVerificationService.clearVerificationState(userId, email, notificationEmail);
         subscriptionRepository.findByUserId(userId).forEach(subscription -> subscription.cancel());
         userDeviceRepository.deleteAllByUserId(userId);

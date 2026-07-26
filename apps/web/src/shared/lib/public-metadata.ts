@@ -48,6 +48,7 @@ export const getAnnouncementMetadata = async (id: number): Promise<Metadata> => 
   return {
     title: `${announcement.title} | 줍줍`,
     description,
+    keywords: ["전북대", "줍줍", "공지사항", announcement.title],
     alternates: { canonical: url },
     openGraph: {
       title: announcement.title,
@@ -56,6 +57,11 @@ export const getAnnouncementMetadata = async (id: number): Promise<Metadata> => 
       siteName: "줍줍",
       locale: "ko_KR",
       type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: announcement.title,
+      description,
     },
   };
 };
@@ -77,10 +83,20 @@ export const getCourseMetadata = async (courseKey: string): Promise<Metadata> =>
     course.credits && `${course.credits}학점`,
   ].filter(Boolean).join(" · ")) || "전북대학교 강의 상세 정보를 확인하세요.";
   const url = `${SITE_URL}/courses/${encodeURIComponent(courseKey)}`;
+  const title = `${course.name} (${course.classNumber}) | 줍줍`;
 
   return {
-    title: `${course.name} (${course.classNumber}) | 줍줍`,
+    title,
     description,
+    keywords: [
+      "전북대",
+      "전북대학교",
+      course.name,
+      course.department,
+      course.professor,
+      "수강신청",
+      "강의상세",
+    ].filter(Boolean) as string[],
     alternates: { canonical: url },
     openGraph: {
       title: `${course.name} (${course.classNumber})`,
@@ -89,6 +105,11 @@ export const getCourseMetadata = async (courseKey: string): Promise<Metadata> =>
       siteName: "줍줍",
       locale: "ko_KR",
       type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
     },
   };
 };

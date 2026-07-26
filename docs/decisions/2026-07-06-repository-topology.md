@@ -1,16 +1,16 @@
-# Repository Topology Decision
+# 저장소 토폴로지 결정 문서 (Repository Topology Decision)
 
-## Context
-- The workspace contains three independent Git repositories: `server/`, `web/`, and `infra/`.
-- The root directory is a coordination layer for project-level documentation and cross-repo planning.
-- Earlier docs assumed a flatter single-repo layout and were no longer accurate.
+## 배경 및 맥락 (Context)
+- 워크스페이스는 `server/`, `web/`, `infra/` 3개의 독립적인 서비스 요소로 구성되어 있습니다.
+- 루트 디렉터리는 프로젝트 수준의 문서화 및 서비스 간 아키텍처 조율을 담당합니다.
+- 이전 문서들이 예전 단일 저장소 구조를 전제하고 있어 최신 토폴로지 기준으로 정정합니다.
 
-## Decision
-- Treat the project as a nested multi-repo workspace, not a monorepo.
-- Keep service-specific implementation, dependencies, and commands inside their own repository.
-- Keep durable cross-repo architecture and topology notes in the root `docs/` directory.
+## 결정 사항 (Decision)
+- 본 프로젝트는 멀티 패키지/모노레포 형태의 루트 워크스페이스 레이아웃으로 관리합니다.
+- 각 서비스별 구현, 의존성 및 개별 실행 명령은 해당 앱 디렉터리 내부로 캡슐화합니다.
+- 서비스 간 지속적인 아키텍처 및 토폴로지 결정 사항은 루트 `docs/` 디렉터리에 보관합니다.
 
-## Consequences
-- Changes that touch backend, frontend, and infra should be split into repo-local commits when possible.
-- Root documentation should describe shared architecture decisions and cross-cutting topology only.
-- Repo-local READMEs remain the primary source for component-specific developer workflows.
+## 결과 및 시사점 (Consequences)
+- 백엔드, 프론트엔드, 인프라를 동시에 변경할 때 가능한 각 서비스 영역별 독립 커밋으로 분리합니다.
+- 루트 문서는 공유 아키텍처 결정 사항 및 서비스 간 토폴로지만 서술합니다.
+- 개별 컴포넌트 단위의 개발자 워크플로는 각 앱 디렉터리 내 README 문서가 기준이 됩니다.

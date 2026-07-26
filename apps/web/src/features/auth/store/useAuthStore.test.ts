@@ -66,6 +66,35 @@ describe("useAuthStore", () => {
     expect(state.isLoading).toBe(false);
   });
 
+  it("로컬 인증 상태가 남아 있어도 서버 세션을 다시 검증한다", async () => {
+    const staleUser: User = {
+      id: 1,
+      email: "stale@test.com",
+      name: "이전 사용자",
+      role: "USER",
+      emailEnabled: false,
+      webPushEnabled: false,
+      fcmEnabled: false,
+      discordEnabled: false,
+      onboardingCompleted: true,
+    };
+    useAuthStore.setState({
+      user: staleUser,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    vi.mocked(userApi.getMyProfile).mockRejectedValue(new Error("Unauthorized"));
+
+    await useAuthStore.getState().checkSession();
+
+    expect(userApi.getMyProfile).toHaveBeenCalledTimes(1);
+    expect(useAuthStore.getState()).toMatchObject({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
+  });
+
   it("checkSession이 동시에 여러 번 호출되어도 프로필 요청은 한 번만 보낸다", async () => {
     let resolveProfile!: (value: CommonResponse<User>) => void;
     const profilePromise = new Promise<CommonResponse<User>>((resolve) => {

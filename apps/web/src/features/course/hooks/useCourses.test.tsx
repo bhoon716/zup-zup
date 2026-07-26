@@ -142,30 +142,34 @@ describe("useCourses hooks", () => {
     expect(result.current.data).toEqual({ semester: "U211600025" });
   });
 
-  it("초기 페이지가 있으면 첫 검색 요청을 다시 보내지 않는다", async () => {
+  it("초기 페이지가 있으면 첫 검색 요청을 다시 보내지 않고 정규화를 적용한다", async () => {
     const mockedSearchCourses = vi.mocked(courseApi.searchCourses);
-    const initialPage: CourseSearchPageResponse = {
+    const initialPage = {
       content: [
         {
           courseKey: "CSE-401",
           subjectCode: "CSE401",
           name: "분산시스템",
           classNumber: "01",
-          capacity: 30,
-          current: 10,
-          available: 20,
-          professor: "이교수",
+          totalSeats: 30,
+          currentSeats: 10,
+          professorName: "이교수",
         },
       ],
       last: true,
       number: 0,
-    };
+    } as unknown as CourseSearchPageResponse;
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
     const condition: CourseSearchCondition = { name: "분산" };
-    renderHook(() => useCourses(condition, { initialPage }), { wrapper });
+    const { result } = renderHook(() => useCourses(condition, { initialPage }), { wrapper });
 
     await waitFor(() => expect(mockedSearchCourses).not.toHaveBeenCalled());
+    const firstCourse = result.current.data?.pages[0].content[0];
+    expect(firstCourse?.capacity).toBe(30);
+    expect(firstCourse?.current).toBe(10);
+    expect(firstCourse?.available).toBe(20);
+    expect(firstCourse?.professor).toBe("이교수");
   });
 });

@@ -14,6 +14,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.feedback.domain.Feedback;
 import bhoon.sugang_helper.feedback.domain.FeedbackAttachmentRepository;
@@ -105,6 +106,9 @@ class UserServiceTest {
     @Mock
     private JwtProvider jwtProvider;
 
+    @Mock
+    private UserAccessRevocationService userAccessRevocationService;
+
     @InjectMocks
     private UserService userService;
 
@@ -189,6 +193,7 @@ class UserServiceTest {
         assertThat(feedback.getDeletedAt()).isNotNull();
 
         verify(jwtProvider).revokeAllRefreshTokens(TEST_EMAIL);
+        verify(userAccessRevocationService).revoke(1L);
         verify(emailVerificationService).clearVerificationState(1L, TEST_EMAIL, NOTIFY_EMAIL);
         verify(userRepository).saveAndFlush(user);
         verify(subscriptionRepository).findByUserId(1L);
@@ -223,6 +228,7 @@ class UserServiceTest {
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
         verify(jwtProvider, never()).revokeAllRefreshTokens(TEST_EMAIL);
+        verify(userAccessRevocationService, never()).revoke(1L);
         verify(emailVerificationService, never()).clearVerificationState(
                 org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString());

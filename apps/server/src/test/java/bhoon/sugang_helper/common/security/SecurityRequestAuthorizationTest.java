@@ -27,6 +27,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.error.GlobalExceptionHandler;
 import bhoon.sugang_helper.common.security.jwt.JwtAuthenticationFilter;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
+import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
 import bhoon.sugang_helper.common.security.oauth.CustomOAuth2UserService;
 import bhoon.sugang_helper.common.security.oauth.OAuth2FailureHandler;
 import bhoon.sugang_helper.common.security.oauth.OAuth2SuccessHandler;
@@ -36,7 +37,6 @@ import bhoon.sugang_helper.feedback.application.FeedbackService;
 import bhoon.sugang_helper.feedback.application.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.feedback.presentation.FeedbackController;
 import bhoon.sugang_helper.user.application.UserService;
-import bhoon.sugang_helper.user.domain.UserRepository;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
 import java.util.List;
@@ -99,6 +99,8 @@ class SecurityRequestAuthorizationTest {
     @MockitoBean
     private JwtProvider jwtProvider;
     @MockitoBean
+    private UserAccessRevocationService userAccessRevocationService;
+    @MockitoBean
     private AdminService adminService;
     @MockitoBean
     private AdminAuditService adminAuditService;
@@ -110,8 +112,6 @@ class SecurityRequestAuthorizationTest {
     private FeedbackService feedbackService;
     @MockitoBean
     private UserService userService;
-    @MockitoBean
-    private UserRepository userRepository;
     @MockitoBean
     private CustomOAuth2UserService customOAuth2UserService;
     @MockitoBean
@@ -353,7 +353,7 @@ class SecurityRequestAuthorizationTest {
     @Test
     void deletedAccountSessionIsRejectedBeforeTheOriginalExpiry() throws Exception {
         MockHttpSession session = authenticatedSession("ROLE_ADMIN");
-        given(userRepository.existsByIdAndEmailAndDeletedAtIsNull(1L, "admin@example.com")).willReturn(false);
+        given(userAccessRevocationService.isRevoked(1L)).willReturn(true);
 
         mockMvc.perform(get("/api/v1/admin/dashboard").session(session))
                 .andExpect(status().isUnauthorized());
@@ -367,7 +367,7 @@ class SecurityRequestAuthorizationTest {
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
         session.setAttribute("AUTHENTICATION_EXPIRES_AT", System.currentTimeMillis() + 60_000L);
         session.setAttribute("AUTHENTICATION_USER_ID", 1L);
-        given(userRepository.existsByIdAndEmailAndDeletedAtIsNull(1L, "admin@example.com")).willReturn(true);
+        given(userAccessRevocationService.isRevoked(1L)).willReturn(false);
         return session;
     }
 

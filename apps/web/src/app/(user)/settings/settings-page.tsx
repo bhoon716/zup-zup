@@ -100,18 +100,21 @@ export function SettingsPage({ model }: { model: SettingsPageModel }) {
                 deviceAlias={deviceAlias}
                 setDeviceAlias={setDeviceAlias}
                 devices={devices}
-                isSendingTest={isSendingTest}
-                testCooldownSeconds={testCooldownSeconds}
                 loadingWebPush={loadingWebPush}
                 watch={watch}
                 setValue={setValue}
-                handleSendTestNotification={handleSendTestNotification}
                 handleRegisterDevice={handleRegisterDevice}
                 handleDeleteDevice={handleDeleteDevice}
               />
             </div>
           </section>
-          <SettingsActionBar isSubmitting={isSubmitting} onCancel={() => router.back()} />
+          <SettingsActionBar
+            isSubmitting={isSubmitting}
+            onCancel={() => router.back()}
+            isSendingTest={isSendingTest}
+            testCooldownSeconds={testCooldownSeconds}
+            handleSendTestNotification={handleSendTestNotification}
+          />
         </form>
       </main>
     </div>
