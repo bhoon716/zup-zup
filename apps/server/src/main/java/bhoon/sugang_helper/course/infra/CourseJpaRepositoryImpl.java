@@ -46,7 +46,7 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
     @Override
     public Slice<Course> searchCourses(CourseSearchCriteria condition, Pageable pageable) {
         String sortBy = condition.sortBy();
-        boolean isPopularSort = sortBy == null || "popular".equalsIgnoreCase(sortBy);
+        boolean isPopularSort = isPopularSort(sortBy);
         QWishlist wishlist = QWishlist.wishlist;
 
         var query = queryFactory.selectFrom(course);
@@ -267,7 +267,7 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
         String sortOrder = condition.sortOrder();
         Order order = "asc".equalsIgnoreCase(sortOrder) ? Order.ASC : Order.DESC;
 
-        if (sortBy == null || "popular".equalsIgnoreCase(sortBy)) {
+        if (isPopularSort(sortBy)) {
             return new OrderSpecifier<?>[]{
                     new OrderSpecifier<>(order, popularCount(joinedWishlist)),
                     new OrderSpecifier<>(Order.DESC, course.current),
@@ -310,6 +310,18 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
                 new OrderSpecifier<>(Order.DESC, course.current),
                 new OrderSpecifier<>(Order.ASC, course.courseKey)
         };
+    }
+
+    private boolean isPopularSort(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return true;
+        }
+        String lower = sortBy.trim().toLowerCase(Locale.ROOT);
+        return lower.equals("popular")
+                || lower.equals("wishlist")
+                || lower.equals("wishlistcount")
+                || lower.equals("wishlist_count")
+                || lower.equals("wished");
     }
 
     private NumberExpression<Long> popularCount(QWishlist joinedWishlist) {
