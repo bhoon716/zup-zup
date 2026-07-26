@@ -4,13 +4,16 @@ const KAKAO_MAP_SCRIPT_ID = "kakao-map-sdk";
 // 기본 중심 좌표: 전북대학교 전주캠퍼스
 const DEFAULT_CENTER = { lat: 35.846521, lng: 127.129558 };
 
-// 전북대학교 캠퍼스 지리적 위경도 범위 (교외 지오코딩 오지정 방지용)
+// 전북대학교 전주캠퍼스 지리적 위경도 범위 (교외 지오코딩 오지정 방지용)
 const JBNU_CAMPUS_BOUNDS = {
   minLat: 35.8380,
   maxLat: 35.8580,
   minLng: 127.1200,
   maxLng: 127.1420,
 };
+
+// 타 캠퍼스/지역 키워드 (익산, 고창, 남원, 새만금/군산, 병원, 외부 기관 등)
+const OFF_CAMPUS_KEYWORDS = ["익산", "고창", "남원", "새만금", "군산", "병원", "혁신도시"];
 
 interface KakaoLatLngInstance {
   getLat(): number;
@@ -160,7 +163,7 @@ export interface KakaoMapRenderResult {
 }
 
 /**
- * 키워드(건물명 등)를 정규화 및 캠퍼스 바운딩 검색하여 해당 위치에 지도를 렌더링하고 마커를 표시합니다.
+ * 키워드(건물명 등)를 정규화 및 다중 캠퍼스/외부 위치 보정하여 해당 위치에 지도를 렌더링하고 마커를 표시합니다.
  */
 export async function renderKakaoMapByKeyword(params: {
   container: HTMLElement;
@@ -175,51 +178,69 @@ export async function renderKakaoMapByKeyword(params: {
   const map = new kakao.maps.Map(container, { center: initialCenter, level });
 
   const normalizedKeyword = getCampusMapQuery(keyword) ?? keyword;
+  const isOffCampus = OFF_CAMPUS_KEYWORDS.some((k) => normalizedKeyword.includes(k) || keyword.includes(k));
 
   return new Promise<KakaoMapRenderResult>((resolve) => {
     const places = new kakao.maps.services.Places();
-    places.keywordSearch(
-      normalizedKeyword,
-      (data, status) => {
-        if (status !== kakao.maps.services.Status.OK || data.length === 0) {
-          map.setCenter(initialCenter);
-          resolve({ status });
-          return;
-        }
 
-        // 1. 캠퍼스 내부 위경도 범위에 해당하는 장소를 우선 선택 (교외 오지정 방지)
-        const campusPlace = data.find((p) => {
-          const lat = Number(p.y);
-          const lng = Number(p.x);
-          return (
-            lat >= JBNU_CAMPUS_BOUNDS.minLat &&
-            lat <= JBNU_CAMPUS_BOUNDS.maxLat &&
-            lng >= JBNU_CAMPUS_BOUNDS.minLng &&
-            lng <= JBNU_CAMPUS_BOUNDS.maxLng
-          );
-        });
+    const doSearch = (options?: { location?: KakaoLatLngInstance; radius?: number }) => {
+      places.keywordSearch(
+        normalizedKeyword,
+        (data, status) => {
+          if (status !== kakao.maps.services.Status.OK || data.length === 0) {
+            // 위치 반경 제한 검색 실패 시, 제한 없이 전국 재검색 (Fallback)
+            if (options?.location) {
+              doSearch(undefined);
+              return;
+            }
+            map.setCenter(initialCenter);
+            resolve({ status });
+            return;
+          }
 
-        const place = campusPlace ?? data[0];
-        const lat = Number(place.y);
-        const lng = Number(place.x);
-        if (Number.isNaN(lat) || Number.isNaN(lng)) {
-          resolve({ status: "ERROR" });
-          return;
-        }
+          // 전주 캠퍼스 건물인 경우 캠퍼스 바운딩 내 장소를 우선 선택
+          const campusPlace = !isOffCampus
+            ? data.find((p) => {
+                const lat = Number(p.y);
+                const lng = Number(p.x);
+                return (
+                  lat >= JBNU_CAMPUS_BOUNDS.minLat &&
+                  lat <= JBNU_CAMPUS_BOUNDS.maxLat &&
+                  lng >= JBNU_CAMPUS_BOUNDS.minLng &&
+                  lng <= JBNU_CAMPUS_BOUNDS.maxLng
+                );
+              })
+            : undefined;
 
-        const position = new kakao.maps.LatLng(lat, lng);
-        map.setCenter(position);
-        map.setLevel(level);
+          const place = campusPlace ?? data[0];
+          const lat = Number(place.y);
+          const lng = Number(place.x);
+          if (Number.isNaN(lat) || Number.isNaN(lng)) {
+            resolve({ status: "ERROR" });
+            return;
+          }
 
-        const marker = new kakao.maps.Marker({ map, position });
-        const infoWindow = new kakao.maps.InfoWindow({
-          content: `<div style="padding:8px 10px;font-size:12px;line-height:1.3;">${place.place_name}</div>`,
-        });
-        infoWindow.open(map, marker);
+          const position = new kakao.maps.LatLng(lat, lng);
+          map.setCenter(position);
+          map.setLevel(level);
 
-        resolve({ status, place });
-      },
-      { location: initialCenter, radius: 1500, size: 10, page: 1 },
-    );
+          const marker = new kakao.maps.Marker({ map, position });
+          const infoWindow = new kakao.maps.InfoWindow({
+            content: `<div style="padding:8px 10px;font-size:12px;line-height:1.3;">${place.place_name}</div>`,
+          });
+          infoWindow.open(map, marker);
+
+          resolve({ status, place });
+        },
+        options ? { location: options.location, radius: options.radius, size: 10, page: 1 } : { size: 10, page: 1 },
+      );
+    };
+
+    // 타 캠퍼스/외부 위치가 아닌 전주 캠퍼스 일반 강의실은 전주 캠퍼스 반경(1.5km) 우선 검색
+    if (!isOffCampus) {
+      doSearch({ location: initialCenter, radius: 1500 });
+    } else {
+      doSearch(undefined);
+    }
   });
 }
