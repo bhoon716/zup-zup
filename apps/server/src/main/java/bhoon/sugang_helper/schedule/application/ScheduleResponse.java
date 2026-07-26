@@ -47,15 +47,29 @@ public class ScheduleResponse {
      */
     public static ScheduleResponse from(Schedule schedule) {
         LocalDate today = LocalDate.now();
-        long daysBetween = ChronoUnit.DAYS.between(today, schedule.getStartDate());
+        LocalDate startDate = schedule.getStartDate();
+        LocalDate endDate = schedule.getEndDate();
 
         String dDayStr;
-        if (daysBetween == 0) {
+        if (startDate != null && endDate != null && !today.isBefore(startDate) && !today.isAfter(endDate)) {
             dDayStr = "D-Day";
-        } else if (daysBetween > 0) {
+        } else if (startDate != null && today.isBefore(startDate)) {
+            long daysBetween = ChronoUnit.DAYS.between(today, startDate);
             dDayStr = "D-" + daysBetween;
+        } else if (endDate != null && today.isAfter(endDate)) {
+            long daysAfter = ChronoUnit.DAYS.between(endDate, today);
+            dDayStr = "D+" + daysAfter;
+        } else if (startDate != null) {
+            long daysBetween = ChronoUnit.DAYS.between(today, startDate);
+            if (daysBetween == 0) {
+                dDayStr = "D-Day";
+            } else if (daysBetween > 0) {
+                dDayStr = "D-" + daysBetween;
+            } else {
+                dDayStr = "D+" + Math.abs(daysBetween);
+            }
         } else {
-            dDayStr = "D+" + Math.abs(daysBetween);
+            dDayStr = "D-Day";
         }
 
         return ScheduleResponse.builder()

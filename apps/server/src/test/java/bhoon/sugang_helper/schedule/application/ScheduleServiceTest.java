@@ -57,6 +57,27 @@ class ScheduleServiceTest {
     }
 
     @Test
+    @DisplayName("시작일이 지나고 종료일 진행 중인 일정은 D-Day로 계산한다")
+    void getOngoingScheduleDDay() {
+        // given
+        LocalDate today = LocalDate.now();
+        Schedule ongoingSchedule = Schedule.builder()
+                .scheduleType("수강신청")
+                .startDate(today.minusDays(1))
+                .endDate(today.plusDays(1))
+                .startTime(LocalTime.of(10, 0))
+                .endTime(LocalTime.of(18, 0))
+                .build();
+        ReflectionTestUtils.setField(ongoingSchedule, "id", 2L);
+
+        // when
+        ScheduleResponse response = ScheduleResponse.from(ongoingSchedule);
+
+        // then
+        assertThat(response.getDDay()).isEqualTo("D-Day");
+    }
+
+    @Test
     @DisplayName("새로운 일정을 생성한다")
     void createSchedule() {
         // given
