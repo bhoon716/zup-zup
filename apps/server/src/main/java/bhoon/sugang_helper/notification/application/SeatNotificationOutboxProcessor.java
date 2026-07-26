@@ -147,6 +147,7 @@ public class SeatNotificationOutboxProcessor {
         Map<Long, List<UserDevice>> devicesByUser = userDeviceRepository.findByUserIdIn(userIds).stream()
                 .collect(Collectors.groupingBy(UserDevice::getUserId));
 
+        List<SeatNotificationDelivery> deliveriesToSave = new java.util.ArrayList<>();
         for (Long userId : userIds) {
             User user = usersById.get(userId);
             if (user == null) {
@@ -158,12 +159,15 @@ public class SeatNotificationOutboxProcessor {
                         || deliveryRepository.existsByOutboxIdAndUserIdAndChannel(outbox.getId(), userId, channel)) {
                     continue;
                 }
-                deliveryRepository.save(SeatNotificationDelivery.builder()
+                deliveriesToSave.add(SeatNotificationDelivery.builder()
                         .outbox(outbox)
                         .userId(userId)
                         .channel(channel)
                         .build());
             }
+        }
+        if (!deliveriesToSave.isEmpty()) {
+            deliveryRepository.saveAll(deliveriesToSave);
         }
         if (deliveryRepository.countByOutboxIdAndStatusIn(outbox.getId(), ACTIVE_DELIVERY_STATUSES) == 0) {
             outbox.markCompleted();
