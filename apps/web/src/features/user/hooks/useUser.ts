@@ -71,7 +71,9 @@ export const useUpdateProfile = () => {
   return useMutation({
     mutationFn: (request: Parameters<typeof userApi.updateProfile>[0]) => userApi.updateProfile(request),
     onSuccess: (response) => {
-      queryClient.setQueryData(['user', 'me'], response.data ?? null);
+      const user = response.data ?? null;
+      queryClient.setQueryData(['user', 'me'], user);
+      useAuthStore.getState().setUser(user);
       toast.success(response.message || '프로필이 수정되었습니다');
     },
     onError: (error: AxiosError<{ message: string }>) => {
@@ -87,7 +89,9 @@ export const useCompleteOnboarding = () => {
   return useMutation({
     mutationFn: (request: Parameters<typeof userApi.completeOnboarding>[0]) => userApi.completeOnboarding(request),
     onSuccess: (response) => {
-      queryClient.setQueryData(['user', 'me'], response.data ?? null);
+      const user = response.data ?? null;
+      queryClient.setQueryData(['user', 'me'], user);
+      useAuthStore.getState().setUser(user);
       toast.success(response.message || '설정이 완료되었습니다');
     },
     onError: (error: AxiosError<{ message: string }>) => {

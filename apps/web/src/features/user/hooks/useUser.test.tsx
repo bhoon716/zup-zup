@@ -2,8 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { AxiosError } from "axios";
 import * as userApi from "@/features/user/api/user.api";
-import { useUser } from "./useUser";
+import { useCompleteOnboarding, useUpdateProfile, useUser } from "./useUser";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
+
+const { mockSetAuthUser } = vi.hoisted(() => ({
+  mockSetAuthUser: vi.fn(),
+}));
 
 vi.mock("@/features/user/api/user.api", () => ({
   getMyProfile: vi.fn(),
@@ -11,6 +15,12 @@ vi.mock("@/features/user/api/user.api", () => ({
   withdraw: vi.fn(),
   updateProfile: vi.fn(),
   completeOnboarding: vi.fn(),
+}));
+
+vi.mock("@/features/auth/store/useAuthStore", () => ({
+  useAuthStore: Object.assign(vi.fn(), {
+    getState: () => ({ setUser: mockSetAuthUser }),
+  }),
 }));
 
 describe("useUser hook", () => {
@@ -90,5 +100,41 @@ describe("useUser hook", () => {
     const { result } = renderHook(() => useUser(), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
+  });
+
+  it("프로필 수정 성공 시 Query 캐시와 인증 스토어를 함께 갱신한다", async () => {
+    const updatedUser = { id: 1, name: "수정된 사용자" };
+    vi.mocked(userApi.updateProfile).mockResolvedValue({
+      code: "SUCCESS",
+      message: "ok",
+      data: updatedUser,
+    } as never);
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    const { result } = renderHook(() => useUpdateProfile(), { wrapper });
+
+    result.current.mutate({ name: "수정된 사용자" } as never);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(queryClient.getQueryData(["user", "me"])).toEqual(updatedUser);
+    expect(mockSetAuthUser).toHaveBeenCalledWith(updatedUser);
+  });
+
+  it("온보딩 완료 성공 시 Query 캐시와 인증 스토어를 함께 갱신한다", async () => {
+    const onboardedUser = { id: 1, name: "사용자", onboardingCompleted: true };
+    vi.mocked(userApi.completeOnboarding).mockResolvedValue({
+      code: "SUCCESS",
+      message: "ok",
+      data: onboardedUser,
+    } as never);
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    const { result } = renderHook(() => useCompleteOnboarding(), { wrapper });
+
+    result.current.mutate({} as never);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(queryClient.getQueryData(["user", "me"])).toEqual(onboardedUser);
+    expect(mockSetAuthUser).toHaveBeenCalledWith(onboardedUser);
   });
 });

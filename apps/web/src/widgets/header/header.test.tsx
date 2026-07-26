@@ -27,7 +27,19 @@ type MockNavLinksProps = {
   onLinkClick?: () => void;
 };
 
-const { mockLogout, mockInstall, mockAuthStore, mockNavLinks } = vi.hoisted(() => ({
+type MockUserStatusProps = {
+  user: MockUser | null | undefined;
+  isLoading: boolean;
+};
+
+const {
+  mockLogout,
+  mockInstall,
+  mockAuthStore,
+  mockNavLinks,
+  mockDesktopUser,
+  mockHasMounted,
+} = vi.hoisted(() => ({
   mockLogout: vi.fn(),
   mockInstall: vi.fn(),
   mockAuthStore: {
@@ -36,6 +48,8 @@ const { mockLogout, mockInstall, mockAuthStore, mockNavLinks } = vi.hoisted(() =
     setLoginModalOpen: vi.fn(),
   } as MockAuthStore,
   mockNavLinks: vi.fn(),
+  mockDesktopUser: vi.fn(),
+  mockHasMounted: { value: true },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -61,7 +75,7 @@ vi.mock("@/shared/hooks/usePWAInstall", () => ({
 }));
 
 vi.mock("@/shared/hooks/useHasMounted", () => ({
-  useHasMounted: () => true,
+  useHasMounted: () => mockHasMounted.value,
 }));
 
 vi.mock("./ui/nav-links", () => ({
@@ -72,13 +86,17 @@ vi.mock("./ui/nav-links", () => ({
 }));
 
 vi.mock("./ui/user-status", () => ({
-  HeaderDesktopUser: () => <div data-testid="desktop-user" />,
+  HeaderDesktopUser: (props: MockUserStatusProps) => {
+    mockDesktopUser(props);
+    return <div data-testid="desktop-user" />;
+  },
   HeaderMobileUserStatus: () => <div data-testid="mobile-user" />,
 }));
 
 describe("Header", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockHasMounted.value = true;
     mockAuthStore.user = null;
     mockAuthStore.isLoading = false;
     document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
@@ -90,18 +108,8 @@ describe("Header", () => {
     expect(screen.getByRole("button", { name: "메뉴 열기" })).toBeInTheDocument();
   });
 
-  it("세션이 로딩 중이지만 로그인 힌트 쿠키가 없으면 NavLinks에 isLoading=false를 전달한다", () => {
+  it("세션 로딩 여부는 로그인 힌트 쿠키가 아니라 인증 스토어만 따른다", () => {
     mockAuthStore.isLoading = true;
-    render(<Header />);
-
-    expect(mockNavLinks).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: false })
-    );
-  });
-
-  it("세션이 로딩 중이고 로그인 힌트 쿠키가 존재하면 NavLinks에 isLoading=true를 전달한다", () => {
-    mockAuthStore.isLoading = true;
-    document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=true; path=/`;
     render(<Header />);
 
     expect(mockNavLinks).toHaveBeenCalledWith(
@@ -109,13 +117,36 @@ describe("Header", () => {
     );
   });
 
-  it("세션 로딩이 완료되면 로그인 힌트 쿠키 여부와 관계없이 NavLinks에 isLoading=false를 전달한다", () => {
+  it("인증 스토어 로딩이 끝나면 로그인 힌트 쿠키가 있어도 로딩 상태를 표시하지 않는다", () => {
     mockAuthStore.isLoading = false;
     document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=true; path=/`;
     render(<Header />);
 
     expect(mockNavLinks).toHaveBeenCalledWith(
       expect.objectContaining({ isLoading: false })
+    );
+  });
+
+  it("로그인 여부는 인증 스토어의 사용자만 따른다", () => {
+    mockAuthStore.isLoading = false;
+    document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=true; path=/`;
+    render(<Header />);
+
+    expect(mockNavLinks).toHaveBeenCalledWith(
+      expect.objectContaining({ isLoggedIn: false })
+    );
+  });
+
+  it("SSR과 첫 클라이언트 렌더에서는 인증 영역을 동일한 스켈레톤으로 유지한다", () => {
+    mockHasMounted.value = false;
+
+    render(<Header />);
+
+    expect(mockNavLinks).toHaveBeenCalledWith(
+      expect.objectContaining({ isLoading: true, isLoggedIn: false })
+    );
+    expect(mockDesktopUser).toHaveBeenCalledWith(
+      expect.objectContaining({ isLoading: true, user: undefined })
     );
   });
 
