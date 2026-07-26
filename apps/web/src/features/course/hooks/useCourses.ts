@@ -35,7 +35,12 @@ export const useCourses = (
     },
     initialData: options?.initialPage
       ? {
-          pages: [options.initialPage],
+          pages: [
+            {
+              ...options.initialPage,
+              content: options.initialPage.content.map((course) => normalizeCourse(course)),
+            },
+          ],
           pageParams: [0],
         }
       : undefined,
