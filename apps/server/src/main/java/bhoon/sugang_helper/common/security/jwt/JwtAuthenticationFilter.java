@@ -3,7 +3,6 @@ package bhoon.sugang_helper.common.security.jwt;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESSION_AUTHENTICATION_EXPIRES_AT;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESSION_AUTHENTICATION_USER_ID;
 
-import bhoon.sugang_helper.user.domain.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,7 +24,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
-    private final UserRepository userRepository;
+    private final UserAccessRevocationService userAccessRevocationService;
 
     @Override
     @SuppressWarnings("NullableProblems")
@@ -39,7 +38,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(token) && jwtProvider.validateToken(token)) {
             Authentication authentication = jwtProvider.getAuthentication(token);
             Long userId = jwtProvider.getUserId(token);
-            if (isActiveUser(userId, authentication)) {
+            if (userId != null && authentication != null && StringUtils.hasText(authentication.getName())
+                    && !userAccessRevocationService.isRevoked(userId)) {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 log.debug("Saved authentication info '{}' to SecurityContext", authentication.getName());
             }
@@ -59,14 +59,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Object expiresAt = session.getAttribute(SESSION_AUTHENTICATION_EXPIRES_AT);
         Object userId = session.getAttribute(SESSION_AUTHENTICATION_USER_ID);
         if (!(expiresAt instanceof Long expiresAtMillis) || expiresAtMillis <= System.currentTimeMillis()
-                || !(userId instanceof Long sessionUserId) || !isActiveUser(sessionUserId, authentication)) {
+                || !(userId instanceof Long sessionUserId) || !StringUtils.hasText(authentication.getName())
+                || userAccessRevocationService.isRevoked(sessionUserId)) {
             SecurityContextHolder.clearContext();
             session.invalidate();
         }
-    }
-
-    private boolean isActiveUser(Long userId, Authentication authentication) {
-        return userId != null && authentication != null && StringUtils.hasText(authentication.getName())
-                && userRepository.existsByIdAndEmailAndDeletedAtIsNull(userId, authentication.getName());
     }
 }
