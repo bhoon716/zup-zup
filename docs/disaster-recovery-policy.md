@@ -1,6 +1,6 @@
 # Database and durable-state recovery policy
 
-> Current runtime policy (2026-07-20): MySQL uses the Docker named volume `sugang-helper-db-data`, and `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh` runs from an OCI systemd timer. The backup script and timer unit are installed directly on the server and are not part of the git release. The encrypted multi-state archive described below is a legacy design record and is not part of the current minimal Compose runtime.
+> Current runtime policy (2026-07-26): MySQL uses the Docker named volume `sugang-helper-db-data`, and `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh` runs from an OCI systemd timer. In addition, an Off-host backup strategy syncing encrypted DB dumps and user uploads to the operator's Local MacBook (`infra/scripts/backup-to-macbook.sh`) is established for complete host-loss protection (ISSUE-136).
 
 ## Database access boundary
 
@@ -18,33 +18,36 @@ The host root `.env` contains `DB_ROOT_PASSWORD` and `DB_JDBC_URL`. The release 
 
 ## Backup policy
 
-The active backup is a MySQL logical dump created by `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh`. It runs as the `ubuntu` user every Monday at 04:00 (`Asia/Seoul`) through `jbnu-sugang-helper-db-backup.timer`, does not stop the application, and uses `--single-transaction --source-data=2 --no-tablespaces --routines --events --triggers`.
+### 1. Same-Host Local Backup (OCI Instance)
+The active same-host backup is a MySQL logical dump created by `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh`. It runs as the `ubuntu` user every Monday at 04:00 (`Asia/Seoul`) through `jbnu-sugang-helper-db-backup.timer`, does not stop the application, and uses `--single-transaction --source-data=2 --no-tablespaces --routines --events --triggers`.
 
-Each successful dump is gzip-compressed and accompanied by a SHA-256 sidecar under `/home/ubuntu/jbnu-sugang-helper/backups/mysql`. Files are mode `0600` and the directory is mode `0700`. The current timer keeps the backup on the same OCI instance; it protects against accidental application or schema mistakes but not loss of the instance or its boot disk.
+Each successful dump is gzip-compressed and accompanied by a SHA-256 sidecar under `/home/ubuntu/jbnu-sugang-helper/backups/mysql`. Files are mode `0600` and the directory is mode `0700`.
 
-The current minimal runtime does not create a `DB_BACKUP_USER`, does not rotate binary logs for backup, and does not pause NPM/Grafana/app writers. Off-host/Object Storage retention, encrypted archive escrow, and full durable-state recovery are separate follow-up work.
-
-The former encrypted multi-state archive was removed from the minimal runtime. Do not recreate or schedule that design alongside the current timer.
+### 2. MacBook Off-Host Backup (Host-Loss Disaster Recovery)
+To protect against complete OCI host or boot disk loss, off-host backups are periodically pulled to the operator's Local MacBook:
+- **Server Export Script**: `infra/scripts/backup-server-export.sh` (exports DB dump + uploads archive + SHA-256 sidecar)
+- **MacBook Sync Script**: `infra/scripts/backup-to-macbook.sh` (pulls backups via rsync/SSH, verifies SHA-256 checksums, enforces 30-day retention)
+- **Target RPO**: 24 hours (daily/weekly sync)
+- **Target RTO**: 30 minutes (clean restore on MacBook or fresh target host)
 
 ## Restore and drill
 
-Restoring a production database is destructive and requires an explicit confirmation. The current verification path restores the latest gzip dump into an isolated temporary MySQL container before any production volume is considered.
+### MacBook Clean Restore Drill
+Restoring a production database is destructive and requires an explicit confirmation. To verify backup integrity without affecting production, run the clean target restore drill on the operator's MacBook:
 
 ```bash
-docker run --rm \
-  --env MYSQL_ROOT_PASSWORD=<temporary-test-password> \
-  mysql:8.4 \
-  bash -ceu 'mysql -h <temporary-db> -uroot -p"$MYSQL_ROOT_PASSWORD" < /backup/sugang_helper.sql'
+# Run isolated restore drill in a temporary local Docker MySQL container
+infra/scripts/verify-mac-restore.sh [path/to/backup.sql.gz]
 ```
 
-The production named volume is never used as the restore test target. The test must verify the gzip archive, checksum, schema, and representative rows in an isolated temporary database. A production restore remains a separate, explicitly approved maintenance operation; application SHA rollback does not roll back database migrations.
+The drill:
+1. Launches an isolated temporary `mysql:8.4` container.
+2. Restores the specified gzip dump.
+3. Asserts schema existence and counts representative records (`users`, `courses`).
+4. Automatically cleans up the temporary test container upon completion.
 
-A one-time server-side dry-run and a post-install `systemctl status` check verify the current script and timer contract. A full clean-host durable-state drill is not claimed by the current local-only backup and must be designed separately if off-host recovery becomes required.
-
-Google OAuth itself requires a third-party callback/client and is deliberately not simulated as a database-only login. After a real-host restore, an operator must complete one controlled Google login before declaring the incident resolved.
+A production restore remains a separate, explicitly approved maintenance operation; application SHA rollback does not roll back database migrations.
 
 ## Point-in-time boundary
 
-The supported recovery target is the last successful local logical dump only. It does not provide point-in-time recovery, host-loss recovery, or versioned uploaded-file recovery.
-
-True PITR requires continuous off-host binary-log archiving, a tested `mysqlbinlog` replay path, and versioned/incremental attachment storage that advances with the same recovery point. That is intentionally outside this single-host snapshot policy.
+The supported recovery target is the last successful local or MacBook off-host logical dump. PITR requiring continuous binary-log archiving is intentionally outside this single-host snapshot policy.
