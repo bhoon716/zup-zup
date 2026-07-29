@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,9 @@ import org.springframework.data.domain.SliceImpl;
 import org.springframework.util.StringUtils;
 
 public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
+
+    private static final Set<String> POPULAR_SORT_ALIASES = Set.of(
+            "", "popular", "wishlist", "wishlistcount", "wishlist_count", "wished");
 
     private final JPAQueryFactory queryFactory;
     private final SelectedSchedulePredicateBuilder selectedSchedulePredicateBuilder;
@@ -313,15 +317,7 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
     }
 
     private boolean isPopularSort(String sortBy) {
-        if (sortBy == null || sortBy.isBlank()) {
-            return true;
-        }
-        String lower = sortBy.trim().toLowerCase(Locale.ROOT);
-        return lower.equals("popular")
-                || lower.equals("wishlist")
-                || lower.equals("wishlistcount")
-                || lower.equals("wishlist_count")
-                || lower.equals("wished");
+        return sortBy == null || POPULAR_SORT_ALIASES.contains(sortBy.trim().toLowerCase(Locale.ROOT));
     }
 
     private NumberExpression<Long> popularCount(QWishlist joinedWishlist) {
