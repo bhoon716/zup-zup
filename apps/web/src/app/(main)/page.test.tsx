@@ -3,16 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import HomePage from "./page";
 
-const { mockSetUser } = vi.hoisted(() => ({
-  mockSetUser: vi.fn(),
+const { mockAuthState, mockUseDashboardSnapshot } = vi.hoisted(() => ({
+  mockAuthState: {
+    user: null as null | { id: number; email: string; name: string; role: string },
+    isLoading: false,
+  },
+  mockUseDashboardSnapshot: vi.fn(),
 }));
 
 vi.mock("@/widgets/home/hooks/useDashboard", () => ({
-  useDashboardSnapshot: () => ({
-    data: null,
-    isLoading: false,
-    isError: false,
-  }),
+  useDashboardSnapshot: (options: unknown) => mockUseDashboardSnapshot(options),
 }));
 
 vi.mock("@/widgets/home/dashboard", () => ({
@@ -24,20 +24,24 @@ vi.mock("@/widgets/home/home-landing", () => ({
 }));
 
 vi.mock("@/features/auth/store/useAuthStore", () => ({
-  useAuthStore: (selector: (state: { setUser: (user: null) => void }) => unknown) =>
-    selector({
-      setUser: mockSetUser,
-    }),
+  useAuthStore: (selector: (state: typeof mockAuthState) => unknown) => selector(mockAuthState),
 }));
 
 describe("HomePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthState.user = null;
+    mockAuthState.isLoading = false;
+    mockUseDashboardSnapshot.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+    });
   });
 
-  it("게스트 상태에서는 전역 auth 상태를 지우지 않는다", () => {
+  it("게스트 상태에서는 인증 대시보드 요청을 비활성화한다", () => {
     render(<HomePage />);
 
-    expect(mockSetUser).not.toHaveBeenCalled();
+    expect(mockUseDashboardSnapshot).toHaveBeenCalledWith({ enabled: false });
   });
 });

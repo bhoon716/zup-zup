@@ -3,9 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CourseReviewSection } from "./course-review-section";
 import * as reviewHooks from "@/features/review/hooks/useReviews";
-import * as userHooks from "@/features/user/hooks/useUser";
 
-const { mockCreateReview, mockUpdateReview, mockToggleEmoji, mockSetLoginModalOpen } = vi.hoisted(() => ({
+const { mockAuthState, mockCreateReview, mockUpdateReview, mockToggleEmoji, mockSetLoginModalOpen } = vi.hoisted(() => ({
+  mockAuthState: {
+    user: {
+      id: 1,
+      email: "user@test.com",
+      name: "테스트",
+      role: "USER",
+    } as null | { id: number; email: string; name: string; role: string },
+    isLoading: false,
+  },
   mockCreateReview: vi.fn(),
   mockUpdateReview: vi.fn(),
   mockToggleEmoji: vi.fn(),
@@ -18,10 +26,6 @@ vi.mock("@/features/review/hooks/useReviews", () => ({
   useUpdateReview: vi.fn(),
   useCourseEmojis: vi.fn(),
   useToggleCourseEmoji: vi.fn(),
-}));
-
-vi.mock("@/features/user/hooks/useUser", () => ({
-  useUser: vi.fn(),
 }));
 
 vi.mock("@emoji-mart/react", () => ({
@@ -38,8 +42,17 @@ vi.mock("@emoji-mart/react", () => ({
 }));
 
 vi.mock("@/features/auth/store/useAuthStore", () => ({
-  useAuthStore: (selector: (state: { setLoginModalOpen: (open: boolean) => void }) => unknown) =>
-    selector({ setLoginModalOpen: mockSetLoginModalOpen }),
+  useAuthStore: (
+    selector: (state: {
+      user: null | { id: number; email: string; name: string; role: string };
+      isLoading: boolean;
+      setLoginModalOpen: (open: boolean) => void;
+    }) => unknown
+  ) =>
+    selector({
+      ...mockAuthState,
+      setLoginModalOpen: mockSetLoginModalOpen,
+    }),
 }));
 
 describe("CourseReviewSection", () => {
@@ -47,6 +60,13 @@ describe("CourseReviewSection", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthState.user = {
+      id: 1,
+      email: "user@test.com",
+      name: "테스트",
+      role: "USER",
+    };
+    mockAuthState.isLoading = false;
 
     vi.mocked(reviewHooks.useCreateReview).mockReturnValue({
       mutate: mockCreateReview,
@@ -85,10 +105,6 @@ describe("CourseReviewSection", () => {
       isPending: false,
     } as never);
 
-    vi.mocked(userHooks.useUser).mockReturnValue({
-      data: { id: 1, email: "user@test.com", name: "테스트", role: "USER" },
-      isPending: false,
-    } as never);
   });
 
   it("평균 별점, 별점 등록 폼, 이모지 리뷰만 보여주고 목록 패널은 숨긴다", () => {
@@ -260,10 +276,7 @@ describe("CourseReviewSection", () => {
   });
 
   it("비로그인 상태에서는 로그인 모달을 연다", () => {
-    vi.mocked(userHooks.useUser).mockReturnValue({
-      data: null,
-      isPending: false,
-    } as never);
+    mockAuthState.user = null;
 
     render(
       <CourseReviewSection
@@ -281,7 +294,7 @@ describe("CourseReviewSection", () => {
     expect(mockToggleEmoji).not.toHaveBeenCalled();
   });
 
-  it("공개 강의 상세에서는 세션 갱신 없이 사용자 정보를 조회한다", () => {
+  it("공개 강의 상세에서는 전역 인증 사용자가 리뷰 동작의 기준이 된다", () => {
     render(
       <CourseReviewSection
         courseKey="TEST-COURSE"
@@ -291,6 +304,9 @@ describe("CourseReviewSection", () => {
       />
     );
 
-    expect(userHooks.useUser).toHaveBeenCalledWith({ skipAuthRefresh: true });
+    fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
+
+    expect(mockSetLoginModalOpen).not.toHaveBeenCalled();
+    expect(screen.getByTestId("emoji-picker")).toBeInTheDocument();
   });
 });

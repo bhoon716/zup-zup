@@ -15,7 +15,9 @@ describe("shared api client", () => {
   });
 
   it("refresh 실패 시 로그인 페이지로 이동한다", async () => {
-    const refreshError = new Error("refresh failed");
+    const refreshError = Object.assign(new Error("refresh failed"), {
+      response: { status: 401 },
+    });
     const redirectSpy = vi.fn();
     const logoutSpy = vi.fn();
     const responseHandlers: {
@@ -64,5 +66,59 @@ describe("shared api client", () => {
     await expect(responseHandlers.onRejected?.(responseError)).rejects.toThrow("refresh failed");
     expect(redirectSpy).toHaveBeenCalledTimes(1);
     expect(logoutSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("refresh의 일시적인 서버 오류에서는 로그인 상태를 제거하거나 이동하지 않는다", async () => {
+    const refreshError = Object.assign(new Error("temporarily unavailable"), {
+      response: { status: 503 },
+    });
+    const redirectSpy = vi.fn();
+    const logoutSpy = vi.fn();
+    const responseHandlers: {
+      onRejected?: (error: unknown) => Promise<unknown>;
+    } = {};
+
+    const apiMock = {
+      defaults: { headers: { common: {} as Record<string, unknown> } },
+      interceptors: {
+        response: {
+          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
+            responseHandlers.onRejected = onRejected;
+          },
+        },
+      },
+      post: vi.fn(async (url: string) => {
+        if (url === "/api/auth/refresh") {
+          throw refreshError;
+        }
+
+        return { data: null };
+      }),
+    };
+
+    vi.doMock("axios", () => ({
+      AxiosError: class AxiosError {},
+      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
+      default: {
+        create: () => apiMock,
+      },
+    }));
+
+    vi.doMock("@/shared/lib/navigation", () => ({
+      redirectToLogin: redirectSpy,
+    }));
+
+    const { default: api, registerAuthFailureHandler } = await import("./client");
+    registerAuthFailureHandler(logoutSpy);
+    void api;
+
+    const responseError = {
+      config: { url: "/api/v1/users/me" },
+      response: { status: 401 },
+    };
+
+    await expect(responseHandlers.onRejected?.(responseError)).rejects.toThrow("temporarily unavailable");
+    expect(redirectSpy).not.toHaveBeenCalled();
+    expect(logoutSpy).not.toHaveBeenCalled();
   });
 });

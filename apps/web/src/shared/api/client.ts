@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { redirectToLogin } from "@/shared/lib/navigation";
+import { isDefinitiveAuthFailure } from "@/shared/api/auth-error";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -92,8 +93,10 @@ api.interceptors.response.use(
       } catch (refreshError) {
         isRefreshing = false;
         processQueue(refreshError);
-        authFailureHandler?.();
-        redirectToLogin();
+        if (isDefinitiveAuthFailure(refreshError)) {
+          authFailureHandler?.();
+          redirectToLogin();
+        }
         return Promise.reject(refreshError);
       }
     }

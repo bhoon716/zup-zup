@@ -217,6 +217,9 @@ class AuthServiceTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
 
+        ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
+        verify(response, times(2)).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
+        assertThat(cookieCaptor.getAllValues()).allMatch(cookie -> cookie.contains("Max-Age=0"));
         verify(jwtProvider, never()).rotateRefreshToken(anyString(), anyString());
         verify(jwtProvider, never()).createAccessToken(org.mockito.ArgumentMatchers.anyLong(), anyString(), anyString());
     }
@@ -242,5 +245,77 @@ class AuthServiceTest {
         assertThat(cookies.get(0)).contains("Max-Age=0");
         assertThat(cookies.get(1)).contains(IS_LOGGED_IN_COOKIE_NAME);
         assertThat(cookies.get(1)).contains("Max-Age=0");
+    }
+
+    @Test
+    @DisplayName("토큰 재발급 중 일시적인 서버 오류가 발생하면 인증 쿠키를 삭제하지 않는다")
+    void reissue_whenTransientServerError_preservesAuthCookies() {
+        String refreshToken = "valid-refresh-token";
+        String email = "test@example.com";
+        given(request.getCookies()).willReturn(new Cookie[]{new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken)});
+        given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
+        given(jwtProvider.getUserId(refreshToken)).willReturn(USER_ID);
+
+        Authentication authentication = mock(Authentication.class);
+        given(authentication.getName()).willReturn(email);
+        given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
+        User user = User.builder().id(USER_ID).email(email).role(Role.USER).build();
+        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.of(user));
+        given(jwtProvider.rotateRefreshToken(email, refreshToken))
+                .willThrow(new IllegalStateException("temporary Redis failure"));
+
+        assertThatThrownBy(() -> authService.reissue(request, response))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(response, never()).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
+    }
+
+    @Test
+    @DisplayName("사용자 저장소 조회 실패 시 인증 쿠키를 삭제하지 않는다")
+    void reissue_whenUserRepositoryFails_preservesAuthCookies() {
+        String refreshToken = "valid-refresh-token";
+        String email = "test@example.com";
+        given(request.getCookies()).willReturn(new Cookie[]{new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken)});
+        given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
+        given(jwtProvider.getUserId(refreshToken)).willReturn(USER_ID);
+
+        Authentication authentication = mock(Authentication.class);
+        given(authentication.getName()).willReturn(email);
+        given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
+        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email))
+                .willThrow(new IllegalStateException("temporary database failure"));
+
+        assertThatThrownBy(() -> authService.reissue(request, response))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(response, never()).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
+    }
+
+    @Test
+    @DisplayName("세션 저장 실패 시 인증 쿠키 삭제 헤더를 전송하지 않는다")
+    void reissue_whenSessionStoreFails_doesNotDeleteAuthCookies() {
+        String refreshToken = "valid-refresh-token";
+        String email = "test@example.com";
+        given(request.getCookies()).willReturn(new Cookie[]{new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken)});
+        given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
+        given(jwtProvider.getUserId(refreshToken)).willReturn(USER_ID);
+
+        Authentication authentication = mock(Authentication.class);
+        given(authentication.getName()).willReturn(email);
+        given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
+        User user = User.builder().id(USER_ID).email(email).role(Role.USER).build();
+        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.of(user));
+        given(jwtProvider.rotateRefreshToken(email, refreshToken)).willReturn("new-refresh-token");
+        given(jwtProvider.createAccessToken(USER_ID, email, Role.USER.getKey())).willReturn("new-access-token");
+        given(jwtProvider.getUserId("new-access-token")).willReturn(USER_ID);
+        given(jwtProvider.getAuthentication("new-access-token")).willReturn(authentication);
+        org.mockito.Mockito.doThrow(new IllegalStateException("temporary session store failure"))
+                .when(securityContextRepository)
+                .saveContext(org.mockito.ArgumentMatchers.any(), eq(request), eq(response));
+
+        assertThatThrownBy(() -> authService.reissue(request, response))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(response, never()).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
     }
 }

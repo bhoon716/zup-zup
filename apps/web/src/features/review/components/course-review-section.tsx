@@ -11,7 +11,6 @@ import { toast } from "sonner";
 
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { useCourseEmojis, useCreateReview, useReviews, useToggleCourseEmoji, useUpdateReview } from "@/features/review/hooks/useReviews";
-import { useUser } from "@/features/user/hooks/useUser";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/shared/ui/dialog";
@@ -51,7 +50,8 @@ export function CourseReviewSection({
   const { mutate: updateReview, isPending: isUpdating } = useUpdateReview(reviewScopeKey, courseKey);
   const { data: emojiStats, status: emojiStatus } = useCourseEmojis(reviewScopeKey, courseKey);
   const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(reviewScopeKey, courseKey);
-  const { data: user, isPending: isUserLoading } = useUser({ skipAuthRefresh: true });
+  const user = useAuthStore((state) => state.user);
+  const isUserLoading = useAuthStore((state) => state.isLoading && !state.user);
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
 
   const [draftRating, setDraftRating] = useState<number | null>(null);

@@ -85,7 +85,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 앱 진입 시점마다 세션 상태를 한 번 동기화한다.
     const hasCookie = getCookie(IS_LOGGED_IN_COOKIE_NAME) === "true";
-    if (hasCookie) {
+    const hasPersistedUser = useAuthStore.getState().user !== null;
+    if (hasCookie || hasPersistedUser) {
       checkSession();
     } else {
       useAuthStore.getState().setUser(null);
