@@ -58,7 +58,7 @@
 - 공통 `PageableGuard`가 course/history/review/feedback/admin audit·DLQ·notification history의 page size를 최대 100, offset을 최대 10,000으로 제한하고 초과 요청은 G002 4xx로 거부한다. 거부 사유는 원문 입력 없이 reason 로그만 남긴다.
 - 공지사항 public/admin API와 검색 repository가 `List`를 반환하며, service가 이미 있는 pageable overload를 사용하지 않는다. (094에서 bounded `Page`, 검색어 상한, latency metric으로 종료)
 - `CourseSearchCondition`에는 `@Valid`, 문자열 길이, list 크기, 선택 시간표 개수 제한이 없다.
-- `SpringBatchConfig`는 chunk의 course key를 한 번에 조회하고, schedule/seat history 처리는 기존 동작을 유지한다. `crawler.course.chunk.write` timer와 `crawler.course.chunk.items` counter로 chunk 비용을 확인한다.
+- ISSUE-210 이후 크롤러는 전체 외부 응답을 트랜잭션 밖에서 수집·검증하고 `CourseSynchronizationService`에서 원자적으로 동기화한다. 내부 chunk의 course key를 한 번에 조회하고, schedule/seat history 처리는 기존 동작을 유지한다. `crawler.course.chunk.write` timer와 `crawler.course.chunk.items` counter로 chunk 비용을 확인한다.
 - compose는 `oasis.jbnu.ac.kr`을 고정 IP로 덮어쓰지 않고 DNS를 사용한다. crawler는 run 상태, upstream latency, freshness age/stale, overlap skip을 metric으로 남기며 stale threshold 초과 시 관리자 경고를 기록한다.
 
 ### 인프라·품질

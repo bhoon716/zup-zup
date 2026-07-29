@@ -17,6 +17,7 @@ import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.course.domain.SemesterType;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
 import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
+import bhoon.sugang_helper.crawling.application.CrawlerRunStateService;
 import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.user.domain.User;
@@ -63,6 +64,8 @@ class CourseServiceTest {
     @Mock
     private CourseCrawlerTargetService crawlerTargetService;
 
+    @Mock
+    private CrawlerRunStateService crawlerRunStateService;
 
     private CourseService courseService;
     private MockedStatic<SecurityUtil> securityUtilMockedStatic;
@@ -71,7 +74,7 @@ class CourseServiceTest {
     void setUp() {
         securityUtilMockedStatic = mockStatic(SecurityUtil.class);
         courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userRepository,
-                reviewRepository, crawlerTargetService);
+                reviewRepository, crawlerTargetService, crawlerRunStateService);
     }
 
     @AfterEach

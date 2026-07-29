@@ -10,11 +10,13 @@ import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
 import bhoon.sugang_helper.crawling.application.CrawlTargetInfo;
+import bhoon.sugang_helper.crawling.application.CrawlerRunStateService;
 import bhoon.sugang_helper.review.domain.CourseReviewRepository;
 import bhoon.sugang_helper.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
 import java.util.List;
+import java.time.LocalDateTime;
 import org.springframework.data.domain.PageRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +38,7 @@ public class CourseService {
     private final CourseReviewRepository reviewRepository;
 
     private final CourseCrawlerTargetService crawlerTargetService;
+    private final CrawlerRunStateService crawlerRunStateService;
 
     /**
      * 필터 조건과 페이징 정보를 사용하여 강의 목록을 검색
@@ -51,8 +54,10 @@ public class CourseService {
             userId = user.getId();
         }
         CourseSearchCriteria criteria = condition.toCriteria(userId);
+        LocalDateTime lastCrawledAt = crawlerRunStateService.findLastSuccessAt().orElse(null);
         return courseRepository.searchCourses(criteria, PageableGuard.requireBounded(pageable))
-                .map(course -> CourseResponse.from(course, target.year(), target.semester().getCode()));
+                .map(course -> CourseResponse.from(
+                        course, target.year(), target.semester().getCode(), lastCrawledAt));
     }
 
     /**
@@ -98,6 +103,8 @@ public class CourseService {
                     .orElse(false);
         }
 
-        return CourseDetailResponse.from(course, target.year(), target.semester().getCode(), isReviewed);
+        LocalDateTime lastCrawledAt = crawlerRunStateService.findLastSuccessAt().orElse(null);
+        return CourseDetailResponse.from(
+                course, target.year(), target.semester().getCode(), isReviewed, lastCrawledAt);
     }
 }

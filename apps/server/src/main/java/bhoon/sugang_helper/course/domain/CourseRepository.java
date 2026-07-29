@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.course.domain;
 
 import bhoon.sugang_helper.common.domain.RepositoryContract;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,8 +15,6 @@ public interface CourseRepository extends RepositoryContract<Course, Long>, Cour
     List<Course> findByCourseKeyIn(List<String> courseKeys);
 
     List<Course> findBySubjectCodeAndProfessor(String subjectCode, String professor);
-
-    Optional<LocalDateTime> findMaxLastCrawledAt();
 
     List<String> findDistinctGeneralCategories();
 

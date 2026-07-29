@@ -2,7 +2,6 @@ package bhoon.sugang_helper.course.infra;
 
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -43,12 +42,6 @@ public interface CourseJpaRepository extends JpaRepository<Course, Long>, Course
             """)
     List<Course> findBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
                                                @Param("professor") String professor);
-
-    /**
-     * 전체 강의 중 가장 최근에 크롤링된 시각을 조회합니다.
-     */
-    @Query("select max(c.lastCrawledAt) from Course c")
-    Optional<LocalDateTime> findMaxLastCrawledAt();
 
     /**
      * 교양 영역(카테고리) 목록을 조회합니다.

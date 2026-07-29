@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
 import bhoon.sugang_helper.course.domain.CourseSchedule;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,8 +18,6 @@ class CourseBatchOptimizationTest {
     void identicalCourse_ReturnsFalseAndSkipsUpdate() {
         // given
         Course original = createSampleCourse(SAMPLE_COURSE_KEY, 50, 20);
-        LocalDateTime originalLastCrawled = original.getLastCrawledAt();
-
         Course crawledIdentical = createSampleCourse(SAMPLE_COURSE_KEY, 50, 20);
 
         // when
@@ -30,11 +27,10 @@ class CourseBatchOptimizationTest {
         // then
         assertThat(changed).isFalse();
         assertThat(updated).isFalse();
-        assertThat(original.getLastCrawledAt()).isEqualTo(originalLastCrawled);
     }
 
     @Test
-    @DisplayName("수강인원이 변경된 강의 비교 시 updateMetadata는 true를 반환하고 lastCrawledAt을 갱신한다")
+    @DisplayName("수강인원이 변경된 강의 비교 시 updateMetadata는 true를 반환하고 인원을 갱신한다")
     void modifiedCourse_ReturnsTrueAndUpdatesMetadata() {
         // given
         Course original = createSampleCourse(SAMPLE_COURSE_KEY, 50, 20);
@@ -68,6 +64,25 @@ class CourseBatchOptimizationTest {
         assertThat(changed).isTrue();
         assertThat(updated).isTrue();
         assertThat(original.getSchedules()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("시간표 순서만 다른 경우 동일한 강의로 판단해 업데이트하지 않는다")
+    void reorderedSchedules_AreTreatedAsIdentical() {
+        Course original = createSampleCourse(SAMPLE_COURSE_KEY, 50, 20);
+        original.addSchedule(
+                new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
+        original.addSchedule(
+                new CourseSchedule(CourseDayOfWeek.WEDNESDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)));
+
+        Course crawled = createSampleCourse(SAMPLE_COURSE_KEY, 50, 20);
+        crawled.addSchedule(
+                new CourseSchedule(CourseDayOfWeek.WEDNESDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)));
+        crawled.addSchedule(
+                new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
+
+        assertThat(original.hasMetadataOrScheduleChanged(crawled)).isFalse();
+        assertThat(original.updateMetadata(crawled)).isFalse();
     }
 
     private Course createSampleCourse(String courseKey, int capacity, int current) {
