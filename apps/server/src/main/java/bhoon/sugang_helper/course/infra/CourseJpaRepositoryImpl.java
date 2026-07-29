@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,9 @@ import org.springframework.data.domain.SliceImpl;
 import org.springframework.util.StringUtils;
 
 public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
+
+    private static final Set<String> POPULAR_SORT_ALIASES = Set.of(
+            "", "popular", "wishlist", "wishlistcount", "wishlist_count", "wished");
 
     private final JPAQueryFactory queryFactory;
     private final SelectedSchedulePredicateBuilder selectedSchedulePredicateBuilder;
@@ -46,7 +50,7 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
     @Override
     public Slice<Course> searchCourses(CourseSearchCriteria condition, Pageable pageable) {
         String sortBy = condition.sortBy();
-        boolean isPopularSort = sortBy == null || "popular".equalsIgnoreCase(sortBy);
+        boolean isPopularSort = isPopularSort(sortBy);
         QWishlist wishlist = QWishlist.wishlist;
 
         var query = queryFactory.selectFrom(course);
@@ -267,7 +271,7 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
         String sortOrder = condition.sortOrder();
         Order order = "asc".equalsIgnoreCase(sortOrder) ? Order.ASC : Order.DESC;
 
-        if (sortBy == null || "popular".equalsIgnoreCase(sortBy)) {
+        if (isPopularSort(sortBy)) {
             return new OrderSpecifier<?>[]{
                     new OrderSpecifier<>(order, popularCount(joinedWishlist)),
                     new OrderSpecifier<>(Order.DESC, course.current),
@@ -310,6 +314,10 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
                 new OrderSpecifier<>(Order.DESC, course.current),
                 new OrderSpecifier<>(Order.ASC, course.courseKey)
         };
+    }
+
+    private boolean isPopularSort(String sortBy) {
+        return sortBy == null || POPULAR_SORT_ALIASES.contains(sortBy.trim().toLowerCase(Locale.ROOT));
     }
 
     private NumberExpression<Long> popularCount(QWishlist joinedWishlist) {

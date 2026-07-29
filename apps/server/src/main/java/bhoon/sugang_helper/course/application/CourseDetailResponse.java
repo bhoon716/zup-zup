@@ -125,7 +125,7 @@ public class CourseDetailResponse {
      * 강의 엔티티를 클라이언트 응답용 상세 DTO로 변환합니다. 여석 상태 및 정형화된 일정 데이터(HH:mm)를 포함합니다.
      */
     public static CourseDetailResponse from(Course course, String currentYear, String currentSemester,
-                                            boolean isReviewed) {
+                                            boolean isReviewed, LocalDateTime lastCrawledAt) {
         // 여석 유무에 따른 상태 결정
         String status = course.getAvailable() > 0 ? "AVAILABLE" : "FULL";
         // 현재 추적 중인 학기인지 확인
@@ -175,7 +175,7 @@ public class CourseDetailResponse {
                 .averageRating(course.getAverageRating())
                 .reviewCount(course.getReviewCount())
                 .isReviewed(isReviewed)
-                .lastCrawledAt(course.getLastCrawledAt())
+                .lastCrawledAt(lastCrawledAt)
                 .schedules(course.getSchedules().stream()
                         .map(ScheduleResponse::from)
                         .toList())

@@ -99,6 +99,19 @@ class FlywayMigrationValidationTest {
                 columnName);
     }
 
+    private static String columnNullable(JdbcTemplate jdbcTemplate, String tableName, String columnName) {
+        return jdbcTemplate.queryForObject("""
+                        SELECT IS_NULLABLE
+                        FROM information_schema.columns
+                        WHERE table_schema = DATABASE()
+                          AND table_name = ?
+                          AND column_name = ?
+                        """,
+                String.class,
+                tableName,
+                columnName);
+    }
+
     @Test
     void freshMySqlSchemaMigratesAndSeedsCrawlerSettings() {
         try (MySQLContainer<?> mysql = new MySQLContainer<>(MYSQL_IMAGE)
@@ -125,6 +138,9 @@ class FlywayMigrationValidationTest {
             assertThat(tableCount(jdbcTemplate, "users")).isEqualTo(1);
             assertThat(tableCount(jdbcTemplate, COURSES_TABLE_NAME)).isEqualTo(1);
             assertThat(tableCount(jdbcTemplate, "crawler_settings")).isEqualTo(1);
+            assertThat(tableCount(jdbcTemplate, "crawler_status")).isEqualTo(1);
+            assertThat(tableCount(jdbcTemplate, "crawler_run_failures")).isEqualTo(1);
+            assertThat(columnNullable(jdbcTemplate, COURSES_TABLE_NAME, "last_crawled_at")).isEqualTo("YES");
             assertThat(jdbcTemplate.queryForObject("SELECT target_year FROM crawler_settings LIMIT 1", String.class))
                     .isEqualTo("2026");
             assertThat(jdbcTemplate.queryForObject("SELECT target_semester FROM crawler_settings LIMIT 1", String.class))
@@ -307,9 +323,9 @@ class FlywayMigrationValidationTest {
                     .locations(MIGRATION_LOCATION)
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(7);
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(8);
             head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("25");
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("26");
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT idempotency_key FROM seat_notification_deliveries WHERE id = ?", String.class, deliveryId))
                     .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
@@ -324,6 +340,9 @@ class FlywayMigrationValidationTest {
                     .isEqualTo("varchar");
             assertThat(columnDataType(jdbcTemplate, DELIVERY_TABLE_NAME, "claim_token"))
                     .isEqualTo("varchar");
+            assertThat(tableCount(jdbcTemplate, "crawler_status")).isEqualTo(1);
+            assertThat(tableCount(jdbcTemplate, "crawler_run_failures")).isEqualTo(1);
+            assertThat(columnNullable(jdbcTemplate, COURSES_TABLE_NAME, "last_crawled_at")).isEqualTo("YES");
         }
     }
 }

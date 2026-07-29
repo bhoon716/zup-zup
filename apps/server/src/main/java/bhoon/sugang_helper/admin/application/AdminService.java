@@ -3,9 +3,9 @@ package bhoon.sugang_helper.admin.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.crawling.application.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
+import bhoon.sugang_helper.crawling.application.CrawlerRunStateService;
 import bhoon.sugang_helper.notification.application.NotificationService;
 import bhoon.sugang_helper.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
@@ -33,11 +33,11 @@ public class AdminService {
     private static final DateTimeFormatter HOUR_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final long CRAWLER_DELAY_MINUTES = 15L;
     private final UserRepository userRepository;
-    private final CourseRepository courseRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final NotificationService notificationService;
     private final CourseCrawlerTargetService courseCrawlerTargetService;
+    private final CrawlerRunStateService crawlerRunStateService;
 
     /**
      * 관리자 대시보드 기본 통계 정보를 조회합니다.
@@ -49,7 +49,7 @@ public class AdminService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
         long todayNotifications = notificationHistoryRepository.countByCreatedAtAfter(startOfToday);
-        LocalDateTime lastCrawledAt = courseRepository.findMaxLastCrawledAt().orElse(null);
+        LocalDateTime lastCrawledAt = crawlerRunStateService.findLastSuccessAt().orElse(null);
 
         return AdminDashboardResponse.builder().totalUsers(totalUsers)
                 .totalActiveSubscriptions(totalActiveSubscriptions).todayNotificationCount(todayNotifications)
@@ -67,7 +67,7 @@ public class AdminService {
         long totalActiveSubscriptions = subscriptionRepository.countByIsActiveTrue();
         LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
         long todayNotifications = notificationHistoryRepository.countByCreatedAtAfter(startOfToday);
-        LocalDateTime lastCrawledAt = courseRepository.findMaxLastCrawledAt().orElse(null);
+        LocalDateTime lastCrawledAt = crawlerRunStateService.findLastSuccessAt().orElse(null);
 
         return AdminOverviewResponse.builder()
                 .totalUsers(totalUsers)

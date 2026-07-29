@@ -220,4 +220,27 @@ class AuthServiceTest {
         verify(jwtProvider, never()).rotateRefreshToken(anyString(), anyString());
         verify(jwtProvider, never()).createAccessToken(org.mockito.ArgumentMatchers.anyLong(), anyString(), anyString());
     }
+
+    @Test
+    @DisplayName("토큰 재발급 실패 시 브라우저의 인증 쿠키(refresh_token, is_logged_in) 파기 헤더를 전송한다")
+    void reissue_whenRefreshTokenInvalid_clearsAuthCookiesAndThrowsException() {
+        // given
+        String refreshToken = "invalid-refresh-token";
+        Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
+        given(request.getCookies()).willReturn(new Cookie[]{cookie});
+        given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> authService.reissue(request, response))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);
+
+        ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
+        verify(response, times(2)).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
+        java.util.List<String> cookies = cookieCaptor.getAllValues();
+        assertThat(cookies.get(0)).contains("refresh_token");
+        assertThat(cookies.get(0)).contains("Max-Age=0");
+        assertThat(cookies.get(1)).contains(IS_LOGGED_IN_COOKIE_NAME);
+        assertThat(cookies.get(1)).contains("Max-Age=0");
+    }
 }

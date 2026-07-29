@@ -125,6 +125,38 @@ class CourseRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("찜순 정렬은 wishlist, wishlistCount 별칭을 사용할 때도 찜 수 내림차순으로 정렬한다")
+    void searchCourses_sortsByWishlistAliases() {
+        // given
+        saveCourse("CK1", ALG, "김교수", CS);
+        saveCourse("CK2", DS, "이교수", CS);
+        saveCourse("CK3", OS, "박교수", CS);
+        saveWishlist(1L, "CK1");
+        saveWishlist(2L, "CK2");
+        saveWishlist(3L, "CK2");
+        saveWishlist(4L, "CK2");
+
+        CourseSearchCriteria conditionWishlist = baseCondition()
+                .sortBy("wishlist")
+                .build();
+        CourseSearchCriteria conditionWishlistCount = baseCondition()
+                .sortBy("wishlistCount")
+                .build();
+
+        // when
+        var responseWishlist = courseRepository.searchCourses(conditionWishlist, PageRequest.of(0, 10));
+        var responseWishlistCount = courseRepository.searchCourses(conditionWishlistCount, PageRequest.of(0, 10));
+
+        // then
+        assertThat(responseWishlist.getContent())
+                .extracting(Course::getName)
+                .containsExactly(DS, ALG, OS);
+        assertThat(responseWishlistCount.getContent())
+                .extracting(Course::getName)
+                .containsExactly(DS, ALG, OS);
+    }
+
+    @Test
     @DisplayName("평점 정렬은 평점 내림차순, 리뷰 개수 내림차순, 과목 키 오름차순으로 정렬한다")
     void searchCourses_sortsByRating() {
         // given

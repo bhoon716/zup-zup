@@ -2073,3 +2073,70 @@ Next lint의 `window.location.href`/`assign` 8개 경고는 내부 `/login`을 R
 ## Announcement pagination and search limits (ISSUE-094)
 
 공지사항 public/admin 목록은 기본 20건, 최대 100건의 `Page`로 반환된다. `page`·`size`가 공통 pageable 상한을 넘으면 `400/G002`가 반환된다. 검색어는 trim 후 100자까지 허용하며, 빈 검색어도 동일한 페이지 상한을 적용한다. 제목/내용 `LIKE` 검색은 고정 공지 우선·최신순 정렬을 유지하고 `announcement.search.latency` metric에서 검색 타입과 키워드 유무별 지연을 확인한다. 현재 검색은 `%keyword%` 특성상 대용량 데이터에서 full scan이 될 수 있으므로 운영 데이터 증가 시 DB full-text/trigram 인덱스 도입 전후의 query plan을 비교한다.
+
+---
+
+## 83. MySQL binlog 디스크 포화와 크롤러 불필요 쓰기 제거 (ISSUE-210)
+
+### 문제 상황
+
+2026-07-29 운영 호스트에서 MySQL binary log가 32GB 이상 누적되어 45GB 디스크가 100% 사용됐다. 디스크 쓰기가
+불가능해지면서 MySQL을 포함한 서비스가 unhealthy 상태가 됐다. binlog를 수동으로 정리해 약 32GB의 여유 공간과
+서비스 상태를 복구했지만, 설정과 쓰기 패턴을 고치지 않으면 같은 장애가 재발할 수 있었다.
+
+### 원인 분석
+
+1. 인프라 단순화 과정에서 2일 보존 설정이 사라져 MySQL이 장기간 binlog를 보관했다.
+2. 매분 약 5,200개 강의를 다시 수집하면서 실제 내용이 같아도 Course freshness와 시간표 순서 차이 때문에 넓은
+   Course 행과 시간표가 갱신될 수 있었다.
+3. 과거 실행 구조는 매 실행마다 고유한 Job 실행 metadata를 DB에 저장했지만, 외부 API에 안정적인 재시작 cursor가
+   없어 실패 지점 재개 기능은 실질적으로 사용할 수 없었다.
+4. 외부 응답의 일부 필수값 검증이 빠져 잘못된 행이 DB 트랜잭션까지 진입하고, 외부 입력 오류가 `PERSIST` 실패로
+   잘못 기록될 수 있었다.
+
+### 해결
+
+1. `infra/docker-compose.yml`의 MySQL 실행 인자에 `binlog_expire_logs_seconds=172800`을 명시해 현재 배포 기준
+   보관 기간을 정확히 2일로 제한했다.
+2. 외부 문자열을 trim하고 빈 값을 `null`로 정규화하며, 시간표를 요일·시작·종료 시각 순으로 비교한다. 정규화된
+   전체 결과가 같으면 Course·시간표·좌석 이력 DML을 실행하지 않는다.
+3. Course별 freshness 갱신을 제거하고 singleton `crawler_status`에 마지막 성공 시각과 실행 상태를 기록한다.
+4. 예약 실행은 Spring의 스케줄러로 유지하되, 전체 외부 응답을 DB 트랜잭션 밖에서 fetch·parse·validate한 후
+   `CourseSynchronizationService`의 단일 트랜잭션으로 전달한다.
+5. 강의·시간표·좌석 이력·성공 상태·알림 outbox 반영 중 하나라도 실패하면 전체 rollback한다. 실패 상태와
+   `crawler_run_failures` 이력은 별도 트랜잭션으로 영구 기록하며 stack trace와 외부 응답 원문은 저장하지 않는다.
+6. 과목 식별자·과목 코드·과목명·분반·연도·학기·정원·현재 인원과 시간표 필수값을 동기화 전에 검사한다. 위반은
+   `CRAWLER_PARSING_ERROR` 및 `FETCH_PARSE`로 기록하고 DB 동기화를 시작하지 않는다.
+
+### 검증
+
+- 변경 없는 입력에서 Course·시간표·좌석 이력 저장 경로가 호출되지 않는 테스트를 추가했다.
+- 과목명이 누락된 외부 행이 동기화 서비스로 전달되지 않고 `FETCH_PARSE`로 기록되는 회귀 테스트를 추가했다.
+- 전체 서버 단위 테스트, 크롤러 집중 테스트, Checkstyle, test PMD와 Compose runtime contract가 통과했다.
+- main PMD에는 ISSUE-205로 추적 중인 기존 `CourseJpaRepositoryImpl` 복잡도 위반 1건이 남아 있으며 ISSUE-210에서
+  도입된 실패는 아니다.
+
+### 운영 확인
+
+현재 MySQL의 실제 보관 설정은 다음 쿼리로 확인한다.
+
+```sql
+SELECT @@GLOBAL.binlog_expire_logs_seconds;
+```
+
+기대값은 `172800`이다. 현재 Compose 렌더링에 설정이 포함되는지는 다음 명령으로 확인한다.
+
+```bash
+cd infra
+docker compose config
+```
+
+### 잔여 위험과 후속 작업
+
+- ISSUE-210 이전 애플리케이션 SHA를 전체 인프라와 함께 rollback하면 과거 Compose에 2일 설정이 없어질 수 있다.
+  rollback 빈도가 낮다는 판단으로 이번 범위에서는 보완하지 않고 위험을 수용했다.
+- MySQL Testcontainers 기반 commit·rollback 통합 테스트와 배포 후 binlog 생성량·디스크 여유 자동 관측은 이번
+  완료 조건에서 제외했다.
+- `capacity/current`를 고변경 좌석 상태로 분리해 row-based binlog 크기를 더 줄이는 작업은 ISSUE-212에서 추적한다.
+- 이 문서의 79번과 82번에 남은 관련 표현은 당시 구조와 검증 대상을 기록한 역사적 내용이다. 현재 서버 런타임은
+  해당 실행 계층과 의존성을 사용하지 않는다.

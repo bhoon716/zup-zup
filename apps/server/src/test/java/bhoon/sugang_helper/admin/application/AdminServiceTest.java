@@ -11,9 +11,9 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.crawling.application.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
+import bhoon.sugang_helper.crawling.application.CrawlerRunStateService;
 import bhoon.sugang_helper.notification.application.NotificationService;
 import bhoon.sugang_helper.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.subscription.domain.SubscriptionRepository;
@@ -36,9 +36,6 @@ class AdminServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private CourseRepository courseRepository;
-
-    @Mock
     private SubscriptionRepository subscriptionRepository;
 
     @Mock
@@ -50,6 +47,9 @@ class AdminServiceTest {
     @Mock
     private CourseCrawlerTargetService courseCrawlerTargetService;
 
+    @Mock
+    private CrawlerRunStateService crawlerRunStateService;
+
     @InjectMocks
     private AdminService adminService;
 
@@ -60,7 +60,7 @@ class AdminServiceTest {
         when(userRepository.count()).thenReturn(100L);
         when(subscriptionRepository.countByIsActiveTrue()).thenReturn(50L);
         when(notificationHistoryRepository.countByCreatedAtAfter(any(LocalDateTime.class))).thenReturn(20L);
-        when(courseRepository.findMaxLastCrawledAt()).thenReturn(Optional.of(LocalDateTime.now()));
+        when(crawlerRunStateService.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
 
         // when
         AdminDashboardResponse result = adminService.getDashboardStats();
@@ -79,7 +79,7 @@ class AdminServiceTest {
         when(userRepository.count()).thenReturn(100L);
         when(subscriptionRepository.countByIsActiveTrue()).thenReturn(50L);
         when(notificationHistoryRepository.countByCreatedAtAfter(any(LocalDateTime.class))).thenReturn(20L);
-        when(courseRepository.findMaxLastCrawledAt()).thenReturn(Optional.of(LocalDateTime.now()));
+        when(crawlerRunStateService.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
         when(courseCrawlerTargetService.getCurrentTarget()).thenReturn(
                 AdminCrawlTargetResponse.builder()
                         .year("2026")

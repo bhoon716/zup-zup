@@ -12,8 +12,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.BatchSize;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import lombok.AccessLevel;
@@ -127,9 +127,6 @@ public class Course extends BaseTimeEntity {
     private String classDuration; // 수업 시간(예: 50분)
 
     @Column(nullable = false)
-    private LocalDateTime lastCrawledAt; // 마지막 크롤링 시간
-
-    @Column(nullable = false)
     private Float averageRating; // 평균 별점
 
     @Column(nullable = false)
@@ -181,7 +178,6 @@ public class Course extends BaseTimeEntity {
         this.generalCategoryByYear = generalCategoryByYear;
         this.courseDirection = courseDirection;
         this.classDuration = classDuration;
-        this.lastCrawledAt = LocalDateTime.now();
         this.averageRating = averageRating != null ? averageRating : 0.0f;
         this.reviewCount = reviewCount != null ? reviewCount : 0;
     }
@@ -289,8 +285,6 @@ public class Course extends BaseTimeEntity {
         this.generalCategoryByYear = other.getGeneralCategoryByYear();
         this.courseDirection = other.getCourseDirection();
         this.classDuration = other.getClassDuration();
-        this.lastCrawledAt = LocalDateTime.now();
-
         // 시간표 변경 사항 비교 및 최적화
         if (!isSameSchedules(other.getSchedules())) {
             this.schedules.clear();
@@ -306,8 +300,14 @@ public class Course extends BaseTimeEntity {
         if (this.schedules.size() != otherSchedules.size()) {
             return false;
         }
-        for (int i = 0; i < this.schedules.size(); i++) {
-            if (!this.schedules.get(i).isSameSchedule(otherSchedules.get(i))) {
+        Comparator<CourseSchedule> scheduleOrder = Comparator
+                .comparing((CourseSchedule schedule) -> schedule.getDayOfWeek().ordinal())
+                .thenComparing(CourseSchedule::getStartTime)
+                .thenComparing(CourseSchedule::getEndTime);
+        List<CourseSchedule> currentSchedules = this.schedules.stream().sorted(scheduleOrder).toList();
+        List<CourseSchedule> comparedSchedules = otherSchedules.stream().sorted(scheduleOrder).toList();
+        for (int i = 0; i < currentSchedules.size(); i++) {
+            if (!currentSchedules.get(i).isSameSchedule(comparedSchedules.get(i))) {
                 return false;
             }
         }

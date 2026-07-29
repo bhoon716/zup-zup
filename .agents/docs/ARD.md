@@ -6,7 +6,7 @@ Architecture requirements document for the current project.
 This workspace is being consolidated into a monorepo-style root repository with `apps/web`, `apps/server`, and `infra`. Web remains on Vercel; server and infra continue on the OCI host.
 
 ## Stack
-- Backend: Spring Boot 3.5.9 on Java 21, built with Gradle. The backend uses Spring Data JPA, Spring Security, OAuth2, Redis, Flyway, Spring Batch, QueryDSL, and OpenAPI.
+- Backend: Spring Boot 3.5.9 on Java 21, built with Gradle. The backend uses Spring Data JPA, Spring Security, OAuth2, Redis, Flyway, QueryDSL, and OpenAPI. Course collection runs through a scheduled application service that fetches and validates the complete upstream result before one transactional synchronization.
 - Frontend: Next.js 16.1.6 App Router on React 19.2.7, built with TypeScript, TanStack Query, Zustand, Vitest, and ESLint.
 - Infrastructure: Docker Compose on a single OCI A1 ARM64 host. The runtime provides the backend app, MySQL, Redis, the existing host Nginx Proxy Manager edge, DuckDNS, an external uptime monitor, and an opt-in Prometheus/Loki/Alloy/Grafana observability profile. Prometheus scrapes only the app Actuator endpoint; host exporters, cAdvisor, and Alertmanager are not part of the minimal runtime.
 

@@ -83,6 +83,11 @@ for key in ("MYSQL_ROOT_PASSWORD", "MYSQL_DATABASE"):
         fail(f"db must receive {key}")
 if any(key.startswith("DB_BACKUP") for key in db_environment):
     fail("backup account is outside the minimal runtime contract")
+db_command = services["db"].get("command", [])
+if isinstance(db_command, list):
+    db_command = " ".join(str(part) for part in db_command)
+if "--binlog-expire-logs-seconds=172800" not in str(db_command):
+    fail("db must retain MySQL binlogs for exactly two days")
 
 redis_environment = env_map(services["redis"])
 if not redis_environment.get("REDIS_PASSWORD"):
