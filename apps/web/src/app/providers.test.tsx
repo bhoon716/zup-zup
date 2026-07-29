@@ -19,7 +19,7 @@ const {
   const mockRegisterAuthFailureHandler = vi.fn();
 
   const mockState = {
-    user: null,
+    user: null as null | { id: number; email: string; name: string; role: string },
     isLoading: true,
     checkSession: mockCheckSession,
     logout: mockLogout,
@@ -79,6 +79,7 @@ describe("Providers", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.user = null;
     mockedUseRouter.mockReturnValue({ replace: mockReplace } as never);
     mockGetCookie.mockReturnValue("true");
   });
@@ -124,6 +125,26 @@ describe("Providers", () => {
 
     await waitFor(() => expect(mockSetUser).toHaveBeenCalledWith(null));
     expect(mockCheckSession).not.toHaveBeenCalled();
+  });
+
+  it("로그인 힌트 쿠키가 없어도 저장된 사용자가 있으면 세션을 재검증한다", async () => {
+    mockGetCookie.mockReturnValue(undefined);
+    mockState.user = {
+      id: 1,
+      email: "user@test.com",
+      name: "사용자",
+      role: "USER",
+    };
+    mockedUsePathname.mockReturnValue("/search");
+
+    render(
+      <Providers>
+        <div>child</div>
+      </Providers>
+    );
+
+    await waitFor(() => expect(mockCheckSession).toHaveBeenCalledTimes(1));
+    expect(mockSetUser).not.toHaveBeenCalled();
   });
 
   it("브라우저에서는 QueryClient를 재사용한다", () => {

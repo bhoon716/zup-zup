@@ -6,12 +6,12 @@ import { useRouter } from 'next/navigation';
 
 import { AxiosError } from 'axios';
 
-export const useUser = (options?: { enabled?: boolean; skipAuthRefresh?: boolean }) => {
+export const useUser = (options?: { enabled?: boolean }) => {
   return useQuery({
-    queryKey: options?.skipAuthRefresh ? ['user', 'me', 'public'] : ['user', 'me'],
+    queryKey: ['user', 'me'],
     queryFn: async () => {
       try {
-        const response = await userApi.getMyProfile({ skipAuthRefresh: options?.skipAuthRefresh });
+        const response = await userApi.getMyProfile();
         return response.data ?? null;
       } catch (error: unknown) {
         const axiosError = error as AxiosError<{ message?: string }>;

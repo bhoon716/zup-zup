@@ -11,7 +11,6 @@ import { toast } from "sonner";
 
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { useCourseEmojis, useCreateReview, useReviews, useToggleCourseEmoji, useUpdateReview } from "@/features/review/hooks/useReviews";
-import { useUser } from "@/features/user/hooks/useUser";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/shared/ui/dialog";
@@ -51,7 +50,8 @@ export function CourseReviewSection({
   const { mutate: updateReview, isPending: isUpdating } = useUpdateReview(reviewScopeKey, courseKey);
   const { data: emojiStats, status: emojiStatus } = useCourseEmojis(reviewScopeKey, courseKey);
   const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(reviewScopeKey, courseKey);
-  const { data: user, isPending: isUserLoading } = useUser({ skipAuthRefresh: true });
+  const user = useAuthStore((state) => state.user);
+  const isUserLoading = useAuthStore((state) => state.isLoading && !state.user);
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
 
   const [draftRating, setDraftRating] = useState<number | null>(null);
@@ -62,7 +62,7 @@ export function CourseReviewSection({
   const visibleEmojiStats = (emojiStats ?? []).filter((item) => item.count > 0);
   const currentRating = draftRating ?? myReview?.rating ?? 0;
   const hasAverageRating = (reviewCount ?? 0) > 0;
-  const averageRatingText = hasAverageRating ? (averageRating ?? 0).toFixed(1) : "0";
+  const averageRatingText = hasAverageRating ? `${(averageRating ?? 0).toFixed(1)}점` : "평가 없음";
   const averageReviewCount = reviewCount ?? 0;
   const averageStars = Math.round(averageRating ?? 0);
   const isReviewReady = reviewStatus === "success";
@@ -189,7 +189,7 @@ export function CourseReviewSection({
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tight text-primary">{averageRatingText}점</span>
+              <span className="text-3xl font-black tracking-tight text-primary">{averageRatingText}</span>
               <span className="text-sm text-gray-500 dark:text-gray-400">({averageReviewCount}개)</span>
             </div>
           </div>

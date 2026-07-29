@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { AxiosError } from "axios";
 import { useAuthStore } from "./useAuthStore";
 import * as userApi from "@/features/user/api/user.api";
 import type { CommonResponse, User } from "@/shared/types/api";
@@ -83,7 +84,15 @@ describe("useAuthStore", () => {
       isAuthenticated: true,
       isLoading: false,
     });
-    vi.mocked(userApi.getMyProfile).mockRejectedValue(new Error("Unauthorized"));
+    vi.mocked(userApi.getMyProfile).mockRejectedValue(
+      new AxiosError("Unauthorized", undefined, undefined, undefined, {
+        status: 401,
+        statusText: "Unauthorized",
+        headers: {},
+        config: { headers: {} } as never,
+        data: { message: "인증이 필요합니다." },
+      })
+    );
 
     await useAuthStore.getState().checkSession();
 
@@ -166,7 +175,15 @@ describe("useAuthStore", () => {
   });
 
   it("checkSession 실패 시 인증 상태를 false로 설정한다", async () => {
-    vi.mocked(userApi.getMyProfile).mockRejectedValue(new Error("Unauthorized"));
+    vi.mocked(userApi.getMyProfile).mockRejectedValue(
+      new AxiosError("Unauthorized", undefined, undefined, undefined, {
+        status: 401,
+        statusText: "Unauthorized",
+        headers: {},
+        config: { headers: {} } as never,
+        data: { message: "인증이 필요합니다." },
+      })
+    );
 
     await useAuthStore.getState().checkSession();
 
@@ -174,6 +191,38 @@ describe("useAuthStore", () => {
     expect(state.user).toBeNull();
     expect(state.isAuthenticated).toBe(false);
     expect(state.isLoading).toBe(false);
+  });
+
+  it("일시적인 서버 오류에서는 복원된 사용자 상태를 보존한다", async () => {
+    const user: User = {
+      id: 1,
+      email: "test@test.com",
+      name: "홍길동",
+      role: "USER",
+      emailEnabled: false,
+      webPushEnabled: false,
+      fcmEnabled: false,
+      discordEnabled: false,
+      onboardingCompleted: true,
+    };
+    useAuthStore.setState({ user, isAuthenticated: true, isLoading: false });
+    vi.mocked(userApi.getMyProfile).mockRejectedValue(
+      new AxiosError("Server Error", undefined, undefined, undefined, {
+        status: 503,
+        statusText: "Service Unavailable",
+        headers: {},
+        config: { headers: {} } as never,
+        data: { message: "잠시 후 다시 시도해 주세요." },
+      })
+    );
+
+    await useAuthStore.getState().checkSession();
+
+    expect(useAuthStore.getState()).toMatchObject({
+      user,
+      isAuthenticated: true,
+      isLoading: false,
+    });
   });
 
   it("logout 호출 시 상태가 초기화된다", () => {

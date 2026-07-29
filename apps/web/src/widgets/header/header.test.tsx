@@ -117,6 +117,25 @@ describe("Header", () => {
     );
   });
 
+  it("복원된 사용자가 있으면 세션 재검증 중에도 인증 내비게이션을 즉시 표시한다", () => {
+    mockAuthStore.user = {
+      id: 1,
+      email: "user@test.com",
+      name: "사용자",
+      role: "USER",
+    };
+    mockAuthStore.isLoading = true;
+
+    render(<Header />);
+
+    expect(mockNavLinks).toHaveBeenCalledWith(
+      expect.objectContaining({ isLoading: false, isLoggedIn: true })
+    );
+    expect(mockDesktopUser).toHaveBeenCalledWith(
+      expect.objectContaining({ isLoading: false, user: mockAuthStore.user })
+    );
+  });
+
   it("인증 스토어 로딩이 끝나면 로그인 힌트 쿠키가 있어도 로딩 상태를 표시하지 않는다", () => {
     mockAuthStore.isLoading = false;
     document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=true; path=/`;

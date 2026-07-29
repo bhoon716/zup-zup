@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import * as userApi from '@/features/user/api/user.api';
 import type { User } from '@/shared/types/api';
 import { deleteCookie, IS_LOGGED_IN_COOKIE_NAME } from '@/shared/lib/cookie';
+import { isDefinitiveAuthFailure } from '@/shared/api/auth-error';
 
 const getSafeStorage = (): Storage => {
   if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
@@ -40,7 +41,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
       isLoading: true,
@@ -56,7 +57,7 @@ export const useAuthStore = create<AuthState>()(
           return sessionCheckPromise;
         }
 
-        set({ isLoading: true });
+        set({ isLoading: get().user === null });
         const requestToken = ++sessionCheckToken;
         sessionCheckPromise = (async () => {
           try {
@@ -69,15 +70,19 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
             });
-          } catch {
+          } catch (error) {
             if (requestToken !== sessionCheckToken) {
               return;
             }
-            set({
-              user: null,
-              isAuthenticated: false,
-              isLoading: false,
-            });
+            if (isDefinitiveAuthFailure(error)) {
+              set({
+                user: null,
+                isAuthenticated: false,
+                isLoading: false,
+              });
+            } else {
+              set({ isLoading: false });
+            }
           } finally {
             if (requestToken === sessionCheckToken) {
               sessionCheckPromise = null;
@@ -104,6 +109,15 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(getSafeStorage),
       partialize: (state) => ({ user: state.user }),
       skipHydration: true,
+      merge: (persistedState, currentState) => {
+        const restoredUser = (persistedState as Pick<AuthState, 'user'> | undefined)?.user ?? null;
+        return {
+          ...currentState,
+          user: restoredUser,
+          isAuthenticated: Boolean(restoredUser),
+          isLoading: restoredUser === null,
+        };
+      },
     }
   )
 );

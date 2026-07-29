@@ -41,7 +41,7 @@ export function Header() {
   const { install, platform } = usePWAInstall();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const hasMounted = useHasMounted();
-  const shouldShowSkeleton = hasMounted ? isLoading : true;
+  const shouldShowSkeleton = hasMounted ? isLoading && !user : true;
 
   if (pathname === "/onboarding") {
     return null;
@@ -88,7 +88,7 @@ export function Header() {
           <div className="hidden md:flex items-center gap-3">
             <HeaderDesktopUser 
               user={hasMounted ? user : undefined} 
-              isLoading={hasMounted ? isLoading : true}
+              isLoading={hasMounted ? isLoading && !user : true}
               isPending={isPending} 
               onLogout={() => logout()} 
               onLoginClick={closeMenu}
@@ -120,7 +120,7 @@ export function Header() {
                   <div className="mb-4 px-2">
                     <HeaderMobileUserStatus 
                       user={hasMounted ? user : undefined} 
-                      isLoading={hasMounted ? isLoading : true}
+                      isLoading={hasMounted ? isLoading && !user : true}
                       onLinkClick={closeMenu} 
                     />
                   </div>

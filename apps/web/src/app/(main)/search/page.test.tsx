@@ -22,8 +22,12 @@ const createLocalStorageMock = () => {
   };
 };
 
-const { mockSetUser, mockUseCourses } = vi.hoisted(() => ({
-  mockSetUser: vi.fn(),
+const { mockAuthState, mockCourseTable, mockUseCourses } = vi.hoisted(() => ({
+  mockAuthState: {
+    user: null as null | { id: number; email: string; name: string; role: string },
+    isLoading: false,
+  },
+  mockCourseTable: vi.fn(),
   mockUseCourses: vi.fn(),
 }));
 
@@ -35,18 +39,8 @@ vi.mock("@/features/course/hooks/useCourses", () => ({
   }),
 }));
 
-vi.mock("@/features/user/hooks/useUser", () => ({
-  useUser: () => ({
-    data: null,
-    isLoading: false,
-  }),
-}));
-
 vi.mock("@/features/auth/store/useAuthStore", () => ({
-  useAuthStore: (selector: (state: { setUser: (user: null) => void }) => unknown) =>
-    selector({
-      setUser: mockSetUser,
-    }),
+  useAuthStore: (selector: (state: typeof mockAuthState) => unknown) => selector(mockAuthState),
 }));
 
 vi.mock("@/features/course/components/course-search-bar", () => ({
@@ -54,7 +48,10 @@ vi.mock("@/features/course/components/course-search-bar", () => ({
 }));
 
 vi.mock("@/features/course/components/course-table", () => ({
-  CourseTable: () => <div data-testid="course-table" />,
+  CourseTable: (props: unknown) => {
+    mockCourseTable(props);
+    return <div data-testid="course-table" />;
+  },
 }));
 
 vi.mock("@/features/course/components/course-table-skeleton", () => ({
@@ -64,6 +61,8 @@ vi.mock("@/features/course/components/course-table-skeleton", () => ({
 describe("SearchPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthState.user = null;
+    mockAuthState.isLoading = false;
     Object.defineProperty(window, "localStorage", {
       value: createLocalStorageMock(),
       configurable: true,
@@ -87,10 +86,22 @@ describe("SearchPage", () => {
     expect(screen.getByRole("button", { name: "사용법" })).toBeInTheDocument();
   });
 
-  it("사용자 정보가 없으면 전역 auth 상태를 지우지 않는다", () => {
+  it("검색 페이지는 전역 인증 상태의 사용자를 공통 기준으로 사용한다", () => {
+    mockAuthState.user = {
+      id: 1,
+      email: "user@test.com",
+      name: "사용자",
+      role: "USER",
+    };
+
     render(<SearchPage />);
 
-    expect(mockSetUser).not.toHaveBeenCalled();
+    expect(mockCourseTable).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialUser: mockAuthState.user,
+        skipPersonalFetch: false,
+      })
+    );
   });
 
   it("모바일 검색어를 로컬에서 편집하고 전체 초기화와 동기화한다", async () => {

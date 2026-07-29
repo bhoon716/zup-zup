@@ -13,6 +13,7 @@ import bhoon.sugang_helper.common.security.util.CookieUtil;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.user.domain.User;
 import bhoon.sugang_helper.user.domain.UserRepository;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -75,7 +77,9 @@ public class AuthService {
 
             return newAccessToken;
         } catch (Exception e) {
-            deleteRefreshTokenCookie(response);
+            if (isDefinitiveAuthFailure(e)) {
+                deleteRefreshTokenCookie(response);
+            }
             throw e;
         }
     }
@@ -158,5 +162,16 @@ public class AuthService {
 
         ResponseCookie isLoggedInCookie = CookieUtil.deleteCookie(IS_LOGGED_IN_COOKIE_NAME, refreshCookieSecure);
         response.addHeader(HttpHeaders.SET_COOKIE, isLoggedInCookie.toString());
+    }
+
+    private boolean isDefinitiveAuthFailure(Exception exception) {
+        if (exception instanceof JwtException) {
+            return true;
+        }
+        if (!(exception instanceof CustomException customException)) {
+            return false;
+        }
+        HttpStatus status = customException.getErrorCode().getStatus();
+        return status == HttpStatus.UNAUTHORIZED || status == HttpStatus.FORBIDDEN;
     }
 }

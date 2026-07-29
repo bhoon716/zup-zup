@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CourseSearchBar } from "@/features/course/components/course-search-bar";
 import { CourseTable } from "@/features/course/components/course-table";
@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { SlidersHorizontal, X, Search, ChevronRight, ListFilter } from "lucide-react";
-import { useUser } from "@/features/user/hooks/useUser";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { CourseGuideModal } from "@/features/course/components/course-guide-modal";
 
@@ -83,15 +82,9 @@ function MobileKeywordSearch({ initialKeyword, isLoading, onSearch }: MobileKeyw
  */
 export default function SearchPage() {
   const { data: defaultSemester, isLoading: isSemesterLoading } = useSearchDefaultSemester();
-  const { data: user, isLoading: isUserLoading } = useUser({ skipAuthRefresh: true });
-  const setUser = useAuthStore((state) => state.setUser);
+  const user = useAuthStore((state) => state.user);
+  const isUserLoading = useAuthStore((state) => state.isLoading && !state.user);
   const skipPersonalFetch = isUserLoading || !user;
-
-  useEffect(() => {
-    if (user) {
-      setUser(user);
-    }
-  }, [setUser, user]);
 
   // 사용자가 변경한 검색 조건
   const [userCondition, setUserCondition] = useState<CourseSearchCondition>({
