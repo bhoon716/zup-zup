@@ -138,12 +138,12 @@ describe("CourseReviewSection", () => {
     );
   });
 
-  it("평균 별점이 없으면 0점과 0개로 표시한다", () => {
+  it("평균 별점이 없으면 평가 없음과 0개로 표시한다", () => {
     vi.mocked(reviewHooks.useReviews).mockReturnValue({ data: null, status: "success" } as never);
 
     render(<CourseReviewSection courseKey="TEST-COURSE" reviewScopeKey={REVIEW_SCOPE_KEY} isReviewed={false} />);
 
-    expect(screen.getByText("0점")).toBeInTheDocument();
+    expect(screen.getByText("평가 없음")).toBeInTheDocument();
     expect(screen.getByText("(0개)")).toBeInTheDocument();
   });
 

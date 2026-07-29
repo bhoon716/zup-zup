@@ -62,7 +62,7 @@ export function CourseReviewSection({
   const visibleEmojiStats = (emojiStats ?? []).filter((item) => item.count > 0);
   const currentRating = draftRating ?? myReview?.rating ?? 0;
   const hasAverageRating = (reviewCount ?? 0) > 0;
-  const averageRatingText = hasAverageRating ? (averageRating ?? 0).toFixed(1) : "0";
+  const averageRatingText = hasAverageRating ? `${(averageRating ?? 0).toFixed(1)}점` : "평가 없음";
   const averageReviewCount = reviewCount ?? 0;
   const averageStars = Math.round(averageRating ?? 0);
   const isReviewReady = reviewStatus === "success";
@@ -189,7 +189,7 @@ export function CourseReviewSection({
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tight text-primary">{averageRatingText}점</span>
+              <span className="text-3xl font-black tracking-tight text-primary">{averageRatingText}</span>
               <span className="text-sm text-gray-500 dark:text-gray-400">({averageReviewCount}개)</span>
             </div>
           </div>
