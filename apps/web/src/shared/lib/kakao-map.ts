@@ -57,7 +57,7 @@ export interface KakaoPlaceResult {
 
 export type KakaoSearchStatus = "OK" | "ZERO_RESULT" | "ERROR";
 
-interface KakaoMapApi {
+export interface KakaoMapApi {
   maps: {
     load(callback: () => void): void;
     LatLng: new (lat: number, lng: number) => KakaoLatLngInstance;
