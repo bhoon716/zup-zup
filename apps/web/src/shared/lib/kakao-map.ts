@@ -4,6 +4,18 @@ const KAKAO_MAP_SCRIPT_ID = "kakao-map-sdk";
 // 기본 중심 좌표: 전북대학교 전주캠퍼스
 const DEFAULT_CENTER = { lat: 35.846521, lng: 127.129558 };
 
+/**
+ * HTML 특수 문자를 이스케이프하여 XSS 방지
+ */
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // 전북대학교 전주캠퍼스 지리적 위경도 범위 (교외 지오코딩 오지정 방지용)
 const JBNU_CAMPUS_BOUNDS = {
   minLat: 35.8380,
@@ -226,7 +238,7 @@ export async function renderKakaoMapByKeyword(params: {
 
           const marker = new kakao.maps.Marker({ map, position });
           const infoWindow = new kakao.maps.InfoWindow({
-            content: `<div style="padding:8px 10px;font-size:12px;line-height:1.3;">${place.place_name}</div>`,
+            content: `<div style="padding:8px 10px;font-size:12px;line-height:1.3;">${escapeHtml(place.place_name)}</div>`,
           });
           infoWindow.open(map, marker);
 
