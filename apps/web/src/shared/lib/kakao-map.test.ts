@@ -74,16 +74,16 @@ describe("kakao-map escapeHtml 및 InfoWindow XSS 검증", () => {
       window.kakao = {
         maps: {
           load: (cb: () => void) => cb(),
-          LatLng: MockLatLng as any,
-          Map: MockMap as any,
-          Marker: MockMarker as any,
-          InfoWindow: MockInfoWindow as any,
+          LatLng: MockLatLng as unknown,
+          Map: MockMap as unknown,
+          Marker: MockMarker as unknown,
+          InfoWindow: MockInfoWindow as unknown,
           services: {
             Status: { OK: "OK", ZERO_RESULT: "ZERO_RESULT", ERROR: "ERROR" },
-            Places: MockPlaces as any,
+            Places: MockPlaces as unknown,
           },
         },
-      };
+      } as unknown as typeof kakao;
     });
 
     afterEach(() => {
