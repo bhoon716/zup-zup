@@ -293,7 +293,7 @@ export function CourseReviewSection({
           <Dialog open={isEmojiPickerOpen} onOpenChange={handleEmojiPickerOpenChange}>
             <DialogContent
               showCloseButton={false}
-              className="overflow-hidden border-slate-700 bg-[#1f2023] p-0 text-white sm:max-w-[42rem]"
+              className="overflow-hidden border-slate-700 bg-[#1f2023] p-0 text-white sm:max-w-2xl"
             >
               <DialogTitle className="sr-only">이모지 선택</DialogTitle>
               <DialogDescription className="sr-only">
