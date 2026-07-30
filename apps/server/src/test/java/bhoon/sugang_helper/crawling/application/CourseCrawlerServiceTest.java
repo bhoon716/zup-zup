@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -23,6 +24,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -97,11 +99,15 @@ class CourseCrawlerServiceTest {
                 null, YEAR, SEMESTER, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, List.of());
         CourseCrawlFetcher validatingFetcher = new CourseCrawlFetcher(apiClient, courseParser);
+        ReflectionTestUtils.setField(validatingFetcher, "certDivisions", List.of("1", "2", "5", "7", "3", "4"));
+        ReflectionTestUtils.setField(validatingFetcher, "interRequestDelayMs", 0L);
         CourseCrawlerService service = new CourseCrawlerService(
                 validatingFetcher, courseSynchronizationService, crawlerTargetService, crawlerRunStateService,
                 meterRegistry);
-        given(apiClient.fetchCourseDataStream(YEAR, SEMESTER)).willReturn(stream);
-        given(courseParser.streamCourses(stream, YEAR, SEMESTER)).willReturn(List.of(missingName).iterator());
+        given(apiClient.fetchCourseDataStream(eq(YEAR), eq(SEMESTER), anyString())).willReturn(stream);
+        given(courseParser.streamCourses(any(), eq(YEAR), eq(SEMESTER)))
+                .willReturn(List.of(missingName).iterator())
+                .willReturn(Collections.emptyIterator());
 
         assertThatThrownBy(() -> service.crawlAndSaveCourses(YEAR, SEMESTER))
                 .isInstanceOf(CustomException.class)

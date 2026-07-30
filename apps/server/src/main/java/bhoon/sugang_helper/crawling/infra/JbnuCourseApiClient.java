@@ -5,14 +5,17 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.SocketTimeoutException;
-import java.net.ConnectException;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -50,61 +53,86 @@ public class JbnuCourseApiClient {
      */
     public String fetchCourseData(String year, String semester) {
         try (InputStream responseStream = fetchCourseDataStream(year, semester)) {
-            return new String(responseStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            return new String(responseStream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         }
     }
 
     public InputStream fetchCourseDataStream(String year, String semester) {
+        return fetchCourseDataStream(year, semester, this.certDivision);
+    }
+
+    public InputStream fetchCourseDataStream(String year, String semester, String certDivision) {
+        String targetCertDivision = resolveCertDivision(certDivision);
         int retryCount = 0;
 
         while (true) {
             long startedAt = System.nanoTime();
             try {
-                Map<String, String> cookies = fetchSessionCookies();
-                if (cookies.isEmpty()) {
-                    throw new IOException("JUMP session cookies are empty");
-                }
-
-                Connection.Response response = Jsoup.connect(apiUrl)
-                        .cookies(cookies)
-                        .header("Accept", "application/json, */*")
-                        .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
-                        .header("Cache-Control", "no-cache")
-                        .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-                        .header("Origin", originOf(apiUrl))
-                        .header("Referer", bootstrapUrl)
-                        .header("Pragma", "no-cache")
-                        .header("User-Agent", "Mozilla/5.0 (compatible; jbnu-sugang-helper-crawler)")
-                        .header("X-Requested-With", "XMLHttpRequest")
-                        .header("xb_req_type", "enc")
-                        .requestBody(JbnuJumpRequestEncoder.encode(buildRequest(year, semester)))
-                        .timeout(timeoutMs)
-                        .maxBodySize(maximumResponseBytes)
-                        .method(Connection.Method.POST)
-                        .ignoreContentType(true)
-                        .execute();
-                if (response.statusCode() >= 400) {
-                    throw new IOException("JUMP responded with HTTP " + response.statusCode());
-                }
+                byte[] bodyBytes = executeSingleRequest(year, semester, targetCertDivision);
                 recordUpstreamLatency(startedAt);
-                return new BoundedInputStream(response.bodyStream(), maximumResponseBytes);
+                return new BoundedInputStream(new ByteArrayInputStream(bodyBytes), maximumResponseBytes);
             } catch (Exception e) {
-                retryCount++;
                 recordUpstreamLatency(startedAt);
-                if (!isTransientFailure(e)) {
-                    log.error("[API Client] Non-transient JUMP request failure. yy={}, semester={}, exceptionType={}",
-                            year, semester, SensitiveDataRedactor.exceptionType(e));
-                    throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
-                }
-                log.warn("[API Client] JUMP course request failed. attempt={}/{}, yy={}, semester={}, exceptionType={}",
-                        retryCount, maxRetries + 1, year, semester, SensitiveDataRedactor.exceptionType(e));
-                if (retryCount > maxRetries) {
-                    throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
-                }
+                retryCount++;
+                handleRequestError(e, retryCount, year, semester, targetCertDivision);
                 waitBeforeRetry(retryCount);
             }
+        }
+    }
+
+    private String resolveCertDivision(String requestedDivision) {
+        if (requestedDivision != null && !requestedDivision.isBlank()) {
+            return requestedDivision;
+        }
+        if (this.certDivision != null && !this.certDivision.isBlank()) {
+            return this.certDivision;
+        }
+        return DEFAULT_CERT_DIVISION;
+    }
+
+    private byte[] executeSingleRequest(String year, String semester, String targetCertDivision) throws IOException {
+        Map<String, String> cookies = fetchSessionCookies();
+        if (cookies.isEmpty()) {
+            throw new IOException("JUMP session cookies are empty");
+        }
+
+        Connection.Response response = Jsoup.connect(apiUrl)
+                .cookies(cookies)
+                .header("Accept", "application/json, */*")
+                .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+                .header("Cache-Control", "no-cache")
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .header("Origin", originOf(apiUrl))
+                .header("Referer", bootstrapUrl)
+                .header("Pragma", "no-cache")
+                .header("User-Agent", "Mozilla/5.0 (compatible; jbnu-sugang-helper-crawler)")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("xb_req_type", "enc")
+                .requestBody(JbnuJumpRequestEncoder.encode(buildRequest(year, semester, targetCertDivision)))
+                .timeout(timeoutMs)
+                .maxBodySize(maximumResponseBytes)
+                .method(Connection.Method.POST)
+                .ignoreContentType(true)
+                .execute();
+
+        if (response.statusCode() >= 400) {
+            throw new IOException("JUMP responded with HTTP " + response.statusCode());
+        }
+        return response.bodyAsBytes();
+    }
+
+    private void handleRequestError(Exception e, int retryCount, String year, String semester, String targetCertDivision) {
+        if (!isTransientFailure(e)) {
+            log.error("[API Client] Non-transient JUMP request failure. yy={}, semester={}, certDiv={}, exceptionType={}",
+                    year, semester, targetCertDivision, SensitiveDataRedactor.exceptionType(e));
+            throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
+        }
+        log.warn("[API Client] JUMP course request failed. attempt={}/{}, yy={}, semester={}, certDiv={}, exceptionType={}",
+                retryCount, maxRetries + 1, year, semester, targetCertDivision, SensitiveDataRedactor.exceptionType(e));
+        if (retryCount > maxRetries) {
+            throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         }
     }
 
@@ -122,13 +150,13 @@ public class JbnuCourseApiClient {
         };
     }
 
-    private Map<String, String> buildRequest(String year, String semester) {
+    private Map<String, String> buildRequest(String year, String semester, String targetCertDivision) {
         Map<String, String> values = new LinkedHashMap<>();
         values.put("strYrsa", year);
         values.put("strSemstrCd", toJumpSemesterCode(semester));
         values.put("strOpnltDivCd", "");
         values.put("strEngLctrYn", "");
-        values.put("strCertDivCd", certDivision == null || certDivision.isBlank() ? DEFAULT_CERT_DIVISION : certDivision);
+        values.put("strCertDivCd", targetCertDivision);
         values.put("strSbjctNm", "");
         values.put("strProfNo", "");
         values.put("strProfNm", "");
@@ -169,7 +197,7 @@ public class JbnuCourseApiClient {
             return false;
         }
         if (throwable instanceof SocketTimeoutException || throwable instanceof ConnectException
-                || throwable instanceof IOException || throwable instanceof java.util.concurrent.TimeoutException) {
+                || throwable instanceof IOException || throwable instanceof TimeoutException) {
             return true;
         }
         return isTransientFailure(throwable.getCause());
