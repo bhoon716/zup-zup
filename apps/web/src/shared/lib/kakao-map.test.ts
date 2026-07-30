@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { escapeHtml, renderKakaoMapByKeyword } from "./kakao-map";
+import { type KakaoMapApi, escapeHtml, renderKakaoMapByKeyword } from "./kakao-map";
 
 describe("kakao-map escapeHtml 및 InfoWindow XSS 검증", () => {
   it("HTML 특수 문자(&, <, >, \", ')를 올바르게 이스케이프한다", () => {
@@ -83,7 +83,7 @@ describe("kakao-map escapeHtml 및 InfoWindow XSS 검증", () => {
             Places: MockPlaces as unknown,
           },
         },
-      } as unknown as typeof kakao;
+      } as KakaoMapApi;
     });
 
     afterEach(() => {
