@@ -34,6 +34,7 @@ def fail(message):
     raise SystemExit(message)
 
 LOKI_JOB_SELECTOR = '{job=~"$job"}'
+LOKI_UNSCOPED_SELECTOR = '{app=~".*"}'
 
 def find_unfiltered_loki_targets(dashboard_json, global_query_allowlist):
     unfiltered_targets = []
@@ -369,7 +370,7 @@ for panel in partial_filter_dashboard.get("panels", []):
     for target in panel.get("targets", []):
         expression = str(target.get("expr", "")).strip()
         if expression and LOKI_JOB_SELECTOR in expression:
-            target["expr"] = expression.replace(LOKI_JOB_SELECTOR, "", 1)
+            target["expr"] = expression.replace(LOKI_JOB_SELECTOR, LOKI_UNSCOPED_SELECTOR, 1)
             mutation_applied = True
             break
     if mutation_applied:
@@ -378,6 +379,15 @@ if not mutation_applied:
     fail("Loki partial-filter regression mutation did not modify a target")
 if not find_unfiltered_loki_targets(partial_filter_dashboard, loki_global_query_allowlist):
     fail("Loki contract must reject a partially unfiltered target set")
+
+selector_only_mutation = {
+    "panels": [{
+        "id": -1,
+        "targets": [{"expr": LOKI_UNSCOPED_SELECTOR}],
+    }],
+}
+if not find_unfiltered_loki_targets(selector_only_mutation, loki_global_query_allowlist):
+    fail("Loki contract must reject an unscoped selector-only target")
 
 if not str(services["grafana"].get("image", "")).startswith("grafana/grafana@sha256:"):
     fail("Grafana image must be digest pinned")
