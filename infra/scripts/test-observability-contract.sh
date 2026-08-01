@@ -123,21 +123,22 @@ def extract_alloy_component(config, component, name):
                 return config[opening_brace + 1:index]
     return None
 
+def has_alloy_target_assignment(block, reference):
+    reference_pattern = rf"(?:{re.escape(reference)}|\([ \t]*{re.escape(reference)}[ \t]*\))"
+    return re.search(
+        rf"(?m)^[ \t]*targets[ \t]*=[ \t]*{reference_pattern}[ \t]*$",
+        block,
+    ) is not None
+
 def has_active_alloy_job_pipeline(config):
     cleaned_config = strip_alloy_comments(config)
     relabel_block = extract_alloy_component(cleaned_config, "discovery.relabel", "containers")
     source_block = extract_alloy_component(cleaned_config, "loki.source.docker", "containers")
     if relabel_block is None or source_block is None:
         return False
-    if not re.search(
-        r"(?m)^[ \t]*targets\s*=\s*discovery\.docker\.containers\.targets[ \t]*$",
-        relabel_block,
-    ):
+    if not has_alloy_target_assignment(relabel_block, "discovery.docker.containers.targets"):
         return False
-    if not re.search(
-        r"(?m)^[ \t]*targets\s*=\s*discovery\.relabel\.containers\.output[ \t]*$",
-        source_block,
-    ):
+    if not has_alloy_target_assignment(source_block, "discovery.relabel.containers.output"):
         return False
     return re.search(
         r'rule\s*\{[^}]*source_labels\s*=\s*\["__meta_docker_container_label_com_docker_compose_service"\][^}]*target_label\s*=\s*"job"',
@@ -215,6 +216,20 @@ loki.source.docker "containers" {
 """
 if has_active_alloy_job_pipeline(decoy_only_alloy_config):
     fail("Alloy contract must reject a disconnected decoy job relabel rule")
+parenthesized_alloy_config = """
+discovery.relabel "containers" {
+  targets = (discovery.docker.containers.targets)
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label = "job"
+  }
+}
+loki.source.docker "containers" {
+  targets = (discovery.relabel.containers.output)
+}
+"""
+if not has_active_alloy_job_pipeline(parenthesized_alloy_config):
+    fail("Alloy contract must accept parenthesized active pipeline wiring")
 
 loki_dashboard_path = repo_root / "infra/grafana/dashboards/loki-dashboard.json"
 if not loki_dashboard_path.exists():
