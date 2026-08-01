@@ -33,6 +33,21 @@ services = compose.get("services", {})
 def fail(message):
     raise SystemExit(message)
 
+LOKI_JOB_SELECTOR = '{job=~"$job"}'
+
+def find_unfiltered_loki_targets(dashboard_json, global_query_allowlist):
+    unfiltered_targets = []
+    for panel in dashboard_json.get("panels", []):
+        panel_id = panel.get("id")
+        for target_index, target in enumerate(panel.get("targets", [])):
+            expression = str(target.get("expr", "")).strip()
+            target_key = (panel_id, target_index)
+            if not expression or target_key in global_query_allowlist:
+                continue
+            if LOKI_JOB_SELECTOR not in expression:
+                unfiltered_targets.append(target_key)
+    return unfiltered_targets
+
 def strip_alloy_comments(config):
     """Replace Alloy comments with whitespace while preserving string contents/newlines."""
     output = []
@@ -338,13 +353,31 @@ job_variables = [
 ]
 if not job_variables:
     fail("Grafana Loki dashboard must define the job variable from the Loki job label")
-loki_expressions = [
-    str(target.get("expr", "")).strip()
-    for panel in loki_dashboard_json.get("panels", [])
-    for target in panel.get("targets", [])
-]
-if not any('{job=~"$job"}' in expression for expression in loki_expressions):
-    fail("Grafana Loki dashboard targets must filter the Alloy job label")
+# Keep this allowlist explicit and empty until a deliberately global query has
+# a documented owner/reason; every current non-empty log target is job-scoped.
+loki_global_query_allowlist = set()
+unfiltered_loki_targets = find_unfiltered_loki_targets(
+    loki_dashboard_json,
+    loki_global_query_allowlist,
+)
+if unfiltered_loki_targets:
+    fail(f"Grafana Loki dashboard has unfiltered targets: {unfiltered_loki_targets}")
+
+partial_filter_dashboard = json.loads(json.dumps(loki_dashboard_json))
+mutation_applied = False
+for panel in partial_filter_dashboard.get("panels", []):
+    for target in panel.get("targets", []):
+        expression = str(target.get("expr", "")).strip()
+        if expression and LOKI_JOB_SELECTOR in expression:
+            target["expr"] = expression.replace(LOKI_JOB_SELECTOR, "", 1)
+            mutation_applied = True
+            break
+    if mutation_applied:
+        break
+if not mutation_applied:
+    fail("Loki partial-filter regression mutation did not modify a target")
+if not find_unfiltered_loki_targets(partial_filter_dashboard, loki_global_query_allowlist):
+    fail("Loki contract must reject a partially unfiltered target set")
 
 if not str(services["grafana"].get("image", "")).startswith("grafana/grafana@sha256:"):
     fail("Grafana image must be digest pinned")
