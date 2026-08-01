@@ -200,6 +200,11 @@ system_expressions = {
     panel_id: [str(target.get("expr", "")).strip() for target in panel.get("targets", [])]
     for panel_id, panel in system_panels.items()
 }
+all_dashboard_expressions = [
+    str(target.get("expr", "")).strip()
+    for panel in dashboard_json.get("panels", [])
+    for target in panel.get("targets", [])
+]
 system_target_contracts = (
     (2, r"\(sum\(rate\(http_server_requests_seconds_sum\[5m\]\)\)\s+/\s+sum\(rate\(http_server_requests_seconds_count\[5m\]\)\)\)\s+\*\s+1000"),
     (21, r"\(sum\(rate\(http_server_requests_seconds_sum\[5m\]\)\)\s+/\s+sum\(rate\(http_server_requests_seconds_count\[5m\]\)\)\)\s+\*\s+1000"),
@@ -220,7 +225,7 @@ for obsolete_system_metric in (
     "process_open_files",
     "process_max_files",
 ):
-    if any(obsolete_system_metric in expression for expressions in system_expressions.values() for expression in expressions):
+    if any(obsolete_system_metric in expression for expression in all_dashboard_expressions):
         fail(f"dashboard still queries an unregistered system metric: {obsolete_system_metric}")
 
 compose_text = (repo_root / "infra/docker-compose.yml").read_text(encoding="utf-8")
