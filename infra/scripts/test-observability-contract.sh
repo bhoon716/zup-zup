@@ -34,7 +34,7 @@ def fail(message):
     raise SystemExit(message)
 
 LOKI_JOB_SELECTOR = '{job=~"$job"}'
-LOKI_UNSCOPED_SELECTOR = '{app=~".*"}'
+LOKI_UNSCOPED_SELECTOR = '{app=~".+"}'
 
 def find_unfiltered_loki_targets(dashboard_json, global_query_allowlist):
     unfiltered_targets = []
