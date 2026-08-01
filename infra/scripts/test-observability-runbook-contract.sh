@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "${OBSERVABILITY_RUNBOOK_FAKE_DOCKER:-0}" = 1 ]; then
+  capture_dir="${OBSERVABILITY_RUNBOOK_CAPTURE_DIR:?capture directory is required}"
+  call_number_file="${capture_dir}/call-number"
+  call_number=0
+  if [ -f "${call_number_file}" ]; then
+    call_number="$(cat "${call_number_file}")"
+  fi
+  call_number=$((call_number + 1))
+  printf '%s\n' "${call_number}" >"${call_number_file}"
+  printf '<%s>\n' "$@" >"${capture_dir}/call-${call_number}"
+
+  environment_file_number=0
+  previous_argument=""
+  for argument in "$@"; do
+    if [ "${previous_argument}" = --env-file ]; then
+      environment_file_number=$((environment_file_number + 1))
+      cp -- "${argument}" "${capture_dir}/env-${call_number}-${environment_file_number}"
+      if [ "${environment_file_number}" -eq 2 ]; then
+        mode="$(stat -f '%Lp' "${argument}" 2>/dev/null || stat -c '%a' "${argument}")"
+        printf '%s\n' "${mode}" >"${capture_dir}/diagnostics-env-mode"
+      fi
+    fi
+    previous_argument="${argument}"
+  done
+  exit 0
+fi
+
+repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+wrapper="${repo_root}/infra/scripts/compose-observability-diagnostics.sh"
+temporary_dir="$(mktemp -d)"
+release_root="${temporary_dir}/release"
+fake_bin="${temporary_dir}/bin"
+capture_dir="${temporary_dir}/capture"
+
+cleanup() {
+  rm -rf -- "${temporary_dir}"
+}
+trap cleanup EXIT
+
+if [ ! -x "${wrapper}" ]; then
+  echo "persistent observability diagnostics wrapper is missing" >&2
+  exit 1
+fi
+
+mkdir -p "${release_root}/scripts" "${fake_bin}" "${capture_dir}"
+cp -- "${wrapper}" "${release_root}/scripts/compose-observability-diagnostics.sh"
+chmod 0755 "${release_root}/scripts/compose-observability-diagnostics.sh"
+printf '%s\n' \
+  'APP_IMAGE_NAME=fixture/app' \
+  'IMAGE_TAG=fixture' \
+  'APP_ENV_FILE=missing-from-persistent-env' \
+  >"${release_root}/.env"
+printf '%s\n' 'name: sugang-helper' >"${release_root}/docker-compose.yml"
+ln -s -- "${repo_root}/infra/scripts/test-observability-runbook-contract.sh" "${fake_bin}/docker"
+
+run_wrapper() {
+  PATH="${fake_bin}:${PATH}" \
+  OBSERVABILITY_RUNBOOK_FAKE_DOCKER=1 \
+  OBSERVABILITY_RUNBOOK_CAPTURE_DIR="${capture_dir}" \
+  COMPOSE_DIAGNOSTICS_ROOT="${release_root}" \
+    "${release_root}/scripts/compose-observability-diagnostics.sh" "$@"
+}
+
+run_wrapper ps
+run_wrapper logs --tail=100 app alloy loki prometheus grafana
+run_wrapper probe
+run_wrapper start
+
+for call_number in 1 2 3 4; do
+  call_file="${capture_dir}/call-${call_number}"
+  grep -Fqx '<compose>' "${call_file}"
+  grep -Fqx '<--profile>' "${call_file}"
+  grep -Fqx '<observability>' "${call_file}"
+done
+grep -Fqx '<ps>' "${capture_dir}/call-1"
+grep -Fqx '<logs>' "${capture_dir}/call-2"
+grep -Fqx '<--tail=100>' "${capture_dir}/call-2"
+grep -Fqx '<run>' "${capture_dir}/call-3"
+grep -Fqx '<--rm>' "${capture_dir}/call-3"
+grep -Fqx '<--no-deps>' "${capture_dir}/call-3"
+grep -Fqx '<observability-probe-tools>' "${capture_dir}/call-3"
+grep -Fqx '<up>' "${capture_dir}/call-4"
+grep -Fqx '<-d>' "${capture_dir}/call-4"
+grep -Fqx '<--wait>' "${capture_dir}/call-4"
+grep -Fqx '<--wait-timeout>' "${capture_dir}/call-4"
+grep -Fqx '<-f>' "${capture_dir}/call-1"
+grep -Fqx '<--project-name>' "${capture_dir}/call-1"
+
+diagnostics_env="${capture_dir}/env-1-2"
+grep -Fqx "APP_BUILD_CONTEXT=${release_root}" "${diagnostics_env}"
+grep -Fqx "APP_ENV_FILE=${release_root}/apps/server/.env" "${diagnostics_env}"
+grep -Fqx "APP_PROD_CONFIG_PATH=${release_root}/application-prod.yml" "${diagnostics_env}"
+grep -Fqx "FIREBASE_CONFIG_PATH=${release_root}/secrets/firebase-key.json" "${diagnostics_env}"
+[ "$(cat "${capture_dir}/diagnostics-env-mode")" = 600 ]
+[ "$(find "${release_root}" -maxdepth 1 -name '.compose-diagnostics.*' -print -quit)" = "" ]
+
+printf 'observability runbook wrapper contract passed\n'

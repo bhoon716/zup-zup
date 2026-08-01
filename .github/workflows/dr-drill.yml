@@ -17,6 +17,7 @@ jobs:
         run: |
           infra/scripts/test-runtime-contract.sh
           infra/scripts/test-observability-contract.sh
+          infra/scripts/test-observability-runbook-contract.sh
           infra/scripts/test-migration-failure-path.sh
 
       - name: rebuild 절차 안내

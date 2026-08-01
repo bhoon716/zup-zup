@@ -101,7 +101,8 @@ if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -f "${staging_dir}/alloy/config.alloy" ] \
   || [ ! -f "${staging_dir}/prometheus/prometheus.yml" ] \
   || [ ! -f "${staging_dir}/grafana/provisioning/datasources/datasource.yml" ] \
-  || [ ! -f "${staging_dir}/scripts/test-observability-smoke.sh" ]; then
+  || [ ! -f "${staging_dir}/scripts/test-observability-smoke.sh" ] \
+  || [ ! -f "${staging_dir}/scripts/compose-observability-diagnostics.sh" ]; then
   fail "staging release is incomplete"
 fi
 if [ -L "${staging_dir}" ] || find -P "${staging_dir}" -type l -print -quit | grep -q .; then
@@ -164,6 +165,9 @@ cp -a "${staging_dir}/grafana/." "${RELEASE_ROOT}/grafana/"
 cp "${staging_dir}/scripts/test-observability-smoke.sh" "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$"
 chmod 0755 "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$"
 mv -f "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$" "${RELEASE_ROOT}/scripts/test-observability-smoke.sh"
+cp "${staging_dir}/scripts/compose-observability-diagnostics.sh" "${RELEASE_ROOT}/scripts/compose-observability-diagnostics.sh.tmp.$$"
+chmod 0755 "${RELEASE_ROOT}/scripts/compose-observability-diagnostics.sh.tmp.$$"
+mv -f "${RELEASE_ROOT}/scripts/compose-observability-diagnostics.sh.tmp.$$" "${RELEASE_ROOT}/scripts/compose-observability-diagnostics.sh"
 cp "${staging_dir}/apps/server/.env" "${APP_ENV_FILE}.tmp.$$"
 chmod 0600 "${APP_ENV_FILE}.tmp.$$"
 mv -f "${APP_ENV_FILE}.tmp.$$" "${APP_ENV_FILE}"

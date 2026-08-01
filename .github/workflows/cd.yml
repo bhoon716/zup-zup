@@ -164,12 +164,15 @@ jobs:
           mkdir -p "${stage_dir}/scripts"
           cp infra/scripts/test-observability-smoke.sh \
             "${stage_dir}/scripts/test-observability-smoke.sh"
+          cp infra/scripts/compose-observability-diagnostics.sh \
+            "${stage_dir}/scripts/compose-observability-diagnostics.sh"
           cp infra/scripts/deploy-release.sh "${stage_dir}/deploy.sh"
           umask 077
           printf '%s\n' "${SERVER_DOTENV}" >"${stage_dir}/apps/server/.env"
           chmod 0600 "${stage_dir}/apps/server/.env"
           chmod 0755 "${stage_dir}/deploy.sh"
           chmod 0755 "${stage_dir}/scripts/test-observability-smoke.sh"
+          chmod 0755 "${stage_dir}/scripts/compose-observability-diagnostics.sh"
           echo "path=${stage_dir}" >>"${GITHUB_OUTPUT}"
 
       - name: Ubuntu staging 전송

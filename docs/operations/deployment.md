@@ -114,10 +114,8 @@ checkout SHA
 healthcheck에 쓰는 정적 BusyBox probe는 Loki·Alloy처럼 운영 이미지에 shell/HTTP client를 포함하지 않는 컨테이너에서도 `/ready`, `/-/ready`를 직접 호출할 수 있도록 one-shot Compose service가 read-only 공유 volume에 준비한다. 운영자가 probe volume을 수동 삭제한 경우에는 다음 명령으로 다시 준비한 뒤 observability profile을 시작한다.
 
 ```bash
-docker compose --env-file .env --profile observability \
-  run --rm --no-deps observability-probe-tools
-docker compose --env-file .env --profile observability \
-  up -d --wait --wait-timeout 180 loki alloy prometheus grafana
+./scripts/compose-observability-diagnostics.sh probe
+./scripts/compose-observability-diagnostics.sh start
 ```
 
 기존 NPM은 저장소가 관리하지 않는 별도 컨테이너이지만, 배포 script가 새 runtime network가 처음 만들어진 뒤 upstream 컨테이너 이름을 해석할 수 있도록 연결만 보장한다. 이미 연결돼 있으면 아무 작업도 하지 않는다. 수동으로 Compose를 시작하는 경우에는 다음 명령을 사용한다.
@@ -141,17 +139,17 @@ Firebase service-account 파일은 앱 컨테이너 사용자 UID `10001`이 읽
 
 ## 5. 수동 명령
 
-배포가 성공했는지, 실패했는지, 같은 SHA로 재시도하기 전인지와 관계없이 아래 명령은 배포가 끝난 뒤에도 남아 있는 release root의 `.env`와 Compose 파일만 사용한다. 배포 중에만 존재하는 임시 Compose 환경 파일은 수동 진단 명령의 전제가 아니다.
+배포가 성공했는지, 실패했는지, 같은 SHA로 재시도하기 전인지와 관계없이 아래 wrapper는 배포가 끝난 뒤에도 남아 있는 release root의 `.env`, Compose 파일, `scripts/compose-observability-diagnostics.sh`만 사용한다. wrapper는 현재 release 경로를 진단용 임시 환경에 넣고 명령이 끝나면 즉시 삭제하므로, 배포 중에만 존재하는 임시 환경 파일은 수동 진단 명령의 전제가 아니다.
 
 ```bash
 cd /home/ubuntu/jbnu-sugang-helper
-docker compose --project-name sugang-helper --env-file .env --profile observability -f docker-compose.yml ps -a
-docker compose --project-name sugang-helper --env-file .env --profile observability -f docker-compose.yml logs --tail=100 app alloy loki prometheus grafana
+./scripts/compose-observability-diagnostics.sh ps
+./scripts/compose-observability-diagnostics.sh logs --tail=100 app alloy loki prometheus grafana
 ```
 
-- 배포 성공: `ps -a`로 앱과 관측성 컨테이너가 실행 중인지 확인하고, 필요하면 같은 명령의 `logs`로 최근 앱·Alloy·Loki·Prometheus·Grafana 로그를 함께 확인한다.
-- 배포 실패: migration·readiness·observability 단계에서 멈춘 컨테이너도 `ps -a`에 포함되므로 종료 상태와 로그를 확인한다. staging 또는 Compose 검증 단계에서 실패했다면 현재 release root의 이전 정상 상태가 표시될 수 있다.
-- 재시도: 원인을 확인한 뒤 같은 두 명령으로 상태를 다시 확인하고, 수동 SHA 배포를 재실행한다. 명령에 배포별 임시 파일 이름을 넣지 않는다.
+- 배포 성공: `ps -a`로 앱과 관측성 컨테이너가 실행 중인지 확인하고, `logs`로 최근 앱·Alloy·Loki·Prometheus·Grafana 로그를 함께 확인한다.
+- 배포 실패: readiness·observability 단계에서 멈춘 컨테이너는 `ps -a`와 `logs`로 확인한다. migration은 `run --rm` one-shot이라 실패 컨테이너가 남지 않으므로 정확한 Flyway 오류는 해당 CD/SSH 실행 출력에서 확인하고, wrapper로 현재 앱·관측성 상태를 별도로 확인한다. staging 또는 Compose 검증 단계에서 실패했다면 현재 release root의 이전 정상 상태가 표시될 수 있으며, 최초 배포처럼 wrapper가 아직 없는 경우에는 CD/SSH 출력이 진단 경로다.
+- 재시도: CD/SSH 출력에서 실패 원인을 확인한 뒤 같은 두 명령으로 현재 상태를 다시 확인하고, 수동 SHA 배포를 재실행한다. 명령에 배포별 임시 파일 이름을 넣지 않는다.
 
 현재 실행 중인 로그 검색은 Grafana를 SSH tunnel로 연다.
 

@@ -49,14 +49,15 @@ docker compose --profile migration run --rm migrate validate
 
 ## 로그 검색
 
-운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`만 수집하고, Alloy는 Docker socket을 읽기 전용으로 사용해 Compose 컨테이너의 JSON 로그를 Loki로 전송합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다.
+운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`만 수집하고, Alloy는 Docker socket을 읽기 전용으로 사용해 Compose 컨테이너의 JSON 로그를 Loki로 전송합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다. 배포 후 운영 상태·로그·probe 재준비·관측성 재기동은 release root에 배포되는 `scripts/compose-observability-diagnostics.sh`를 사용하며, 상세 명령은 운영 runbook을 따릅니다.
 
 ```bash
-docker compose --profile observability up -d prometheus loki alloy grafana
+cd /home/ubuntu/jbnu-sugang-helper
+./scripts/compose-observability-diagnostics.sh start
 ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 ```
 
-운영 배포는 위 컨테이너 healthcheck만 기다리지 않고 앱 readiness 뒤에 `scripts/test-observability-smoke.sh`를 실행한다. 이 검증은 Prometheus의 앱 target `up=1`, Grafana Prometheus/Loki datasource health와 proxy query, 그리고 고유 Docker JSON marker의 Alloy→Loki round-trip을 제한시간 안에 확인한다. 수동 재기동에서 probe volume을 삭제했다면 먼저 `docker compose --profile observability run --rm --no-deps observability-probe-tools`를 실행한다.
+운영 배포는 위 컨테이너 healthcheck만 기다리지 않고 앱 readiness 뒤에 `scripts/test-observability-smoke.sh`를 실행한다. 이 검증은 Prometheus의 앱 target `up=1`, Grafana Prometheus/Loki datasource health와 proxy query, 그리고 고유 Docker JSON marker의 Alloy→Loki round-trip을 제한시간 안에 확인한다. 수동 재기동에서 probe volume을 삭제했다면 먼저 `./scripts/compose-observability-diagnostics.sh probe`를 실행한다.
 
 현재 Loki는 호스트 filesystem에 30일 retention으로 저장합니다. Object Storage 장기 보존과 복구 rehearsal은 bucket/IAM 계약을 확정한 뒤 별도 운영 이슈로 진행합니다.
 

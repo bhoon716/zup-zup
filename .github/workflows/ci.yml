@@ -47,6 +47,7 @@ jobs:
         run: |
           bash infra/scripts/test-runtime-contract.sh
           bash infra/scripts/test-observability-contract.sh
+          bash infra/scripts/test-observability-runbook-contract.sh
           bash infra/scripts/test-observability-failure-path.sh
           bash infra/scripts/test-cd-workflow-contract.sh
           bash infra/scripts/test-app-env-preflight.sh

@@ -951,28 +951,60 @@ for forbidden in (
 
 deployment_runbook = (repo_root / "docs/operations/deployment.md").read_text(encoding="utf-8")
 troubleshooting = (repo_root / "docs/troubleshooting.md").read_text(encoding="utf-8")
+diagnostics_path = repo_root / "infra/scripts/compose-observability-diagnostics.sh"
+if not diagnostics_path.exists():
+    fail("persistent observability diagnostics wrapper is missing")
+diagnostics = diagnostics_path.read_text(encoding="utf-8")
 for required in (
-    "docker compose --project-name sugang-helper --env-file .env",
-    "-f docker-compose.yml ps -a",
-    "-f docker-compose.yml logs --tail=100 app alloy loki prometheus grafana",
+    "./scripts/compose-observability-diagnostics.sh ps",
+    "./scripts/compose-observability-diagnostics.sh logs --tail=100 app alloy loki prometheus grafana",
+    "./scripts/compose-observability-diagnostics.sh probe",
+    "./scripts/compose-observability-diagnostics.sh start",
     "배포 성공",
     "배포 실패",
     "재시도",
+    "migration은 `run --rm` one-shot",
+    "CD/SSH 실행 출력",
 ):
     if required not in deployment_runbook:
         fail(f"deployment runbook is missing persistent observability command contract: {required}")
+for required in (
+    "set -euo pipefail",
+    'RELEASE_ROOT="${COMPOSE_DIAGNOSTICS_ROOT:-/home/ubuntu/jbnu-sugang-helper}"',
+    'docker compose',
+    '--project-name sugang-helper',
+    '--env-file "${RELEASE_ROOT}/.env"',
+    '--env-file "${diagnostics_env}"',
+    '-f "${RELEASE_ROOT}/docker-compose.yml"',
+    '--profile observability',
+    "APP_BUILD_CONTEXT=${RELEASE_ROOT}",
+    "APP_ENV_FILE=${RELEASE_ROOT}/apps/server/.env",
+    "APP_PROD_CONFIG_PATH=${RELEASE_ROOT}/application-prod.yml",
+    "FIREBASE_CONFIG_PATH=${RELEASE_ROOT}/secrets/firebase-key.json",
+    "chmod 0600",
+    "mktemp",
+    "ps)",
+    "logs)",
+    "probe)",
+    "start)",
+):
+    if required not in diagnostics:
+        fail(f"observability diagnostics wrapper is missing persistent runtime contract: {required}")
 for forbidden in (".env.compose", ".compose-runtime"):
     if forbidden in deployment_runbook:
         fail(f"deployment runbook must not depend on transient Compose environment: {forbidden}")
-for secret_key in (
-    "DB_ROOT_PASSWORD=",
-    "REDIS_PASSWORD=",
-    "GRAFANA_ADMIN_PASSWORD=",
-    "GOOGLE_CLIENT_SECRET=",
-    "JWT_SECRET=",
-):
-    if secret_key in deployment_runbook or secret_key in troubleshooting:
-        fail(f"observability runbook must not contain a secret assignment: {secret_key}")
+if "migration·readiness·observability 단계에서 멈춘 컨테이너도" in deployment_runbook:
+    fail("deployment runbook must not claim that removed migration containers remain inspectable")
+secret_assignment_pattern = re.compile(
+    r"(?im)^\s*(?P<key>[A-Z][A-Z0-9_]*(?:PASSWORD|SECRET|TOKEN|PRIVATE_KEY|ACCESS_KEY|CREDENTIALS?)[A-Z0-9_]*)"
+    r"\s*(?:=|:)\s*(?P<value>\S.*)$"
+)
+placeholder_prefixes = ("<", "replace-with", "your-", "example", "redacted", "***", "...")
+for document_name, document in (("deployment", deployment_runbook), ("troubleshooting", troubleshooting)):
+    for match in secret_assignment_pattern.finditer(document):
+        value = match.group("value").strip().strip('`"\'')
+        if value and not value.lower().startswith(placeholder_prefixes):
+            fail(f"{document_name} must not contain a non-placeholder secret assignment: {match.group('key')}")
 
 for required in (
     "Docker JSON",
@@ -985,9 +1017,15 @@ for required in (
 ):
     if required not in troubleshooting:
         fail(f"troubleshooting must document the active Docker JSON to Loki path: {required}")
-for forbidden in ("호스트 로그", "host logs", "host log files"):
-    if forbidden in troubleshooting:
-        fail(f"troubleshooting must not claim unsupported host-file log collection: {forbidden}")
+if "host log file을 수집하는 별도 pipeline은 없다" not in troubleshooting:
+    fail("troubleshooting must explicitly reject unsupported host-file log collection")
+expected_host_log_statement = "host log file을 수집하는 별도 pipeline은 없다"
+unsupported_host_log_pattern = re.compile(r"(?i)host\s+log\s+file.{0,100}(?:loki|전송|수집)")
+troubleshooting_without_expected_statement = troubleshooting.replace(expected_host_log_statement, "")
+if unsupported_host_log_pattern.search(troubleshooting_without_expected_statement):
+    fail("troubleshooting must not claim unsupported host-file log collection")
+if re.search(r"호스트\s+로그.{0,100}(?:Loki|전송|수집)", troubleshooting):
+    fail("troubleshooting must not claim unsupported host-file log collection")
 
 print("observability Compose contract passed")
 PY
