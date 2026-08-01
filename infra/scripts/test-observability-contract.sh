@@ -159,6 +159,39 @@ def extract_alloy_component(config, component, name):
                 return config[opening_brace + 1:index]
     return None
 
+def extract_alloy_named_blocks(config, block_name):
+    marker = re.compile(
+        r"(?m)^[ \t]*"
+        + re.escape(block_name)
+        + r"[ \t]*\{"
+    )
+    blocks = []
+    for match in marker.finditer(config):
+        opening_brace = config.find("{", match.start(), match.end())
+        depth = 0
+        in_string = False
+        escaped = False
+        for index in range(opening_brace, len(config)):
+            character = config[index]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif character == "\\":
+                    escaped = True
+                elif character == '"':
+                    in_string = False
+                continue
+            if character == '"':
+                in_string = True
+            elif character == "{":
+                depth += 1
+            elif character == "}":
+                depth -= 1
+                if depth == 0:
+                    blocks.append(config[opening_brace + 1:index])
+                    break
+    return blocks
+
 def top_level_alloy_text(block):
     output = []
     depth = 0
@@ -218,6 +251,21 @@ def has_alloy_target_assignment(block, reference):
         for match in assignment_pattern.finditer(top_level_block)
     )
 
+def has_alloy_job_relabel_rule(relabel_block):
+    source_labels_pattern = re.compile(
+        r'(?ms)\bsource_labels[ \t]*=[ \t\r\n]*\[\s*'
+        r'"__meta_docker_container_label_com_docker_compose_service"'
+        r'\s*,?\s*\]'
+    )
+    target_label_pattern = re.compile(
+        r'(?m)\btarget_label[ \t]*=[ \t\r\n]*"job"'
+    )
+    return any(
+        source_labels_pattern.search(rule_block)
+        and target_label_pattern.search(rule_block)
+        for rule_block in extract_alloy_named_blocks(relabel_block, "rule")
+    )
+
 def has_active_alloy_job_pipeline(config):
     cleaned_config = strip_alloy_comments(config)
     relabel_block = extract_alloy_component(cleaned_config, "discovery.relabel", "containers")
@@ -228,11 +276,7 @@ def has_active_alloy_job_pipeline(config):
         return False
     if not has_alloy_target_assignment(source_block, "discovery.relabel.containers.output"):
         return False
-    return re.search(
-        r'rule\s*\{[^}]*source_labels\s*=\s*\["__meta_docker_container_label_com_docker_compose_service"\][^}]*target_label\s*=\s*"job"',
-        relabel_block,
-        re.DOTALL,
-    ) is not None
+    return has_alloy_job_relabel_rule(relabel_block)
 
 expected = {"app", "db", "redis", "loki", "alloy", "grafana", "prometheus"}
 if set(services) != expected:
@@ -334,6 +378,29 @@ loki.source.docker "containers" {
 """
 if not has_active_alloy_job_pipeline(multiline_alloy_config):
     fail("Alloy contract must accept multiline active pipeline wiring")
+reordered_rule_alloy_config = """
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+  rule {
+    target_label =
+      "job"
+    source_labels = [
+      "__meta_docker_container_label_com_docker_compose_service",
+    ]
+  }
+}
+loki.source.docker "containers" {
+  targets = discovery.relabel.containers.output
+}
+"""
+if not has_active_alloy_job_pipeline(reordered_rule_alloy_config):
+    fail("Alloy contract must accept reordered and formatted job relabel attributes")
+missing_job_mapping_alloy_config = reordered_rule_alloy_config.replace(
+    'target_label =\n      "job"',
+    'target_label =\n      "service"',
+)
+if has_active_alloy_job_pipeline(missing_job_mapping_alloy_config):
+    fail("Alloy contract must reject an active pipeline without the job relabel mapping")
 malformed_parenthesized_alloy_config = parenthesized_alloy_config.replace(
     "(discovery.docker.containers.targets)",
     "(discovery.docker.containers.targets",
