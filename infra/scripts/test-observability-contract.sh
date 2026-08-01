@@ -35,6 +35,7 @@ def fail(message):
 
 LOKI_JOB_SELECTOR = '{job=~"$job"}'
 LOKI_UNSCOPED_SELECTOR = '{app=~".+"}'
+LOKI_JOB_VARIABLE_DEFINITION = "label_values(job)"
 
 def find_unfiltered_loki_targets(dashboard_json, global_query_allowlist):
     unfiltered_targets = []
@@ -48,6 +49,25 @@ def find_unfiltered_loki_targets(dashboard_json, global_query_allowlist):
             if LOKI_JOB_SELECTOR not in expression:
                 unfiltered_targets.append(target_key)
     return unfiltered_targets
+
+def find_loki_job_variables(dashboard_json):
+    return [
+        variable
+        for variable in dashboard_json.get("templating", {}).get("list", [])
+        if variable.get("name") == "job"
+    ]
+
+def is_valid_loki_job_variable(variable):
+    return (
+        variable.get("type") == "query"
+        and variable.get("datasource") == "Loki"
+        and str(variable.get("definition", "")).strip() == LOKI_JOB_VARIABLE_DEFINITION
+        and str(variable.get("query", "")).strip() == LOKI_JOB_VARIABLE_DEFINITION
+    )
+
+def has_valid_loki_job_variable(dashboard_json):
+    job_variables = find_loki_job_variables(dashboard_json)
+    return len(job_variables) == 1 and is_valid_loki_job_variable(job_variables[0])
 
 def strip_alloy_comments(config):
     """Replace Alloy comments with whitespace while preserving string contents/newlines."""
@@ -345,15 +365,27 @@ loki_dashboard_path = repo_root / "infra/grafana/dashboards/loki-dashboard.json"
 if not loki_dashboard_path.exists():
     fail("Grafana Loki dashboard is missing")
 loki_dashboard_json = json.loads(loki_dashboard_path.read_text(encoding="utf-8"))
-loki_variables = loki_dashboard_json.get("templating", {}).get("list", [])
-job_variables = [
-    variable
-    for variable in loki_variables
-    if variable.get("name") == "job"
-    and "label_values(job)" in f"{variable.get('definition', '')} {variable.get('query', '')}"
-]
-if not job_variables:
-    fail("Grafana Loki dashboard must define the job variable from the Loki job label")
+if not has_valid_loki_job_variable(loki_dashboard_json):
+    fail(
+        "Grafana Loki dashboard must define exactly one query-type Loki job variable "
+        "using label_values(job)"
+    )
+
+for mutation_name, field, value in (
+    ("textbox type", "type", "textbox"),
+    ("non-Loki datasource", "datasource", "Prometheus"),
+):
+    mutated_dashboard = json.loads(json.dumps(loki_dashboard_json))
+    mutation_applied = False
+    for variable in mutated_dashboard.get("templating", {}).get("list", []):
+        if variable.get("name") == "job":
+            variable[field] = value
+            mutation_applied = True
+    if not mutation_applied:
+        fail(f"Loki job variable {mutation_name} regression mutation did not modify a variable")
+    if has_valid_loki_job_variable(mutated_dashboard):
+        fail(f"Loki contract must reject a job variable with {mutation_name}")
+
 # Keep this allowlist explicit and empty until a deliberately global query has
 # a documented owner/reason; every current non-empty log target is job-scoped.
 loki_global_query_allowlist = set()
