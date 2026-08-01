@@ -33,6 +33,118 @@ services = compose.get("services", {})
 def fail(message):
     raise SystemExit(message)
 
+def strip_alloy_comments(config):
+    """Replace Alloy comments with whitespace while preserving string contents/newlines."""
+    output = []
+    index = 0
+    in_string = False
+    escaped = False
+    line_comment = False
+    block_comment = False
+    while index < len(config):
+        character = config[index]
+        next_character = config[index + 1] if index + 1 < len(config) else ""
+        if line_comment:
+            if character == "\n":
+                line_comment = False
+                output.append(character)
+            else:
+                output.append(" ")
+            index += 1
+            continue
+        if block_comment:
+            if character == "*" and next_character == "/":
+                output.extend((" ", " "))
+                block_comment = False
+                index += 2
+            else:
+                output.append("\n" if character == "\n" else " ")
+                index += 1
+            continue
+        if in_string:
+            output.append(character)
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            index += 1
+            continue
+        if character == '"':
+            in_string = True
+            output.append(character)
+            index += 1
+        elif character == "/" and next_character == "/":
+            output.extend((" ", " "))
+            line_comment = True
+            index += 2
+        elif character == "/" and next_character == "*":
+            output.extend((" ", " "))
+            block_comment = True
+            index += 2
+        else:
+            output.append(character)
+            index += 1
+    return "".join(output)
+
+def extract_alloy_component(config, component, name):
+    marker = re.compile(
+        r"(?m)^[ \t]*"
+        + re.escape(component)
+        + r"[ \t]+\""
+        + re.escape(name)
+        + r"\"[ \t]*\{"
+    )
+    match = marker.search(config)
+    if match is None:
+        return None
+    opening_brace = config.find("{", match.start(), match.end())
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(opening_brace, len(config)):
+        character = config[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+        elif character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                return config[opening_brace + 1:index]
+    return None
+
+def has_active_alloy_job_pipeline(config):
+    cleaned_config = strip_alloy_comments(config)
+    relabel_block = extract_alloy_component(cleaned_config, "discovery.relabel", "containers")
+    source_block = extract_alloy_component(cleaned_config, "loki.source.docker", "containers")
+    if relabel_block is None or source_block is None:
+        return False
+    if not re.search(
+        r"(?m)^[ \t]*targets\s*=\s*discovery\.docker\.containers\.targets[ \t]*$",
+        relabel_block,
+    ):
+        return False
+    if not re.search(
+        r"(?m)^[ \t]*targets\s*=\s*discovery\.relabel\.containers\.output[ \t]*$",
+        source_block,
+    ):
+        return False
+    return re.search(
+        r'rule\s*\{[^}]*source_labels\s*=\s*\["__meta_docker_container_label_com_docker_compose_service"\][^}]*target_label\s*=\s*"job"',
+        relabel_block,
+        re.DOTALL,
+    ) is not None
+
 expected = {"app", "db", "redis", "loki", "alloy", "grafana", "prometheus"}
 if set(services) != expected:
     fail(f"observability profile must contain app/db/redis/loki/alloy/grafana/prometheus: {sorted(services)}")
@@ -85,12 +197,24 @@ if "loki.source.docker" not in alloy_config:
     fail("Alloy must collect Docker logs with loki.source.docker")
 if "loki.write" not in alloy_config:
     fail("Alloy must write logs to Loki")
-if not re.search(
-    r'rule\s*\{[^}]*source_labels\s*=\s*\["__meta_docker_container_label_com_docker_compose_service"\][^}]*target_label\s*=\s*"job"',
-    alloy_config,
-    re.DOTALL,
-):
-    fail("Alloy must map the Compose service label to Loki job")
+if not has_active_alloy_job_pipeline(alloy_config):
+    fail("Alloy must map the Compose service label to job on the active Loki source pipeline")
+decoy_only_alloy_config = """
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+}
+discovery.relabel "decoy" {
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label = "job"
+  }
+}
+loki.source.docker "containers" {
+  targets = discovery.relabel.containers.output
+}
+"""
+if has_active_alloy_job_pipeline(decoy_only_alloy_config):
+    fail("Alloy contract must reject a disconnected decoy job relabel rule")
 
 loki_dashboard_path = repo_root / "infra/grafana/dashboards/loki-dashboard.json"
 if not loki_dashboard_path.exists():
