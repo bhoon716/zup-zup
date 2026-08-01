@@ -251,18 +251,35 @@ def has_alloy_target_assignment(block, reference):
         for match in assignment_pattern.finditer(top_level_block)
     )
 
+def find_alloy_string_attribute_values(block, attribute):
+    attribute_pattern = re.compile(
+        rf'(?ms)(?<![A-Za-z0-9_]){re.escape(attribute)}[ \t]*=[ \t\r\n]*"([^"]*)"'
+    )
+    return attribute_pattern.findall(block)
+
+def has_expected_alloy_job_relabel_rule(rule_block, source_labels_pattern):
+    if not source_labels_pattern.search(rule_block):
+        return False
+    if find_alloy_string_attribute_values(rule_block, "target_label") != ["job"]:
+        return False
+    for attribute, expected_default in (
+        ("action", "replace"),
+        ("regex", "(.*)"),
+        ("replacement", "$1"),
+    ):
+        values = find_alloy_string_attribute_values(rule_block, attribute)
+        if values and values != [expected_default]:
+            return False
+    return True
+
 def has_alloy_job_relabel_rule(relabel_block):
     source_labels_pattern = re.compile(
         r'(?ms)\bsource_labels[ \t]*=[ \t\r\n]*\[\s*'
         r'"__meta_docker_container_label_com_docker_compose_service"'
         r'\s*,?\s*\]'
     )
-    target_label_pattern = re.compile(
-        r'(?m)\btarget_label[ \t]*=[ \t\r\n]*"job"'
-    )
     return any(
-        source_labels_pattern.search(rule_block)
-        and target_label_pattern.search(rule_block)
+        has_expected_alloy_job_relabel_rule(rule_block, source_labels_pattern)
         for rule_block in extract_alloy_named_blocks(relabel_block, "rule")
     )
 
@@ -395,12 +412,45 @@ loki.source.docker "containers" {
 """
 if not has_active_alloy_job_pipeline(reordered_rule_alloy_config):
     fail("Alloy contract must accept reordered and formatted job relabel attributes")
+explicit_default_relabel_alloy_config = reordered_rule_alloy_config.replace(
+    "    source_labels = [",
+    '    action = "replace"\n'
+    '    regex = "(.*)"\n'
+    '    replacement = "$1"\n'
+    "    source_labels = [",
+)
+if not has_active_alloy_job_pipeline(explicit_default_relabel_alloy_config):
+    fail("Alloy contract must accept explicit default replace semantics")
 missing_job_mapping_alloy_config = reordered_rule_alloy_config.replace(
     'target_label =\n      "job"',
     'target_label =\n      "service"',
 )
 if has_active_alloy_job_pipeline(missing_job_mapping_alloy_config):
     fail("Alloy contract must reject an active pipeline without the job relabel mapping")
+drop_job_mapping_alloy_config = reordered_rule_alloy_config.replace(
+    '      "job"\n    source_labels',
+    '      "job"\n    action = "drop"\n    source_labels',
+)
+if drop_job_mapping_alloy_config == reordered_rule_alloy_config:
+    fail("Alloy drop-action regression mutation did not modify a rule")
+if has_active_alloy_job_pipeline(drop_job_mapping_alloy_config):
+    fail("Alloy contract must reject a job relabel rule that drops targets")
+nonmatching_regex_alloy_config = reordered_rule_alloy_config.replace(
+    "    source_labels = [",
+    '    regex = "never-match"\n    source_labels = [',
+)
+if nonmatching_regex_alloy_config == reordered_rule_alloy_config:
+    fail("Alloy nonmatching-regex regression mutation did not modify a rule")
+if has_active_alloy_job_pipeline(nonmatching_regex_alloy_config):
+    fail("Alloy contract must reject a job relabel rule that cannot match service labels")
+wrong_replacement_alloy_config = reordered_rule_alloy_config.replace(
+    "    source_labels = [",
+    '    replacement = "fixed"\n    source_labels = [',
+)
+if wrong_replacement_alloy_config == reordered_rule_alloy_config:
+    fail("Alloy replacement regression mutation did not modify a rule")
+if has_active_alloy_job_pipeline(wrong_replacement_alloy_config):
+    fail("Alloy contract must reject a job relabel rule that rewrites service labels")
 malformed_parenthesized_alloy_config = parenthesized_alloy_config.replace(
     "(discovery.docker.containers.targets)",
     "(discovery.docker.containers.targets",
