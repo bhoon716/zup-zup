@@ -3,6 +3,7 @@ package bhoon.sugang_helper.common.error;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.common.response.ErrorResponse;
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -17,6 +18,32 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 class GlobalExceptionHandlerTest {
+
+    @Test
+    void serverErrorLogIncludesThrowableStackTraceAndCorrelationId() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
+        Exception exception = new IllegalStateException("internal failure");
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            ResponseEntity<ErrorResponse> response = new GlobalExceptionHandler().handleAny(request, exception);
+
+            assertThat(response.getStatusCode()).isEqualTo(ErrorCode.INTERNAL_ERROR.getStatus());
+            assertThat(appender.list).anySatisfy(event -> {
+                assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+                assertThat(event.getFormattedMessage())
+                        .contains("[API_ERROR] correlationId=" + response.getBody().getCorrelationId());
+                assertThat(event.getThrowableProxy()).isNotNull();
+                assertThat(event.getThrowableProxy().getClassName()).isEqualTo(exception.getClass().getName());
+            });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
 
     @Test
     void customExceptionDoesNotExposeSecretDetailOrTokenPath() {

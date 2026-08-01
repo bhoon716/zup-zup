@@ -87,7 +87,7 @@ public class GlobalExceptionHandler {
                 correlationId, errorCode.getCode(), method, path, exception.getClass().getSimpleName());
 
         if (errorCode.getStatus().is5xxServerError()) {
-            log.error(message);
+            log.error(message, exception);
             return;
         }
 
