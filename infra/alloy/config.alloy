@@ -37,6 +37,9 @@ loki.source.docker "containers" {
 
 loki.process "docker" {
 	stage.docker { }
+	stage.multiline {
+		firstline = "^\\d{4}-\\d{2}-\\d{2}"
+	}
 	forward_to = [loki.write.local.receiver]
 }
 

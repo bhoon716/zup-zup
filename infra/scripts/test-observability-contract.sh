@@ -349,6 +349,21 @@ def has_active_alloy_job_pipeline(config):
         return False
     return has_alloy_job_relabel_rule(relabel_block)
 
+def has_java_multiline_stage(config):
+    cleaned_config = strip_alloy_comments(config)
+    process_block = extract_alloy_component(cleaned_config, "loki.process", "docker")
+    if process_block is None:
+        return False
+    multiline_blocks = extract_alloy_named_blocks(process_block, "stage.multiline")
+    if len(multiline_blocks) != 1:
+        return False
+    firstline_values = find_alloy_string_attribute_values(multiline_blocks[0], "firstline")
+    if firstline_values != [r"^\\d{4}-\\d{2}-\\d{2}"]:
+        return False
+    docker_stage = process_block.find("stage.docker")
+    multiline_stage = process_block.find("stage.multiline")
+    return docker_stage >= 0 and docker_stage < multiline_stage
+
 expected = {
     "app",
     "db",
@@ -448,6 +463,35 @@ if "loki.write" not in alloy_config:
     fail("Alloy must write logs to Loki")
 if not has_active_alloy_job_pipeline(alloy_config):
     fail("Alloy must map the Compose service label to job on the active Loki source pipeline")
+if not has_java_multiline_stage(alloy_config):
+    fail(
+        "Alloy docker pipeline must merge Java stacktraces with a date-prefixed multiline stage"
+    )
+valid_multiline_alloy_config = """
+loki.process "docker" {
+  stage.docker { }
+  stage.multiline {
+    firstline = "^\\\\d{4}-\\\\d{2}-\\\\d{2}"
+  }
+}
+"""
+if not has_java_multiline_stage(valid_multiline_alloy_config):
+    fail("Alloy contract must accept the date-prefixed Java multiline stage")
+wrong_firstline_alloy_config = valid_multiline_alloy_config.replace(
+    "^\\\\d{4}-\\\\d{2}-\\\\d{2}",
+    "^\\\\d{4}/\\\\d{2}/\\\\d{2}",
+)
+if has_java_multiline_stage(wrong_firstline_alloy_config):
+    fail("Alloy contract must reject a non-ISO-date multiline firstline pattern")
+reversed_multiline_alloy_config = valid_multiline_alloy_config.replace(
+    "  stage.docker { }\n  stage.multiline",
+    "  stage.multiline",
+).replace(
+    "    firstline = \"^\\\\d{4}-\\\\d{2}-\\\\d{2}\"\n  }\n}",
+    "    firstline = \"^\\\\d{4}-\\\\d{2}-\\\\d{2}\"\n  }\n  stage.docker { }\n}",
+)
+if has_java_multiline_stage(reversed_multiline_alloy_config):
+    fail("Alloy contract must require multiline processing after Docker JSON decoding")
 decoy_only_alloy_config = """
 discovery.relabel "containers" {
   targets = discovery.docker.containers.targets
