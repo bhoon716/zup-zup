@@ -21,7 +21,8 @@ class HttpLoggingFilterTest {
         String state = "oauth-state-should-not-appear";
         MockHttpServletRequest request = new MockHttpServletRequest(
                 "GET", "/api/v1/users/devices/token/" + token);
-        request.setQueryString("code=" + authorizationCode + "&state=" + state);
+        String queryString = "code=" + authorizationCode + "&state=" + state;
+        request.setQueryString(queryString);
         MockHttpServletResponse response = new MockHttpServletResponse();
         Logger logger = (Logger) LoggerFactory.getLogger(HttpLoggingFilter.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
@@ -35,7 +36,8 @@ class HttpLoggingFilterTest {
                     .map(ILoggingEvent::getFormattedMessage)
                     .collect(Collectors.joining("\n"));
             assertThat(messages)
-                    .doesNotContain(token, authorizationCode, state)
+                    .contains("queryPresent=true")
+                    .doesNotContain(queryString, token, authorizationCode, state)
                     .contains("/api/v1/users/devices/token/[REDACTED]");
         } finally {
             logger.detachAppender(appender);
