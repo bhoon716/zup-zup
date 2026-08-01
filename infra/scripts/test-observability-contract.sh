@@ -949,5 +949,45 @@ for forbidden in (
     if forbidden in smoke:
         fail(f"observability smoke must not weaken TLS verification or run unbounded: {forbidden}")
 
+deployment_runbook = (repo_root / "docs/operations/deployment.md").read_text(encoding="utf-8")
+troubleshooting = (repo_root / "docs/troubleshooting.md").read_text(encoding="utf-8")
+for required in (
+    "docker compose --project-name sugang-helper --env-file .env",
+    "-f docker-compose.yml ps -a",
+    "-f docker-compose.yml logs --tail=100 app alloy loki prometheus grafana",
+    "배포 성공",
+    "배포 실패",
+    "재시도",
+):
+    if required not in deployment_runbook:
+        fail(f"deployment runbook is missing persistent observability command contract: {required}")
+for forbidden in (".env.compose", ".compose-runtime"):
+    if forbidden in deployment_runbook:
+        fail(f"deployment runbook must not depend on transient Compose environment: {forbidden}")
+for secret_key in (
+    "DB_ROOT_PASSWORD=",
+    "REDIS_PASSWORD=",
+    "GRAFANA_ADMIN_PASSWORD=",
+    "GOOGLE_CLIENT_SECRET=",
+    "JWT_SECRET=",
+):
+    if secret_key in deployment_runbook or secret_key in troubleshooting:
+        fail(f"observability runbook must not contain a secret assignment: {secret_key}")
+
+for required in (
+    "Docker JSON",
+    "loki.source.docker",
+    "/var/run/docker.sock",
+    "label_values(job)",
+    '{job="app"}',
+    "service",
+    "job",
+):
+    if required not in troubleshooting:
+        fail(f"troubleshooting must document the active Docker JSON to Loki path: {required}")
+for forbidden in ("호스트 로그", "host logs", "host log files"):
+    if forbidden in troubleshooting:
+        fail(f"troubleshooting must not claim unsupported host-file log collection: {forbidden}")
+
 print("observability Compose contract passed")
 PY

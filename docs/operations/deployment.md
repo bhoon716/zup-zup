@@ -141,15 +141,17 @@ Firebase service-account 파일은 앱 컨테이너 사용자 UID `10001`이 읽
 
 ## 5. 수동 명령
 
-현재 상태와 로그 확인:
+배포가 성공했는지, 실패했는지, 같은 SHA로 재시도하기 전인지와 관계없이 아래 명령은 배포가 끝난 뒤에도 남아 있는 release root의 `.env`와 Compose 파일만 사용한다. 배포 중에만 존재하는 임시 Compose 환경 파일은 수동 진단 명령의 전제가 아니다.
 
 ```bash
 cd /home/ubuntu/jbnu-sugang-helper
-docker compose --env-file .env --env-file .env.compose \
-  -f docker-compose.yml ps
-docker compose --env-file .env --env-file .env.compose \
-  -f docker-compose.yml logs --tail=100 app
+docker compose --project-name sugang-helper --env-file .env --profile observability -f docker-compose.yml ps -a
+docker compose --project-name sugang-helper --env-file .env --profile observability -f docker-compose.yml logs --tail=100 app alloy loki prometheus grafana
 ```
+
+- 배포 성공: `ps -a`로 앱과 관측성 컨테이너가 실행 중인지 확인하고, 필요하면 같은 명령의 `logs`로 최근 앱·Alloy·Loki·Prometheus·Grafana 로그를 함께 확인한다.
+- 배포 실패: migration·readiness·observability 단계에서 멈춘 컨테이너도 `ps -a`에 포함되므로 종료 상태와 로그를 확인한다. staging 또는 Compose 검증 단계에서 실패했다면 현재 release root의 이전 정상 상태가 표시될 수 있다.
+- 재시도: 원인을 확인한 뒤 같은 두 명령으로 상태를 다시 확인하고, 수동 SHA 배포를 재실행한다. 명령에 배포별 임시 파일 이름을 넣지 않는다.
 
 현재 실행 중인 로그 검색은 Grafana를 SSH tunnel로 연다.
 
