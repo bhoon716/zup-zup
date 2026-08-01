@@ -42,13 +42,22 @@ ALLOY_ATTRIBUTE_ASSIGNMENT_PATTERN = re.compile(
     r'[ \t]*=[ \t\r\n]*'
 )
 
+def iter_grafana_panels(panels, path=()):
+    if not isinstance(panels, list):
+        return
+    for panel_index, panel in enumerate(panels):
+        if not isinstance(panel, dict):
+            continue
+        panel_path = path + (panel_index,)
+        yield panel_path, panel
+        yield from iter_grafana_panels(panel.get("panels", []), panel_path)
+
 def find_unfiltered_loki_targets(dashboard_json, global_query_allowlist):
     unfiltered_targets = []
-    for panel in dashboard_json.get("panels", []):
-        panel_id = panel.get("id")
+    for panel_path, panel in iter_grafana_panels(dashboard_json.get("panels", [])):
         for target_index, target in enumerate(panel.get("targets", [])):
             expression = str(target.get("expr", "")).strip()
-            target_key = (panel_id, target_index)
+            target_key = (panel_path, target_index)
             if not expression or target_key in global_query_allowlist:
                 continue
             if LOKI_JOB_SELECTOR not in expression:
@@ -586,7 +595,7 @@ if unfiltered_loki_targets:
 
 partial_filter_dashboard = json.loads(json.dumps(loki_dashboard_json))
 mutation_applied = False
-for panel in partial_filter_dashboard.get("panels", []):
+for _, panel in iter_grafana_panels(partial_filter_dashboard.get("panels", [])):
     for target in panel.get("targets", []):
         expression = str(target.get("expr", "")).strip()
         if expression and LOKI_JOB_SELECTOR in expression:
@@ -608,6 +617,48 @@ selector_only_mutation = {
 }
 if not find_unfiltered_loki_targets(selector_only_mutation, loki_global_query_allowlist):
     fail("Loki contract must reject an unscoped selector-only target")
+
+nested_dashboard = json.loads(json.dumps(loki_dashboard_json))
+query_panel_ids = {1, 2, 3}
+root_panels = nested_dashboard.get("panels", [])
+query_panels = {
+    panel.get("id"): panel
+    for panel in root_panels
+    if panel.get("id") in query_panel_ids
+}
+row_panels = {
+    panel.get("id"): panel
+    for panel in root_panels
+    if panel.get("id") in {100, 101}
+}
+if set(query_panels) != query_panel_ids or set(row_panels) != {100, 101}:
+    fail("Nested Loki dashboard fixture could not identify query and row panels")
+nested_dashboard["panels"] = [
+    panel for panel in root_panels if panel.get("id") not in query_panel_ids
+]
+row_panels[100]["panels"] = [query_panels[1], query_panels[2]]
+row_panels[101]["panels"] = [query_panels[3]]
+if find_unfiltered_loki_targets(nested_dashboard, loki_global_query_allowlist):
+    fail("Loki contract must accept valid nested row panel targets")
+
+nested_unfiltered_dashboard = json.loads(json.dumps(nested_dashboard))
+nested_mutation_applied = False
+for _, panel in iter_grafana_panels(nested_unfiltered_dashboard.get("panels", [])):
+    for target in panel.get("targets", []):
+        expression = str(target.get("expr", "")).strip()
+        if expression and LOKI_JOB_SELECTOR in expression:
+            target["expr"] = expression.replace(LOKI_JOB_SELECTOR, LOKI_UNSCOPED_SELECTOR, 1)
+            nested_mutation_applied = True
+            break
+    if nested_mutation_applied:
+        break
+if not nested_mutation_applied:
+    fail("Nested Loki selector regression mutation did not modify a target")
+if not find_unfiltered_loki_targets(
+    nested_unfiltered_dashboard,
+    loki_global_query_allowlist,
+):
+    fail("Loki contract must reject an unscoped nested target")
 
 if not str(services["grafana"].get("image", "")).startswith("grafana/grafana@sha256:"):
     fail("Grafana image must be digest pinned")
