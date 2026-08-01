@@ -177,6 +177,44 @@ for obsolete_metric in (
 if any("or vector(0)" in expression for expressions in domain_expressions.values() for expression in expressions):
     fail("domain dashboard must show No Data for an absent producer instead of synthetic zero")
 
+all_panels = {
+    panel.get("id"): panel
+    for panel in dashboard_json.get("panels", [])
+    if panel.get("id") is not None
+}
+system_panel_ids = {2, 21, 27, 31}
+system_panels = {panel_id: all_panels[panel_id] for panel_id in system_panel_ids if panel_id in all_panels}
+if set(system_panels) != system_panel_ids:
+    fail(f"system metrics dashboard panels are incomplete: {sorted(system_panels)}")
+if 28 in all_panels:
+    fail("Spring Cache panel must not be provisioned without a cache producer")
+system_expressions = {
+    panel_id: [str(target.get("expr", "")).strip() for target in panel.get("targets", [])]
+    for panel_id, panel in system_panels.items()
+}
+system_target_contracts = (
+    (2, r"\(sum\(rate\(http_server_requests_seconds_sum\[5m\]\)\)\s+/\s+sum\(rate\(http_server_requests_seconds_count\[5m\]\)\)\)\s+\*\s+1000"),
+    (21, r"\(sum\(rate\(http_server_requests_seconds_sum\[5m\]\)\)\s+/\s+sum\(rate\(http_server_requests_seconds_count\[5m\]\)\)\)\s+\*\s+1000"),
+    (21, r"max\(http_server_requests_seconds_max\)\s+\*\s+1000"),
+    (27, r"\(sum\(rate\(hikaricp_connections_acquire_seconds_sum\[5m\]\)\)\s+/\s+sum\(rate\(hikaricp_connections_acquire_seconds_count\[5m\]\)\)\)\s+\*\s+1000"),
+    (27, r"hikaricp_connections_acquire_seconds_max\s+\*\s+1000"),
+    (31, r"process_files_open_files"),
+    (31, r"process_files_max_files"),
+)
+for panel_id, target_pattern in system_target_contracts:
+    if not any(re.fullmatch(target_pattern, expression) for expression in system_expressions[panel_id]):
+        fail(f"panel {panel_id} is missing system metric PromQL contract: {target_pattern}")
+
+for obsolete_system_metric in (
+    "http_server_requests_seconds_bucket",
+    "hikaricp_connections_acquire_seconds_avg",
+    "cache_gets_total",
+    "process_open_files",
+    "process_max_files",
+):
+    if any(obsolete_system_metric in expression for expressions in system_expressions.values() for expression in expressions):
+        fail(f"dashboard still queries an unregistered system metric: {obsolete_system_metric}")
+
 compose_text = (repo_root / "infra/docker-compose.yml").read_text(encoding="utf-8")
 if "promtail" in compose_text:
     fail("Promtail must not remain in the production Compose contract")

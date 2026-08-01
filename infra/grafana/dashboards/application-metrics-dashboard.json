@@ -32,8 +32,8 @@
       "gridPos": { "h": 4, "w": 3, "x": 3, "y": 1 },
       "id": 2,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p95", "refId": "A" }],
-      "title": "p95 Latency",
+      "targets": [{ "expr": "(sum(rate(http_server_requests_seconds_sum[5m])) / sum(rate(http_server_requests_seconds_count[5m]))) * 1000", "legendFormat": "Average", "refId": "A" }],
+      "title": "Average Latency",
       "type": "stat"
     },
     {
@@ -213,11 +213,10 @@
       "gridPos": { "h": 7, "w": 8, "x": 8, "y": 22 },
       "id": 21,
       "targets": [
-        { "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p50", "refId": "A" },
-        { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p95", "refId": "B" },
-        { "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000", "legendFormat": "p99", "refId": "C" }
+        { "expr": "(sum(rate(http_server_requests_seconds_sum[5m])) / sum(rate(http_server_requests_seconds_count[5m]))) * 1000", "legendFormat": "Average", "refId": "A" },
+        { "expr": "max(http_server_requests_seconds_max) * 1000", "legendFormat": "Max", "refId": "B" }
       ],
-      "title": "Latency Percentiles (p50, p95, p99)",
+      "title": "HTTP Latency (average / max)",
       "type": "timeseries"
     },
     {
@@ -280,13 +279,13 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
       "id": 103,
-      "title": "🗄️ Database & Redis Cache Telemetry",
+      "title": "🗄️ Database & Connection Pool Telemetry",
       "type": "row"
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": { "defaults": { "unit": "short" } },
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 38 },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 38 },
       "id": 26,
       "targets": [
         { "expr": "hikaricp_connections_active", "legendFormat": "Active", "refId": "A" },
@@ -300,25 +299,13 @@
     {
       "datasource": "Prometheus",
       "fieldConfig": { "defaults": { "unit": "ms" } },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 38 },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 38 },
       "id": 27,
       "targets": [
-        { "expr": "hikaricp_connections_acquire_seconds_avg * 1000", "legendFormat": "Avg Acquire Time", "refId": "A" },
+        { "expr": "(sum(rate(hikaricp_connections_acquire_seconds_sum[5m])) / sum(rate(hikaricp_connections_acquire_seconds_count[5m]))) * 1000", "legendFormat": "Avg Acquire Time", "refId": "A" },
         { "expr": "hikaricp_connections_acquire_seconds_max * 1000", "legendFormat": "Max Acquire Time", "refId": "B" }
       ],
       "title": "HikariCP Connection Acquire Latency",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": { "defaults": { "unit": "ops" } },
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 38 },
-      "id": 28,
-      "targets": [
-        { "expr": "sum(rate(cache_gets_total{result=\"hit\"}[5m])) or vector(0)", "legendFormat": "Cache Hits", "refId": "A" },
-        { "expr": "sum(rate(cache_gets_total{result=\"miss\"}[5m])) or vector(0)", "legendFormat": "Cache Misses", "refId": "B" }
-      ],
-      "title": "Spring Cache Hits vs Misses",
       "type": "timeseries"
     },
     {
@@ -359,8 +346,8 @@
       "gridPos": { "h": 7, "w": 8, "x": 16, "y": 46 },
       "id": 31,
       "targets": [
-        { "expr": "process_open_files", "legendFormat": "Open File Descriptors", "refId": "A" },
-        { "expr": "process_max_files", "legendFormat": "Max Limit", "refId": "B" }
+        { "expr": "process_files_open_files", "legendFormat": "Open File Descriptors", "refId": "A" },
+        { "expr": "process_files_max_files", "legendFormat": "Max Limit", "refId": "B" }
       ],
       "title": "Process Open File Descriptors",
       "type": "timeseries"
