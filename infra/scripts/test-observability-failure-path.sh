@@ -40,6 +40,9 @@ fake_docker() {
   case "${subcommand}" in
     network)
       [ "${1:-}" = inspect ] || return 1
+      if [ "${mode}" = docker-hang ]; then
+        sleep 3
+      fi
       return 0
       ;;
     image)
@@ -98,13 +101,44 @@ fake_docker() {
 fake_curl() {
   local mode="${OBSERVABILITY_FAILURE_MODE:-}"
   local url="${*: -1}"
+  local argument
+  local previous_argument=""
+  local config_path=""
+
+  for argument in "$@"; do
+    if [ "${previous_argument}" = --config ]; then
+      config_path="${argument}"
+    fi
+    previous_argument="${argument}"
+  done
+
+  if [ "${mode}" = credential-argv ]; then
+    for argument in "$@"; do
+      if [[ "${argument}" == *test-password* ]]; then
+        printf 'Grafana password was exposed in curl argv\n' >&2
+        return 1
+      fi
+    done
+    python3 - "${config_path}" <<'PY'
+import os
+import stat
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if not path.is_file() or stat.S_IMODE(os.stat(path).st_mode) != 0o600:
+    raise SystemExit(1)
+if path.read_text(encoding="utf-8").strip() != 'user = "admin:test-password"':
+    raise SystemExit(1)
+PY
+  fi
 
   case "${url}" in
     */api/health)
       printf '{"database":"ok"}\n'
       ;;
     */api/datasources/uid/*/health)
-      if [ "${mode}" = datasource ]; then
+      if [ "${mode}" = datasource ] && [[ "${url}" == */api/datasources/uid/prometheus/health ]]; then
         printf '{"status":"Error"}\n'
       else
         printf '{"status":"OK"}\n'
@@ -149,6 +183,7 @@ ln -s "${repo_root}/infra/scripts/test-observability-failure-path.sh" "${stub_bi
 run_failure_case() {
   local mode="$1"
   local expected="$2"
+  local smoke_timeout="${3:-3}"
   local output
   local status
 
@@ -156,7 +191,7 @@ run_failure_case() {
   output="$({
     PATH="${stub_bin}:${PATH}" \
     OBSERVABILITY_FAILURE_MODE="${mode}" \
-    OBSERVABILITY_SMOKE_TIMEOUT_SECONDS=3 \
+    OBSERVABILITY_SMOKE_TIMEOUT_SECONDS="${smoke_timeout}" \
     OBSERVABILITY_SMOKE_HTTP_TIMEOUT_SECONDS=1 \
     RUNTIME_NETWORK_NAME=sugang-helper-runtime \
     GRAFANA_CONTAINER_NAME=sugang-helper-grafana \
@@ -185,5 +220,37 @@ run_failure_case prometheus-scrape "Prometheus app target up did not succeed wit
 run_failure_case datasource "Grafana Prometheus datasource health did not succeed within"
 run_failure_case loki-push "Docker JSON to Alloy to Loki marker round-trip did not succeed within"
 run_failure_case loki-datasource "Grafana Loki datasource marker query did not succeed within"
+run_failure_case docker-hang "runtime network is missing" 1
+
+run_success_case() {
+  local mode="$1"
+  local output
+  local status
+
+  set +e
+  output="$({
+    PATH="${stub_bin}:${PATH}" \
+    OBSERVABILITY_FAILURE_MODE="${mode}" \
+    OBSERVABILITY_SMOKE_TIMEOUT_SECONDS=3 \
+    OBSERVABILITY_SMOKE_HTTP_TIMEOUT_SECONDS=1 \
+    RUNTIME_NETWORK_NAME=sugang-helper-runtime \
+    GRAFANA_CONTAINER_NAME=sugang-helper-grafana \
+    GRAFANA_URL=http://127.0.0.1:3000 \
+    GRAFANA_ADMIN_USER=admin \
+    GRAFANA_ADMIN_PASSWORD=test-password \
+      bash "${smoke_script}"
+  } 2>&1)"
+  status=$?
+  set -e
+
+  if [ "${status}" -ne 0 ]; then
+    printf '%s success path unexpectedly failed\n' "${mode}" >&2
+    printf '%s\n' "${output}" >&2
+    exit 1
+  fi
+  printf '%s success path passed\n' "${mode}"
+}
+
+run_success_case credential-argv
 
 printf 'observability failure-path contract passed\n'

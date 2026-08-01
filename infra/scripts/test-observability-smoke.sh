@@ -22,9 +22,39 @@ marker_container=""
 temporary_dir="$(mktemp -d)"
 deadline=0
 
+run_with_timeout() {
+  local timeout_seconds="$1"
+  shift
+  local child_pid
+  local end_time
+
+  end_time=$((SECONDS + timeout_seconds))
+  "$@" &
+  child_pid=$!
+  while kill -0 "${child_pid}" >/dev/null 2>&1; do
+    if [ "${SECONDS}" -ge "${end_time}" ]; then
+      kill -TERM "${child_pid}" >/dev/null 2>&1 || true
+      sleep 0.1
+      kill -KILL "${child_pid}" >/dev/null 2>&1 || true
+      wait "${child_pid}" >/dev/null 2>&1 || true
+      return 124
+    fi
+    sleep 0.1
+  done
+  wait "${child_pid}"
+}
+
+run_with_smoke_deadline() {
+  local remaining=$((deadline - SECONDS))
+  if [ "${remaining}" -le 0 ]; then
+    return 124
+  fi
+  run_with_timeout "${remaining}" "$@"
+}
+
 cleanup() {
   if [ -n "${marker_container}" ]; then
-    docker rm -f -- "${marker_container}" >/dev/null 2>&1 || true
+    run_with_timeout 5 docker rm -f -- "${marker_container}" >/dev/null 2>&1 || true
   fi
   rm -rf -- "${temporary_dir}"
 }
@@ -47,42 +77,66 @@ is_positive_integer "${http_timeout_seconds}" || fail "OBSERVABILITY_SMOKE_HTTP_
 [ -n "${grafana_user}" ] || fail "GRAFANA_ADMIN_USER is required for datasource API checks"
 [ -n "${grafana_password}" ] || fail "GRAFANA_ADMIN_PASSWORD is required for datasource API checks"
 
+deadline=$((SECONDS + timeout_seconds))
+
+escape_curl_config_value() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  value="${value//$'\r'/\\r}"
+  printf '%s' "${value}"
+}
+
+grafana_curl_config="${temporary_dir}/grafana-curl.conf"
+grafana_user_config="$(escape_curl_config_value "${grafana_user}")"
+grafana_password_config="$(escape_curl_config_value "${grafana_password}")"
+printf 'user = "%s:%s"\n' "${grafana_user_config}" "${grafana_password_config}" >"${grafana_curl_config}"
+chmod 0600 "${grafana_curl_config}"
+
 if ! [[ "${runtime_network}" =~ ^[A-Za-z0-9_.-]+$ ]]; then
   fail "RUNTIME_NETWORK_NAME contains unsupported characters"
 fi
-if ! docker network inspect "${runtime_network}" >/dev/null 2>&1; then
+if ! run_with_smoke_deadline docker network inspect "${runtime_network}" >/dev/null 2>&1; then
   fail "runtime network is missing: ${runtime_network}"
 fi
-if ! docker image inspect "${probe_image}" >/dev/null 2>&1; then
+if ! run_with_smoke_deadline docker image inspect "${probe_image}" >/dev/null 2>&1; then
   fail "pinned observability probe image is not available locally"
 fi
 
-if ! docker inspect "${grafana_container}" >/dev/null 2>&1; then
+if ! run_with_smoke_deadline docker inspect "${grafana_container}" >/dev/null 2>&1; then
   fail "Grafana container is missing: ${grafana_container}"
 fi
 
-deadline=$((SECONDS + timeout_seconds))
-
 probe_http() {
-  docker run --rm \
+  run_with_smoke_deadline docker run --rm \
     --network "${runtime_network}" \
     "${probe_image}" \
     wget -q -O - -T "${http_timeout_seconds}" "$@"
 }
 
 grafana_curl() {
-  curl --fail --silent --show-error --max-time "${http_timeout_seconds}" \
-    --user "${grafana_user}:${grafana_password}" "$@"
+  curl --config "${grafana_curl_config}" \
+    --fail --silent --show-error --max-time "${http_timeout_seconds}" "$@"
 }
 
 wait_for() {
   local description="$1"
+  local remaining
   shift
   while [ "${SECONDS}" -lt "${deadline}" ]; do
     if "$@" >/dev/null 2>&1; then
       return 0
     fi
-    sleep 2
+    remaining=$((deadline - SECONDS))
+    if [ "${remaining}" -le 0 ]; then
+      break
+    fi
+    if [ "${remaining}" -gt 2 ]; then
+      sleep 2
+    else
+      sleep 0.1
+    fi
   done
   fail "${description} did not succeed within ${timeout_seconds}s"
 }
@@ -138,7 +192,7 @@ check_grafana_datasources() {
   local response
   for uid in prometheus loki; do
     response="$(grafana_curl "${grafana_url}/api/datasources/uid/${uid}/health")" || return 1
-    python3 - "${response}" <<'PY'
+    python3 - "${response}" <<'PY' || return 1
 import json
 import sys
 
@@ -224,7 +278,7 @@ marker_id="$(python3 -c 'import uuid; print(uuid.uuid4().hex)')"
 marker_text="observability-smoke-${marker_id}"
 marker_container="sugang-observability-smoke-${marker_id}"
 
-docker run -d \
+run_with_smoke_deadline docker run -d \
   --name "${marker_container}" \
   --network "${runtime_network}" \
   --label com.docker.compose.project=sugang-helper \

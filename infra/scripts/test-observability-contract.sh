@@ -920,6 +920,8 @@ for required in (
     "set -euo pipefail",
     "DEFAULT_PROBE_IMAGE",
     "deadline=$((SECONDS + timeout_seconds))",
+    "run_with_timeout",
+    "run_with_smoke_deadline",
     "wget -q -O - -T",
     "http://loki:3100/ready",
     "http://alloy:12345/-/ready",
@@ -932,11 +934,18 @@ for required in (
     "--label com.docker.compose.service=observability-smoke",
     "parse_loki_marker",
     "docker rm -f",
+    "--config \"${grafana_curl_config}\"",
+    "chmod 0600",
     "observability smoke failed:",
 ):
     if required not in smoke:
         fail(f"observability smoke is missing a failure-closed contract: {required}")
-for forbidden in ("-k", "--insecure", "sleep 3600"):
+for forbidden in (
+    "-k",
+    "--insecure",
+    "sleep 3600",
+    '--user "${grafana_user}:${grafana_password}"',
+):
     if forbidden in smoke:
         fail(f"observability smoke must not weaken TLS verification or run unbounded: {forbidden}")
 
