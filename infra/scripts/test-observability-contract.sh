@@ -112,6 +112,14 @@ for required in ("Prometheus", "http_server_requests_seconds_count", "jvm_memory
         fail(f"application metrics dashboard is missing: {required}")
 
 dashboard_json = json.loads(dashboard)
+panel_ids = [panel.get("id") for panel in dashboard_json.get("panels", []) if panel.get("id") is not None]
+panel_id_counts = {}
+for panel_id in panel_ids:
+    panel_id_counts[panel_id] = panel_id_counts.get(panel_id, 0) + 1
+duplicate_panel_ids = sorted(panel_id for panel_id, count in panel_id_counts.items() if count > 1)
+if duplicate_panel_ids:
+    fail(f"dashboard contains duplicate panel IDs: {duplicate_panel_ids}")
+
 domain_panel_ids = {7, 8, 14, 15, 16, 17, 18, 19}
 domain_panels = {
     panel.get("id"): panel for panel in dashboard_json.get("panels", [])
