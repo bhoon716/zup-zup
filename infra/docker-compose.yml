@@ -162,14 +162,46 @@ services:
     volumes:
       - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - loki_data:/var/lib/loki
+      - observability_probe_tools:/opt/observability-healthcheck:ro
     networks:
       - sugang-helper-runtime
+    depends_on:
+      observability-probe-tools:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "/usr/bin/loki", "-config.file=/etc/loki/local-config.yaml", "-verify-config"]
+      test: ["CMD", "/opt/observability-healthcheck/busybox", "wget", "-q", "-O", "-", "-T", "5", "http://127.0.0.1:3100/ready"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  observability-probe-tools:
+    image: busybox@sha256:162f541afa4542abb43b3bc51efd26c659dd8fa8b0db3a0b8e348908d75efed1
+    container_name: ${OBSERVABILITY_PROBE_TOOLS_CONTAINER_NAME:-sugang-helper-observability-probe-tools}
+    profiles: ["observability"]
+    restart: "no"
+    read_only: true
+    user: "0:0"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >-
+        probe_binary="$$(command -v busybox)";
+        cp "$${probe_binary}" /probe-tools/busybox.tmp;
+        chmod 0555 /probe-tools/busybox.tmp;
+        mv -f /probe-tools/busybox.tmp /probe-tools/busybox
+    volumes:
+      - observability_probe_tools:/probe-tools
+    networks:
+      - sugang-helper-runtime
     logging:
       driver: json-file
       options:
@@ -195,14 +227,17 @@ services:
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - alloy_data:/var/lib/alloy
+      - observability_probe_tools:/opt/observability-healthcheck:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - sugang-helper-runtime
     depends_on:
       loki:
         condition: service_healthy
+      observability-probe-tools:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "/bin/alloy fmt --test /etc/alloy/config.alloy >/dev/null && test -d /var/lib/alloy/data"]
+      test: ["CMD", "/opt/observability-healthcheck/busybox", "wget", "-q", "-O", "-", "-T", "5", "http://127.0.0.1:12345/-/ready"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -230,10 +265,14 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+      - observability_probe_tools:/opt/observability-healthcheck:ro
     networks:
       - sugang-helper-runtime
+    depends_on:
+      observability-probe-tools:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "promtool", "check", "config", "/etc/prometheus/prometheus.yml"]
+      test: ["CMD", "/opt/observability-healthcheck/busybox", "wget", "-q", "-O", "-", "-T", "5", "http://127.0.0.1:9090/-/ready"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -267,6 +306,7 @@ services:
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
+      - observability_probe_tools:/opt/observability-healthcheck:ro
     networks:
       - sugang-helper-runtime
     depends_on:
@@ -274,8 +314,10 @@ services:
         condition: service_healthy
       prometheus:
         condition: service_healthy
+      observability-probe-tools:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/health | grep -Eq '\"database\"[[:space:]]*:[[:space:]]*\"ok\"'"]
+      test: ["CMD-SHELL", "/opt/observability-healthcheck/busybox wget -q -O - -T 5 http://127.0.0.1:3000/api/health | grep -Eq '\"database\"[[:space:]]*:[[:space:]]*\"ok\"'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -336,3 +378,6 @@ volumes:
       type: none
       o: bind
       device: ${PROMETHEUS_DATA_DIR:?PROMETHEUS_DATA_DIR must be set}
+  observability_probe_tools:
+    name: ${OBSERVABILITY_PROBE_TOOLS_VOLUME_NAME:-sugang-helper-observability-probe-tools}
+    driver: local

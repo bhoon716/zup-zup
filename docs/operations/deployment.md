@@ -92,18 +92,33 @@ checkout SHA
   → release files + apps/server/.env + deploy.sh staging
   → SSH/SCP to Ubuntu
   → transient GITHUB_TOKEN으로 GHCR login
-  → docker compose db/redis/Prometheus/Loki/Alloy/Grafana start
+  → static observability HTTP probe 준비
+  → docker compose db/redis/Prometheus/Loki/Alloy/Grafana start + health wait
   → 기존 NPM을 sugang-helper-runtime network에 연결
   → app image pull
   → 기존 app stop
   → one-shot Flyway migrate
   → app start + health wait
   → internal readiness 확인
+  → observability data-plane smoke
+     (Loki/Alloy/Prometheus readiness, app target up, Grafana datasource/query,
+      Docker JSON → Alloy → Loki marker round-trip)
   → GHCR logout
   → OCI local DB backup timer는 별도 systemd timer로 매일 실행
 ```
 
 `Prometheus`, `Loki`, `Grafana Alloy`, `Grafana`는 `observability` profile로 계속 실행한다. Prometheus는 앱 Actuator metrics만 수집하고, 로그 수집기는 Promtail이 아니라 Alloy다.
+
+배포 성공은 컨테이너가 실행 중이라는 뜻만으로 결정되지 않는다. `deploy-release.sh`는 앱 readiness 뒤에 제한시간이 있는 `scripts/test-observability-smoke.sh`를 실행한다. 이 smoke가 어느 하나라도 실패하면 배포는 성공으로 종료되지 않으며, 고유 marker를 Docker JSON 로그에 기록한 뒤 Loki 직접 query와 Grafana Loki datasource proxy 양쪽에서 확인한다.
+
+healthcheck에 쓰는 정적 BusyBox probe는 Loki·Alloy처럼 운영 이미지에 shell/HTTP client를 포함하지 않는 컨테이너에서도 `/ready`, `/-/ready`를 직접 호출할 수 있도록 one-shot Compose service가 read-only 공유 volume에 준비한다. 운영자가 probe volume을 수동 삭제한 경우에는 다음 명령으로 다시 준비한 뒤 observability profile을 시작한다.
+
+```bash
+docker compose --env-file .env --profile observability \
+  run --rm --no-deps observability-probe-tools
+docker compose --env-file .env --profile observability \
+  up -d --wait --wait-timeout 180 loki alloy prometheus grafana
+```
 
 기존 NPM은 저장소가 관리하지 않는 별도 컨테이너이지만, 배포 script가 새 runtime network가 처음 만들어진 뒤 upstream 컨테이너 이름을 해석할 수 있도록 연결만 보장한다. 이미 연결돼 있으면 아무 작업도 하지 않는다. 수동으로 Compose를 시작하는 경우에는 다음 명령을 사용한다.
 

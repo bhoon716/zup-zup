@@ -24,6 +24,7 @@ for required in \
   'docker network connect sugang-helper-runtime sugang-helper-npm' \
   '--profile migration run --rm --no-deps migrate migrate' \
   '--no-deps --wait' \
+  '--profile observability run --rm --no-deps observability-probe-tools' \
   '127.0.0.1:8081/actuator/health/readiness' \
   'rm -rf -- "${staging_dir}"'; do
   if ! grep -F -- "${required}" "${deploy_script}" >/dev/null; then
@@ -50,6 +51,7 @@ for required_path in \
   'alloy/config.alloy' \
   'prometheus/prometheus.yml' \
   'grafana/provisioning/datasources/datasource.yml' \
+  'scripts/test-observability-smoke.sh' \
   'src/main/resources/db/migration'; do
   if ! grep -F -- "${required_path}" "${deploy_script}" >/dev/null; then
     echo "deploy must promote: ${required_path}" >&2

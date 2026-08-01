@@ -78,7 +78,7 @@ cleanup() {
     rm -rf -- "${staging_dir}" || true
   fi
   if [ "${rc}" -ne 0 ]; then
-    echo "deploy failed at ${stage}; app remains stopped after migration failure or startup failure" >&2
+    echo "deploy failed at ${stage}; app remains stopped after migration, startup, or observability gate failure" >&2
   fi
 }
 trap cleanup EXIT
@@ -100,7 +100,8 @@ if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -f "${staging_dir}/loki/loki-config.yaml" ] \
   || [ ! -f "${staging_dir}/alloy/config.alloy" ] \
   || [ ! -f "${staging_dir}/prometheus/prometheus.yml" ] \
-  || [ ! -f "${staging_dir}/grafana/provisioning/datasources/datasource.yml" ]; then
+  || [ ! -f "${staging_dir}/grafana/provisioning/datasources/datasource.yml" ] \
+  || [ ! -f "${staging_dir}/scripts/test-observability-smoke.sh" ]; then
   fail "staging release is incomplete"
 fi
 if [ -L "${staging_dir}" ] || find -P "${staging_dir}" -type l -print -quit | grep -q .; then
@@ -149,7 +150,8 @@ mkdir -p \
   "${RELEASE_ROOT}/loki" \
   "${RELEASE_ROOT}/alloy" \
   "${RELEASE_ROOT}/prometheus" \
-  "${RELEASE_ROOT}/grafana"
+  "${RELEASE_ROOT}/grafana" \
+  "${RELEASE_ROOT}/scripts"
 cp "${staging_dir}/docker-compose.yml" "${RELEASE_ROOT}/docker-compose.yml.tmp.$$"
 mv -f "${RELEASE_ROOT}/docker-compose.yml.tmp.$$" "${RELEASE_ROOT}/docker-compose.yml"
 cp "${staging_dir}/application-prod.yml" "${RELEASE_ROOT}/application-prod.yml.tmp.$$"
@@ -159,6 +161,9 @@ cp -a "${staging_dir}/loki/." "${RELEASE_ROOT}/loki/"
 cp -a "${staging_dir}/alloy/." "${RELEASE_ROOT}/alloy/"
 cp -a "${staging_dir}/prometheus/." "${RELEASE_ROOT}/prometheus/"
 cp -a "${staging_dir}/grafana/." "${RELEASE_ROOT}/grafana/"
+cp "${staging_dir}/scripts/test-observability-smoke.sh" "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$"
+chmod 0755 "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$"
+mv -f "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$" "${RELEASE_ROOT}/scripts/test-observability-smoke.sh"
 cp "${staging_dir}/apps/server/.env" "${APP_ENV_FILE}.tmp.$$"
 chmod 0600 "${APP_ENV_FILE}.tmp.$$"
 mv -f "${APP_ENV_FILE}.tmp.$$" "${APP_ENV_FILE}"
@@ -179,6 +184,10 @@ runtime_env_tmp=""
 compose=(docker compose --project-name sugang-helper --env-file "${RUNTIME_ENV}" --env-file "${runtime_env}" -f "${RELEASE_ROOT}/docker-compose.yml")
 "${compose[@]}" --profile migration --profile observability config >/dev/null \
   || fail "runtime Compose config validation failed"
+
+stage="observability-probe-tools"
+"${compose[@]}" --profile observability run --rm --no-deps observability-probe-tools \
+  || fail "observability HTTP probe preparation failed"
 
 stage="infra-start"
 "${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis loki alloy prometheus grafana \
@@ -213,6 +222,17 @@ stage="readiness"
 curl --fail --silent --show-error --max-time 10 \
   http://127.0.0.1:8081/actuator/health/readiness >/dev/null \
   || fail "application readiness failed"
+
+stage="observability-gate"
+grafana_port_host="$(read_env_value GRAFANA_PORT_HOST)"
+[ -n "${grafana_port_host}" ] || grafana_port_host=3000
+GRAFANA_ADMIN_USER="$(read_env_value GRAFANA_ADMIN_USER)" \
+GRAFANA_ADMIN_PASSWORD="$(read_env_value GRAFANA_ADMIN_PASSWORD)" \
+GRAFANA_CONTAINER_NAME="$(read_env_value GRAFANA_CONTAINER_NAME)" \
+RUNTIME_NETWORK_NAME="$(read_env_value RUNTIME_NETWORK_NAME)" \
+GRAFANA_URL="http://127.0.0.1:${grafana_port_host}" \
+  "${RELEASE_ROOT}/scripts/test-observability-smoke.sh" \
+  || fail "observability data-plane smoke failed"
 
 stage="image-cleanup"
 docker image prune -f >/dev/null 2>&1 || true

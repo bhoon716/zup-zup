@@ -349,9 +349,18 @@ def has_active_alloy_job_pipeline(config):
         return False
     return has_alloy_job_relabel_rule(relabel_block)
 
-expected = {"app", "db", "redis", "loki", "alloy", "grafana", "prometheus"}
+expected = {
+    "app",
+    "db",
+    "redis",
+    "loki",
+    "alloy",
+    "grafana",
+    "prometheus",
+    "observability-probe-tools",
+}
 if set(services) != expected:
-    fail(f"observability profile must contain app/db/redis/loki/alloy/grafana/prometheus: {sorted(services)}")
+    fail(f"observability profile has an unexpected service set: {sorted(services)}")
 
 for name in ("loki", "alloy", "grafana", "prometheus"):
     if services[name].get("profiles") != ["observability"]:
@@ -368,6 +377,42 @@ if not str(services["loki"].get("image", "")).startswith("grafana/loki@sha256:")
 loki_mounts = {str(item.get("target")): item for item in services["loki"].get("volumes", [])}
 if "/etc/loki/local-config.yaml" not in loki_mounts or "/var/lib/loki" not in loki_mounts:
     fail("Loki config and persistent data mounts are required")
+
+probe_tools = services["observability-probe-tools"]
+if probe_tools.get("profiles") != ["observability"]:
+    fail("observability probe tools must be opt-in through the observability profile")
+if probe_tools.get("restart") != "no":
+    fail("observability probe tools must be a one-shot service")
+if not str(probe_tools.get("image", "")).startswith("busybox@sha256:"):
+    fail("observability probe tools image must be digest pinned")
+probe_tool_mounts = {str(item.get("target")): item for item in probe_tools.get("volumes", [])}
+if "/probe-tools" not in probe_tool_mounts:
+    fail("observability probe tools must populate a dedicated volume")
+probe_command = " ".join(str(item) for item in probe_tools.get("command", []))
+if "command -v busybox" not in probe_command or "/probe-tools/busybox" not in probe_command:
+    fail("observability probe tools must install the static BusyBox binary into the shared volume")
+
+healthcheck_contracts = {
+    "loki": "/ready",
+    "alloy": "/-/ready",
+    "prometheus": "/-/ready",
+    "grafana": "/api/health",
+}
+for name, endpoint in healthcheck_contracts.items():
+    healthcheck = services[name].get("healthcheck", {})
+    health_test = " ".join(str(item) for item in healthcheck.get("test", []))
+    if "/opt/observability-healthcheck/busybox" not in health_test or "wget" not in health_test:
+        fail(f"{name} healthcheck must use the shared HTTP probe")
+    if endpoint not in health_test:
+        fail(f"{name} healthcheck must query its runtime endpoint: {endpoint}")
+    if services[name].get("depends_on", {}).get("observability-probe-tools", {}).get("condition") != "service_completed_successfully":
+        fail(f"{name} must wait for the shared HTTP probe to be installed")
+if "-verify-config" in " ".join(str(item) for item in services["loki"]["healthcheck"].get("test", [])):
+    fail("Loki healthcheck must not be satisfied by static -verify-config")
+if "promtool" in " ".join(str(item) for item in services["prometheus"]["healthcheck"].get("test", [])):
+    fail("Prometheus healthcheck must not be satisfied by promtool config parsing")
+if "fmt --test" in " ".join(str(item) for item in services["alloy"]["healthcheck"].get("test", [])):
+    fail("Alloy healthcheck must not be satisfied by formatter output")
 
 prometheus = services["prometheus"]
 if not str(prometheus.get("image", "")).startswith("prom/prometheus@sha256:"):
@@ -719,6 +764,8 @@ if "type: loki" not in datasource or "isDefault: true" not in datasource:
     fail("Grafana must provision Loki as its default datasource")
 if "type: prometheus" not in datasource or "url: http://prometheus:9090" not in datasource:
     fail("Grafana must provision the internal Prometheus datasource")
+if "uid: prometheus" not in datasource or "uid: loki" not in datasource:
+    fail("Grafana datasources must use stable UIDs for runtime API checks")
 if services["grafana"].get("depends_on", {}).get("prometheus", {}).get("condition") != "service_healthy":
     fail("Grafana must wait for healthy Prometheus")
 
@@ -861,6 +908,37 @@ for obsolete in (
 ):
     if obsolete.exists():
         fail(f"obsolete observability file must be removed: {obsolete}")
+
+smoke_path = repo_root / "infra/scripts/test-observability-smoke.sh"
+if not smoke_path.exists():
+    fail("runtime observability smoke script is missing")
+failure_path = repo_root / "infra/scripts/test-observability-failure-path.sh"
+if not failure_path.exists():
+    fail("observability failure-path regression script is missing")
+smoke = smoke_path.read_text(encoding="utf-8")
+for required in (
+    "set -euo pipefail",
+    "DEFAULT_PROBE_IMAGE",
+    "deadline=$((SECONDS + timeout_seconds))",
+    "wget -q -O - -T",
+    "http://loki:3100/ready",
+    "http://alloy:12345/-/ready",
+    "http://prometheus:9090/-/ready",
+    "up%7Bjob%3D%22sugang-helper-app%22%7D",
+    "/api/datasources/uid/${uid}/health",
+    "/api/datasources/proxy/uid/prometheus/api/v1/query",
+    "Docker JSON to Alloy to Loki marker round-trip",
+    "/api/datasources/proxy/uid/loki/loki/api/v1/query_range",
+    "--label com.docker.compose.service=observability-smoke",
+    "parse_loki_marker",
+    "docker rm -f",
+    "observability smoke failed:",
+):
+    if required not in smoke:
+        fail(f"observability smoke is missing a failure-closed contract: {required}")
+for forbidden in ("-k", "--insecure", "sleep 3600"):
+    if forbidden in smoke:
+        fail(f"observability smoke must not weaken TLS verification or run unbounded: {forbidden}")
 
 print("observability Compose contract passed")
 PY

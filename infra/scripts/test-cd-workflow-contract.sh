@@ -87,6 +87,11 @@ require_deploy("loki/loki-config.yaml", "Loki configuration must be deployed")
 require_deploy("alloy/config.alloy", "Alloy configuration must be deployed")
 require_deploy("prometheus/prometheus.yml", "Prometheus configuration must be deployed")
 require_deploy("grafana/provisioning/datasources/datasource.yml", "Grafana configuration must be deployed")
+require("scripts/test-observability-smoke.sh", "observability smoke must be staged")
+require_deploy('scripts/test-observability-smoke.sh', "deploy must require the observability smoke script")
+require_deploy('--profile observability run --rm --no-deps observability-probe-tools', "deploy must refresh the static HTTP probe")
+require_deploy('stage="observability-gate"', "deploy must run an observability gate")
+require_deploy('observability data-plane smoke failed', "deploy must fail when the observability smoke fails")
 for forbidden_path in (
     "/opt/jbnu-sugang-helper",
     "/opt/jbnu-sugang-helper-staging",
