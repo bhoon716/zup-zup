@@ -254,6 +254,36 @@ def top_level_alloy_text(block):
             output.append(character)
     return "".join(output)
 
+def top_level_alloy_block_preserving_strings(block):
+    output = []
+    depth = 0
+    in_string = False
+    escaped = False
+    for character in block:
+        if in_string:
+            output.append(character if depth == 0 else ("\n" if character == "\n" else " "))
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+            output.append(character if depth == 0 else " ")
+        elif character == "{":
+            depth += 1
+            output.append("\x00")
+        elif character == "}":
+            depth = max(depth - 1, 0)
+            output.append("\x00")
+        elif depth > 0:
+            output.append("\n" if character == "\n" else " ")
+        else:
+            output.append(character)
+    return "".join(output)
+
 def is_alloy_reference_expression(expression, reference):
     compact = re.sub(r"[ \t\r\n]+", "", expression)
     while compact.startswith("(") and compact.endswith(")"):
@@ -349,20 +379,33 @@ def has_active_alloy_job_pipeline(config):
         return False
     return has_alloy_job_relabel_rule(relabel_block)
 
-def has_java_multiline_stage(config):
+def has_app_java_multiline_stage(config):
     cleaned_config = strip_alloy_comments(config)
     process_block = extract_alloy_component(cleaned_config, "loki.process", "docker")
     if process_block is None:
         return False
-    multiline_blocks = extract_alloy_named_blocks(process_block, "stage.multiline")
+    top_level_process = top_level_alloy_text(process_block)
+    if len(extract_alloy_named_blocks(top_level_process, "stage.multiline")) != 0:
+        return False
+    match_blocks = extract_alloy_named_blocks(process_block, "stage.match")
+    if len(match_blocks) != 1:
+        return False
+    match_block = match_blocks[0]
+    match_top_level = top_level_alloy_block_preserving_strings(match_block)
+    selector_values = find_alloy_string_attribute_values(
+        match_top_level.split("stage.multiline", 1)[0], "selector"
+    )
+    if selector_values != [r'{job=\"app\"}']:
+        return False
+    multiline_blocks = extract_alloy_named_blocks(match_block, "stage.multiline")
     if len(multiline_blocks) != 1:
         return False
     firstline_values = find_alloy_string_attribute_values(multiline_blocks[0], "firstline")
     if firstline_values != [r"^\\d{4}-\\d{2}-\\d{2}"]:
         return False
-    docker_stage = process_block.find("stage.docker")
-    multiline_stage = process_block.find("stage.multiline")
-    return docker_stage >= 0 and docker_stage < multiline_stage
+    docker_stage = top_level_process.find("stage.docker")
+    match_stage = top_level_process.find("stage.match")
+    return docker_stage >= 0 and docker_stage < match_stage
 
 expected = {
     "app",
@@ -463,34 +506,43 @@ if "loki.write" not in alloy_config:
     fail("Alloy must write logs to Loki")
 if not has_active_alloy_job_pipeline(alloy_config):
     fail("Alloy must map the Compose service label to job on the active Loki source pipeline")
-if not has_java_multiline_stage(alloy_config):
+if not has_app_java_multiline_stage(alloy_config):
     fail(
-        "Alloy docker pipeline must merge Java stacktraces with a date-prefixed multiline stage"
+        "Alloy docker pipeline must scope Java multiline processing to job=app"
     )
-valid_multiline_alloy_config = """
+valid_app_multiline_alloy_config = """
 loki.process "docker" {
   stage.docker { }
-  stage.multiline {
-    firstline = "^\\\\d{4}-\\\\d{2}-\\\\d{2}"
+  stage.match {
+    selector = "{job=\\\"app\\\"}"
+    stage.multiline {
+      firstline = "^\\\\d{4}-\\\\d{2}-\\\\d{2}"
+    }
   }
 }
 """
-if not has_java_multiline_stage(valid_multiline_alloy_config):
-    fail("Alloy contract must accept the date-prefixed Java multiline stage")
-wrong_firstline_alloy_config = valid_multiline_alloy_config.replace(
+if not has_app_java_multiline_stage(valid_app_multiline_alloy_config):
+    fail("Alloy contract must accept app-scoped date-prefixed Java multiline processing")
+wrong_selector_alloy_config = valid_app_multiline_alloy_config.replace(
+    r'{job=\"app\"}',
+    r'{service=\"app\"}',
+)
+if has_app_java_multiline_stage(wrong_selector_alloy_config):
+    fail("Alloy contract must reject multiline processing scoped by a non-job label")
+wrong_firstline_alloy_config = valid_app_multiline_alloy_config.replace(
     "^\\\\d{4}-\\\\d{2}-\\\\d{2}",
     "^\\\\d{4}/\\\\d{2}/\\\\d{2}",
 )
-if has_java_multiline_stage(wrong_firstline_alloy_config):
+if has_app_java_multiline_stage(wrong_firstline_alloy_config):
     fail("Alloy contract must reject a non-ISO-date multiline firstline pattern")
-reversed_multiline_alloy_config = valid_multiline_alloy_config.replace(
-    "  stage.docker { }\n  stage.multiline",
-    "  stage.multiline",
+reversed_multiline_alloy_config = valid_app_multiline_alloy_config.replace(
+    "  stage.docker { }\n  stage.match",
+    "  stage.match",
 ).replace(
-    "    firstline = \"^\\\\d{4}-\\\\d{2}-\\\\d{2}\"\n  }\n}",
-    "    firstline = \"^\\\\d{4}-\\\\d{2}-\\\\d{2}\"\n  }\n  stage.docker { }\n}",
+    "      firstline = \"^\\\\d{4}-\\\\d{2}-\\\\d{2}\"\n    }\n  }\n}",
+    "      firstline = \"^\\\\d{4}-\\\\d{2}-\\\\d{2}\"\n    }\n  }\n  stage.docker { }\n}",
 )
-if has_java_multiline_stage(reversed_multiline_alloy_config):
+if has_app_java_multiline_stage(reversed_multiline_alloy_config):
     fail("Alloy contract must require multiline processing after Docker JSON decoding")
 decoy_only_alloy_config = """
 discovery.relabel "containers" {
