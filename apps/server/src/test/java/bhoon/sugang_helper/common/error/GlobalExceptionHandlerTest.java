@@ -46,6 +46,33 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void repeatedServerErrorsKeepErrorSummaryWithoutRepeatingStackTrace() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+            handler.handleAny(request, new IllegalStateException("first failure"));
+            handler.handleAny(request, new IllegalStateException("repeated failure"));
+
+            assertThat(appender.list).hasSize(2);
+            assertThat(appender.list.get(0).getThrowableProxy()).isNotNull();
+            assertThat(appender.list.get(1).getThrowableProxy()).isNull();
+            assertThat(appender.list.get(0).getFormattedMessage()).contains("stackTraceIncluded=true");
+            assertThat(appender.list.get(1).getFormattedMessage()).contains("stackTraceIncluded=false");
+            assertThat(appender.list).allSatisfy(event ->
+                    assertThat(event.getLevel()).isEqualTo(Level.ERROR));
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
     void customExceptionDoesNotExposeSecretDetailOrTokenPath() {
         String token = "fcm-token-should-not-appear";
         String email = "recipient@example.com";

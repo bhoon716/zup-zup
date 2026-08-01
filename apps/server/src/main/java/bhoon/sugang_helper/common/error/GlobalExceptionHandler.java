@@ -17,9 +17,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final long STACK_TRACE_LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
+    private static final int MAX_STACK_TRACE_FINGERPRINTS = 256;
+    private final Map<String, Long> stackTraceLogTimes = new LinkedHashMap<>(16, 0.75f, true);
 
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ErrorResponse> handleCustomException(HttpServletRequest req, CustomException e) {
@@ -87,10 +96,33 @@ public class GlobalExceptionHandler {
                 correlationId, errorCode.getCode(), method, path, exception.getClass().getSimpleName());
 
         if (errorCode.getStatus().is5xxServerError()) {
-            log.error(message, exception);
+            boolean includeStackTrace = shouldLogStackTrace(errorCode, exception);
+            String stackTraceState = " stackTraceIncluded=" + includeStackTrace;
+            if (includeStackTrace) {
+                log.error(message + stackTraceState, exception);
+            } else {
+                log.error(message + stackTraceState);
+            }
             return;
         }
 
         log.warn(message);
+    }
+
+    private synchronized boolean shouldLogStackTrace(ErrorCode errorCode, Exception exception) {
+        String fingerprint = errorCode.getCode() + ":" + exception.getClass().getName();
+        long now = System.nanoTime();
+        Long previous = stackTraceLogTimes.get(fingerprint);
+        if (previous != null && now - previous < STACK_TRACE_LOG_INTERVAL_NANOS) {
+            return false;
+        }
+
+        stackTraceLogTimes.put(fingerprint, now);
+        if (stackTraceLogTimes.size() > MAX_STACK_TRACE_FINGERPRINTS) {
+            Iterator<String> iterator = stackTraceLogTimes.keySet().iterator();
+            iterator.next();
+            iterator.remove();
+        }
+        return true;
     }
 }
