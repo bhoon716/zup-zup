@@ -143,10 +143,10 @@ def top_level_alloy_text(block):
             output.append('"' if depth == 0 else " ")
         elif character == "{":
             depth += 1
-            output.append(" ")
+            output.append("\x00")
         elif character == "}":
             depth = max(depth - 1, 0)
-            output.append(" ")
+            output.append("\x00")
         elif depth > 0:
             output.append("\n" if character == "\n" else " ")
         else:
@@ -307,6 +307,23 @@ malformed_parenthesized_alloy_config = parenthesized_alloy_config.replace(
 )
 if has_active_alloy_job_pipeline(malformed_parenthesized_alloy_config):
     fail("Alloy contract must reject unbalanced active pipeline wiring")
+nested_object_alloy_config = """
+discovery.relabel "containers" {
+  targets = {
+    bad = 1
+  }
+  discovery.docker.containers.targets
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label = "job"
+  }
+}
+loki.source.docker "containers" {
+  targets = discovery.relabel.containers.output
+}
+"""
+if has_active_alloy_job_pipeline(nested_object_alloy_config):
+    fail("Alloy contract must reject a nested object followed by a bare target reference")
 
 loki_dashboard_path = repo_root / "infra/grafana/dashboards/loki-dashboard.json"
 if not loki_dashboard_path.exists():
