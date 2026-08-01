@@ -254,6 +254,13 @@ def top_level_alloy_text(block):
             output.append(character)
     return "".join(output)
 
+def has_top_level_alloy_block(block, block_name):
+    top_level_block = top_level_alloy_text(block)
+    marker = re.compile(
+        r"(?m)^[ \t]*" + re.escape(block_name) + r"[ \t]*\x00"
+    )
+    return marker.search(top_level_block) is not None
+
 def top_level_alloy_block_preserving_strings(block):
     output = []
     depth = 0
@@ -385,7 +392,7 @@ def has_app_java_multiline_stage(config):
     if process_block is None:
         return False
     top_level_process = top_level_alloy_text(process_block)
-    if len(extract_alloy_named_blocks(top_level_process, "stage.multiline")) != 0:
+    if has_top_level_alloy_block(process_block, "stage.multiline"):
         return False
     match_blocks = extract_alloy_named_blocks(process_block, "stage.match")
     if len(match_blocks) != 1:
@@ -523,6 +530,15 @@ loki.process "docker" {
 """
 if not has_app_java_multiline_stage(valid_app_multiline_alloy_config):
     fail("Alloy contract must accept app-scoped date-prefixed Java multiline processing")
+global_and_app_multiline_alloy_config = valid_app_multiline_alloy_config.replace(
+    "  stage.match {",
+    "  stage.multiline {\n"
+    "    firstline = \"^\\\\d{4}-\\\\d{2}-\\\\d{2}\"\n"
+    "  }\n"
+    "  stage.match {",
+)
+if has_app_java_multiline_stage(global_and_app_multiline_alloy_config):
+    fail("Alloy contract must reject a top-level multiline stage alongside app-scoped processing")
 wrong_selector_alloy_config = valid_app_multiline_alloy_config.replace(
     r'{job=\"app\"}',
     r'{service=\"app\"}',
