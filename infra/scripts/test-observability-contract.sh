@@ -970,7 +970,7 @@ for required in (
         fail(f"deployment runbook is missing persistent observability command contract: {required}")
 for required in (
     "set -euo pipefail",
-    'RELEASE_ROOT="${COMPOSE_DIAGNOSTICS_ROOT:-/home/ubuntu/jbnu-sugang-helper}"',
+    'RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"',
     'docker compose',
     '--project-name sugang-helper',
     '--env-file "${RELEASE_ROOT}/.env"',
@@ -984,27 +984,44 @@ for required in (
     "chmod 0600",
     "mktemp",
     "ps)",
+    "ps --all",
     "logs)",
     "probe)",
     "start)",
 ):
     if required not in diagnostics:
         fail(f"observability diagnostics wrapper is missing persistent runtime contract: {required}")
+if "COMPOSE_DIAGNOSTICS_ROOT" in diagnostics:
+    fail("production observability diagnostics wrapper must keep the release root fixed")
 for forbidden in (".env.compose", ".compose-runtime"):
     if forbidden in deployment_runbook:
         fail(f"deployment runbook must not depend on transient Compose environment: {forbidden}")
 if "migration·readiness·observability 단계에서 멈춘 컨테이너도" in deployment_runbook:
     fail("deployment runbook must not claim that removed migration containers remain inspectable")
 secret_assignment_pattern = re.compile(
-    r"(?im)^\s*(?P<key>[A-Z][A-Z0-9_]*(?:PASSWORD|SECRET|TOKEN|PRIVATE_KEY|ACCESS_KEY|CREDENTIALS?)[A-Z0-9_]*)"
-    r"\s*(?:=|:)\s*(?P<value>\S.*)$"
+    r"(?i)(?<![A-Z0-9_])(?P<key>[A-Z][A-Z0-9_]*(?:PASSWORD|SECRET|TOKEN|PRIVATE_KEY|ACCESS_KEY|CREDENTIALS?)[A-Z0-9_]*)"
+    r"\s*(?:=|:)\s*(?P<value>[^\n]+)"
 )
 placeholder_prefixes = ("<", "replace-with", "your-", "example", "redacted", "***", "...")
-for document_name, document in (("deployment", deployment_runbook), ("troubleshooting", troubleshooting)):
+def non_placeholder_secret_assignments(document):
+    assignments = []
     for match in secret_assignment_pattern.finditer(document):
         value = match.group("value").strip().strip('`"\'')
         if value and not value.lower().startswith(placeholder_prefixes):
-            fail(f"{document_name} must not contain a non-placeholder secret assignment: {match.group('key')}")
+            assignments.append(match.group("key"))
+    return assignments
+
+for document_name, document in (("deployment", deployment_runbook), ("troubleshooting", troubleshooting)):
+    assignments = non_placeholder_secret_assignments(document)
+    if assignments:
+        fail(f"{document_name} must not contain a non-placeholder secret assignment: {assignments[0]}")
+for fixture in (
+    "export GRAFANA_ADMIN_PASSWORD=real-secret",
+    "`GRAFANA_ADMIN_PASSWORD=real-secret`",
+    "GRAFANA_ADMIN_PASSWORD: real-secret",
+):
+    if not non_placeholder_secret_assignments(fixture):
+        fail(f"secret assignment guard must reject inline/export fixture: {fixture}")
 
 for required in (
     "Docker JSON",

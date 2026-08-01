@@ -25,6 +25,10 @@ if [ "${OBSERVABILITY_RUNBOOK_FAKE_DOCKER:-0}" = 1 ]; then
     fi
     previous_argument="${argument}"
   done
+  printf '%s\n' "${APP_BUILD_CONTEXT-}" >"${capture_dir}/shell-app-build-context-${call_number}"
+  printf '%s\n' "${APP_ENV_FILE-}" >"${capture_dir}/shell-app-env-file-${call_number}"
+  printf '%s\n' "${APP_PROD_CONFIG_PATH-}" >"${capture_dir}/shell-app-prod-config-${call_number}"
+  printf '%s\n' "${FIREBASE_CONFIG_PATH-}" >"${capture_dir}/shell-firebase-config-${call_number}"
   exit 0
 fi
 
@@ -48,6 +52,18 @@ fi
 mkdir -p "${release_root}/scripts" "${fake_bin}" "${capture_dir}"
 cp -- "${wrapper}" "${release_root}/scripts/compose-observability-diagnostics.sh"
 chmod 0755 "${release_root}/scripts/compose-observability-diagnostics.sh"
+python3 - "${release_root}/scripts/compose-observability-diagnostics.sh" "${release_root}" <<'PY'
+from pathlib import Path
+import sys
+
+wrapper_path = Path(sys.argv[1])
+release_root = sys.argv[2]
+contents = wrapper_path.read_text(encoding="utf-8")
+wrapper_path.write_text(
+    contents.replace("/home/ubuntu/jbnu-sugang-helper", release_root),
+    encoding="utf-8",
+)
+PY
 printf '%s\n' \
   'APP_IMAGE_NAME=fixture/app' \
   'IMAGE_TAG=fixture' \
@@ -60,7 +76,6 @@ run_wrapper() {
   PATH="${fake_bin}:${PATH}" \
   OBSERVABILITY_RUNBOOK_FAKE_DOCKER=1 \
   OBSERVABILITY_RUNBOOK_CAPTURE_DIR="${capture_dir}" \
-  COMPOSE_DIAGNOSTICS_ROOT="${release_root}" \
     "${release_root}/scripts/compose-observability-diagnostics.sh" "$@"
 }
 
@@ -68,14 +83,23 @@ run_wrapper ps
 run_wrapper logs --tail=100 app alloy loki prometheus grafana
 run_wrapper probe
 run_wrapper start
+APP_BUILD_CONTEXT=/tmp/wrong-build-context \
+APP_ENV_FILE=/tmp/wrong-app-env \
+APP_PROD_CONFIG_PATH=/tmp/wrong-app-config \
+FIREBASE_CONFIG_PATH=/tmp/wrong-firebase \
+PATH="${fake_bin}:${PATH}" \
+OBSERVABILITY_RUNBOOK_FAKE_DOCKER=1 \
+OBSERVABILITY_RUNBOOK_CAPTURE_DIR="${capture_dir}" \
+  "${release_root}/scripts/compose-observability-diagnostics.sh" ps
 
-for call_number in 1 2 3 4; do
+for call_number in 1 2 3 4 5; do
   call_file="${capture_dir}/call-${call_number}"
   grep -Fqx '<compose>' "${call_file}"
   grep -Fqx '<--profile>' "${call_file}"
   grep -Fqx '<observability>' "${call_file}"
 done
 grep -Fqx '<ps>' "${capture_dir}/call-1"
+grep -Fqx '<--all>' "${capture_dir}/call-1"
 grep -Fqx '<logs>' "${capture_dir}/call-2"
 grep -Fqx '<--tail=100>' "${capture_dir}/call-2"
 grep -Fqx '<run>' "${capture_dir}/call-3"
@@ -88,6 +112,8 @@ grep -Fqx '<--wait>' "${capture_dir}/call-4"
 grep -Fqx '<--wait-timeout>' "${capture_dir}/call-4"
 grep -Fqx '<-f>' "${capture_dir}/call-1"
 grep -Fqx '<--project-name>' "${capture_dir}/call-1"
+grep -Fqx '<ps>' "${capture_dir}/call-5"
+grep -Fqx '<--all>' "${capture_dir}/call-5"
 
 diagnostics_env="${capture_dir}/env-1-2"
 grep -Fqx "APP_BUILD_CONTEXT=${release_root}" "${diagnostics_env}"
@@ -96,5 +122,9 @@ grep -Fqx "APP_PROD_CONFIG_PATH=${release_root}/application-prod.yml" "${diagnos
 grep -Fqx "FIREBASE_CONFIG_PATH=${release_root}/secrets/firebase-key.json" "${diagnostics_env}"
 [ "$(cat "${capture_dir}/diagnostics-env-mode")" = 600 ]
 [ "$(find "${release_root}" -maxdepth 1 -name '.compose-diagnostics.*' -print -quit)" = "" ]
+grep -Fqx "${release_root}" "${capture_dir}/shell-app-build-context-5"
+grep -Fqx "${release_root}/apps/server/.env" "${capture_dir}/shell-app-env-file-5"
+grep -Fqx "${release_root}/application-prod.yml" "${capture_dir}/shell-app-prod-config-5"
+grep -Fqx "${release_root}/secrets/firebase-key.json" "${capture_dir}/shell-firebase-config-5"
 
 printf 'observability runbook wrapper contract passed\n'

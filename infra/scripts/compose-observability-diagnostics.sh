@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Persistent post-deploy observability operations. The release root is fixed in
-# production; the override exists only for the repository contract fixture.
-readonly RELEASE_ROOT="${COMPOSE_DIAGNOSTICS_ROOT:-/home/ubuntu/jbnu-sugang-helper}"
+# Persistent post-deploy observability operations. The release root is fixed
+# because this wrapper is deployed only to the production release root.
+readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"
 readonly RUNTIME_ENV="${RELEASE_ROOT}/.env"
 readonly COMPOSE_FILE="${RELEASE_ROOT}/docker-compose.yml"
 diagnostics_env=""
@@ -44,6 +44,10 @@ printf '%s\n' \
   "FIREBASE_CONFIG_PATH=${RELEASE_ROOT}/secrets/firebase-key.json" \
   >"${diagnostics_env}"
 chmod 0600 "${diagnostics_env}"
+export APP_BUILD_CONTEXT="${RELEASE_ROOT}"
+export APP_ENV_FILE="${RELEASE_ROOT}/apps/server/.env"
+export APP_PROD_CONFIG_PATH="${RELEASE_ROOT}/application-prod.yml"
+export FIREBASE_CONFIG_PATH="${RELEASE_ROOT}/secrets/firebase-key.json"
 
 compose=(
   docker compose
@@ -56,7 +60,7 @@ compose=(
 
 case "${operation}" in
   ps)
-    "${compose[@]}" ps "$@"
+    "${compose[@]}" ps --all "$@"
     ;;
   logs)
     "${compose[@]}" logs "$@"
