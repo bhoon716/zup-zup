@@ -44,18 +44,29 @@ ALLOY_ATTRIBUTE_ASSIGNMENT_PATTERN = re.compile(
 
 def iter_grafana_panels(panels, path=()):
     if not isinstance(panels, list):
-        return
+        fail(f"Grafana panels at path {path or 'root'} must be an array")
     for panel_index, panel in enumerate(panels):
-        if not isinstance(panel, dict):
-            continue
         panel_path = path + (panel_index,)
+        if not isinstance(panel, dict):
+            fail(f"Grafana panel at path {panel_path} must be an object")
         yield panel_path, panel
-        yield from iter_grafana_panels(panel.get("panels", []), panel_path)
+        nested_panels = panel.get("panels", [])
+        if "panels" in panel and not isinstance(nested_panels, list):
+            fail(f"Grafana nested panels at path {panel_path} must be an array")
+        yield from iter_grafana_panels(nested_panels, panel_path)
 
 def find_unfiltered_loki_targets(dashboard_json, global_query_allowlist):
     unfiltered_targets = []
-    for panel_path, panel in iter_grafana_panels(dashboard_json.get("panels", [])):
-        for target_index, target in enumerate(panel.get("targets", [])):
+    for panel_path, panel in iter_grafana_panels(dashboard_json.get("panels")):
+        targets = panel.get("targets", [])
+        if "targets" in panel and not isinstance(targets, list):
+            fail(f"Grafana targets at path {panel_path} must be an array")
+        for target_index, target in enumerate(targets):
+            if not isinstance(target, dict):
+                fail(
+                    f"Grafana target at path {panel_path + (target_index,)} "
+                    "must be an object"
+                )
             expression = str(target.get("expr", "")).strip()
             target_key = (panel_path, target_index)
             if not expression or target_key in global_query_allowlist:
@@ -63,6 +74,13 @@ def find_unfiltered_loki_targets(dashboard_json, global_query_allowlist):
             if LOKI_JOB_SELECTOR not in expression:
                 unfiltered_targets.append(target_key)
     return unfiltered_targets
+
+def rejects_malformed_loki_dashboard(dashboard_json):
+    try:
+        find_unfiltered_loki_targets(dashboard_json, set())
+    except SystemExit:
+        return True
+    return False
 
 def find_loki_job_variables(dashboard_json):
     return [
@@ -595,7 +613,7 @@ if unfiltered_loki_targets:
 
 partial_filter_dashboard = json.loads(json.dumps(loki_dashboard_json))
 mutation_applied = False
-for _, panel in iter_grafana_panels(partial_filter_dashboard.get("panels", [])):
+for _, panel in iter_grafana_panels(partial_filter_dashboard.get("panels")):
     for target in panel.get("targets", []):
         expression = str(target.get("expr", "")).strip()
         if expression and LOKI_JOB_SELECTOR in expression:
@@ -643,7 +661,7 @@ if find_unfiltered_loki_targets(nested_dashboard, loki_global_query_allowlist):
 
 nested_unfiltered_dashboard = json.loads(json.dumps(nested_dashboard))
 nested_mutation_applied = False
-for _, panel in iter_grafana_panels(nested_unfiltered_dashboard.get("panels", [])):
+for _, panel in iter_grafana_panels(nested_unfiltered_dashboard.get("panels")):
     for target in panel.get("targets", []):
         expression = str(target.get("expr", "")).strip()
         if expression and LOKI_JOB_SELECTOR in expression:
@@ -659,6 +677,33 @@ if not find_unfiltered_loki_targets(
     loki_global_query_allowlist,
 ):
     fail("Loki contract must reject an unscoped nested target")
+
+malformed_nested_panels_dashboard = {
+    "panels": [{
+        "id": 100,
+        "panels": {
+            "targets": [{"expr": LOKI_UNSCOPED_SELECTOR}],
+        },
+    }],
+}
+if not rejects_malformed_loki_dashboard(malformed_nested_panels_dashboard):
+    fail("Loki contract must reject a non-array nested panels value")
+malformed_panel_entry_dashboard = {
+    "panels": [{
+        "id": 100,
+        "panels": [None],
+    }],
+}
+if not rejects_malformed_loki_dashboard(malformed_panel_entry_dashboard):
+    fail("Loki contract must reject a non-object nested panel")
+malformed_targets_dashboard = {
+    "panels": [{
+        "id": 101,
+        "targets": {"expr": LOKI_UNSCOPED_SELECTOR},
+    }],
+}
+if not rejects_malformed_loki_dashboard(malformed_targets_dashboard):
+    fail("Loki contract must reject a non-array targets value")
 
 if not str(services["grafana"].get("image", "")).startswith("grafana/grafana@sha256:"):
     fail("Grafana image must be digest pinned")
