@@ -110,6 +110,66 @@ for required in ("Prometheus", "http_server_requests_seconds_count", "jvm_memory
     if required not in dashboard:
         fail(f"application metrics dashboard is missing: {required}")
 
+dashboard_json = json.loads(dashboard)
+domain_panel_ids = {7, 8, 14, 15, 16, 17, 18, 19}
+domain_panels = {
+    panel.get("id"): panel for panel in dashboard_json.get("panels", [])
+    if panel.get("id") in domain_panel_ids
+}
+if set(domain_panels) != domain_panel_ids:
+    fail(f"domain metrics dashboard panels are incomplete: {sorted(domain_panels)}")
+domain_dashboard = json.dumps(domain_panels, ensure_ascii=False)
+
+producer_contracts = (
+    ("notification.outbox.dlq", "notification_outbox_dlq_total",
+     repo_root / "apps/server/src/main/java/bhoon/sugang_helper/notification/application/SeatNotificationOutboxProcessor.java"),
+    ("notification.outbox.retry", "notification_outbox_retry_total",
+     repo_root / "apps/server/src/main/java/bhoon/sugang_helper/notification/application/SeatNotificationOutboxProcessor.java"),
+    ("notification.outbox.claim_to_attempt", "notification_outbox_claim_to_attempt_seconds_count",
+     repo_root / "apps/server/src/main/java/bhoon/sugang_helper/notification/application/SeatNotificationOutboxProcessor.java"),
+    ("notification.provider.latency", "notification_provider_latency_seconds_count",
+     repo_root / "apps/server/src/main/java/bhoon/sugang_helper/notification/infra/NotificationProviderResilience.java"),
+    ("crawler.runs", "crawler_runs_total",
+     repo_root / "apps/server/src/main/java/bhoon/sugang_helper/crawling/application/CourseCrawlerService.java"),
+    ("crawler.upstream.latency", "crawler_upstream_latency_seconds_count",
+     repo_root / "apps/server/src/main/java/bhoon/sugang_helper/crawling/infra/JbnuCourseApiClient.java"),
+)
+for producer_name, prometheus_family, producer_path in producer_contracts:
+    producer_source = producer_path.read_text(encoding="utf-8")
+    if f'"{producer_name}"' not in producer_source:
+        fail(f"registered metric producer is missing: {producer_name}")
+    if prometheus_family not in domain_dashboard:
+        fail(f"dashboard does not consume registered metric family: {prometheus_family}")
+
+for required_fragment in (
+    "notification_outbox_dlq_total.*channel",
+    "notification_outbox_retry_total.*channel",
+    "notification_outbox_claim_to_attempt_seconds_count",
+    "notification_provider_latency_seconds_count.*provider.*outcome",
+    "notification_provider_latency_seconds_sum",
+    "crawler_runs_total.*status",
+    "crawler_upstream_latency_seconds_count",
+    "crawler_upstream_latency_seconds_sum",
+):
+    import re
+    if not re.search(required_fragment, domain_dashboard, re.DOTALL):
+        fail(f"dashboard is missing producer label/series contract: {required_fragment}")
+
+for obsolete_metric in (
+    "notification_outbox_processed_total",
+    "notification_outbox_failed_total",
+    "notification_provider_delivery_total",
+    "notification_provider_delivery_seconds_bucket",
+    "course_crawler_execution_total",
+    "course_crawler_failure_total",
+    "http_client_requests_seconds_bucket",
+    "http_client_requests_seconds_count",
+):
+    if obsolete_metric in domain_dashboard:
+        fail(f"dashboard still queries an unregistered domain metric: {obsolete_metric}")
+if "or vector(0)" in domain_dashboard:
+    fail("domain dashboard must show No Data for an absent producer instead of synthetic zero")
+
 compose_text = (repo_root / "infra/docker-compose.yml").read_text(encoding="utf-8")
 if "promtail" in compose_text:
     fail("Promtail must not remain in the production Compose contract")

@@ -92,7 +92,7 @@
       "gridPos": { "h": 4, "w": 3, "x": 18, "y": 1 },
       "id": 7,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "expr": "sum(notification_outbox_dlq_total) or vector(0)", "legendFormat": "DLQ Total", "refId": "A" }],
+      "targets": [{ "expr": "sum(notification_outbox_dlq_total)", "legendFormat": "DLQ Total", "refId": "A" }],
       "title": "Outbox DLQ Total",
       "type": "stat"
     },
@@ -104,8 +104,8 @@
       "gridPos": { "h": 4, "w": 3, "x": 21, "y": 1 },
       "id": 8,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "expr": "sum(course_crawler_execution_total) or vector(0)", "legendFormat": "Crawl Execs", "refId": "A" }],
-      "title": "Course Crawl Execs",
+      "targets": [{ "expr": "sum(crawler_runs_total{status=\"STARTED\"})", "legendFormat": "Crawl Starts", "refId": "A" }],
+      "title": "Course Crawl Starts",
       "type": "stat"
     },
     {
@@ -121,11 +121,11 @@
       "gridPos": { "h": 7, "w": 8, "x": 0, "y": 6 },
       "id": 14,
       "targets": [
-        { "expr": "sum(rate(notification_outbox_processed_total[5m])) or vector(0)", "legendFormat": "Processed/s", "refId": "A" },
-        { "expr": "sum(rate(notification_outbox_failed_total[5m])) or vector(0)", "legendFormat": "Failed/s", "refId": "B" },
-        { "expr": "sum(rate(notification_outbox_dlq_total[5m])) or vector(0)", "legendFormat": "DLQ/s", "refId": "C" }
+        { "expr": "sum(rate(notification_outbox_claim_to_attempt_seconds_count[5m])) by (channel)", "legendFormat": "Attempts/s {{channel}}", "refId": "A" },
+        { "expr": "sum(rate(notification_outbox_retry_total[5m])) by (channel)", "legendFormat": "Retries/s {{channel}}", "refId": "B" },
+        { "expr": "sum(rate(notification_outbox_dlq_total[5m])) by (channel)", "legendFormat": "DLQ/s {{channel}}", "refId": "C" }
       ],
-      "title": "Outbox Processing & Failure Rate",
+      "title": "Outbox Attempts, Retry & DLQ Rate",
       "type": "timeseries"
     },
     {
@@ -134,9 +134,9 @@
       "gridPos": { "h": 7, "w": 8, "x": 8, "y": 6 },
       "id": 15,
       "targets": [
-        { "expr": "sum(rate(notification_provider_delivery_total[5m])) by (channel)", "legendFormat": "Channel: {{channel}}", "refId": "A" }
+        { "expr": "sum(rate(notification_provider_latency_seconds_count[5m])) by (provider, outcome)", "legendFormat": "{{provider}} / {{outcome}}", "refId": "A" }
       ],
-      "title": "Deliveries by Channel (FCM / WebPush / Email / Discord)",
+      "title": "Provider Calls by Outcome",
       "type": "timeseries"
     },
     {
@@ -145,9 +145,9 @@
       "gridPos": { "h": 7, "w": 8, "x": 16, "y": 6 },
       "id": 16,
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum(rate(notification_provider_delivery_seconds_bucket[5m])) by (le, channel)) * 1000", "legendFormat": "p95 {{channel}}", "refId": "A" }
+        { "expr": "(sum(rate(notification_provider_latency_seconds_sum[5m])) by (provider, outcome) / sum(rate(notification_provider_latency_seconds_count[5m])) by (provider, outcome)) * 1000", "legendFormat": "Avg {{provider}} / {{outcome}}", "refId": "A" }
       ],
-      "title": "Notification Provider Dispatch Latency (p95)",
+      "title": "Notification Provider Dispatch Latency (average)",
       "type": "timeseries"
     },
     {
@@ -163,8 +163,8 @@
       "gridPos": { "h": 7, "w": 8, "x": 0, "y": 14 },
       "id": 17,
       "targets": [
-        { "expr": "sum(rate(course_crawler_execution_total[5m])) or vector(0)", "legendFormat": "Crawl Execs/s", "refId": "A" },
-        { "expr": "sum(rate(course_crawler_failure_total[5m])) or vector(0)", "legendFormat": "Crawl Errors/s", "refId": "B" }
+        { "expr": "sum(rate(crawler_runs_total{status=\"STARTED\"}[5m]))", "legendFormat": "Crawl Starts/s", "refId": "A" },
+        { "expr": "sum(rate(crawler_runs_total{status=\"FAILED\"}[5m]))", "legendFormat": "Crawl Failures/s", "refId": "B" }
       ],
       "title": "Course Crawler Execution & Failure Rate",
       "type": "timeseries"
@@ -175,9 +175,9 @@
       "gridPos": { "h": 7, "w": 8, "x": 8, "y": 14 },
       "id": 18,
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum(rate(http_client_requests_seconds_bucket[5m])) by (le, clientName)) * 1000", "legendFormat": "p95 Client: {{clientName}}", "refId": "A" }
+        { "expr": "(sum(rate(crawler_upstream_latency_seconds_sum[5m])) / sum(rate(crawler_upstream_latency_seconds_count[5m]))) * 1000", "legendFormat": "Avg JBNU upstream", "refId": "A" }
       ],
-      "title": "Outbound HTTP Client Latency (JBNU Portal / Providers)",
+      "title": "JBNU Course Upstream Latency (average)",
       "type": "timeseries"
     },
     {
@@ -186,9 +186,9 @@
       "gridPos": { "h": 7, "w": 8, "x": 16, "y": 14 },
       "id": 19,
       "targets": [
-        { "expr": "sum(rate(http_client_requests_seconds_count[1m])) by (clientName, status)", "legendFormat": "{{clientName}} [{{status}}]", "refId": "A" }
+        { "expr": "sum(rate(crawler_upstream_latency_seconds_count[1m]))", "legendFormat": "JBNU upstream calls/s", "refId": "A" }
       ],
-      "title": "Outbound HTTP Client Request Rate",
+      "title": "JBNU Course Upstream Request Rate",
       "type": "timeseries"
     },
     {
