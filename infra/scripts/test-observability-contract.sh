@@ -123,12 +123,64 @@ def extract_alloy_component(config, component, name):
                 return config[opening_brace + 1:index]
     return None
 
+def top_level_alloy_text(block):
+    output = []
+    depth = 0
+    in_string = False
+    escaped = False
+    for character in block:
+        if in_string:
+            output.append("\n" if character == "\n" else " ")
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+            output.append('"' if depth == 0 else " ")
+        elif character == "{":
+            depth += 1
+            output.append(" ")
+        elif character == "}":
+            depth = max(depth - 1, 0)
+            output.append(" ")
+        elif depth > 0:
+            output.append("\n" if character == "\n" else " ")
+        else:
+            output.append(character)
+    return "".join(output)
+
+def is_alloy_reference_expression(expression, reference):
+    compact = re.sub(r"[ \t\r\n]+", "", expression)
+    while compact.startswith("(") and compact.endswith(")"):
+        depth = 0
+        outer_close = None
+        for index, character in enumerate(compact):
+            if character == "(":
+                depth += 1
+            elif character == ")":
+                depth -= 1
+                if depth == 0:
+                    outer_close = index
+                    break
+        if outer_close != len(compact) - 1:
+            break
+        compact = compact[1:-1]
+    return compact == reference
+
 def has_alloy_target_assignment(block, reference):
-    reference_pattern = rf"(?:{re.escape(reference)}|\([ \t]*{re.escape(reference)}[ \t]*\))"
-    return re.search(
-        rf"(?m)^[ \t]*targets[ \t]*=[ \t]*{reference_pattern}[ \t]*$",
-        block,
-    ) is not None
+    top_level_block = top_level_alloy_text(block)
+    assignment_pattern = re.compile(
+        rf"(?ms)^[ \t]*targets[ \t]*=[ \t\r\n]*"
+        rf"(?P<expression>(?:[() \t\r\n]|{re.escape(reference)})+)[ \t]*$"
+    )
+    return any(
+        is_alloy_reference_expression(match.group("expression"), reference)
+        for match in assignment_pattern.finditer(top_level_block)
+    )
 
 def has_active_alloy_job_pipeline(config):
     cleaned_config = strip_alloy_comments(config)
@@ -230,6 +282,31 @@ loki.source.docker "containers" {
 """
 if not has_active_alloy_job_pipeline(parenthesized_alloy_config):
     fail("Alloy contract must accept parenthesized active pipeline wiring")
+multiline_alloy_config = """
+discovery.relabel "containers" {
+  targets =
+    discovery.docker.containers.targets
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label = "job"
+  }
+}
+loki.source.docker "containers" {
+  targets =
+    discovery.relabel.containers.output
+}
+"""
+if not has_active_alloy_job_pipeline(multiline_alloy_config):
+    fail("Alloy contract must accept multiline active pipeline wiring")
+malformed_parenthesized_alloy_config = parenthesized_alloy_config.replace(
+    "(discovery.docker.containers.targets)",
+    "(discovery.docker.containers.targets",
+).replace(
+    "(discovery.relabel.containers.output)",
+    "(discovery.relabel.containers.output",
+)
+if has_active_alloy_job_pipeline(malformed_parenthesized_alloy_config):
+    fail("Alloy contract must reject unbalanced active pipeline wiring")
 
 loki_dashboard_path = repo_root / "infra/grafana/dashboards/loki-dashboard.json"
 if not loki_dashboard_path.exists():
