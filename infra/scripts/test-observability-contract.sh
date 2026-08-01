@@ -85,6 +85,33 @@ if "loki.source.docker" not in alloy_config:
     fail("Alloy must collect Docker logs with loki.source.docker")
 if "loki.write" not in alloy_config:
     fail("Alloy must write logs to Loki")
+if not re.search(
+    r'rule\s*\{[^}]*source_labels\s*=\s*\["__meta_docker_container_label_com_docker_compose_service"\][^}]*target_label\s*=\s*"job"',
+    alloy_config,
+    re.DOTALL,
+):
+    fail("Alloy must map the Compose service label to Loki job")
+
+loki_dashboard_path = repo_root / "infra/grafana/dashboards/loki-dashboard.json"
+if not loki_dashboard_path.exists():
+    fail("Grafana Loki dashboard is missing")
+loki_dashboard_json = json.loads(loki_dashboard_path.read_text(encoding="utf-8"))
+loki_variables = loki_dashboard_json.get("templating", {}).get("list", [])
+job_variables = [
+    variable
+    for variable in loki_variables
+    if variable.get("name") == "job"
+    and "label_values(job)" in f"{variable.get('definition', '')} {variable.get('query', '')}"
+]
+if not job_variables:
+    fail("Grafana Loki dashboard must define the job variable from the Loki job label")
+loki_expressions = [
+    str(target.get("expr", "")).strip()
+    for panel in loki_dashboard_json.get("panels", [])
+    for target in panel.get("targets", [])
+]
+if not any('{job=~"$job"}' in expression for expression in loki_expressions):
+    fail("Grafana Loki dashboard targets must filter the Alloy job label")
 
 if not str(services["grafana"].get("image", "")).startswith("grafana/grafana@sha256:"):
     fail("Grafana image must be digest pinned")
