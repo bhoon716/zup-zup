@@ -37,6 +37,10 @@ LOKI_JOB_SELECTOR = '{job=~"$job"}'
 LOKI_UNSCOPED_SELECTOR = '{app=~".+"}'
 LOKI_JOB_VARIABLE_DEFINITION = "label_values(job)"
 INVALID_ALLOY_ATTRIBUTE = object()
+ALLOY_ATTRIBUTE_ASSIGNMENT_PATTERN = re.compile(
+    r'(?ms)(?<![A-Za-z0-9_])(?P<attribute>[A-Za-z_][A-Za-z0-9_]*)'
+    r'[ \t]*=[ \t\r\n]*'
+)
 
 def find_unfiltered_loki_targets(dashboard_json, global_query_allowlist):
     unfiltered_targets = []
@@ -253,16 +257,26 @@ def has_alloy_target_assignment(block, reference):
     )
 
 def find_alloy_string_attribute_values(block, attribute):
-    assignment_pattern = re.compile(
-        rf'(?ms)(?<![A-Za-z0-9_]){re.escape(attribute)}[ \t]*=[ \t\r\n]*'
-    )
-    assignments = list(assignment_pattern.finditer(block))
+    assignments = [
+        match
+        for match in ALLOY_ATTRIBUTE_ASSIGNMENT_PATTERN.finditer(block)
+        if match.group("attribute") == attribute
+    ]
     if not assignments:
         return None
     values = []
     for assignment in assignments:
         literal_match = re.match(r'"((?:\\.|[^"\\])*)"', block[assignment.end():])
         if literal_match is None:
+            return INVALID_ALLOY_ATTRIBUTE
+        literal_end = assignment.end() + literal_match.end()
+        next_assignment = ALLOY_ATTRIBUTE_ASSIGNMENT_PATTERN.search(block, literal_end)
+        expression_end = (
+            next_assignment.start()
+            if next_assignment is not None
+            else len(block)
+        )
+        if block[literal_end:expression_end].strip():
             return INVALID_ALLOY_ATTRIBUTE
         values.append(literal_match.group(1))
     return values
@@ -486,6 +500,28 @@ if dynamic_target_label_alloy_config == reordered_rule_alloy_config:
     fail("Alloy dynamic target_label regression mutation did not modify a rule")
 if has_active_alloy_job_pipeline(dynamic_target_label_alloy_config):
     fail("Alloy contract must reject a dynamic target_label expression")
+for attribute, literal, environment_name in (
+    ("action", '"replace"', "ALLOY_ACTION_SUFFIX"),
+    ("regex", '"(.*)"', "ALLOY_REGEX_SUFFIX"),
+    ("replacement", '"$1"', "ALLOY_REPLACEMENT_SUFFIX"),
+):
+    literal_prefix_alloy_config = reordered_rule_alloy_config.replace(
+        "    source_labels = [",
+        f'    {attribute} = {literal} + sys.env("{environment_name}")\n'
+        "    source_labels = [",
+    )
+    if literal_prefix_alloy_config == reordered_rule_alloy_config:
+        fail(f"Alloy literal-prefix {attribute} regression mutation did not modify a rule")
+    if has_active_alloy_job_pipeline(literal_prefix_alloy_config):
+        fail(f"Alloy contract must reject a literal-prefix {attribute} expression")
+literal_prefix_target_label_alloy_config = reordered_rule_alloy_config.replace(
+    '    target_label =\n      "job"',
+    '    target_label = "job" + sys.env("ALLOY_TARGET_LABEL_SUFFIX")',
+)
+if literal_prefix_target_label_alloy_config == reordered_rule_alloy_config:
+    fail("Alloy literal-prefix target_label regression mutation did not modify a rule")
+if has_active_alloy_job_pipeline(literal_prefix_target_label_alloy_config):
+    fail("Alloy contract must reject a literal-prefix target_label expression")
 malformed_parenthesized_alloy_config = parenthesized_alloy_config.replace(
     "(discovery.docker.containers.targets)",
     "(discovery.docker.containers.targets",
