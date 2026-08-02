@@ -5,16 +5,23 @@ import { registerAuthFailureHandler } from "@/shared/api/client";
 import { getFirebaseApp } from "@/shared/lib/firebase";
 import { getCookie, IS_LOGGED_IN_COOKIE_NAME } from "@/shared/lib/cookie";
 import { resolveAllowedPwaUrl } from "@/shared/lib/pwa-navigation";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, Suspense } from "react";
 import { Toaster, toast } from "sonner";
 import { LoginModal } from "@/widgets/auth/login-modal";
+import { reportClientError } from "@/shared/telemetry/client-error";
 
 import { usePathname, useRouter } from "next/navigation";
 import { TooltipProvider } from "@/shared/ui/tooltip";
 
 const createQueryClient = () =>
   new QueryClient({
+    queryCache: new QueryCache({
+      onError: (error) => reportClientError(error, { source: "react-query", operation: "query" }),
+    }),
+    mutationCache: new MutationCache({
+      onError: (error) => reportClientError(error, { source: "react-query", operation: "mutation" }),
+    }),
     defaultOptions: {
       queries: {
         staleTime: 60 * 1000,
@@ -98,7 +105,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         navigator.serviceWorker.register("/sw.js").then(
           () => {},
           (err) => {
-            console.error("ServiceWorker registration failed: ", err);
+            reportClientError(err, { source: "service-worker", operation: "registration" });
           }
         );
       });

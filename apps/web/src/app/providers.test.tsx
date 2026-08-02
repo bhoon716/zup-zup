@@ -1,4 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
+import { useQuery } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Providers, { getAppQueryClient } from "./providers";
 
@@ -9,6 +10,7 @@ const {
   mockSetUser,
   mockLogout,
   mockRegisterAuthFailureHandler,
+  mockReportClientError,
   mockState,
 } = vi.hoisted(() => {
   const mockCheckSession = vi.fn();
@@ -17,6 +19,7 @@ const {
   const mockSetUser = vi.fn();
   const mockLogout = vi.fn();
   const mockRegisterAuthFailureHandler = vi.fn();
+  const mockReportClientError = vi.fn();
 
   const mockState = {
     user: null as null | { id: number; email: string; name: string; role: string },
@@ -35,6 +38,7 @@ const {
     mockSetUser,
     mockLogout,
     mockRegisterAuthFailureHandler,
+    mockReportClientError,
     mockState,
   };
 });
@@ -61,6 +65,10 @@ vi.mock("@/shared/api/client", () => ({
   registerAuthFailureHandler: (handler: () => void) => mockRegisterAuthFailureHandler(handler),
 }));
 
+vi.mock("@/shared/telemetry/client-error", () => ({
+  reportClientError: mockReportClientError,
+}));
+
 vi.mock("@/features/auth/store/useAuthStore", () => {
   const storeMock = (selector?: (state: typeof mockState) => unknown) => {
     return selector ? selector(storeMock.getState()) : storeMock.getState();
@@ -82,6 +90,7 @@ describe("Providers", () => {
     mockState.user = null;
     mockedUseRouter.mockReturnValue({ replace: mockReplace } as never);
     mockGetCookie.mockReturnValue("true");
+    getAppQueryClient().clear();
   });
 
   it("앱 시작 시 auth 실패 핸들러를 등록한다", async () => {
@@ -152,5 +161,33 @@ describe("Providers", () => {
     const second = getAppQueryClient();
 
     expect(first).toBe(second);
+  });
+
+  it("QueryCache 오류를 중앙 클라이언트 오류 추적기로 전달한다", async () => {
+    mockedUsePathname.mockReturnValue("/search");
+
+    function FailingQuery() {
+      useQuery({
+        queryKey: ["providers-telemetry-test"],
+        queryFn: async () => {
+          throw new Error("query failure");
+        },
+        retry: false,
+      });
+      return null;
+    }
+
+    render(
+      <Providers>
+        <FailingQuery />
+      </Providers>,
+    );
+
+    await waitFor(() => {
+      expect(mockReportClientError).toHaveBeenCalledWith(
+        expect.any(Error),
+        { source: "react-query", operation: "query" },
+      );
+    });
   });
 });

@@ -11,6 +11,7 @@ import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { Loader2, Plus, Calendar, Trash2, Edit3, X, AlertTriangle } from "lucide-react";
 import type { ScheduleResponse, ScheduleRequest } from "@/shared/types/api";
+import { reportClientError } from "@/shared/telemetry/client-error";
 
 export default function AdminSchedulesPage() {
   const { data: schedules, isLoading } = useAdminAllSchedules();
@@ -79,7 +80,7 @@ export default function AdminSchedulesPage() {
       setIsOpen(false);
       resetForm();
     } catch (err) {
-      console.error("일정 처리 중 에러 발생:", err);
+      reportClientError(err, { source: "admin-schedule", operation: "save" });
       alert("일정 처리 중 오류가 발생했습니다.");
     }
   };
@@ -89,7 +90,7 @@ export default function AdminSchedulesPage() {
     try {
       await deleteMutation.mutateAsync(id);
     } catch (err) {
-      console.error("일정 삭제 실패:", err);
+      reportClientError(err, { source: "admin-schedule", operation: "delete" });
       alert("일정 삭제 중 오류가 발생했습니다.");
     }
   };

@@ -4,6 +4,7 @@ import * as webPush from '@/features/user/lib/webpush';
 import { extractSubscriptionKeys } from '@/features/user/lib/webpush';
 import * as userApi from '@/features/user/api/user.api';
 import { toast } from 'sonner';
+import { reportClientError } from '@/shared/telemetry/client-error';
 
 export const useWebPush = () => {
   const [loading, setLoading] = useState(false);
@@ -48,7 +49,7 @@ export const useWebPush = () => {
       toast.success('웹 푸시 알림이 활성화되었습니다.');
       return true;
     } catch (error) {
-      console.error('Web Push Subscription Failed:', error);
+      reportClientError(error, { source: "web-push", operation: "subscribe" });
       const message = error instanceof Error ? error.message : '웹 푸시 설정에 실패했습니다.';
       toast.error(message);
       return false;
@@ -77,7 +78,7 @@ export const useWebPush = () => {
       toast.success('웹 푸시 알림이 비활성화되었습니다.');
       return true;
     } catch (error) {
-      console.error('Web Push Unsubscription Failed:', error);
+      reportClientError(error, { source: "web-push", operation: "unsubscribe" });
       toast.error('웹 푸시 해제에 실패했습니다.');
       return false;
     } finally {
