@@ -309,6 +309,7 @@ services:
       - observability_probe_tools:/opt/observability-healthcheck:ro
     networks:
       - sugang-helper-runtime
+      - sugang-helper-egress
     depends_on:
       loki:
         condition: service_healthy
