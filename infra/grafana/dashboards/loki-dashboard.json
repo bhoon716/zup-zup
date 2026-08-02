@@ -68,6 +68,32 @@
       ],
       "title": "Log Explorer Console",
       "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "id": 102,
+      "title": "🔎 Correlation ID Trace",
+      "type": "row"
+    },
+    {
+      "datasource": "Loki",
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 28 },
+      "id": 4,
+      "options": {
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "expr": "{job=~\"$job\"} |= \"corr=$correlationId\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Flow by Correlation ID",
+      "type": "logs"
     }
   ],
   "schemaVersion": 39,
@@ -92,6 +118,15 @@
       {
         "current": { "selected": true, "text": "", "value": "" },
         "hide": 0,
+        "label": "Correlation ID",
+        "name": "correlationId",
+        "options": [{ "selected": true, "text": "", "value": "" }],
+        "query": "",
+        "type": "textbox"
+      },
+      {
+        "current": { "selected": true, "text": "", "value": "" },
+        "hide": 0,
         "label": "Search Filter",
         "name": "search",
         "options": [{ "selected": true, "text": "", "value": "" }],
@@ -110,5 +145,5 @@
   },
   "title": "Application & Service Logs (Loki)",
   "uid": "sadlil-loki-apps-dashboard",
-  "version": 14
+  "version": 15
 }

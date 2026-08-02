@@ -36,6 +36,8 @@ def fail(message):
 LOKI_JOB_SELECTOR = '{job=~"$job"}'
 LOKI_UNSCOPED_SELECTOR = '{app=~".+"}'
 LOKI_JOB_VARIABLE_DEFINITION = "label_values(job)"
+CORRELATION_ID_VARIABLE_NAME = "correlationId"
+CORRELATION_ID_FILTER = 'corr=$correlationId'
 INVALID_ALLOY_ATTRIBUTE = object()
 ALLOY_ATTRIBUTE_ASSIGNMENT_PATTERN = re.compile(
     r'(?ms)(?<![A-Za-z0-9_])(?P<attribute>[A-Za-z_][A-Za-z0-9_]*)'
@@ -100,6 +102,24 @@ def is_valid_loki_job_variable(variable):
 def has_valid_loki_job_variable(dashboard_json):
     job_variables = find_loki_job_variables(dashboard_json)
     return len(job_variables) == 1 and is_valid_loki_job_variable(job_variables[0])
+
+def has_valid_correlation_id_variable(dashboard_json):
+    variables = [
+        variable
+        for variable in dashboard_json.get("templating", {}).get("list", [])
+        if variable.get("name") == CORRELATION_ID_VARIABLE_NAME
+    ]
+    return len(variables) == 1 and variables[0].get("type") == "textbox"
+
+def has_correlation_id_trace_panel(dashboard_json):
+    for _, panel in iter_grafana_panels(dashboard_json.get("panels")):
+        if panel.get("type") != "logs" or panel.get("datasource") != "Loki":
+            continue
+        for target in panel.get("targets", []):
+            expression = str(target.get("expr", "")).strip()
+            if LOKI_JOB_SELECTOR in expression and CORRELATION_ID_FILTER in expression:
+                return True
+    return False
 
 def strip_alloy_comments(config):
     """Replace Alloy comments with whitespace while preserving string contents/newlines."""
@@ -742,6 +762,10 @@ if not has_valid_loki_job_variable(loki_dashboard_json):
         "Grafana Loki dashboard must define exactly one query-type Loki job variable "
         "using label_values(job)"
     )
+if not has_valid_correlation_id_variable(loki_dashboard_json):
+    fail("Grafana Loki dashboard must define exactly one textbox correlationId variable")
+if not has_correlation_id_trace_panel(loki_dashboard_json):
+    fail("Grafana Loki dashboard must expose a logs panel filtered by correlationId")
 
 for mutation_name, field, value in (
     ("textbox type", "type", "textbox"),
