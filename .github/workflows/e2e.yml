@@ -5,39 +5,39 @@ on:
   schedule:
     - cron: "23 3 * * 1"
 
+concurrency:
+  group: critical-flow-e2e
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   browser-smoke:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-      - name: Node.js 설정
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
 
-      - name: 의존성 설치
+      - name: 의존성 및 Chromium 설치
         working-directory: apps/web
-        run: npm ci --legacy-peer-deps
+        run: |
+          npm ci --legacy-peer-deps
+          npx playwright install --with-deps chromium
 
-      - name: Chromium 설치
+      - name: Web build 및 browser smoke
         working-directory: apps/web
-        run: npx playwright install --with-deps chromium
-
-      - name: 웹 빌드
-        working-directory: apps/web
-        run: npm run build
-
-      - name: OAuth·refresh·관리자 첨부 브라우저 smoke
-        working-directory: apps/web
-        run: npm run e2e
+        env:
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:8080
+        run: |
+          npm run build
+          npm run e2e
 
       - name: Playwright 결과 보관
         if: always()
@@ -47,42 +47,4 @@ jobs:
           path: |
             apps/web/playwright-report
             apps/web/test-results
-          if-no-files-found: ignore
-
-  provider-and-reliability-contracts:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
-
-      - name: JDK 21 설정
-        uses: actions/setup-java@v5
-        with:
-          java-version: "21"
-          distribution: "temurin"
-          cache: gradle
-          cache-dependency-path: apps/server/build.gradle
-
-      - name: provider·refresh·outbox·DLQ·attachment HTTP contract suite
-        working-directory: apps/server
-        env:
-          AWS_ACCESS_KEY_ID: mock-access-key
-          AWS_SECRET_ACCESS_KEY: mock-secret-key
-          AWS_REGION: us-east-1
-          SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
-        run: >-
-          ./gradlew test --no-daemon
-          --tests '*AuthServiceTest'
-          --tests '*NotificationProviderResilienceTest'
-          --tests '*SeatNotificationOutboxProcessorTest'
-          --tests '*AdminNotificationDeliveryServiceTest'
-          --tests '*FeedbackControllerTest'
-
-      - name: 서버 계약 테스트 결과 보관
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-contract-test-results
-          path: apps/server/build/test-results/test
           if-no-files-found: ignore

@@ -41,5 +41,5 @@ CD는 이 값으로 전용 `known_hosts`를 만들고 `StrictHostKeyChecking=yes
 - workflow 기본 권한은 `contents: read`
 - Production CD job은 이미지 push와 원격 pull을 위해 `packages: write`를 사용한다.
 - `GITHUB_TOKEN`을 로그에 출력하지 않음
-- GitHub Actions concurrency와 별도 server-side lock은 사용하지 않는다. 1인 운영에서 배포 중복을 만들지 않는 운영 전제를 사용한다.
-- CD는 `main` push 또는 수동 SHA 입력으로 시작
+- GitHub Actions `production` concurrency group으로 배포를 직렬화한다. 실행 중 배포는 취소하지 않으며 별도 server-side lock은 사용하지 않는다.
+- CD는 `main`의 server·infra 변경 또는 수동 SHA 입력으로 시작
