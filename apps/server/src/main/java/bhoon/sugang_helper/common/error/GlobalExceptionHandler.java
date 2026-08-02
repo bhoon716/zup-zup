@@ -1,10 +1,14 @@
 package bhoon.sugang_helper.common.error;
 
+import bhoon.sugang_helper.common.alert.SlackAlertCategory;
+import bhoon.sugang_helper.common.alert.SlackAlertService;
 import bhoon.sugang_helper.common.response.ErrorResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +36,20 @@ public class GlobalExceptionHandler {
     private static final long STACK_TRACE_LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
     private static final int MAX_STACK_TRACE_FINGERPRINTS = 256;
     private final Map<String, Long> stackTraceLogTimes = new LinkedHashMap<>(16, 0.75f, true);
+    private final SlackAlertService slackAlertService;
+
+    public GlobalExceptionHandler() {
+        this((SlackAlertService) null);
+    }
+
+    public GlobalExceptionHandler(SlackAlertService slackAlertService) {
+        this.slackAlertService = slackAlertService;
+    }
+
+    @Autowired
+    public GlobalExceptionHandler(ObjectProvider<SlackAlertService> slackAlertServiceProvider) {
+        this(slackAlertServiceProvider.getIfAvailable());
+    }
 
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ErrorResponse> handleCustomException(HttpServletRequest req, CustomException e) {
@@ -89,6 +107,9 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ErrorResponse> response(HttpServletRequest req, ErrorCode errorCode, Exception exception) {
         ErrorResponse errorResponse = ErrorResponse.of(errorCode, req.getRequestURI());
         log(errorCode, req.getMethod(), errorResponse.getPath(), errorResponse.getCorrelationId(), exception);
+        if (errorCode.getStatus().is5xxServerError() && slackAlertService != null) {
+            slackAlertService.alert(SlackAlertCategory.SERVER_5XX, errorCode.getCode(), exception);
+        }
         return ResponseEntity.status(errorCode.getStatus())
                 .header("X-Error-Id", errorResponse.getCorrelationId())
                 .body(errorResponse);

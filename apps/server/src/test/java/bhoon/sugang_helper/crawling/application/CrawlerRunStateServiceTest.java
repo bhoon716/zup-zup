@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import bhoon.sugang_helper.common.alert.SlackAlertCategory;
+import bhoon.sugang_helper.common.alert.SlackAlertService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.crawling.domain.CrawlerFailureStage;
@@ -30,6 +32,8 @@ class CrawlerRunStateServiceTest {
     private CrawlerStatusRepository crawlerStatusRepository;
     @Mock
     private CrawlerRunFailureRepository crawlerRunFailureRepository;
+    @Mock
+    private SlackAlertService slackAlertService;
 
     @InjectMocks
     private CrawlerRunStateService service;
@@ -65,6 +69,7 @@ class CrawlerRunStateServiceTest {
         assertThat(failureCaptor.getValue().getFailureMessage())
                 .contains(ErrorCode.CRAWLER_CONNECTION_ERROR.getCode())
                 .doesNotContain("secret", "do-not-store");
+        verify(slackAlertService).alert(SlackAlertCategory.CRAWLER_FETCH, "C001", exception);
     }
 
     @Test

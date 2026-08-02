@@ -153,6 +153,11 @@ jbnu:
     cron: "0 */5 * * * ?"
     default-year: "2026"
     default-semester: "U211600010"
+  slack:
+    webhook-url: ${JBNU_SLACK_WEBHOOK_URL:}
+    environment: ${JBNU_SLACK_ENVIRONMENT:PROD}
+    cooldown-seconds: ${JBNU_SLACK_ALERT_COOLDOWN_SECONDS:60}
+    timeout-ms: ${JBNU_SLACK_TIMEOUT_MS:2000}
 
 management:
   server:
