@@ -756,6 +756,13 @@ if has_active_alloy_job_pipeline(nested_object_alloy_config):
 loki_dashboard_path = repo_root / "infra/grafana/dashboards/loki-dashboard.json"
 if not loki_dashboard_path.exists():
     fail("Grafana Loki dashboard is missing")
+loki_config = (repo_root / "infra/loki/loki-config.yaml").read_text(encoding="utf-8")
+if "retention_period: 720h" not in loki_config:
+    fail("Loki must retain filesystem logs for 30 days")
+if "reject_old_samples: true" not in loki_config:
+    fail("Loki must keep old-sample validation enabled")
+if "reject_old_samples_max_age: 720h" not in loki_config:
+    fail("Loki old-sample window must match the 30-day retention period")
 loki_dashboard_json = json.loads(loki_dashboard_path.read_text(encoding="utf-8"))
 if not has_valid_loki_job_variable(loki_dashboard_json):
     fail(
