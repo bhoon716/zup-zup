@@ -219,8 +219,12 @@ stage="observability-probe-tools"
   || fail "observability HTTP probe preparation failed"
 
 stage="infra-start"
-"${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis loki alloy prometheus grafana \
-  || fail "MySQL/Redis/Loki/Alloy/Prometheus/Grafana startup failed"
+"${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis \
+  || fail "MySQL/Redis startup failed"
+"${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 loki prometheus \
+  || fail "Loki/Prometheus startup failed"
+"${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 alloy grafana \
+  || fail "Alloy/Grafana startup failed"
 
 stage="edge-network"
 if ! docker inspect sugang-helper-npm >/dev/null 2>&1; then
