@@ -21,4 +21,4 @@
 4. maintenance 시 NPM 또는 앱을 잠시 중지해 이메일이 정확히 두 번의 연속 실패 뒤 도착하는지 확인한다.
 5. 서비스를 복구하고 recovery 이메일이 도착하는지 확인한다.
 
-이 문서는 이메일 수신 주소나 provider API token을 저장하지 않는다. Slack 알림은 후속 운영 이슈로 남긴다.
+이 문서는 이메일 수신 주소나 provider API token을 저장하지 않는다. Slack 장애 알림은 Alertmanager가 아니라 애플리케이션의 Incoming Webhook 경로로 전송하며, 환경별 webhook URL은 `apps/server/.env` 또는 GitHub Actions의 `SERVER_DOTENV` secret에 저장한다.
