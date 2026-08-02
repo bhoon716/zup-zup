@@ -48,6 +48,21 @@ for required_sync in \
     exit 1
   fi
 done
+
+for required_observability_start in \
+  '"${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis' \
+  '"${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 loki prometheus' \
+  '"${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 alloy grafana'; do
+  if ! grep -F -- "${required_observability_start}" "${deploy_script}" >/dev/null; then
+    echo "deploy must refresh observability services without recreating stateful services: ${required_observability_start}" >&2
+    exit 1
+  fi
+done
+if grep -F -- '"${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis loki alloy prometheus grafana' "${deploy_script}" >/dev/null; then
+  echo "deploy must not reuse an unhealthy observability container during infra startup" >&2
+  exit 1
+fi
+
 for forbidden_overlay in \
   'cp -a "${staging_dir}/src/main/resources/db/."' \
   'cp -a "${staging_dir}/loki/."' \
