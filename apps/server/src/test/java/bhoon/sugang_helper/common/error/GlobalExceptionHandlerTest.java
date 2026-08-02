@@ -104,6 +104,65 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void deeplyDifferentRootCausesKeepTheirOwnStackTraces() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+            handler.handleAny(request, nestedException(new IllegalArgumentException("database")));
+            handler.handleAny(request, nestedException(new UnsupportedOperationException("redis")));
+
+            assertThat(appender.list).hasSize(2);
+            assertThat(appender.list).allSatisfy(event -> {
+                assertThat(event.getThrowableProxy()).isNotNull();
+                assertThat(event.getFormattedMessage()).contains("stackTraceIncluded=true");
+            });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void cyclicCauseChainStillLogsStackTrace() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            IllegalStateException first = new IllegalStateException("first");
+            IllegalStateException second = new IllegalStateException("second");
+            first.initCause(second);
+            second.initCause(first);
+
+            new GlobalExceptionHandler().handleAny(request, first);
+
+            assertThat(appender.list).singleElement().satisfies(event -> {
+                assertThat(event.getThrowableProxy()).isNotNull();
+                assertThat(event.getFormattedMessage()).contains("stackTraceIncluded=true");
+            });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    private Exception nestedException(Exception rootCause) {
+        Exception exception = rootCause;
+        for (int depth = 0; depth < 9; depth++) {
+            exception = new IllegalStateException("wrapper", exception);
+        }
+        return exception;
+    }
+
+    @Test
     void customExceptionDoesNotExposeSecretDetailOrTokenPath() {
         String token = "fcm-token-should-not-appear";
         String email = "recipient@example.com";

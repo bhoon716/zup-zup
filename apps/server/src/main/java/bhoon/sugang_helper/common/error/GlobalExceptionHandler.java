@@ -17,9 +17,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -28,7 +31,6 @@ public class GlobalExceptionHandler {
 
     private static final long STACK_TRACE_LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
     private static final int MAX_STACK_TRACE_FINGERPRINTS = 256;
-    private static final int MAX_EXCEPTION_CAUSE_DEPTH = 8;
     private final Map<String, Long> stackTraceLogTimes = new LinkedHashMap<>(16, 0.75f, true);
 
     @ExceptionHandler(CustomException.class)
@@ -128,12 +130,21 @@ public class GlobalExceptionHandler {
     }
 
     private String exceptionFingerprint(ErrorCode errorCode, Exception exception) {
-        StringBuilder fingerprint = new StringBuilder(errorCode.getCode());
-        Throwable cause = exception;
-        for (int depth = 0; cause != null && depth < MAX_EXCEPTION_CAUSE_DEPTH; depth++) {
-            fingerprint.append(":").append(cause.getClass().getName());
-            cause = cause.getCause();
+        Throwable rootCause = findRootCause(exception);
+        return errorCode.getCode() + ":" + exception.getClass().getName()
+                + ":" + rootCause.getClass().getName();
+    }
+
+    private Throwable findRootCause(Throwable exception) {
+        Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        Throwable current = exception;
+        while (visited.add(current)) {
+            Throwable cause = current.getCause();
+            if (cause == null) {
+                return current;
+            }
+            current = cause;
         }
-        return fingerprint.toString();
+        return current;
     }
 }
