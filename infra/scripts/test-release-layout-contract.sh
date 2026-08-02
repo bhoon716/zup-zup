@@ -73,6 +73,15 @@ if [ -e "${fixture_root}/destination/removed.conf" ] \
   echo "directory synchronization fixture retained stale files" >&2
   exit 1
 fi
+printf 'keep-on-failure\n' >"${fixture_root}/destination/keep.conf"
+if sync_directory "${fixture_root}/missing" "${fixture_root}/destination" 2>/dev/null; then
+  echo "directory synchronization must fail for a missing source" >&2
+  exit 1
+fi
+if [ "$(cat "${fixture_root}/destination/keep.conf")" != "keep-on-failure" ]; then
+  echo "directory synchronization removed the existing tree before a failed copy" >&2
+  exit 1
+fi
 
 for forbidden in \
   'readonly RELEASE_ROOT="/opt/jbnu-sugang-helper"' \

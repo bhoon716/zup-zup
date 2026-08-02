@@ -60,8 +60,26 @@ validate_app_env_file() {
 sync_directory() {
   local source_dir="$1"
   local destination_dir="$2"
-  find "${destination_dir}" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
-  cp -a "${source_dir}/." "${destination_dir}/"
+  local parent_dir="${destination_dir%/*}"
+  local destination_name="${destination_dir##*/}"
+  local next_dir="${parent_dir}/.${destination_name}.next.$$"
+  local backup_dir="${parent_dir}/.${destination_name}.previous.$$"
+
+  rm -rf -- "${next_dir}" "${backup_dir}"
+  if ! cp -a -- "${source_dir}" "${next_dir}"; then
+    rm -rf -- "${next_dir}"
+    return 1
+  fi
+  if ! mv -- "${destination_dir}" "${backup_dir}"; then
+    rm -rf -- "${next_dir}"
+    return 1
+  fi
+  if ! mv -- "${next_dir}" "${destination_dir}"; then
+    mv -- "${backup_dir}" "${destination_dir}" || true
+    rm -rf -- "${next_dir}"
+    return 1
+  fi
+  rm -rf -- "${backup_dir}" || true
 }
 
 if [ "${sha}" = "--validate-app-env" ]; then
