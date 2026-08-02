@@ -16,6 +16,8 @@ grafana_url="${GRAFANA_URL:-${DEFAULT_GRAFANA_URL}}"
 grafana_container="${GRAFANA_CONTAINER_NAME:-${DEFAULT_GRAFANA_CONTAINER}}"
 grafana_user="${GRAFANA_ADMIN_USER:-}"
 grafana_password="${GRAFANA_ADMIN_PASSWORD:-}"
+grafana_prometheus_uid=""
+grafana_loki_uid=""
 timeout_seconds="${OBSERVABILITY_SMOKE_TIMEOUT_SECONDS:-120}"
 http_timeout_seconds="${OBSERVABILITY_SMOKE_HTTP_TIMEOUT_SECONDS:-5}"
 marker_container=""
@@ -161,6 +163,45 @@ check_grafana_ready() {
   grafana_curl "${grafana_url}/api/health"
 }
 
+resolve_grafana_datasource_uids() {
+  local response
+  local datasource_uids
+
+  response="$(grafana_curl "${grafana_url}/api/datasources")" || return 1
+  datasource_uids="$(python3 - "${response}" <<'PY'
+import json
+import re
+import sys
+
+datasources = json.loads(sys.argv[1])
+if not isinstance(datasources, list):
+    raise SystemExit(1)
+
+uids = {}
+for datasource in datasources:
+    if not isinstance(datasource, dict):
+        continue
+    name = datasource.get("name")
+    uid = datasource.get("uid")
+    if name in ("Prometheus", "Loki") and isinstance(uid, str):
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", uid):
+            raise SystemExit(1)
+        if name in uids and uids[name] != uid:
+            raise SystemExit(1)
+        uids[name] = uid
+
+for name in ("Prometheus", "Loki"):
+    uid = uids.get(name)
+    if not uid:
+        raise SystemExit(1)
+    print(uid)
+PY
+  )" || return 1
+  grafana_prometheus_uid="$(printf '%s\n' "${datasource_uids}" | sed -n '1p')"
+  grafana_loki_uid="$(printf '%s\n' "${datasource_uids}" | sed -n '2p')"
+  [ -n "${grafana_prometheus_uid}" ] && [ -n "${grafana_loki_uid}" ]
+}
+
 parse_prometheus_up() {
   python3 - "$1" <<'PY'
 import json
@@ -190,7 +231,8 @@ check_prometheus_app_target() {
 check_grafana_datasources() {
   local uid
   local response
-  for uid in prometheus loki; do
+  resolve_grafana_datasource_uids || return 1
+  for uid in "${grafana_prometheus_uid}" "${grafana_loki_uid}"; do
     response="$(grafana_curl "${grafana_url}/api/datasources/uid/${uid}/health")" || return 1
     python3 - "${response}" <<'PY' || return 1
 import json
@@ -205,8 +247,9 @@ PY
 
 check_grafana_prometheus_query() {
   local response_file="${temporary_dir}/grafana-prometheus-query.json"
+  [ -n "${grafana_prometheus_uid}" ] || resolve_grafana_datasource_uids || return 1
   grafana_curl \
-    "${grafana_url}/api/datasources/proxy/uid/prometheus/api/v1/query?query=up%7Bjob%3D%22sugang-helper-app%22%7D" \
+    "${grafana_url}/api/datasources/proxy/uid/${grafana_prometheus_uid}/api/v1/query?query=up%7Bjob%3D%22sugang-helper-app%22%7D" \
     >"${response_file}" \
     && parse_prometheus_up "${response_file}"
 }
@@ -260,7 +303,8 @@ check_loki_marker() {
 check_grafana_loki_marker() {
   local response_file="${temporary_dir}/grafana-loki-marker.json"
   local query_url
-  query_url="$(build_loki_query_url "${marker_text}" "${grafana_url}/api/datasources/proxy/uid/loki/loki/api/v1/query_range")"
+  [ -n "${grafana_loki_uid}" ] || resolve_grafana_datasource_uids || return 1
+  query_url="$(build_loki_query_url "${marker_text}" "${grafana_url}/api/datasources/proxy/uid/${grafana_loki_uid}/loki/api/v1/query_range")"
   grafana_curl "${query_url}" >"${response_file}" \
     && parse_loki_marker "${response_file}" "${marker_text}"
 }

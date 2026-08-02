@@ -137,17 +137,20 @@ PY
     */api/health)
       printf '{"database":"ok"}\n'
       ;;
+    */api/datasources)
+      printf '[{"name":"Prometheus","uid":"legacy-prometheus"},{"name":"Loki","uid":"legacy-loki"}]\n'
+      ;;
     */api/datasources/uid/*/health)
-      if [ "${mode}" = datasource ] && [[ "${url}" == */api/datasources/uid/prometheus/health ]]; then
+      if [ "${mode}" = datasource ] && [[ "${url}" == */api/datasources/uid/legacy-prometheus/health ]]; then
         printf '{"status":"Error"}\n'
       else
         printf '{"status":"OK"}\n'
       fi
       ;;
-    */api/datasources/proxy/uid/prometheus/api/v1/query*)
+    */api/datasources/proxy/uid/legacy-prometheus/api/v1/query*)
       fake_prometheus_response 1
       ;;
-    */api/datasources/proxy/uid/loki/loki/api/v1/query_range*)
+    */api/datasources/proxy/uid/legacy-loki/loki/api/v1/query_range*)
       if [ "${mode}" = loki-datasource ]; then
         fake_loki_response
       else
