@@ -19,9 +19,12 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 class GlobalExceptionHandlerTest {
 
+    private static final String REQUEST_PATH = "/api/v1/courses";
+    private static final String STACK_TRACE_INCLUDED = "stackTraceIncluded=true";
+
     @Test
     void serverErrorLogIncludesThrowableStackTraceAndCorrelationId() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", REQUEST_PATH);
         Exception exception = new IllegalStateException("internal failure");
         Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
@@ -47,7 +50,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void repeatedServerErrorsKeepErrorSummaryWithoutRepeatingStackTrace() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", REQUEST_PATH);
         Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
@@ -62,7 +65,7 @@ class GlobalExceptionHandlerTest {
             assertThat(appender.list).hasSize(2);
             assertThat(appender.list.get(0).getThrowableProxy()).isNotNull();
             assertThat(appender.list.get(1).getThrowableProxy()).isNull();
-            assertThat(appender.list.get(0).getFormattedMessage()).contains("stackTraceIncluded=true");
+            assertThat(appender.list.get(0).getFormattedMessage()).contains(STACK_TRACE_INCLUDED);
             assertThat(appender.list.get(1).getFormattedMessage()).contains("stackTraceIncluded=false");
             assertThat(appender.list).allSatisfy(event ->
                     assertThat(event.getLevel()).isEqualTo(Level.ERROR));
@@ -74,7 +77,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void differentRootCausesKeepTheirOwnStackTraces() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", REQUEST_PATH);
         Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
@@ -91,7 +94,7 @@ class GlobalExceptionHandlerTest {
             assertThat(appender.list).hasSize(2);
             assertThat(appender.list).allSatisfy(event -> {
                 assertThat(event.getThrowableProxy()).isNotNull();
-                assertThat(event.getFormattedMessage()).contains("stackTraceIncluded=true");
+                assertThat(event.getFormattedMessage()).contains(STACK_TRACE_INCLUDED);
             });
             assertThat(appender.list.get(0).getThrowableProxy().getCause().getClassName())
                     .isEqualTo(IllegalArgumentException.class.getName());
@@ -105,7 +108,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void deeplyDifferentRootCausesKeepTheirOwnStackTraces() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", REQUEST_PATH);
         Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
@@ -120,7 +123,7 @@ class GlobalExceptionHandlerTest {
             assertThat(appender.list).hasSize(2);
             assertThat(appender.list).allSatisfy(event -> {
                 assertThat(event.getThrowableProxy()).isNotNull();
-                assertThat(event.getFormattedMessage()).contains("stackTraceIncluded=true");
+                assertThat(event.getFormattedMessage()).contains(STACK_TRACE_INCLUDED);
             });
         } finally {
             logger.detachAppender(appender);
@@ -130,7 +133,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void cyclicCauseChainStillLogsStackTrace() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", REQUEST_PATH);
         Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
@@ -146,7 +149,7 @@ class GlobalExceptionHandlerTest {
 
             assertThat(appender.list).singleElement().satisfies(event -> {
                 assertThat(event.getThrowableProxy()).isNotNull();
-                assertThat(event.getFormattedMessage()).contains("stackTraceIncluded=true");
+                assertThat(event.getFormattedMessage()).contains(STACK_TRACE_INCLUDED);
             });
         } finally {
             logger.detachAppender(appender);
