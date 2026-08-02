@@ -57,6 +57,13 @@ validate_app_env_file() {
   fi
 }
 
+sync_directory() {
+  local source_dir="$1"
+  local destination_dir="$2"
+  find "${destination_dir}" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+  cp -a "${source_dir}/." "${destination_dir}/"
+}
+
 if [ "${sha}" = "--validate-app-env" ]; then
   stage="app-env-preflight"
   validate_app_env_file "${staging_dir}"
@@ -157,11 +164,11 @@ cp "${staging_dir}/docker-compose.yml" "${RELEASE_ROOT}/docker-compose.yml.tmp.$
 mv -f "${RELEASE_ROOT}/docker-compose.yml.tmp.$$" "${RELEASE_ROOT}/docker-compose.yml"
 cp "${staging_dir}/application-prod.yml" "${RELEASE_ROOT}/application-prod.yml.tmp.$$"
 mv -f "${RELEASE_ROOT}/application-prod.yml.tmp.$$" "${RELEASE_ROOT}/application-prod.yml"
-cp -a "${staging_dir}/src/main/resources/db/." "${RELEASE_ROOT}/src/main/resources/db/"
-cp -a "${staging_dir}/loki/." "${RELEASE_ROOT}/loki/"
-cp -a "${staging_dir}/alloy/." "${RELEASE_ROOT}/alloy/"
-cp -a "${staging_dir}/prometheus/." "${RELEASE_ROOT}/prometheus/"
-cp -a "${staging_dir}/grafana/." "${RELEASE_ROOT}/grafana/"
+sync_directory "${staging_dir}/src/main/resources/db" "${RELEASE_ROOT}/src/main/resources/db"
+sync_directory "${staging_dir}/loki" "${RELEASE_ROOT}/loki"
+sync_directory "${staging_dir}/alloy" "${RELEASE_ROOT}/alloy"
+sync_directory "${staging_dir}/prometheus" "${RELEASE_ROOT}/prometheus"
+sync_directory "${staging_dir}/grafana" "${RELEASE_ROOT}/grafana"
 cp "${staging_dir}/scripts/test-observability-smoke.sh" "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$"
 chmod 0755 "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$"
 mv -f "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$" "${RELEASE_ROOT}/scripts/test-observability-smoke.sh"

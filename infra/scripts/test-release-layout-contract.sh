@@ -33,6 +33,47 @@ for required in \
   fi
 done
 
+if ! grep -F 'sync_directory()' "${deploy_script}" >/dev/null; then
+  echo "deploy must define exact directory synchronization" >&2
+  exit 1
+fi
+for required_sync in \
+  'sync_directory "${staging_dir}/src/main/resources/db" "${RELEASE_ROOT}/src/main/resources/db"' \
+  'sync_directory "${staging_dir}/loki" "${RELEASE_ROOT}/loki"' \
+  'sync_directory "${staging_dir}/alloy" "${RELEASE_ROOT}/alloy"' \
+  'sync_directory "${staging_dir}/prometheus" "${RELEASE_ROOT}/prometheus"' \
+  'sync_directory "${staging_dir}/grafana" "${RELEASE_ROOT}/grafana"'; do
+  if ! grep -F -- "${required_sync}" "${deploy_script}" >/dev/null; then
+    echo "deploy must synchronize without stale files: ${required_sync}" >&2
+    exit 1
+  fi
+done
+for forbidden_overlay in \
+  'cp -a "${staging_dir}/src/main/resources/db/."' \
+  'cp -a "${staging_dir}/loki/."' \
+  'cp -a "${staging_dir}/alloy/."' \
+  'cp -a "${staging_dir}/prometheus/."' \
+  'cp -a "${staging_dir}/grafana/."'; do
+  if grep -F -- "${forbidden_overlay}" "${deploy_script}" >/dev/null; then
+    echo "deploy must not overlay stale-prone directory: ${forbidden_overlay}" >&2
+    exit 1
+  fi
+done
+
+fixture_root="$(mktemp -d)"
+trap 'rm -rf -- "${fixture_root}"' EXIT
+mkdir -p "${fixture_root}/source" "${fixture_root}/destination"
+printf 'current\n' >"${fixture_root}/source/current.conf"
+printf 'stale\n' >"${fixture_root}/destination/removed.conf"
+sync_function="$(sed -n '/^sync_directory() {/,/^}/p' "${deploy_script}")"
+eval "${sync_function}"
+sync_directory "${fixture_root}/source" "${fixture_root}/destination"
+if [ -e "${fixture_root}/destination/removed.conf" ] \
+  || [ "$(cat "${fixture_root}/destination/current.conf")" != "current" ]; then
+  echo "directory synchronization fixture retained stale files" >&2
+  exit 1
+fi
+
 for forbidden in \
   'readonly RELEASE_ROOT="/opt/jbnu-sugang-helper"' \
   'readonly STAGING_ROOT="/opt/jbnu-sugang-helper-staging"' \
