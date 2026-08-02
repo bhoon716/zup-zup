@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.notification.infra;
 
+import bhoon.sugang_helper.common.config.MdcTaskDecorator;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import io.micrometer.core.instrument.Counter;
@@ -32,6 +33,7 @@ public class NotificationProviderResilience implements AutoCloseable {
     private final int failureThreshold;
     private final Duration openDuration;
     private final ExecutorService executor;
+    private final MdcTaskDecorator mdcTaskDecorator;
     private final Map<NotificationChannel, Circuit> circuits = new ConcurrentHashMap<>();
 
     @Autowired
@@ -39,13 +41,20 @@ public class NotificationProviderResilience implements AutoCloseable {
             MeterRegistry meterRegistry,
             @Value("${app.notification.provider.timeout-ms:5000}") long timeoutMs,
             @Value("${app.notification.provider.circuit.failure-threshold:3}") int failureThreshold,
-            @Value("${app.notification.provider.circuit.open-seconds:30}") long openSeconds) {
+            @Value("${app.notification.provider.circuit.open-seconds:30}") long openSeconds,
+            MdcTaskDecorator mdcTaskDecorator) {
         this(meterRegistry, Duration.ofMillis(timeoutMs), failureThreshold, Duration.ofSeconds(openSeconds),
-                Executors.newVirtualThreadPerTaskExecutor());
+                Executors.newVirtualThreadPerTaskExecutor(), mdcTaskDecorator);
     }
 
     NotificationProviderResilience(MeterRegistry meterRegistry, Duration timeout, int failureThreshold,
                                    Duration openDuration, ExecutorService executor) {
+        this(meterRegistry, timeout, failureThreshold, openDuration, executor, new MdcTaskDecorator());
+    }
+
+    NotificationProviderResilience(MeterRegistry meterRegistry, Duration timeout, int failureThreshold,
+                                   Duration openDuration, ExecutorService executor,
+                                   MdcTaskDecorator mdcTaskDecorator) {
         if (timeout.isZero() || timeout.isNegative()) {
             throw new IllegalArgumentException("provider timeout must be positive");
         }
@@ -60,6 +69,7 @@ public class NotificationProviderResilience implements AutoCloseable {
         this.failureThreshold = failureThreshold;
         this.openDuration = openDuration;
         this.executor = executor;
+        this.mdcTaskDecorator = mdcTaskDecorator;
     }
 
     public void execute(NotificationChannel provider, Runnable operation) {
@@ -73,7 +83,7 @@ public class NotificationProviderResilience implements AutoCloseable {
         Timer.Sample sample = Timer.start(meterRegistry);
         String outcome = "failure";
         try {
-            Future<?> future = executor.submit(operation);
+            Future<?> future = executor.submit(mdcTaskDecorator.decorate(operation));
             try {
                 future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
                 circuit.recordSuccess();
