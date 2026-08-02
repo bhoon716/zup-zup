@@ -6,7 +6,8 @@ logging {
 // Discover every Compose container so application, database, Redis, Loki,
 // Alloy, and Grafana JSON logs are collected with distinct service and job labels.
 discovery.docker "containers" {
-	host = "unix:///var/run/docker.sock"
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "5s"
 }
 
 discovery.relabel "containers" {
@@ -29,10 +30,11 @@ discovery.relabel "containers" {
 }
 
 loki.source.docker "containers" {
-	host       = "unix:///var/run/docker.sock"
-	targets    = discovery.relabel.containers.output
-	labels     = {app = "jbnu-sugang-helper"}
-	forward_to = [loki.process.docker.receiver]
+	host             = "unix:///var/run/docker.sock"
+	targets          = discovery.relabel.containers.output
+	labels           = {app = "jbnu-sugang-helper"}
+	refresh_interval = "5s"
+	forward_to       = [loki.process.docker.receiver]
 }
 
 loki.process "docker" {

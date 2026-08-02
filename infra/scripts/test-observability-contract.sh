@@ -406,6 +406,16 @@ def has_active_alloy_job_pipeline(config):
         return False
     return has_alloy_job_relabel_rule(relabel_block)
 
+def has_alloy_refresh_interval(config, component_name, label, expected):
+    cleaned_config = strip_alloy_comments(config)
+    component_block = extract_alloy_component(cleaned_config, component_name, label)
+    if component_block is None:
+        return False
+    values = find_alloy_string_attribute_values(
+        top_level_alloy_block_preserving_strings(component_block), "refresh_interval"
+    )
+    return values == [expected]
+
 def has_app_java_multiline_stage(config):
     cleaned_config = strip_alloy_comments(config)
     process_block = extract_alloy_component(cleaned_config, "loki.process", "docker")
@@ -533,6 +543,10 @@ if "loki.write" not in alloy_config:
     fail("Alloy must write logs to Loki")
 if not has_active_alloy_job_pipeline(alloy_config):
     fail("Alloy must map the Compose service label to job on the active Loki source pipeline")
+if not has_alloy_refresh_interval(alloy_config, "discovery.docker", "containers", "5s"):
+    fail("Alloy Docker discovery must refresh within the smoke marker lifetime")
+if not has_alloy_refresh_interval(alloy_config, "loki.source.docker", "containers", "5s"):
+    fail("Alloy Docker log source must refresh within the smoke marker lifetime")
 if not has_app_java_multiline_stage(alloy_config):
     fail(
         "Alloy docker pipeline must scope Java multiline processing to job=app"
@@ -1069,6 +1083,7 @@ for required in (
     "set -euo pipefail",
     "DEFAULT_PROBE_IMAGE",
     "deadline=$((SECONDS + timeout_seconds))",
+    "marker_lifetime_seconds=$((timeout_seconds + http_timeout_seconds + 10))",
     "run_with_timeout",
     "run_with_smoke_deadline",
     "wget -q -O - -T",
@@ -1095,6 +1110,7 @@ for forbidden in (
     "-k",
     "--insecure",
     "sleep 3600",
+    "sleep 30",
     '--user "${grafana_user}:${grafana_password}"',
     "/api/datasources/proxy/uid/prometheus/",
     "/api/datasources/proxy/uid/loki/",
