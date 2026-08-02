@@ -891,6 +891,9 @@ if not str(services["grafana"].get("image", "")).startswith("grafana/grafana@sha
 grafana_ports = services["grafana"].get("ports", [])
 if not any(str(port.get("host_ip")) == "127.0.0.1" and str(port.get("target")) == "3000" for port in grafana_ports):
     fail("Grafana must be reachable only through localhost")
+grafana_networks = set(services["grafana"].get("networks", {}))
+if grafana_networks != {"sugang-helper-runtime", "sugang-helper-egress"}:
+    fail("Grafana must use the egress bridge so Docker can publish its localhost port")
 grafana_healthcheck = " ".join(str(item) for item in services["grafana"]["healthcheck"].get("test", []))
 if "grep -Eq" not in grafana_healthcheck or "[[:space:]]*" not in grafana_healthcheck:
     fail("Grafana healthcheck must accept JSON whitespace around the database status")
