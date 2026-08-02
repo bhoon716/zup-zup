@@ -107,9 +107,10 @@ describe("ThirdPartyAnalytics", () => {
       />,
     );
 
-    expect(screen.getByTestId("ga-bootstrap").innerHTML)
-      .toContain('"allow_google_signals":false')
-      .toContain('"allow_ad_personalization_signals":false')
-      .toContain('"send_page_view":false');
+    const bootstrap = screen.getByTestId("ga-bootstrap").innerHTML;
+
+    expect(bootstrap).toContain('"allow_google_signals":false');
+    expect(bootstrap).toContain('"allow_ad_personalization_signals":false');
+    expect(bootstrap).toContain('"send_page_view":false');
   });
 });

@@ -40,6 +40,10 @@ describe("next config rewrites", () => {
     const { default: nextConfig } = await import("../../../next.config");
     const rewrites = await nextConfig.rewrites?.();
 
+    if (!Array.isArray(rewrites)) {
+      throw new Error("Expected rewrites() to return an array");
+    }
+
     expect(rewrites?.[2]).toEqual({
       source: "/api/:path*",
       destination: "https://api.example.com/api/:path*",
