@@ -10,6 +10,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.redis.RedisService;
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -118,6 +119,40 @@ class JwtProviderTest {
 
         // then
         assertTrue(isValid);
+    }
+
+    @Test
+    @DisplayName("만료된 토큰은 WARN으로 fingerprint만 기록한다")
+    void validateToken_expiredLogsWarnWithoutToken() {
+        Date now = new Date();
+        String expiredToken = Jwts.builder()
+                .subject(EMAIL)
+                .issuedAt(new Date(now.getTime() - 2_000))
+                .expiration(new Date(now.getTime() - 1_000))
+                .claim("token_type", "access")
+                .claim("uid", USER_ID)
+                .claim("role", ROLE)
+                .signWith(Keys.hmacShaKeyFor(TEST_SECRET_KEY.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+        Logger logger = (Logger) LoggerFactory.getLogger(JwtProvider.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            assertFalse(jwtProvider.validateToken(expiredToken));
+
+            assertThat(appender.list).singleElement().satisfies(event -> {
+                assertThat(event.getLevel()).isEqualTo(Level.WARN);
+                assertThat(event.getFormattedMessage())
+                        .contains("[JWT] Expired JWT token: tokenFingerprint=" + sha256(expiredToken).substring(0, 8))
+                        .doesNotContain(expiredToken, EMAIL);
+                assertThat(event.getThrowableProxy()).isNull();
+            });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
     }
 
     @Test
