@@ -19,7 +19,8 @@ if [ "${OBSERVABILITY_RUNBOOK_FAKE_DOCKER:-0}" = 1 ]; then
       environment_file_number=$((environment_file_number + 1))
       cp -- "${argument}" "${capture_dir}/env-${call_number}-${environment_file_number}"
       if [ "${environment_file_number}" -eq 2 ]; then
-        mode="$(stat -f '%Lp' "${argument}" 2>/dev/null || stat -c '%a' "${argument}")"
+        # GNU/Linux uses -c; BSD/macOS uses -f. GNU stat -f can exit 0 with filesystem output.
+        mode="$(stat -c '%a' "${argument}" 2>/dev/null || stat -f '%Lp' "${argument}")"
         printf '%s\n' "${mode}" >"${capture_dir}/diagnostics-env-mode"
       fi
     fi
