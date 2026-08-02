@@ -8,17 +8,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bhoon.sugang_helper.common.health.HealthController;
+import java.sql.SQLException;
 import java.util.Properties;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientWebSecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
@@ -31,39 +36,35 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisServerCommands;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = RedisReadinessHealthTest.TestApplication.class)
+@SpringBootTest(classes = DatabaseReadinessHealthTest.TestApplication.class)
 @AutoConfigureMockMvc
 @Import(HealthController.class)
 @TestPropertySource(properties = {
         "management.endpoint.health.probes.enabled=true",
-        "management.endpoint.health.group.readiness.include=readinessState,redis",
+        "management.endpoint.health.group.readiness.include=readinessState,db",
         "management.endpoint.health.show-details=never",
         "spring.security.oauth2.client.registration.google.client-id=test-client",
         "spring.security.oauth2.client.registration.google.client-secret=test-secret"
 })
-class RedisReadinessHealthTest {
+class DatabaseReadinessHealthTest {
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
-    private RedisConnectionFactory redisConnectionFactory;
+    private DataSource dataSource;
 
     @BeforeEach
-    void resetRedisConnectionFactory() {
-        reset(redisConnectionFactory);
+    void resetDataSource() {
+        reset(dataSource);
     }
 
     @Test
-    void readinessIsDownWhenRedisCannotBeReached() throws Exception {
-        given(redisConnectionFactory.getConnection())
-                .willThrow(new RedisConnectionFailureException("Redis is unavailable"));
+    void externalHealthIsDownWhenDatabaseCannotBeReached() throws Exception {
+        given(dataSource.getConnection())
+                .willThrow(new SQLException("Database is unavailable"));
 
         mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isServiceUnavailable())
@@ -75,33 +76,13 @@ class RedisReadinessHealthTest {
                 .andExpect(jsonPath("$.data.details").doesNotExist());
     }
 
-    @Test
-    void readinessRecoversAfterRedisComesBack() throws Exception {
-        RedisConnection connection = mock(RedisConnection.class);
-        RedisServerCommands serverCommands = mock(RedisServerCommands.class);
-        given(redisConnectionFactory.getConnection())
-                .willThrow(new RedisConnectionFailureException("Redis is unavailable"))
-                .willReturn(connection);
-        given(connection.serverCommands()).willReturn(serverCommands);
-        given(serverCommands.info()).willReturn(new Properties());
-
-        mockMvc.perform(get("/actuator/health/readiness"))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.status").value("DOWN"));
-
-        mockMvc.perform(get("/actuator/health/readiness"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
-
-        mockMvc.perform(get("/health"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("UP"));
-    }
-
     @SpringBootConfiguration
     @EnableAutoConfiguration(exclude = {
             DataSourceAutoConfiguration.class,
+            DataSourceTransactionManagerAutoConfiguration.class,
+            JdbcTemplateAutoConfiguration.class,
             HibernateJpaAutoConfiguration.class,
+            JpaRepositoriesAutoConfiguration.class,
             FlywayAutoConfiguration.class,
             RedisAutoConfiguration.class,
             RedisRepositoriesAutoConfiguration.class,
@@ -123,8 +104,8 @@ class RedisReadinessHealthTest {
         }
 
         @Bean
-        RedisConnectionFactory redisConnectionFactory() {
-            return mock(RedisConnectionFactory.class);
+        DataSource dataSource() {
+            return mock(DataSource.class);
         }
     }
 }
