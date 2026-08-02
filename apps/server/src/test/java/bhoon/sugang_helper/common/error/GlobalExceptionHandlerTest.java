@@ -73,6 +73,37 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void differentRootCausesKeepTheirOwnStackTraces() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+            handler.handleAny(request, new IllegalStateException(
+                    "database failure", new IllegalArgumentException("database")));
+            handler.handleAny(request, new IllegalStateException(
+                    "redis failure", new UnsupportedOperationException("redis")));
+
+            assertThat(appender.list).hasSize(2);
+            assertThat(appender.list).allSatisfy(event -> {
+                assertThat(event.getThrowableProxy()).isNotNull();
+                assertThat(event.getFormattedMessage()).contains("stackTraceIncluded=true");
+            });
+            assertThat(appender.list.get(0).getThrowableProxy().getCause().getClassName())
+                    .isEqualTo(IllegalArgumentException.class.getName());
+            assertThat(appender.list.get(1).getThrowableProxy().getCause().getClassName())
+                    .isEqualTo(UnsupportedOperationException.class.getName());
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
     void customExceptionDoesNotExposeSecretDetailOrTokenPath() {
         String token = "fcm-token-should-not-appear";
         String email = "recipient@example.com";

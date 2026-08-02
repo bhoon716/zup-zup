@@ -28,6 +28,7 @@ public class GlobalExceptionHandler {
 
     private static final long STACK_TRACE_LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
     private static final int MAX_STACK_TRACE_FINGERPRINTS = 256;
+    private static final int MAX_EXCEPTION_CAUSE_DEPTH = 8;
     private final Map<String, Long> stackTraceLogTimes = new LinkedHashMap<>(16, 0.75f, true);
 
     @ExceptionHandler(CustomException.class)
@@ -110,7 +111,7 @@ public class GlobalExceptionHandler {
     }
 
     private synchronized boolean shouldLogStackTrace(ErrorCode errorCode, Exception exception) {
-        String fingerprint = errorCode.getCode() + ":" + exception.getClass().getName();
+        String fingerprint = exceptionFingerprint(errorCode, exception);
         long now = System.nanoTime();
         Long previous = stackTraceLogTimes.get(fingerprint);
         if (previous != null && now - previous < STACK_TRACE_LOG_INTERVAL_NANOS) {
@@ -124,5 +125,15 @@ public class GlobalExceptionHandler {
             iterator.remove();
         }
         return true;
+    }
+
+    private String exceptionFingerprint(ErrorCode errorCode, Exception exception) {
+        StringBuilder fingerprint = new StringBuilder(errorCode.getCode());
+        Throwable cause = exception;
+        for (int depth = 0; cause != null && depth < MAX_EXCEPTION_CAUSE_DEPTH; depth++) {
+            fingerprint.append(":").append(cause.getClass().getName());
+            cause = cause.getCause();
+        }
+        return fingerprint.toString();
     }
 }
