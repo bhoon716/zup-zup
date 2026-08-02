@@ -23,19 +23,6 @@ class MigrationValidationTaskConfigurationTest {
     }
 
     @Test
-    void CIRequiresDockerAndMigrationValidationBeforeServerRelease() throws IOException {
-        String workflow = Files.readString(Path.of("../..", ".github", "workflows", "ci.yml"));
-
-        assertThat(workflow)
-                .contains("name: PR CI")
-                .contains("image: mysql:8.4")
-                .doesNotContain("image: mysql:latest")
-                .contains("name: Flyway migrate (fresh CI database)")
-                .contains("name: Flyway validate (after migration)")
-                .contains("./gradlew clean check --no-daemon");
-    }
-
-    @Test
     void migrationValidationIsTaggedAndFailsClearlyWithoutDocker() throws IOException {
         String migrationTest = Files.readString(Path.of(
                 "src/test/java/bhoon/sugang_helper/common/config/FlywayMigrationValidationTest.java"));

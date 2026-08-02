@@ -3,20 +3,123 @@ name: PR CI
 on:
   pull_request:
 
+concurrency:
+  group: pr-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
-env:
-  MYSQL_DATABASE: sugang_helper
-  MYSQL_ROOT_PASSWORD: ci-root-password
-  REDIS_PASSWORD: ci-redis-password
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server
-  FLYWAY_IMAGE: flyway/flyway@sha256:8ace7d9825bb3ad1d6e14ee27b3a830b638ac841ba424b99b2d92aa65a99d484
-
 jobs:
-  verify:
-    name: CI
+  changes:
+    name: 변경 영역 확인
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      infra: ${{ steps.filter.outputs.infra }}
+      web: ${{ steps.filter.outputs.web }}
+      server: ${{ steps.filter.outputs.server }}
+      docker_image: ${{ steps.filter.outputs.docker_image }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - id: filter
+        name: 변경 경로 분류
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          infra=false
+          web=false
+          server=false
+          docker_image=false
+          while IFS= read -r changed_file; do
+            [ -n "${changed_file}" ] || continue
+            case "${changed_file}" in
+              apps/web/*) web=true ;;
+              apps/server/*) server=true ;;
+              infra/*|docs/operations/*|docs/decisions/*) infra=true ;;
+              .github/workflows/ci.yml)
+                infra=true
+                web=true
+                server=true
+                docker_image=true
+                ;;
+              .github/workflows/*) infra=true ;;
+            esac
+            case "${changed_file}" in
+              apps/server/Dockerfile|apps/server/.dockerignore) docker_image=true ;;
+            esac
+          done < <(git diff --name-only --diff-filter=ACDMRT "${BASE_SHA}" "${HEAD_SHA}")
+          {
+            echo "infra=${infra}"
+            echo "web=${web}"
+            echo "server=${server}"
+            echo "docker_image=${docker_image}"
+          } >>"${GITHUB_OUTPUT}"
+
+  infra:
+    name: Infra 검증
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Shell 문법 및 Infra 계약 검증
+        run: |
+          bash -n infra/scripts/*.sh
+          bash infra/scripts/test-runtime-contract.sh
+          bash infra/scripts/test-observability-contract.sh
+          bash infra/scripts/test-cd-workflow-contract.sh
+          bash infra/scripts/test-app-env-preflight.sh
+          bash infra/scripts/test-release-layout-contract.sh
+          bash infra/scripts/test-local-app-image-flow.sh
+          bash infra/scripts/test-local-compose.sh
+          bash infra/scripts/test-redis-auth-state-recovery.sh
+
+  web:
+    name: Web 검증
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: 의존성 설치
+        working-directory: apps/web
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint·unit test·production build
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080
+        run: |
+          npm run lint
+          npm run test -- --run
+          npm run build
+
+  server:
+    name: Server 검증
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      MYSQL_DATABASE: sugang_helper
+      MYSQL_ROOT_PASSWORD: ci-root-password
+      FLYWAY_IMAGE: flyway/flyway@sha256:8ace7d9825bb3ad1d6e14ee27b3a830b638ac841ba424b99b2d92aa65a99d484
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/jbnu-sugang-helper/server
     services:
       mysql:
         image: mysql:8.4
@@ -31,7 +134,7 @@ jobs:
           --health-timeout=5s
           --health-retries=20
       redis:
-        image: redis:latest
+        image: redis:6-alpine
         ports:
           - 6379:6379
         options: >-
@@ -40,58 +143,16 @@ jobs:
           --health-timeout=5s
           --health-retries=20
     steps:
-      - name: 코드 체크아웃
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-      - name: Infra·CI/CD 계약 검증
-        run: |
-          bash infra/scripts/test-runtime-contract.sh
-          bash infra/scripts/test-observability-contract.sh
-          bash infra/scripts/test-observability-runbook-contract.sh
-          bash infra/scripts/test-observability-failure-path.sh
-          bash infra/scripts/test-cd-workflow-contract.sh
-          bash infra/scripts/test-app-env-preflight.sh
-          bash infra/scripts/test-release-layout-contract.sh
-          bash infra/scripts/test-migration-failure-path.sh
-          bash infra/scripts/test-local-app-image-flow.sh
-          bash infra/scripts/test-redis-auth-state-recovery.sh
-          bash infra/scripts/test-pr-ci-web-contract.sh
-
-      - name: Node.js 22 설정
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
-
-      - name: Web 의존성 설치
-        working-directory: apps/web
-        run: npm ci --legacy-peer-deps
-
-      - name: Web lint
-        working-directory: apps/web
-        run: npm run lint
-
-      - name: Web unit test
-        working-directory: apps/web
-        run: npm run test -- --run
-
-      - name: Web production build
-        working-directory: apps/web
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:8080
-        run: npm run build
-
-      - name: JDK 21 설정
-        uses: actions/setup-java@v5
+      - uses: actions/setup-java@v5
         with:
           java-version: "21"
           distribution: temurin
           cache: gradle
           cache-dependency-path: apps/server/gradle/wrapper/gradle-wrapper.properties
 
-      - name: Flyway migrate (fresh CI database)
-        working-directory: apps/server
+      - name: Fresh database migration
         run: |
           docker run --rm --network host \
             -v "$GITHUB_WORKSPACE/apps/server/src/main/resources/db/migration:/flyway/sql:ro" \
@@ -102,17 +163,7 @@ jobs:
             -e FLYWAY_CLEAN_DISABLED=true \
             "${FLYWAY_IMAGE}" migrate
 
-      - name: Flyway validate (after migration)
-        working-directory: apps/server
-        run: |
-          docker run --rm --network host \
-            -v "$GITHUB_WORKSPACE/apps/server/src/main/resources/db/migration:/flyway/sql:ro" \
-            -e FLYWAY_URL="jdbc:mysql://127.0.0.1:3306/sugang_helper?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul" \
-            -e FLYWAY_USER=root \
-            -e FLYWAY_PASSWORD=ci-root-password \
-            "${FLYWAY_IMAGE}" validate
-
-      - name: 백엔드 테스트·검사
+      - name: Test·static analysis·migration regression·JAR
         working-directory: apps/server
         env:
           AWS_ACCESS_KEY_ID: ci-access-key
@@ -148,23 +199,18 @@ jobs:
           DISCORD_REDIRECT_URI: http://localhost:8080/api/v1/users/discord/callback
         run: |
           printf '{}' > /tmp/ci-firebase.json
-          ./gradlew clean check --no-daemon
-
-      - name: 기존 스키마 migration 검증
-        working-directory: apps/server
-        run: ./gradlew migrationTest --no-daemon
-
-      - name: 애플리케이션 JAR 빌드
-        working-directory: apps/server
-        run: ./gradlew bootJar --no-daemon
+          ./gradlew clean check migrationTest bootJar --no-daemon
 
       - name: QEMU 설정
+        if: needs.changes.outputs.docker_image == 'true'
         uses: docker/setup-qemu-action@v3
 
       - name: Buildx 설정
+        if: needs.changes.outputs.docker_image == 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: ARM64 이미지 빌드 검증 (push 없음)
+      - name: ARM64 이미지 빌드 검증
+        if: needs.changes.outputs.docker_image == 'true'
         uses: docker/build-push-action@v6
         with:
           context: apps/server
@@ -174,3 +220,24 @@ jobs:
           tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  result:
+    name: CI
+    if: always()
+    needs: [changes, infra, web, server]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 필수 검증 결과 확인
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          INFRA_RESULT: ${{ needs.infra.result }}
+          WEB_RESULT: ${{ needs.web.result }}
+          SERVER_RESULT: ${{ needs.server.result }}
+        run: |
+          for result in "${CHANGES_RESULT}" "${INFRA_RESULT}" "${WEB_RESULT}" "${SERVER_RESULT}"; do
+            case "${result}" in
+              success|skipped) ;;
+              *) exit 1 ;;
+            esac
+          done

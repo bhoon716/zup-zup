@@ -3,12 +3,20 @@ name: Production CD
 on:
   push:
     branches: [main]
+    paths:
+      - "apps/server/**"
+      - "infra/**"
+      - ".github/workflows/cd.yml"
   workflow_dispatch:
     inputs:
       image_tag:
         description: "배포할 40자리 commit SHA (수동 배포 시 필수)"
         required: false
         type: string
+
+concurrency:
+  group: production
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -17,6 +25,7 @@ jobs:
   deploy:
     name: deploy to OCI
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write

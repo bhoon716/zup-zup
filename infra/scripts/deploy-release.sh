@@ -103,7 +103,7 @@ cleanup() {
     rm -rf -- "${staging_dir}" || true
   fi
   if [ "${rc}" -ne 0 ]; then
-    echo "deploy failed at ${stage}; app remains stopped after migration, startup, or observability gate failure" >&2
+    echo "deploy failed at ${stage}; app remains stopped after migration or startup failure" >&2
   fi
 }
 trap cleanup EXIT
@@ -256,16 +256,17 @@ curl --fail --silent --show-error --max-time 10 \
   http://127.0.0.1:8081/actuator/health/readiness >/dev/null \
   || fail "application readiness failed"
 
-stage="observability-gate"
+stage="observability-smoke"
 grafana_port_host="$(read_env_value GRAFANA_PORT_HOST)"
 [ -n "${grafana_port_host}" ] || grafana_port_host=3000
-GRAFANA_ADMIN_USER="$(read_env_value GRAFANA_ADMIN_USER)" \
-GRAFANA_ADMIN_PASSWORD="$(read_env_value GRAFANA_ADMIN_PASSWORD)" \
-GRAFANA_CONTAINER_NAME="$(read_env_value GRAFANA_CONTAINER_NAME)" \
-RUNTIME_NETWORK_NAME="$(read_env_value RUNTIME_NETWORK_NAME)" \
-GRAFANA_URL="http://127.0.0.1:${grafana_port_host}" \
-  "${RELEASE_ROOT}/scripts/test-observability-smoke.sh" \
-  || fail "observability data-plane smoke failed"
+if ! GRAFANA_ADMIN_USER="$(read_env_value GRAFANA_ADMIN_USER)" \
+  GRAFANA_ADMIN_PASSWORD="$(read_env_value GRAFANA_ADMIN_PASSWORD)" \
+  GRAFANA_CONTAINER_NAME="$(read_env_value GRAFANA_CONTAINER_NAME)" \
+  RUNTIME_NETWORK_NAME="$(read_env_value RUNTIME_NETWORK_NAME)" \
+  GRAFANA_URL="http://127.0.0.1:${grafana_port_host}" \
+    "${RELEASE_ROOT}/scripts/test-observability-smoke.sh"; then
+  echo "observability smoke warning; deployment remains active" >&2
+fi
 
 stage="image-cleanup"
 docker image prune -f >/dev/null 2>&1 || true

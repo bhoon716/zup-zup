@@ -7,7 +7,7 @@
 
 ## 결정
 
-1인 운영에 맞춰 CD를 하나의 GitHub Actions job으로 유지한다. `main` push는 ARM64 이미지를 build/push한 뒤 배포하고, `workflow_dispatch(image_tag)`는 기존 SHA를 같은 SSH 경로로 재배포한다.
+1인 운영에 맞춰 CD를 하나의 GitHub Actions job으로 유지한다. `main`의 server·infra 변경은 ARM64 이미지를 build/push한 뒤 배포하고, 웹·문서 전용 변경은 서버 CD를 시작하지 않는다. `workflow_dispatch(image_tag)`는 기존 SHA를 같은 SSH 경로로 재배포한다. `production` concurrency group은 실행을 취소하지 않고 직렬화한다.
 
 Actions는 `SERVER_HOST`, `SERVER_USER`, `SSH_PRIVATE_KEY`, `SERVER_DOTENV`만 사용한다. staging 파일과 `deploy.sh`를 Ubuntu에 SCP하고, 원격에서 단기 `GITHUB_TOKEN`으로 GHCR에 로그인한 뒤 Ubuntu 권한으로 배포 script를 실행한다. 배포 종료 시 GHCR logout을 수행한다.
 
@@ -23,10 +23,11 @@ staging Compose 검증
   → app stop
   → Flyway migrate
   → app start + readiness
+  → best-effort observability smoke
   → 임시 staging 삭제
 ```
 
-checksum manifest, 영구 release history/다중 release 디렉터리, 반복적인 infra image preflight, 별도 rollback script, server-side lock은 제거한다. Prometheus·Loki·Alloy·Grafana, Flyway one-shot migration, 내부 readiness는 유지한다. Prometheus는 앱 Actuator metrics만 scrape하고 host exporter·cAdvisor·Alertmanager는 추가하지 않는다.
+checksum manifest, 영구 release history/다중 release 디렉터리, 반복적인 infra image preflight, 별도 rollback script, server-side lock은 제거한다. 대신 GitHub Actions가 배포를 직렬화한다. Prometheus·Loki·Alloy·Grafana, Flyway one-shot migration, 내부 readiness는 유지한다. 관측성 smoke는 경고용이며 ready 상태의 앱을 중지하지 않는다. Prometheus는 앱 Actuator metrics만 scrape하고 host exporter·cAdvisor·Alertmanager는 추가하지 않는다.
 
 DB 권한 분리는 현재 범위에서 사용하지 않는다. 기존 `root` 계정을 앱과 one-shot Flyway migration이 함께 사용하며, `DB_RUNTIME_*`, `DB_MIGRATOR_*`, 계정 초기화 스크립트는 배포 파일에서 제외한다. 이는 1인 운영의 설정·이관 복잡도를 줄이는 대신 애플리케이션이 schema 변경 권한을 갖는 trade-off를 명시적으로 수용하는 결정이다.
 

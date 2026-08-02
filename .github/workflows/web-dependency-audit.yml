@@ -5,12 +5,17 @@ on:
     - cron: "17 3 * * 1"
   workflow_dispatch:
 
+concurrency:
+  group: web-dependency-audit
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   audit-web:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: 코드 체크아웃
@@ -30,7 +35,3 @@ jobs:
       - name: 프로덕션 의존성 보안 감사
         working-directory: apps/web
         run: npm audit --omit=dev --audit-level=high --legacy-peer-deps
-
-      - name: 프로덕션 의존성 업데이트 보고
-        working-directory: apps/web
-        run: npm outdated --omit=dev --legacy-peer-deps || true

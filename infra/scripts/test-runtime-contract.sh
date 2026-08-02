@@ -52,6 +52,9 @@ for name in ("app", "db", "redis"):
     if services[name].get("restart") != "unless-stopped":
         fail(f"{name} must use restart: unless-stopped")
 
+if services["redis"].get("image") != "redis:6-alpine":
+    fail("redis must use the reviewed major-version image, not a floating latest tag")
+
 for name in ("app", "db", "redis"):
     logging = services[name].get("logging", {})
     if logging.get("driver") != "json-file":

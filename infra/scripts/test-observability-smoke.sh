@@ -18,7 +18,7 @@ grafana_user="${GRAFANA_ADMIN_USER:-}"
 grafana_password="${GRAFANA_ADMIN_PASSWORD:-}"
 grafana_prometheus_uid=""
 grafana_loki_uid=""
-timeout_seconds="${OBSERVABILITY_SMOKE_TIMEOUT_SECONDS:-120}"
+timeout_seconds="${OBSERVABILITY_SMOKE_TIMEOUT_SECONDS:-45}"
 http_timeout_seconds="${OBSERVABILITY_SMOKE_HTTP_TIMEOUT_SECONDS:-5}"
 marker_container=""
 temporary_dir="$(mktemp -d)"
@@ -80,6 +80,7 @@ is_positive_integer "${http_timeout_seconds}" || fail "OBSERVABILITY_SMOKE_HTTP_
 [ -n "${grafana_password}" ] || fail "GRAFANA_ADMIN_PASSWORD is required for datasource API checks"
 
 deadline=$((SECONDS + timeout_seconds))
+marker_lifetime_seconds=$((timeout_seconds + http_timeout_seconds + 10))
 
 escape_curl_config_value() {
   local value="$1"
@@ -332,7 +333,7 @@ run_with_smoke_deadline docker run -d \
   --log-opt max-file=5 \
   --entrypoint /bin/sh \
   "${probe_image}" \
-  -c "printf '%s\\n' '${marker_text}'; sleep 30" \
+  -c "printf '%s\\n' '${marker_text}'; sleep ${marker_lifetime_seconds}" \
   >/dev/null \
   || fail "could not start the Docker JSON marker container"
 

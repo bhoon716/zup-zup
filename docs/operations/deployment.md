@@ -101,16 +101,16 @@ checkout SHA
   → one-shot Flyway migrate
   → app start + health wait
   → internal readiness 확인
-  → observability data-plane smoke
+  → best-effort observability data-plane smoke
      (Loki/Alloy/Prometheus readiness, app target up, Grafana datasource/query,
-      Docker JSON → Alloy → Loki marker round-trip)
+      Docker JSON → Alloy → Loki marker round-trip; 실패 시 warning)
   → GHCR logout
   → OCI local DB backup timer는 별도 systemd timer로 매일 실행
 ```
 
 `Prometheus`, `Loki`, `Grafana Alloy`, `Grafana`는 `observability` profile로 계속 실행한다. Prometheus는 앱 Actuator metrics만 수집하고, 로그 수집기는 Promtail이 아니라 Alloy다.
 
-배포 성공은 컨테이너가 실행 중이라는 뜻만으로 결정되지 않는다. `deploy-release.sh`는 앱 readiness 뒤에 제한시간이 있는 `scripts/test-observability-smoke.sh`를 실행한다. 이 smoke가 어느 하나라도 실패하면 배포는 성공으로 종료되지 않으며, 고유 marker를 Docker JSON 로그에 기록한 뒤 Loki 직접 query와 Grafana Loki datasource proxy 양쪽에서 확인한다.
+배포의 hard gate는 migration과 앱 readiness까지다. `deploy-release.sh`는 그 뒤 제한시간이 있는 `scripts/test-observability-smoke.sh`를 실행해 고유 Docker JSON marker를 Loki 직접 query와 Grafana Loki datasource proxy 양쪽에서 확인한다. 관측성 smoke 실패는 로그·metrics 경로의 운영 경고이며 ready 상태의 앱을 중지하거나 배포를 실패시키지 않는다.
 
 healthcheck에 쓰는 정적 BusyBox probe는 Loki·Alloy처럼 운영 이미지에 shell/HTTP client를 포함하지 않는 컨테이너에서도 `/ready`, `/-/ready`를 직접 호출할 수 있도록 one-shot Compose service가 read-only 공유 volume에 준비한다. 운영자가 probe volume을 수동 삭제한 경우에는 다음 명령으로 다시 준비한 뒤 observability profile을 시작한다.
 
@@ -135,6 +135,7 @@ Firebase service-account 파일은 앱 컨테이너 사용자 UID `10001`이 읽
 - staging·Compose 검증·infra 시작·image pull 실패: 기존 app을 중지하지 않고 종료한다.
 - Flyway 실패: app은 중지 상태로 두며 DB 자동 rollback, `clean`, 자동 `repair`를 수행하지 않는다.
 - app start/readiness 실패: 새 app을 중지하고 root `.env`는 변경하지 않는다.
+- observability smoke 실패: warning을 남기고 ready 상태의 app은 계속 실행한다. diagnostics wrapper로 원인을 별도 조사한다.
 - migration 이후 이전 SHA 재배포는 schema 호환성이 확인된 경우에만 수행한다. 이것은 앱 이미지 재배포이지 DB rollback이 아니다.
 - 반복 배포 후 사용하지 않는 SHA 이미지는 운영자가 확인 후 수동 정리한다. 자동 `docker system prune`은 실행하지 않는다.
 
@@ -149,7 +150,7 @@ cd /home/ubuntu/jbnu-sugang-helper
 ```
 
 - 배포 성공: `ps -a`로 앱과 관측성 컨테이너가 실행 중인지 확인하고, `logs`로 최근 앱·Alloy·Loki·Prometheus·Grafana 로그를 함께 확인한다.
-- 배포 실패: readiness·observability 단계에서 멈춘 컨테이너는 `ps -a`와 `logs`로 확인한다. migration은 `run --rm` one-shot이라 실패 컨테이너가 남지 않으므로 정확한 Flyway 오류는 해당 CD/SSH 실행 출력에서 확인하고, wrapper로 현재 앱·관측성 상태를 별도로 확인한다. staging 또는 Compose 검증 단계에서 실패했다면 현재 release root의 이전 정상 상태가 표시될 수 있으며, 최초 배포처럼 wrapper가 아직 없는 경우에는 CD/SSH 출력이 진단 경로다.
+- 배포 실패: readiness 단계에서 멈춘 컨테이너는 `ps -a`와 `logs`로 확인한다. migration은 `run --rm` one-shot이라 실패 컨테이너가 남지 않으므로 정확한 Flyway 오류는 해당 CD/SSH 실행 출력에서 확인한다. observability warning은 배포 실패가 아니므로 실행 중인 앱을 유지한 채 wrapper로 관측성 상태를 확인한다. staging 또는 Compose 검증 단계에서 실패했다면 현재 release root의 이전 정상 상태가 표시될 수 있다.
 - 재시도: CD/SSH 출력에서 실패 원인을 확인한 뒤 같은 두 명령으로 현재 상태를 다시 확인하고, 수동 SHA 배포를 재실행한다. 명령에 배포별 임시 파일 이름을 넣지 않는다.
 
 현재 실행 중인 로그 검색은 Grafana를 SSH tunnel로 연다.
