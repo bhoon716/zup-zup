@@ -9,9 +9,11 @@ import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class NotificationProviderResilienceTest {
@@ -89,6 +91,25 @@ class NotificationProviderResilienceTest {
                 .tag("provider", "WEB").tag("status", "404").counter().count()).isEqualTo(2);
         assertThat(meterRegistry.get("notification.provider.failures")
                 .tag("provider", "WEB").tag("classification", "permanent").counter().count()).isEqualTo(2);
+    }
+
+    @Test
+    void propagatesCorrelationIdToProviderTaskAndClearsWorkerContext() {
+        AtomicReference<String> observedCorrelationId = new AtomicReference<>();
+        AtomicReference<String> leakedWorkerValue = new AtomicReference<>();
+
+        MDC.put("correlationId", "request-123");
+        resilience.execute(NotificationChannel.EMAIL, () -> {
+            observedCorrelationId.set(MDC.get("correlationId"));
+            MDC.put("worker-only", "must-be-cleared");
+        });
+        MDC.clear();
+
+        resilience.execute(NotificationChannel.EMAIL,
+                () -> leakedWorkerValue.set(MDC.get("worker-only")));
+
+        org.assertj.core.api.Assertions.assertThat(observedCorrelationId).hasValue("request-123");
+        org.assertj.core.api.Assertions.assertThat(leakedWorkerValue.get()).isNull();
     }
 
     private void sleep(Duration duration) {

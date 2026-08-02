@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bhoon.sugang_helper.common.health.HealthController;
 import java.util.Properties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,9 +26,11 @@ import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServic
 import org.springframework.boot.autoconfigure.session.SessionAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.MultipartAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -37,6 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = RedisReadinessHealthTest.TestApplication.class)
 @AutoConfigureMockMvc
+@Import(HealthController.class)
 @TestPropertySource(properties = {
         "management.endpoint.health.probes.enabled=true",
         "management.endpoint.health.group.readiness.include=readinessState,redis",
@@ -64,6 +68,11 @@ class RedisReadinessHealthTest {
         mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.status").value("DOWN"));
+
+        mockMvc.perform(get("/health"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.data.status").value("DOWN"))
+                .andExpect(jsonPath("$.data.details").doesNotExist());
     }
 
     @Test
@@ -83,6 +92,10 @@ class RedisReadinessHealthTest {
         mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"));
+
+        mockMvc.perform(get("/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("UP"));
     }
 
     @SpringBootConfiguration
@@ -101,6 +114,13 @@ class RedisReadinessHealthTest {
             ErrorMvcAutoConfiguration.class
     })
     static class TestApplication {
+
+        @Bean
+        BuildProperties buildProperties() {
+            Properties properties = new Properties();
+            properties.setProperty("version", "test-version");
+            return new BuildProperties(properties);
+        }
 
         @Bean
         RedisConnectionFactory redisConnectionFactory() {

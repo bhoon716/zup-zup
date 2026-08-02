@@ -81,7 +81,7 @@ describe("useDashboardSnapshot hook", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data?.user.name).toBe("홍길동");
+    expect(result.current.data?.user?.name).toBe("홍길동");
     expect(result.current.data?.notifications).toHaveLength(1);
     expect(result.current.data?.primaryTimetable?.name).toBe("대표 시간표");
     expect(result.current.data?.upcomingSchedules).toHaveLength(1);

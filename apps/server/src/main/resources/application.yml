@@ -164,6 +164,11 @@ jbnu:
     stale-threshold-minutes: ${JBNU_CRAWLER_STALE_THRESHOLD_MINUTES:15}
     default-year: ${JBNU_CRAWLER_DEFAULT_YEAR:2026}
     default-semester: ${JBNU_CRAWLER_DEFAULT_SEMESTER:U211600010}
+  slack:
+    webhook-url: ${JBNU_SLACK_WEBHOOK_URL:}
+    environment: ${JBNU_SLACK_ENVIRONMENT:DEV}
+    cooldown-seconds: ${JBNU_SLACK_ALERT_COOLDOWN_SECONDS:60}
+    timeout-ms: ${JBNU_SLACK_TIMEOUT_MS:2000}
 
 management:
   endpoints:

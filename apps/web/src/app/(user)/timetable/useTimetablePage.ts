@@ -13,6 +13,7 @@ import {
 } from "@/features/timetable/hooks/useTimetable";
 import { useWishlist } from "@/features/wishlist/hooks/useWishlist";
 import { formatDayOfWeek } from "@/shared/lib/formatters";
+import { reportClientError } from "@/shared/telemetry/client-error";
 import type {
   Course,
   CourseClassification,
@@ -141,7 +142,7 @@ export const useTimetablePage = () => {
       link.click();
       toast.success("시간표 이미지가 저장되었습니다.");
     } catch (error) {
-      console.error("Export failed:", error);
+      reportClientError(error, { source: "timetable", operation: "export-image" });
       toast.error("이미지 저장에 실패했습니다.");
     }
   };

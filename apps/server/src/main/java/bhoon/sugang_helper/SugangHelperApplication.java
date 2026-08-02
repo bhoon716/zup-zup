@@ -1,5 +1,6 @@
 package bhoon.sugang_helper;
 
+import bhoon.sugang_helper.common.alert.SlackAlertProperties;
 import bhoon.sugang_helper.common.config.NotificationProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,7 +12,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableAsync
 @EnableScheduling
 @EnableJpaAuditing
-    @EnableConfigurationProperties(NotificationProperties.class)
+    @EnableConfigurationProperties({NotificationProperties.class, SlackAlertProperties.class})
     @SpringBootApplication
 public class SugangHelperApplication {
 

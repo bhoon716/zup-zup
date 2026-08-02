@@ -19,6 +19,7 @@ import {
   verifyEmail,
   sendTestNotification,
 } from "@/features/user/api/user.api";
+import { reportClientError } from "@/shared/telemetry/client-error";
 
 const settingsSchema = z.object({
   notificationEmail: z.string().email("유효한 이메일 주소를 입력해 주세요.").or(z.literal("")),
@@ -119,7 +120,7 @@ export const useSettingsPage = () => {
 
         setDevices(deviceRes.data);
       } catch (error) {
-        console.error("Failed to fetch profile:", error);
+        reportClientError(error, { source: "settings", operation: "fetch-profile" });
         toast.error("프로필 정보를 불러오는데 실패했습니다.");
       } finally {
         setLoading(false);
@@ -232,7 +233,7 @@ export const useSettingsPage = () => {
         toast.success("현재 기기가 등록되었습니다.");
       }
     } catch (error: unknown) {
-      console.error("Failed to register device:", error);
+      reportClientError(error, { source: "settings", operation: "register-device" });
       toast.error(getErrorMessage(error, "기기 등록 중 오류가 발생했습니다. 메세지: " + (error instanceof Error ? error.message : "알 수 없음")));
     }
   };
@@ -278,7 +279,7 @@ export const useSettingsPage = () => {
       });
       setAuthCode("");
     } catch (error: unknown) {
-      console.error("Failed to update settings:", error);
+      reportClientError(error, { source: "settings", operation: "update" });
       toast.error(getErrorMessage(error, "설정 저장에 실패했습니다."));
     } finally {
       setIsSubmitting(false);

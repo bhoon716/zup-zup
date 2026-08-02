@@ -142,7 +142,7 @@ Outbox worker는 기본 8개 thread와 32개 bounded queue로 FIFO claim을 병�
 
 ## Observability durability and alert route (ISSUE-099)
 
-현재 minimal runtime은 앱 Actuator metrics용 Prometheus와 Loki·Alloy·Grafana를 `observability` profile로 실행한다. Alloy는 Docker JSON 로그와 호스트 로그를 Loki에 전송하고, Loki는 `/var/lib/jbnu-sugang-helper/loki`에 30일 보존한다. Prometheus는 `/var/lib/jbnu-sugang-helper/prometheus`에 짧은 기간 보존하며 Grafana dashboard에서 확인한다. `infra/scripts/test-observability-contract.sh`는 해당 설정·volume·수집 경로를 검증한다. host exporter·cAdvisor·Alertmanager webhook은 포함하지 않는다.
+현재 minimal runtime은 앱 Actuator metrics용 Prometheus와 Loki·Alloy·Grafana를 `observability` profile로 실행한다. Alloy는 `/var/run/docker.sock`을 읽기 전용으로 사용해 `loki.source.docker`로 Docker JSON container log를 읽고 Loki로 전송한다. host log file을 수집하는 별도 pipeline은 없다. Alloy는 Compose service를 `service`와 `job` label로 보존하고, Grafana Loki dashboard는 `label_values(job)` 변수와 `{job="app"}` 같은 LogQL selector로 검색한다. Loki는 `/var/lib/jbnu-sugang-helper/loki`에 30일 보존한다. Prometheus는 `/var/lib/jbnu-sugang-helper/prometheus`에 짧은 기간 보존하며 Grafana dashboard에서 확인한다. `infra/scripts/test-observability-contract.sh`는 해당 설정·volume·수집 경로를 검증한다. host exporter·cAdvisor·Alertmanager webhook은 포함하지 않는다.
 
 ## Single-host resource limits (ISSUE-101)
 

@@ -17,6 +17,7 @@ IMAGE_TAG=<40자리 commit SHA>
 - `SERVER_DOTENV`는 앱 전용 `apps/server/.env` 내용이며 배포 시 `APP_ENV`에 설치한다.
 - root `.env`에는 Compose용 DB·Redis·named volume(`DB_VOLUME_NAME`, `REDIS_VOLUME_NAME`)·image·Firebase·관측 경로를 저장한다. 실제 secret은 Ubuntu 운영 파일에만 둔다.
 - `apps/server/.env`에는 앱 전용 설정·secret만 저장한다.
+- Slack 장애 알림은 앱이 Incoming Webhook으로 직접 전송한다. `JBNU_SLACK_WEBHOOK_URL`은 환경별 전용 채널 webhook을 사용하고, `JBNU_SLACK_ENVIRONMENT`, `JBNU_SLACK_ALERT_COOLDOWN_SECONDS`, `JBNU_SLACK_TIMEOUT_MS`를 함께 `SERVER_DOTENV`에 둔다. Slack webhook URL은 저장소에 커밋하지 않는다.
 - MySQL은 기존 `root` 계정을 앱과 one-shot Flyway migration이 함께 사용한다. 별도 runtime/migrator 계정이나 DB 권한 bootstrap은 수행하지 않는다.
 - 앱 rollback은 이전 SHA를 같은 수동 배포 workflow에 입력하는 방식이다. DB migration은 자동 rollback하지 않는다.
 
@@ -92,18 +93,31 @@ checkout SHA
   → release files + apps/server/.env + deploy.sh staging
   → SSH/SCP to Ubuntu
   → transient GITHUB_TOKEN으로 GHCR login
-  → docker compose db/redis/Prometheus/Loki/Alloy/Grafana start
+  → static observability HTTP probe 준비
+  → docker compose db/redis/Prometheus/Loki/Alloy/Grafana start + health wait
   → 기존 NPM을 sugang-helper-runtime network에 연결
   → app image pull
   → 기존 app stop
   → one-shot Flyway migrate
   → app start + health wait
   → internal readiness 확인
+  → observability data-plane smoke
+     (Loki/Alloy/Prometheus readiness, app target up, Grafana datasource/query,
+      Docker JSON → Alloy → Loki marker round-trip)
   → GHCR logout
   → OCI local DB backup timer는 별도 systemd timer로 매일 실행
 ```
 
 `Prometheus`, `Loki`, `Grafana Alloy`, `Grafana`는 `observability` profile로 계속 실행한다. Prometheus는 앱 Actuator metrics만 수집하고, 로그 수집기는 Promtail이 아니라 Alloy다.
+
+배포 성공은 컨테이너가 실행 중이라는 뜻만으로 결정되지 않는다. `deploy-release.sh`는 앱 readiness 뒤에 제한시간이 있는 `scripts/test-observability-smoke.sh`를 실행한다. 이 smoke가 어느 하나라도 실패하면 배포는 성공으로 종료되지 않으며, 고유 marker를 Docker JSON 로그에 기록한 뒤 Loki 직접 query와 Grafana Loki datasource proxy 양쪽에서 확인한다.
+
+healthcheck에 쓰는 정적 BusyBox probe는 Loki·Alloy처럼 운영 이미지에 shell/HTTP client를 포함하지 않는 컨테이너에서도 `/ready`, `/-/ready`를 직접 호출할 수 있도록 one-shot Compose service가 read-only 공유 volume에 준비한다. 운영자가 probe volume을 수동 삭제한 경우에는 다음 명령으로 다시 준비한 뒤 observability profile을 시작한다.
+
+```bash
+./scripts/compose-observability-diagnostics.sh probe
+./scripts/compose-observability-diagnostics.sh start
+```
 
 기존 NPM은 저장소가 관리하지 않는 별도 컨테이너이지만, 배포 script가 새 runtime network가 처음 만들어진 뒤 upstream 컨테이너 이름을 해석할 수 있도록 연결만 보장한다. 이미 연결돼 있으면 아무 작업도 하지 않는다. 수동으로 Compose를 시작하는 경우에는 다음 명령을 사용한다.
 
@@ -126,15 +140,17 @@ Firebase service-account 파일은 앱 컨테이너 사용자 UID `10001`이 읽
 
 ## 5. 수동 명령
 
-현재 상태와 로그 확인:
+배포가 성공했는지, 실패했는지, 같은 SHA로 재시도하기 전인지와 관계없이 아래 wrapper는 배포가 끝난 뒤에도 남아 있는 release root의 `.env`, Compose 파일, `scripts/compose-observability-diagnostics.sh`만 사용한다. wrapper는 현재 release 경로를 진단용 임시 환경에 넣고 명령이 끝나면 즉시 삭제하므로, 배포 중에만 존재하는 임시 환경 파일은 수동 진단 명령의 전제가 아니다.
 
 ```bash
 cd /home/ubuntu/jbnu-sugang-helper
-docker compose --env-file .env --env-file .env.compose \
-  -f docker-compose.yml ps
-docker compose --env-file .env --env-file .env.compose \
-  -f docker-compose.yml logs --tail=100 app
+./scripts/compose-observability-diagnostics.sh ps
+./scripts/compose-observability-diagnostics.sh logs --tail=100 app alloy loki prometheus grafana
 ```
+
+- 배포 성공: `ps -a`로 앱과 관측성 컨테이너가 실행 중인지 확인하고, `logs`로 최근 앱·Alloy·Loki·Prometheus·Grafana 로그를 함께 확인한다.
+- 배포 실패: readiness·observability 단계에서 멈춘 컨테이너는 `ps -a`와 `logs`로 확인한다. migration은 `run --rm` one-shot이라 실패 컨테이너가 남지 않으므로 정확한 Flyway 오류는 해당 CD/SSH 실행 출력에서 확인하고, wrapper로 현재 앱·관측성 상태를 별도로 확인한다. staging 또는 Compose 검증 단계에서 실패했다면 현재 release root의 이전 정상 상태가 표시될 수 있으며, 최초 배포처럼 wrapper가 아직 없는 경우에는 CD/SSH 출력이 진단 경로다.
+- 재시도: CD/SSH 출력에서 실패 원인을 확인한 뒤 같은 두 명령으로 현재 상태를 다시 확인하고, 수동 SHA 배포를 재실행한다. 명령에 배포별 임시 파일 이름을 넣지 않는다.
 
 현재 실행 중인 로그 검색은 Grafana를 SSH tunnel로 연다.
 

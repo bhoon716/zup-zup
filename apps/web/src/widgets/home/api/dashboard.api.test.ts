@@ -10,7 +10,7 @@ const loadModules = async () => {
   const apiModule = await import("@/shared/api/client");
   const dashboardApi = await import("./dashboard.api");
   return {
-    api: apiModule.default as { get: ReturnType<typeof vi.fn> },
+    api: apiModule.default as unknown as { get: ReturnType<typeof vi.fn> },
     dashboardApi,
   };
 };

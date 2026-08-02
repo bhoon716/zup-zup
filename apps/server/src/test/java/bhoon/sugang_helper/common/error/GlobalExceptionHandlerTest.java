@@ -3,6 +3,7 @@ package bhoon.sugang_helper.common.error;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.common.response.ErrorResponse;
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -17,6 +18,152 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 class GlobalExceptionHandlerTest {
+
+    private static final String REQUEST_PATH = "/api/v1/courses";
+    private static final String STACK_TRACE_INCLUDED = "stackTraceIncluded=true";
+
+    @Test
+    void serverErrorLogIncludesThrowableStackTraceAndCorrelationId() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", REQUEST_PATH);
+        Exception exception = new IllegalStateException("internal failure");
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            ResponseEntity<ErrorResponse> response = new GlobalExceptionHandler().handleAny(request, exception);
+
+            assertThat(response.getStatusCode()).isEqualTo(ErrorCode.INTERNAL_ERROR.getStatus());
+            assertThat(appender.list).anySatisfy(event -> {
+                assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+                assertThat(event.getFormattedMessage())
+                        .contains("[API_ERROR] correlationId=" + response.getBody().getCorrelationId());
+                assertThat(event.getThrowableProxy()).isNotNull();
+                assertThat(event.getThrowableProxy().getClassName()).isEqualTo(exception.getClass().getName());
+            });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void repeatedServerErrorsKeepErrorSummaryWithoutRepeatingStackTrace() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", REQUEST_PATH);
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+            handler.handleAny(request, new IllegalStateException("first failure"));
+            handler.handleAny(request, new IllegalStateException("repeated failure"));
+
+            assertThat(appender.list).hasSize(2);
+            assertThat(appender.list.get(0).getThrowableProxy()).isNotNull();
+            assertThat(appender.list.get(1).getThrowableProxy()).isNull();
+            assertThat(appender.list.get(0).getFormattedMessage()).contains(STACK_TRACE_INCLUDED);
+            assertThat(appender.list.get(1).getFormattedMessage()).contains("stackTraceIncluded=false");
+            assertThat(appender.list).allSatisfy(event ->
+                    assertThat(event.getLevel()).isEqualTo(Level.ERROR));
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void differentRootCausesKeepTheirOwnStackTraces() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", REQUEST_PATH);
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+            handler.handleAny(request, new IllegalStateException(
+                    "database failure", new IllegalArgumentException("database")));
+            handler.handleAny(request, new IllegalStateException(
+                    "redis failure", new UnsupportedOperationException("redis")));
+
+            assertThat(appender.list).hasSize(2);
+            assertThat(appender.list).allSatisfy(event -> {
+                assertThat(event.getThrowableProxy()).isNotNull();
+                assertThat(event.getFormattedMessage()).contains(STACK_TRACE_INCLUDED);
+            });
+            assertThat(appender.list.get(0).getThrowableProxy().getCause().getClassName())
+                    .isEqualTo(IllegalArgumentException.class.getName());
+            assertThat(appender.list.get(1).getThrowableProxy().getCause().getClassName())
+                    .isEqualTo(UnsupportedOperationException.class.getName());
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void deeplyDifferentRootCausesKeepTheirOwnStackTraces() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", REQUEST_PATH);
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+            handler.handleAny(request, nestedException(new IllegalArgumentException("database")));
+            handler.handleAny(request, nestedException(new UnsupportedOperationException("redis")));
+
+            assertThat(appender.list).hasSize(2);
+            assertThat(appender.list).allSatisfy(event -> {
+                assertThat(event.getThrowableProxy()).isNotNull();
+                assertThat(event.getFormattedMessage()).contains(STACK_TRACE_INCLUDED);
+            });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void cyclicCauseChainStillLogsStackTrace() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", REQUEST_PATH);
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            IllegalStateException first = new IllegalStateException("first");
+            IllegalStateException second = new IllegalStateException("second");
+            first.initCause(second);
+            second.initCause(first);
+
+            new GlobalExceptionHandler().handleAny(request, first);
+
+            assertThat(appender.list).singleElement().satisfies(event -> {
+                assertThat(event.getThrowableProxy()).isNotNull();
+                assertThat(event.getFormattedMessage()).contains(STACK_TRACE_INCLUDED);
+            });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    private Exception nestedException(Exception rootCause) {
+        Exception exception = rootCause;
+        for (int depth = 0; depth < 9; depth++) {
+            exception = new IllegalStateException("wrapper", exception);
+        }
+        return exception;
+    }
 
     @Test
     void customExceptionDoesNotExposeSecretDetailOrTokenPath() {

@@ -1,5 +1,7 @@
 /** 웹 푸시 관련 유틸 함수 모음. */
 
+import { reportClientError } from "@/shared/telemetry/client-error";
+
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
 
 /** 두 Uint8Array가 동일한지 비교한다. */
@@ -126,7 +128,7 @@ export async function unsubscribeFromPush() {
       return true;
     }
   } catch (error) {
-    console.error("Failed to unsubscribe:", error);
+    reportClientError(error, { source: "web-push", operation: "unsubscribe" });
   }
   return false;
 }

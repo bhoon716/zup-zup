@@ -49,12 +49,15 @@ docker compose --profile migration run --rm migrate validate
 
 ## 로그 검색
 
-운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`만 수집하고, Alloy는 Docker socket을 읽기 전용으로 사용해 Compose 컨테이너의 JSON 로그를 Loki로 전송합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다.
+운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`만 수집하고, Alloy는 Docker socket을 읽기 전용으로 사용해 Compose 컨테이너의 JSON 로그를 Loki로 전송합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다. 배포 후 운영 상태·로그·probe 재준비·관측성 재기동은 release root에 배포되는 `scripts/compose-observability-diagnostics.sh`를 사용하며, 상세 명령은 운영 runbook을 따릅니다.
 
 ```bash
-docker compose --profile observability up -d prometheus loki alloy grafana
+cd /home/ubuntu/jbnu-sugang-helper
+./scripts/compose-observability-diagnostics.sh start
 ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 ```
+
+운영 배포는 위 컨테이너 healthcheck만 기다리지 않고 앱 readiness 뒤에 `scripts/test-observability-smoke.sh`를 실행한다. 이 검증은 Prometheus의 앱 target `up=1`, Grafana Prometheus/Loki datasource health와 proxy query, 그리고 고유 Docker JSON marker의 Alloy→Loki round-trip을 제한시간 안에 확인한다. 수동 재기동에서 probe volume을 삭제했다면 먼저 `./scripts/compose-observability-diagnostics.sh probe`를 실행한다.
 
 현재 Loki는 호스트 filesystem에 30일 retention으로 저장합니다. Object Storage 장기 보존과 복구 rehearsal은 bucket/IAM 계약을 확정한 뒤 별도 운영 이슈로 진행합니다.
 
@@ -68,6 +71,8 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 
 ```bash
 ./scripts/test-runtime-contract.sh
+./scripts/test-observability-contract.sh
+./scripts/test-observability-failure-path.sh
 ./scripts/test-local-compose.sh
 ./scripts/test-redis-auth-state-recovery.sh
 ./scripts/verify-compose-policy.sh docker-compose.yml
@@ -91,13 +96,15 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 4. Docker/Compose와 OCI 기본 `ubuntu` 사용자를 준비하고 `ubuntu`를 Docker 그룹에 추가한다. release root는 `/home/ubuntu/jbnu-sugang-helper`, 배포별 임시 staging은 `/home/ubuntu/jbnu-sugang-helper/.staging/<SHA>`를 사용하므로 별도 `/opt` 권한 bootstrap이나 영구 staging root가 필요 없다. Compose runtime 값은 release root `.env`, 앱 secret은 `apps/server/.env`에 둔다. 상세 명령은 [배포 runbook](../docs/operations/deployment.md)을 따른다. GHCR 인증은 Actions의 단기 `GITHUB_TOKEN`을 배포 시에만 사용하며 서버에 read-only token 파일을 보관하지 않는다.
 5. 기존 NPM이 80/443에서 TLS를 종료하고 새 `sugang-helper-runtime` network에 연결되어 앱·Grafana upstream을 찾는지 확인한다. 필요하면 최초 연결 때 `docker network connect sugang-helper-runtime sugang-helper-npm`을 실행한다. NPM 설정·인증서는 저장소나 앱 CD에서 수정하지 않는다.
 6. DuckDNS hostname과 OCI reserved IP가 일치하는지 확인한다.
-7. `curl https://<API_HOST>/health`와 외부 uptime provider로 공개 health endpoint를 확인한다.
+7. `curl https://<API_HOST>/health`와 외부 uptime provider로 공개 dependency-aware readiness endpoint를 확인한다.
+
+공개 `/health`는 내부 actuator readiness(`DB·Redis`)를 민감정보 없이 반영하며, 의존성 장애 시 HTTP 503과 `data.status=DOWN`을 반환한다. 프로세스 생존만 확인해야 하는 경우에는 외부에 노출하지 않은 management port의 `http://127.0.0.1:8081/actuator/health/liveness`를 사용하고, 배포·Compose healthcheck와 Prometheus는 `http://127.0.0.1:8081/actuator/health/readiness`를 사용한다.
 
 세부적인 staging 전송, Flyway migrate, 수동 SHA 재배포, cutover, 서버 교체 절차는 runbook을 그대로 따른다. 배포 script는 Ubuntu SSH로 직접 실행하며 `/usr/local/sbin` wrapper나 sudoers 파일은 사용하지 않는다.
 
 ## 외부 uptime monitor
 
-`https://<API_HOST>/health`를 60초마다 확인하고 2회 연속 실패와 복구를 이메일로 알리도록 provider를 설정합니다. 응답에는 secret이나 DB 오류 세부정보를 넣지 않습니다. provider token·수신 주소는 저장소가 아닌 provider secret에 보관합니다. 검증 체크리스트는 [`uptime/README.md`](./uptime/README.md)에 있습니다.
+`https://<API_HOST>/health`를 60초마다 확인하고 2회 연속 실패와 복구를 이메일로 알리도록 provider를 설정합니다. 이 경로는 DB·Redis를 포함한 dependency-aware readiness이며, 장애 시 HTTP 503/`data.status=DOWN`을 반환합니다. 응답에는 secret이나 DB 오류 세부정보를 넣지 않습니다. provider token·수신 주소는 저장소가 아닌 provider secret에 보관합니다. 검증 체크리스트는 [`uptime/README.md`](./uptime/README.md)에 있습니다.
 
 호스트에서 실제 응답과 민감 정보 노출 여부를 확인하려면 다음을 실행합니다.
 

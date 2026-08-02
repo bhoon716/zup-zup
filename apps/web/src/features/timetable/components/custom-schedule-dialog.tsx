@@ -14,6 +14,7 @@ import { TimeTableSelector } from '@/features/course/components/time-table-selec
 import { ScheduleCondition } from '@/shared/types/api';
 import { toEngDayOfWeek } from '@/shared/lib/formatters';
 import { toast } from 'sonner';
+import { reportClientError } from '@/shared/telemetry/client-error';
 
 const schema = z.object({
   title: z.string().min(1, '과목명(일정 제목)을 입력해주세요.'),
@@ -85,7 +86,7 @@ export function CustomScheduleDialog({ timetableId, open, onOpenChange }: Custom
       });
       handleDialogOpenChange(false);
     } catch (error) {
-      console.error('Failed to add custom schedules:', error);
+      reportClientError(error, { source: "custom-schedule", operation: "add" });
     }
   };
 

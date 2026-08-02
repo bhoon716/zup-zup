@@ -1,5 +1,10 @@
 package bhoon.sugang_helper.crawling.application;
 
+import bhoon.sugang_helper.common.alert.SlackAlertCategory;
+import bhoon.sugang_helper.common.alert.SlackAlertService;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.crawling.domain.CrawlerFailureStage;
 import bhoon.sugang_helper.crawling.domain.CrawlerRunFailure;
 import bhoon.sugang_helper.crawling.domain.CrawlerRunFailureRepository;
@@ -18,6 +23,7 @@ public class CrawlerRunStateService {
 
     private final CrawlerStatusRepository crawlerStatusRepository;
     private final CrawlerRunFailureRepository crawlerRunFailureRepository;
+    private final SlackAlertService slackAlertService;
 
     @Transactional
     public void markSuccess() {
@@ -38,6 +44,18 @@ public class CrawlerRunStateService {
         crawlerStatusRepository.save(status);
         crawlerRunFailureRepository.save(new CrawlerRunFailure(
                 occurredAt, summary.stage(), summary.failureType(), summary.failureMessage()));
+        slackAlertService.alert(alertCategory(stage, exception), SensitiveDataRedactor.failureCode(exception), exception);
+    }
+
+    private SlackAlertCategory alertCategory(CrawlerFailureStage stage, RuntimeException exception) {
+        if (stage == CrawlerFailureStage.PERSIST) {
+            return SlackAlertCategory.DB_PERSIST;
+        }
+        if (exception instanceof CustomException customException
+                && customException.getErrorCode() == ErrorCode.CRAWLER_PARSING_ERROR) {
+            return SlackAlertCategory.CRAWLER_PARSE;
+        }
+        return SlackAlertCategory.CRAWLER_FETCH;
     }
 
     @Transactional(readOnly = true)
