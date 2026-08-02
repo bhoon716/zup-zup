@@ -900,8 +900,11 @@ if "type: loki" not in datasource or "isDefault: true" not in datasource:
     fail("Grafana must provision Loki as its default datasource")
 if "type: prometheus" not in datasource or "url: http://prometheus:9090" not in datasource:
     fail("Grafana must provision the internal Prometheus datasource")
-if "uid: prometheus" not in datasource or "uid: loki" not in datasource:
-    fail("Grafana datasources must use stable UIDs for runtime API checks")
+if re.search(r"(?m)^\s+uid:\s*", datasource):
+    fail(
+        "Grafana datasource provisioning must not pin UIDs; existing Grafana databases "
+        "may already have different immutable UIDs"
+    )
 if services["grafana"].get("depends_on", {}).get("prometheus", {}).get("condition") != "service_healthy":
     fail("Grafana must wait for healthy Prometheus")
 
@@ -1063,10 +1066,12 @@ for required in (
     "http://alloy:12345/-/ready",
     "http://prometheus:9090/-/ready",
     "up%7Bjob%3D%22sugang-helper-app%22%7D",
+    "resolve_grafana_datasource_uids",
+    "/api/datasources",
     "/api/datasources/uid/${uid}/health",
-    "/api/datasources/proxy/uid/prometheus/api/v1/query",
+    "/api/datasources/proxy/uid/${grafana_prometheus_uid}/api/v1/query",
     "Docker JSON to Alloy to Loki marker round-trip",
-    "/api/datasources/proxy/uid/loki/loki/api/v1/query_range",
+    "/api/datasources/proxy/uid/${grafana_loki_uid}/loki/api/v1/query_range",
     "--label com.docker.compose.service=observability-smoke",
     "parse_loki_marker",
     "docker rm -f",
@@ -1081,6 +1086,8 @@ for forbidden in (
     "--insecure",
     "sleep 3600",
     '--user "${grafana_user}:${grafana_password}"',
+    "/api/datasources/proxy/uid/prometheus/",
+    "/api/datasources/proxy/uid/loki/",
 ):
     if forbidden in smoke:
         fail(f"observability smoke must not weaken TLS verification or run unbounded: {forbidden}")
