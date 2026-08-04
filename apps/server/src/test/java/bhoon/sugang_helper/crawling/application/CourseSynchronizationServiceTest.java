@@ -71,6 +71,20 @@ class CourseSynchronizationServiceTest {
     }
 
     @Test
+    @DisplayName("유효 허용 인원이 찬 과목은 전체 수강인원이 줄어도 여석 이벤트를 발행하지 않는다")
+    void allowedEnrollmentFull_DoesNotPublishSeatOpenedEvent() {
+        Course existing = createCourse("함운철", 60, 60);
+        ParsedCourseDto crawled = createDto("함운철", 18, 59);
+        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
+
+        synchronizationService.synchronize(List.of(crawled));
+
+        verifyNoInteractions(eventPublisher);
+        verify(courseSeatHistoryRepository).saveAll(any());
+        verify(crawlerRunStateService).markSuccess();
+    }
+
+    @Test
     @DisplayName("도메인 저장 실패 시 성공 상태를 기록하지 않는다")
     void domainWriteFailure_DoesNotMarkSuccess() {
         ParsedCourseDto crawled = createDto("김교수", 50, 20);

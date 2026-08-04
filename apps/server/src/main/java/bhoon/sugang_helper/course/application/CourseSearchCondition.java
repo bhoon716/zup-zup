@@ -18,8 +18,10 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.util.List;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -33,6 +35,11 @@ import lombok.ToString;
 @ToString
 @Schema(description = "과목 검색 조건 DTO")
 public class CourseSearchCondition {
+
+    private static final String DEFAULT_SORT_BY = "popular";
+    private static final Set<String> WISHLIST_SORT_ALIASES = Set.of(
+            "wishlist", "wishlistcount", "wishlist_count", "wished");
+
     @Schema(description = "과목명", example = "우리생활과화학")
     @Size(max = 100)
     private String name;
@@ -132,9 +139,9 @@ public class CourseSearchCondition {
     @Size(max = 20)
     private String disclosure;
 
-    @Schema(description = "정렬 기준", example = "recommended")
+    @Schema(description = "정렬 기준", example = "popular")
     @Pattern(regexp = "name|popular|rating|current|available")
-    private String sortBy;
+    private String sortBy = DEFAULT_SORT_BY;
 
     @Schema(description = "정렬 순서", example = "asc")
     @Pattern(regexp = "asc|desc")
@@ -182,7 +189,7 @@ public class CourseSearchCondition {
         this.minCredits = minCredits;
         this.targetGrades = targetGrades;
         this.disclosure = disclosure;
-        this.sortBy = sortBy == null ? "popular" : sortBy;
+        this.sortBy = normalizeSortBy(sortBy);
         this.sortOrder = sortOrder == null ? "desc" : sortOrder;
         this.userId = userId;
     }
@@ -220,10 +227,14 @@ public class CourseSearchCondition {
                 .minCredits(minCredits)
                 .targetGrades(targetGrades)
                 .disclosure(disclosure)
-                .sortBy(sortBy == null ? "popular" : sortBy)
+                .sortBy(sortBy)
                 .sortOrder(sortOrder == null ? "desc" : sortOrder)
                 .userId(userId)
                 .build();
+    }
+
+    public void setSortBy(String sortBy) {
+        this.sortBy = normalizeSortBy(sortBy);
     }
 
     public void validateSearchValues() {
@@ -292,5 +303,15 @@ public class CourseSearchCondition {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private String normalizeSortBy(String value) {
+        if (value == null) {
+            return DEFAULT_SORT_BY;
+        }
+        String normalized = value.trim();
+        return WISHLIST_SORT_ALIASES.contains(normalized.toLowerCase(Locale.ROOT))
+                ? DEFAULT_SORT_BY
+                : normalized;
     }
 }

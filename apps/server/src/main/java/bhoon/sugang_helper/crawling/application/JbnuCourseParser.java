@@ -129,6 +129,8 @@ public class JbnuCourseParser {
                 : "N".equalsIgnoreCase(disclosureValue) ? DisclosureStatus.PRIVATE
                 : DisclosureStatus.from(disclosureValue);
         String operation = firstNonBlank(jsonValue(row, "OPNLT_DIVCDNM"), jsonValue(row, "LESSN_OPER_DRC_CN"));
+        int effectiveCapacity = safeParseInt(firstNonBlank(
+                jsonValue(row, "PRM_NMPR_CNT"), jsonValue(row, "ATNLC_PSCP_CNT")));
 
         return new ParsedCourseDto(
                 generateCourseKey(year, semester, subjectCode, classNumber),
@@ -137,7 +139,7 @@ public class JbnuCourseParser {
                 normalizeSubjectName(jsonValue(row, "SBJCT_NM"), classNumber),
                 classNumber,
                 jsonValue(row, "STAFFNM"),
-                safeParseInt(firstNonBlank(jsonValue(row, "ATNLC_PSCP_CNT"), jsonValue(row, "PRM_NMPR_CNT"))),
+                effectiveCapacity,
                 safeParseInt(jsonValue(row, "TLSN_RCNT")),
                 targetGrade,
                 year,
