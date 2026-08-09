@@ -8,6 +8,7 @@ readonly STAGING_ROOT="${RELEASE_ROOT}/.staging"
 readonly RUNTIME_ENV="${RELEASE_ROOT}/.env"
 readonly APP_ENV_FILE="${RELEASE_ROOT}/apps/server/.env"
 readonly PRODUCTION_GOOGLE_REDIRECT_URI="https://www.zup-zup.com/api/login/oauth2/code/google"
+readonly PRODUCTION_DISCORD_REDIRECT_URI="https://www.zup-zup.com/api/v1/users/discord/callback"
 
 sha="${1:-}"
 staging_dir="${2:-}"
@@ -45,6 +46,7 @@ read_required_app_env_value() {
 
 validate_app_env_file() {
   local env_file="$1"
+  local discord_redirect_uri
   local google_redirect_uri
   if [ ! -f "${env_file}" ]; then
     fail "staging apps/server/.env is missing"
@@ -54,6 +56,12 @@ validate_app_env_file() {
   google_redirect_uri="$(read_required_app_env_value "${env_file}" GOOGLE_REDIRECT_URI)"
   if [ "${google_redirect_uri}" != "${PRODUCTION_GOOGLE_REDIRECT_URI}" ]; then
     fail "GOOGLE_REDIRECT_URI must match the production browser callback"
+  fi
+  read_required_app_env_value "${env_file}" DISCORD_CLIENT_ID >/dev/null
+  read_required_app_env_value "${env_file}" DISCORD_CLIENT_SECRET >/dev/null
+  discord_redirect_uri="$(read_required_app_env_value "${env_file}" DISCORD_REDIRECT_URI)"
+  if [ "${discord_redirect_uri}" != "${PRODUCTION_DISCORD_REDIRECT_URI}" ]; then
+    fail "DISCORD_REDIRECT_URI must match the production browser callback"
   fi
 }
 

@@ -57,19 +57,20 @@ export const getAppQueryClient = () => {
  */
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!isLoading && user && !user.onboardingCompleted) {
+    if (!isLoading && isAuthenticated && user && !user.onboardingCompleted) {
       if (pathname !== "/onboarding") {
         router.replace("/onboarding");
       }
     }
-  }, [user, isLoading, pathname, router]);
+  }, [user, isAuthenticated, isLoading, pathname, router]);
 
-  if (!isLoading && user && !user.onboardingCompleted && pathname !== "/onboarding") {
+  if (!isLoading && isAuthenticated && user && !user.onboardingCompleted && pathname !== "/onboarding") {
     return null;
   }
 
@@ -98,6 +99,15 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       useAuthStore.getState().setUser(null);
     }
+
+    const revalidateRestoredSession = () => {
+      const authState = useAuthStore.getState();
+      if (authState.user && !authState.isAuthenticated) {
+        void authState.checkSession();
+      }
+    };
+    window.addEventListener("focus", revalidateRestoredSession);
+    window.addEventListener("online", revalidateRestoredSession);
 
     // 서비스 워커 등록 (PWA 설치 가능성 확보)
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
@@ -135,6 +145,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return () => {
+      window.removeEventListener("focus", revalidateRestoredSession);
+      window.removeEventListener("online", revalidateRestoredSession);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       }

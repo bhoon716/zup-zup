@@ -9,10 +9,12 @@ import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
 export default function HomePage() {
   const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isAuthLoading = useAuthStore((state) => state.isLoading && !state.user);
-  const { data: snapshot, isLoading, isError } = useDashboardSnapshot({ enabled: Boolean(user) });
+  const verifiedUser = isAuthenticated ? user : null;
+  const { data: snapshot, isLoading, isError } = useDashboardSnapshot({ enabled: isAuthenticated });
 
-  if (isAuthLoading || (user && isLoading)) {
+  if (isAuthLoading || (verifiedUser && isLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fafafa] dark:bg-black">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -20,7 +22,7 @@ export default function HomePage() {
     );
   }
 
-  if (user && isError) {
+  if (verifiedUser && isError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fafafa] dark:bg-black px-4">
         <div className="rounded-3xl border border-red-100 bg-white p-8 text-center shadow-sm">
@@ -41,7 +43,7 @@ export default function HomePage() {
         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: "2s" }} />
       </div>
 
-      {user && snapshot ? <Dashboard snapshot={snapshot} /> : <HomeLanding />}
+      {verifiedUser && snapshot ? <Dashboard snapshot={snapshot} /> : <HomeLanding />}
 
       <footer className="bg-white border-t border-gray-100 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

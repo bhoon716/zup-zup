@@ -34,6 +34,7 @@ export function Header() {
   const mobileMenuTriggerId = "header-mobile-menu-trigger";
   const mobileMenuContentId = "header-mobile-menu-content";
   const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
   const { mutate: logout, isPending } = useLogout();
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
@@ -42,6 +43,10 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const hasMounted = useHasMounted();
   const shouldShowSkeleton = hasMounted ? isLoading && !user : true;
+  const verifiedUser = isAuthenticated ? user : null;
+  const shouldShowUserSkeleton = hasMounted
+    ? (isLoading && !user) || Boolean(user && !isAuthenticated)
+    : true;
 
   if (pathname === "/onboarding") {
     return null;
@@ -68,7 +73,7 @@ export function Header() {
             <NavLinks 
               isLoading={shouldShowSkeleton}
               isLoggedIn={hasMounted ? !!user : false} 
-              isAdmin={hasMounted ? user?.role === "ADMIN" : false} 
+              isAdmin={hasMounted ? verifiedUser?.role === "ADMIN" : false}
               onGuardedAction={handleGuardedAction} 
             />
           </nav>
@@ -87,8 +92,8 @@ export function Header() {
 
           <div className="hidden md:flex items-center gap-3">
             <HeaderDesktopUser 
-              user={hasMounted ? user : undefined} 
-              isLoading={hasMounted ? isLoading && !user : true}
+              user={hasMounted && (isAuthenticated || !user) ? verifiedUser : undefined}
+              isLoading={shouldShowUserSkeleton}
               isPending={isPending} 
               onLogout={() => logout()} 
               onLoginClick={closeMenu}
@@ -119,8 +124,8 @@ export function Header() {
                 <div className="flex flex-col gap-2 p-4 flex-1 overflow-y-auto min-h-0">
                   <div className="mb-4 px-2">
                     <HeaderMobileUserStatus 
-                      user={hasMounted ? user : undefined} 
-                      isLoading={hasMounted ? isLoading && !user : true}
+                      user={hasMounted && (isAuthenticated || !user) ? verifiedUser : undefined}
+                      isLoading={shouldShowUserSkeleton}
                       onLinkClick={closeMenu} 
                     />
                   </div>
@@ -144,7 +149,7 @@ export function Header() {
                       isMobile 
                       isLoading={shouldShowSkeleton}
                       isLoggedIn={hasMounted ? !!user : false} 
-                      isAdmin={hasMounted ? user?.role === "ADMIN" : false} 
+                      isAdmin={hasMounted ? verifiedUser?.role === "ADMIN" : false}
                       onGuardedAction={handleGuardedAction} 
                       onLinkClick={closeMenu} 
                     />

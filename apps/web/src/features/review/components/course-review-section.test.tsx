@@ -12,6 +12,7 @@ const { mockAuthState, mockCreateReview, mockUpdateReview, mockToggleEmoji, mock
       name: "테스트",
       role: "USER",
     } as null | { id: number; email: string; name: string; role: string },
+    isAuthenticated: true,
     isLoading: false,
   },
   mockCreateReview: vi.fn(),
@@ -45,6 +46,7 @@ vi.mock("@/features/auth/store/useAuthStore", () => ({
   useAuthStore: (
     selector: (state: {
       user: null | { id: number; email: string; name: string; role: string };
+      isAuthenticated: boolean;
       isLoading: boolean;
       setLoginModalOpen: (open: boolean) => void;
     }) => unknown
@@ -67,6 +69,7 @@ describe("CourseReviewSection", () => {
       role: "USER",
     };
     mockAuthState.isLoading = false;
+    mockAuthState.isAuthenticated = true;
 
     vi.mocked(reviewHooks.useCreateReview).mockReturnValue({
       mutate: mockCreateReview,
@@ -291,6 +294,27 @@ describe("CourseReviewSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
 
     expect(mockSetLoginModalOpen).toHaveBeenCalledWith(true);
+    expect(mockToggleEmoji).not.toHaveBeenCalled();
+  });
+
+  it("복원된 미검증 사용자에게는 리뷰 변경 동작을 활성화하지 않는다", () => {
+    mockAuthState.isAuthenticated = false;
+
+    render(
+      <CourseReviewSection
+        courseKey="TEST-COURSE"
+        reviewScopeKey={REVIEW_SCOPE_KEY}
+        averageRating={4.2}
+        reviewCount={13}
+      />
+    );
+
+    const addEmojiButton = screen.getByRole("button", { name: "이모지 추가" });
+    expect(addEmojiButton).toBeDisabled();
+    fireEvent.click(addEmojiButton);
+
+    expect(mockSetLoginModalOpen).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("emoji-picker")).not.toBeInTheDocument();
     expect(mockToggleEmoji).not.toHaveBeenCalled();
   });
 

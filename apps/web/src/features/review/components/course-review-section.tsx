@@ -51,7 +51,11 @@ export function CourseReviewSection({
   const { data: emojiStats, status: emojiStatus } = useCourseEmojis(reviewScopeKey, courseKey);
   const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(reviewScopeKey, courseKey);
   const user = useAuthStore((state) => state.user);
-  const isUserLoading = useAuthStore((state) => state.isLoading && !state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isUserLoading = useAuthStore(
+    (state) => (state.isLoading && !state.user) || Boolean(state.user && !state.isAuthenticated)
+  );
+  const verifiedUser = isAuthenticated ? user : null;
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
 
   const [draftRating, setDraftRating] = useState<number | null>(null);
@@ -120,7 +124,7 @@ export function CourseReviewSection({
   };
 
   const handleEmojiToggle = (emoji: string) => {
-    if (!user) {
+    if (!verifiedUser) {
       setLoginModalOpen(true);
       return;
     }
@@ -149,7 +153,7 @@ export function CourseReviewSection({
   };
 
   const handleEmojiPickerOpenChange = (open: boolean) => {
-    if (open && !user) {
+    if (open && !verifiedUser) {
       setLoginModalOpen(true);
       return;
     }
@@ -203,7 +207,7 @@ export function CourseReviewSection({
                 <p className="text-xs text-gray-500 dark:text-gray-400">별점만 남길 수 있습니다.</p>
               </div>
 
-              {user ? (
+              {verifiedUser ? (
                 <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">별점</span>
                   <div className="flex items-center gap-1">

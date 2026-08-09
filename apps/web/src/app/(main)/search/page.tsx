@@ -83,8 +83,10 @@ function MobileKeywordSearch({ initialKeyword, isLoading, onSearch }: MobileKeyw
 export default function SearchPage() {
   const { data: defaultSemester, isLoading: isSemesterLoading } = useSearchDefaultSemester();
   const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isUserLoading = useAuthStore((state) => state.isLoading && !state.user);
-  const skipPersonalFetch = isUserLoading || !user;
+  const verifiedUser = isAuthenticated ? user : null;
+  const skipPersonalFetch = isUserLoading || !verifiedUser;
 
   // 사용자가 변경한 검색 조건
   const [userCondition, setUserCondition] = useState<CourseSearchCondition>({
@@ -407,7 +409,7 @@ export default function SearchPage() {
                 initialCondition={visibleDraftCondition}
                 defaultCondition={resolvedDefaultCondition}
                 hideHeader
-                initialUser={user ?? null}
+                initialUser={verifiedUser ?? null}
                 skipPersonalFetch={skipPersonalFetch}
               />
                 </div>
@@ -433,7 +435,7 @@ export default function SearchPage() {
                 isLoading={isLoading}
                 initialCondition={visibleDraftCondition}
                 defaultCondition={resolvedDefaultCondition}
-                initialUser={user ?? null}
+                initialUser={verifiedUser ?? null}
                 skipPersonalFetch={skipPersonalFetch}
               />
             </div>
@@ -545,7 +547,7 @@ export default function SearchPage() {
                 onLoadMore={fetchNextPage}
                 hasMore={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
-                initialUser={user ?? null}
+                initialUser={verifiedUser ?? null}
                 skipPersonalFetch={skipPersonalFetch}
               />
             )}
