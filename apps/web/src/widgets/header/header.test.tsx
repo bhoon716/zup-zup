@@ -14,6 +14,7 @@ type MockUser = {
 
 type MockAuthStore = {
   user: MockUser | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
   setLoginModalOpen: (open: boolean) => void;
 };
@@ -44,6 +45,7 @@ const {
   mockInstall: vi.fn(),
   mockAuthStore: {
     user: null as MockUser | null,
+    isAuthenticated: false,
     isLoading: false,
     setLoginModalOpen: vi.fn(),
   } as MockAuthStore,
@@ -98,6 +100,7 @@ describe("Header", () => {
     vi.clearAllMocks();
     mockHasMounted.value = true;
     mockAuthStore.user = null;
+    mockAuthStore.isAuthenticated = false;
     mockAuthStore.isLoading = false;
     document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
   });
@@ -117,19 +120,39 @@ describe("Header", () => {
     );
   });
 
-  it("복원된 사용자가 있으면 세션 재검증 중에도 인증 내비게이션을 즉시 표시한다", () => {
+  it("복원된 사용자는 일반 인증 내비게이션만 표시하고 사용자명과 관리자 권한은 숨긴다", () => {
     mockAuthStore.user = {
       id: 1,
       email: "user@test.com",
       name: "사용자",
-      role: "USER",
+      role: "ADMIN",
     };
-    mockAuthStore.isLoading = true;
+    mockAuthStore.isAuthenticated = false;
+    mockAuthStore.isLoading = false;
 
     render(<Header />);
 
     expect(mockNavLinks).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: false, isLoggedIn: true })
+      expect.objectContaining({ isLoading: false, isLoggedIn: true, isAdmin: false })
+    );
+    expect(mockDesktopUser).toHaveBeenCalledWith(
+      expect.objectContaining({ isLoading: true, user: undefined })
+    );
+  });
+
+  it("서버 검증이 완료된 사용자만 사용자명과 관리자 메뉴를 표시한다", () => {
+    mockAuthStore.user = {
+      id: 1,
+      email: "admin@test.com",
+      name: "관리자",
+      role: "ADMIN",
+    };
+    mockAuthStore.isAuthenticated = true;
+
+    render(<Header />);
+
+    expect(mockNavLinks).toHaveBeenCalledWith(
+      expect.objectContaining({ isLoggedIn: true, isAdmin: true })
     );
     expect(mockDesktopUser).toHaveBeenCalledWith(
       expect.objectContaining({ isLoading: false, user: mockAuthStore.user })

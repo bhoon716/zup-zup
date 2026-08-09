@@ -99,6 +99,31 @@ class FlywayMigrationValidationTest {
                 columnName);
     }
 
+    private static void assertAllCourseKeyCollationsMatchCourses(JdbcTemplate jdbcTemplate) {
+        String coursesCollation = columnCollation(jdbcTemplate, COURSES_TABLE_NAME, COURSE_KEY_COLUMN_NAME);
+        Map<String, String> courseKeyCollations = jdbcTemplate.query("""
+                        SELECT TABLE_NAME, COLLATION_NAME
+                        FROM information_schema.columns
+                        WHERE table_schema = DATABASE()
+                          AND column_name = ?
+                        ORDER BY table_name
+                        """,
+                resultSet -> {
+                    Map<String, String> collations = new java.util.LinkedHashMap<>();
+                    while (resultSet.next()) {
+                        collations.put(resultSet.getString("TABLE_NAME"), resultSet.getString("COLLATION_NAME"));
+                    }
+                    return collations;
+                },
+                COURSE_KEY_COLUMN_NAME);
+
+        assertThat(courseKeyCollations).isNotEmpty();
+        assertThat(courseKeyCollations).allSatisfy((tableName, collation) ->
+                assertThat(collation)
+                        .as("%s.%s collation", tableName, COURSE_KEY_COLUMN_NAME)
+                        .isEqualTo(coursesCollation));
+    }
+
     private static String columnNullable(JdbcTemplate jdbcTemplate, String tableName, String columnName) {
         return jdbcTemplate.queryForObject("""
                         SELECT IS_NULLABLE
@@ -160,10 +185,7 @@ class FlywayMigrationValidationTest {
                             FROM courses
                             WHERE course_key = ?
                             """, Integer.class, "2026:U211600010:LONG_DIRECTION:01")).isEqualTo(501);
-            assertThat(columnCollation(jdbcTemplate, "course_emoji_reviews", COURSE_KEY_COLUMN_NAME))
-                    .isEqualTo(columnCollation(jdbcTemplate, COURSES_TABLE_NAME, COURSE_KEY_COLUMN_NAME));
-            assertThat(columnCollation(jdbcTemplate, "course_reviews", COURSE_KEY_COLUMN_NAME))
-                    .isEqualTo(columnCollation(jdbcTemplate, COURSES_TABLE_NAME, COURSE_KEY_COLUMN_NAME));
+            assertAllCourseKeyCollationsMatchCourses(jdbcTemplate);
             assertThat(columnCollation(jdbcTemplate, "course_emoji_reviews", "emoji"))
                     .isEqualTo("utf8mb4_0900_bin");
             jdbcTemplate.update("""
@@ -323,9 +345,9 @@ class FlywayMigrationValidationTest {
                     .locations(MIGRATION_LOCATION)
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(8);
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(9);
             head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("26");
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("27");
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT idempotency_key FROM seat_notification_deliveries WHERE id = ?", String.class, deliveryId))
                     .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
@@ -343,6 +365,7 @@ class FlywayMigrationValidationTest {
             assertThat(tableCount(jdbcTemplate, "crawler_status")).isEqualTo(1);
             assertThat(tableCount(jdbcTemplate, "crawler_run_failures")).isEqualTo(1);
             assertThat(columnNullable(jdbcTemplate, COURSES_TABLE_NAME, "last_crawled_at")).isEqualTo("YES");
+            assertAllCourseKeyCollationsMatchCourses(jdbcTemplate);
         }
     }
 }

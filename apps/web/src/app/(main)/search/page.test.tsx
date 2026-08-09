@@ -25,6 +25,7 @@ const createLocalStorageMock = () => {
 const { mockAuthState, mockCourseTable, mockUseCourses } = vi.hoisted(() => ({
   mockAuthState: {
     user: null as null | { id: number; email: string; name: string; role: string },
+    isAuthenticated: false,
     isLoading: false,
   },
   mockCourseTable: vi.fn(),
@@ -62,6 +63,7 @@ describe("SearchPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthState.user = null;
+    mockAuthState.isAuthenticated = false;
     mockAuthState.isLoading = false;
     Object.defineProperty(window, "localStorage", {
       value: createLocalStorageMock(),
@@ -93,6 +95,7 @@ describe("SearchPage", () => {
       name: "사용자",
       role: "USER",
     };
+    mockAuthState.isAuthenticated = true;
 
     render(<SearchPage />);
 
@@ -100,6 +103,25 @@ describe("SearchPage", () => {
       expect.objectContaining({
         initialUser: mockAuthState.user,
         skipPersonalFetch: false,
+      })
+    );
+  });
+
+  it("복원된 미검증 사용자는 개인화 요청의 사용자 근거로 전달하지 않는다", () => {
+    mockAuthState.user = {
+      id: 1,
+      email: "restored@test.com",
+      name: "복원 사용자",
+      role: "USER",
+    };
+    mockAuthState.isAuthenticated = false;
+
+    render(<SearchPage />);
+
+    expect(mockCourseTable).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialUser: null,
+        skipPersonalFetch: true,
       })
     );
   });

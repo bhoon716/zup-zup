@@ -2,6 +2,7 @@ package bhoon.sugang_helper.course.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import bhoon.sugang_helper.course.application.CourseSearchCondition;
 import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
 import bhoon.sugang_helper.course.domain.CourseRepository;
@@ -13,6 +14,8 @@ import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.PageRequest;
@@ -124,9 +127,10 @@ class CourseRepositoryImplTest {
                 .containsExactly(DS, ALG, OS);
     }
 
-    @Test
-    @DisplayName("찜순 정렬은 wishlist, wishlistCount 별칭을 사용할 때도 찜 수 내림차순으로 정렬한다")
-    void searchCourses_sortsByWishlistAliases() {
+    @ParameterizedTest
+    @ValueSource(strings = {"popular", "wishlist", "wishlistCount", "wishlist_count", "wished"})
+    @DisplayName("찜순 정렬 별칭은 canonical popular로 정규화되어 찜 수 내림차순으로 정렬한다")
+    void searchCourses_sortsByCanonicalizedWishlistAliases(String sortAlias) {
         // given
         saveCourse("CK1", ALG, "김교수", CS);
         saveCourse("CK2", DS, "이교수", CS);
@@ -136,22 +140,19 @@ class CourseRepositoryImplTest {
         saveWishlist(3L, "CK2");
         saveWishlist(4L, "CK2");
 
-        CourseSearchCriteria conditionWishlist = baseCondition()
-                .sortBy("wishlist")
-                .build();
-        CourseSearchCriteria conditionWishlistCount = baseCondition()
-                .sortBy("wishlistCount")
-                .build();
+        CourseSearchCriteria condition = CourseSearchCondition.builder()
+                .academicYear(ACADEMIC_YEAR)
+                .semester(SEMESTER_CODE)
+                .sortBy(sortAlias)
+                .build()
+                .toCriteria(null);
 
         // when
-        var responseWishlist = courseRepository.searchCourses(conditionWishlist, PageRequest.of(0, 10));
-        var responseWishlistCount = courseRepository.searchCourses(conditionWishlistCount, PageRequest.of(0, 10));
+        var response = courseRepository.searchCourses(condition, PageRequest.of(0, 10));
 
         // then
-        assertThat(responseWishlist.getContent())
-                .extracting(Course::getName)
-                .containsExactly(DS, ALG, OS);
-        assertThat(responseWishlistCount.getContent())
+        assertThat(condition.sortBy()).isEqualTo("popular");
+        assertThat(response.getContent())
                 .extracting(Course::getName)
                 .containsExactly(DS, ALG, OS);
     }

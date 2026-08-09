@@ -24,6 +24,7 @@ export const setAccessToken = (token: string | null) => {
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
   skipAuthRefresh?: boolean;
+  silentAuthFailure?: boolean;
 }
 
 interface FailedQueueItem {
@@ -93,7 +94,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         isRefreshing = false;
         processQueue(refreshError);
-        if (isDefinitiveAuthFailure(refreshError)) {
+        if (isDefinitiveAuthFailure(refreshError) && !originalRequest.silentAuthFailure) {
           authFailureHandler?.();
           redirectToLogin();
         }

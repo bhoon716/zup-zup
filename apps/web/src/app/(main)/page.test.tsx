@@ -6,6 +6,7 @@ import HomePage from "./page";
 const { mockAuthState, mockUseDashboardSnapshot } = vi.hoisted(() => ({
   mockAuthState: {
     user: null as null | { id: number; email: string; name: string; role: string },
+    isAuthenticated: false,
     isLoading: false,
   },
   mockUseDashboardSnapshot: vi.fn(),
@@ -31,6 +32,7 @@ describe("HomePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthState.user = null;
+    mockAuthState.isAuthenticated = false;
     mockAuthState.isLoading = false;
     mockUseDashboardSnapshot.mockReturnValue({
       data: null,
@@ -43,5 +45,32 @@ describe("HomePage", () => {
     render(<HomePage />);
 
     expect(mockUseDashboardSnapshot).toHaveBeenCalledWith({ enabled: false });
+  });
+
+  it("복원된 미검증 사용자가 있어도 인증 대시보드 요청을 비활성화한다", () => {
+    mockAuthState.user = {
+      id: 1,
+      email: "restored@test.com",
+      name: "복원 사용자",
+      role: "USER",
+    };
+
+    render(<HomePage />);
+
+    expect(mockUseDashboardSnapshot).toHaveBeenCalledWith({ enabled: false });
+  });
+
+  it("서버 검증된 사용자에게는 인증 대시보드 요청을 활성화한다", () => {
+    mockAuthState.user = {
+      id: 1,
+      email: "verified@test.com",
+      name: "검증 사용자",
+      role: "USER",
+    };
+    mockAuthState.isAuthenticated = true;
+
+    render(<HomePage />);
+
+    expect(mockUseDashboardSnapshot).toHaveBeenCalledWith({ enabled: true });
   });
 });

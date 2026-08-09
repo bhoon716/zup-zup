@@ -31,7 +31,7 @@ class JbnuCourseParserTest {
         assertThat(course.stdtrNo()).isEqualTo("GECO178");
         assertThat(course.courseKey()).isEqualTo("2026:SUSR016.010:0000131925:1");
         assertThat(course.name()).isEqualTo("자료구조");
-        assertThat(course.capacity()).isEqualTo(50);
+        assertThat(course.capacity()).isEqualTo(40);
         assertThat(course.current()).isEqualTo(12);
         assertThat(course.targetGrade()).isEqualTo(TargetGrade.GRADE_3);
         assertThat(course.schedules()).hasSize(1);
@@ -128,6 +128,45 @@ class JbnuCourseParserTest {
 
         assertThat(course.targetGrade()).isEqualTo(TargetGrade.GRADE_3);
         assertThat(course.department()).isEqualTo("컴퓨터공학부");
+    }
+
+    @Test
+    @DisplayName("학년 배분 제한 과목은 전체 정원보다 허용 인원을 유효 정원으로 사용합니다")
+    void parseCourses_usesAllowedEnrollmentAsEffectiveCapacity() {
+        ParsedCourseDto course = parser.parseCourses(jsonResponse("""
+                {
+                  "SBJCT_CD": "0000100522",
+                  "DVCLS_NO": 8,
+                  "YRSA": "2026",
+                  "SEMSTR_CD": "SUSR016.020",
+                  "SBJCT_NM": "공업수학 2",
+                  "STAFFNM": "함운철",
+                  "RLM_DIVCDNM": "균형교양",
+                  "ATNLC_PSCP_CNT": 60,
+                  "PRM_NMPR_CNT": 18,
+                  "TLSN_RCNT": 18
+                }
+                """)).get(0);
+
+        assertThat(course.capacity()).isEqualTo(18);
+        assertThat(course.current()).isEqualTo(18);
+    }
+
+    @Test
+    @DisplayName("허용 인원이 없으면 기존 수강 정원을 사용합니다")
+    void parseCourses_fallsBackToCourseCapacityWhenAllowedEnrollmentIsMissing() {
+        ParsedCourseDto course = parser.parseCourses(jsonResponse("""
+                {
+                  "SBJCT_CD": "A001",
+                  "DVCLS_NO": 1,
+                  "YRSA": "2026",
+                  "SEMSTR_CD": "SUSR016.020",
+                  "ATNLC_PSCP_CNT": 50,
+                  "TLSN_RCNT": 12
+                }
+                """)).get(0);
+
+        assertThat(course.capacity()).isEqualTo(50);
     }
 
     @Test

@@ -68,6 +68,113 @@ describe("shared api client", () => {
     expect(logoutSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("silent bootstrap의 definitive refresh 실패는 로그인 이동 없이 guest로 수렴한다", async () => {
+    const refreshError = Object.assign(new Error("refresh failed"), {
+      response: { status: 401 },
+    });
+    const redirectSpy = vi.fn();
+    const logoutSpy = vi.fn();
+    const responseHandlers: {
+      onRejected?: (error: unknown) => Promise<unknown>;
+    } = {};
+
+    const apiMock = {
+      defaults: { headers: { common: {} as Record<string, unknown> } },
+      interceptors: {
+        response: {
+          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
+            responseHandlers.onRejected = onRejected;
+          },
+        },
+      },
+      post: vi.fn(async (url: string) => {
+        if (url === "/api/auth/refresh") {
+          throw refreshError;
+        }
+
+        return { data: null };
+      }),
+    };
+
+    vi.doMock("axios", () => ({
+      AxiosError: class AxiosError {},
+      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
+      default: {
+        create: () => apiMock,
+      },
+    }));
+
+    vi.doMock("@/shared/lib/navigation", () => ({
+      redirectToLogin: redirectSpy,
+    }));
+
+    const { default: api, registerAuthFailureHandler } = await import("./client");
+    registerAuthFailureHandler(logoutSpy);
+    void api;
+
+    const responseError = {
+      config: { url: "/api/v1/users/me", silentAuthFailure: true },
+      response: { status: 401 },
+    };
+
+    await expect(responseHandlers.onRejected?.(responseError)).rejects.toThrow("refresh failed");
+    expect(redirectSpy).not.toHaveBeenCalled();
+    expect(logoutSpy).not.toHaveBeenCalled();
+  });
+
+  it("silent bootstrap도 유효한 refresh가 있으면 원래 프로필 요청을 재시도한다", async () => {
+    const redirectSpy = vi.fn();
+    const logoutSpy = vi.fn();
+    const responseHandlers: {
+      onRejected?: (error: unknown) => Promise<unknown>;
+    } = {};
+    const retryResponse = { data: { code: "SUCCESS" } };
+    const requestMock = vi.fn(async () => retryResponse);
+    const apiMock = Object.assign(requestMock, {
+      defaults: { headers: { common: {} as Record<string, unknown> } },
+      interceptors: {
+        response: {
+          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
+            responseHandlers.onRejected = onRejected;
+          },
+        },
+      },
+      post: vi.fn(async () => ({ data: null })),
+    });
+
+    vi.doMock("axios", () => ({
+      AxiosError: class AxiosError {},
+      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
+      default: {
+        create: () => apiMock,
+      },
+    }));
+
+    vi.doMock("@/shared/lib/navigation", () => ({
+      redirectToLogin: redirectSpy,
+    }));
+
+    const { default: api, registerAuthFailureHandler } = await import("./client");
+    registerAuthFailureHandler(logoutSpy);
+    void api;
+
+    const originalRequest = { url: "/api/v1/users/me", silentAuthFailure: true };
+    const responseError = {
+      config: originalRequest,
+      response: { status: 401 },
+    };
+
+    await expect(responseHandlers.onRejected?.(responseError)).resolves.toEqual(retryResponse);
+    expect(apiMock.post).toHaveBeenCalledWith("/api/auth/refresh");
+    expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({
+      url: "/api/v1/users/me",
+      silentAuthFailure: true,
+      _retry: true,
+    }));
+    expect(redirectSpy).not.toHaveBeenCalled();
+    expect(logoutSpy).not.toHaveBeenCalled();
+  });
+
   it("refresh의 일시적인 서버 오류에서는 로그인 상태를 제거하거나 이동하지 않는다", async () => {
     const refreshError = Object.assign(new Error("temporarily unavailable"), {
       response: { status: 503 },

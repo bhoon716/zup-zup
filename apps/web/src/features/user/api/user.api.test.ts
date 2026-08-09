@@ -62,6 +62,45 @@ describe("user.api", () => {
     expect(api.get).toHaveBeenCalledTimes(2);
   });
 
+  it("getMyProfile는 bootstrap 요청에서 auth 실패 후속 처리를 억제할 수 있다", async () => {
+    const { api, userApi } = await loadModules();
+    api.get.mockResolvedValue({
+      data: {
+        code: "SUCCESS",
+        message: "ok",
+        data: { id: 1, name: "테스터" },
+      },
+    });
+
+    await userApi.getMyProfile({ silentAuthFailure: true });
+
+    expect(api.get).toHaveBeenCalledWith("/api/v1/users/me", {
+      silentAuthFailure: true,
+    });
+  });
+
+  it("silent bootstrap과 일반 프로필 요청은 서로 다른 실패 정책의 in-flight 요청을 공유하지 않는다", async () => {
+    const { api, userApi } = await loadModules();
+    let resolveRequest!: (value: { data: { code: string; message: string; data: { id: number } } }) => void;
+    const request = new Promise<{ data: { code: string; message: string; data: { id: number } } }>((resolve) => {
+      resolveRequest = resolve;
+    });
+    api.get.mockReturnValue(request);
+
+    const silentRequest = userApi.getMyProfile({ silentAuthFailure: true });
+    const regularRequest = userApi.getMyProfile();
+
+    expect(api.get).toHaveBeenCalledTimes(2);
+    resolveRequest({
+      data: {
+        code: "SUCCESS",
+        message: "ok",
+        data: { id: 1 },
+      },
+    });
+    await Promise.all([silentRequest, regularRequest]);
+  });
+
   it("unregisterDevice는 토큰을 URL이 아닌 요청 본문으로 삭제 요청을 보낸다", async () => {
     const { api, userApi } = await loadModules();
     api.delete.mockResolvedValue({

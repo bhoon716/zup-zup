@@ -5,6 +5,11 @@ import type { User } from '@/shared/types/api';
 import { deleteCookie, IS_LOGGED_IN_COOKIE_NAME } from '@/shared/lib/cookie';
 import { isDefinitiveAuthFailure } from '@/shared/api/auth-error';
 
+const SESSION_CHECK_RETRY_DELAYS_MS = [250, 500] as const;
+
+const waitForSessionRetry = (delayMs: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+
 const getSafeStorage = (): Storage => {
   if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
     try {
@@ -60,35 +65,48 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: get().user === null });
         const requestToken = ++sessionCheckToken;
         sessionCheckPromise = (async () => {
-          try {
-            const response = await userApi.getMyProfile();
-            if (requestToken !== sessionCheckToken) {
-              return;
-            }
-            set({
-              user: response.data,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } catch (error) {
-            if (requestToken !== sessionCheckToken) {
-              return;
-            }
-            if (isDefinitiveAuthFailure(error)) {
+          for (let attempt = 0; attempt <= SESSION_CHECK_RETRY_DELAYS_MS.length; attempt += 1) {
+            try {
+              const response = await userApi.getMyProfile({ silentAuthFailure: true });
+              if (requestToken !== sessionCheckToken) {
+                return;
+              }
               set({
-                user: null,
-                isAuthenticated: false,
+                user: response.data,
+                isAuthenticated: true,
                 isLoading: false,
               });
-            } else {
-              set({ isLoading: false });
-            }
-          } finally {
-            if (requestToken === sessionCheckToken) {
-              sessionCheckPromise = null;
+              return;
+            } catch (error) {
+              if (requestToken !== sessionCheckToken) {
+                return;
+              }
+              if (isDefinitiveAuthFailure(error)) {
+                set({
+                  user: null,
+                  isAuthenticated: false,
+                  isLoading: false,
+                });
+                return;
+              }
+
+              const retryDelay = SESSION_CHECK_RETRY_DELAYS_MS[attempt];
+              if (retryDelay === undefined) {
+                set({ isLoading: false });
+                return;
+              }
+
+              await waitForSessionRetry(retryDelay);
+              if (requestToken !== sessionCheckToken) {
+                return;
+              }
             }
           }
-        })();
+        })().finally(() => {
+          if (requestToken === sessionCheckToken) {
+            sessionCheckPromise = null;
+          }
+        });
 
         return sessionCheckPromise;
       },
@@ -114,7 +132,7 @@ export const useAuthStore = create<AuthState>()(
         return {
           ...currentState,
           user: restoredUser,
-          isAuthenticated: Boolean(restoredUser),
+          isAuthenticated: false,
           isLoading: restoredUser === null,
         };
       },

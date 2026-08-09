@@ -12,12 +12,39 @@ vi.mock("@/features/user/api/user.api", () => ({
 describe("useAuthStore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useAuthStore.persist.clearStorage();
     // Zustand store reset
     useAuthStore.setState({
       user: null,
       isAuthenticated: false,
       isLoading: true,
       isLoginModalOpen: false,
+    });
+  });
+
+  it("persisted 사용자를 복원해도 서버 검증 전에는 인증 완료로 취급하지 않는다", async () => {
+    const restoredUser: User = {
+      id: 1,
+      email: "restored@test.com",
+      name: "복원 사용자",
+      role: "ADMIN",
+      emailEnabled: false,
+      webPushEnabled: false,
+      fcmEnabled: false,
+      discordEnabled: false,
+      onboardingCompleted: false,
+    };
+    await useAuthStore.persist.getOptions().storage?.setItem("auth-storage", {
+      state: { user: restoredUser },
+      version: 0,
+    });
+
+    await useAuthStore.persist.rehydrate();
+
+    expect(useAuthStore.getState()).toMatchObject({
+      user: restoredUser,
+      isAuthenticated: false,
+      isLoading: false,
     });
   });
 
@@ -61,6 +88,7 @@ describe("useAuthStore", () => {
 
     await useAuthStore.getState().checkSession();
 
+    expect(userApi.getMyProfile).toHaveBeenCalledWith({ silentAuthFailure: true });
     const state = useAuthStore.getState();
     expect(state.user).toEqual(user);
     expect(state.isAuthenticated).toBe(true);
@@ -193,36 +221,140 @@ describe("useAuthStore", () => {
     expect(state.isLoading).toBe(false);
   });
 
-  it("일시적인 서버 오류에서는 복원된 사용자 상태를 보존한다", async () => {
-    const user: User = {
-      id: 1,
-      email: "test@test.com",
-      name: "홍길동",
-      role: "USER",
-      emailEnabled: false,
-      webPushEnabled: false,
-      fcmEnabled: false,
-      discordEnabled: false,
-      onboardingCompleted: true,
-    };
-    useAuthStore.setState({ user, isAuthenticated: true, isLoading: false });
-    vi.mocked(userApi.getMyProfile).mockRejectedValue(
-      new AxiosError("Server Error", undefined, undefined, undefined, {
-        status: 503,
-        statusText: "Service Unavailable",
-        headers: {},
-        config: { headers: {} } as never,
-        data: { message: "잠시 후 다시 시도해 주세요." },
-      })
-    );
+  it("일시적인 서버 오류에서는 복원된 사용자를 보존하되 인증 완료로 승격하지 않는다", async () => {
+    vi.useFakeTimers();
+    try {
+      const user: User = {
+        id: 1,
+        email: "test@test.com",
+        name: "홍길동",
+        role: "USER",
+        emailEnabled: false,
+        webPushEnabled: false,
+        fcmEnabled: false,
+        discordEnabled: false,
+        onboardingCompleted: true,
+      };
+      useAuthStore.setState({ user, isAuthenticated: false, isLoading: false });
+      vi.mocked(userApi.getMyProfile).mockRejectedValue(
+        new AxiosError("Server Error", undefined, undefined, undefined, {
+          status: 503,
+          statusText: "Service Unavailable",
+          headers: {},
+          config: { headers: {} } as never,
+          data: { message: "잠시 후 다시 시도해 주세요." },
+        })
+      );
 
-    await useAuthStore.getState().checkSession();
+      const sessionCheck = useAuthStore.getState().checkSession();
+      await vi.advanceTimersByTimeAsync(1_000);
+      await sessionCheck;
 
-    expect(useAuthStore.getState()).toMatchObject({
-      user,
-      isAuthenticated: true,
-      isLoading: false,
-    });
+      expect(userApi.getMyProfile).toHaveBeenCalledTimes(3);
+      expect(useAuthStore.getState()).toMatchObject({
+        user,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("일시적인 서버 오류 후 자동 재시도에서 성공하면 인증 상태를 복구한다", async () => {
+    vi.useFakeTimers();
+    try {
+      const user: User = {
+        id: 1,
+        email: "test@test.com",
+        name: "홍길동",
+        role: "USER",
+        emailEnabled: false,
+        webPushEnabled: false,
+        fcmEnabled: false,
+        discordEnabled: false,
+        onboardingCompleted: true,
+      };
+      useAuthStore.setState({ user, isAuthenticated: false, isLoading: false });
+      vi.mocked(userApi.getMyProfile)
+        .mockRejectedValueOnce(
+          new AxiosError("Server Error", undefined, undefined, undefined, {
+            status: 503,
+            statusText: "Service Unavailable",
+            headers: {},
+            config: { headers: {} } as never,
+            data: { message: "잠시 후 다시 시도해 주세요." },
+          })
+        )
+        .mockResolvedValueOnce({
+          code: "SUCCESS",
+          message: "ok",
+          data: user,
+        } as CommonResponse<User>);
+
+      const sessionCheck = useAuthStore.getState().checkSession();
+      await vi.advanceTimersByTimeAsync(1_000);
+      await sessionCheck;
+
+      expect(userApi.getMyProfile).toHaveBeenCalledTimes(2);
+      expect(useAuthStore.getState()).toMatchObject({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("로그아웃하면 예약된 세션 재시도를 취소한다", async () => {
+    vi.useFakeTimers();
+    try {
+      const user: User = {
+        id: 1,
+        email: "test@test.com",
+        name: "홍길동",
+        role: "USER",
+        emailEnabled: false,
+        webPushEnabled: false,
+        fcmEnabled: false,
+        discordEnabled: false,
+        onboardingCompleted: true,
+      };
+      useAuthStore.setState({ user, isAuthenticated: false, isLoading: false });
+      vi.mocked(userApi.getMyProfile)
+        .mockRejectedValueOnce(
+          new AxiosError("Server Error", undefined, undefined, undefined, {
+            status: 503,
+            statusText: "Service Unavailable",
+            headers: {},
+            config: { headers: {} } as never,
+            data: { message: "잠시 후 다시 시도해 주세요." },
+          })
+        )
+        .mockResolvedValueOnce({
+          code: "SUCCESS",
+          message: "ok",
+          data: user,
+        } as CommonResponse<User>);
+
+      const sessionCheck = useAuthStore.getState().checkSession();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(userApi.getMyProfile).toHaveBeenCalledTimes(1);
+
+      useAuthStore.getState().logout();
+      await vi.advanceTimersByTimeAsync(1_000);
+      await sessionCheck;
+
+      expect(userApi.getMyProfile).toHaveBeenCalledTimes(1);
+      expect(useAuthStore.getState()).toMatchObject({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("logout 호출 시 상태가 초기화된다", () => {

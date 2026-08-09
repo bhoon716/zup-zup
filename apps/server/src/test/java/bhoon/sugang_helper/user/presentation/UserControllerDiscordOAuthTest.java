@@ -40,6 +40,15 @@ class UserControllerDiscordOAuthTest {
     }
 
     @Test
+    void authorizationUsesConfiguredDiscordCallback() {
+        String location = controller.startDiscordAuthorization("/settings", new MockHttpSession())
+                .getHeaders().getFirst("Location");
+
+        assertThat(location).contains(
+                "redirect_uri=https%3A%2F%2Fapi.example.com%2Fapi%2Fv1%2Fusers%2Fdiscord%2Fcallback");
+    }
+
+    @Test
     void rejectsStateFromAnotherSession() {
         MockHttpSession authorizationSession = new MockHttpSession();
         controller.startDiscordAuthorization("/settings", authorizationSession);

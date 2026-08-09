@@ -22,7 +22,14 @@ const {
   const mockReportClientError = vi.fn();
 
   const mockState = {
-    user: null as null | { id: number; email: string; name: string; role: string },
+    user: null as null | {
+      id: number;
+      email: string;
+      name: string;
+      role: string;
+      onboardingCompleted?: boolean;
+    },
+    isAuthenticated: false,
     isLoading: true,
     checkSession: mockCheckSession,
     logout: mockLogout,
@@ -88,6 +95,7 @@ describe("Providers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.user = null;
+    mockState.isAuthenticated = false;
     mockedUseRouter.mockReturnValue({ replace: mockReplace } as never);
     mockGetCookie.mockReturnValue("true");
     getAppQueryClient().clear();
@@ -122,7 +130,7 @@ describe("Providers", () => {
     expect(mockSetUser).not.toHaveBeenCalled();
   });
 
-  it("is_logged_in 쿠키가 없거나 false일 때 세션 부트스트랩을 건너뛰고 setUser(null)을 수행한다", async () => {
+  it("로그인 힌트와 저장된 사용자가 없어도 권위 있는 세션 부트스트랩을 수행한다", async () => {
     mockGetCookie.mockReturnValue(undefined);
     mockedUsePathname.mockReturnValue("/search");
 
@@ -132,8 +140,8 @@ describe("Providers", () => {
       </Providers>
     );
 
-    await waitFor(() => expect(mockSetUser).toHaveBeenCalledWith(null));
-    expect(mockCheckSession).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockCheckSession).toHaveBeenCalledTimes(1));
+    expect(mockSetUser).not.toHaveBeenCalled();
   });
 
   it("로그인 힌트 쿠키가 없어도 저장된 사용자가 있으면 세션을 재검증한다", async () => {
@@ -154,6 +162,71 @@ describe("Providers", () => {
 
     await waitFor(() => expect(mockCheckSession).toHaveBeenCalledTimes(1));
     expect(mockSetUser).not.toHaveBeenCalled();
+  });
+
+  it("복원된 미검증 사용자는 window focus 시 세션을 다시 검증한다", async () => {
+    mockGetCookie.mockReturnValue(undefined);
+    mockState.user = {
+      id: 1,
+      email: "user@test.com",
+      name: "사용자",
+      role: "USER",
+    };
+    mockState.isAuthenticated = false;
+    mockedUsePathname.mockReturnValue("/search");
+
+    render(
+      <Providers>
+        <div>child</div>
+      </Providers>
+    );
+
+    await waitFor(() => expect(mockCheckSession).toHaveBeenCalledTimes(1));
+    window.dispatchEvent(new Event("focus"));
+    await waitFor(() => expect(mockCheckSession).toHaveBeenCalledTimes(2));
+  });
+
+  it("복원된 미검증 사용자의 온보딩 상태만으로 강제 이동하지 않는다", async () => {
+    mockState.user = {
+      id: 1,
+      email: "restored@test.com",
+      name: "복원 사용자",
+      role: "USER",
+      onboardingCompleted: false,
+    };
+    mockState.isAuthenticated = false;
+    mockState.isLoading = false;
+    mockedUsePathname.mockReturnValue("/");
+
+    render(
+      <Providers>
+        <div>public child</div>
+      </Providers>
+    );
+
+    await waitFor(() => expect(mockCheckSession).toHaveBeenCalledTimes(1));
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("서버 검증된 사용자가 온보딩 미완료이면 온보딩으로 이동한다", async () => {
+    mockState.user = {
+      id: 1,
+      email: "verified@test.com",
+      name: "검증 사용자",
+      role: "USER",
+      onboardingCompleted: false,
+    };
+    mockState.isAuthenticated = true;
+    mockState.isLoading = false;
+    mockedUsePathname.mockReturnValue("/");
+
+    render(
+      <Providers>
+        <div>protected child</div>
+      </Providers>
+    );
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/onboarding"));
   });
 
   it("브라우저에서는 QueryClient를 재사용한다", () => {

@@ -87,6 +87,22 @@ CD는 `main` push 또는 `workflow_dispatch(image_tag)`에서 실행한다. 일�
 
 ## 3. 정상 배포 순서
 
+### OAuth provider callback 계약
+
+운영 OAuth callback은 공급자 콘솔, GitHub `SERVER_DOTENV`, 서버 endpoint가 문자 단위로 같아야 한다. 배포 preflight는 아래 production 값만 허용하며 scheme, `www` host, path, port, trailing slash 차이를 모두 거부한다.
+
+| Provider | Production callback |
+| --- | --- |
+| Google | `https://www.zup-zup.com/api/login/oauth2/code/google` |
+| Discord | `https://www.zup-zup.com/api/v1/users/discord/callback` |
+
+Discord callback을 변경하거나 복구할 때는 다음 순서를 따른다.
+
+1. Discord Developer Portal의 대상 application에서 **OAuth2 → Redirects**를 연다.
+2. `https://www.zup-zup.com/api/v1/users/discord/callback`을 정확히 등록하고 저장한다. 과거의 `/api/v1/auth/discord/callback`, `www` 없는 host, trailing slash가 붙은 값은 운영 callback이 아니다.
+3. GitHub Repository secret `SERVER_DOTENV`의 `DISCORD_REDIRECT_URI`도 같은 값인지 확인한다. client secret, authorization code, access token은 출력하거나 문서에 복사하지 않는다.
+4. 배포 후 설정과 온보딩에서 각각 Discord 연동을 실행해 callback 요청과 성공 redirect를 확인한다.
+
 ```text
 checkout SHA
   → main push인 경우 JAR build + ARM64 image push
