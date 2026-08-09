@@ -156,4 +156,24 @@ class SubscriptionServiceTest {
             verify(courseRepository, never()).findByCourseKey(any());
         }
     }
+
+    @Test
+    @DisplayName("내 구독 목록의 중복 courseKey는 기존 강의로 병합한다")
+    void getMySubscriptions_duplicateCourseKey_keepsExistingCourse() {
+        Subscription subscription = Subscription.builder().userId(user.getId()).courseKey("CK1").isActive(true).build();
+        Course replacementCourse = Course.builder().courseKey("CK1").name("Replacement Course")
+                .professor("Replacement Prof").build();
+
+        try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
+            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(user.getEmail());
+            given(userRepository.findByEmail(user.getEmail())).willReturn(Optional.of(user));
+            given(subscriptionRepository.findByUserId(user.getId())).willReturn(List.of(subscription));
+            given(courseRepository.findByCourseKeyIn(List.of("CK1"))).willReturn(List.of(course, replacementCourse));
+
+            List<SubscriptionResponse> responses = subscriptionService.getMySubscriptions();
+
+            assertThat(responses).singleElement().satisfies(response ->
+                    assertThat(response.getCourseName()).isEqualTo("Test Course"));
+        }
+    }
 }
