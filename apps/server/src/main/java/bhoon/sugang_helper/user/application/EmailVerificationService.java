@@ -10,6 +10,7 @@ import jakarta.mail.internet.MimeMessage;
 import java.time.Duration;
 import java.util.Map;
 import java.security.SecureRandom;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,19 +51,26 @@ public class EmailVerificationService {
     }
 
     public void sendCode(Long userId, String email, String clientIp) {
-        if (!acquireSendCooldown(userId, email, clientIp)) {
+        SendCooldownLease cooldownLease = acquireSendCooldown(userId, email, clientIp);
+        if (cooldownLease == null) {
             throw new CustomException(ErrorCode.TOO_MANY_REQUESTS, "인증 코드는 잠시 후 다시 요청할 수 있습니다.");
         }
-        String code = generateCode();
-        String key = getCodeKey(userId, email);
 
-        redisService.setValues(key, code, Duration.ofMinutes(CODE_EXPIRATION_MINUTES));
+        try {
+            String code = generateCode();
+            String key = getCodeKey(userId, email);
 
-        String htmlContent = templateService.loadTemplate("verification_code", Map.of("code", code));
-        sendEmail(email, EMAIL_SUBJECT, htmlContent);
+            redisService.setValues(key, code, Duration.ofMinutes(CODE_EXPIRATION_MINUTES));
 
-        log.info("[EmailVerification] Sent code to user={}, emailMasked={}", userId,
-                SensitiveDataRedactor.maskEmail(email));
+            String htmlContent = templateService.loadTemplate("verification_code", Map.of("code", code));
+            sendEmail(email, EMAIL_SUBJECT, htmlContent);
+
+            log.info("[EmailVerification] Sent code to user={}, emailMasked={}", userId,
+                    SensitiveDataRedactor.maskEmail(email));
+        } catch (RuntimeException exception) {
+            releaseSendCooldown(cooldownLease);
+            throw exception;
+        }
     }
 
     /**
@@ -161,15 +169,64 @@ public class EmailVerificationService {
         return VERIFIED_PREFIX + userId + ":" + email;
     }
 
-    private boolean acquireSendCooldown(Long userId, String email, String clientIp) {
-        boolean userAllowed = redisService.setValuesIfAbsent(SEND_COOLDOWN_PREFIX + "USER:" + userId, "1", SEND_COOLDOWN);
-        boolean emailAllowed = redisService.setValuesIfAbsent(SEND_COOLDOWN_PREFIX + "EMAIL:" + email, "1", SEND_COOLDOWN);
-        boolean ipAllowed = clientIp == null || clientIp.isBlank()
-                || redisService.setValuesIfAbsent(SEND_COOLDOWN_PREFIX + "IP:" + clientIp, "1", SEND_COOLDOWN);
-        return userAllowed && emailAllowed && ipAllowed;
+    private SendCooldownLease acquireSendCooldown(Long userId, String email, String clientIp) {
+        String token = UUID.randomUUID().toString();
+        String userKey = SEND_COOLDOWN_PREFIX + "USER:" + userId;
+        String emailKey = SEND_COOLDOWN_PREFIX + "EMAIL:" + email;
+        String ipKey = clientIp == null || clientIp.isBlank()
+                ? null : SEND_COOLDOWN_PREFIX + "IP:" + clientIp;
+        boolean userAcquired = false;
+        boolean emailAcquired = false;
+        try {
+            userAcquired = redisService.setValuesIfAbsent(userKey, token, SEND_COOLDOWN);
+            if (!userAcquired) {
+                return null;
+            }
+
+            emailAcquired = redisService.setValuesIfAbsent(emailKey, token, SEND_COOLDOWN);
+            if (!emailAcquired) {
+                releaseCooldownKeys(token, userKey);
+                return null;
+            }
+
+            if (ipKey == null || redisService.setValuesIfAbsent(ipKey, token, SEND_COOLDOWN)) {
+                return new SendCooldownLease(token, userKey, emailKey, ipKey);
+            }
+
+            releaseCooldownKeys(token, userKey, emailKey);
+            return null;
+        } catch (RuntimeException exception) {
+            if (emailAcquired) {
+                releaseCooldownKeys(token, userKey, emailKey);
+            } else if (userAcquired) {
+                releaseCooldownKeys(token, userKey);
+            }
+            throw exception;
+        }
+    }
+
+    private void releaseSendCooldown(SendCooldownLease lease) {
+        releaseCooldownKeys(lease.token(), lease.userKey(), lease.emailKey(), lease.ipKey());
+    }
+
+    private void releaseCooldownKeys(String token, String... keys) {
+        for (String key : keys) {
+            if (key == null) {
+                continue;
+            }
+            try {
+                redisService.compareAndDeleteValues(key, token);
+            } catch (RuntimeException exception) {
+                log.warn("[EmailVerification] Cooldown rollback failed. exceptionType={}",
+                        SensitiveDataRedactor.exceptionType(exception));
+            }
+        }
     }
 
     private String getAttemptKey(Long userId, String email) {
         return ATTEMPT_PREFIX + userId + ":" + email;
+    }
+
+    private record SendCooldownLease(String token, String userKey, String emailKey, String ipKey) {
     }
 }

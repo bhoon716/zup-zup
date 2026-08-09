@@ -88,6 +88,8 @@ class EmailVerificationServiceTest {
         assertThatThrownBy(() -> emailVerificationService.sendCode(userId, EMAIL))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_SEND_ERROR);
+        verify(redisService).compareAndDeleteValues(eq("EMAIL_SEND_COOLDOWN:USER:" + userId), anyString());
+        verify(redisService).compareAndDeleteValues(eq("EMAIL_SEND_COOLDOWN:EMAIL:" + EMAIL), anyString());
     }
 
     @Test
@@ -98,6 +100,48 @@ class EmailVerificationServiceTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
         verify(javaMailSender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    @DisplayName("email cooldown 선점 실패 시 먼저 획득한 user cooldown을 롤백한다")
+    void sendCode_RollsBackUserCooldownWhenEmailCooldownIsRejected() {
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class)))
+                .thenReturn(true, false);
+
+        assertThatThrownBy(() -> emailVerificationService.sendCode(1L, EMAIL))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
+
+        verify(redisService).compareAndDeleteValues(eq("EMAIL_SEND_COOLDOWN:USER:1"), anyString());
+        verify(redisService, never()).compareAndDeleteValues(eq("EMAIL_SEND_COOLDOWN:EMAIL:" + EMAIL), anyString());
+    }
+
+    @Test
+    @DisplayName("IP cooldown 선점 실패 시 user와 email cooldown을 롤백한다")
+    void sendCode_RollsBackEarlierCooldownsWhenIpCooldownIsRejected() {
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class)))
+                .thenReturn(true, true, false);
+
+        assertThatThrownBy(() -> emailVerificationService.sendCode(1L, EMAIL, "192.0.2.10"))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
+
+        verify(redisService).compareAndDeleteValues(eq("EMAIL_SEND_COOLDOWN:USER:1"), anyString());
+        verify(redisService).compareAndDeleteValues(eq("EMAIL_SEND_COOLDOWN:EMAIL:" + EMAIL), anyString());
+        verify(redisService, never()).compareAndDeleteValues(eq("EMAIL_SEND_COOLDOWN:IP:192.0.2.10"), anyString());
+    }
+
+    @Test
+    @DisplayName("cooldown 후속 검사 예외 시 선행 user cooldown을 롤백한다")
+    void sendCode_RollsBackUserCooldownWhenEmailCooldownCheckFails() {
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class)))
+                .thenReturn(true)
+                .thenThrow(new IllegalStateException("Redis unavailable"));
+
+        assertThatThrownBy(() -> emailVerificationService.sendCode(1L, EMAIL))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(redisService).compareAndDeleteValues(eq("EMAIL_SEND_COOLDOWN:USER:1"), anyString());
     }
 
     @Test
