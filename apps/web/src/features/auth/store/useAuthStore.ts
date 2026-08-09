@@ -67,7 +67,7 @@ export const useAuthStore = create<AuthState>()(
         sessionCheckPromise = (async () => {
           for (let attempt = 0; attempt <= SESSION_CHECK_RETRY_DELAYS_MS.length; attempt += 1) {
             try {
-              const response = await userApi.getMyProfile();
+              const response = await userApi.getMyProfile({ silentAuthFailure: true });
               if (requestToken !== sessionCheckToken) {
                 return;
               }

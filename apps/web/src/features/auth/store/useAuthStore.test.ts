@@ -88,6 +88,7 @@ describe("useAuthStore", () => {
 
     await useAuthStore.getState().checkSession();
 
+    expect(userApi.getMyProfile).toHaveBeenCalledWith({ silentAuthFailure: true });
     const state = useAuthStore.getState();
     expect(state.user).toEqual(user);
     expect(state.isAuthenticated).toBe(true);

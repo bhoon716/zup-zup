@@ -1,4 +1,5 @@
 import api from "@/shared/api/client";
+import type { AxiosRequestConfig } from "axios";
 import type { CommonResponse, User, UserDeviceRequest, UserUpdateRequest, UserSettingsRequest, OnboardingRequest, EmailRequest, EmailVerificationRequest, UserDeviceResponse } from '@/shared/types/api';
 
 
@@ -26,29 +27,52 @@ export const verifyEmail = async (request: EmailVerificationRequest): Promise<Co
   return data;
 };
 
-let profilePromise: Promise<CommonResponse<User>> | null = null;
+interface MyProfileRequestOptions {
+  silentAuthFailure?: boolean;
+}
+
+type ProfileRequestMode = 'default' | 'silent';
+
+const profilePromises: Record<ProfileRequestMode, Promise<CommonResponse<User>> | null> = {
+  default: null,
+  silent: null,
+};
 
 export const clearMyProfileRequestCache = () => {
-  profilePromise = null;
+  profilePromises.default = null;
+  profilePromises.silent = null;
 };
 
 /**
  * 현재 로그인한 사용자의 프로필 정보를 조회합니다. (중복 호출 방지 로직 포함)
  */
-export const getMyProfile = async (): Promise<CommonResponse<User>> => {
-  if (profilePromise) return profilePromise;
+export const getMyProfile = async (
+  options: MyProfileRequestOptions = {},
+): Promise<CommonResponse<User>> => {
+  const requestMode: ProfileRequestMode = options.silentAuthFailure ? 'silent' : 'default';
+  const activeRequest = profilePromises[requestMode];
+  if (activeRequest) return activeRequest;
 
-  profilePromise = (async () => {
+  const requestPromise = (async () => {
     try {
-      const { data } = await api.get('/api/v1/users/me');
+      const { data } = options.silentAuthFailure
+        ? await api.get('/api/v1/users/me', {
+            silentAuthFailure: true,
+          } as AxiosRequestConfig & { silentAuthFailure: boolean })
+        : await api.get('/api/v1/users/me');
       return data;
     } finally {
       // 짧은 간격의 중복 호출만 합치고 곧바로 해제한다.
-      setTimeout(() => { profilePromise = null; }, 100);
+      setTimeout(() => {
+        if (profilePromises[requestMode] === requestPromise) {
+          profilePromises[requestMode] = null;
+        }
+      }, 100);
     }
   })();
 
-  return profilePromise;
+  profilePromises[requestMode] = requestPromise;
+  return requestPromise;
 };
 
 /**

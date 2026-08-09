@@ -130,7 +130,7 @@ describe("Providers", () => {
     expect(mockSetUser).not.toHaveBeenCalled();
   });
 
-  it("is_logged_in 쿠키가 없거나 false일 때 세션 부트스트랩을 건너뛰고 setUser(null)을 수행한다", async () => {
+  it("로그인 힌트와 저장된 사용자가 없어도 권위 있는 세션 부트스트랩을 수행한다", async () => {
     mockGetCookie.mockReturnValue(undefined);
     mockedUsePathname.mockReturnValue("/search");
 
@@ -140,8 +140,8 @@ describe("Providers", () => {
       </Providers>
     );
 
-    await waitFor(() => expect(mockSetUser).toHaveBeenCalledWith(null));
-    expect(mockCheckSession).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockCheckSession).toHaveBeenCalledTimes(1));
+    expect(mockSetUser).not.toHaveBeenCalled();
   });
 
   it("로그인 힌트 쿠키가 없어도 저장된 사용자가 있으면 세션을 재검증한다", async () => {

@@ -3,7 +3,6 @@
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { registerAuthFailureHandler } from "@/shared/api/client";
 import { getFirebaseApp } from "@/shared/lib/firebase";
-import { getCookie, IS_LOGGED_IN_COOKIE_NAME } from "@/shared/lib/cookie";
 import { resolveAllowedPwaUrl } from "@/shared/lib/pwa-navigation";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, Suspense } from "react";
@@ -91,14 +90,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     // Firebase SDK를 앱 시작 시 한 번 초기화한다.
     getFirebaseApp();
 
-    // 앱 진입 시점마다 세션 상태를 한 번 동기화한다.
-    const hasCookie = getCookie(IS_LOGGED_IN_COOKIE_NAME) === "true";
-    const hasPersistedUser = useAuthStore.getState().user !== null;
-    if (hasCookie || hasPersistedUser) {
-      checkSession();
-    } else {
-      useAuthStore.getState().setUser(null);
-    }
+    // 읽기 가능한 힌트와 무관하게 서버 세션을 한 번 확인한다.
+    void checkSession();
 
     const revalidateRestoredSession = () => {
       const authState = useAuthStore.getState();
