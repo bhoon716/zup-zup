@@ -11,6 +11,7 @@ public class SecurityConstant {
     public static final int REFRESH_TOKEN_COOKIE_MAX_AGE = 14 * 24 * 60 * 60; // 2주
 
     public static final String REDIS_REFRESH_TOKEN_PREFIX = "RT:";
+    public static final String REDIS_REFRESH_TOKEN_REVOCATION_PREFIX = "RTR:";
     public static final String REDIS_BLACKLIST_PREFIX = "BL:";
     public static final String REDIS_USER_ACCESS_REVOCATION_PREFIX = "UA:";
     public static final String LOGOUT_VALUE = "logout";

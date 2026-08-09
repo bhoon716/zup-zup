@@ -178,4 +178,26 @@ class WishlistServiceTest {
         assertThat(result.get(0).courseName()).isEqualTo("Course1");
         assertThat(result.get(1).courseName()).isEqualTo("Course2");
     }
+
+    @Test
+    @DisplayName("내 찜 목록 조회 - 중복 courseKey를 기존 강의로 병합한다")
+    void getMyWishlist_DuplicateCourseKey_KeepsExistingCourse() {
+        User user = mock(User.class);
+        given(user.getId()).willReturn(1L);
+        Wishlist wishlist = Wishlist.builder().userId(1L).courseKey(COURSE_KEY_1).build();
+        Course existingCourse = Course.builder().courseKey(COURSE_KEY_1).name("Existing Course")
+                .capacity(30).current(10).build();
+        Course replacementCourse = Course.builder().courseKey(COURSE_KEY_1).name("Replacement Course")
+                .capacity(30).current(20).build();
+
+        given(SecurityUtil.getCurrentUserEmail()).willReturn(EMAIL);
+        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+        given(wishlistRepository.findByUserId(1L)).willReturn(List.of(wishlist));
+        given(courseRepository.findByCourseKeyIn(anyList())).willReturn(List.of(existingCourse, replacementCourse));
+
+        List<WishlistResponse> result = wishlistService.getMyWishlist();
+
+        assertThat(result).singleElement().satisfies(response ->
+                assertThat(response.courseName()).isEqualTo("Existing Course"));
+    }
 }

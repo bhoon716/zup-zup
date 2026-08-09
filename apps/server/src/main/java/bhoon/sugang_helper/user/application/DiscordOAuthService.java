@@ -2,12 +2,13 @@ package bhoon.sugang_helper.user.application;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import java.time.Duration;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -15,10 +16,34 @@ import org.springframework.web.client.RestClient;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class DiscordOAuthService {
 
-    private final RestClient restClient = RestClient.create("https://discord.com/api");
+    private static final String DISCORD_API_BASE_URL = "https://discord.com/api";
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
+    private final RestClient restClient;
+
+    public DiscordOAuthService() {
+        this(createRestClient());
+    }
+
+    DiscordOAuthService(RestClient restClient) {
+        this.restClient = restClient;
+    }
+
+    static SimpleClientHttpRequestFactory createRequestFactory() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
+        requestFactory.setReadTimeout(READ_TIMEOUT);
+        return requestFactory;
+    }
+
+    private static RestClient createRestClient() {
+        return RestClient.builder()
+                .baseUrl(DISCORD_API_BASE_URL)
+                .requestFactory(createRequestFactory())
+                .build();
+    }
 
     @Value("${app.discord.client-id}")
     private String clientId;

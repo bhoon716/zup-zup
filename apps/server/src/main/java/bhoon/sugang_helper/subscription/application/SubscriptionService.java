@@ -114,7 +114,7 @@ public class SubscriptionService {
                         .distinct()
                         .toList())
                 .stream()
-                .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
+                .collect(Collectors.toMap(Course::getCourseKey, Function.identity(), (existing, replacement) -> existing));
 
         return subscriptions.stream()
                 .map(subscription -> convertToResponse(subscription, coursesByKey.get(subscription.getCourseKey())))

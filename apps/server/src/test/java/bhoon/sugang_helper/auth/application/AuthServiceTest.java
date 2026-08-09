@@ -7,6 +7,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -14,6 +16,7 @@ import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.user.domain.Role;
 import bhoon.sugang_helper.user.domain.User;
@@ -23,6 +26,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -309,7 +315,8 @@ class AuthServiceTest {
         given(jwtProvider.createAccessToken(USER_ID, email, Role.USER.getKey())).willReturn("new-access-token");
         given(jwtProvider.getUserId("new-access-token")).willReturn(USER_ID);
         given(jwtProvider.getAuthentication("new-access-token")).willReturn(authentication);
-        org.mockito.Mockito.doThrow(new IllegalStateException("temporary session store failure"))
+        given(jwtProvider.rollbackRefreshToken(email, refreshToken, "new-refresh-token")).willReturn(true);
+        doThrow(new IllegalStateException("temporary session store failure"))
                 .when(securityContextRepository)
                 .saveContext(org.mockito.ArgumentMatchers.any(), eq(request), eq(response));
 
@@ -317,5 +324,95 @@ class AuthServiceTest {
                 .isInstanceOf(IllegalStateException.class);
 
         verify(response, never()).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
+        verify(jwtProvider).rollbackRefreshToken(email, refreshToken, "new-refresh-token");
+    }
+
+    @Test
+    @DisplayName("회전 후 세션 저장 실패가 이전 refresh registry를 소비하지 않는다")
+    void reissue_whenSessionStoreFails_restoresStatefulRefreshRegistryForRetry() {
+        RedisService statefulRedis = mock(RedisService.class);
+        Map<String, String> registry = new HashMap<>();
+        String redisKey = "RT:" + "test@example.com";
+        org.mockito.Mockito.doAnswer(invocation -> {
+            registry.put(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(statefulRedis).setValues(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
+        given(statefulRedis.getValues(org.mockito.ArgumentMatchers.anyString()))
+                .willAnswer(invocation -> registry.get(invocation.getArgument(0)));
+        given(statefulRedis.compareAndSetValues(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any()))
+                .willAnswer(invocation -> {
+                    String key = invocation.getArgument(0);
+                    String expected = invocation.getArgument(1);
+                    if (!expected.equals(registry.get(key))) {
+                        return false;
+                    }
+                    registry.put(key, invocation.getArgument(2));
+                    return true;
+                });
+
+        JwtProvider statefulJwtProvider = new JwtProvider(statefulRedis);
+        ReflectionTestUtils.setField(statefulJwtProvider, "secretKey",
+                "testSecretKeytestSecretKeytestSecretKeytestSecretKey");
+        ReflectionTestUtils.setField(statefulJwtProvider, "accessTokenExpiration", 1_800_000L);
+        ReflectionTestUtils.setField(statefulJwtProvider, "refreshTokenExpiration", 604_800_000L);
+        statefulJwtProvider.init();
+        AuthService statefulAuthService = new AuthService(statefulJwtProvider, userRepository,
+                securityContextRepository);
+
+        String refreshToken = statefulJwtProvider.createRefreshToken(USER_ID, "test@example.com");
+        String originalRecord = registry.get(redisKey);
+        given(request.getCookies()).willReturn(new Cookie[]{new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken)});
+        User user = User.builder().id(USER_ID).email("test@example.com").role(Role.USER).build();
+        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, "test@example.com"))
+                .willReturn(Optional.of(user));
+        AtomicBoolean failSessionStore = new AtomicBoolean(true);
+        doAnswer(invocation -> {
+            if (failSessionStore.getAndSet(false)) {
+                throw new IllegalStateException("temporary session store failure");
+            }
+            return null;
+        }).when(securityContextRepository).saveContext(org.mockito.ArgumentMatchers.any(), eq(request),
+                eq(response));
+
+        assertThatThrownBy(() -> statefulAuthService.reissue(request, response))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(registry.get(redisKey)).isEqualTo(originalRecord);
+
+        HttpServletResponse retryResponse = mock(HttpServletResponse.class);
+        String accessToken = statefulAuthService.reissue(request, retryResponse);
+
+        assertThat(accessToken).isNotBlank();
+        assertThat(registry.get(redisKey)).isNotEqualTo(originalRecord);
+        verify(retryResponse, times(2)).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
+    }
+
+    @Test
+    @DisplayName("쿠키 발행 실패가 replacement refresh registry를 남기지 않는다")
+    void reissue_whenCookiePublicationFails_rollsBackRefreshRotation() {
+        String refreshToken = "valid-refresh-token";
+        String email = "test@example.com";
+        given(request.getCookies()).willReturn(new Cookie[]{new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken)});
+        given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(true);
+        given(jwtProvider.getUserId(refreshToken)).willReturn(USER_ID);
+        Authentication authentication = mock(Authentication.class);
+        given(authentication.getName()).willReturn(email);
+        given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
+        User user = User.builder().id(USER_ID).email(email).role(Role.USER).build();
+        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.of(user));
+        given(jwtProvider.rotateRefreshToken(email, refreshToken)).willReturn("new-refresh-token");
+        given(jwtProvider.createAccessToken(USER_ID, email, Role.USER.getKey())).willReturn("new-access-token");
+        given(jwtProvider.getUserId("new-access-token")).willReturn(USER_ID);
+        given(jwtProvider.getAuthentication("new-access-token")).willReturn(authentication);
+        doThrow(new IllegalStateException("response already committed"))
+                .when(response).addHeader(eq(HttpHeaders.SET_COOKIE), anyString());
+        given(jwtProvider.rollbackRefreshToken(email, refreshToken, "new-refresh-token")).willReturn(true);
+
+        assertThatThrownBy(() -> authService.reissue(request, response))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(jwtProvider).rollbackRefreshToken(email, refreshToken, "new-refresh-token");
     }
 }

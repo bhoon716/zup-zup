@@ -79,7 +79,7 @@ public class WishlistService {
                 .toList();
 
         return courseRepository.findByCourseKeyIn(courseKeys).stream()
-                .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
+                .collect(Collectors.toMap(Course::getCourseKey, Function.identity(), (existing, replacement) -> existing));
     }
 
     private WishlistResponse toWishlistResponse(Wishlist wishlist, Map<String, Course> courseMap) {
