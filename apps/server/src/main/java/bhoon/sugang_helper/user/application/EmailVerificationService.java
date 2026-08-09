@@ -56,6 +56,7 @@ public class EmailVerificationService {
             throw new CustomException(ErrorCode.TOO_MANY_REQUESTS, "인증 코드는 잠시 후 다시 요청할 수 있습니다.");
         }
 
+        MimeMessage mimeMessage;
         try {
             String code = generateCode();
             String key = getCodeKey(userId, email);
@@ -63,14 +64,15 @@ public class EmailVerificationService {
             redisService.setValues(key, code, Duration.ofMinutes(CODE_EXPIRATION_MINUTES));
 
             String htmlContent = templateService.loadTemplate("verification_code", Map.of("code", code));
-            sendEmail(email, EMAIL_SUBJECT, htmlContent);
-
-            log.info("[EmailVerification] Sent code to user={}, emailMasked={}", userId,
-                    SensitiveDataRedactor.maskEmail(email));
+            mimeMessage = createEmailMessage(email, EMAIL_SUBJECT, htmlContent);
         } catch (RuntimeException exception) {
             releaseSendCooldown(cooldownLease);
             throw exception;
         }
+
+        sendEmail(email, mimeMessage);
+        log.info("[EmailVerification] Sent code to user={}, emailMasked={}", userId,
+                SensitiveDataRedactor.maskEmail(email));
     }
 
     /**
@@ -133,7 +135,7 @@ public class EmailVerificationService {
     /**
      * 실제 이메일을 발송하는 내부 메서드입니다.
      */
-    private void sendEmail(String to, String title, String content) {
+    private MimeMessage createEmailMessage(String to, String title, String content) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -142,14 +144,25 @@ public class EmailVerificationService {
             helper.setTo(to);
             helper.setSubject(title);
             helper.setText(content, true);
+            return mimeMessage;
+        } catch (Exception e) {
+            throw emailSendException(to, e);
+        }
+    }
 
+    private void sendEmail(String to, MimeMessage mimeMessage) {
+        try {
             javaMailSender.send(mimeMessage);
         } catch (Exception e) {
-            log.error("[EmailVerification] Email dispatch failed. recipientMasked={}, failureCode={}, exceptionType={}",
-                    SensitiveDataRedactor.maskEmail(to), ErrorCode.EMAIL_SEND_ERROR.getCode(),
-                    SensitiveDataRedactor.exceptionType(e));
-            throw new CustomException(ErrorCode.EMAIL_SEND_ERROR, "Failed to send verification email");
+            throw emailSendException(to, e);
         }
+    }
+
+    private CustomException emailSendException(String to, Exception exception) {
+        log.error("[EmailVerification] Email dispatch failed. recipientMasked={}, failureCode={}, exceptionType={}",
+                SensitiveDataRedactor.maskEmail(to), ErrorCode.EMAIL_SEND_ERROR.getCode(),
+                SensitiveDataRedactor.exceptionType(exception));
+        return new CustomException(ErrorCode.EMAIL_SEND_ERROR, "Failed to send verification email");
     }
 
     /**

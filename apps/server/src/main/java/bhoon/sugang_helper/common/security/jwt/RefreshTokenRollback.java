@@ -14,7 +14,11 @@ final class RefreshTokenRollback {
 
     static boolean rollback(RedisService redisService, String key, String presentedToken, String replacementToken,
                             String tokenFamily, String presentedTokenHash, String replacementTokenHash,
-                            Duration duration) {
+                            String revocationKey, Duration duration) {
+        if (tokenFamily != null && redisService.hasKey(revocationKey)) {
+            return false;
+        }
+
         String currentValue = redisService.getValues(key);
         RefreshTokenRecord currentRecord = parseRecord(currentValue);
         if (currentRecord == null || !constantTimeEquals(currentRecord.tokenHash(), replacementTokenHash)) {
@@ -25,7 +29,14 @@ final class RefreshTokenRollback {
         if (previousRecord == null) {
             return false;
         }
-        return redisService.compareAndSetValues(key, currentRecord.serializedValue(), previousRecord, duration);
+        if (!redisService.compareAndSetValues(key, currentRecord.serializedValue(), previousRecord, duration)) {
+            return false;
+        }
+        if (tokenFamily != null && redisService.hasKey(revocationKey)) {
+            redisService.compareAndDeleteValues(key, previousRecord);
+            return false;
+        }
+        return true;
     }
 
     private static String previousRecord(RefreshTokenRecord currentRecord, String presentedToken, String tokenFamily,

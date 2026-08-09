@@ -29,6 +29,7 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
 
 const TRANSIENT_REFRESH_BACKOFF_MS = [250, 1000, 2000] as const;
 const MAX_TRANSIENT_REFRESH_ATTEMPTS = TRANSIENT_REFRESH_BACKOFF_MS.length;
+const HALF_OPEN_REFRESH_COOLDOWN_MS = 30000;
 
 interface TransientRefreshFailure {
   generation: number;
@@ -40,7 +41,8 @@ interface TransientRefreshFailure {
 let authGeneration = 0;
 let transientRefreshFailure: TransientRefreshFailure | null = null;
 let refreshPromise: Promise<void> | null = null;
-let definitiveFailureHandled = false;
+let refreshPromiseGeneration = 0;
+let definitiveFailureHandledGeneration: number | null = null;
 type AuthFailureHandler = () => void;
 
 let authFailureHandler: AuthFailureHandler | null = null;
@@ -52,15 +54,13 @@ export const registerAuthFailureHandler = (handler: AuthFailureHandler | null) =
 export const resetAuthRefreshState = () => {
   authGeneration += 1;
   transientRefreshFailure = null;
-  definitiveFailureHandled = false;
 };
 
 const getBlockedRefreshError = () => {
   if (!transientRefreshFailure || transientRefreshFailure.generation !== authGeneration) {
     return null;
   }
-  if (transientRefreshFailure.attempt >= MAX_TRANSIENT_REFRESH_ATTEMPTS
-    || Date.now() < transientRefreshFailure.retryAt) {
+  if (Date.now() < transientRefreshFailure.retryAt) {
     return transientRefreshFailure.error;
   }
   return null;
@@ -72,30 +72,39 @@ const recordTransientRefreshFailure = (error: unknown) => {
     : 0;
   const attempt = previousAttempt + 1;
   const delayIndex = Math.min(attempt - 1, TRANSIENT_REFRESH_BACKOFF_MS.length - 1);
+  const retryDelay = attempt > MAX_TRANSIENT_REFRESH_ATTEMPTS
+    ? HALF_OPEN_REFRESH_COOLDOWN_MS
+    : TRANSIENT_REFRESH_BACKOFF_MS[delayIndex];
   transientRefreshFailure = {
     generation: authGeneration,
     attempt,
-    retryAt: Date.now() + TRANSIENT_REFRESH_BACKOFF_MS[delayIndex],
+    retryAt: Date.now() + retryDelay,
     error,
   };
 };
 
-const startRefresh = () => {
+interface RefreshAttempt {
+  generation: number;
+  promise: Promise<void>;
+}
+
+const startRefresh = (): RefreshAttempt => {
   if (refreshPromise) {
-    return refreshPromise;
+    return { generation: refreshPromiseGeneration, promise: refreshPromise };
   }
 
   const blockedError = getBlockedRefreshError();
   if (blockedError) {
-    return Promise.reject(blockedError);
+    return { generation: authGeneration, promise: Promise.reject(blockedError) };
   }
 
   const requestGeneration = authGeneration;
+  refreshPromiseGeneration = requestGeneration;
   refreshPromise = api.post("/api/auth/refresh")
     .then(() => {
       if (requestGeneration === authGeneration) {
         transientRefreshFailure = null;
-        definitiveFailureHandled = false;
+        definitiveFailureHandledGeneration = null;
       }
     })
     .catch((refreshError: unknown) => {
@@ -111,14 +120,17 @@ const startRefresh = () => {
     .finally(() => {
       refreshPromise = null;
     });
-  return refreshPromise;
+  return { generation: requestGeneration, promise: refreshPromise };
 };
 
-const handleDefinitiveAuthFailure = (error: unknown, request: RetryableRequestConfig) => {
-  if (!isDefinitiveAuthFailure(error) || request.silentAuthFailure || definitiveFailureHandled) {
+const handleDefinitiveAuthFailure = (error: unknown, request: RetryableRequestConfig,
+  failureGeneration: number) => {
+  if (!isDefinitiveAuthFailure(error) || request.silentAuthFailure
+    || failureGeneration !== authGeneration
+    || definitiveFailureHandledGeneration === failureGeneration) {
     return;
   }
-  definitiveFailureHandled = true;
+  definitiveFailureHandledGeneration = failureGeneration;
   authFailureHandler?.();
   redirectToLogin();
 };
@@ -139,15 +151,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       originalRequest._retry = true;
 
+      const refreshAttempt = startRefresh();
       try {
-        const blockedError = getBlockedRefreshError();
-        if (blockedError) {
-          throw blockedError;
-        }
-        await startRefresh();
+        await refreshAttempt.promise;
         return api(originalRequest);
       } catch (refreshError) {
-        handleDefinitiveAuthFailure(refreshError, originalRequest);
+        handleDefinitiveAuthFailure(refreshError, originalRequest, refreshAttempt.generation);
         return Promise.reject(refreshError);
       }
     }

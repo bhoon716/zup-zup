@@ -333,6 +333,44 @@ class JwtProviderTest {
     }
 
     @Test
+    @DisplayName("같은 family의 이전 토큰으로 로그아웃하면 회전 상태를 폐기하고 rollback을 차단한다")
+    void revokeRefreshToken_sameFamilyPreviousTokenPreventsRollback() {
+        String originalToken = jwtProvider.createRefreshToken(USER_ID, EMAIL);
+        ArgumentCaptor<String> initialRecordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(redisService).setValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
+                initialRecordCaptor.capture(), org.mockito.ArgumentMatchers.any(Duration.class));
+        String initialRecord = initialRecordCaptor.getValue();
+        clearInvocations(redisService);
+        given(redisService.getValues("RT:" + EMAIL)).willReturn(initialRecord);
+        given(redisService.compareAndSetValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
+                org.mockito.ArgumentMatchers.eq(initialRecord), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)))).willReturn(true);
+
+        String replacementToken = jwtProvider.rotateRefreshToken(EMAIL, originalToken);
+        ArgumentCaptor<String> replacementRecordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(redisService).compareAndSetValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
+                org.mockito.ArgumentMatchers.eq(initialRecord), replacementRecordCaptor.capture(),
+                org.mockito.ArgumentMatchers.eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
+        String replacementRecord = replacementRecordCaptor.getValue();
+        String tokenFamily = parseClaims(originalToken).get("sid", String.class);
+        String revocationKey = "RTR:" + EMAIL + ":" + tokenFamily;
+
+        clearInvocations(redisService);
+        given(redisService.getValues("RT:" + EMAIL)).willReturn(replacementRecord);
+        given(redisService.compareAndDeleteValues("RT:" + EMAIL, replacementRecord)).willReturn(true);
+        given(redisService.hasKey(revocationKey)).willReturn(true);
+
+        jwtProvider.revokeRefreshToken(EMAIL, originalToken);
+
+        assertThat(jwtProvider.rollbackRefreshToken(EMAIL, originalToken, replacementToken)).isFalse();
+        verify(redisService).setValues(revocationKey, "logout", Duration.ofMillis(REFRESH_TOKEN_EXPIRATION));
+        verify(redisService).compareAndDeleteValues("RT:" + EMAIL, replacementRecord);
+        verify(redisService, never()).compareAndSetValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
+                org.mockito.ArgumentMatchers.eq(replacementRecord), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
+    }
+
+    @Test
     @DisplayName("Authentication 조회 테스트")
     void getAuthentication() {
         // given

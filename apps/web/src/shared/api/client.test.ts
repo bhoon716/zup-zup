@@ -233,7 +233,7 @@ describe("shared api client", () => {
     expect(logoutSpy).not.toHaveBeenCalled();
   });
 
-  it("엇갈린 보호 요청은 공유 transient cooldown과 refresh 상한을 함께 사용한다", async () => {
+  it("transient refresh 상한 뒤 quiet period가 지나면 한 번의 half-open probe로 복구한다", async () => {
     vi.useFakeTimers();
     const refreshError = Object.assign(new Error("temporarily unavailable"), {
       response: { status: 503 },
@@ -243,6 +243,7 @@ describe("shared api client", () => {
     } = {};
     let refreshCalls = 0;
     const requestMock = vi.fn(async () => ({ data: null }));
+    const refreshResponses: Array<Error | null> = [refreshError, refreshError, refreshError, null];
     const apiMock = Object.assign(requestMock, {
       defaults: { headers: { common: {} as Record<string, unknown> } },
       interceptors: {
@@ -253,8 +254,12 @@ describe("shared api client", () => {
         },
       },
       post: vi.fn(async () => {
+        const response = refreshResponses[refreshCalls];
         refreshCalls += 1;
-        throw refreshError;
+        if (response) {
+          throw response;
+        }
+        return { data: null };
       }),
     });
 
@@ -286,8 +291,67 @@ describe("shared api client", () => {
     expect(refreshCalls).toBe(3);
 
     vi.advanceTimersByTime(2000);
-    await expect(rejectProtectedRequest(5)).rejects.toBe(refreshError);
-    expect(refreshCalls).toBe(3);
+    await expect(rejectProtectedRequest(5)).resolves.toEqual({ data: null });
+    expect(refreshCalls).toBe(4);
+  });
+
+  it("동시 definitive refresh 실패는 logout과 redirect를 한 번만 실행한다", async () => {
+    const refreshError = Object.assign(new Error("expired"), {
+      response: { status: 401 },
+    });
+    const redirectSpy = vi.fn();
+    const responseHandlers: {
+      onRejected?: (error: unknown) => Promise<unknown>;
+    } = {};
+    let rejectRefresh!: (reason?: unknown) => void;
+    const pendingRefresh = new Promise<never>((_resolve, reject) => {
+      rejectRefresh = reject;
+    });
+    const apiMock = {
+      defaults: { headers: { common: {} as Record<string, unknown> } },
+      interceptors: {
+        response: {
+          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
+            responseHandlers.onRejected = onRejected;
+          },
+        },
+      },
+      post: vi.fn(() => pendingRefresh),
+    };
+
+    vi.doMock("axios", () => ({
+      AxiosError: class AxiosError {},
+      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
+      default: {
+        create: () => apiMock,
+      },
+    }));
+
+    vi.doMock("@/shared/lib/navigation", () => ({
+      redirectToLogin: redirectSpy,
+    }));
+
+    const {
+      default: api,
+      registerAuthFailureHandler,
+      resetAuthRefreshState,
+    } = await import("./client");
+    const logoutSpy = vi.fn(() => resetAuthRefreshState());
+    registerAuthFailureHandler(logoutSpy);
+    void api;
+    const rejectProtectedRequest = (id: number) => responseHandlers.onRejected!({
+      config: { url: `/api/v1/protected/${id}` },
+      response: { status: 401 },
+    });
+
+    const requests = [rejectProtectedRequest(1), rejectProtectedRequest(2)];
+    expect(apiMock.post).toHaveBeenCalledTimes(1);
+    rejectRefresh(refreshError);
+
+    const results = await Promise.allSettled(requests);
+    expect(results.map((result) => result.status)).toEqual(["rejected", "rejected"]);
+    expect(logoutSpy).toHaveBeenCalledTimes(1);
+    expect(redirectSpy).toHaveBeenCalledTimes(1);
   });
 
   it("refresh 성공과 명시적 인증 상태 초기화는 transient cooldown을 초기화한다", async () => {

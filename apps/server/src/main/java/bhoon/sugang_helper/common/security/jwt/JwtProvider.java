@@ -154,6 +154,11 @@ public class JwtProvider {
      */
     public String rotateRefreshToken(String email, String presentedToken) {
         Long userId = getUserId(presentedToken);
+        String tokenFamily = getTokenFamily(presentedToken);
+        if (tokenFamily != null && isRefreshFamilyRevoked(email, tokenFamily)) {
+            return null;
+        }
+
         String key = refreshTokenKey(email);
         String storedValue = redisService.getValues(key);
         if (!StringUtils.hasText(storedValue)) {
@@ -165,7 +170,6 @@ public class JwtProvider {
             return rotateLegacyRefreshToken(key, storedValue, userId, email, presentedToken);
         }
 
-        String tokenFamily = getTokenFamily(presentedToken);
         if (tokenFamily == null && matchesLegacyToken(storedRecord, presentedToken)) {
             revokeRefreshFamily(key, storedRecord);
             return null;
@@ -181,6 +185,10 @@ public class JwtProvider {
         String newRefreshToken = createRefreshToken(userId, email, tokenFamily);
         String newRecord = refreshTokenRecord(tokenFamily, newRefreshToken, storedRecord.legacyTokenHash());
         if (redisService.compareAndSetValues(key, storedRecord.serializedValue(), newRecord, refreshTokenDuration())) {
+            if (isRefreshFamilyRevoked(email, tokenFamily)) {
+                redisService.compareAndDeleteValues(key, newRecord);
+                return null;
+            }
             return newRefreshToken;
         }
 
@@ -193,38 +201,19 @@ public class JwtProvider {
      * 다른 요청이 이미 registry를 다시 회전했다면 CAS가 실패하므로 현재 family를 건드리지 않습니다.
      */
     public boolean rollbackRefreshToken(String email, String presentedToken, String replacementToken) {
+        String tokenFamily = getTokenFamily(presentedToken);
         return RefreshTokenRollback.rollback(redisService, refreshTokenKey(email), presentedToken, replacementToken,
-                getTokenFamily(presentedToken), tokenHash(presentedToken), tokenHash(replacementToken),
-                refreshTokenDuration());
+                tokenFamily, tokenHash(presentedToken), tokenHash(replacementToken),
+                refreshFamilyRevocationKey(email, tokenFamily), refreshTokenDuration());
     }
 
     /**
      * 현재 registry와 일치하는 refresh token만 로그아웃 시 삭제합니다.
      */
     public void revokeRefreshToken(String email, String presentedToken) {
-        String key = refreshTokenKey(email);
-        String storedValue = redisService.getValues(key);
-        if (!StringUtils.hasText(storedValue)) {
-            return;
-        }
-
-        RefreshTokenRecord storedRecord = parseRefreshTokenRecord(storedValue);
-        if (storedRecord == null) {
-            if (constantTimeEquals(storedValue, presentedToken)) {
-                redisService.compareAndDeleteValues(key, storedValue);
-            }
-            return;
-        }
-
         String tokenFamily = getTokenFamily(presentedToken);
-        if (tokenFamily == null && matchesLegacyToken(storedRecord, presentedToken)) {
-            revokeRefreshFamily(key, storedRecord);
-            return;
-        }
-        if (storedRecord.tokenFamily().equals(tokenFamily)
-                && constantTimeEquals(storedRecord.tokenHash(), tokenHash(presentedToken))) {
-            redisService.compareAndDeleteValues(key, storedRecord.serializedValue());
-        }
+        RefreshTokenRevocation.revoke(redisService, refreshTokenKey(email), presentedToken, tokenFamily,
+                tokenHash(presentedToken), refreshFamilyRevocationKey(email, tokenFamily), refreshTokenDuration());
     }
 
     /**
@@ -277,6 +266,10 @@ public class JwtProvider {
         }
     }
 
+    private boolean isRefreshFamilyRevoked(String email, String tokenFamily) {
+        return redisService.hasKey(refreshFamilyRevocationKey(email, tokenFamily));
+    }
+
     private boolean isBlacklisted(String token) {
         // 배포 전 raw key는 access token TTL(최대 2시간) 동안만 남는다. 새 raw key는 절대 쓰지 않는다.
         return redisService.hasKey(blacklistKey(token))
@@ -285,6 +278,10 @@ public class JwtProvider {
 
     private String refreshTokenKey(String email) {
         return SecurityConstant.REDIS_REFRESH_TOKEN_PREFIX + email;
+    }
+
+    private String refreshFamilyRevocationKey(String email, String tokenFamily) {
+        return SecurityConstant.REDIS_REFRESH_TOKEN_REVOCATION_PREFIX + email + ":" + tokenFamily;
     }
 
     private String blacklistKey(String token) {
