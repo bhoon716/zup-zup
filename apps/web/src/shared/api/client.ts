@@ -27,13 +27,20 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   silentAuthFailure?: boolean;
 }
 
-interface FailedQueueItem {
-  resolve: (value?: unknown) => void;
-  reject: (error: unknown) => void;
+const TRANSIENT_REFRESH_BACKOFF_MS = [250, 1000, 2000] as const;
+const MAX_TRANSIENT_REFRESH_ATTEMPTS = TRANSIENT_REFRESH_BACKOFF_MS.length;
+
+interface TransientRefreshFailure {
+  generation: number;
+  attempt: number;
+  retryAt: number;
+  error: unknown;
 }
 
-let isRefreshing = false;
-let failedQueue: FailedQueueItem[] = [];
+let authGeneration = 0;
+let transientRefreshFailure: TransientRefreshFailure | null = null;
+let refreshPromise: Promise<void> | null = null;
+let definitiveFailureHandled = false;
 type AuthFailureHandler = () => void;
 
 let authFailureHandler: AuthFailureHandler | null = null;
@@ -42,18 +49,78 @@ export const registerAuthFailureHandler = (handler: AuthFailureHandler | null) =
   authFailureHandler = handler;
 };
 
-/**
- * 대기 중인 실패 요청들을 순차적으로 처리하거나 거절합니다.
- */
-const processQueue = (error: unknown) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve();
-    }
-  });
-  failedQueue = [];
+export const resetAuthRefreshState = () => {
+  authGeneration += 1;
+  transientRefreshFailure = null;
+  definitiveFailureHandled = false;
+};
+
+const getBlockedRefreshError = () => {
+  if (!transientRefreshFailure || transientRefreshFailure.generation !== authGeneration) {
+    return null;
+  }
+  if (transientRefreshFailure.attempt >= MAX_TRANSIENT_REFRESH_ATTEMPTS
+    || Date.now() < transientRefreshFailure.retryAt) {
+    return transientRefreshFailure.error;
+  }
+  return null;
+};
+
+const recordTransientRefreshFailure = (error: unknown) => {
+  const previousAttempt = transientRefreshFailure?.generation === authGeneration
+    ? transientRefreshFailure.attempt
+    : 0;
+  const attempt = previousAttempt + 1;
+  const delayIndex = Math.min(attempt - 1, TRANSIENT_REFRESH_BACKOFF_MS.length - 1);
+  transientRefreshFailure = {
+    generation: authGeneration,
+    attempt,
+    retryAt: Date.now() + TRANSIENT_REFRESH_BACKOFF_MS[delayIndex],
+    error,
+  };
+};
+
+const startRefresh = () => {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  const blockedError = getBlockedRefreshError();
+  if (blockedError) {
+    return Promise.reject(blockedError);
+  }
+
+  const requestGeneration = authGeneration;
+  refreshPromise = api.post("/api/auth/refresh")
+    .then(() => {
+      if (requestGeneration === authGeneration) {
+        transientRefreshFailure = null;
+        definitiveFailureHandled = false;
+      }
+    })
+    .catch((refreshError: unknown) => {
+      if (requestGeneration === authGeneration) {
+        if (isDefinitiveAuthFailure(refreshError)) {
+          transientRefreshFailure = null;
+        } else {
+          recordTransientRefreshFailure(refreshError);
+        }
+      }
+      throw refreshError;
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+  return refreshPromise;
+};
+
+const handleDefinitiveAuthFailure = (error: unknown, request: RetryableRequestConfig) => {
+  if (!isDefinitiveAuthFailure(error) || request.silentAuthFailure || definitiveFailureHandled) {
+    return;
+  }
+  definitiveFailureHandled = true;
+  authFailureHandler?.();
+  redirectToLogin();
 };
 
 api.interceptors.response.use(
@@ -66,38 +133,21 @@ api.interceptors.response.use(
 
     // 리프레시 요청 자체가 실패했거나 이미 재시도한 요청인 경우
     if (originalRequest.url === "/api/auth/refresh" || originalRequest._retry || originalRequest.skipAuthRefresh) {
-      if (originalRequest.url === "/api/auth/refresh") {
-        isRefreshing = false;
-        processQueue(error);
-        // 리프레시 실패 시 로그아웃 처리를 위해 상태 초기화가 필요할 수도 있음 (여기서는 단순히 거절)
-      }
       return Promise.reject(error);
     }
 
     if (error.response?.status === 401) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then(() => api(originalRequest))
-          .catch((err) => Promise.reject(err));
-      }
-
       originalRequest._retry = true;
-      isRefreshing = true;
 
       try {
-        await api.post("/api/auth/refresh");
-        isRefreshing = false;
-        processQueue(undefined);
+        const blockedError = getBlockedRefreshError();
+        if (blockedError) {
+          throw blockedError;
+        }
+        await startRefresh();
         return api(originalRequest);
       } catch (refreshError) {
-        isRefreshing = false;
-        processQueue(refreshError);
-        if (isDefinitiveAuthFailure(refreshError) && !originalRequest.silentAuthFailure) {
-          authFailureHandler?.();
-          redirectToLogin();
-        }
+        handleDefinitiveAuthFailure(refreshError, originalRequest);
         return Promise.reject(refreshError);
       }
     }

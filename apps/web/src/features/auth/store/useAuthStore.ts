@@ -4,6 +4,7 @@ import * as userApi from '@/features/user/api/user.api';
 import type { User } from '@/shared/types/api';
 import { deleteCookie, IS_LOGGED_IN_COOKIE_NAME } from '@/shared/lib/cookie';
 import { isDefinitiveAuthFailure } from '@/shared/api/auth-error';
+import { resetAuthRefreshState } from '@/shared/api/client';
 
 const SESSION_CHECK_RETRY_DELAYS_MS = [250, 500] as const;
 
@@ -115,6 +116,7 @@ export const useAuthStore = create<AuthState>()(
         sessionCheckToken += 1;
         sessionCheckPromise = null;
         userApi.clearMyProfileRequestCache();
+        resetAuthRefreshState();
         deleteCookie(IS_LOGGED_IN_COOKIE_NAME);
         set({ user: null, isAuthenticated: false, isLoading: false });
       },
