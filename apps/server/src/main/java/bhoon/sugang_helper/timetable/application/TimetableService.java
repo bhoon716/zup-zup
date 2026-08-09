@@ -243,7 +243,7 @@ public class TimetableService {
                 .toList();
 
         return courseRepository.findByCourseKeyIn(courseKeys).stream()
-                .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
+                .collect(Collectors.toMap(Course::getCourseKey, Function.identity(), (existing, replacement) -> existing));
     }
 
     /**

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.course.domain.Course;
 import bhoon.sugang_helper.course.domain.CourseRepository;
 import bhoon.sugang_helper.timetable.application.command.CustomScheduleRequest;
 import bhoon.sugang_helper.timetable.application.command.TimetableRequest;
@@ -209,5 +210,27 @@ class TimetableServiceTest {
 
         // then
         verify(timetableRepository, times(1)).save(any(Timetable.class));
+    }
+
+    @Test
+    @DisplayName("시간표 상세 조회 - 중복 courseKey는 기존 강의로 병합한다")
+    void getTimetableDetail_DuplicateCourseKey_KeepsExistingCourse() {
+        mockUser();
+        Timetable timetable = Timetable.builder().userId(1L).name("P1").build();
+        TimetableEntry entry = TimetableEntry.builder().timetable(timetable).courseKey("CK1").build();
+        timetable.addEntry(entry);
+        given(timetableRepository.findById(1L)).willReturn(Optional.of(timetable));
+
+        Course existingCourse = Course.builder().courseKey("CK1").name("Existing Course")
+                .credits("3").build();
+        Course replacementCourse = Course.builder().courseKey("CK1").name("Replacement Course")
+                .credits("3").build();
+        given(courseRepository.findByCourseKeyIn(List.of("CK1")))
+                .willReturn(List.of(existingCourse, replacementCourse));
+
+        var response = timetableService.getTimetableDetail(1L);
+
+        assertThat(response.getCourses()).singleElement().satisfies(course ->
+                assertThat(course.getName()).isEqualTo("Existing Course"));
     }
 }
