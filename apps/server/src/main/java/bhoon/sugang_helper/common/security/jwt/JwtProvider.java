@@ -68,7 +68,8 @@ public class JwtProvider {
     public String createRefreshToken(Long userId, String email) {
         String tokenFamily = UUID.randomUUID().toString();
         String refreshToken = createRefreshToken(userId, email, tokenFamily);
-        redisService.setValues(refreshTokenKey(email), refreshTokenRecord(tokenFamily, refreshToken), refreshTokenDuration());
+        redisService.setValues(refreshTokenKey(email), refreshTokenRecord(tokenFamily, refreshToken, null),
+                refreshTokenDuration());
         return refreshToken;
     }
 
@@ -188,6 +189,16 @@ public class JwtProvider {
     }
 
     /**
+     * 회전 후 응답 조립에 실패했을 때, 해당 요청이 만든 replacement만 이전 상태로 되돌립니다.
+     * 다른 요청이 이미 registry를 다시 회전했다면 CAS가 실패하므로 현재 family를 건드리지 않습니다.
+     */
+    public boolean rollbackRefreshToken(String email, String presentedToken, String replacementToken) {
+        return RefreshTokenRollback.rollback(redisService, refreshTokenKey(email), presentedToken, replacementToken,
+                getTokenFamily(presentedToken), tokenHash(presentedToken), tokenHash(replacementToken),
+                refreshTokenDuration());
+    }
+
+    /**
      * 현재 registry와 일치하는 refresh token만 로그아웃 시 삭제합니다.
      */
     public void revokeRefreshToken(String email, String presentedToken) {
@@ -282,10 +293,6 @@ public class JwtProvider {
 
     private Duration refreshTokenDuration() {
         return Duration.ofMillis(refreshTokenExpiration);
-    }
-
-    private String refreshTokenRecord(String tokenFamily, String token) {
-        return refreshTokenRecord(tokenFamily, token, null);
     }
 
     private String refreshTokenRecord(String tokenFamily, String token, String legacyTokenHash) {
