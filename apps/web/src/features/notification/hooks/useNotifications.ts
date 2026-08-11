@@ -21,6 +21,6 @@ export const useNotifications = () => {
 
   return {
     ...query,
-    data: query.data?.pages.flatMap((page) => page.content),
+    data: query.data?.pages.flatMap((page) => page?.content ?? []),
   };
 };

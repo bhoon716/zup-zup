@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   formatClassification,
   formatGradingMethod,
   formatLanguage,
   formatRelativeTime,
 } from "./formatters";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("formatters", () => {
   it("분류 코드를 한글 라벨로 변환한다", () => {
@@ -29,5 +33,23 @@ describe("formatters", () => {
     expect(formatRelativeTime("not-a-date")).toBe("-");
     expect(formatRelativeTime(undefined)).toBe("-");
     expect(formatRelativeTime("2026-01-01T00:00:00+09:00")).not.toBe("-");
+  });
+
+  it("Safari에서 공백으로 구분된 날짜·시간을 상대 시간으로 변환한다", () => {
+    const NativeDate = Date;
+
+    class SafariDate extends NativeDate {
+      constructor(value?: string | number | Date) {
+        if (typeof value === "string" && /^\d{4}-\d{2}-\d{2} /.test(value)) {
+          super(Number.NaN);
+          return;
+        }
+        super(value ?? NativeDate.now());
+      }
+    }
+
+    vi.stubGlobal("Date", SafariDate);
+
+    expect(formatRelativeTime("2026-01-01 00:00:00")).not.toBe("-");
   });
 });

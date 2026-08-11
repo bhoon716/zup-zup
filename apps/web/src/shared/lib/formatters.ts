@@ -162,7 +162,8 @@ export function toEngDayOfWeek(value: string): string {
 export function formatRelativeTime(dateString?: string): string {
   if (!dateString) return '-';
   try {
-    const date = new Date(dateString);
+    const normalizedDateString = dateString.replace(/^(\d{4}-\d{2}-\d{2}) /, '$1T');
+    const date = new Date(normalizedDateString);
     if (isNaN(date.getTime())) return '-';
     return formatDistanceToNow(date, { addSuffix: true, locale: ko });
   } catch {
