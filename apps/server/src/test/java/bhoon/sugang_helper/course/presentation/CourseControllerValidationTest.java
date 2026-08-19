@@ -6,12 +6,18 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.error.GlobalExceptionHandler;
 import bhoon.sugang_helper.course.application.CourseSearchCondition;
 import bhoon.sugang_helper.course.application.CourseService;
 import bhoon.sugang_helper.crawling.application.CourseCrawlerTargetService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,12 +29,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 @ExtendWith(MockitoExtension.class)
 class CourseControllerValidationTest {
+
+    private static final String SEARCH_PATH = "/api/v1/courses/search";
 
     @Mock
     private CourseService courseService;
@@ -37,12 +46,14 @@ class CourseControllerValidationTest {
     private CourseCrawlerTargetService crawlerTargetService;
 
     private MockMvc mockMvc;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
         mockMvc = MockMvcBuilders.standaloneSetup(new CourseController(courseService, crawlerTargetService))
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .build();
@@ -50,8 +61,8 @@ class CourseControllerValidationTest {
 
     @Test
     void rejectsOversizedTextAndDoesNotInvokeSearch() throws Exception {
-        mockMvc.perform(post("/api/v1/courses/search")
-                        .contentType("application/json")
+        mockMvc.perform(post(SEARCH_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"" + "x".repeat(101) + "\"}"))
                 .andExpect(status().isBadRequest());
 
@@ -60,10 +71,31 @@ class CourseControllerValidationTest {
 
     @Test
     void rejectsUnknownTargetGrade() throws Exception {
-        mockMvc.perform(post("/api/v1/courses/search")
-                        .contentType("application/json")
+        mockMvc.perform(post(SEARCH_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"targetGrades\":[\"NOT_A_GRADE\"]}"))
                 .andExpect(status().isBadRequest());
+
+        verify(courseService, never()).searchCourses(any(CourseSearchCondition.class), any());
+    }
+
+    @Test
+    void rejectsUnboundedPublicPredicateInputsWithoutInvokingSearch() throws Exception {
+        List<String> tooManyStatuses = Collections.nCopies(21, "일반");
+        List<Map<String, Object>> invalidBodies = List.of(
+                Map.of("statuses", tooManyStatuses),
+                Map.of("statuses", List.of("x".repeat(51))),
+                Map.of("courseDirection", "x".repeat(501)),
+                Map.of("courseDirection", "a,b,c,d,e,f,g,h,i,j,k"),
+                Map.of("courseDirection", "x".repeat(101)));
+
+        for (Map<String, Object> body : invalidBodies) {
+            mockMvc.perform(post(SEARCH_PATH)
+                            .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT.getCode()));
+        }
 
         verify(courseService, never()).searchCourses(any(CourseSearchCondition.class), any());
     }
@@ -74,8 +106,8 @@ class CourseControllerValidationTest {
         given(courseService.searchCourses(any(CourseSearchCondition.class), any()))
                 .willReturn(new SliceImpl<>(List.of(), PageRequest.of(0, 30), false));
 
-        mockMvc.perform(post("/api/v1/courses/search")
-                        .contentType("application/json")
+        mockMvc.perform(post(SEARCH_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"sortBy\":\"" + sortAlias + "\"}"))
                 .andExpect(status().isOk());
 

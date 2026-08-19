@@ -46,4 +46,26 @@ class CourseSearchConditionValidationTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
+
+    @Test
+    void courseDirectionTermsAreNormalizedAndDeduplicatedBeforeCriteriaCreation() {
+        CourseSearchCondition condition = CourseSearchCondition.builder()
+                .courseDirection("  대면수업 ; 실시간\n대면수업,  혼합수업  ")
+                .build();
+
+        condition.validateSearchValues();
+
+        assertThat(condition.getCourseDirection()).isEqualTo("대면수업,실시간,혼합수업");
+    }
+
+    @Test
+    void courseDirectionRejectsTooManyUniqueTerms() {
+        CourseSearchCondition condition = CourseSearchCondition.builder()
+                .courseDirection("a,b,c,d,e,f,g,h,i,j,k")
+                .build();
+
+        assertThatThrownBy(condition::validateSearchValues)
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
 }
