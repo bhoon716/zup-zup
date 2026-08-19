@@ -79,6 +79,7 @@ jobs:
           bash infra/scripts/test-release-layout-contract.sh
           bash infra/scripts/test-local-app-image-flow.sh
           bash infra/scripts/test-local-compose.sh
+          bash infra/scripts/test-backup-to-macbook.sh
           bash infra/scripts/test-redis-auth-state-recovery.sh
 
   web:
