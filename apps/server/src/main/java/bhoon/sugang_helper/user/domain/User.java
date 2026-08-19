@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -21,7 +22,8 @@ import java.util.List;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(
+        name = "uk_users_oauth_identity", columnNames = {"oauth_issuer", "oauth_subject"}))
 public class User extends BaseEntity {
 
     private static final String WITHDRAWN_USER_NAME = "탈퇴한 사용자";
@@ -36,6 +38,12 @@ public class User extends BaseEntity {
 
     @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(name = "oauth_issuer")
+    private String oauthIssuer;
+
+    @Column(name = "oauth_subject")
+    private String oauthSubject;
 
     @Column
     private String notificationEmail;
@@ -68,10 +76,12 @@ public class User extends BaseEntity {
     @Builder
     public User(Long id, String name, String email, String notificationEmail, boolean emailEnabled,
                 boolean webPushEnabled, boolean fcmEnabled, boolean discordEnabled, String discordId,
-                boolean onboardingCompleted, Role role) {
+                boolean onboardingCompleted, Role role, String oauthIssuer, String oauthSubject) {
         this.id = id;
         this.name = name;
         this.email = email;
+        this.oauthIssuer = oauthIssuer;
+        this.oauthSubject = oauthSubject;
         this.notificationEmail = notificationEmail;
         this.emailEnabled = emailEnabled;
         this.webPushEnabled = webPushEnabled;
@@ -117,10 +127,30 @@ public class User extends BaseEntity {
         return this;
     }
 
+    public boolean hasOAuthIdentity() {
+        return oauthIssuer != null && oauthSubject != null;
+    }
+
+    public void bindOAuthIdentity(String issuer, String subject) {
+        if (hasOAuthIdentity()) {
+            if (!oauthIssuer.equals(issuer) || !oauthSubject.equals(subject)) {
+                throw new IllegalStateException("OAuth identity is already bound");
+            }
+            return;
+        }
+        if (issuer == null || issuer.isBlank() || subject == null || subject.isBlank()) {
+            throw new IllegalArgumentException("OAuth issuer and subject are required");
+        }
+        this.oauthIssuer = issuer;
+        this.oauthSubject = subject;
+    }
+
     @SuppressWarnings("PMD.NullAssignment")
     public void withdraw() {
         this.name = WITHDRAWN_USER_NAME;
         this.email = "deleted-" + this.id + WITHDRAWN_EMAIL_DOMAIN;
+        this.oauthIssuer = null;
+        this.oauthSubject = null;
         this.notificationEmail = null;
         this.emailEnabled = false;
         this.webPushEnabled = false;

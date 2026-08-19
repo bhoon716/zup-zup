@@ -8,12 +8,9 @@ import static org.mockito.Mockito.verify;
 import bhoon.sugang_helper.auth.application.AuthService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.user.domain.Role;
-import bhoon.sugang_helper.user.domain.User;
-import bhoon.sugang_helper.user.domain.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,8 +31,6 @@ class OAuth2SuccessHandlerTest {
     @Mock
     private JwtProvider jwtProvider;
     @Mock
-    private UserRepository userRepository;
-    @Mock
     private AuthService authService;
     @InjectMocks
     private OAuth2SuccessHandler successHandler;
@@ -50,11 +45,9 @@ class OAuth2SuccessHandlerTest {
         HttpServletRequest request = new MockHttpServletRequest();
         HttpServletResponse response = new MockHttpServletResponse();
         Authentication authentication = mock(Authentication.class);
-        OAuth2User oauth2User = mock(OAuth2User.class);
-        User user = User.builder().id(1L).email(EMAIL).role(Role.USER).build();
+        OAuth2User oauth2User = new OAuth2AuthenticatedUser(
+                1L, EMAIL, Role.USER.getKey(), Map.of("email", EMAIL, "sub", "google-subject"), "sub");
         given(authentication.getPrincipal()).willReturn(oauth2User);
-        given(oauth2User.getAttributes()).willReturn(Map.of("email", EMAIL));
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
         given(jwtProvider.createAccessToken(1L, EMAIL, Role.USER.getKey())).willReturn("access-token");
         given(jwtProvider.createRefreshToken(1L, EMAIL)).willReturn("refresh-token");
 
