@@ -246,6 +246,49 @@ class NotificationServiceTest {
     }
 
     @Test
+    @DisplayName("사용자 테스트 알림 - 대상 없는 활성 채널은 건너뛰고 다른 채널은 발송한다")
+    void sendUserTestNotification_SkipsChannelWithoutTarget() {
+        // Given
+        User user = User.builder()
+                .id(1L)
+                .email(EMAIL)
+                .emailEnabled(true)
+                .fcmEnabled(true)
+                .build();
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of());
+        given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
+
+        // When
+        notificationService.sendUserTestNotification(user,
+                List.of(NotificationChannel.EMAIL, NotificationChannel.FCM));
+
+        // Then
+        verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
+        verify(redisService, never()).deleteValues(anyString());
+    }
+
+    @Test
+    @DisplayName("사용자 테스트 알림 - 모든 활성 채널에 대상이 없으면 입력 오류를 반환한다")
+    void sendUserTestNotification_FailsWhenNoTargetExists() {
+        // Given
+        User user = User.builder()
+                .id(1L)
+                .email(EMAIL)
+                .fcmEnabled(true)
+                .build();
+        when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of());
+
+        // When & Then
+        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user,
+                List.of(NotificationChannel.FCM)))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+        verify(redisService, times(1)).deleteValues(anyString());
+    }
+
+    @Test
     @DisplayName("사용자 테스트 알림 발송 - 쿨타임 중이면 예외 발생")
     void sendUserTestNotification_Cooldown() {
         // Given

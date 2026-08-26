@@ -52,4 +52,29 @@ describe('useNotifications hook', () => {
     expect(result.current.data).toHaveLength(1);
     expect(result.current.data![0].courseKey).toBe('TEST-101');
   });
+
+  it('treats a notification page without content as empty', async () => {
+    server.use(
+      http.get('*/api/v1/notifications/history', () => {
+        return HttpResponse.json({
+          code: 'SUCCESS',
+          message: 'Success',
+          data: {
+            number: 0,
+            last: true,
+          },
+        });
+      }),
+    );
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    useAuthStore.setState({ isAuthenticated: true });
+
+    const { result } = renderHook(() => useNotifications(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data).toEqual([]);
+  });
 });

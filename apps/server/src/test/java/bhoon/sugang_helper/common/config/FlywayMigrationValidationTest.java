@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.common.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,6 +24,7 @@ class FlywayMigrationValidationTest {
     private static final String MIGRATION_LOCATION = "classpath:db/migration";
     private static final String DELIVERY_TABLE_NAME = "seat_notification_deliveries";
     private static final String COURSES_TABLE_NAME = "courses";
+    private static final String USERS_TABLE_NAME = "users";
     private static final String COURSE_KEY_COLUMN_NAME = "course_key";
     private static final Map<String, Integer> APPLIED_MIGRATION_CHECKSUMS = Map.ofEntries(
             Map.entry("1", 372551896),
@@ -160,11 +162,31 @@ class FlywayMigrationValidationTest {
                     mysql.getUsername(),
                     mysql.getPassword()));
 
-            assertThat(tableCount(jdbcTemplate, "users")).isEqualTo(1);
+            assertThat(tableCount(jdbcTemplate, USERS_TABLE_NAME)).isEqualTo(1);
             assertThat(tableCount(jdbcTemplate, COURSES_TABLE_NAME)).isEqualTo(1);
             assertThat(tableCount(jdbcTemplate, "crawler_settings")).isEqualTo(1);
             assertThat(tableCount(jdbcTemplate, "crawler_status")).isEqualTo(1);
             assertThat(tableCount(jdbcTemplate, "crawler_run_failures")).isEqualTo(1);
+            assertThat(columnNullable(jdbcTemplate, USERS_TABLE_NAME, "oauth_issuer")).isEqualTo("YES");
+            assertThat(columnNullable(jdbcTemplate, USERS_TABLE_NAME, "oauth_subject")).isEqualTo("YES");
+            assertThat(indexCount(jdbcTemplate, USERS_TABLE_NAME, "uk_users_oauth_identity")).isEqualTo(2);
+            jdbcTemplate.update("""
+                            INSERT INTO users (
+                                discord_enabled, email, email_enabled, fcm_enabled, name,
+                                onboarding_completed, role, web_push_enabled, oauth_issuer, oauth_subject
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                    false, "oauth-user@example.com", false, false, "OAuth User", false, "USER", false,
+                    "https://accounts.google.com", "unique-subject");
+            assertThatThrownBy(() -> jdbcTemplate.update("""
+                            INSERT INTO users (
+                                discord_enabled, email, email_enabled, fcm_enabled, name,
+                                onboarding_completed, role, web_push_enabled, oauth_issuer, oauth_subject
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                    false, "other-oauth-user@example.com", false, false, "Other OAuth User", false, "USER", false,
+                    "https://accounts.google.com", "unique-subject"))
+                    .hasMessageContaining("uk_users_oauth_identity");
             assertThat(columnNullable(jdbcTemplate, COURSES_TABLE_NAME, "last_crawled_at")).isEqualTo("YES");
             assertThat(jdbcTemplate.queryForObject("SELECT target_year FROM crawler_settings LIMIT 1", String.class))
                     .isEqualTo("2026");
@@ -345,9 +367,15 @@ class FlywayMigrationValidationTest {
                     .locations(MIGRATION_LOCATION)
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(9);
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(10);
             head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("27");
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("28");
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT oauth_issuer IS NULL FROM users WHERE email = ?", Boolean.class, existingUserEmail))
+                    .isTrue();
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT oauth_subject IS NULL FROM users WHERE email = ?", Boolean.class, existingUserEmail))
+                    .isTrue();
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT idempotency_key FROM seat_notification_deliveries WHERE id = ?", String.class, deliveryId))
                     .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");

@@ -10,7 +10,9 @@ import { useAuthStore } from "@/features/auth/store/useAuthStore";
 export default function HomePage() {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isAuthLoading = useAuthStore((state) => state.isLoading && !state.user);
+  const isAuthLoading = useAuthStore(
+    (state) => (state.isLoading && !state.user) || Boolean(state.user && !state.isAuthenticated)
+  );
   const verifiedUser = isAuthenticated ? user : null;
   const { data: snapshot, isLoading, isError } = useDashboardSnapshot({ enabled: isAuthenticated });
 

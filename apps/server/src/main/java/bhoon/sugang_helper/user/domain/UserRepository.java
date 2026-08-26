@@ -6,6 +6,8 @@ import java.util.Optional;
 public interface UserRepository extends RepositoryContract<User, Long> {
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByOauthIssuerAndOauthSubjectAndDeletedAtIsNull(String oauthIssuer, String oauthSubject);
+
     Optional<User> findByIdAndEmailAndDeletedAtIsNull(Long id, String email);
 
     boolean existsByIdAndEmailAndDeletedAtIsNull(Long id, String email);

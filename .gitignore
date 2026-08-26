@@ -17,8 +17,8 @@
 !/.agents/scripts/**
 !/.agents/docs/
 !/.agents/docs/**
-!/.agents/skills/
-!/.agents/skills/**
+/.agents/skills/
+/.agents/skills/**
 # Keep OS metadata ignored after re-including agent assets.
 **/.DS_Store
 /.agents/skills/ultra-grill-me/logs/

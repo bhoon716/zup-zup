@@ -57,7 +57,8 @@
     ```bash
     0 5 * * * /Users/bhoon/Project/jbnu-sugang-helper/infra/scripts/backup-to-macbook.sh >> ~/Backups/jbnu-sugang-helper/logs/cron.log 2>&1
     ```
-* **보관 기간 (Retention)**: **최근 30일간**의 백업본을 맥북에 유지하며, 30일이 지난 오래된 백업 파일은 자동 삭제됩니다.
+* **검증·승격 경계**: 내려받은 파일은 격리된 staging 디렉터리에서 모든 SHA-256 sidecar를 먼저 검증합니다. manifest 누락이나 checksum 불일치가 하나라도 있으면 non-zero로 종료하고, 해당 파일을 운영 백업 경로에 승격하거나 기존 정상 백업을 retention으로 삭제하지 않습니다.
+* **보관 기간 (Retention)**: 검증된 파일을 승격한 성공 실행에서만 최근 30일간의 백업본을 유지하도록 정리합니다.
 
 ---
 

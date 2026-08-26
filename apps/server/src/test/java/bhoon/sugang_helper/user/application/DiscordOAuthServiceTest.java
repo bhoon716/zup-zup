@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import java.util.Map;
+import org.mockito.ArgumentMatchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -39,7 +41,7 @@ class DiscordOAuthServiceTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(any(MultiValueMap.class))
                 .retrieve()
-                .body(any(ParameterizedTypeReference.class)))
+                .body(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any()))
                 .thenThrow(new ResourceAccessException("Read timed out"));
         DiscordOAuthService service = new DiscordOAuthService(restClient);
         ReflectionTestUtils.setField(service, "clientId", "client-id");
@@ -61,7 +63,8 @@ class DiscordOAuthServiceTest {
         doReturn(requestSpec).when(requestSpec).header(eq("Authorization"), any(String[].class));
         doReturn(responseSpec).when(requestSpec).retrieve();
         doThrow(new ResourceAccessException("Connect timed out"))
-                .when(responseSpec).body(any(ParameterizedTypeReference.class));
+                .when(responseSpec)
+                .body(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
         DiscordOAuthService service = new DiscordOAuthService(restClient);
 
         assertThatThrownBy(() -> service.getDiscordUserId("access-token"))

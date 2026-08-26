@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.course.application;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import bhoon.sugang_helper.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.course.domain.CourseClassification;
 import bhoon.sugang_helper.course.domain.CourseDayOfWeek;
@@ -12,6 +13,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
@@ -121,9 +123,11 @@ public class CourseSearchCondition {
     private Boolean isWishedOnly;
 
     @Schema(description = "강의방식(설강상태) 리스트", example = "[\"일반\", \"원격\"]")
-    private List<String> statuses;
+    @Size(max = CourseSearchCriteria.MAX_STATUS_FILTERS)
+    private List<@Size(max = CourseSearchCriteria.MAX_STATUS_LENGTH) String> statuses;
 
     @Schema(description = "수업 운영 방향", example = "대면수업")
+    @Size(max = CourseSearchCriteria.MAX_COURSE_DIRECTION_LENGTH)
     private String courseDirection;
 
     @Schema(description = "최소 학점", example = "4")
@@ -223,7 +227,7 @@ public class CourseSearchCondition {
                 .timetableId(timetableId)
                 .isWishedOnly(isWishedOnly)
                 .statuses(statuses)
-                .courseDirection(courseDirection)
+                .courseDirectionTerms(CourseSearchCriteria.normalizeCourseDirectionTerms(courseDirection))
                 .minCredits(minCredits)
                 .targetGrades(targetGrades)
                 .disclosure(disclosure)
@@ -245,6 +249,12 @@ public class CourseSearchCondition {
         validateEnumValues(gradingMethods, GradingMethod::from, "gradingMethods");
         validateEnumValues(lectureLanguages, LectureLanguage::from, "lectureLanguages");
         validateEnumValues(statuses, CourseStatus::from, "statuses");
+        statuses = normalizeTextValues(statuses);
+        if (!isCourseDirectionComplexityValid()) {
+            reject("courseDirection");
+        }
+        List<String> directionTerms = CourseSearchCriteria.normalizeCourseDirectionTerms(courseDirection);
+        courseDirection = String.join(",", directionTerms);
         if (dayOfWeek != null && !dayOfWeek.isBlank() && CourseDayOfWeek.from(dayOfWeek) == null) {
             reject("dayOfWeek");
         }
@@ -276,6 +286,17 @@ public class CourseSearchCondition {
         }
     }
 
+    @AssertTrue(message = "courseDirection terms exceed the search predicate limit")
+    @JsonIgnore
+    public boolean isCourseDirectionComplexityValid() {
+        try {
+            CourseSearchCriteria.normalizeCourseDirectionTerms(courseDirection);
+            return true;
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
     private <T> void validateEnumValues(List<String> values, java.util.function.Function<String, T> mapper,
                                         String field) {
         if (values == null) {
@@ -286,6 +307,13 @@ public class CourseSearchCondition {
                 reject(field);
             }
         }
+    }
+
+    private List<String> normalizeTextValues(List<String> values) {
+        if (values == null) {
+            return List.of();
+        }
+        return values.stream().map(String::trim).distinct().toList();
     }
 
     private boolean isValidTimeRange(String start, String end) {

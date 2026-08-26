@@ -23,7 +23,7 @@ public final class PageableGuard {
     }
 
     public static Pageable requireBounded(Pageable pageable, int maxPageSize, long maxOffset) {
-        if (pageable == null || pageable.getPageNumber() < 0 || pageable.getPageSize() < 1
+        if (pageable == null || !pageable.isPaged() || pageable.getPageNumber() < 0 || pageable.getPageSize() < 1
                 || pageable.getPageSize() > maxPageSize || pageable.getOffset() > maxOffset) {
             log.warn("[API] Pageable request rejected. reason=PAGEABLE_LIMIT");
             throw new CustomException(ErrorCode.INVALID_INPUT,

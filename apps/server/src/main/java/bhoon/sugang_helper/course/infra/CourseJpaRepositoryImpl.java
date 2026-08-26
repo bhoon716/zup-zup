@@ -76,7 +76,7 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
                 eqGeneralCategory(condition.generalCategory()),
                 eqGeneralDetail(condition.generalDetail()),
                 inStatuses(condition.statuses()),
-                containsCourseDirection(condition.courseDirection()),
+                containsCourseDirection(condition.courseDirectionTerms()),
                 selectedSchedulePredicateBuilder.build(condition.selectedSchedules()),
                 inWishlist(condition.isWishedOnly(), condition.userId()));
 
@@ -246,8 +246,8 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
         return values.isEmpty() ? null : course.status.in(values);
     }
 
-    private BooleanExpression containsCourseDirection(String courseDirection) {
-        return containsAnyText(course.courseDirection, courseDirection);
+    private BooleanExpression containsCourseDirection(List<String> courseDirectionTerms) {
+        return containsAnyTerms(course.courseDirection, courseDirectionTerms);
     }
 
     private BooleanExpression inWishlist(Boolean wishedOnly, Long userId) {
@@ -324,6 +324,10 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
             return null;
         }
         List<String> terms = splitSearchTerms(value);
+        return containsAnyTerms(field, terms);
+    }
+
+    private BooleanExpression containsAnyTerms(StringExpression field, List<String> terms) {
         if (terms.isEmpty()) {
             return null;
         }
