@@ -102,13 +102,20 @@ public class NotificationService {
      * 특정 사용자에게 여러 채널로 테스트 알림을 발송합니다.
      */
     public void sendTestNotification(User user, List<NotificationChannel> channels) {
+        sendTestNotification(user, channels, NotificationContext.forTest());
+    }
+
+    private boolean sendTestNotification(User user, List<NotificationChannel> channels,
+                                         NotificationContext context) {
         NotificationMessage notification = createTestMessage();
         List<UserDevice> devices = userDeviceRepository.findByUserId(user.getId());
+        boolean delivered = false;
 
         for (NotificationChannel channel : channels) {
             log.info("[Notification Test] Attempting to send. channel={}, userId={}", channel, user.getId());
-            sendNotification(user, devices, notification, channel, NotificationContext.forTest());
+            delivered = sendNotification(user, devices, notification, channel, context) || delivered;
         }
+        return delivered;
     }
 
     /**
@@ -122,7 +129,11 @@ public class NotificationService {
         }
 
         try {
-            sendTestNotification(user, channels);
+            boolean delivered = sendTestNotification(user, channels, NotificationContext.forUserTest());
+            if (!delivered) {
+                throw new CustomException(ErrorCode.INVALID_INPUT,
+                        "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
+            }
         } catch (RuntimeException e) {
             redisService.deleteValues(cooldownKey);
             throw e;
@@ -169,19 +180,19 @@ public class NotificationService {
     /**
      * 알림 발송의 핵심 공통 로직을 수행합니다.
      */
-    private void sendNotification(User user, List<UserDevice> devices, NotificationMessage message,
-                                  NotificationChannel channel, NotificationContext ctx) {
+    private boolean sendNotification(User user, List<UserDevice> devices, NotificationMessage message,
+                                     NotificationChannel channel, NotificationContext ctx) {
         if (!ctx.forceSend() && !notificationChannelPolicy.isChannelEnabled(user, channel)) {
-            return;
+            return false;
         }
 
         List<NotificationTarget> targets = notificationChannelPolicy.resolveTargets(user, devices, channel);
 
         if (targets.isEmpty()) {
-            if (ctx.forceSend()) { // 테스트 요청인데 발송 대상이 없는 경우 예외 발생
+            if (ctx.failOnMissingTarget()) {
                 throw new CustomException(ErrorCode.NOT_FOUND, notificationChannelPolicy.buildNoTargetMessage(channel));
             }
-            return;
+            return false;
         }
 
         boolean delivered = false;
@@ -202,6 +213,7 @@ public class NotificationService {
         if (ctx.saveHistory() && delivered) {
             saveHistory(user.getId(), ctx.courseKey(), message, channel);
         }
+        return delivered;
     }
 
     /**
@@ -273,20 +285,28 @@ public class NotificationService {
     /**
      * 알림 발송 컨텍스트: 이력 저장 여부, 강제 발송 여부, 과목 코드를 묶은 VO입니다.
      */
-    private record NotificationContext(boolean saveHistory, boolean forceSend, String courseKey) {
+    private record NotificationContext(boolean saveHistory, boolean forceSend, boolean failOnMissingTarget,
+                                       String courseKey) {
 
         /**
          * 실제 알림 발송 컨텍스트를 생성합니다.
          */
         static NotificationContext forReal(String courseKey) {
-            return new NotificationContext(true, false, courseKey);
+            return new NotificationContext(true, false, false, courseKey);
         }
 
         /**
          * 테스트 알림 발송 컨텍스트를 생성합니다.
          */
         static NotificationContext forTest() {
-            return new NotificationContext(false, true, "TEST");
+            return new NotificationContext(false, true, true, "TEST");
+        }
+
+        /**
+         * 사용자 테스트 알림은 다른 활성 채널의 발송을 막지 않도록 대상 없는 채널을 건너뜁니다.
+         */
+        static NotificationContext forUserTest() {
+            return new NotificationContext(false, true, false, "TEST");
         }
     }
 }
