@@ -1,13 +1,17 @@
 package bhoon.sugang_helper.notification.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bhoon.sugang_helper.common.error.ErrorCode;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
@@ -19,12 +23,14 @@ import org.slf4j.MDC;
 class NotificationProviderResilienceTest {
 
     private ExecutorService executor;
+    private ExecutorService callers;
     private SimpleMeterRegistry meterRegistry;
     private NotificationProviderResilience resilience;
 
     @BeforeEach
     void setUp() {
         executor = Executors.newFixedThreadPool(4);
+        callers = Executors.newFixedThreadPool(2);
         meterRegistry = new SimpleMeterRegistry();
         resilience = new NotificationProviderResilience(
                 meterRegistry, Duration.ofMillis(40), 2, Duration.ofSeconds(30), executor);
@@ -33,6 +39,7 @@ class NotificationProviderResilienceTest {
     @AfterEach
     void tearDown() {
         resilience.close();
+        callers.shutdownNow();
         meterRegistry.close();
     }
 
@@ -94,6 +101,49 @@ class NotificationProviderResilienceTest {
     }
 
     @Test
+    void permanentHalfOpenFailureClosesCircuitBeforeConcurrentNormalRequests() throws Exception {
+        ExecutorService halfOpenExecutor = Executors.newFixedThreadPool(4);
+        NotificationProviderResilience halfOpenResilience = new NotificationProviderResilience(
+                meterRegistry, Duration.ofMillis(40), 2, Duration.ZERO, halfOpenExecutor);
+        NotificationProviderException outage = new NotificationProviderException(
+                ErrorCode.WEB_PUSH_SEND_ERROR, true, "OUTAGE", null, null);
+        Runnable permanentFailure = () -> {
+            throw new NotificationProviderException(
+                    ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION, false, "INVALID_RECIPIENT", 404, null);
+        };
+
+        try {
+            assertThatThrownBy(() -> halfOpenResilience.execute(NotificationChannel.WEB, () -> {
+                throw outage;
+            })).isSameAs(outage);
+            assertThatThrownBy(() -> halfOpenResilience.execute(NotificationChannel.WEB, () -> {
+                throw outage;
+            })).isSameAs(outage);
+            assertThatThrownBy(() -> halfOpenResilience.execute(NotificationChannel.WEB, permanentFailure))
+                    .isInstanceOf(NotificationProviderException.class);
+
+            CountDownLatch normalStarted = new CountDownLatch(1);
+            CountDownLatch releaseNormal = new CountDownLatch(1);
+            Future<?> firstNormal = callers.submit(() -> halfOpenResilience.execute(NotificationChannel.WEB, () -> {
+                normalStarted.countDown();
+                await(releaseNormal);
+            }));
+
+            assertThat(normalStarted.await(1, TimeUnit.SECONDS)).isTrue();
+            Future<?> concurrentNormal = callers.submit(() -> halfOpenResilience.execute(NotificationChannel.WEB, () -> { }));
+
+            try {
+                assertThatCode(() -> concurrentNormal.get(1, TimeUnit.SECONDS)).doesNotThrowAnyException();
+            } finally {
+                releaseNormal.countDown();
+            }
+            assertThatCode(() -> firstNormal.get(1, TimeUnit.SECONDS)).doesNotThrowAnyException();
+        } finally {
+            halfOpenResilience.close();
+        }
+    }
+
+    @Test
     void propagatesCorrelationIdToProviderTaskAndClearsWorkerContext() {
         AtomicReference<String> observedCorrelationId = new AtomicReference<>();
         AtomicReference<String> leakedWorkerValue = new AtomicReference<>();
@@ -118,6 +168,17 @@ class NotificationProviderResilienceTest {
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(exception);
+        }
+    }
+
+    private void await(CountDownLatch latch) {
+        try {
+            if (!latch.await(1, TimeUnit.SECONDS)) {
+                throw new AssertionError("Timed out waiting for test operation release");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("Interrupted while waiting for test operation release", exception);
         }
     }
 }

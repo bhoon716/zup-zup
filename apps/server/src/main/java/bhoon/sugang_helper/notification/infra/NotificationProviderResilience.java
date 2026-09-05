@@ -189,6 +189,7 @@ public class NotificationProviderResilience implements AutoCloseable {
         synchronized void recordFailure(boolean retryable, Instant now, int threshold, Duration duration) {
             if (!retryable) {
                 consecutiveFailures = 0;
+                openUntil = null;
                 probeInFlight = false;
                 return;
             }
