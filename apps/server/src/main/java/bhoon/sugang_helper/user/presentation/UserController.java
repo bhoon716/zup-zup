@@ -308,7 +308,9 @@ public class UserController {
      */
     @Operation(summary = "디스코드 OAuth2 콜백", description = "디스코드 인증 후 리다이렉트되어 연동을 완료합니다.")
     @GetMapping("/discord/callback")
-    public ResponseEntity<Void> discordCallback(@RequestParam String code, @RequestParam String state,
+    public ResponseEntity<Void> discordCallback(@RequestParam(name = "code", required = false) String code,
+                                                @RequestParam(name = "state", required = false) String state,
+                                                @RequestParam(name = "error", required = false) String error,
                                                 HttpSession session) {
         String redirectPath = (String) session.getAttribute(DISCORD_RETURN_PATH_ATTRIBUTE);
         String expectedState = (String) session.getAttribute(DISCORD_STATE_ATTRIBUTE);
@@ -316,6 +318,12 @@ public class UserController {
         session.removeAttribute(DISCORD_RETURN_PATH_ATTRIBUTE);
 
         try {
+            if (error != null && !error.isBlank()) {
+                throw new IllegalArgumentException("Discord OAuth provider rejected request");
+            }
+            if (code == null || code.isBlank() || state == null || state.isBlank()) {
+                throw new IllegalArgumentException("Discord OAuth callback is missing required parameters");
+            }
             if (expectedState == null || !java.security.MessageDigest.isEqual(
                     expectedState.getBytes(StandardCharsets.UTF_8), state.getBytes(StandardCharsets.UTF_8))) {
                 throw new IllegalArgumentException("Invalid Discord OAuth state");
