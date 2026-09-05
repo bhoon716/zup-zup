@@ -62,6 +62,24 @@ class SlackAlertServiceTest {
     }
 
     @Test
+    void sendsSafeCrawlerDiagnosticWithAlert() {
+        String diagnostic = "failureStage=COURSE_API failureType=SocketTimeoutException "
+                + "upstreamStatus=UNKNOWN retryable=true";
+
+        service.sendSynchronously(
+                SlackAlertCategory.CRAWLER_FETCH,
+                "C001",
+                new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR),
+                diagnostic);
+
+        ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
+        verify(webhookClient).send(messageCaptor.capture());
+        assertThat(messageCaptor.getValue())
+                .contains(diagnostic)
+                .doesNotContain("http", "cookie", "secret");
+    }
+
+    @Test
     void suppressesSameAlertDuringCooldown() {
         RuntimeException exception = new IllegalStateException("database unavailable");
 

@@ -2,6 +2,7 @@ package bhoon.sugang_helper.crawling.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import bhoon.sugang_helper.crawling.domain.CrawlerFailureStage;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import org.junit.jupiter.api.Test;
@@ -17,5 +18,15 @@ class JbnuCourseApiClientRetryPolicyTest {
     @Test
     void malformedPayloadFailuresAreNotRetriedAsTransportFailures() {
         assertThat(JbnuCourseApiClient.isTransientFailure(new IllegalArgumentException("malformed JSON"))).isFalse();
+    }
+
+    @Test
+    void wrappedFailureUsesItsExplicitRetryClassification() {
+        CrawlerUpstreamException nonRetryable = CrawlerUpstreamException.wrap(
+                CrawlerFailureStage.COURSE_API,
+                new IllegalArgumentException("malformed request"),
+                false);
+
+        assertThat(JbnuCourseApiClient.isTransientFailure(nonRetryable)).isFalse();
     }
 }

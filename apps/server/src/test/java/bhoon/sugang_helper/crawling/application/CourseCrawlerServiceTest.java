@@ -42,6 +42,7 @@ class CourseCrawlerServiceTest {
 
     private static final String YEAR = "2026";
     private static final String SEMESTER = "U211600010";
+    private static final String RUN_ID_PREFIX = "runId=";
 
     @Mock
     private CourseCrawlFetcher courseCrawlFetcher;
@@ -80,6 +81,48 @@ class CourseCrawlerServiceTest {
     }
 
     @Test
+    @DisplayName("크롤러 실행 lifecycle 로그는 동일한 실행 식별자와 단계·결과·소요 시간을 기록한다")
+    void crawlAndSaveCourses_LogsRunLifecycle() {
+        ParsedCourseDto course = mock(ParsedCourseDto.class);
+        given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willReturn(List.of(course));
+        ListAppender<ILoggingEvent> appender = attachAppender();
+
+        try {
+            assertThat(courseCrawlerService.crawlAndSaveCourses(YEAR, SEMESTER)).isTrue();
+
+            List<String> messages = appender.list.stream()
+                    .map(ILoggingEvent::getFormattedMessage)
+                    .toList();
+            String started = messages.stream()
+                    .filter(message -> message.contains("run_started"))
+                    .findFirst()
+                    .orElseThrow();
+            String runId = started.substring(started.indexOf(RUN_ID_PREFIX) + RUN_ID_PREFIX.length()).split(" ")[0];
+            String succeeded = messages.stream()
+                    .filter(message -> message.contains("run_succeeded"))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(started)
+                    .contains(RUN_ID_PREFIX + runId)
+                    .contains("year=" + YEAR)
+                    .contains("semester=" + SEMESTER)
+                    .contains("stage=FETCH_PARSE")
+                    .contains("result=started")
+                    .containsPattern("elapsedMs=\\d+");
+            assertThat(succeeded)
+                    .contains(RUN_ID_PREFIX + runId)
+                    .contains("year=" + YEAR)
+                    .contains("semester=" + SEMESTER)
+                    .contains("stage=PERSIST")
+                    .contains("result=success")
+                    .containsPattern("elapsedMs=\\d+");
+        } finally {
+            detachAppender(appender);
+        }
+    }
+
+    @Test
     @DisplayName("외부 수집·파싱 실패는 FETCH_PARSE 단계로 별도 기록한다")
     void fetchFailure_IsRecordedWithFetchParseStage() {
         CustomException failure = new CustomException(ErrorCode.CRAWLER_PARSING_ERROR);
@@ -88,6 +131,64 @@ class CourseCrawlerServiceTest {
         assertThatThrownBy(() -> courseCrawlerService.crawlAndSaveCourses(YEAR, SEMESTER))
                 .isSameAs(failure);
         verify(crawlerRunStateService).recordFailure(CrawlerFailureStage.FETCH_PARSE, failure);
+    }
+
+    @Test
+    @DisplayName("실패 lifecycle 로그는 실행 식별자와 실패 단계·원인·결과를 기록한다")
+    void fetchFailure_LogsFailureLifecycle() {
+        CustomException failure = new CustomException(ErrorCode.CRAWLER_PARSING_ERROR);
+        given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willThrow(failure);
+        ListAppender<ILoggingEvent> appender = attachAppender();
+
+        try {
+            assertThatThrownBy(() -> courseCrawlerService.crawlAndSaveCourses(YEAR, SEMESTER))
+                    .isSameAs(failure);
+
+            assertThat(appender.list.stream()
+                    .map(ILoggingEvent::getFormattedMessage)
+                    .filter(message -> message.contains("run_failed"))
+                    .findFirst()
+                    .orElseThrow())
+                    .contains(RUN_ID_PREFIX)
+                    .contains("year=" + YEAR)
+                    .contains("semester=" + SEMESTER)
+                    .contains("stage=FETCH_PARSE")
+                    .contains("result=failed")
+                    .contains("failureCode=C002")
+                    .contains("exceptionType=CustomException")
+                    .contains("retryable=UNKNOWN")
+                    .contains("upstreamStatus=UNKNOWN")
+                    .containsPattern("elapsedMs=\\d+");
+        } finally {
+            detachAppender(appender);
+        }
+    }
+
+    @Test
+    @DisplayName("historical 크롤링은 대상별 canonical 실패 로그를 중복 기록하지 않는다")
+    void historicalFailure_DoesNotDuplicateFailureLog() {
+        CustomException failure = new CustomException(ErrorCode.CRAWLER_PARSING_ERROR);
+        given(courseCrawlFetcher.fetch(anyString(), anyString())).willThrow(failure);
+        ListAppender<ILoggingEvent> appender = attachAppender();
+
+        try {
+            assertThat(courseCrawlerService.crawlRecentYears()).isTrue();
+
+            List<String> messages = appender.list.stream()
+                    .map(ILoggingEvent::getFormattedMessage)
+                    .toList();
+            long runFailureCount = messages.stream()
+                    .filter(message -> message.contains("run_failed"))
+                    .count();
+            long historicalFailureCount = messages.stream()
+                    .filter(message -> message.contains("Historical crawl failed"))
+                    .count();
+
+            assertThat(runFailureCount).isEqualTo(3L * SemesterType.values().length);
+            assertThat(historicalFailureCount).isZero();
+        } finally {
+            detachAppender(appender);
+        }
     }
 
     @Test
