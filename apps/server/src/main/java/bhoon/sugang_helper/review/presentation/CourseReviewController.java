@@ -1,4 +1,6 @@
 package bhoon.sugang_helper.review.presentation;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.review.application.CourseReviewService;
 import bhoon.sugang_helper.review.application.ReviewResponse;
 import bhoon.sugang_helper.review.application.ReviewUpdateRequest;
@@ -7,6 +9,7 @@ import bhoon.sugang_helper.review.application.ReviewCreateRequest;
 
 
 import bhoon.sugang_helper.common.response.CommonResponse;
+import bhoon.sugang_helper.common.web.PageableGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -18,6 +21,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -105,12 +109,28 @@ public class CourseReviewController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
+        validatePagination(page, size);
+        if (sort == null || sort.length == 0 || sort[0].isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "정렬 기준은 비어 있을 수 없습니다.");
+        }
         String sortProperty = sort[0];
-        Sort.Direction direction = sort.length > 1 ? Sort.Direction.fromString(sort[1]) : Sort.Direction.DESC;
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, sortProperty));
+        Sort.Direction direction;
+        try {
+            direction = sort.length > 1 ? Sort.Direction.fromString(sort[1]) : Sort.Direction.DESC;
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "정렬 방향은 asc 또는 desc만 지원합니다.");
+        }
+        Pageable pageRequest = PageableGuard.requireBounded(
+                PageRequest.of(page, size, Sort.by(direction, sortProperty)));
 
         Page<ReviewResponse> responsePage = reviewService.getReviews(courseKey, pageRequest);
         return CommonResponse.ok(responsePage, "리뷰 목록을 조회했습니다.");
+    }
+
+    private void validatePagination(int page, int size) {
+        if (page < 0 || size < 1) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "페이지 번호는 0 이상, 크기는 1 이상이어야 합니다.");
+        }
     }
 
     @Operation(summary = "리뷰 수정 (백엔드 전용)", description = "자신이 작성한 리뷰 내용을 수정합니다. (현재 프론트엔드 연동 계획 없음)")
