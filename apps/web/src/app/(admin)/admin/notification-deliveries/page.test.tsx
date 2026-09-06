@@ -31,6 +31,7 @@ describe("AdminNotificationDeliveriesPage", () => {
     status: "DLQ",
     attempts: 5,
     lastError: "N001",
+    lastErrorReason: "이메일 발송 중 오류가 발생했습니다.",
     deadLetteredAt: "2026-07-13T01:23:45",
     idempotencyKeyRetained: true,
   };
@@ -62,6 +63,7 @@ describe("AdminNotificationDeliveriesPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /알고리즘/ }));
 
     expect(screen.getByText("CS-101")).toBeInTheDocument();
+    expect(screen.getAllByText(/이메일 발송 중 오류가 발생했습니다\./)).toHaveLength(2);
     expect(screen.getByText("idempotency key 유지")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "선택 delivery 재처리" }));
 

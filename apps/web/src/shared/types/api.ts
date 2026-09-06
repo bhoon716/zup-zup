@@ -339,6 +339,7 @@ export interface AdminNotificationDeliveryResponse {
   status: NotificationDeliveryStatus;
   attempts: number;
   lastError: string | null;
+  lastErrorReason: string | null;
   deadLetteredAt: string | null;
   idempotencyKeyRetained: boolean;
 }

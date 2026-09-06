@@ -35,6 +35,16 @@ const CHANNEL_LABELS: Record<NotificationDeliveryChannel, string> = {
 
 const PAGE_SIZE = 20;
 
+const failureReason = (delivery: AdminNotificationDeliveryResponse) => {
+  if (!delivery.lastError) return "-";
+  return delivery.lastErrorReason || "기타 수신 실패";
+};
+
+const failureSummary = (delivery: AdminNotificationDeliveryResponse) => {
+  if (!delivery.lastError) return "-";
+  return `${delivery.lastError} · ${failureReason(delivery)}`;
+};
+
 const formatDateTime = (value: string | null) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -174,7 +184,7 @@ export default function AdminNotificationDeliveriesPage() {
                       </div>
                       <DeliveryStatusBadge delivery={delivery} />
                     </div>
-                    <p className="mt-2 truncate text-[11px] text-red-500">오류 코드: {delivery.lastError || "-"}</p>
+                    <p className="mt-2 truncate text-[11px] text-red-500">실패 사유: {failureSummary(delivery)}</p>
                   </button>
                 ))
               ) : (
@@ -272,6 +282,10 @@ export default function AdminNotificationDeliveriesPage() {
                   <div>
                     <dt className="text-xs font-bold text-slate-400">마지막 오류 코드</dt>
                     <dd className="mt-1 font-mono text-sm font-semibold text-red-600">{selectedDelivery.lastError || "-"}</dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-xs font-bold text-slate-400">마지막 오류 사유</dt>
+                    <dd className="mt-1 font-semibold text-red-600">{failureReason(selectedDelivery)}</dd>
                   </div>
                   <div>
                     <dt className="text-xs font-bold text-slate-400">DLQ 전환 시각</dt>
