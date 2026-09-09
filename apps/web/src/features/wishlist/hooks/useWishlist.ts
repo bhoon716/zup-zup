@@ -4,12 +4,12 @@ import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 import { WishlistResponse } from '@/shared/types/api';
 
-import { useUser } from "@/features/user/hooks/useUser";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import type { User } from "@/shared/types/api";
 
 export const useWishlist = (enabled = true, initialUser?: User | null) => {
-  const { data: user } = useUser({ enabled: enabled && initialUser === undefined });
-  const resolvedUser = initialUser !== undefined ? initialUser : user;
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const canFetch = initialUser !== undefined ? !!initialUser : isAuthenticated;
   
   return useQuery({
     queryKey: ['wishlist'],
@@ -17,7 +17,7 @@ export const useWishlist = (enabled = true, initialUser?: User | null) => {
       const response = await wishlistApi.getMyWishlist();
       return response.data ?? null;
     },
-    enabled: enabled && !!resolvedUser,
+    enabled: enabled && canFetch,
   });
 };
 

@@ -115,6 +115,7 @@ describe("Providers", () => {
     const handler = mockRegisterAuthFailureHandler.mock.calls[0]?.[0] as (() => void) | undefined;
     handler?.();
     expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockState.setLoginModalOpen).toHaveBeenCalledWith(true);
   });
 
   it("is_logged_in 쿠키가 true일 때 세션 부트스트랩을 수행한다", async () => {

@@ -18,7 +18,7 @@ describe("shared api client", () => {
     expect((api.defaults.headers.common as Record<string, unknown>)["ngrok-skip-browser-warning"]).toBeUndefined();
   });
 
-  it("refresh 실패 시 로그인 페이지로 이동한다", async () => {
+  it("refresh 실패 시 등록된 인증 실패 핸들러만 호출한다", async () => {
     const refreshError = Object.assign(new Error("refresh failed"), {
       response: { status: 401 },
     });
@@ -68,7 +68,7 @@ describe("shared api client", () => {
     };
 
     await expect(responseHandlers.onRejected?.(responseError)).rejects.toThrow("refresh failed");
-    expect(redirectSpy).toHaveBeenCalledTimes(1);
+    expect(redirectSpy).not.toHaveBeenCalled();
     expect(logoutSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -295,7 +295,7 @@ describe("shared api client", () => {
     expect(refreshCalls).toBe(4);
   });
 
-  it("동시 definitive refresh 실패는 logout과 redirect를 한 번만 실행한다", async () => {
+  it("동시 definitive refresh 실패는 logout 핸들러를 한 번만 실행한다", async () => {
     const refreshError = Object.assign(new Error("expired"), {
       response: { status: 401 },
     });
@@ -351,7 +351,7 @@ describe("shared api client", () => {
     const results = await Promise.allSettled(requests);
     expect(results.map((result) => result.status)).toEqual(["rejected", "rejected"]);
     expect(logoutSpy).toHaveBeenCalledTimes(1);
-    expect(redirectSpy).toHaveBeenCalledTimes(1);
+    expect(redirectSpy).not.toHaveBeenCalled();
   });
 
   it("refresh 성공과 명시적 인증 상태 초기화는 transient cooldown을 초기화한다", async () => {
@@ -413,7 +413,7 @@ describe("shared api client", () => {
     expect(refreshCalls).toBe(2);
 
     await expect(rejectProtectedRequest(3)).rejects.toBe(definitiveError);
-    expect(redirectSpy).toHaveBeenCalledTimes(1);
+    expect(redirectSpy).not.toHaveBeenCalled();
 
     await expect(rejectProtectedRequest(4)).rejects.toBe(transientError);
     expect(refreshCalls).toBe(4);

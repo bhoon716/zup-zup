@@ -1,6 +1,6 @@
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
-import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   useTimetables,
@@ -11,7 +11,17 @@ import {
 } from './useTimetable';
 import { createQueryWrapper, createTestQueryClient } from '@/test/query-client';
 import * as timetableApi from '@/features/timetable/api/timetable.api';
+import { useUser } from '@/features/user/hooks/useUser';
 import { toast } from 'sonner';
+
+vi.mock('@/features/user/hooks/useUser', () => ({
+  useUser: vi.fn(),
+}));
+
+vi.mock('@/features/auth/store/useAuthStore', () => ({
+  useAuthStore: (selector: (state: { isAuthenticated: boolean }) => unknown) =>
+    selector({ isAuthenticated: true }),
+}));
 
 vi.mock('sonner', () => ({
   toast: {
@@ -94,10 +104,26 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe('useTimetable hooks', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useUser).mockReturnValue({ data: mockUser } as never);
+  });
+
   it('useTimetables fetches all timetables', async () => {
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => useTimetables(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toHaveLength(2);
+  });
+
+  it('인증 스토어가 인증된 상태면 사용자 쿼리 데이터 없이 시간표를 조회한다', async () => {
+    vi.mocked(useUser).mockReturnValue({ data: null } as never);
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    const { result } = renderHook(() => useTimetables(), { wrapper });
+
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toHaveLength(2);
   });

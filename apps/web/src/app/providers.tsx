@@ -84,7 +84,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     registerAuthFailureHandler(() => {
-      useAuthStore.getState().logout();
+      const authState = useAuthStore.getState();
+      authState.logout();
+      authState.setLoginModalOpen(true);
     });
 
     // Firebase SDK를 앱 시작 시 한 번 초기화한다.
