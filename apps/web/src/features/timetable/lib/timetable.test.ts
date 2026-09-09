@@ -109,5 +109,36 @@ describe('Timetable Utils', () => {
       const blocks = getRenderingBlocks(differentDayTimetable);
       expect(blocks.every((b) => !b.isOverlap)).toBe(true);
     });
+
+    it('should zero-pad overlap times and merge identical overlap regions', () => {
+      const paddedOverlapTimetable: TimetableResponse = {
+        ...mockTimetable,
+        courses: [
+          {
+            ...mockTimetable.courses[0],
+            schedules: [{ dayOfWeek: '월', startTime: '09:05', endTime: '10:00' }],
+          },
+          {
+            ...mockTimetable.courses[1],
+            schedules: [{ dayOfWeek: '월', startTime: '09:00', endTime: '09:30' }],
+          },
+          {
+            ...mockTimetable.courses[1],
+            courseKey: 'COURSE3',
+            name: 'Operating Systems',
+            schedules: [{ dayOfWeek: '월', startTime: '09:00', endTime: '09:30' }],
+          },
+        ],
+      };
+
+      const course1 = getRenderingBlocks(paddedOverlapTimetable).find((b) => b.id === 'COURSE1');
+
+      expect(course1?.overlapRegions).toHaveLength(1);
+      expect(course1?.overlapRegions?.[0]).toMatchObject({
+        startTime: '09:05',
+        endTime: '09:30',
+      });
+      expect(course1?.overlapRegions?.[0].overlappingBlocks).toHaveLength(2);
+    });
   });
 });

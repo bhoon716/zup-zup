@@ -191,7 +191,9 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
           const endHour = Math.floor(overlapEnd / 60);
           const endMin = overlapEnd % 60;
 
-          const regionKey = `${startHour}:${startMin}-${endHour}:${endMin}`;
+          const overlapStartTime = `${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`;
+          const overlapEndTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
+          const regionKey = `${overlapStartTime}-${overlapEndTime}`;
           const existingRegion = overlapRegions.find(
             r => `${r.startTime}-${r.endTime}` === regionKey
           );
@@ -204,8 +206,8 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
           } else {
             // 겹침 안내 다이얼로그에서 시간대별 충돌 목록을 보여주기 위해 구간을 모은다.
             overlapRegions.push({
-              startTime: `${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`,
-              endTime: `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`,
+              startTime: overlapStartTime,
+              endTime: overlapEndTime,
               overlappingBlocks: [{
                 title: other.title,
                 subTitle: other.subTitle,
