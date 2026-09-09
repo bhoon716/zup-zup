@@ -1,15 +1,24 @@
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   useTimetables,
   useTimetableDetail,
   usePrimaryTimetable,
   useAddCourseToTimetable,
+  useAddCustomSchedule,
 } from './useTimetable';
 import { createQueryWrapper, createTestQueryClient } from '@/test/query-client';
 import * as timetableApi from '@/features/timetable/api/timetable.api';
+import { toast } from 'sonner';
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 const mockUser = {
   id: 1,
@@ -127,5 +136,29 @@ describe('useTimetable hooks', () => {
     result.current.mutate({ timetableId: 1, courseKey: 'COURSE1' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it('useAddCustomSchedule shows the server error message when adding fails', async () => {
+    const error = { response: { data: { message: '시간이 겹치는 일정이 있습니다.' } } };
+    const addCustomScheduleSpy = vi.spyOn(timetableApi.timetableApi, 'addCustomSchedule')
+      .mockRejectedValue(error);
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    const { result } = renderHook(() => useAddCustomSchedule(), { wrapper });
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({
+        timetableId: 1,
+        data: {
+          title: '중복 일정',
+          professor: '',
+          schedules: [{ dayOfWeek: 'MONDAY', startTime: '09:00', endTime: '10:00' }],
+        },
+      })).rejects.toBe(error);
+    });
+
+    expect(toast.error).toHaveBeenCalledWith('시간이 겹치는 일정이 있습니다.');
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    addCustomScheduleSpy.mockRestore();
   });
 });
