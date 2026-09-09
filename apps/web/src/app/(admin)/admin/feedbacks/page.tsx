@@ -368,7 +368,7 @@ export default function AdminFeedbackPage() {
                       placeholder="답변을 입력하세요..." 
                       value={replyContent}
                       onChange={(e) => setReplyContent(e.target.value)}
-                      className="min-h-[100px] text-[13px] p-4 pr-16 rounded-xl border-gray-200 dark:border-gray-800 resize-none font-medium"
+                      className="min-h-[100px] text-base md:text-[13px] p-4 pr-16 rounded-xl border-gray-200 dark:border-gray-800 resize-none font-medium"
                     />
                     <Button 
                       onClick={handleReplySubmit}
