@@ -6,7 +6,7 @@ import { Button } from "@/shared/ui/button";
 import { Loader2, Bell, ChevronDown } from "lucide-react";
 
 export function NotificationList() {
-  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications();
+  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications();
 
   if (isLoading) {
     return (
@@ -25,7 +25,7 @@ export function NotificationList() {
         </div>
         <h3 className="text-lg font-bold text-slate-900 mb-2">불러오기 실패</h3>
         <p className="text-slate-500 text-sm mb-4">알림 목록을 불러오는데 실패했습니다.</p>
-        <Button onClick={() => window.location.reload()} variant="outline" className="rounded-xl">다시 시도</Button>
+        <Button onClick={() => { void refetch(); }} variant="outline" className="rounded-xl">다시 시도</Button>
       </div>
     );
   }
