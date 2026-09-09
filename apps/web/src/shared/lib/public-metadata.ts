@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import type { AnnouncementDetailResponse, Course } from "@/shared/types/api";
-
-const SITE_URL = "https://zup-zup.com";
+import {
+  BRAND_ICON_512_PATH,
+  BRAND_OG_IMAGE,
+  SITE_URL,
+} from "@/shared/seo/branding";
 
 const getApiUrl = () => process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
 
@@ -40,6 +43,17 @@ export const getAnnouncementMetadata = async (id: number): Promise<Metadata> => 
     return {
       title: fallbackTitle,
       description: "줍줍 공지사항을 확인하세요.",
+      openGraph: {
+        title: fallbackTitle,
+        description: "줍줍 공지사항을 확인하세요.",
+        images: [BRAND_OG_IMAGE],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: fallbackTitle,
+        description: "줍줍 공지사항을 확인하세요.",
+        images: [BRAND_ICON_512_PATH],
+      },
     };
   }
 
@@ -57,11 +71,13 @@ export const getAnnouncementMetadata = async (id: number): Promise<Metadata> => 
       siteName: "줍줍",
       locale: "ko_KR",
       type: "article",
+      images: [BRAND_OG_IMAGE],
     },
     twitter: {
       card: "summary_large_image",
       title: announcement.title,
       description,
+      images: [BRAND_ICON_512_PATH],
     },
   };
 };
@@ -74,6 +90,17 @@ export const getCourseMetadata = async (courseKey: string): Promise<Metadata> =>
     return {
       title: fallbackTitle,
       description: "전북대학교 강의 상세 정보를 확인하세요.",
+      openGraph: {
+        title: fallbackTitle,
+        description: "전북대학교 강의 상세 정보를 확인하세요.",
+        images: [BRAND_OG_IMAGE],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: fallbackTitle,
+        description: "전북대학교 강의 상세 정보를 확인하세요.",
+        images: [BRAND_ICON_512_PATH],
+      },
     };
   }
 
@@ -105,11 +132,13 @@ export const getCourseMetadata = async (courseKey: string): Promise<Metadata> =>
       siteName: "줍줍",
       locale: "ko_KR",
       type: "website",
+      images: [BRAND_OG_IMAGE],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      images: [BRAND_ICON_512_PATH],
     },
   };
 };
