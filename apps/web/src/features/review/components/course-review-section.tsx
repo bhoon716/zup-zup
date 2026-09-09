@@ -1,10 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
 
-import emojiData from "@emoji-mart/data";
-import koI18n from "@emoji-mart/data/i18n/ko.json";
-import Picker from "@emoji-mart/react";
 import axios from "axios";
 import { AlertCircle, Loader2, MessageSquare, Plus, Star } from "lucide-react";
 import { toast } from "sonner";
@@ -24,14 +22,17 @@ interface CourseReviewSectionProps {
   isProfessorUnassigned?: boolean;
 }
 
-const emojiPickerI18n = {
-  ...koI18n,
-  search: "모든 이모티콘 검색",
-  categories: {
-    ...koI18n.categories,
-    frequent: "자주 사용됨",
+const CourseEmojiPicker = dynamic(
+  () => import("./course-emoji-picker").then((module) => module.CourseEmojiPicker),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex min-h-96 items-center justify-center text-sm text-slate-300" role="status">
+        이모지 선택창을 불러오는 중입니다.
+      </div>
+    ),
   },
-};
+);
 
 /**
  * 강의 상세 화면의 리뷰 섹션입니다.
@@ -305,19 +306,7 @@ export function CourseReviewSection({
               </DialogDescription>
 
               <div className="p-3">
-                <Picker
-                  data={emojiData}
-                  i18n={emojiPickerI18n}
-                  theme="dark"
-                  onEmojiSelect={handleEmojiSelect}
-                  searchPosition="top"
-                  navPosition="top"
-                  previewPosition="none"
-                  maxFrequentRows={2}
-                  perLine={8}
-                  emojiSize={24}
-                  style={{ width: "100%" }}
-                />
+                {isEmojiPickerOpen && <CourseEmojiPicker onEmojiSelect={handleEmojiSelect} />}
               </div>
             </DialogContent>
           </Dialog>
