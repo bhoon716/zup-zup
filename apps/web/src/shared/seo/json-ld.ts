@@ -24,7 +24,7 @@ export function generateWebsiteJsonLd() {
         "@id": `${SITE_URL}/#website`,
         "url": SITE_URL,
         "name": "줍줍",
-        "description": "전북대학교 수강신청 빈자리 알림 및 스마트 시간표 서비스",
+        "description": "전북대 수강신청 빈자리 알림 및 전북대학교 스마트 시간표 서비스",
         "inLanguage": "ko-KR",
         "image": BRAND_LOGO_URL,
       },

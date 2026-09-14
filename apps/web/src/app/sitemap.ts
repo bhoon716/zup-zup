@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/shared/seo/branding";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://zup-zup.com";
+  const baseUrl = SITE_URL;
   const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [

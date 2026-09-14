@@ -1,4 +1,4 @@
-export const SITE_URL = "https://zup-zup.com";
+export const SITE_URL = "https://www.zup-zup.com";
 
 export const BRAND_ICON_32_PATH = "/icons/zup-zup-32.png";
 export const BRAND_ICON_96_PATH = "/icons/zup-zup-96.png";

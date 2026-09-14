@@ -18,6 +18,11 @@ vi.mock("@/shared/seo/json-ld", () => ({ generateWebsiteJsonLd: () => ({}) }));
 import { metadata } from "./layout";
 
 describe("root metadata branding", () => {
+  it("대표 검색어를 페이지 제목과 설명 앞부분에 포함한다", () => {
+    expect(metadata.title).toBe("전북대 수강신청 빈자리 알림 | 전북대학교 줍줍");
+    expect(metadata.description).toContain("전북대 수강신청");
+  });
+
   it("표준 favicon, shortcut, Apple icon과 공유 이미지를 선언한다", () => {
     expect(metadata.icons).toEqual(expect.objectContaining({
       icon: [

@@ -9,8 +9,8 @@ describe("JSON-LD Schema Suite", () => {
 
     const website = jsonLd["@graph"][0];
     expect(website["@type"]).toBe("WebSite");
-    expect(website.url).toBe("https://zup-zup.com");
-    expect(website.image).toBe("https://zup-zup.com/icons/zup-zup-512.png");
+    expect(website.url).toBe("https://www.zup-zup.com");
+    expect(website.image).toBe("https://www.zup-zup.com/icons/zup-zup-512.png");
 
     const app = jsonLd["@graph"][1];
     expect(app["@type"]).toBe("SoftwareApplication");
@@ -36,13 +36,13 @@ describe("JSON-LD Schema Suite", () => {
     const articleJsonLd = generateArticleJsonLd({
       title: "수강신청 안내",
       description: "2026학년도 수강신청 일정 안내입니다.",
-      url: "https://zup-zup.com/announcements/1",
+      url: "https://www.zup-zup.com/announcements/1",
     });
 
     expect(articleJsonLd["@context"]).toBe("https://schema.org");
     expect(articleJsonLd["@type"]).toBe("NewsArticle");
     expect(articleJsonLd.headline).toBe("수강신청 안내");
-    expect(articleJsonLd.url).toBe("https://zup-zup.com/announcements/1");
-    expect(articleJsonLd.publisher.logo.url).toBe("https://zup-zup.com/icons/zup-zup-512.png");
+    expect(articleJsonLd.url).toBe("https://www.zup-zup.com/announcements/1");
+    expect(articleJsonLd.publisher.logo.url).toBe("https://www.zup-zup.com/icons/zup-zup-512.png");
   });
 });
