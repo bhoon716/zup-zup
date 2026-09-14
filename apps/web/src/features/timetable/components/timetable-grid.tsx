@@ -176,17 +176,11 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
           className={cn(
             'relative bg-white timetable-grid-content min-w-full',
             !isPreview && 'shadow-sm flex flex-col',
+            isPreview ? 'md:[--slot-height:45px]' : 'md:[--slot-height:60px]',
             className
           )}
           style={{ '--slot-height': isPreview ? '45px' : '42px' } as React.CSSProperties}
         >
-          <style>{`
-            @media (min-width: 768px) {
-              .timetable-grid-content {
-                --slot-height: ${isPreview ? '45px' : '60px'};
-              }
-            }
-          `}</style>
         <div
           className={cn(
             'grid grid-cols-[20px_repeat(6,minmax(0,1fr))] md:grid-cols-[60px_repeat(6,1fr)] border-b border-slate-200 sticky top-0 bg-white z-40',

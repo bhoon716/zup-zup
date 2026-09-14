@@ -44,11 +44,11 @@ describe('TimetableGrid', () => {
     ],
   };
 
-  const renderGrid = (timetable: TimetableResponse) => {
+  const renderGrid = (timetable: TimetableResponse, isPreview = false) => {
     return render(
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <TimetableGrid timetable={timetable} />
+          <TimetableGrid timetable={timetable} isPreview={isPreview} />
         </TooltipProvider>
       </QueryClientProvider>
     );
@@ -78,5 +78,18 @@ describe('TimetableGrid', () => {
     // 시간을 보여주는 텍스트가 존재하는지 확인 (정확한 매칭을 위해 정규표현식 사용)
     expect(screen.getByText(/9:00/)).toBeInTheDocument();
     expect(screen.getByText(/10:00/)).toBeInTheDocument();
+  });
+
+  it.each([
+    { isPreview: false, mobile: '42px', desktopClass: 'md:[--slot-height:60px]' },
+    { isPreview: true, mobile: '45px', desktopClass: 'md:[--slot-height:45px]' },
+  ])('keeps the responsive slot height without an inline style tag', ({ isPreview, mobile, desktopClass }) => {
+    const { container } = renderGrid(mockTimetable, isPreview);
+    const grid = container.querySelector<HTMLElement>('.timetable-grid-content');
+
+    expect(grid).not.toBeNull();
+    expect(grid?.style.getPropertyValue('--slot-height')).toBe(mobile);
+    expect(grid).toHaveClass(desktopClass);
+    expect(container.querySelector('style')).not.toBeInTheDocument();
   });
 });
