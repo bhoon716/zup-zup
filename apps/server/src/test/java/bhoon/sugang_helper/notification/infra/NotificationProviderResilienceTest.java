@@ -101,6 +101,40 @@ class NotificationProviderResilienceTest {
     }
 
     @Test
+    void olderPermanentFailureDoesNotCloseCircuitOpenedByNewerRetryableFailure() throws Exception {
+        CountDownLatch permanentStarted = new CountDownLatch(1);
+        CountDownLatch releasePermanent = new CountDownLatch(1);
+        Runnable olderPermanentFailure = () -> {
+            permanentStarted.countDown();
+            await(releasePermanent);
+            throw new NotificationProviderException(
+                    ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION, false, "INVALID_RECIPIENT", 404, null);
+        };
+        Runnable retryableFailure = () -> {
+            throw new NotificationProviderException(
+                    ErrorCode.WEB_PUSH_SEND_ERROR, true, "OUTAGE", 503, null);
+        };
+
+        Future<?> olderFailure = callers.submit(() -> resilience.execute(
+                NotificationChannel.WEB, olderPermanentFailure));
+        assertThat(permanentStarted.await(1, TimeUnit.SECONDS)).isTrue();
+
+        assertThatThrownBy(() -> resilience.execute(NotificationChannel.WEB, retryableFailure))
+                .isInstanceOf(NotificationProviderException.class);
+        assertThatThrownBy(() -> resilience.execute(NotificationChannel.WEB, retryableFailure))
+                .isInstanceOf(NotificationProviderException.class);
+
+        releasePermanent.countDown();
+        assertThatThrownBy(() -> olderFailure.get(1, TimeUnit.SECONDS))
+                .hasCauseInstanceOf(NotificationProviderException.class);
+
+        assertThatThrownBy(() -> resilience.execute(NotificationChannel.WEB, () -> { }))
+                .isInstanceOf(NotificationProviderException.class)
+                .extracting("reason")
+                .isEqualTo("CIRCUIT_OPEN");
+    }
+
+    @Test
     void permanentHalfOpenFailureClosesCircuitBeforeConcurrentNormalRequests() throws Exception {
         ExecutorService halfOpenExecutor = Executors.newFixedThreadPool(4);
         NotificationProviderResilience halfOpenResilience = new NotificationProviderResilience(

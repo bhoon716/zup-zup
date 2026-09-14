@@ -4,7 +4,7 @@ import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { registerAuthFailureHandler } from "@/shared/api/client";
 import { getFirebaseApp } from "@/shared/lib/firebase";
 import { resolveAllowedPwaUrl } from "@/shared/lib/pwa-navigation";
-import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, Suspense } from "react";
 import { Toaster, toast } from "sonner";
 import { LoginModal } from "@/widgets/auth/login-modal";
@@ -81,10 +81,12 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
  */
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     registerAuthFailureHandler(() => {
       const authState = useAuthStore.getState();
+      queryClient.clear();
       authState.logout();
       authState.setLoginModalOpen(true);
     });
@@ -146,7 +148,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       }
     };
-  }, [checkSession]);
+  }, [checkSession, queryClient]);
 
   return <OnboardingGuard>{children}</OnboardingGuard>;
 }
