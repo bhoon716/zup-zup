@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser, useCompleteOnboarding } from "@/features/user/hooks/useUser";
@@ -32,6 +32,26 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   return fallbackMessage;
 };
 
+const useSubmitGuard = () => {
+  const inFlightRef = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const tryStart = () => {
+    if (inFlightRef.current) return false;
+
+    inFlightRef.current = true;
+    setIsSubmitting(true);
+    return true;
+  };
+
+  const finish = () => {
+    inFlightRef.current = false;
+    setIsSubmitting(false);
+  };
+
+  return { isSubmitting, tryStart, finish };
+};
+
 export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -47,6 +67,7 @@ export default function OnboardingPage() {
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
   const [timeLeft, setTimeLeft] = useState(180);
+  const { isSubmitting, tryStart, finish } = useSubmitGuard();
 
   const { control, register, handleSubmit, setValue, formState: { errors }, trigger } = useForm<OnboardingForm>({
     defaultValues: {
@@ -163,40 +184,51 @@ export default function OnboardingPage() {
     await subscribe(deviceName);
   };
 
-  const onSubmit = (data: OnboardingForm) => {
-    if (!(user && data.notificationEmail === user.email)) {
-      // 구글 계정 메일이 아닌 경우에는 별도 인증 완료가 필요하다.
-      if (data.emailEnabled && !verified) {
-        toast.error("이메일 인증을 완료해주세요.");
+  const onSubmit = async (data: OnboardingForm) => {
+    if (!tryStart()) return;
+
+    try {
+      if (!(user && data.notificationEmail === user.email)) {
+        // 구글 계정 메일이 아닌 경우에는 별도 인증 완료가 필요하다.
+        if (data.emailEnabled && !verified) {
+          toast.error("이메일 인증을 완료해주세요.");
+          return;
+        }
+      }
+
+      if (data.webPushEnabled && !data.deviceName?.trim()) {
+        toast.error("알림을 받을 기기 이름을 입력해 주세요.");
         return;
       }
-    }
 
-    if (data.webPushEnabled && !data.deviceName?.trim()) {
-      toast.error("알림을 받을 기기 이름을 입력해 주세요.");
-      return;
-    }
-
-    if (!data.emailEnabled && !data.webPushEnabled && !data.discordEnabled) {
-      if (!confirm("모든 알림을 끄시겠습니까? 빈자리가 생겨도 알림을 받을 수 없습니다.")) {
-        return;
+      if (data.webPushEnabled) {
+        const registered = await subscribe(data.deviceName);
+        if (!registered) return;
       }
-    }
-    
-    completeOnboarding(
-      {
-        notificationEmail: data.notificationEmail,
-        emailEnabled: data.emailEnabled,
-        webPushEnabled: data.webPushEnabled,
-        fcmEnabled: data.fcmEnabled,
-        discordEnabled: data.discordEnabled,
-      },
-      {
-        onSuccess: () => {
-          router.replace("/");
+
+      if (!data.emailEnabled && !data.webPushEnabled && !data.discordEnabled) {
+        if (!confirm("모든 알림을 끄시겠습니까? 빈자리가 생겨도 알림을 받을 수 없습니다.")) {
+          return;
+        }
+      }
+
+      completeOnboarding(
+        {
+          notificationEmail: data.notificationEmail,
+          emailEnabled: data.emailEnabled,
+          webPushEnabled: data.webPushEnabled,
+          fcmEnabled: data.fcmEnabled,
+          discordEnabled: data.discordEnabled,
         },
-      }
-    );
+        {
+          onSuccess: () => {
+            router.replace("/");
+          },
+        }
+      );
+    } finally {
+      finish();
+    }
   };
 
   if (isLoading) {
@@ -405,7 +437,7 @@ export default function OnboardingPage() {
             <div className="flex items-center justify-end pt-8 border-t border-gray-100 mt-8">
               <Button 
                 type="submit" 
-                disabled={isPending}
+                disabled={isPending || isSubmitting || loadingWebPush}
                 className="w-full sm:w-auto px-12 py-7 bg-[#56296E] hover:bg-[#452059] text-white font-black shadow-lg shadow-[#56296E]/30 transition-all flex items-center justify-center gap-2 text-lg rounded-xl hover:translate-y-[-2px] active:translate-y-0"
               >
                 <span>{isPending ? "저장 중..." : "완료"}</span>

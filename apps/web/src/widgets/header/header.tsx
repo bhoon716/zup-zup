@@ -63,13 +63,13 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 group transition-all active:scale-95">
+      <div className="container flex h-16 items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-8">
+          <Link href="/" className="flex shrink-0 items-center gap-2 group transition-all active:scale-95">
             <Image src="/zub-zub-logo.png" alt="로고" width={38} height={38} className="w-10 h-10 object-contain group-hover:scale-110 transition-transform" />
             <span className="font-bold text-xl text-primary tracking-tight">줍줍</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
+          <nav aria-label="주요 메뉴" className="hidden min-w-0 md:flex items-center gap-1">
             <NavLinks 
               isLoading={shouldShowSkeleton}
               isLoggedIn={hasMounted ? !!user : false} 
@@ -79,7 +79,7 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div role="group" aria-label="헤더 액션" className="flex shrink-0 items-center gap-2">
           <Button
             onClick={install}
             variant="outline"
@@ -90,7 +90,7 @@ export function Header() {
             <span className="font-medium">{platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}</span>
           </Button>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2 border-l border-gray-100 pl-3" role="group" aria-label="사용자 메뉴">
             <HeaderDesktopUser 
               user={hasMounted && (isAuthenticated || !user) ? verifiedUser : undefined}
               isLoading={shouldShowUserSkeleton}
@@ -100,7 +100,7 @@ export function Header() {
             />
           </div>
 
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex shrink-0 md:hidden items-center gap-2" role="group" aria-label="모바일 메뉴">
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
                 <Button

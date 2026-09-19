@@ -39,8 +39,29 @@ describe("useUserDevices hooks", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["user-profile"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["user", "me"] });
     expect(toast.success).toHaveBeenCalledWith("기기가 등록되었습니다.");
+  });
+
+  it("기기 해제 성공 시 사용자 캐시를 무효화한다", async () => {
+    vi.mocked(userApi.unregisterDevice).mockResolvedValue({
+      code: "SUCCESS",
+      message: "ok",
+      data: undefined,
+    } as never);
+
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const wrapper = createQueryWrapper(queryClient);
+    const { result } = renderHook(() => useUnregisterDevice(), { wrapper });
+
+    act(() => {
+      result.current.mutate("token-value");
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["user", "me"] });
+    expect(toast.success).toHaveBeenCalledWith("기기 등록이 해제되었습니다.");
   });
 
   it("기기 해제 실패 시 에러 토스트를 노출한다", async () => {

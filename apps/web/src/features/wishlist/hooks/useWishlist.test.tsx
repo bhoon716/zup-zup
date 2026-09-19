@@ -16,6 +16,11 @@ vi.mock("@/features/user/hooks/useUser", () => ({
   useUser: vi.fn(),
 }));
 
+vi.mock("@/features/auth/store/useAuthStore", () => ({
+  useAuthStore: (selector: (state: { isAuthenticated: boolean }) => unknown) =>
+    selector({ isAuthenticated: true }),
+}));
+
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
@@ -59,6 +64,23 @@ describe("useWishlist hooks", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toHaveLength(1);
+    expect(wishlistApi.getMyWishlist).toHaveBeenCalledTimes(1);
+  });
+
+  it("인증 스토어가 인증된 상태면 사용자 쿼리 데이터 없이 찜 목록을 조회한다", async () => {
+    vi.mocked(useUser).mockReturnValue({ data: null } as never);
+    vi.mocked(wishlistApi.getMyWishlist).mockResolvedValue({
+      code: "SUCCESS",
+      message: "ok",
+      data: [],
+    } as never);
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    const { result } = renderHook(() => useWishlist(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([]);
     expect(wishlistApi.getMyWishlist).toHaveBeenCalledTimes(1);
   });
 

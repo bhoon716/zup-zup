@@ -114,6 +114,25 @@ describe("강의 리뷰 훅", () => {
     expect(result.current.data?.rating).toBe(5);
   });
 
+  it("첫 번째 리뷰가 타인의 리뷰면 내 리뷰로 반환하지 않는다", async () => {
+    vi.mocked(reviewApi.getReviews).mockResolvedValue({
+      code: "SUCCESS",
+      message: "ok",
+      data: {
+        content: [{ ...MOCK_REVIEW, isMine: false }],
+        last: true,
+        number: 0,
+      },
+    } as Awaited<ReturnType<typeof reviewApi.getReviews>>);
+
+    const queryClient = createTestQueryClient();
+    const wrapper = createQueryWrapper(queryClient);
+    const { result } = renderHook(() => useReviews(REVIEW_SCOPE_KEY, COURSE_KEY), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBeNull();
+  });
+
   it("리뷰를 생성하고 같은 과목코드+교수의 다른 학기 캐시까지 갱신한다", async () => {
     vi.mocked(reviewApi.createReview).mockResolvedValue({
       code: "SUCCESS",

@@ -1,5 +1,4 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { redirectToLogin } from "@/shared/lib/navigation";
 import { isDefinitiveAuthFailure } from "@/shared/api/auth-error";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
@@ -132,7 +131,6 @@ const handleDefinitiveAuthFailure = (error: unknown, request: RetryableRequestCo
   }
   definitiveFailureHandledGeneration = failureGeneration;
   authFailureHandler?.();
-  redirectToLogin();
 };
 
 api.interceptors.response.use(

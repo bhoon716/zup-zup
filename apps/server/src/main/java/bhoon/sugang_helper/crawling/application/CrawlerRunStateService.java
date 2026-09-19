@@ -44,7 +44,13 @@ public class CrawlerRunStateService {
         crawlerStatusRepository.save(status);
         crawlerRunFailureRepository.save(new CrawlerRunFailure(
                 occurredAt, summary.stage(), summary.failureType(), summary.failureMessage()));
-        slackAlertService.alert(alertCategory(stage, exception), SensitiveDataRedactor.failureCode(exception), exception);
+        SlackAlertCategory category = alertCategory(summary.stage(), exception);
+        String diagnostic = summary.diagnostic();
+        if (diagnostic.isBlank()) {
+            slackAlertService.alert(category, SensitiveDataRedactor.failureCode(exception), exception);
+        } else {
+            slackAlertService.alert(category, SensitiveDataRedactor.failureCode(exception), exception, diagnostic);
+        }
     }
 
     private SlackAlertCategory alertCategory(CrawlerFailureStage stage, RuntimeException exception) {

@@ -197,4 +197,13 @@ describe("AdminFeedbackPage attachment preview", () => {
 
     expect(createObjectUrl).not.toHaveBeenCalled();
   });
+
+  it("keeps the admin reply textarea at 16px on mobile to prevent Safari auto-zoom", () => {
+    render(<AdminFeedbackPage />);
+
+    fireEvent.click(screen.getByText("이미지 첨부 문의"));
+
+    expect(screen.getByPlaceholderText("답변을 입력하세요..."))
+      .toHaveClass("text-base", "md:text-[13px]");
+  });
 });

@@ -115,6 +115,28 @@ describe("Providers", () => {
     const handler = mockRegisterAuthFailureHandler.mock.calls[0]?.[0] as (() => void) | undefined;
     handler?.();
     expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockState.setLoginModalOpen).toHaveBeenCalledWith(true);
+  });
+
+  it("auth 실패 시 개인 데이터 캐시를 제거한다", async () => {
+    mockedUsePathname.mockReturnValue("/search");
+    const queryClient = getAppQueryClient();
+    queryClient.setQueryData(["wishlist"], [{ courseKey: "course-1" }]);
+    queryClient.setQueryData(["timetables"], [{ id: 1 }]);
+
+    render(
+      <Providers>
+        <div>child</div>
+      </Providers>
+    );
+
+    await waitFor(() => expect(mockRegisterAuthFailureHandler).toHaveBeenCalledTimes(1));
+
+    const handler = mockRegisterAuthFailureHandler.mock.calls[0]?.[0] as (() => void) | undefined;
+    handler?.();
+
+    expect(queryClient.getQueryData(["wishlist"])).toBeUndefined();
+    expect(queryClient.getQueryData(["timetables"])).toBeUndefined();
   });
 
   it("is_logged_in 쿠키가 true일 때 세션 부트스트랩을 수행한다", async () => {

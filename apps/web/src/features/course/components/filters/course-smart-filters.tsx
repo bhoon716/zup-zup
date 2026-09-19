@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { Switch } from "@/shared/ui/switch";
@@ -8,6 +8,7 @@ import { CalendarPlus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { TimeTableSelector } from "../time-table-selector";
 import { useUser } from "@/features/user/hooks/useUser";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { useTimetables } from "@/features/timetable/hooks/useTimetable";
 import { timetableApi } from "@/features/timetable/api/timetable.api";
 import { buildFreeSchedulesFromTimetable } from "../../lib/course-utils";
@@ -48,10 +49,27 @@ export function CourseSmartFilters({
   const timetableMenuContentId = "course-smart-timetable-content";
   const timetableSectionTriggerId = "course-smart-schedule-trigger";
   const timetableSectionContentId = "course-smart-schedule-content";
+  const [timetableMenuOpen, setTimetableMenuOpen] = useState(false);
   const { data: user } = useUser({ enabled: initialUser === undefined && !skipPersonalFetch });
   const { data: timetables, refetch: refetchTimetables } = useTimetables(!initialTimetables && !skipPersonalFetch, initialUser);
+  const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
   const resolvedUser = initialUser !== undefined ? initialUser : user;
   const resolvedTimetables = initialTimetables ?? timetables;
+
+  const handleTimetableMenuOpenChange = useCallback((open: boolean) => {
+    if (!resolvedUser) {
+      setTimetableMenuOpen(false);
+      if (open) {
+        setLoginModalOpen(true);
+      }
+      return;
+    }
+
+    setTimetableMenuOpen(open);
+    if (open && !initialTimetables) {
+      void refetchTimetables();
+    }
+  }, [initialTimetables, refetchTimetables, resolvedUser, setLoginModalOpen]);
 
   // 찜한 강의만 보기 토글 핸들러
   const handleWishedOnlyChange = useCallback((checked: boolean) => {
@@ -160,7 +178,7 @@ export function CourseSmartFilters({
               )}
           </div>
           <div className="flex items-center gap-1">
-            <DropdownMenu onOpenChange={(open) => open && !initialTimetables && refetchTimetables()}>
+            <DropdownMenu open={timetableMenuOpen} onOpenChange={handleTimetableMenuOpenChange}>
               <DropdownMenuTrigger asChild>
                 <Button
                   id={timetableMenuTriggerId}
@@ -169,12 +187,6 @@ export function CourseSmartFilters({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!resolvedUser) {
-                      toast.error("내 시간표에서 선택하기는 로그인 후 사용할 수 있습니다.");
-                    }
-                  }}
                   title="내 시간표에서 공강 불러오기"
                 >
                   <CalendarPlus className="h-4 w-4 text-muted-foreground transition-colors hover:text-primary" />

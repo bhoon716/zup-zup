@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { 
   History,
   Loader2,
@@ -24,6 +24,20 @@ function FeedbackWritePageContent() {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewsRef = useRef<string[]>([]);
+  const isMountedRef = useRef(true);
+
+  const revokePreviewUrls = (urls: string[]) => {
+    urls.forEach((url) => URL.revokeObjectURL(url));
+  };
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      revokePreviewUrls(previewsRef.current);
+      previewsRef.current = [];
+    };
+  }, []);
 
   const createFeedbackMutation = useCreateFeedback();
 
@@ -47,19 +61,29 @@ function FeedbackWritePageContent() {
         compressedFiles.push(compressed);
         newPreviews.push(URL.createObjectURL(compressed));
       }));
+      if (!isMountedRef.current) {
+        revokePreviewUrls(newPreviews);
+        return;
+      }
       setFiles(prev => [...prev, ...compressedFiles]);
-      setPreviews(prev => [...prev, ...newPreviews]);
+      const nextPreviews = [...previewsRef.current, ...newPreviews];
+      previewsRef.current = nextPreviews;
+      setPreviews(nextPreviews);
     } catch {
+      revokePreviewUrls(newPreviews);
       toast.error("이미지 처리 중 오류가 발생했습니다.");
     }
   };
 
   const removeFile = (index: number) => {
-    if (previews[index]) {
-      URL.revokeObjectURL(previews[index]);
+    const preview = previewsRef.current[index];
+    if (preview) {
+      URL.revokeObjectURL(preview);
     }
+    const nextPreviews = previewsRef.current.filter((_, i) => i !== index);
+    previewsRef.current = nextPreviews;
     setFiles(prev => prev.filter((_, i) => i !== index));
-    setPreviews(prev => prev.filter((_, i) => i !== index));
+    setPreviews(nextPreviews);
   };
 
   const handleFormSubmit = async (values: { type: "BUG" | "SUGGESTION" | "OTHER"; title: string; content: string }) => {
@@ -69,6 +93,8 @@ function FeedbackWritePageContent() {
       await createFeedbackMutation.mutateAsync({ request: { ...values, metaInfo }, files });
 
       toast.success("소중한 의견 감사합니다!");
+      revokePreviewUrls(previewsRef.current);
+      previewsRef.current = [];
       setFiles([]);
       setPreviews([]);
       router.push("/feedback");

@@ -12,9 +12,11 @@ import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -99,10 +101,6 @@ public class CourseCrawlerService {
                     } catch (RuntimeException exception) {
                         failed = true;
                         incrementCounter("FAILED");
-                        log.warn("[Crawler] Historical crawl failed. year={}, semester={}, failureCode={}, "
-                                        + "exceptionType={}",
-                                year, semester.getDescription(), SensitiveDataRedactor.failureCode(exception),
-                                SensitiveDataRedactor.exceptionType(exception));
                     }
                 }
             }
@@ -136,20 +134,40 @@ public class CourseCrawlerService {
 
     private void executeCrawl(String year, String semester) {
         CrawlerFailureStage stage = CrawlerFailureStage.FETCH_PARSE;
+        String runId = UUID.randomUUID().toString();
+        long startedAt = System.nanoTime();
+        MDC.put("crawlerRunId", runId);
         try {
-            log.info("[Crawler] Fetching complete course crawl. year={}, semester={}", year, semester);
+            log.info("[Crawler] run_started runId={} year={} semester={} stage={} result=started elapsedMs=0",
+                    runId, year, semester, stage);
             List<ParsedCourseDto> parsedCourses = courseCrawlFetcher.fetch(year, semester);
+            log.info("[Crawler] stage_completed runId={} year={} semester={} stage={} result=success "
+                            + "courseCount={} elapsedMs={}",
+                    runId, year, semester, stage, parsedCourses.size(), elapsedMs(startedAt));
             stage = CrawlerFailureStage.PERSIST;
             courseSynchronizationService.synchronize(parsedCourses);
-            log.info("[Crawler] Completed course crawl. year={}, semester={}, courseCount={}",
-                    year, semester, parsedCourses.size());
+            log.info("[Crawler] run_succeeded runId={} year={} semester={} stage={} result=success "
+                            + "courseCount={} elapsedMs={}",
+                    runId, year, semester, stage, parsedCourses.size(), elapsedMs(startedAt));
         } catch (RuntimeException exception) {
+            CrawlerFailureSummary summary = CrawlerFailureSummary.from(stage, exception);
+            log.error("[Crawler] run_failed runId={} year={} semester={} stage={} result=failed elapsedMs={} "
+                            + "failureCode={} exceptionType={} retryable={} upstreamStatus={}",
+                    runId, year, semester, summary.stage(), elapsedMs(startedAt),
+                    SensitiveDataRedactor.failureCode(exception), summary.failureType(),
+                    summary.retryableLabel(), summary.upstreamStatusLabel());
             recordFailureWithoutMasking(stage, exception);
             if (exception instanceof CustomException customException) {
                 throw customException;
             }
             throw new CustomException(ErrorCode.FAILED_TO_CRAWL_COURSES);
+        } finally {
+            MDC.remove("crawlerRunId");
         }
+    }
+
+    private long elapsedMs(long startedAt) {
+        return (System.nanoTime() - startedAt) / 1_000_000;
     }
 
     private void recordFailureWithoutMasking(CrawlerFailureStage stage, RuntimeException originalException) {

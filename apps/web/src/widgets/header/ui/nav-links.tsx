@@ -37,11 +37,11 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
     onGuardedAction(e);
   };
 
-  const authOnlyClass = cn(
+  const navLinkClass = cn(
     "gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors",
     isMobile && "w-full justify-start h-11 px-4 text-base",
-    !isLoggedIn && "hidden",
   );
+  const authOnlyClass = cn(navLinkClass, !isLoggedIn && "hidden");
   const adminOnlyClass = cn(isMobile ? "mt-4 space-y-1 pt-4 border-t border-gray-100" : "flex items-center", !isAdmin && "hidden");
 
   if (isLoading) {
@@ -53,14 +53,14 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
     return (
       <>
         <div className={skeletonClass} data-testid="nav-link-skeleton" />
-        <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+        <Button asChild variant="ghost" size="sm" className={navLinkClass}>
           <Link href="/search" onClick={onLinkClick}>
             <Search className="w-[1.1rem] h-[1.1rem]" />
             <span className="text-sm font-medium">강의 검색</span>
           </Link>
         </Button>
         <div className={skeletonClass} data-testid="nav-link-skeleton" />
-        <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+        <Button asChild variant="ghost" size="sm" className={navLinkClass}>
           <Link href="/announcements" onClick={onLinkClick}>
             <Megaphone className="w-[1.1rem] h-[1.1rem]" />
             <span className="text-sm font-medium">공지사항</span>
@@ -81,7 +81,7 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
           <span className="text-sm font-medium">내 시간표</span>
         </Link>
       </Button>
-      <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+      <Button asChild variant="ghost" size="sm" className={navLinkClass}>
         <Link href="/search" onClick={onLinkClick}>
           <Search className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">강의 검색</span>
@@ -93,7 +93,7 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
           <span className="text-sm font-medium">알림 / 구독</span>
         </Link>
       </Button>
-      <Button asChild variant="ghost" size="sm" className={cn("gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors", isMobile && "w-full justify-start h-11 px-4 text-base")}>
+      <Button asChild variant="ghost" size="sm" className={navLinkClass}>
         <Link href="/announcements" onClick={onLinkClick}>
           <Megaphone className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">공지사항</span>

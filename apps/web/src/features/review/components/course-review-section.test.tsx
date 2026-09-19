@@ -199,7 +199,7 @@ describe("CourseReviewSection", () => {
     expect(mockCreateReview).toHaveBeenCalledWith({ rating: 5 }, expect.any(Object));
   });
 
-  it("이모지 추가 버튼을 누르면 선택 모달이 열리고 이모지를 고르면 토글 훅을 호출한다", () => {
+  it("이모지 추가 버튼을 누르면 선택 모달이 열리고 이모지를 고르면 토글 훅을 호출한다", async () => {
     render(
       <CourseReviewSection
         courseKey="TEST-COURSE"
@@ -211,7 +211,7 @@ describe("CourseReviewSection", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
-    expect(screen.getByTestId("emoji-picker")).toBeInTheDocument();
+    expect(await screen.findByTestId("emoji-picker")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "🥹" }));
 
     expect(mockToggleEmoji).toHaveBeenCalledWith("🥹", expect.objectContaining({ onSettled: expect.any(Function) }));
@@ -318,7 +318,7 @@ describe("CourseReviewSection", () => {
     expect(mockToggleEmoji).not.toHaveBeenCalled();
   });
 
-  it("공개 강의 상세에서는 전역 인증 사용자가 리뷰 동작의 기준이 된다", () => {
+  it("공개 강의 상세에서는 전역 인증 사용자가 리뷰 동작의 기준이 된다", async () => {
     render(
       <CourseReviewSection
         courseKey="TEST-COURSE"
@@ -331,6 +331,6 @@ describe("CourseReviewSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "이모지 추가" }));
 
     expect(mockSetLoginModalOpen).not.toHaveBeenCalled();
-    expect(screen.getByTestId("emoji-picker")).toBeInTheDocument();
+    expect(await screen.findByTestId("emoji-picker")).toBeInTheDocument();
   });
 });

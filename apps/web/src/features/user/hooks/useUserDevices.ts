@@ -9,7 +9,7 @@ export const useRegisterDevice = () => {
   return useMutation({
     mutationFn: (request: UserDeviceRequest) => userApi.registerDevice(request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["user", "me"] });
       toast.success("기기가 등록되었습니다.");
     },
     onError: () => {
@@ -24,7 +24,7 @@ export const useUnregisterDevice = () => {
   return useMutation({
     mutationFn: (token: string) => userApi.unregisterDevice(token),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["user", "me"] });
       toast.success("기기 등록이 해제되었습니다.");
     },
     onError: () => {

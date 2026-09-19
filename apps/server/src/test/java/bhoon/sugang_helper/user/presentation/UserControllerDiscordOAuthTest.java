@@ -10,6 +10,7 @@ import bhoon.sugang_helper.user.application.UserService;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.lang.reflect.Method;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @SuppressWarnings("PMD.AvoidDuplicateLiterals") // Redirect assertions intentionally repeat the HTTP header name.
 class UserControllerDiscordOAuthTest {
@@ -53,7 +55,7 @@ class UserControllerDiscordOAuthTest {
         MockHttpSession authorizationSession = new MockHttpSession();
         controller.startDiscordAuthorization("/settings", authorizationSession);
 
-        var response = controller.discordCallback("attacker-code", "wrong-state", new MockHttpSession());
+        var response = controller.discordCallback("attacker-code", "wrong-state", null, new MockHttpSession());
 
         assertThat(response.getHeaders().getFirst("Location")).isEqualTo("https://web.example.com/settings?discord=error");
         verify(discordOAuthService, never()).exchangeCodeForToken(Mockito.anyString());
@@ -68,8 +70,8 @@ class UserControllerDiscordOAuthTest {
         Mockito.when(discordOAuthService.exchangeCodeForToken("code")).thenReturn("access-token");
         Mockito.when(discordOAuthService.getDiscordUserId("access-token")).thenReturn("discord-user");
 
-        var first = controller.discordCallback("code", state, session);
-        var replay = controller.discordCallback("code", state, session);
+        var first = controller.discordCallback("code", state, null, session);
+        var replay = controller.discordCallback("code", state, null, session);
 
         assertThat(first.getHeaders().getFirst("Location")).isEqualTo("https://web.example.com/onboarding?discord=success");
         assertThat(replay.getHeaders().getFirst("Location")).isEqualTo("https://web.example.com/settings?discord=error");
@@ -85,7 +87,7 @@ class UserControllerDiscordOAuthTest {
         logger.addAppender(appender);
 
         try {
-            controller.discordCallback("oauth-code", state, new MockHttpSession());
+            controller.discordCallback("oauth-code", state, null, new MockHttpSession());
 
             String messages = appender.list.stream()
                     .map(ILoggingEvent::getFormattedMessage)
@@ -95,6 +97,54 @@ class UserControllerDiscordOAuthTest {
             logger.detachAppender(appender);
             appender.stop();
         }
+    }
+
+    @Test
+    void providerErrorRedirectsWithoutTokenExchangeAndClearsOAuthSession() {
+        MockHttpSession session = new MockHttpSession();
+        String location = controller.startDiscordAuthorization("/onboarding", session)
+                .getHeaders().getFirst("Location");
+        String state = location.substring(location.lastIndexOf("state=") + "state=".length());
+
+        var response = controller.discordCallback(null, state, "access_denied", session);
+
+        assertThat(response.getHeaders().getFirst("Location"))
+                .isEqualTo("https://web.example.com/onboarding?discord=error");
+        verify(discordOAuthService, never()).exchangeCodeForToken(Mockito.anyString());
+        verify(userService, never()).linkDiscordId(Mockito.anyString());
+        assertThat(session.getAttribute("DISCORD_OAUTH_STATE")).isNull();
+        assertThat(session.getAttribute("DISCORD_OAUTH_RETURN_PATH")).isNull();
+    }
+
+    @Test
+    void missingCallbackParametersRedirectWithoutTokenExchange() {
+        MockHttpSession missingCodeSession = new MockHttpSession();
+        String codeStateLocation = controller.startDiscordAuthorization("/settings", missingCodeSession)
+                .getHeaders().getFirst("Location");
+        String state = codeStateLocation.substring(codeStateLocation.lastIndexOf("state=") + "state=".length());
+
+        var missingCode = controller.discordCallback(null, state, null, missingCodeSession);
+
+        MockHttpSession missingStateSession = new MockHttpSession();
+        controller.startDiscordAuthorization("/settings", missingStateSession);
+        var missingState = controller.discordCallback("oauth-code", null, null, missingStateSession);
+
+        assertThat(missingCode.getHeaders().getFirst("Location"))
+                .isEqualTo("https://web.example.com/settings?discord=error");
+        assertThat(missingState.getHeaders().getFirst("Location"))
+                .isEqualTo("https://web.example.com/settings?discord=error");
+        verify(discordOAuthService, never()).exchangeCodeForToken(Mockito.anyString());
+        verify(userService, never()).linkDiscordId(Mockito.anyString());
+    }
+
+    @Test
+    void callbackFailureParametersAreOptionalForProviderRedirects() throws NoSuchMethodException {
+        Method method = UserController.class.getMethod(
+                "discordCallback", String.class, String.class, String.class, jakarta.servlet.http.HttpSession.class);
+
+        assertThat(method.getParameters()[0].getAnnotation(RequestParam.class).required()).isFalse();
+        assertThat(method.getParameters()[1].getAnnotation(RequestParam.class).required()).isFalse();
+        assertThat(method.getParameters()[2].getAnnotation(RequestParam.class).required()).isFalse();
     }
 
     @Test

@@ -31,10 +31,19 @@ public class SlackAlertService {
 
     @Async("applicationTaskExecutor")
     public void alert(SlackAlertCategory category, String errorCode, Throwable exception) {
-        sendSynchronously(category, errorCode, exception);
+        sendSynchronously(category, errorCode, exception, "");
+    }
+
+    @Async("applicationTaskExecutor")
+    public void alert(SlackAlertCategory category, String errorCode, Throwable exception, String diagnostic) {
+        sendSynchronously(category, errorCode, exception, diagnostic);
     }
 
     void sendSynchronously(SlackAlertCategory category, String errorCode, Throwable exception) {
+        sendSynchronously(category, errorCode, exception, "");
+    }
+
+    void sendSynchronously(SlackAlertCategory category, String errorCode, Throwable exception, String diagnostic) {
         if (properties.webhookUrl().isBlank()) {
             log.debug("Slack alert skipped because webhook is not configured. category={}", category);
             return;
@@ -46,7 +55,7 @@ public class SlackAlertService {
             return;
         }
 
-        String message = formatMessage(category, errorCode, exception);
+        String message = formatMessage(category, errorCode, exception, diagnostic);
         try {
             webhookClient.send(message);
         } catch (RuntimeException sendFailure) {
@@ -69,15 +78,19 @@ public class SlackAlertService {
         return true;
     }
 
-    private String formatMessage(SlackAlertCategory category, String errorCode, Throwable exception) {
+    private String formatMessage(SlackAlertCategory category, String errorCode, Throwable exception,
+                                 String diagnostic) {
         String correlationId = MDC.get("correlationId");
         if (correlationId == null || correlationId.isBlank()) {
             correlationId = "NONE";
         }
+        String diagnosticSuffix = diagnostic == null || diagnostic.isBlank() ? "" : " " + diagnostic;
         return String.format(
-                "environment=%s category=%s occurredAt=%s errorCode=%s exceptionType=%s correlationId=%s stackTraceTop3=%s",
+                "environment=%s category=%s occurredAt=%s errorCode=%s exceptionType=%s correlationId=%s "
+                        + "stackTraceTop3=%s%s",
                 properties.environment(), category, Instant.now(), errorCode,
-                SensitiveDataRedactor.exceptionType(exception), correlationId, stackTraceTop3(exception));
+                SensitiveDataRedactor.exceptionType(exception), correlationId, stackTraceTop3(exception),
+                diagnosticSuffix);
     }
 
     private String stackTraceTop3(Throwable exception) {

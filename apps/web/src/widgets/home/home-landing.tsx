@@ -119,7 +119,7 @@ export function HomeLanding() {
             transition={{ duration: 0.6 }}
             className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-[#161118] mb-8 leading-[1.1]"
           >
-            수강신청 빈자리,<br/>
+            전북대 수강신청 빈자리,<br/>
             <span className="text-primary">이제 알림으로 잡으세요.</span>
           </motion.h1>
 
@@ -129,7 +129,7 @@ export function HomeLanding() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-lg md:text-xl text-[#161118]/60 mb-12 max-w-2xl mx-auto leading-relaxed"
           >
-            하루 종일 새로고침만 누르고 계신가요? 수강신청 빈자리 알림 서비스 &apos;줍줍&apos;이 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
+            하루 종일 새로고침만 누르고 계신가요? 전북대 수강신청 빈자리 알림 서비스 &apos;줍줍&apos;이 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
           </motion.p>
 
           <div className="mb-8 w-full flex justify-center">

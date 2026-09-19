@@ -111,6 +111,15 @@ describe("Header", () => {
     expect(screen.getByRole("button", { name: "메뉴 열기" })).toBeInTheDocument();
   });
 
+  it("주요 메뉴와 헤더 액션을 별도 그룹으로 구분한다", () => {
+    render(<Header />);
+
+    expect(screen.getByRole("navigation", { name: "주요 메뉴" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "헤더 액션" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "사용자 메뉴" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "모바일 메뉴" })).toBeInTheDocument();
+  });
+
   it("세션 로딩 여부는 로그인 힌트 쿠키가 아니라 인증 스토어만 따른다", () => {
     mockAuthStore.isLoading = true;
     render(<Header />);
