@@ -2140,3 +2140,28 @@ docker compose config
 - `capacity/current`를 고변경 좌석 상태로 분리해 row-based binlog 크기를 더 줄이는 작업은 ISSUE-212에서 추적한다.
 - 이 문서의 79번과 82번에 남은 관련 표현은 당시 구조와 검증 대상을 기록한 역사적 내용이다. 현재 서버 런타임은
   해당 실행 계층과 의존성을 사용하지 않는다.
+
+---
+
+## 84. 알림 worker claim 조정 — 크롤링·API 동시 부하 재시험 (2026-09-29)
+
+- **시나리오:** scheduler를 2개로 실행하고 실제 JUMP 크롤링, API 혼합 요청, 이메일 알림 전송을 겹쳤다. 알림 worker는 executor가 바로 받을 수 있는 수만 claim하며, 예기치 않은 제출 거절 때 미제출 claim을 token 확인 후 PENDING으로 돌린다. worker 8 threads와 물리 queue 32칸은 유지했다.
+- **이전 결과:** 첫 재시험은 executor 거절 87회와 claim 회수 478건이 있었고, 다음 재시험은 거절 0회였지만 30초 여유 시점에 1,568/1,625건만 도착했다.
+- **이번 결과:** CPU 1개·메모리 5.542 GiB·swap 0 로컬 환경에서 wave당 1,625건을 5분 간격으로 세 번 보냈다. 완료 시간은 4분 30초, 4분 20초, 4분 20초였고 다음 경계까지 여유는 30초, 40초, 40초였다. 앱 로그에서 worker rejection warning과 RejectedExecutionException은 0건이었다. 총 4,875건이 Mailpit에 도착했고 DB delivery 4,875건이 SENT였다.
+- **API 지표:** 15분 동안 약 0.59 req/s, 534 요청, 실패 0, checks 1,068/1,068 통과, latency P95 142.49ms. 400은 동시 접속 수가 아니라 요청률 계산 입력값이다.
+- **크롤러:** 각 wave와 같은 시각에 세 번 실행되어 알림 전송과 겹쳤으며, 실행 시간은 약 21–25초였다. 앱은 재시작 0회, OOM 없음이었다.
+- **원시 결과:** [상세 성능 기록](performance/2026-09-28-mixed-load-1000-400.md), [.performance-results의 wave·k6·컨테이너 지표](../.performance-results/2026-09-29-mixed/notification-waves-fix-260929-c.log).
+- **한계:** API 부하는 추정 요청률이며 실제 400 동시 사용자가 아니다. 실제 이메일 provider 대신 Mailpit을 사용했다. 전용 rejection counter는 이번 수집식에 포함하지 않아 warning/exception 로그로 0건을 확인했다. OCI와 동일한 CPU 모델이나 외부 provider 지연·장애, 장시간 누적 처리는 검증하지 않았다. 따라서 이 결과는 이번 로컬 부하에서 claim 조정이 기준을 통과했다는 근거이며, 서버 분리가 반드시 필요하다는 증거는 아니다.
+
+
+---
+
+## 85. 알림 wave 용량 계단 시험 — 100건 증량에서 5분 기준 미달 (2026-09-29)
+
+- **조건:** Docker Desktop CPU 1개·메모리 5.542 GiB·swap 0, API 약 0.59 req/s, worker 8개·queue 32칸, 스케줄러 2개 고정. 실제 JUMP crawler와 1,725건 합성 알림 wave를 겹쳤다.
+- **기준 비교:** 1,625건은 직전 3회 연속 시험에서 5분 경계까지 30/40/40초 남기고 완료했다. 1,725건은 07:35 시작, 07:39:30 판정 때 1,607/1,725건, 전체 도착은 07:40:14였다. 5분 경계보다 14초 늦어 30초 여유 기준에 44초 못 미쳤다. 1,825건 증량은 실행하지 않았다.
+- **장애 여부:** queue rejection warning 0건, API 요청 실패 0건, 앱 재시작·OOM 없음. DB는 1,725건 모두 SENT, Mailpit도 1,725건을 받았다. 즉 작업은 완료됐지만 5분 주기 전에 끝낼 여유가 부족했다.
+- **API 지표:** 중단 전 163건, checks 326/326, P95 590.86ms, 최댓값 1,134.59ms.
+- **해석:** 해당 로컬 조건에서 검증된 수준은 1,625건이며, 1,725건은 여유 기준 미달이다. 이 결과만으로 서버 분리가 해법이라고 결론 내릴 수 없다. API 400 활성 사용자 입력은 동시 접속 수가 아니며, Mailpit 전달 결과는 실제 메일 provider 성능을 뜻하지 않는다.
+- **상세/원시 결과:** [계단 부하 성능 기록](performance/2026-09-28-mixed-load-1000-400.md), [.performance-results 원시 wave 로그](../.performance-results/2026-09-29-mixed/notification-waves-step-260929-1725-1825.log).
+- **runner 보완:** 실패 wave 뒤 실행하지 않은 wave까지 기대 건수에 포함하던 요약 계산을 고쳤다. shell 문법과 이번 wave 로그에서 1,725건 계산을 확인했다.

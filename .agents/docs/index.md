@@ -9,6 +9,7 @@ Use this page as the entry point for repo knowledge.
 ## Project Docs
 - [Project Release Notes](../../docs/feature-updates.md): web and server release history.
 - [Troubleshooting](../../docs/troubleshooting.md): web, server, and operational troubleshooting notes with continuous numbering.
+- [Performance test records](../../docs/performance/README.md): mixed-load experiments, current validated range, and raw result locations.
 
 ## Decisions
 - [Repository topology decision](../../docs/decisions/2026-07-06-repository-topology.md): historical nested multi-repo workspace model and ownership boundaries.
