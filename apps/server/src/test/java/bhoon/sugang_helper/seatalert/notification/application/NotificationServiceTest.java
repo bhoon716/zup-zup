@@ -243,13 +243,14 @@ class NotificationServiceTest {
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
+                .emailEnabled(true)
                 .build();
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
         // When
-        notificationService.sendUserTestNotification(user.getId(), List.of(NotificationChannel.EMAIL));
+        notificationService.sendUserTestNotification(user.getId());
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
@@ -271,8 +272,7 @@ class NotificationServiceTest {
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
         // When
-        notificationService.sendUserTestNotification(user.getId(),
-                List.of(NotificationChannel.EMAIL, NotificationChannel.FCM));
+        notificationService.sendUserTestNotification(user.getId());
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
@@ -292,8 +292,7 @@ class NotificationServiceTest {
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
 
         // When & Then
-        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId(),
-                List.of(NotificationChannel.FCM)))
+        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
         verify(redisService, times(1)).deleteValues(anyString());
@@ -311,8 +310,7 @@ class NotificationServiceTest {
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
 
         // When & Then
-        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId(),
-                List.of(NotificationChannel.EMAIL)))
+        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
     }

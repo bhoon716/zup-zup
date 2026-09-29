@@ -43,6 +43,15 @@ public interface CourseJpaRepository extends JpaRepository<Course, Long>, Course
     List<Course> findBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
                                                @Param("professor") String professor);
 
+    @Query("""
+            select c.courseKey
+            from Course c
+            where c.subjectCode = :subjectCode
+              and coalesce(trim(c.professor), '') = :professor
+            """)
+    List<String> findCourseKeysBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
+                                                         @Param("professor") String professor);
+
     /**
      * 교양 영역(카테고리) 목록을 조회합니다.
      */

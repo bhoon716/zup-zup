@@ -6,7 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.admin.contract.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.audit.contract.AdminAuditRecorder;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;

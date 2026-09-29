@@ -13,7 +13,7 @@ import bhoon.sugang_helper.common.security.util.CookieUtil;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.identity.user.contract.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
-import bhoon.sugang_helper.identity.auth.contract.AuthSessionLogout;
+import bhoon.sugang_helper.identity.user.contract.UserSessionLogout;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,7 +35,7 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService implements AuthSessionLogout {
+public class AuthService implements UserSessionLogout {
 
     private final JwtProvider jwtProvider;
     private final UserIdentityQuery userIdentityQuery;

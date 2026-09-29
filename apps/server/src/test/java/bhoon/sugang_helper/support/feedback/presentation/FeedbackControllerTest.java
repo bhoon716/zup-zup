@@ -5,9 +5,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import bhoon.sugang_helper.common.error.GlobalExceptionHandler;
+import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.support.feedback.application.FeedbackService;
-import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,14 +23,12 @@ class FeedbackControllerTest {
 
     @Mock
     private FeedbackService feedbackService;
-    @Mock
-    private UserIdentityQuery userIdentityQuery;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new FeedbackController(feedbackService, userIdentityQuery))
+        mockMvc = MockMvcBuilders.standaloneSetup(new FeedbackController(feedbackService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -46,6 +43,6 @@ class FeedbackControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("G002"));
 
-        verifyNoInteractions(userIdentityQuery, feedbackService);
+        verifyNoInteractions(feedbackService);
     }
 }

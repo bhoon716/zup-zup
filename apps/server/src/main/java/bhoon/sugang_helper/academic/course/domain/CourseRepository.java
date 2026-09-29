@@ -4,7 +4,7 @@ import bhoon.sugang_helper.common.domain.RepositoryContract;
 import java.util.List;
 import java.util.Optional;
 
-public interface CourseRepository extends RepositoryContract<Course, Long>, CourseRepositoryCustom {
+public interface CourseRepository extends RepositoryContract<Course, Long> {
 
     Optional<Course> findByCourseKey(String courseKey);
 
@@ -15,6 +15,8 @@ public interface CourseRepository extends RepositoryContract<Course, Long>, Cour
     List<Course> findByCourseKeyIn(List<String> courseKeys);
 
     List<Course> findBySubjectCodeAndProfessor(String subjectCode, String professor);
+
+    List<String> findCourseKeysBySubjectCodeAndProfessor(String subjectCode, String professor);
 
     List<String> findDistinctGeneralCategories();
 

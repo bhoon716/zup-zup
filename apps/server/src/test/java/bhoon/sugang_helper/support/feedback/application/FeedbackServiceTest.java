@@ -12,7 +12,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import bhoon.sugang_helper.admin.contract.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.audit.contract.AdminAuditRecorder;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
@@ -30,6 +30,7 @@ import bhoon.sugang_helper.support.feedback.domain.FeedbackType;
 import bhoon.sugang_helper.identity.user.contract.UserIdentity;
 import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import bhoon.sugang_helper.identity.user.contract.UserDisplayNameQuery;
+import bhoon.sugang_helper.identity.user.contract.UserAccountStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -457,7 +458,7 @@ class FeedbackServiceTest {
                 true,
                 true,
                 deletedAt,
-                true);
+                73L);
         AdminFeedbackReadRepository.FeedbackDetail detail = new AdminFeedbackReadRepository.FeedbackDetail(
                 feedbackId,
                 FeedbackType.BUG,
@@ -467,7 +468,9 @@ class FeedbackServiceTest {
                 deletedAt.minusDays(1),
                 true,
                 deletedAt,
-                true);
+                73L);
+        given(userIdentityQuery.findAccountStatuses(List.of(73L)))
+                .willReturn(List.of(new UserAccountStatus(73L, true)));
         given(adminFeedbackReadRepository.findFeedbacks(
                 AdminFeedbackDeletionFilter.ALL,
                 PageRequest.of(0, 20)))
@@ -510,8 +513,10 @@ class FeedbackServiceTest {
                 LocalDateTime.of(2026, 7, 13, 6, 0),
                 false,
                 null,
-                false);
+                81L);
         given(adminFeedbackReadRepository.findFeedbackDetail(feedbackId)).willReturn(Optional.of(detail));
+        given(userIdentityQuery.findAccountStatuses(List.of(81L)))
+                .willReturn(List.of(new UserAccountStatus(81L, false)));
         given(adminFeedbackReadRepository.findAttachments(feedbackId)).willReturn(List.of());
         given(adminFeedbackReadRepository.findReplies(feedbackId)).willReturn(List.of());
 
@@ -521,5 +526,30 @@ class FeedbackServiceTest {
         assertThat(List.of(AdminFeedbackDetailResponse.class.getRecordComponents()))
                 .extracting(component -> component.getName())
                 .doesNotContain("metaInfo");
+    }
+
+    @Test
+    @DisplayName("작성자 계정이 없으면 관리자 응답에서 탈퇴 사용자로 표시한다.")
+    void getFeedbackDetailForAdmin_marksMissingAuthorAsWithdrawn() {
+        Long feedbackId = 11L;
+        Long missingUserId = 404L;
+        AdminFeedbackReadRepository.FeedbackDetail detail = new AdminFeedbackReadRepository.FeedbackDetail(
+                feedbackId,
+                FeedbackType.BUG,
+                "작성자 계정이 없는 문의",
+                "본문",
+                FeedbackStatus.PENDING,
+                LocalDateTime.of(2026, 7, 13, 6, 0),
+                false,
+                null,
+                missingUserId);
+        given(adminFeedbackReadRepository.findFeedbackDetail(feedbackId)).willReturn(Optional.of(detail));
+        given(userIdentityQuery.findAccountStatuses(List.of(missingUserId))).willReturn(List.of());
+        given(adminFeedbackReadRepository.findAttachments(feedbackId)).willReturn(List.of());
+        given(adminFeedbackReadRepository.findReplies(feedbackId)).willReturn(List.of());
+
+        AdminFeedbackDetailResponse response = feedbackService.getFeedbackDetailForAdmin(feedbackId);
+
+        assertThat(response.authorLabel()).isEqualTo("탈퇴 사용자");
     }
 }

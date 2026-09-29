@@ -2,7 +2,6 @@ package bhoon.sugang_helper.identity.user.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -15,10 +14,9 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.seatalert.notification.contract.NotificationTestSender;
-import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
-import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionAccountLifecycle;
-import bhoon.sugang_helper.support.feedback.contract.FeedbackAccountLifecycle;
+import bhoon.sugang_helper.identity.user.contract.UserFeedbackCleanup;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationTestSender;
+import bhoon.sugang_helper.identity.user.contract.UserSubscriptionCleanup;
 import bhoon.sugang_helper.identity.user.application.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.application.command.UpdateProfileCommand;
 import bhoon.sugang_helper.identity.user.application.command.UpdateSettingsCommand;
@@ -58,19 +56,19 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private SubscriptionAccountLifecycle subscriptionAccountLifecycle;
+    private UserSubscriptionCleanup subscriptionAccountLifecycle;
 
     @Mock
     private UserDeviceRepository userDeviceRepository;
 
     @Mock
-    private FeedbackAccountLifecycle feedbackAccountLifecycle;
+    private UserFeedbackCleanup feedbackAccountLifecycle;
 
     @Mock
     private EmailVerificationService emailVerificationService;
 
     @Mock
-    private NotificationTestSender notificationTestSender;
+    private UserNotificationTestSender notificationTestSender;
 
     @Mock
     private JwtProvider jwtProvider;
@@ -143,7 +141,7 @@ class UserServiceTest {
         assertThat(user.getName()).isEqualTo("탈퇴한 사용자");
         assertThat(user.getNotificationEmail()).isNull();
         assertThat(user.getDiscordId()).isNull();
-        assertThat(user.getEnabledNotificationChannels()).isEmpty();
+        assertThat(user.hasEnabledNotificationChannels()).isFalse();
         verify(jwtProvider).revokeAllRefreshTokens(TEST_EMAIL);
         verify(userAccessRevocationService).revoke(1L);
         verify(emailVerificationService).clearVerificationState(1L, TEST_EMAIL, NOTIFY_EMAIL);
@@ -293,10 +291,7 @@ class UserServiceTest {
         userService.sendTestNotification();
 
         // then
-        verify(notificationTestSender, times(1)).sendUserTestNotification(eq(user.getId()),
-                argThat(channels -> channels.size() == 2
-                        && channels.contains(NotificationChannel.EMAIL)
-                        && channels.contains(NotificationChannel.WEB)));
+        verify(notificationTestSender, times(1)).sendUserTestNotification(eq(user.getId()));
     }
 
     @Test
@@ -321,5 +316,6 @@ class UserServiceTest {
         assertThatThrownBy(() -> userService.sendTestNotification())
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+        verify(notificationTestSender, never()).sendUserTestNotification(user.getId());
     }
 }

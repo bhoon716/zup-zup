@@ -5,6 +5,7 @@ import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.application.port.NotificationTarget;
 import bhoon.sugang_helper.identity.user.contract.NotificationDevice;
 import bhoon.sugang_helper.identity.user.contract.NotificationRecipient;
+import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -20,12 +21,14 @@ public class NotificationChannelPolicy {
             return false;
         }
 
-        return switch (channel) {
-            case EMAIL -> user.emailEnabled();
-            case DISCORD -> user.discordEnabled() && user.discordId() != null;
-            case WEB -> user.webPushEnabled();
-            case FCM -> user.fcmEnabled();
-        };
+        return isUserSettingEnabled(user, channel)
+                && (channel != NotificationChannel.DISCORD || user.discordId() != null);
+    }
+
+    public List<NotificationChannel> userEnabledChannels(NotificationRecipient user) {
+        return Arrays.stream(NotificationChannel.values())
+                .filter(channel -> isUserSettingEnabled(user, channel))
+                .toList();
     }
 
     public List<NotificationTarget> resolveTargets(NotificationRecipient user, List<NotificationDevice> devices,
@@ -56,6 +59,15 @@ public class NotificationChannelPolicy {
             case DISCORD -> notificationProperties.discord();
             case WEB -> notificationProperties.webpush();
             case FCM -> notificationProperties.fcm();
+        };
+    }
+
+    private boolean isUserSettingEnabled(NotificationRecipient user, NotificationChannel channel) {
+        return switch (channel) {
+            case EMAIL -> user.emailEnabled();
+            case DISCORD -> user.discordEnabled();
+            case WEB -> user.webPushEnabled();
+            case FCM -> user.fcmEnabled();
         };
     }
 

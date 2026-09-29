@@ -15,22 +15,15 @@ public interface CourseEmojiReviewRepository extends RepositoryContract<CourseEm
 
     void deleteAllByUserId(Long userId);
 
-    Optional<CourseEmojiReview> findBySubjectCodeAndProfessorAndUserIdAndEmoji(String subjectCode,
-                                                                               String professor,
-                                                                               Long userId,
-                                                                               String emoji);
+    Optional<CourseEmojiReview> findByCourseKeysAndUserIdAndEmoji(List<String> courseKeys,
+                                                                 Long userId,
+                                                                 String emoji);
 
-    long countBySubjectCodeAndProfessorAndEmoji(String subjectCode,
-                                                String professor,
-                                                String emoji);
+    long countByCourseKeysAndEmoji(List<String> courseKeys, String emoji);
 
-    long countBySubjectCodeAndProfessorAndUserIdAndEmoji(String subjectCode,
-                                                         String professor,
-                                                         Long userId,
-                                                         String emoji);
+    long countByCourseKeysAndUserIdAndEmoji(List<String> courseKeys, Long userId, String emoji);
 
     List<Object[]> findEmojiStatsByCourseKey(String courseKey);
 
-    List<Object[]> findEmojiStatsBySubjectCodeAndProfessor(String subjectCode,
-                                                           String professor);
+    List<Object[]> findEmojiStatsByCourseKeys(List<String> courseKeys);
 }

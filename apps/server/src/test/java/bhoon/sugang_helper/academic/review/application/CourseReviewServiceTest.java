@@ -71,6 +71,8 @@ class CourseReviewServiceTest {
     @BeforeEach
     void setUp() {
         securityUtilMockedStatic = mockStatic(SecurityUtil.class);
+        lenient().when(courseReviewCatalog.findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, NORMALIZED_PROFESSOR))
+                .thenReturn(List.of(COURSE_KEY));
     }
 
     @AfterEach
@@ -116,9 +118,9 @@ class CourseReviewServiceTest {
     }
 
     private void mockCourseStats(CourseReference course, double avgRating, long count) {
-        lenient().when(reviewRepository.getAverageRatingBySubjectCodeAndProfessor(SUBJECT_CODE, NORMALIZED_PROFESSOR))
+        lenient().when(reviewRepository.getAverageRatingByCourseKeys(List.of(COURSE_KEY)))
                 .thenReturn(avgRating);
-        lenient().when(reviewRepository.countBySubjectCodeAndProfessor(SUBJECT_CODE, NORMALIZED_PROFESSOR))
+        lenient().when(reviewRepository.countByCourseKeys(List.of(COURSE_KEY)))
                 .thenReturn(count);
 
     }
@@ -136,8 +138,8 @@ class CourseReviewServiceTest {
 
             CourseReference course = createCourse();
             lenient().when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
-            lenient().when(reviewRepository.countBySubjectCodeAndProfessorAndUserId(SUBJECT_CODE, NORMALIZED_PROFESSOR,
-                    user.getId())).thenReturn(0L);
+            lenient().when(reviewRepository.countByCourseKeysAndUserId(List.of(COURSE_KEY), user.getId()))
+                    .thenReturn(0L);
 
             CourseReview savedReview = CourseReview.builder()
                     .courseKey(COURSE_KEY)
@@ -165,8 +167,8 @@ class CourseReviewServiceTest {
 
             CourseReference course = createCourse();
             lenient().when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
-            lenient().when(reviewRepository.countBySubjectCodeAndProfessorAndUserId(SUBJECT_CODE, NORMALIZED_PROFESSOR,
-                    user.getId())).thenReturn(0L);
+            lenient().when(reviewRepository.countByCourseKeysAndUserId(List.of(COURSE_KEY), user.getId()))
+                    .thenReturn(0L);
 
             CourseReview savedReview = CourseReview.builder()
                     .courseKey(COURSE_KEY)
@@ -226,8 +228,7 @@ class CourseReviewServiceTest {
             ReviewCreateRequest request = new ReviewCreateRequest(5);
 
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
-            when(reviewRepository.countBySubjectCodeAndProfessorAndUserId(SUBJECT_CODE, NORMALIZED_PROFESSOR,
-                    user.getId())).thenReturn(1L);
+            when(reviewRepository.countByCourseKeysAndUserId(List.of(COURSE_KEY), user.getId())).thenReturn(1L);
 
             assertThatThrownBy(() -> reviewService.createReview(COURSE_KEY, request))
                     .isInstanceOf(CustomException.class)
@@ -253,8 +254,8 @@ class CourseReviewServiceTest {
             Page<CourseReview> page = new PageImpl<>(List.of(review));
 
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
-            when(reviewRepository.findBySubjectCodeAndProfessorWithMyReviewFirst(SUBJECT_CODE, NORMALIZED_PROFESSOR,
-                    user.getId(), pageRequest)).thenReturn(page);
+            when(reviewRepository.findByCourseKeysWithMyReviewFirst(List.of(COURSE_KEY), user.getId(), pageRequest))
+                    .thenReturn(page);
 
             Page<ReviewResponse> responsePage = reviewService.getReviews(COURSE_KEY, pageRequest);
 
@@ -279,8 +280,7 @@ class CourseReviewServiceTest {
 
             assertThat(responsePage.getContent()).hasSize(1);
             verify(reviewRepository).findByCourseKeyWithMyReviewFirst(COURSE_KEY, user.getId(), pageRequest);
-            verify(reviewRepository, never()).findBySubjectCodeAndProfessorWithMyReviewFirst(
-                    SUBJECT_CODE, "", user.getId(), pageRequest);
+            verify(courseReviewCatalog, never()).findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, "");
         }
 
         @Test
@@ -293,14 +293,16 @@ class CourseReviewServiceTest {
             CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
             Page<CourseReview> page = new PageImpl<>(List.of(review));
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse("외부교원1")));
-            when(reviewRepository.findBySubjectCodeAndProfessorWithMyReviewFirst(
-                    SUBJECT_CODE, "외부교원1", user.getId(), pageRequest)).thenReturn(page);
+            List<String> courseKeys = List.of("LEGACY-C1", COURSE_KEY);
+            when(courseReviewCatalog.findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, "외부교원1"))
+                    .thenReturn(courseKeys);
+            when(reviewRepository.findByCourseKeysWithMyReviewFirst(courseKeys, user.getId(), pageRequest))
+                    .thenReturn(page);
 
             Page<ReviewResponse> responsePage = reviewService.getReviews(COURSE_KEY, pageRequest);
 
             assertThat(responsePage.getContent()).hasSize(1);
-            verify(reviewRepository).findBySubjectCodeAndProfessorWithMyReviewFirst(
-                    SUBJECT_CODE, "외부교원1", user.getId(), pageRequest);
+            verify(reviewRepository).findByCourseKeysWithMyReviewFirst(courseKeys, user.getId(), pageRequest);
             verify(reviewRepository, never()).findByCourseKeyWithMyReviewFirst(COURSE_KEY, user.getId(), pageRequest);
         }
     }

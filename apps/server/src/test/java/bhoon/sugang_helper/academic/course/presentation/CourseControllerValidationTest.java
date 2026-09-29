@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.error.GlobalExceptionHandler;
+import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.academic.course.application.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.application.CourseService;
 import bhoon.sugang_helper.academic.crawling.application.SearchDefaultSemesterResponse;

@@ -9,6 +9,7 @@ import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.contract.NotificationTestSender;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationTestSender;
 import bhoon.sugang_helper.seatalert.notification.application.NotificationDeliveryIdempotencyKey;
 import bhoon.sugang_helper.seatalert.notification.application.port.NotificationProviderExecutor;
 import bhoon.sugang_helper.seatalert.notification.application.port.NotificationSender;
@@ -32,7 +33,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class NotificationService implements NotificationTestSender {
+public class NotificationService implements NotificationTestSender, UserNotificationTestSender {
 
     private static final String NOTIFICATION_KEY_PREFIX = "ALERT:";
     private static final Duration DEDUP_TTL = Duration.ofMinutes(1);
@@ -108,6 +109,11 @@ public class NotificationService implements NotificationTestSender {
                                          NotificationContext context) {
         NotificationRecipient user = userNotificationQuery.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        return sendTestNotification(user, channels, context);
+    }
+
+    private boolean sendTestNotification(NotificationRecipient user, List<NotificationChannel> channels,
+                                         NotificationContext context) {
         NotificationMessage notification = createTestMessage();
         List<NotificationDevice> devices = userNotificationQuery.findDevicesByUserId(user.id());
         boolean delivered = false;
@@ -122,7 +128,8 @@ public class NotificationService implements NotificationTestSender {
     /**
      * 사용자 단에서 요청한 테스트 알림을 발송하며, 쿨타임을 적용합니다.
      */
-    public void sendUserTestNotification(Long userId, List<NotificationChannel> channels) {
+    @Override
+    public void sendUserTestNotification(Long userId) {
         String cooldownKey = USER_TEST_COOLDOWN_KEY_PREFIX + userId;
         boolean acquired = redisService.setValuesIfAbsent(cooldownKey, "LOCK", USER_TEST_COOLDOWN);
         if (!acquired) {
@@ -130,11 +137,16 @@ public class NotificationService implements NotificationTestSender {
         }
 
         try {
-            boolean delivered = sendTestNotification(userId, channels, NotificationContext.forUserTest());
+            NotificationRecipient user = userNotificationQuery.findById(userId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+            List<NotificationChannel> channels = notificationChannelPolicy.userEnabledChannels(user);
+            boolean delivered = sendTestNotification(
+                    user, channels, NotificationContext.forUserTest());
             if (!delivered) {
                 throw new CustomException(ErrorCode.INVALID_INPUT,
                         "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
             }
+            log.info("[User] Send test notification: userId={}, channels={}", user.id(), channels);
         } catch (RuntimeException e) {
             redisService.deleteValues(cooldownKey);
             throw e;

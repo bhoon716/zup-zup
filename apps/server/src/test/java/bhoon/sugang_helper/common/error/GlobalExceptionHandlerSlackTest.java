@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.error;
 
+import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.alert.SlackAlertCategory;

@@ -6,6 +6,4 @@ import java.util.List;
 public interface NotificationTestSender {
 
     void sendAdminTestNotification(Long userId, List<NotificationChannel> channels);
-
-    void sendUserTestNotification(Long userId, List<NotificationChannel> channels);
 }

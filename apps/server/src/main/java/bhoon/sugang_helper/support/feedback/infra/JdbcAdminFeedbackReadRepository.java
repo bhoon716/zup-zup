@@ -31,11 +31,9 @@ public class JdbcAdminFeedbackReadRepository implements AdminFeedbackReadReposit
         String condition = deletionCondition(deletionFilter);
         Long total = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM feedbacks f WHERE " + condition, Long.class);
         String sql = """
-                SELECT f.id, f.type, f.title, f.status, f.created_at, f.deleted_at,
-                       EXISTS (SELECT 1 FROM feedback_replies r WHERE r.feedback_id = f.id) AS has_replies,
-                       CASE WHEN u.id IS NULL OR u.deleted_at IS NOT NULL THEN TRUE ELSE FALSE END AS author_withdrawn
+                SELECT f.id, f.user_id AS author_id, f.type, f.title, f.status, f.created_at, f.deleted_at,
+                       EXISTS (SELECT 1 FROM feedback_replies r WHERE r.feedback_id = f.id) AS has_replies
                 FROM feedbacks f
-                LEFT JOIN users u ON u.id = f.user_id
                 WHERE %s
                 ORDER BY f.created_at DESC, f.id DESC
                 LIMIT ? OFFSET ?
@@ -50,7 +48,7 @@ public class JdbcAdminFeedbackReadRepository implements AdminFeedbackReadReposit
                         resultSet.getBoolean("has_replies"),
                         resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
                         resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class),
-                        resultSet.getBoolean("author_withdrawn")),
+                        resultSet.getObject("author_id", Long.class)),
                 pageable.getPageSize(), offset(pageable));
         return new PageImpl<>(content, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()), total);
     }
@@ -58,10 +56,8 @@ public class JdbcAdminFeedbackReadRepository implements AdminFeedbackReadReposit
     @Override
     public Optional<FeedbackDetail> findFeedbackDetail(Long feedbackId) {
         List<FeedbackDetail> details = jdbcTemplate.query("""
-                        SELECT f.id, f.type, f.title, f.content, f.status, f.created_at, f.deleted_at,
-                               CASE WHEN u.id IS NULL OR u.deleted_at IS NOT NULL THEN TRUE ELSE FALSE END AS author_withdrawn
+                        SELECT f.id, f.user_id AS author_id, f.type, f.title, f.content, f.status, f.created_at, f.deleted_at
                         FROM feedbacks f
-                        LEFT JOIN users u ON u.id = f.user_id
                         WHERE f.id = ?
                         """,
                 (resultSet, rowNum) -> new FeedbackDetail(
@@ -73,7 +69,7 @@ public class JdbcAdminFeedbackReadRepository implements AdminFeedbackReadReposit
                         resultSet.getObject("created_at", LocalDateTime.class),
                         resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
                         resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class),
-                        resultSet.getBoolean("author_withdrawn")),
+                        resultSet.getObject("author_id", Long.class)),
                 feedbackId);
         return details.stream().findFirst();
     }

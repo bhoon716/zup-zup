@@ -77,7 +77,7 @@ class JdbcAdminFeedbackReadRepositoryTest {
         assertThat(deletedOnly.getContent()).singleElement().satisfies(item -> {
             assertThat(item.id()).isEqualTo(deletedFeedback.getId());
             assertThat(item.deleted()).isTrue();
-            assertThat(item.authorWithdrawn()).isTrue();
+            assertThat(item.authorId()).isEqualTo(withdrawnUser.getId());
         });
         assertThat(detail.deleted()).isTrue();
         assertThat(adminFeedbackReadRepository.findReplies(deletedFeedback.getId()))

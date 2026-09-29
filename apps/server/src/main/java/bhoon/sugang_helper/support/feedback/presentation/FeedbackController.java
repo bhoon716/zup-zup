@@ -7,11 +7,6 @@ import bhoon.sugang_helper.support.feedback.application.FeedbackCreateRequest;
 
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.contract.UserIdentity;
-import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -46,7 +41,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class FeedbackController {
 
     private final FeedbackService feedbackService;
-    private final UserIdentityQuery userIdentityQuery;
 
     /**
      * 새로운 피드백(건의/제보)을 등록합니다.
@@ -58,8 +52,8 @@ public class FeedbackController {
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             HttpServletRequest httpRequest) {
 
-        Long userId = getUserId();
-        Long feedbackId = feedbackService.createFeedback(userId, request, files, resolveClientIp(httpRequest));
+        Long feedbackId = feedbackService.createFeedbackForCurrentUser(
+                request, files, resolveClientIp(httpRequest));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success(feedbackId, "피드백이 등록되었습니다."));
     }
@@ -72,8 +66,7 @@ public class FeedbackController {
     public ResponseEntity<CommonResponse<Page<FeedbackResponse>>> getMyFeedbacks(
             @PageableDefault(size = 10) Pageable pageable) {
 
-        Long userId = getUserId();
-        return CommonResponse.ok(feedbackService.getMyFeedbacks(userId, pageable), "내 피드백 목록입니다.");
+        return CommonResponse.ok(feedbackService.getMyFeedbacksForCurrentUser(pageable), "내 피드백 목록입니다.");
     }
 
     /**
@@ -84,15 +77,13 @@ public class FeedbackController {
     public ResponseEntity<CommonResponse<FeedbackDetailResponse>> getMyFeedbackDetail(
             @PathVariable Long feedbackId) {
 
-        Long userId = getUserId();
-        return CommonResponse.ok(feedbackService.getMyFeedbackDetail(userId, feedbackId), "피드백 상세입니다.");
+        return CommonResponse.ok(feedbackService.getMyFeedbackDetailForCurrentUser(feedbackId), "피드백 상세입니다.");
     }
 
     @Operation(summary = "피드백 첨부파일 다운로드")
     @GetMapping("/{feedbackId}/attachments/{attachmentId}")
     public ResponseEntity<Resource> downloadAttachment(@PathVariable Long feedbackId, @PathVariable Long attachmentId) {
-        FeedbackAttachmentDownload download = feedbackService.getAttachment(
-                getCurrentUser(), feedbackId, attachmentId);
+        FeedbackAttachmentDownload download = feedbackService.getAttachmentForCurrentUser(feedbackId, attachmentId);
         return ResponseEntity.ok()
                 .contentType(download.contentType())
                 .header("Content-Disposition", ContentDisposition.attachment()
@@ -109,21 +100,8 @@ public class FeedbackController {
     @DeleteMapping("/{feedbackId}")
     public ResponseEntity<Void> deleteFeedback(@PathVariable Long feedbackId) {
 
-        Long userId = getUserId();
-        feedbackService.deleteFeedback(userId, feedbackId);
+        feedbackService.deleteCurrentUsersFeedback(feedbackId);
         return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * 현재 인증된 유저의 ID를 조회합니다.
-     */
-    private Long getUserId() {
-        return getCurrentUser().id();
-    }
-
-    private UserIdentity getCurrentUser() {
-        return userIdentityQuery.findByEmail(SecurityUtil.getCurrentUserEmail())
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 
     private String resolveClientIp(HttpServletRequest request) {

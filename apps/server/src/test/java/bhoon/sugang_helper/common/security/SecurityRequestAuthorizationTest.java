@@ -12,8 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bhoon.sugang_helper.admin.presentation.AdminController;
 import bhoon.sugang_helper.admin.application.AdminService;
-import bhoon.sugang_helper.admin.application.AdminAuditService;
-import bhoon.sugang_helper.admin.presentation.AdminActionLogController;
+import bhoon.sugang_helper.admin.audit.application.AdminAuditService;
+import bhoon.sugang_helper.admin.audit.presentation.AdminActionLogController;
 import bhoon.sugang_helper.seatalert.notification.application.AdminNotificationDeliveryService;
 import bhoon.sugang_helper.seatalert.notification.presentation.AdminNotificationDeliveryController;
 import bhoon.sugang_helper.support.feedback.presentation.AdminFeedbackController;
@@ -24,7 +24,7 @@ import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.error.GlobalExceptionHandler;
+import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.common.security.jwt.JwtAuthenticationFilter;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
@@ -227,9 +227,7 @@ class SecurityRequestAuthorizationTest {
 
     @Test
     void adminCanPreviewSanitizedAttachmentWithItsActualContentType() throws Exception {
-        UserIdentity admin = new UserIdentity(1L, true);
-        given(userIdentityQuery.findByEmail("admin@example.com")).willReturn(java.util.Optional.of(admin));
-        given(feedbackService.getAttachmentForAdmin(admin, 10L, 20L, true)).willReturn(
+        given(feedbackService.getAttachmentForCurrentAdmin(10L, 20L, true)).willReturn(
                 new FeedbackAttachmentDownload(new ByteArrayResource(new byte[] {1, 2, 3}),
                         "attachment.png", MediaType.IMAGE_PNG));
 
@@ -245,9 +243,7 @@ class SecurityRequestAuthorizationTest {
 
     @Test
     void adminAttachmentRequestWithMismatchedFeedbackAndAttachmentReturnsNotFound() throws Exception {
-        UserIdentity admin = new UserIdentity(1L, true);
-        given(userIdentityQuery.findByEmail("admin@example.com")).willReturn(java.util.Optional.of(admin));
-        given(feedbackService.getAttachmentForAdmin(admin, 10L, 99L, true))
+        given(feedbackService.getAttachmentForCurrentAdmin(10L, 99L, true))
                 .willThrow(new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
 
         mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/99/download")

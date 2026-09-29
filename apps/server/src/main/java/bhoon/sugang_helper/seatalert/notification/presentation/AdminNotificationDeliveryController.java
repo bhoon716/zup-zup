@@ -3,11 +3,6 @@ package bhoon.sugang_helper.seatalert.notification.presentation;
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.seatalert.notification.application.AdminNotificationDeliveryResponse;
 import bhoon.sugang_helper.seatalert.notification.application.AdminNotificationDeliveryService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.contract.UserIdentity;
-import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,7 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminNotificationDeliveryController {
 
     private final AdminNotificationDeliveryService notificationDeliveryService;
-    private final UserIdentityQuery userIdentityQuery;
 
     @Operation(summary = "DLQ delivery 목록", description = "관리자만 모든 DLQ delivery를 최신순으로 조회합니다.")
     @GetMapping("/dlq")
@@ -58,11 +52,8 @@ public class AdminNotificationDeliveryController {
             @PathVariable Long deliveryId,
             @RequestBody(required = false) NotificationDeliveryReplayRequest request) {
         boolean forceSentReplay = request != null && request.forceSentReplay();
-        String email = SecurityUtil.getCurrentUserEmail();
-        UserIdentity admin = userIdentityQuery.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
         AdminNotificationDeliveryResponse response = notificationDeliveryService.replay(
-                admin.id(), deliveryId, forceSentReplay);
+                notificationDeliveryService.getCurrentAdminId(), deliveryId, forceSentReplay);
         return CommonResponse.ok(response, "알림 delivery 재처리를 예약했습니다.");
     }
 }

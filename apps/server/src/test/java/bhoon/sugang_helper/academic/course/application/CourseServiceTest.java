@@ -2,6 +2,7 @@ package bhoon.sugang_helper.academic.course.application;
 
 import bhoon.sugang_helper.academic.course.contract.CourseSearchContext;
 import bhoon.sugang_helper.academic.course.contract.CourseSearchContextProvider;
+import bhoon.sugang_helper.academic.course.application.port.CourseSearchQuery;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,6 +52,9 @@ class CourseServiceTest {
     private CourseRepository courseRepository;
 
     @Mock
+    private CourseSearchQuery courseSearchQuery;
+
+    @Mock
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
     @Mock
@@ -68,8 +72,8 @@ class CourseServiceTest {
     @BeforeEach
     void setUp() {
         securityUtilMockedStatic = mockStatic(SecurityUtil.class);
-        courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userIdentityQuery,
-                courseReviewQuery, searchContextProvider);
+        courseService = new CourseService(courseRepository, courseSearchQuery, courseSeatHistoryRepository,
+                userIdentityQuery, courseReviewQuery, searchContextProvider);
     }
 
     @AfterEach
@@ -108,7 +112,7 @@ class CourseServiceTest {
                 .build();
         Course course = createCourse();
 
-        given(courseRepository.searchCourses(any(CourseSearchCriteria.class), any(Pageable.class)))
+        given(courseSearchQuery.searchCourses(any(CourseSearchCriteria.class), any(Pageable.class)))
                 .willReturn(new SliceImpl<>(List.of(course)));
         mockSearchContext();
 

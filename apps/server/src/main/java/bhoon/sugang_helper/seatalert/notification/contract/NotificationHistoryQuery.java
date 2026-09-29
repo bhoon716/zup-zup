@@ -16,4 +16,6 @@ public interface NotificationHistoryQuery {
     List<NotificationHistoryItem> findLatestForUser(Long userId);
 
     Slice<NotificationHistoryItem> findForUser(Long userId, Pageable pageable);
+
+    Slice<NotificationHistoryItem> findForCurrentUser(Pageable pageable);
 }

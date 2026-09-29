@@ -37,16 +37,16 @@ class CourseEmojiReviewJpaRepositoryTest {
                 .build());
 
         ReviewScopeKey scope = ReviewScopeKey.from(currentCourse.getSubjectCode(), currentCourse.getProfessor());
-        List<Object[]> stats = emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(
+        List<String> courseKeys = courseRepository.findCourseKeysBySubjectCodeAndProfessor(
                 scope.subjectCode(), scope.professor());
+        List<Object[]> stats = emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys);
 
         assertThat(scope.hasIdentifiableProfessor()).isTrue();
         assertThat(stats).singleElement().satisfies(row -> {
             assertThat(row[0]).isEqualTo("👍");
             assertThat(row[1]).isEqualTo(1L);
         });
-        assertThat(emojiReviewRepository.countBySubjectCodeAndProfessorAndUserIdAndEmoji(
-                scope.subjectCode(), scope.professor(), 1L, "👍")).isEqualTo(1L);
+        assertThat(emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(courseKeys, 1L, "👍")).isEqualTo(1L);
     }
 
     @Test
@@ -66,8 +66,9 @@ class CourseEmojiReviewJpaRepositoryTest {
                 .build());
 
         ReviewScopeKey scope = ReviewScopeKey.from(kimCourse.getSubjectCode(), kimCourse.getProfessor());
-        List<Object[]> stats = emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(
+        List<String> courseKeys = courseRepository.findCourseKeysBySubjectCodeAndProfessor(
                 scope.subjectCode(), scope.professor());
+        List<Object[]> stats = emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys);
 
         assertThat(stats).singleElement().satisfies(row -> {
             assertThat(row[0]).isEqualTo("👍");

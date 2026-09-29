@@ -56,6 +56,17 @@ class NotificationChannelPolicyTest {
     }
 
     @Test
+    void userEnabledChannels_UsesOnlyUserPreferences() {
+        NotificationChannelPolicy policy = new NotificationChannelPolicy(
+                new NotificationProperties(false, false, false, false));
+        NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
+                true, false, true, false, null);
+
+        assertThat(policy.userEnabledChannels(user))
+                .containsExactly(NotificationChannel.EMAIL, NotificationChannel.FCM);
+    }
+
+    @Test
     void isChannelEnabled_RejectsSoftDeletedUser() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, true, true, true));

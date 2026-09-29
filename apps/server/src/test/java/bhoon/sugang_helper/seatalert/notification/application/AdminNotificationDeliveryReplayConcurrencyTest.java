@@ -4,7 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.admin.contract.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.audit.contract.AdminAuditRecorder;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
@@ -38,6 +39,8 @@ class AdminNotificationDeliveryReplayConcurrencyTest {
     private SeatNotificationDeliveryJpaRepository deliveryRepository;
     @MockitoBean
     private AdminAuditRecorder adminAuditRecorder;
+    @MockitoBean
+    private UserIdentityQuery userIdentityQuery;
 
     @Test
     void concurrentReplaysChangeOneDlqDeliveryAndWriteOneAuditLog() throws Exception {

@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.identity.auth.contract.AuthSessionLogout;
+import bhoon.sugang_helper.identity.user.contract.UserSessionLogout;
 import bhoon.sugang_helper.identity.user.application.DiscordOAuthService;
 import bhoon.sugang_helper.identity.user.application.UserService;
 import ch.qos.logback.classic.Logger;
@@ -27,14 +27,14 @@ class UserControllerDiscordOAuthTest {
 
     private UserService userService;
     private DiscordOAuthService discordOAuthService;
-    private AuthSessionLogout authSessionLogout;
+    private UserSessionLogout authSessionLogout;
     private UserController controller;
 
     @BeforeEach
     void setUp() {
         userService = Mockito.mock(UserService.class);
         discordOAuthService = Mockito.mock(DiscordOAuthService.class);
-        authSessionLogout = Mockito.mock(AuthSessionLogout.class);
+        authSessionLogout = Mockito.mock(UserSessionLogout.class);
         controller = new UserController(userService, discordOAuthService, authSessionLogout);
         ReflectionTestUtils.setField(controller, "frontendBaseUrl", "https://web.example.com");
         ReflectionTestUtils.setField(controller, "discordClientId", "client-id");

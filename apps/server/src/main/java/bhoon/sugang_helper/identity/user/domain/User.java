@@ -15,9 +15,6 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -165,20 +162,7 @@ public class User extends BaseEntity {
         return this.role.getKey();
     }
 
-    public List<NotificationChannel> getEnabledNotificationChannels() {
-        List<NotificationChannel> channels = new ArrayList<>();
-        if (this.emailEnabled) {
-            channels.add(NotificationChannel.EMAIL);
-        }
-        if (this.fcmEnabled) {
-            channels.add(NotificationChannel.FCM);
-        }
-        if (this.webPushEnabled) {
-            channels.add(NotificationChannel.WEB);
-        }
-        if (this.discordEnabled) {
-            channels.add(NotificationChannel.DISCORD);
-        }
-        return channels;
+    public boolean hasEnabledNotificationChannels() {
+        return emailEnabled || fcmEnabled || webPushEnabled || discordEnabled;
     }
 }

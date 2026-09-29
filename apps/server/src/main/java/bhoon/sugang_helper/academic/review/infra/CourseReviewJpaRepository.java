@@ -36,17 +36,9 @@ public interface CourseReviewJpaRepository extends JpaRepository<CourseReview, L
     /**
      * 같은 과목코드와 교수명으로 묶인 리뷰 중, 특정 사용자가 작성한 리뷰를 조회합니다.
      */
-    @Query("""
-            select r
-            from CourseReview r
-            join Course c on c.courseKey = r.courseKey
-            where c.subjectCode = :subjectCode
-              and coalesce(trim(c.professor), '') = :professor
-              and r.userId = :userId
-            """)
-    Optional<CourseReview> findBySubjectCodeAndProfessorAndUserId(@Param("subjectCode") String subjectCode,
-                                                                  @Param("professor") String professor,
-                                                                  @Param("userId") Long userId);
+    @Query("select r from CourseReview r where r.courseKey in :courseKeys and r.userId = :userId")
+    Optional<CourseReview> findByCourseKeysAndUserId(@Param("courseKeys") java.util.List<String> courseKeys,
+                                                     @Param("userId") Long userId);
 
     /**
      * 특정 강의의 리뷰 목록을 페이징하여 조회합니다.
@@ -59,15 +51,12 @@ public interface CourseReviewJpaRepository extends JpaRepository<CourseReview, L
     @Query("""
             select r
             from CourseReview r
-            join Course c on c.courseKey = r.courseKey
-            where c.subjectCode = :subjectCode
-              and coalesce(trim(c.professor), '') = :professor
+            where r.courseKey in :courseKeys
             order by case when r.userId = :userId then 0 else 1 end asc, r.createdAt desc
             """)
-    Page<CourseReview> findBySubjectCodeAndProfessorWithMyReviewFirst(@Param("subjectCode") String subjectCode,
-                                                                      @Param("professor") String professor,
-                                                                      @Param("userId") Long userId,
-                                                                      Pageable pageable);
+    Page<CourseReview> findByCourseKeysWithMyReviewFirst(@Param("courseKeys") java.util.List<String> courseKeys,
+                                                         @Param("userId") Long userId,
+                                                         Pageable pageable);
 
     /**
      * 특정 강의의 리뷰 목록을 조회하되, 현재 사용자가 작성한 리뷰를 가장 위에 표시합니다.
@@ -85,17 +74,9 @@ public interface CourseReviewJpaRepository extends JpaRepository<CourseReview, L
     /**
      * 같은 과목코드와 교수명으로 묶인 리뷰에 대해 특정 사용자가 작성했는지 확인합니다.
      */
-    @Query("""
-            select count(r)
-            from CourseReview r
-            join Course c on c.courseKey = r.courseKey
-            where c.subjectCode = :subjectCode
-              and coalesce(trim(c.professor), '') = :professor
-              and r.userId = :userId
-            """)
-    long countBySubjectCodeAndProfessorAndUserId(@Param("subjectCode") String subjectCode,
-                                                 @Param("professor") String professor,
-                                                 @Param("userId") Long userId);
+    @Query("select count(r) from CourseReview r where r.courseKey in :courseKeys and r.userId = :userId")
+    long countByCourseKeysAndUserId(@Param("courseKeys") java.util.List<String> courseKeys,
+                                    @Param("userId") Long userId);
 
     /**
      * 특정 강의의 전체 리뷰 개수를 조회합니다.
@@ -105,15 +86,8 @@ public interface CourseReviewJpaRepository extends JpaRepository<CourseReview, L
     /**
      * 같은 과목코드와 교수명으로 묶인 리뷰의 전체 개수를 조회합니다.
      */
-    @Query("""
-            select count(r)
-            from CourseReview r
-            join Course c on c.courseKey = r.courseKey
-            where c.subjectCode = :subjectCode
-              and coalesce(trim(c.professor), '') = :professor
-            """)
-    long countBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
-                                        @Param("professor") String professor);
+    @Query("select count(r) from CourseReview r where r.courseKey in :courseKeys")
+    long countByCourseKeys(@Param("courseKeys") java.util.List<String> courseKeys);
 
     /**
      * 특정 강의의 평균 별점을 조회합니다. 리뷰가 없으면 0.0을 반환합니다.
@@ -124,13 +98,6 @@ public interface CourseReviewJpaRepository extends JpaRepository<CourseReview, L
     /**
      * 같은 과목코드와 교수명으로 묶인 리뷰의 평균 별점을 조회합니다.
      */
-    @Query("""
-            select coalesce(avg(r.rating), 0.0)
-            from CourseReview r
-            join Course c on c.courseKey = r.courseKey
-            where c.subjectCode = :subjectCode
-              and coalesce(trim(c.professor), '') = :professor
-            """)
-    Double getAverageRatingBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
-                                                     @Param("professor") String professor);
+    @Query("select coalesce(avg(r.rating), 0.0) from CourseReview r where r.courseKey in :courseKeys")
+    Double getAverageRatingByCourseKeys(@Param("courseKeys") java.util.List<String> courseKeys);
 }

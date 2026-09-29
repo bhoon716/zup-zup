@@ -8,16 +8,13 @@ import org.springframework.data.domain.Pageable;
 public interface CourseReviewRepository extends RepositoryContract<CourseReview, Long> {
     Optional<CourseReview> findByCourseKeyAndUserId(String courseKey, Long userId);
 
-    Optional<CourseReview> findBySubjectCodeAndProfessorAndUserId(String subjectCode,
-                                                                  String professor,
-                                                                  Long userId);
+    Optional<CourseReview> findByCourseKeysAndUserId(java.util.List<String> courseKeys, Long userId);
 
     Page<CourseReview> findByCourseKey(String courseKey, Pageable pageable);
 
-    Page<CourseReview> findBySubjectCodeAndProfessorWithMyReviewFirst(String subjectCode,
-                                                                      String professor,
-                                                                      Long userId,
-                                                                      Pageable pageable);
+    Page<CourseReview> findByCourseKeysWithMyReviewFirst(java.util.List<String> courseKeys,
+                                                         Long userId,
+                                                         Pageable pageable);
 
     Page<CourseReview> findByCourseKeyWithMyReviewFirst(String courseKey,
                                                         Long userId,
@@ -27,19 +24,15 @@ public interface CourseReviewRepository extends RepositoryContract<CourseReview,
 
     void deleteAllByUserId(Long userId);
 
-    long countBySubjectCodeAndProfessorAndUserId(String subjectCode,
-                                                 String professor,
-                                                 Long userId);
+    long countByCourseKeysAndUserId(java.util.List<String> courseKeys, Long userId);
 
     long countByCourseKey(String courseKey);
 
-    long countBySubjectCodeAndProfessor(String subjectCode,
-                                        String professor);
+    long countByCourseKeys(java.util.List<String> courseKeys);
 
     Double getAverageRatingByCourseKey(String courseKey);
 
-    Double getAverageRatingBySubjectCodeAndProfessor(String subjectCode,
-                                                     String professor);
+    Double getAverageRatingByCourseKeys(java.util.List<String> courseKeys);
 
     void incrementLikeCount(Long reviewId);
 

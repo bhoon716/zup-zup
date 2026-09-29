@@ -1,9 +1,11 @@
 package bhoon.sugang_helper.seatalert.notification.application;
 
-import bhoon.sugang_helper.admin.contract.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.audit.contract.AdminAuditRecorder;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.common.web.PageableGuard;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryRepository;
@@ -23,6 +25,7 @@ public class AdminNotificationDeliveryService {
 
     private final SeatNotificationDeliveryRepository deliveryRepository;
     private final AdminAuditRecorder adminAuditRecorder;
+    private final UserIdentityQuery userIdentityQuery;
 
     public Page<AdminNotificationDeliveryResponse> getDeadLetters(Pageable pageable) {
         return deliveryRepository.findByStatusOrderByDeadLetteredAtDescIdDesc(
@@ -32,6 +35,13 @@ public class AdminNotificationDeliveryService {
 
     public AdminNotificationDeliveryResponse getDelivery(Long deliveryId) {
         return AdminNotificationDeliveryResponse.from(findDelivery(deliveryId));
+    }
+
+    public Long getCurrentAdminId() {
+        String email = SecurityUtil.getCurrentUserEmail();
+        return userIdentityQuery.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED))
+                .id();
     }
 
     @Transactional

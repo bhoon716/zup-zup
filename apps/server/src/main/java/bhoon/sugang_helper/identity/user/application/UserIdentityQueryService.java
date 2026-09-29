@@ -3,8 +3,10 @@ package bhoon.sugang_helper.identity.user.application;
 import bhoon.sugang_helper.identity.user.contract.UserIdentity;
 import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import bhoon.sugang_helper.identity.user.contract.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.contract.UserAccountStatus;
 import bhoon.sugang_helper.identity.user.domain.Role;
 import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,16 @@ public class UserIdentityQueryService implements UserIdentityQuery {
     public Optional<AuthenticatedUser> findAuthenticatedUser(Long userId, String email) {
         return userRepository.findByIdAndEmailAndDeletedAtIsNull(userId, email)
                 .map(user -> new AuthenticatedUser(user.getId(), user.getEmail(), user.getRoleKey()));
+    }
+
+    @Override
+    public List<UserAccountStatus> findAccountStatuses(List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findAllById(userIds).stream()
+                .map(user -> new UserAccountStatus(user.getId(), user.isDeleted()))
+                .toList();
     }
 
     @Override

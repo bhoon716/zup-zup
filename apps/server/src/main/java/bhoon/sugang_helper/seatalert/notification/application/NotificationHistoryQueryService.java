@@ -4,6 +4,10 @@ import bhoon.sugang_helper.seatalert.notification.contract.NotificationHistoryIt
 import bhoon.sugang_helper.seatalert.notification.contract.NotificationHistoryQuery;
 import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistoryRepository;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationHistoryQueryService implements NotificationHistoryQuery {
 
     private final NotificationHistoryRepository repository;
+    private final UserIdentityQuery userIdentityQuery;
 
     @Override
     public long countCreatedAfter(LocalDateTime start) {
@@ -47,6 +52,15 @@ public class NotificationHistoryQueryService implements NotificationHistoryQuery
     public Slice<NotificationHistoryItem> findForUser(Long userId, Pageable pageable) {
         return repository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable)
                 .map(NotificationHistoryQueryService::toItem);
+    }
+
+    @Override
+    public Slice<NotificationHistoryItem> findForCurrentUser(Pageable pageable) {
+        String email = SecurityUtil.getCurrentUserEmail();
+        Long userId = userIdentityQuery.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED))
+                .id();
+        return findForUser(userId, pageable);
     }
 
     private static NotificationHistoryItem toItem(NotificationHistory history) {

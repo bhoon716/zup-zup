@@ -56,9 +56,10 @@ admin, dashboard, common  # 조합·기술 지원 영역
 
 ## 근거와 가정
 
+- 아래의 교차 의존 사례는 경계 정리 전 초기 조사 상태를 기록한다. 현재 상태는 문서 하단의 후속 구현 항목을 따른다.
 - 확인된 양방향 의존: `academic/course/application/CourseService.java`가 `CourseCrawlerTargetService`·`CrawlerRunStateService`를 조회하고, `academic/crawling/application/CourseSynchronizationService.java`는 `academic.course`의 엔티티·repository를 사용해 강의와 좌석 이력을 쓴다.
 - 확인된 원자성 요구: `CourseSynchronizationService`가 좌석 변화 이벤트를 발행하고 `seatalert/notification/application/SeatNotificationOutboxService.java`가 `BEFORE_COMMIT` 이벤트 리스너에서 outbox를 기록한다. 강의 좌석 변경·이력과 outbox 기록이 같은 DB commit에 들어가는 현재 의미를 보존해야 한다.
-- 확인된 알림 의존: `seatalert/notification/application/SeatNotificationOutboxProcessor.java`가 `SubscriptionRepository`, `UserRepository`, `UserDeviceRepository`와 사용자/구독 엔티티를 직접 사용한다. `identity/user/domain/User.java`도 `seatalert.notification.infra.NotificationChannel`을 직접 참조한다.
+- 확인된 알림 의존: 초기 조사 당시 `seatalert/notification/application/SeatNotificationOutboxProcessor.java`가 구독·사용자 저장소와 엔티티를 직접 사용했고, `identity/user/domain/User.java`는 `seatalert.contract.NotificationChannel`을 참조했다.
 - 확인된 교차 쓰기: `identity/user/application/UserService.java`의 `withdraw()`는 계정·토큰/Redis 상태와 함께 구독을 취소하고 기기를 삭제하며 피드백을 soft-delete한다. 따라서 계정 탈퇴는 여러 데이터 소유 경계를 가로지르는 고위험 흐름이다.
 - 확인된 소유권 혼선: `support/feedback/domain/AdminActionLog.java`와 repository·타입은 `support.feedback` 패키지에 있지만 `admin/application/AdminAuditService.java`가 피드백 변경과 알림 delivery replay 감사를 함께 기록한다.
 - 확인된 조합 책임: `dashboard/application/DashboardService.java`는 사용자, 시간표, 공지, 학사 일정, 알림 이력을 조합한다. `admin/application/AdminService.java`도 계정·구독·알림·수집 상태를 집계한다. 두 클래스는 각 데이터의 소유자라기보다 화면/운영 조합 지점에 가깝다.
@@ -83,3 +84,10 @@ admin, dashboard, common  # 조합·기술 지원 영역
 ## 검증과 재검토 조건
 
 2026-09-29에 패키지 이동 전후 `apps/server`에서 `./gradlew test`를 실행해 모두 통과했다. 이 검사는 컴파일과 현재 테스트 동작을 확인하지만, 도메인 간 import가 적절하거나 테이블 소유권 규칙이 지켜진다는 뜻은 아니다. 다음 단계에서 패키지별 import 방향, 실제 테이블 read/write 경로, transaction 경계를 더 확인해 이 초안의 소유자를 검증한다. 첫 동작 변경은 확인된 작은 경계 하나만 대상으로 하고, 기존 API·DB 결과·실패 계약을 같은 테스트로 비교한다.
+
+## 후속 구현 (2026-09-29)
+
+- 사용자 도메인은 채널별 설정 boolean을 소유하고, 테스트 알림 outbound contract에는 사용자 ID만 전달한다. 알림 도메인이 사용자 조회 결과를 자체 `NotificationChannel`로 변환한다. DB enum 값과 채널별 발송 조건은 유지했다.
+- 알림 outbox 조합은 현재 `SubscriptionRecipientQuery`·`UserNotificationQuery` 계약을 사용한다. `User` 엔티티는 알림 도메인 타입을 참조하지 않는다.
+- 강의 검색 port와 HTTP 전역 예외 어댑터는 각각 `academic.course.application.port`, `common.web`에 위치한다.
+- 현재 main source 380개 파일·97개 package 검사에서 논리 도메인 순환과 Java package 순환이 없다. 전체 서버 테스트 490개가 통과했다.

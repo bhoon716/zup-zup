@@ -5,6 +5,7 @@ import bhoon.sugang_helper.academic.course.contract.CourseReviewCatalog;
 import bhoon.sugang_helper.academic.course.domain.Course;
 import bhoon.sugang_helper.academic.course.domain.CourseRepository;
 import java.util.Optional;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,11 @@ public class CourseReviewCatalogService implements CourseReviewCatalog {
     @Transactional
     public Optional<CourseReference> findByCourseKeyForUpdate(String courseKey) {
         return courseRepository.findByCourseKeyForUpdate(courseKey).map(CourseReviewCatalogService::toReference);
+    }
+
+    @Override
+    public List<String> findCourseKeysBySubjectCodeAndProfessor(String subjectCode, String professor) {
+        return courseRepository.findCourseKeysBySubjectCodeAndProfessor(subjectCode, professor);
     }
 
     @Override

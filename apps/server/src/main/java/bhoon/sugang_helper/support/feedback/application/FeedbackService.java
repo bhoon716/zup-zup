@@ -1,8 +1,9 @@
 package bhoon.sugang_helper.support.feedback.application;
 
-import bhoon.sugang_helper.admin.contract.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.audit.contract.AdminAuditRecorder;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
@@ -17,10 +18,12 @@ import bhoon.sugang_helper.support.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.support.feedback.domain.FeedbackStatus;
 import bhoon.sugang_helper.identity.user.contract.UserDisplayName;
 import bhoon.sugang_helper.identity.user.contract.UserDisplayNameQuery;
+import bhoon.sugang_helper.identity.user.contract.UserAccountStatus;
 import bhoon.sugang_helper.identity.user.contract.UserIdentity;
 import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.time.Duration;
@@ -66,6 +69,11 @@ public class FeedbackService {
     @Transactional
     public Long createFeedback(Long userId, FeedbackCreateRequest request, List<MultipartFile> files) {
         return createFeedback(userId, request, files, null);
+    }
+
+    @Transactional
+    public Long createFeedbackForCurrentUser(FeedbackCreateRequest request, List<MultipartFile> files, String clientIp) {
+        return createFeedback(requireCurrentUser().id(), request, files, clientIp);
     }
 
     @Transactional
@@ -119,6 +127,11 @@ public class FeedbackService {
                 .map(FeedbackResponse::from);
     }
 
+    @Transactional(readOnly = true)
+    public Page<FeedbackResponse> getMyFeedbacksForCurrentUser(Pageable pageable) {
+        return getMyFeedbacks(requireCurrentUser().id(), pageable);
+    }
+
     /**
      * 특정 문의 사항의 상세 내용 및 운영진 답변 목록을 조회합니다.
      */
@@ -132,6 +145,11 @@ public class FeedbackService {
         }
 
         return FeedbackDetailResponse.from(feedback, adminNamesById(feedback.getReplies()));
+    }
+
+    @Transactional(readOnly = true)
+    public FeedbackDetailResponse getMyFeedbackDetailForCurrentUser(Long feedbackId) {
+        return getMyFeedbackDetail(requireCurrentUser().id(), feedbackId);
     }
 
     /**
@@ -150,6 +168,11 @@ public class FeedbackService {
     }
 
     @Transactional
+    public void deleteCurrentUsersFeedback(Long feedbackId) {
+        deleteFeedback(requireCurrentUser().id(), feedbackId);
+    }
+
+    @Transactional
     public FeedbackAttachmentDownload getAttachment(UserIdentity requester, Long feedbackId, Long attachmentId) {
         if (requester.administrator()) {
             throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
@@ -164,6 +187,11 @@ public class FeedbackService {
         }
         var file = fileUploadService.loadFile(attachment.getFileUrl());
         return new FeedbackAttachmentDownload(file.resource(), attachment.getOriginalName(), file.contentType());
+    }
+
+    @Transactional
+    public FeedbackAttachmentDownload getAttachmentForCurrentUser(Long feedbackId, Long attachmentId) {
+        return getAttachment(requireCurrentUser(), feedbackId, attachmentId);
     }
 
     /**
@@ -187,6 +215,12 @@ public class FeedbackService {
         return new FeedbackAttachmentDownload(file.resource(), attachment.originalName(), file.contentType());
     }
 
+    @Transactional
+    public FeedbackAttachmentDownload getAttachmentForCurrentAdmin(Long feedbackId, Long attachmentId,
+                                                                   boolean confirmed) {
+        return getAttachmentForAdmin(requireCurrentAdmin(), feedbackId, attachmentId, confirmed);
+    }
+
     /* 관리자 전용 기능 */
 
     /**
@@ -195,7 +229,12 @@ public class FeedbackService {
     @Transactional(readOnly = true)
     public Page<AdminFeedbackResponse> getFeedbacksForAdmin(Pageable pageable,
                                                              AdminFeedbackDeletionFilter deletionFilter) {
-        return adminFeedbackReadRepository.findFeedbacks(deletionFilter, PageableGuard.requireBounded(pageable))
+        Page<AdminFeedbackReadRepository.FeedbackSummary> feedbacks = adminFeedbackReadRepository.findFeedbacks(
+                deletionFilter, PageableGuard.requireBounded(pageable));
+        Map<Long, Boolean> withdrawnByUserId = findAccountStatuses(feedbacks.getContent().stream()
+                .map(AdminFeedbackReadRepository.FeedbackSummary::authorId)
+                .toList());
+        return feedbacks
                 .map(feedback -> new AdminFeedbackResponse(
                         feedback.id(),
                         feedback.type(),
@@ -205,7 +244,7 @@ public class FeedbackService {
                         feedback.hasReplies(),
                         feedback.deleted(),
                         feedback.deletedAt(),
-                        authorLabel(feedback.authorWithdrawn())));
+                        authorLabel(isWithdrawnAuthor(feedback.authorId(), withdrawnByUserId))));
     }
 
     /**
@@ -216,6 +255,9 @@ public class FeedbackService {
         AdminFeedbackReadRepository.FeedbackDetail feedback = adminFeedbackReadRepository
                 .findFeedbackDetail(feedbackId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+        Map<Long, Boolean> withdrawnByUserId = findAccountStatuses(feedback.authorId() == null
+                ? List.of()
+                : List.of(feedback.authorId()));
         return new AdminFeedbackDetailResponse(
                 feedback.id(),
                 feedback.type(),
@@ -225,7 +267,7 @@ public class FeedbackService {
                 feedback.createdAt(),
                 feedback.deleted(),
                 feedback.deletedAt(),
-                authorLabel(feedback.authorWithdrawn()),
+                authorLabel(isWithdrawnAuthor(feedback.authorId(), withdrawnByUserId)),
                 adminFeedbackReadRepository.findAttachments(feedbackId).stream()
                         .map(attachment -> new AdminFeedbackAttachmentResponse(attachment.id()))
                         .toList(),
@@ -265,6 +307,11 @@ public class FeedbackService {
         return savedReply.getId();
     }
 
+    @Transactional
+    public Long createFeedbackReplyForCurrentAdmin(Long feedbackId, FeedbackReplyCreateRequest request) {
+        return createFeedbackReply(requireCurrentAdmin().id(), feedbackId, request);
+    }
+
     /**
      * 기 등록된 운영진 답변 내용을 수정하고 변경 전 내용을 로그로 기록합니다.
      */
@@ -283,6 +330,11 @@ public class FeedbackService {
 
         adminAuditRecorder.recordReplyUpdated(adminId, reply.getId(), feedback.getId(), oldContent,
                 request.content());
+    }
+
+    @Transactional
+    public void updateFeedbackReplyForCurrentAdmin(Long replyId, FeedbackReplyUpdateRequest request) {
+        updateFeedbackReply(requireCurrentAdmin().id(), replyId, request);
     }
 
     /**
@@ -304,6 +356,11 @@ public class FeedbackService {
         adminAuditRecorder.recordReplyDeleted(adminId, replyId, feedback.getId(), content);
     }
 
+    @Transactional
+    public void deleteFeedbackReplyForCurrentAdmin(Long replyId) {
+        deleteFeedbackReply(requireCurrentAdmin().id(), replyId);
+    }
+
     /**
      * 문의 사항의 처리 상태를 변경하고 액션 로그를 생성합니다.
      */
@@ -319,6 +376,25 @@ public class FeedbackService {
         feedback.updateStatus(request.status());
 
         adminAuditRecorder.recordStatusChange(adminId, feedbackId, oldStatus.name(), request.status().name());
+    }
+
+    @Transactional
+    public void updateFeedbackStatusForCurrentAdmin(Long feedbackId, FeedbackStatusUpdateRequest request) {
+        updateFeedbackStatus(requireCurrentAdmin().id(), feedbackId, request);
+    }
+
+    private UserIdentity requireCurrentUser() {
+        String email = SecurityUtil.getCurrentUserEmail();
+        return userIdentityQuery.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+    }
+
+    private UserIdentity requireCurrentAdmin() {
+        UserIdentity user = requireCurrentUser();
+        if (!user.administrator()) {
+            throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
+        }
+        return user;
     }
 
     private Map<Long, String> adminNamesById(List<FeedbackReply> replies) {
@@ -360,5 +436,19 @@ public class FeedbackService {
 
     private String authorLabel(boolean withdrawn) {
         return withdrawn ? "탈퇴 사용자" : "사용자";
+    }
+
+    private Map<Long, Boolean> findAccountStatuses(List<Long> authorIds) {
+        List<Long> userIds = authorIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        return userIdentityQuery.findAccountStatuses(userIds).stream()
+                .collect(Collectors.toMap(UserAccountStatus::userId, UserAccountStatus::withdrawn));
+    }
+
+    private boolean isWithdrawnAuthor(Long authorId, Map<Long, Boolean> withdrawnByUserId) {
+        return authorId == null || !withdrawnByUserId.containsKey(authorId)
+                || Boolean.TRUE.equals(withdrawnByUserId.get(authorId));
     }
 }

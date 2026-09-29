@@ -66,12 +66,14 @@ public class CourseEmojiReviewService {
         CourseReference course = getCourse(courseKey);
         ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
         Long currentUserId = getCurrentUserIdOrNull();
-        return findEmojiStats(course, scope)
+        List<String> courseKeys = findCourseKeysForScope(course, scope);
+        return findEmojiStats(course, scope, courseKeys)
                 .stream()
                 .map(row -> {
                     String emoji = (String) row[0];
                     long count = ((Number) row[1]).longValue();
-                    boolean isMine = currentUserId != null && hasEmojiReview(course, scope, currentUserId, emoji);
+                    boolean isMine = currentUserId != null
+                            && hasEmojiReview(course, scope, courseKeys, currentUserId, emoji);
                     return CourseEmojiReviewResponse.builder()
                             .emoji(emoji)
                             .count(count)
@@ -87,25 +89,31 @@ public class CourseEmojiReviewService {
             return emojiReviewRepository.findByCourseKeyAndUserIdAndEmoji(course.courseKey(), userId, emoji);
         }
 
-        return emojiReviewRepository.findBySubjectCodeAndProfessorAndUserIdAndEmoji(
-                scope.subjectCode(), scope.professor(), userId, emoji);
+        var courseKeys = findCourseKeysForScope(course, scope);
+        return emojiReviewRepository.findByCourseKeysAndUserIdAndEmoji(courseKeys, userId, emoji);
     }
 
-    private List<Object[]> findEmojiStats(CourseReference course, ReviewScopeKey scope) {
+    private List<Object[]> findEmojiStats(CourseReference course, ReviewScopeKey scope, List<String> courseKeys) {
         if (!scope.hasIdentifiableProfessor()) {
             return emojiReviewRepository.findEmojiStatsByCourseKey(course.courseKey());
         }
-
-        return emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor());
+        return emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys);
     }
 
-    private boolean hasEmojiReview(CourseReference course, ReviewScopeKey scope, Long userId, String emoji) {
+    private boolean hasEmojiReview(CourseReference course, ReviewScopeKey scope, List<String> courseKeys,
+                                   Long userId, String emoji) {
         if (!scope.hasIdentifiableProfessor()) {
             return emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(course.courseKey(), userId, emoji);
         }
 
-        return emojiReviewRepository.countBySubjectCodeAndProfessorAndUserIdAndEmoji(
-                scope.subjectCode(), scope.professor(), userId, emoji) > 0;
+        return emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(courseKeys, userId, emoji) > 0;
+    }
+
+    private List<String> findCourseKeysForScope(CourseReference course, ReviewScopeKey scope) {
+        if (!scope.hasIdentifiableProfessor()) {
+            return List.of();
+        }
+        return courseReviewCatalog.findCourseKeysBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor());
     }
 
     private UserIdentity getCurrentUser() {

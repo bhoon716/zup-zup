@@ -11,6 +11,7 @@ import bhoon.sugang_helper.academic.course.domain.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.academic.course.contract.CourseReviewQuery;
 import bhoon.sugang_helper.academic.course.contract.CourseSearchContext;
 import bhoon.sugang_helper.academic.course.contract.CourseSearchContextProvider;
+import bhoon.sugang_helper.academic.course.application.port.CourseSearchQuery;
 import bhoon.sugang_helper.identity.user.contract.UserIdentity;
 import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.util.List;
@@ -30,6 +31,7 @@ public class CourseService {
     private static final int MAX_HISTORY_PAGE_SIZE = 100;
 
     private final CourseRepository courseRepository;
+    private final CourseSearchQuery courseSearchQuery;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
     private final UserIdentityQuery userIdentityQuery;
     private final CourseReviewQuery courseReviewQuery;
@@ -50,7 +52,7 @@ public class CourseService {
             userId = user.id();
         }
         CourseSearchCriteria criteria = condition.toCriteria(userId);
-        return courseRepository.searchCourses(criteria, PageableGuard.requireBounded(pageable))
+        return courseSearchQuery.searchCourses(criteria, PageableGuard.requireBounded(pageable))
                 .map(course -> CourseResponse.from(
                         course, context.year(), context.semester().getCode(), context.lastCrawledAt()));
     }

@@ -10,11 +10,6 @@ import bhoon.sugang_helper.support.feedback.contract.AdminFeedbackDeletionFilter
 
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.contract.UserIdentity;
-import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -49,7 +44,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminFeedbackController {
 
     private final FeedbackService feedbackService;
-    private final UserIdentityQuery userIdentityQuery;
 
     /**
      * 시스템에 등록된 모든 문의 및 건의 사항을 조회합니다.
@@ -80,8 +74,8 @@ public class AdminFeedbackController {
             @PathVariable Long feedbackId,
             @PathVariable Long attachmentId,
             @Valid @RequestBody AdminFeedbackAttachmentDownloadRequest request) {
-        var download = feedbackService.getAttachmentForAdmin(
-                getCurrentAdmin(), feedbackId, attachmentId, request.confirmed());
+        var download = feedbackService.getAttachmentForCurrentAdmin(
+                feedbackId, attachmentId, request.confirmed());
         return ResponseEntity.ok()
                 .contentType(download.contentType())
                 .header("Content-Disposition", ContentDisposition.attachment()
@@ -100,8 +94,7 @@ public class AdminFeedbackController {
             @PathVariable Long feedbackId,
             @Valid @RequestBody FeedbackStatusUpdateRequest request) {
 
-        Long adminId = getAdminId();
-        feedbackService.updateFeedbackStatus(adminId, feedbackId, request);
+        feedbackService.updateFeedbackStatusForCurrentAdmin(feedbackId, request);
         return ResponseEntity.ok().build();
     }
 
@@ -114,8 +107,7 @@ public class AdminFeedbackController {
             @PathVariable Long feedbackId,
             @Valid @RequestBody FeedbackReplyCreateRequest request) {
 
-        Long adminId = getAdminId();
-        Long replyId = feedbackService.createFeedbackReply(adminId, feedbackId, request);
+        Long replyId = feedbackService.createFeedbackReplyForCurrentAdmin(feedbackId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success(replyId, "답변이 등록되었습니다."));
     }
@@ -129,8 +121,7 @@ public class AdminFeedbackController {
             @PathVariable Long replyId,
             @Valid @RequestBody FeedbackReplyUpdateRequest request) {
 
-        Long adminId = getAdminId();
-        feedbackService.updateFeedbackReply(adminId, replyId, request);
+        feedbackService.updateFeedbackReplyForCurrentAdmin(replyId, request);
         return ResponseEntity.ok().build();
     }
 
@@ -142,24 +133,8 @@ public class AdminFeedbackController {
     public ResponseEntity<Void> deleteReply(
             @PathVariable Long replyId) {
 
-        Long adminId = getAdminId();
-        feedbackService.deleteFeedbackReply(adminId, replyId);
+        feedbackService.deleteFeedbackReplyForCurrentAdmin(replyId);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * 현재 인증된 관리자의 유저 ID를 조회합니다.
-     */
-    private Long getAdminId() {
-        return getCurrentAdmin().id();
-    }
-
-    private UserIdentity getCurrentAdmin() {
-        UserIdentity user = userIdentityQuery.findByEmail(SecurityUtil.getCurrentUserEmail())
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
-        if (!user.administrator()) {
-            throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
-        }
-        return user;
-    }
 }

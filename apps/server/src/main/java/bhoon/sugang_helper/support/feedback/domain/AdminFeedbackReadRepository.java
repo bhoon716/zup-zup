@@ -31,7 +31,7 @@ public interface AdminFeedbackReadRepository {
             boolean hasReplies,
             boolean deleted,
             LocalDateTime deletedAt,
-            boolean authorWithdrawn) {
+            Long authorId) {
     }
 
     record FeedbackDetail(
@@ -43,7 +43,7 @@ public interface AdminFeedbackReadRepository {
             LocalDateTime createdAt,
             boolean deleted,
             LocalDateTime deletedAt,
-            boolean authorWithdrawn) {
+            Long authorId) {
     }
 
     record FeedbackReplySummary(

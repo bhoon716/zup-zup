@@ -1,5 +1,5 @@
 package bhoon.sugang_helper.identity.user.presentation;
-import bhoon.sugang_helper.identity.auth.contract.AuthSessionLogout;
+import bhoon.sugang_helper.identity.user.contract.UserSessionLogout;
 import bhoon.sugang_helper.identity.user.application.DiscordOAuthService;
 import bhoon.sugang_helper.identity.user.application.UserService;
 import bhoon.sugang_helper.identity.user.application.UserResponse;
@@ -57,7 +57,7 @@ public class UserController {
 
     private final UserService userService;
     private final DiscordOAuthService discordOAuthService;
-    private final AuthSessionLogout authSessionLogout;
+    private final UserSessionLogout authSessionLogout;
 
     @Value("${app.oauth2.authorized-redirect-uri}")
     private String frontendBaseUrl;
