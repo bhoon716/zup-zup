@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.admin.application;
 
-import bhoon.sugang_helper.crawling.application.AdminCrawlTargetResponse;
+import bhoon.sugang_helper.academic.crawling.application.AdminCrawlTargetResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;

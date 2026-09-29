@@ -2,9 +2,9 @@ package bhoon.sugang_helper.admin.presentation;
 
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.announcement.application.AnnouncementRequest;
-import bhoon.sugang_helper.announcement.application.AnnouncementDetailResponse;
-import bhoon.sugang_helper.announcement.application.AnnouncementService;
+import bhoon.sugang_helper.campus.announcement.application.AnnouncementRequest;
+import bhoon.sugang_helper.campus.announcement.application.AnnouncementDetailResponse;
+import bhoon.sugang_helper.campus.announcement.application.AnnouncementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;

@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.common.security.oauth;
 
-import bhoon.sugang_helper.auth.application.AuthService;
+import bhoon.sugang_helper.identity.auth.application.AuthService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;

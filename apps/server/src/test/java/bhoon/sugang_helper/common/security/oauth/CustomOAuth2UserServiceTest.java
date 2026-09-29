@@ -8,10 +8,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import bhoon.sugang_helper.user.domain.Role;
-import bhoon.sugang_helper.user.domain.User;
-import bhoon.sugang_helper.user.domain.UserRegisteredEvent;
-import bhoon.sugang_helper.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.domain.Role;
+import bhoon.sugang_helper.identity.user.domain.User;
+import bhoon.sugang_helper.identity.user.domain.UserRegisteredEvent;
+import bhoon.sugang_helper.identity.user.domain.UserRepository;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;

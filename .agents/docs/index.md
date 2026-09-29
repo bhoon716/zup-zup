@@ -12,6 +12,10 @@ Use this page as the entry point for repo knowledge.
 - [Performance test records](../../docs/performance/README.md): mixed-load experiments, current validated range, and raw result locations.
 
 ## Decisions
+- [Decision records and template](../../docs/decisions/README.md): where project decisions live, how to name them, and the reusable decision template.
+- [Project decision record location](../../docs/decisions/2026-09-29-project-decision-record-location.md): canonical folder and record-keeping rule.
+- [Bottom-up backend refactoring](../../docs/decisions/2026-09-29-bottom-up-backend-refactoring.md): proposed incremental refactoring sequence and its guardrails.
+- [Backend domain boundaries](../../docs/decisions/2026-09-29-server-domain-boundaries.md): proposed logical ownership and dependency rules based on current code.
 - [Repository topology decision](../../docs/decisions/2026-07-06-repository-topology.md): historical nested multi-repo workspace model and ownership boundaries.
 - [Monorepo migration decision](../../docs/decisions/2026-07-08-monorepo-migration-web-vercel-server-infra.md): current root monorepo layout, Vercel retention, and OCI deployment split.
 - [Single OCI CI/CD decision](../../docs/decisions/2026-07-19-single-oci-cicd.md): target minimal CI/CD, migration, rollback, and cutover contract.

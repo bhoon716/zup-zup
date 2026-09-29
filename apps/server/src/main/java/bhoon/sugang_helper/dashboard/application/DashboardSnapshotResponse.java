@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.dashboard.application;
 
-import bhoon.sugang_helper.announcement.application.AnnouncementListResponse;
+import bhoon.sugang_helper.campus.announcement.application.AnnouncementListResponse;
 import bhoon.sugang_helper.dashboard.application.result.DashboardPrimaryTimetableResult;
 import bhoon.sugang_helper.dashboard.application.result.DashboardUserResult;
-import bhoon.sugang_helper.notification.application.NotificationHistoryResponse;
-import bhoon.sugang_helper.schedule.application.ScheduleResponse;
+import bhoon.sugang_helper.seatalert.notification.application.NotificationHistoryResponse;
+import bhoon.sugang_helper.campus.schedule.application.ScheduleResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.Builder;

@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import bhoon.sugang_helper.SugangHelperApplication;
-import bhoon.sugang_helper.user.domain.Role;
-import bhoon.sugang_helper.user.domain.User;
-import bhoon.sugang_helper.user.infra.UserJpaRepository;
+import bhoon.sugang_helper.identity.user.domain.Role;
+import bhoon.sugang_helper.identity.user.domain.User;
+import bhoon.sugang_helper.identity.user.infra.UserJpaRepository;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;

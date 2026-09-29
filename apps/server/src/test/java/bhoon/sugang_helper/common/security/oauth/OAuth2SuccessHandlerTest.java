@@ -5,9 +5,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.auth.application.AuthService;
+import bhoon.sugang_helper.identity.auth.application.AuthService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
-import bhoon.sugang_helper.user.domain.Role;
+import bhoon.sugang_helper.identity.user.domain.Role;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;

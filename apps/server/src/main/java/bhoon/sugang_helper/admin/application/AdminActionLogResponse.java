@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.admin.application;
 
-import bhoon.sugang_helper.feedback.domain.ActionType;
-import bhoon.sugang_helper.feedback.domain.TargetType;
+import bhoon.sugang_helper.support.feedback.domain.ActionType;
+import bhoon.sugang_helper.support.feedback.domain.TargetType;
 import java.time.LocalDateTime;
 
 /**

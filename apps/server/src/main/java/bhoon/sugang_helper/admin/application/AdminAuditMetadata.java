@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.admin.application;
 
-import bhoon.sugang_helper.feedback.domain.FeedbackStatus;
-import bhoon.sugang_helper.notification.domain.SeatNotificationDeliveryStatus;
+import bhoon.sugang_helper.support.feedback.domain.FeedbackStatus;
+import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Set;

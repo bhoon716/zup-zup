@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.dashboard.application.result;
 
-import bhoon.sugang_helper.user.domain.User;
+import bhoon.sugang_helper.identity.user.domain.User;
 
 public record DashboardUserResult(
         Long id,

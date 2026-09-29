@@ -2,9 +2,9 @@ package bhoon.sugang_helper.admin.presentation;
 
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.dday.application.DdaySettingRequest;
-import bhoon.sugang_helper.dday.application.DdaySettingResponse;
-import bhoon.sugang_helper.dday.application.DdaySettingService;
+import bhoon.sugang_helper.campus.dday.application.DdaySettingRequest;
+import bhoon.sugang_helper.campus.dday.application.DdaySettingResponse;
+import bhoon.sugang_helper.campus.dday.application.DdaySettingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;

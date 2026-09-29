@@ -1,12 +1,12 @@
 package bhoon.sugang_helper.admin.application;
 
-import bhoon.sugang_helper.feedback.domain.ActionType;
-import bhoon.sugang_helper.feedback.domain.AdminActionLog;
-import bhoon.sugang_helper.feedback.domain.AdminActionLogRepository;
-import bhoon.sugang_helper.feedback.domain.FeedbackStatus;
-import bhoon.sugang_helper.feedback.domain.TargetType;
-import bhoon.sugang_helper.notification.domain.SeatNotificationDeliveryStatus;
-import bhoon.sugang_helper.user.domain.User;
+import bhoon.sugang_helper.support.feedback.domain.ActionType;
+import bhoon.sugang_helper.support.feedback.domain.AdminActionLog;
+import bhoon.sugang_helper.support.feedback.domain.AdminActionLogRepository;
+import bhoon.sugang_helper.support.feedback.domain.FeedbackStatus;
+import bhoon.sugang_helper.support.feedback.domain.TargetType;
+import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
+import bhoon.sugang_helper.identity.user.domain.User;
 import bhoon.sugang_helper.common.web.PageableGuard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
