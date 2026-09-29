@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.domain;
 
 import bhoon.sugang_helper.common.audit.BaseTimeEntity;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

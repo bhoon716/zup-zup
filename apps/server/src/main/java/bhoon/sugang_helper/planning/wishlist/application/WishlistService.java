@@ -3,10 +3,10 @@ package bhoon.sugang_helper.planning.wishlist.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.academic.course.contract.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.contract.CourseSummary;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import bhoon.sugang_helper.planning.wishlist.domain.Wishlist;
 import bhoon.sugang_helper.planning.wishlist.domain.WishlistRepository;
 import java.util.Collections;
@@ -26,39 +26,39 @@ import org.springframework.transaction.annotation.Transactional;
 public class WishlistService {
 
     private final WishlistRepository wishlistRepository;
-    private final CourseRepository courseRepository;
-    private final UserRepository userRepository;
+    private final CourseCatalogQuery courseCatalogQuery;
+    private final UserIdentityQuery userIdentityQuery;
 
     @Transactional
     public WishlistToggleResponse toggleWishlist(String courseKey) {
-        User user = getCurrentUser();
+        UserIdentity user = getCurrentUser();
         validateCourseExists(courseKey);
 
-        Wishlist existingWishlist = wishlistRepository.findByUserIdAndCourseKey(user.getId(), courseKey)
+        Wishlist existingWishlist = wishlistRepository.findByUserIdAndCourseKey(user.id(), courseKey)
                 .orElse(null);
         if (existingWishlist != null) {
             wishlistRepository.delete(existingWishlist);
-            log.info("[Wishlist] Removed course from wishlist. userId={}, courseKey={}", user.getId(), courseKey);
+            log.info("[Wishlist] Removed course from wishlist. userId={}, courseKey={}", user.id(), courseKey);
             return WishlistToggleResponse.of(false);
         }
 
         Wishlist wishlist = Wishlist.builder()
-                .userId(user.getId())
+                .userId(user.id())
                 .courseKey(courseKey)
                 .build();
         wishlistRepository.save(wishlist);
-        log.info("[Wishlist] Added course to wishlist. userId={}, courseKey={}", user.getId(), courseKey);
+        log.info("[Wishlist] Added course to wishlist. userId={}, courseKey={}", user.id(), courseKey);
         return WishlistToggleResponse.of(true);
     }
 
     public List<WishlistResponse> getMyWishlist() {
-        User user = getCurrentUser();
-        List<Wishlist> wishlists = wishlistRepository.findByUserId(user.getId());
+        UserIdentity user = getCurrentUser();
+        List<Wishlist> wishlists = wishlistRepository.findByUserId(user.id());
         if (wishlists.isEmpty()) {
             return Collections.emptyList();
         }
 
-        Map<String, Course> courseMap = findCoursesByWishlists(wishlists);
+        Map<String, CourseSummary> courseMap = findCoursesByWishlists(wishlists);
         return wishlists.stream()
                 .map(wishlist -> toWishlistResponse(wishlist, courseMap))
                 .filter(response -> response != null)
@@ -66,24 +66,25 @@ public class WishlistService {
     }
 
     private void validateCourseExists(String courseKey) {
-        if (courseRepository.findByCourseKey(courseKey).isPresent()) {
+        if (courseCatalogQuery.findByCourseKey(courseKey).isPresent()) {
             return;
         }
 
         throw new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 강좌입니다.");
     }
 
-    private Map<String, Course> findCoursesByWishlists(List<Wishlist> wishlists) {
+    private Map<String, CourseSummary> findCoursesByWishlists(List<Wishlist> wishlists) {
         List<String> courseKeys = wishlists.stream()
                 .map(Wishlist::getCourseKey)
                 .toList();
 
-        return courseRepository.findByCourseKeyIn(courseKeys).stream()
-                .collect(Collectors.toMap(Course::getCourseKey, Function.identity(), (existing, replacement) -> existing));
+        return courseCatalogQuery.findByCourseKeyIn(courseKeys).stream()
+                .collect(Collectors.toMap(CourseSummary::courseKey, Function.identity(),
+                        (existing, replacement) -> existing));
     }
 
-    private WishlistResponse toWishlistResponse(Wishlist wishlist, Map<String, Course> courseMap) {
-        Course course = courseMap.get(wishlist.getCourseKey());
+    private WishlistResponse toWishlistResponse(Wishlist wishlist, Map<String, CourseSummary> courseMap) {
+        CourseSummary course = courseMap.get(wishlist.getCourseKey());
         if (course == null) {
             log.warn("[Wishlist] Course information not found, excluded from response. courseKey={}",
                     wishlist.getCourseKey());
@@ -92,9 +93,9 @@ public class WishlistService {
         return WishlistResponse.of(wishlist, course);
     }
 
-    private User getCurrentUser() {
+    private UserIdentity getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
-        return userRepository.findByEmail(email)
+        return userIdentityQuery.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 }

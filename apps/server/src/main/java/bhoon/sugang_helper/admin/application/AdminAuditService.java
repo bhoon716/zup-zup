@@ -1,12 +1,10 @@
 package bhoon.sugang_helper.admin.application;
 
-import bhoon.sugang_helper.support.feedback.domain.ActionType;
-import bhoon.sugang_helper.support.feedback.domain.AdminActionLog;
-import bhoon.sugang_helper.support.feedback.domain.AdminActionLogRepository;
-import bhoon.sugang_helper.support.feedback.domain.FeedbackStatus;
-import bhoon.sugang_helper.support.feedback.domain.TargetType;
-import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
-import bhoon.sugang_helper.identity.user.domain.User;
+import bhoon.sugang_helper.admin.contract.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.domain.ActionType;
+import bhoon.sugang_helper.admin.domain.AdminActionLog;
+import bhoon.sugang_helper.admin.domain.AdminActionLogRepository;
+import bhoon.sugang_helper.admin.domain.TargetType;
 import bhoon.sugang_helper.common.web.PageableGuard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AdminAuditService {
+public class AdminAuditService implements AdminAuditRecorder {
 
     private static final int MAX_PAGE_SIZE = 100;
 
@@ -33,20 +31,20 @@ public class AdminAuditService {
     private final AdminAuditContentFingerprint contentFingerprint;
 
     @Transactional
-    public void recordStatusChange(User admin, Long feedbackId, FeedbackStatus previousStatus, FeedbackStatus newStatus) {
-        record(admin, ActionType.STATUS_CHANGE, TargetType.FEEDBACK, feedbackId,
+    public void recordStatusChange(Long adminId, Long feedbackId, String previousStatus, String newStatus) {
+        record(adminId, ActionType.STATUS_CHANGE, TargetType.FEEDBACK, feedbackId,
                 AdminAuditMetadata.statusChanged(previousStatus, newStatus));
     }
 
     @Transactional
-    public void recordReplyCreated(User admin, Long replyId, Long feedbackId, String content) {
-        record(admin, ActionType.REPLY_CREATE, TargetType.REPLY, replyId,
+    public void recordReplyCreated(Long adminId, Long replyId, Long feedbackId, String content) {
+        record(adminId, ActionType.REPLY_CREATE, TargetType.REPLY, replyId,
                 AdminAuditMetadata.replyCreated(feedbackId, contentFingerprint.summarize(content)));
     }
 
     @Transactional
-    public void recordReplyUpdated(User admin, Long replyId, Long feedbackId, String beforeContent, String afterContent) {
-        record(admin, ActionType.REPLY_UPDATE, TargetType.REPLY, replyId,
+    public void recordReplyUpdated(Long adminId, Long replyId, Long feedbackId, String beforeContent, String afterContent) {
+        record(adminId, ActionType.REPLY_UPDATE, TargetType.REPLY, replyId,
                 AdminAuditMetadata.replyUpdated(
                         feedbackId,
                         contentFingerprint.summarize(beforeContent),
@@ -54,21 +52,20 @@ public class AdminAuditService {
     }
 
     @Transactional
-    public void recordReplyDeleted(User admin, Long replyId, Long feedbackId, String content) {
-        record(admin, ActionType.REPLY_DELETE, TargetType.REPLY, replyId,
+    public void recordReplyDeleted(Long adminId, Long replyId, Long feedbackId, String content) {
+        record(adminId, ActionType.REPLY_DELETE, TargetType.REPLY, replyId,
                 AdminAuditMetadata.replyDeleted(feedbackId, contentFingerprint.summarize(content)));
     }
 
     @Transactional
-    public void recordAttachmentAccess(User admin, Long attachmentId, Long feedbackId) {
-        record(admin, ActionType.ATTACHMENT_ACCESS, TargetType.ATTACHMENT, attachmentId,
+    public void recordAttachmentAccess(Long adminId, Long attachmentId, Long feedbackId) {
+        record(adminId, ActionType.ATTACHMENT_ACCESS, TargetType.ATTACHMENT, attachmentId,
                 AdminAuditMetadata.attachmentAccessed(feedbackId));
     }
 
     @Transactional
-    public void recordDeliveryReplay(User admin, Long deliveryId, SeatNotificationDeliveryStatus previousStatus,
-                                     int attemptsBefore) {
-        record(admin, ActionType.DELIVERY_REPLAY, TargetType.DELIVERY, deliveryId,
+    public void recordDeliveryReplay(Long adminId, Long deliveryId, String previousStatus, int attemptsBefore) {
+        record(adminId, ActionType.DELIVERY_REPLAY, TargetType.DELIVERY, deliveryId,
                 AdminAuditMetadata.deliveryReplayed(previousStatus, attemptsBefore));
     }
 
@@ -80,10 +77,10 @@ public class AdminAuditService {
                 .map(this::toResponse);
     }
 
-    private void record(User admin, ActionType actionType, TargetType targetType, Long targetId,
+    private void record(Long adminId, ActionType actionType, TargetType targetType, Long targetId,
                         AdminAuditMetadata metadata) {
         AdminActionLog actionLog = AdminActionLog.builder()
-                .admin(admin)
+                .adminId(adminId)
                 .actionType(actionType)
                 .targetType(targetType)
                 .targetId(targetId)
@@ -103,7 +100,7 @@ public class AdminAuditService {
     private AdminActionLogResponse toResponse(AdminActionLog actionLog) {
         return new AdminActionLogResponse(
                 actionLog.getId(),
-                actionLog.getAdmin().getId(),
+                actionLog.getAdminId(),
                 actionLog.getActionType(),
                 actionLog.getTargetType(),
                 actionLog.getTargetId(),

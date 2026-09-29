@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.academic.course.application;
 
 import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.TargetGrade;
+import bhoon.sugang_helper.academic.course.contract.TargetGrade;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.List;

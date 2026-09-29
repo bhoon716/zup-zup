@@ -3,11 +3,10 @@ package bhoon.sugang_helper.seatalert.notification.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.common.config.NotificationProperties;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationTarget;
-import bhoon.sugang_helper.identity.user.domain.DeviceType;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserDevice;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationTarget;
+import bhoon.sugang_helper.identity.user.contract.NotificationDevice;
+import bhoon.sugang_helper.identity.user.contract.NotificationRecipient;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -17,10 +16,8 @@ class NotificationChannelPolicyTest {
     void resolveTargets_UsesNotificationEmailFallback() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, true, true, true));
-        User user = User.builder()
-                .email("user@example.com")
-                .notificationEmail("notify@example.com")
-                .build();
+        NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", "notify@example.com",
+                false, false, false, false, null);
 
         List<NotificationTarget> targets = policy.resolveTargets(user, List.of(), NotificationChannel.EMAIL);
 
@@ -32,14 +29,10 @@ class NotificationChannelPolicyTest {
     void resolveTargets_UsesWebDeviceDetails() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, true, true, true));
-        User user = User.builder().email("user@example.com").build();
-        UserDevice device = UserDevice.builder()
-                .userId(1L)
-                .type(DeviceType.WEB)
-                .token("endpoint")
-                .p256dh("p256")
-                .auth("auth")
-                .build();
+        NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
+                false, false, false, false, null);
+        NotificationDevice device = new NotificationDevice(1L, NotificationDevice.Type.WEB,
+                "endpoint", "p256", "auth");
 
         List<NotificationTarget> targets = policy.resolveTargets(user, List.of(device), NotificationChannel.WEB);
 
@@ -53,13 +46,8 @@ class NotificationChannelPolicyTest {
     void isChannelEnabled_RequiresGlobalAndUserSettings() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, false, true, true));
-        User user = User.builder()
-                .emailEnabled(true)
-                .discordEnabled(true)
-                .discordId("discord-id")
-                .webPushEnabled(false)
-                .fcmEnabled(true)
-                .build();
+        NotificationRecipient user = new NotificationRecipient(1L, false, null, null,
+                true, false, true, true, "discord-id");
 
         assertThat(policy.isChannelEnabled(user, NotificationChannel.EMAIL)).isTrue();
         assertThat(policy.isChannelEnabled(user, NotificationChannel.DISCORD)).isFalse();
@@ -71,14 +59,8 @@ class NotificationChannelPolicyTest {
     void isChannelEnabled_RejectsSoftDeletedUser() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, true, true, true));
-        User user = User.builder()
-                .id(1L)
-                .email("user@example.com")
-                .name("사용자")
-                .emailEnabled(true)
-                .role(bhoon.sugang_helper.identity.user.domain.Role.USER)
-                .build();
-        user.withdraw();
+        NotificationRecipient user = new NotificationRecipient(1L, true, "user@example.com", null,
+                true, false, false, false, null);
 
         assertThat(policy.isChannelEnabled(user, NotificationChannel.EMAIL)).isFalse();
         assertThat(policy.resolveTargets(user, List.of(), NotificationChannel.EMAIL)).isEmpty();

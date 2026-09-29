@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.support.feedback.domain;
 
 import bhoon.sugang_helper.common.audit.BaseTimeEntity;
-import bhoon.sugang_helper.identity.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -36,9 +35,8 @@ public class FeedbackReply extends BaseTimeEntity {
     @JoinColumn(name = "feedback_id", nullable = false)
     private Feedback feedback;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "admin_id", nullable = false)
-    private User admin;
+    @Column(name = "admin_id", nullable = false)
+    private Long adminId;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
@@ -47,9 +45,9 @@ public class FeedbackReply extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     @Builder
-    public FeedbackReply(Feedback feedback, User admin, String content) {
+    public FeedbackReply(Feedback feedback, Long adminId, String content) {
         this.feedback = feedback;
-        this.admin = admin;
+        this.adminId = adminId;
         this.content = content;
     }
 

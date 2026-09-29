@@ -3,7 +3,7 @@ package bhoon.sugang_helper.academic.crawling.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseDayOfWeek;
+import bhoon.sugang_helper.academic.course.contract.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.domain.CourseSchedule;
 import java.time.LocalTime;
 import org.junit.jupiter.api.DisplayName;

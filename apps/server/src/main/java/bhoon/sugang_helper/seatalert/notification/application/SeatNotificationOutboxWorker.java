@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.application;
 
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import jakarta.annotation.PreDestroy;

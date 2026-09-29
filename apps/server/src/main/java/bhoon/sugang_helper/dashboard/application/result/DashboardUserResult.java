@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.dashboard.application.result;
 
-import bhoon.sugang_helper.identity.user.domain.User;
+import bhoon.sugang_helper.identity.user.contract.UserDashboardProfile;
 
 public record DashboardUserResult(
         Long id,
@@ -15,18 +15,18 @@ public record DashboardUserResult(
         String discordId,
         boolean discordEnabled) {
 
-    public static DashboardUserResult from(User user) {
+    public static DashboardUserResult from(UserDashboardProfile user) {
         return new DashboardUserResult(
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                user.getRole().name(),
-                user.getNotificationEmail(),
-                user.isEmailEnabled(),
-                user.isWebPushEnabled(),
-                user.isFcmEnabled(),
-                user.isOnboardingCompleted(),
-                user.getDiscordId(),
-                user.isDiscordEnabled());
+                user.id(),
+                user.email(),
+                user.name(),
+                user.role(),
+                user.notificationEmail(),
+                user.emailEnabled(),
+                user.webPushEnabled(),
+                user.fcmEnabled(),
+                user.onboardingCompleted(),
+                user.discordId(),
+                user.discordEnabled());
     }
 }

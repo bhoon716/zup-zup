@@ -13,10 +13,10 @@ import static org.mockito.Mockito.verify;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.academic.course.contract.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.contract.CourseSummary;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import bhoon.sugang_helper.planning.wishlist.domain.Wishlist;
 import bhoon.sugang_helper.planning.wishlist.domain.WishlistRepository;
 import java.util.Arrays;
@@ -46,9 +46,9 @@ class WishlistServiceTest {
     @Mock
     private WishlistRepository wishlistRepository;
     @Mock
-    private CourseRepository courseRepository;
+    private CourseCatalogQuery courseCatalogQuery;
     @Mock
-    private UserRepository userRepository;
+    private UserIdentityQuery userIdentityQuery;
 
     @BeforeEach
     void setUp() {
@@ -68,8 +68,8 @@ class WishlistServiceTest {
         String courseKey = COURSE_KEY;
 
         given(SecurityUtil.getCurrentUserEmail()).willReturn(email);
-        given(userRepository.findByEmail(email)).willReturn(Optional.of(mock(User.class)));
-        given(courseRepository.findByCourseKey(courseKey)).willReturn(Optional.empty());
+        given(userIdentityQuery.findByEmail(email)).willReturn(Optional.of(new UserIdentity(1L, false)));
+        given(courseCatalogQuery.findByCourseKey(courseKey)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> wishlistService.toggleWishlist(courseKey))
@@ -83,13 +83,12 @@ class WishlistServiceTest {
         // given
         String email = EMAIL;
         String courseKey = COURSE_KEY;
-        User user = mock(User.class);
-        given(user.getId()).willReturn(1L);
+        UserIdentity user = new UserIdentity(1L, false);
         Wishlist wishlist = Wishlist.builder().userId(1L).courseKey(courseKey).build();
 
         given(SecurityUtil.getCurrentUserEmail()).willReturn(email);
-        given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
-        given(courseRepository.findByCourseKey(courseKey)).willReturn(Optional.of(mock(Course.class)));
+        given(userIdentityQuery.findByEmail(email)).willReturn(Optional.of(user));
+        given(courseCatalogQuery.findByCourseKey(courseKey)).willReturn(Optional.of(summary(courseKey, "Course", 20, 3)));
         given(wishlistRepository.findByUserIdAndCourseKey(1L, courseKey)).willReturn(Optional.of(wishlist));
 
         // when
@@ -107,12 +106,11 @@ class WishlistServiceTest {
         // given
         String email = EMAIL;
         String courseKey = COURSE_KEY;
-        User user = mock(User.class);
-        given(user.getId()).willReturn(1L);
+        UserIdentity user = new UserIdentity(1L, false);
 
         given(SecurityUtil.getCurrentUserEmail()).willReturn(email);
-        given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
-        given(courseRepository.findByCourseKey(courseKey)).willReturn(Optional.of(mock(Course.class)));
+        given(userIdentityQuery.findByEmail(email)).willReturn(Optional.of(user));
+        given(courseCatalogQuery.findByCourseKey(courseKey)).willReturn(Optional.of(summary(courseKey, "Course", 20, 3)));
         given(wishlistRepository.findByUserIdAndCourseKey(1L, courseKey)).willReturn(Optional.empty());
 
         // when
@@ -129,11 +127,10 @@ class WishlistServiceTest {
     void getMyWishlist_EmptyList_ReturnsEmpty() {
         // given
         String email = EMAIL;
-        User user = mock(User.class);
-        given(user.getId()).willReturn(1L);
+        UserIdentity user = new UserIdentity(1L, false);
 
         given(SecurityUtil.getCurrentUserEmail()).willReturn(email);
-        given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+        given(userIdentityQuery.findByEmail(email)).willReturn(Optional.of(user));
         given(wishlistRepository.findByUserId(1L)).willReturn(Collections.emptyList());
 
         // when
@@ -148,27 +145,17 @@ class WishlistServiceTest {
     void getMyWishlist_Exists_ReturnsMappedResponse() {
         // given
         String email = EMAIL;
-        User user = mock(User.class);
-        given(user.getId()).willReturn(1L);
+        UserIdentity user = new UserIdentity(1L, false);
         Wishlist w1 = Wishlist.builder().userId(1L).courseKey(COURSE_KEY_1).build();
         Wishlist w2 = Wishlist.builder().userId(1L).courseKey(COURSE_KEY_2).build();
 
-        Course c1 = mock(Course.class);
-        given(c1.getCourseKey()).willReturn(COURSE_KEY_1);
-        given(c1.getName()).willReturn("Course1");
-        given(c1.getCapacity()).willReturn(50);
-        given(c1.getCurrent()).willReturn(10);
-
-        Course c2 = mock(Course.class);
-        given(c2.getCourseKey()).willReturn(COURSE_KEY_2);
-        given(c2.getName()).willReturn("Course2");
-        given(c2.getCapacity()).willReturn(30);
-        given(c2.getCurrent()).willReturn(30);
+        CourseSummary c1 = summary(COURSE_KEY_1, "Course1", 50, 10);
+        CourseSummary c2 = summary(COURSE_KEY_2, "Course2", 30, 30);
 
         given(SecurityUtil.getCurrentUserEmail()).willReturn(email);
-        given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+        given(userIdentityQuery.findByEmail(email)).willReturn(Optional.of(user));
         given(wishlistRepository.findByUserId(1L)).willReturn(Arrays.asList(w1, w2));
-        given(courseRepository.findByCourseKeyIn(anyList())).willReturn(Arrays.asList(c1, c2));
+        given(courseCatalogQuery.findByCourseKeyIn(anyList())).willReturn(Arrays.asList(c1, c2));
 
         // when
         List<WishlistResponse> result = wishlistService.getMyWishlist();
@@ -182,22 +169,24 @@ class WishlistServiceTest {
     @Test
     @DisplayName("내 찜 목록 조회 - 중복 courseKey를 기존 강의로 병합한다")
     void getMyWishlist_DuplicateCourseKey_KeepsExistingCourse() {
-        User user = mock(User.class);
-        given(user.getId()).willReturn(1L);
+        UserIdentity user = new UserIdentity(1L, false);
         Wishlist wishlist = Wishlist.builder().userId(1L).courseKey(COURSE_KEY_1).build();
-        Course existingCourse = Course.builder().courseKey(COURSE_KEY_1).name("Existing Course")
-                .capacity(30).current(10).build();
-        Course replacementCourse = Course.builder().courseKey(COURSE_KEY_1).name("Replacement Course")
-                .capacity(30).current(20).build();
+        CourseSummary existingCourse = summary(COURSE_KEY_1, "Existing Course", 30, 10);
+        CourseSummary replacementCourse = summary(COURSE_KEY_1, "Replacement Course", 30, 20);
 
         given(SecurityUtil.getCurrentUserEmail()).willReturn(EMAIL);
-        given(userRepository.findByEmail(EMAIL)).willReturn(Optional.of(user));
+        given(userIdentityQuery.findByEmail(EMAIL)).willReturn(Optional.of(user));
         given(wishlistRepository.findByUserId(1L)).willReturn(List.of(wishlist));
-        given(courseRepository.findByCourseKeyIn(anyList())).willReturn(List.of(existingCourse, replacementCourse));
+        given(courseCatalogQuery.findByCourseKeyIn(anyList())).willReturn(List.of(existingCourse, replacementCourse));
 
         List<WishlistResponse> result = wishlistService.getMyWishlist();
 
         assertThat(result).singleElement().satisfies(response ->
                 assertThat(response.courseName()).isEqualTo("Existing Course"));
+    }
+
+    private CourseSummary summary(String key, String name, int capacity, int current) {
+        return new CourseSummary(key, "SUBJECT", "01", name, "Professor", capacity, current,
+                "2026", "U211600010", "전공필수", "3", "월 1-A", "Room", List.of());
     }
 }

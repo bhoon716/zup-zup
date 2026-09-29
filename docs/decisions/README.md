@@ -18,3 +18,5 @@
 - [프로젝트 의사결정 기록 위치와 규칙](2026-09-29-project-decision-record-location.md): 이 디렉터리를 기준 위치로 사용하고 새 기록을 템플릿에 맞춰 남긴다.
 - [백엔드 리팩토링 진행 방향](2026-09-29-bottom-up-backend-refactoring.md): 작은 규칙·모델부터 호출자 쪽으로 검증하는 점진적 진행안.
 - [백엔드 논리 도메인 경계 초안](2026-09-29-server-domain-boundaries.md): 현재 테이블 소유·교차 참조를 근거로 한 단일 앱 내부의 책임 경계 제안.
+- [강의 수집 결과 동기화 경계](2026-09-29-course-crawling-sync-boundary.md): 강의 저장은 course가 소유하고 크롤링 성공 상태·알림 outbox와 한 트랜잭션으로 조정한다.
+- [서버 도메인·계층 의존 방향](2026-09-29-server-layer-dependency-directions.md): presentation→application→domain 방향과 contract 기반의 경계 간 참조 규칙.

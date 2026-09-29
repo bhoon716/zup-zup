@@ -3,22 +3,21 @@ package bhoon.sugang_helper.academic.course.infra;
 import static bhoon.sugang_helper.academic.course.domain.QCourse.course;
 
 import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseClassification;
-import bhoon.sugang_helper.academic.course.domain.CourseDayOfWeek;
+import bhoon.sugang_helper.academic.course.contract.CourseClassification;
+import bhoon.sugang_helper.academic.course.contract.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.domain.CourseRepositoryCustom;
 import bhoon.sugang_helper.academic.course.domain.CourseSearchCriteria;
-import bhoon.sugang_helper.academic.course.domain.CourseStatus;
-import bhoon.sugang_helper.academic.course.domain.DisclosureStatus;
-import bhoon.sugang_helper.academic.course.domain.GradingMethod;
-import bhoon.sugang_helper.academic.course.domain.LectureLanguage;
-import bhoon.sugang_helper.academic.course.domain.TargetGrade;
-import bhoon.sugang_helper.planning.wishlist.domain.QWishlist;
+import bhoon.sugang_helper.academic.course.contract.CourseStatus;
+import bhoon.sugang_helper.academic.course.contract.DisclosureStatus;
+import bhoon.sugang_helper.academic.course.contract.GradingMethod;
+import bhoon.sugang_helper.academic.course.contract.LectureLanguage;
+import bhoon.sugang_helper.academic.course.contract.TargetGrade;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.core.types.dsl.StringExpression;
-import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.util.Arrays;
@@ -47,12 +46,8 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
     public Slice<Course> searchCourses(CourseSearchCriteria condition, Pageable pageable) {
         String sortBy = condition.sortBy();
         boolean isPopularSort = "popular".equals(sortBy);
-        QWishlist wishlist = QWishlist.wishlist;
 
         var query = queryFactory.selectFrom(course);
-        if (isPopularSort) {
-            query.leftJoin(wishlist).on(wishlist.courseKey.eq(course.courseKey));
-        }
 
         query.where(
                 containsKeyword(condition.keyword()),
@@ -80,11 +75,7 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
                 selectedSchedulePredicateBuilder.build(condition.selectedSchedules()),
                 inWishlist(condition.isWishedOnly(), condition.userId()));
 
-        if (isPopularSort) {
-            query.groupBy(course.id);
-        }
-
-        query.orderBy(getOrderSpecifiers(condition, isPopularSort ? wishlist : null))
+        query.orderBy(getOrderSpecifiers(condition, isPopularSort))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize() + 1);
 
@@ -254,22 +245,19 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
         if (wishedOnly == null || !wishedOnly || userId == null) {
             return null;
         }
-        QWishlist wishlist = QWishlist.wishlist;
-        return JPAExpressions.selectOne()
-                .from(wishlist)
-                .where(wishlist.userId.eq(userId)
-                        .and(wishlist.courseKey.eq(course.courseKey)))
-                .exists();
+        return Expressions.booleanTemplate(
+                "exists (select 1 from Wishlist w where w.userId = {0} and w.courseKey = {1})",
+                userId, course.courseKey);
     }
 
-    private OrderSpecifier<?>[] getOrderSpecifiers(CourseSearchCriteria condition, QWishlist joinedWishlist) {
+    private OrderSpecifier<?>[] getOrderSpecifiers(CourseSearchCriteria condition, boolean isPopularSort) {
         String sortBy = condition.sortBy();
         String sortOrder = condition.sortOrder();
         Order order = "asc".equalsIgnoreCase(sortOrder) ? Order.ASC : Order.DESC;
 
         if ("popular".equals(sortBy)) {
             return new OrderSpecifier<?>[]{
-                    new OrderSpecifier<>(order, popularCount(joinedWishlist)),
+                    new OrderSpecifier<>(order, popularCount()),
                     new OrderSpecifier<>(Order.DESC, course.current),
                     new OrderSpecifier<>(Order.ASC, course.courseKey)
             };
@@ -306,17 +294,15 @@ public class CourseJpaRepositoryImpl implements CourseRepositoryCustom {
         }
 
         return new OrderSpecifier<?>[]{
-                new OrderSpecifier<>(order, popularCount(joinedWishlist)),
+                new OrderSpecifier<>(order, isPopularSort ? popularCount() : course.reviewCount.longValue()),
                 new OrderSpecifier<>(Order.DESC, course.current),
                 new OrderSpecifier<>(Order.ASC, course.courseKey)
         };
     }
 
-    private NumberExpression<Long> popularCount(QWishlist joinedWishlist) {
-        if (joinedWishlist != null) {
-            return joinedWishlist.id.count();
-        }
-        return course.reviewCount.longValue();
+    private NumberExpression<Long> popularCount() {
+        return Expressions.numberTemplate(Long.class,
+                "(select count(w) from Wishlist w where w.courseKey = {0})", course.courseKey);
     }
 
     private BooleanExpression containsAnyText(StringExpression field, String value) {

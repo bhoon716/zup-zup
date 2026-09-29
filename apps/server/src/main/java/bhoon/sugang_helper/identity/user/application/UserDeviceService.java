@@ -5,6 +5,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.application.command.RegisterDeviceCommand;
 import bhoon.sugang_helper.identity.user.application.result.UserDeviceResult;
+import bhoon.sugang_helper.identity.user.contract.UserDeviceWebPushManagement;
 import bhoon.sugang_helper.identity.user.domain.User;
 import bhoon.sugang_helper.identity.user.domain.UserDevice;
 import bhoon.sugang_helper.identity.user.domain.UserDeviceRepository;
@@ -23,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserDeviceService {
+public class UserDeviceService implements UserDeviceWebPushManagement {
 
     private final UserDeviceRepository userDeviceRepository;
     private final UserRepository userRepository;
@@ -94,6 +95,11 @@ public class UserDeviceService {
                     userDeviceRepository.delete(device);
                     log.info("[UserDevice] Auto-deleted invalid device: tokenFingerprint={}", tokenFingerprint(token));
                 });
+    }
+
+    @Override
+    public void validateEndpoint(String endpoint) {
+        webPushEndpointValidator.validate(endpoint);
     }
 
     public List<UserDeviceResult> getUserDevices(Long userId) {

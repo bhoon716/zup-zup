@@ -12,21 +12,13 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.LocalFileUploadService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.support.feedback.domain.Feedback;
-import bhoon.sugang_helper.support.feedback.domain.FeedbackAttachmentRepository;
-import bhoon.sugang_helper.support.feedback.domain.FeedbackRepository;
-import bhoon.sugang_helper.seatalert.notification.application.NotificationService;
-import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistoryRepository;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.academic.review.domain.CourseEmojiReviewRepository;
-import bhoon.sugang_helper.academic.review.domain.CourseReviewRepository;
-import bhoon.sugang_helper.seatalert.subscription.domain.Subscription;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.planning.timetable.domain.TimetableRepository;
+import bhoon.sugang_helper.seatalert.notification.contract.NotificationTestSender;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionAccountLifecycle;
+import bhoon.sugang_helper.support.feedback.contract.FeedbackAccountLifecycle;
 import bhoon.sugang_helper.identity.user.application.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.application.command.UpdateProfileCommand;
 import bhoon.sugang_helper.identity.user.application.command.UpdateSettingsCommand;
@@ -38,8 +30,6 @@ import bhoon.sugang_helper.identity.user.domain.Role;
 import bhoon.sugang_helper.identity.user.domain.User;
 import bhoon.sugang_helper.identity.user.domain.UserDeviceRepository;
 import bhoon.sugang_helper.identity.user.domain.UserRepository;
-import bhoon.sugang_helper.planning.wishlist.domain.WishlistRepository;
-import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,40 +58,19 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private SubscriptionRepository subscriptionRepository;
+    private SubscriptionAccountLifecycle subscriptionAccountLifecycle;
 
     @Mock
     private UserDeviceRepository userDeviceRepository;
 
     @Mock
-    private TimetableRepository timetableRepository;
-
-    @Mock
-    private CourseReviewRepository courseReviewRepository;
-
-    @Mock
-    private CourseEmojiReviewRepository courseEmojiReviewRepository;
-
-    @Mock
-    private NotificationHistoryRepository notificationHistoryRepository;
-
-    @Mock
-    private FeedbackRepository feedbackRepository;
-
-    @Mock
-    private FeedbackAttachmentRepository feedbackAttachmentRepository;
-
-    @Mock
-    private LocalFileUploadService fileUploadService;
-
-    @Mock
-    private WishlistRepository wishlistRepository;
+    private FeedbackAccountLifecycle feedbackAccountLifecycle;
 
     @Mock
     private EmailVerificationService emailVerificationService;
 
     @Mock
-    private NotificationService notificationService;
+    private NotificationTestSender notificationTestSender;
 
     @Mock
     private JwtProvider jwtProvider;
@@ -162,22 +131,8 @@ class UserServiceTest {
                 .discordId("discord-id")
                 .role(Role.USER)
                 .build();
-        Subscription subscription = Subscription.builder()
-                .userId(1L)
-                .courseKey("CS101")
-                .isActive(true)
-                .build();
-        Feedback feedback = Feedback.builder()
-                .user(user)
-                .type(bhoon.sugang_helper.support.feedback.domain.FeedbackType.BUG)
-                .title("제목")
-                .content("내용")
-                .build();
-
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
-        when(subscriptionRepository.findByUserId(1L)).thenReturn(List.of(subscription));
-        when(feedbackRepository.findAllByUserId(1L)).thenReturn(List.of(feedback));
 
         // when
         userService.withdraw();
@@ -189,24 +144,13 @@ class UserServiceTest {
         assertThat(user.getNotificationEmail()).isNull();
         assertThat(user.getDiscordId()).isNull();
         assertThat(user.getEnabledNotificationChannels()).isEmpty();
-        assertThat(subscription.isActive()).isFalse();
-        assertThat(feedback.getDeletedAt()).isNotNull();
-
         verify(jwtProvider).revokeAllRefreshTokens(TEST_EMAIL);
         verify(userAccessRevocationService).revoke(1L);
         verify(emailVerificationService).clearVerificationState(1L, TEST_EMAIL, NOTIFY_EMAIL);
         verify(userRepository).saveAndFlush(user);
-        verify(subscriptionRepository).findByUserId(1L);
+        verify(subscriptionAccountLifecycle).cancelAllForUser(1L);
         verify(userDeviceRepository, times(1)).deleteAllByUserId(1L);
-        verify(feedbackRepository).findAllByUserId(1L);
-        verify(subscriptionRepository, never()).deleteAllByUserId(1L);
-        verify(courseReviewRepository, never()).deleteAllByUserId(1L);
-        verify(courseEmojiReviewRepository, never()).deleteAllByUserId(1L);
-        verify(notificationHistoryRepository, never()).deleteAllByUserId(1L);
-        verify(feedbackRepository, never()).deleteAllByUserId(1L);
-        verify(fileUploadService, never()).deleteFilesAfterTransactionCommit(org.mockito.ArgumentMatchers.anyList());
-        verify(wishlistRepository, never()).deleteAllByUserId(1L);
-        verify(timetableRepository, never()).delete(org.mockito.ArgumentMatchers.any());
+        verify(feedbackAccountLifecycle).deleteAllForUser(1L);
         verify(userRepository, never()).delete(user);
     }
 
@@ -349,7 +293,7 @@ class UserServiceTest {
         userService.sendTestNotification();
 
         // then
-        verify(notificationService, times(1)).sendUserTestNotification(eq(user),
+        verify(notificationTestSender, times(1)).sendUserTestNotification(eq(user.getId()),
                 argThat(channels -> channels.size() == 2
                         && channels.contains(NotificationChannel.EMAIL)
                         && channels.contains(NotificationChannel.WEB)));

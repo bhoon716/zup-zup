@@ -1,8 +1,13 @@
 package bhoon.sugang_helper.academic.crawling.application;
 
+import bhoon.sugang_helper.academic.crawling.contract.CrawlTargetInfo;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerAdminSnapshot;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerAdminSnapshotQuery;
+
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.academic.course.domain.SemesterType;
+import bhoon.sugang_helper.academic.course.contract.SemesterType;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerTargetQuery;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerSetting;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerSettingRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CourseCrawlerTargetService {
+public class CourseCrawlerTargetService implements CrawlerTargetQuery, CrawlerAdminSnapshotQuery {
 
     private final CrawlerSettingRepository crawlerSettingRepository;
 
@@ -30,6 +35,12 @@ public class CourseCrawlerTargetService {
     public AdminCrawlTargetResponse getCurrentTarget() {
         CrawlerSetting setting = resolveCurrentSetting();
         return toResponse(setting);
+    }
+
+    @Override
+    public CrawlerAdminSnapshot findCurrentAdminSnapshot() {
+        CrawlerSetting setting = resolveCurrentSetting();
+        return new CrawlerAdminSnapshot(setting.getTargetYear(), setting.getTargetSemester());
     }
 
     /**
@@ -58,6 +69,7 @@ public class CourseCrawlerTargetService {
      * 현재 크롤링 타겟의 원시 값(record 형식)을 조회합니다.
      */
     @Transactional(readOnly = true)
+    @Override
     public CrawlTargetInfo getCurrentTargetValue() {
         CrawlerSetting setting = resolveCurrentSetting();
         return new CrawlTargetInfo(setting.getTargetYear(), SemesterType.fromCode(setting.getTargetSemester()));

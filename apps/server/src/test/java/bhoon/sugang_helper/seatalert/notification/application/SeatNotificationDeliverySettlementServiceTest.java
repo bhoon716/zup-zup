@@ -9,7 +9,7 @@ import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliver
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutboxStatus;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationDeliveryJpaRepository;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationOutboxJpaRepository;
 import java.time.LocalDateTime;

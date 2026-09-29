@@ -3,14 +3,15 @@ package bhoon.sugang_helper.seatalert.subscription.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseRepository;
-import bhoon.sugang_helper.academic.crawling.application.CourseCrawlerTargetService;
-import bhoon.sugang_helper.academic.crawling.application.CrawlTargetInfo;
+import bhoon.sugang_helper.academic.course.contract.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.contract.CourseName;
+import bhoon.sugang_helper.academic.course.contract.CourseSummary;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlTargetInfo;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerTargetQuery;
 import bhoon.sugang_helper.seatalert.subscription.domain.Subscription;
 import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -28,9 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
-    private final CourseRepository courseRepository;
-    private final UserRepository userRepository;
-    private final CourseCrawlerTargetService crawlerTargetService;
+    private final CourseCatalogQuery courseCatalogQuery;
+    private final UserIdentityQuery userIdentityQuery;
+    private final CrawlerTargetQuery crawlerTargetQuery;
 
     @Value("${app.subscription.max-limit:3}")
     private int maxLimit;
@@ -40,37 +41,37 @@ public class SubscriptionService {
      */
     @Transactional
     public SubscriptionResponse subscribe(SubscriptionRequest request) {
-        User user = getCurrentUser();
-        Course course = courseRepository.findByCourseKey(request.getCourseKey())
+        UserIdentity user = getCurrentUser();
+        CourseSummary course = courseCatalogQuery.findByCourseKey(request.getCourseKey())
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "과목을 찾을 수 없습니다."));
 
         validateSubscription(user, course);
 
         Subscription subscription = Subscription.builder()
-                .userId(user.getId())
-                .courseKey(course.getCourseKey())
+                .userId(user.id())
+                .courseKey(course.courseKey())
                 .isActive(true)
                 .build();
 
         Subscription saved = subscriptionRepository.save(subscription);
-        log.info("[Subscription] Created: userId={}, courseKey={}", user.getId(), course.getCourseKey());
+        log.info("[Subscription] Created: userId={}, courseKey={}", user.id(), course.courseKey());
 
-        return SubscriptionResponse.of(saved, course.getName(), course.getProfessor());
+        return SubscriptionResponse.of(saved, course.name(), course.professor());
     }
 
     /**
      * 구독 신청 전 중복 확인, 최대 한도 체크, 대상 학기 일치 여부 등을 검증
      */
-    private void validateSubscription(User user, Course course) {
-        if (subscriptionRepository.findByUserIdAndCourseKey(user.getId(), course.getCourseKey()).isPresent()) {
+    private void validateSubscription(UserIdentity user, CourseSummary course) {
+        if (subscriptionRepository.findByUserIdAndCourseKey(user.id(), course.courseKey()).isPresent()) {
             throw new CustomException(ErrorCode.SUBSCRIPTION_ALREADY_EXISTS);
         }
 
-        if (subscriptionRepository.countByUserIdAndIsActiveTrue(user.getId()) >= maxLimit) {
+        if (subscriptionRepository.countByUserIdAndIsActiveTrue(user.id()) >= maxLimit) {
             throw new CustomException(ErrorCode.MAX_SUBSCRIPTION_LIMIT_EXCEEDED);
         }
 
-        CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
+        CrawlTargetInfo target = crawlerTargetQuery.getCurrentTargetValue();
         if (!course.isMatchingTarget(target.year(), target.semester().getCode())) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "현재 추적 중인 학기의 강의만 구독할 수 있습니다.");
         }
@@ -81,16 +82,16 @@ public class SubscriptionService {
      */
     @Transactional
     public void unsubscribe(Long subscriptionId) {
-        User user = getCurrentUser();
+        UserIdentity user = getCurrentUser();
         Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "구독 정보를 찾을 수 없습니다."));
 
-        if (!subscription.getUserId().equals(user.getId())) {
+        if (!subscription.getUserId().equals(user.id())) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
 
         subscriptionRepository.delete(subscription);
-        log.info("[Subscription] Deleted: userId={}, subscriptionId={}", user.getId(), subscriptionId);
+        log.info("[Subscription] Deleted: userId={}, subscriptionId={}", user.id(), subscriptionId);
     }
 
     /**
@@ -98,23 +99,24 @@ public class SubscriptionService {
      */
     @Transactional
     public void unsubscribeAll() {
-        User user = getCurrentUser();
-        subscriptionRepository.deleteAllByUserId(user.getId());
-        log.info("[Subscription] Deleted All: userId={}", user.getId());
+        UserIdentity user = getCurrentUser();
+        subscriptionRepository.deleteAllByUserId(user.id());
+        log.info("[Subscription] Deleted All: userId={}", user.id());
     }
 
     /**
      * 현재 로그인한 사용자의 모든 구독 목록을 조회
      */
     public List<SubscriptionResponse> getMySubscriptions() {
-        User user = getCurrentUser();
-        List<Subscription> subscriptions = subscriptionRepository.findByUserId(user.getId());
-        Map<String, Course> coursesByKey = courseRepository.findByCourseKeyIn(subscriptions.stream()
+        UserIdentity user = getCurrentUser();
+        List<Subscription> subscriptions = subscriptionRepository.findByUserId(user.id());
+        Map<String, CourseName> coursesByKey = courseCatalogQuery.findNamesByCourseKeyIn(subscriptions.stream()
                         .map(Subscription::getCourseKey)
                         .distinct()
                         .toList())
                 .stream()
-                .collect(Collectors.toMap(Course::getCourseKey, Function.identity(), (existing, replacement) -> existing));
+                .collect(Collectors.toMap(CourseName::courseKey, Function.identity(),
+                        (existing, replacement) -> existing));
 
         return subscriptions.stream()
                 .map(subscription -> convertToResponse(subscription, coursesByKey.get(subscription.getCourseKey())))
@@ -124,19 +126,19 @@ public class SubscriptionService {
     /**
      * 구독 엔티티를 응답 DTO로 변환하며 강의 정보를 결합
      */
-    private SubscriptionResponse convertToResponse(Subscription subscription, Course course) {
+    private SubscriptionResponse convertToResponse(Subscription subscription, CourseName course) {
         if (course == null) {
             return SubscriptionResponse.of(subscription, "Unknown", "Unknown");
         }
-        return SubscriptionResponse.of(subscription, course.getName(), course.getProfessor());
+        return SubscriptionResponse.of(subscription, course.name(), course.professor());
     }
 
     /**
      * 보안 컨텍스트에서 현재 로그인한 사용자 엔티티를 획득
      */
-    private User getCurrentUser() {
+    private UserIdentity getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
-        return userRepository.findByEmail(email)
+        return userIdentityQuery.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 }

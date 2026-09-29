@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerFailureStage;
-import bhoon.sugang_helper.academic.crawling.infra.CrawlerUpstreamException;
+import bhoon.sugang_helper.academic.crawling.application.port.CrawlerUpstreamFailure;
 import org.jsoup.HttpStatusException;
 import org.junit.jupiter.api.Test;
 
@@ -13,8 +13,8 @@ class CrawlerFailureSummaryTest {
 
     @Test
     void upstreamFailureSummaryPreservesSafeStageStatusAndRetryability() {
-        CrawlerUpstreamException upstream = CrawlerUpstreamException.wrap(
-                CrawlerFailureStage.COURSE_API,
+        CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.wrap(
+                CrawlerFailureStage.COURSE_API, 503,
                 new HttpStatusException("upstream response", 503, "https://jump.example.test/secret"),
                 true);
         CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
@@ -37,7 +37,7 @@ class CrawlerFailureSummaryTest {
 
     @Test
     void responseStatusFailureRetainsHttpStatusWithoutResponseBody() {
-        CrawlerUpstreamException upstream = CrawlerUpstreamException.withStatus(
+        CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.wrap(
                 CrawlerFailureStage.COURSE_API,
                 429,
                 new RuntimeException("response body must not be stored"),

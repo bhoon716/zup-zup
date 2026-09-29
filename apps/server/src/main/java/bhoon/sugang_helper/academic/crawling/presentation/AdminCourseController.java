@@ -2,7 +2,7 @@ package bhoon.sugang_helper.academic.crawling.presentation;
 import bhoon.sugang_helper.academic.crawling.application.CourseCrawlerService;
 import bhoon.sugang_helper.academic.crawling.application.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.academic.crawling.application.CourseCrawlerTargetService;
-import bhoon.sugang_helper.academic.crawling.application.CrawlTargetInfo;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.application.AdminCrawlTargetRequest;
 
 

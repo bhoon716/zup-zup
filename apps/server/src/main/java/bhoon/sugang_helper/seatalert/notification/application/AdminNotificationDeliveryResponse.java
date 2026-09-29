@@ -3,7 +3,7 @@ package bhoon.sugang_helper.seatalert.notification.application;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import java.time.LocalDateTime;
 
 /**

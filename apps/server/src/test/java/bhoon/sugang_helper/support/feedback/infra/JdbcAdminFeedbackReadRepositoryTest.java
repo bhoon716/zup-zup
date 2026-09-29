@@ -2,7 +2,7 @@ package bhoon.sugang_helper.support.feedback.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bhoon.sugang_helper.support.feedback.domain.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.contract.AdminFeedbackDeletionFilter;
 import bhoon.sugang_helper.support.feedback.domain.AdminFeedbackReadRepository;
 import bhoon.sugang_helper.support.feedback.domain.Feedback;
 import bhoon.sugang_helper.support.feedback.domain.FeedbackAttachment;
@@ -49,7 +49,7 @@ class JdbcAdminFeedbackReadRepositoryTest {
         Feedback deletedFeedback = feedbackRepository.saveAndFlush(feedback(withdrawnUser, "삭제 문의"));
         FeedbackReply deletedReply = feedbackReplyRepository.saveAndFlush(FeedbackReply.builder()
                 .feedback(deletedFeedback)
-                .admin(admin)
+                .adminId(admin.getId())
                 .content("삭제된 답변")
                 .build());
         FeedbackAttachment attachment = feedbackAttachmentRepository.saveAndFlush(FeedbackAttachment.builder()
@@ -108,7 +108,7 @@ class JdbcAdminFeedbackReadRepositoryTest {
 
     private Feedback feedback(User user, String title) {
         return Feedback.builder()
-                .user(user)
+                .userId(user.getId())
                 .type(FeedbackType.BUG)
                 .title(title)
                 .content("내용")

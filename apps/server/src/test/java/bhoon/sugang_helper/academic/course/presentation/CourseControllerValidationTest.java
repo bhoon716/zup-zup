@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -13,7 +14,9 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.error.GlobalExceptionHandler;
 import bhoon.sugang_helper.academic.course.application.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.application.CourseService;
+import bhoon.sugang_helper.academic.crawling.application.SearchDefaultSemesterResponse;
 import bhoon.sugang_helper.academic.crawling.application.CourseCrawlerTargetService;
+import bhoon.sugang_helper.academic.crawling.presentation.CourseSearchTargetController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +55,8 @@ class CourseControllerValidationTest {
     void setUp() {
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
-        mockMvc = MockMvcBuilders.standaloneSetup(new CourseController(courseService, crawlerTargetService))
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                        new CourseController(courseService), new CourseSearchTargetController(crawlerTargetService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
@@ -114,5 +118,15 @@ class CourseControllerValidationTest {
         ArgumentCaptor<CourseSearchCondition> conditionCaptor = ArgumentCaptor.forClass(CourseSearchCondition.class);
         verify(courseService).searchCourses(conditionCaptor.capture(), any());
         assertThat(conditionCaptor.getValue().getSortBy()).isEqualTo("popular");
+    }
+
+    @Test
+    void searchDefaultSemesterKeepsItsExistingRouteAndResponse() throws Exception {
+        given(crawlerTargetService.getSearchDefaultSemester()).willReturn(
+                SearchDefaultSemesterResponse.builder().semester("U211600010").build());
+
+        mockMvc.perform(get("/api/v1/courses/search-default-semester"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.semester").value("U211600010"));
     }
 }

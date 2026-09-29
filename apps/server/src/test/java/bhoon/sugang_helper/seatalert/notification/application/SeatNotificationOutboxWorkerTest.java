@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;

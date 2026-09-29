@@ -11,8 +11,9 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.util.CookieUtil;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.contract.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
+import bhoon.sugang_helper.identity.auth.contract.AuthSessionLogout;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,10 +35,10 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthService implements AuthSessionLogout {
 
     private final JwtProvider jwtProvider;
-    private final UserRepository userRepository;
+    private final UserIdentityQuery userIdentityQuery;
     private final SecurityContextRepository securityContextRepository;
 
     @Value("${app.auth.refresh-cookie-secure:false}")
@@ -64,7 +65,7 @@ public class AuthService {
             if (userId == null) {
                 throw new CustomException(ErrorCode.INVALID_TOKEN, "사용자 식별자가 없는 리프레시 토큰입니다.");
             }
-            User user = userRepository.findByIdAndEmailAndDeletedAtIsNull(userId, email)
+            AuthenticatedUser user = userIdentityQuery.findAuthenticatedUser(userId, email)
                     .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
 
             newRefreshToken = jwtProvider.rotateRefreshToken(email, refreshToken);
@@ -72,7 +73,7 @@ public class AuthService {
                 throw new CustomException(ErrorCode.INVALID_TOKEN, "저장된 리프레시 토큰과 일치하지 않습니다.");
             }
 
-            String newAccessToken = jwtProvider.createAccessToken(user.getId(), user.getEmail(), user.getRoleKey());
+            String newAccessToken = jwtProvider.createAccessToken(user.id(), user.email(), user.roleKey());
             saveSessionAuthentication(request, response, newAccessToken);
             log.info("[Auth] Refreshed authenticated session. emailMasked={}", SensitiveDataRedactor.maskEmail(email));
 
@@ -91,6 +92,7 @@ public class AuthService {
         }
     }
 
+    @Override
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = resolveRefreshToken(request);
         String accessToken = jwtProvider.resolveToken(request);

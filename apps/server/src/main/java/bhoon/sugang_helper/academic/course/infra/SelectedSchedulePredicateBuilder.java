@@ -2,7 +2,7 @@ package bhoon.sugang_helper.academic.course.infra;
 
 import static bhoon.sugang_helper.academic.course.domain.QCourse.course;
 
-import bhoon.sugang_helper.academic.course.domain.CourseDayOfWeek;
+import bhoon.sugang_helper.academic.course.contract.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.domain.QCourseSchedule;
 import com.querydsl.core.BooleanBuilder;

@@ -6,11 +6,15 @@ import bhoon.sugang_helper.support.feedback.application.AdminFeedbackDetailRespo
 import bhoon.sugang_helper.support.feedback.application.AdminFeedbackResponse;
 import bhoon.sugang_helper.support.feedback.application.FeedbackService;
 import bhoon.sugang_helper.support.feedback.application.FeedbackStatusUpdateRequest;
-import bhoon.sugang_helper.support.feedback.domain.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.contract.AdminFeedbackDeletionFilter;
 
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.identity.user.application.UserService;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -45,7 +49,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminFeedbackController {
 
     private final FeedbackService feedbackService;
-    private final UserService userService;
+    private final UserIdentityQuery userIdentityQuery;
 
     /**
      * 시스템에 등록된 모든 문의 및 건의 사항을 조회합니다.
@@ -77,7 +81,7 @@ public class AdminFeedbackController {
             @PathVariable Long attachmentId,
             @Valid @RequestBody AdminFeedbackAttachmentDownloadRequest request) {
         var download = feedbackService.getAttachmentForAdmin(
-                userService.getCurrentUser(), feedbackId, attachmentId, request.confirmed());
+                getCurrentAdmin(), feedbackId, attachmentId, request.confirmed());
         return ResponseEntity.ok()
                 .contentType(download.contentType())
                 .header("Content-Disposition", ContentDisposition.attachment()
@@ -147,6 +151,15 @@ public class AdminFeedbackController {
      * 현재 인증된 관리자의 유저 ID를 조회합니다.
      */
     private Long getAdminId() {
-        return userService.getCurrentUser().getId();
+        return getCurrentAdmin().id();
+    }
+
+    private UserIdentity getCurrentAdmin() {
+        UserIdentity user = userIdentityQuery.findByEmail(SecurityUtil.getCurrentUserEmail())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+        if (!user.administrator()) {
+            throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
+        }
+        return user;
     }
 }

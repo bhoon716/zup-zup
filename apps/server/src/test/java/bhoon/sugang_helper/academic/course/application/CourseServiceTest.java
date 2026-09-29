@@ -1,5 +1,8 @@
 package bhoon.sugang_helper.academic.course.application;
 
+import bhoon.sugang_helper.academic.course.contract.CourseSearchContext;
+import bhoon.sugang_helper.academic.course.contract.CourseSearchContextProvider;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,14 +17,10 @@ import bhoon.sugang_helper.academic.course.domain.CourseRepository;
 import bhoon.sugang_helper.academic.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.domain.CourseSeatHistory;
 import bhoon.sugang_helper.academic.course.domain.CourseSeatHistoryRepository;
-import bhoon.sugang_helper.academic.course.domain.SemesterType;
-import bhoon.sugang_helper.academic.crawling.application.CourseCrawlerTargetService;
-import bhoon.sugang_helper.academic.crawling.application.CrawlTargetInfo;
-import bhoon.sugang_helper.academic.crawling.application.CrawlerRunStateService;
-import bhoon.sugang_helper.academic.review.domain.CourseReviewRepository;
-import bhoon.sugang_helper.academic.review.domain.ReviewScopeKey;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.academic.course.contract.CourseReviewQuery;
+import bhoon.sugang_helper.academic.course.contract.SemesterType;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -44,7 +43,6 @@ class CourseServiceTest {
     private static final String COURSE_NAME = "Test Course";
     private static final String SUBJECT_CODE = "CSE101";
     private static final String PROFESSOR = "김교수";
-    private static final String NORMALIZED_PROFESSOR = ReviewScopeKey.normalizeProfessor(PROFESSOR);
     private static final String ACADEMIC_YEAR = "2026";
     private static final String SEMESTER = "U211600010";
     private static final String USER_EMAIL = "user@test.com";
@@ -56,16 +54,13 @@ class CourseServiceTest {
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
     @Mock
-    private UserRepository userRepository;
+    private UserIdentityQuery userIdentityQuery;
 
     @Mock
-    private CourseReviewRepository reviewRepository;
+    private CourseReviewQuery courseReviewQuery;
 
     @Mock
-    private CourseCrawlerTargetService crawlerTargetService;
-
-    @Mock
-    private CrawlerRunStateService crawlerRunStateService;
+    private CourseSearchContextProvider searchContextProvider;
 
     private CourseService courseService;
     private MockedStatic<SecurityUtil> securityUtilMockedStatic;
@@ -73,8 +68,8 @@ class CourseServiceTest {
     @BeforeEach
     void setUp() {
         securityUtilMockedStatic = mockStatic(SecurityUtil.class);
-        courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userRepository,
-                reviewRepository, crawlerTargetService, crawlerRunStateService);
+        courseService = new CourseService(courseRepository, courseSeatHistoryRepository, userIdentityQuery,
+                courseReviewQuery, searchContextProvider);
     }
 
     @AfterEach
@@ -99,9 +94,9 @@ class CourseServiceTest {
                 .build();
     }
 
-    private void mockCrawlerTarget() {
-        given(crawlerTargetService.getCurrentTargetValue())
-                .willReturn(new CrawlTargetInfo(ACADEMIC_YEAR, SemesterType.fromCode(SEMESTER)));
+    private void mockSearchContext() {
+        given(searchContextProvider.getCurrentContext())
+                .willReturn(new CourseSearchContext(ACADEMIC_YEAR, SemesterType.fromCode(SEMESTER), null));
     }
 
     @Test
@@ -115,7 +110,7 @@ class CourseServiceTest {
 
         given(courseRepository.searchCourses(any(CourseSearchCriteria.class), any(Pageable.class)))
                 .willReturn(new SliceImpl<>(List.of(course)));
-        mockCrawlerTarget();
+        mockSearchContext();
 
         // when
         Slice<CourseResponse> responses = courseService.searchCourses(condition, PageRequest.of(0, 10));
@@ -131,7 +126,7 @@ class CourseServiceTest {
         // given
         Course course = createCourse();
         given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(course));
-        mockCrawlerTarget();
+        mockSearchContext();
 
         // when
         CourseDetailResponse response = courseService.getCourse(COURSE_KEY);
@@ -179,14 +174,13 @@ class CourseServiceTest {
     void getCourse_withLogin() {
         // given
         Long userId = 1L;
-        User user = User.builder().id(userId).email(USER_EMAIL).build();
+        UserIdentity user = new UserIdentity(userId, false);
         Course course = createCourse();
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(USER_EMAIL);
         given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(course));
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
-        given(reviewRepository.countBySubjectCodeAndProfessorAndUserId(SUBJECT_CODE, NORMALIZED_PROFESSOR,
-                userId)).willReturn(1L);
-        mockCrawlerTarget();
+        given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(courseReviewQuery.hasReviewByUser(COURSE_KEY, SUBJECT_CODE, PROFESSOR, userId)).willReturn(true);
+        mockSearchContext();
 
         // when
         CourseDetailResponse response = courseService.getCourse(COURSE_KEY);

@@ -1,5 +1,10 @@
 package bhoon.sugang_helper.seatalert.notification.infra;
 
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationProviderException;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationProviderExecutor;
+import bhoon.sugang_helper.seatalert.notification.application.NotificationFailureClassifier;
+
 import bhoon.sugang_helper.common.config.MdcTaskDecorator;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
@@ -26,7 +31,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.NullAssignment"})
-public class NotificationProviderResilience implements AutoCloseable {
+public class NotificationProviderResilience implements NotificationProviderExecutor, AutoCloseable {
 
     private final MeterRegistry meterRegistry;
     private final Duration timeout;
@@ -72,6 +77,7 @@ public class NotificationProviderResilience implements AutoCloseable {
         this.mdcTaskDecorator = mdcTaskDecorator;
     }
 
+    @Override
     public void execute(NotificationChannel provider, Runnable operation) {
         Circuit circuit = circuits.computeIfAbsent(provider, ignored -> new Circuit());
         Counter circuitOpenCounter = counter("notification.provider.circuit.open", "provider", provider.name());

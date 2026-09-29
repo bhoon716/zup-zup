@@ -1,5 +1,13 @@
 package bhoon.sugang_helper.academic.course.domain;
 
+import bhoon.sugang_helper.academic.course.contract.CourseAccreditation;
+import bhoon.sugang_helper.academic.course.contract.CourseClassification;
+import bhoon.sugang_helper.academic.course.contract.CourseStatus;
+import bhoon.sugang_helper.academic.course.contract.DisclosureStatus;
+import bhoon.sugang_helper.academic.course.contract.GradingMethod;
+import bhoon.sugang_helper.academic.course.contract.LectureLanguage;
+import bhoon.sugang_helper.academic.course.contract.TargetGrade;
+
 import bhoon.sugang_helper.common.audit.BaseTimeEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;

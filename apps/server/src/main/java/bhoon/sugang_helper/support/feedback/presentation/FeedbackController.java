@@ -7,7 +7,11 @@ import bhoon.sugang_helper.support.feedback.application.FeedbackCreateRequest;
 
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.identity.user.application.UserService;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -42,7 +46,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class FeedbackController {
 
     private final FeedbackService feedbackService;
-    private final UserService userService;
+    private final UserIdentityQuery userIdentityQuery;
 
     /**
      * 새로운 피드백(건의/제보)을 등록합니다.
@@ -88,7 +92,7 @@ public class FeedbackController {
     @GetMapping("/{feedbackId}/attachments/{attachmentId}")
     public ResponseEntity<Resource> downloadAttachment(@PathVariable Long feedbackId, @PathVariable Long attachmentId) {
         FeedbackAttachmentDownload download = feedbackService.getAttachment(
-                userService.getCurrentUser(), feedbackId, attachmentId);
+                getCurrentUser(), feedbackId, attachmentId);
         return ResponseEntity.ok()
                 .contentType(download.contentType())
                 .header("Content-Disposition", ContentDisposition.attachment()
@@ -114,7 +118,12 @@ public class FeedbackController {
      * 현재 인증된 유저의 ID를 조회합니다.
      */
     private Long getUserId() {
-        return userService.getCurrentUser().getId();
+        return getCurrentUser().id();
+    }
+
+    private UserIdentity getCurrentUser() {
+        return userIdentityQuery.findByEmail(SecurityUtil.getCurrentUserEmail())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 
     private String resolveClientIp(HttpServletRequest request) {

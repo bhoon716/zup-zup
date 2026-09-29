@@ -7,6 +7,8 @@ import java.util.Optional;
 public interface SubscriptionRepository extends RepositoryContract<Subscription, Long> {
     List<Subscription> findByCourseKeyAndIsActiveTrue(String courseKey);
 
+    List<Long> findUserIdByCourseKeyAndIsActiveTrue(String courseKey);
+
     Optional<Subscription> findByUserIdAndCourseKey(Long userId, String courseKey);
 
     long countByUserIdAndIsActiveTrue(Long userId);

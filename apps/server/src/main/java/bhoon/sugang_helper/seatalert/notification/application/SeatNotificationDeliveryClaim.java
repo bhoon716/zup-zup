@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.application;
 
 import java.time.LocalDateTime;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 
 /**
  * DB lease를 소유한 worker만 delivery 상태를 확정하도록 하는 fencing token입니다.

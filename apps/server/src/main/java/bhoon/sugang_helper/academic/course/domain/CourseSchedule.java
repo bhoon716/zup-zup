@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.academic.course.domain;
 
+import bhoon.sugang_helper.academic.course.contract.CourseDayOfWeek;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.support.feedback.domain.AdminActionLogRepository;
+import bhoon.sugang_helper.admin.domain.AdminActionLogRepository;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -8,16 +8,13 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutboxStatus;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationTarget;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationDeliveryJpaRepository;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationOutboxJpaRepository;
-import bhoon.sugang_helper.seatalert.subscription.domain.Subscription;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserDevice;
-import bhoon.sugang_helper.identity.user.domain.UserDeviceRepository;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.identity.user.contract.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationQuery;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,11 +38,9 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
     @Mock
     private SeatNotificationDeliveryJpaRepository deliveryRepository;
     @Mock
-    private SubscriptionRepository subscriptionRepository;
+    private SubscriptionRecipientQuery subscriptionRecipientQuery;
     @Mock
-    private UserRepository userRepository;
-    @Mock
-    private UserDeviceRepository userDeviceRepository;
+    private UserNotificationQuery userNotificationQuery;
     @Mock
     private NotificationChannelPolicy notificationChannelPolicy;
     @Mock
@@ -82,20 +77,18 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
         when(outboxRepository.findByStatusForUpdate(any(SeatNotificationOutboxStatus.class), any(Pageable.class)))
                 .thenReturn(List.of(outbox));
 
-        List<Subscription> mockSubscriptions = new ArrayList<>();
-        List<User> mockUsers = new ArrayList<>();
-        List<UserDevice> mockDevices = new ArrayList<>();
+        List<Long> mockRecipientIds = new ArrayList<>();
+        List<NotificationRecipient> mockRecipients = new ArrayList<>();
 
         for (long i = 1; i <= subscriberCount; i++) {
-            mockSubscriptions.add(Subscription.builder().courseKey(courseKey).userId(i).isActive(true).build());
-            User user = User.builder().email("user" + i + "@jbnu.ac.kr").name("유저" + i).build();
-            ReflectionTestUtils.setField(user, "id", i);
-            mockUsers.add(user);
+            mockRecipientIds.add(i);
+            mockRecipients.add(new NotificationRecipient(i, false, "user" + i + "@jbnu.ac.kr", null,
+                    true, true, true, true, null));
         }
 
-        when(subscriptionRepository.findByCourseKeyAndIsActiveTrue(courseKey)).thenReturn(mockSubscriptions);
-        when(userRepository.findAllById(any())).thenReturn(mockUsers);
-        when(userDeviceRepository.findByUserIdIn(any())).thenReturn(mockDevices);
+        when(subscriptionRecipientQuery.findActiveRecipientIds(courseKey)).thenReturn(mockRecipientIds);
+        when(userNotificationQuery.findByIds(any())).thenReturn(mockRecipients);
+        when(userNotificationQuery.findDevicesByUserIds(any())).thenReturn(List.of());
         when(notificationChannelPolicy.isChannelEnabled(any(), any())).thenReturn(true);
         when(notificationChannelPolicy.resolveTargets(any(), any(), any()))
                 .thenReturn(List.of(NotificationTarget.of("target")));

@@ -1,25 +1,25 @@
 package bhoon.sugang_helper.dashboard.application.result;
 
-import bhoon.sugang_helper.planning.timetable.application.result.CustomScheduleResponse;
-import bhoon.sugang_helper.planning.timetable.application.result.TimetableCourseResponse;
-import bhoon.sugang_helper.planning.timetable.application.result.TimetableDetailResponse;
+import bhoon.sugang_helper.planning.timetable.contract.PrimaryTimetableQuery.PrimaryTimetableSnapshot;
+import bhoon.sugang_helper.planning.timetable.contract.PrimaryTimetableQuery.CourseSnapshot;
+import bhoon.sugang_helper.planning.timetable.contract.PrimaryTimetableQuery.CustomScheduleSnapshot;
 import java.util.List;
 
 public record DashboardPrimaryTimetableResult(
         Long id,
         String name,
         boolean isPrimary,
-        List<TimetableCourseResponse> courses,
-        List<CustomScheduleResponse> customSchedules,
+        List<CourseSnapshot> courses,
+        List<CustomScheduleSnapshot> customSchedules,
         String totalCredits) {
 
-    public static DashboardPrimaryTimetableResult from(TimetableDetailResponse timetable) {
+    public static DashboardPrimaryTimetableResult from(PrimaryTimetableSnapshot timetable) {
         return new DashboardPrimaryTimetableResult(
-                timetable.getId(),
-                timetable.getName(),
+                timetable.id(),
+                timetable.name(),
                 timetable.isPrimary(),
-                timetable.getCourses(),
-                timetable.getCustomSchedules(),
-                timetable.getTotalCredits());
+                timetable.courses(),
+                timetable.customSchedules(),
+                timetable.totalCredits());
     }
 }

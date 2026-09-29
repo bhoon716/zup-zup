@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.course.application;
 
-import bhoon.sugang_helper.academic.course.domain.CourseDayOfWeek;
+import bhoon.sugang_helper.academic.course.contract.CourseDayOfWeek;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;

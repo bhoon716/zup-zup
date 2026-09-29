@@ -1,7 +1,8 @@
 package bhoon.sugang_helper.seatalert.notification.application;
 
 import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistory;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.contract.NotificationHistoryItem;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Builder;
@@ -37,6 +38,17 @@ public class NotificationHistoryResponse {
                 .message(history.getMessage())
                 .channel(history.getChannel())
                 .sentAt(history.getCreatedAt())
+                .build();
+    }
+
+    public static NotificationHistoryResponse from(NotificationHistoryItem history) {
+        return NotificationHistoryResponse.builder()
+                .id(history.id())
+                .courseKey(history.courseKey())
+                .title(history.title())
+                .message(history.message())
+                .channel(history.channel())
+                .sentAt(history.createdAt())
                 .build();
     }
 }

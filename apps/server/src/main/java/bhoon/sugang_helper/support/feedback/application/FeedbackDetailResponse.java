@@ -5,6 +5,7 @@ import bhoon.sugang_helper.support.feedback.domain.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.domain.FeedbackType;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public record FeedbackDetailResponse(
         Long id,
@@ -16,7 +17,7 @@ public record FeedbackDetailResponse(
         LocalDateTime createdAt,
         List<String> imageUrls,
         List<FeedbackReplyResponse> replies) {
-    public static FeedbackDetailResponse from(Feedback feedback) {
+    public static FeedbackDetailResponse from(Feedback feedback, Map<Long, String> adminNamesById) {
         return new FeedbackDetailResponse(
                 feedback.getId(),
                 feedback.getType(),
@@ -30,7 +31,7 @@ public record FeedbackDetailResponse(
                                 feedback.getId(), attachment.getId()))
                         .toList(),
                 feedback.getReplies().stream()
-                        .map(FeedbackReplyResponse::from)
+                        .map(reply -> FeedbackReplyResponse.from(reply, adminNamesById.get(reply.getAdminId())))
                         .toList());
     }
 }

@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.academic.crawling.application;
 
+import bhoon.sugang_helper.academic.crawling.contract.CrawlTargetInfo;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
@@ -12,10 +14,10 @@ import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.academic.course.domain.ParsedCourseDto;
-import bhoon.sugang_helper.academic.course.domain.SemesterType;
+import bhoon.sugang_helper.academic.course.contract.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.contract.SemesterType;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerFailureStage;
-import bhoon.sugang_helper.academic.crawling.infra.JbnuCourseApiClient;
+import bhoon.sugang_helper.academic.crawling.application.port.CourseApiClient;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -47,7 +49,7 @@ class CourseCrawlerServiceTest {
     @Mock
     private CourseCrawlFetcher courseCrawlFetcher;
     @Mock
-    private CourseSynchronizationService courseSynchronizationService;
+    private CourseCrawlCompletionService courseCrawlCompletionService;
     @Mock
     private CourseCrawlerTargetService crawlerTargetService;
     @Mock
@@ -57,7 +59,7 @@ class CourseCrawlerServiceTest {
     @Mock
     private Counter metricCounter;
     @Mock
-    private JbnuCourseApiClient apiClient;
+    private CourseApiClient apiClient;
     @Mock
     private JbnuCourseParser courseParser;
 
@@ -77,7 +79,7 @@ class CourseCrawlerServiceTest {
         boolean started = courseCrawlerService.crawlAndSaveCourses();
 
         assertThat(started).isTrue();
-        verify(courseSynchronizationService).synchronize(List.of(course));
+        verify(courseCrawlCompletionService).complete(List.of(course));
     }
 
     @Test
@@ -203,7 +205,7 @@ class CourseCrawlerServiceTest {
         ReflectionTestUtils.setField(validatingFetcher, "certDivisions", List.of("1", "2", "5", "7", "3", "4"));
         ReflectionTestUtils.setField(validatingFetcher, "interRequestDelayMs", 0L);
         CourseCrawlerService service = new CourseCrawlerService(
-                validatingFetcher, courseSynchronizationService, crawlerTargetService, crawlerRunStateService,
+                validatingFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
                 meterRegistry);
         given(apiClient.fetchCourseDataStream(eq(YEAR), eq(SEMESTER), anyString())).willReturn(stream);
         given(courseParser.streamCourses(any(), eq(YEAR), eq(SEMESTER)))
@@ -214,7 +216,7 @@ class CourseCrawlerServiceTest {
                 .isInstanceOf(CustomException.class)
                 .satisfies(exception -> assertThat(((CustomException) exception).getErrorCode())
                         .isEqualTo(ErrorCode.CRAWLER_PARSING_ERROR));
-        verify(courseSynchronizationService, never()).synchronize(any());
+        verify(courseCrawlCompletionService, never()).complete(any());
         verify(crawlerRunStateService)
                 .recordFailure(eq(CrawlerFailureStage.FETCH_PARSE), any(CustomException.class));
     }
@@ -225,7 +227,7 @@ class CourseCrawlerServiceTest {
         ParsedCourseDto course = mock(ParsedCourseDto.class);
         RuntimeException failure = new IllegalStateException("database unavailable");
         given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willReturn(List.of(course));
-        org.mockito.Mockito.doThrow(failure).when(courseSynchronizationService).synchronize(List.of(course));
+        org.mockito.Mockito.doThrow(failure).when(courseCrawlCompletionService).complete(List.of(course));
 
         assertThatThrownBy(() -> courseCrawlerService.crawlAndSaveCourses(YEAR, SEMESTER))
                 .isInstanceOf(CustomException.class)
@@ -247,7 +249,7 @@ class CourseCrawlerServiceTest {
     void staleDataEmitsAdminAlert() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CourseCrawlerService service = new CourseCrawlerService(
-                courseCrawlFetcher, courseSynchronizationService, crawlerTargetService, crawlerRunStateService,
+                courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
                 registry);
         ReflectionTestUtils.setField(service, "staleThresholdMinutes", 15L);
         given(crawlerRunStateService.findLastSuccessAt())
@@ -271,7 +273,7 @@ class CourseCrawlerServiceTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
 
         new CourseCrawlerService(
-                courseCrawlFetcher, courseSynchronizationService, crawlerTargetService, crawlerRunStateService,
+                courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
                 registry);
 
         assertThat(registry.find("crawler.data.freshness.age.seconds").gauges()).hasSize(1);

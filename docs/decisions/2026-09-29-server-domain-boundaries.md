@@ -4,7 +4,7 @@
 - 결정일: 2026-09-29
 - 범위: `apps/server`의 논리적 책임·테이블 소유권·도메인 간 코드 계약
 - 대체 결정: 없음
-- 관련 자료: [재설계 계획](../backend-infra-redesign-plan.md), [현재 시스템 인벤토리](../current-system.md), [바텀업 백엔드 리팩토링](2026-09-29-bottom-up-backend-refactoring.md)
+- 관련 자료: [재설계 계획](../backend-infra-redesign-plan.md), [현재 시스템 인벤토리](../current-system.md), [바텀업 백엔드 리팩토링](2026-09-29-bottom-up-backend-refactoring.md), [강의 수집 결과 동기화 경계](2026-09-29-course-crawling-sync-boundary.md)
 
 ## 배경과 결정 질문
 

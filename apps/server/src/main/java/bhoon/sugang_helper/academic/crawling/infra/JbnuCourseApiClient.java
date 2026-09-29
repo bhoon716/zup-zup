@@ -3,6 +3,8 @@ package bhoon.sugang_helper.academic.crawling.infra;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.academic.crawling.application.port.CourseApiClient;
+import bhoon.sugang_helper.academic.crawling.application.port.CrawlerUpstreamFailure;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerFailureStage;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -20,6 +22,7 @@ import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.jsoup.Connection;
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +30,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class JbnuCourseApiClient {
+public class JbnuCourseApiClient implements CourseApiClient {
 
     private static final String DEFAULT_BOOTSTRAP_URL = "https://jump.jbnu.ac.kr/link?div=sucrPlan";
     private static final String DEFAULT_CERT_DIVISION = "6";
@@ -65,6 +68,7 @@ public class JbnuCourseApiClient {
         return fetchCourseDataStream(year, semester, this.certDivision);
     }
 
+    @Override
     public InputStream fetchCourseDataStream(String year, String semester, String certDivision) {
         String targetCertDivision = resolveCertDivision(certDivision);
         int retryCount = 0;
@@ -99,12 +103,12 @@ public class JbnuCourseApiClient {
         try {
             cookies = fetchSessionCookies();
         } catch (Exception exception) {
-            throw CrawlerUpstreamException.wrap(CrawlerFailureStage.JUMP_BOOTSTRAP, exception,
-                    isTransientFailure(exception));
+            throw CrawlerUpstreamFailure.wrap(CrawlerFailureStage.JUMP_BOOTSTRAP,
+                    upstreamStatusCode(exception), exception, isTransientFailure(exception));
         }
         if (cookies.isEmpty()) {
             IOException emptyCookies = new IOException("JUMP session cookies are empty");
-            throw CrawlerUpstreamException.wrap(CrawlerFailureStage.JUMP_BOOTSTRAP, emptyCookies, true);
+            throw CrawlerUpstreamFailure.wrap(CrawlerFailureStage.JUMP_BOOTSTRAP, null, emptyCookies, true);
         }
 
         try {
@@ -129,20 +133,20 @@ public class JbnuCourseApiClient {
 
             if (response.statusCode() >= 400) {
                 IOException statusFailure = new IOException("JUMP responded with HTTP " + response.statusCode());
-                throw CrawlerUpstreamException.withStatus(
+                throw CrawlerUpstreamFailure.wrap(
                         CrawlerFailureStage.COURSE_API, response.statusCode(), statusFailure, true);
             }
             return response.bodyAsBytes();
-        } catch (CrawlerUpstreamException exception) {
+        } catch (CrawlerUpstreamFailure exception) {
             throw exception;
         } catch (Exception exception) {
-            throw CrawlerUpstreamException.wrap(CrawlerFailureStage.COURSE_API, exception,
-                    isTransientFailure(exception));
+            throw CrawlerUpstreamFailure.wrap(CrawlerFailureStage.COURSE_API,
+                    upstreamStatusCode(exception), exception, isTransientFailure(exception));
         }
     }
 
     private void handleRequestError(Exception e, int retryCount, String year, String semester, String targetCertDivision) {
-        CrawlerUpstreamException upstream = CrawlerUpstreamException.find(e);
+        CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.find(e);
         CrawlerFailureStage stage = upstream == null ? CrawlerFailureStage.FETCH_PARSE : upstream.stage();
         Integer status = upstream == null ? null : upstream.upstreamStatus();
         boolean retryable = upstream == null ? isTransientFailure(e) : upstream.retryable();
@@ -150,7 +154,7 @@ public class JbnuCourseApiClient {
         boolean exhausted = retryCount > maxRetries;
         String result = !retryable ? "failed" : exhausted ? "exhausted" : "retrying";
         String exceptionType = SensitiveDataRedactor.exceptionType(
-                CrawlerUpstreamException.rootCause(e));
+                CrawlerUpstreamFailure.rootCause(e));
         if (retryable) {
             log.warn("[Crawler] upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
                             + "attempt={}/{} upstreamStatus={} exceptionType={} retryable={} result={}",
@@ -227,7 +231,7 @@ public class JbnuCourseApiClient {
         if (throwable == null) {
             return false;
         }
-        if (throwable instanceof CrawlerUpstreamException upstream) {
+        if (throwable instanceof CrawlerUpstreamFailure upstream) {
             return upstream.retryable();
         }
         if (throwable instanceof SocketTimeoutException || throwable instanceof ConnectException
@@ -251,7 +255,7 @@ public class JbnuCourseApiClient {
                                  Exception failure) {
         try {
             long waitTime = (long) retryWaitMs * retryCount;
-            CrawlerUpstreamException upstream = CrawlerUpstreamException.find(failure);
+            CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.find(failure);
             CrawlerFailureStage stage = upstream == null ? CrawlerFailureStage.FETCH_PARSE : upstream.stage();
             log.info("[Crawler] upstream_retry_wait runId={} year={} semester={} certDiv={} stage={} "
                             + "attempt={} waitMs={} result=waiting",
@@ -267,6 +271,17 @@ public class JbnuCourseApiClient {
         CustomException exception = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         exception.initCause(cause);
         return exception;
+    }
+
+    private Integer upstreamStatusCode(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof HttpStatusException statusException) {
+                return statusException.getStatusCode();
+            }
+            current = current.getCause();
+        }
+        return null;
     }
 
     private String currentRunId() {

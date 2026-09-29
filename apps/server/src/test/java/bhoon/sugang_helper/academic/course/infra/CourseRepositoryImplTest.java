@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.academic.course.application.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseDayOfWeek;
+import bhoon.sugang_helper.academic.course.contract.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.domain.CourseRepository;
 import bhoon.sugang_helper.academic.course.domain.CourseSchedule;
 import bhoon.sugang_helper.academic.course.domain.CourseSearchCriteria;
@@ -125,6 +125,24 @@ class CourseRepositoryImplTest {
         assertThat(response.getContent())
                 .extracting(Course::getName)
                 .containsExactly(DS, ALG, OS);
+    }
+
+    @Test
+    @DisplayName("찜한 강의만 보기는 현재 사용자의 찜 목록과 일치하는 강의를 반환한다")
+    void searchCourses_filtersToCurrentUsersWishlist() {
+        saveCourse("CK1", ALG, "김교수", CS);
+        saveCourse("CK2", DS, "이교수", CS);
+        saveWishlist(7L, "CK1");
+
+        CourseSearchCriteria condition = baseCondition()
+                .userId(7L)
+                .isWishedOnly(true)
+                .sortBy(NAME_SORT)
+                .build();
+
+        var response = courseRepository.searchCourses(condition, PageRequest.of(0, 10));
+
+        assertThat(response.getContent()).extracting(Course::getName).containsExactly(ALG);
     }
 
     @ParameterizedTest

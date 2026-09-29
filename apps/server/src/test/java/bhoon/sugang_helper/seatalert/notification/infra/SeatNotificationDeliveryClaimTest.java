@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.infra;
 
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;

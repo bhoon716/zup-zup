@@ -3,6 +3,7 @@ package bhoon.sugang_helper.seatalert.notification.application;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyString;
@@ -17,25 +18,28 @@ import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
-import bhoon.sugang_helper.academic.course.domain.SeatOpenedEvent;
+import bhoon.sugang_helper.academic.course.contract.SeatOpenedEvent;
 import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationDeliveryIdempotencyKey;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationSender;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationTarget;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationProviderResilience;
-import bhoon.sugang_helper.seatalert.subscription.domain.Subscription;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.application.NotificationDeliveryIdempotencyKey;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationSender;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationProviderExecutor;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionRecipientQuery;
 import bhoon.sugang_helper.identity.user.domain.DeviceType;
 import bhoon.sugang_helper.identity.user.domain.Role;
 import bhoon.sugang_helper.identity.user.domain.User;
 import bhoon.sugang_helper.identity.user.domain.UserDevice;
-import bhoon.sugang_helper.identity.user.domain.UserDeviceRepository;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.contract.NotificationDevice;
+import bhoon.sugang_helper.identity.user.contract.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationQuery;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -57,32 +61,44 @@ class NotificationServiceTest {
     @Mock
     private RedisService redisService;
     @Mock
-    private SubscriptionRepository subscriptionRepository;
+    private SubscriptionRecipientQuery subscriptionRecipientQuery;
     @Mock
-    private UserRepository userRepository;
+    private UserNotificationQuery userNotificationQuery;
     @Mock
     private NotificationSender notificationSender;
     @Mock
     private NotificationHistoryRepository notificationHistoryRepository;
     @Mock
-    private UserDeviceRepository userDeviceRepository;
-    @Mock
-    private NotificationProviderResilience notificationProviderResilience;
+    private NotificationProviderExecutor notificationProviderExecutor;
 
     private NotificationService notificationService;
+    private Map<Long, NotificationRecipient> recipients;
+    private Map<Long, List<NotificationDevice>> devicesByUser;
 
     @BeforeEach
     void setUp() {
+        recipients = new HashMap<>();
+        devicesByUser = new HashMap<>();
+        lenient().when(userNotificationQuery.findById(anyLong()))
+                .thenAnswer(invocation -> Optional.ofNullable(recipients.get(invocation.getArgument(0))));
+        lenient().when(userNotificationQuery.findByIds(anyList()))
+                .thenAnswer(invocation -> ((List<Long>) invocation.getArgument(0)).stream()
+                        .map(recipients::get).filter(java.util.Objects::nonNull).toList());
+        lenient().when(userNotificationQuery.findDevicesByUserId(anyLong()))
+                .thenAnswer(invocation -> devicesByUser.getOrDefault(invocation.getArgument(0), List.of()));
+        lenient().when(userNotificationQuery.findDevicesByUserIds(anyList()))
+                .thenAnswer(invocation -> ((List<Long>) invocation.getArgument(0)).stream()
+                        .flatMap(userId -> devicesByUser.getOrDefault(userId, List.of()).stream()).toList());
         // 모든 알림 채널 활성화 상태로 초기화
         NotificationProperties props = new NotificationProperties(true, true, true, true);
         NotificationChannelPolicy notificationChannelPolicy = new NotificationChannelPolicy(props);
-        notificationService = new NotificationService(redisService, subscriptionRepository, userRepository,
-                userDeviceRepository, notificationHistoryRepository, List.of(notificationSender),
-                notificationChannelPolicy, notificationProviderResilience);
+        notificationService = new NotificationService(redisService, subscriptionRecipientQuery, userNotificationQuery,
+                notificationHistoryRepository, List.of(notificationSender), notificationChannelPolicy,
+                notificationProviderExecutor);
         lenient().doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(1)).run();
             return null;
-        }).when(notificationProviderResilience).execute(any(), any());
+        }).when(notificationProviderExecutor).execute(any(), any());
     }
 
     @Test
@@ -93,7 +109,7 @@ class NotificationServiceTest {
         String redisKey = "ALERT:" + COURSE_KEY;
 
         given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(true);
-        given(subscriptionRepository.findByCourseKeyAndIsActiveTrue(COURSE_KEY)).willReturn(List.of());
+        given(subscriptionRecipientQuery.findActiveRecipientIds(COURSE_KEY)).willReturn(List.of());
 
         // When
         notificationService.handleSeatOpenedEvent(event);
@@ -119,7 +135,7 @@ class NotificationServiceTest {
         verify(redisService, times(1)).setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class));
         verify(redisService, never()).setValues(anyString(), anyString(), any(Duration.class));
         verify(redisService, never()).deleteValues(anyString());
-        verify(subscriptionRepository, never()).findByCourseKeyAndIsActiveTrue(anyString());
+        verify(subscriptionRecipientQuery, never()).findActiveRecipientIds(anyString());
     }
 
     @Test
@@ -128,10 +144,6 @@ class NotificationServiceTest {
         // Given
         SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
         String redisKey = "ALERT:" + COURSE_KEY;
-        Subscription firstSubscription = Subscription.builder().userId(1L).courseKey(COURSE_KEY).isActive(true)
-                .build();
-        Subscription secondSubscription = Subscription.builder().userId(2L).courseKey(COURSE_KEY).isActive(true)
-                .build();
         User user = User.builder()
                 .id(1L)
                 .name(USER_NAME)
@@ -143,10 +155,9 @@ class NotificationServiceTest {
                 .emailEnabled(true).build();
 
         given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(true);
-        given(subscriptionRepository.findByCourseKeyAndIsActiveTrue(COURSE_KEY))
-                .willReturn(List.of(firstSubscription, secondSubscription));
-        given(userRepository.findAllById(anyList())).willReturn(List.of(user, secondUser));
-        given(userDeviceRepository.findByUserIdIn(anyList())).willReturn(List.of());
+        given(subscriptionRecipientQuery.findActiveRecipientIds(COURSE_KEY)).willReturn(List.of(1L, 2L));
+        addRecipient(user);
+        addRecipient(secondUser);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
         doThrow(new RuntimeException("boom")).doNothing().when(notificationSender)
                 .send(any(), anyString(), anyString());
@@ -165,8 +176,6 @@ class NotificationServiceTest {
     void dispatchToMultiChannels() {
         // Given
         SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
-        Subscription subscription = Subscription.builder().userId(1L).courseKey(COURSE_KEY).isActive(true)
-                .build();
         User user = User.builder()
                 .id(1L)
                 .name(USER_NAME)
@@ -187,10 +196,10 @@ class NotificationServiceTest {
 
         given(redisService.setValuesIfAbsent(eq("ALERT:" + COURSE_KEY), eq("PENDING"), any(Duration.class)))
                 .willReturn(true);
-        given(subscriptionRepository.findByCourseKeyAndIsActiveTrue(anyString()))
-                .willReturn(List.of(subscription));
-        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
-        given(userDeviceRepository.findByUserIdIn(anyList())).willReturn(List.of(fcmDevice, webDevice));
+        given(subscriptionRecipientQuery.findActiveRecipientIds(anyString())).willReturn(List.of(1L));
+        addRecipient(user);
+        addDevice(fcmDevice);
+        addDevice(webDevice);
 
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
         given(notificationSender.supports(NotificationChannel.FCM)).willReturn(true);
@@ -215,11 +224,12 @@ class NotificationServiceTest {
                 .id(1L)
                 .email(EMAIL)
                 .build();
+        addRecipient(user);
 
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
         // When
-        notificationService.sendTestNotification(user, List.of(NotificationChannel.EMAIL));
+        notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.EMAIL));
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
@@ -234,11 +244,12 @@ class NotificationServiceTest {
                 .id(1L)
                 .email(EMAIL)
                 .build();
+        addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
         // When
-        notificationService.sendUserTestNotification(user, List.of(NotificationChannel.EMAIL));
+        notificationService.sendUserTestNotification(user.getId(), List.of(NotificationChannel.EMAIL));
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
@@ -255,12 +266,12 @@ class NotificationServiceTest {
                 .emailEnabled(true)
                 .fcmEnabled(true)
                 .build();
+        addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
-        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of());
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
         // When
-        notificationService.sendUserTestNotification(user,
+        notificationService.sendUserTestNotification(user.getId(),
                 List.of(NotificationChannel.EMAIL, NotificationChannel.FCM));
 
         // Then
@@ -277,11 +288,11 @@ class NotificationServiceTest {
                 .email(EMAIL)
                 .fcmEnabled(true)
                 .build();
+        addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
-        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of());
 
         // When & Then
-        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user,
+        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId(),
                 List.of(NotificationChannel.FCM)))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
@@ -296,10 +307,11 @@ class NotificationServiceTest {
                 .id(1L)
                 .email(EMAIL)
                 .build();
+        addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
 
         // When & Then
-        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user,
+        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId(),
                 List.of(NotificationChannel.EMAIL)))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
@@ -311,12 +323,13 @@ class NotificationServiceTest {
         // Given
         User user = User.builder().id(1L).email(EMAIL).build();
         UserDevice device = UserDevice.builder().userId(1L).type(DeviceType.FCM).token(DEVICE_TOKEN).build();
+        addRecipient(user);
+        addDevice(device);
 
-        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of(device));
         given(notificationSender.supports(NotificationChannel.FCM)).willReturn(true);
 
         // When
-        notificationService.sendTestNotification(user, List.of(NotificationChannel.FCM));
+        notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.FCM));
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
@@ -328,12 +341,11 @@ class NotificationServiceTest {
     void sendTestNotification_Push_NoDevice() {
         // Given
         User user = User.builder().id(1L).email(EMAIL).build();
-
-        given(userDeviceRepository.findByUserId(1L)).willReturn(List.of());
+        addRecipient(user);
 
         // When & Then
         assertThatThrownBy(
-                () -> notificationService.sendTestNotification(user, List.of(NotificationChannel.WEB)))
+                () -> notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.WEB)))
                 .isInstanceOf(CustomException.class)
                 .extracting("detail")
                 .asString()
@@ -349,11 +361,12 @@ class NotificationServiceTest {
                 .email(EMAIL)
                 .discordId("discord-id")
                 .build();
+        addRecipient(user);
 
         given(notificationSender.supports(NotificationChannel.DISCORD)).willReturn(true);
 
         // When
-        notificationService.sendTestNotification(user, List.of(NotificationChannel.DISCORD));
+        notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.DISCORD));
 
         // Then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
@@ -369,9 +382,10 @@ class NotificationServiceTest {
                 .email(EMAIL)
                 .discordId(null)
                 .build();
+        addRecipient(user);
 
         // When & Then
-        assertThatThrownBy(() -> notificationService.sendTestNotification(user,
+        assertThatThrownBy(() -> notificationService.sendAdminTestNotification(user.getId(),
                 List.of(NotificationChannel.DISCORD)))
                 .isInstanceOf(CustomException.class)
                 .extracting("detail")
@@ -389,6 +403,7 @@ class NotificationServiceTest {
                 .role(Role.USER)
                 .emailEnabled(true)
                 .build();
+        addRecipient(user);
         SeatNotificationOutbox outbox = SeatNotificationOutbox.builder()
                 .courseKey(COURSE_KEY)
                 .courseName(COURSE_NAME)
@@ -396,13 +411,32 @@ class NotificationServiceTest {
                 .previousSeats(0)
                 .currentSeats(1)
                 .build();
-        when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(user));
-        when(userDeviceRepository.findByUserId(1L)).thenReturn(List.of());
         when(notificationSender.supports(NotificationChannel.EMAIL)).thenReturn(true);
 
         notificationService.deliverSeatOpening(1L, NotificationChannel.EMAIL, outbox, canonicalKey);
 
         verify(notificationSender).send(any(NotificationTarget.class), anyString(), anyString(),
                 eq(NotificationDeliveryIdempotencyKey.providerKey(canonicalKey)));
+    }
+
+    private void addRecipient(User user) {
+        recipients.put(user.getId(), new NotificationRecipient(
+                user.getId(),
+                user.isDeleted(),
+                user.getEmail(),
+                user.getNotificationEmail(),
+                user.isEmailEnabled(),
+                user.isWebPushEnabled(),
+                user.isFcmEnabled(),
+                user.isDiscordEnabled(),
+                user.getDiscordId()));
+    }
+
+    private void addDevice(UserDevice device) {
+        NotificationDevice.Type type = device.getType() == DeviceType.WEB
+                ? NotificationDevice.Type.WEB : NotificationDevice.Type.FCM;
+        devicesByUser.computeIfAbsent(device.getUserId(), ignored -> new java.util.ArrayList<>())
+                .add(new NotificationDevice(device.getUserId(), type, device.getToken(),
+                        device.getP256dh(), device.getAuth()));
     }
 }

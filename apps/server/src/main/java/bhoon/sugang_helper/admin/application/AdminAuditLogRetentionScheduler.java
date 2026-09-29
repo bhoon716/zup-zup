@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.admin.application;
 
-import bhoon.sugang_helper.support.feedback.domain.AdminActionLogRepository;
+import bhoon.sugang_helper.admin.domain.AdminActionLogRepository;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

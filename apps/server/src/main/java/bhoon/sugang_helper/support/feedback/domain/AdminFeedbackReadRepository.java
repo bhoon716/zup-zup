@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.support.feedback.domain;
 
+import bhoon.sugang_helper.support.feedback.contract.AdminFeedbackDeletionFilter;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

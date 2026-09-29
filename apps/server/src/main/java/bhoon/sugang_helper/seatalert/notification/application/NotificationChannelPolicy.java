@@ -1,11 +1,10 @@
 package bhoon.sugang_helper.seatalert.notification.application;
 
 import bhoon.sugang_helper.common.config.NotificationProperties;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationTarget;
-import bhoon.sugang_helper.identity.user.domain.DeviceType;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserDevice;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationTarget;
+import bhoon.sugang_helper.identity.user.contract.NotificationDevice;
+import bhoon.sugang_helper.identity.user.contract.NotificationRecipient;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,27 +15,28 @@ public class NotificationChannelPolicy {
 
     private final NotificationProperties notificationProperties;
 
-    public boolean isChannelEnabled(User user, NotificationChannel channel) {
-        if (user.isDeleted() || !isGlobalChannelEnabled(channel)) {
+    public boolean isChannelEnabled(NotificationRecipient user, NotificationChannel channel) {
+        if (user.deleted() || !isGlobalChannelEnabled(channel)) {
             return false;
         }
 
         return switch (channel) {
-            case EMAIL -> user.isEmailEnabled();
-            case DISCORD -> user.isDiscordEnabled() && user.getDiscordId() != null;
-            case WEB -> user.isWebPushEnabled();
-            case FCM -> user.isFcmEnabled();
+            case EMAIL -> user.emailEnabled();
+            case DISCORD -> user.discordEnabled() && user.discordId() != null;
+            case WEB -> user.webPushEnabled();
+            case FCM -> user.fcmEnabled();
         };
     }
 
-    public List<NotificationTarget> resolveTargets(User user, List<UserDevice> devices, NotificationChannel channel) {
-        if (user.isDeleted()) {
+    public List<NotificationTarget> resolveTargets(NotificationRecipient user, List<NotificationDevice> devices,
+                                                   NotificationChannel channel) {
+        if (user.deleted()) {
             return List.of();
         }
         return switch (channel) {
             case EMAIL -> List.of(NotificationTarget.of(resolveNotificationEmail(user)));
             case DISCORD ->
-                    user.getDiscordId() != null ? List.of(NotificationTarget.of(user.getDiscordId())) : List.of();
+                    user.discordId() != null ? List.of(NotificationTarget.of(user.discordId())) : List.of();
             case WEB, FCM -> resolveDeviceTargets(devices, channel);
         };
     }
@@ -59,28 +59,30 @@ public class NotificationChannelPolicy {
         };
     }
 
-    private List<NotificationTarget> resolveDeviceTargets(List<UserDevice> devices, NotificationChannel channel) {
+    private List<NotificationTarget> resolveDeviceTargets(List<NotificationDevice> devices,
+                                                           NotificationChannel channel) {
         if (devices == null) {
             return List.of();
         }
 
-        DeviceType type = (channel == NotificationChannel.WEB) ? DeviceType.WEB : DeviceType.FCM;
+        NotificationDevice.Type type = (channel == NotificationChannel.WEB)
+                ? NotificationDevice.Type.WEB : NotificationDevice.Type.FCM;
         return devices.stream()
-                .filter(device -> device.getType() == type)
+                .filter(device -> device.type() == type)
                 .map(device -> toDeviceTarget(device, channel))
                 .toList();
     }
 
-    private String resolveNotificationEmail(User user) {
-        return (user.getNotificationEmail() != null && !user.getNotificationEmail().isBlank())
-                ? user.getNotificationEmail()
-                : user.getEmail();
+    private String resolveNotificationEmail(NotificationRecipient user) {
+        return (user.notificationEmail() != null && !user.notificationEmail().isBlank())
+                ? user.notificationEmail()
+                : user.email();
     }
 
-    private NotificationTarget toDeviceTarget(UserDevice device, NotificationChannel channel) {
+    private NotificationTarget toDeviceTarget(NotificationDevice device, NotificationChannel channel) {
         if (channel == NotificationChannel.WEB) {
-            return NotificationTarget.ofWeb(device.getToken(), device.getP256dh(), device.getAuth());
+            return NotificationTarget.ofWeb(device.token(), device.p256dh(), device.auth());
         }
-        return NotificationTarget.of(device.getToken());
+        return NotificationTarget.of(device.token());
     }
 }

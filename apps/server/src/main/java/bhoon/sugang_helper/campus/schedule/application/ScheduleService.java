@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.campus.schedule.application;
 
+import bhoon.sugang_helper.campus.schedule.contract.ScheduleSummary;
+import bhoon.sugang_helper.campus.schedule.contract.UpcomingScheduleQuery;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.campus.schedule.domain.Schedule;
@@ -13,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class ScheduleService {
+public class ScheduleService implements UpcomingScheduleQuery {
 
     private final ScheduleRepository scheduleRepository;
 
@@ -24,6 +26,20 @@ public class ScheduleService {
         return scheduleRepository.findUpcomingSchedules(LocalDate.now())
                 .stream()
                 .map(ScheduleResponse::from)
+                .toList();
+    }
+
+    @Override
+    public List<ScheduleSummary> findUpcomingSchedules() {
+        return getUpcomingSchedules().stream()
+                .map(schedule -> new ScheduleSummary(
+                        schedule.getId(),
+                        schedule.getScheduleType(),
+                        schedule.getStartDate(),
+                        schedule.getEndDate(),
+                        schedule.getStartTime(),
+                        schedule.getEndTime(),
+                        schedule.getDDay()))
                 .toList();
     }
 

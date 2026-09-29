@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.planning.wishlist.application;
 
-import bhoon.sugang_helper.academic.course.domain.Course;
+import bhoon.sugang_helper.academic.course.contract.CourseSummary;
 import bhoon.sugang_helper.planning.wishlist.domain.Wishlist;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
@@ -23,20 +23,20 @@ public record WishlistResponse(
     @Schema(description = "여석", example = "5") Integer available,
     @Schema(description = "찜 생성 시각") LocalDateTime createdAt
 ) {
-    public static WishlistResponse of(Wishlist wishlist, Course course) {
+    public static WishlistResponse of(Wishlist wishlist, CourseSummary course) {
         return WishlistResponse.builder()
                 .id(wishlist.getId())
                 .courseKey(wishlist.getCourseKey())
-                .subjectCode(course.getSubjectCode())
-                .classNumber(course.getClassNumber())
-                .courseName(course.getName())
-                .professor(course.getProfessor())
-                .classification(course.getClassification() != null ? course.getClassification().getDescription() : "")
-                .credits(course.getCredits())
-                .classTime(course.getClassTime())
-                .current(course.getCurrent())
-                .capacity(course.getCapacity())
-                .available(Math.max(0, course.getCapacity() - course.getCurrent()))
+                .subjectCode(course.subjectCode())
+                .classNumber(course.classNumber())
+                .courseName(course.name())
+                .professor(course.professor())
+                .classification(course.classification() != null ? course.classification() : "")
+                .credits(course.credits())
+                .classTime(course.classTime())
+                .current(course.current())
+                .capacity(course.capacity())
+                .available(course.available())
                 .createdAt(wishlist.getCreatedAt())
                 .build();
     }

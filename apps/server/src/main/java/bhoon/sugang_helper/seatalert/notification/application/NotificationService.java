@@ -4,19 +4,19 @@ import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
-import bhoon.sugang_helper.academic.course.domain.SeatOpenedEvent;
+import bhoon.sugang_helper.academic.course.contract.SeatOpenedEvent;
 import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistoryRepository;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationDeliveryIdempotencyKey;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationSender;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationTarget;
-import bhoon.sugang_helper.seatalert.subscription.domain.Subscription;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserDevice;
-import bhoon.sugang_helper.identity.user.domain.UserDeviceRepository;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.contract.NotificationTestSender;
+import bhoon.sugang_helper.seatalert.notification.application.NotificationDeliveryIdempotencyKey;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationProviderExecutor;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationSender;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationTarget;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.identity.user.contract.NotificationDevice;
+import bhoon.sugang_helper.identity.user.contract.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationQuery;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class NotificationService {
+public class NotificationService implements NotificationTestSender {
 
     private static final String NOTIFICATION_KEY_PREFIX = "ALERT:";
     private static final Duration DEDUP_TTL = Duration.ofMinutes(1);
@@ -40,13 +40,12 @@ public class NotificationService {
     private static final Duration USER_TEST_COOLDOWN = Duration.ofSeconds(10);
 
     private final RedisService redisService;
-    private final SubscriptionRepository subscriptionRepository;
-    private final UserRepository userRepository;
-    private final UserDeviceRepository userDeviceRepository;
+    private final SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private final UserNotificationQuery userNotificationQuery;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
     private final NotificationChannelPolicy notificationChannelPolicy;
-    private final bhoon.sugang_helper.seatalert.notification.infra.NotificationProviderResilience notificationProviderResilience;
+    private final NotificationProviderExecutor notificationProviderExecutor;
 
     /**
      * 빈자리 발생 이벤트를 처리하여 구독자들에게 알림을 발송합니다.
@@ -72,13 +71,13 @@ public class NotificationService {
     public void deliverSeatOpening(Long userId, NotificationChannel channel,
                                    bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox outbox,
                                    String idempotencyKey) {
-        User user = userRepository.findById(userId)
+        NotificationRecipient user = userNotificationQuery.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         if (!notificationChannelPolicy.isChannelEnabled(user, channel)) {
             return;
         }
         List<NotificationTarget> targets = notificationChannelPolicy.resolveTargets(
-                user, userDeviceRepository.findByUserId(userId), channel);
+                user, userNotificationQuery.findDevicesByUserId(userId), channel);
         if (targets.isEmpty()) {
             return;
         }
@@ -92,7 +91,7 @@ public class NotificationService {
                 outbox.getPreviousSeats(), outbox.getCurrentSeats()));
         String providerKey = NotificationDeliveryIdempotencyKey.providerKey(idempotencyKey);
         for (NotificationTarget target : targets) {
-            notificationProviderResilience.execute(channel,
+            notificationProviderExecutor.execute(channel,
                     () -> sender.send(target, message.title(), message.body(), providerKey));
         }
         saveHistory(userId, outbox.getCourseKey(), message, channel);
@@ -101,18 +100,20 @@ public class NotificationService {
     /**
      * 특정 사용자에게 여러 채널로 테스트 알림을 발송합니다.
      */
-    public void sendTestNotification(User user, List<NotificationChannel> channels) {
-        sendTestNotification(user, channels, NotificationContext.forTest());
+    public void sendAdminTestNotification(Long userId, List<NotificationChannel> channels) {
+        sendTestNotification(userId, channels, NotificationContext.forTest());
     }
 
-    private boolean sendTestNotification(User user, List<NotificationChannel> channels,
+    private boolean sendTestNotification(Long userId, List<NotificationChannel> channels,
                                          NotificationContext context) {
+        NotificationRecipient user = userNotificationQuery.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         NotificationMessage notification = createTestMessage();
-        List<UserDevice> devices = userDeviceRepository.findByUserId(user.getId());
+        List<NotificationDevice> devices = userNotificationQuery.findDevicesByUserId(user.id());
         boolean delivered = false;
 
         for (NotificationChannel channel : channels) {
-            log.info("[Notification Test] Attempting to send. channel={}, userId={}", channel, user.getId());
+            log.info("[Notification Test] Attempting to send. channel={}, userId={}", channel, user.id());
             delivered = sendNotification(user, devices, notification, channel, context) || delivered;
         }
         return delivered;
@@ -121,15 +122,15 @@ public class NotificationService {
     /**
      * 사용자 단에서 요청한 테스트 알림을 발송하며, 쿨타임을 적용합니다.
      */
-    public void sendUserTestNotification(User user, List<NotificationChannel> channels) {
-        String cooldownKey = USER_TEST_COOLDOWN_KEY_PREFIX + user.getId();
+    public void sendUserTestNotification(Long userId, List<NotificationChannel> channels) {
+        String cooldownKey = USER_TEST_COOLDOWN_KEY_PREFIX + userId;
         boolean acquired = redisService.setValuesIfAbsent(cooldownKey, "LOCK", USER_TEST_COOLDOWN);
         if (!acquired) {
             throw new CustomException(ErrorCode.TOO_MANY_REQUESTS, "알림 테스트는 10초에 한 번만 가능합니다. 잠시 후 다시 시도해주세요.");
         }
 
         try {
-            boolean delivered = sendTestNotification(user, channels, NotificationContext.forUserTest());
+            boolean delivered = sendTestNotification(userId, channels, NotificationContext.forUserTest());
             if (!delivered) {
                 throw new CustomException(ErrorCode.INVALID_INPUT,
                         "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
@@ -144,33 +145,30 @@ public class NotificationService {
      * 해당 과목을 구독 중인 모든 사용자에게 알림을 발송합니다.
      */
     private void notifySubscribers(SeatOpenedEvent event) {
-        List<Subscription> subscriptions = subscriptionRepository.findByCourseKeyAndIsActiveTrue(event.courseKey());
-        if (subscriptions.isEmpty()) {
+        List<Long> recipientIds = subscriptionRecipientQuery.findActiveRecipientIds(event.courseKey());
+        if (recipientIds.isEmpty()) {
             return;
         }
 
-        List<Long> userIds = subscriptions.stream()
-                .map(Subscription::getUserId)
-                .distinct()
-                .toList();
-
-        Map<Long, User> userMap = findUsersById(userIds);
-        Map<Long, List<UserDevice>> deviceMap = findDevicesByUserId(userIds);
+        List<Long> userIds = recipientIds.stream().distinct().toList();
+        Map<Long, NotificationRecipient> userMap = findUsersById(userIds);
+        Map<Long, List<NotificationDevice>> deviceMap = findDevicesByUserId(userIds);
         NotificationMessage notification = createSeatOpenedMessage(event);
 
-        for (Subscription subscription : subscriptions) {
-            User user = userMap.get(subscription.getUserId());
+        for (Long recipientId : recipientIds) {
+            NotificationRecipient user = userMap.get(recipientId);
             if (user == null) {
                 continue;
             }
-            dispatchAllChannels(user, deviceMap.get(user.getId()), notification, event.courseKey());
+            dispatchAllChannels(user, deviceMap.get(user.id()), notification, event.courseKey());
         }
     }
 
     /**
      * 사용자에게 모든 채널로 실제 알림을 발송합니다.
      */
-    private void dispatchAllChannels(User user, List<UserDevice> devices, NotificationMessage message,
+    private void dispatchAllChannels(NotificationRecipient user, List<NotificationDevice> devices,
+                                     NotificationMessage message,
                                      String courseKey) {
         for (NotificationChannel channel : NotificationChannel.values()) {
             sendNotification(user, devices, message, channel, NotificationContext.forReal(courseKey));
@@ -180,7 +178,8 @@ public class NotificationService {
     /**
      * 알림 발송의 핵심 공통 로직을 수행합니다.
      */
-    private boolean sendNotification(User user, List<UserDevice> devices, NotificationMessage message,
+    private boolean sendNotification(NotificationRecipient user, List<NotificationDevice> devices,
+                                     NotificationMessage message,
                                      NotificationChannel channel, NotificationContext ctx) {
         if (!ctx.forceSend() && !notificationChannelPolicy.isChannelEnabled(user, channel)) {
             return false;
@@ -205,13 +204,13 @@ public class NotificationService {
                     throw e;
                 }
                 log.warn("[Notification] Delivery failed but remaining targets will continue. userId={}, channel={}, failureCode={}, exceptionType={}",
-                        user.getId(), channel, SensitiveDataRedactor.failureCode(e),
+                        user.id(), channel, SensitiveDataRedactor.failureCode(e),
                         SensitiveDataRedactor.exceptionType(e));
             }
         }
 
         if (ctx.saveHistory() && delivered) {
-            saveHistory(user.getId(), ctx.courseKey(), message, channel);
+            saveHistory(user.id(), ctx.courseKey(), message, channel);
         }
         return delivered;
     }
@@ -219,17 +218,17 @@ public class NotificationService {
     /**
      * 사용자 ID 목록을 통해 사용자 맵을 조회합니다.
      */
-    private Map<Long, User> findUsersById(List<Long> userIds) {
-        return userRepository.findAllById(userIds).stream()
-                .collect(Collectors.toMap(User::getId, Function.identity()));
+    private Map<Long, NotificationRecipient> findUsersById(List<Long> userIds) {
+        return userNotificationQuery.findByIds(userIds).stream()
+                .collect(Collectors.toMap(NotificationRecipient::id, Function.identity()));
     }
 
     /**
      * 사용자 ID 목록을 통해 기기 목록 맵을 조회합니다.
      */
-    private Map<Long, List<UserDevice>> findDevicesByUserId(List<Long> userIds) {
-        return userDeviceRepository.findByUserIdIn(userIds).stream()
-                .collect(Collectors.groupingBy(UserDevice::getUserId));
+    private Map<Long, List<NotificationDevice>> findDevicesByUserId(List<Long> userIds) {
+        return userNotificationQuery.findDevicesByUserIds(userIds).stream()
+                .collect(Collectors.groupingBy(NotificationDevice::userId));
     }
 
     /**
@@ -258,7 +257,7 @@ public class NotificationService {
     private void dispatch(NotificationTarget target, String title, String message, NotificationChannel channel) {
         notificationSenders.stream()
                 .filter(sender -> sender.supports(channel))
-                .forEach(sender -> notificationProviderResilience.execute(channel,
+                .forEach(sender -> notificationProviderExecutor.execute(channel,
                         () -> sender.send(target, title, message)));
     }
 

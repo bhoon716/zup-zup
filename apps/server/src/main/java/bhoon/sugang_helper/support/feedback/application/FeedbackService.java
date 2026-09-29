@@ -1,13 +1,13 @@
 package bhoon.sugang_helper.support.feedback.application;
 
-import bhoon.sugang_helper.admin.application.AdminAuditService;
+import bhoon.sugang_helper.admin.contract.AdminAuditRecorder;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
 import bhoon.sugang_helper.support.feedback.domain.Feedback;
-import bhoon.sugang_helper.support.feedback.domain.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.contract.AdminFeedbackDeletionFilter;
 import bhoon.sugang_helper.support.feedback.domain.AdminFeedbackReadRepository;
 import bhoon.sugang_helper.support.feedback.domain.FeedbackAttachment;
 import bhoon.sugang_helper.support.feedback.domain.FeedbackAttachmentRepository;
@@ -15,10 +15,14 @@ import bhoon.sugang_helper.support.feedback.domain.FeedbackReply;
 import bhoon.sugang_helper.support.feedback.domain.FeedbackReplyRepository;
 import bhoon.sugang_helper.support.feedback.domain.FeedbackRepository;
 import bhoon.sugang_helper.support.feedback.domain.FeedbackStatus;
-import bhoon.sugang_helper.identity.user.domain.Role;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.contract.UserDisplayName;
+import bhoon.sugang_helper.identity.user.contract.UserDisplayNameQuery;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,9 +44,10 @@ public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final FeedbackAttachmentRepository feedbackAttachmentRepository;
     private final FeedbackReplyRepository feedbackReplyRepository;
-    private final AdminAuditService adminAuditService;
+    private final AdminAuditRecorder adminAuditRecorder;
     private final AdminFeedbackReadRepository adminFeedbackReadRepository;
-    private final UserRepository userRepository;
+    private final UserIdentityQuery userIdentityQuery;
+    private final UserDisplayNameQuery userDisplayNameQuery;
     private final LocalFileUploadService fileUploadService;
     private final RedisService redisService;
     private final FeedbackMetadataNormalizer feedbackMetadataNormalizer;
@@ -66,13 +71,12 @@ public class FeedbackService {
     @Transactional
     public Long createFeedback(Long userId, FeedbackCreateRequest request, List<MultipartFile> files, String clientIp) {
         String normalizedMetaInfo = feedbackMetadataNormalizer.normalize(request.metaInfo());
-        User user = userRepository.findById(userId)
+        userIdentityQuery.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
         validateRateLimit(userId, clientIp, files);
 
         Feedback feedback = Feedback.builder()
-                .user(user)
+                .userId(userId)
                 .type(request.type())
                 .title(request.title())
                 .content(request.content())
@@ -123,11 +127,11 @@ public class FeedbackService {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
 
-        if (!feedback.getUser().getId().equals(userId)) {
+        if (!feedback.getUserId().equals(userId)) {
             throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
         }
 
-        return FeedbackDetailResponse.from(feedback);
+        return FeedbackDetailResponse.from(feedback, adminNamesById(feedback.getReplies()));
     }
 
     /**
@@ -138,7 +142,7 @@ public class FeedbackService {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
 
-        if (!feedback.getUser().getId().equals(userId)) {
+        if (!feedback.getUserId().equals(userId)) {
             throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
         }
 
@@ -146,8 +150,8 @@ public class FeedbackService {
     }
 
     @Transactional
-    public FeedbackAttachmentDownload getAttachment(User requester, Long feedbackId, Long attachmentId) {
-        if (requester.getRole().equals(Role.ADMIN)) {
+    public FeedbackAttachmentDownload getAttachment(UserIdentity requester, Long feedbackId, Long attachmentId) {
+        if (requester.administrator()) {
             throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
         }
 
@@ -155,7 +159,7 @@ public class FeedbackService {
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
         FeedbackAttachment attachment = feedbackAttachmentRepository.findByIdAndFeedbackId(attachmentId, feedbackId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
-        if (!requester.getId().equals(feedback.getUser().getId())) {
+        if (!requester.id().equals(feedback.getUserId())) {
             throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
         }
         var file = fileUploadService.loadFile(attachment.getFileUrl());
@@ -166,9 +170,9 @@ public class FeedbackService {
      * 관리자는 명시적으로 확인한 뒤 전용 경로에서만 보존된 첨부파일을 열람합니다.
      */
     @Transactional
-    public FeedbackAttachmentDownload getAttachmentForAdmin(User admin, Long feedbackId, Long attachmentId,
+    public FeedbackAttachmentDownload getAttachmentForAdmin(UserIdentity admin, Long feedbackId, Long attachmentId,
                                                             boolean confirmed) {
-        if (!admin.getRole().equals(Role.ADMIN)) {
+        if (!admin.administrator()) {
             throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
         }
         if (!confirmed) {
@@ -179,7 +183,7 @@ public class FeedbackService {
                 .findAttachmentForAdmin(feedbackId, attachmentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
         var file = fileUploadService.loadFile(attachment.fileUrl());
-        adminAuditService.recordAttachmentAccess(admin, attachmentId, feedbackId);
+        adminAuditRecorder.recordAttachmentAccess(admin.id(), attachmentId, feedbackId);
         return new FeedbackAttachmentDownload(file.resource(), attachment.originalName(), file.contentType());
     }
 
@@ -242,7 +246,7 @@ public class FeedbackService {
      */
     @Transactional
     public Long createFeedbackReply(Long adminId, Long feedbackId, FeedbackReplyCreateRequest request) {
-        User admin = userRepository.findById(adminId)
+        userIdentityQuery.findById(adminId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -250,13 +254,13 @@ public class FeedbackService {
 
         FeedbackReply reply = FeedbackReply.builder()
                 .feedback(feedback)
-                .admin(admin)
+                .adminId(adminId)
                 .content(request.content())
                 .build();
 
         FeedbackReply savedReply = feedbackReplyRepository.save(reply);
 
-        adminAuditService.recordReplyCreated(admin, savedReply.getId(), feedbackId, request.content());
+        adminAuditRecorder.recordReplyCreated(adminId, savedReply.getId(), feedbackId, request.content());
 
         return savedReply.getId();
     }
@@ -266,7 +270,7 @@ public class FeedbackService {
      */
     @Transactional
     public void updateFeedbackReply(Long adminId, Long replyId, FeedbackReplyUpdateRequest request) {
-        User admin = userRepository.findById(adminId)
+        userIdentityQuery.findById(adminId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         FeedbackReply reply = feedbackReplyRepository.findById(replyId)
@@ -277,7 +281,8 @@ public class FeedbackService {
         String oldContent = reply.getContent();
         reply.updateContent(request.content());
 
-        adminAuditService.recordReplyUpdated(admin, reply.getId(), feedback.getId(), oldContent, request.content());
+        adminAuditRecorder.recordReplyUpdated(adminId, reply.getId(), feedback.getId(), oldContent,
+                request.content());
     }
 
     /**
@@ -285,7 +290,7 @@ public class FeedbackService {
      */
     @Transactional
     public void deleteFeedbackReply(Long adminId, Long replyId) {
-        User admin = userRepository.findById(adminId)
+        userIdentityQuery.findById(adminId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         FeedbackReply reply = feedbackReplyRepository.findById(replyId)
@@ -296,7 +301,7 @@ public class FeedbackService {
         String content = reply.getContent();
         reply.delete();
 
-        adminAuditService.recordReplyDeleted(admin, replyId, feedback.getId(), content);
+        adminAuditRecorder.recordReplyDeleted(adminId, replyId, feedback.getId(), content);
     }
 
     /**
@@ -304,7 +309,7 @@ public class FeedbackService {
      */
     @Transactional
     public void updateFeedbackStatus(Long adminId, Long feedbackId, FeedbackStatusUpdateRequest request) {
-        User admin = userRepository.findById(adminId)
+        userIdentityQuery.findById(adminId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -313,7 +318,19 @@ public class FeedbackService {
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.updateStatus(request.status());
 
-        adminAuditService.recordStatusChange(admin, feedbackId, oldStatus, request.status());
+        adminAuditRecorder.recordStatusChange(adminId, feedbackId, oldStatus.name(), request.status().name());
+    }
+
+    private Map<Long, String> adminNamesById(List<FeedbackReply> replies) {
+        List<Long> adminIds = replies.stream()
+                .map(FeedbackReply::getAdminId)
+                .distinct()
+                .toList();
+        if (adminIds.isEmpty()) {
+            return Map.of();
+        }
+        return userDisplayNameQuery.findByIds(adminIds).stream()
+                .collect(Collectors.toMap(UserDisplayName::id, UserDisplayName::name, (first, ignored) -> first));
     }
 
     /**

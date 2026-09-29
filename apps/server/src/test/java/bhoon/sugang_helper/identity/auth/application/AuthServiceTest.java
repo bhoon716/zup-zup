@@ -19,8 +19,9 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.identity.user.domain.Role;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.contract.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.domain.Role;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -54,7 +55,7 @@ class AuthServiceTest {
     @Mock
     private SecurityContextRepository securityContextRepository;
     @Mock
-    private UserRepository userRepository;
+    private UserIdentityQuery userIdentityQuery;
 
     @InjectMocks
     private AuthService authService;
@@ -85,8 +86,8 @@ class AuthServiceTest {
         given(authentication.getName()).willReturn(email);
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
 
-        User user = User.builder().id(USER_ID).email(email).role(Role.USER).build();
-        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.of(user));
+        given(userIdentityQuery.findAuthenticatedUser(USER_ID, email))
+                .willReturn(Optional.of(new AuthenticatedUser(USER_ID, email, Role.USER.getKey())));
         given(jwtProvider.createAccessToken(USER_ID, email, Role.USER.getKey())).willReturn("new-access-token");
         given(jwtProvider.rotateRefreshToken(email, refreshToken)).willReturn("new-refresh-token");
         Authentication sessionAuthentication = mock(Authentication.class);
@@ -130,8 +131,8 @@ class AuthServiceTest {
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
-        User user = User.builder().id(USER_ID).email(email).role(Role.USER).build();
-        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.of(user));
+        given(userIdentityQuery.findAuthenticatedUser(USER_ID, email))
+                .willReturn(Optional.of(new AuthenticatedUser(USER_ID, email, Role.USER.getKey())));
         given(jwtProvider.rotateRefreshToken(email, refreshToken)).willReturn(null);
 
         // when & then
@@ -217,7 +218,7 @@ class AuthServiceTest {
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
-        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.empty());
+        given(userIdentityQuery.findAuthenticatedUser(USER_ID, email)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.reissue(request, response))
                 .isInstanceOf(CustomException.class)
@@ -265,8 +266,8 @@ class AuthServiceTest {
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
-        User user = User.builder().id(USER_ID).email(email).role(Role.USER).build();
-        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.of(user));
+        given(userIdentityQuery.findAuthenticatedUser(USER_ID, email))
+                .willReturn(Optional.of(new AuthenticatedUser(USER_ID, email, Role.USER.getKey())));
         given(jwtProvider.rotateRefreshToken(email, refreshToken))
                 .willThrow(new IllegalStateException("temporary Redis failure"));
 
@@ -288,7 +289,7 @@ class AuthServiceTest {
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
-        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email))
+        given(userIdentityQuery.findAuthenticatedUser(USER_ID, email))
                 .willThrow(new IllegalStateException("temporary database failure"));
 
         assertThatThrownBy(() -> authService.reissue(request, response))
@@ -309,8 +310,8 @@ class AuthServiceTest {
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
-        User user = User.builder().id(USER_ID).email(email).role(Role.USER).build();
-        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.of(user));
+        given(userIdentityQuery.findAuthenticatedUser(USER_ID, email))
+                .willReturn(Optional.of(new AuthenticatedUser(USER_ID, email, Role.USER.getKey())));
         given(jwtProvider.rotateRefreshToken(email, refreshToken)).willReturn("new-refresh-token");
         given(jwtProvider.createAccessToken(USER_ID, email, Role.USER.getKey())).willReturn("new-access-token");
         given(jwtProvider.getUserId("new-access-token")).willReturn(USER_ID);
@@ -359,15 +360,14 @@ class AuthServiceTest {
         ReflectionTestUtils.setField(statefulJwtProvider, "accessTokenExpiration", 1_800_000L);
         ReflectionTestUtils.setField(statefulJwtProvider, "refreshTokenExpiration", 604_800_000L);
         statefulJwtProvider.init();
-        AuthService statefulAuthService = new AuthService(statefulJwtProvider, userRepository,
+        AuthService statefulAuthService = new AuthService(statefulJwtProvider, userIdentityQuery,
                 securityContextRepository);
 
         String refreshToken = statefulJwtProvider.createRefreshToken(USER_ID, "test@example.com");
         String originalRecord = registry.get(redisKey);
         given(request.getCookies()).willReturn(new Cookie[]{new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken)});
-        User user = User.builder().id(USER_ID).email("test@example.com").role(Role.USER).build();
-        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, "test@example.com"))
-                .willReturn(Optional.of(user));
+        given(userIdentityQuery.findAuthenticatedUser(USER_ID, "test@example.com"))
+                .willReturn(Optional.of(new AuthenticatedUser(USER_ID, "test@example.com", Role.USER.getKey())));
         AtomicBoolean failSessionStore = new AtomicBoolean(true);
         doAnswer(invocation -> {
             if (failSessionStore.getAndSet(false)) {
@@ -400,8 +400,8 @@ class AuthServiceTest {
         Authentication authentication = mock(Authentication.class);
         given(authentication.getName()).willReturn(email);
         given(jwtProvider.getAuthentication(refreshToken)).willReturn(authentication);
-        User user = User.builder().id(USER_ID).email(email).role(Role.USER).build();
-        given(userRepository.findByIdAndEmailAndDeletedAtIsNull(USER_ID, email)).willReturn(Optional.of(user));
+        given(userIdentityQuery.findAuthenticatedUser(USER_ID, email))
+                .willReturn(Optional.of(new AuthenticatedUser(USER_ID, email, Role.USER.getKey())));
         given(jwtProvider.rotateRefreshToken(email, refreshToken)).willReturn("new-refresh-token");
         given(jwtProvider.createAccessToken(USER_ID, email, Role.USER.getKey())).willReturn("new-access-token");
         given(jwtProvider.getUserId("new-access-token")).willReturn(USER_ID);

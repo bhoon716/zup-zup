@@ -28,17 +28,16 @@ import bhoon.sugang_helper.common.error.GlobalExceptionHandler;
 import bhoon.sugang_helper.common.security.jwt.JwtAuthenticationFilter;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
-import bhoon.sugang_helper.common.security.oauth.CustomOAuth2UserService;
-import bhoon.sugang_helper.common.security.oauth.OAuth2FailureHandler;
-import bhoon.sugang_helper.common.security.oauth.OAuth2SuccessHandler;
-import bhoon.sugang_helper.common.config.SecurityConfig;
+import bhoon.sugang_helper.identity.auth.infra.CustomOAuth2UserService;
+import bhoon.sugang_helper.identity.auth.presentation.OAuth2FailureHandler;
+import bhoon.sugang_helper.identity.auth.presentation.OAuth2SuccessHandler;
+import bhoon.sugang_helper.bootstrap.SecurityConfig;
 import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.support.feedback.application.FeedbackService;
 import bhoon.sugang_helper.support.feedback.application.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.presentation.FeedbackController;
-import bhoon.sugang_helper.identity.user.application.UserService;
-import bhoon.sugang_helper.identity.user.domain.Role;
-import bhoon.sugang_helper.identity.user.domain.User;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -111,7 +110,7 @@ class SecurityRequestAuthorizationTest {
     @MockitoBean
     private FeedbackService feedbackService;
     @MockitoBean
-    private UserService userService;
+    private UserIdentityQuery userIdentityQuery;
     @MockitoBean
     private CustomOAuth2UserService customOAuth2UserService;
     @MockitoBean
@@ -228,8 +227,8 @@ class SecurityRequestAuthorizationTest {
 
     @Test
     void adminCanPreviewSanitizedAttachmentWithItsActualContentType() throws Exception {
-        User admin = User.builder().id(1L).role(Role.ADMIN).build();
-        given(userService.getCurrentUser()).willReturn(admin);
+        UserIdentity admin = new UserIdentity(1L, true);
+        given(userIdentityQuery.findByEmail("admin@example.com")).willReturn(java.util.Optional.of(admin));
         given(feedbackService.getAttachmentForAdmin(admin, 10L, 20L, true)).willReturn(
                 new FeedbackAttachmentDownload(new ByteArrayResource(new byte[] {1, 2, 3}),
                         "attachment.png", MediaType.IMAGE_PNG));
@@ -246,8 +245,8 @@ class SecurityRequestAuthorizationTest {
 
     @Test
     void adminAttachmentRequestWithMismatchedFeedbackAndAttachmentReturnsNotFound() throws Exception {
-        User admin = User.builder().id(1L).role(Role.ADMIN).build();
-        given(userService.getCurrentUser()).willReturn(admin);
+        UserIdentity admin = new UserIdentity(1L, true);
+        given(userIdentityQuery.findByEmail("admin@example.com")).willReturn(java.util.Optional.of(admin));
         given(feedbackService.getAttachmentForAdmin(admin, 10L, 99L, true))
                 .willThrow(new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
 

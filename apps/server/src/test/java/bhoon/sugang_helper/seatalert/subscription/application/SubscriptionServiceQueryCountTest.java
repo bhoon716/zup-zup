@@ -58,8 +58,10 @@ class SubscriptionServiceQueryCountTest {
         entityManager.clear();
         sessionFactory.getStatistics().clear();
 
-        SubscriptionService service = new SubscriptionService(subscriptionRepository, courseRepository, userRepository,
-                org.mockito.Mockito.mock(CourseCrawlerTargetService.class));
+        SubscriptionService service = new SubscriptionService(subscriptionRepository,
+                new bhoon.sugang_helper.academic.course.application.CourseCatalogQueryService(courseRepository),
+                new bhoon.sugang_helper.identity.user.application.UserIdentityQueryService(userRepository),
+                org.mockito.Mockito.mock(bhoon.sugang_helper.academic.crawling.contract.CrawlerTargetQuery.class));
         ReflectionTestUtils.setField(service, "maxLimit", 3);
         try (var securityUtil = mockStatic(SecurityUtil.class)) {
             securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");

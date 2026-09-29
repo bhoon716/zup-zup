@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.planning.timetable.application.result;
 
-import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseSchedule;
+import bhoon.sugang_helper.academic.course.contract.CourseSummary;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,16 +28,16 @@ public class TimetableCourseResponse {
     @Schema(description = "시간표 스케줄 목록")
     private List<ScheduleResponse> schedules;
 
-    public static TimetableCourseResponse of(Course course) {
+    public static TimetableCourseResponse of(CourseSummary course) {
         return TimetableCourseResponse.builder()
-                .courseKey(course.getCourseKey())
-                .name(course.getName())
-                .professor(course.getProfessor())
-                .classTime(course.getClassTime())
-                .credits(course.getCredits())
-                .classification(course.getClassification() != null ? course.getClassification().getDescription() : null)
-                .classroom(course.getClassroom())
-                .schedules(course.getSchedules().stream()
+                .courseKey(course.courseKey())
+                .name(course.name())
+                .professor(course.professor())
+                .classTime(course.classTime())
+                .credits(course.credits())
+                .classification(course.classification())
+                .classroom(course.classroom())
+                .schedules(course.schedules().stream()
                         .map(ScheduleResponse::of)
                         .collect(Collectors.toList()))
                 .build();
@@ -55,11 +54,11 @@ public class TimetableCourseResponse {
         @Schema(description = "종료 시간", example = "10:00")
         private String endTime;
 
-        public static ScheduleResponse of(CourseSchedule schedule) {
+        public static ScheduleResponse of(CourseSummary.CourseScheduleSummary schedule) {
             return ScheduleResponse.builder()
-                    .dayOfWeek(schedule.getDayOfWeek().name())
-                    .startTime(schedule.getStartTime().toString())
-                    .endTime(schedule.getEndTime().toString())
+                    .dayOfWeek(schedule.dayOfWeek())
+                    .startTime(schedule.startTime())
+                    .endTime(schedule.endTime())
                     .build();
         }
     }

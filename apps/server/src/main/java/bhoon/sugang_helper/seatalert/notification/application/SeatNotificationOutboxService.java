@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.application;
 
-import bhoon.sugang_helper.academic.course.domain.SeatOpenedEvent;
+import bhoon.sugang_helper.academic.course.contract.SeatOpenedEvent;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutboxRepository;
 import lombok.RequiredArgsConstructor;

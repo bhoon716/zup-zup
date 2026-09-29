@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.application;
 
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
-import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationDeliveryJpaRepository;
+import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryRepository;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,7 @@ public class NotificationDeliveryRetentionScheduler {
 
     private static final long MINIMUM_RETENTION_DAYS = 30;
 
-    private final SeatNotificationDeliveryJpaRepository deliveryRepository;
+    private final SeatNotificationDeliveryRepository deliveryRepository;
 
     @Value("${app.notification.outbox.dlq-retention-days:30}")
     private long retentionDays;

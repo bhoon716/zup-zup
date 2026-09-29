@@ -4,15 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.admin.application.AdminAuditService;
+import bhoon.sugang_helper.admin.contract.AdminAuditRecorder;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationDeliveryJpaRepository;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationOutboxJpaRepository;
-import bhoon.sugang_helper.identity.user.domain.Role;
-import bhoon.sugang_helper.identity.user.domain.User;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -39,7 +37,7 @@ class AdminNotificationDeliveryReplayConcurrencyTest {
     @Autowired
     private SeatNotificationDeliveryJpaRepository deliveryRepository;
     @MockitoBean
-    private AdminAuditService adminAuditService;
+    private AdminAuditRecorder adminAuditRecorder;
 
     @Test
     void concurrentReplaysChangeOneDlqDeliveryAndWriteOneAuditLog() throws Exception {
@@ -58,14 +56,14 @@ class AdminNotificationDeliveryReplayConcurrencyTest {
         delivery.claim(now.plusMinutes(1));
         delivery.markFailure("N001", 1, now, now.plusSeconds(1));
         Long deliveryId = deliveryRepository.saveAndFlush(delivery).getId();
-        User admin = User.builder().id(7L).email("admin@example.com").role(Role.ADMIN).build();
+        Long adminId = 7L;
 
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
-            Future<Boolean> first = executor.submit(() -> replayTask(admin, deliveryId, ready, start));
-            Future<Boolean> second = executor.submit(() -> replayTask(admin, deliveryId, ready, start));
+            Future<Boolean> first = executor.submit(() -> replayTask(adminId, deliveryId, ready, start));
+            Future<Boolean> second = executor.submit(() -> replayTask(adminId, deliveryId, ready, start));
             ready.await();
             start.countDown();
 
@@ -77,18 +75,18 @@ class AdminNotificationDeliveryReplayConcurrencyTest {
         assertThat(deliveryRepository.findById(deliveryId)).get()
                 .extracting(SeatNotificationDelivery::getStatus)
                 .isEqualTo(SeatNotificationDeliveryStatus.PENDING);
-        verify(adminAuditService, times(1)).recordDeliveryReplay(
-                org.mockito.ArgumentMatchers.any(User.class),
+        verify(adminAuditRecorder, times(1)).recordDeliveryReplay(
+                org.mockito.ArgumentMatchers.eq(adminId),
                 org.mockito.ArgumentMatchers.eq(deliveryId),
-                org.mockito.ArgumentMatchers.eq(SeatNotificationDeliveryStatus.DLQ),
+                org.mockito.ArgumentMatchers.eq("DLQ"),
                 org.mockito.ArgumentMatchers.eq(1));
     }
 
-    private boolean replayTask(User admin, Long deliveryId, CountDownLatch ready, CountDownLatch start) throws Exception {
+    private boolean replayTask(Long adminId, Long deliveryId, CountDownLatch ready, CountDownLatch start) throws Exception {
         ready.countDown();
         start.await();
         try {
-            service.replay(admin, deliveryId, false);
+            service.replay(adminId, deliveryId, false);
             return true;
         } catch (bhoon.sugang_helper.common.error.CustomException ignored) {
             return false;

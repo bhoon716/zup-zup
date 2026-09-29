@@ -9,10 +9,10 @@ public record FeedbackReplyResponse(
         String content,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
-    public static FeedbackReplyResponse from(FeedbackReply reply) {
+    public static FeedbackReplyResponse from(FeedbackReply reply, String adminName) {
         return new FeedbackReplyResponse(
                 reply.getId(),
-                reply.getAdmin().getName(),
+                adminName,
                 reply.getContent(),
                 reply.getCreatedAt(),
                 reply.getUpdatedAt());

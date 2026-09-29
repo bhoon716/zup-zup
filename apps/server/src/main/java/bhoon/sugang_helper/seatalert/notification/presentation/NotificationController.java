@@ -7,10 +7,10 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.common.web.PageableGuard;
-import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistoryRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
-import bhoon.sugang_helper.identity.user.application.UserService;
+import bhoon.sugang_helper.seatalert.notification.contract.NotificationHistoryQuery;
+import bhoon.sugang_helper.identity.user.contract.CurrentUserNotificationTester;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -36,9 +36,9 @@ public class NotificationController {
 
     private static final int MAX_HISTORY_PAGE_SIZE = 100;
 
-    private final NotificationHistoryRepository notificationHistoryRepository;
-    private final UserRepository userRepository;
-    private final UserService userService;
+    private final NotificationHistoryQuery notificationHistoryQuery;
+    private final UserIdentityQuery userIdentityQuery;
+    private final CurrentUserNotificationTester currentUserNotificationTester;
 
     /**
      * 현재 로그인한 사용자의 전체 알림 수신 내역을 조회합니다.
@@ -65,10 +65,10 @@ public class NotificationController {
     @GetMapping("/history")
     public ResponseEntity<CommonResponse<Slice<NotificationHistoryResponse>>> getMyNotificationHistory(
             @PageableDefault(size = 30) Pageable pageable) {
-        User user = getCurrentUser();
+        UserIdentity user = getCurrentUser();
         Pageable boundedPageable = PageableGuard.requireBounded(pageable, MAX_HISTORY_PAGE_SIZE, 10_000);
-        Slice<NotificationHistoryResponse> histories = notificationHistoryRepository
-                .findByUserIdOrderByCreatedAtDescIdDesc(user.getId(), boundedPageable)
+        Slice<NotificationHistoryResponse> histories = notificationHistoryQuery
+                .findForUser(user.id(), boundedPageable)
                 .map(NotificationHistoryResponse::from);
         return CommonResponse.ok(histories, "전체 알림 수신 내역입니다.");
     }
@@ -84,16 +84,16 @@ public class NotificationController {
     })
     @PostMapping("/test")
     public ResponseEntity<CommonResponse<Void>> sendTestNotification() {
-        userService.sendTestNotification();
+        currentUserNotificationTester.sendTestNotification();
         return CommonResponse.ok(null, "알림 테스트를 전송했습니다.");
     }
 
     /**
      * 현재 로그인한 사용자의 정보를 조회합니다.
      */
-    private User getCurrentUser() {
+    private UserIdentity getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
-        return userRepository.findByEmail(email)
+        return userIdentityQuery.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 }

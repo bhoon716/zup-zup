@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bhoon.sugang_helper.common.error.GlobalExceptionHandler;
 import bhoon.sugang_helper.support.feedback.application.FeedbackService;
-import bhoon.sugang_helper.identity.user.application.UserService;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,13 +25,13 @@ class FeedbackControllerTest {
     @Mock
     private FeedbackService feedbackService;
     @Mock
-    private UserService userService;
+    private UserIdentityQuery userIdentityQuery;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new FeedbackController(feedbackService, userService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new FeedbackController(feedbackService, userIdentityQuery))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -46,6 +46,6 @@ class FeedbackControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("G002"));
 
-        verifyNoInteractions(userService, feedbackService);
+        verifyNoInteractions(userIdentityQuery, feedbackService);
     }
 }

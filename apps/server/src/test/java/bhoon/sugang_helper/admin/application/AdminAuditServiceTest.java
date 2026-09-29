@@ -5,13 +5,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.support.feedback.domain.ActionType;
-import bhoon.sugang_helper.support.feedback.domain.AdminActionLog;
-import bhoon.sugang_helper.support.feedback.domain.AdminActionLogRepository;
-import bhoon.sugang_helper.support.feedback.domain.FeedbackStatus;
-import bhoon.sugang_helper.support.feedback.domain.TargetType;
-import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
-import bhoon.sugang_helper.identity.user.domain.User;
+import bhoon.sugang_helper.admin.domain.ActionType;
+import bhoon.sugang_helper.admin.domain.AdminActionLog;
+import bhoon.sugang_helper.admin.domain.AdminActionLogRepository;
+import bhoon.sugang_helper.admin.domain.TargetType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -55,11 +52,10 @@ class AdminAuditServiceTest {
     @Test
     @DisplayName("따옴표·개행·Unicode가 있는 답변 변경도 원문 없이 유효한 구조화 감사 로그가 된다.")
     void recordReplyUpdate_usesEscapedStructuredMetadataWithoutRawContent() throws Exception {
-        User admin = User.builder().id(ADMIN_ID).build();
         String beforeContent = "비밀 \"답변\"\nemail=alice@example.com\nBearer token-123";
         String afterContent = "새 \"답변\"\n유니코드 😀";
 
-        adminAuditService.recordReplyUpdated(admin, REPLY_ID, FEEDBACK_ID, beforeContent, afterContent);
+        adminAuditService.recordReplyUpdated(ADMIN_ID, REPLY_ID, FEEDBACK_ID, beforeContent, afterContent);
 
         verify(adminActionLogRepository).save(actionLogCaptor.capture());
         AdminActionLog savedLog = actionLogCaptor.getValue();
@@ -90,13 +86,11 @@ class AdminAuditServiceTest {
     @Test
     @DisplayName("상태·답변·첨부파일 접근·향후 DLQ 재처리가 같은 감사 모델로 저장된다.")
     void recordSensitiveAdminActions_usesTheSharedAuditModel() throws Exception {
-        User admin = User.builder().id(ADMIN_ID).email("admin@example.com").build();
-
-        adminAuditService.recordStatusChange(admin, FEEDBACK_ID, FeedbackStatus.PENDING, FeedbackStatus.COMPLETED);
-        adminAuditService.recordReplyCreated(admin, REPLY_ID, FEEDBACK_ID, "답변");
-        adminAuditService.recordReplyDeleted(admin, REPLY_ID, FEEDBACK_ID, "답변");
-        adminAuditService.recordAttachmentAccess(admin, 30L, FEEDBACK_ID);
-        adminAuditService.recordDeliveryReplay(admin, 40L, SeatNotificationDeliveryStatus.DLQ, 2);
+        adminAuditService.recordStatusChange(ADMIN_ID, FEEDBACK_ID, "PENDING", "COMPLETED");
+        adminAuditService.recordReplyCreated(ADMIN_ID, REPLY_ID, FEEDBACK_ID, "답변");
+        adminAuditService.recordReplyDeleted(ADMIN_ID, REPLY_ID, FEEDBACK_ID, "답변");
+        adminAuditService.recordAttachmentAccess(ADMIN_ID, 30L, FEEDBACK_ID);
+        adminAuditService.recordDeliveryReplay(ADMIN_ID, 40L, "DLQ", 2);
 
         ArgumentCaptor<AdminActionLog> captor = ArgumentCaptor.forClass(AdminActionLog.class);
         verify(adminActionLogRepository, org.mockito.Mockito.times(5)).save(captor.capture());
@@ -121,9 +115,8 @@ class AdminAuditServiceTest {
     @Test
     @DisplayName("감사 로그 목록은 최신순 안정 정렬과 최대 100건 페이지 크기를 사용하고, legacy 원문은 반환하지 않는다.")
     void getActionLogs_boundsPagingAndRedactsUnexpectedLegacyMetadata() {
-        User admin = User.builder().id(ADMIN_ID).build();
         AdminActionLog legacyLog = AdminActionLog.builder()
-                .admin(admin)
+                .adminId(ADMIN_ID)
                 .actionType(ActionType.REPLY_UPDATE)
                 .targetType(TargetType.REPLY)
                 .targetId(REPLY_ID)

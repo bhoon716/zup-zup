@@ -1,18 +1,14 @@
 package bhoon.sugang_helper.support.feedback.domain;
 
 import bhoon.sugang_helper.common.audit.BaseTimeEntity;
-import bhoon.sugang_helper.identity.user.domain.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
@@ -38,9 +34,8 @@ public class Feedback extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -69,8 +64,8 @@ public class Feedback extends BaseTimeEntity {
     private List<FeedbackReply> replies = new ArrayList<>();
 
     @Builder
-    public Feedback(User user, FeedbackType type, String title, String content, String metaInfo) {
-        this.user = user;
+    public Feedback(Long userId, FeedbackType type, String title, String content, String metaInfo) {
+        this.userId = userId;
         this.type = type;
         this.title = title;
         this.content = content;

@@ -1,5 +1,8 @@
 package bhoon.sugang_helper.academic.course.domain;
 
+import bhoon.sugang_helper.academic.course.contract.CourseDayOfWeek;
+import bhoon.sugang_helper.academic.course.contract.TargetGrade;
+
 import java.util.Arrays;
 import java.util.List;
 import lombok.Builder;

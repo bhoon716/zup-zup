@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.identity.auth.application.AuthService;
+import bhoon.sugang_helper.identity.auth.contract.AuthSessionLogout;
 import bhoon.sugang_helper.identity.user.application.DiscordOAuthService;
 import bhoon.sugang_helper.identity.user.application.UserService;
 import ch.qos.logback.classic.Logger;
@@ -27,15 +27,15 @@ class UserControllerDiscordOAuthTest {
 
     private UserService userService;
     private DiscordOAuthService discordOAuthService;
-    private AuthService authService;
+    private AuthSessionLogout authSessionLogout;
     private UserController controller;
 
     @BeforeEach
     void setUp() {
         userService = Mockito.mock(UserService.class);
         discordOAuthService = Mockito.mock(DiscordOAuthService.class);
-        authService = Mockito.mock(AuthService.class);
-        controller = new UserController(userService, discordOAuthService, authService);
+        authSessionLogout = Mockito.mock(AuthSessionLogout.class);
+        controller = new UserController(userService, discordOAuthService, authSessionLogout);
         ReflectionTestUtils.setField(controller, "frontendBaseUrl", "https://web.example.com");
         ReflectionTestUtils.setField(controller, "discordClientId", "client-id");
         ReflectionTestUtils.setField(controller, "discordRedirectUri", "https://api.example.com/api/v1/users/discord/callback");
@@ -156,6 +156,6 @@ class UserControllerDiscordOAuthTest {
 
         assertThat(result.getBody().getMessage()).isEqualTo("회원 탈퇴가 완료되었습니다.");
         verify(userService).withdraw();
-        verify(authService).logout(request, response);
+        verify(authSessionLogout).logout(request, response);
     }
 }

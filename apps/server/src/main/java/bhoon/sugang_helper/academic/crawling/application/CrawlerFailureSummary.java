@@ -3,7 +3,7 @@ package bhoon.sugang_helper.academic.crawling.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerFailureStage;
-import bhoon.sugang_helper.academic.crawling.infra.CrawlerUpstreamException;
+import bhoon.sugang_helper.academic.crawling.application.port.CrawlerUpstreamFailure;
 
 public record CrawlerFailureSummary(CrawlerFailureStage stage, String failureType, String failureMessage,
                                     Integer upstreamStatus, Boolean retryable) {
@@ -12,8 +12,8 @@ public record CrawlerFailureSummary(CrawlerFailureStage stage, String failureTyp
     private static final int MAX_MESSAGE_LENGTH = 500;
 
     public static CrawlerFailureSummary from(CrawlerFailureStage stage, RuntimeException exception) {
-        CrawlerUpstreamException upstream = CrawlerUpstreamException.find(exception);
-        Throwable rootCause = upstream == null ? exception : CrawlerUpstreamException.rootCause(upstream);
+        CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.find(exception);
+        Throwable rootCause = upstream == null ? exception : CrawlerUpstreamFailure.rootCause(upstream);
         CrawlerFailureStage effectiveStage = upstream == null ? stage : upstream.stage();
         String type = truncate(SensitiveDataRedactor.exceptionType(rootCause), MAX_TYPE_LENGTH);
         String message = exception instanceof CustomException customException

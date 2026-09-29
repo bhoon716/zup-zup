@@ -1,6 +1,9 @@
 package bhoon.sugang_helper.seatalert.notification.infra;
 
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;
+import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
@@ -13,7 +16,8 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface SeatNotificationDeliveryJpaRepository extends JpaRepository<SeatNotificationDelivery, Long> {
+public interface SeatNotificationDeliveryJpaRepository extends JpaRepository<SeatNotificationDelivery, Long>,
+        SeatNotificationDeliveryRepository {
 
     boolean existsByOutboxIdAndUserIdAndChannel(Long outboxId, Long userId, NotificationChannel channel);
 

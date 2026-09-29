@@ -8,18 +8,21 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerAdminSnapshot;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerAdminSnapshotQuery;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerStatusQuery;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.academic.crawling.application.AdminCrawlTargetResponse;
-import bhoon.sugang_helper.academic.crawling.application.CourseCrawlerTargetService;
-import bhoon.sugang_helper.academic.crawling.application.CrawlerRunStateService;
-import bhoon.sugang_helper.seatalert.notification.application.NotificationService;
-import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistoryRepository;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.contract.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationQuery;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.contract.NotificationHistoryQuery;
+import bhoon.sugang_helper.seatalert.notification.contract.NotificationTestSender;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionStatisticsQuery;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,22 +36,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class AdminServiceTest {
 
     @Mock
-    private UserRepository userRepository;
-
+    private UserIdentityQuery userIdentityQuery;
     @Mock
-    private SubscriptionRepository subscriptionRepository;
-
+    private UserNotificationQuery userNotificationQuery;
     @Mock
-    private NotificationHistoryRepository notificationHistoryRepository;
-
+    private SubscriptionStatisticsQuery subscriptionStatisticsQuery;
     @Mock
-    private NotificationService notificationService;
-
+    private NotificationHistoryQuery notificationHistoryQuery;
     @Mock
-    private CourseCrawlerTargetService courseCrawlerTargetService;
-
+    private NotificationTestSender notificationTestSender;
     @Mock
-    private CrawlerRunStateService crawlerRunStateService;
+    private CrawlerAdminSnapshotQuery crawlerAdminSnapshotQuery;
+    @Mock
+    private CrawlerStatusQuery crawlerStatusQuery;
 
     @InjectMocks
     private AdminService adminService;
@@ -56,16 +56,13 @@ class AdminServiceTest {
     @Test
     @DisplayName("관리자 대시보드 통계를 정상적으로 조회한다")
     void getDashboardStats() {
-        // given
-        when(userRepository.count()).thenReturn(100L);
-        when(subscriptionRepository.countByIsActiveTrue()).thenReturn(50L);
-        when(notificationHistoryRepository.countByCreatedAtAfter(any(LocalDateTime.class))).thenReturn(20L);
-        when(crawlerRunStateService.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
+        when(userIdentityQuery.countUsers()).thenReturn(100L);
+        when(subscriptionStatisticsQuery.countActiveSubscriptions()).thenReturn(50L);
+        when(notificationHistoryQuery.countCreatedAfter(any(LocalDateTime.class))).thenReturn(20L);
+        when(crawlerStatusQuery.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
 
-        // when
         AdminDashboardResponse result = adminService.getDashboardStats();
 
-        // then
         assertThat(result.getTotalUsers()).isEqualTo(100L);
         assertThat(result.getTotalActiveSubscriptions()).isEqualTo(50L);
         assertThat(result.getTodayNotificationCount()).isEqualTo(20L);
@@ -75,61 +72,50 @@ class AdminServiceTest {
     @Test
     @DisplayName("관리자 대시보드 스냅샷을 한 번에 조회한다")
     void getDashboardSnapshot() {
-        // given
-        when(userRepository.count()).thenReturn(100L);
-        when(subscriptionRepository.countByIsActiveTrue()).thenReturn(50L);
-        when(notificationHistoryRepository.countByCreatedAtAfter(any(LocalDateTime.class))).thenReturn(20L);
-        when(crawlerRunStateService.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
-        when(courseCrawlerTargetService.getCurrentTarget()).thenReturn(
-                AdminCrawlTargetResponse.builder()
-                        .year("2026")
-                        .semester("U211600020")
-                        .build()
-        );
+        when(userIdentityQuery.countUsers()).thenReturn(100L);
+        when(subscriptionStatisticsQuery.countActiveSubscriptions()).thenReturn(50L);
+        when(notificationHistoryQuery.countCreatedAfter(any(LocalDateTime.class))).thenReturn(20L);
+        when(notificationHistoryQuery.findCreatedAtAfter(any(LocalDateTime.class))).thenReturn(List.of());
+        when(notificationHistoryQuery.findLatest()).thenReturn(List.of());
+        when(crawlerStatusQuery.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
+        when(crawlerAdminSnapshotQuery.findCurrentAdminSnapshot())
+                .thenReturn(new CrawlerAdminSnapshot("2026", "U211600020"));
 
-        // when
         AdminDashboardSnapshotResponse result = adminService.getDashboardSnapshot();
 
-        // then
         assertThat(result.getOverview().getTotalUsers()).isEqualTo(100L);
         assertThat(result.getOverview().getTotalActiveSubscriptions()).isEqualTo(50L);
-        assertThat(result.getCrawlTarget().getYear()).isEqualTo("2026");
-        assertThat(result.getCrawlTarget().getSemester()).isEqualTo("U211600020");
+        assertThat(result.getCrawlTarget().year()).isEqualTo("2026");
+        assertThat(result.getCrawlTarget().semester()).isEqualTo("U211600020");
     }
 
     @Test
     @DisplayName("테스트 알림 전송이 성공한다")
     void sendTestNotification_Success() {
-        // given
         String email = "test@example.com";
-        User user = User.builder()
-                .email(email)
-                .emailEnabled(true)
-                .build();
+        NotificationRecipient recipient = new NotificationRecipient(
+                7L, false, email, email, true, true, false, false, null);
 
         try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
             securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(email);
-            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+            when(userNotificationQuery.findByEmail(email)).thenReturn(Optional.of(recipient));
 
-            // when
             adminService.sendTestNotification();
 
-            // then
-            verify(notificationService).sendTestNotification(eq(user), any());
+            verify(notificationTestSender).sendAdminTestNotification(
+                    eq(7L), eq(List.of(NotificationChannel.EMAIL, NotificationChannel.WEB)));
         }
     }
 
     @Test
     @DisplayName("사용자 미존재 시 테스트 알림 전송이 실패한다")
     void sendTestNotification_UserNotFound() {
-        // given
         String email = "notfound@example.com";
 
         try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
             securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(email);
-            when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+            when(userNotificationQuery.findByEmail(email)).thenReturn(Optional.empty());
 
-            // when & then
             assertThatThrownBy(() -> adminService.sendTestNotification())
                     .isInstanceOf(CustomException.class)
                     .hasMessage(ErrorCode.USER_NOT_FOUND.getMessage());

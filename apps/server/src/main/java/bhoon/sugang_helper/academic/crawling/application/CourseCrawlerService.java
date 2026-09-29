@@ -1,10 +1,12 @@
 package bhoon.sugang_helper.academic.crawling.application;
 
+import bhoon.sugang_helper.academic.crawling.contract.CrawlTargetInfo;
+
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.academic.course.domain.ParsedCourseDto;
-import bhoon.sugang_helper.academic.course.domain.SemesterType;
+import bhoon.sugang_helper.academic.course.contract.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.contract.SemesterType;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerFailureStage;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -29,7 +31,7 @@ import org.springframework.stereotype.Service;
 public class CourseCrawlerService {
 
     private final CourseCrawlFetcher courseCrawlFetcher;
-    private final CourseSynchronizationService courseSynchronizationService;
+    private final CourseCrawlCompletionService courseCrawlCompletionService;
     private final CourseCrawlerTargetService crawlerTargetService;
     private final CrawlerRunStateService crawlerRunStateService;
     private final MeterRegistry meterRegistry;
@@ -42,12 +44,12 @@ public class CourseCrawlerService {
     private long staleThresholdMinutes;
 
     public CourseCrawlerService(CourseCrawlFetcher courseCrawlFetcher,
-                                CourseSynchronizationService courseSynchronizationService,
+                                CourseCrawlCompletionService courseCrawlCompletionService,
                                 CourseCrawlerTargetService crawlerTargetService,
                                 CrawlerRunStateService crawlerRunStateService,
                                 MeterRegistry meterRegistry) {
         this.courseCrawlFetcher = courseCrawlFetcher;
-        this.courseSynchronizationService = courseSynchronizationService;
+        this.courseCrawlCompletionService = courseCrawlCompletionService;
         this.crawlerTargetService = crawlerTargetService;
         this.crawlerRunStateService = crawlerRunStateService;
         this.meterRegistry = meterRegistry;
@@ -145,7 +147,7 @@ public class CourseCrawlerService {
                             + "courseCount={} elapsedMs={}",
                     runId, year, semester, stage, parsedCourses.size(), elapsedMs(startedAt));
             stage = CrawlerFailureStage.PERSIST;
-            courseSynchronizationService.synchronize(parsedCourses);
+            courseCrawlCompletionService.complete(parsedCourses);
             log.info("[Crawler] run_succeeded runId={} year={} semester={} stage={} result=success "
                             + "courseCount={} elapsedMs={}",
                     runId, year, semester, stage, parsedCourses.size(), elapsedMs(startedAt));

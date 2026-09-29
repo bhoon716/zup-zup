@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.campus.announcement.application;
 
+import bhoon.sugang_helper.campus.announcement.contract.AnnouncementPreview;
+import bhoon.sugang_helper.campus.announcement.contract.DashboardAnnouncementQuery;
 import bhoon.sugang_helper.campus.announcement.domain.Announcement;
 import bhoon.sugang_helper.campus.announcement.domain.AnnouncementRepository;
 import bhoon.sugang_helper.common.error.CustomException;
@@ -17,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AnnouncementService {
+public class AnnouncementService implements DashboardAnnouncementQuery {
 
     private static final int MAX_KEYWORD_LENGTH = 100;
     private static final int MAX_PAGE_SIZE = 100;
@@ -49,6 +51,15 @@ public class AnnouncementService {
                         .record(System.nanoTime() - started, java.util.concurrent.TimeUnit.NANOSECONDS);
             }
         }
+    }
+
+    @Override
+    public List<AnnouncementPreview> findDashboardAnnouncements(int limit) {
+        return getPublicAnnouncements(null, AnnouncementSearchType.TITLE_CONTENT, PageRequest.of(0, limit))
+                .getContent().stream()
+                .map(item -> new AnnouncementPreview(
+                        item.getId(), item.getTitle(), item.getPreviewContent(), item.isPinned(), item.getCreatedAt()))
+                .toList();
     }
 
     /**

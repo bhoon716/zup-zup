@@ -5,16 +5,14 @@ import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliver
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutboxStatus;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationFailureClassifier;
-import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationDeliveryJpaRepository;
-import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationOutboxJpaRepository;
-import bhoon.sugang_helper.seatalert.subscription.domain.Subscription;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserDevice;
-import bhoon.sugang_helper.identity.user.domain.UserDeviceRepository;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.application.NotificationFailureClassifier;
+import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryRepository;
+import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutboxRepository;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.identity.user.contract.NotificationDevice;
+import bhoon.sugang_helper.identity.user.contract.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationQuery;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,11 +35,10 @@ public class SeatNotificationOutboxProcessor {
     private static final List<SeatNotificationDeliveryStatus> ACTIVE_DELIVERY_STATUSES = List.of(
             SeatNotificationDeliveryStatus.PENDING, SeatNotificationDeliveryStatus.PROCESSING);
 
-    private final SeatNotificationOutboxJpaRepository outboxRepository;
-    private final SeatNotificationDeliveryJpaRepository deliveryRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final UserRepository userRepository;
-    private final UserDeviceRepository userDeviceRepository;
+    private final SeatNotificationOutboxRepository outboxRepository;
+    private final SeatNotificationDeliveryRepository deliveryRepository;
+    private final SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private final UserNotificationQuery userNotificationQuery;
     private final NotificationChannelPolicy notificationChannelPolicy;
     private final NotificationService notificationService;
     private final SeatNotificationDeliverySettlementService settlementService;
@@ -136,20 +133,20 @@ public class SeatNotificationOutboxProcessor {
     }
 
     private void materializeDeliveries(SeatNotificationOutbox outbox) {
-        List<Subscription> subscriptions = subscriptionRepository.findByCourseKeyAndIsActiveTrue(outbox.getCourseKey());
-        if (subscriptions.isEmpty()) {
+        List<Long> recipientIds = subscriptionRecipientQuery.findActiveRecipientIds(outbox.getCourseKey());
+        if (recipientIds.isEmpty()) {
             outbox.markCompleted();
             return;
         }
-        List<Long> userIds = subscriptions.stream().map(Subscription::getUserId).distinct().toList();
-        Map<Long, User> usersById = userRepository.findAllById(userIds).stream()
-                .collect(Collectors.toMap(User::getId, Function.identity()));
-        Map<Long, List<UserDevice>> devicesByUser = userDeviceRepository.findByUserIdIn(userIds).stream()
-                .collect(Collectors.groupingBy(UserDevice::getUserId));
+        List<Long> userIds = recipientIds.stream().distinct().toList();
+        Map<Long, NotificationRecipient> usersById = userNotificationQuery.findByIds(userIds).stream()
+                .collect(Collectors.toMap(NotificationRecipient::id, Function.identity()));
+        Map<Long, List<NotificationDevice>> devicesByUser = userNotificationQuery.findDevicesByUserIds(userIds).stream()
+                .collect(Collectors.groupingBy(NotificationDevice::userId));
 
         List<SeatNotificationDelivery> deliveriesToSave = new java.util.ArrayList<>();
         for (Long userId : userIds) {
-            User user = usersById.get(userId);
+            NotificationRecipient user = usersById.get(userId);
             if (user == null) {
                 continue;
             }

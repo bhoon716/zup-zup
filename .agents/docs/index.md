@@ -16,6 +16,8 @@ Use this page as the entry point for repo knowledge.
 - [Project decision record location](../../docs/decisions/2026-09-29-project-decision-record-location.md): canonical folder and record-keeping rule.
 - [Bottom-up backend refactoring](../../docs/decisions/2026-09-29-bottom-up-backend-refactoring.md): proposed incremental refactoring sequence and its guardrails.
 - [Backend domain boundaries](../../docs/decisions/2026-09-29-server-domain-boundaries.md): proposed logical ownership and dependency rules based on current code.
+- [Course and crawling sync boundary](../../docs/decisions/2026-09-29-course-crawling-sync-boundary.md): course owns catalog writes; crawling coordinates success state and the notification outbox in one transaction.
+- [Server layer dependency directions](../../docs/decisions/2026-09-29-server-layer-dependency-directions.md): presentation → application → domain rules and contract-based cross-domain references.
 - [Repository topology decision](../../docs/decisions/2026-07-06-repository-topology.md): historical nested multi-repo workspace model and ownership boundaries.
 - [Monorepo migration decision](../../docs/decisions/2026-07-08-monorepo-migration-web-vercel-server-infra.md): current root monorepo layout, Vercel retention, and OCI deployment split.
 - [Single OCI CI/CD decision](../../docs/decisions/2026-07-19-single-oci-cicd.md): target minimal CI/CD, migration, rollback, and cutover contract.

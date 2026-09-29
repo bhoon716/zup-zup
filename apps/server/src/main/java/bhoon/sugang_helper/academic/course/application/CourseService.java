@@ -8,15 +8,12 @@ import bhoon.sugang_helper.academic.course.domain.Course;
 import bhoon.sugang_helper.academic.course.domain.CourseRepository;
 import bhoon.sugang_helper.academic.course.domain.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.domain.CourseSeatHistoryRepository;
-import bhoon.sugang_helper.academic.crawling.application.CourseCrawlerTargetService;
-import bhoon.sugang_helper.academic.crawling.application.CrawlTargetInfo;
-import bhoon.sugang_helper.academic.crawling.application.CrawlerRunStateService;
-import bhoon.sugang_helper.academic.review.domain.CourseReviewRepository;
-import bhoon.sugang_helper.academic.review.domain.ReviewScopeKey;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.academic.course.contract.CourseReviewQuery;
+import bhoon.sugang_helper.academic.course.contract.CourseSearchContext;
+import bhoon.sugang_helper.academic.course.contract.CourseSearchContextProvider;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.util.List;
-import java.time.LocalDateTime;
 import org.springframework.data.domain.PageRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -34,30 +31,28 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
-    private final UserRepository userRepository;
-    private final CourseReviewRepository reviewRepository;
+    private final UserIdentityQuery userIdentityQuery;
+    private final CourseReviewQuery courseReviewQuery;
 
-    private final CourseCrawlerTargetService crawlerTargetService;
-    private final CrawlerRunStateService crawlerRunStateService;
+    private final CourseSearchContextProvider searchContextProvider;
 
     /**
      * 필터 조건과 페이징 정보를 사용하여 강의 목록을 검색
      */
     public Slice<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
         condition.validateSearchValues();
-        CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
+        CourseSearchContext context = searchContextProvider.getCurrentContext();
         Long userId = condition.getUserId();
         if (Boolean.TRUE.equals(condition.getIsWishedOnly())) {
             String email = SecurityUtil.getCurrentUserEmail();
-            User user = userRepository.findByEmail(email)
+            UserIdentity user = userIdentityQuery.findByEmail(email)
                     .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
-            userId = user.getId();
+            userId = user.id();
         }
         CourseSearchCriteria criteria = condition.toCriteria(userId);
-        LocalDateTime lastCrawledAt = crawlerRunStateService.findLastSuccessAt().orElse(null);
         return courseRepository.searchCourses(criteria, PageableGuard.requireBounded(pageable))
                 .map(course -> CourseResponse.from(
-                        course, target.year(), target.semester().getCode(), lastCrawledAt));
+                        course, context.year(), context.semester().getCode(), context.lastCrawledAt()));
     }
 
     /**
@@ -90,21 +85,19 @@ public class CourseService {
     public CourseDetailResponse getCourse(String courseKey) {
         Course course = courseRepository.findByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "강의를 찾을 수 없습니다: " + courseKey));
-        CrawlTargetInfo target = crawlerTargetService.getCurrentTargetValue();
+        CourseSearchContext context = searchContextProvider.getCurrentContext();
         boolean isReviewed = false;
         String email = SecurityUtil.getCurrentUserEmailOrNull();
         if (email != null) {
-            isReviewed = userRepository.findByEmail(email)
+            isReviewed = userIdentityQuery.findByEmail(email)
                     .map(user -> {
-                        ReviewScopeKey scope = ReviewScopeKey.from(course);
-                        return reviewRepository.countBySubjectCodeAndProfessorAndUserId(
-                                scope.subjectCode(), scope.professor(), user.getId()) > 0;
+                        return courseReviewQuery.hasReviewByUser(
+                                course.getCourseKey(), course.getSubjectCode(), course.getProfessor(), user.id());
                     })
                     .orElse(false);
         }
 
-        LocalDateTime lastCrawledAt = crawlerRunStateService.findLastSuccessAt().orElse(null);
         return CourseDetailResponse.from(
-                course, target.year(), target.semester().getCode(), isReviewed, lastCrawledAt);
+                course, context.year(), context.semester().getCode(), isReviewed, context.lastCrawledAt());
     }
 }

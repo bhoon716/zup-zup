@@ -1,12 +1,14 @@
 package bhoon.sugang_helper.academic.crawling.application;
 
+import bhoon.sugang_helper.academic.crawling.contract.CrawlTargetInfo;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.academic.course.domain.SemesterType;
+import bhoon.sugang_helper.academic.course.contract.SemesterType;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerSetting;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerSettingRepository;
 import java.util.Optional;

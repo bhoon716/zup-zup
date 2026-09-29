@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.academic.crawling.infra;
 
+import bhoon.sugang_helper.academic.crawling.application.port.CrawlerUpstreamFailure;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerFailureStage;
@@ -22,8 +24,9 @@ class JbnuCourseApiClientRetryPolicyTest {
 
     @Test
     void wrappedFailureUsesItsExplicitRetryClassification() {
-        CrawlerUpstreamException nonRetryable = CrawlerUpstreamException.wrap(
+        CrawlerUpstreamFailure nonRetryable = CrawlerUpstreamFailure.wrap(
                 CrawlerFailureStage.COURSE_API,
+                null,
                 new IllegalArgumentException("malformed request"),
                 false);
 

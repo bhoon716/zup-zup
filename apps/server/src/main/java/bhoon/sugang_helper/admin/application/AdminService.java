@@ -3,16 +3,17 @@ package bhoon.sugang_helper.admin.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.academic.crawling.application.AdminCrawlTargetResponse;
-import bhoon.sugang_helper.academic.crawling.application.CourseCrawlerTargetService;
-import bhoon.sugang_helper.academic.crawling.application.CrawlerRunStateService;
-import bhoon.sugang_helper.seatalert.notification.application.NotificationService;
-import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistory;
-import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistoryRepository;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerAdminSnapshot;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerAdminSnapshotQuery;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerStatusQuery;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.contract.NotificationHistoryItem;
+import bhoon.sugang_helper.seatalert.notification.contract.NotificationHistoryQuery;
+import bhoon.sugang_helper.seatalert.notification.contract.NotificationTestSender;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionStatisticsQuery;
+import bhoon.sugang_helper.identity.user.contract.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationQuery;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -32,24 +33,25 @@ public class AdminService {
 
     private static final DateTimeFormatter HOUR_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final long CRAWLER_DELAY_MINUTES = 15L;
-    private final UserRepository userRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final NotificationHistoryRepository notificationHistoryRepository;
-    private final NotificationService notificationService;
-    private final CourseCrawlerTargetService courseCrawlerTargetService;
-    private final CrawlerRunStateService crawlerRunStateService;
+    private final UserIdentityQuery userIdentityQuery;
+    private final UserNotificationQuery userNotificationQuery;
+    private final SubscriptionStatisticsQuery subscriptionStatisticsQuery;
+    private final NotificationHistoryQuery notificationHistoryQuery;
+    private final NotificationTestSender notificationTestSender;
+    private final CrawlerAdminSnapshotQuery crawlerAdminSnapshotQuery;
+    private final CrawlerStatusQuery crawlerStatusQuery;
 
     /**
      * 관리자 대시보드 기본 통계 정보를 조회합니다.
      */
     public AdminDashboardResponse getDashboardStats() {
-        long totalUsers = userRepository.count();
-        long totalActiveSubscriptions = subscriptionRepository.countByIsActiveTrue();
+        long totalUsers = userIdentityQuery.countUsers();
+        long totalActiveSubscriptions = subscriptionStatisticsQuery.countActiveSubscriptions();
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
-        long todayNotifications = notificationHistoryRepository.countByCreatedAtAfter(startOfToday);
-        LocalDateTime lastCrawledAt = crawlerRunStateService.findLastSuccessAt().orElse(null);
+        long todayNotifications = notificationHistoryQuery.countCreatedAfter(startOfToday);
+        LocalDateTime lastCrawledAt = crawlerStatusQuery.findLastSuccessAt().orElse(null);
 
         return AdminDashboardResponse.builder().totalUsers(totalUsers)
                 .totalActiveSubscriptions(totalActiveSubscriptions).todayNotificationCount(todayNotifications)
@@ -63,11 +65,11 @@ public class AdminService {
      */
     public AdminOverviewResponse getDashboardOverview() {
         LocalDateTime now = LocalDateTime.now();
-        long totalUsers = userRepository.count();
-        long totalActiveSubscriptions = subscriptionRepository.countByIsActiveTrue();
+        long totalUsers = userIdentityQuery.countUsers();
+        long totalActiveSubscriptions = subscriptionStatisticsQuery.countActiveSubscriptions();
         LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
-        long todayNotifications = notificationHistoryRepository.countByCreatedAtAfter(startOfToday);
-        LocalDateTime lastCrawledAt = crawlerRunStateService.findLastSuccessAt().orElse(null);
+        long todayNotifications = notificationHistoryQuery.countCreatedAfter(startOfToday);
+        LocalDateTime lastCrawledAt = crawlerStatusQuery.findLastSuccessAt().orElse(null);
 
         return AdminOverviewResponse.builder()
                 .totalUsers(totalUsers)
@@ -87,7 +89,7 @@ public class AdminService {
      */
     public AdminDashboardSnapshotResponse getDashboardSnapshot() {
         AdminOverviewResponse overview = getDashboardOverview();
-        AdminCrawlTargetResponse crawlTarget = courseCrawlerTargetService.getCurrentTarget();
+        CrawlerAdminSnapshot crawlTarget = crawlerAdminSnapshotQuery.findCurrentAdminSnapshot();
 
         return AdminDashboardSnapshotResponse.builder()
                 .overview(overview)
@@ -117,7 +119,7 @@ public class AdminService {
                 .withSecond(0)
                 .withNano(0);
 
-        List<LocalDateTime> histories = notificationHistoryRepository.findCreatedAtByCreatedAtAfter(startHour);
+        List<LocalDateTime> histories = notificationHistoryQuery.findCreatedAtAfter(startHour);
         long[] hourlyCounts = new long[24];
 
         for (LocalDateTime createdAt : histories) {
@@ -144,7 +146,7 @@ public class AdminService {
      * 알림 기록 및 크롤러 상태를 기반으로 최근 시스템 로그 목록을 구성합니다.
      */
     private List<AdminRecentLogResponse> buildRecentLogs(LocalDateTime now, LocalDateTime lastCrawledAt) {
-        List<AdminRecentLogResponse> notificationLogs = notificationHistoryRepository.findTop50ByOrderByCreatedAtDesc()
+        List<AdminRecentLogResponse> notificationLogs = notificationHistoryQuery.findLatest()
                 .stream()
                 .map(this::toNotificationLog)
                 .toList();
@@ -172,10 +174,10 @@ public class AdminService {
     /**
      * 알림 이력 데이터를 로그 형태의 응답 객체로 변환합니다.
      */
-    private AdminRecentLogResponse toNotificationLog(NotificationHistory history) {
-        String message = String.format("알림 발송 완료: %s (%s)", history.getTitle(), history.getChannel().name());
+    private AdminRecentLogResponse toNotificationLog(NotificationHistoryItem history) {
+        String message = String.format("알림 발송 완료: %s (%s)", history.title(), history.channel().name());
         return AdminRecentLogResponse.builder()
-                .timestamp(history.getCreatedAt())
+                .timestamp(history.createdAt())
                 .level("INFO")
                 .message(message)
                 .source("NotificationService")
@@ -218,15 +220,32 @@ public class AdminService {
     @Transactional
     public void sendTestNotification() {
         String email = SecurityUtil.getCurrentUserEmail();
-        User user = userRepository.findByEmail(email)
+        NotificationRecipient user = userNotificationQuery.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, "email: " + email));
 
-        List<NotificationChannel> channels = user.getEnabledNotificationChannels();
+        List<NotificationChannel> channels = enabledChannels(user);
 
         if (channels.isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "활성화된 알림 채널이 없습니다. 설정에서 알림을 활성화해주세요.");
         }
 
-        notificationService.sendTestNotification(user, channels);
+        notificationTestSender.sendAdminTestNotification(user.id(), channels);
+    }
+
+    private List<NotificationChannel> enabledChannels(NotificationRecipient user) {
+        List<NotificationChannel> channels = new ArrayList<>();
+        if (user.emailEnabled()) {
+            channels.add(NotificationChannel.EMAIL);
+        }
+        if (user.fcmEnabled()) {
+            channels.add(NotificationChannel.FCM);
+        }
+        if (user.webPushEnabled()) {
+            channels.add(NotificationChannel.WEB);
+        }
+        if (user.discordEnabled()) {
+            channels.add(NotificationChannel.DISCORD);
+        }
+        return channels;
     }
 }

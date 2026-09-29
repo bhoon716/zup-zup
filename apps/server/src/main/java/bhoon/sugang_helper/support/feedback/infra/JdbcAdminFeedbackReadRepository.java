@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.support.feedback.infra;
 
-import bhoon.sugang_helper.support.feedback.domain.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.contract.AdminFeedbackDeletionFilter;
 import bhoon.sugang_helper.support.feedback.domain.AdminFeedbackReadRepository;
 import bhoon.sugang_helper.support.feedback.domain.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.domain.FeedbackType;

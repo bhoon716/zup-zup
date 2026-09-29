@@ -12,8 +12,8 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseRepository;
+import bhoon.sugang_helper.academic.course.contract.CourseReference;
+import bhoon.sugang_helper.academic.course.contract.CourseReviewCatalog;
 import bhoon.sugang_helper.academic.review.domain.CourseReview;
 import bhoon.sugang_helper.academic.review.domain.CourseReviewReaction;
 import bhoon.sugang_helper.academic.review.domain.CourseReviewReactionRepository;
@@ -22,7 +22,8 @@ import bhoon.sugang_helper.academic.review.domain.ReactionType;
 import bhoon.sugang_helper.academic.review.domain.ReviewScopeKey;
 import bhoon.sugang_helper.identity.user.domain.Role;
 import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -60,10 +61,10 @@ class CourseReviewServiceTest {
     private CourseReviewReactionRepository reactionRepository;
 
     @Mock
-    private CourseRepository courseRepository;
+    private CourseReviewCatalog courseReviewCatalog;
 
     @Mock
-    private UserRepository userRepository;
+    private UserIdentityQuery userIdentityQuery;
 
     private MockedStatic<SecurityUtil> securityUtilMockedStatic;
 
@@ -88,19 +89,12 @@ class CourseReviewServiceTest {
                 .build();
     }
 
-    private Course createCourse() {
+    private CourseReference createCourse() {
         return createCourse(PROFESSOR);
     }
 
-    private Course createCourse(String professor) {
-        return Course.builder()
-                .courseKey(COURSE_KEY)
-                .subjectCode(SUBJECT_CODE)
-                .professor(professor)
-                .name("자료구조")
-                .averageRating(4.0f)
-                .reviewCount(10)
-                .build();
+    private CourseReference createCourse(String professor) {
+        return new CourseReference(COURSE_KEY, SUBJECT_CODE, professor);
     }
 
     private CourseReview createReview(String courseKey, Long userId) {
@@ -111,19 +105,22 @@ class CourseReviewServiceTest {
                 .build();
     }
 
+    private UserIdentity identity(User user) {
+        return new UserIdentity(user.getId(), user.getRole() == Role.ADMIN);
+    }
+
     private void mockCurrentUser(User user) {
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmail).thenReturn(user.getEmail());
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
-        lenient().when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        lenient().when(userIdentityQuery.findByEmail(user.getEmail())).thenReturn(Optional.of(identity(user)));
     }
 
-    private void mockCourseStats(Course course, double avgRating, long count) {
+    private void mockCourseStats(CourseReference course, double avgRating, long count) {
         lenient().when(reviewRepository.getAverageRatingBySubjectCodeAndProfessor(SUBJECT_CODE, NORMALIZED_PROFESSOR))
                 .thenReturn(avgRating);
         lenient().when(reviewRepository.countBySubjectCodeAndProfessor(SUBJECT_CODE, NORMALIZED_PROFESSOR))
                 .thenReturn(count);
-        lenient().when(courseRepository.findBySubjectCodeAndProfessor(SUBJECT_CODE, NORMALIZED_PROFESSOR))
-                .thenReturn(List.of(course));
+
     }
 
     @Nested
@@ -137,8 +134,8 @@ class CourseReviewServiceTest {
             mockCurrentUser(user);
             ReviewCreateRequest request = new ReviewCreateRequest(5);
 
-            Course course = createCourse();
-            lenient().when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
+            CourseReference course = createCourse();
+            lenient().when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             lenient().when(reviewRepository.countBySubjectCodeAndProfessorAndUserId(SUBJECT_CODE, NORMALIZED_PROFESSOR,
                     user.getId())).thenReturn(0L);
 
@@ -154,8 +151,8 @@ class CourseReviewServiceTest {
             ReviewResponse response = reviewService.createReview(COURSE_KEY, request);
 
             assertThat(response.rating()).isEqualTo(5);
-            assertThat(course.getAverageRating()).isEqualTo(4.1f);
-            assertThat(course.getReviewCount()).isEqualTo(11);
+            verify(courseReviewCatalog).updateReviewStats(course, 4.1f, 11);
+
             verify(reviewRepository).saveAndFlush(any());
         }
 
@@ -166,8 +163,8 @@ class CourseReviewServiceTest {
             mockCurrentUser(user);
             ReviewCreateRequest request = new ReviewCreateRequest(5);
 
-            Course course = createCourse();
-            lenient().when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
+            CourseReference course = createCourse();
+            lenient().when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             lenient().when(reviewRepository.countBySubjectCodeAndProfessorAndUserId(SUBJECT_CODE, NORMALIZED_PROFESSOR,
                     user.getId())).thenReturn(0L);
 
@@ -192,8 +189,8 @@ class CourseReviewServiceTest {
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
             ReviewCreateRequest request = new ReviewCreateRequest(5);
-            Course course = createCourse("교수 미지정");
-            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
+            CourseReference course = createCourse("교수 미지정");
+            when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             when(reviewRepository.existsByCourseKeyAndUserId(COURSE_KEY, user.getId())).thenReturn(false);
             when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(createReview(COURSE_KEY, user.getId()));
             when(reviewRepository.countByCourseKey(COURSE_KEY)).thenReturn(1L);
@@ -201,10 +198,8 @@ class CourseReviewServiceTest {
 
             reviewService.createReview(COURSE_KEY, request);
 
-            assertThat(course.getAverageRating()).isEqualTo(5.0f);
-            assertThat(course.getReviewCount()).isEqualTo(1);
             verify(reviewRepository).existsByCourseKeyAndUserId(COURSE_KEY, user.getId());
-            verify(courseRepository, never()).findBySubjectCodeAndProfessor(SUBJECT_CODE, "");
+            verify(courseReviewCatalog).updateReviewStats(course, 5.0f, 1);
         }
 
         @Test
@@ -216,7 +211,7 @@ class CourseReviewServiceTest {
             String invalidCourseKey = "INVALID";
             ReviewCreateRequest request = new ReviewCreateRequest(5);
 
-            when(courseRepository.findByCourseKey(invalidCourseKey)).thenReturn(Optional.empty());
+            when(courseReviewCatalog.findByCourseKey(invalidCourseKey)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> reviewService.createReview(invalidCourseKey, request))
                     .isInstanceOf(CustomException.class)
@@ -230,7 +225,7 @@ class CourseReviewServiceTest {
             mockCurrentUser(user);
             ReviewCreateRequest request = new ReviewCreateRequest(5);
 
-            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
+            when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
             when(reviewRepository.countBySubjectCodeAndProfessorAndUserId(SUBJECT_CODE, NORMALIZED_PROFESSOR,
                     user.getId())).thenReturn(1L);
 
@@ -257,7 +252,7 @@ class CourseReviewServiceTest {
             CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
             Page<CourseReview> page = new PageImpl<>(List.of(review));
 
-            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
+            when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
             when(reviewRepository.findBySubjectCodeAndProfessorWithMyReviewFirst(SUBJECT_CODE, NORMALIZED_PROFESSOR,
                     user.getId(), pageRequest)).thenReturn(page);
 
@@ -276,7 +271,7 @@ class CourseReviewServiceTest {
             PageRequest pageRequest = PageRequest.of(0, 10);
             CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
             Page<CourseReview> page = new PageImpl<>(List.of(review));
-            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse("교수 미지정")));
+            when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse("교수 미지정")));
             when(reviewRepository.findByCourseKeyWithMyReviewFirst(COURSE_KEY, user.getId(), pageRequest))
                     .thenReturn(page);
 
@@ -297,7 +292,7 @@ class CourseReviewServiceTest {
             PageRequest pageRequest = PageRequest.of(0, 10);
             CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
             Page<CourseReview> page = new PageImpl<>(List.of(review));
-            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse("외부교원1")));
+            when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse("외부교원1")));
             when(reviewRepository.findBySubjectCodeAndProfessorWithMyReviewFirst(
                     SUBJECT_CODE, "외부교원1", user.getId(), pageRequest)).thenReturn(page);
 
@@ -325,16 +320,16 @@ class CourseReviewServiceTest {
 
             when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
 
-            Course course = createCourse();
-            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
+            CourseReference course = createCourse();
+            when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             mockCourseStats(course, 4.2, 10L);
 
             ReviewResponse response = reviewService.updateReview(REVIEW_ID, request);
 
             assertThat(response.rating()).isEqualTo(2);
             assertThat(review.getRating()).isEqualTo(2);
-            assertThat(course.getAverageRating()).isEqualTo(4.2f);
-            assertThat(course.getReviewCount()).isEqualTo(10);
+            verify(courseReviewCatalog).updateReviewStats(course, 4.2f, 10);
+
         }
 
         @Test
@@ -439,15 +434,15 @@ class CourseReviewServiceTest {
             CourseReview review = createReview(COURSE_KEY, user.getId());
             when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
 
-            Course course = createCourse();
-            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
+            CourseReference course = createCourse();
+            when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             mockCourseStats(course, 4.0, 9L);
 
             reviewService.deleteReview(REVIEW_ID);
 
             verify(reviewRepository).delete(review);
-            assertThat(course.getAverageRating()).isEqualTo(4.0f);
-            assertThat(course.getReviewCount()).isEqualTo(9);
+            verify(courseReviewCatalog).updateReviewStats(course, 4.0f, 9);
+
         }
 
         @Test
@@ -473,15 +468,15 @@ class CourseReviewServiceTest {
             CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
             when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
 
-            Course course = createCourse();
-            when(courseRepository.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
+            CourseReference course = createCourse();
+            when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             mockCourseStats(course, 4.0, 9L);
 
             reviewService.deleteReview(REVIEW_ID);
 
             verify(reviewRepository).delete(review);
-            assertThat(course.getAverageRating()).isEqualTo(4.0f);
-            assertThat(course.getReviewCount()).isEqualTo(9);
+            verify(courseReviewCatalog).updateReviewStats(course, 4.0f, 9);
+
         }
     }
 }

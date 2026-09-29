@@ -1,7 +1,5 @@
 package bhoon.sugang_helper.admin.application;
 
-import bhoon.sugang_helper.support.feedback.domain.FeedbackStatus;
-import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Set;
@@ -24,9 +22,9 @@ public record AdminAuditMetadata(String schema, int version, String event, Admin
             "DELIVERY_REPLAYED",
             "LEGACY_SANITIZED");
 
-    public static AdminAuditMetadata statusChanged(FeedbackStatus previousStatus, FeedbackStatus newStatus) {
+    public static AdminAuditMetadata statusChanged(String previousStatus, String newStatus) {
         return create("STATUS_CHANGED", new AdminAuditMetadataData(
-                null, null, null, previousStatus.name(), newStatus.name(), null, null, null));
+                null, null, null, previousStatus, newStatus, null, null, null));
     }
 
     public static AdminAuditMetadata replyCreated(Long feedbackId, ContentSummary content) {
@@ -57,9 +55,9 @@ public record AdminAuditMetadata(String schema, int version, String event, Admin
                 feedbackId, null, null, null, null, null, null, null));
     }
 
-    public static AdminAuditMetadata deliveryReplayed(SeatNotificationDeliveryStatus previousStatus, int attemptsBefore) {
+    public static AdminAuditMetadata deliveryReplayed(String previousStatus, int attemptsBefore) {
         return create("DELIVERY_REPLAYED", new AdminAuditMetadataData(
-                null, null, null, previousStatus.name(), null, attemptsBefore, true, null));
+                null, null, null, previousStatus, null, attemptsBefore, true, null));
     }
 
     public static AdminAuditMetadata legacySanitized() {

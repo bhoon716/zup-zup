@@ -6,19 +6,16 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.admin.application.AdminAuditService;
+import bhoon.sugang_helper.admin.contract.AdminAuditRecorder;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationDeliveryJpaRepository;
-import bhoon.sugang_helper.identity.user.domain.Role;
-import bhoon.sugang_helper.identity.user.domain.User;
 import java.time.LocalDateTime;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,16 +29,11 @@ class AdminNotificationDeliveryServiceTest {
     @Mock
     private SeatNotificationDeliveryJpaRepository deliveryRepository;
     @Mock
-    private AdminAuditService adminAuditService;
+    private AdminAuditRecorder adminAuditRecorder;
     @InjectMocks
     private AdminNotificationDeliveryService service;
 
-    private User admin;
-
-    @BeforeEach
-    void setUp() {
-        admin = User.builder().id(7L).email("admin@example.com").role(Role.ADMIN).build();
-    }
+    private static final Long ADMIN_ID = 7L;
 
     @Test
     void replayingDlqDeliveryKeepsItsKeyAndWritesOneAuditLog() {
@@ -49,14 +41,14 @@ class AdminNotificationDeliveryServiceTest {
         String idempotencyKey = delivery.getIdempotencyKey();
         when(deliveryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(delivery));
 
-        AdminNotificationDeliveryResponse response = service.replay(admin, 1L, false);
+        AdminNotificationDeliveryResponse response = service.replay(ADMIN_ID, 1L, false);
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.idempotencyKeyRetained()).isTrue();
         assertThat(delivery.getIdempotencyKey()).isEqualTo(idempotencyKey);
         assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.PENDING);
         assertThat(delivery.getAttempts()).isZero();
-        verify(adminAuditService).recordDeliveryReplay(admin, 1L, SeatNotificationDeliveryStatus.DLQ, 1);
+        verify(adminAuditRecorder).recordDeliveryReplay(ADMIN_ID, 1L, "DLQ", 1);
     }
 
     @Test
@@ -64,13 +56,13 @@ class AdminNotificationDeliveryServiceTest {
         SeatNotificationDelivery delivery = sentDelivery();
         when(deliveryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(delivery));
 
-        assertThatThrownBy(() -> service.replay(admin, 1L, false))
+        assertThatThrownBy(() -> service.replay(ADMIN_ID, 1L, false))
                 .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.NOTIFICATION_DELIVERY_REPLAY_NOT_ALLOWED);
 
         assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.SENT);
-        verify(adminAuditService, never()).recordDeliveryReplay(admin, 1L, SeatNotificationDeliveryStatus.SENT, 0);
+        verify(adminAuditRecorder, never()).recordDeliveryReplay(ADMIN_ID, 1L, "SENT", 0);
     }
 
     @Test
@@ -79,11 +71,11 @@ class AdminNotificationDeliveryServiceTest {
         String idempotencyKey = delivery.getIdempotencyKey();
         when(deliveryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(delivery));
 
-        service.replay(admin, 1L, true);
+        service.replay(ADMIN_ID, 1L, true);
 
         assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.PENDING);
         assertThat(delivery.getIdempotencyKey()).isEqualTo(idempotencyKey);
-        verify(adminAuditService).recordDeliveryReplay(admin, 1L, SeatNotificationDeliveryStatus.SENT, 0);
+        verify(adminAuditRecorder).recordDeliveryReplay(ADMIN_ID, 1L, "SENT", 0);
     }
 
     private SeatNotificationDelivery dlqDelivery() {

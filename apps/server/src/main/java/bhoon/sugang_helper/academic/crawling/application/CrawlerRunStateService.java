@@ -5,6 +5,7 @@ import bhoon.sugang_helper.common.alert.SlackAlertService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerStatusQuery;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerFailureStage;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerRunFailure;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerRunFailureRepository;
@@ -19,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class CrawlerRunStateService {
+public class CrawlerRunStateService implements CrawlerStatusQuery {
 
     private final CrawlerStatusRepository crawlerStatusRepository;
     private final CrawlerRunFailureRepository crawlerRunFailureRepository;
@@ -64,6 +65,7 @@ public class CrawlerRunStateService {
         return SlackAlertCategory.CRAWLER_FETCH;
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Optional<LocalDateTime> findLastSuccessAt() {
         return crawlerStatusRepository.findById(CrawlerStatus.SINGLETON_ID)

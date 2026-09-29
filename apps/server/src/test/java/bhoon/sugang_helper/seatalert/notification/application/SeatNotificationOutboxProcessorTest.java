@@ -9,13 +9,12 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationDeliveryJpaRepository;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationOutboxJpaRepository;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationProviderException;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.identity.user.domain.UserDeviceRepository;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationProviderException;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationQuery;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -42,11 +41,9 @@ class SeatNotificationOutboxProcessorTest {
     @Mock
     private SeatNotificationDeliveryJpaRepository deliveryRepository;
     @Mock
-    private SubscriptionRepository subscriptionRepository;
+    private SubscriptionRecipientQuery subscriptionRecipientQuery;
     @Mock
-    private UserRepository userRepository;
-    @Mock
-    private UserDeviceRepository userDeviceRepository;
+    private UserNotificationQuery userNotificationQuery;
     @Mock
     private NotificationChannelPolicy notificationChannelPolicy;
     @Mock

@@ -1,11 +1,13 @@
 package bhoon.sugang_helper.seatalert.notification.infra;
 
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationTarget;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.identity.user.application.UserDeviceService;
-import bhoon.sugang_helper.identity.user.application.WebPushEndpointValidator;
+import bhoon.sugang_helper.identity.user.contract.UserDeviceWebPushManagement;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -38,8 +40,7 @@ class WebPushNotificationSenderTest {
     void setUp() {
         webPushNotificationSender = new WebPushNotificationSender("", "", "",
                 new ObjectMapper(),
-                Mockito.mock(UserDeviceService.class),
-                new WebPushEndpointValidator());
+                Mockito.mock(UserDeviceWebPushManagement.class));
     }
 
     @Test

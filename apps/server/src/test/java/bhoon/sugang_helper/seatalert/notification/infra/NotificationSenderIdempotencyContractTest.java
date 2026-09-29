@@ -1,5 +1,8 @@
 package bhoon.sugang_helper.seatalert.notification.infra;
 
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationSender;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationTarget;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -12,8 +15,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import bhoon.sugang_helper.common.util.EmailTemplateService;
-import bhoon.sugang_helper.identity.user.application.UserDeviceService;
-import bhoon.sugang_helper.identity.user.application.WebPushEndpointValidator;
+import bhoon.sugang_helper.identity.user.contract.UserDeviceWebPushManagement;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -93,7 +95,7 @@ class NotificationSenderIdempotencyContractTest {
     @Test
     void webPushCarriesTheDeliveryKeyInBothTopicAndEncryptedPayload() throws Exception {
         WebPushNotificationSender sender = new WebPushNotificationSender("", "", "",
-                new ObjectMapper(), mock(UserDeviceService.class), new WebPushEndpointValidator());
+                new ObjectMapper(), mock(UserDeviceWebPushManagement.class));
         Method idempotentSend = idempotentSendMethod(sender);
         PushService pushService = mock(PushService.class);
         HttpResponse response = mock(HttpResponse.class);

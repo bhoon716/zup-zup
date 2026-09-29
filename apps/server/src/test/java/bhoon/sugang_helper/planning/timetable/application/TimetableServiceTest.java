@@ -12,17 +12,17 @@ import static org.mockito.Mockito.verify;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseRepository;
+import bhoon.sugang_helper.academic.course.contract.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.contract.CourseSummary;
 import bhoon.sugang_helper.planning.timetable.application.command.CustomScheduleRequest;
 import bhoon.sugang_helper.planning.timetable.application.command.TimetableRequest;
 import bhoon.sugang_helper.planning.timetable.domain.Timetable;
 import bhoon.sugang_helper.planning.timetable.domain.TimetableEntry;
 import bhoon.sugang_helper.planning.timetable.domain.TimetableEntryRepository;
 import bhoon.sugang_helper.planning.timetable.domain.TimetableRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRegisteredEvent;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserRegisteredEvent;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -49,15 +49,15 @@ class TimetableServiceTest {
     @Mock
     private TimetableEntryRepository timetableEntryRepository;
     @Mock
-    private CourseRepository courseRepository;
+    private CourseCatalogQuery courseCatalogQuery;
     @Mock
-    private UserRepository userRepository;
-    private User testUser;
+    private UserIdentityQuery userIdentityQuery;
+    private UserIdentity testUser;
 
     @BeforeEach
     void setUp() {
         securityUtil = mockStatic(SecurityUtil.class);
-        testUser = mock(User.class);
+        testUser = new UserIdentity(1L, false);
     }
 
     @AfterEach
@@ -66,9 +66,8 @@ class TimetableServiceTest {
     }
 
     private void mockUser() {
-        given(testUser.getId()).willReturn(1L);
         given(SecurityUtil.getCurrentUserEmail()).willReturn(testEmail);
-        given(userRepository.findByEmail(testEmail)).willReturn(Optional.of(testUser));
+        given(userIdentityQuery.findByEmail(testEmail)).willReturn(Optional.of(testUser));
     }
 
     @Test
@@ -110,7 +109,7 @@ class TimetableServiceTest {
         Timetable timetable = Timetable.builder().userId(1L).name("P1").build();
         given(timetableRepository.findById(1L)).willReturn(Optional.of(timetable));
 
-        given(courseRepository.existsByCourseKey("CK1")).willReturn(true);
+        given(courseCatalogQuery.existsByCourseKey("CK1")).willReturn(true);
         given(timetableEntryRepository.findByTimetableIdAndCourseKey(1L, "CK1")).willReturn(Optional.empty());
 
         // when
@@ -130,7 +129,7 @@ class TimetableServiceTest {
         timetable.addEntry(existingEntry);
 
         given(timetableRepository.findById(1L)).willReturn(Optional.of(timetable));
-        given(courseRepository.existsByCourseKey("NEW")).willReturn(true);
+        given(courseCatalogQuery.existsByCourseKey("NEW")).willReturn(true);
         given(timetableEntryRepository.findByTimetableIdAndCourseKey(1L, "NEW")).willReturn(Optional.empty());
 
         // when
@@ -221,16 +220,19 @@ class TimetableServiceTest {
         timetable.addEntry(entry);
         given(timetableRepository.findById(1L)).willReturn(Optional.of(timetable));
 
-        Course existingCourse = Course.builder().courseKey("CK1").name("Existing Course")
-                .credits("3").build();
-        Course replacementCourse = Course.builder().courseKey("CK1").name("Replacement Course")
-                .credits("3").build();
-        given(courseRepository.findByCourseKeyIn(List.of("CK1")))
+        CourseSummary existingCourse = summary("CK1", "Existing Course");
+        CourseSummary replacementCourse = summary("CK1", "Replacement Course");
+        given(courseCatalogQuery.findByCourseKeyIn(List.of("CK1")))
                 .willReturn(List.of(existingCourse, replacementCourse));
 
         var response = timetableService.getTimetableDetail(1L);
 
         assertThat(response.getCourses()).singleElement().satisfies(course ->
                 assertThat(course.getName()).isEqualTo("Existing Course"));
+    }
+
+    private CourseSummary summary(String courseKey, String name) {
+        return new CourseSummary(courseKey, "SUBJECT", "01", name, "Professor", 30, 0,
+                "2026", "U211600010", "전공필수", "3", "", "", List.of());
     }
 }

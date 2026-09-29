@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.admin.application;
 
-import bhoon.sugang_helper.academic.crawling.application.AdminCrawlTargetResponse;
+import bhoon.sugang_helper.academic.crawling.contract.CrawlerAdminSnapshot;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,5 +14,5 @@ public class AdminDashboardSnapshotResponse {
     private AdminOverviewResponse overview;
 
     @Schema(description = "기본 크롤링 타겟")
-    private AdminCrawlTargetResponse crawlTarget;
+    private CrawlerAdminSnapshot crawlTarget;
 }

@@ -11,12 +11,9 @@ import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutboxStatus;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationDeliveryJpaRepository;
 import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationOutboxJpaRepository;
-import bhoon.sugang_helper.seatalert.subscription.domain.Subscription;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.identity.user.domain.Role;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserDeviceRepository;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.identity.user.contract.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationQuery;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -43,11 +40,9 @@ class SeatNotificationOutboxRecoveryTest {
     @Autowired
     private SeatNotificationDeliveryJpaRepository deliveryRepository;
     @MockitoBean
-    private SubscriptionRepository subscriptionRepository;
+    private SubscriptionRecipientQuery subscriptionRecipientQuery;
     @MockitoBean
-    private UserRepository userRepository;
-    @MockitoBean
-    private UserDeviceRepository userDeviceRepository;
+    private UserNotificationQuery userNotificationQuery;
     @MockitoBean
     private NotificationService notificationService;
 
@@ -59,11 +54,11 @@ class SeatNotificationOutboxRecoveryTest {
                 .previousSeats(0)
                 .currentSeats(1)
                 .build());
-        Subscription subscription = Subscription.builder().userId(1L).courseKey("course-key").isActive(true).build();
-        User user = User.builder().id(1L).email("user@example.com").role(Role.USER).emailEnabled(true).build();
-        when(subscriptionRepository.findByCourseKeyAndIsActiveTrue("course-key")).thenReturn(List.of(subscription));
-        when(userRepository.findAllById(List.of(1L))).thenReturn(List.of(user));
-        when(userDeviceRepository.findByUserIdIn(List.of(1L))).thenReturn(List.of());
+        NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
+                true, false, false, false, null);
+        when(subscriptionRecipientQuery.findActiveRecipientIds("course-key")).thenReturn(List.of(1L));
+        when(userNotificationQuery.findByIds(List.of(1L))).thenReturn(List.of(user));
+        when(userNotificationQuery.findDevicesByUserIds(List.of(1L))).thenReturn(List.of());
 
         processor.materializePendingOutboxes();
         List<SeatNotificationDeliveryClaim> deliveryClaims = processor.claimReadyDeliveries();

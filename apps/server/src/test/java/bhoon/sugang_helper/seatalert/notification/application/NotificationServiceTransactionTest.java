@@ -9,22 +9,18 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.common.redis.RedisService;
-import bhoon.sugang_helper.academic.course.domain.SeatOpenedEvent;
+import bhoon.sugang_helper.academic.course.contract.SeatOpenedEvent;
 import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.domain.NotificationHistoryRepository;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.seatalert.notification.infra.DiscordNotificationSender;
 import bhoon.sugang_helper.seatalert.notification.infra.EmailNotificationSender;
 import bhoon.sugang_helper.seatalert.notification.infra.FcmNotificationSender;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationProviderResilience;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationProviderExecutor;
 import bhoon.sugang_helper.seatalert.notification.infra.WebPushNotificationSender;
-import bhoon.sugang_helper.seatalert.subscription.domain.Subscription;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
-import bhoon.sugang_helper.identity.user.domain.Role;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserDeviceRepository;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.identity.user.contract.UserNotificationQuery;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,11 +64,9 @@ class NotificationServiceTransactionTest {
     @MockitoBean
     private RedisService redisService;
     @MockitoBean
-    private SubscriptionRepository subscriptionRepository;
+    private SubscriptionRecipientQuery subscriptionRecipientQuery;
     @MockitoBean
-    private UserRepository userRepository;
-    @MockitoBean
-    private UserDeviceRepository userDeviceRepository;
+    private UserNotificationQuery userNotificationQuery;
     @MockitoBean
     private NotificationHistoryRepository notificationHistoryRepository;
     @MockitoBean
@@ -84,7 +78,7 @@ class NotificationServiceTransactionTest {
     @MockitoBean
     private DiscordNotificationSender discordNotificationSender;
     @MockitoBean
-    private NotificationProviderResilience notificationProviderResilience;
+    private NotificationProviderExecutor notificationProviderExecutor;
 
     @BeforeEach
     void clearOutbox() {
@@ -97,22 +91,8 @@ class NotificationServiceTransactionTest {
         // given
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
-        Subscription subscription = Subscription.builder().userId(1L).courseKey(COURSE_KEY).isActive(true).build();
-        User user = User.builder()
-                .id(1L)
-                .email("test@example.com")
-                .name("Tester")
-                .role(Role.USER)
-                .emailEnabled(true)
-                .discordEnabled(false)
-                .webPushEnabled(false)
-                .fcmEnabled(false)
-                .build();
-
         when(redisService.setValuesIfAbsent(eq("ALERT:" + COURSE_KEY), eq("PENDING"), any(Duration.class)))
                 .thenReturn(true);
-        when(subscriptionRepository.findByCourseKeyAndIsActiveTrue(COURSE_KEY)).thenReturn(List.of(subscription));
-        when(userRepository.findAllById(List.of(1L))).thenReturn(List.of(user));
         when(emailNotificationSender.supports(NotificationChannel.EMAIL)).thenReturn(true);
         when(fcmNotificationSender.supports(NotificationChannel.FCM)).thenReturn(false);
         when(webPushNotificationSender.supports(NotificationChannel.WEB)).thenReturn(false);

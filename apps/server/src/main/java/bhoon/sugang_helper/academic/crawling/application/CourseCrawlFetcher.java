@@ -2,8 +2,8 @@ package bhoon.sugang_helper.academic.crawling.application;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.academic.course.domain.ParsedCourseDto;
-import bhoon.sugang_helper.academic.crawling.infra.JbnuCourseApiClient;
+import bhoon.sugang_helper.academic.course.contract.ParsedCourseDto;
+import bhoon.sugang_helper.academic.crawling.application.port.CourseApiClient;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class CourseCrawlFetcher {
 
-    private final JbnuCourseApiClient apiClient;
+    private final CourseApiClient apiClient;
     private final JbnuCourseParser courseParser;
 
     @Value("${jbnu.api.cert-divisions}")

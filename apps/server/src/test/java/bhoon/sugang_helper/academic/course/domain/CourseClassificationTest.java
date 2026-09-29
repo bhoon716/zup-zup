@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.academic.course.domain;
 
+import bhoon.sugang_helper.academic.course.contract.CourseClassification;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.DisplayName;

@@ -6,8 +6,8 @@ import static org.mockito.BDDMockito.given;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.academic.course.domain.ParsedCourseDto;
-import bhoon.sugang_helper.academic.crawling.infra.JbnuCourseApiClient;
+import bhoon.sugang_helper.academic.course.contract.ParsedCourseDto;
+import bhoon.sugang_helper.academic.crawling.application.port.CourseApiClient;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.List;
@@ -30,7 +30,7 @@ class CourseCrawlFetcherTest {
     private static final String SEMESTER = "U211600010";
 
     @Mock
-    private JbnuCourseApiClient apiClient;
+    private CourseApiClient apiClient;
     @Mock
     private JbnuCourseParser courseParser;
 

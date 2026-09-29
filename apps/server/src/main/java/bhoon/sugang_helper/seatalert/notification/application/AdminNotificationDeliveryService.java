@@ -1,13 +1,12 @@
 package bhoon.sugang_helper.seatalert.notification.application;
 
-import bhoon.sugang_helper.admin.application.AdminAuditService;
+import bhoon.sugang_helper.admin.contract.AdminAuditRecorder;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
-import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationDeliveryJpaRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
+import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,8 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminNotificationDeliveryService {
 
-    private final SeatNotificationDeliveryJpaRepository deliveryRepository;
-    private final AdminAuditService adminAuditService;
+    private final SeatNotificationDeliveryRepository deliveryRepository;
+    private final AdminAuditRecorder adminAuditRecorder;
 
     public Page<AdminNotificationDeliveryResponse> getDeadLetters(Pageable pageable) {
         return deliveryRepository.findByStatusOrderByDeadLetteredAtDescIdDesc(
@@ -36,7 +35,7 @@ public class AdminNotificationDeliveryService {
     }
 
     @Transactional
-    public AdminNotificationDeliveryResponse replay(User admin, Long deliveryId, boolean forceSentReplay) {
+    public AdminNotificationDeliveryResponse replay(Long adminId, Long deliveryId, boolean forceSentReplay) {
         SeatNotificationDelivery delivery = deliveryRepository.findByIdForUpdate(deliveryId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
         SeatNotificationDeliveryStatus previousStatus = delivery.getStatus();
@@ -48,7 +47,7 @@ public class AdminNotificationDeliveryService {
         int attemptsBefore = delivery.getAttempts();
         delivery.replay(java.time.LocalDateTime.now());
         delivery.getOutbox().markProcessing();
-        adminAuditService.recordDeliveryReplay(admin, deliveryId, previousStatus, attemptsBefore);
+        adminAuditRecorder.recordDeliveryReplay(adminId, deliveryId, previousStatus.name(), attemptsBefore);
         return AdminNotificationDeliveryResponse.from(delivery);
     }
 

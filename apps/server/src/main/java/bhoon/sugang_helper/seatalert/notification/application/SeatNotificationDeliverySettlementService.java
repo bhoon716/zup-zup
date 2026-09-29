@@ -3,8 +3,8 @@ package bhoon.sugang_helper.seatalert.notification.application;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutbox;
-import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationDeliveryJpaRepository;
-import bhoon.sugang_helper.seatalert.notification.infra.SeatNotificationOutboxJpaRepository;
+import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationDeliveryRepository;
+import bhoon.sugang_helper.seatalert.notification.domain.SeatNotificationOutboxRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +21,8 @@ public class SeatNotificationDeliverySettlementService {
     private static final List<SeatNotificationDeliveryStatus> ACTIVE_DELIVERY_STATUSES = List.of(
             SeatNotificationDeliveryStatus.PENDING, SeatNotificationDeliveryStatus.PROCESSING);
 
-    private final SeatNotificationDeliveryJpaRepository deliveryRepository;
-    private final SeatNotificationOutboxJpaRepository outboxRepository;
+    private final SeatNotificationDeliveryRepository deliveryRepository;
+    private final SeatNotificationOutboxRepository outboxRepository;
 
     @Transactional(readOnly = true)
     public SeatNotificationDeliveryDispatch loadForDispatch(SeatNotificationDeliveryClaim claim) {

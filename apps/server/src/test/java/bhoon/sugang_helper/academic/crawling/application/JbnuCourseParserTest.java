@@ -3,9 +3,9 @@ package bhoon.sugang_helper.academic.crawling.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bhoon.sugang_helper.academic.course.domain.CourseDayOfWeek;
-import bhoon.sugang_helper.academic.course.domain.ParsedCourseDto;
-import bhoon.sugang_helper.academic.course.domain.TargetGrade;
+import bhoon.sugang_helper.academic.course.contract.CourseDayOfWeek;
+import bhoon.sugang_helper.academic.course.contract.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.contract.TargetGrade;
 import bhoon.sugang_helper.common.error.CustomException;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;

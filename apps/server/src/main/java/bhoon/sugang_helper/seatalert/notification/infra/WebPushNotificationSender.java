@@ -1,10 +1,14 @@
 package bhoon.sugang_helper.seatalert.notification.infra;
 
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationSender;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.application.port.NotificationProviderException;
+
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.identity.user.application.UserDeviceService;
-import bhoon.sugang_helper.identity.user.application.WebPushEndpointValidator;
+import bhoon.sugang_helper.identity.user.contract.UserDeviceWebPushManagement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import java.security.Security;
@@ -23,8 +27,7 @@ public class WebPushNotificationSender implements NotificationSender {
     private final String privateKey;
     private final String subject;
     private final ObjectMapper objectMapper;
-    private final UserDeviceService userDeviceService;
-    private final WebPushEndpointValidator webPushEndpointValidator;
+    private final UserDeviceWebPushManagement userDeviceWebPushManagement;
     private PushService pushService;
 
     public WebPushNotificationSender(
@@ -32,14 +35,12 @@ public class WebPushNotificationSender implements NotificationSender {
             @Value("${app.webpush.private-key}") String privateKey,
             @Value("${app.webpush.subject}") String subject,
             ObjectMapper objectMapper,
-            UserDeviceService userDeviceService,
-            WebPushEndpointValidator webPushEndpointValidator) {
+            UserDeviceWebPushManagement userDeviceWebPushManagement) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
         this.subject = subject;
         this.objectMapper = objectMapper;
-        this.userDeviceService = userDeviceService;
-        this.webPushEndpointValidator = webPushEndpointValidator;
+        this.userDeviceWebPushManagement = userDeviceWebPushManagement;
     }
 
     @PostConstruct
@@ -79,7 +80,7 @@ public class WebPushNotificationSender implements NotificationSender {
             throw new CustomException(ErrorCode.WEB_PUSH_MISSING_KEYS);
         }
 
-        webPushEndpointValidator.validate(target.getRecipient());
+        userDeviceWebPushManagement.validateEndpoint(target.getRecipient());
         String endpointFingerprint = SensitiveDataRedactor.fingerprint(target.getRecipient());
 
         try {
@@ -99,7 +100,7 @@ public class WebPushNotificationSender implements NotificationSender {
             int statusCode = response.getStatusLine().getStatusCode();
 
             if (statusCode == 404 || statusCode == 410) {
-                userDeviceService.deleteDeviceByToken(target.getRecipient());
+                userDeviceWebPushManagement.deleteDeviceByToken(target.getRecipient());
                 throw new NotificationProviderException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION,
                         false, "INVALID_RECIPIENT", statusCode, null);
             }

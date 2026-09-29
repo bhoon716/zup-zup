@@ -2,7 +2,7 @@ package bhoon.sugang_helper.seatalert.notification.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 

@@ -3,13 +3,15 @@ package bhoon.sugang_helper.planning.timetable.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseRepository;
+import bhoon.sugang_helper.academic.course.contract.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.contract.CourseSummary;
 import bhoon.sugang_helper.planning.timetable.application.command.CustomScheduleRequest;
 import bhoon.sugang_helper.planning.timetable.application.command.TimetableRequest;
 import bhoon.sugang_helper.planning.timetable.application.result.TimetableCourseResponse;
 import bhoon.sugang_helper.planning.timetable.application.result.TimetableDetailResponse;
 import bhoon.sugang_helper.planning.timetable.application.result.TimetableResponse;
+import bhoon.sugang_helper.planning.timetable.contract.PrimaryTimetableQuery;
+import bhoon.sugang_helper.planning.timetable.contract.PrimaryTimetableQuery.PrimaryTimetableSnapshot;
 import bhoon.sugang_helper.planning.timetable.domain.CustomSchedule;
 import bhoon.sugang_helper.planning.timetable.domain.CustomScheduleRepository;
 import bhoon.sugang_helper.planning.timetable.domain.CustomScheduleTime;
@@ -17,11 +19,12 @@ import bhoon.sugang_helper.planning.timetable.domain.Timetable;
 import bhoon.sugang_helper.planning.timetable.domain.TimetableEntry;
 import bhoon.sugang_helper.planning.timetable.domain.TimetableEntryRepository;
 import bhoon.sugang_helper.planning.timetable.domain.TimetableRepository;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRegisteredEvent;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.contract.UserRegisteredEvent;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class TimetableService {
+public class TimetableService implements PrimaryTimetableQuery {
 
     private static final int MAX_TIMETABLE_COUNT = 10;
     private static final int MAX_COURSE_COUNT = 10;
@@ -42,23 +45,23 @@ public class TimetableService {
     private final TimetableRepository timetableRepository;
     private final TimetableEntryRepository timetableEntryRepository;
     private final CustomScheduleRepository customScheduleRepository;
-    private final CourseRepository courseRepository;
-    private final UserRepository userRepository;
+    private final CourseCatalogQuery courseCatalogQuery;
+    private final UserIdentityQuery userIdentityQuery;
 
     /**
      * 새로운 시간표를 생성합니다.
      */
     @Transactional
     public TimetableResponse createTimetable(TimetableRequest request) {
-        User user = getCurrentUser();
-        validateTimetableLimit(user.getId());
+        UserIdentity user = getCurrentUser();
+        validateTimetableLimit(user.id());
 
         if (request.isPrimary()) {
-            resetPrimary(user.getId());
+            resetPrimary(user.id());
         }
 
         Timetable timetable = Timetable.builder()
-                .userId(user.getId())
+                .userId(user.id())
                 .name(request.getName())
                 .isPrimary(request.isPrimary())
                 .build();
@@ -85,8 +88,8 @@ public class TimetableService {
      * 현재 로그인한 사용자의 모든 시간표 목록을 조회합니다.
      */
     public List<TimetableResponse> getMyTimetables() {
-        User user = getCurrentUser();
-        return timetableRepository.findByUserId(user.getId()).stream()
+        UserIdentity user = getCurrentUser();
+        return timetableRepository.findByUserId(user.id()).stream()
                 .map(TimetableResponse::of)
                 .toList();
     }
@@ -95,12 +98,44 @@ public class TimetableService {
      * 현재 로그인한 사용자의 대표 시간표 상세 정보를 조회합니다.
      */
     public TimetableDetailResponse getPrimaryTimetable() {
-        User user = getCurrentUser();
-        List<Timetable> primaryTimetables = timetableRepository.findByUserIdAndIsPrimaryTrue(user.getId());
+        UserIdentity user = getCurrentUser();
+        List<Timetable> primaryTimetables = timetableRepository.findByUserIdAndIsPrimaryTrue(user.id());
         if (primaryTimetables.isEmpty()) {
             return null;
         }
         return getTimetableDetail(primaryTimetables.get(0));
+    }
+
+    @Override
+    public Optional<PrimaryTimetableSnapshot> findPrimaryForCurrentUser() {
+        TimetableDetailResponse timetable = getPrimaryTimetable();
+        if (timetable == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new PrimaryTimetableSnapshot(
+                timetable.getId(),
+                timetable.getName(),
+                timetable.isPrimary(),
+                timetable.getCourses().stream()
+                        .map(course -> new PrimaryTimetableQuery.CourseSnapshot(
+                                course.getCourseKey(), course.getName(), course.getProfessor(), course.getClassTime(),
+                                course.getCredits(), course.getClassification(), course.getClassroom(),
+                                course.getSchedules().stream()
+                                        .map(schedule -> new PrimaryTimetableQuery.CourseScheduleSnapshot(
+                                                schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()))
+                                        .toList()))
+                        .toList(),
+                timetable.getCustomSchedules().stream()
+                        .map(schedule -> new PrimaryTimetableQuery.CustomScheduleSnapshot(
+                                schedule.getId(), schedule.getTitle(), schedule.getProfessor(),
+                                schedule.getSchedules().stream()
+                                        .map(time -> new PrimaryTimetableQuery.CustomScheduleTimeSnapshot(
+                                                time.getId(), time.getDayOfWeek(), time.getStartTime(),
+                                                time.getEndTime(), time.getClassroom()))
+                                        .toList()))
+                        .toList(),
+                timetable.getTotalCredits()));
     }
 
     /**
@@ -228,7 +263,7 @@ public class TimetableService {
      * 시간표 엔티티를 클라이언트 디테일 응답 DTO로 매핑합니다.
      */
     private TimetableDetailResponse getTimetableDetail(Timetable timetable) {
-        Map<String, Course> courseMap = findCoursesByKey(timetable);
+        Map<String, CourseSummary> courseMap = findCoursesByKey(timetable);
         List<TimetableCourseResponse> courses = mapTimetableCourses(timetable, courseMap);
         String totalCredits = calculateTotalCredits(courses);
         return TimetableDetailResponse.of(timetable, courses, totalCredits);
@@ -237,19 +272,21 @@ public class TimetableService {
     /**
      * 강좌들의 고유 정보를 조회하기 위해 map 형태로 긁어옵니다.
      */
-    private Map<String, Course> findCoursesByKey(Timetable timetable) {
+    private Map<String, CourseSummary> findCoursesByKey(Timetable timetable) {
         List<String> courseKeys = timetable.getEntries().stream()
                 .map(TimetableEntry::getCourseKey)
                 .toList();
 
-        return courseRepository.findByCourseKeyIn(courseKeys).stream()
-                .collect(Collectors.toMap(Course::getCourseKey, Function.identity(), (existing, replacement) -> existing));
+        return courseCatalogQuery.findByCourseKeyIn(courseKeys).stream()
+                .collect(Collectors.toMap(CourseSummary::courseKey, Function.identity(),
+                        (existing, replacement) -> existing));
     }
 
     /**
      * 시간표 엔티티와 강좌 목록을 대조 매치합니다.
      */
-    private List<TimetableCourseResponse> mapTimetableCourses(Timetable timetable, Map<String, Course> courseMap) {
+    private List<TimetableCourseResponse> mapTimetableCourses(
+            Timetable timetable, Map<String, CourseSummary> courseMap) {
         return timetable.getEntries().stream()
                 .map(TimetableEntry::getCourseKey)
                 .map(courseMap::get)
@@ -310,7 +347,7 @@ public class TimetableService {
      * 추가하려는 강좌가 실제 수강 데이터에 존재하는지 검증합니다.
      */
     private void validateCourseExists(String courseKey) {
-        if (courseRepository.existsByCourseKey(courseKey)) {
+        if (courseCatalogQuery.existsByCourseKey(courseKey)) {
             return;
         }
 
@@ -355,17 +392,17 @@ public class TimetableService {
     }
 
     private void validateOwnership(Timetable timetable) {
-        User user = getCurrentUser();
-        if (timetable.getUserId().equals(user.getId())) {
+        UserIdentity user = getCurrentUser();
+        if (timetable.getUserId().equals(user.id())) {
             return;
         }
 
         throw new CustomException(ErrorCode.FORBIDDEN);
     }
 
-    private User getCurrentUser() {
+    private UserIdentity getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
-        return userRepository.findByEmail(email)
+        return userIdentityQuery.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 }

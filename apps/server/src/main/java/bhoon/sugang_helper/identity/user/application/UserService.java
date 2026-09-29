@@ -6,15 +6,16 @@ import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.support.feedback.domain.FeedbackRepository;
-import bhoon.sugang_helper.seatalert.notification.application.NotificationService;
-import bhoon.sugang_helper.seatalert.notification.infra.NotificationChannel;
-import bhoon.sugang_helper.seatalert.subscription.domain.SubscriptionRepository;
+import bhoon.sugang_helper.support.feedback.contract.FeedbackAccountLifecycle;
+import bhoon.sugang_helper.seatalert.notification.contract.NotificationTestSender;
+import bhoon.sugang_helper.seatalert.contract.NotificationChannel;
+import bhoon.sugang_helper.seatalert.subscription.contract.SubscriptionAccountLifecycle;
 import bhoon.sugang_helper.identity.user.application.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.application.command.SendVerificationCodeCommand;
 import bhoon.sugang_helper.identity.user.application.command.UpdateProfileCommand;
 import bhoon.sugang_helper.identity.user.application.command.UpdateSettingsCommand;
 import bhoon.sugang_helper.identity.user.application.command.VerifyEmailCommand;
+import bhoon.sugang_helper.identity.user.contract.CurrentUserNotificationTester;
 import bhoon.sugang_helper.identity.user.application.result.UserOnboardingResult;
 import bhoon.sugang_helper.identity.user.application.result.UserProfileResult;
 import bhoon.sugang_helper.identity.user.application.result.UserProfileUpdateResult;
@@ -36,14 +37,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserService {
+public class UserService implements CurrentUserNotificationTester {
 
     private final UserRepository userRepository;
-    private final SubscriptionRepository subscriptionRepository;
+    private final SubscriptionAccountLifecycle subscriptionAccountLifecycle;
     private final UserDeviceRepository userDeviceRepository;
-    private final FeedbackRepository feedbackRepository;
+    private final FeedbackAccountLifecycle feedbackAccountLifecycle;
     private final EmailVerificationService emailVerificationService;
-    private final NotificationService notificationService;
+    private final NotificationTestSender notificationTestSender;
     private final JwtProvider jwtProvider;
     private final UserAccessRevocationService userAccessRevocationService;
 
@@ -120,9 +121,9 @@ public class UserService {
         jwtProvider.revokeAllRefreshTokens(email);
         userAccessRevocationService.revoke(userId);
         emailVerificationService.clearVerificationState(userId, email, notificationEmail);
-        subscriptionRepository.findByUserId(userId).forEach(subscription -> subscription.cancel());
+        subscriptionAccountLifecycle.cancelAllForUser(userId);
         userDeviceRepository.deleteAllByUserId(userId);
-        feedbackRepository.findAllByUserId(userId).forEach(feedback -> feedback.delete());
+        feedbackAccountLifecycle.deleteAllForUser(userId);
         log.info("[User] Soft-deleted account: userId={}", userId);
     }
 
@@ -202,6 +203,7 @@ public class UserService {
      * 현재 활성화된 채널로 테스트 알림을 발송합니다.
      */
     @Transactional
+    @Override
     public void sendTestNotification() {
         User user = getCurrentUser();
         List<NotificationChannel> channels = user.getEnabledNotificationChannels();
@@ -209,7 +211,7 @@ public class UserService {
             throw new CustomException(ErrorCode.INVALID_INPUT, "활성화된 알림 채널이 없습니다. 설정에서 알림을 활성화해주세요.");
         }
 
-        notificationService.sendUserTestNotification(user, channels);
+        notificationTestSender.sendUserTestNotification(user.getId(), channels);
         log.info("[User] Send test notification: userId={}, channels={}", user.getId(), channels);
     }
 

@@ -36,7 +36,7 @@ class CourseEmojiReviewJpaRepositoryTest {
                 .emoji("👍")
                 .build());
 
-        ReviewScopeKey scope = ReviewScopeKey.from(currentCourse);
+        ReviewScopeKey scope = ReviewScopeKey.from(currentCourse.getSubjectCode(), currentCourse.getProfessor());
         List<Object[]> stats = emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(
                 scope.subjectCode(), scope.professor());
 
@@ -65,7 +65,7 @@ class CourseEmojiReviewJpaRepositoryTest {
                 .emoji("🔥")
                 .build());
 
-        ReviewScopeKey scope = ReviewScopeKey.from(kimCourse);
+        ReviewScopeKey scope = ReviewScopeKey.from(kimCourse.getSubjectCode(), kimCourse.getProfessor());
         List<Object[]> stats = emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(
                 scope.subjectCode(), scope.professor());
 

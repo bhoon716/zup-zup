@@ -3,13 +3,13 @@ package bhoon.sugang_helper.academic.review.application;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.academic.course.domain.Course;
-import bhoon.sugang_helper.academic.course.domain.CourseRepository;
+import bhoon.sugang_helper.academic.course.contract.CourseReference;
+import bhoon.sugang_helper.academic.course.contract.CourseReviewCatalog;
 import bhoon.sugang_helper.academic.review.domain.CourseEmojiReview;
 import bhoon.sugang_helper.academic.review.domain.CourseEmojiReviewRepository;
 import bhoon.sugang_helper.academic.review.domain.ReviewScopeKey;
-import bhoon.sugang_helper.identity.user.domain.User;
-import bhoon.sugang_helper.identity.user.domain.UserRepository;
+import bhoon.sugang_helper.identity.user.contract.UserIdentity;
+import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class CourseEmojiReviewService {
     private final CourseEmojiReviewRepository emojiReviewRepository;
-    private final CourseRepository courseRepository;
-    private final UserRepository userRepository;
+    private final CourseReviewCatalog courseReviewCatalog;
+    private final UserIdentityQuery userIdentityQuery;
 
     /**
      * 강의에 이모지 토글 리액션을 남기거나 취소합니다.
@@ -34,26 +34,26 @@ public class CourseEmojiReviewService {
             throw new CustomException(ErrorCode.INVALID_INPUT, "이모지는 비어 있을 수 없습니다.");
         }
 
-        Course course = getCourse(courseKey);
-        ReviewScopeKey scope = ReviewScopeKey.from(course);
-        User user = getCurrentUser();
+        CourseReference course = getCourse(courseKey);
+        ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
+        UserIdentity user = getCurrentUser();
 
-        findEmojiReview(course, scope, user.getId(), emoji)
+        findEmojiReview(course, scope, user.id(), emoji)
                 .ifPresentOrElse(
                         existing -> {
                             emojiReviewRepository.delete(existing);
                             log.info(
                                     "[EmojiReview] Removed. courseKey={}, subjectCode={}, professor={}, userId={}, emoji={}",
-                                    courseKey, scope.subjectCode(), scope.professor(), user.getId(), emoji);
+                                    courseKey, scope.subjectCode(), scope.professor(), user.id(), emoji);
                         },
                         () -> {
                             emojiReviewRepository.save(
-                                    CourseEmojiReview.builder().courseKey(courseKey).userId(user.getId()).emoji(emoji)
+                                    CourseEmojiReview.builder().courseKey(courseKey).userId(user.id()).emoji(emoji)
                                             .build()
                             );
                             log.info(
                                     "[EmojiReview] Added. courseKey={}, subjectCode={}, professor={}, userId={}, emoji={}",
-                                    courseKey, scope.subjectCode(), scope.professor(), user.getId(), emoji);
+                                    courseKey, scope.subjectCode(), scope.professor(), user.id(), emoji);
                         }
                 );
     }
@@ -63,8 +63,8 @@ public class CourseEmojiReviewService {
      */
     @Transactional(readOnly = true)
     public List<CourseEmojiReviewResponse> getCourseEmojiStats(String courseKey) {
-        Course course = getCourse(courseKey);
-        ReviewScopeKey scope = ReviewScopeKey.from(course);
+        CourseReference course = getCourse(courseKey);
+        ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
         Long currentUserId = getCurrentUserIdOrNull();
         return findEmojiStats(course, scope)
                 .stream()
@@ -81,35 +81,35 @@ public class CourseEmojiReviewService {
                 .toList();
     }
 
-    private Optional<CourseEmojiReview> findEmojiReview(Course course, ReviewScopeKey scope, Long userId,
+    private Optional<CourseEmojiReview> findEmojiReview(CourseReference course, ReviewScopeKey scope, Long userId,
                                                          String emoji) {
         if (!scope.hasIdentifiableProfessor()) {
-            return emojiReviewRepository.findByCourseKeyAndUserIdAndEmoji(course.getCourseKey(), userId, emoji);
+            return emojiReviewRepository.findByCourseKeyAndUserIdAndEmoji(course.courseKey(), userId, emoji);
         }
 
         return emojiReviewRepository.findBySubjectCodeAndProfessorAndUserIdAndEmoji(
                 scope.subjectCode(), scope.professor(), userId, emoji);
     }
 
-    private List<Object[]> findEmojiStats(Course course, ReviewScopeKey scope) {
+    private List<Object[]> findEmojiStats(CourseReference course, ReviewScopeKey scope) {
         if (!scope.hasIdentifiableProfessor()) {
-            return emojiReviewRepository.findEmojiStatsByCourseKey(course.getCourseKey());
+            return emojiReviewRepository.findEmojiStatsByCourseKey(course.courseKey());
         }
 
         return emojiReviewRepository.findEmojiStatsBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor());
     }
 
-    private boolean hasEmojiReview(Course course, ReviewScopeKey scope, Long userId, String emoji) {
+    private boolean hasEmojiReview(CourseReference course, ReviewScopeKey scope, Long userId, String emoji) {
         if (!scope.hasIdentifiableProfessor()) {
-            return emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(course.getCourseKey(), userId, emoji);
+            return emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(course.courseKey(), userId, emoji);
         }
 
         return emojiReviewRepository.countBySubjectCodeAndProfessorAndUserIdAndEmoji(
                 scope.subjectCode(), scope.professor(), userId, emoji) > 0;
     }
 
-    private User getCurrentUser() {
-        return userRepository.findByEmail(SecurityUtil.getCurrentUserEmail())
+    private UserIdentity getCurrentUser() {
+        return userIdentityQuery.findByEmail(SecurityUtil.getCurrentUserEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 
@@ -118,11 +118,11 @@ public class CourseEmojiReviewService {
         if (email == null) {
             return null;
         }
-        return userRepository.findByEmail(email).map(User::getId).orElse(null);
+        return userIdentityQuery.findByEmail(email).map(UserIdentity::id).orElse(null);
     }
 
-    private Course getCourse(String courseKey) {
-        return courseRepository.findByCourseKey(courseKey)
+    private CourseReference getCourse(String courseKey) {
+        return courseReviewCatalog.findByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다."));
     }
 }
