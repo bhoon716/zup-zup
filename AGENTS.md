@@ -1,27 +1,36 @@
-# AGENTS
+# AGENTS.md
 
-Keep this file short. Use it as a map, not a manual.
+## Principles
 
-## Start Here
+- 모든 중요한 의사결정은 반드시 `docs/decisions/`에 문서로 남긴다.
+- 의사결정은 `docs/decisions/TEMPLATE.md`를 따르고 `docs/decisions/README.md`에 등록한다.
+- 구현 전 적용되는 `AGENTS.md` 규칙과 기존 `docs/decisions/`를 확인한다.
+- 반복 적용할 규칙은 해당 범위의 `AGENTS.md`에 기록하고, 자동으로 검증할 수 있는 규칙은 테스트나 린터로 고정한다.
 
-- Read `.agents/docs/index.md` first.
-- Read `.agents/issues/index.md` before creating or updating issue files.
-- Use `.agents/docs/PRD.md` for product scope and `.agents/docs/ARD.md` for architecture and deployment constraints.
-- Use `DESIGN.md` for frontend visual language, layout, typography, and component styling.
-- Use `docs/feature-updates.md` for release history and `docs/troubleshooting.md` for evidence summaries and performance notes.
-- Record project decisions in `docs/decisions/` with `docs/decisions/TEMPLATE.md`; link them from `.agents/docs/index.md`.
+## Development Cycle
 
-## Working Notes
+모든 기능 개발은 다음 흐름을 따른다.
 
-- Prefer small, reversible changes.
-- Think before coding: state assumptions, and ask when requirements are ambiguous.
-- Simplicity first: do not add abstractions, patterns, or new structure unless the request needs them.
-- Surgical changes only: touch only files and lines directly tied to the request.
-- Goal-driven execution: define success criteria and verify them with targeted checks before stopping.
-- Keep new docs short and specific.
-- Do not introduce a workflow framework unless the user asks for it.
+1. 해결 방안을 브레인스토밍한다. 필요하면 서브에이전트를 병렬로 사용한다.
+2. 등장한 옵션, 개념, 가정 중 이해되지 않은 것이 없을 때까지 조사하고 대화한다.
+3. 학습·조사 결과를 자동으로 문서화한다.
+4. 명시적인 평가 기준을 세우고 대안을 비교한다.
+5. 최종 결정을 `docs/decisions/`에 기록한다.
+6. 관련 `AGENTS.md` 규칙과 Decision을 준수하며 기능을 구현한다.
+7. 기능 테스트와 E2E 테스트를 작성하고 실행한다. 별도의 통합 테스트 단계는 두지 않는다.
+8. 서브에이전트로 코드 리뷰를 수행한다.
+9. 리뷰 결과를 반영해 리팩토링한다.
+10. 문제가 없어질 때까지 `review → refactor`를 반복한다.
+11. 구현 결과가 기존 Decision과 충돌하지 않는지 검토한다.
+12. 반복 적용할 제약은 해당 범위의 `AGENTS.md` 규칙으로 변환하고, 자동 검사할 수 있는 항목은 테스트나 린터로 고정한다.
+13. 다음 사이클로 진행한다.
 
-## Notes
+## Completion Gate
 
-- Do not paste long transcripts into logs, findings, or reviews.
-- Do not edit or delete existing log content when writing logs; always append new entries. (append-only)
+다음 조건을 모두 만족하기 전에는 작업을 완료된 것으로 간주하지 않는다.
+
+- Decision 문서가 존재한다.
+- 미해결 핵심 질문이 없다.
+- 기능 테스트와 E2E 테스트가 통과한다.
+- 코드 리뷰의 해결되지 않은 주요 이슈가 없다.
+- 기존 Decision과의 충돌 검토가 완료되었다.
