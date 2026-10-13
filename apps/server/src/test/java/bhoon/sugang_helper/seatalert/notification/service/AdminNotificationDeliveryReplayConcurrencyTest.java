@@ -1,0 +1,98 @@
+package bhoon.sugang_helper.seatalert.notification.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import bhoon.sugang_helper.admin.audit.service.AdminAuditRecorder;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
+import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
+import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
+import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+@DataJpaTest
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+@Import(AdminNotificationDeliveryService.class)
+class AdminNotificationDeliveryReplayConcurrencyTest {
+
+    @Autowired
+    private AdminNotificationDeliveryService service;
+    @Autowired
+    private SeatNotificationOutboxRepository outboxRepository;
+    @Autowired
+    private SeatNotificationDeliveryRepository deliveryRepository;
+    @MockitoBean
+    private AdminAuditRecorder adminAuditRecorder;
+    @MockitoBean
+    private UserIdentityQuery userIdentityQuery;
+
+    @Test
+    void concurrentReplaysChangeOneDlqDeliveryAndWriteOneAuditLog() throws Exception {
+        SeatNotificationOutbox outbox = outboxRepository.saveAndFlush(SeatNotificationOutbox.builder()
+                .courseKey("course-key")
+                .courseName("Course")
+                .previousSeats(0)
+                .currentSeats(1)
+                .build());
+        SeatNotificationDelivery delivery = SeatNotificationDelivery.builder()
+                .outbox(outbox)
+                .userId(1L)
+                .channel(NotificationChannel.EMAIL)
+                .build();
+        LocalDateTime now = LocalDateTime.of(2026, 7, 13, 14, 0);
+        delivery.claim(now.plusMinutes(1));
+        delivery.markFailure("N001", 1, now, now.plusSeconds(1));
+        Long deliveryId = deliveryRepository.saveAndFlush(delivery).getId();
+        Long adminId = 7L;
+
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<Boolean> first = executor.submit(() -> replayTask(adminId, deliveryId, ready, start));
+            Future<Boolean> second = executor.submit(() -> replayTask(adminId, deliveryId, ready, start));
+            ready.await();
+            start.countDown();
+
+            assertThat(List.of(first.get(), second.get())).containsExactlyInAnyOrder(true, false);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(deliveryRepository.findById(deliveryId)).get()
+                .extracting(SeatNotificationDelivery::getStatus)
+                .isEqualTo(SeatNotificationDeliveryStatus.PENDING);
+        verify(adminAuditRecorder, times(1)).recordDeliveryReplay(
+                org.mockito.ArgumentMatchers.eq(adminId),
+                org.mockito.ArgumentMatchers.eq(deliveryId),
+                org.mockito.ArgumentMatchers.eq("DLQ"),
+                org.mockito.ArgumentMatchers.eq(1));
+    }
+
+    private boolean replayTask(Long adminId, Long deliveryId, CountDownLatch ready, CountDownLatch start) throws Exception {
+        ready.countDown();
+        start.await();
+        try {
+            service.replay(adminId, deliveryId, false);
+            return true;
+        } catch (bhoon.sugang_helper.common.error.CustomException ignored) {
+            return false;
+        }
+    }
+}

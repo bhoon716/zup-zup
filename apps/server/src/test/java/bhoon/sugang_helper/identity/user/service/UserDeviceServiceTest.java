@@ -1,0 +1,221 @@
+package bhoon.sugang_helper.identity.user.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.identity.user.dto.RegisterDeviceCommand;
+import bhoon.sugang_helper.identity.user.dto.UserDeviceResult;
+import bhoon.sugang_helper.identity.user.entity.User;
+import bhoon.sugang_helper.identity.user.entity.UserDevice;
+import bhoon.sugang_helper.identity.user.enums.DeviceType;
+import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
+import bhoon.sugang_helper.identity.user.repository.UserRepository;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
+
+@ExtendWith(MockitoExtension.class)
+class UserDeviceServiceTest {
+
+    private static final String TEST_EMAIL = "test@example.com";
+    private static final String TOKEN = "TOKEN";
+    private static MockedStatic<SecurityUtil> securityUtil;
+    @InjectMocks
+    private UserDeviceService userDeviceService;
+    @Mock
+    private UserDeviceRepository userDeviceRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private WebPushEndpointValidator webPushEndpointValidator;
+    private User testUser;
+    private Logger userDeviceLogger;
+    private ListAppender<ILoggingEvent> logAppender;
+
+    @BeforeEach
+    void setUp() {
+        securityUtil = mockStatic(SecurityUtil.class);
+        testUser = mock(User.class);
+        lenient().when(testUser.getId()).thenReturn(1L);
+        userDeviceLogger = (Logger) LoggerFactory.getLogger(UserDeviceService.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        userDeviceLogger.addAppender(logAppender);
+    }
+
+    @AfterEach
+    void tearDown() {
+        userDeviceLogger.detachAppender(logAppender);
+        logAppender.stop();
+        securityUtil.close();
+    }
+
+    private void mockUser() {
+        given(SecurityUtil.getCurrentUserEmail()).willReturn(TEST_EMAIL);
+        given(userRepository.findByEmail(TEST_EMAIL)).willReturn(Optional.of(testUser));
+    }
+
+    @Test
+    @DisplayName("디바이스 등록 - 신규 등록 성공")
+    void registerDevice_New_Success() {
+        // given
+        mockUser();
+        RegisterDeviceCommand request = new RegisterDeviceCommand(DeviceType.WEB, TOKEN, "P256DH", "AUTH", "Alias");
+        given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.empty());
+
+        // when
+        userDeviceService.registerDevice(request);
+
+        // then
+        verify(userDeviceRepository, times(1)).save(any(UserDevice.class));
+    }
+
+    @Test
+    @DisplayName("디바이스 등록 - 기존 디바이스 정보 업데이트")
+    void registerDevice_Update_Success() {
+        // given
+        mockUser();
+        RegisterDeviceCommand request = new RegisterDeviceCommand(
+                DeviceType.WEB, TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
+        UserDevice existingDevice = spy(UserDevice.builder()
+                .userId(1L)
+                .token(TOKEN)
+                .p256dh("OLD_P256DH")
+                .auth("OLD_AUTH")
+                .alias("OldAlias")
+                .build());
+        given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.of(existingDevice));
+
+        // when
+        userDeviceService.registerDevice(request);
+
+        // then
+        verify(existingDevice, times(1)).updateToken(1L, TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
+        verify(userDeviceRepository, times(0)).save(any(UserDevice.class));
+    }
+
+    @Test
+    @DisplayName("디바이스 신규 등록 로그에 원문 토큰을 남기지 않는다")
+    void registerDevice_New_DoesNotLogRawToken() {
+        // given
+        String sensitiveToken = "sensitive-fcm-token-for-log-regression-test";
+        mockUser();
+        given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.empty());
+
+        // when
+        userDeviceService.registerDevice(
+                new RegisterDeviceCommand(DeviceType.FCM, sensitiveToken, null, null, "Personal phone"));
+
+        // then
+        assertThat(logAppender.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .noneMatch(message -> message.contains(sensitiveToken))
+                .anyMatch(message -> message.contains("tokenFingerprint=sha256:"));
+    }
+
+    @Test
+    @DisplayName("기존 디바이스 갱신 로그에 원문 토큰을 남기지 않는다")
+    void registerDevice_Update_DoesNotLogRawToken() {
+        // given
+        String sensitiveToken = "sensitive-web-push-endpoint-for-log-regression-test";
+        mockUser();
+        UserDevice existingDevice = mock(UserDevice.class);
+        given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.of(existingDevice));
+
+        // when
+        userDeviceService.registerDevice(
+                new RegisterDeviceCommand(DeviceType.WEB, sensitiveToken, "P256DH", "AUTH", "Laptop"));
+
+        // then
+        assertThat(logAppender.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .noneMatch(message -> message.contains(sensitiveToken))
+                .anyMatch(message -> message.contains("tokenFingerprint=sha256:"));
+    }
+
+    @Test
+    @DisplayName("디바이스 등록 - 인증되지 않은 사용자 예외 발생")
+    void registerDevice_UserNotFound_ThrowsException() {
+        // given
+        given(SecurityUtil.getCurrentUserEmail()).willReturn(TEST_EMAIL);
+        given(userRepository.findByEmail(TEST_EMAIL)).willReturn(Optional.empty());
+        RegisterDeviceCommand request = new RegisterDeviceCommand(DeviceType.WEB, TOKEN, "P256DH", "AUTH", null);
+
+        // when & then
+        assertThatThrownBy(() -> userDeviceService.registerDevice(request))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
+    }
+
+    @Test
+    @DisplayName("디바이스 해제 - 현재 사용자 기기 성공")
+    void unregisterDevice_Success() {
+        // given
+        mockUser();
+        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(1L);
+
+        // when
+        userDeviceService.unregisterDevice(TOKEN);
+
+        // then
+        verify(userDeviceRepository, times(1)).deleteByTokenAndUserId(TOKEN, 1L);
+    }
+
+    @Test
+    @DisplayName("디바이스 해제 - 다른 사용자 기기는 삭제하지 않는다")
+    void unregisterDevice_OtherUsersDevice_IsNoOp() {
+        // given
+        mockUser();
+        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(0L);
+
+        // when
+        userDeviceService.unregisterDevice(TOKEN);
+
+        // then
+        verify(userDeviceRepository, times(1)).deleteByTokenAndUserId(TOKEN, 1L);
+    }
+
+    @Test
+    @DisplayName("사용자 디바이스 목록 조회 - 성공")
+    void getUserDevices_Success() {
+        // given
+        UserDevice device = UserDevice.builder()
+                .userId(1L)
+                .type(DeviceType.WEB)
+                .token(TOKEN)
+                .alias("Alias")
+                .build();
+        given(userDeviceRepository.findByUserId(1L)).willReturn(Collections.singletonList(device));
+
+        // when
+        List<UserDeviceResult> result = userDeviceService.getUserDevices(1L);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).alias()).isEqualTo("Alias");
+    }
+}

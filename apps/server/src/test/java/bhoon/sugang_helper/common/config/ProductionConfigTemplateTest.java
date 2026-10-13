@@ -85,8 +85,6 @@ class ProductionConfigTemplateTest {
                 .contains("probes:\n        enabled: true")
                 .contains("group:\n        readiness:\n          include: readinessState,db,redis")
                 .contains("prometheus:\n      access: read-only")
-                .contains("api-docs:\n    enabled: false")
-                .contains("swagger-ui:\n    enabled: false")
                 .contains("require-https: ${APP_CORS_REQUIRE_HTTPS:true}")
                 .contains("refresh-cookie-secure: ${APP_AUTH_REFRESH_COOKIE_SECURE:true}")
                 .doesNotContain("include: health, info, prometheus");

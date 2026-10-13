@@ -1,0 +1,129 @@
+package bhoon.sugang_helper.support.feedback.controller;
+
+import bhoon.sugang_helper.common.response.CommonResponse;
+import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackAttachmentDownloadRequest;
+import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
+import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
+import bhoon.sugang_helper.support.feedback.dto.request.FeedbackStatusUpdateRequest;
+import bhoon.sugang_helper.support.feedback.dto.response.AdminFeedbackDetailResponse;
+import bhoon.sugang_helper.support.feedback.dto.response.AdminFeedbackResponse;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.service.FeedbackService;
+import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * 관리자 전용 문의 및 건의사항 관리 API 컨트롤러입니다. 전체 목록 조회, 상태 변경, 답변 작성(CRUD) 기능을 제공하며 관리자 권한(ROLE_ADMIN)이 필요합니다.
+ */
+@RestController
+@RequestMapping("/api/v1/admin/feedbacks")
+@RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
+public class AdminFeedbackController {
+
+    private final FeedbackService feedbackService;
+
+    /**
+     * 시스템에 등록된 모든 문의 및 건의 사항을 조회합니다.
+     */
+    @GetMapping
+    public ResponseEntity<CommonResponse<Page<AdminFeedbackResponse>>> getAllFeedbacks(
+            @RequestParam(required = false) String deletion,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return CommonResponse.ok(
+                feedbackService.getFeedbacksForAdmin(pageable, AdminFeedbackDeletionFilter.from(deletion)),
+                "전체 피드백 목록입니다.");
+    }
+
+    /**
+     * 특정 문의 사항의 상세 내용 및 메타 정보를 조회합니다.
+     */
+    @GetMapping("/{feedbackId}")
+    public ResponseEntity<CommonResponse<AdminFeedbackDetailResponse>> getFeedbackDetail(
+            @PathVariable Long feedbackId) {
+        return CommonResponse.ok(feedbackService.getFeedbackDetailForAdmin(feedbackId), "피드백 상세입니다.");
+    }
+
+    @PostMapping("/{feedbackId}/attachments/{attachmentId}/download")
+    public ResponseEntity<Resource> downloadAttachment(
+            @PathVariable Long feedbackId,
+            @PathVariable Long attachmentId,
+            @Valid @RequestBody AdminFeedbackAttachmentDownloadRequest request) {
+        var download = feedbackService.getAttachmentForCurrentAdmin(
+                feedbackId, attachmentId, request.confirmed());
+        return ResponseEntity.ok()
+                .contentType(download.contentType())
+                .header("Content-Disposition", ContentDisposition.attachment()
+                        .filename(download.originalName(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(download.resource());
+    }
+
+    /**
+     * 문의 사항의 처리 상태(대기 중, 처리 중, 완료, 반려)를 수동으로 변경합니다.
+     */
+    @PatchMapping("/{feedbackId}/status")
+    public ResponseEntity<Void> updateFeedbackStatus(
+            @PathVariable Long feedbackId,
+            @Valid @RequestBody FeedbackStatusUpdateRequest request) {
+
+        feedbackService.updateFeedbackStatusForCurrentAdmin(feedbackId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 문의 사항에 대한 관리자 공식 답변을 등록합니다.
+     */
+    @PostMapping("/{feedbackId}/reply")
+    public ResponseEntity<CommonResponse<Long>> createReply(
+            @PathVariable Long feedbackId,
+            @Valid @RequestBody FeedbackReplyCreateRequest request) {
+
+        Long replyId = feedbackService.createFeedbackReplyForCurrentAdmin(feedbackId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(CommonResponse.success(replyId, "답변이 등록되었습니다."));
+    }
+
+    /**
+     * 등록된 운영진 답변을 수정합니다.
+     */
+    @PatchMapping("/reply/{replyId}")
+    public ResponseEntity<Void> updateReply(
+            @PathVariable Long replyId,
+            @Valid @RequestBody FeedbackReplyUpdateRequest request) {
+
+        feedbackService.updateFeedbackReplyForCurrentAdmin(replyId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 등록된 운영진 답변을 보존용 soft delete 처리합니다.
+     */
+    @DeleteMapping("/reply/{replyId}")
+    public ResponseEntity<Void> deleteReply(
+            @PathVariable Long replyId) {
+
+        feedbackService.deleteFeedbackReplyForCurrentAdmin(replyId);
+        return ResponseEntity.noContent().build();
+    }
+
+}

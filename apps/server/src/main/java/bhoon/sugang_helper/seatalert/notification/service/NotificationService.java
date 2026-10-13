@@ -1,0 +1,322 @@
+package bhoon.sugang_helper.seatalert.notification.service;
+
+import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.redis.RedisService;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.identity.user.dto.NotificationDevice;
+import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
+import bhoon.sugang_helper.identity.user.service.UserNotificationTestSender;
+import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderExecutor;
+import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
+import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
+import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionRecipientQuery;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+/**
+ * 사용자에게 다양한 채널(Email, FCM, WebPush, Discord)을 통해 알림을 발송하는 통합 서비스입니다. 중복 발송 방지 및 알림 이력 관리 기능을 포함합니다.
+ */
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class NotificationService implements NotificationTestSender, UserNotificationTestSender {
+
+    private static final String NOTIFICATION_KEY_PREFIX = "ALERT:";
+    private static final Duration DEDUP_TTL = Duration.ofMinutes(1);
+    private static final String USER_TEST_COOLDOWN_KEY_PREFIX = "ALERT:USER_TEST:";
+    private static final Duration USER_TEST_COOLDOWN = Duration.ofSeconds(10);
+
+    private final RedisService redisService;
+    private final SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private final UserNotificationQuery userNotificationQuery;
+    private final NotificationHistoryRepository notificationHistoryRepository;
+    private final List<NotificationSender> notificationSenders;
+    private final NotificationChannelPolicy notificationChannelPolicy;
+    private final NotificationProviderExecutor notificationProviderExecutor;
+
+    /**
+     * 빈자리 발생 이벤트를 처리하여 구독자들에게 알림을 발송합니다.
+     */
+    public void handleSeatOpenedEvent(SeatOpenedEvent event) {
+        String redisKey = NOTIFICATION_KEY_PREFIX + event.courseKey();
+        boolean acquired = redisService.setValuesIfAbsent(redisKey, "PENDING", DEDUP_TTL);
+        if (!acquired) {
+            log.debug("[Notification] Skipped duplicate sending. courseKey={}", event.courseKey());
+            return;
+        }
+
+        notifySubscribers(event);
+        redisService.setValues(redisKey, "SENT", DEDUP_TTL);
+        log.info("[Notification] Completed sending seat opening notifications. courseKey={}", event.courseKey());
+    }
+
+    public void deliverSeatOpening(Long userId, NotificationChannel channel,
+                                   SeatNotificationOutbox outbox) {
+        deliverSeatOpening(userId, channel, outbox, null);
+    }
+
+    public void deliverSeatOpening(Long userId, NotificationChannel channel,
+                                   SeatNotificationOutbox outbox,
+                                   String idempotencyKey) {
+        NotificationRecipient user = userNotificationQuery.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        if (!notificationChannelPolicy.isChannelEnabled(user, channel)) {
+            return;
+        }
+        List<NotificationTarget> targets = notificationChannelPolicy.resolveTargets(
+                user, userNotificationQuery.findDevicesByUserId(userId), channel);
+        if (targets.isEmpty()) {
+            return;
+        }
+        NotificationSender sender = notificationSenders.stream()
+                .filter(candidate -> candidate.supports(channel))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
+                        "알림 채널 발송기가 없습니다: " + channel));
+        NotificationMessage message = createSeatOpenedMessage(new SeatOpenedEvent(
+                outbox.getCourseKey(), outbox.getCourseName(), outbox.getProfessor(),
+                outbox.getPreviousSeats(), outbox.getCurrentSeats()));
+        String providerKey = NotificationDeliveryIdempotencyKey.providerKey(idempotencyKey);
+        for (NotificationTarget target : targets) {
+            notificationProviderExecutor.execute(channel,
+                    () -> sender.send(target, message.title(), message.body(), providerKey));
+        }
+        saveHistory(userId, outbox.getCourseKey(), message, channel);
+    }
+
+    /**
+     * 특정 사용자에게 여러 채널로 테스트 알림을 발송합니다.
+     */
+    public void sendAdminTestNotification(Long userId, List<NotificationChannel> channels) {
+        sendTestNotification(userId, channels, NotificationContext.forTest());
+    }
+
+    private boolean sendTestNotification(Long userId, List<NotificationChannel> channels,
+                                         NotificationContext context) {
+        NotificationRecipient user = userNotificationQuery.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        return sendTestNotification(user, channels, context);
+    }
+
+    private boolean sendTestNotification(NotificationRecipient user, List<NotificationChannel> channels,
+                                         NotificationContext context) {
+        NotificationMessage notification = createTestMessage();
+        List<NotificationDevice> devices = userNotificationQuery.findDevicesByUserId(user.id());
+        boolean delivered = false;
+
+        for (NotificationChannel channel : channels) {
+            log.info("[Notification Test] Attempting to send. channel={}, userId={}", channel, user.id());
+            delivered = sendNotification(user, devices, notification, channel, context) || delivered;
+        }
+        return delivered;
+    }
+
+    /**
+     * 사용자 단에서 요청한 테스트 알림을 발송하며, 쿨타임을 적용합니다.
+     */
+    @Override
+    public void sendUserTestNotification(Long userId) {
+        String cooldownKey = USER_TEST_COOLDOWN_KEY_PREFIX + userId;
+        boolean acquired = redisService.setValuesIfAbsent(cooldownKey, "LOCK", USER_TEST_COOLDOWN);
+        if (!acquired) {
+            throw new CustomException(ErrorCode.TOO_MANY_REQUESTS, "알림 테스트는 10초에 한 번만 가능합니다. 잠시 후 다시 시도해주세요.");
+        }
+
+        try {
+            NotificationRecipient user = userNotificationQuery.findById(userId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+            List<NotificationChannel> channels = notificationChannelPolicy.userEnabledChannels(user);
+            boolean delivered = sendTestNotification(
+                    user, channels, NotificationContext.forUserTest());
+            if (!delivered) {
+                throw new CustomException(ErrorCode.INVALID_INPUT,
+                        "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
+            }
+            log.info("[User] Send test notification: userId={}, channels={}", user.id(), channels);
+        } catch (RuntimeException e) {
+            redisService.deleteValues(cooldownKey);
+            throw e;
+        }
+    }
+
+    /**
+     * 해당 과목을 구독 중인 모든 사용자에게 알림을 발송합니다.
+     */
+    private void notifySubscribers(SeatOpenedEvent event) {
+        List<Long> recipientIds = subscriptionRecipientQuery.findActiveRecipientIds(event.courseKey());
+        if (recipientIds.isEmpty()) {
+            return;
+        }
+
+        List<Long> userIds = recipientIds.stream().distinct().toList();
+        Map<Long, NotificationRecipient> userMap = findUsersById(userIds);
+        Map<Long, List<NotificationDevice>> deviceMap = findDevicesByUserId(userIds);
+        NotificationMessage notification = createSeatOpenedMessage(event);
+
+        for (Long recipientId : recipientIds) {
+            NotificationRecipient user = userMap.get(recipientId);
+            if (user == null) {
+                continue;
+            }
+            dispatchAllChannels(user, deviceMap.get(user.id()), notification, event.courseKey());
+        }
+    }
+
+    /**
+     * 사용자에게 모든 채널로 실제 알림을 발송합니다.
+     */
+    private void dispatchAllChannels(NotificationRecipient user, List<NotificationDevice> devices,
+                                     NotificationMessage message,
+                                     String courseKey) {
+        for (NotificationChannel channel : NotificationChannel.values()) {
+            sendNotification(user, devices, message, channel, NotificationContext.forReal(courseKey));
+        }
+    }
+
+    /**
+     * 알림 발송의 핵심 공통 로직을 수행합니다.
+     */
+    private boolean sendNotification(NotificationRecipient user, List<NotificationDevice> devices,
+                                     NotificationMessage message,
+                                     NotificationChannel channel, NotificationContext ctx) {
+        if (!ctx.forceSend() && !notificationChannelPolicy.isChannelEnabled(user, channel)) {
+            return false;
+        }
+
+        List<NotificationTarget> targets = notificationChannelPolicy.resolveTargets(user, devices, channel);
+
+        if (targets.isEmpty()) {
+            if (ctx.failOnMissingTarget()) {
+                throw new CustomException(ErrorCode.NOT_FOUND, notificationChannelPolicy.buildNoTargetMessage(channel));
+            }
+            return false;
+        }
+
+        boolean delivered = false;
+        for (NotificationTarget target : targets) {
+            try {
+                dispatch(target, message.title(), message.body(), channel);
+                delivered = true;
+            } catch (RuntimeException e) {
+                if (ctx.forceSend()) {
+                    throw e;
+                }
+                log.warn("[Notification] Delivery failed but remaining targets will continue. userId={}, channel={}, failureCode={}, exceptionType={}",
+                        user.id(), channel, SensitiveDataRedactor.failureCode(e),
+                        SensitiveDataRedactor.exceptionType(e));
+            }
+        }
+
+        if (ctx.saveHistory() && delivered) {
+            saveHistory(user.id(), ctx.courseKey(), message, channel);
+        }
+        return delivered;
+    }
+
+    /**
+     * 사용자 ID 목록을 통해 사용자 맵을 조회합니다.
+     */
+    private Map<Long, NotificationRecipient> findUsersById(List<Long> userIds) {
+        return userNotificationQuery.findByIds(userIds).stream()
+                .collect(Collectors.toMap(NotificationRecipient::id, Function.identity()));
+    }
+
+    /**
+     * 사용자 ID 목록을 통해 기기 목록 맵을 조회합니다.
+     */
+    private Map<Long, List<NotificationDevice>> findDevicesByUserId(List<Long> userIds) {
+        return userNotificationQuery.findDevicesByUserIds(userIds).stream()
+                .collect(Collectors.groupingBy(NotificationDevice::userId));
+    }
+
+    /**
+     * 빈자리 알림 메시지를 생성합니다.
+     */
+    private NotificationMessage createSeatOpenedMessage(SeatOpenedEvent event) {
+        String professor = (event.professor() != null && !event.professor().isBlank()) ? event.professor() : "미지정";
+        String title = String.format("[줍줍] %s (%s) 여석 발생!", event.courseName(), professor);
+        String body = String.format("과목명: %s (%s)\\n과목코드: %s\\n현재 여석이 발생했습니다! (%d명)",
+                event.courseName(), professor, event.courseKey(), event.currentSeats());
+        return new NotificationMessage(title, body);
+    }
+
+    /**
+     * 시스템 테스트 알림 메시지를 생성합니다.
+     */
+    private NotificationMessage createTestMessage() {
+        return new NotificationMessage(
+                "[줍줍] 시스템 테스트 알림",
+                "줍줍 테스트 알림입니다. 수신이 정상적인지 확인해 주세요.");
+    }
+
+    /**
+     * 지정된 채널의 발송 객체를 통해 실제로 알림을 발송합니다.
+     */
+    private void dispatch(NotificationTarget target, String title, String message, NotificationChannel channel) {
+        notificationSenders.stream()
+                .filter(sender -> sender.supports(channel))
+                .forEach(sender -> notificationProviderExecutor.execute(channel,
+                        () -> sender.send(target, title, message)));
+    }
+
+    /**
+     * 알림 발송 이력을 저장합니다.
+     */
+    private void saveHistory(Long userId, String courseKey, NotificationMessage notification,
+                             NotificationChannel channel) {
+        notificationHistoryRepository.save(NotificationHistory.builder()
+                .userId(userId)
+                .courseKey(courseKey)
+                .title(notification.title())
+                .message(notification.body())
+                .channel(channel)
+                .build());
+    }
+
+    /**
+     * 알림 메시지 구조체
+     */
+    private record NotificationMessage(String title, String body) {
+    }
+
+    /**
+     * 알림 발송 컨텍스트: 이력 저장 여부, 강제 발송 여부, 과목 코드를 묶은 VO입니다.
+     */
+    private record NotificationContext(boolean saveHistory, boolean forceSend, boolean failOnMissingTarget,
+                                       String courseKey) {
+
+        /**
+         * 실제 알림 발송 컨텍스트를 생성합니다.
+         */
+        static NotificationContext forReal(String courseKey) {
+            return new NotificationContext(true, false, false, courseKey);
+        }
+
+        /**
+         * 테스트 알림 발송 컨텍스트를 생성합니다.
+         */
+        static NotificationContext forTest() {
+            return new NotificationContext(false, true, true, "TEST");
+        }
+
+        /**
+         * 사용자 테스트 알림은 다른 활성 채널의 발송을 막지 않도록 대상 없는 채널을 건너뜁니다.
+         */
+        static NotificationContext forUserTest() {
+            return new NotificationContext(false, true, false, "TEST");
+        }
+    }
+}

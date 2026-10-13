@@ -1,0 +1,70 @@
+package bhoon.sugang_helper.seatalert.notification.service;
+
+import bhoon.sugang_helper.admin.audit.service.AdminAuditRecorder;
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.web.PageableGuard;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.seatalert.notification.dto.response.AdminNotificationDeliveryResponse;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
+import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
+import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * 관리자가 DLQ delivery를 조회하고 원인 조치 후 동일 delivery만 선택적으로 재처리합니다.
+ */
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class AdminNotificationDeliveryService {
+
+    private final SeatNotificationDeliveryRepository deliveryRepository;
+    private final AdminAuditRecorder adminAuditRecorder;
+    private final UserIdentityQuery userIdentityQuery;
+
+    public Page<AdminNotificationDeliveryResponse> getDeadLetters(Pageable pageable) {
+        return deliveryRepository.findByStatusOrderByDeadLetteredAtDescIdDesc(
+                        SeatNotificationDeliveryStatus.DLQ, PageableGuard.requireBounded(pageable))
+                .map(AdminNotificationDeliveryResponse::from);
+    }
+
+    public AdminNotificationDeliveryResponse getDelivery(Long deliveryId) {
+        return AdminNotificationDeliveryResponse.from(findDelivery(deliveryId));
+    }
+
+    public Long getCurrentAdminId() {
+        String email = SecurityUtil.getCurrentUserEmail();
+        return userIdentityQuery.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED))
+                .id();
+    }
+
+    @Transactional
+    public AdminNotificationDeliveryResponse replay(Long adminId, Long deliveryId, boolean forceSentReplay) {
+        SeatNotificationDelivery delivery = deliveryRepository.findByIdForUpdate(deliveryId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+        SeatNotificationDeliveryStatus previousStatus = delivery.getStatus();
+        if (previousStatus != SeatNotificationDeliveryStatus.DLQ
+                && !(previousStatus == SeatNotificationDeliveryStatus.SENT && forceSentReplay)) {
+            throw new CustomException(ErrorCode.NOTIFICATION_DELIVERY_REPLAY_NOT_ALLOWED);
+        }
+
+        int attemptsBefore = delivery.getAttempts();
+        delivery.replay(java.time.LocalDateTime.now());
+        delivery.getOutbox().markProcessing();
+        adminAuditRecorder.recordDeliveryReplay(adminId, deliveryId, previousStatus.name(), attemptsBefore);
+        return AdminNotificationDeliveryResponse.from(delivery);
+    }
+
+    private SeatNotificationDelivery findDelivery(Long deliveryId) {
+        return deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+    }
+
+}

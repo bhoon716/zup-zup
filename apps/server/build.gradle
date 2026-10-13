@@ -119,12 +119,6 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // 문서화 (Swagger/OpenAPI)
-    implementation('org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5') {
-        exclude group: 'org.apache.commons', module: 'commons-lang3'
-    }
-    implementation 'org.apache.commons:commons-lang3:3.18.0'
-
     // QueryDSL (동적 쿼리)
     implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.0'
     annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:6.0:jpa'

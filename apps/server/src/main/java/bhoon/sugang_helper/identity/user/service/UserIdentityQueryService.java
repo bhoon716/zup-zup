@@ -1,0 +1,54 @@
+package bhoon.sugang_helper.identity.user.service;
+
+import bhoon.sugang_helper.identity.user.dto.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.dto.UserAccountStatus;
+import bhoon.sugang_helper.identity.user.dto.UserIdentity;
+import bhoon.sugang_helper.identity.user.enums.Role;
+import bhoon.sugang_helper.identity.user.repository.UserRepository;
+import java.util.List;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class UserIdentityQueryService implements UserIdentityQuery {
+
+    private final UserRepository userRepository;
+
+    @Override
+    public Optional<UserIdentity> findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .filter(user -> !user.isDeleted())
+                .map(user -> new UserIdentity(user.getId(), user.getRole() == Role.ADMIN));
+    }
+
+    @Override
+    public Optional<UserIdentity> findById(Long userId) {
+        return userRepository.findById(userId)
+                .map(user -> new UserIdentity(user.getId(), user.getRole() == Role.ADMIN));
+    }
+
+    @Override
+    public Optional<AuthenticatedUser> findAuthenticatedUser(Long userId, String email) {
+        return userRepository.findByIdAndEmailAndDeletedAtIsNull(userId, email)
+                .map(user -> new AuthenticatedUser(user.getId(), user.getEmail(), user.getRoleKey()));
+    }
+
+    @Override
+    public List<UserAccountStatus> findAccountStatuses(List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findAllById(userIds).stream()
+                .map(user -> new UserAccountStatus(user.getId(), user.isDeleted()))
+                .toList();
+    }
+
+    @Override
+    public long countUsers() {
+        return userRepository.count();
+    }
+}

@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.manual;
 
-import bhoon.sugang_helper.seatalert.notification.infra.EmailNotificationSender;
-import bhoon.sugang_helper.seatalert.notification.application.port.NotificationTarget;
-import bhoon.sugang_helper.identity.user.application.EmailVerificationService;
+import bhoon.sugang_helper.identity.user.service.EmailVerificationService;
+import bhoon.sugang_helper.seatalert.notification.client.EmailNotificationSender;
+import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

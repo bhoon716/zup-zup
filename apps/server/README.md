@@ -38,7 +38,7 @@
 | Security + OAuth2 Client + JWT        | 인증과 보호가 필요한 영역을 분리하기 위해            | 로그인과 권한 처리 흐름을 일관되게 유지합니다 |
 | Redis                                 | 세션과 캐시, 상태성 데이터를 효율적으로 다루기 위해      | 응답 속도와 운영 유연성을 얻습니다       |
 | Flyway                                | DB 변경 이력을 명확히 남기기 위해               | 스키마 변경을 추적하기 쉬워집니다        |
-| Prometheus + Swagger + Testcontainers | 관측, 계약 확인, 통합 검증을 동시에 챙기기 위해       | 운영과 테스트 품질을 함께 올릴 수 있습니다  |
+| Prometheus + Testcontainers | 관측과 DB 검증 환경을 관리하기 위해       | 운영과 테스트 품질을 함께 올릴 수 있습니다  |
 
 ## 운영 관점
 
@@ -53,7 +53,6 @@
 - Spring Security
 - Spring Data Redis
 - Flyway
-- Swagger/OpenAPI
 - Prometheus
 - MySQL, H2
 - Redis

@@ -1,0 +1,105 @@
+package bhoon.sugang_helper.support.feedback.controller;
+
+import bhoon.sugang_helper.common.response.CommonResponse;
+import bhoon.sugang_helper.support.feedback.dto.FeedbackAttachmentDownload;
+import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
+import bhoon.sugang_helper.support.feedback.dto.response.FeedbackDetailResponse;
+import bhoon.sugang_helper.support.feedback.dto.response.FeedbackResponse;
+import bhoon.sugang_helper.support.feedback.service.FeedbackService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+/**
+ * 일반 사용자용 피드백 API 컨트롤러입니다. 건의사항 및 버그 리포트 등록, 조회, 삭제 기능을 제공합니다.
+ */
+@RestController
+@RequestMapping("/api/v1/feedbacks")
+@RequiredArgsConstructor
+public class FeedbackController {
+
+    private final FeedbackService feedbackService;
+
+    /**
+     * 새로운 피드백(건의/제보)을 등록합니다.
+     */
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CommonResponse<Long>> createFeedback(
+            @Valid @RequestPart("feedback") FeedbackCreateRequest request,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
+            HttpServletRequest httpRequest) {
+
+        Long feedbackId = feedbackService.createFeedbackForCurrentUser(
+                request, files, resolveClientIp(httpRequest));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(CommonResponse.success(feedbackId, "피드백이 등록되었습니다."));
+    }
+
+    /**
+     * 내가 작성한 모든 피드백 목록을 조회합니다.
+     */
+    @GetMapping("/me")
+    public ResponseEntity<CommonResponse<Page<FeedbackResponse>>> getMyFeedbacks(
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        return CommonResponse.ok(feedbackService.getMyFeedbacksForCurrentUser(pageable), "내 피드백 목록입니다.");
+    }
+
+    /**
+     * 내가 작성한 특정 피드백의 상세 내용을 조회합니다.
+     */
+    @GetMapping("/{feedbackId}")
+    public ResponseEntity<CommonResponse<FeedbackDetailResponse>> getMyFeedbackDetail(
+            @PathVariable Long feedbackId) {
+
+        return CommonResponse.ok(feedbackService.getMyFeedbackDetailForCurrentUser(feedbackId), "피드백 상세입니다.");
+    }
+
+    @GetMapping("/{feedbackId}/attachments/{attachmentId}")
+    public ResponseEntity<Resource> downloadAttachment(@PathVariable Long feedbackId, @PathVariable Long attachmentId) {
+        FeedbackAttachmentDownload download = feedbackService.getAttachmentForCurrentUser(feedbackId, attachmentId);
+        return ResponseEntity.ok()
+                .contentType(download.contentType())
+                .header("Content-Disposition", ContentDisposition.attachment()
+                        .filename(download.originalName(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(download.resource());
+    }
+
+    /**
+     * 작성한 피드백을 삭제합니다 (소프트 삭제 적용).
+     */
+    @DeleteMapping("/{feedbackId}")
+    public ResponseEntity<Void> deleteFeedback(@PathVariable Long feedbackId) {
+
+        feedbackService.deleteCurrentUsersFeedback(feedbackId);
+        return ResponseEntity.noContent().build();
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",", 2)[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+}

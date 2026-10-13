@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.common.error;
 
-import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.alert.SlackAlertCategory;
 import bhoon.sugang_helper.common.alert.SlackAlertService;
+import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

@@ -1,9 +1,9 @@
 package bhoon.sugang_helper.common.error;
 
-import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.common.response.ErrorResponse;
+import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;

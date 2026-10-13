@@ -2,9 +2,9 @@ package bhoon.sugang_helper.common.web;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import org.springframework.data.domain.Pageable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
 
 /** Consistent bounds for every pageable endpoint to protect DB offset and response memory. */
 public final class PageableGuard {

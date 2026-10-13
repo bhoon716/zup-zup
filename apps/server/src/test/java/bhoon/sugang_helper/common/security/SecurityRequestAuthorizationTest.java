@@ -10,55 +10,54 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import bhoon.sugang_helper.admin.presentation.AdminController;
-import bhoon.sugang_helper.admin.application.AdminService;
-import bhoon.sugang_helper.admin.audit.application.AdminAuditService;
-import bhoon.sugang_helper.admin.audit.presentation.AdminActionLogController;
-import bhoon.sugang_helper.seatalert.notification.application.AdminNotificationDeliveryService;
-import bhoon.sugang_helper.seatalert.notification.presentation.AdminNotificationDeliveryController;
-import bhoon.sugang_helper.support.feedback.presentation.AdminFeedbackController;
-import bhoon.sugang_helper.campus.announcement.presentation.AnnouncementController;
-import bhoon.sugang_helper.campus.announcement.application.AnnouncementSearchType;
-import bhoon.sugang_helper.campus.announcement.application.AnnouncementService;
-import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
-import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
+import bhoon.sugang_helper.admin.audit.controller.AdminActionLogController;
+import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
+import bhoon.sugang_helper.admin.controller.AdminController;
+import bhoon.sugang_helper.admin.service.AdminService;
+import bhoon.sugang_helper.campus.announcement.controller.AnnouncementController;
+import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;
+import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
+import bhoon.sugang_helper.common.config.SecurityConfig;
+import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
+import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
+import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
 import bhoon.sugang_helper.common.security.jwt.JwtAuthenticationFilter;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
-import bhoon.sugang_helper.identity.auth.infra.CustomOAuth2UserService;
-import bhoon.sugang_helper.identity.auth.presentation.OAuth2FailureHandler;
-import bhoon.sugang_helper.identity.auth.presentation.OAuth2SuccessHandler;
-import bhoon.sugang_helper.bootstrap.SecurityConfig;
-import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
-import bhoon.sugang_helper.support.feedback.application.FeedbackService;
-import bhoon.sugang_helper.support.feedback.application.FeedbackAttachmentDownload;
-import bhoon.sugang_helper.support.feedback.presentation.FeedbackController;
-import bhoon.sugang_helper.identity.user.contract.UserIdentity;
-import bhoon.sugang_helper.identity.user.contract.UserIdentityQuery;
+import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
+import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
+import bhoon.sugang_helper.identity.auth.handler.OAuth2FailureHandler;
+import bhoon.sugang_helper.identity.auth.handler.OAuth2SuccessHandler;
+import bhoon.sugang_helper.identity.user.dto.UserIdentity;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.seatalert.notification.controller.AdminNotificationDeliveryController;
+import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
+import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
+import bhoon.sugang_helper.support.feedback.controller.FeedbackController;
+import bhoon.sugang_helper.support.feedback.dto.FeedbackAttachmentDownload;
+import bhoon.sugang_helper.support.feedback.service.FeedbackService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.servlet.MultipartProperties;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.session.SessionAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.MultipartProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -66,6 +65,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.unit.DataSize;
 
@@ -306,24 +306,10 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
-    void developerToolsRequireAdminRole() throws Exception {
-        mockMvc.perform(get("/swagger-ui/index.html"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("A001"));
-
-        mockMvc.perform(get("/v3/api-docs"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("A001"));
-
+    void h2ConsoleRequiresAdminRole() throws Exception {
         mockMvc.perform(get("/h2-console/"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
-    }
-
-    @Test
-    void adminCanAccessDeveloperToolsOutsideProduction() throws Exception {
-        mockMvc.perform(get("/v3/api-docs").session(authenticatedSession("ROLE_ADMIN")))
-                .andExpect(status().isOk());
     }
 
     @Test
