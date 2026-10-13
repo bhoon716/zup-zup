@@ -134,9 +134,6 @@ dependencies {
     // 모니터링 (Prometheus)
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    // HTML 파싱 (Jsoup)
-    implementation 'org.jsoup:jsoup:1.18.3'
-
     // 세션 관리 (Redis)
     implementation 'org.springframework.session:spring-session-data-redis'
 

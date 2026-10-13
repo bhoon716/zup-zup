@@ -12,21 +12,28 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
+import java.net.CookieManager;
+import java.net.HttpCookie;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.zip.GZIPInputStream;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
-import org.jsoup.Connection;
-import org.jsoup.HttpStatusException;
-import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 @Component
 @Slf4j
@@ -99,49 +106,73 @@ public class JbnuCourseApiClient implements CourseApiClient {
     }
 
     private byte[] executeSingleRequest(String year, String semester, String targetCertDivision) throws IOException {
-        Map<String, String> cookies;
-        try {
-            cookies = fetchSessionCookies();
-        } catch (Exception exception) {
-            throw CrawlerUpstreamFailure.wrap(CrawlerFailureStage.JUMP_BOOTSTRAP,
-                    upstreamStatusCode(exception), exception, isTransientFailure(exception));
-        }
-        if (cookies.isEmpty()) {
-            IOException emptyCookies = new IOException("JUMP session cookies are empty");
-            throw CrawlerUpstreamFailure.wrap(CrawlerFailureStage.JUMP_BOOTSTRAP, null, emptyCookies, true);
+        CookieManager cookieManager = new CookieManager();
+        HttpClient.Builder httpClientBuilder = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .cookieHandler(cookieManager)
+                .followRedirects(HttpClient.Redirect.ALWAYS);
+        if (timeoutMs > 0) {
+            httpClientBuilder.connectTimeout(Duration.ofMillis(timeoutMs));
         }
 
-        try {
-            Connection.Response response = Jsoup.connect(apiUrl)
-                    .cookies(cookies)
-                    .header("Accept", "application/json, */*")
-                    .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
-                    .header("Cache-Control", "no-cache")
-                    .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-                    .header("Origin", originOf(apiUrl))
-                    .header("Referer", bootstrapUrl)
-                    .header("Pragma", "no-cache")
-                    .header("User-Agent", "Mozilla/5.0 (compatible; jbnu-sugang-helper-crawler)")
-                    .header("X-Requested-With", "XMLHttpRequest")
-                    .header("xb_req_type", "enc")
-                    .requestBody(JbnuJumpRequestEncoder.encode(buildRequest(year, semester, targetCertDivision)))
-                    .timeout(timeoutMs)
-                    .maxBodySize(maximumResponseBytes)
-                    .method(Connection.Method.POST)
-                    .ignoreContentType(true)
-                    .execute();
-
-            if (response.statusCode() >= 400) {
-                IOException statusFailure = new IOException("JUMP responded with HTTP " + response.statusCode());
-                throw CrawlerUpstreamFailure.wrap(
-                        CrawlerFailureStage.COURSE_API, response.statusCode(), statusFailure, true);
+        // A fresh cookie store per attempt keeps school sessions isolated between runs and retries.
+        try (HttpClient httpClient = httpClientBuilder.build()) {
+            RestClient restClient = createRestClient(httpClient);
+            try {
+                fetchSessionCookies(restClient, cookieManager);
+            } catch (Exception exception) {
+                throw CrawlerUpstreamFailure.wrap(CrawlerFailureStage.JUMP_BOOTSTRAP,
+                        upstreamStatusCode(exception), exception, isTransientFailure(exception));
             }
-            return response.bodyAsBytes();
-        } catch (CrawlerUpstreamFailure exception) {
-            throw exception;
-        } catch (Exception exception) {
-            throw CrawlerUpstreamFailure.wrap(CrawlerFailureStage.COURSE_API,
-                    upstreamStatusCode(exception), exception, isTransientFailure(exception));
+
+            try {
+                return restClient.post()
+                        .uri(apiUrl)
+                        .header("Accept", "application/json, */*")
+                        .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+                        .header("Cache-Control", "no-cache")
+                        .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                        .header("Origin", originOf(apiUrl))
+                        .header("Referer", bootstrapUrl)
+                        .header("Pragma", "no-cache")
+                        .header("X-Requested-With", "XMLHttpRequest")
+                        .header("xb_req_type", "enc")
+                        .body(JbnuJumpRequestEncoder.encode(buildRequest(year, semester, targetCertDivision)))
+                        .exchange((request, response) -> readResponse(response));
+            } catch (Exception exception) {
+                throw CrawlerUpstreamFailure.wrap(CrawlerFailureStage.COURSE_API,
+                        upstreamStatusCode(exception), exception, isTransientFailure(exception));
+            }
+        }
+    }
+
+    private RestClient createRestClient(HttpClient httpClient) {
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        if (timeoutMs > 0) {
+            requestFactory.setReadTimeout(timeoutMs);
+        }
+        return RestClient.builder()
+                .requestFactory(requestFactory)
+                .defaultHeader(HttpHeaders.USER_AGENT, "Mozilla/5.0 (compatible; jbnu-sugang-helper-crawler)")
+                .defaultHeader(HttpHeaders.ACCEPT_ENCODING, "gzip")
+                .build();
+    }
+
+    byte[] readResponse(ClientHttpResponse response) throws IOException {
+        if (response.getStatusCode().isError()) {
+            // Keep only the status; upstream bodies and URLs must not enter diagnostic records.
+            throw new RestClientResponseException("JUMP responded with HTTP " + response.getStatusCode().value(),
+                    response.getStatusCode().value(), response.getStatusText(), null, new byte[0],
+                    StandardCharsets.UTF_8);
+        }
+        InputStream body = response.getBody();
+        if ("gzip".equalsIgnoreCase(response.getHeaders().getFirst(HttpHeaders.CONTENT_ENCODING))) {
+            body = new GZIPInputStream(body);
+        }
+        // Limit decoded bytes while reading, before allocating the complete response in memory.
+        try (InputStream input = maximumResponseBytes > 0
+                ? new BoundedInputStream(body, maximumResponseBytes) : body) {
+            return input.readAllBytes();
         }
     }
 
@@ -208,14 +239,14 @@ public class JbnuCourseApiClient implements CourseApiClient {
         return values;
     }
 
-    private Map<String, String> fetchSessionCookies() throws IOException {
-        Connection.Response response = Jsoup.connect(bootstrapUrl)
+    private void fetchSessionCookies(RestClient restClient, CookieManager cookieManager) throws IOException {
+        restClient.get()
+                .uri(bootstrapUrl)
                 .header("Accept", "text/html, */*")
-                .header("User-Agent", "Mozilla/5.0 (compatible; jbnu-sugang-helper-crawler)")
-                .timeout(timeoutMs)
-                .method(Connection.Method.GET)
-                .execute();
-        return response.cookies();
+                .exchange((request, response) -> readResponse(response));
+        if (cookieManager.getCookieStore().getCookies().stream().allMatch(HttpCookie::hasExpired)) {
+            throw new IOException("JUMP session cookies are empty");
+        }
     }
 
     private String originOf(String url) {
@@ -235,7 +266,8 @@ public class JbnuCourseApiClient implements CourseApiClient {
             return upstream.retryable();
         }
         if (throwable instanceof SocketTimeoutException || throwable instanceof ConnectException
-                || throwable instanceof IOException || throwable instanceof TimeoutException) {
+                || throwable instanceof IOException || throwable instanceof TimeoutException
+                || throwable instanceof RestClientResponseException) {
             return true;
         }
         return isTransientFailure(throwable.getCause());
@@ -276,8 +308,8 @@ public class JbnuCourseApiClient implements CourseApiClient {
     private Integer upstreamStatusCode(Throwable throwable) {
         Throwable current = throwable;
         while (current != null) {
-            if (current instanceof HttpStatusException statusException) {
-                return statusException.getStatusCode();
+            if (current instanceof RestClientResponseException statusException) {
+                return statusException.getStatusCode().value();
             }
             current = current.getCause();
         }

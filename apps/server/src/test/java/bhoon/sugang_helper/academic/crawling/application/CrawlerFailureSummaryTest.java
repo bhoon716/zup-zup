@@ -6,24 +6,28 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.academic.crawling.domain.CrawlerFailureStage;
 import bhoon.sugang_helper.academic.crawling.application.port.CrawlerUpstreamFailure;
-import org.jsoup.HttpStatusException;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.client.RestClientResponseException;
 
 class CrawlerFailureSummaryTest {
 
     @Test
     void upstreamFailureSummaryPreservesSafeStageStatusAndRetryability() {
+        // given
         CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.wrap(
                 CrawlerFailureStage.COURSE_API, 503,
-                new HttpStatusException("upstream response", 503, "https://jump.example.test/secret"),
+                new RestClientResponseException("https://jump.example.test/secret", 503,
+                        "Service Unavailable", null, new byte[0], null),
                 true);
         CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         failure.initCause(upstream);
 
+        // when
         CrawlerFailureSummary summary = CrawlerFailureSummary.from(CrawlerFailureStage.FETCH_PARSE, failure);
 
+        // then
         assertThat(summary.stage()).isEqualTo(CrawlerFailureStage.COURSE_API);
-        assertThat(summary.failureType()).isEqualTo("HttpStatusException");
+        assertThat(summary.failureType()).isEqualTo("RestClientResponseException");
         assertThat(summary.failureMessage())
                 .contains("C001")
                 .contains("stage=COURSE_API")
@@ -31,12 +35,13 @@ class CrawlerFailureSummaryTest {
                 .contains("retryable=true")
                 .doesNotContain("jump.example.test", "secret");
         assertThat(summary.diagnostic())
-                .isEqualTo("failureStage=COURSE_API failureType=HttpStatusException "
+                .isEqualTo("failureStage=COURSE_API failureType=RestClientResponseException "
                         + "upstreamStatus=503 retryable=true");
     }
 
     @Test
     void responseStatusFailureRetainsHttpStatusWithoutResponseBody() {
+        // given
         CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.wrap(
                 CrawlerFailureStage.COURSE_API,
                 429,
@@ -45,8 +50,10 @@ class CrawlerFailureSummaryTest {
         CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         failure.initCause(upstream);
 
+        // when
         CrawlerFailureSummary summary = CrawlerFailureSummary.from(CrawlerFailureStage.FETCH_PARSE, failure);
 
+        // then
         assertThat(summary.stage()).isEqualTo(CrawlerFailureStage.COURSE_API);
         assertThat(summary.upstreamStatus()).isEqualTo(429);
         assertThat(summary.failureMessage())
