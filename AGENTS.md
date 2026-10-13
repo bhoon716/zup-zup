@@ -1,36 +1,28 @@
-# AGENTS.md
+# 에이전트 지침
 
-## Principles
+목차를 확인하고, 필요한 지침만 읽어라.
 
-- 모든 중요한 의사결정은 반드시 `docs/decisions/`에 문서로 남긴다.
-- 의사결정은 `docs/decisions/TEMPLATE.md`를 따르고 `docs/decisions/README.md`에 등록한다.
-- 구현 전 적용되는 `AGENTS.md` 규칙과 기존 `docs/decisions/`를 확인한다.
-- 반복 적용할 규칙은 해당 범위의 `AGENTS.md`에 기록하고, 자동으로 검증할 수 있는 규칙은 테스트나 린터로 고정한다.
+## 목차
 
-## Development Cycle
+1. Spring / Java
+2. Test
+3. Commit Convention
+4. Documentation
 
-모든 기능 개발은 다음 흐름을 따른다.
+## Spring / Java
 
-1. 해결 방안을 브레인스토밍한다. 필요하면 서브에이전트를 병렬로 사용한다.
-2. 등장한 옵션, 개념, 가정 중 이해되지 않은 것이 없을 때까지 조사하고 대화한다.
-3. 학습·조사 결과를 자동으로 문서화한다.
-4. 명시적인 평가 기준을 세우고 대안을 비교한다.
-5. 최종 결정을 `docs/decisions/`에 기록한다.
-6. 관련 `AGENTS.md` 규칙과 Decision을 준수하며 기능을 구현한다.
-7. 기능 테스트와 E2E 테스트를 작성하고 실행한다. 별도의 통합 테스트 단계는 두지 않는다.
-8. 서브에이전트로 코드 리뷰를 수행한다.
-9. 리뷰 결과를 반영해 리팩토링한다.
-10. 문제가 없어질 때까지 `review → refactor`를 반복한다.
-11. 구현 결과가 기존 Decision과 충돌하지 않는지 검토한다.
-12. 반복 적용할 제약은 해당 범위의 `AGENTS.md` 규칙으로 변환하고, 자동 검사할 수 있는 항목은 테스트나 린터로 고정한다.
-13. 다음 사이클로 진행한다.
+- FQCN을 코드에 직접 사용하지 말고, import 후 단순 클래스명을 사용해라.
+- Java 테스트 코드에서는 given, when, then, given & when 등의 주석 패턴을 사용해라.
 
-## Completion Gate
+## Test
 
-다음 조건을 모두 만족하기 전에는 작업을 완료된 것으로 간주하지 않는다.
+- 테스트는 단위 테스트와 최종 E2E 테스트만 진행한다. 통합 테스트는 진행하지 않는다.
 
-- Decision 문서가 존재한다.
-- 미해결 핵심 질문이 없다.
-- 기능 테스트와 E2E 테스트가 통과한다.
-- 코드 리뷰의 해결되지 않은 주요 이슈가 없다.
-- 기존 Decision과의 충돌 검토가 완료되었다.
+## Commit Convention
+
+- AngularJS commit message rule과 한국어를 사용해라.
+
+## Documentation
+
+- 내가 중요한 의사결정을 내리면, 저장 여부를 따로 묻지 말고 항상 해당 내용을 `docs/decisions/`에 기록해.
+- 유사한 의사결정 문서가 있으면 해당 문서에다가 추가해. 수정이나 삭제 금지(append-only).
