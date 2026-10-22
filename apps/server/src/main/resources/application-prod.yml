@@ -57,12 +57,6 @@ spring:
   mail:
     from: no-reply@zup-zup.com
     from-name: 줍줍
-    properties:
-      mail:
-        smtp:
-          connectiontimeout: ${SPRING_MAIL_SMTP_CONNECTIONTIMEOUT:5000}
-          timeout: ${SPRING_MAIL_SMTP_TIMEOUT:5000}
-          writetimeout: ${SPRING_MAIL_SMTP_WRITETIMEOUT:5000}
 
 server:
   shutdown: graceful
