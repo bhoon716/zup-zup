@@ -85,9 +85,7 @@ public class JbnuCourseParser {
             if (rows == null || !rows.isArray()) {
                 throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP response is missing dsEstSbjList");
             }
-            if (rows.isEmpty()) {
-                throw new CustomException(ErrorCode.CRAWLER_NO_DATA, "JUMP course list is empty");
-            }
+            // 분류별 미개설은 정상이며, 전체 0건 여부는 수집기가 합산 후 판단한다.
             int rowIndex = 0;
             for (JsonNode row : rows) {
                 try {
