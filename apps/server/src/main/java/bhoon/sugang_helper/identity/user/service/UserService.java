@@ -5,8 +5,7 @@ import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionAccountLifecycleService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.security.jwt.JwtProvider;
-import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
+import bhoon.sugang_helper.identity.auth.service.SessionInvalidator;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
@@ -42,8 +41,7 @@ public class UserService {
     private final FeedbackAccountLifecycleService feedbackAccountLifecycle;
     private final EmailVerificationService emailVerificationService;
     private final NotificationService notificationTestSender;
-    private final JwtProvider jwtProvider;
-    private final UserAccessRevocationService userAccessRevocationService;
+    private final SessionInvalidator sessionInvalidator;
 
 
 
@@ -115,8 +113,7 @@ public class UserService {
 
         user.withdraw();
         userRepository.saveAndFlush(user);
-        jwtProvider.revokeAllRefreshTokens(email);
-        userAccessRevocationService.revoke(userId);
+        sessionInvalidator.invalidateAll(userId, email);
         emailVerificationService.clearVerificationState(userId, email, notificationEmail);
         subscriptionAccountLifecycle.cancelAllForUser(userId);
         userDeviceRepository.deleteAllByUserId(userId);

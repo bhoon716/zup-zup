@@ -3,6 +3,9 @@ import { AxiosError } from "axios";
 import { useAuthStore } from "./useAuthStore";
 import * as userApi from "@/features/user/api/user.api";
 import type { User } from "@/shared/types/api";
+import { resetSessionState } from "@/shared/api/client";
+
+vi.mock("@/shared/api/client", () => ({ resetSessionState: vi.fn() }));
 
 vi.mock("@/features/user/api/user.api", () => ({
   getMyProfile: vi.fn(),
@@ -66,6 +69,11 @@ describe("useAuthStore", () => {
     expect(state.user).toEqual(user);
     expect(state.isAuthenticated).toBe(true);
     expect(state.isLoading).toBe(false);
+    expect(resetSessionState).toHaveBeenCalledTimes(1);
+    useAuthStore.getState().setUser({ ...user, name: "수정된 이름" });
+    expect(resetSessionState).toHaveBeenCalledTimes(1);
+    useAuthStore.getState().setUser(null);
+    expect(resetSessionState).toHaveBeenCalledTimes(2);
   });
 
   it("checkSession 성공 시 사용자 정보를 저장하고 인증 상태를 true로 설정한다", async () => {
@@ -159,7 +167,7 @@ describe("useAuthStore", () => {
     expect(state.isLoading).toBe(false);
   });
 
-  it("로그아웃 후 늦게 도착한 세션 응답은 상태를 덮어쓰지 않는다", async () => {
+  it.each(["logout", "account-change"])("상태 변경 후 늦게 도착한 세션 응답은 현재 사용자를 덮어쓰지 않는다 (%s)", async action => {
     let resolveProfile!: (value: User) => void;
     const profilePromise = new Promise<User>((resolve) => {
       resolveProfile = resolve;
@@ -168,9 +176,7 @@ describe("useAuthStore", () => {
     vi.mocked(userApi.getMyProfile).mockReturnValue(profilePromise);
 
     const pendingSessionCheck = useAuthStore.getState().checkSession();
-    useAuthStore.getState().logout();
-
-    resolveProfile({
+    const previousUser: User = {
         id: 1,
         email: "test@test.com",
         name: "홍길동",
@@ -180,13 +186,17 @@ describe("useAuthStore", () => {
         fcmEnabled: false,
         discordEnabled: false,
         onboardingCompleted: true,
-      });
+      };
+    const currentUser = action === "account-change" ? { ...previousUser, id: 2, email: "next@test.com" } : null;
+    if (action === "logout") useAuthStore.getState().logout();
+    else useAuthStore.getState().setUser(currentUser);
+    resolveProfile(previousUser);
 
     await pendingSessionCheck;
 
     const state = useAuthStore.getState();
-    expect(state.user).toBeNull();
-    expect(state.isAuthenticated).toBe(false);
+    expect(state.user).toEqual(currentUser);
+    expect(state.isAuthenticated).toBe(currentUser !== null);
     expect(state.isLoading).toBe(false);
   });
 
@@ -209,7 +219,7 @@ describe("useAuthStore", () => {
     expect(state.isLoading).toBe(false);
   });
 
-  it("일시적인 서버 오류에서는 복원된 사용자를 보존하되 인증 완료로 승격하지 않는다", async () => {
+  it.each([403, 503])("401이 아닌 오류에서는 복원된 사용자를 보존하되 인증 완료로 승격하지 않는다 (%s)", async status => {
     vi.useFakeTimers();
     try {
       const user: User = {
@@ -226,7 +236,7 @@ describe("useAuthStore", () => {
       useAuthStore.setState({ user, isAuthenticated: false, isLoading: false });
       vi.mocked(userApi.getMyProfile).mockRejectedValue(
         new AxiosError("Server Error", undefined, undefined, undefined, {
-          status: 503,
+          status,
           statusText: "Service Unavailable",
           headers: {},
           config: { headers: {} } as never,
@@ -357,5 +367,6 @@ describe("useAuthStore", () => {
     expect(state.user).toBeNull();
     expect(state.isAuthenticated).toBe(false);
     expect(userApi.clearMyProfileRequestCache).toHaveBeenCalledTimes(1);
+    expect(resetSessionState).toHaveBeenCalledTimes(1);
   });
 });

@@ -115,9 +115,6 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 
-    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-    implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
-    implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
 
     implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.0'
@@ -145,6 +142,7 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'manual', 'performance', 'migration'
+        excludeTags 'session'
     }
 }
 
@@ -159,6 +157,19 @@ tasks.register('migrationTest', Test) {
     }
     reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/migrationTest')
     reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/migrationTest')
+}
+
+tasks.register('sessionTest', Test) {
+    group = 'verification'
+    description = 'Runs isolated Redis session HTTP end-to-end tests.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+    useJUnitPlatform {
+        includeTags 'session'
+    }
+    reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/sessionTest')
+    reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/sessionTest')
 }
 
 task manualTest(type: Test) {

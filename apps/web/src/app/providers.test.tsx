@@ -39,7 +39,7 @@ const {
   return {
     mockCheckSession,
     mockReplace,
-      mockSetUser,
+    mockSetUser,
     mockLogout,
     mockRegisterAuthFailureHandler,
     mockReportClientError,
@@ -130,7 +130,7 @@ describe("Providers", () => {
     expect(queryClient.getQueryData(["timetables"])).toBeUndefined();
   });
 
-  it("로그인 힌트와 저장된 사용자가 없어도 권위 있는 세션 부트스트랩을 수행한다", async () => {
+  it("저장된 사용자가 없어도 서버 세션을 확인한다", async () => {
     mockedUsePathname.mockReturnValue("/search");
 
     render(

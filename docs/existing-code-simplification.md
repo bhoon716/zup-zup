@@ -368,3 +368,10 @@ HTML은 코드 기준0bb2bf766으로 업데이트하고 현재 DTO/응답·페�
 서버 집중83건 및 최종 clean check bootJar의124 suite593건(실패/오류/skip0), PMD·Checkstyle main/test0, 웹296건·타입·lint경고0·빌드와 브라우저6건(retries0)이 통과했다. CAS mock 누락·중복 문자열·새 브라우저 계측의 타입3곳은 보정 후 확인했으며 테스트나 규칙을 비활성화하지 않았다. 실제인증코드를연결한가짜저장소/MockMvc수명주기와가짜API브라우저회귀의한계는 authentication-simplification.md에 구분했다.
 
 markSuccess는 기준dev aade57db9부터있었고 현재도 수집성공의상태/시각을기록한다. 원격dev9e81c0a0a는해당로컬기준의조상이며 이비교질문때문에기준브랜치변경/병합을하지않았다. CrawlerStatus/실패·감사기록삭제·세션완전전환·쿠키/CSRF/CORS/운영설정변경은하지않았다. 로그인기술대안은비교안으로만기록했다.
+
+
+## Redis 세션 단독 전환 완료
+
+이전 JWT 단순화 `c7cc807c4` 이후 사용자 승인을 받아 자체 JWT/refresh/blacklist 계층과 웹 자동 재발급을 제거했다. Google 로그인·Discord OAuth는 유지하고 Redis indexed session 하나에서 인증을 관리한다. 30일 idle·활동 쿠키 갱신, 현재 기기 logout, 탈퇴 시 같은 userId 전체 세션 회수, 현재 DB id/email/미탈퇴/role 확인, CSRF 검증을 적용했다. 새 namespace `zup:sessions:v2`로 전환하므로 한 번 재로그인해야 한다. [전환 계약·설정·실제 검증 결과](redis-session-migration.md)를 현재 기준으로 사용한다.
+
+최종 서버 543건 + 실제 격리 Redis HTTP 7건·정적 검사·JAR, 웹 300건·타입·lint·build·재시도 없는 브라우저 7건, k6 helper 3건과 local/runtime Compose config 계약이 통과했다. 삭제한 JWT 전용 테스트 대신 현재 세션의 수명주기·실패 보장을 검증하며 다른 도메인 테스트는 유지했다. 운영 SESSION Secure를 명시한 소스/Compose 템플릿만 변경했다. 운영 자격 증명/서비스/DB/Redis/배포는 건드리지 않았으며 원본 dev도 보존했다.

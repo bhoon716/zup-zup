@@ -49,6 +49,6 @@ class SecurityUtilTest {
 
         assertThatThrownBy(SecurityUtil::getCurrentUserEmail)
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AUTHENTICATION_REQUIRED);
     }
 }

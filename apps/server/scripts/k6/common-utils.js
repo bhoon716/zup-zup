@@ -6,18 +6,13 @@ import {scenario} from 'k6/execution';
 export const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 
 
-const tokenPool = new SharedArray('JWT Token Pool', function () {
+const sessions = new SharedArray('Session Pool', function () {
     try {
-        return JSON.parse(open('./data/jwts.json'));
-    } catch (e) {
+        return JSON.parse(open('./data/sessions.json'));
+    } catch {
         return [];
     }
 });
-
-
-
-
-
 
 export function validateResponse(res, name = 'API') {
     const success = check(res, {
@@ -44,31 +39,20 @@ export function getRandomUserAgent() {
 
 
 export function getAuthHeaders(options = {}) {
-    const {token = null, isAdmin = false} = options;
-    let finalToken = token;
-
-
-    if (!finalToken && tokenPool.length > 0) {
-        if (isAdmin) {
-            finalToken = tokenPool[scenario.iterationInTest % 100];
-        } else {
-            finalToken = tokenPool[scenario.iterationInTest % tokenPool.length];
-        }
-    }
-
-
-    if (!finalToken) {
-        finalToken = __ENV.AUTH_TOKEN;
-    }
-
+    const {sessionCookie = null, csrfToken = null, isAdmin = false} = options;
+    const candidates = sessions.filter(session => Boolean(session.admin) === isAdmin);
+    const session = candidates.length > 0 ? candidates[scenario.iterationInTest % candidates.length] : null;
+    const cookie = sessionCookie || session?.cookie || __ENV.SESSION_COOKIE;
+    const csrf = csrfToken || session?.csrfToken || __ENV.CSRF_TOKEN;
     const headers = {
         'Content-Type': 'application/json',
         'User-Agent': getRandomUserAgent(),
     };
-
-    if (finalToken) {
-        headers['Authorization'] = `Bearer ${finalToken}`;
+    if (cookie) {
+        headers.Cookie = cookie;
     }
-
+    if (csrf) {
+        headers['X-CSRF-TOKEN'] = csrf;
+    }
     return {headers};
 }

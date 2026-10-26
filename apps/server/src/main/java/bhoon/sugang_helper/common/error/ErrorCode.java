@@ -12,7 +12,8 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
 
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A001", "유효하지 않은 토큰입니다."),
+    AUTHENTICATION_REQUIRED(HttpStatus.UNAUTHORIZED, "A001", "로그인이 필요합니다."),
+    CSRF_INVALID(HttpStatus.FORBIDDEN, "A003", "요청 보안 토큰이 유효하지 않습니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "A002", "접근 권한이 없습니다."),
 
 

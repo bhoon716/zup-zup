@@ -14,8 +14,7 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.security.jwt.JwtProvider;
-import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
+import bhoon.sugang_helper.identity.auth.service.SessionInvalidator;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateProfileCommand;
@@ -71,10 +70,7 @@ class UserServiceTest {
     private NotificationService notificationTestSender;
 
     @Mock
-    private JwtProvider jwtProvider;
-
-    @Mock
-    private UserAccessRevocationService userAccessRevocationService;
+    private SessionInvalidator sessionInvalidator;
 
     @InjectMocks
     private UserService userService;
@@ -142,8 +138,7 @@ class UserServiceTest {
         assertThat(user.getNotificationEmail()).isNull();
         assertThat(user.getDiscordId()).isNull();
         assertThat(user.hasEnabledNotificationChannels()).isFalse();
-        verify(jwtProvider).revokeAllRefreshTokens(TEST_EMAIL);
-        verify(userAccessRevocationService).revoke(1L);
+        verify(sessionInvalidator).invalidateAll(1L, TEST_EMAIL);
         verify(emailVerificationService).clearVerificationState(1L, TEST_EMAIL, NOTIFY_EMAIL);
         verify(userRepository).saveAndFlush(user);
         verify(subscriptionAccountLifecycle).cancelAllForUser(1L);
@@ -169,8 +164,7 @@ class UserServiceTest {
         assertThatThrownBy(userService::withdraw)
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
-        verify(jwtProvider, never()).revokeAllRefreshTokens(TEST_EMAIL);
-        verify(userAccessRevocationService, never()).revoke(1L);
+        verify(sessionInvalidator, never()).invalidateAll(1L, TEST_EMAIL);
         verify(emailVerificationService, never()).clearVerificationState(
                 org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString());

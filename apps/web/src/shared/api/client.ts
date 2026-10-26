@@ -1,164 +1,90 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { isDefinitiveAuthFailure } from "@/shared/api/auth-error";
-
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+import axios, { AxiosError, CanceledError, type InternalAxiosRequestConfig } from "axios";
+import { isUnauthenticated } from "@/shared/api/auth-error";
 
 const api = axios.create({
-  baseURL: apiBaseUrl,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "",
   timeout: 10000,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
 
-
-
-
-interface RetryableRequestConfig extends InternalAxiosRequestConfig {
-  _retry?: boolean;
-  skipAuthRefresh?: boolean;
+interface SessionRequestConfig extends InternalAxiosRequestConfig {
   silentAuthFailure?: boolean;
+  sessionGeneration?: number;
 }
 
-const TRANSIENT_REFRESH_BACKOFF_MS = [250, 1000, 2000] as const;
-const MAX_TRANSIENT_REFRESH_ATTEMPTS = TRANSIENT_REFRESH_BACKOFF_MS.length;
-const HALF_OPEN_REFRESH_COOLDOWN_MS = 30000;
+let sessionGeneration = 0;
+let csrfToken: string | null = null;
+let csrfPromise: Promise<string> | null = null;
+let handledFailureGeneration: number | null = null;
+let authFailureHandler: (() => void) | null = null;
 
-interface TransientRefreshFailure {
-  generation: number;
-  attempt: number;
-  retryAt: number;
-  error: unknown;
-}
-
-let authGeneration = 0;
-let transientRefreshFailure: TransientRefreshFailure | null = null;
-let refreshPromise: Promise<void> | null = null;
-let refreshPromiseGeneration = 0;
-let definitiveFailureHandledGeneration: number | null = null;
-type AuthFailureHandler = () => void;
-
-let authFailureHandler: AuthFailureHandler | null = null;
-
-export const registerAuthFailureHandler = (handler: AuthFailureHandler | null) => {
+export const registerAuthFailureHandler = (handler: (() => void) | null) => {
   authFailureHandler = handler;
 };
 
-export const resetAuthRefreshState = () => {
-  authGeneration += 1;
-  transientRefreshFailure = null;
+export const resetSessionState = () => {
+  sessionGeneration += 1;
+  csrfToken = null;
+  csrfPromise = null;
+  handledFailureGeneration = null;
 };
 
-const getBlockedRefreshError = () => {
-  if (!transientRefreshFailure || transientRefreshFailure.generation !== authGeneration) {
-    return null;
-  }
-  if (Date.now() < transientRefreshFailure.retryAt) {
-    return transientRefreshFailure.error;
-  }
-  return null;
-};
+const loadCsrfToken = () => {
+  if (csrfToken) return Promise.resolve(csrfToken);
+  if (csrfPromise) return csrfPromise;
 
-const recordTransientRefreshFailure = (error: unknown) => {
-  const previousAttempt = transientRefreshFailure?.generation === authGeneration
-    ? transientRefreshFailure.attempt
-    : 0;
-  const attempt = previousAttempt + 1;
-  const delayIndex = Math.min(attempt - 1, TRANSIENT_REFRESH_BACKOFF_MS.length - 1);
-  const retryDelay = attempt > MAX_TRANSIENT_REFRESH_ATTEMPTS
-    ? HALF_OPEN_REFRESH_COOLDOWN_MS
-    : TRANSIENT_REFRESH_BACKOFF_MS[delayIndex];
-  transientRefreshFailure = {
-    generation: authGeneration,
-    attempt,
-    retryAt: Date.now() + retryDelay,
-    error,
-  };
-};
-
-interface RefreshAttempt {
-  generation: number;
-  promise: Promise<void>;
-}
-
-const startRefresh = (): RefreshAttempt => {
-  if (refreshPromise) {
-    return { generation: refreshPromiseGeneration, promise: refreshPromise };
-  }
-
-  const blockedError = getBlockedRefreshError();
-  if (blockedError) {
-    return { generation: authGeneration, promise: Promise.reject(blockedError) };
-  }
-
-  const requestGeneration = authGeneration;
-  refreshPromiseGeneration = requestGeneration;
-  refreshPromise = api.post("/api/auth/refresh")
-    .then(() => {
-      if (requestGeneration === authGeneration) {
-        transientRefreshFailure = null;
-        definitiveFailureHandledGeneration = null;
+  const generation = sessionGeneration;
+  const pending = api.get<{ token: string }>("/api/auth/csrf", { sessionGeneration: generation } as SessionRequestConfig)
+    .then(response => {
+      if (generation !== sessionGeneration) throw new CanceledError("Session changed before request dispatch");
+      const token = response.data?.token;
+      if (typeof token !== "string" || token.length === 0) {
+        throw new AxiosError("CSRF token is missing", AxiosError.ERR_BAD_RESPONSE, response.config, response.request, response);
       }
-    })
-    .catch((refreshError: unknown) => {
-      if (requestGeneration === authGeneration) {
-        if (isDefinitiveAuthFailure(refreshError)) {
-          transientRefreshFailure = null;
-        } else {
-          recordTransientRefreshFailure(refreshError);
-        }
-      }
-      throw refreshError;
+      if (csrfPromise === pending) csrfToken = token;
+      return token;
     })
     .finally(() => {
-      refreshPromise = null;
+      if (csrfPromise === pending) csrfPromise = null;
     });
-  return { generation: requestGeneration, promise: refreshPromise };
+  csrfPromise = pending;
+  return pending;
 };
 
-const handleDefinitiveAuthFailure = (error: unknown, request: RetryableRequestConfig,
-  failureGeneration: number) => {
-  if (!isDefinitiveAuthFailure(error) || request.silentAuthFailure
-    || failureGeneration !== authGeneration
-    || definitiveFailureHandledGeneration === failureGeneration) {
-    return;
-  }
-  definitiveFailureHandledGeneration = failureGeneration;
-  authFailureHandler?.();
-};
+api.interceptors.request.use(async config => {
+  const request = config as SessionRequestConfig;
+  const generation = request.sessionGeneration ?? sessionGeneration;
+  request.sessionGeneration = generation;
+  if (generation !== sessionGeneration) throw new CanceledError("Session changed before request dispatch", request);
+  const method = (request.method || "GET").toUpperCase();
+  const pathname = new URL(request.url || "", "http://request.local").pathname;
+  if (["GET", "HEAD", "OPTIONS"].includes(method)
+    || (method === "POST" && pathname === "/api/v1/courses/search")) return request;
+
+  const token = await loadCsrfToken();
+  if (generation !== sessionGeneration) throw new CanceledError("Session changed before request dispatch", request);
+  request.headers.set("X-CSRF-TOKEN", token);
+  return request;
+});
 
 api.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as RetryableRequestConfig | undefined;
-    if (!originalRequest) {
-      return Promise.reject(error);
-    }
-
-
-    if (originalRequest.url === "/api/auth/refresh" || originalRequest._retry || originalRequest.skipAuthRefresh) {
-      return Promise.reject(error);
-    }
-
-    if (error.response?.status === 401) {
-      originalRequest._retry = true;
-
-      const refreshAttempt = startRefresh();
-      try {
-        await refreshAttempt.promise;
-        if (refreshAttempt.generation !== authGeneration) {
-          return Promise.reject(error);
-        }
-        return api(originalRequest);
-      } catch (refreshError) {
-        handleDefinitiveAuthFailure(refreshError, originalRequest, refreshAttempt.generation);
-        return Promise.reject(refreshError);
+  response => response,
+  (error: AxiosError<{ code?: string }>) => {
+    const request = error.config as SessionRequestConfig | undefined;
+    if (request?.sessionGeneration === sessionGeneration) {
+      const unauthorized = isUnauthenticated(error);
+      if (unauthorized || (error.response?.status === 403 && error.response.data?.code === "A003")) {
+        csrfToken = null;
+        csrfPromise = null;
+      }
+      if (unauthorized && !request.silentAuthFailure && handledFailureGeneration !== sessionGeneration) {
+        handledFailureGeneration = sessionGeneration;
+        authFailureHandler?.();
       }
     }
-
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

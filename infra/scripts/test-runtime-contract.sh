@@ -127,8 +127,8 @@ if app_environment.get("LOG_FILE") != "/tmp/application.log":
     fail("runtime app logs must stay writable on the read-only container")
 if app_environment.get("APP_CORS_REQUIRE_HTTPS") != "true":
     fail("production app must require HTTPS for CORS")
-if app_environment.get("APP_AUTH_REFRESH_COOKIE_SECURE") != "true":
-    fail("production app refresh cookies must be Secure")
+if app_environment.get("SERVER_SERVLET_SESSION_COOKIE_SECURE") != "true":
+    fail("production app SESSION cookies must be Secure")
 
 app_health = services["app"].get("healthcheck", {})
 health_test = " ".join(str(part) for part in app_health.get("test", []))

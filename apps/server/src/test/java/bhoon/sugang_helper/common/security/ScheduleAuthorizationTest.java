@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.common.security;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -23,9 +25,7 @@ import bhoon.sugang_helper.common.config.SecurityConfig;
 import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
-import bhoon.sugang_helper.common.security.jwt.JwtAuthenticationFilter;
-import bhoon.sugang_helper.common.security.jwt.JwtProvider;
-import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
+import bhoon.sugang_helper.common.security.session.SessionAuthenticationFilter;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2FailureHandler;
@@ -51,9 +51,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.identity.auth.service.SessionPrincipal;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
+import org.springframework.session.web.http.CookieSerializer;
+import java.util.Optional;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -88,8 +91,8 @@ class ScheduleAuthorizationTest {
             """;
     @Autowired private MockMvc mockMvc;
     @MockitoBean private ScheduleService schedules;
-    @MockitoBean private JwtProvider jwtProvider;
-    @MockitoBean private UserAccessRevocationService userAccessRevocationService;
+    @MockitoBean private CookieSerializer cookieSerializer;
+    @MockitoBean private UserIdentityQueryService userIdentityQuery;
     @MockitoBean private CustomOAuth2UserService customOAuth2UserService;
     @MockitoBean private OAuth2SuccessHandler oAuth2SuccessHandler;
     @MockitoBean private OAuth2FailureHandler oAuth2FailureHandler;
@@ -118,10 +121,10 @@ class ScheduleAuthorizationTest {
             case "PATCH" -> ADMIN_PATH + "/1/restore";
             default -> ADMIN_PATH;
         };
-        mockMvc.perform(request(HttpMethod.valueOf(method), path).contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(request(HttpMethod.valueOf(method), path).with(csrf().asHeader()).contentType(MediaType.APPLICATION_JSON)
                         .content(REQUEST))
                 .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("A001"));
-        mockMvc.perform(request(HttpMethod.valueOf(method), path).session(session("ROLE_USER"))
+        mockMvc.perform(request(HttpMethod.valueOf(method), path).with(csrf().asHeader()).session(session("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON).content(REQUEST))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("A002"));
     }
@@ -136,20 +139,20 @@ class ScheduleAuthorizationTest {
 
         mockMvc.perform(get(ADMIN_PATH).session(admin)).andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].ddayEnabled").value(true));
-        mockMvc.perform(post(ADMIN_PATH).session(admin).contentType(MediaType.APPLICATION_JSON).content(REQUEST))
+        mockMvc.perform(post(ADMIN_PATH).with(csrf().asHeader()).session(admin).contentType(MediaType.APPLICATION_JSON).content(REQUEST))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.ddayEnabled").value(true));
         verify(schedules).createSchedule(argThat(input -> Boolean.TRUE.equals(input.getDdayEnabled())
                 && input.getStartTime().getHour() == 9));
-        mockMvc.perform(put(ADMIN_PATH + "/1").session(admin).contentType(MediaType.APPLICATION_JSON).content(REQUEST))
+        mockMvc.perform(put(ADMIN_PATH + "/1").with(csrf().asHeader()).session(admin).contentType(MediaType.APPLICATION_JSON).content(REQUEST))
                 .andExpect(status().isOk());
-        mockMvc.perform(delete(ADMIN_PATH + "/1").session(admin)).andExpect(status().isNoContent());
-        mockMvc.perform(patch(ADMIN_PATH + "/1/restore").session(admin)).andExpect(status().isOk())
+        mockMvc.perform(delete(ADMIN_PATH + "/1").with(csrf().asHeader()).session(admin)).andExpect(status().isNoContent());
+        mockMvc.perform(patch(ADMIN_PATH + "/1/restore").with(csrf().asHeader()).session(admin)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.ddayEnabled").value(true));
     }
 
     @Test
     void invertedPeriodIsACommonErrorAndLegacyDdayApiDoesNotExist() throws Exception {
-        mockMvc.perform(post(ADMIN_PATH).session(session("ROLE_ADMIN"))
+        mockMvc.perform(post(ADMIN_PATH).with(csrf().asHeader()).session(session("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(REQUEST.replace("2026-10-27", "2026-10-25")))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("G002"));
@@ -168,12 +171,11 @@ class ScheduleAuthorizationTest {
 
     private MockHttpSession session(String role) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(new UsernamePasswordAuthenticationToken("admin@example.com", "",
-                List.of(new SimpleGrantedAuthority(role))));
+        context.setAuthentication(new SessionPrincipal(1L, "admin@example.com").authentication(role));
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
-        session.setAttribute("AUTHENTICATION_EXPIRES_AT", System.currentTimeMillis() + 60_000L);
-        session.setAttribute("AUTHENTICATION_USER_ID", 1L);
+        when(userIdentityQuery.findAuthenticatedUser(1L, "admin@example.com"))
+                .thenReturn(Optional.of(new AuthenticatedUser(1L, "admin@example.com", role)));
         return session;
     }
 
@@ -184,7 +186,7 @@ class ScheduleAuthorizationTest {
             SessionAutoConfiguration.class
     })
     @EnableMethodSecurity
-    @Import({SecurityConfig.class, SecurityContextRepositoryConfig.class, JwtAuthenticationFilter.class,
+    @Import({SecurityConfig.class, SecurityContextRepositoryConfig.class, SessionAuthenticationFilter.class,
             CustomAccessDeniedHandler.class, CustomAuthenticationEntryPoint.class, ScheduleController.class,
             AdminScheduleController.class, GlobalExceptionHandler.class})
     static class TestApplication {

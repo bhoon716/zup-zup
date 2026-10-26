@@ -15,10 +15,6 @@ public class RedisService {
             "local count = redis.call('INCR', KEYS[1]); "
                     + "if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return count;",
             Long.class);
-    private static final DefaultRedisScript<Long> COMPARE_AND_SET_WITH_TTL = new DefaultRedisScript<>(
-            "if redis.call('GET', KEYS[1]) == ARGV[1] then "
-                    + "redis.call('SET', KEYS[1], ARGV[2], 'PX', ARGV[3]); return 1; end; return 0;",
-            Long.class);
     private static final DefaultRedisScript<Long> COMPARE_AND_DELETE = new DefaultRedisScript<>(
             "if redis.call('GET', KEYS[1]) == ARGV[1] then redis.call('DEL', KEYS[1]); return 1; end; return 0;",
             Long.class);
@@ -75,15 +71,6 @@ public class RedisService {
         Long value = redisTemplate.execute(ATOMIC_INCREMENT_WITH_TTL, java.util.List.of(key),
                 String.valueOf(duration.toMillis()));
         return value == null ? 0 : value;
-    }
-
-
-
-
-    public boolean compareAndSetValues(String key, String expectedValue, String newValue, Duration duration) {
-        Long value = redisTemplate.execute(COMPARE_AND_SET_WITH_TTL, java.util.List.of(key), expectedValue, newValue,
-                String.valueOf(duration.toMillis()));
-        return Long.valueOf(1L).equals(value);
     }
 
 

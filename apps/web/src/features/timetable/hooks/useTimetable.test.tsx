@@ -58,6 +58,7 @@ const mockDetail = {
 };
 
 const handlers = [
+  http.get('*/api/auth/csrf', () => HttpResponse.json({ token: 'timetable-csrf-token' })),
   http.get('*/api/v1/users/me', () => {
     return HttpResponse.json(mockUser);
   }),
@@ -70,7 +71,8 @@ const handlers = [
   http.get('*/api/v1/timetables/primary', () => {
     return HttpResponse.json(mockDetail);
   }),
-  http.post('*/api/v1/timetables/1/courses', () => {
+  http.post('*/api/v1/timetables/1/courses', ({ request }) => {
+    expect(request.headers.get('X-CSRF-TOKEN')).toBe('timetable-csrf-token');
     return HttpResponse.json(null);
   }),
 ];

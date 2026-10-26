@@ -1,464 +1,198 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AxiosError, AxiosHeaders, isCancel, type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-describe("shared api client", () => {
+type SilentRequest = AxiosRequestConfig & { silentAuthFailure: boolean };
+
+const response = (config: InternalAxiosRequestConfig, data: unknown, status = 200): AxiosResponse => {
+  const result = { data, status, statusText: "test", headers: new AxiosHeaders(), config };
+  if (status >= 400) throw new AxiosError("request failed", AxiosError.ERR_BAD_RESPONSE, config, undefined, result);
+  return result;
+};
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(complete => { resolve = complete; });
+  return { promise, resolve };
+};
+
+describe("session api client", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("로컬 API URL에서는 ngrok 경고 헤더를 붙이지 않는다", async () => {
-    vi.stubEnv("NEXT_PUBLIC_API_URL", "http://localhost:8080");
-
+  it("안전한 요청과 정확한 강의 검색 POST는 CSRF 조회 없이 세션 쿠키로 전송한다", async () => {
     const { default: api } = await import("./client");
-
-    expect((api.defaults.headers.common as Record<string, unknown>)["ngrok-skip-browser-warning"]).toBeUndefined();
-  });
-
-  it("refresh 실패 시 등록된 인증 실패 핸들러만 호출한다", async () => {
-    const refreshError = Object.assign(new Error("refresh failed"), {
-      response: { status: 401 },
-    });
-    const redirectSpy = vi.fn();
-    const logoutSpy = vi.fn();
-    const responseHandlers: {
-      onRejected?: (error: unknown) => Promise<unknown>;
-    } = {};
-
-    const apiMock = {
-      defaults: { headers: { common: {} as Record<string, unknown> } },
-      interceptors: {
-        response: {
-          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
-            responseHandlers.onRejected = onRejected;
-          },
-        },
-      },
-      post: vi.fn(async (url: string) => {
-        if (url === "/api/auth/refresh") {
-          throw refreshError;
-        }
-
-        return { data: null };
-      }),
-    };
-
-    vi.doMock("axios", () => ({
-      AxiosError: class AxiosError {},
-      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
-      default: {
-        create: () => apiMock,
-      },
-    }));
-
-    vi.doMock("@/shared/lib/navigation", () => ({
-      redirectToLogin: redirectSpy,
-    }));
-
-    const { default: api, registerAuthFailureHandler } = await import("./client");
-    registerAuthFailureHandler(logoutSpy);
-    void api;
-
-    const responseError = {
-      config: { url: "/api/v1/users/me" },
-      response: { status: 401 },
-    };
-
-    await expect(responseHandlers.onRejected?.(responseError)).rejects.toThrow("refresh failed");
-    expect(redirectSpy).not.toHaveBeenCalled();
-    expect(logoutSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it("silent bootstrap의 definitive refresh 실패는 로그인 이동 없이 guest로 수렴한다", async () => {
-    const refreshError = Object.assign(new Error("refresh failed"), {
-      response: { status: 401 },
-    });
-    const redirectSpy = vi.fn();
-    const logoutSpy = vi.fn();
-    const responseHandlers: {
-      onRejected?: (error: unknown) => Promise<unknown>;
-    } = {};
-
-    const apiMock = {
-      defaults: { headers: { common: {} as Record<string, unknown> } },
-      interceptors: {
-        response: {
-          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
-            responseHandlers.onRejected = onRejected;
-          },
-        },
-      },
-      post: vi.fn(async (url: string) => {
-        if (url === "/api/auth/refresh") {
-          throw refreshError;
-        }
-
-        return { data: null };
-      }),
-    };
-
-    vi.doMock("axios", () => ({
-      AxiosError: class AxiosError {},
-      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
-      default: {
-        create: () => apiMock,
-      },
-    }));
-
-    vi.doMock("@/shared/lib/navigation", () => ({
-      redirectToLogin: redirectSpy,
-    }));
-
-    const { default: api, registerAuthFailureHandler } = await import("./client");
-    registerAuthFailureHandler(logoutSpy);
-    void api;
-
-    const responseError = {
-      config: { url: "/api/v1/users/me", silentAuthFailure: true },
-      response: { status: 401 },
-    };
-
-    await expect(responseHandlers.onRejected?.(responseError)).rejects.toThrow("refresh failed");
-    expect(redirectSpy).not.toHaveBeenCalled();
-    expect(logoutSpy).not.toHaveBeenCalled();
-  });
-
-  it("silent bootstrap도 유효한 refresh가 있으면 원래 프로필 요청을 재시도한다", async () => {
-    const redirectSpy = vi.fn();
-    const logoutSpy = vi.fn();
-    const responseHandlers: {
-      onRejected?: (error: unknown) => Promise<unknown>;
-    } = {};
-    const retryResponse = { data: undefined };
-    const requestMock = vi.fn(async () => retryResponse);
-    const apiMock = Object.assign(requestMock, {
-      defaults: { headers: { common: {} as Record<string, unknown> } },
-      interceptors: {
-        response: {
-          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
-            responseHandlers.onRejected = onRejected;
-          },
-        },
-      },
-      post: vi.fn(async () => ({ data: null })),
-    });
-
-    vi.doMock("axios", () => ({
-      AxiosError: class AxiosError {},
-      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
-      default: {
-        create: () => apiMock,
-      },
-    }));
-
-    vi.doMock("@/shared/lib/navigation", () => ({
-      redirectToLogin: redirectSpy,
-    }));
-
-    const { default: api, registerAuthFailureHandler } = await import("./client");
-    registerAuthFailureHandler(logoutSpy);
-    void api;
-
-    const originalRequest = { url: "/api/v1/users/me", silentAuthFailure: true };
-    const responseError = {
-      config: originalRequest,
-      response: { status: 401 },
-    };
-
-    await expect(responseHandlers.onRejected?.(responseError)).resolves.toEqual(retryResponse);
-    expect(apiMock.post).toHaveBeenCalledWith("/api/auth/refresh");
-    expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({
-      url: "/api/v1/users/me",
-      silentAuthFailure: true,
-      _retry: true,
-    }));
-    expect(redirectSpy).not.toHaveBeenCalled();
-    expect(logoutSpy).not.toHaveBeenCalled();
-  });
-
-  it("refresh의 일시적인 서버 오류에서는 로그인 상태를 제거하거나 이동하지 않는다", async () => {
-    const refreshError = Object.assign(new Error("temporarily unavailable"), {
-      response: { status: 503 },
-    });
-    const redirectSpy = vi.fn();
-    const logoutSpy = vi.fn();
-    const responseHandlers: {
-      onRejected?: (error: unknown) => Promise<unknown>;
-    } = {};
-
-    const apiMock = {
-      defaults: { headers: { common: {} as Record<string, unknown> } },
-      interceptors: {
-        response: {
-          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
-            responseHandlers.onRejected = onRejected;
-          },
-        },
-      },
-      post: vi.fn(async (url: string) => {
-        if (url === "/api/auth/refresh") {
-          throw refreshError;
-        }
-
-        return { data: null };
-      }),
-    };
-
-    vi.doMock("axios", () => ({
-      AxiosError: class AxiosError {},
-      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
-      default: {
-        create: () => apiMock,
-      },
-    }));
-
-    vi.doMock("@/shared/lib/navigation", () => ({
-      redirectToLogin: redirectSpy,
-    }));
-
-    const { default: api, registerAuthFailureHandler } = await import("./client");
-    registerAuthFailureHandler(logoutSpy);
-    void api;
-
-    const responseError = {
-      config: { url: "/api/v1/users/me" },
-      response: { status: 401 },
-    };
-
-    await expect(responseHandlers.onRejected?.(responseError)).rejects.toThrow("temporarily unavailable");
-    expect(redirectSpy).not.toHaveBeenCalled();
-    expect(logoutSpy).not.toHaveBeenCalled();
-  });
-
-  it("transient refresh 상한 뒤 quiet period가 지나면 한 번의 half-open probe로 복구한다", async () => {
-    vi.useFakeTimers();
-    const refreshError = Object.assign(new Error("temporarily unavailable"), {
-      response: { status: 503 },
-    });
-    const responseHandlers: {
-      onRejected?: (error: unknown) => Promise<unknown>;
-    } = {};
-    let refreshCalls = 0;
-    const requestMock = vi.fn(async () => ({ data: null }));
-    const refreshResponses: Array<Error | null> = [refreshError, refreshError, refreshError, null];
-    const apiMock = Object.assign(requestMock, {
-      defaults: { headers: { common: {} as Record<string, unknown> } },
-      interceptors: {
-        response: {
-          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
-            responseHandlers.onRejected = onRejected;
-          },
-        },
-      },
-      post: vi.fn(async () => {
-        const response = refreshResponses[refreshCalls];
-        refreshCalls += 1;
-        if (response) {
-          throw response;
-        }
-        return { data: null };
-      }),
-    });
-
-    vi.doMock("axios", () => ({
-      AxiosError: class AxiosError {},
-      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
-      default: {
-        create: () => apiMock,
-      },
-    }));
-
-    const { default: api } = await import("./client");
-    void api;
-    const rejectProtectedRequest = (id: number) => responseHandlers.onRejected?.({
-      config: { url: `/api/v1/protected/${id}` },
-      response: { status: 401 },
-    });
-
-    await expect(rejectProtectedRequest(1)).rejects.toBe(refreshError);
-    await expect(rejectProtectedRequest(2)).rejects.toBe(refreshError);
-    expect(refreshCalls).toBe(1);
-
-    vi.advanceTimersByTime(250);
-    await expect(rejectProtectedRequest(3)).rejects.toBe(refreshError);
-    expect(refreshCalls).toBe(2);
-
-    vi.advanceTimersByTime(1000);
-    await expect(rejectProtectedRequest(4)).rejects.toBe(refreshError);
-    expect(refreshCalls).toBe(3);
-
-    vi.advanceTimersByTime(2000);
-    await expect(rejectProtectedRequest(5)).resolves.toEqual({ data: null });
-    expect(refreshCalls).toBe(4);
-  });
-
-  it("동시 definitive refresh 실패는 logout 핸들러를 한 번만 실행한다", async () => {
-    const refreshError = Object.assign(new Error("expired"), {
-      response: { status: 401 },
-    });
-    const redirectSpy = vi.fn();
-    const responseHandlers: {
-      onRejected?: (error: unknown) => Promise<unknown>;
-    } = {};
-    let rejectRefresh!: (reason?: unknown) => void;
-    const pendingRefresh = new Promise<never>((_resolve, reject) => {
-      rejectRefresh = reject;
-    });
-    const apiMock = {
-      defaults: { headers: { common: {} as Record<string, unknown> } },
-      interceptors: {
-        response: {
-          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
-            responseHandlers.onRejected = onRejected;
-          },
-        },
-      },
-      post: vi.fn(() => pendingRefresh),
-    };
-
-    vi.doMock("axios", () => ({
-      AxiosError: class AxiosError {},
-      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
-      default: {
-        create: () => apiMock,
-      },
-    }));
-
-    vi.doMock("@/shared/lib/navigation", () => ({
-      redirectToLogin: redirectSpy,
-    }));
-
-    const {
-      default: api,
-      registerAuthFailureHandler,
-      resetAuthRefreshState,
-    } = await import("./client");
-    const logoutSpy = vi.fn(() => resetAuthRefreshState());
-    registerAuthFailureHandler(logoutSpy);
-    void api;
-    const rejectProtectedRequest = (id: number) => responseHandlers.onRejected!({
-      config: { url: `/api/v1/protected/${id}` },
-      response: { status: 401 },
-    });
-
-    const requests = [rejectProtectedRequest(1), rejectProtectedRequest(2)];
-    expect(apiMock.post).toHaveBeenCalledTimes(1);
-    rejectRefresh(refreshError);
-
-    const results = await Promise.allSettled(requests);
-    expect(results.map((result) => result.status)).toEqual(["rejected", "rejected"]);
-    expect(logoutSpy).toHaveBeenCalledTimes(1);
-    expect(redirectSpy).not.toHaveBeenCalled();
-  });
-
-  it("refresh 성공과 명시적 인증 상태 초기화는 transient cooldown을 초기화한다", async () => {
-    vi.useFakeTimers();
-    const transientError = Object.assign(new Error("temporarily unavailable"), {
-      response: { status: 503 },
-    });
-    const definitiveError = Object.assign(new Error("expired"), {
-      response: { status: 401 },
-    });
-    const redirectSpy = vi.fn();
-    const responseHandlers: {
-      onRejected?: (error: unknown) => Promise<unknown>;
-    } = {};
-    const refreshResponses: Array<Error | null> = [transientError, null, definitiveError, transientError];
-    let refreshCalls = 0;
-    const requestMock = vi.fn(async () => ({ data: undefined }));
-    const apiMock = Object.assign(requestMock, {
-      defaults: { headers: { common: {} as Record<string, unknown> } },
-      interceptors: {
-        response: {
-          use: (_onFulfilled: unknown, onRejected: (error: unknown) => Promise<unknown>) => {
-            responseHandlers.onRejected = onRejected;
-          },
-        },
-      },
-      post: vi.fn(async () => {
-        const refreshError = refreshResponses[refreshCalls];
-        refreshCalls += 1;
-        if (refreshError) {
-          throw refreshError;
-        }
-        return { data: null };
-      }),
-    });
-
-    vi.doMock("axios", () => ({
-      AxiosError: class AxiosError {},
-      InternalAxiosRequestConfig: class InternalAxiosRequestConfig {},
-      default: {
-        create: () => apiMock,
-      },
-    }));
-
-    vi.doMock("@/shared/lib/navigation", () => ({
-      redirectToLogin: redirectSpy,
-    }));
-
-    const { default: api, resetAuthRefreshState } = await import("./client");
-    void api;
-    const rejectProtectedRequest = (id: number) => responseHandlers.onRejected?.({
-      config: { url: `/api/v1/protected/${id}` },
-      response: { status: 401 },
-    });
-
-    await expect(rejectProtectedRequest(1)).rejects.toBe(transientError);
-    resetAuthRefreshState();
-    await expect(rejectProtectedRequest(2)).resolves.toEqual({ data: undefined });
-    expect(refreshCalls).toBe(2);
-
-    await expect(rejectProtectedRequest(3)).rejects.toBe(definitiveError);
-    expect(redirectSpy).not.toHaveBeenCalled();
-
-    await expect(rejectProtectedRequest(4)).rejects.toBe(transientError);
-    expect(refreshCalls).toBe(4);
-  });
-
-  it.each([false, true])("로그아웃 뒤 완료된 refresh는 이전 요청을 재전송하지 않는다 (새 요청 공유: %s)", async shareAfterLogout => {
-    const handlers: { reject?: (error: unknown) => Promise<unknown> } = {};
-    let completeRefresh!: (value: unknown) => void;
-    const refresh = new Promise(resolve => { completeRefresh = resolve; });
-    const retry = vi.fn(async () => ({ data: "current" }));
-    const post = vi.fn().mockReturnValueOnce(refresh).mockResolvedValue({ data: null });
-    const apiMock = Object.assign(retry, {
-      defaults: { headers: { common: {} } },
-      interceptors: { response: { use: (_success: unknown, reject: (error: unknown) => Promise<unknown>) => {
-        handlers.reject = reject;
-      } } },
-      post,
-    });
-    vi.doMock("axios", () => ({
-      AxiosError: class AxiosError {},
-      default: { create: () => apiMock },
-    }));
-    const { resetAuthRefreshState, registerAuthFailureHandler } = await import("./client");
-    const logout = vi.fn();
-    registerAuthFailureHandler(logout);
-    const expired = (id: number) => ({ config: { url: `/api/v1/protected/${id}` }, response: { status: 401 } });
-    const firstError = expired(1);
-    const requests = [handlers.reject!(firstError)];
-    resetAuthRefreshState();
-    const expectedErrors = [firstError];
-    if (shareAfterLogout) {
-      const secondError = expired(2);
-      requests.push(handlers.reject!(secondError));
-      expectedErrors.push(secondError);
+    const requests: InternalAxiosRequestConfig[] = [];
+    api.defaults.adapter = async config => { requests.push(config); return response(config, []); };
+    await Promise.all([
+      api.get("/api/v1/users/me"), api.head("/health"), api.options("/api/v1/courses"),
+      api.post("/api/v1/courses/search?size=30", {}),
+    ]);
+    expect(requests).toHaveLength(4);
+    for (const request of requests) {
+      expect(request.withCredentials).toBe(true);
+      expect(request.headers.get("X-CSRF-TOKEN")).toBeUndefined();
+      expect(request.headers.get("Authorization")).toBeUndefined();
     }
-    const settled = Promise.allSettled(requests);
-    expect(post).toHaveBeenCalledTimes(1);
-    completeRefresh({ data: null });
-    expect(await settled).toEqual(expectedErrors.map(reason => ({ status: "rejected", reason })));
-    expect(retry).not.toHaveBeenCalled();
-    expect(logout).not.toHaveBeenCalled();
-
-    await expect(handlers.reject!(expired(3))).resolves.toEqual({ data: "current" });
-    expect(post).toHaveBeenCalledTimes(2);
-    expect(retry).toHaveBeenCalledTimes(1);
   });
 
+  it("동시 변경 요청은 CSRF 조회를 공유하고 이후에도 메모리에 저장된 토큰을 사용한다", async () => {
+    const { default: api } = await import("./client");
+    const csrfRequested = deferred<void>();
+    const csrf = deferred<void>();
+    const requests: InternalAxiosRequestConfig[] = [];
+    api.defaults.adapter = async config => {
+      requests.push(config);
+      if (config.url === "/api/auth/csrf") { csrfRequested.resolve(); await csrf.promise; return response(config, { token: "session-csrf" }); }
+      return response(config, null);
+    };
+    const writes = [api.post("/resource"), api.put("/resource"), api.patch("/resource"), api.delete("/resource")];
+    await csrfRequested.promise;
+    expect(requests).toHaveLength(1);
+    csrf.resolve();
+    await Promise.all(writes);
+    await api.post("/api/auth/logout");
+    expect(requests.filter(request => request.url === "/api/auth/csrf")).toHaveLength(1);
+    expect(requests.filter(request => request.url !== "/api/auth/csrf").map(request => request.headers.get("X-CSRF-TOKEN")))
+      .toEqual(Array(5).fill("session-csrf"));
+  });
+
+  it("강의 검색의 비슷한 경로나 다른 변경 메서드는 CSRF 예외가 아니다", async () => {
+    const { default: api } = await import("./client");
+    const writes: InternalAxiosRequestConfig[] = [];
+    api.defaults.adapter = async config => {
+      if (config.url === "/api/auth/csrf") return response(config, { token: "csrf" });
+      writes.push(config); return response(config, null);
+    };
+    await Promise.all([api.post("/api/v1/courses/search/"), api.post("/api/v1/courses/search-extra"), api.put("/api/v1/courses/search")]);
+    expect(writes).toHaveLength(3);
+    expect(writes.every(request => request.headers.get("X-CSRF-TOKEN") === "csrf")).toBe(true);
+  });
+
+  it.each(["network", "missing-token"])("CSRF 조회 실패 시 쓰기를 보내지 않고 다음 명시적 요청에서 다시 조회한다 (%s)", async failure => {
+    const { default: api } = await import("./client");
+    let csrfRequests = 0;
+    let writes = 0;
+    api.defaults.adapter = async config => {
+      if (config.url === "/api/auth/csrf") {
+        csrfRequests += 1;
+        if (csrfRequests === 1) {
+          if (failure === "network") throw new AxiosError("offline", AxiosError.ERR_NETWORK, config);
+          return response(config, {});
+        }
+        return response(config, { token: "recovered-csrf" });
+      }
+      writes += 1; return response(config, null);
+    };
+    await expect(api.post("/resource")).rejects.toBeInstanceOf(Error);
+    expect(csrfRequests).toBe(1);
+    expect(writes).toBe(0);
+    await api.post("/resource");
+    expect(csrfRequests).toBe(2);
+    expect(writes).toBe(1);
+  });
+
+  it.each([false, true])("401은 자동 재시도 없이 인증 실패를 한 번만 알린다 (핸들러 상태 초기화: %s)", async resetInHandler => {
+    const { default: api, registerAuthFailureHandler, resetSessionState } = await import("./client");
+    const handler = vi.fn(() => { if (resetInHandler) resetSessionState(); });
+    registerAuthFailureHandler(handler);
+    const requests: string[] = [];
+    api.defaults.adapter = async config => { requests.push(config.url!); return response(config, { code: "A001" }, 401); };
+    const results = await Promise.allSettled([api.get("/private/one"), api.get("/private/two")]);
+    expect(results.map(result => result.status)).toEqual(["rejected", "rejected"]);
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(requests).toEqual(["/private/one", "/private/two"]);
+  });
+
+  it("silent 401은 로그인 안내 없이 CSRF 캐시만 무효화한다", async () => {
+    const { default: api, registerAuthFailureHandler } = await import("./client");
+    const handler = vi.fn(); registerAuthFailureHandler(handler);
+    let csrfRequests = 0;
+    api.defaults.adapter = async config => {
+      if (config.url === "/api/auth/csrf") return response(config, { token: `csrf-${++csrfRequests}` });
+      return response(config, null, config.url === "/api/v1/users/me" ? 401 : 200);
+    };
+    await api.post("/resource");
+    await expect(api.get("/api/v1/users/me", { silentAuthFailure: true } as SilentRequest)).rejects.toMatchObject({ response: { status: 401 } });
+    expect(handler).not.toHaveBeenCalled();
+    await api.post("/resource");
+    expect(csrfRequests).toBe(2);
+  });
+
+  it.each(["A002", "A003"])("403은 로그아웃이나 쓰기 재전송 없이 전달하고 A003만 CSRF 캐시를 비운다 (%s)", async code => {
+    const { default: api, registerAuthFailureHandler } = await import("./client");
+    const handler = vi.fn(); registerAuthFailureHandler(handler);
+    let csrfRequests = 0;
+    const writeTokens: unknown[] = [];
+    api.defaults.adapter = async config => {
+      if (config.url === "/api/auth/csrf") return response(config, { token: `csrf-${++csrfRequests}` });
+      writeTokens.push(config.headers.get("X-CSRF-TOKEN"));
+      return response(config, { code }, writeTokens.length === 1 ? 403 : 200);
+    };
+    await expect(api.post("/resource")).rejects.toMatchObject({ response: { status: 403, data: { code } } });
+    expect(writeTokens).toEqual(["csrf-1"]);
+    expect(handler).not.toHaveBeenCalled();
+    await api.post("/resource");
+    expect(writeTokens).toEqual(["csrf-1", code === "A003" ? "csrf-2" : "csrf-1"]);
+    expect(csrfRequests).toBe(code === "A003" ? 2 : 1);
+  });
+
+  it("이전 세대의 401은 현재 인증 상태와 새 CSRF 캐시를 변경하지 않는다", async () => {
+    const { default: api, registerAuthFailureHandler, resetSessionState } = await import("./client");
+    const handler = vi.fn(); registerAuthFailureHandler(handler);
+    const started = deferred<void>();
+    const oldResponse = deferred<void>();
+    let csrfRequests = 0;
+    api.defaults.adapter = async config => {
+      if (config.url === "/old-private") { started.resolve(); await oldResponse.promise; return response(config, { code: "A001" }, 401); }
+      if (config.url === "/api/auth/csrf") return response(config, { token: `csrf-${++csrfRequests}` });
+      return response(config, null);
+    };
+    const old = api.get("/old-private");
+    const result = Promise.allSettled([old]);
+    await started.promise;
+    resetSessionState();
+    await api.post("/new-resource");
+    oldResponse.resolve();
+    expect((await result)[0].status).toBe("rejected");
+    await api.post("/new-resource");
+    expect(handler).not.toHaveBeenCalled();
+    expect(csrfRequests).toBe(1);
+  });
+
+  it("세션 초기화 중 대기하던 쓰기는 취소하고 새 세대의 CSRF 조회를 보존한다", async () => {
+    const { default: api, resetSessionState } = await import("./client");
+    const oldStarted = deferred<void>();
+    const newStarted = deferred<void>();
+    const oldCsrf = deferred<void>();
+    const newCsrf = deferred<void>();
+    let csrfRequests = 0;
+    const writes: string[] = [];
+    api.defaults.adapter = async config => {
+      if (config.url === "/api/auth/csrf") {
+        const index = ++csrfRequests;
+        (index === 1 ? oldStarted : newStarted).resolve();
+        await (index === 1 ? oldCsrf : newCsrf).promise;
+        return response(config, { token: `csrf-${index}` });
+      }
+      writes.push(`${config.url}:${config.headers.get("X-CSRF-TOKEN")}`);
+      return response(config, null);
+    };
+    const oldWrites = Promise.allSettled([api.post("/old-resource"), api.delete("/old-resource")]);
+    await oldStarted.promise;
+    resetSessionState();
+    const currentWrite = api.post("/new-resource");
+    await newStarted.promise;
+    oldCsrf.resolve();
+    const cancelled = await oldWrites;
+    expect(cancelled.every(result => result.status === "rejected" && isCancel(result.reason))).toBe(true);
+    expect(writes).toEqual([]);
+    const sharedCurrentWrite = api.patch("/new-resource");
+    newCsrf.resolve();
+    await Promise.all([currentWrite, sharedCurrentWrite]);
+    await api.post("/new-resource");
+    expect(csrfRequests).toBe(2);
+    expect(writes).toEqual(Array(3).fill("/new-resource:csrf-2"));
+  });
 });

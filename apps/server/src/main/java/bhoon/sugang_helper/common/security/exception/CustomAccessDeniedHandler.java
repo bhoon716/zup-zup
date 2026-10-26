@@ -9,6 +9,7 @@ import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +26,8 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setCharacterEncoding("UTF-8");
 
-        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.FORBIDDEN, request.getRequestURI());
+        ErrorCode errorCode = accessDeniedException instanceof CsrfException ? ErrorCode.CSRF_INVALID : ErrorCode.FORBIDDEN;
+        ErrorResponse errorResponse = ErrorResponse.of(errorCode, request.getRequestURI());
         response.setHeader("X-Error-Id", errorResponse.getCorrelationId());
         log.warn("[ACCESS_DENIED] correlationId={} method={} path={} exceptionType={}",
                 errorResponse.getCorrelationId(), request.getMethod(), errorResponse.getPath(),

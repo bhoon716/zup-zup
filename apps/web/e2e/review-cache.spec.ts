@@ -23,6 +23,8 @@ for (const action of ["create", "update"] as const) {
     const wishlistTargets: string[] = [];
     const reviewWrites: Array<{ method: string; path: string; rating: number }> = [];
     const unexpectedApiRequests: string[] = [];
+    const writeCsrfTokens: string[] = [];
+    const searchCsrfTokens: Array<string | undefined> = [];
     const user = { id: 1, email: "reviewer@example.com", name: "수강생", role: "USER",
       emailEnabled: false, webPushEnabled: false, fcmEnabled: false, discordEnabled: false,
       onboardingCompleted: true };
@@ -34,9 +36,14 @@ for (const action of ["create", "update"] as const) {
       const path = decodeURIComponent(new URL(route.request().url()).pathname);
       const method = route.request().method();
       const fulfill = (data: unknown) => route.fulfill({ json: response(data) });
+      if (path === "/api/auth/csrf") return fulfill({ token: "review-csrf" });
+      if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && path !== "/api/v1/courses/search") {
+        writeCsrfTokens.push(route.request().headers()["x-csrf-token"]);
+      }
       if (path === "/api/v1/users/me") return fulfill(user);
       if (path === "/api/v1/courses/search-default-semester") return fulfill({ semester: course.semester });
       if (path === "/api/v1/courses/search") {
+        searchCsrfTokens.push(route.request().headers()["x-csrf-token"]);
         return fulfill({ content: [course, otherSection], last: true, number: 0 });
       }
       if (path === "/api/v1/subscriptions" || path === "/api/v1/timetables") return fulfill([]);
@@ -65,8 +72,8 @@ for (const action of ["create", "update"] as const) {
       return route.fulfill({ status: 500, json: { code: "UNEXPECTED_TEST_API", message: path } });
     });
     await page.addInitScript(() => localStorage.setItem("course-guide-modal-seen-v1", "seen"));
-    await context.addCookies([{ name: "is_logged_in", value: "true", url: "http://127.0.0.1:3100" }]);
     await page.goto("/search");
+    await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByText("수강생 님", { exact: true })).toBeVisible();
 
     const otherCard = page.locator("article").filter({ hasText: "학수-02" });
     const dialog = page.getByRole("dialog", { name: "강의 상세 정보" });
@@ -94,5 +101,8 @@ for (const action of ["create", "update"] as const) {
       rating: 5,
     }]);
     expect(unexpectedApiRequests).toEqual([]);
+    expect(writeCsrfTokens).toEqual(Array(2).fill("review-csrf"));
+    expect(searchCsrfTokens.length).toBeGreaterThan(0);
+    expect(searchCsrfTokens.every(token => token === undefined)).toBe(true);
   });
 }

@@ -5,6 +5,7 @@ test("일정 하나로 대표 지정·수정·삭제·복원을 관리한다", a
   const schedules: ScheduleResponse[] = [];
   const writes: Array<{ method: string; path: string; body?: ScheduleRequest }> = [];
   const unexpected: string[] = [];
+  const writeCsrfTokens: string[] = [];
   const admin = { id: 1, email: "admin@example.com", name: "관리자", role: "ADMIN", emailEnabled: false,
     webPushEnabled: false, fcmEnabled: false, discordEnabled: false, onboardingCompleted: true };
   await context.route("**/*", route => new URL(route.request().url()).origin === "http://127.0.0.1:3100"
@@ -12,6 +13,8 @@ test("일정 하나로 대표 지정·수정·삭제·복원을 관리한다", a
   await page.route("**/api/**", route => {
     const path = new URL(route.request().url()).pathname;
     const method = route.request().method();
+    if (path === "/api/auth/csrf") return route.fulfill({ json: { token: "schedule-csrf" } });
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) writeCsrfTokens.push(route.request().headers()["x-csrf-token"]);
     if (path === "/api/v1/users/me") return route.fulfill({ json: admin });
     if (path === "/api/v1/admin/schedules" && method === "GET") return route.fulfill({ json: schedules });
     if (path === "/api/v1/admin/schedules" && method === "POST") {
@@ -40,8 +43,8 @@ test("일정 하나로 대표 지정·수정·삭제·복원을 관리한다", a
     unexpected.push(`${method} ${path}`);
     return route.fulfill({ status: 500, json: { code: "UNEXPECTED_TEST_API", message: path } });
   });
-  await context.addCookies([{ name: "is_logged_in", value: "true", url: "http://127.0.0.1:3100" }]);
   await page.goto("/admin/schedules");
+  await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByText("관리자 님", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "일정 추가" }).click();
   await page.getByRole("combobox", { name: "일정 구분" }).click();
   await page.getByRole("option", { name: "기타", exact: true }).click();
@@ -74,4 +77,5 @@ test("일정 하나로 대표 지정·수정·삭제·복원을 관리한다", a
     { method: "PATCH", path: "/api/v1/admin/schedules/1/restore" },
   ]);
   expect(unexpected).toEqual([]);
+  expect(writeCsrfTokens).toEqual(Array(4).fill("schedule-csrf"));
 });

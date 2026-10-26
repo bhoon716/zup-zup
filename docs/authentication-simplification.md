@@ -1,6 +1,6 @@
 # 인증·인가와 JWT 단순화
 
-기준은 `codex/simplify-existing-20261026`의 `55f04f352`다. 사용자는 기존 인증 기능과 보안을 유지하면서 JWT 관리를 단순하게 만들도록 요청했다. 세션 완전 전환은 이번 구현 승인이 아니므로 비교만 한다. 자격 증명·운영 설정·운영 데이터는 바꾸지 않으며 원격 push·병합·배포를 하지 않는다.
+이 문서의 JWT 단순화 기록은 `55f04f352`에서 시작해 `c7cc807c4`로 끝난 이전 단계다. 이후 사용자가 Redis 세션 단독 전환을 승인했다. **현재 구현과 API·설정·검증 기준은 [Redis 세션 전환](redis-session-migration.md)**이다. 아래 비교와 검증은 당시 단계의 이력으로 보존하며 현재 JWT 발급·refresh·Bearer 지원을 뜻하지 않는다. 운영 접속·자격 증명 변경·원격 push·병합·배포는 하지 않는다.
 
 ## markSuccess의 역할
 
@@ -70,3 +70,8 @@ AuthenticationFlowTest는 실제 JwtProvider/AuthService/JwtAuthenticationFilter
 로그는 TASK/auth-server-baseline.log, auth-server-focused*.log, auth-server-contracts*.log, auth-server-clean.log와 auth-web-before.log, auth-web-focused.log, auth-web-full.log, auth-web-types.log, auth-web-lint.log, auth-web-build.log, auth-web-e2e.log에 있다. 실제 자격 증명·운영 보안 설정·운영 데이터는 변경하지 않았다. 세션 완전 전환·원격 push·병합·배포도 하지 않았다.
 
 부모가 확인한 원격 dev `9e81c0a0adea8ad2c7c8587c92869da55209874f`는 로컬 기준 dev `aade57db93f213c98b035f979362075b6f2bf425`의 조상이다. 이번 작업의 기준을 새로 바꾸거나 브랜치를 병합하지 않았다. markSuccess는 두 기준 모두의 기존 코드이며 이번 JWT 작업에서 수정하지 않았다.
+
+
+## 후속 승인: Redis 세션 단독 전환
+
+사용자가 “그럼 레디스 세션으로 전환해라”라고 승인하여 자체 JWT 계층과 웹 refresh 재시도를 제거했다. Google 로그인과 Discord 외부 OAuth는 유지한다. 현재 계약은 Redis indexed session 30일 미사용 만료·활동 연장, 현재 기기 로그아웃, 탈퇴 시 같은 사용자 ID의 세션 전체 회수, 매 요청의 현재 DB 사용자·역할 확인, CSRF 토큰 검증이다. 새 namespace 때문에 기존 사용자는 한 번 다시 로그인해야 한다. 이전 JWT 전용 테스트는 더 이상 존재하지 않는 발급·회전·blacklist 구현을 검증하므로 제거하고, 세션 수명주기와 실제 격리 Redis HTTP E2E로 보장 대상을 바꿨다. 결과·전환 설정·미검증 경계는 링크한 최신 문서에 기록한다.

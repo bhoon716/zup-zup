@@ -89,12 +89,12 @@ it('일반 목록과 선택된 대표 목록을 분리하고 서버 순서·진�
   expect(client.getQueryData(['schedules', 'ddays'])).toEqual([schedule]);
 });
 
-it('대표 조회의 401은 게스트의 빈 목록으로 처리하며 refresh를 생략한다', async () => {
+it('대표 조회의 401은 로그인 안내 없이 게스트의 빈 목록으로 처리한다', async () => {
   vi.mocked(api.get).mockRejectedValueOnce({ response: { status: 401 } });
   const { result } = renderHook(() => hooks.useScheduleDdays(), { wrapper: createQueryWrapper(createTestQueryClient()) });
   await waitFor(() => expect(result.current.isSuccess).toBe(true));
   expect(result.current.data).toEqual([]);
-  expect(api.get).toHaveBeenCalledWith('/api/v1/schedules/ddays', { skipAuthRefresh: true });
+  expect(api.get).toHaveBeenCalledWith('/api/v1/schedules/ddays', { silentAuthFailure: true });
 });
 
 it('대표 조회의 서버 장애를 빈 목록으로 숨기지 않는다', async () => {

@@ -21,7 +21,6 @@ import bhoon.sugang_helper.planning.timetable.dto.response.TimetableResponse;
 import bhoon.sugang_helper.planning.timetable.service.TimetableService;
 import bhoon.sugang_helper.support.feedback.controller.FeedbackController;
 import bhoon.sugang_helper.support.feedback.service.FeedbackService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -30,6 +29,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.web.method.annotation.CsrfTokenArgumentResolver;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -49,6 +51,7 @@ class DirectResponseContractTest {
     void setUp() {
         mvc = MockMvcBuilders.standaloneSetup(new TimetableController(timetables), new AuthController(auth),
                         new FeedbackController(feedback), new CourseReviewController(reviews))
+                .setCustomArgumentResolvers(new CsrfTokenArgumentResolver())
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
@@ -67,28 +70,23 @@ class DirectResponseContractTest {
     }
 
     @Test
-    void refreshReturnsJsonStringAndPreservesCookie() throws Exception {
-        given(auth.reissue(any(), any())).willAnswer(invocation -> {
-            HttpServletResponse response = invocation.getArgument(1);
-            response.addCookie(new Cookie("refresh-test", "opaque"));
-            return "opaque-access-token";
-        });
-        mvc.perform(post("/api/auth/refresh"))
-                .andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$").value("opaque-access-token"))
-                .andExpect(cookie().value("refresh-test", "opaque"));
+    void csrfReturnsItsTokenObjectWithoutSuccessEnvelope() throws Exception {
+        CsrfToken token = new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "masked-csrf");
+        mvc.perform(get("/api/auth/csrf").requestAttr(CsrfToken.class.getName(), token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.token").value("masked-csrf"))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
     void logoutKeeps200AndCookieDeletionWithNoBody() throws Exception {
         doAnswer(invocation -> {
             HttpServletResponse response = invocation.getArgument(1);
-            response.addHeader(HttpHeaders.SET_COOKIE, "access-test=; Max-Age=0; Path=/");
+            response.addHeader(HttpHeaders.SET_COOKIE, "SESSION=; Max-Age=0; Path=/");
             return null;
         }).when(auth).logout(any(), any());
         mvc.perform(post("/api/auth/logout"))
                 .andExpect(status().isOk()).andExpect(content().string(""))
-                .andExpect(cookie().maxAge("access-test", 0)).andExpect(cookie().value("access-test", ""));
+                .andExpect(cookie().maxAge("SESSION", 0)).andExpect(cookie().value("SESSION", ""));
     }
 
     @Test

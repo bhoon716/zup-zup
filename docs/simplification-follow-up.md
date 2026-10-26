@@ -77,3 +77,12 @@
 - Library 기존 파일 교체는 자동 승인 검토에서 명시적 저장 승인 부족으로 실행 전에 거부됨. 업로드 미실행, 로컬 산출물 완성, 별도 승인 대기.
 - 운영 배포·DB migration 적용·실제 발송·원격 push·브랜치 병합은 하지 않음.
 - DB 기록/설정 삭제·일반 로그 수정·영구 알림함·공지 채널 발송은 구현 범위로 확대하지 않음. 읽기 전용 결과와 계획은 simplification-review.md 참고.
+
+
+## 최신 승인 작업: Redis 세션 단독 인증 — 완료
+
+- `c7cc807c4` 이후 사용자가 세션 전환을 승인했다. 자체 JWT/refresh/blacklist·웹 자동 갱신을 제거했고 기존 외부 OAuth·기기별 로그인·logout·탈퇴 회수·인가와 장애 시 인증 거부를 유지했다.
+- 30일 idle·활동 연장과 세션 CSRF, 새 namespace에 따른 한 번 재로그인, 운영/로컬 SESSION 쿠키 설정을 [전환 문서](redis-session-migration.md)에 정리했다. 감사 보호용 JWT_SECRET fallback은 유지하므로 운영에서 지금 삭제하지 않는다.
+- 서버 543건 + 실제 격리 Redis6 HTTP 7건, PMD·Checkstyle 0, JAR, 웹 300건·타입/lint/build·Playwright 7건, k6 helper 3건, local/runtime Compose 정적 계약이 통과했다.
+- HTML·컴포넌트 PNG는 로컬 최신화했다. 과거 Library 승인 교체는 이전 단계에서 완료됐지만 이번 세션 산출물은 Library나 Slack에 새로 업로드하지 않았다.
+- 로깅·감사/크롤러 데이터 제거·영구 알림함/공지 채널 전달은 여전히 별도 검토/계획이다. 이번 인증 전환 승인으로 범위를 넓히지 않았다.

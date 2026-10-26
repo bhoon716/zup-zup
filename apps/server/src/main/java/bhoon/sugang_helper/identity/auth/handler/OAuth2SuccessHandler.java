@@ -2,7 +2,6 @@ package bhoon.sugang_helper.identity.auth.handler;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.identity.auth.service.AuthService;
 import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final JwtProvider jwtProvider;
     private final AuthService authService;
 
     @Value("${app.oauth2.success-redirect-uri}")
@@ -34,14 +32,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             throw new CustomException(ErrorCode.USER_UNAUTHORIZED);
         }
 
-        String accessToken = jwtProvider.createAccessToken(user.getUserId(), user.getEmail(), user.getRoleKey());
-        String refreshToken = jwtProvider.createRefreshToken(user.getUserId(), user.getEmail());
-
-
-        authService.addRefreshTokenCookie(response, refreshToken);
-
-
-        authService.saveSessionAuthentication(request, response, accessToken);
+        authService.login(request, response, user.getUserId(), user.getEmail());
 
         log.info("[OAuth2] Social login successful. userId={}, authenticationSaved=true", user.getUserId());
         getRedirectStrategy().sendRedirect(request, response, redirectUri);

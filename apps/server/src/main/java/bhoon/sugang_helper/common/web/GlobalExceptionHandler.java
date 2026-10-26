@@ -5,8 +5,6 @@ import bhoon.sugang_helper.common.alert.SlackAlertService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.response.ErrorResponse;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -72,11 +70,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMaxUploadSize(HttpServletRequest req,
                                                               MaxUploadSizeExceededException e) {
         return response(req, ErrorCode.MAX_FILE_UPLOAD_SIZE_EXCEEDED, e);
-    }
-
-    @ExceptionHandler({ExpiredJwtException.class, JwtException.class})
-    public ResponseEntity<ErrorResponse> handleJwt(HttpServletRequest req, JwtException e) {
-        return response(req, ErrorCode.INVALID_TOKEN, e);
     }
 
     @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})

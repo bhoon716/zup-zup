@@ -8,7 +8,7 @@
 | --- | --- |
 | 앱 | `linux/arm64` commit SHA 이미지. 로컬에서는 Compose build, 운영에서는 GHCR pull |
 | MySQL | Docker가 관리하는 `sugang-helper-db-data` named volume. OCI 인스턴스 로컬 백업 script가 logical dump를 주기적으로 저장 |
-| Redis | 인증 철회·refresh·session 상태를 AOF와 named volume에 보존. host port와 host-loss backup은 제공하지 않음 |
+| Redis | Redis 세션·CSRF 상태를 AOF와 named volume에 보존. host port와 host-loss backup은 제공하지 않음 |
 | 공개 edge | OCI에 이미 설치된 Nginx Proxy Manager(NPM)가 80/443, TLS, upstream proxy를 담당. 저장소와 앱 CD는 NPM 상태를 관리하지 않음 |
 | 관측 | 앱 Actuator metrics는 Prometheus, 로그는 Loki + Grafana Alloy + Grafana를 `observability` profile로 운영. host exporter·cAdvisor·Alertmanager는 넣지 않음 |
 
@@ -123,3 +123,5 @@ API_HOST=<api-duckdns-fqdn> bash scripts/test-uptime-contract.sh
 - [운영 배포·rollback·서버 교체 runbook](../docs/operations/deployment.md)
 - [CI/CD 결정 ADR](../docs/decisions/2026-07-19-single-oci-cicd.md)
 - [장애 복구 정책(기존 문서)](../docs/disaster-recovery-policy.md)
+
+세션 전환 후 운영 Compose는 `SERVER_SERVLET_SESSION_COOKIE_SECURE=true`, 로컬 HTTP override는 `false`를 명시한다. 운영 환경은 실행하거나 변경하지 않았으며 [인증 전환 계약](../docs/redis-session-migration.md)을 먼저 확인한다.

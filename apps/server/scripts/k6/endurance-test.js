@@ -18,7 +18,7 @@ export const options = {
 export default function () {
     group('지속적인 기본 부하 테스트', function () {
 
-        const res = http.get(`${BASE_URL}/api/v1/courses?page=0&size=20`, getAuthHeaders());
+        const res = http.post(`${BASE_URL}/api/v1/courses/search?page=0`, '{}', getAuthHeaders());
 
 
         validateResponse(res, '기본강좌조회');

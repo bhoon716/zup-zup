@@ -1,7 +1,10 @@
 package bhoon.sugang_helper.common.security;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -19,15 +22,18 @@ import bhoon.sugang_helper.admin.service.AdminService;
 import bhoon.sugang_helper.campus.announcement.controller.AnnouncementController;
 import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
+import bhoon.sugang_helper.identity.auth.controller.AuthController;
+import bhoon.sugang_helper.identity.auth.service.AuthService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.test.web.servlet.MvcResult;
 import bhoon.sugang_helper.common.config.SecurityConfig;
 import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
-import bhoon.sugang_helper.common.security.jwt.JwtAuthenticationFilter;
-import bhoon.sugang_helper.common.security.jwt.JwtProvider;
-import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
+import bhoon.sugang_helper.common.security.session.SessionAuthenticationFilter;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2FailureHandler;
@@ -63,6 +69,10 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import bhoon.sugang_helper.identity.auth.service.SessionPrincipal;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
+import org.springframework.session.web.http.CookieSerializer;
+import java.util.Optional;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -95,12 +105,13 @@ class SecurityRequestAuthorizationTest {
 
     @Autowired
     private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
+    @Autowired private CsrfTokenRepository csrfTokenRepository;
+    @MockitoBean private AuthService authService;
     @Autowired
     private MultipartProperties multipartProperties;
     @MockitoBean
-    private JwtProvider jwtProvider;
-    @MockitoBean
-    private UserAccessRevocationService userAccessRevocationService;
+    private CookieSerializer cookieSerializer;
     @MockitoBean
     private AdminService adminService;
     @MockitoBean
@@ -152,8 +163,8 @@ class SecurityRequestAuthorizationTest {
 
     @Test
     void adminCanAccessAllAuditLogs() throws Exception {
-        given(adminAuditService.getActionLogs(org.mockito.ArgumentMatchers.any()))
-                .willReturn(org.springframework.data.domain.Page.empty());
+        given(adminAuditService.getActionLogs(any()))
+                .willReturn(Page.empty());
 
         mockMvc.perform(get("/api/v1/admin/audit-logs?page=1&size=2").session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk())
@@ -171,20 +182,20 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"));
 
-        given(adminNotificationDeliveryService.getDeadLetters(org.mockito.ArgumentMatchers.any()))
-                .willReturn(org.springframework.data.domain.Page.empty());
+        given(adminNotificationDeliveryService.getDeadLetters(any()))
+                .willReturn(Page.empty());
         mockMvc.perform(get("/api/v1/admin/notification-deliveries/dlq")
                         .session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
 
-        mockMvc.perform(post("/api/v1/admin/notification-deliveries/1/replay")
+        mockMvc.perform(post("/api/v1/admin/notification-deliveries/1/replay").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
 
-        mockMvc.perform(post("/api/v1/admin/notification-deliveries/1/replay")
+        mockMvc.perform(post("/api/v1/admin/notification-deliveries/1/replay").with(csrf().asHeader())
                         .session(authenticatedSession("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -203,8 +214,8 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(jsonPath("$.code").value("A002"));
 
         given(feedbackService.getFeedbacksForAdmin(
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
-                .willReturn(org.springframework.data.domain.Page.empty());
+                any(), any()))
+                .willReturn(Page.empty());
         mockMvc.perform(get("/api/v1/admin/feedbacks?deletion=DELETED")
                         .session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk())
@@ -213,13 +224,13 @@ class SecurityRequestAuthorizationTest {
 
     @Test
     void adminFeedbackAttachmentDownloadRequiresAdminRole() throws Exception {
-        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download")
+        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"confirmed\":true}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
 
-        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download")
+        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download").with(csrf().asHeader())
                         .session(authenticatedSession("ROLE_USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"confirmed\":true}"))
@@ -233,7 +244,7 @@ class SecurityRequestAuthorizationTest {
                 new FeedbackAttachmentDownload(new ByteArrayResource(new byte[] {1, 2, 3}),
                         "attachment.png", MediaType.IMAGE_PNG));
 
-        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download")
+        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download").with(csrf().asHeader())
                         .session(authenticatedSession("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"confirmed\":true}"))
@@ -248,7 +259,7 @@ class SecurityRequestAuthorizationTest {
         given(feedbackService.getAttachmentForCurrentAdmin(10L, 99L, true))
                 .willThrow(new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
 
-        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/99/download")
+        mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/99/download").with(csrf().asHeader())
                         .session(authenticatedSession("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"confirmed\":true}"))
@@ -315,19 +326,18 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
-    void sessionSecurityContextAuthenticatesProtectedRequestWithoutStoringJwt() throws Exception {
+    void sessionSecurityContextAuthenticatesProtectedRequestWithIdentity() throws Exception {
         mockMvc.perform(get("/api/v1/admin/dashboard").session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void expiredSessionSecurityContextIsRejectedUntilRefreshesAgain() throws Exception {
+    void legacySessionPrincipalCannotAuthenticate() throws Exception {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(new UsernamePasswordAuthenticationToken("admin@example.com", "",
+        context.setAuthentication(new UsernamePasswordAuthenticationToken("legacy@example.com", "",
                 List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
-        session.setAttribute("AUTHENTICATION_EXPIRES_AT", 0L);
 
         mockMvc.perform(get("/api/v1/admin/dashboard").session(session))
                 .andExpect(status().isUnauthorized());
@@ -336,21 +346,47 @@ class SecurityRequestAuthorizationTest {
     @Test
     void deletedAccountSessionIsRejectedBeforeTheOriginalExpiry() throws Exception {
         MockHttpSession session = authenticatedSession("ROLE_ADMIN");
-        given(userAccessRevocationService.isRevoked(1L)).willReturn(true);
+        given(userIdentityQuery.findAuthenticatedUser(1L, "admin@example.com")).willReturn(Optional.empty());
 
         mockMvc.perform(get("/api/v1/admin/dashboard").session(session))
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void csrfEndpointReturnsAMaskedTokenAndMutationFailuresUseTheirOwnCode() throws Exception {
+        MvcResult csrf = mockMvc.perform(get("/api/auth/csrf"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.token").isString()).andReturn();
+        MockHttpSession session = (MockHttpSession) csrf.getRequest().getSession(false);
+        String token = objectMapper.readTree(csrf.getResponse().getContentAsString()).path("token").asText();
+        String rawToken = csrfTokenRepository.loadToken(csrf.getRequest()).getToken();
+        assertThat(token).isNotBlank().isNotEqualTo(rawToken);
+        assertThat(csrf.getResponse().getHeader(HttpHeaders.CACHE_CONTROL)).contains("no-store");
+
+        mockMvc.perform(post("/api/auth/logout").session(session))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("A003"));
+        mockMvc.perform(post("/api/auth/logout").session(session).header("X-CSRF-TOKEN", rawToken))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("A003"));
+        mockMvc.perform(post("/api/auth/logout").session(session).header("X-CSRF-TOKEN", token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void csrfExceptionIsRestrictedToTheExactReadOnlySearchPost() throws Exception {
+        mockMvc.perform(post("/api/v1/courses/search"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/v1/courses/search/"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("A003"));
+        mockMvc.perform(post("/api/v1/courses/1/reviews"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("A003"));
+    }
+
     private MockHttpSession authenticatedSession(String role) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(new UsernamePasswordAuthenticationToken("admin@example.com", "",
-                List.of(new SimpleGrantedAuthority(role))));
+        context.setAuthentication(new SessionPrincipal(1L, "admin@example.com").authentication(role));
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
-        session.setAttribute("AUTHENTICATION_EXPIRES_AT", System.currentTimeMillis() + 60_000L);
-        session.setAttribute("AUTHENTICATION_USER_ID", 1L);
-        given(userAccessRevocationService.isRevoked(1L)).willReturn(false);
+        when(userIdentityQuery.findAuthenticatedUser(1L, "admin@example.com"))
+                .thenReturn(Optional.of(new AuthenticatedUser(1L, "admin@example.com", role)));
         return session;
     }
 
@@ -380,9 +416,10 @@ class SecurityRequestAuthorizationTest {
             SessionAutoConfiguration.class
     })
     @Import({
+            AuthController.class,
             SecurityConfig.class,
             SecurityContextRepositoryConfig.class,
-            JwtAuthenticationFilter.class,
+            SessionAuthenticationFilter.class,
             CustomAccessDeniedHandler.class,
             CustomAuthenticationEntryPoint.class,
             AdminController.class,

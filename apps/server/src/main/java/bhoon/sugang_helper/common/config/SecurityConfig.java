@@ -2,7 +2,7 @@ package bhoon.sugang_helper.common.config;
 
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
-import bhoon.sugang_helper.common.security.jwt.JwtAuthenticationFilter;
+import bhoon.sugang_helper.common.security.session.SessionAuthenticationFilter;
 import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2FailureHandler;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2SuccessHandler;
@@ -22,8 +22,10 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -53,9 +55,10 @@ public class SecurityConfig {
 
     private static final List<String> CORS_ALLOWED_METHODS = List.of(
             "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS");
-    private static final List<String> CORS_ALLOWED_HEADERS = List.of("Content-Type");
+    private static final List<String> CORS_ALLOWED_HEADERS = List.of("Content-Type", "X-CSRF-TOKEN");
 
     private static final String[] PERMIT_GET_ENDPOINTS = new String[]{
+            "/api/auth/csrf",
             "/api/v1/dashboard",
             "/api/v1/courses/**",
             "/api/v1/announcements/**",
@@ -63,11 +66,10 @@ public class SecurityConfig {
     };
 
     private static final String[] PERMIT_POST_ENDPOINTS = new String[]{
-            "/api/auth/refresh",
             "/api/auth/logout",
             "/api/v1/courses/search"
     };
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final SessionAuthenticationFilter sessionAuthenticationFilter;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomOAuth2UserService customOAuth2UserService;
@@ -90,12 +92,15 @@ public class SecurityConfig {
 
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository securityContextRepository) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository securityContextRepository,
+                                          CsrfTokenRepository csrfTokenRepository) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository)
+                        .ignoringRequestMatchers(PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/v1/courses/search")))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
 
                 .authorizeHttpRequests(auth -> {
@@ -111,7 +116,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler)
                         .authenticationEntryPoint(customAuthenticationEntryPoint))
                 .headers(headers -> headers.frameOptions(FrameOptionsConfig::sameOrigin))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(sessionAuthenticationFilter, CsrfFilter.class)
                 .oauth2Login(oauth2 -> oauth2
                         .securityContextRepository(securityContextRepository)
                         .userInfoEndpoint(userInfo -> userInfo

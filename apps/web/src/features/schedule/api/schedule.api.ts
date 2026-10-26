@@ -28,7 +28,7 @@ export const deleteSchedule = async (id: number) => {
 
 export const getDdaySchedules = async () => {
   try {
-    const config = { skipAuthRefresh: true } as AxiosRequestConfig & { skipAuthRefresh: boolean };
+    const config = { silentAuthFailure: true } as AxiosRequestConfig & { silentAuthFailure: boolean };
     const response = await api.get<ScheduleResponse[]>('/api/v1/schedules/ddays', config);
     return response.data;
   } catch (error) {

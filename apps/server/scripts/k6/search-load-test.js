@@ -9,14 +9,14 @@ import {BASE_URL, getAuthHeaders, validateResponse} from './common-utils.js';
 
 const filters = new SharedArray('검색 필터 데이터', function () {
     return [
-        {query: '사회적가치와개인의자유', academicYear: '2026'},
-        {query: '고사와성어의탐구', semester: '1'},
-        {generalCategory: '일반선택', credits: 2},
+        {name: '사회적가치와개인의자유', academicYear: '2026'},
+        {name: '고사와성어의탐구', semester: 'U211600010'},
+        {generalCategory: '일반선택', credits: ['2']},
         {department: '간호학', targetGrade: 1},
         {professor: '외부교원1'},
-        {query: 'AI를활용한음악만들기', professor: '외부교원1'},
+        {name: 'AI를활용한음악만들기', professor: '외부교원1'},
         {department: '전체(학부)', academicYear: '2026'},
-        {query: '글로벌시대의세계시민'}
+        {name: '글로벌시대의세계시민'}
     ];
 });
 
@@ -38,13 +38,7 @@ export default function () {
         const filter = filters[Math.floor(Math.random() * filters.length)];
 
 
-        const queryParams = Object.keys(filter)
-            .map(key => `${key}=${encodeURIComponent(filter[key])}`)
-            .join('&');
-
-
-        const res = http.get(`${BASE_URL}/api/v1/courses?${queryParams}`, getAuthHeaders());
-
+        const res = http.post(`${BASE_URL}/api/v1/courses/search?page=0`, JSON.stringify(filter), getAuthHeaders());
 
         validateResponse(res, '필터검색');
 
