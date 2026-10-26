@@ -29,7 +29,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.NullAssignment"})
-public class NotificationProviderResilience implements NotificationProviderExecutor, AutoCloseable {
+public class NotificationProviderResilience implements AutoCloseable {
 
     private final MeterRegistry meterRegistry;
     private final Duration timeout;
@@ -75,7 +75,6 @@ public class NotificationProviderResilience implements NotificationProviderExecu
         this.mdcTaskDecorator = mdcTaskDecorator;
     }
 
-    @Override
     public void execute(NotificationChannel provider, Runnable operation) {
         Circuit circuit = circuits.computeIfAbsent(provider, ignored -> new Circuit());
         Counter circuitOpenCounter = counter("notification.provider.circuit.open", "provider", provider.name());

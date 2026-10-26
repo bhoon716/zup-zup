@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
@@ -14,7 +13,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
@@ -28,13 +26,12 @@ import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderExecutor;
+import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
 import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -55,13 +52,10 @@ class NotificationServiceTest {
     private static final String COURSE_KEY = "12345-01";
     private static final String COURSE_NAME = "Test Course";
     private static final String PROFESSOR = "Test Professor";
-    private static final String USER_NAME = "Tester";
     private static final String DEVICE_TOKEN = "token";
 
     @Mock
     private RedisService redisService;
-    @Mock
-    private SubscriptionQueryService subscriptionQueryService;
     @Mock
     private UserNotificationQuery userNotificationQuery;
     @Mock
@@ -69,7 +63,7 @@ class NotificationServiceTest {
     @Mock
     private NotificationHistoryRepository notificationHistoryRepository;
     @Mock
-    private NotificationProviderExecutor notificationProviderExecutor;
+    private NotificationProviderResilience notificationProviderResilience;
 
     private NotificationService notificationService;
     private Map<Long, NotificationRecipient> recipients;
@@ -81,139 +75,18 @@ class NotificationServiceTest {
         devicesByUser = new HashMap<>();
         lenient().when(userNotificationQuery.findById(anyLong()))
                 .thenAnswer(invocation -> Optional.ofNullable(recipients.get(invocation.getArgument(0))));
-        lenient().when(userNotificationQuery.findByIds(anyList()))
-                .thenAnswer(invocation -> ((List<Long>) invocation.getArgument(0)).stream()
-                        .map(recipients::get).filter(java.util.Objects::nonNull).toList());
         lenient().when(userNotificationQuery.findDevicesByUserId(anyLong()))
                 .thenAnswer(invocation -> devicesByUser.getOrDefault(invocation.getArgument(0), List.of()));
-        lenient().when(userNotificationQuery.findDevicesByUserIds(anyList()))
-                .thenAnswer(invocation -> ((List<Long>) invocation.getArgument(0)).stream()
-                        .flatMap(userId -> devicesByUser.getOrDefault(userId, List.of()).stream()).toList());
         // 모든 알림 채널 활성화 상태로 초기화
         NotificationProperties props = new NotificationProperties(true, true, true, true);
         NotificationChannelPolicy notificationChannelPolicy = new NotificationChannelPolicy(props);
-        notificationService = new NotificationService(redisService, subscriptionQueryService, userNotificationQuery,
+        notificationService = new NotificationService(redisService, userNotificationQuery,
                 notificationHistoryRepository, List.of(notificationSender), notificationChannelPolicy,
-                notificationProviderExecutor);
+                notificationProviderResilience);
         lenient().doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(1)).run();
             return null;
-        }).when(notificationProviderExecutor).execute(any(), any());
-    }
-
-    @Test
-    @DisplayName("중복 알림 방지 키를 원자적으로 선점한 뒤 알림 발송")
-    void sendNotificationIfKeyNotExists() {
-        // Given
-        SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
-        String redisKey = "ALERT:" + COURSE_KEY;
-
-        given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(true);
-        given(subscriptionQueryService.findActiveRecipientIds(COURSE_KEY)).willReturn(List.of());
-
-        // When
-        notificationService.handleSeatOpenedEvent(event);
-
-        // Then
-        verify(redisService, times(1)).setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class));
-        verify(redisService, times(1)).setValues(eq(redisKey), eq("SENT"), any(Duration.class));
-    }
-
-    @Test
-    @DisplayName("중복 알림 방지 키를 선점하지 못하면 알림 발송을 건너뜀")
-    void skipNotificationIfKeyExists() {
-        // Given
-        SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
-        String redisKey = "ALERT:" + COURSE_KEY;
-
-        given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(false);
-
-        // When
-        notificationService.handleSeatOpenedEvent(event);
-
-        // Then
-        verify(redisService, times(1)).setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class));
-        verify(redisService, never()).setValues(anyString(), anyString(), any(Duration.class));
-        verify(redisService, never()).deleteValues(anyString());
-        verify(subscriptionQueryService, never()).findActiveRecipientIds(anyString());
-    }
-
-    @Test
-    @DisplayName("한 대상의 발송 실패가 이후 대상 발송을 중단하지 않는다")
-    void continuesDeliveryWhenOneTargetFails() {
-        // Given
-        SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
-        String redisKey = "ALERT:" + COURSE_KEY;
-        User user = User.builder()
-                .id(1L)
-                .name(USER_NAME)
-                .email(EMAIL)
-                .role(Role.USER)
-                .emailEnabled(true)
-                .build();
-        User secondUser = User.builder().id(2L).name("Second").email("second@example.com").role(Role.USER)
-                .emailEnabled(true).build();
-
-        given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(true);
-        given(subscriptionQueryService.findActiveRecipientIds(COURSE_KEY)).willReturn(List.of(1L, 2L));
-        addRecipient(user);
-        addRecipient(secondUser);
-        given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
-        doThrow(new RuntimeException("boom")).doNothing().when(notificationSender)
-                .send(any(), anyString(), anyString());
-
-        // When
-        notificationService.handleSeatOpenedEvent(event);
-
-        verify(redisService, times(1)).setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class));
-        verify(redisService, never()).deleteValues(anyString());
-        verify(notificationSender, times(2)).send(any(), anyString(), anyString());
-        verify(redisService, times(1)).setValues(eq(redisKey), eq("SENT"), any(Duration.class));
-    }
-
-    @Test
-    @DisplayName("구독자에게 멀티 채널(Email, FCM, WEB, Discord) 발송 검증")
-    void dispatchToMultiChannels() {
-        // Given
-        SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, PROFESSOR, 0, 1);
-        User user = User.builder()
-                .id(1L)
-                .name(USER_NAME)
-                .email(EMAIL)
-                .role(Role.USER)
-                .emailEnabled(true)
-                .webPushEnabled(true)
-                .fcmEnabled(true)
-                .discordEnabled(true)
-                .discordId("discord-id")
-                .build();
-
-        UserDevice fcmDevice = UserDevice.builder()
-                .userId(1L).type(DeviceType.FCM).token("fcm-token").build();
-        UserDevice webDevice = UserDevice.builder()
-                .userId(1L).type(DeviceType.WEB).token("web-endpoint").p256dh("p256").auth("auth")
-                .build();
-
-        given(redisService.setValuesIfAbsent(eq("ALERT:" + COURSE_KEY), eq("PENDING"), any(Duration.class)))
-                .willReturn(true);
-        given(subscriptionQueryService.findActiveRecipientIds(anyString())).willReturn(List.of(1L));
-        addRecipient(user);
-        addDevice(fcmDevice);
-        addDevice(webDevice);
-
-        given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
-        given(notificationSender.supports(NotificationChannel.FCM)).willReturn(true);
-        given(notificationSender.supports(NotificationChannel.WEB)).willReturn(true);
-        given(notificationSender.supports(NotificationChannel.DISCORD)).willReturn(true);
-
-        // When
-        notificationService.handleSeatOpenedEvent(event);
-
-        // Then
-        verify(redisService, times(1)).setValuesIfAbsent(eq("ALERT:" + COURSE_KEY), eq("PENDING"),
-                any(Duration.class));
-        verify(redisService, times(1)).setValues(eq("ALERT:" + COURSE_KEY), eq("SENT"), any(Duration.class));
-        verify(notificationHistoryRepository, times(4)).save(any(NotificationHistory.class));
+        }).when(notificationProviderResilience).execute(any(), any());
     }
 
     @Test
@@ -296,6 +169,23 @@ class NotificationServiceTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
         verify(redisService, times(1)).deleteValues(anyString());
+    }
+
+    @Test
+    @DisplayName("사용자 테스트 알림의 제공자 실패는 전파하고 재시도할 수 있게 쿨타임을 해제한다")
+    void sendUserTestNotification_ReleasesCooldownOnProviderFailure() {
+        // Given
+        User user = User.builder().id(1L).email(EMAIL).emailEnabled(true).build();
+        addRecipient(user);
+        given(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).willReturn(true);
+        given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
+        RuntimeException failure = new RuntimeException("provider unavailable");
+        doThrow(failure).when(notificationSender).send(any(), anyString(), anyString());
+
+        // When & Then
+        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId())).isSameAs(failure);
+        verify(redisService).deleteValues("ALERT:USER_TEST:1");
+        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -392,16 +282,24 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("durable delivery는 원본 키를 노출하지 않고 provider-safe key를 전파한다")
+    @DisplayName("durable delivery는 네 채널에 provider-safe key를 전파하고 발송 이력을 남긴다")
     void deliversSeatOpeningWithProviderSafeIdempotencyKey() {
+        // Given
         String canonicalKey = "d35e8a1f-3135-4f9b-92b3-635f0c9ea641";
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
                 .role(Role.USER)
                 .emailEnabled(true)
+                .webPushEnabled(true)
+                .fcmEnabled(true)
+                .discordEnabled(true)
+                .discordId("discord-id")
                 .build();
         addRecipient(user);
+        addDevice(UserDevice.builder().userId(1L).type(DeviceType.FCM).token(DEVICE_TOKEN).build());
+        addDevice(UserDevice.builder().userId(1L).type(DeviceType.WEB)
+                .token("web-endpoint").p256dh("p256").auth("auth").build());
         SeatNotificationOutbox outbox = SeatNotificationOutbox.builder()
                 .courseKey(COURSE_KEY)
                 .courseName(COURSE_NAME)
@@ -409,12 +307,19 @@ class NotificationServiceTest {
                 .previousSeats(0)
                 .currentSeats(1)
                 .build();
-        when(notificationSender.supports(NotificationChannel.EMAIL)).thenReturn(true);
+        for (NotificationChannel channel : NotificationChannel.values()) {
+            given(notificationSender.supports(channel)).willReturn(true);
+        }
 
-        notificationService.deliverSeatOpening(1L, NotificationChannel.EMAIL, outbox, canonicalKey);
+        // When
+        for (NotificationChannel channel : NotificationChannel.values()) {
+            notificationService.deliverSeatOpening(1L, channel, outbox, canonicalKey);
+        }
 
-        verify(notificationSender).send(any(NotificationTarget.class), anyString(), anyString(),
+        // Then
+        verify(notificationSender, times(4)).send(any(NotificationTarget.class), anyString(), anyString(),
                 eq(NotificationDeliveryIdempotencyKey.providerKey(canonicalKey)));
+        verify(notificationHistoryRepository, times(4)).save(any(NotificationHistory.class));
     }
 
     private void addRecipient(User user) {

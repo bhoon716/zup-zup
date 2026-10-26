@@ -2,11 +2,16 @@ package bhoon.sugang_helper.seatalert.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.config.NotificationProperties;
+import bhoon.sugang_helper.identity.user.dto.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
+import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
 import bhoon.sugang_helper.seatalert.notification.dto.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
@@ -49,6 +54,7 @@ class SeatNotificationOutboxRecoveryTest {
 
     @Test
     void persistedOutboxIsDeliveredAfterAWorkerRestart() {
+        // Given: a persisted outbox survives the worker process.
         SeatNotificationOutbox outbox = outboxRepository.saveAndFlush(SeatNotificationOutbox.builder()
                 .courseKey("course-key")
                 .courseName("Course")
@@ -56,22 +62,33 @@ class SeatNotificationOutboxRecoveryTest {
                 .currentSeats(1)
                 .build());
         NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
-                true, false, false, false, null);
+                true, true, true, true, "discord-id");
         when(subscriptionQueryService.findActiveRecipientIds("course-key")).thenReturn(List.of(1L));
         when(userNotificationQuery.findByIds(List.of(1L))).thenReturn(List.of(user));
-        when(userNotificationQuery.findDevicesByUserIds(List.of(1L))).thenReturn(List.of());
+        when(userNotificationQuery.findDevicesByUserIds(List.of(1L))).thenReturn(List.of(
+                new NotificationDevice(1L, NotificationDeviceType.FCM, "fcm-token", null, null),
+                new NotificationDevice(1L, NotificationDeviceType.WEB, "web-endpoint", "p256", "auth")));
+
+        // When
 
         processor.materializePendingOutboxes();
         List<SeatNotificationDeliveryClaim> deliveryClaims = processor.claimReadyDeliveries();
         deliveryClaims.forEach(processor::processDelivery);
 
-        assertThat(deliveryClaims).hasSize(1);
+        // Then: each channel is materialized and settled once, and another poll has no work.
+        assertThat(deliveryClaims).hasSize(4);
+        assertThat(deliveryRepository.findAll())
+                .extracting(SeatNotificationDelivery::getChannel)
+                .containsExactlyInAnyOrder(NotificationChannel.values());
         assertThat(deliveryRepository.findAll()).allSatisfy(delivery ->
                 assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.SENT));
+        assertThat(processor.claimReadyDeliveries()).isEmpty();
         assertThat(outboxRepository.findById(outbox.getId())).get()
                 .extracting(SeatNotificationOutbox::getStatus)
                 .isEqualTo(SeatNotificationOutboxStatus.COMPLETED);
-        verify(notificationService).deliverSeatOpening(any(), any(), any(), any());
+        for (NotificationChannel channel : NotificationChannel.values()) {
+            verify(notificationService).deliverSeatOpening(eq(1L), eq(channel), any(), any());
+        }
     }
 
     @TestConfiguration
