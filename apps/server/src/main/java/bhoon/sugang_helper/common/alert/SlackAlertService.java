@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,21 +28,11 @@ public class SlackAlertService {
         this.cooldownNanos = TimeUnit.SECONDS.toNanos(properties.cooldownSeconds());
     }
 
-    @Async("applicationTaskExecutor")
     public void alert(SlackAlertCategory category, String errorCode, Throwable exception) {
-        sendSynchronously(category, errorCode, exception, "");
+        alert(category, errorCode, exception, "");
     }
 
-    @Async("applicationTaskExecutor")
     public void alert(SlackAlertCategory category, String errorCode, Throwable exception, String diagnostic) {
-        sendSynchronously(category, errorCode, exception, diagnostic);
-    }
-
-    void sendSynchronously(SlackAlertCategory category, String errorCode, Throwable exception) {
-        sendSynchronously(category, errorCode, exception, "");
-    }
-
-    void sendSynchronously(SlackAlertCategory category, String errorCode, Throwable exception, String diagnostic) {
         if (properties.webhookUrl().isBlank()) {
             log.debug("Slack alert skipped because webhook is not configured. category={}", category);
             return;

@@ -45,6 +45,7 @@ class LocalFileUploadServiceTest {
 
     @AfterEach
     void clearTransactionSynchronization() {
+        imageUploadSanitizer.stopImageDecoder();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.clearSynchronization();
         }

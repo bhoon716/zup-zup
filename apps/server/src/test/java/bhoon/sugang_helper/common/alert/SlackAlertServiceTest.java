@@ -1,13 +1,15 @@
 package bhoon.sugang_helper.common.alert;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import java.lang.reflect.Method;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,13 +18,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.MDC;
-import org.springframework.scheduling.annotation.Async;
 
 @ExtendWith(MockitoExtension.class)
 class SlackAlertServiceTest {
 
     private static final String WEBHOOK_URL = "https://hooks.slack.com/services/test";
+    private static final String CORRELATION_ID_KEY = "correlationId";
     private static final String CORRELATION_ID = "request-123";
+    private static final String UNEXPECTED_CODE = "UNEXPECTED";
 
     @Mock
     private SlackWebhookClient webhookClient;
@@ -42,11 +45,11 @@ class SlackAlertServiceTest {
 
     @Test
     void sendsRedactedAlertWithCorrelationAndTopStackFrames() {
-        MDC.put("correlationId", CORRELATION_ID);
+        MDC.put(CORRELATION_ID_KEY, CORRELATION_ID);
         CustomException exception = new CustomException(
                 ErrorCode.CRAWLER_CONNECTION_ERROR, "secret=must-not-leave-the-process");
 
-        service.sendSynchronously(SlackAlertCategory.CRAWLER_FETCH, "C001", exception);
+        service.alert(SlackAlertCategory.CRAWLER_FETCH, "C001", exception);
 
         ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
         verify(webhookClient).send(messageCaptor.capture());
@@ -66,7 +69,7 @@ class SlackAlertServiceTest {
         String diagnostic = "failureStage=COURSE_API failureType=SocketTimeoutException "
                 + "upstreamStatus=UNKNOWN retryable=true";
 
-        service.sendSynchronously(
+        service.alert(
                 SlackAlertCategory.CRAWLER_FETCH,
                 "C001",
                 new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR),
@@ -83,8 +86,8 @@ class SlackAlertServiceTest {
     void suppressesSameAlertDuringCooldown() {
         RuntimeException exception = new IllegalStateException("database unavailable");
 
-        service.sendSynchronously(SlackAlertCategory.DB_PERSIST, "UNEXPECTED", exception);
-        service.sendSynchronously(SlackAlertCategory.DB_PERSIST, "UNEXPECTED", exception);
+        service.alert(SlackAlertCategory.DB_PERSIST, UNEXPECTED_CODE, exception);
+        service.alert(SlackAlertCategory.DB_PERSIST, UNEXPECTED_CODE, exception);
 
         verify(webhookClient).send(anyString());
     }
@@ -94,16 +97,41 @@ class SlackAlertServiceTest {
         SlackAlertService disabledService = new SlackAlertService(
                 new SlackAlertProperties("", "TEST", 60, 2_000), webhookClient);
 
-        disabledService.sendSynchronously(SlackAlertCategory.SERVER_5XX, "G001", new RuntimeException());
+        disabledService.alert(SlackAlertCategory.SERVER_5XX, "G001", new RuntimeException());
 
         verify(webhookClient, never()).send(anyString());
     }
 
     @Test
-    void publicAlertMethodIsAsynchronous() throws NoSuchMethodException {
-        Method method = SlackAlertService.class.getMethod(
-                "alert", SlackAlertCategory.class, String.class, Throwable.class);
+    void publicAlertRunsOnTheCallerThreadWithItsCorrelationContext() {
+        // given
+        Thread callerThread = Thread.currentThread();
+        MDC.put(CORRELATION_ID_KEY, CORRELATION_ID);
+        doAnswer(invocation -> {
+            assertThat(Thread.currentThread()).isSameAs(callerThread);
+            assertThat(MDC.get(CORRELATION_ID_KEY)).isEqualTo(CORRELATION_ID);
+            return null;
+        }).when(webhookClient).send(anyString());
 
-        assertThat(method.isAnnotationPresent(Async.class)).isTrue();
+        // when
+        service.alert(SlackAlertCategory.SERVER_5XX, "G001", new RuntimeException());
+
+        // then
+        verify(webhookClient).send(anyString());
+        assertThat(MDC.get(CORRELATION_ID_KEY)).isEqualTo(CORRELATION_ID);
+    }
+
+    @Test
+    void webhookFailureDoesNotEscapeOrBypassCooldown() {
+        // given
+        RuntimeException originalFailure = new IllegalStateException("database unavailable");
+        doThrow(new IllegalStateException("webhook unavailable")).when(webhookClient).send(anyString());
+
+        // when & then
+        assertThatCode(() -> service.alert(SlackAlertCategory.DB_PERSIST, UNEXPECTED_CODE, originalFailure))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> service.alert(SlackAlertCategory.DB_PERSIST, UNEXPECTED_CODE, originalFailure))
+                .doesNotThrowAnyException();
+        verify(webhookClient).send(anyString());
     }
 }

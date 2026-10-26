@@ -1,16 +1,28 @@
 package bhoon.sugang_helper.seatalert.notification.scheduler;
 
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,15 +38,12 @@ class SeatNotificationOutboxWorkerTest {
     private SeatNotificationOutboxProcessor processor;
 
     private SimpleMeterRegistry meterRegistry;
-    private ThreadPoolExecutor executor;
     private SeatNotificationOutboxWorker worker;
 
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        executor = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(1));
-        worker = new SeatNotificationOutboxWorker(processor, meterRegistry, 1, 1, executor);
+        worker = new SeatNotificationOutboxWorker(processor, meterRegistry, 2);
     }
 
     @AfterEach
@@ -44,19 +53,146 @@ class SeatNotificationOutboxWorkerTest {
     }
 
     @Test
-    void claimsOnlyBoundedCapacityAndProcessesEveryClaimWithoutLoss() throws Exception {
-        SeatNotificationDeliveryClaim first = new SeatNotificationDeliveryClaim(
-                1L, "claim-1", java.time.LocalDateTime.now(), NotificationChannel.EMAIL);
-        SeatNotificationDeliveryClaim second = new SeatNotificationDeliveryClaim(
-                2L, "claim-2", java.time.LocalDateTime.now(), NotificationChannel.EMAIL);
-        when(processor.claimReadyDeliveries(anyInt())).thenReturn(List.of(first, second));
+    void claimsOnlyBoundedCapacityAndProcessesEveryClaimWithoutLoss() {
+        // given
+        SeatNotificationDeliveryClaim first = claim(1L, NotificationChannel.EMAIL);
+        SeatNotificationDeliveryClaim second = claim(2L, NotificationChannel.WEB);
+        when(processor.claimReadyDeliveries(1)).thenReturn(List.of(first), List.of(second));
+        Thread caller = Thread.currentThread();
+        doAnswer(invocation -> {
+            assertThat(Thread.currentThread()).isSameAs(caller);
+            return null;
+        }).when(processor).processDelivery(any());
 
+        // when
         worker.processPendingNotifications();
-        executor.shutdown();
-        executor.awaitTermination(2, TimeUnit.SECONDS);
 
-        verify(processor).claimReadyDeliveries(2);
+        // then
+        var ordered = inOrder(processor);
+        ordered.verify(processor).materializePendingOutboxes();
+        ordered.verify(processor).claimReadyDeliveries(1);
+        ordered.verify(processor).processDelivery(first);
+        ordered.verify(processor).claimReadyDeliveries(1);
+        ordered.verify(processor).processDelivery(second);
+        verifyNoMoreInteractions(processor);
+        assertThat(meterRegistry.get("notification.outbox.queue.depth").tag("channel", "EMAIL").gauge().value())
+                .isZero();
+    }
+
+    @Test
+    void oneDeliveryFailureDoesNotSkipTheNextChannelOrLeaveTheGaugeBusy() {
+        // given
+        SeatNotificationDeliveryClaim first = claim(1L, NotificationChannel.EMAIL);
+        SeatNotificationDeliveryClaim second = claim(2L, NotificationChannel.WEB);
+        when(processor.claimReadyDeliveries(1)).thenReturn(List.of(first), List.of(second));
+        doThrow(new IllegalStateException("settlement unavailable")).when(processor).processDelivery(first);
+
+        // when
+        worker.processPendingNotifications();
+
+        // then
         verify(processor).processDelivery(first);
         verify(processor).processDelivery(second);
+        assertThat(meterRegistry.get("notification.outbox.queue.depth").tag("channel", "EMAIL").gauge().value())
+                .isZero();
+    }
+
+    @Test
+    void skipsOverlappingPollWhileThePreviousDeliveryIsStillRunning() throws Exception {
+        // given
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        SeatNotificationDeliveryClaim first = claim(1L, NotificationChannel.EMAIL);
+        when(processor.claimReadyDeliveries(1)).thenReturn(List.of(first), List.of());
+        doAnswer(invocation -> {
+            started.countDown();
+            assertThat(release.await(5, TimeUnit.SECONDS)).isTrue();
+            return null;
+        }).when(processor).processDelivery(first);
+        ExecutorService caller = Executors.newSingleThreadExecutor();
+        try {
+            Future<?> runningPoll = caller.submit(worker::processPendingNotifications);
+            assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
+
+            // when
+            worker.processPendingNotifications();
+
+            // then
+            verify(processor).materializePendingOutboxes();
+            verify(processor).claimReadyDeliveries(1);
+            release.countDown();
+            runningPoll.get(5, TimeUnit.SECONDS);
+            verify(processor).processDelivery(first);
+        } finally {
+            release.countDown();
+            caller.shutdownNow();
+        }
+    }
+
+    @Test
+    void shutdownFinishesTheCurrentDeliveryWithoutClaimingAnotherOne() {
+        // given
+        SeatNotificationDeliveryClaim first = claim(1L, NotificationChannel.EMAIL);
+        when(processor.claimReadyDeliveries(1)).thenReturn(List.of(first));
+        doAnswer(invocation -> {
+            worker.shutdown();
+            return null;
+        }).when(processor).processDelivery(first);
+
+        // when
+        worker.processPendingNotifications();
+        worker.processPendingNotifications();
+
+        // then
+        verify(processor).materializePendingOutboxes();
+        verify(processor).claimReadyDeliveries(1);
+        verify(processor).processDelivery(first);
+        verifyNoMoreInteractions(processor);
+    }
+
+    @Test
+    void stoppedWorkerDoesNotClaimOrMaterialize() {
+        // given
+        worker.shutdown();
+
+        // when
+        worker.processPendingNotifications();
+
+        // then
+        verifyNoInteractions(processor);
+    }
+
+    @Test
+    void materializationFailureDoesNotPermanentlyBlockLaterPolls() {
+        // given
+        doThrow(new IllegalStateException("database unavailable")).doNothing()
+                .when(processor).materializePendingOutboxes();
+        when(processor.claimReadyDeliveries(1)).thenReturn(List.of());
+
+        // when & then
+        assertThatThrownBy(worker::processPendingNotifications).isInstanceOf(IllegalStateException.class);
+        worker.processPendingNotifications();
+        verify(processor, times(2)).materializePendingOutboxes();
+        verify(processor).claimReadyDeliveries(1);
+    }
+
+    @Test
+    void interruptedCallerDoesNotTakeMoreWork() {
+        // given
+        Thread.currentThread().interrupt();
+        try {
+            // when
+            worker.processPendingNotifications();
+
+            // then
+            verify(processor, never()).claimReadyDeliveries(1);
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    private SeatNotificationDeliveryClaim claim(Long id, NotificationChannel channel) {
+        return new SeatNotificationDeliveryClaim(id, "claim-" + id, LocalDateTime.now(), channel);
     }
 }
