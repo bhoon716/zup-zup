@@ -168,23 +168,13 @@ describe("Header", () => {
     );
   });
 
-  it("인증 스토어 로딩이 끝나면 로그인 힌트 쿠키가 있어도 로딩 상태를 표시하지 않는다", () => {
+  it("인증 복원이 끝나면 로그인 힌트 쿠키만으로 로딩이나 로그인 상태를 표시하지 않는다", () => {
     mockAuthStore.isLoading = false;
     document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=true; path=/`;
     render(<Header />);
 
     expect(mockNavLinks).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: false })
-    );
-  });
-
-  it("로그인 여부는 인증 스토어의 사용자만 따른다", () => {
-    mockAuthStore.isLoading = false;
-    document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=true; path=/`;
-    render(<Header />);
-
-    expect(mockNavLinks).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoggedIn: false })
+      expect.objectContaining({ isLoading: false, isLoggedIn: false })
     );
   });
 

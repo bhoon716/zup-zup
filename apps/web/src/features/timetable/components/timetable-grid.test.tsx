@@ -54,7 +54,7 @@ describe('TimetableGrid', () => {
     );
   };
 
-  it('renders all blocks correctly', () => {
+  it('renders course and custom blocks with their day and hour labels', () => {
     renderGrid(mockTimetable);
 
     expect(screen.getByText('Java Programming')).toBeInTheDocument();
@@ -64,11 +64,6 @@ describe('TimetableGrid', () => {
     expect(screen.getByText(/공학관 101/)).toBeInTheDocument();
 
     expect(screen.getByText('Lunch')).toBeInTheDocument();
-  });
-
-  it('renders days and hours labels', () => {
-    renderGrid(mockTimetable);
-
     expect(screen.getByText('월')).toBeInTheDocument();
     expect(screen.getByText('화')).toBeInTheDocument();
     expect(screen.getByText('수')).toBeInTheDocument();
