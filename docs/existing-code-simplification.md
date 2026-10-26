@@ -191,7 +191,7 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 - backend-redesign-checklist의 10월 17일 운영 준비·조사 메모는 현재 코드 수정이 아니고 최신 진단 기록에 후속 결과가 있으므로 이번 단순화 브랜치에는 복사하지 않았다. 원본의 해당 변경은 그대로 남겨 두었다.
 - 중단된 backend-rewrite 브랜치의 코드와 민감한 설정·자격 증명은 가져오지 않았다. 원본에 reset/clean/stash를 실행하지 않았다.
 
-## 최종 통합 검증
+## 단순화 통합 검증 (`29dfb568f`)
 
 - Java 21 `./gradlew --offline clean check bootJar`: **115개 클래스, 515건 통과, 실패/오류/skip 0**, PMD main/test 0, Checkstyle main/test 0, 실행 JAR 생성 성공. 삭제한 테스트의 옛 class 파일이 섞이지 않도록 clean부터 실행했다.
 - Node 22 Vitest: **79개 파일, 278건 통과**. ESLint·TypeScript·production build를 통과했다. localhost API mock Playwright **2개 시나리오는 재시도 0으로 통과**했다.
@@ -222,3 +222,29 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 | `0ff996edf` | 중복 웹 테스트 정리·브라우저 API mock 격리 |
 
 최종 변경 집합의 서버 clean 검증, 웹 전체 테스트·lint·타입 검사·production build·재시도 없는 두 브라우저 시나리오가 통과했다. 원본 dev의 HEAD·상태·7개 미커밋 파일을 보존했다. 구현 판단 대기나 차단된 필수 작업은 없으며 운영·실제 제공자·MySQL 환경 검증은 허용 범위 밖의 미검증 사항으로 남긴다.
+
+
+## 후속 수정: 만료 WebPush 단말의 실패 격리
+
+추가 리뷰에서 한 사용자의 첫 WebPush 단말이 404/410으로 만료되면 정상 단말도 시도하지 않고 delivery 전체가 DLQ에 들어가는 기존 문제를 확인했다. 사용자는 이 항목만 수정하고 CIRCUIT_OPEN attempts 소모는 유지하기로 결정했다.
+
+`NotificationService.deliverSeatOpening`의 기존 반복에만 조건부 예외 처리를 넣었다. typed NotificationProviderException이고 WEB 채널·WEB_PUSH_INVALID_SUBSCRIPTION·non-retryable일 때만 나머지 단말을 계속 처리한다. 실제 sender가 기존대로 만료 단말을 삭제한다. 하나 이상 성공하면 기존 이력 1건과 성공 정산, 모두 만료면 같은 오류를 재전파해 이력 없이 DLQ다. 다른 영구 오류·일시적 실패는 부분 성공 여부와 관계없이 기존대로 즉시 전파한다. 관리자·사용자 테스트 알림 API는 바꾸지 않았다.
+
+새 WebPushDeliveryTest는 실제 NotificationService→processor/settlement와 H2를 가짜 제공자에 연결한다. 수정 전 6건 중 3건 실패로 문제를 재현했다. 양 순서의 만료/정상 단말, 전체 만료, 첫째/둘째의 일시 실패와 보통 재시도, 부분 성공 후 다른 영구 오류를 검사한다. 부분 성공 후 재시도는 같은 delivery key로 전체 대상 목록을 다시 보내므로 앞선 성공 단말에 중복이 생길 수 있다. 단말별 영속 정산이나 exactly-once 보장을 추가하지 않았다.
+
+추가 승인에 따라 실제 WebPush HTTP 취소와 단일 scheduler 지연 검증을 이어서 수행한다. 회로 차단 attempts·HTTP timeout·scheduler 설정은 이번 변경 대상이 아니며 결과를 근거로만 기록한다.
+
+
+### 후속 검증 결과: 실제 HTTP 취소와 scheduler 지연
+
+- WebPushHttpCancellationTest는 실제 NotificationService의 sender가 사용하는 WebPushNotificationSender→PushService 5.1.1 암호화/HTTP→localhost 지연 서버와 실제 NotificationProviderResilience를 연결했다. 테스트 전용 pass-through subclass는 super.sendAsync가 반환한 하위 Future 참조만 관측한다. endpoint 검증만 localhost 실험용 mock이며 VAPID/단말 키는 테스트에서 생성한다.
+- 운영 기본 5,000ms 결과 대기 제한에서 집중 실행 5,041ms, 최종 clean 실행 5,035ms 뒤 TIMEOUT이었다. 서버는 실제 암호문 POST 81바이트를 이미 수신했고, 그 시점 하위 HTTP Future는 isCancelled=false·isDone=false였다. 서버 201 응답을 풀자 같은 Future가 늦은 201로 완료됐다. 이 실험에서는 외부 timeout/cancel이 하위 HTTP 요청 취소로 전파되지 않는 것이 확인됐다. 이 테스트는 기존 제한의 진단이며 취소 전파를 고치면 기대값도 갱신해야 한다. TLS·실제 제공자 수신은 확인하지 않았다.
+- SchedulerDelayTest는 실제 SchedulingConfig·CourseScheduler/CourseCrawlerService·SeatNotificationOutboxWorker·신선도 검사 메서드와 가짜 I/O를 사용했다. outbox/freshness 주기만 5ms/60ms로 1,000:1 축소하고 수집 fetch를 latch로 약 300ms 지연시켰다. 최종 clean 실측 hold 305ms, outbox 지연 305ms, freshness 지연 306ms, 최대 동시 작업 1개, 해제 후 각 2회 반복 실행을 확인했다. 집중 실행 예는 hold 356ms·지연 311/313ms였다. hold는 fetch 시작, 지연은 이후 등록 시점부터 측정하므로 시작점이 다르다.
+- 운영 180초×4시도 + 재시도 대기 3+6+9초 = 738초는 한 분류의 한 upstream 단계가 매번 timeout되는 조건부 계산이다. 실제 client는 매 시도 bootstrap GET 후 course POST를 실행하고 분류도 여러 개이므로 전체 수집의 최악 상한이 아니다. 축소 실험 실측을 운영 부하나 738초 실행 결과로 환산하지 않는다.
+- 사용자 선택에 따라 CIRCUIT_OPEN의 attempts 소모는 수정하지 않았다. WebPush 취소 전파나 scheduler/timeout 값도 바꾸지 않았다. 이번 후속 수정의 production diff는 만료 단말 격리 21줄뿐이다. 새 병렬 추상화·프레임워크·스키마를 도입하지 않았다.
+
+### 후속 전체 검증과 산출물
+
+Java 21 `./gradlew --offline clean check bootJar`: **118개 클래스, 523건 통과, 실패/오류/skip 0**, PMD main/test 0·Checkstyle main/test 0, 실행 JAR 생성 성공. 추가 8건은 만료/정상·실패·정산 6건과 실제 HTTP 취소 및 scheduler 지연 진단 각 1건이다. 초기 probe 컴파일의 Micrometer 자원 종료 API 사용 오류를 수정한 뒤 집중 검증과 clean 전체 검증을 통과했다. 기존 테스트를 삭제하거나 skip하지 않았다. 이번 후속에서는 웹 코드가 바뀌지 않았으며 위 29dfb568f의 웹 검증 결과와 구분한다.
+
+로그는 작업 디렉터리의 webpush-expired-before.log / webpush-expired-focused.log / notification-probes-focused.log / notification-followup-clean.log에 있다. JUnit XML의 system-out에 두 probe의 실측을 남겼다. 전체 구조 산출물은 [독립 HTML](current-architecture.html)로 제공하며 실제 소스·기본값·제약·검증 근거 링크를 포함한다. 브라우저 시각 검증과 최종 커밋은 아래 완료 기록에 추가한다.
