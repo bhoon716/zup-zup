@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.academic.review.service;
 
+import bhoon.sugang_helper.academic.course.dto.CourseReference;
 import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
 import bhoon.sugang_helper.academic.course.service.CourseReviewQuery;
-import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,12 +18,7 @@ public class CourseReviewQueryService implements CourseReviewQuery {
 
     @Override
     public boolean hasReviewByUser(String courseKey, String subjectCode, String professor, Long userId) {
-        ReviewScopeKey scope = ReviewScopeKey.from(subjectCode, professor);
-        if (!scope.hasIdentifiableProfessor()) {
-            return reviewRepository.existsByCourseKeyAndUserId(courseKey, userId);
-        }
-        var courseKeys = courseReviewCatalog.findCourseKeysBySubjectCodeAndProfessor(
-                scope.subjectCode(), scope.professor());
+        var courseKeys = courseReviewCatalog.findReviewCourseKeys(new CourseReference(courseKey, subjectCode, professor));
         return reviewRepository.countByCourseKeysAndUserId(courseKeys, userId) > 0;
     }
 }

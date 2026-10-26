@@ -301,3 +301,16 @@ useReviews의 목록·상세 캐시에 전체 updatedCourse를 합치던 두 곳
 - 로그는 작업 디렉터리의 review-cache-before.log, review-cache-focused.log, review-cache-full-test.log, review-cache-typecheck.log, review-cache-lint.log, review-cache-build.log, review-cache-e2e*.log와 review-cache-e2e-first-results/에 있다. 원격 push·배포·실제 발송은 수행하지 않았다.
 
 추가로 저장소 전체 Markdown 링크 검사는 기존 옛 경로 등을 가리키는 126개 오류로 실패했다. 수정 전 HEAD를 별도 임시 디렉터리에 archive한 뒤 같은 검사로 비교해 오류 목록이 완전히 같음을 확인했다. 이번 변경이 추가한 링크 오류는 없으며 과거 문서 전체의 링크 정리는 이번 승인 범위 밖으로 남겼다. 비교 로그는 review-cache-markdown-current.log·review-cache-markdown-baseline.log다.
+
+
+## 서버 리뷰 공유 범위 통합 완료
+
+사용자가 후속 후보 2번을 승인해 CourseReviewCatalogService.findReviewCourseKeys로 대상 강의 선택을 모았다. 미지정 교수는 현재 키 하나, 식별 가능한 교수는 기존 과목코드·trim 교수명 조회 결과를 그대로 반환한다. 별점·이모지·본인 작성 여부는 기존 IN 쿼리를 쓰고, 평점·개수 갱신도 같은 대상 목록을 재사용한다. 불필요해진 단일 키/중복 저장소 메서드 12개와 전달·분기 코드가 줄어 production Java는 순감 145줄이다. 새 계층·프레임워크·DB/API 변경은 없다.
+
+기존 Mockito 테스트의 결과·오류 검증은 유지하고 삭제된 단일 키 쿼리 stubbing/호출 검증만 목록 기반으로 옮겼다. 새 ReviewScopeContractTest는 격리 H2에서 실제 카탈로그·별점·이모지·작성 여부 서비스를 연결한다. null·빈값·공백·교수 미지정 변형 4개와 일반 교수·외부교원1의 공유 2개 시나리오는 변경 전에도 통과했다. 변경 후 같은 6개와 빈 교수 범위의 임의 fallback 금지 1개를 검증했다. 다른 학기·분반 공유, 외부교원2/다른 과목 배제, 중복 작성 거부, 내 리뷰 우선 정렬, 수정·삭제·생성의 평균/개수, 이모지 공유 취소·다시 추가·본인 여부를 확인한다.
+
+작성·수정·삭제의 기존 입력 강의 PESSIMISTIC_WRITE 조회, saveAndFlush/flush 순서, 서비스 트랜잭션 애노테이션은 그대로다. 이는 입력 개설 강의 1행의 잠금이며 그룹 전체 동시 작성 방지를 새로 보장한 것은 아니다. 독립 읽기 전용 리뷰에서도 새 오류를 찾지 못했다.
+
+검증: 집중 37건 통과, ./gradlew --offline clean check bootJar 성공(1분 17초). 서버 119 suite·530 tests, 실패·오류·skip 0, PMD main/test·Checkstyle main/test 위반 0, 실행 JAR 생성 완료. 최초 제한된 실행은 기존 Gradle 캐시 lock 쓰기 권한에서 시작하지 못했고 허용된 로컬 실행으로 검증했다. 변경 전/집중/전체 로그는 작업 디렉터리의 review-scope-before.log·review-scope-focused.log·review-scope-clean.log에 있다. 실제 MySQL 동시성·운영 DB·외부 제공자는 사용하지 않았다. 웹 구현은 바뀌지 않아 앞서 통과한 웹 검증을 반복하지 않았다.
+
+로깅 전반의 메시지 한국어화·레벨·위치·중복/민감정보 점검은 사용자가 후속 할 일로만 요청했으므로 구현하지 않는다. CrawlerRunFailure/CrawlerStatus와 관리자 감사 엔티티 제거 여부도 현재는 읽기 전용 검토이며 삭제·로그 전환·스키마 변경을 하지 않는다. 일정/D-day 통합은 새 승인 범위로 별도 작업 단위에서 진행한다.

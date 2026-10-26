@@ -12,7 +12,6 @@ import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,7 +38,8 @@ public class CourseEmojiReviewService {
         ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
         UserIdentity user = getCurrentUser();
 
-        findEmojiReview(course, scope, user.id(), emoji)
+        List<String> courseKeys = courseReviewCatalog.findReviewCourseKeys(course);
+        emojiReviewRepository.findByCourseKeysAndUserIdAndEmoji(courseKeys, user.id(), emoji)
                 .ifPresentOrElse(
                         existing -> {
                             emojiReviewRepository.delete(existing);
@@ -65,16 +65,16 @@ public class CourseEmojiReviewService {
     @Transactional(readOnly = true)
     public List<CourseEmojiReviewResponse> getCourseEmojiStats(String courseKey) {
         CourseReference course = getCourse(courseKey);
-        ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
         Long currentUserId = getCurrentUserIdOrNull();
-        List<String> courseKeys = findCourseKeysForScope(scope);
-        return findEmojiStats(course, scope, courseKeys)
+        List<String> courseKeys = courseReviewCatalog.findReviewCourseKeys(course);
+        return emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys)
                 .stream()
                 .map(row -> {
                     String emoji = (String) row[0];
                     long count = ((Number) row[1]).longValue();
                     boolean isMine = currentUserId != null
-                            && hasEmojiReview(course, scope, courseKeys, currentUserId, emoji);
+                            && emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(
+                                    courseKeys, currentUserId, emoji) > 0;
                     return CourseEmojiReviewResponse.builder()
                             .emoji(emoji)
                             .count(count)
@@ -82,39 +82,6 @@ public class CourseEmojiReviewService {
                             .build();
                 })
                 .toList();
-    }
-
-    private Optional<CourseEmojiReview> findEmojiReview(CourseReference course, ReviewScopeKey scope, Long userId,
-                                                         String emoji) {
-        if (!scope.hasIdentifiableProfessor()) {
-            return emojiReviewRepository.findByCourseKeyAndUserIdAndEmoji(course.courseKey(), userId, emoji);
-        }
-
-        var courseKeys = findCourseKeysForScope(scope);
-        return emojiReviewRepository.findByCourseKeysAndUserIdAndEmoji(courseKeys, userId, emoji);
-    }
-
-    private List<Object[]> findEmojiStats(CourseReference course, ReviewScopeKey scope, List<String> courseKeys) {
-        if (!scope.hasIdentifiableProfessor()) {
-            return emojiReviewRepository.findEmojiStatsByCourseKey(course.courseKey());
-        }
-        return emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys);
-    }
-
-    private boolean hasEmojiReview(CourseReference course, ReviewScopeKey scope, List<String> courseKeys,
-                                   Long userId, String emoji) {
-        if (!scope.hasIdentifiableProfessor()) {
-            return emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(course.courseKey(), userId, emoji);
-        }
-
-        return emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(courseKeys, userId, emoji) > 0;
-    }
-
-    private List<String> findCourseKeysForScope(ReviewScopeKey scope) {
-        if (!scope.hasIdentifiableProfessor()) {
-            return List.of();
-        }
-        return courseReviewCatalog.findCourseKeysBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor());
     }
 
     private UserIdentity getCurrentUser() {

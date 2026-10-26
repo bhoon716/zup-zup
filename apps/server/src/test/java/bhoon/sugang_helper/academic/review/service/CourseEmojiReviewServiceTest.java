@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.academic.course.dto.CourseReference;
 import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
-import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.dto.response.CourseEmojiReviewResponse;
 import bhoon.sugang_helper.academic.review.entity.CourseEmojiReview;
 import bhoon.sugang_helper.academic.review.repository.CourseEmojiReviewRepository;
@@ -43,7 +42,6 @@ class CourseEmojiReviewServiceTest {
     private static final String PROFESSOR = "김교수";
     private static final String UNASSIGNED_PROFESSOR = "교수 미지정";
     private static final String EXTERNAL_INSTRUCTOR = "외부교원1";
-    private static final String NORMALIZED_PROFESSOR = ReviewScopeKey.normalizeProfessor(PROFESSOR);
     private static final Long USER_ID = 1L;
     private static final String EMOJI_THUMB = "👍";
     private static final String EMOJI_FIRE = "🔥";
@@ -66,7 +64,7 @@ class CourseEmojiReviewServiceTest {
     @BeforeEach
     void setUp() {
         securityUtilMockedStatic = mockStatic(SecurityUtil.class);
-        lenient().when(courseReviewCatalog.findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, NORMALIZED_PROFESSOR))
+        lenient().when(courseReviewCatalog.findReviewCourseKeys(any(CourseReference.class)))
                 .thenReturn(List.of(COURSE_KEY));
     }
 
@@ -241,16 +239,15 @@ class CourseEmojiReviewServiceTest {
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
         when(userIdentityQuery.findByEmail(user.getEmail())).thenReturn(Optional.of(identity(user)));
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse(UNASSIGNED_PROFESSOR)));
-        when(emojiReviewRepository.findEmojiStatsByCourseKey(COURSE_KEY))
+        when(emojiReviewRepository.findEmojiStatsByCourseKeys(List.of(COURSE_KEY)))
                 .thenReturn(List.<Object[]>of(new Object[]{EMOJI_FIRE, 1L}));
-        when(emojiReviewRepository.existsByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_FIRE))
-                .thenReturn(true);
+        when(emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_FIRE))
+                .thenReturn(1L);
 
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
         assertThat(result).containsExactly(new CourseEmojiReviewResponse(EMOJI_FIRE, 1L, true));
-        verify(emojiReviewRepository).findEmojiStatsByCourseKey(COURSE_KEY);
-        verify(courseReviewCatalog, never()).findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, "");
+        verify(emojiReviewRepository).findEmojiStatsByCourseKeys(List.of(COURSE_KEY));
     }
 
     @Test
@@ -259,13 +256,12 @@ class CourseEmojiReviewServiceTest {
         User user = createUser(USER_ID);
         mockCurrentUser(user);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse(UNASSIGNED_PROFESSOR)));
-        when(emojiReviewRepository.findByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_THUMB))
+        when(emojiReviewRepository.findByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_THUMB))
                 .thenReturn(Optional.empty());
 
         emojiReviewService.toggleEmoji(COURSE_KEY, EMOJI_THUMB);
 
-        verify(emojiReviewRepository).findByCourseKeyAndUserIdAndEmoji(COURSE_KEY, USER_ID, EMOJI_THUMB);
-        verify(courseReviewCatalog, never()).findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, "");
+        verify(emojiReviewRepository).findByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_THUMB);
         verify(emojiReviewRepository).save(any(CourseEmojiReview.class));
     }
 
@@ -275,7 +271,7 @@ class CourseEmojiReviewServiceTest {
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(null);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse(EXTERNAL_INSTRUCTOR)));
         List<String> courseKeys = List.of("LEGACY-C1", COURSE_KEY);
-        when(courseReviewCatalog.findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, EXTERNAL_INSTRUCTOR))
+        when(courseReviewCatalog.findReviewCourseKeys(createCourse(EXTERNAL_INSTRUCTOR)))
                 .thenReturn(courseKeys);
         when(emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys))
                 .thenReturn(List.<Object[]>of(new Object[]{EMOJI_THUMB, 2L}));
@@ -284,7 +280,6 @@ class CourseEmojiReviewServiceTest {
 
         assertThat(result).containsExactly(new CourseEmojiReviewResponse(EMOJI_THUMB, 2L, false));
         verify(emojiReviewRepository).findEmojiStatsByCourseKeys(courseKeys);
-        verify(emojiReviewRepository, never()).findEmojiStatsByCourseKey(COURSE_KEY);
     }
 
     @Test

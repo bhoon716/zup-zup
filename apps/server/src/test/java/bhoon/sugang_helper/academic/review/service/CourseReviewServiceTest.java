@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.academic.course.dto.CourseReference;
 import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
-import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewCreateRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewReactionRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewUpdateRequest;
@@ -50,7 +49,6 @@ class CourseReviewServiceTest {
     private static final String COURSE_KEY = "C1";
     private static final String SUBJECT_CODE = "CSE101";
     private static final String PROFESSOR = "김교수";
-    private static final String NORMALIZED_PROFESSOR = ReviewScopeKey.normalizeProfessor(PROFESSOR);
     private static final Long USER_ID = 1L;
     private static final Long OTHER_USER_ID = 2L;
     private static final Long REVIEW_ID = 100L;
@@ -75,7 +73,7 @@ class CourseReviewServiceTest {
     @BeforeEach
     void setUp() {
         securityUtilMockedStatic = mockStatic(SecurityUtil.class);
-        lenient().when(courseReviewCatalog.findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, NORMALIZED_PROFESSOR))
+        lenient().when(courseReviewCatalog.findReviewCourseKeys(any(CourseReference.class)))
                 .thenReturn(List.of(COURSE_KEY));
     }
 
@@ -157,7 +155,7 @@ class CourseReviewServiceTest {
             ReviewResponse response = reviewService.createReview(COURSE_KEY, request);
 
             assertThat(response.rating()).isEqualTo(5);
-            verify(courseReviewCatalog).updateReviewStats(course, 4.1f, 11);
+            verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 4.1f, 11);
 
             verify(reviewRepository).saveAndFlush(any());
         }
@@ -197,15 +195,15 @@ class CourseReviewServiceTest {
             ReviewCreateRequest request = new ReviewCreateRequest(5);
             CourseReference course = createCourse("교수 미지정");
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
-            when(reviewRepository.existsByCourseKeyAndUserId(COURSE_KEY, user.getId())).thenReturn(false);
+            when(reviewRepository.countByCourseKeysAndUserId(List.of(COURSE_KEY), user.getId())).thenReturn(0L);
             when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(createReview(COURSE_KEY, user.getId()));
-            when(reviewRepository.countByCourseKey(COURSE_KEY)).thenReturn(1L);
-            when(reviewRepository.getAverageRatingByCourseKey(COURSE_KEY)).thenReturn(5.0);
+            when(reviewRepository.countByCourseKeys(List.of(COURSE_KEY))).thenReturn(1L);
+            when(reviewRepository.getAverageRatingByCourseKeys(List.of(COURSE_KEY))).thenReturn(5.0);
 
             reviewService.createReview(COURSE_KEY, request);
 
-            verify(reviewRepository).existsByCourseKeyAndUserId(COURSE_KEY, user.getId());
-            verify(courseReviewCatalog).updateReviewStats(course, 5.0f, 1);
+            verify(reviewRepository).countByCourseKeysAndUserId(List.of(COURSE_KEY), user.getId());
+            verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 5.0f, 1);
         }
 
         @Test
@@ -277,14 +275,13 @@ class CourseReviewServiceTest {
             CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
             Page<CourseReview> page = new PageImpl<>(List.of(review));
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse("교수 미지정")));
-            when(reviewRepository.findByCourseKeyWithMyReviewFirst(COURSE_KEY, user.getId(), pageRequest))
+            when(reviewRepository.findByCourseKeysWithMyReviewFirst(List.of(COURSE_KEY), user.getId(), pageRequest))
                     .thenReturn(page);
 
             Page<ReviewResponse> responsePage = reviewService.getReviews(COURSE_KEY, pageRequest);
 
             assertThat(responsePage.getContent()).hasSize(1);
-            verify(reviewRepository).findByCourseKeyWithMyReviewFirst(COURSE_KEY, user.getId(), pageRequest);
-            verify(courseReviewCatalog, never()).findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, "");
+            verify(reviewRepository).findByCourseKeysWithMyReviewFirst(List.of(COURSE_KEY), user.getId(), pageRequest);
         }
 
         @Test
@@ -298,7 +295,7 @@ class CourseReviewServiceTest {
             Page<CourseReview> page = new PageImpl<>(List.of(review));
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse("외부교원1")));
             List<String> courseKeys = List.of("LEGACY-C1", COURSE_KEY);
-            when(courseReviewCatalog.findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, "외부교원1"))
+            when(courseReviewCatalog.findReviewCourseKeys(createCourse("외부교원1")))
                     .thenReturn(courseKeys);
             when(reviewRepository.findByCourseKeysWithMyReviewFirst(courseKeys, user.getId(), pageRequest))
                     .thenReturn(page);
@@ -307,7 +304,6 @@ class CourseReviewServiceTest {
 
             assertThat(responsePage.getContent()).hasSize(1);
             verify(reviewRepository).findByCourseKeysWithMyReviewFirst(courseKeys, user.getId(), pageRequest);
-            verify(reviewRepository, never()).findByCourseKeyWithMyReviewFirst(COURSE_KEY, user.getId(), pageRequest);
         }
     }
 
@@ -334,7 +330,7 @@ class CourseReviewServiceTest {
 
             assertThat(response.rating()).isEqualTo(2);
             assertThat(review.getRating()).isEqualTo(2);
-            verify(courseReviewCatalog).updateReviewStats(course, 4.2f, 10);
+            verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 4.2f, 10);
 
         }
 
@@ -447,7 +443,7 @@ class CourseReviewServiceTest {
             reviewService.deleteReview(REVIEW_ID);
 
             verify(reviewRepository).delete(review);
-            verify(courseReviewCatalog).updateReviewStats(course, 4.0f, 9);
+            verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 4.0f, 9);
 
         }
 
@@ -481,7 +477,7 @@ class CourseReviewServiceTest {
             reviewService.deleteReview(REVIEW_ID);
 
             verify(reviewRepository).delete(review);
-            verify(courseReviewCatalog).updateReviewStats(course, 4.0f, 9);
+            verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 4.0f, 9);
 
         }
     }
