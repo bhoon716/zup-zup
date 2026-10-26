@@ -259,3 +259,16 @@ Java 21 `./gradlew --offline clean check bootJar`: **118개 클래스, 523건 �
 - 증거는 작업 디렉터리의 architecture-html-verification.json과 architecture-{overview,delivery,requests,boundaries}-{desktop,mobile}.png 8개다. HTML SHA-256은 0a09a340f7f8510ed18a1a59c47e3efe8da6bc2374d9e2d9a63c3abafbc5c77c다.
 - 원본 dev에는 기존 unstaged 6개와 untracked 진단 문서 1개가 그대로 남아 있다. 필요한 수집 코드·테스트·지침·정책/진단은 단순화 브랜치에 이미 커밋돼 있으며, 원본의 미커밋 표시는 원본을 보존했기 때문이다. 과거 backend-redesign-checklist 메모는 의도적으로 복사하지 않았다. HEAD·상태·7개 파일 SHA-256 보존도 재확인했다.
 - 원격 push·PR·병합·공개 게시·배포·실제 제공자/단말 발송·운영 DB/권한 변경은 수행하지 않았다. CIRCUIT_OPEN attempts 정책과 HTTP/scheduler 설정의 후속 변경은 승인된 범위가 아니므로 남은 위험을 기록하는 데서 마쳤다.
+
+
+## 구조·흐름·시퀀스 다이어그램 보강
+
+사용자의 추가 요청에 따라 설명 카드에 더해 실제 박스·화살표 SVG 4개를 추가했다. 전체 컴포넌트도, 수집→outbox→순차 발송/정산 흐름도, 수집·변경 감지·저장 시퀀스, 선점·단말 발송·정산 시퀀스다. 시퀀스 전용 탭을 추가했으며 요청/반환 화살표, lifeline, loop/alt, 트랜잭션 테두리, DB unique와 claim token을 소스와 대조했다. 이미 materialize된 delivery의 구독 취소 소급 없음, 발송 생략 후 SENT 정산, 만료 단말 격리, 단말 loop 종료 뒤 이력 1건 저장, 부분 성공 재시도·stale 정산 거부·늦은 HTTP 응답의 한계를 구분했다.
+
+이미지 생성 모델이나 CDN을 사용하지 않았다. 고정 좌표 SVG를 브라우저 canvas에서 2배 해상도로 렌더해 docs/diagrams/current-components.png(2880×2140), current-notification-flow.png(2880×2360), current-crawl-sequence.png(2880×3340), current-delivery-sequence.png(2880×5480)를 내보냈다. UI 스크린샷이 아니라 전체 SVG만 PNG로 변환했다.
+
+1440·390·320px의 5개 탭에서 페이지 가로 잘림 0, 네 도식의 모바일 키보드 가로 스크롤을 확인했다. SVG 경계 밖 텍스트·잘못된 marker·중복 ID·깨진 링크·외부 요청·JS 오류 0, 소스 링크 77개 실존이었다. 실제 PNG를 시각 검토하여 떠 있는 연결선, 선/박스에 가린 라벨, loop 안으로 읽히던 이력 저장 표현을 수정한 후 다시 export·검증했다. 증거는 작업 디렉터리의 architecture-diagrams-verification.json과 architecture-diagrams-*.png preview에 있다. 최종 HTML SHA-256은 75e8f550fa02ffe7f41c99b215fa891ab8fe3861bd09184de206dae09bc9d0f0이다.
+
+Library HTML은 같은 identity의 버전 1로 교체했고 PNG 네 개는 각각 새 파일 버전 0으로 저장했다. 공개 공유 권한은 만들지 않았다. 일괄 준비 기능은 런타임 도구 발견 단계에서 제공되지 않아 세션 생성/파일 전송이 시작되지 않았음을 확인한 뒤, 지원되는 개별 replace/create 경로로 순서대로 저장했다. HTML은 기존 버전 0 조건을 유지해 교체했고 반환된 identity/version 메타데이터를 각 원본 파일에 보존했다.
+
+도식 변경 커밋은 6f6aafa60이며 문서·이미지뿐이다. 앱 코드·설정·정책은 바꾸지 않아 서버 테스트를 반복 실행하지 않았다(직전 코드 검증 523건 통과). 최종 상태 확인 중 원본 dev는 HEAD aade57db가 같지만 이전 미커밋 7개가 사라져 clean으로 바뀐 것을 관측했다. 이 다이어그램 작업에서는 원본 파일 수정·reset·clean·stash를 실행하지 않았으며, 그 상태 변화 경위는 확인하지 못했다. 필요한 기존 수집 코드·테스트·지침·정책/진단은 단순화 브랜치에 이미 포함돼 있다. 현재 원본 상태를 임의로 복원하거나 바꾸지 않았다.
