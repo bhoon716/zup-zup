@@ -359,3 +359,12 @@ HTML은 코드 기준0bb2bf766으로 업데이트하고 현재 DTO/응답·페�
 
 
 최종 시각 확인은 1440/390/320px의 5탭 모두 overflow0, 소스링크88개 정상, JS 오류·외부 요청0, SVG 글자 경계·marker 오류0, 키보드 탭·모바일 pan 정상이다. HTML과 current-components.png만 갱신됐고 기존 알림 흐름·두 시퀀스 PNG는 동일하다. Library 기존 파일 교체는 자동 승인 검토에서 payload/Library destination에 대한 명시적 사용자 승인 확인 부족으로 실행 전에 거부됐다. 전송은 시작하지 않았고 다른 경로로 우회하지 않았다. 로컬 산출물은 완성돼 있으며 Library 저장은 승인 대기다.
+
+
+## 인증·인가·JWT 후속 단순화 완료
+
+현재 Redis 세션+JWT 혼합 방식과 기존 API를 유지하며 refresh 레코드 파싱3벌·직렬화·상수시간 비교와 family CAS 재확인 중복을 통합했다. 검증한 JwtAuthenticationResult를 재사용하되 회전/폐기/rollback 및 세션 저장의 만료 재검사도 보존했다. uid·이메일로 실제 DB 사용자를 확인한 뒤에만 refresh를 회전하고 실패 보상과 타family보호·재사용차단·BL/RTR/UA 거부를 유지했다. 웹에서는 미사용 setAccessToken/getCookie와 죽은mock중복1건을 제거하고 로그아웃 후 늦은 refresh의 구세대 요청 재전송을 차단했다(784c720d7).
+
+서버 집중83건 및 최종 clean check bootJar의124 suite593건(실패/오류/skip0), PMD·Checkstyle main/test0, 웹296건·타입·lint경고0·빌드와 브라우저6건(retries0)이 통과했다. CAS mock 누락·중복 문자열·새 브라우저 계측의 타입3곳은 보정 후 확인했으며 테스트나 규칙을 비활성화하지 않았다. 실제인증코드를연결한가짜저장소/MockMvc수명주기와가짜API브라우저회귀의한계는 authentication-simplification.md에 구분했다.
+
+markSuccess는 기준dev aade57db9부터있었고 현재도 수집성공의상태/시각을기록한다. 원격dev9e81c0a0a는해당로컬기준의조상이며 이비교질문때문에기준브랜치변경/병합을하지않았다. CrawlerStatus/실패·감사기록삭제·세션완전전환·쿠키/CSRF/CORS/운영설정변경은하지않았다. 로그인기술대안은비교안으로만기록했다.

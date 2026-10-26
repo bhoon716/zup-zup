@@ -1,6 +1,10 @@
 package bhoon.sugang_helper.common.security.jwt;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.given;
@@ -8,13 +12,16 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import bhoon.sugang_helper.common.redis.RedisService;
+import bhoon.sugang_helper.common.security.dto.result.JwtAuthenticationResult;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +34,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -44,6 +53,9 @@ class JwtProviderTest {
     private static final String TEST_SECRET_KEY = "testSecretKeytestSecretKeytestSecretKeytestSecretKey";
     private static final long ACCESS_TOKEN_EXPIRATION = 1000L * 60 * 30;
     private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7;
+    private static final String VALID_HASH = "a".repeat(64);
+    private static final String TOKEN_TYPE_CLAIM = "token_type";
+    private static final String PRESENTED_TOKEN = "presented";
     @Mock
     private RedisService redisService;
     @InjectMocks
@@ -66,8 +78,8 @@ class JwtProviderTest {
 
 
         assertThat(token).isNotNull();
-        assertTrue(jwtProvider.validateToken(token));
-        assertFalse(jwtProvider.validateRefreshToken(token));
+        assertTrue((jwtProvider.getAccessAuthentication(token) != null));
+        assertFalse((jwtProvider.getRefreshAuthentication(token) != null));
     }
 
     @Test
@@ -76,8 +88,8 @@ class JwtProviderTest {
         String token = jwtProvider.createRefreshToken(USER_ID, EMAIL);
 
         assertThat(token).isNotNull();
-        assertTrue(jwtProvider.validateRefreshToken(token));
-        assertFalse(jwtProvider.validateToken(token));
+        assertTrue((jwtProvider.getRefreshAuthentication(token) != null));
+        assertFalse((jwtProvider.getAccessAuthentication(token) != null));
 
         ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
@@ -115,7 +127,7 @@ class JwtProviderTest {
         String token = jwtProvider.createAccessToken(USER_ID, EMAIL, ROLE);
 
 
-        boolean isValid = jwtProvider.validateToken(token);
+        boolean isValid = (jwtProvider.getAccessAuthentication(token) != null);
 
 
         assertTrue(isValid);
@@ -129,7 +141,7 @@ class JwtProviderTest {
                 .subject(EMAIL)
                 .issuedAt(new Date(now.getTime() - 2_000))
                 .expiration(new Date(now.getTime() - 1_000))
-                .claim("token_type", "access")
+                .claim(TOKEN_TYPE_CLAIM, "access")
                 .claim("uid", USER_ID)
                 .claim("role", ROLE)
                 .signWith(Keys.hmacShaKeyFor(TEST_SECRET_KEY.getBytes(StandardCharsets.UTF_8)))
@@ -140,7 +152,7 @@ class JwtProviderTest {
         logger.addAppender(appender);
 
         try {
-            assertFalse(jwtProvider.validateToken(expiredToken));
+            assertFalse((jwtProvider.getAccessAuthentication(expiredToken) != null));
 
             assertThat(appender.list).singleElement().satisfies(event -> {
                 assertThat(event.getLevel()).isEqualTo(Level.WARN);
@@ -161,7 +173,7 @@ class JwtProviderTest {
         String token = jwtProvider.createAccessToken(USER_ID, EMAIL, ROLE);
         given(redisService.hasKey("BL:" + sha256(token))).willReturn(true);
 
-        boolean isValid = jwtProvider.validateToken(token);
+        boolean isValid = (jwtProvider.getAccessAuthentication(token) != null);
 
         assertFalse(isValid);
         verify(redisService).hasKey("BL:" + sha256(token));
@@ -178,7 +190,7 @@ class JwtProviderTest {
         logger.addAppender(appender);
 
         try {
-            assertFalse(jwtProvider.validateToken(token));
+            assertFalse((jwtProvider.getAccessAuthentication(token) != null));
 
             String messages = appender.list.stream()
                     .map(ILoggingEvent::getFormattedMessage)
@@ -196,7 +208,7 @@ class JwtProviderTest {
         given(redisService.hasKey("BL:" + sha256(token))).willReturn(false);
         given(redisService.hasKey("BL:" + token)).willReturn(true);
 
-        assertFalse(jwtProvider.validateToken(token));
+        assertFalse((jwtProvider.getAccessAuthentication(token) != null));
         verify(redisService).hasKey("BL:" + sha256(token));
         verify(redisService).hasKey("BL:" + token);
     }
@@ -206,7 +218,7 @@ class JwtProviderTest {
     void blacklistAccessToken_storesOnlyOpaqueKey() {
         String token = jwtProvider.createAccessToken(USER_ID, EMAIL, ROLE);
 
-        jwtProvider.blacklistAccessToken(token);
+        jwtProvider.blacklistAccessToken(token, jwtProvider.getAccessAuthentication(token));
 
         ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
@@ -222,21 +234,21 @@ class JwtProviderTest {
     void rotateRefreshToken_rotatesOpaqueRecordAtomically() {
         String originalToken = jwtProvider.createRefreshToken(USER_ID, EMAIL);
         ArgumentCaptor<String> initialRecordCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisService).setValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL), initialRecordCaptor.capture(),
-                org.mockito.ArgumentMatchers.any(Duration.class));
+        verify(redisService).setValues(eq("RT:" + EMAIL), initialRecordCaptor.capture(),
+                any(Duration.class));
         String initialRecord = initialRecordCaptor.getValue();
         clearInvocations(redisService);
         given(redisService.getValues("RT:" + EMAIL)).willReturn(initialRecord);
-        given(redisService.compareAndSetValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
-                org.mockito.ArgumentMatchers.eq(initialRecord), org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)))).willReturn(true);
+        given(redisService.compareAndSetValues(eq("RT:" + EMAIL),
+                eq(initialRecord), anyString(),
+                eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)))).willReturn(true);
 
-        String rotatedToken = jwtProvider.rotateRefreshToken(EMAIL, originalToken);
+        String rotatedToken = jwtProvider.rotateRefreshToken(jwtProvider.getRefreshAuthentication(originalToken), originalToken);
 
         ArgumentCaptor<String> rotatedRecordCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisService).compareAndSetValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
-                org.mockito.ArgumentMatchers.eq(initialRecord), rotatedRecordCaptor.capture(),
-                org.mockito.ArgumentMatchers.eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
+        verify(redisService).compareAndSetValues(eq("RT:" + EMAIL),
+                eq(initialRecord), rotatedRecordCaptor.capture(),
+                eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
         assertThat(rotatedToken).isNotNull().isNotEqualTo(originalToken);
         assertThat(rotatedRecordCaptor.getValue()).contains(sha256(rotatedToken)).doesNotContain(rotatedToken);
         assertThat(parseClaims(rotatedToken).get("uid", Long.class)).isEqualTo(USER_ID);
@@ -247,26 +259,26 @@ class JwtProviderTest {
     void rotateRefreshToken_replayRevokesCurrentFamily() {
         String originalToken = jwtProvider.createRefreshToken(USER_ID, EMAIL);
         ArgumentCaptor<String> initialRecordCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisService).setValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL), initialRecordCaptor.capture(),
-                org.mockito.ArgumentMatchers.any(Duration.class));
+        verify(redisService).setValues(eq("RT:" + EMAIL), initialRecordCaptor.capture(),
+                any(Duration.class));
         String initialRecord = initialRecordCaptor.getValue();
         clearInvocations(redisService);
         given(redisService.getValues("RT:" + EMAIL)).willReturn(initialRecord);
-        given(redisService.compareAndSetValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
-                org.mockito.ArgumentMatchers.eq(initialRecord), org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)))).willReturn(true);
-        jwtProvider.rotateRefreshToken(EMAIL, originalToken);
+        given(redisService.compareAndSetValues(eq("RT:" + EMAIL),
+                eq(initialRecord), anyString(),
+                eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)))).willReturn(true);
+        jwtProvider.rotateRefreshToken(jwtProvider.getRefreshAuthentication(originalToken), originalToken);
         ArgumentCaptor<String> rotatedRecordCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisService).compareAndSetValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
-                org.mockito.ArgumentMatchers.eq(initialRecord), rotatedRecordCaptor.capture(),
-                org.mockito.ArgumentMatchers.eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
+        verify(redisService).compareAndSetValues(eq("RT:" + EMAIL),
+                eq(initialRecord), rotatedRecordCaptor.capture(),
+                eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
         String rotatedRecord = rotatedRecordCaptor.getValue();
 
         clearInvocations(redisService);
         given(redisService.getValues("RT:" + EMAIL)).willReturn(rotatedRecord);
         given(redisService.compareAndDeleteValues("RT:" + EMAIL, rotatedRecord)).willReturn(true);
 
-        assertThat(jwtProvider.rotateRefreshToken(EMAIL, originalToken)).isNull();
+        assertThat(jwtProvider.rotateRefreshToken(jwtProvider.getRefreshAuthentication(originalToken), originalToken)).isNull();
         verify(redisService).compareAndDeleteValues("RT:" + EMAIL, rotatedRecord);
     }
 
@@ -277,7 +289,7 @@ class JwtProviderTest {
         clearInvocations(redisService);
         given(redisService.getValues("RT:" + EMAIL)).willReturn(null);
 
-        assertThat(jwtProvider.rotateRefreshToken(EMAIL, token)).isNull();
+        assertThat(jwtProvider.rotateRefreshToken(jwtProvider.getRefreshAuthentication(token), token)).isNull();
         verify(redisService).getValues("RT:" + EMAIL);
     }
 
@@ -287,7 +299,7 @@ class JwtProviderTest {
         String legacyToken = createLegacyRefreshToken();
         clearInvocations(redisService);
 
-        assertFalse(jwtProvider.validateRefreshToken(legacyToken));
+        assertFalse((jwtProvider.getRefreshAuthentication(legacyToken) != null));
     }
 
     @Test
@@ -298,12 +310,12 @@ class JwtProviderTest {
                 .subject(EMAIL)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION))
-                .claim("token_type", "access")
+                .claim(TOKEN_TYPE_CLAIM, "access")
                 .claim("role", ROLE)
                 .signWith(Keys.hmacShaKeyFor(TEST_SECRET_KEY.getBytes(StandardCharsets.UTF_8)))
                 .compact();
 
-        assertFalse(jwtProvider.validateToken(legacyToken));
+        assertFalse((jwtProvider.getAccessAuthentication(legacyToken) != null));
     }
 
     @Test
@@ -320,16 +332,16 @@ class JwtProviderTest {
         String previousToken = jwtProvider.createRefreshToken(USER_ID, EMAIL);
         jwtProvider.createRefreshToken(USER_ID, EMAIL);
         ArgumentCaptor<String> recordsCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisService, times(2)).setValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
-                recordsCaptor.capture(), org.mockito.ArgumentMatchers.any(Duration.class));
+        verify(redisService, times(2)).setValues(eq("RT:" + EMAIL),
+                recordsCaptor.capture(), any(Duration.class));
         String currentRecord = recordsCaptor.getAllValues().get(1);
         clearInvocations(redisService);
         given(redisService.getValues("RT:" + EMAIL)).willReturn(currentRecord);
 
-        jwtProvider.revokeRefreshToken(EMAIL, previousToken);
+        jwtProvider.revokeRefreshToken(jwtProvider.getRefreshAuthentication(previousToken), previousToken);
 
-        verify(redisService, never()).compareAndDeleteValues(org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString());
+        verify(redisService, never()).compareAndDeleteValues(anyString(),
+                anyString());
     }
 
     @Test
@@ -337,20 +349,20 @@ class JwtProviderTest {
     void revokeRefreshToken_sameFamilyPreviousTokenPreventsRollback() {
         String originalToken = jwtProvider.createRefreshToken(USER_ID, EMAIL);
         ArgumentCaptor<String> initialRecordCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisService).setValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
-                initialRecordCaptor.capture(), org.mockito.ArgumentMatchers.any(Duration.class));
+        verify(redisService).setValues(eq("RT:" + EMAIL),
+                initialRecordCaptor.capture(), any(Duration.class));
         String initialRecord = initialRecordCaptor.getValue();
         clearInvocations(redisService);
         given(redisService.getValues("RT:" + EMAIL)).willReturn(initialRecord);
-        given(redisService.compareAndSetValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
-                org.mockito.ArgumentMatchers.eq(initialRecord), org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)))).willReturn(true);
+        given(redisService.compareAndSetValues(eq("RT:" + EMAIL),
+                eq(initialRecord), anyString(),
+                eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)))).willReturn(true);
 
-        String replacementToken = jwtProvider.rotateRefreshToken(EMAIL, originalToken);
+        String replacementToken = jwtProvider.rotateRefreshToken(jwtProvider.getRefreshAuthentication(originalToken), originalToken);
         ArgumentCaptor<String> replacementRecordCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redisService).compareAndSetValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
-                org.mockito.ArgumentMatchers.eq(initialRecord), replacementRecordCaptor.capture(),
-                org.mockito.ArgumentMatchers.eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
+        verify(redisService).compareAndSetValues(eq("RT:" + EMAIL),
+                eq(initialRecord), replacementRecordCaptor.capture(),
+                eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
         String replacementRecord = replacementRecordCaptor.getValue();
         String tokenFamily = parseClaims(originalToken).get("sid", String.class);
         String revocationKey = "RTR:" + EMAIL + ":" + tokenFamily;
@@ -360,14 +372,14 @@ class JwtProviderTest {
         given(redisService.compareAndDeleteValues("RT:" + EMAIL, replacementRecord)).willReturn(true);
         given(redisService.hasKey(revocationKey)).willReturn(true);
 
-        jwtProvider.revokeRefreshToken(EMAIL, originalToken);
+        jwtProvider.revokeRefreshToken(jwtProvider.getRefreshAuthentication(originalToken), originalToken);
 
-        assertThat(jwtProvider.rollbackRefreshToken(EMAIL, originalToken, replacementToken)).isFalse();
+        assertThat(jwtProvider.rollbackRefreshToken(jwtProvider.getRefreshAuthentication(originalToken), originalToken, replacementToken)).isFalse();
         verify(redisService).setValues(revocationKey, "logout", Duration.ofMillis(REFRESH_TOKEN_EXPIRATION));
         verify(redisService).compareAndDeleteValues("RT:" + EMAIL, replacementRecord);
-        verify(redisService, never()).compareAndSetValues(org.mockito.ArgumentMatchers.eq("RT:" + EMAIL),
-                org.mockito.ArgumentMatchers.eq(replacementRecord), org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
+        verify(redisService, never()).compareAndSetValues(eq("RT:" + EMAIL),
+                eq(replacementRecord), anyString(),
+                eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
     }
 
     @Test
@@ -377,13 +389,145 @@ class JwtProviderTest {
         String token = jwtProvider.createAccessToken(USER_ID, EMAIL, ROLE);
 
 
-        Authentication authentication = jwtProvider.getAuthentication(token);
+        Authentication authentication = jwtProvider.getAccessAuthentication(token).authentication();
 
 
         assertThat(authentication.getName()).isEqualTo(EMAIL);
         assertThat(authentication.getAuthorities()).hasSize(1);
         assertThat(authentication.getAuthorities().iterator().next().getAuthority()).isEqualTo(ROLE);
-        assertThat(jwtProvider.getUserId(token)).isEqualTo(USER_ID);
+        assertThat(jwtProvider.getAccessAuthentication(token).userId()).isEqualTo(USER_ID);
+    }
+
+    @Test
+    void legacyRegistryUpgradeRetainsReplayProtection() {
+        Date now = new Date();
+        String legacyToken = Jwts.builder().subject(EMAIL).claim("uid", USER_ID).claim(TOKEN_TYPE_CLAIM, "refresh")
+                .expiration(new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION))
+                .signWith(Keys.hmacShaKeyFor(TEST_SECRET_KEY.getBytes(StandardCharsets.UTF_8))).compact();
+        given(redisService.getValues("RT:" + EMAIL)).willReturn(legacyToken);
+        given(redisService.compareAndSetValues(eq("RT:" + EMAIL),
+                eq(legacyToken), anyString(),
+                eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)))).willReturn(true);
+
+        String replacement = jwtProvider.rotateRefreshToken(jwtProvider.getRefreshAuthentication(legacyToken), legacyToken);
+
+        ArgumentCaptor<String> record = ArgumentCaptor.forClass(String.class);
+        verify(redisService).compareAndSetValues(eq("RT:" + EMAIL),
+                eq(legacyToken), record.capture(),
+                eq(Duration.ofMillis(REFRESH_TOKEN_EXPIRATION)));
+        assertThat(record.getValue()).contains(sha256(replacement), sha256(legacyToken)).doesNotContain(legacyToken);
+        clearInvocations(redisService);
+        given(redisService.getValues("RT:" + EMAIL)).willReturn(record.getValue());
+        given(redisService.compareAndDeleteValues("RT:" + EMAIL, record.getValue())).willReturn(true);
+        assertThat(jwtProvider.rotateRefreshToken(jwtProvider.getRefreshAuthentication(legacyToken), legacyToken)).isNull();
+        verify(redisService).compareAndDeleteValues("RT:" + EMAIL, record.getValue());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "v1:family:hash", "v2:family:invalid-hash", "v2::", "v2: :"})
+    void malformedOrBlankFamilyRegistryNeverRotates(String storedPrefix) {
+        String token = jwtProvider.createRefreshToken(USER_ID, EMAIL);
+        String storedValue = storedPrefix.endsWith(":") ? storedPrefix + sha256(token) : storedPrefix;
+        given(redisService.getValues("RT:" + EMAIL)).willReturn(storedValue);
+        clearInvocations(redisService);
+
+        assertThat(jwtProvider.rotateRefreshToken(jwtProvider.getRefreshAuthentication(token), token)).isNull();
+        verify(redisService, never()).compareAndSetValues(anyString(),
+                anyString(), anyString(),
+                any(Duration.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " "})
+    void revocationAndRollbackRetainTheirLegacyBlankFamilyParsing(String family) {
+        String record = RefreshTokenRecord.create(family, VALID_HASH, null).serializedValue();
+        String key = "RT:" + EMAIL;
+        String revocationKey = "RTR:" + EMAIL + ":" + family;
+        Duration duration = Duration.ofMillis(REFRESH_TOKEN_EXPIRATION);
+        given(redisService.getValues(key)).willReturn(record);
+        given(redisService.compareAndDeleteValues(key, record)).willReturn(true);
+
+        RefreshTokenRevocation.revoke(redisService, key, PRESENTED_TOKEN, family, VALID_HASH, revocationKey, duration);
+        verify(redisService).compareAndDeleteValues(key, record);
+        String restoredRecord = RefreshTokenRecord.create(family, sha256(PRESENTED_TOKEN), null).serializedValue();
+        given(redisService.compareAndSetValues(key, record, restoredRecord, duration)).willReturn(true);
+
+        assertThat(RefreshTokenRollback.rollback(redisService, key, PRESENTED_TOKEN, family,
+                sha256(PRESENTED_TOKEN), VALID_HASH, revocationKey, duration)).isTrue();
+        verify(redisService).compareAndSetValues(key, record, restoredRecord, duration);
+    }
+
+    @Test
+    void lostRotationCasDeletesTheCompetingValueOnlyWithinTheSameFamily() {
+        String token = jwtProvider.createRefreshToken(USER_ID, EMAIL);
+        ArgumentCaptor<String> initialRecord = ArgumentCaptor.forClass(String.class);
+        verify(redisService).setValues(eq("RT:" + EMAIL), initialRecord.capture(),
+                any(Duration.class));
+        String family = parseClaims(token).get("sid", String.class);
+        String winningRecord = RefreshTokenRecord.create(family, VALID_HASH, null).serializedValue();
+        clearInvocations(redisService);
+        given(redisService.getValues("RT:" + EMAIL)).willReturn(initialRecord.getValue(), winningRecord);
+        given(redisService.compareAndDeleteValues("RT:" + EMAIL, initialRecord.getValue())).willReturn(false);
+        given(redisService.compareAndDeleteValues("RT:" + EMAIL, winningRecord)).willReturn(true);
+
+        assertThat(jwtProvider.rotateRefreshToken(jwtProvider.getRefreshAuthentication(token), token)).isNull();
+        verify(redisService).compareAndDeleteValues("RT:" + EMAIL, initialRecord.getValue());
+        verify(redisService).compareAndDeleteValues("RT:" + EMAIL, winningRecord);
+    }
+
+    @Test
+    void logoutDuringRollbackPreventsTheRestoredRecordFromSurviving() {
+        String family = "test-family";
+        String key = "RT:" + EMAIL;
+        String revocationKey = "RTR:" + EMAIL + ":" + family;
+        String replacement = RefreshTokenRecord.create(family, VALID_HASH, null).serializedValue();
+        String previous = RefreshTokenRecord.create(family, sha256(PRESENTED_TOKEN), null).serializedValue();
+        Duration duration = Duration.ofMillis(REFRESH_TOKEN_EXPIRATION);
+        given(redisService.getValues(key)).willReturn(replacement);
+        given(redisService.hasKey(revocationKey)).willReturn(false, true);
+        given(redisService.compareAndSetValues(key, replacement, previous, duration)).willReturn(true);
+
+        assertThat(RefreshTokenRollback.rollback(redisService, key, PRESENTED_TOKEN, family,
+                sha256(PRESENTED_TOKEN), VALID_HASH, revocationKey, duration)).isFalse();
+        verify(redisService).compareAndDeleteValues(key, previous);
+    }
+
+    @Test
+    void expiredParsedRefreshCannotRotateRevokeOrRollback() {
+        JwtAuthenticationResult expired = new JwtAuthenticationResult(USER_ID, EMAIL, null, 0L, "family");
+
+        assertThatThrownBy(() -> jwtProvider.rotateRefreshToken(expired, PRESENTED_TOKEN))
+                .isInstanceOf(ExpiredJwtException.class);
+        assertThatThrownBy(() -> jwtProvider.revokeRefreshToken(expired, PRESENTED_TOKEN))
+                .isInstanceOf(ExpiredJwtException.class);
+        assertThatThrownBy(() -> jwtProvider.rollbackRefreshToken(expired, PRESENTED_TOKEN, "replacement"))
+                .isInstanceOf(ExpiredJwtException.class);
+        verifyNoInteractions(redisService);
+    }
+
+    @Test
+    void accessAuthenticationFailsClosedWhenBlacklistStorageIsUnavailable() {
+        String token = jwtProvider.createAccessToken(USER_ID, EMAIL, ROLE);
+        given(redisService.hasKey("BL:" + sha256(token))).willThrow(new IllegalStateException("Redis unavailable"));
+
+        assertThat(jwtProvider.getAccessAuthentication(token)).isNull();
+    }
+
+    @Test
+    void refreshWithoutExpirationKeepsTheExistingAcceptanceContract() {
+        String family = "test-family";
+        String token = Jwts.builder().subject(EMAIL).claim("uid", USER_ID).claim(TOKEN_TYPE_CLAIM, "refresh")
+                .claim("sid", family).signWith(Keys.hmacShaKeyFor(TEST_SECRET_KEY.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+        String record = RefreshTokenRecord.create(family, sha256(token), null).serializedValue();
+        given(redisService.getValues("RT:" + EMAIL)).willReturn(record);
+        given(redisService.compareAndSetValues(eq("RT:" + EMAIL),
+                eq(record), anyString(),
+                any(Duration.class))).willReturn(true);
+
+        JwtAuthenticationResult authentication = jwtProvider.getRefreshAuthentication(token);
+        assertThat(authentication.expiresAtMillis()).isNull();
+        assertThat(jwtProvider.rotateRefreshToken(authentication, token)).isNotBlank();
     }
 
     private Claims parseClaims(String token) {
@@ -400,7 +544,7 @@ class JwtProviderTest {
                 .subject(EMAIL)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION))
-                .claim("token_type", "refresh")
+                .claim(TOKEN_TYPE_CLAIM, "refresh")
                 .signWith(Keys.hmacShaKeyFor(TEST_SECRET_KEY.getBytes(StandardCharsets.UTF_8)))
                 .compact();
     }

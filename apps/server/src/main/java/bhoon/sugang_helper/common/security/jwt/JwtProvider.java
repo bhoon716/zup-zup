@@ -1,9 +1,11 @@
 package bhoon.sugang_helper.common.security.jwt;
 
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.CLAIM_ROLE;
+import static bhoon.sugang_helper.common.security.jwt.RefreshTokenRecord.constantTimeEquals;
 
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.security.constant.SecurityConstant;
+import bhoon.sugang_helper.common.security.dto.result.JwtAuthenticationResult;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -28,7 +30,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -42,7 +43,6 @@ public class JwtProvider {
     private static final String CLAIM_TOKEN_FAMILY = "sid";
     private static final String ACCESS_TOKEN_TYPE = "access";
     private static final String REFRESH_TOKEN_TYPE = "refresh";
-    private static final String REFRESH_RECORD_VERSION = "v2";
 
     private final RedisService redisService;
     @Value("${jwt.secret}")
@@ -99,8 +99,11 @@ public class JwtProvider {
         return builder.compact();
     }
 
-    public Authentication getAuthentication(String token) {
-        Claims claims = parseClaims(token);
+    public JwtAuthenticationResult parseIssuedAccessToken(String token) {
+        return authenticationResult(parseClaims(token));
+    }
+
+    private JwtAuthenticationResult authenticationResult(Claims claims) {
         String email = claims.getSubject();
         String role = claims.get(CLAIM_ROLE, String.class);
 
@@ -109,32 +112,32 @@ public class JwtProvider {
                 .<List<SimpleGrantedAuthority>>map(value -> Collections.singletonList(new SimpleGrantedAuthority(value)))
                 .orElseGet(Collections::emptyList);
 
-        return new UsernamePasswordAuthenticationToken(email, "", authorities);
+        var authentication = new UsernamePasswordAuthenticationToken(email, "", authorities);
+        Date expiration = claims.getExpiration();
+        return new JwtAuthenticationResult(getUserId(claims), authentication.getName(), authentication,
+                expiration == null ? null : expiration.getTime(), claims.get(CLAIM_TOKEN_FAMILY, String.class));
     }
 
-    public Long getUserId(String token) {
-        return getUserId(parseClaims(token));
-    }
-
-    public boolean validateToken(String token) {
+    public JwtAuthenticationResult getAccessAuthentication(String token) {
         return validateToken(token, ACCESS_TOKEN_TYPE);
     }
 
-    public boolean validateRefreshToken(String token) {
+    public JwtAuthenticationResult getRefreshAuthentication(String token) {
         return validateToken(token, REFRESH_TOKEN_TYPE);
     }
 
-    private boolean validateToken(String token, String expectedTokenType) {
+    private JwtAuthenticationResult validateToken(String token, String expectedTokenType) {
+        Claims claims;
         try {
-            Claims claims = parseClaims(token);
+            claims = parseClaims(token);
             if (!expectedTokenType.equals(claims.get(CLAIM_TOKEN_TYPE, String.class)) || getUserId(claims) == null) {
-                return false;
+                return null;
             }
             if (ACCESS_TOKEN_TYPE.equals(expectedTokenType) && isBlacklisted(token)) {
                 log.warn("[JWT] Blacklisted token usage detected: tokenFingerprint={}", tokenFingerprint(token));
-                return false;
+                return null;
             }
-            return true;
+            return authenticationResult(claims);
         } catch (SecurityException | MalformedJwtException e) {
             log.error("잘못된 JWT 서명입니다.");
         } catch (ExpiredJwtException e) {
@@ -146,15 +149,17 @@ public class JwtProvider {
         } catch (Exception e) {
             log.error("[JWT] Token validation failed. exceptionType={}", e.getClass().getSimpleName());
         }
-        return false;
+        return null;
     }
 
 
 
 
-    public String rotateRefreshToken(String email, String presentedToken) {
-        Long userId = getUserId(presentedToken);
-        String tokenFamily = getTokenFamily(presentedToken);
+    public String rotateRefreshToken(JwtAuthenticationResult authentication, String presentedToken) {
+        requireNotExpired(authentication);
+        String email = authentication.email();
+        Long userId = authentication.userId();
+        String tokenFamily = authentication.tokenFamily();
         if (tokenFamily != null && isRefreshFamilyRevoked(email, tokenFamily)) {
             return null;
         }
@@ -170,15 +175,15 @@ public class JwtProvider {
             return rotateLegacyRefreshToken(key, storedValue, userId, email, presentedToken);
         }
 
-        if (tokenFamily == null && matchesLegacyToken(storedRecord, presentedToken)) {
-            revokeRefreshFamily(key, storedRecord);
+        if (tokenFamily == null && storedRecord.matchesLegacyToken(tokenHash(presentedToken))) {
+            RefreshTokenRevocation.revokeFamily(redisService, key, storedRecord);
             return null;
         }
         if (!storedRecord.tokenFamily().equals(tokenFamily)) {
             return null;
         }
         if (!constantTimeEquals(storedRecord.tokenHash(), tokenHash(presentedToken))) {
-            revokeRefreshFamily(key, storedRecord);
+            RefreshTokenRevocation.revokeFamily(redisService, key, storedRecord);
             return null;
         }
 
@@ -192,7 +197,7 @@ public class JwtProvider {
             return newRefreshToken;
         }
 
-        revokeRefreshFamily(key, storedRecord);
+        RefreshTokenRevocation.revokeFamily(redisService, key, storedRecord);
         return null;
     }
 
@@ -200,9 +205,12 @@ public class JwtProvider {
 
 
 
-    public boolean rollbackRefreshToken(String email, String presentedToken, String replacementToken) {
-        String tokenFamily = getTokenFamily(presentedToken);
-        return RefreshTokenRollback.rollback(redisService, refreshTokenKey(email), presentedToken, replacementToken,
+    public boolean rollbackRefreshToken(JwtAuthenticationResult authentication, String presentedToken,
+                                        String replacementToken) {
+        requireNotExpired(authentication);
+        String email = authentication.email();
+        String tokenFamily = authentication.tokenFamily();
+        return RefreshTokenRollback.rollback(redisService, refreshTokenKey(email), presentedToken,
                 tokenFamily, tokenHash(presentedToken), tokenHash(replacementToken),
                 refreshFamilyRevocationKey(email, tokenFamily), refreshTokenDuration());
     }
@@ -210,8 +218,10 @@ public class JwtProvider {
 
 
 
-    public void revokeRefreshToken(String email, String presentedToken) {
-        String tokenFamily = getTokenFamily(presentedToken);
+    public void revokeRefreshToken(JwtAuthenticationResult authentication, String presentedToken) {
+        requireNotExpired(authentication);
+        String email = authentication.email();
+        String tokenFamily = authentication.tokenFamily();
         RefreshTokenRevocation.revoke(redisService, refreshTokenKey(email), presentedToken, tokenFamily,
                 tokenHash(presentedToken), refreshFamilyRevocationKey(email, tokenFamily), refreshTokenDuration());
     }
@@ -226,8 +236,8 @@ public class JwtProvider {
 
 
 
-    public void blacklistAccessToken(String token) {
-        long expiration = getExpiration(token);
+    public void blacklistAccessToken(String token, JwtAuthenticationResult authentication) {
+        long expiration = getExpiration(authentication);
         if (expiration > 0) {
             redisService.setValues(blacklistKey(token), SecurityConstant.LOGOUT_VALUE, Duration.ofMillis(expiration));
         }
@@ -248,22 +258,10 @@ public class JwtProvider {
 
         String currentValue = redisService.getValues(key);
         RefreshTokenRecord currentRecord = parseRefreshTokenRecord(currentValue);
-        if (currentRecord != null && matchesLegacyToken(currentRecord, presentedToken)) {
-            revokeRefreshFamily(key, currentRecord);
+        if (currentRecord != null && currentRecord.matchesLegacyToken(tokenHash(presentedToken))) {
+            RefreshTokenRevocation.revokeFamily(redisService, key, currentRecord);
         }
         return null;
-    }
-
-    private void revokeRefreshFamily(String key, RefreshTokenRecord expectedRecord) {
-        if (redisService.compareAndDeleteValues(key, expectedRecord.serializedValue())) {
-            return;
-        }
-
-        String currentValue = redisService.getValues(key);
-        RefreshTokenRecord currentRecord = parseRefreshTokenRecord(currentValue);
-        if (currentRecord != null && currentRecord.tokenFamily().equals(expectedRecord.tokenFamily())) {
-            redisService.compareAndDeleteValues(key, currentRecord.serializedValue());
-        }
     }
 
     private boolean isRefreshFamilyRevoked(String email, String tokenFamily) {
@@ -293,42 +291,18 @@ public class JwtProvider {
     }
 
     private String refreshTokenRecord(String tokenFamily, String token, String legacyTokenHash) {
-        String record = REFRESH_RECORD_VERSION + ":" + tokenFamily + ":" + tokenHash(token);
-        return legacyTokenHash == null ? record : record + ":" + legacyTokenHash;
+        return RefreshTokenRecord.create(tokenFamily, tokenHash(token), legacyTokenHash).serializedValue();
     }
 
     private RefreshTokenRecord parseRefreshTokenRecord(String value) {
-        if (!StringUtils.hasText(value)) {
-            return null;
-        }
-
-        String[] values = value.split(":", 4);
-        if ((values.length != 3 && values.length != 4) || !REFRESH_RECORD_VERSION.equals(values[0])
-                || !StringUtils.hasText(values[1]) || !values[2].matches("[0-9a-f]{64}")
-                || (values.length == 4 && !values[3].matches("[0-9a-f]{64}"))) {
-            return null;
-        }
-        String legacyTokenHash = values.length == 4 ? values[3] : null;
-        return new RefreshTokenRecord(values[1], values[2], legacyTokenHash, value);
-    }
-
-    private String getTokenFamily(String token) {
-        return parseClaims(token).get(CLAIM_TOKEN_FAMILY, String.class);
+        RefreshTokenRecord record = RefreshTokenRecord.parse(value);
+        return record != null && StringUtils.hasText(record.tokenFamily()) ? record : null;
     }
 
     private Long getUserId(Claims claims) {
         return Optional.ofNullable(claims.get(SecurityConstant.CLAIM_USER_ID, Number.class))
                 .map(Number::longValue)
                 .orElse(null);
-    }
-
-    private boolean constantTimeEquals(String first, String second) {
-        return first != null && second != null && MessageDigest.isEqual(
-                first.getBytes(StandardCharsets.UTF_8), second.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private boolean matchesLegacyToken(RefreshTokenRecord record, String token) {
-        return record.legacyTokenHash() != null && constantTimeEquals(record.legacyTokenHash(), tokenHash(token));
     }
 
     private String tokenFingerprint(String token) {
@@ -352,6 +326,17 @@ public class JwtProvider {
                 .getPayload();
     }
 
+    public void requireNotExpired(JwtAuthenticationResult authentication) {
+        if (authentication.expiresAtMillis() != null && System.currentTimeMillis() > authentication.expiresAtMillis()) {
+            throw new ExpiredJwtException(null, null, "JWT token has expired");
+        }
+    }
+
+    public long getExpiration(JwtAuthenticationResult authentication) {
+        requireNotExpired(authentication);
+        return authentication.expiresAtMillis() - System.currentTimeMillis();
+    }
+
     public String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader(SecurityConstant.ACCESS_TOKEN_HEADER);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(SecurityConstant.TOKEN_PREFIX)) {
@@ -360,13 +345,4 @@ public class JwtProvider {
         return null;
     }
 
-    public long getExpiration(String token) {
-        Date expiration = parseClaims(token).getExpiration();
-        long now = new Date().getTime();
-        return expiration.getTime() - now;
-    }
-
-    private record RefreshTokenRecord(String tokenFamily, String tokenHash, String legacyTokenHash,
-                                      String serializedValue) {
-    }
 }

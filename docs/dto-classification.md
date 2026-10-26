@@ -11,7 +11,7 @@ API 입력은 request, API 직렬화 출력은 response, 서비스·조회 내�
 | provider | 1 |
 | request | 26 |
 | response | 52 |
-| result | 28 |
+| result | 29 |
 
 ## 공유·별도 역할의 판단
 
@@ -136,6 +136,8 @@ API 입력은 request, API 직렬화 출력은 response, 서비스·조회 내�
 - [FeedbackResponse](../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/dto/response/FeedbackResponse.java)
 
 ### result
+
+- [JwtAuthenticationResult](../apps/server/src/main/java/bhoon/sugang_helper/common/security/dto/result/JwtAuthenticationResult.java)
 
 - [CourseName](../apps/server/src/main/java/bhoon/sugang_helper/academic/course/dto/result/CourseName.java)
 - [CourseReference](../apps/server/src/main/java/bhoon/sugang_helper/academic/course/dto/result/CourseReference.java)

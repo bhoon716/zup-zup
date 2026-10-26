@@ -8,6 +8,7 @@ import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESS
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.dto.result.JwtAuthenticationResult;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.util.CookieUtil;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
@@ -48,6 +49,7 @@ public class AuthService {
         String refreshToken = null;
         String email = null;
         String newRefreshToken = null;
+        JwtAuthenticationResult refreshAuthentication = null;
         try {
             refreshToken = resolveRefreshToken(request);
 
@@ -55,19 +57,20 @@ public class AuthService {
                 throw new CustomException(ErrorCode.INVALID_TOKEN, "리프레시 토큰이 없습니다.");
             }
 
-            if (!jwtProvider.validateRefreshToken(refreshToken)) {
+            refreshAuthentication = jwtProvider.getRefreshAuthentication(refreshToken);
+            if (refreshAuthentication == null) {
                 throw new CustomException(ErrorCode.INVALID_TOKEN, "유효하지 않은 리프레시 토큰입니다.");
             }
 
-            email = jwtProvider.getAuthentication(refreshToken).getName();
-            Long userId = jwtProvider.getUserId(refreshToken);
+            email = refreshAuthentication.email();
+            Long userId = refreshAuthentication.userId();
             if (userId == null) {
                 throw new CustomException(ErrorCode.INVALID_TOKEN, "사용자 식별자가 없는 리프레시 토큰입니다.");
             }
             AuthenticatedUser user = userIdentityQuery.findAuthenticatedUser(userId, email)
                     .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
 
-            newRefreshToken = jwtProvider.rotateRefreshToken(email, refreshToken);
+            newRefreshToken = jwtProvider.rotateRefreshToken(refreshAuthentication, refreshToken);
             if (!StringUtils.hasText(newRefreshToken)) {
                 throw new CustomException(ErrorCode.INVALID_TOKEN, "저장된 리프레시 토큰과 일치하지 않습니다.");
             }
@@ -82,7 +85,7 @@ public class AuthService {
         } catch (Exception e) {
             if (StringUtils.hasText(refreshToken) && StringUtils.hasText(email)
                     && StringUtils.hasText(newRefreshToken)) {
-                compensateRefreshRotation(response, email, refreshToken, newRefreshToken);
+                compensateRefreshRotation(response, refreshAuthentication, refreshToken, newRefreshToken);
             }
             if (isDefinitiveAuthFailure(e)) {
                 deleteRefreshTokenCookie(response);
@@ -100,16 +103,18 @@ public class AuthService {
             session.invalidate();
         }
 
-        if (StringUtils.hasText(refreshToken) && jwtProvider.validateRefreshToken(refreshToken)) {
-            String email = jwtProvider.getAuthentication(refreshToken).getName();
-            Long userId = jwtProvider.getUserId(refreshToken);
-            if (userId != null) {
-                jwtProvider.revokeRefreshToken(email, refreshToken);
+        if (StringUtils.hasText(refreshToken)) {
+            JwtAuthenticationResult refreshAuthentication = jwtProvider.getRefreshAuthentication(refreshToken);
+            if (refreshAuthentication != null && refreshAuthentication.userId() != null) {
+                jwtProvider.revokeRefreshToken(refreshAuthentication, refreshToken);
             }
         }
 
-        if (StringUtils.hasText(accessToken) && jwtProvider.validateToken(accessToken)) {
-            jwtProvider.blacklistAccessToken(accessToken);
+        if (StringUtils.hasText(accessToken)) {
+            JwtAuthenticationResult accessAuthentication = jwtProvider.getAccessAuthentication(accessToken);
+            if (accessAuthentication != null) {
+                jwtProvider.blacklistAccessToken(accessToken, accessAuthentication);
+            }
         }
 
         deleteRefreshTokenCookie(response);
@@ -119,7 +124,8 @@ public class AuthService {
 
 
     public void saveSessionAuthentication(HttpServletRequest request, HttpServletResponse response, String accessToken) {
-        Long userId = jwtProvider.getUserId(accessToken);
+        JwtAuthenticationResult authentication = jwtProvider.parseIssuedAccessToken(accessToken);
+        Long userId = authentication.userId();
         if (userId == null) {
             throw new CustomException(ErrorCode.INVALID_TOKEN, "사용자 식별자가 없는 액세스 토큰입니다.");
         }
@@ -130,12 +136,13 @@ public class AuthService {
         }
 
         SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(jwtProvider.getAuthentication(accessToken));
+        jwtProvider.requireNotExpired(authentication);
+        context.setAuthentication(authentication.authentication());
         securityContextRepository.saveContext(context, request, response);
 
         HttpSession authenticatedSession = request.getSession(false);
         if (authenticatedSession != null) {
-            long expiresAt = System.currentTimeMillis() + jwtProvider.getExpiration(accessToken);
+            long expiresAt = System.currentTimeMillis() + jwtProvider.getExpiration(authentication);
             authenticatedSession.setAttribute(SESSION_AUTHENTICATION_EXPIRES_AT, expiresAt);
             authenticatedSession.setAttribute(SESSION_AUTHENTICATION_USER_ID, userId);
         }
@@ -163,11 +170,13 @@ public class AuthService {
         response.addHeader(HttpHeaders.SET_COOKIE, isLoggedInCookie.toString());
     }
 
-    private void compensateRefreshRotation(HttpServletResponse response, String email, String refreshToken,
+    private void compensateRefreshRotation(HttpServletResponse response, JwtAuthenticationResult authentication,
+                                           String refreshToken,
                                            String newRefreshToken) {
+        String email = authentication.email();
         boolean restored = false;
         try {
-            restored = jwtProvider.rollbackRefreshToken(email, refreshToken, newRefreshToken);
+            restored = jwtProvider.rollbackRefreshToken(authentication, refreshToken, newRefreshToken);
         } catch (RuntimeException rollbackException) {
             log.error("[Auth] Refresh token rollback failed. emailMasked={}",
                     SensitiveDataRedactor.maskEmail(email), rollbackException);

@@ -3,6 +3,7 @@ package bhoon.sugang_helper.common.security.jwt;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESSION_AUTHENTICATION_EXPIRES_AT;
 import static bhoon.sugang_helper.common.security.constant.SecurityConstant.SESSION_AUTHENTICATION_USER_ID;
 
+import bhoon.sugang_helper.common.security.dto.result.JwtAuthenticationResult;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,13 +36,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = jwtProvider.resolveToken(request);
         clearInvalidSessionAuthentication(request);
 
-        if (StringUtils.hasText(token) && jwtProvider.validateToken(token)) {
-            Authentication authentication = jwtProvider.getAuthentication(token);
-            Long userId = jwtProvider.getUserId(token);
-            if (userId != null && authentication != null && StringUtils.hasText(authentication.getName())
-                    && !userAccessRevocationService.isRevoked(userId)) {
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("Saved authentication info '{}' to SecurityContext", authentication.getName());
+        if (StringUtils.hasText(token)) {
+            JwtAuthenticationResult authentication = jwtProvider.getAccessAuthentication(token);
+            if (authentication != null && authentication.userId() != null
+                    && authentication.authentication() != null && StringUtils.hasText(authentication.email())
+                    && !userAccessRevocationService.isRevoked(authentication.userId())) {
+                SecurityContextHolder.getContext().setAuthentication(authentication.authentication());
+                log.debug("Saved authentication info '{}' to SecurityContext", authentication.email());
             }
         }
 

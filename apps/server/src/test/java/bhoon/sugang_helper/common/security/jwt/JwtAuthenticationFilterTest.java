@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import bhoon.sugang_helper.common.security.dto.result.JwtAuthenticationResult;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -80,10 +81,8 @@ class JwtAuthenticationFilterTest {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", TIMETABLES_PATH);
         MockHttpServletResponse response = new MockHttpServletResponse();
         given(jwtProvider.resolveToken(request)).willReturn(VALID_TOKEN);
-        given(jwtProvider.validateToken(VALID_TOKEN)).willReturn(true);
-        given(jwtProvider.getUserId(VALID_TOKEN)).willReturn(1L);
-        given(jwtProvider.getAuthentication(VALID_TOKEN)).willReturn(authentication);
-        given(authentication.getName()).willReturn("tester@example.com");
+        given(jwtProvider.getAccessAuthentication(VALID_TOKEN)).willReturn(
+                new JwtAuthenticationResult(1L, "tester@example.com", authentication, 0L, null));
         given(userAccessRevocationService.isRevoked(1L)).willReturn(false);
 
 
@@ -100,10 +99,8 @@ class JwtAuthenticationFilterTest {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", TIMETABLES_PATH);
         MockHttpServletResponse response = new MockHttpServletResponse();
         given(jwtProvider.resolveToken(request)).willReturn(OLD_ACCOUNT_TOKEN);
-        given(jwtProvider.validateToken(OLD_ACCOUNT_TOKEN)).willReturn(true);
-        given(jwtProvider.getUserId(OLD_ACCOUNT_TOKEN)).willReturn(1L);
-        given(jwtProvider.getAuthentication(OLD_ACCOUNT_TOKEN)).willReturn(authentication);
-        given(authentication.getName()).willReturn(REJOINED_EMAIL);
+        given(jwtProvider.getAccessAuthentication(OLD_ACCOUNT_TOKEN)).willReturn(
+                new JwtAuthenticationResult(1L, REJOINED_EMAIL, authentication, 0L, null));
         given(userAccessRevocationService.isRevoked(1L)).willReturn(true);
 
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
@@ -118,7 +115,7 @@ class JwtAuthenticationFilterTest {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", TIMETABLES_PATH);
         MockHttpServletResponse response = new MockHttpServletResponse();
         given(jwtProvider.resolveToken(request)).willReturn("refresh-token");
-        given(jwtProvider.validateToken("refresh-token")).willReturn(false);
+        given(jwtProvider.getAccessAuthentication("refresh-token")).willReturn(null);
 
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
@@ -137,7 +134,7 @@ class JwtAuthenticationFilterTest {
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
         verify(filterChain).doFilter(request, response);
-        verify(jwtProvider, never()).validateToken("raw-session-token");
+        verify(jwtProvider, never()).getAccessAuthentication("raw-session-token");
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
@@ -167,7 +164,7 @@ class JwtAuthenticationFilterTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         given(jwtProvider.resolveToken(request)).willReturn("invalid-token");
-        given(jwtProvider.validateToken("invalid-token")).willReturn(false);
+        given(jwtProvider.getAccessAuthentication("invalid-token")).willReturn(null);
         given(request.getSession(false)).willReturn(session);
         given(session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).willReturn(new Object());
         given(session.getAttribute(SESSION_EXPIRES_AT)).willReturn(0L);
