@@ -16,7 +16,7 @@
 - 시작 시 원본에는 수정 파일 6개와 미추적 문서 1개가 있고, 등록된 worktree는 원본 하나였다.
 - 분석용 격리 worktree: `/Users/bhoon/Documents/Codex/2026-10-26/task/zup-zup-simplify`, 브랜치 `codex/simplify-existing-20261026`. 현재 로컬 dev에서 생성했다.
 
-**확정 기준:** 사용자 요청 `dev 기준으로 잡아`에 따라 로컬 dev `aade57db`를 기준으로 구현했다. MVC·저장소 통합과 RestClient 전환을 유지한다. 계절학기 수정은 **dev HEAD에는 없지만 원본 dev 작업 폴더의 미커밋 수정에는 이미 있었다**. main `5f73a8a4`/PR #34의 수정과 대조해 격리 브랜치에 보존했으며, 파서 및 두 회귀 테스트가 원본 미커밋 파일과 바이트 단위로 동일함을 확인했다. 원본 파일은 수정하지 않았고 중복 적용도 하지 않았다.
+**확정 기준:** 사용자 요청 `dev 기준으로 잡아`에 따라 로컬 dev `aade57db`를 기준으로 구현했다. MVC·저장소 통합과 RestClient 전환을 유지한다. 계절학기 수정은 **dev HEAD에는 없지만 원본 dev 작업 폴더의 미커밋 수정에는 이미 있었다**. main `5f73a8a4`/PR #34의 수정과 대조해 격리 브랜치에 보존했으며, 초기 보존 시 파서 및 두 회귀 테스트가 원본 미커밋 파일과 바이트 단위로 동일함을 확인했다. 후속 공유 타입 분리에서는 타입명·import만 갱신했다. 원본 파일은 수정하지 않았고 중복 적용도 하지 않았다.
 
 `git diff --quiet aade57db origin/main -- apps/web`는 종료 코드 0이다. 웹 코드는 두 선택지에서 동일하므로 웹 중복 정리와 기존 테스트 확인은 기준 선택과 독립적으로 진행할 수 있다.
 
@@ -62,7 +62,7 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 
 서버 기본 suite는 H2와 mock/축소 Spring 컨텍스트를 사용한다. 필요한 통합 검증을 요청한 사용자 지시에 따라 기존 원자성·동시성 테스트도 보존한다. `manualTest`는 prod 프로필 수집·실메일 발송을 포함하므로 실행하지 않는다. 일반 bootRun이나 실학교 API, 운영 DB/Redis, 실발송으로 검증하지 않는다. Playwright는 API mock을 쓰므로 전체 백엔드 E2E로 해석하지 않는다.
 
-## 진행 결과
+## 1차 진행 결과 (`34bfb20ea`)
 
 ### 기준 선택과 독립적인 웹 수정
 
@@ -89,7 +89,7 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 - 기존 PMD 위반은 미사용 import/인자 제거와 테스트 문자열 상수화로 정리했다. CourseSummary의 본문은 원래 compact constructor 그대로 유지한다. PMD 7.5의 record 암묵적 필드 대입 오탐만 생성자 단위 `SuppressWarnings`로 제한했고 전역 규칙은 바꾸지 않았다. 별도 javac 비교로 null 정규화·방어적 복사·불변성·null 원소 거부·record 필드 의미가 같음을 확인했다.
 - 두 독립 읽기 검토에서 구체적인 도입 회귀나 테스트 삭제/약화를 발견하지 못했다. 실제 구현이 여러 개인 채널 발송, 사용자 조회의 서로 다른 DTO/필터, 발송과 정산·claim/lease·재시도/DLQ 경계는 유지했다.
 
-최종 `./gradlew --offline check bootJar`: **118개 클래스, 515개 테스트 통과, 실패/오류/skip 0**. PMD main/test **0건**, Checkstyle main/test **0건**, 실행 JAR 패키징 통과. 초기 집중 검증에서 발생했던 구독 조회 오류와 새 테스트의 잔여 데이터 격리 문제를 수정한 뒤 전체 검증이 통과했다. 실패를 숨기거나 테스트를 비활성화하지 않았다.
+1차 `./gradlew --offline check bootJar`: **118개 클래스, 515개 테스트 통과, 실패/오류/skip 0**. PMD main/test **0건**, Checkstyle main/test **0건**, 실행 JAR 패키징 통과. 초기 집중 검증에서 발생했던 구독 조회 오류와 새 테스트의 잔여 데이터 격리 문제를 수정한 뒤 전체 검증이 통과했다. 실패를 숨기거나 테스트를 비활성화하지 않았다.
 
 변경하지 않은 공개 컨트롤러·보안 설정·DB migration·알림 채널 정책과 기존 구독 취소 효과를 유지한다. MySQL의 실제 잠금/flush 차이, 실제 외부 provider, 서버 전체 HTTP E2E·운영 부하는 검증하지 않았다. H2 및 mock 기반 검증을 그 범위까지 확대 해석하지 않는다. 스키마 변경이 없으므로 migrationTest는 실행하지 않았다.
 
@@ -108,3 +108,117 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 | `cea15f00d` | 웹 일정 HTTP 처리 통합과 기존 캐시 계약 회귀 |
 
 모든 변경은 기능 보존 범위다. 취소된 구독이 이미 생성된 delivery를 취소하도록 바꾸거나 알림 보장을 축소하지 않았다. 필요한 사용자 정책 판단이나 승인 대기 작업은 남아 있지 않다.
+
+
+## 추가 구현: 애플리케이션 작업을 순차 실행
+
+| 이전 구조 | 변경 결과 |
+| --- | --- |
+| outbox worker 8개, 대기열 32개, semaphore, executor 제출·거부·종료 처리 | batch 상한(기본 50) 안에서 한 건 선점 → 처리·정산 → 다음 건 선점. 별도 발송 worker/대기열/semaphore 제거 |
+| Slack `@Async`, 전용 `applicationTaskExecutor`, `@EnableAsync` | 공개 alert를 호출 스레드에서 직접 실행. 중복 억제·민감정보 가림·실패 격리·MDC 유지 |
+| 환경의 virtual-thread 설정에 따라 달라지는 예약 실행 기반 | Spring이 관리하는 `ThreadPoolTaskScheduler` 하나, pool size 1로 고정. HTTP 요청·DB pool은 직렬화하지 않음 |
+| 단일 구현 `NotificationProviderExecutor` 인터페이스 | 기존 `NotificationProviderResilience` 직접 사용. 구현의 timeout·회로·실패 분류는 동일 |
+
+같은 worker의 polling이 겹치면 CAS로 건너뛴다. `fixedDelay`는 이전 처리가 완료된 뒤부터 계산되며, 주기보다 처리가 오래 걸려도 같은 작업을 병렬로 쌓지 않는다. 수집 시작·관리자 HTTP 요청은 scheduler 밖일 수 있으므로 `CourseCrawlerService.isCrawling` CAS도 유지했다.
+
+한 번에 여러 delivery를 선점해 순서대로 기다리게 하면 뒤 순번의 lease가 발송 전에 만료될 수 있다. 그래서 `claimReadyDeliveries(1)`만 호출한다. 한 건의 RuntimeException은 기록하고 다음 건을 처리한다. 정산 실패로 PROCESSING에 남은 건은 기존 lease 만료 복구가 처리한다. 컨텍스트 종료 이벤트에서 새 선점을 막고 현재 건 뒤에는 다음 건을 가져오지 않는다. scheduler 종료는 진행 중 호출을 interrupt할 수 있으므로 현재 건의 완료를 보장하지는 않는다. 강제 중단·프로세스 장애 시에도 DB에 남은 작업은 기존 복구 경로를 따른다.
+
+필수로 유지한 별도 실행 경계는 두 곳이다. 제공자 Future 결과 대기는 기본 5초, 이미지 decode 결과 대기는 기본 2초다. Firebase의 재시도, WebPush의 무제한 Future 대기, timeout 없는 ImageIO read/encode를 같은 호출 스레드에서 실행하면 동등한 대기시간 제한을 유지할 수 없다. 이미지 worker는 이미 1개·대기열 0으로 이미지끼리 병렬 실행하지 않는다. 두 경계의 취소는 best effort이며 원격 발송·codec 연산의 강제 종료를 보장하지 않는다. servlet·DB·SDK의 필수 실행 기반도 제거하지 않았다.
+
+처리량·지연은 운영에서 측정하지 않았다. 발송 동시성은 8→1이므로 느린 건이 뒤의 건과 다른 예약 작업을 지연시킨다. 각 delivery의 대상이 1개이고 기본 batch 50건이 모두 5초 대기 제한을 소진하면 발송 대기만 이론상 약 250초이고 DB 시간이 추가된다. delivery 하나에 여러 단말이 있으면 더 길어질 수 있다. 기존 polling 5초·batch 상한·재시도 간격은 바꾸지 않았으며, obsolete worker-threads/queue-capacity 설정만 제거했다.
+
+### 중복 방지의 실제 근거와 한계
+
+- `SeatNotificationDelivery`와 migration V16의 `(outbox_id, user_id, channel)` unique 제약이 같은 delivery 생성을 막는다. V19에는 idempotency_key 고유 제약도 있다.
+- `SeatNotificationDeliveryRepository.findReadyForUpdate`는 비관적 쓰기 락으로 due PENDING 또는 lease가 만료된 PROCESSING을 선택한다. `claim()`은 새 UUID claimToken과 lockedUntil을 기록한다.
+- `SeatNotificationDeliverySettlementService`는 같은 claimToken인지 다시 검사해 stale worker 정산을 거부한다. SENT·retry/backoff·DLQ 전이와 관리자 replay의 기존 락을 유지했다.
+- 재시도는 delivery에 저장된 같은 UUID idempotencyKey를 재사용한다. `NotificationDeliveryIdempotencyKey.providerKey`는 SHA-256 → URL-safe Base64 앞 22자로 변환한다. Discord nonce/enforce_nonce, WebPush topic/payload 및 service worker notification tag, FCM data, email X-Idempotency-Key 전달이 유지된다. 이 값 전달만으로 모든 제공자의 exactly-once를 보장하지 않는다.
+- 실제 outbox 경로의 중복 방지는 위 DB/claim 장치다. `NotificationService.handleSeatOpenedEvent`와 `ALERT:<courseKey>` Redis 경로는 runtime 호출·이벤트 애너테이션이 없고 테스트만 호출하던 옛 경로여서 제거했다. 실제 outbox 중복 방지와 사용자 테스트의 `ALERT:USER_TEST:` 10초 쿨타임은 유지했다.
+- 외부 발송 성공 후 SENT 정산 커밋 전 장애가 나면 재시도가 다시 발송할 수 있다. 이 기존 한계는 순차 실행만으로 사라지지 않는다. 이미 materialize된 delivery에 구독 취소를 새로 소급 적용하는 정책 변경도 하지 않았다.
+
+## 외부 공유 중첩 타입 전수 분리
+
+기준 코드의 중첩 선언 31개를 확인하여 소유 클래스 밖에서 사용하는 19개를 단독 최상위 파일로 분리했다. 필드 순서·생성자·factory·Lombok·validation·JSON 이름을 보존했고 JPA entity·영속 enum·migration은 바꾸지 않았다. 클래스명 기반 Jackson type ID 설정은 사용하지 않는다.
+
+| 이전 타입 | 최상위 타입 및 위치 |
+| --- | --- |
+| ParsedCourseDto.ScheduleDto | academic/course/dto/ParsedCourseScheduleDto |
+| CourseSummary.CourseScheduleSummary | academic/course/dto/CourseScheduleSummary |
+| CourseSearchCriteria.SelectedSchedule | academic/course/dto/CourseSelectedSchedule |
+| PrimaryTimetableQuery.PrimaryTimetableSnapshot | planning/timetable/dto/PrimaryTimetableSnapshot |
+| PrimaryTimetableQuery.CourseSnapshot | planning/timetable/dto/TimetableCourseSnapshot |
+| PrimaryTimetableQuery.CourseScheduleSnapshot | planning/timetable/dto/TimetableCourseScheduleSnapshot |
+| PrimaryTimetableQuery.CustomScheduleSnapshot | planning/timetable/dto/TimetableCustomScheduleSnapshot |
+| PrimaryTimetableQuery.CustomScheduleTimeSnapshot | planning/timetable/dto/TimetableCustomScheduleTimeSnapshot |
+| CustomScheduleRequest.CustomScheduleTimeRequest | planning/timetable/dto/request/CustomScheduleTimeRequest |
+| CustomScheduleResponse.CustomScheduleTimeResponse | planning/timetable/dto/response/CustomScheduleTimeResponse |
+| TimetableCourseResponse.ScheduleResponse | planning/timetable/dto/response/TimetableCourseScheduleResponse |
+| AdminFeedbackReadRepository.FeedbackSummary | support/feedback/dto/AdminFeedbackSummary |
+| AdminFeedbackReadRepository.FeedbackDetail | support/feedback/dto/AdminFeedbackDetail |
+| AdminFeedbackReadRepository.FeedbackReplySummary | support/feedback/dto/AdminFeedbackReplySummary |
+| AdminFeedbackReadRepository.FeedbackAttachmentSummary | support/feedback/dto/AdminFeedbackAttachmentSummary |
+| AdminFeedbackReadRepository.FeedbackAttachmentAccess | support/feedback/dto/AdminFeedbackAttachmentAccess |
+| LocalFileUploadService.LoadedFile | common/dto/LoadedFile |
+| ImageUploadSanitizer.SanitizedImage | common/util/SanitizedImage（기존 package-private 접근성 유지） |
+| NotificationDevice.Type | identity/user/enums/NotificationDeviceType |
+
+미사용 NotificationContext는 제거했고, 소유자 내부에서만 쓰는 private 타입 11개는 유지했다: Circuit, WebPushPayload, NotificationMessage, 세 JWT 클래스의 RefreshTokenRecord, 이미지 출력 제한의 BoundedOutputStream/ImageOutputLimitExceededException, parser TimeRange, 검색 ValidScheduleCondition, 이메일 SendCooldownLease. 테스트 전용 보조 타입도 무차별 분리하지 않았다. 독립 검토에서 외부 공유 누락, 옛 중첩 참조, 선언 본문·애너테이션·factory 변경은 발견되지 않았다. DashboardSnapshotResponseContractTest의 실제 Jackson JSON 검사와 CustomScheduleRequestValidationTest의 cascade validation 등 기존 계약 테스트로 확인했다.
+
+## 테스트를 핵심 계약으로 통합
+
+사용자의 추가 요청에 따라 기존의 테스트 전부 보존 원칙을 중복·구현 세부사항 검사의 선별 통합으로 변경했다. 실패를 숨기기 위한 삭제·skip·assert 완화는 하지 않았다. 삭제 전 순차화된 전체 suite 525건은 이미 통과한 상태였다.
+
+| 정리 대상 | 이유와 남은 보장 |
+| --- | --- |
+| CourseCrawlCompletionServiceTest | mock 호출 순서·전달 2건을 실제 CourseCrawlCompletionTransactionTest의 성공 상태·롤백·저장 실패 검사로 대체 |
+| SeatNotificationOutboxServiceTest | save(any) 호출 1건을 실제 DB outbox 필드·commit/rollback 검사로 대체 |
+| NotificationServiceTransactionTest | 직접 outbox 호출에 무관한 notification mock 8개를 붙인 중복 2건 제거 |
+| SeatNotificationOutboxTransactionTest | commit/rollback 2건은 수집 전체 DB 경로와 중복. 고유한 MANDATORY 거부 검증은 CourseCrawlCompletionTransactionTest로 이동 |
+| NotificationService의 옛 이벤트 경로 4건 | 실제 호출 없는 Redis 발송 경로와 함께 제거. 현재 durable delivery의 4개 채널 provider key·이력, persisted outbox의 채널별 1건 생성·SENT/COMPLETED·빈 후속 claim을 검증하도록 기존 테스트 강화. 사용자 제공자 실패 전파·쿨타임 해제 1건 추가 |
+| timetable/page.test.tsx | hook·화면을 모두 mock한 prop 전달 검사만 있어 제거. 실제 hook·grid 기능 검사는 유지 |
+| nav-links skeleton 개수 | 장식 개수 4라는 내부 구현 고정만 제거. 로그인·관리자·SSR·접근성 검사는 유지 |
+| header cookie/store 중복 | 같은 입력의 loading/login 기대를 하나의 렌더에서 함께 확인 |
+| course guide·timetable grid | 같은 fixture의 초기 표시 assertion을 닫기/재노출 또는 실제 블록 표시 흐름으로 통합 |
+
+서버는 4개 중복 테스트 클래스를 통합해 8건을 제거하고 고유 검증 1건을 옮겼다. 이어 미사용 알림 경로 4건을 제거하고 현재 사용자 실패 계약 1건을 추가해 **525→515건**이다. 현재 outbox 경로의 네 채널 검증은 기존 테스트에 통합했다. 웹은 mock 전달·장식 2건 삭제와 중복 3건 통합으로 **283→278건**, 테스트 파일은 **80→79개**다. 수 자체를 줄이기 위해 다른 기능의 보호를 제거하지 않았다. SubscriptionServiceQueryCountTest는 실제 H2/Hibernate SQL 3회로 N+1을 검증하므로 유지했다. MdcTaskDecoratorTest는 같은 worker 재사용 때의 context 누수를 별도로 검증하므로 유지했다. service worker VM 검사와 파일·첨부·권한·알림 취소·재시도·동시성 검증도 유지했다.
+
+## 기존 원본 미커밋 변경의 선택 보존
+
+추가 권한을 받은 뒤 원본 상태와 7개 파일을 다시 확인했다. 수집 파서·두 회귀 테스트의 기능 수정은 이미 포함돼 있었으므로 다시 중복 적용하지 않았다. 초기 관측 뒤 원본 parser 설명 주석 1줄이 제거된 추가 변경도 확인하고 반영했으며, 원본에는 읽기만 수행했다.
+
+- AGENTS.md의 작업 흐름·조기 반환·검증/기록 지침은 현재 저장소 개발 기준이므로 보존했다.
+- course-collection-policy의 2026-10-23 추가 결정과 course-collection-seasonal-diagnostics의 재현·검증 근거는 포함한 수집 수정의 근거이므로 보존했다. 문서의 10월 17일·23일 운영 기록은 이전 작업 이력이며 이번 작업에서 운영 접속·배포·발송을 한 기록이 아니다.
+- backend-redesign-checklist의 10월 17일 운영 준비·조사 메모는 현재 코드 수정이 아니고 최신 진단 기록에 후속 결과가 있으므로 이번 단순화 브랜치에는 복사하지 않았다. 원본의 해당 변경은 그대로 남겨 두었다.
+- 중단된 backend-rewrite 브랜치의 코드와 민감한 설정·자격 증명은 가져오지 않았다. 원본에 reset/clean/stash를 실행하지 않았다.
+
+## 최종 통합 검증
+
+- Java 21 `./gradlew --offline clean check bootJar`: **115개 클래스, 515건 통과, 실패/오류/skip 0**, PMD main/test 0, Checkstyle main/test 0, 실행 JAR 생성 성공. 삭제한 테스트의 옛 class 파일이 섞이지 않도록 clean부터 실행했다.
+- Node 22 Vitest: **79개 파일, 278건 통과**. ESLint·TypeScript·production build를 통과했다. localhost API mock Playwright **2개 시나리오는 재시도 0으로 통과**했다.
+- 순차 호출 스레드, 선점 순서, 한 건 실패 뒤 다른 채널 계속 처리, 중복 poll 거부, 종료/중단 뒤 추가 선점 금지, 실패한 poll의 다음 실행 복구, platform/virtual 모드의 scheduler 작업 비겹침과 종료를 검증했다. 기존 provider 5초·이미지 2초 대기 제한, 회로·429/backoff·DLQ·취소·claim fencing·DB 원자성 테스트도 통과했다.
+- MySQL 실제 잠금/flush, 외부 제공자와 단말 수신, 서버 전체 HTTP E2E·운영 부하를 검증했다고 확대 해석하지 않는다. 실제 학교·발송 제공자 호출·운영 변경·원격 push·병합·배포는 하지 않았다.
+
+최종 서버 로그는 simplification-clean-resumed.log, 웹은 web-test-resumed.log / web-lint-resumed.log / web-typecheck-resumed.log / web-build-resumed.log / web-e2e-resumed-build.log에 저장했다. 첫 clean 실행의 PMD 중복 문자열 1건은 공통 상수로 정리한 뒤 전체 clean 검증을 다시 통과했다.
+
+
+### 재연결 후 알림 정리와 브라우저 검증
+
+중단 시 마지막 legacy 수정은 저장되지 않았음을 diff로 먼저 확인했다. runtime 전체 검색에서 호출자와 이벤트 등록이 없는 `handleSeatOpenedEvent`, 3인자 delivery 전달 메서드, 구독자 bulk 조회·Redis course TTL 발송 경로를 삭제했다. 실제 outbox worker는 기존 4인자 delivery만 사용한다. 관리자/사용자 테스트 컨텍스트의 forceSend=true·saveHistory=false는 고정값이므로 삭제하고, 서로 달랐던 대상 없음의 엄격성만 boolean으로 전달한다. 관리자 NOT_FOUND, 사용자 대상 없는 채널 건너뛰기/모두 없으면 INVALID_INPUT, 제공자 실패 전파·쿨타임 해제는 그대로다.
+
+기존 Playwright 최종 시도는 첨부 API가 mock을 우회하여 localhost:8080에 연결을 시도했고 재시도에서 통과했다. 이는 깨끗한 통과로 기록하지 않았다. [Playwright의 공식 안내](https://playwright.dev/docs/network#missing-network-events-and-service-workers)에 따라 API mock을 쓰는 브라우저 컨텍스트에 `serviceWorkers: "block"`을 설정해 route 가시성을 고정했다. 테스트 assertion·timeout·retry 수는 완화하지 않았고 실제 service worker의 VM 기반 테스트도 유지했다. 수정 뒤 `CI=1 npm run e2e -- --retries=0`으로 2개 모두 첫 실행에 통과했고, 다시 만든 production build에서도 같은 명령으로 재시도 없이 2개 통과했다. SW가 이전 실패의 유일 원인이었음을 확정하는 운영 진단은 아니다.
+
+재연결 시 원본 dev의 HEAD·git status·미커밋 7개 파일 SHA-256이 연결 중단 직전 스냅샷과 모두 같음을 확인했다.
+
+
+## 추가 로컬 커밋과 완료 상태
+
+| 커밋 | 범위 |
+| --- | --- |
+| `f749ab512` | 원본 미커밋 작업 지침·계절학기 결정/진단의 선택 보존 |
+| `40782249e` | 외부 공유 중첩 타입 19개 분리와 참조 갱신 |
+| `65b26386c` | outbox 순차 실행·단일 scheduler·Slack 직접 실행 |
+| `8765c13b3` | 미사용 알림 경로·고정 컨텍스트·단일 구현 계약 제거와 실제 경로 검증 |
+| `f1a3c9bb8` | 중복 수집/outbox 테스트를 실제 원자성 검증으로 통합 |
+| `0ff996edf` | 중복 웹 테스트 정리·브라우저 API mock 격리 |
+
+최종 변경 집합의 서버 clean 검증, 웹 전체 테스트·lint·타입 검사·production build·재시도 없는 두 브라우저 시나리오가 통과했다. 원본 dev의 HEAD·상태·7개 미커밋 파일을 보존했다. 구현 판단 대기나 차단된 필수 작업은 없으며 운영·실제 제공자·MySQL 환경 검증은 허용 범위 밖의 미검증 사항으로 남긴다.
