@@ -47,8 +47,8 @@ class AnnouncementControllerTest {
                 .createdAt(LocalDateTime.of(2026, 7, 13, 10, 0))
                 .build();
         when(announcementService.getPublicAnnouncements(
-                eq("검색"), eq(AnnouncementSearchType.TITLE_CONTENT), eq(PageRequest.of(1, 2))))
-                .thenReturn(new PageImpl<>(List.of(response), PageRequest.of(1, 2), 3));
+                eq("검색"), eq(AnnouncementSearchType.TITLE_CONTENT), eq(PageRequest.of(1, 30))))
+                .thenReturn(new PageImpl<>(List.of(response), PageRequest.of(1, 30), 61));
 
         mockMvc.perform(get("/api/v1/announcements")
                         .param("keyword", "검색")
@@ -58,6 +58,6 @@ class AnnouncementControllerTest {
                 .andExpect(jsonPath("$.content[0].title").value("고정 공지"))
                 .andExpect(jsonPath("$.content[0].pinned").value(true))
                 .andExpect(jsonPath("$.number").value(1))
-                .andExpect(jsonPath("$.size").value(2));
+                .andExpect(jsonPath("$.size").value(30));
     }
 }

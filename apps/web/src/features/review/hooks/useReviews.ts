@@ -98,7 +98,7 @@ export const useReviews = (reviewScopeKey: string, courseKey: string) => {
   return useQuery<ReviewResponse | null>({
     queryKey: ["review", reviewScopeKey],
     queryFn: async () => {
-      const response = await reviewApi.getReviews(courseKey, 0, 1);
+      const response = await reviewApi.getReviews(courseKey, 0);
       const review = response.content[0];
       return review?.isMine ? review : null;
     },

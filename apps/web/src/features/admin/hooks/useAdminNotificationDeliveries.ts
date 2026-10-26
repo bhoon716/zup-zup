@@ -7,19 +7,19 @@ import type { NotificationDeliveryReplayRequest } from "@/shared/types/api";
 
 export const adminNotificationDeliveryKeys = {
   all: ["admin", "notification-deliveries"] as const,
-  dlq: (page: number, size: number) =>
-    [...adminNotificationDeliveryKeys.all, "dlq", { page, size }] as const,
+  dlq: (page: number) =>
+    [...adminNotificationDeliveryKeys.all, "dlq", { page }] as const,
   detail: (id: number) => [...adminNotificationDeliveryKeys.all, "detail", id] as const,
 };
 
 /**
  * DLQ 상태 delivery만 페이지 단위로 조회합니다.
  */
-export function useAdminDlqNotificationDeliveries(page: number = 0, size: number = 20) {
+export function useAdminDlqNotificationDeliveries(page: number = 0) {
   return useQuery({
-    queryKey: adminNotificationDeliveryKeys.dlq(page, size),
+    queryKey: adminNotificationDeliveryKeys.dlq(page),
     queryFn: async () => {
-      const response = await adminApi.getAdminDlqNotificationDeliveries(page, size);
+      const response = await adminApi.getAdminDlqNotificationDeliveries(page);
       return response;
     },
   });

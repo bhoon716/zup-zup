@@ -30,11 +30,10 @@ export const createFeedback = async (
  * 현재 로그인한 사용자의 문의 및 건의 목록 조회
  */
 export const getMyFeedbacks = async (
-  page: number = 0,
-  size: number = 10
+  page: number = 0
 ): Promise<PageResponse<FeedbackResponse>> => {
   const { data } = await api.get<PageResponse<FeedbackResponse>>('/api/v1/feedbacks/me', {
-    params: { page, size },
+    params: { page },
   });
   return data;
 };
@@ -63,11 +62,10 @@ export const deleteFeedback = async (feedbackId: number): Promise<void> => {
  */
 export const getFeedbacksForAdmin = async (
   page: number = 0,
-  deletion: AdminFeedbackDeletionFilter = 'ALL',
-  size: number = 20
+  deletion: AdminFeedbackDeletionFilter = 'ALL'
 ): Promise<PageResponse<AdminFeedbackResponse>> => {
   const { data } = await api.get<PageResponse<AdminFeedbackResponse>>('/api/v1/admin/feedbacks', {
-    params: { page, size, deletion },
+    params: { page, deletion },
   });
   return data;
 };

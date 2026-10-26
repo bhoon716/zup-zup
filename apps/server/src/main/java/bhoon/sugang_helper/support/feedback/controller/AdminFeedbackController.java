@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.support.feedback.controller;
 
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackAttachmentDownloadRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
@@ -14,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,8 +46,9 @@ public class AdminFeedbackController {
     @GetMapping
     public ResponseEntity<Page<AdminFeedbackResponse>> getAllFeedbacks(
             @RequestParam(required = false) String deletion,
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(feedbackService.getFeedbacksForAdmin(pageable, AdminFeedbackDeletionFilter.from(deletion)));
+            Pageable pageable) {
+        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
+        return ResponseEntity.ok(feedbackService.getFeedbacksForAdmin(fixedPageable, AdminFeedbackDeletionFilter.from(deletion)));
     }
 
     /**

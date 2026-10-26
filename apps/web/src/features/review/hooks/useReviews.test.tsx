@@ -121,6 +121,7 @@ describe("강의 리뷰 훅", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.rating).toBe(5);
+    expect(reviewApi.getReviews).toHaveBeenCalledWith(COURSE_KEY, 0);
   });
 
   it("첫 번째 리뷰가 타인의 리뷰면 내 리뷰로 반환하지 않는다", async () => {

@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.support.feedback.controller;
 
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.response.FeedbackDetailResponse;
@@ -13,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -57,9 +57,10 @@ public class FeedbackController {
      */
     @GetMapping("/me")
     public ResponseEntity<Page<FeedbackResponse>> getMyFeedbacks(
-            @PageableDefault(size = 10) Pageable pageable) {
+            Pageable pageable) {
+        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
 
-        return ResponseEntity.ok(feedbackService.getMyFeedbacksForCurrentUser(pageable));
+        return ResponseEntity.ok(feedbackService.getMyFeedbacksForCurrentUser(fixedPageable));
     }
 
     /**

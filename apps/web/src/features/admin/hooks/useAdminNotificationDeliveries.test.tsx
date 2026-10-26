@@ -32,10 +32,10 @@ describe("admin notification delivery hooks", () => {
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
 
-    const { result } = renderHook(() => useAdminDlqNotificationDeliveries(1, 20), { wrapper });
+    const { result } = renderHook(() => useAdminDlqNotificationDeliveries(1), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(adminApi.getAdminDlqNotificationDeliveries).toHaveBeenCalledWith(1, 20);
+    expect(adminApi.getAdminDlqNotificationDeliveries).toHaveBeenCalledWith(1);
   });
 
   it("성공한 재처리 뒤 DLQ 목록과 상세 캐시를 무효화한다", async () => {

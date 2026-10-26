@@ -1,12 +1,12 @@
 package bhoon.sugang_helper.seatalert.notification.controller;
 
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.seatalert.notification.dto.request.NotificationDeliveryReplayRequest;
 import bhoon.sugang_helper.seatalert.notification.dto.response.AdminNotificationDeliveryResponse;
 import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,8 +29,9 @@ public class AdminNotificationDeliveryController {
 
     @GetMapping("/dlq")
     public ResponseEntity<Page<AdminNotificationDeliveryResponse>> getDeadLetters(
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(notificationDeliveryService.getDeadLetters(pageable));
+            Pageable pageable) {
+        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
+        return ResponseEntity.ok(notificationDeliveryService.getDeadLetters(fixedPageable));
     }
 
     @GetMapping("/{deliveryId}")

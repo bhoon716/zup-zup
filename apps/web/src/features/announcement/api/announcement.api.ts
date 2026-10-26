@@ -5,7 +5,6 @@ export interface AnnouncementSearchParams {
   keyword?: string;
   searchType?: AnnouncementSearchType;
   page?: number;
-  size?: number;
 }
 
 export const getAnnouncements = async (
@@ -17,7 +16,6 @@ export const getAnnouncements = async (
       keyword: keyword ? keyword : undefined,
       searchType: params.searchType ?? "TITLE_CONTENT",
       page: params.page ?? 0,
-      size: params.size ?? 20,
     },
   });
   return data;

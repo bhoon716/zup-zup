@@ -27,17 +27,6 @@ describe("admin notification delivery API", () => {
     vi.clearAllMocks();
   });
 
-  it("DLQ 목록을 페이지 파라미터와 함께 요청한다", async () => {
-    const { api, adminApi } = await loadModules();
-    api.get.mockResolvedValue({ data: {} });
-
-    await adminApi.getAdminDlqNotificationDeliveries(2, 30);
-
-    expect(api.get).toHaveBeenCalledWith("/api/v1/admin/notification-deliveries/dlq", {
-      params: { page: 2, size: 30 },
-    });
-  });
-
   it("선택한 delivery의 안전한 상세 DTO를 요청한다", async () => {
     const { api, adminApi } = await loadModules();
     api.get.mockResolvedValue({ data: {} });

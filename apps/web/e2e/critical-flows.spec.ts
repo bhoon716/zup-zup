@@ -3,8 +3,8 @@ import { expect, test } from "@playwright/test";
 const response = (data: unknown) => (data);
 const announcementPage = {
   content: [{ id: 1, title: "점검 안내", previewContent: "오늘 밤 점검합니다.", pinned: true, createdAt: "2026-07-13T10:00:00" }],
-  pageable: { pageNumber: 0, pageSize: 20, offset: 0 }, totalElements: 1, totalPages: 1, last: true,
-  size: 20, number: 0, first: true, numberOfElements: 1, empty: false,
+  pageable: { pageNumber: 0, pageSize: 30, offset: 0 }, totalElements: 1, totalPages: 1, last: true,
+  size: 30, number: 0, first: true, numberOfElements: 1, empty: false,
 };
 
 test("refreshes the session after a 401 and retries the public request", async ({ page }) => {
@@ -31,7 +31,7 @@ test("renders an authenticated admin feedback attachment preview", async ({ page
   await page.route("**/api/v1/users/me", (route) => route.fulfill({ json: response(admin) }));
   await page.route("**/api/v1/admin/feedbacks?**", (route) => route.fulfill({ json: response({
     content: [{ id: 7, type: "BUG", title: "첨부 확인", status: "PENDING", createdAt: "2026-07-13T10:00:00", hasReplies: false, deleted: false, deletedAt: null, authorLabel: "사용자" }],
-    totalElements: 1, totalPages: 1, last: true, size: 20, number: 0, first: true, numberOfElements: 1, empty: false,
+    totalElements: 1, totalPages: 1, last: true, size: 30, number: 0, first: true, numberOfElements: 1, empty: false,
   }) }));
   await page.route("**/api/v1/admin/feedbacks/7", (route) => route.fulfill({ json: response({
     id: 7, type: "BUG", title: "첨부 확인", content: "첨부가 있는 문의", status: "PENDING", createdAt: "2026-07-13T10:00:00", deleted: false, deletedAt: null,

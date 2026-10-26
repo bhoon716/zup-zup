@@ -82,10 +82,10 @@ describe("AdminNotificationDeliveriesPage", () => {
     mockUseAdminDlqNotificationDeliveries.mockImplementation((page: number = 0) => ({
       data: {
         content: page === 0 ? [delivery] : [secondPageDelivery],
-        totalElements: 21,
+        totalElements: 31,
         totalPages: 2,
         number: page,
-        size: 20,
+        size: 30,
       },
       isLoading: false,
       isError: false,
@@ -98,7 +98,7 @@ describe("AdminNotificationDeliveriesPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "다음 페이지" }));
 
     await waitFor(() => {
-      expect(mockUseAdminDlqNotificationDeliveries).toHaveBeenLastCalledWith(1, 20);
+      expect(mockUseAdminDlqNotificationDeliveries).toHaveBeenLastCalledWith(1);
     });
     expect(screen.getByText("운영체제")).toBeInTheDocument();
   });

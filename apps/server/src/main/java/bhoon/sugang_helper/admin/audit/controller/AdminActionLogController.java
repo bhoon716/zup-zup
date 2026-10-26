@@ -1,11 +1,11 @@
 package bhoon.sugang_helper.admin.audit.controller;
 
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.admin.audit.dto.response.AdminActionLogResponse;
 import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +25,8 @@ public class AdminActionLogController {
 
     @GetMapping
     public ResponseEntity<Page<AdminActionLogResponse>> getActionLogs(
-            @PageableDefault(size = 50) Pageable pageable) {
-        return ResponseEntity.ok(adminAuditService.getActionLogs(pageable));
+            Pageable pageable) {
+        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
+        return ResponseEntity.ok(adminAuditService.getActionLogs(fixedPageable));
     }
 }

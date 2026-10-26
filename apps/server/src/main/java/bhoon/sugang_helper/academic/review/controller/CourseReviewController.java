@@ -44,9 +44,10 @@ public class CourseReviewController {
     public ResponseEntity<Page<ReviewResponse>> getReviews(
             @PathVariable String courseKey,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
-        validatePagination(page, size);
+        if (page < 0) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "페이지 번호는 0 이상이어야 합니다.");
+        }
         if (sort == null || sort.length == 0 || sort[0].isBlank()) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "정렬 기준은 비어 있을 수 없습니다.");
         }
@@ -58,16 +59,10 @@ public class CourseReviewController {
             throw new CustomException(ErrorCode.INVALID_INPUT, "정렬 방향은 asc 또는 desc만 지원합니다.");
         }
         Pageable pageRequest = PageableGuard.requireBounded(
-                PageRequest.of(page, size, Sort.by(direction, sortProperty)));
+                PageRequest.of(page, PageableGuard.PAGE_SIZE, Sort.by(direction, sortProperty)));
 
         Page<ReviewResponse> responsePage = reviewService.getReviews(courseKey, pageRequest);
         return ResponseEntity.ok(responsePage);
-    }
-
-    private void validatePagination(int page, int size) {
-        if (page < 0 || size < 1) {
-            throw new CustomException(ErrorCode.INVALID_INPUT, "페이지 번호는 0 이상, 크기는 1 이상이어야 합니다.");
-        }
     }
 
     @PutMapping("/reviews/{reviewId}")

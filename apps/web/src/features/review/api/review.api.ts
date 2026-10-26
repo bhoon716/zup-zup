@@ -4,11 +4,10 @@ import type { EmojiReviewResponse, ReviewCreateRequest, ReviewReactionRequest, R
 export const getReviews = async (
   courseKey: string,
   page: number = 0,
-  size: number = 20,
   sort: string = "createdAt,desc"
 ): Promise<SliceResponse<ReviewResponse>> => {
   const { data } = await api.get(`/api/v1/courses/${encodeURIComponent(courseKey)}/reviews`, {
-    params: { page, size, sort },
+    params: { page, sort },
   });
   return data;
 };

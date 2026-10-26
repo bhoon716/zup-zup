@@ -58,11 +58,10 @@ export const sendTestNotification = async (): Promise<void> => {
  */
 export const getAdminDlqNotificationDeliveries = async (
   page: number = 0,
-  size: number = 20,
 ): Promise<PageResponse<AdminNotificationDeliveryResponse>> => {
   const { data } = await api.get<PageResponse<AdminNotificationDeliveryResponse>>(
     '/api/v1/admin/notification-deliveries/dlq',
-    { params: { page, size } },
+    { params: { page } },
   );
   return data;
 };
@@ -98,9 +97,8 @@ export const replayAdminNotificationDelivery = async (
  */
 export const getAdminAnnouncements = async (
   page: number = 0,
-  size: number = 20,
 ): Promise<PageResponse<AnnouncementDetailResponse>> => {
-  const { data } = await api.get('/api/v1/admin/announcements', { params: { page, size } });
+  const { data } = await api.get('/api/v1/admin/announcements', { params: { page } });
   return data;
 };
 

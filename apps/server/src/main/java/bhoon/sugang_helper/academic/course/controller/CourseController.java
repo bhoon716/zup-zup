@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.academic.course.controller;
 
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.dto.response.CourseDetailResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseResponse;
@@ -9,7 +10,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,16 +28,18 @@ public class CourseController {
     @PostMapping("/search")
     public ResponseEntity<Slice<CourseResponse>> searchCoursesByPost(
             @Valid @RequestBody CourseSearchCondition condition,
-            @PageableDefault(size = 30) Pageable pageable) {
-        Slice<CourseResponse> courses = courseService.searchCourses(condition, pageable);
+            Pageable pageable) {
+        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
+        Slice<CourseResponse> courses = courseService.searchCourses(condition, fixedPageable);
         return ResponseEntity.ok(courses);
     }
 
     @GetMapping("/{courseKey}/history")
     public ResponseEntity<Slice<CourseSeatHistoryResponse>> getCourseHistory(
             @PathVariable String courseKey,
-            @PageableDefault(size = 30) Pageable pageable) {
-        Slice<CourseSeatHistoryResponse> histories = courseService.getCourseHistory(courseKey, pageable);
+            Pageable pageable) {
+        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
+        Slice<CourseSeatHistoryResponse> histories = courseService.getCourseHistory(courseKey, fixedPageable);
         return ResponseEntity.ok(histories);
     }
 

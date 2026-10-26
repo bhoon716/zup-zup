@@ -15,7 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 @ExtendWith(MockitoExtension.class)
 class CourseReviewControllerValidationTest {
 
+    private static final String COURSE_KEY = "COURSE-001";
     private static final String REVIEWS_PATH = "/api/v1/courses/COURSE-001/reviews";
 
     @Mock
@@ -41,10 +42,9 @@ class CourseReviewControllerValidationTest {
                 .build();
     }
 
-    @ParameterizedTest
-    @CsvSource({"page, -1", "size, 0"})
-    void rejectsInvalidPaginationWithoutInvokingService(String parameter, String value) throws Exception {
-        mockMvc.perform(get(REVIEWS_PATH).param(parameter, value))
+    @Test
+    void rejectsInvalidPageWithoutInvokingService() throws Exception {
+        mockMvc.perform(get(REVIEWS_PATH).param("page", "-1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT.getCode()));
 
@@ -71,13 +71,27 @@ class CourseReviewControllerValidationTest {
 
     @Test
     void acceptsDefaultPaginationAndSort() throws Exception {
-        PageRequest pageRequest = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
-        when(reviewService.getReviews("COURSE-001", pageRequest))
+        PageRequest pageRequest = PageRequest.of(0, 30, Sort.by(Sort.Direction.DESC, "createdAt"));
+        when(reviewService.getReviews(COURSE_KEY, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(), pageRequest, 0));
 
         mockMvc.perform(get(REVIEWS_PATH))
                 .andExpect(status().isOk());
 
-        verify(reviewService).getReviews("COURSE-001", pageRequest);
+        verify(reviewService).getReviews(COURSE_KEY, pageRequest);
+    }
+    @ParameterizedTest
+    @ValueSource(strings = {"1", "100", "-1", "0", "invalid"})
+    void ignoresClientSizeAndPreservesPageAndSort(String size) throws Exception {
+        PageRequest pageRequest = PageRequest.of(2, 30, Sort.by(Sort.Direction.ASC, "createdAt"));
+        when(reviewService.getReviews(COURSE_KEY, pageRequest))
+                .thenReturn(new PageImpl<>(List.of(), pageRequest, 100));
+        mockMvc.perform(get(REVIEWS_PATH).param("size", size).param("page", "2")
+                        .param("sort", "createdAt,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size").value(30))
+                .andExpect(jsonPath("$.number").value(2))
+                .andExpect(jsonPath("$.totalElements").value(100));
+        verify(reviewService).getReviews(COURSE_KEY, pageRequest);
     }
 }

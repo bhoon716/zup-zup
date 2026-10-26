@@ -45,14 +45,14 @@ describe("useFeedback hooks", () => {
         totalElements: 1,
         totalPages: 1,
         number: 0,
-        size: 10,
+        size: 30,
         last: true,
         first: true,
         numberOfElements: 1,
         empty: false,
         pageable: {
           pageNumber: 0,
-          pageSize: 10,
+          pageSize: 30,
           sort: { empty: true, sorted: false, unsorted: true }
         }
       };
@@ -96,12 +96,12 @@ describe("useFeedback hooks", () => {
           totalElements: 0,
           totalPages: 0,
           number: 0,
-          size: 20,
+          size: 30,
           last: true,
           first: true,
           numberOfElements: 0,
           empty: true,
-          pageable: { pageNumber: 0, pageSize: 20, sort: { empty: true, sorted: false, unsorted: true } },
+          pageable: { pageNumber: 0, pageSize: 30, sort: { empty: true, sorted: false, unsorted: true } },
         } as PageResponse<never>);
 
       const queryClient = createTestQueryClient();

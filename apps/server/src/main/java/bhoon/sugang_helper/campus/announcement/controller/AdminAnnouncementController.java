@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.campus.announcement.controller;
 
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.campus.announcement.dto.request.AnnouncementRequest;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
@@ -7,7 +8,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,8 +32,9 @@ public class AdminAnnouncementController {
      */
     @GetMapping
     public ResponseEntity<Page<AnnouncementDetailResponse>> getAnnouncements(
-            @PageableDefault(size = 20) Pageable pageable) {
-        Page<AnnouncementDetailResponse> response = announcementService.getAdminAnnouncements(pageable);
+            Pageable pageable) {
+        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
+        Page<AnnouncementDetailResponse> response = announcementService.getAdminAnnouncements(fixedPageable);
         return ResponseEntity.ok(response);
     }
 

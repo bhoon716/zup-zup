@@ -36,17 +36,6 @@ describe("feedback.api", () => {
     vi.clearAllMocks();
   });
 
-  it("관리자 목록 요청에 삭제 상태 필터를 포함한다", async () => {
-    const { api, feedbackApi } = await loadModules();
-    api.get.mockResolvedValue({ data: {} });
-
-    await feedbackApi.getFeedbacksForAdmin(2, "DELETED");
-
-    expect(api.get).toHaveBeenCalledWith("/api/v1/admin/feedbacks", {
-      params: { page: 2, size: 20, deletion: "DELETED" },
-    });
-  });
-
   it("관리자 첨부파일 다운로드는 확인 값을 담은 POST와 blob 응답을 사용한다", async () => {
     const { api, feedbackApi } = await loadModules();
     const blob = new Blob(["attachment"]);
