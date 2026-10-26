@@ -7,6 +7,7 @@ import bhoon.sugang_helper.academic.course.entity.CourseSeatHistory;
 import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
+import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.ArrayList;
@@ -21,24 +22,22 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CourseCatalogSynchronizationService implements CourseCatalogSynchronizer {
+public class CourseCatalogSynchronizationService {
 
     private static final int CHUNK_SIZE = 100;
 
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final SeatNotificationOutboxService outboxService;
     private final MeterRegistry meterRegistry;
 
     @Transactional
-    @Override
     public void synchronize(List<ParsedCourseDto> parsedCourses) {
         Set<String> seenStdtrNos = new HashSet<>();
         for (int offset = 0; offset < parsedCourses.size(); offset += CHUNK_SIZE) {
@@ -150,7 +149,7 @@ public class CourseCatalogSynchronizationService implements CourseCatalogSynchro
         existingCourse.updateMetadata(crawledCourse);
 
         if (wasFull && existingCourse.getAvailable() > 0) {
-            publishSeatOpenedEvent(existingCourse);
+            enqueueSeatOpening(existingCourse);
         }
         return seatsChanged ? toSeatHistory(existingCourse) : null;
     }
@@ -163,10 +162,10 @@ public class CourseCatalogSynchronizationService implements CourseCatalogSynchro
                 .build();
     }
 
-    private void publishSeatOpenedEvent(Course course) {
+    private void enqueueSeatOpening(Course course) {
         log.info("[Crawler] Seat opening detected. courseName={}, available={}", course.getName(),
                 course.getAvailable());
-        eventPublisher.publishEvent(new SeatOpenedEvent(
+        outboxService.enqueue(new SeatOpenedEvent(
                 course.getCourseKey(), course.getName(), course.getProfessor(), 0, course.getAvailable()));
     }
 

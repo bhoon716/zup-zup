@@ -7,7 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogSynchronizer;
+import bhoon.sugang_helper.academic.course.service.CourseCatalogSynchronizationService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CourseCrawlCompletionServiceTest {
 
     @Mock
-    private CourseCatalogSynchronizer courseCatalogSynchronizer;
+    private CourseCatalogSynchronizationService courseCatalogSynchronizationService;
     @Mock
     private CrawlerRunStateService crawlerRunStateService;
     @InjectMocks
@@ -31,8 +31,8 @@ class CourseCrawlCompletionServiceTest {
 
         completionService.complete(parsedCourses);
 
-        var ordered = inOrder(courseCatalogSynchronizer, crawlerRunStateService);
-        ordered.verify(courseCatalogSynchronizer).synchronize(parsedCourses);
+        var ordered = inOrder(courseCatalogSynchronizationService, crawlerRunStateService);
+        ordered.verify(courseCatalogSynchronizationService).synchronize(parsedCourses);
         ordered.verify(crawlerRunStateService).markSuccess();
     }
 
@@ -40,7 +40,7 @@ class CourseCrawlCompletionServiceTest {
     void doesNotRecordSuccessWhenCatalogSynchronizationFails() {
         List<ParsedCourseDto> parsedCourses = List.of();
         IllegalStateException failure = new IllegalStateException("catalog write failed");
-        doThrow(failure).when(courseCatalogSynchronizer).synchronize(parsedCourses);
+        doThrow(failure).when(courseCatalogSynchronizationService).synchronize(parsedCourses);
 
         assertThatThrownBy(() -> completionService.complete(parsedCourses))
                 .isSameAs(failure);

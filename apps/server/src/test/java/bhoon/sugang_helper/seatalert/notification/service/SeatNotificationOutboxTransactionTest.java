@@ -1,15 +1,17 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -20,17 +22,22 @@ import org.springframework.transaction.support.TransactionTemplate;
 class SeatNotificationOutboxTransactionTest {
 
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    private SeatNotificationOutboxService outboxService;
     @Autowired
     private PlatformTransactionManager transactionManager;
     @Autowired
     private SeatNotificationOutboxRepository outboxRepository;
 
+    @BeforeEach
+    void clearOutbox() {
+        outboxRepository.deleteAll();
+    }
+
     @Test
     void committedSeatOpeningTransactionPersistsAnOutboxRecord() {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
 
-        transactionTemplate.executeWithoutResult(status -> eventPublisher.publishEvent(
+        transactionTemplate.executeWithoutResult(status -> outboxService.enqueue(
                 new SeatOpenedEvent("course-key", "Course", "Professor", 0, 1)));
 
         assertThat(outboxRepository.count()).isEqualTo(1);
@@ -41,10 +48,21 @@ class SeatNotificationOutboxTransactionTest {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
 
         transactionTemplate.executeWithoutResult(status -> {
-            eventPublisher.publishEvent(new SeatOpenedEvent("course-key", "Course", "Professor", 0, 1));
+            outboxService.enqueue(new SeatOpenedEvent("course-key", "Course", "Professor", 0, 1));
             status.setRollbackOnly();
         });
 
+        assertThat(outboxRepository.count()).isZero();
+    }
+
+    @Test
+    void rejectsEnqueueOutsideTheCatalogTransaction() {
+        // given
+        SeatOpenedEvent event = new SeatOpenedEvent("course-key", "Course", "Professor", 0, 1);
+
+        // when & then
+        assertThatThrownBy(() -> outboxService.enqueue(event))
+                .isInstanceOf(IllegalTransactionStateException.class);
         assertThat(outboxRepository.count()).isZero();
     }
 }

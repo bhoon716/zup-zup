@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
 import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogSynchronizer;
+import bhoon.sugang_helper.academic.course.service.CourseCatalogSynchronizationService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,12 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CourseCrawlCompletionService {
 
-    private final CourseCatalogSynchronizer courseCatalogSynchronizer;
+    private final CourseCatalogSynchronizationService courseCatalogSynchronizationService;
     private final CrawlerRunStateService crawlerRunStateService;
 
     @Transactional
     public void complete(List<ParsedCourseDto> parsedCourses) {
-        courseCatalogSynchronizer.synchronize(parsedCourses);
+        courseCatalogSynchronizationService.synchronize(parsedCourses);
         crawlerRunStateService.markSuccess();
     }
 }

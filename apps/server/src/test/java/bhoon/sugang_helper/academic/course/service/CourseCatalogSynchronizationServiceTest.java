@@ -7,11 +7,14 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
+import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
+import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxService;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class CourseCatalogSynchronizationServiceTest {
@@ -32,7 +34,7 @@ class CourseCatalogSynchronizationServiceTest {
     @Mock
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private SeatNotificationOutboxService outboxService;
     @Mock
     private MeterRegistry meterRegistry;
     @InjectMocks
@@ -49,7 +51,7 @@ class CourseCatalogSynchronizationServiceTest {
 
         verify(courseRepository, never()).saveAll(any());
         verifyNoInteractions(courseSeatHistoryRepository);
-        verifyNoInteractions(eventPublisher);
+        verifyNoInteractions(outboxService);
     }
 
     @Test
@@ -62,6 +64,7 @@ class CourseCatalogSynchronizationServiceTest {
 
         verify(courseRepository).saveAll(any());
         verify(courseSeatHistoryRepository).saveAll(any());
+        verifyNoInteractions(outboxService);
     }
 
     @Test
@@ -73,8 +76,38 @@ class CourseCatalogSynchronizationServiceTest {
 
         synchronizationService.synchronize(List.of(crawled));
 
-        verifyNoInteractions(eventPublisher);
+        verifyNoInteractions(outboxService);
         verify(courseSeatHistoryRepository).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("여석이 처음 열릴 때만 그 시점의 좌석 정보를 outbox에 전달한다")
+    void seatOpening_EnqueuesOnlyTheFullToAvailableTransition() {
+        // given
+        Course existing = createCourse("김교수", 50, 50);
+        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
+
+        // when
+        synchronizationService.synchronize(List.of(createDto("김교수", 50, 49)));
+        synchronizationService.synchronize(List.of(createDto("김교수", 50, 48)));
+
+        // then
+        verify(outboxService).enqueue(new SeatOpenedEvent(COURSE_KEY, "컴퓨터프로그래밍", "김교수", 0, 1));
+        verifyNoMoreInteractions(outboxService);
+    }
+
+    @Test
+    @DisplayName("outbox 저장 실패를 성공으로 삼키지 않고 호출자에게 전달한다")
+    void outboxWriteFailure_PropagatesFailure() {
+        // given
+        Course existing = createCourse("김교수", 50, 50);
+        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
+        IllegalStateException failure = new IllegalStateException("outbox write failed");
+        doThrow(failure).when(outboxService).enqueue(any());
+
+        // when & then
+        assertThatThrownBy(() -> synchronizationService.synchronize(List.of(createDto("김교수", 50, 49))))
+                .isSameAs(failure);
     }
 
     @Test
