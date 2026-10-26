@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.academic.course.service;
 
-import bhoon.sugang_helper.academic.course.dto.CourseName;
-import bhoon.sugang_helper.academic.course.dto.CourseScheduleSummary;
-import bhoon.sugang_helper.academic.course.dto.CourseSummary;
+import bhoon.sugang_helper.academic.course.dto.result.CourseName;
+import bhoon.sugang_helper.academic.course.dto.result.CourseScheduleSummary;
+import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import java.util.List;

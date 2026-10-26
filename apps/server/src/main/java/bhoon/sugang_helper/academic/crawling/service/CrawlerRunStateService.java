@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
-import bhoon.sugang_helper.academic.crawling.dto.CrawlerFailureSummary;
+import bhoon.sugang_helper.academic.crawling.dto.diagnostic.CrawlerFailureSummary;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerRunFailure;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerStatus;
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;

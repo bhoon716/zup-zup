@@ -19,7 +19,7 @@ import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
 import java.util.List;
 import java.util.Optional;

@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.admin.audit.service;
 
-import bhoon.sugang_helper.admin.audit.dto.AdminAuditMetadata;
+import bhoon.sugang_helper.admin.audit.dto.response.AdminAuditMetadata;
 import bhoon.sugang_helper.admin.audit.dto.response.AdminActionLogResponse;
 import bhoon.sugang_helper.admin.audit.entity.AdminActionLog;
 import bhoon.sugang_helper.admin.audit.enums.ActionType;

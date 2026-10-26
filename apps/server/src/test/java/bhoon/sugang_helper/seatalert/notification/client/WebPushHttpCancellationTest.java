@@ -7,7 +7,7 @@ import static org.mockito.Mockito.mock;
 import bhoon.sugang_helper.common.config.MdcTaskDecorator;
 import bhoon.sugang_helper.identity.user.service.UserDeviceWebPushManagement;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;

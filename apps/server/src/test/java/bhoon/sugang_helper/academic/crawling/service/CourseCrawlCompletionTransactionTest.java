@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;

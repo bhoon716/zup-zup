@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.support.feedback.controller;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.support.feedback.dto.FeedbackAttachmentDownload;
+import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.response.FeedbackDetailResponse;
 import bhoon.sugang_helper.support.feedback.dto.response.FeedbackResponse;

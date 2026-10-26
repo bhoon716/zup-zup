@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.campus.announcement.service;
 
-import bhoon.sugang_helper.campus.announcement.dto.AnnouncementPreview;
+import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementPreview;
 import bhoon.sugang_helper.campus.announcement.dto.request.AnnouncementRequest;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementListResponse;

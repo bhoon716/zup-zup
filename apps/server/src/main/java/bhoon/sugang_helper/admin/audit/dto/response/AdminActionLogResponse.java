@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.admin.audit.dto.response;
 
-import bhoon.sugang_helper.admin.audit.dto.AdminAuditMetadata;
 import bhoon.sugang_helper.admin.audit.enums.ActionType;
 import bhoon.sugang_helper.admin.audit.enums.TargetType;
 import java.time.LocalDateTime;

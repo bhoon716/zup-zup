@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.identity.user.dto.UserAccountStatus;
+import bhoon.sugang_helper.identity.user.dto.result.UserAccountStatus;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;

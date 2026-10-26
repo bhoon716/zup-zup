@@ -3,7 +3,7 @@ package bhoon.sugang_helper.academic.course.repository;
 import static bhoon.sugang_helper.academic.course.entity.QCourse.course;
 import static bhoon.sugang_helper.planning.wishlist.entity.QWishlist.wishlist;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCriteria;
+import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.enums.CourseClassification;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;

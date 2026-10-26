@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
-import bhoon.sugang_helper.academic.crawling.dto.CrawlTargetInfo;
+import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.scheduler.CourseScheduler;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlCompletionService;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlFetcher;

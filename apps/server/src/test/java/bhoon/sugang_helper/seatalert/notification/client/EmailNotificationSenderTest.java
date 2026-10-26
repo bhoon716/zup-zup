@@ -12,7 +12,7 @@ import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;

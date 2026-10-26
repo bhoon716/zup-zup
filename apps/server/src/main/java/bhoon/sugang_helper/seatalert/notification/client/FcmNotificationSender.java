@@ -4,7 +4,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;

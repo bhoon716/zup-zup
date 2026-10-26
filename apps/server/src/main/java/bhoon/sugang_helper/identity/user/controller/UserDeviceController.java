@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.identity.user.controller;
 
 import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.identity.user.dto.RegisterDeviceCommand;
+import bhoon.sugang_helper.identity.user.dto.command.RegisterDeviceCommand;
 import bhoon.sugang_helper.identity.user.dto.request.UserDeviceRequest;
 import bhoon.sugang_helper.identity.user.dto.request.UserDeviceUnregisterRequest;
 import bhoon.sugang_helper.identity.user.dto.response.UserDeviceResponse;

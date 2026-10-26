@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationHistoryItem;
+import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Pageable;

@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.identity.user.dto.UserDisplayName;
+import bhoon.sugang_helper.identity.user.dto.result.UserDisplayName;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;

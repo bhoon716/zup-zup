@@ -1,11 +1,11 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.identity.user.dto.NotificationDevice;
-import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;

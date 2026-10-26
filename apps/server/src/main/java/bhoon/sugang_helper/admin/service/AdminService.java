@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.admin.service;
 
-import bhoon.sugang_helper.academic.crawling.dto.CrawlerAdminSnapshot;
+import bhoon.sugang_helper.academic.crawling.dto.response.CrawlerAdminSnapshot;
 import bhoon.sugang_helper.academic.crawling.service.CrawlerAdminSnapshotQuery;
 import bhoon.sugang_helper.academic.crawling.service.CrawlerStatusQuery;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardResponse;
@@ -11,11 +11,11 @@ import bhoon.sugang_helper.admin.dto.response.AdminRecentLogResponse;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationHistoryItem;
+import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQuery;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationTestSender;
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;

@@ -1,18 +1,18 @@
 package bhoon.sugang_helper.planning.timetable.service;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSummary;
+import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
 import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
-import bhoon.sugang_helper.planning.timetable.dto.PrimaryTimetableSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.TimetableCourseScheduleSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.TimetableCourseSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.TimetableCustomScheduleSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.TimetableCustomScheduleTimeSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.result.PrimaryTimetableSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseScheduleSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCustomScheduleSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCustomScheduleTimeSnapshot;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.TimetableRequest;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseResponse;

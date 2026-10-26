@@ -7,7 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
-import bhoon.sugang_helper.academic.crawling.dto.CrawlTargetInfo;
+import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.dto.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerSetting;
 import bhoon.sugang_helper.academic.crawling.repository.CrawlerSettingRepository;

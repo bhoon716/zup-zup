@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.academic.course.service;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseScheduleDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseScheduleDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.entity.CourseSchedule;
 import bhoon.sugang_helper.academic.course.entity.CourseSeatHistory;

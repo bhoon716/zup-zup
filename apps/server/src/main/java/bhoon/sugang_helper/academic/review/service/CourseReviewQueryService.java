@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.review.service;
 
-import bhoon.sugang_helper.academic.course.dto.CourseReference;
+import bhoon.sugang_helper.academic.course.dto.result.CourseReference;
 import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
 import bhoon.sugang_helper.academic.course.service.CourseReviewQuery;
 import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;

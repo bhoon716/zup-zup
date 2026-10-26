@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.crawling.controller;
 
-import bhoon.sugang_helper.academic.crawling.dto.CrawlTargetInfo;
+import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.dto.request.AdminCrawlTargetRequest;
 import bhoon.sugang_helper.academic.crawling.dto.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerService;

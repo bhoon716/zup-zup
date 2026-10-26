@@ -2,7 +2,7 @@ package bhoon.sugang_helper.academic.crawling.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.crawling.service.JbnuCourseParser;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.nio.charset.StandardCharsets;

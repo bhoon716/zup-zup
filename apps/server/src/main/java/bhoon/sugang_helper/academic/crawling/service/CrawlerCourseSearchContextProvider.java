@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSearchContext;
+import bhoon.sugang_helper.academic.course.dto.result.CourseSearchContext;
 import bhoon.sugang_helper.academic.course.service.CourseSearchContextProvider;
-import bhoon.sugang_helper.academic.crawling.dto.CrawlTargetInfo;
+import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

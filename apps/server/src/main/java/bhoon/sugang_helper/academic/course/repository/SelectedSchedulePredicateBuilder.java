@@ -2,7 +2,7 @@ package bhoon.sugang_helper.academic.course.repository;
 
 import static bhoon.sugang_helper.academic.course.entity.QCourse.course;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSelectedSchedule;
+import bhoon.sugang_helper.academic.course.dto.criteria.CourseSelectedSchedule;
 import bhoon.sugang_helper.academic.course.entity.QCourseSchedule;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import com.querydsl.core.BooleanBuilder;

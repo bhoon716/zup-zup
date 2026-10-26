@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.identity.user.dto.NotificationDevice;
-import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import bhoon.sugang_helper.identity.user.enums.DeviceType;

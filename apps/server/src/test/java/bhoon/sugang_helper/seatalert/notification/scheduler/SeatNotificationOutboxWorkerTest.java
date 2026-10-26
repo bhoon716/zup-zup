@@ -14,7 +14,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.LocalDateTime;

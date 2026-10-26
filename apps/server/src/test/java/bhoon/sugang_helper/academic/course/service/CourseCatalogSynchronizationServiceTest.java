@@ -9,7 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;

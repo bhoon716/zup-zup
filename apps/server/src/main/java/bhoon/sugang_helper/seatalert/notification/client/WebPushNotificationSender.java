@@ -5,7 +5,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.identity.user.service.UserDeviceWebPushManagement;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;

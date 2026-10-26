@@ -13,7 +13,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import bhoon.sugang_helper.identity.user.service.UserDeviceWebPushManagement;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.firebase.messaging.FirebaseMessaging;

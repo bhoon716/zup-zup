@@ -2,9 +2,9 @@ package bhoon.sugang_helper.academic.course.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCondition;
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCriteria;
-import bhoon.sugang_helper.academic.course.dto.CourseSelectedSchedule;
+import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
+import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
+import bhoon.sugang_helper.academic.course.dto.criteria.CourseSelectedSchedule;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.entity.CourseSchedule;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;

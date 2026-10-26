@@ -35,7 +35,7 @@ import bhoon.sugang_helper.seatalert.notification.controller.AdminNotificationDe
 import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
 import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
 import bhoon.sugang_helper.support.feedback.controller.FeedbackController;
-import bhoon.sugang_helper.support.feedback.dto.FeedbackAttachmentDownload;
+import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.service.FeedbackService;
 import java.util.List;
 import org.junit.jupiter.api.Test;

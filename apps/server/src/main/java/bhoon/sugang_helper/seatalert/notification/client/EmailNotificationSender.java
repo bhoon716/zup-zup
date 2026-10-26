@@ -5,7 +5,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import java.util.Map;

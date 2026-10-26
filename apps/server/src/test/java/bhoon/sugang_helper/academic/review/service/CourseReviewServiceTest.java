@@ -9,7 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.academic.course.dto.CourseReference;
+import bhoon.sugang_helper.academic.course.dto.result.CourseReference;
 import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewCreateRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewReactionRequest;
@@ -23,7 +23,7 @@ import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;

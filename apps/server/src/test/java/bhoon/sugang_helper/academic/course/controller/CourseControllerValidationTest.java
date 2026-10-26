@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCondition;
+import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.service.CourseService;
 import bhoon.sugang_helper.academic.crawling.controller.CourseSearchTargetController;
 import bhoon.sugang_helper.academic.crawling.dto.response.SearchDefaultSemesterResponse;

@@ -4,7 +4,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationHistoryItem;
+import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
 import java.time.LocalDateTime;

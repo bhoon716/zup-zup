@@ -9,7 +9,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.crawling.client.CourseApiClient;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;

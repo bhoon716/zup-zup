@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
-import bhoon.sugang_helper.seatalert.notification.dto.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;

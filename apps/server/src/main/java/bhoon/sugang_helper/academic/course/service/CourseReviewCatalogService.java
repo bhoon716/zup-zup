@@ -1,9 +1,9 @@
 package bhoon.sugang_helper.academic.course.service;
 
-import bhoon.sugang_helper.academic.course.dto.CourseReference;
+import bhoon.sugang_helper.academic.course.dto.result.CourseReference;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
-import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
+import bhoon.sugang_helper.academic.review.dto.criteria.ReviewScopeKey;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

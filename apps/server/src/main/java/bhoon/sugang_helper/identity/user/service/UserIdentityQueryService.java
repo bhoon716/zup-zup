@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.identity.user.dto.AuthenticatedUser;
-import bhoon.sugang_helper.identity.user.dto.UserAccountStatus;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.dto.result.UserAccountStatus;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import java.util.List;

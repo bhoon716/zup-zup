@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.admin.audit.service;
 
-import bhoon.sugang_helper.admin.audit.dto.ContentSummary;
+import bhoon.sugang_helper.admin.audit.dto.response.ContentSummary;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;

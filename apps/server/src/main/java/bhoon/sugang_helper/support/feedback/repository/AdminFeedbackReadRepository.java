@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.support.feedback.repository;
 
-import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackAttachmentAccess;
-import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackAttachmentSummary;
-import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackDetail;
-import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackReplySummary;
-import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackSummary;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentAccess;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentSummary;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackReplySummary;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackSummary;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;

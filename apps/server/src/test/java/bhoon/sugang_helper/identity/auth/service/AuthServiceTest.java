@@ -18,7 +18,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
-import bhoon.sugang_helper.identity.user.dto.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
 import jakarta.servlet.http.Cookie;

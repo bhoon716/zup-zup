@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.course.controller;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCondition;
+import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.dto.response.CourseDetailResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseSeatHistoryResponse;

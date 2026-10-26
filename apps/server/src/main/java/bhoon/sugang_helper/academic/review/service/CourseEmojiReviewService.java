@@ -1,15 +1,15 @@
 package bhoon.sugang_helper.academic.review.service;
 
-import bhoon.sugang_helper.academic.course.dto.CourseReference;
+import bhoon.sugang_helper.academic.course.dto.result.CourseReference;
 import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
-import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
+import bhoon.sugang_helper.academic.review.dto.criteria.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.dto.response.CourseEmojiReviewResponse;
 import bhoon.sugang_helper.academic.review.entity.CourseEmojiReview;
 import bhoon.sugang_helper.academic.review.repository.CourseEmojiReviewRepository;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

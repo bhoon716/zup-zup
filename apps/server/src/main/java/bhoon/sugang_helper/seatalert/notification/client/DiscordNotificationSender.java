@@ -3,7 +3,7 @@ package bhoon.sugang_helper.seatalert.notification.client;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 import java.time.Duration;
 import java.util.HashMap;

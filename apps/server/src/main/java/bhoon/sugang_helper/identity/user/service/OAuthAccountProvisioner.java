@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.identity.user.dto.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 
 public interface OAuthAccountProvisioner {
 

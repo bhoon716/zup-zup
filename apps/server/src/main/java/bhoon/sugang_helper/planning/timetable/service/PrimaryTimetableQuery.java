@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.planning.timetable.service;
 
-import bhoon.sugang_helper.planning.timetable.dto.PrimaryTimetableSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.result.PrimaryTimetableSnapshot;
 import java.util.Optional;
 
 public interface PrimaryTimetableQuery {

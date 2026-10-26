@@ -314,3 +314,10 @@ useReviews의 목록·상세 캐시에 전체 updatedCourse를 합치던 두 곳
 검증: 집중 37건 통과, ./gradlew --offline clean check bootJar 성공(1분 17초). 서버 119 suite·530 tests, 실패·오류·skip 0, PMD main/test·Checkstyle main/test 위반 0, 실행 JAR 생성 완료. 최초 제한된 실행은 기존 Gradle 캐시 lock 쓰기 권한에서 시작하지 못했고 허용된 로컬 실행으로 검증했다. 변경 전/집중/전체 로그는 작업 디렉터리의 review-scope-before.log·review-scope-focused.log·review-scope-clean.log에 있다. 실제 MySQL 동시성·운영 DB·외부 제공자는 사용하지 않았다. 웹 구현은 바뀌지 않아 앞서 통과한 웹 검증을 반복하지 않았다.
 
 로깅 전반의 메시지 한국어화·레벨·위치·중복/민감정보 점검은 사용자가 후속 할 일로만 요청했으므로 구현하지 않는다. CrawlerRunFailure/CrawlerStatus와 관리자 감사 엔티티 제거 여부도 현재는 읽기 전용 검토이며 삭제·로그 전환·스키마 변경을 하지 않는다. 일정/D-day 통합은 새 승인 범위로 별도 작업 단위에서 진행한다.
+
+
+## DTO 역할 분류 완료
+
+최신 사용자 기준에 따라 DTO 122개를 request 27개·response 53개·result 28개와 command 6개·criteria 4개·external 2개·provider 1개·diagnostic 1개로 분류했다. 직접 API에 노출되는 Dashboard Result·공유 Snapshot·감사 메타데이터는 response, 내부 User/조회 결과는 result다. 요청·서비스 입력·외부 수집 결과를 억지로 동일 역할에 넣지 않았다. 클래스명·필드·Jackson/validation 애노테이션은 유지했고 DTO 복제·변환 계층을 추가하지 않았다. 전체 목록과 판단은 dto-classification.md에 기록했다.
+
+package/import와 생성자 쿼리, 같은 패키지의 테스트 경로를 함께 수정하고 현재 소스를 가리키는 문서 링크를 갱신했다. 서버·테스트 컴파일, PMD·Checkstyle main/test 모두 통과했다. 생성자 쿼리·감사 JSON·대시보드 관련 기존 20건도 실패/오류/skip 없이 통과했다. 로그는 작업 디렉터리의 dto-classification-check.log·dto-classification-tests.log다. 실제 코드의 정상 응답 래퍼·일정 통합·페이지 크기·주석·인터페이스 동작 변경은 후속 단위에서 진행한다.

@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;

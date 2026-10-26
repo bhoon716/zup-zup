@@ -3,8 +3,8 @@ package bhoon.sugang_helper.academic.crawling.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseScheduleDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseScheduleDto;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
 import bhoon.sugang_helper.common.error.CustomException;

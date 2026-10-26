@@ -3,7 +3,7 @@ package bhoon.sugang_helper.academic.course.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCondition;
+import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import java.util.List;

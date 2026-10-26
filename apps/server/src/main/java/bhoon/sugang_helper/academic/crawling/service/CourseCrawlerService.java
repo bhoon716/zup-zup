@@ -1,9 +1,9 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
-import bhoon.sugang_helper.academic.crawling.dto.CrawlTargetInfo;
-import bhoon.sugang_helper.academic.crawling.dto.CrawlerFailureSummary;
+import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
+import bhoon.sugang_helper.academic.crawling.dto.diagnostic.CrawlerFailureSummary;
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;

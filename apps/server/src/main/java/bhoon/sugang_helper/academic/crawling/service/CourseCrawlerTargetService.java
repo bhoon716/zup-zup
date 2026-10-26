@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
-import bhoon.sugang_helper.academic.crawling.dto.CrawlTargetInfo;
-import bhoon.sugang_helper.academic.crawling.dto.CrawlerAdminSnapshot;
+import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
+import bhoon.sugang_helper.academic.crawling.dto.response.CrawlerAdminSnapshot;
 import bhoon.sugang_helper.academic.crawling.dto.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.academic.crawling.dto.response.SearchDefaultSemesterResponse;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerSetting;

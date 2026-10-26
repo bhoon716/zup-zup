@@ -11,7 +11,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.util.CookieUtil;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.identity.user.dto.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
 import bhoon.sugang_helper.identity.user.service.UserSessionLogout;
 import io.jsonwebtoken.JwtException;

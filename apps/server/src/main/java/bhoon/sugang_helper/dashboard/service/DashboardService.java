@@ -1,14 +1,14 @@
 package bhoon.sugang_helper.dashboard.service;
 
-import bhoon.sugang_helper.campus.announcement.dto.AnnouncementPreview;
+import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementPreview;
 import bhoon.sugang_helper.campus.announcement.service.DashboardAnnouncementQuery;
-import bhoon.sugang_helper.campus.schedule.dto.ScheduleSummary;
+import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleSummary;
 import bhoon.sugang_helper.campus.schedule.service.UpcomingScheduleQuery;
-import bhoon.sugang_helper.dashboard.dto.DashboardNotificationResult;
-import bhoon.sugang_helper.dashboard.dto.DashboardPrimaryTimetableResult;
-import bhoon.sugang_helper.dashboard.dto.DashboardUserResult;
+import bhoon.sugang_helper.dashboard.dto.response.DashboardNotificationResult;
+import bhoon.sugang_helper.dashboard.dto.response.DashboardPrimaryTimetableResult;
+import bhoon.sugang_helper.dashboard.dto.response.DashboardUserResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardSnapshotResponse;
-import bhoon.sugang_helper.identity.user.dto.UserDashboardProfile;
+import bhoon.sugang_helper.identity.user.dto.result.UserDashboardProfile;
 import bhoon.sugang_helper.identity.user.service.UserDashboardQuery;
 import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQuery;

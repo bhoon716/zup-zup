@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
-import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
+import bhoon.sugang_helper.academic.review.dto.criteria.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.entity.CourseEmojiReview;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;

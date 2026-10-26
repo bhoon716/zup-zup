@@ -6,9 +6,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mockStatic;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCondition;
-import bhoon.sugang_helper.academic.course.dto.CourseSearchContext;
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCriteria;
+import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
+import bhoon.sugang_helper.academic.course.dto.result.CourseSearchContext;
+import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.dto.response.CourseDetailResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseSeatHistoryResponse;
@@ -21,7 +21,7 @@ import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepositor
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
 import java.util.List;
 import java.util.Optional;

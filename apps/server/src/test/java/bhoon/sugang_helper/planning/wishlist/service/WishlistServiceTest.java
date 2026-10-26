@@ -9,12 +9,12 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSummary;
+import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistResponse;
 import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;

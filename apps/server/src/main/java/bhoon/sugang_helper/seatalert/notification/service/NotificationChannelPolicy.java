@@ -1,11 +1,11 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
 import bhoon.sugang_helper.common.config.NotificationProperties;
-import bhoon.sugang_helper.identity.user.dto.NotificationDevice;
-import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

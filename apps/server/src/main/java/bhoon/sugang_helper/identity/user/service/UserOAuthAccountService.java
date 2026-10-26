@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.identity.user.service;
 
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.identity.user.dto.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;

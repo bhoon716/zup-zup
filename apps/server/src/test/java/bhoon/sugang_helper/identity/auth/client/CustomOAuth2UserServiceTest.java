@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
-import bhoon.sugang_helper.identity.user.dto.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.exception.OAuthAccountProvisioningException;
 import bhoon.sugang_helper.identity.user.service.OAuthAccountProvisioner;
