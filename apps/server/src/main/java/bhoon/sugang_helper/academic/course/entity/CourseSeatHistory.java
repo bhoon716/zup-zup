@@ -6,7 +6,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -16,9 +15,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "course_seat_histories", indexes = {
-        @Index(name = "idx_seat_hist_course_key", columnList = "courseKey")
-})
+@Table(name = "course_seat_histories")
 public class CourseSeatHistory extends BaseTimeEntity {
 
     @Id
