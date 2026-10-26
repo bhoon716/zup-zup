@@ -51,16 +51,26 @@ test("일정 하나로 대표 지정·수정·삭제·복원을 관리한다", a
   await page.getByLabel("일정 이름").fill("대표 학사 일정");
   await page.getByLabel("시작일").fill("2026-10-28");
   await page.getByLabel("종료일").fill("2026-10-29");
+  await page.getByLabel("시작 시간", { exact: true }).fill("20:00");
+  await page.getByLabel("종료 시간", { exact: true }).fill("23:55");
   await page.getByRole("checkbox", { name: "대표 D-day로 표시" }).check();
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByText("대표 D-day", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "대표 학사 일정 수정" }).click();
   await expect(page.getByRole("checkbox", { name: "대표 D-day로 표시" })).toBeChecked();
+  await expect(page.getByLabel("시작 시간", { exact: true })).toHaveValue("20:00");
+  await expect(page.getByLabel("종료 시간", { exact: true })).toHaveValue("23:55");
   await page.getByLabel("시작일").fill("2026-10-27");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "대표 D-day로 표시" })).toHaveCount(0);
   await expect(page.getByText(/2026-10-27/)).toBeVisible();
+
+  await page.getByRole("button", { name: "대표 학사 일정 수정" }).click();
+  await page.getByLabel("시작 시간", { exact: true }).fill("09:01");
+  await page.getByLabel("종료 시간", { exact: true }).fill("23:57");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: "대표 D-day로 표시" })).toHaveCount(0);
 
   page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "대표 학사 일정 삭제" }).click();
@@ -71,11 +81,12 @@ test("일정 하나로 대표 지정·수정·삭제·복원을 관리한다", a
   await expect(page.getByText("대표 D-day", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "대표 학사 일정 수정" })).toBeVisible();
   expect(writes).toEqual([
-    { method: "POST", path: "/api/v1/admin/schedules", body: { scheduleType: "대표 학사 일정", startDate: "2026-10-28", endDate: "2026-10-29", ddayEnabled: true } },
-    { method: "PUT", path: "/api/v1/admin/schedules/1", body: { scheduleType: "대표 학사 일정", startDate: "2026-10-27", endDate: "2026-10-29", ddayEnabled: true } },
+    { method: "POST", path: "/api/v1/admin/schedules", body: { scheduleType: "대표 학사 일정", startDate: "2026-10-28", endDate: "2026-10-29", startTime: "20:00", endTime: "23:55", ddayEnabled: true } },
+    { method: "PUT", path: "/api/v1/admin/schedules/1", body: { scheduleType: "대표 학사 일정", startDate: "2026-10-27", endDate: "2026-10-29", startTime: "20:00", endTime: "23:55", ddayEnabled: true } },
+    { method: "PUT", path: "/api/v1/admin/schedules/1", body: { scheduleType: "대표 학사 일정", startDate: "2026-10-27", endDate: "2026-10-29", startTime: "09:01", endTime: "23:57", ddayEnabled: true } },
     { method: "DELETE", path: "/api/v1/admin/schedules/1" },
     { method: "PATCH", path: "/api/v1/admin/schedules/1/restore" },
   ]);
   expect(unexpected).toEqual([]);
-  expect(writeCsrfTokens).toEqual(Array(4).fill("schedule-csrf"));
+  expect(writeCsrfTokens).toEqual(Array(5).fill("schedule-csrf"));
 });

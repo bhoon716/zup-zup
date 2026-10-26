@@ -16,79 +16,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectGroup,
-  SelectLabel,
 } from "@/shared/ui/select";
 import type { ScheduleResponse, ScheduleRequest } from "@/shared/types/api";
 
 
 
-
-function TimePicker({ 
-  value, 
-  onChange,
-  clearLabel = "선택한 시간 초기화",
-}: { 
-  value: string; 
-  onChange: (val: string) => void; 
-  clearLabel?: string;
-}) {
-  const currentHour = value ? value.split(":")[0] : "";
-  const currentMinute = value ? value.split(":")[1] : "";
-
-  const hours = Array.from({ length: 11 }, (_, i) => (i + 8).toString().padStart(2, "0"));
-  const minutes = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, "0"));
-
-  return (
-    <div className="flex items-center gap-2">
-      <Select 
-        value={currentHour} 
-        onValueChange={(h) => onChange(`${h}:${currentMinute || "00"}`)}
-      >
-        <SelectTrigger className="w-[82px] bg-white h-11 rounded-full border-slate-200 px-3">
-          <SelectValue placeholder="시" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>시</SelectLabel>
-            {hours.map((h) => (
-              <SelectItem key={h} value={h}>{h}시</SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-      <span className="text-slate-300 font-bold">:</span>
-      <Select 
-        value={currentMinute} 
-        onValueChange={(m) => onChange(`${currentHour || "00"}:${m}`)}
-      >
-        <SelectTrigger className="w-[82px] bg-white h-11 rounded-full border-slate-200 px-3">
-          <SelectValue placeholder="분" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>분 (5분)</SelectLabel>
-            {minutes.map((m) => (
-              <SelectItem key={m} value={m}>{m}분</SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-      {value && (
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-11 w-8 text-slate-300 hover:text-red-500 transition-colors"
-          aria-label={clearLabel}
-          title={clearLabel}
-          onClick={() => onChange("")}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      )}
-    </div>
-  );
-}
 
 const SCHEDULE_TYPE_OPTIONS = [
   "장바구니(예비)",
@@ -303,12 +235,17 @@ export function AdminSchedulePanel() {
                     />
                   </div>
                   <div className="space-y-2 shrink-0">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">시작 시간</label>
-                    <TimePicker 
-                      value={draftStartTime} 
-                      onChange={setDraftStartTime}
-                      clearLabel="시작 시간 초기화"
-                    />
+                    <label htmlFor="schedule-start-time" className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">시작 시간</label>
+                    <div className="flex items-center gap-2">
+                      <Input id="schedule-start-time" type="time" step={60} value={draftStartTime}
+                        onChange={(event) => setDraftStartTime(event.target.value)}
+                        className="bg-white h-11 w-[160px] rounded-xl border-slate-200" />
+                      {draftStartTime && <Button type="button" variant="ghost" size="icon"
+                        className="h-11 w-8 text-slate-300 hover:text-red-500"
+                        aria-label="시작 시간 초기화" onClick={() => setDraftStartTime("")}>
+                        <X className="h-4 w-4" />
+                      </Button>}
+                    </div>
                   </div>
                 </div>
 
@@ -324,12 +261,17 @@ export function AdminSchedulePanel() {
                     />
                   </div>
                   <div className="space-y-2 shrink-0">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">종료 시간</label>
-                    <TimePicker 
-                      value={draftEndTime} 
-                      onChange={setDraftEndTime}
-                      clearLabel="종료 시간 초기화"
-                    />
+                    <label htmlFor="schedule-end-time" className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">종료 시간</label>
+                    <div className="flex items-center gap-2">
+                      <Input id="schedule-end-time" type="time" step={60} value={draftEndTime}
+                        onChange={(event) => setDraftEndTime(event.target.value)}
+                        className="bg-white h-11 w-[160px] rounded-xl border-slate-200" />
+                      {draftEndTime && <Button type="button" variant="ghost" size="icon"
+                        className="h-11 w-8 text-slate-300 hover:text-red-500"
+                        aria-label="종료 시간 초기화" onClick={() => setDraftEndTime("")}>
+                        <X className="h-4 w-4" />
+                      </Button>}
+                    </div>
                   </div>
                 </div>
               </div>
