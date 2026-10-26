@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.admin.service;
 
 import bhoon.sugang_helper.academic.crawling.dto.response.CrawlerAdminSnapshot;
-import bhoon.sugang_helper.academic.crawling.service.CrawlerAdminSnapshotQuery;
-import bhoon.sugang_helper.academic.crawling.service.CrawlerStatusQuery;
+import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
+import bhoon.sugang_helper.academic.crawling.service.CrawlerRunStateService;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminHourlyTrafficResponse;
@@ -12,12 +12,12 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQuery;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationTestSender;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -38,13 +38,13 @@ public class AdminService {
 
     private static final DateTimeFormatter HOUR_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final long CRAWLER_DELAY_MINUTES = 15L;
-    private final UserIdentityQuery userIdentityQuery;
-    private final UserNotificationQuery userNotificationQuery;
+    private final UserIdentityQueryService userIdentityQuery;
+    private final UserNotificationQueryService userNotificationQuery;
     private final SubscriptionQueryService subscriptionQueryService;
-    private final NotificationHistoryQuery notificationHistoryQuery;
-    private final NotificationTestSender notificationTestSender;
-    private final CrawlerAdminSnapshotQuery crawlerAdminSnapshotQuery;
-    private final CrawlerStatusQuery crawlerStatusQuery;
+    private final NotificationHistoryQueryService notificationHistoryQuery;
+    private final NotificationService notificationTestSender;
+    private final CourseCrawlerTargetService crawlerAdminSnapshotQuery;
+    private final CrawlerRunStateService crawlerStatusQuery;
 
     /**
      * 관리자 대시보드 기본 통계 정보를 조회합니다.

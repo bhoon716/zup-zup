@@ -11,17 +11,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserDisplayNameQueryService implements UserDisplayNameQuery {
+public class UserDisplayNameQueryService {
 
     private final UserRepository userRepository;
 
-    @Override
     public Optional<UserDisplayName> findById(Long userId) {
         return userRepository.findById(userId)
                 .map(user -> new UserDisplayName(user.getId(), user.getName()));
     }
 
-    @Override
     public List<UserDisplayName> findByIds(List<Long> userIds) {
         return userRepository.findAllById(userIds).stream()
                 .map(user -> new UserDisplayName(user.getId(), user.getName()))

@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
+import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
@@ -44,7 +44,7 @@ class SeatNotificationOutboxProcessorTest {
     @Mock
     private SubscriptionQueryService subscriptionQueryService;
     @Mock
-    private UserNotificationQuery userNotificationQuery;
+    private UserNotificationQueryService userNotificationQuery;
     @Mock
     private NotificationChannelPolicy notificationChannelPolicy;
     @Mock

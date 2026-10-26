@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.academic.course.service;
 
+import bhoon.sugang_helper.academic.review.service.CourseReviewQueryService;
+import bhoon.sugang_helper.academic.crawling.service.CrawlerCourseSearchContextProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,7 +24,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -59,13 +61,13 @@ class CourseServiceTest {
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
     @Mock
-    private UserIdentityQuery userIdentityQuery;
+    private UserIdentityQueryService userIdentityQuery;
 
     @Mock
-    private CourseReviewQuery courseReviewQuery;
+    private CourseReviewQueryService courseReviewQuery;
 
     @Mock
-    private CourseSearchContextProvider searchContextProvider;
+    private CrawlerCourseSearchContextProvider searchContextProvider;
 
     private CourseService courseService;
     private MockedStatic<SecurityUtil> securityUtilMockedStatic;

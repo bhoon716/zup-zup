@@ -17,7 +17,7 @@ import bhoon.sugang_helper.identity.user.dto.request.UserUpdateRequest;
 import bhoon.sugang_helper.identity.user.dto.response.UserResponse;
 import bhoon.sugang_helper.identity.user.service.DiscordOAuthService;
 import bhoon.sugang_helper.identity.user.service.UserService;
-import bhoon.sugang_helper.identity.user.service.UserSessionLogout;
+import bhoon.sugang_helper.identity.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -47,7 +47,7 @@ public class UserController {
 
     private final UserService userService;
     private final DiscordOAuthService discordOAuthService;
-    private final UserSessionLogout authSessionLogout;
+    private final AuthService authSessionLogout;
 
     @Value("${app.oauth2.authorized-redirect-uri}")
     private String frontendBaseUrl;

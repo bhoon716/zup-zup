@@ -15,7 +15,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
 import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleTimeRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.TimetableRequest;
@@ -51,7 +51,7 @@ class TimetableServiceTest {
     @Mock
     private CourseCatalogQueryService courseCatalogQuery;
     @Mock
-    private UserIdentityQuery userIdentityQuery;
+    private UserIdentityQueryService userIdentityQuery;
     private UserIdentity testUser;
 
     @BeforeEach

@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CourseCrawlerTargetService implements CrawlerTargetQuery, CrawlerAdminSnapshotQuery {
+public class CourseCrawlerTargetService {
 
     private final CrawlerSettingRepository crawlerSettingRepository;
 
@@ -36,7 +36,6 @@ public class CourseCrawlerTargetService implements CrawlerTargetQuery, CrawlerAd
         return toResponse(setting);
     }
 
-    @Override
     public CrawlerAdminSnapshot findCurrentAdminSnapshot() {
         CrawlerSetting setting = resolveCurrentSetting();
         return new CrawlerAdminSnapshot(setting.getTargetYear(), setting.getTargetSemester());
@@ -68,7 +67,6 @@ public class CourseCrawlerTargetService implements CrawlerTargetQuery, CrawlerAd
      * 현재 크롤링 타겟의 원시 값(record 형식)을 조회합니다.
      */
     @Transactional(readOnly = true)
-    @Override
     public CrawlTargetInfo getCurrentTargetValue() {
         CrawlerSetting setting = resolveCurrentSetting();
         return new CrawlTargetInfo(setting.getTargetYear(), SemesterType.fromCode(setting.getTargetSemester()));

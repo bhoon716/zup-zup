@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import bhoon.sugang_helper.common.config.MdcTaskDecorator;
-import bhoon.sugang_helper.identity.user.service.UserDeviceWebPushManagement;
+import bhoon.sugang_helper.identity.user.service.UserDeviceService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
@@ -45,7 +45,7 @@ class WebPushHttpCancellationTest {
         Security.addProvider(new BouncyCastleProvider());
         ObservedPushService pushService = new ObservedPushService(generateKeyPair());
         WebPushNotificationSender sender = new WebPushNotificationSender("", "", "",
-                new ObjectMapper(), mock(UserDeviceWebPushManagement.class));
+                new ObjectMapper(), mock(UserDeviceService.class));
         ReflectionTestUtils.setField(sender, "pushService", pushService);
         CountDownLatch requestReceived = new CountDownLatch(1);
         CountDownLatch releaseResponse = new CountDownLatch(1);

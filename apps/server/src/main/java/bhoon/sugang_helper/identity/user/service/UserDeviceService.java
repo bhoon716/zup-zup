@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserDeviceService implements UserDeviceWebPushManagement {
+public class UserDeviceService {
 
     private final UserDeviceRepository userDeviceRepository;
     private final UserRepository userRepository;
@@ -97,7 +97,6 @@ public class UserDeviceService implements UserDeviceWebPushManagement {
                 });
     }
 
-    @Override
     public void validateEndpoint(String endpoint) {
         webPushEndpointValidator.validate(endpoint);
     }

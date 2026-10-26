@@ -20,7 +20,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -53,7 +53,7 @@ class ReviewScopeContractTest {
     @Autowired private CourseReviewService reviewService;
     @Autowired private CourseEmojiReviewService emojiService;
     @Autowired private CourseReviewQueryService reviewQuery;
-    @MockitoBean private UserIdentityQuery users;
+    @MockitoBean private UserIdentityQueryService users;
     private MockedStatic<SecurityUtil> security;
 
     @BeforeEach

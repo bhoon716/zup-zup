@@ -12,8 +12,7 @@ import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.common.security.util.CookieUtil;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
-import bhoon.sugang_helper.identity.user.service.UserSessionLogout;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,10 +34,10 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService implements UserSessionLogout {
+public class AuthService {
 
     private final JwtProvider jwtProvider;
-    private final UserIdentityQuery userIdentityQuery;
+    private final UserIdentityQueryService userIdentityQuery;
     private final SecurityContextRepository securityContextRepository;
 
     @Value("${app.auth.refresh-cookie-secure:false}")
@@ -92,7 +91,6 @@ public class AuthService implements UserSessionLogout {
         }
     }
 
-    @Override
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = resolveRefreshToken(request);
         String accessToken = jwtProvider.resolveToken(request);

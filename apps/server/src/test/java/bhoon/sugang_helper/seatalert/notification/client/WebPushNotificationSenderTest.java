@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.identity.user.service.UserDeviceWebPushManagement;
+import bhoon.sugang_helper.identity.user.service.UserDeviceService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import ch.qos.logback.classic.Logger;
@@ -39,7 +39,7 @@ class WebPushNotificationSenderTest {
     void setUp() {
         webPushNotificationSender = new WebPushNotificationSender("", "", "",
                 new ObjectMapper(),
-                Mockito.mock(UserDeviceWebPushManagement.class));
+                Mockito.mock(UserDeviceService.class));
     }
 
     @Test

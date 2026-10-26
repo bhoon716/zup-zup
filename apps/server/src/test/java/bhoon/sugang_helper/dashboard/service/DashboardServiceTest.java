@@ -6,17 +6,17 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementPreview;
-import bhoon.sugang_helper.campus.announcement.service.DashboardAnnouncementQuery;
+import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
 import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleSummary;
-import bhoon.sugang_helper.campus.schedule.service.UpcomingScheduleQuery;
+import bhoon.sugang_helper.campus.schedule.service.ScheduleService;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardSnapshotResponse;
 import bhoon.sugang_helper.identity.user.dto.result.UserDashboardProfile;
-import bhoon.sugang_helper.identity.user.service.UserDashboardQuery;
+import bhoon.sugang_helper.identity.user.service.UserDashboardQueryService;
 import bhoon.sugang_helper.planning.timetable.dto.result.PrimaryTimetableSnapshot;
-import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery;
+import bhoon.sugang_helper.planning.timetable.service.TimetableService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQuery;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -31,15 +31,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DashboardServiceTest {
 
     @Mock
-    private UserDashboardQuery userDashboardQuery;
+    private UserDashboardQueryService userDashboardQuery;
     @Mock
-    private NotificationHistoryQuery notificationHistoryQuery;
+    private NotificationHistoryQueryService notificationHistoryQuery;
     @Mock
-    private PrimaryTimetableQuery primaryTimetableQuery;
+    private TimetableService primaryTimetableQuery;
     @Mock
-    private UpcomingScheduleQuery upcomingScheduleQuery;
+    private ScheduleService upcomingScheduleQuery;
     @Mock
-    private DashboardAnnouncementQuery dashboardAnnouncementQuery;
+    private AnnouncementService dashboardAnnouncementQuery;
 
     @InjectMocks
     private DashboardService dashboardService;

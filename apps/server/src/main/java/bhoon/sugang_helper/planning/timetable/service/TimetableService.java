@@ -7,7 +7,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
 import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.planning.timetable.dto.result.PrimaryTimetableSnapshot;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseScheduleSnapshot;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseSnapshot;
@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class TimetableService implements PrimaryTimetableQuery {
+public class TimetableService {
 
     private static final int MAX_TIMETABLE_COUNT = 10;
     private static final int MAX_COURSE_COUNT = 10;
@@ -49,7 +49,7 @@ public class TimetableService implements PrimaryTimetableQuery {
     private final TimetableEntryRepository timetableEntryRepository;
     private final CustomScheduleRepository customScheduleRepository;
     private final CourseCatalogQueryService courseCatalogQuery;
-    private final UserIdentityQuery userIdentityQuery;
+    private final UserIdentityQueryService userIdentityQuery;
 
     /**
      * 새로운 시간표를 생성합니다.
@@ -109,7 +109,6 @@ public class TimetableService implements PrimaryTimetableQuery {
         return getTimetableDetail(primaryTimetables.get(0));
     }
 
-    @Override
     public Optional<PrimaryTimetableSnapshot> findPrimaryForCurrentUser() {
         TimetableDetailResponse timetable = getPrimaryTimetable();
         if (timetable == null) {

@@ -10,7 +10,7 @@ import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.exception.OAuthAccountProvisioningException;
-import bhoon.sugang_helper.identity.user.service.OAuthAccountProvisioner;
+import bhoon.sugang_helper.identity.user.service.UserOAuthAccountService;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
@@ -39,7 +39,7 @@ class CustomOAuth2UserServiceTest {
     private static final String ISSUER = "https://accounts.google.com";
 
     @Mock
-    private OAuthAccountProvisioner accountProvisioner;
+    private UserOAuthAccountService accountProvisioner;
 
     @Test
     void mapsProviderIdentityToTheAuthenticatedPrincipal() {

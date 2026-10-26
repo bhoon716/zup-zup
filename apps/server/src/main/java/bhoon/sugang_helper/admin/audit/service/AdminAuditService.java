@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AdminAuditService implements AdminAuditRecorder {
+public class AdminAuditService {
 
     private static final int MAX_PAGE_SIZE = 100;
 

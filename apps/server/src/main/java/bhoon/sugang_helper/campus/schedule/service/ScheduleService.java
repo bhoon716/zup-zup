@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class ScheduleService implements UpcomingScheduleQuery {
+public class ScheduleService {
 
     private final ScheduleRepository scheduleRepository;
     private final Clock clock;
@@ -53,7 +53,6 @@ public class ScheduleService implements UpcomingScheduleQuery {
                 .toList();
     }
 
-    @Override
     public List<ScheduleSummary> findUpcomingSchedules() {
         return getUpcomingSchedules().stream()
                 .map(schedule -> new ScheduleSummary(

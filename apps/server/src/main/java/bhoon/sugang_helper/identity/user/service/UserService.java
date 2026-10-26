@@ -1,5 +1,8 @@
 package bhoon.sugang_helper.identity.user.service;
 
+import bhoon.sugang_helper.support.feedback.service.FeedbackAccountLifecycleService;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionAccountLifecycleService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.jwt.JwtProvider;
@@ -34,11 +37,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final UserSubscriptionCleanup subscriptionAccountLifecycle;
+    private final SubscriptionAccountLifecycleService subscriptionAccountLifecycle;
     private final UserDeviceRepository userDeviceRepository;
-    private final UserFeedbackCleanup feedbackAccountLifecycle;
+    private final FeedbackAccountLifecycleService feedbackAccountLifecycle;
     private final EmailVerificationService emailVerificationService;
-    private final UserNotificationTestSender notificationTestSender;
+    private final NotificationService notificationTestSender;
     private final JwtProvider jwtProvider;
     private final UserAccessRevocationService userAccessRevocationService;
 

@@ -6,7 +6,7 @@ import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.identity.user.service.DiscordOAuthService;
 import bhoon.sugang_helper.identity.user.service.UserService;
-import bhoon.sugang_helper.identity.user.service.UserSessionLogout;
+import bhoon.sugang_helper.identity.auth.service.AuthService;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -27,14 +27,14 @@ class UserControllerDiscordOAuthTest {
 
     private UserService userService;
     private DiscordOAuthService discordOAuthService;
-    private UserSessionLogout authSessionLogout;
+    private AuthService authSessionLogout;
     private UserController controller;
 
     @BeforeEach
     void setUp() {
         userService = Mockito.mock(UserService.class);
         discordOAuthService = Mockito.mock(DiscordOAuthService.class);
-        authSessionLogout = Mockito.mock(UserSessionLogout.class);
+        authSessionLogout = Mockito.mock(AuthService.class);
         controller = new UserController(userService, discordOAuthService, authSessionLogout);
         ReflectionTestUtils.setField(controller, "frontendBaseUrl", "https://web.example.com");
         ReflectionTestUtils.setField(controller, "discordClientId", "client-id");

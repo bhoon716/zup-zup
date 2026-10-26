@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.support.feedback.service;
 
-import bhoon.sugang_helper.admin.audit.service.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
@@ -10,8 +10,8 @@ import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.identity.user.dto.result.UserAccountStatus;
 import bhoon.sugang_helper.identity.user.dto.result.UserDisplayName;
 import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserDisplayNameQuery;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserDisplayNameQueryService;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentAccess;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackSummary;
@@ -60,10 +60,10 @@ public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final FeedbackAttachmentRepository feedbackAttachmentRepository;
     private final FeedbackReplyRepository feedbackReplyRepository;
-    private final AdminAuditRecorder adminAuditRecorder;
+    private final AdminAuditService adminAuditRecorder;
     private final AdminFeedbackReadRepository adminFeedbackReadRepository;
-    private final UserIdentityQuery userIdentityQuery;
-    private final UserDisplayNameQuery userDisplayNameQuery;
+    private final UserIdentityQueryService userIdentityQuery;
+    private final UserDisplayNameQueryService userDisplayNameQuery;
     private final LocalFileUploadService fileUploadService;
     private final RedisService redisService;
     private final FeedbackMetadataNormalizer feedbackMetadataNormalizer;

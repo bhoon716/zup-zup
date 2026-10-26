@@ -24,7 +24,7 @@ import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import bhoon.sugang_helper.identity.user.enums.DeviceType;
 import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.identity.user.enums.Role;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
+import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
@@ -57,7 +57,7 @@ class NotificationServiceTest {
     @Mock
     private RedisService redisService;
     @Mock
-    private UserNotificationQuery userNotificationQuery;
+    private UserNotificationQueryService userNotificationQuery;
     @Mock
     private NotificationSender notificationSender;
     @Mock

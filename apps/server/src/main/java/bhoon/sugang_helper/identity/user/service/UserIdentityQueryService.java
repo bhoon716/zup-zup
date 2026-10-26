@@ -14,30 +14,26 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserIdentityQueryService implements UserIdentityQuery {
+public class UserIdentityQueryService {
 
     private final UserRepository userRepository;
 
-    @Override
     public Optional<UserIdentity> findByEmail(String email) {
         return userRepository.findByEmail(email)
                 .filter(user -> !user.isDeleted())
                 .map(user -> new UserIdentity(user.getId(), user.getRole() == Role.ADMIN));
     }
 
-    @Override
     public Optional<UserIdentity> findById(Long userId) {
         return userRepository.findById(userId)
                 .map(user -> new UserIdentity(user.getId(), user.getRole() == Role.ADMIN));
     }
 
-    @Override
     public Optional<AuthenticatedUser> findAuthenticatedUser(Long userId, String email) {
         return userRepository.findByIdAndEmailAndDeletedAtIsNull(userId, email)
                 .map(user -> new AuthenticatedUser(user.getId(), user.getEmail(), user.getRoleKey()));
     }
 
-    @Override
     public List<UserAccountStatus> findAccountStatuses(List<Long> userIds) {
         if (userIds.isEmpty()) {
             return List.of();
@@ -47,7 +43,6 @@ public class UserIdentityQueryService implements UserIdentityQuery {
                 .toList();
     }
 
-    @Override
     public long countUsers() {
         return userRepository.count();
     }

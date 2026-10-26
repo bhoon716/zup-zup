@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class CrawlerRunStateService implements CrawlerStatusQuery {
+public class CrawlerRunStateService {
 
     private final CrawlerStatusRepository crawlerStatusRepository;
     private final CrawlerRunFailureRepository crawlerRunFailureRepository;
@@ -65,7 +65,6 @@ public class CrawlerRunStateService implements CrawlerStatusQuery {
         return SlackAlertCategory.CRAWLER_FETCH;
     }
 
-    @Override
     @Transactional(readOnly = true)
     public Optional<LocalDateTime> findLastSuccessAt() {
         return crawlerStatusRepository.findById(CrawlerStatus.SINGLETON_ID)

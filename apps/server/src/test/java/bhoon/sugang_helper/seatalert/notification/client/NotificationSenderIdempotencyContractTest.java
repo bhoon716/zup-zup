@@ -12,7 +12,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import bhoon.sugang_helper.common.util.EmailTemplateService;
-import bhoon.sugang_helper.identity.user.service.UserDeviceWebPushManagement;
+import bhoon.sugang_helper.identity.user.service.UserDeviceService;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -93,7 +93,7 @@ class NotificationSenderIdempotencyContractTest {
     @Test
     void webPushCarriesTheDeliveryKeyInBothTopicAndEncryptedPayload() throws Exception {
         WebPushNotificationSender sender = new WebPushNotificationSender("", "", "",
-                new ObjectMapper(), mock(UserDeviceWebPushManagement.class));
+                new ObjectMapper(), mock(UserDeviceService.class));
         Method idempotentSend = idempotentSendMethod(sender);
         PushService pushService = mock(PushService.class);
         HttpResponse response = mock(HttpResponse.class);

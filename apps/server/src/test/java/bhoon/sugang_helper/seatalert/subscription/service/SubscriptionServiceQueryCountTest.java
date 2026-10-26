@@ -1,14 +1,18 @@
 package bhoon.sugang_helper.seatalert.subscription.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
+import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
+import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.seatalert.subscription.entity.Subscription;
 import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionRepository;
 import jakarta.persistence.EntityManager;
@@ -58,9 +62,9 @@ class SubscriptionServiceQueryCountTest {
         sessionFactory.getStatistics().clear();
 
         SubscriptionService service = new SubscriptionService(subscriptionRepository,
-                new bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService(courseRepository),
-                new bhoon.sugang_helper.identity.user.service.UserIdentityQueryService(userRepository),
-                org.mockito.Mockito.mock(bhoon.sugang_helper.academic.crawling.service.CrawlerTargetQuery.class));
+                new CourseCatalogQueryService(courseRepository),
+                new UserIdentityQueryService(userRepository),
+                mock(CourseCrawlerTargetService.class));
         ReflectionTestUtils.setField(service, "maxLimit", 3);
         try (var securityUtil = mockStatic(SecurityUtil.class)) {
             securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");

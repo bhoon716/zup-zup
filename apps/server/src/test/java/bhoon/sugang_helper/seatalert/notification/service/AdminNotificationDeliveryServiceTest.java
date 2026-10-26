@@ -6,7 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.admin.audit.service.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
@@ -30,7 +30,7 @@ class AdminNotificationDeliveryServiceTest {
     @Mock
     private SeatNotificationDeliveryRepository deliveryRepository;
     @Mock
-    private AdminAuditRecorder adminAuditRecorder;
+    private AdminAuditService adminAuditRecorder;
     @InjectMocks
     private AdminNotificationDeliveryService service;
 

@@ -6,8 +6,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
-import bhoon.sugang_helper.identity.user.service.UserNotificationTestSender;
+import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
@@ -28,13 +27,13 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class NotificationService implements NotificationTestSender, UserNotificationTestSender {
+public class NotificationService {
 
     private static final String USER_TEST_COOLDOWN_KEY_PREFIX = "ALERT:USER_TEST:";
     private static final Duration USER_TEST_COOLDOWN = Duration.ofSeconds(10);
 
     private final RedisService redisService;
-    private final UserNotificationQuery userNotificationQuery;
+    private final UserNotificationQueryService userNotificationQuery;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
     private final NotificationChannelPolicy notificationChannelPolicy;
@@ -110,7 +109,6 @@ public class NotificationService implements NotificationTestSender, UserNotifica
     /**
      * 사용자 단에서 요청한 테스트 알림을 발송하며, 쿨타임을 적용합니다.
      */
-    @Override
     public void sendUserTestNotification(Long userId) {
         String cooldownKey = USER_TEST_COOLDOWN_KEY_PREFIX + userId;
         boolean acquired = redisService.setValuesIfAbsent(cooldownKey, "LOCK", USER_TEST_COOLDOWN);

@@ -15,7 +15,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistResponse;
 import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;
 import bhoon.sugang_helper.planning.wishlist.repository.WishlistRepository;
@@ -48,7 +48,7 @@ class WishlistServiceTest {
     @Mock
     private CourseCatalogQueryService courseCatalogQuery;
     @Mock
-    private UserIdentityQuery userIdentityQuery;
+    private UserIdentityQueryService userIdentityQuery;
 
     @BeforeEach
     void setUp() {

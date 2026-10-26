@@ -6,7 +6,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistResponse;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistToggleResponse;
 import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;
@@ -29,7 +29,7 @@ public class WishlistService {
 
     private final WishlistRepository wishlistRepository;
     private final CourseCatalogQueryService courseCatalogQuery;
-    private final UserIdentityQuery userIdentityQuery;
+    private final UserIdentityQueryService userIdentityQuery;
 
     @Transactional
     public WishlistToggleResponse toggleWishlist(String courseKey) {

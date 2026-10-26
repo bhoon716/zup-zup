@@ -17,7 +17,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,7 @@ public class CourseReviewService {
     private final CourseReviewRepository reviewRepository;
     private final CourseReviewReactionRepository reactionRepository;
     private final CourseReviewCatalogService courseReviewCatalog;
-    private final UserIdentityQuery userIdentityQuery;
+    private final UserIdentityQueryService userIdentityQuery;
 
     /**
      * 현재 로그인한 사용자를 조회합니다.

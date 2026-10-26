@@ -16,12 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UserOAuthAccountService implements OAuthAccountProvisioner {
+public class UserOAuthAccountService {
 
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Override
     @Transactional
     public AuthenticatedUser findOrCreate(String issuer, String subject, String email, String name) {
         User user = userRepository.findByOauthIssuerAndOauthSubjectAndDeletedAtIsNull(issuer, subject)

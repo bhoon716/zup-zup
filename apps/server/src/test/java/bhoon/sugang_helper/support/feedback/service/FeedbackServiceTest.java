@@ -11,7 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.admin.audit.service.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
 import bhoon.sugang_helper.common.dto.result.LoadedFile;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
@@ -19,8 +19,8 @@ import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
 import bhoon.sugang_helper.identity.user.dto.result.UserAccountStatus;
 import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserDisplayNameQuery;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserDisplayNameQueryService;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentAccess;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentSummary;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
@@ -73,13 +73,13 @@ class FeedbackServiceTest {
     @Mock
     private FeedbackReplyRepository feedbackReplyRepository;
     @Mock
-    private AdminAuditRecorder adminAuditRecorder;
+    private AdminAuditService adminAuditRecorder;
     @Mock
     private AdminFeedbackReadRepository adminFeedbackReadRepository;
     @Mock
-    private UserIdentityQuery userIdentityQuery;
+    private UserIdentityQueryService userIdentityQuery;
     @Mock
-    private UserDisplayNameQuery userDisplayNameQuery;
+    private UserDisplayNameQueryService userDisplayNameQuery;
     @Mock
     private LocalFileUploadService fileUploadService;
     @Mock

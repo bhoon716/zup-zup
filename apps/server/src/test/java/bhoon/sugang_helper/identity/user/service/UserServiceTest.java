@@ -1,5 +1,8 @@
 package bhoon.sugang_helper.identity.user.service;
 
+import bhoon.sugang_helper.support.feedback.service.FeedbackAccountLifecycleService;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionAccountLifecycleService;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
@@ -53,19 +56,19 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private UserSubscriptionCleanup subscriptionAccountLifecycle;
+    private SubscriptionAccountLifecycleService subscriptionAccountLifecycle;
 
     @Mock
     private UserDeviceRepository userDeviceRepository;
 
     @Mock
-    private UserFeedbackCleanup feedbackAccountLifecycle;
+    private FeedbackAccountLifecycleService feedbackAccountLifecycle;
 
     @Mock
     private EmailVerificationService emailVerificationService;
 
     @Mock
-    private UserNotificationTestSender notificationTestSender;
+    private NotificationService notificationTestSender;
 
     @Mock
     private JwtProvider jwtProvider;

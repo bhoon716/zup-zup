@@ -3,7 +3,7 @@ package bhoon.sugang_helper.seatalert.notification.service;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
@@ -18,42 +18,36 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class NotificationHistoryQueryService implements NotificationHistoryQuery {
+public class NotificationHistoryQueryService {
 
     private final NotificationHistoryRepository repository;
-    private final UserIdentityQuery userIdentityQuery;
+    private final UserIdentityQueryService userIdentityQuery;
 
-    @Override
     public long countCreatedAfter(LocalDateTime start) {
         return repository.countByCreatedAtAfter(start);
     }
 
-    @Override
     public List<LocalDateTime> findCreatedAtAfter(LocalDateTime start) {
         return repository.findCreatedAtByCreatedAtAfter(start);
     }
 
-    @Override
     public List<NotificationHistoryItem> findLatest() {
         return repository.findTop50ByOrderByCreatedAtDesc().stream()
                 .map(NotificationHistoryQueryService::toItem)
                 .toList();
     }
 
-    @Override
     public List<NotificationHistoryItem> findLatestForUser(Long userId) {
         return repository.findTop3ByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(NotificationHistoryQueryService::toItem)
                 .toList();
     }
 
-    @Override
     public Slice<NotificationHistoryItem> findForUser(Long userId, Pageable pageable) {
         return repository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable)
                 .map(NotificationHistoryQueryService::toItem);
     }
 
-    @Override
     public Slice<NotificationHistoryItem> findForCurrentUser(Pageable pageable) {
         String email = SecurityUtil.getCurrentUserEmail();
         Long userId = userIdentityQuery.findByEmail(email)

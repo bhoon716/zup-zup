@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AnnouncementService implements DashboardAnnouncementQuery {
+public class AnnouncementService {
 
     private static final int MAX_KEYWORD_LENGTH = 100;
     private static final int MAX_PAGE_SIZE = 100;
@@ -56,7 +56,6 @@ public class AnnouncementService implements DashboardAnnouncementQuery {
         }
     }
 
-    @Override
     public List<AnnouncementPreview> findDashboardAnnouncements(int limit) {
         return getPublicAnnouncements(null, AnnouncementSearchType.TITLE_CONTENT, PageRequest.of(0, limit))
                 .getContent().stream()

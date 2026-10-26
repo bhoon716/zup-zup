@@ -1,17 +1,17 @@
 package bhoon.sugang_helper.dashboard.service;
 
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementPreview;
-import bhoon.sugang_helper.campus.announcement.service.DashboardAnnouncementQuery;
+import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
 import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleSummary;
-import bhoon.sugang_helper.campus.schedule.service.UpcomingScheduleQuery;
+import bhoon.sugang_helper.campus.schedule.service.ScheduleService;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardNotificationResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardPrimaryTimetableResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardUserResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardSnapshotResponse;
 import bhoon.sugang_helper.identity.user.dto.result.UserDashboardProfile;
-import bhoon.sugang_helper.identity.user.service.UserDashboardQuery;
-import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQuery;
+import bhoon.sugang_helper.identity.user.service.UserDashboardQueryService;
+import bhoon.sugang_helper.planning.timetable.service.TimetableService;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -25,11 +25,11 @@ public class DashboardService {
 
     private static final int DASHBOARD_ANNOUNCEMENT_LIMIT = 4;
 
-    private final UserDashboardQuery userDashboardQuery;
-    private final NotificationHistoryQuery notificationHistoryQuery;
-    private final PrimaryTimetableQuery primaryTimetableQuery;
-    private final UpcomingScheduleQuery upcomingScheduleQuery;
-    private final DashboardAnnouncementQuery dashboardAnnouncementQuery;
+    private final UserDashboardQueryService userDashboardQuery;
+    private final NotificationHistoryQueryService notificationHistoryQuery;
+    private final TimetableService primaryTimetableQuery;
+    private final ScheduleService upcomingScheduleQuery;
+    private final AnnouncementService dashboardAnnouncementQuery;
 
     public DashboardSnapshotResponse getDashboardSnapshot() {
         List<ScheduleSummary> upcomingSchedules = upcomingScheduleQuery.findUpcomingSchedules();

@@ -4,7 +4,7 @@ import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.exception.OAuthAccountProvisioningException;
-import bhoon.sugang_helper.identity.user.service.OAuthAccountProvisioner;
+import bhoon.sugang_helper.identity.user.service.UserOAuthAccountService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
-    private final OAuthAccountProvisioner accountProvisioner;
+    private final UserOAuthAccountService accountProvisioner;
 
     @Override
     @Transactional

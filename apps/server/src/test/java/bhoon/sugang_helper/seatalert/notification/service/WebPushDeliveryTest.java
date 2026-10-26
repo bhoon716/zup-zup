@@ -13,7 +13,7 @@ import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
+import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
@@ -62,7 +62,7 @@ class WebPushDeliveryTest {
     @Autowired private SeatNotificationDeliveryRepository deliveries;
     @Autowired private NotificationHistoryRepository histories;
     @MockitoBean private SubscriptionQueryService subscriptions;
-    @MockitoBean private UserNotificationQuery users;
+    @MockitoBean private UserNotificationQueryService users;
     @MockitoBean private RedisService redisService;
     @MockitoBean private NotificationSender sender;
     @MockitoBean private NotificationProviderResilience resilience;

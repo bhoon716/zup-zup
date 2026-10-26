@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.academic.course.service;
 
+import bhoon.sugang_helper.academic.review.service.CourseReviewQueryService;
+import bhoon.sugang_helper.academic.crawling.service.CrawlerCourseSearchContextProvider;
 import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.dto.result.CourseSearchContext;
 import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
@@ -16,7 +18,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -36,10 +38,10 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final CourseSearchReadRepository courseSearchReadRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
-    private final UserIdentityQuery userIdentityQuery;
-    private final CourseReviewQuery courseReviewQuery;
+    private final UserIdentityQueryService userIdentityQuery;
+    private final CourseReviewQueryService courseReviewQuery;
 
-    private final CourseSearchContextProvider searchContextProvider;
+    private final CrawlerCourseSearchContextProvider searchContextProvider;
 
     /**
      * 필터 조건과 페이징 정보를 사용하여 강의 목록을 검색

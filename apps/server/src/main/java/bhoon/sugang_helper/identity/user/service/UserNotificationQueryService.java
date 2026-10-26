@@ -17,36 +17,31 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserNotificationQueryService implements UserNotificationQuery {
+public class UserNotificationQueryService {
 
     private final UserRepository userRepository;
     private final UserDeviceRepository userDeviceRepository;
 
-    @Override
     public Optional<NotificationRecipient> findById(Long userId) {
         return userRepository.findById(userId).map(UserNotificationQueryService::toRecipient);
     }
 
-    @Override
     public Optional<NotificationRecipient> findByEmail(String email) {
         return userRepository.findByEmail(email).map(UserNotificationQueryService::toRecipient);
     }
 
-    @Override
     public List<NotificationRecipient> findByIds(List<Long> userIds) {
         return userRepository.findAllById(userIds).stream()
                 .map(UserNotificationQueryService::toRecipient)
                 .toList();
     }
 
-    @Override
     public List<NotificationDevice> findDevicesByUserId(Long userId) {
         return userDeviceRepository.findByUserId(userId).stream()
                 .map(UserNotificationQueryService::toNotificationDevice)
                 .toList();
     }
 
-    @Override
     public List<NotificationDevice> findDevicesByUserIds(List<Long> userIds) {
         return userDeviceRepository.findByUserIdIn(userIds).stream()
                 .map(UserNotificationQueryService::toNotificationDevice)
