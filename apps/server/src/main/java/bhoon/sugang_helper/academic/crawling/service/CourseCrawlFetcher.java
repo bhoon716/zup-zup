@@ -53,7 +53,7 @@ public class CourseCrawlFetcher {
 
     private void fetchSingleChunk(String year, String semester, String certDiv, List<ParsedCourseDto> accumulator) {
         long startNs = System.nanoTime();
-        log.info("[Crawler] chunk_started runId={} year={} semester={} certDiv={} stage=COURSE_API result=started",
+        log.debug("[Crawler] 강의 묶음 수집 시작. chunk_started runId={} year={} semester={} certDiv={} stage=COURSE_API result=started",
                 currentRunId(), year, semester, certDiv);
 
         try (InputStream responseStream = apiClient.fetchCourseDataStream(year, semester, certDiv)) {
@@ -62,12 +62,12 @@ public class CourseCrawlFetcher {
             iterator.forEachRemaining(accumulator::add);
 
             long elapsedMs = (System.nanoTime() - startNs) / 1_000_000;
-            log.info("[Crawler] chunk_succeeded runId={} year={} semester={} certDiv={} stage=COURSE_API "
+            log.debug("[Crawler] 강의 묶음 수집 완료. chunk_succeeded runId={} year={} semester={} certDiv={} stage=COURSE_API "
                             + "result=success rowCount={} totalSoFar={} elapsedMs={}",
                     currentRunId(), year, semester, certDiv, accumulator.size() - initialSize,
                     accumulator.size(), elapsedMs);
         } catch (IOException exception) {
-            log.error("[Crawler] chunk_failed runId={} year={} semester={} certDiv={} stage=COURSE_API "
+            log.error("[Crawler] 강의 묶음 수집 실패. chunk_failed runId={} year={} semester={} certDiv={} stage=COURSE_API "
                             + "result=failed failureCode=C001 exceptionType={} retryable=true",
                     currentRunId(), year, semester, certDiv, exception.getClass().getSimpleName());
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);

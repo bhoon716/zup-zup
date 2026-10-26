@@ -89,7 +89,7 @@ public class ImageUploadSanitizer {
             if (cause instanceof Error error) {
                 throw error;
             }
-            log.warn("Image decode failed: {}", cause.getClass().getSimpleName());
+            log.warn("이미지 디코딩 실패. exceptionType= {}", cause.getClass().getSimpleName());
             throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
         }
     }

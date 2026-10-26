@@ -100,7 +100,7 @@ public class NotificationService {
         boolean delivered = false;
 
         for (NotificationChannel channel : channels) {
-            log.info("[Notification Test] Attempting to send. channel={}, userId={}", channel, user.id());
+            log.debug("[Notification Test] 테스트 알림 발송 시도. channel={}, userId={}", channel, user.id());
             delivered = sendNotification(user, devices, notification, channel, failOnMissingTarget) || delivered;
         }
         return delivered;
@@ -126,7 +126,7 @@ public class NotificationService {
                 throw new CustomException(ErrorCode.INVALID_INPUT,
                         "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
             }
-            log.info("[User] Send test notification: userId={}, channels={}", user.id(), channels);
+            log.info("[User] 테스트 알림 요청. userId={}, channels={}", user.id(), channels);
         } catch (RuntimeException e) {
             redisService.deleteValues(cooldownKey);
             throw e;

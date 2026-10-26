@@ -91,7 +91,7 @@ public class JbnuCourseParser {
                 try {
                     courseList.add(processJumpRow(row, fallbackYear, fallbackSemester));
                 } catch (RuntimeException e) {
-                    log.warn("Failed to parse JUMP course row. rowIndex={}, exceptionType={}", rowIndex,
+                    log.warn("JUMP 강의 행 파싱 실패. rowIndex={}, exceptionType={}", rowIndex,
                             SensitiveDataRedactor.exceptionType(e));
                     throw e;
                 }

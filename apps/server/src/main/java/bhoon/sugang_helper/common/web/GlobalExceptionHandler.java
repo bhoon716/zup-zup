@@ -5,6 +5,7 @@ import bhoon.sugang_helper.common.alert.SlackAlertService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.response.ErrorResponse;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -110,14 +111,14 @@ public class GlobalExceptionHandler {
     }
 
     private void log(ErrorCode errorCode, String method, String path, String correlationId, Exception exception) {
-        String message = String.format("[API_ERROR] correlationId=%s code=%s method=%s path=%s exceptionType=%s",
+        String message = String.format("[API_ERROR] correlationId=%s code=%s method=%s path=%s exceptionType=%s API 요청 처리 실패.",
                 correlationId, errorCode.getCode(), method, path, exception.getClass().getSimpleName());
 
         if (errorCode.getStatus().is5xxServerError()) {
             boolean includeStackTrace = shouldLogStackTrace(errorCode, exception);
             String stackTraceState = " stackTraceIncluded=" + includeStackTrace;
             if (includeStackTrace) {
-                log.error(message + stackTraceState, exception);
+                log.error(message + stackTraceState, SensitiveDataRedactor.safeStackTrace(exception));
             } else {
                 log.error(message + stackTraceState);
             }

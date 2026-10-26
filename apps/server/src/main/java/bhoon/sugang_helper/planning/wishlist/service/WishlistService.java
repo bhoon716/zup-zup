@@ -40,7 +40,7 @@ public class WishlistService {
                 .orElse(null);
         if (existingWishlist != null) {
             wishlistRepository.delete(existingWishlist);
-            log.info("[Wishlist] Removed course from wishlist. userId={}, courseKey={}", user.id(), courseKey);
+            log.debug("[Wishlist] 관심 강의 제거. userId={}, courseKey={}", user.id(), courseKey);
             return WishlistToggleResponse.of(false);
         }
 
@@ -49,7 +49,7 @@ public class WishlistService {
                 .courseKey(courseKey)
                 .build();
         wishlistRepository.save(wishlist);
-        log.info("[Wishlist] Added course to wishlist. userId={}, courseKey={}", user.id(), courseKey);
+        log.debug("[Wishlist] 관심 강의 추가. userId={}, courseKey={}", user.id(), courseKey);
         return WishlistToggleResponse.of(true);
     }
 
@@ -88,7 +88,7 @@ public class WishlistService {
     private WishlistResponse toWishlistResponse(Wishlist wishlist, Map<String, CourseSummary> courseMap) {
         CourseSummary course = courseMap.get(wishlist.getCourseKey());
         if (course == null) {
-            log.warn("[Wishlist] Course information not found, excluded from response. courseKey={}",
+            log.warn("[Wishlist] 강의 정보가 없어 응답에서 제외. courseKey={}",
                     wishlist.getCourseKey());
             return null;
         }

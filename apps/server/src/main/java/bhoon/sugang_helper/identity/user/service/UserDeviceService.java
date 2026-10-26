@@ -42,9 +42,9 @@ public class UserDeviceService {
                         device -> {
                             device.updateToken(user.getId(), command.token(), command.p256dh(), command.auth(),
                                     command.alias());
-                            log.info("[UserDevice] Updated existing device: userId={}, tokenFingerprint={}, alias={}",
+                            log.info("[UserDevice] 기존 알림 기기 갱신. userId={}, tokenFingerprint={}",
                                     user.getId(),
-                                    tokenFingerprint(command.token()), command.alias());
+                                    tokenFingerprint(command.token()));
                         },
                         () -> {
                             UserDevice newDevice = UserDevice.builder()
@@ -56,8 +56,8 @@ public class UserDeviceService {
                                     .alias(command.alias())
                                     .build();
                             userDeviceRepository.save(newDevice);
-                            log.info("[UserDevice] Registered new device: userId={}, tokenFingerprint={}, alias={}",
-                                    user.getId(), tokenFingerprint(command.token()), command.alias());
+                            log.info("[UserDevice] 알림 기기 등록. userId={}, tokenFingerprint={}",
+                                    user.getId(), tokenFingerprint(command.token()));
                         });
     }
 
@@ -66,7 +66,7 @@ public class UserDeviceService {
         User user = getCurrentUserOrThrow();
         long deletedCount = userDeviceRepository.deleteByTokenAndUserId(token, user.getId());
         if (deletedCount > 0) {
-            log.info("[UserDevice] Unregistered device: userId={}, tokenFingerprint={}",
+            log.info("[UserDevice] 알림 기기 등록 해제. userId={}, tokenFingerprint={}",
                     user.getId(), tokenFingerprint(token));
         }
     }
@@ -82,7 +82,7 @@ public class UserDeviceService {
         }
 
         userDeviceRepository.delete(device);
-        log.info("[UserDevice] Deleted device by ID: userId={}, deviceId={}", user.getId(), deviceId);
+        log.info("[UserDevice] 지정 알림 기기 삭제. userId={}, deviceId={}", user.getId(), deviceId);
     }
 
 
@@ -93,7 +93,7 @@ public class UserDeviceService {
         userDeviceRepository.findByToken(token)
                 .ifPresent(device -> {
                     userDeviceRepository.delete(device);
-                    log.info("[UserDevice] Auto-deleted invalid device: tokenFingerprint={}", tokenFingerprint(token));
+                    log.info("[UserDevice] 유효하지 않은 알림 기기 자동 삭제. tokenFingerprint={}", tokenFingerprint(token));
                 });
     }
 

@@ -79,8 +79,8 @@ public class CourseReviewService {
                 .build();
 
         CourseReview saved = reviewRepository.saveAndFlush(review);
-        log.info("[Review] Created. reviewId={}, courseKey={}, subjectCode={}, professor={}, userId={}",
-                saved.getId(), courseKey, scope.subjectCode(), scope.professor(), user.id());
+        log.info("[Review] 리뷰 등록. reviewId={}, courseKey={}, subjectCode={}, userId={}",
+                saved.getId(), courseKey, scope.subjectCode(), user.id());
 
         updateCourseReviewStats(courseKeys);
 
@@ -115,7 +115,7 @@ public class CourseReviewService {
         CourseReference course = getCourseForUpdate(review.getCourseKey());
         review.update(request.rating());
         reviewRepository.saveAndFlush(review);
-        log.info("[Review] Updated. reviewId={}, userId={}", reviewId, user.id());
+        log.info("[Review] 리뷰 수정. reviewId={}, userId={}", reviewId, user.id());
 
         updateCourseReviewStats(courseReviewCatalog.findReviewCourseKeys(course));
 
@@ -137,7 +137,7 @@ public class CourseReviewService {
         CourseReference course = getCourseForUpdate(review.getCourseKey());
         reviewRepository.delete(review);
         reviewRepository.flush();
-        log.info("[Review] Deleted. reviewId={}, userId={}", reviewId, user.id());
+        log.info("[Review] 리뷰 삭제. reviewId={}, userId={}", reviewId, user.id());
 
         updateCourseReviewStats(courseReviewCatalog.findReviewCourseKeys(course));
     }
@@ -179,7 +179,7 @@ public class CourseReviewService {
         reactionRepository.save(newReaction);
         incrementReactionCount(review, type);
 
-        log.info("[Review Reaction] Added. reviewId={}, userId={}, type={}", review.getId(), userId, type);
+        log.debug("[Review Reaction] 리뷰 반응 등록. reviewId={}, userId={}, type={}", review.getId(), userId, type);
     }
 
 
@@ -190,14 +190,14 @@ public class CourseReviewService {
         if (existing.getReactionType() == targetType) {
             reactionRepository.delete(existing);
             decrementReactionCount(review, targetType);
-            log.info("[Review Reaction] Removed. reviewId={}, userId={}, type={}", review.getId(), userId, targetType);
+            log.debug("[Review Reaction] 리뷰 반응 취소. reviewId={}, userId={}, type={}", review.getId(), userId, targetType);
         } else {
             ReactionType oldType = existing.getReactionType();
             existing.updateReactionType(targetType);
 
             decrementReactionCount(review, oldType);
             incrementReactionCount(review, targetType);
-            log.info("[Review Reaction] Switched. reviewId={}, userId={}, oldType={}, newType={}",
+            log.debug("[Review Reaction] 리뷰 반응 변경. reviewId={}, userId={}, oldType={}, newType={}",
                     review.getId(), userId, oldType, targetType);
         }
     }

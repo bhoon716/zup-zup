@@ -49,7 +49,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
             response.setHeader("X-Error-Id", error.getCorrelationId());
-            log.error("[SESSION_UNAVAILABLE] correlationId={} exceptionType={}",
+            log.error("[SESSION_UNAVAILABLE] 세션 확인 실패로 인증 거절. correlationId={} exceptionType={}",
                     error.getCorrelationId(), exception.getClass().getSimpleName());
             objectMapper.writeValue(response.getWriter(), error);
             return;

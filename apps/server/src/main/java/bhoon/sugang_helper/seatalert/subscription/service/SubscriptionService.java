@@ -56,7 +56,7 @@ public class SubscriptionService {
                 .build();
 
         Subscription saved = subscriptionRepository.save(subscription);
-        log.info("[Subscription] Created: userId={}, courseKey={}", user.id(), course.courseKey());
+        log.info("[Subscription] 구독 등록. userId={}, courseKey={}", user.id(), course.courseKey());
 
         return SubscriptionResponse.of(saved, course.name(), course.professor());
     }
@@ -93,7 +93,7 @@ public class SubscriptionService {
         }
 
         subscriptionRepository.delete(subscription);
-        log.info("[Subscription] Deleted: userId={}, subscriptionId={}", user.id(), subscriptionId);
+        log.info("[Subscription] 구독 취소. userId={}, subscriptionId={}", user.id(), subscriptionId);
     }
 
 
@@ -103,7 +103,7 @@ public class SubscriptionService {
     public void unsubscribeAll() {
         UserIdentity user = getCurrentUser();
         subscriptionRepository.deleteAllByUserId(user.id());
-        log.info("[Subscription] Deleted All: userId={}", user.id());
+        log.info("[Subscription] 전체 구독 취소. userId={}", user.id());
     }
 
 

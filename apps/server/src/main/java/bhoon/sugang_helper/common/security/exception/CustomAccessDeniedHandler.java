@@ -29,7 +29,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         ErrorCode errorCode = accessDeniedException instanceof CsrfException ? ErrorCode.CSRF_INVALID : ErrorCode.FORBIDDEN;
         ErrorResponse errorResponse = ErrorResponse.of(errorCode, request.getRequestURI());
         response.setHeader("X-Error-Id", errorResponse.getCorrelationId());
-        log.warn("[ACCESS_DENIED] correlationId={} method={} path={} exceptionType={}",
+        log.warn("[ACCESS_DENIED] 접근 권한 없음. correlationId={} method={} path={} exceptionType={}",
                 errorResponse.getCorrelationId(), request.getMethod(), errorResponse.getPath(),
                 accessDeniedException.getClass().getSimpleName());
         objectMapper.writeValue(response.getWriter(), errorResponse);

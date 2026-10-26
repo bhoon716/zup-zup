@@ -54,7 +54,7 @@ public class EmailNotificationSender implements NotificationSender {
     @Override
     public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         String recipient = target.getRecipient();
-        String recipientMasked = SensitiveDataRedactor.maskEmail(recipient);
+        String recipientFingerprint = SensitiveDataRedactor.fingerprint(recipient);
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -70,11 +70,11 @@ public class EmailNotificationSender implements NotificationSender {
             }
 
             javaMailSender.send(mimeMessage);
-            log.info("[EmailNotification] Dispatched. recipientMasked={}, fromMasked={}",
-                    recipientMasked, SensitiveDataRedactor.maskEmail(from));
+            log.debug("[EmailNotification] 이메일 발송 완료. recipientFingerprint={}, fromFingerprint={}",
+                    recipientFingerprint, SensitiveDataRedactor.fingerprint(from));
         } catch (Exception e) {
-            log.error("[EmailNotification] Dispatch failed. recipientMasked={}, failureCode={}, exceptionType={}",
-                    recipientMasked, ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            log.debug("[EmailNotification] 이메일 발송 실패. recipientFingerprint={}, failureCode={}, exceptionType={}",
+                    recipientFingerprint, ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new CustomException(ErrorCode.EMAIL_SEND_ERROR);
         }
     }

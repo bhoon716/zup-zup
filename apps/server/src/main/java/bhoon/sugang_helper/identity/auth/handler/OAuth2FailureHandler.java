@@ -20,7 +20,7 @@ public class OAuth2FailureHandler extends SimpleUrlAuthenticationFailureHandler 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {
-        log.warn("[OAuth2] Social login failed. exceptionType={}", SensitiveDataRedactor.exceptionType(exception));
+        log.warn("[OAuth2] 외부 계정 로그인 실패. exceptionType={}", SensitiveDataRedactor.exceptionType(exception));
 
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }

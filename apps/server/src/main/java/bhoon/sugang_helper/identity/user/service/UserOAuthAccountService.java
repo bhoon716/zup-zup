@@ -40,7 +40,7 @@ public class UserOAuthAccountService {
                     "oauth_identity_conflict", "OAuth identity is already bound");
         }
         user.bindOAuthIdentity(issuer, subject);
-        log.info("[OAuth2] Legacy user identity bound. userId={}", user.getId());
+        log.info("[OAuth2] 기존 사용자 로그인 식별자 연결. userId={}", user.getId());
         return user;
     }
 
@@ -53,8 +53,8 @@ public class UserOAuthAccountService {
                 .oauthSubject(subject)
                 .build();
         User savedUser = userRepository.save(newUser);
-        log.info("[OAuth2] New user sign-up complete. userId={}, emailMasked={}",
-                savedUser.getId(), SensitiveDataRedactor.maskEmail(email));
+        log.info("[OAuth2] 신규 사용자 가입 완료. userId={}, emailFingerprint={}",
+                savedUser.getId(), SensitiveDataRedactor.fingerprint(email));
         eventPublisher.publishEvent(new UserRegisteredEvent(savedUser.getId(), email));
         return savedUser;
     }

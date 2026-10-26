@@ -45,13 +45,13 @@ public class WebPushNotificationSender implements NotificationSender {
     public void init() {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
-            log.info("[WebPush] Registered BouncyCastleProvider.");
+            log.info("[WebPush] 암호화 제공자 등록 완료.");
         }
         try {
             if (publicKey != null && !publicKey.trim().isEmpty() &&
                     privateKey != null && !privateKey.trim().isEmpty()) {
                 this.pushService = new PushService(publicKey, privateKey, subject);
-                log.info("[WebPush] Finished PushService initialization.");
+                log.info("[WebPush] 발송 서비스 초기화 완료.");
             }
         } catch (Exception e) {
             throw new RuntimeException("웹푸시 PushService 초기화에 실패했습니다.", e);
@@ -93,7 +93,7 @@ public class WebPushNotificationSender implements NotificationSender {
             }
             Notification notification = notificationBuilder.build();
 
-            log.info("[WebPush] Starting notification transfer. endpointFingerprint={}", endpointFingerprint);
+            log.debug("[WebPush] 단말 발송 시작. endpointFingerprint={}", endpointFingerprint);
             var response = pushService.send(notification);
             int statusCode = response.getStatusLine().getStatusCode();
 
@@ -110,11 +110,11 @@ public class WebPushNotificationSender implements NotificationSender {
                         retryable, reason, statusCode, null);
             }
 
-            log.info("[WebPush] Completed notification transfer. endpointFingerprint={}", endpointFingerprint);
+            log.debug("[WebPush] 단말 발송 완료. endpointFingerprint={}", endpointFingerprint);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[WebPush] Transfer failed. endpointFingerprint={}, failureCode={}, exceptionType={}",
+            log.debug("[WebPush] 단말 발송 실패. endpointFingerprint={}, failureCode={}, exceptionType={}",
                     endpointFingerprint, ErrorCode.WEB_PUSH_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
                     true, "ERROR", null, e);

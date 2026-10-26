@@ -43,18 +43,18 @@ public class CourseEmojiReviewService {
                 .ifPresentOrElse(
                         existing -> {
                             emojiReviewRepository.delete(existing);
-                            log.info(
-                                    "[EmojiReview] Removed. courseKey={}, subjectCode={}, professor={}, userId={}, emoji={}",
-                                    courseKey, scope.subjectCode(), scope.professor(), user.id(), emoji);
+                            log.debug(
+                                    "[EmojiReview] 이모지 반응 취소. courseKey={}, subjectCode={}, userId={}",
+                                    courseKey, scope.subjectCode(), user.id());
                         },
                         () -> {
                             emojiReviewRepository.save(
                                     CourseEmojiReview.builder().courseKey(courseKey).userId(user.id()).emoji(emoji)
                                             .build()
                             );
-                            log.info(
-                                    "[EmojiReview] Added. courseKey={}, subjectCode={}, professor={}, userId={}, emoji={}",
-                                    courseKey, scope.subjectCode(), scope.professor(), user.id(), emoji);
+                            log.debug(
+                                    "[EmojiReview] 이모지 반응 등록. courseKey={}, subjectCode={}, userId={}",
+                                    courseKey, scope.subjectCode(), user.id());
                         }
                 );
     }

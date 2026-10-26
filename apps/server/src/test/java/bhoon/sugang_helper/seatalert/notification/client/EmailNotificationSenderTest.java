@@ -14,6 +14,7 @@ import bhoon.sugang_helper.common.util.EmailTemplateService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import jakarta.mail.internet.MimeMessage;
@@ -78,6 +79,8 @@ class EmailNotificationSenderTest {
                 .when(mailSender).send(any(MimeMessage.class));
         Logger logger = (Logger) LoggerFactory.getLogger(EmailNotificationSender.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        Level previousLevel = logger.getLevel();
+        logger.setLevel(Level.DEBUG);
         appender.start();
         logger.addAppender(appender);
 
@@ -87,10 +90,12 @@ class EmailNotificationSenderTest {
             String messages = appender.list.stream()
                     .map(ILoggingEvent::getFormattedMessage)
                     .collect(Collectors.joining("\n"));
-            assertThat(messages).doesNotContain(recipient).contains("r***@example.com");
+            assertThat(messages).doesNotContain(recipient, "@example.com", "provider rejected")
+                    .contains("recipientFingerprint=sha256:", "failureCode=N001", "exceptionType=RuntimeException");
         } finally {
             logger.detachAppender(appender);
             appender.stop();
+            logger.setLevel(previousLevel);
         }
     }
 }

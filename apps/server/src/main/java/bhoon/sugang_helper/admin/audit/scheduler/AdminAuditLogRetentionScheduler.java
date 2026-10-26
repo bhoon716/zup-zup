@@ -26,12 +26,12 @@ public class AdminAuditLogRetentionScheduler {
     @Transactional
     public void removeExpiredLogs() {
         if (retentionDays <= 0) {
-            log.info("[Admin Audit] Retention cleanup skipped because it is disabled.");
+            log.debug("[Admin Audit] 보존 기간 정리 비활성화로 실행 생략.");
             return;
         }
 
         long deletedCount = adminActionLogRepository.deleteByCreatedAtBefore(
                 LocalDateTime.now().minusDays(retentionDays));
-        log.info("[Admin Audit] Retention cleanup completed. deletedCount={}", deletedCount);
+        log.info("[Admin Audit] 보존 기간이 지난 기록 정리 완료. deletedCount={}", deletedCount);
     }
 }

@@ -80,8 +80,9 @@ public class SeatNotificationOutboxWorker {
             processor.processDelivery(claim);
         } catch (RuntimeException exception) {
 
-            log.error("[Notification Outbox] Delivery processing failed. deliveryId={}, failureCode={}",
-                    claim.deliveryId(), SensitiveDataRedactor.failureCode(exception));
+            log.error("[Notification Outbox] 발송 작업 처리 실패. deliveryId={}, failureCode={}, exceptionType={}",
+                    claim.deliveryId(), SensitiveDataRedactor.failureCode(exception),
+                    SensitiveDataRedactor.exceptionType(exception), SensitiveDataRedactor.safeStackTrace(exception));
         } finally {
             if (inFlight != null) {
                 inFlight.decrementAndGet();

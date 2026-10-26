@@ -1,6 +1,6 @@
 
 
-import { reportClientError } from "@/shared/telemetry/client-error";
+import { buildClientErrorEvent, reportClientError } from "@/shared/telemetry/client-error";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
 
@@ -62,7 +62,8 @@ export async function getSubscription() {
     ]);
     return await registration.pushManager.getSubscription();
   } catch (error) {
-    console.warn("Failed to get push subscription:", error);
+    console.warn("브라우저 웹 푸시 구독 조회 실패.",
+      buildClientErrorEvent(error, { source: "web-push", operation: "subscription-lookup" }));
     return null;
   }
 }

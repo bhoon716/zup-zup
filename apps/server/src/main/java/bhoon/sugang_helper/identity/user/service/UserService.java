@@ -71,7 +71,7 @@ public class UserService {
     public UserProfileUpdateResult updateProfile(UpdateProfileCommand command) {
         User user = getCurrentUser();
         user.update(command.name());
-        log.info("[User] Update profile: userId={}", user.getId());
+        log.info("[User] 프로필 수정. userId={}", user.getId());
         return UserProfileUpdateResult.from(user);
     }
 
@@ -95,7 +95,7 @@ public class UserService {
                 command.webPushEnabled(),
                 command.fcmEnabled(),
                 command.discordEnabled());
-        log.info("[User] Change settings: userId={}, emailEnabled={}, webPushEnabled={}",
+        log.info("[User] 알림 설정 변경. userId={}, emailEnabled={}, webPushEnabled={}",
                 user.getId(), command.emailEnabled(), command.webPushEnabled());
         return UserSettingsResult.from(user);
     }
@@ -118,7 +118,7 @@ public class UserService {
         subscriptionAccountLifecycle.cancelAllForUser(userId);
         userDeviceRepository.deleteAllByUserId(userId);
         feedbackAccountLifecycle.deleteAllForUser(userId);
-        log.info("[User] Soft-deleted account: userId={}", userId);
+        log.info("[User] 회원 탈퇴 처리. userId={}", userId);
     }
 
 
@@ -141,8 +141,8 @@ public class UserService {
                 command.webPushEnabled(),
                 command.fcmEnabled(),
                 command.discordEnabled());
-        log.info("[User] Onboarding complete: userId={}, emailMasked={}", user.getId(),
-                SensitiveDataRedactor.maskEmail(user.getEmail()));
+        log.info("[User] 초기 설정 완료. userId={}, emailFingerprint={}", user.getId(),
+                SensitiveDataRedactor.fingerprint(user.getEmail()));
         return UserOnboardingResult.from(user);
     }
 
@@ -179,7 +179,7 @@ public class UserService {
     public void linkDiscordId(String discordId) {
         User user = getCurrentUser();
         user.linkDiscord(discordId);
-        log.info("[User] Link Discord: userId={}, discordIdFingerprint={}", user.getId(),
+        log.info("[User] Discord 계정 연결. userId={}, discordIdFingerprint={}", user.getId(),
                 SensitiveDataRedactor.fingerprint(discordId));
     }
 
@@ -190,7 +190,7 @@ public class UserService {
     public void unlinkDiscord() {
         User user = getCurrentUser();
         user.unlinkDiscord();
-        log.info("[User] Unlink Discord: userId={}", user.getId());
+        log.info("[User] Discord 계정 연결 해제. userId={}", user.getId());
     }
 
 

@@ -71,8 +71,8 @@ public class EmailVerificationService {
         }
 
         sendEmail(email, mimeMessage);
-        log.info("[EmailVerification] Sent code to user={}, emailMasked={}", userId,
-                SensitiveDataRedactor.maskEmail(email));
+        log.info("[EmailVerification] 인증 코드 발송 완료. userId={}, emailFingerprint={}", userId,
+                SensitiveDataRedactor.fingerprint(email));
     }
 
 
@@ -91,8 +91,8 @@ public class EmailVerificationService {
             redisService.deleteValues(getAttemptKey(userId, email));
             redisService.setValues(getVerifiedKey(userId, email), "true",
                     Duration.ofMinutes(VERIFIED_EXPIRATION_MINUTES));
-            log.info("[EmailVerification] Verified user={}, emailMasked={}", userId,
-                    SensitiveDataRedactor.maskEmail(email));
+            log.info("[EmailVerification] 이메일 인증 완료. userId={}, emailFingerprint={}", userId,
+                    SensitiveDataRedactor.fingerprint(email));
             return true;
         }
 
@@ -159,8 +159,8 @@ public class EmailVerificationService {
     }
 
     private CustomException emailSendException(String to, Exception exception) {
-        log.error("[EmailVerification] Email dispatch failed. recipientMasked={}, failureCode={}, exceptionType={}",
-                SensitiveDataRedactor.maskEmail(to), ErrorCode.EMAIL_SEND_ERROR.getCode(),
+        log.error("[EmailVerification] 인증 이메일 발송 실패. recipientFingerprint={}, failureCode={}, exceptionType={}",
+                SensitiveDataRedactor.fingerprint(to), ErrorCode.EMAIL_SEND_ERROR.getCode(),
                 SensitiveDataRedactor.exceptionType(exception));
         return new CustomException(ErrorCode.EMAIL_SEND_ERROR, "Failed to send verification email");
     }
@@ -230,7 +230,7 @@ public class EmailVerificationService {
             try {
                 redisService.compareAndDeleteValues(key, token);
             } catch (RuntimeException exception) {
-                log.warn("[EmailVerification] Cooldown rollback failed. exceptionType={}",
+                log.warn("[EmailVerification] 발송 실패 후 대기 제한 복구 실패. exceptionType={}",
                         SensitiveDataRedactor.exceptionType(exception));
             }
         }

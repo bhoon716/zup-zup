@@ -99,12 +99,8 @@ export function reportClientError(error: unknown, context: ClientErrorContext) {
   }
 
   const event = buildClientErrorEvent(error, context);
-  const message = `[ClientError] source=${event.source} type=${event.error_type}`;
-  if (process.env.NODE_ENV === "production") {
-    console.error(message, event);
-  } else {
-    console.error(message, event, error);
-  }
+  const message = `[ClientError] 화면 작업 실패. source=${event.source} type=${event.error_type}`;
+  console.error(message, event);
 
   if (typeof window === "undefined") {
     return;

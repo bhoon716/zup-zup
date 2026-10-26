@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -34,7 +36,7 @@ public class EmailTemplateService {
 
             return content;
         } catch (Exception e) {
-            log.error("[EmailTemplate] Failed to load template: {}", templateName, e);
+            log.error("[EmailTemplate] 이메일 템플릿 읽기 실패. template= {}", templateName, SensitiveDataRedactor.safeStackTrace(e));
             return "Content Error: " + values.toString();
         }
     }

@@ -67,7 +67,7 @@ public class CourseCrawlerService {
     public boolean crawlAndSaveCourses(String year, String semester) {
         if (!isCrawling.compareAndSet(false, true)) {
             incrementCounter("SKIPPED");
-            log.warn("[Crawler] Target crawl is already in progress. Skipping.");
+            log.warn("[Crawler] 대상 학기 수집 중이므로 중복 실행 생략.");
             return false;
         }
 
@@ -87,7 +87,7 @@ public class CourseCrawlerService {
     public boolean crawlRecentYears() {
         if (!isCrawling.compareAndSet(false, true)) {
             incrementCounter("SKIPPED");
-            log.warn("[Crawler] Historical crawl is already in progress. Skipping.");
+            log.warn("[Crawler] 과거 학기 수집 중이므로 중복 실행 생략.");
             return false;
         }
 
@@ -127,7 +127,7 @@ public class CourseCrawlerService {
         boolean stale = ageSeconds < 0 || ageSeconds > Duration.ofMinutes(staleThresholdMinutes).toSeconds();
         staleGauge.set(stale ? 1 : 0);
         if (stale && staleAlertActive.compareAndSet(false, true)) {
-            log.error("[Crawler] Data freshness is stale. ageSeconds={}, thresholdMinutes={}, alert=ADMIN", ageSeconds,
+            log.error("[Crawler] 강의 데이터 신선도 기준 초과. ageSeconds={}, thresholdMinutes={}, alert=ADMIN", ageSeconds,
                     staleThresholdMinutes);
         } else if (!stale) {
             staleAlertActive.set(false);
@@ -140,20 +140,20 @@ public class CourseCrawlerService {
         long startedAt = System.nanoTime();
         MDC.put("crawlerRunId", runId);
         try {
-            log.info("[Crawler] run_started runId={} year={} semester={} stage={} result=started elapsedMs=0",
+            log.info("[Crawler] 수집 시작. run_started runId={} year={} semester={} stage={} result=started elapsedMs=0",
                     runId, year, semester, stage);
             List<ParsedCourseDto> parsedCourses = courseCrawlFetcher.fetch(year, semester);
-            log.info("[Crawler] stage_completed runId={} year={} semester={} stage={} result=success "
+            log.debug("[Crawler] 수집 단계 완료. stage_completed runId={} year={} semester={} stage={} result=success "
                             + "courseCount={} elapsedMs={}",
                     runId, year, semester, stage, parsedCourses.size(), elapsedMs(startedAt));
             stage = CrawlerFailureStage.PERSIST;
             courseCrawlCompletionService.complete(parsedCourses);
-            log.info("[Crawler] run_succeeded runId={} year={} semester={} stage={} result=success "
+            log.info("[Crawler] 수집 완료. run_succeeded runId={} year={} semester={} stage={} result=success "
                             + "courseCount={} elapsedMs={}",
                     runId, year, semester, stage, parsedCourses.size(), elapsedMs(startedAt));
         } catch (RuntimeException exception) {
             CrawlerFailureSummary summary = CrawlerFailureSummary.from(stage, exception);
-            log.error("[Crawler] run_failed runId={} year={} semester={} stage={} result=failed elapsedMs={} "
+            log.error("[Crawler] 수집 실패. run_failed runId={} year={} semester={} stage={} result=failed elapsedMs={} "
                             + "failureCode={} exceptionType={} retryable={} upstreamStatus={}",
                     runId, year, semester, summary.stage(), elapsedMs(startedAt),
                     SensitiveDataRedactor.failureCode(exception), summary.failureType(),
@@ -176,7 +176,7 @@ public class CourseCrawlerService {
         try {
             crawlerRunStateService.recordFailure(stage, originalException);
         } catch (RuntimeException recordingException) {
-            log.error("[Crawler] Failed to persist crawler failure. stage={}, originalType={}, recordingType={}",
+            log.error("[Crawler] 수집 실패 이력 저장 실패. stage={}, originalType={}, recordingType={}",
                     stage, SensitiveDataRedactor.exceptionType(originalException),
                     SensitiveDataRedactor.exceptionType(recordingException));
         }

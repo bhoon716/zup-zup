@@ -16,6 +16,11 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.ThrowableProxyUtil;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -85,10 +90,24 @@ class SeatNotificationOutboxWorkerTest {
         SeatNotificationDeliveryClaim first = claim(1L, NotificationChannel.EMAIL);
         SeatNotificationDeliveryClaim second = claim(2L, NotificationChannel.WEB);
         when(processor.claimReadyDeliveries(1)).thenReturn(List.of(first), List.of(second));
-        doThrow(new IllegalStateException("settlement unavailable")).when(processor).processDelivery(first);
-
-
-        worker.processPendingNotifications();
+        doThrow(new IllegalStateException("cookie=private-settlement-secret")).when(processor).processDelivery(first);
+        Logger logger = (Logger) LoggerFactory.getLogger(SeatNotificationOutboxWorker.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            worker.processPendingNotifications();
+            assertThat(appender.list).anySatisfy(event -> {
+                assertThat(event.getFormattedMessage()).contains("발송 작업 처리 실패", "deliveryId=1",
+                        "exceptionType=IllegalStateException");
+                assertThat(ThrowableProxyUtil.asString(event.getThrowableProxy()))
+                        .contains("oneDeliveryFailureDoesNotSkipTheNextChannelOrLeaveTheGaugeBusy")
+                        .doesNotContain("private-settlement-secret");
+            });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
 
 
         verify(processor).processDelivery(first);

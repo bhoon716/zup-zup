@@ -84,7 +84,7 @@ public class TimetableService {
                 .isPrimary(true)
                 .build();
         timetableRepository.save(timetable);
-        log.info("[Timetable] Default timetable created for new user. userId={}", event.userId());
+        log.info("[Timetable] 새 사용자 기본 시간표 생성. userId={}", event.userId());
     }
 
 
@@ -239,7 +239,7 @@ public class TimetableService {
 
         resetPrimary(timetable.getUserId());
         timetable.setPrimary(true);
-        log.info("[Timetable] Changed representive timetable. timetableId={}", timetableId);
+        log.info("[Timetable] 대표 시간표 변경. timetableId={}", timetableId);
     }
 
 
@@ -376,7 +376,7 @@ public class TimetableService {
                 .findFirst()
                 .ifPresent(timetable -> {
                     timetable.setPrimary(true);
-                    log.info("[Timetable] Automatically delegated representive timetable. timetableId={}",
+                    log.info("[Timetable] 대표 시간표 자동 변경. timetableId={}",
                             timetable.getId());
                 });
     }

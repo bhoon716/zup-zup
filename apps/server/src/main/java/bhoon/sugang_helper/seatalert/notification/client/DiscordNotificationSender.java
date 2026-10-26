@@ -57,7 +57,7 @@ public class DiscordNotificationSender implements NotificationSender {
     @Override
     public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         if (botToken == null || botToken.isBlank() || botToken.equals("<DISCORD_BOT_TOKEN>")) {
-            log.warn("[Discord] Skipping notification as bot token is not configured.");
+            log.warn("[Discord] 봇 토큰 미설정으로 알림 발송 생략.");
             return;
         }
 
@@ -93,9 +93,9 @@ public class DiscordNotificationSender implements NotificationSender {
                     .retrieve()
                     .toEntity(String.class);
 
-            log.info("[Discord] Dispatched private message notification. userIdFingerprint={}", userIdFingerprint);
+            log.debug("[Discord] 개인 메시지 발송 완료. userIdFingerprint={}", userIdFingerprint);
         } catch (Exception e) {
-            log.error("[Discord] Private message dispatch failed. userIdFingerprint={}, failureCode={}, exceptionType={}",
+            log.debug("[Discord] 개인 메시지 발송 실패. userIdFingerprint={}, failureCode={}, exceptionType={}",
                     userIdFingerprint,
                     ErrorCode.DISCORD_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             Integer statusCode = e instanceof RestClientResponseException responseException

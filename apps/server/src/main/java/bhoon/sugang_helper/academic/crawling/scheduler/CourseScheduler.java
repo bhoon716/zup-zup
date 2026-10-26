@@ -26,11 +26,11 @@ public class CourseScheduler {
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         if (runOnStartup) {
-            log.info("[Init] Crawling course data for the last 3 years on startup.");
+            log.info("[Init] 시작 시 최근 3개년 강의 수집.");
             try {
                 courseCrawlerService.crawlRecentYears();
             } catch (Exception e) {
-                log.error("[Init] Initial crawl failed while starting service. exceptionType={}",
+                log.error("[Init] 시작 시 강의 수집 실패. exceptionType={}",
                         SensitiveDataRedactor.exceptionType(e));
             }
         }
@@ -41,9 +41,9 @@ public class CourseScheduler {
 
     @Scheduled(cron = "${jbnu.crawler.cron}")
     public void runCrawler() {
-        log.info("[Scheduler] Starting course crawling task.");
+        log.info("[Scheduler] 주기 강의 수집 시작.");
         boolean started = courseCrawlerService.crawlAndSaveCourses();
-        log.info(started ? "[Scheduler] Completed course crawling task."
-                : "[Scheduler] Skipped course crawling task because another run is active.");
+        log.info(started ? "[Scheduler] 주기 강의 수집 완료."
+                : "[Scheduler] 다른 수집이 실행 중이므로 중복 실행 생략.");
     }
 }

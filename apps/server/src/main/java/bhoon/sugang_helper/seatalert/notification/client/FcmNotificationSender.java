@@ -41,9 +41,9 @@ public class FcmNotificationSender implements NotificationSender {
             Message fcmMessage = builder.build();
 
             FirebaseMessaging.getInstance().send(fcmMessage);
-            log.info("[FCM] Message sent. tokenFingerprint={}", tokenFingerprint);
+            log.debug("[FCM] 메시지 발송 완료. tokenFingerprint={}", tokenFingerprint);
         } catch (Exception e) {
-            log.error("[FCM] Dispatch failed. tokenFingerprint={}, failureCode={}, exceptionType={}",
+            log.debug("[FCM] 메시지 발송 실패. tokenFingerprint={}, failureCode={}, exceptionType={}",
                     tokenFingerprint, ErrorCode.FCM_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new CustomException(ErrorCode.FCM_SEND_ERROR);
         }

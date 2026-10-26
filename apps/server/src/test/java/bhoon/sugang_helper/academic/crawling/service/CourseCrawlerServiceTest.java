@@ -259,7 +259,7 @@ class CourseCrawlerServiceTest {
 
             assertThat(appender.list)
                     .extracting(ILoggingEvent::getFormattedMessage)
-                    .anyMatch(message -> message.contains("Data freshness is stale")
+                    .anyMatch(message -> message.contains("강의 데이터 신선도 기준 초과")
                             && message.contains("alert=ADMIN"));
         } finally {
             detachAppender(appender);

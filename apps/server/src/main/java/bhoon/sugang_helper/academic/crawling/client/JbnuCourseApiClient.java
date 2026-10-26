@@ -186,12 +186,12 @@ public class JbnuCourseApiClient implements CourseApiClient {
         String exceptionType = SensitiveDataRedactor.exceptionType(
                 CrawlerUpstreamFailure.rootCause(e));
         if (retryable) {
-            log.warn("[Crawler] upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
+            log.warn("[Crawler] 상위 강의 API 요청 실패. upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
                             + "attempt={}/{} upstreamStatus={} exceptionType={} retryable={} result={}",
                     currentRunId(), year, semester, targetCertDivision, stage, retryCount, maximumAttempts,
                     statusLabel(status), exceptionType, true, result);
         } else {
-            log.error("[Crawler] upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
+            log.error("[Crawler] 상위 강의 API 요청 실패. upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
                             + "attempt={}/{} upstreamStatus={} exceptionType={} retryable={} result={}",
                     currentRunId(), year, semester, targetCertDivision, stage, retryCount, maximumAttempts,
                     statusLabel(status), exceptionType, false, result);
@@ -288,7 +288,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
             long waitTime = (long) retryWaitMs * retryCount;
             CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.find(failure);
             CrawlerFailureStage stage = upstream == null ? CrawlerFailureStage.FETCH_PARSE : upstream.stage();
-            log.info("[Crawler] upstream_retry_wait runId={} year={} semester={} certDiv={} stage={} "
+            log.debug("[Crawler] 상위 강의 API 재시도 대기. upstream_retry_wait runId={} year={} semester={} certDiv={} stage={} "
                             + "attempt={} waitMs={} result=waiting",
                     currentRunId(), year, semester, targetCertDivision, stage, retryCount, waitTime);
             Thread.sleep(waitTime);

@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+
 import bhoon.sugang_helper.common.dto.result.LoadedFile;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
@@ -73,7 +75,7 @@ public class LocalFileUploadService {
                 Files.createDirectories(uploadPath);
             }
         } catch (IOException e) {
-            log.error("Failed to create upload directories: {}", uploadPath, e);
+            log.error("업로드 디렉터리 생성 실패. path= {}", uploadPath, SensitiveDataRedactor.safeStackTrace(e));
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
 
@@ -108,7 +110,7 @@ public class LocalFileUploadService {
             return UPLOAD_URL_PREFIX + savedName;
         } catch (IOException e) {
             deleteFile(filePath);
-            log.error("Failed to transfer file to {}", filePath, e);
+            log.error("파일 저장 실패. path= {}", filePath, SensitiveDataRedactor.safeStackTrace(e));
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
     }
@@ -134,7 +136,7 @@ public class LocalFileUploadService {
             }
             return mimeType;
         } catch (IOException e) {
-            log.error("Failed to validate image file", e);
+            log.error("이미지 파일 검증 실패.", SensitiveDataRedactor.safeStackTrace(e));
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
     }
@@ -200,7 +202,7 @@ public class LocalFileUploadService {
                     .filter(this::isOlderThanMinimumAge)
                     .forEach(this::deleteFile);
         } catch (IOException e) {
-            log.warn("Failed to scan upload directory for orphaned files: {}", uploadPath, e);
+            log.warn("미사용 업로드 파일 검색 실패. path= {}", uploadPath, SensitiveDataRedactor.safeStackTrace(e));
         }
     }
 
@@ -231,7 +233,7 @@ public class LocalFileUploadService {
         try {
             return Files.getLastModifiedTime(file).toInstant().isBefore(Instant.now().minus(orphanMinimumAge));
         } catch (IOException e) {
-            log.warn("Failed to read upload file metadata: {}", file, e);
+            log.warn("업로드 파일 속성 읽기 실패. path= {}", file, SensitiveDataRedactor.safeStackTrace(e));
             return false;
         }
     }
@@ -240,7 +242,7 @@ public class LocalFileUploadService {
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            log.warn("Failed to delete upload file: {}", filePath, e);
+            log.warn("업로드 파일 삭제 실패. path= {}", filePath, SensitiveDataRedactor.safeStackTrace(e));
         }
     }
 }

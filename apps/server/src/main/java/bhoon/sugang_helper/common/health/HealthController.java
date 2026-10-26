@@ -33,10 +33,10 @@ public class HealthController {
                 buildProperties.getTime(),
                 LocalDateTime.now());
         if (isReady) {
-            log.info("Health check passed");
+            log.debug("상태 확인 정상.");
         } else {
             String readinessStatus = readiness == null ? "UNKNOWN" : readiness.getStatus().getCode();
-            log.warn("Health check failed: readinessStatus={}", readinessStatus);
+            log.warn("상태 확인 실패. readinessStatus={}", readinessStatus);
         }
         HttpStatus httpStatus = isReady ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;
         return ResponseEntity.status(httpStatus).body(response);

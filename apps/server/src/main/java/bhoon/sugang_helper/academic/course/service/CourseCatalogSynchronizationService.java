@@ -164,7 +164,7 @@ public class CourseCatalogSynchronizationService {
     }
 
     private void enqueueSeatOpening(Course course) {
-        log.info("[Crawler] Seat opening detected. courseName={}, available={}", course.getName(),
+        log.debug("[Crawler] 빈자리 증가 감지. courseKey={}, available={}", course.getCourseKey(),
                 course.getAvailable());
         outboxService.enqueue(new SeatOpenedEvent(
                 course.getCourseKey(), course.getName(), course.getProfessor(), 0, course.getAvailable()));
