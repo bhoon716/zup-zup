@@ -4,13 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.academic.course.dto.CourseSummary;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
@@ -49,7 +48,7 @@ class TimetableServiceTest {
     @Mock
     private TimetableEntryRepository timetableEntryRepository;
     @Mock
-    private CourseCatalogQuery courseCatalogQuery;
+    private CourseCatalogQueryService courseCatalogQuery;
     @Mock
     private UserIdentityQuery userIdentityQuery;
     private UserIdentity testUser;

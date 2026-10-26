@@ -5,7 +5,6 @@ import static org.mockito.Mockito.mockStatic;
 
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
-import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;

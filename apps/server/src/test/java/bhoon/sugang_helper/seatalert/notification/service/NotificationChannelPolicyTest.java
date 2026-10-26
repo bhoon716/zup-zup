@@ -12,11 +12,13 @@ import org.junit.jupiter.api.Test;
 
 class NotificationChannelPolicyTest {
 
+    private static final String USER_EMAIL = "user@example.com";
+
     @Test
     void resolveTargets_UsesNotificationEmailFallback() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, true, true, true));
-        NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", "notify@example.com",
+        NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, "notify@example.com",
                 false, false, false, false, null);
 
         List<NotificationTarget> targets = policy.resolveTargets(user, List.of(), NotificationChannel.EMAIL);
@@ -29,7 +31,7 @@ class NotificationChannelPolicyTest {
     void resolveTargets_UsesWebDeviceDetails() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, true, true, true));
-        NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
+        NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, null,
                 false, false, false, false, null);
         NotificationDevice device = new NotificationDevice(1L, NotificationDevice.Type.WEB,
                 "endpoint", "p256", "auth");
@@ -59,7 +61,7 @@ class NotificationChannelPolicyTest {
     void userEnabledChannels_UsesOnlyUserPreferences() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(false, false, false, false));
-        NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
+        NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, null,
                 true, false, true, false, null);
 
         assertThat(policy.userEnabledChannels(user))
@@ -70,7 +72,7 @@ class NotificationChannelPolicyTest {
     void isChannelEnabled_RejectsSoftDeletedUser() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, true, true, true));
-        NotificationRecipient user = new NotificationRecipient(1L, true, "user@example.com", null,
+        NotificationRecipient user = new NotificationRecipient(1L, true, USER_EMAIL, null,
                 true, false, false, false, null);
 
         assertThat(policy.isChannelEnabled(user, NotificationChannel.EMAIL)).isFalse();

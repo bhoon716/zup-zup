@@ -10,9 +10,8 @@ import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.academic.course.dto.CourseName;
 import bhoon.sugang_helper.academic.course.dto.CourseSummary;
-import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.academic.crawling.dto.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.service.CrawlerTargetQuery;
 import bhoon.sugang_helper.common.error.CustomException;
@@ -38,10 +37,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 class SubscriptionServiceTest {
 
+    private static final String USER_EMAIL = "test@example.com";
+
+    private static final String COURSE_NAME = "Test Course";
+
     @Mock
     private SubscriptionRepository subscriptionRepository;
     @Mock
-    private CourseCatalogQuery courseCatalogQuery;
+    private CourseCatalogQueryService courseCatalogQuery;
     @Mock
     private UserIdentityQuery userIdentityQuery;
     @Mock
@@ -57,7 +60,7 @@ class SubscriptionServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(subscriptionService, "maxLimit", 3);
         user = new UserIdentity(1L, false);
-        course = summary("CK1", "Test Course", "Prof", "2026", "U211600010");
+        course = summary("CK1", COURSE_NAME, "Prof", "2026", "U211600010");
     }
 
     @Test
@@ -66,8 +69,8 @@ class SubscriptionServiceTest {
         // given
         SubscriptionRequest request = new SubscriptionRequest("CK1");
         try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
-            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
-            given(userIdentityQuery.findByEmail("test@example.com")).willReturn(Optional.of(user));
+            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(USER_EMAIL);
+            given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
             given(courseCatalogQuery.findByCourseKey(request.getCourseKey())).willReturn(Optional.of(course));
             given(subscriptionRepository.findByUserIdAndCourseKey(user.id(), course.courseKey()))
                     .willReturn(Optional.empty());
@@ -98,8 +101,8 @@ class SubscriptionServiceTest {
         // given
         SubscriptionRequest request = new SubscriptionRequest("CK1");
         try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
-            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
-            given(userIdentityQuery.findByEmail("test@example.com")).willReturn(Optional.of(user));
+            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(USER_EMAIL);
+            given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
             given(courseCatalogQuery.findByCourseKey(request.getCourseKey())).willReturn(Optional.of(course));
             given(subscriptionRepository.findByUserIdAndCourseKey(user.id(), course.courseKey()))
                     .willReturn(Optional.of(Subscription.builder().build()));
@@ -118,8 +121,8 @@ class SubscriptionServiceTest {
         // given
         SubscriptionRequest request = new SubscriptionRequest("CK1");
         try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
-            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
-            given(userIdentityQuery.findByEmail("test@example.com")).willReturn(Optional.of(user));
+            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(USER_EMAIL);
+            given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
             given(courseCatalogQuery.findByCourseKey(request.getCourseKey())).willReturn(Optional.of(course));
             given(subscriptionRepository.findByUserIdAndCourseKey(user.id(), course.courseKey()))
                     .willReturn(Optional.empty());
@@ -141,16 +144,16 @@ class SubscriptionServiceTest {
         CourseName secondCourse = new CourseName("CK2", "Second Course", "Second Prof");
 
         try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
-            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
-            given(userIdentityQuery.findByEmail("test@example.com")).willReturn(Optional.of(user));
+            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(USER_EMAIL);
+            given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
             given(subscriptionRepository.findByUserId(user.id())).willReturn(List.of(first, second));
             given(courseCatalogQuery.findNamesByCourseKeyIn(List.of("CK1", "CK2")))
-                    .willReturn(List.of(new CourseName("CK1", "Test Course", "Prof"), secondCourse));
+                    .willReturn(List.of(new CourseName("CK1", COURSE_NAME, "Prof"), secondCourse));
 
             List<SubscriptionResponse> responses = subscriptionService.getMySubscriptions();
 
             assertThat(responses).extracting(SubscriptionResponse::getCourseName)
-                    .containsExactly("Test Course", "Second Course");
+                    .containsExactly(COURSE_NAME, "Second Course");
             verify(courseCatalogQuery).findNamesByCourseKeyIn(List.of("CK1", "CK2"));
             verify(courseCatalogQuery, never()).findByCourseKey(any());
         }
@@ -163,16 +166,16 @@ class SubscriptionServiceTest {
         CourseName replacementCourse = new CourseName("CK1", "Replacement Course", "Replacement Prof");
 
         try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
-            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
-            given(userIdentityQuery.findByEmail("test@example.com")).willReturn(Optional.of(user));
+            mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(USER_EMAIL);
+            given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
             given(subscriptionRepository.findByUserId(user.id())).willReturn(List.of(subscription));
             given(courseCatalogQuery.findNamesByCourseKeyIn(List.of("CK1")))
-                    .willReturn(List.of(new CourseName("CK1", "Test Course", "Prof"), replacementCourse));
+                    .willReturn(List.of(new CourseName("CK1", COURSE_NAME, "Prof"), replacementCourse));
 
             List<SubscriptionResponse> responses = subscriptionService.getMySubscriptions();
 
             assertThat(responses).singleElement().satisfies(response ->
-                    assertThat(response.getCourseName()).isEqualTo("Test Course"));
+                    assertThat(response.getCourseName()).isEqualTo(COURSE_NAME));
         }
     }
 

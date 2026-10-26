@@ -2,7 +2,7 @@ package bhoon.sugang_helper.seatalert.subscription.service;
 
 import bhoon.sugang_helper.academic.course.dto.CourseName;
 import bhoon.sugang_helper.academic.course.dto.CourseSummary;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.academic.crawling.dto.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.service.CrawlerTargetQuery;
 import bhoon.sugang_helper.common.error.CustomException;
@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
-    private final CourseCatalogQuery courseCatalogQuery;
+    private final CourseCatalogQueryService courseCatalogQuery;
     private final UserIdentityQuery userIdentityQuery;
     private final CrawlerTargetQuery crawlerTargetQuery;
 

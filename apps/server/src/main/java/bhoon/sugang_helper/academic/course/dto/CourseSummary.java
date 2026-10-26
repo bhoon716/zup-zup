@@ -18,6 +18,8 @@ public record CourseSummary(
         String classroom,
         List<CourseScheduleSummary> schedules) {
 
+    // PMD 7.5는 compact record 생성자의 암묵적 필드 대입을 인식하지 못한다.
+    @SuppressWarnings("PMD.UnusedAssignment")
     public CourseSummary {
         schedules = schedules == null ? List.of() : List.copyOf(schedules);
     }

@@ -12,27 +12,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CourseReviewCatalogService implements CourseReviewCatalog {
+public class CourseReviewCatalogService {
 
     private final CourseRepository courseRepository;
 
-    @Override
     public Optional<CourseReference> findByCourseKey(String courseKey) {
         return courseRepository.findByCourseKey(courseKey).map(CourseReviewCatalogService::toReference);
     }
 
-    @Override
     @Transactional
     public Optional<CourseReference> findByCourseKeyForUpdate(String courseKey) {
         return courseRepository.findByCourseKeyForUpdate(courseKey).map(CourseReviewCatalogService::toReference);
     }
 
-    @Override
     public List<String> findCourseKeysBySubjectCodeAndProfessor(String subjectCode, String professor) {
         return courseRepository.findCourseKeysBySubjectCodeAndProfessor(subjectCode, professor);
     }
 
-    @Override
     @Transactional
     public void updateReviewStats(CourseReference reference, float averageRating, int reviewCount) {
         String professor = normalizeProfessor(reference.professor());

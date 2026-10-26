@@ -11,8 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.academic.course.dto.CourseReference;
-import bhoon.sugang_helper.academic.course.entity.Course;
-import bhoon.sugang_helper.academic.course.service.CourseReviewCatalog;
+import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
 import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.dto.response.CourseEmojiReviewResponse;
 import bhoon.sugang_helper.academic.review.entity.CourseEmojiReview;
@@ -57,7 +56,7 @@ class CourseEmojiReviewServiceTest {
     private CourseEmojiReviewRepository emojiReviewRepository;
 
     @Mock
-    private CourseReviewCatalog courseReviewCatalog;
+    private CourseReviewCatalogService courseReviewCatalog;
 
     @Mock
     private UserIdentityQuery userIdentityQuery;

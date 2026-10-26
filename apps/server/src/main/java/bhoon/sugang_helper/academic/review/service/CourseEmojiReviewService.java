@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.academic.review.service;
 
 import bhoon.sugang_helper.academic.course.dto.CourseReference;
-import bhoon.sugang_helper.academic.course.service.CourseReviewCatalog;
+import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
 import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.dto.response.CourseEmojiReviewResponse;
 import bhoon.sugang_helper.academic.review.entity.CourseEmojiReview;
@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class CourseEmojiReviewService {
     private final CourseEmojiReviewRepository emojiReviewRepository;
-    private final CourseReviewCatalog courseReviewCatalog;
+    private final CourseReviewCatalogService courseReviewCatalog;
     private final UserIdentityQuery userIdentityQuery;
 
     /**
@@ -67,7 +67,7 @@ public class CourseEmojiReviewService {
         CourseReference course = getCourse(courseKey);
         ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
         Long currentUserId = getCurrentUserIdOrNull();
-        List<String> courseKeys = findCourseKeysForScope(course, scope);
+        List<String> courseKeys = findCourseKeysForScope(scope);
         return findEmojiStats(course, scope, courseKeys)
                 .stream()
                 .map(row -> {
@@ -90,7 +90,7 @@ public class CourseEmojiReviewService {
             return emojiReviewRepository.findByCourseKeyAndUserIdAndEmoji(course.courseKey(), userId, emoji);
         }
 
-        var courseKeys = findCourseKeysForScope(course, scope);
+        var courseKeys = findCourseKeysForScope(scope);
         return emojiReviewRepository.findByCourseKeysAndUserIdAndEmoji(courseKeys, userId, emoji);
     }
 
@@ -110,7 +110,7 @@ public class CourseEmojiReviewService {
         return emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(courseKeys, userId, emoji) > 0;
     }
 
-    private List<String> findCourseKeysForScope(CourseReference course, ReviewScopeKey scope) {
+    private List<String> findCourseKeysForScope(ReviewScopeKey scope) {
         if (!scope.hasIdentifiableProfessor()) {
             return List.of();
         }

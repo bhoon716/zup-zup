@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.planning.timetable.service;
 
 import bhoon.sugang_helper.academic.course.dto.CourseSummary;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
@@ -20,7 +20,6 @@ import bhoon.sugang_helper.planning.timetable.entity.TimetableEntry;
 import bhoon.sugang_helper.planning.timetable.repository.CustomScheduleRepository;
 import bhoon.sugang_helper.planning.timetable.repository.TimetableEntryRepository;
 import bhoon.sugang_helper.planning.timetable.repository.TimetableRepository;
-import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery.PrimaryTimetableSnapshot;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,7 +43,7 @@ public class TimetableService implements PrimaryTimetableQuery {
     private final TimetableRepository timetableRepository;
     private final TimetableEntryRepository timetableEntryRepository;
     private final CustomScheduleRepository customScheduleRepository;
-    private final CourseCatalogQuery courseCatalogQuery;
+    private final CourseCatalogQueryService courseCatalogQuery;
     private final UserIdentityQuery userIdentityQuery;
 
     /**

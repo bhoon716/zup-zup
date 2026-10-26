@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.academic.review.service;
 
 import bhoon.sugang_helper.academic.course.dto.CourseReference;
-import bhoon.sugang_helper.academic.course.service.CourseReviewCatalog;
+import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
 import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewCreateRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewReactionRequest;
@@ -33,7 +33,7 @@ public class CourseReviewService {
 
     private final CourseReviewRepository reviewRepository;
     private final CourseReviewReactionRepository reactionRepository;
-    private final CourseReviewCatalog courseReviewCatalog;
+    private final CourseReviewCatalogService courseReviewCatalog;
     private final UserIdentityQuery userIdentityQuery;
 
     /**
@@ -66,7 +66,7 @@ public class CourseReviewService {
 
         CourseReference course = getCourseForUpdate(courseKey);
         ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
-        List<String> courseKeys = findCourseKeysForScope(course, scope);
+        List<String> courseKeys = findCourseKeysForScope(scope);
 
         if (hasReviewForScope(course, scope, courseKeys, user.id())) {
             throw new CustomException(ErrorCode.REVIEW_ALREADY_EXISTS);
@@ -229,7 +229,7 @@ public class CourseReviewService {
      */
     private void updateCourseReviewStats(CourseReference course) {
         ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
-        updateCourseReviewStats(course, scope, findCourseKeysForScope(course, scope));
+        updateCourseReviewStats(course, scope, findCourseKeysForScope(scope));
     }
 
     private void updateCourseReviewStats(CourseReference course, ReviewScopeKey scope, List<String> courseKeys) {
@@ -259,11 +259,11 @@ public class CourseReviewService {
             return reviewRepository.findByCourseKeyWithMyReviewFirst(course.courseKey(), currentUserId, pageable);
         }
 
-        var courseKeys = findCourseKeysForScope(course, scope);
+        var courseKeys = findCourseKeysForScope(scope);
         return reviewRepository.findByCourseKeysWithMyReviewFirst(courseKeys, currentUserId, pageable);
     }
 
-    private List<String> findCourseKeysForScope(CourseReference course, ReviewScopeKey scope) {
+    private List<String> findCourseKeysForScope(ReviewScopeKey scope) {
         if (!scope.hasIdentifiableProfessor()) {
             return List.of();
         }

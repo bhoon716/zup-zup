@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.academic.course.dto.CourseReference;
-import bhoon.sugang_helper.academic.course.service.CourseReviewCatalog;
+import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
 import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewCreateRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewReactionRequest;
@@ -65,7 +65,7 @@ class CourseReviewServiceTest {
     private CourseReviewReactionRepository reactionRepository;
 
     @Mock
-    private CourseReviewCatalog courseReviewCatalog;
+    private CourseReviewCatalogService courseReviewCatalog;
 
     @Mock
     private UserIdentityQuery userIdentityQuery;
@@ -121,7 +121,7 @@ class CourseReviewServiceTest {
         lenient().when(userIdentityQuery.findByEmail(user.getEmail())).thenReturn(Optional.of(identity(user)));
     }
 
-    private void mockCourseStats(CourseReference course, double avgRating, long count) {
+    private void mockCourseStats(double avgRating, long count) {
         lenient().when(reviewRepository.getAverageRatingByCourseKeys(List.of(COURSE_KEY)))
                 .thenReturn(avgRating);
         lenient().when(reviewRepository.countByCourseKeys(List.of(COURSE_KEY)))
@@ -152,7 +152,7 @@ class CourseReviewServiceTest {
                     .build();
 
             when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(savedReview);
-            mockCourseStats(course, 4.1, 11L);
+            mockCourseStats(4.1, 11L);
 
             ReviewResponse response = reviewService.createReview(COURSE_KEY, request);
 
@@ -181,7 +181,7 @@ class CourseReviewServiceTest {
                     .build();
 
             when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(savedReview);
-            mockCourseStats(course, 4.1, 11L);
+            mockCourseStats(4.1, 11L);
 
             ReviewResponse response = reviewService.createReview(COURSE_KEY, request);
 
@@ -328,7 +328,7 @@ class CourseReviewServiceTest {
 
             CourseReference course = createCourse();
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
-            mockCourseStats(course, 4.2, 10L);
+            mockCourseStats(4.2, 10L);
 
             ReviewResponse response = reviewService.updateReview(REVIEW_ID, request);
 
@@ -442,7 +442,7 @@ class CourseReviewServiceTest {
 
             CourseReference course = createCourse();
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
-            mockCourseStats(course, 4.0, 9L);
+            mockCourseStats(4.0, 9L);
 
             reviewService.deleteReview(REVIEW_ID);
 
@@ -476,7 +476,7 @@ class CourseReviewServiceTest {
 
             CourseReference course = createCourse();
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
-            mockCourseStats(course, 4.0, 9L);
+            mockCourseStats(4.0, 9L);
 
             reviewService.deleteReview(REVIEW_ID);
 

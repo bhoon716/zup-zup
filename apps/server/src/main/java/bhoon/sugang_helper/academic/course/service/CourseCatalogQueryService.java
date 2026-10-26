@@ -13,30 +13,26 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CourseCatalogQueryService implements CourseCatalogQuery {
+public class CourseCatalogQueryService {
 
     private final CourseRepository courseRepository;
 
-    @Override
     public Optional<CourseSummary> findByCourseKey(String courseKey) {
         return courseRepository.findByCourseKey(courseKey).map(CourseCatalogQueryService::toSummary);
     }
 
-    @Override
     public List<CourseSummary> findByCourseKeyIn(List<String> courseKeys) {
         return courseRepository.findByCourseKeyIn(courseKeys).stream()
                 .map(CourseCatalogQueryService::toSummary)
                 .toList();
     }
 
-    @Override
     public List<CourseName> findNamesByCourseKeyIn(List<String> courseKeys) {
         return courseRepository.findByCourseKeyIn(courseKeys).stream()
                 .map(course -> new CourseName(course.getCourseKey(), course.getName(), course.getProfessor()))
                 .toList();
     }
 
-    @Override
     public boolean existsByCourseKey(String courseKey) {
         return courseRepository.existsByCourseKey(courseKey);
     }

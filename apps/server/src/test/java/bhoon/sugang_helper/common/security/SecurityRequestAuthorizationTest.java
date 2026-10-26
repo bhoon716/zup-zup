@@ -30,7 +30,6 @@ import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2FailureHandler;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2SuccessHandler;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
 import bhoon.sugang_helper.seatalert.notification.controller.AdminNotificationDeliveryController;
 import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;

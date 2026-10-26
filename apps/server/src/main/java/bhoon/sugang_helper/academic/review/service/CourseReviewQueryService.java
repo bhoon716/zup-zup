@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.review.service;
 
-import bhoon.sugang_helper.academic.course.service.CourseReviewCatalog;
+import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
 import bhoon.sugang_helper.academic.course.service.CourseReviewQuery;
 import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CourseReviewQueryService implements CourseReviewQuery {
 
     private final CourseReviewRepository reviewRepository;
-    private final CourseReviewCatalog courseReviewCatalog;
+    private final CourseReviewCatalogService courseReviewCatalog;
 
     @Override
     public boolean hasReviewByUser(String courseKey, String subjectCode, String professor, Long userId) {

@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.planning.wishlist.service;
 
 import bhoon.sugang_helper.academic.course.dto.CourseSummary;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WishlistService {
 
     private final WishlistRepository wishlistRepository;
-    private final CourseCatalogQuery courseCatalogQuery;
+    private final CourseCatalogQueryService courseCatalogQuery;
     private final UserIdentityQuery userIdentityQuery;
 
     @Transactional
