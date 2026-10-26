@@ -54,7 +54,7 @@ describe("AdminNotificationDeliveriesPage", () => {
       mutateAsync: mockReplay,
       isPending: false,
     });
-    mockReplay.mockResolvedValue({ code: "SUCCESS", message: "ok", data: delivery });
+    mockReplay.mockResolvedValue(delivery);
   });
 
   it("DLQ 목록에서 선택한 delivery의 안전한 상세와 재처리 동작을 제공한다", async () => {

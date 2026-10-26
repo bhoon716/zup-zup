@@ -11,7 +11,7 @@ vi.mock('@/shared/api/client', () => ({
 
 const request = { scheduleType: '수강신청', startDate: '2026-10-26', endDate: '2026-10-27' };
 const schedule = { id: 7, ...request, dDay: 'D-Day' };
-const response = { data: { code: 'SUCCESS', message: 'ok', data: schedule } };
+const response = { data: schedule };
 
 beforeEach(() => vi.resetAllMocks());
 
@@ -69,7 +69,7 @@ describe.each([
 });
 
 it('공개 일정의 enabled와 두 관리자 조회의 기존 캐시 키를 유지한다', async () => {
-  vi.mocked(api.get).mockResolvedValue({ data: { data: [schedule] } });
+  vi.mocked(api.get).mockResolvedValue({ data: [schedule] });
   const client = createTestQueryClient();
   const wrapper = createQueryWrapper(client);
   const { result, rerender } = renderHook(({ enabled }) => scheduleHooks.useUpcomingSchedules(enabled), {

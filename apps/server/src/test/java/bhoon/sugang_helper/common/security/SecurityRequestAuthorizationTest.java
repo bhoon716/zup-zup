@@ -2,6 +2,8 @@ package bhoon.sugang_helper.common.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -39,6 +41,7 @@ import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownloa
 import bhoon.sugang_helper.support.feedback.service.FeedbackService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -154,7 +157,7 @@ class SecurityRequestAuthorizationTest {
 
         mockMvc.perform(get("/api/v1/admin/audit-logs?page=1&size=2").session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content").isArray());
+                .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test
@@ -173,7 +176,7 @@ class SecurityRequestAuthorizationTest {
         mockMvc.perform(get("/api/v1/admin/notification-deliveries/dlq")
                         .session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content").isArray());
+                .andExpect(jsonPath("$.content").isArray());
 
         mockMvc.perform(post("/api/v1/admin/notification-deliveries/1/replay")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -205,7 +208,7 @@ class SecurityRequestAuthorizationTest {
         mockMvc.perform(get("/api/v1/admin/feedbacks?deletion=DELETED")
                         .session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content").isArray());
+                .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test
@@ -255,13 +258,13 @@ class SecurityRequestAuthorizationTest {
 
     @Test
     void publicAnnouncementListIsAccessibleWithoutAuthentication() throws Exception {
-        given(announcementService.getPublicAnnouncements(null, AnnouncementSearchType.TITLE_CONTENT))
-                .willReturn(List.of());
+        given(announcementService.getPublicAnnouncements(eq(null), eq(AnnouncementSearchType.TITLE_CONTENT), any()))
+                .willReturn(Page.empty());
 
         mockMvc.perform(get("/api/v1/announcements"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("SUCCESS"))
-                .andExpect(jsonPath("$.message").value("공지사항 목록입니다."));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.code").doesNotExist());
     }
 
     @Test

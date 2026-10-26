@@ -7,7 +7,6 @@ import bhoon.sugang_helper.academic.review.dto.response.ReviewResponse;
 import bhoon.sugang_helper.academic.review.service.CourseReviewService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.common.web.PageableGuard;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,15 +33,15 @@ public class CourseReviewController {
     private final CourseReviewService reviewService;
 
     @PostMapping("/{courseKey}/reviews")
-    public ResponseEntity<CommonResponse<ReviewResponse>> createReview(
+    public ResponseEntity<ReviewResponse> createReview(
             @PathVariable String courseKey,
             @Valid @RequestBody ReviewCreateRequest request) {
         ReviewResponse response = reviewService.createReview(courseKey, request);
-        return CommonResponse.ok(response, "리뷰가 성공적으로 작성되었습니다.");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{courseKey}/reviews")
-    public ResponseEntity<CommonResponse<Page<ReviewResponse>>> getReviews(
+    public ResponseEntity<Page<ReviewResponse>> getReviews(
             @PathVariable String courseKey,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -62,7 +61,7 @@ public class CourseReviewController {
                 PageRequest.of(page, size, Sort.by(direction, sortProperty)));
 
         Page<ReviewResponse> responsePage = reviewService.getReviews(courseKey, pageRequest);
-        return CommonResponse.ok(responsePage, "리뷰 목록을 조회했습니다.");
+        return ResponseEntity.ok(responsePage);
     }
 
     private void validatePagination(int page, int size) {
@@ -72,25 +71,25 @@ public class CourseReviewController {
     }
 
     @PutMapping("/reviews/{reviewId}")
-    public ResponseEntity<CommonResponse<ReviewResponse>> updateReview(
+    public ResponseEntity<ReviewResponse> updateReview(
             @PathVariable Long reviewId,
             @Valid @RequestBody ReviewUpdateRequest request) {
         ReviewResponse response = reviewService.updateReview(reviewId, request);
-        return CommonResponse.ok(response, "리뷰가 수정되었습니다.");
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/reviews/{reviewId}")
-    public ResponseEntity<CommonResponse<Void>> deleteReview(
+    public ResponseEntity<Void> deleteReview(
             @PathVariable Long reviewId) {
         reviewService.deleteReview(reviewId);
-        return CommonResponse.ok(null, "리뷰가 삭제되었습니다.");
+        return ResponseEntity.ok(null);
     }
 
     @PostMapping("/reviews/{reviewId}/reaction")
-    public ResponseEntity<CommonResponse<Void>> toggleReaction(
+    public ResponseEntity<Void> toggleReaction(
             @PathVariable Long reviewId,
             @Valid @RequestBody ReviewReactionRequest request) {
         reviewService.toggleReaction(reviewId, request);
-        return CommonResponse.ok(null, "반응 처리가 완료되었습니다.");
+        return ResponseEntity.ok(null);
     }
 }

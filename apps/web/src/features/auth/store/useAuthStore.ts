@@ -73,7 +73,7 @@ export const useAuthStore = create<AuthState>()(
                 return;
               }
               set({
-                user: response.data,
+                user: response,
                 isAuthenticated: true,
                 isLoading: false,
               });

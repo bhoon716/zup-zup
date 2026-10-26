@@ -55,9 +55,9 @@ class AnnouncementControllerTest {
                         .param("page", "1")
                         .param("size", "2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].title").value("고정 공지"))
-                .andExpect(jsonPath("$.data.content[0].pinned").value(true))
-                .andExpect(jsonPath("$.data.number").value(1))
-                .andExpect(jsonPath("$.data.size").value(2));
+                .andExpect(jsonPath("$.content[0].title").value("고정 공지"))
+                .andExpect(jsonPath("$.content[0].pinned").value(true))
+                .andExpect(jsonPath("$.number").value(1))
+                .andExpect(jsonPath("$.size").value(2));
     }
 }

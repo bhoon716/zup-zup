@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.seatalert.subscription.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.seatalert.subscription.dto.request.SubscriptionRequest;
 import bhoon.sugang_helper.seatalert.subscription.dto.response.SubscriptionResponse;
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionService;
@@ -24,27 +23,27 @@ public class SubscriptionController {
     private final SubscriptionService subscriptionService;
 
     @PostMapping
-    public ResponseEntity<CommonResponse<SubscriptionResponse>> subscribe(
+    public ResponseEntity<SubscriptionResponse> subscribe(
             @RequestBody @Valid SubscriptionRequest request) {
         SubscriptionResponse response = subscriptionService.subscribe(request);
-        return CommonResponse.ok(response, "구독 신청이 완료되었습니다.");
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<CommonResponse<Void>> unsubscribe(@PathVariable Long id) {
+    public ResponseEntity<Void> unsubscribe(@PathVariable Long id) {
         subscriptionService.unsubscribe(id);
-        return CommonResponse.ok(null, "구독이 취소되었습니다.");
+        return ResponseEntity.ok(null);
     }
 
     @DeleteMapping
-    public ResponseEntity<CommonResponse<Void>> unsubscribeAll() {
+    public ResponseEntity<Void> unsubscribeAll() {
         subscriptionService.unsubscribeAll();
-        return CommonResponse.ok(null, "모든 구독이 취소되었습니다.");
+        return ResponseEntity.ok(null);
     }
 
     @GetMapping
-    public ResponseEntity<CommonResponse<List<SubscriptionResponse>>> getMySubscriptions() {
+    public ResponseEntity<List<SubscriptionResponse>> getMySubscriptions() {
         List<SubscriptionResponse> responses = subscriptionService.getMySubscriptions();
-        return CommonResponse.ok(responses, "내 구독 목록입니다.");
+        return ResponseEntity.ok(responses);
     }
 }

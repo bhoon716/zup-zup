@@ -2,7 +2,6 @@ package bhoon.sugang_helper.admin.audit.controller;
 
 import bhoon.sugang_helper.admin.audit.dto.response.AdminActionLogResponse;
 import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
-import bhoon.sugang_helper.common.response.CommonResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,8 +24,8 @@ public class AdminActionLogController {
     private final AdminAuditService adminAuditService;
 
     @GetMapping
-    public ResponseEntity<CommonResponse<Page<AdminActionLogResponse>>> getActionLogs(
+    public ResponseEntity<Page<AdminActionLogResponse>> getActionLogs(
             @PageableDefault(size = 50) Pageable pageable) {
-        return CommonResponse.ok(adminAuditService.getActionLogs(pageable), "관리자 액션 로그입니다.");
+        return ResponseEntity.ok(adminAuditService.getActionLogs(pageable));
     }
 }

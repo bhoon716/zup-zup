@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AxiosError } from "axios";
 import { useAuthStore } from "./useAuthStore";
 import * as userApi from "@/features/user/api/user.api";
-import type { CommonResponse, User } from "@/shared/types/api";
+import type { User } from "@/shared/types/api";
 
 vi.mock("@/features/user/api/user.api", () => ({
   getMyProfile: vi.fn(),
@@ -80,11 +80,7 @@ describe("useAuthStore", () => {
       discordEnabled: false,
       onboardingCompleted: true 
     };
-    vi.mocked(userApi.getMyProfile).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: user,
-    } as CommonResponse<User>);
+    vi.mocked(userApi.getMyProfile).mockResolvedValue(user as User);
 
     await useAuthStore.getState().checkSession();
 
@@ -133,8 +129,8 @@ describe("useAuthStore", () => {
   });
 
   it("checkSession이 동시에 여러 번 호출되어도 프로필 요청은 한 번만 보낸다", async () => {
-    let resolveProfile!: (value: CommonResponse<User>) => void;
-    const profilePromise = new Promise<CommonResponse<User>>((resolve) => {
+    let resolveProfile!: (value: User) => void;
+    const profilePromise = new Promise<User>((resolve) => {
       resolveProfile = resolve;
     });
 
@@ -144,9 +140,6 @@ describe("useAuthStore", () => {
     const secondCall = useAuthStore.getState().checkSession();
 
     resolveProfile({
-      code: "SUCCESS",
-      message: "ok",
-      data: {
         id: 1,
         email: "test@test.com",
         name: "홍길동",
@@ -156,8 +149,7 @@ describe("useAuthStore", () => {
         fcmEnabled: false,
         discordEnabled: false,
         onboardingCompleted: true,
-      },
-    });
+      });
 
     await Promise.all([firstCall, secondCall]);
 
@@ -168,8 +160,8 @@ describe("useAuthStore", () => {
   });
 
   it("로그아웃 후 늦게 도착한 세션 응답은 상태를 덮어쓰지 않는다", async () => {
-    let resolveProfile!: (value: CommonResponse<User>) => void;
-    const profilePromise = new Promise<CommonResponse<User>>((resolve) => {
+    let resolveProfile!: (value: User) => void;
+    const profilePromise = new Promise<User>((resolve) => {
       resolveProfile = resolve;
     });
 
@@ -179,9 +171,6 @@ describe("useAuthStore", () => {
     useAuthStore.getState().logout();
 
     resolveProfile({
-      code: "SUCCESS",
-      message: "ok",
-      data: {
         id: 1,
         email: "test@test.com",
         name: "홍길동",
@@ -191,8 +180,7 @@ describe("useAuthStore", () => {
         fcmEnabled: false,
         discordEnabled: false,
         onboardingCompleted: true,
-      },
-    });
+      });
 
     await pendingSessionCheck;
 
@@ -286,11 +274,7 @@ describe("useAuthStore", () => {
             data: { message: "잠시 후 다시 시도해 주세요." },
           })
         )
-        .mockResolvedValueOnce({
-          code: "SUCCESS",
-          message: "ok",
-          data: user,
-        } as CommonResponse<User>);
+        .mockResolvedValueOnce(user as User);
 
       const sessionCheck = useAuthStore.getState().checkSession();
       await vi.advanceTimersByTimeAsync(1_000);
@@ -332,11 +316,7 @@ describe("useAuthStore", () => {
             data: { message: "잠시 후 다시 시도해 주세요." },
           })
         )
-        .mockResolvedValueOnce({
-          code: "SUCCESS",
-          message: "ok",
-          data: user,
-        } as CommonResponse<User>);
+        .mockResolvedValueOnce(user as User);
 
       const sessionCheck = useAuthStore.getState().checkSession();
       await vi.advanceTimersByTimeAsync(0);

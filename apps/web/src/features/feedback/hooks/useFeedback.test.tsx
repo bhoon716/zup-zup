@@ -8,7 +8,7 @@ import {
   useMyFeedbacks,
 } from "./useFeedback";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
-import { CommonResponse, PageResponse, FeedbackResponse } from "@/shared/types/api";
+import { PageResponse, FeedbackResponse } from "@/shared/types/api";
 
 vi.mock("@/features/feedback/api/feedback.api", () => ({
   createFeedback: vi.fn(),
@@ -57,11 +57,7 @@ describe("useFeedback hooks", () => {
         }
       };
 
-      vi.mocked(feedbackApi.getMyFeedbacks).mockResolvedValue({
-        code: "SUCCESS",
-        message: "ok",
-        data: mockData,
-      } as CommonResponse<PageResponse<FeedbackResponse>>);
+      vi.mocked(feedbackApi.getMyFeedbacks).mockResolvedValue(mockData as PageResponse<FeedbackResponse>);
 
       const queryClient = createTestQueryClient();
       const wrapper = createQueryWrapper(queryClient);
@@ -75,11 +71,7 @@ describe("useFeedback hooks", () => {
 
   describe("useCreateFeedback", () => {
     it("피드백 생성 요청 성공 시 캐시를 무효화한다", async () => {
-      vi.mocked(feedbackApi.createFeedback).mockResolvedValue({
-        code: "SUCCESS",
-        message: "ok",
-        data: 1,
-      });
+      vi.mocked(feedbackApi.createFeedback).mockResolvedValue(1);
 
       const queryClient = createTestQueryClient();
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
@@ -100,9 +92,6 @@ describe("useFeedback hooks", () => {
   describe("관리자 피드백", () => {
     it("삭제 상태 필터를 별도 캐시 키와 API 요청으로 전달한다", async () => {
       vi.mocked(feedbackApi.getFeedbacksForAdmin).mockResolvedValue({
-        code: "SUCCESS",
-        message: "ok",
-        data: {
           content: [],
           totalElements: 0,
           totalPages: 0,
@@ -113,8 +102,7 @@ describe("useFeedback hooks", () => {
           numberOfElements: 0,
           empty: true,
           pageable: { pageNumber: 0, pageSize: 20, sort: { empty: true, sorted: false, unsorted: true } },
-        },
-      } as CommonResponse<PageResponse<never>>);
+        } as PageResponse<never>);
 
       const queryClient = createTestQueryClient();
       const wrapper = createQueryWrapper(queryClient);

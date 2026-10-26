@@ -14,7 +14,7 @@ export const useTimetables = (enabled = true, initialUser?: User | null) => {
     queryKey: ['timetables'],
     queryFn: async () => {
       const response = await timetableApi.getTimetables();
-      return response.data ?? null;
+      return response ?? null;
     },
     enabled: enabled && canFetch,
   });
@@ -29,7 +29,7 @@ export const useTimetableDetail = (id: number | null, enabled = true, initialUse
     queryFn: async () => {
       if (!id) return null;
       const response = await timetableApi.getTimetable(id);
-      return response.data ?? null;
+      return response ?? null;
     },
     enabled: queryEnabled && canFetch,
   });
@@ -42,7 +42,7 @@ export const usePrimaryTimetable = (initialUser?: User | null) => {
     queryKey: ['timetable', 'primary'],
     queryFn: async () => {
       const response = await timetableApi.getPrimaryTimetable();
-      return response.data ?? null;
+      return response ?? null;
     },
     enabled: canFetch,
   });

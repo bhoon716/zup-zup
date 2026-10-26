@@ -39,7 +39,7 @@ export function useMyFeedbacks(page: number = 0) {
     queryKey: feedbackKeys.myList(page),
     queryFn: async () => {
       const response = await getMyFeedbacks(page);
-      return response.data;
+      return response;
     },
   });
 }
@@ -52,7 +52,7 @@ export function useFeedbackDetail(id: number, enabled: boolean = true) {
     queryKey: feedbackKeys.detail(id),
     queryFn: async () => {
       const response = await getMyFeedbackDetail(id);
-      return response.data;
+      return response;
     },
     enabled: enabled && !!id,
   });
@@ -98,7 +98,7 @@ export function useFeedbacksForAdmin(
     queryKey: feedbackKeys.adminList(page, deletion),
     queryFn: async () => {
       const response = await getFeedbacksForAdmin(page, deletion);
-      return response.data;
+      return response;
     },
   });
 }
@@ -121,7 +121,7 @@ export function useAdminFeedbackDetail(id: number, enabled: boolean = true) {
     queryKey: [...feedbackKeys.detail(id), "admin"],
     queryFn: async () => {
       const response = await getFeedbackDetailForAdmin(id);
-      return response.data;
+      return response;
     },
     enabled: enabled && !!id,
   });

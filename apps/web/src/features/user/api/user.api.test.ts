@@ -36,11 +36,7 @@ describe("user.api", () => {
     vi.useFakeTimers();
     const { api, userApi } = await loadModules();
     api.get.mockResolvedValue({
-      data: {
-        code: "SUCCESS",
-        message: "ok",
-        data: { id: 1, name: "테스터" },
-      },
+      data: { id: 1, name: "테스터" },
     });
 
     const first = userApi.getMyProfile();
@@ -51,11 +47,7 @@ describe("user.api", () => {
 
     vi.advanceTimersByTime(101);
     api.get.mockResolvedValueOnce({
-      data: {
-        code: "SUCCESS",
-        message: "ok",
-        data: { id: 1, name: "테스터" },
-      },
+      data: { id: 1, name: "테스터" },
     });
 
     await userApi.getMyProfile();
@@ -65,11 +57,7 @@ describe("user.api", () => {
   it("getMyProfile는 bootstrap 요청에서 auth 실패 후속 처리를 억제할 수 있다", async () => {
     const { api, userApi } = await loadModules();
     api.get.mockResolvedValue({
-      data: {
-        code: "SUCCESS",
-        message: "ok",
-        data: { id: 1, name: "테스터" },
-      },
+      data: { id: 1, name: "테스터" },
     });
 
     await userApi.getMyProfile({ silentAuthFailure: true });
@@ -81,8 +69,8 @@ describe("user.api", () => {
 
   it("silent bootstrap과 일반 프로필 요청은 서로 다른 실패 정책의 in-flight 요청을 공유하지 않는다", async () => {
     const { api, userApi } = await loadModules();
-    let resolveRequest!: (value: { data: { code: string; message: string; data: { id: number } } }) => void;
-    const request = new Promise<{ data: { code: string; message: string; data: { id: number } } }>((resolve) => {
+    let resolveRequest!: (value: { data: { id: number } }) => void;
+    const request = new Promise<{ data: { id: number } }>((resolve) => {
       resolveRequest = resolve;
     });
     api.get.mockReturnValue(request);
@@ -92,11 +80,7 @@ describe("user.api", () => {
 
     expect(api.get).toHaveBeenCalledTimes(2);
     resolveRequest({
-      data: {
-        code: "SUCCESS",
-        message: "ok",
-        data: { id: 1 },
-      },
+      data: { id: 1 },
     });
     await Promise.all([silentRequest, regularRequest]);
   });
@@ -104,11 +88,7 @@ describe("user.api", () => {
   it("unregisterDevice는 토큰을 URL이 아닌 요청 본문으로 삭제 요청을 보낸다", async () => {
     const { api, userApi } = await loadModules();
     api.delete.mockResolvedValue({
-      data: {
-        code: "SUCCESS",
-        message: "ok",
-        data: undefined,
-      },
+      data: undefined,
     });
 
     await userApi.unregisterDevice("token/with?unsafe=value");
@@ -121,11 +101,7 @@ describe("user.api", () => {
   it("sendTestNotification은 사용자 테스트 알림 API를 호출한다", async () => {
     const { api, userApi } = await loadModules();
     api.post.mockResolvedValue({
-      data: {
-        code: "SUCCESS",
-        message: "ok",
-        data: undefined,
-      },
+      data: undefined,
     });
 
     await userApi.sendTestNotification();

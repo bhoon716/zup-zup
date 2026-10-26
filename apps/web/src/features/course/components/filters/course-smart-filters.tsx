@@ -96,7 +96,7 @@ export function CourseSmartFilters({
    */
   const handleImportFromTimetable = async (timetableId: number, name: string) => {
     try {
-      const { data: detail } = await timetableApi.getTimetable(timetableId);
+      const detail = await timetableApi.getTimetable(timetableId);
 
       if (!detail) {
         toast.error(`'${name}' 정보를 불러올 수 없습니다.`);

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import type { Course, ReviewResponse } from "../src/shared/types/api";
 
-const response = (data: unknown) => ({ code: "SUCCESS", message: "ok", data });
+const response = (data: unknown) => (data);
 const course: Course = {
   courseKey: "2026:U211600010:CSE101:01", subjectCode: "CSE101", name: "자료구조",
   professor: "김교수", stdtrNo: "학수-01", classNumber: "01", academicYear: "2026",

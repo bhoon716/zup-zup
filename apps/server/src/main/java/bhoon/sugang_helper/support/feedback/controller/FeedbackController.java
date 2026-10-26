@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.support.feedback.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.response.FeedbackDetailResponse;
@@ -42,7 +41,7 @@ public class FeedbackController {
      * 새로운 피드백(건의/제보)을 등록합니다.
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<CommonResponse<Long>> createFeedback(
+    public ResponseEntity<Long> createFeedback(
             @Valid @RequestPart("feedback") FeedbackCreateRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             HttpServletRequest httpRequest) {
@@ -50,27 +49,27 @@ public class FeedbackController {
         Long feedbackId = feedbackService.createFeedbackForCurrentUser(
                 request, files, resolveClientIp(httpRequest));
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(CommonResponse.success(feedbackId, "피드백이 등록되었습니다."));
+                .body(feedbackId);
     }
 
     /**
      * 내가 작성한 모든 피드백 목록을 조회합니다.
      */
     @GetMapping("/me")
-    public ResponseEntity<CommonResponse<Page<FeedbackResponse>>> getMyFeedbacks(
+    public ResponseEntity<Page<FeedbackResponse>> getMyFeedbacks(
             @PageableDefault(size = 10) Pageable pageable) {
 
-        return CommonResponse.ok(feedbackService.getMyFeedbacksForCurrentUser(pageable), "내 피드백 목록입니다.");
+        return ResponseEntity.ok(feedbackService.getMyFeedbacksForCurrentUser(pageable));
     }
 
     /**
      * 내가 작성한 특정 피드백의 상세 내용을 조회합니다.
      */
     @GetMapping("/{feedbackId}")
-    public ResponseEntity<CommonResponse<FeedbackDetailResponse>> getMyFeedbackDetail(
+    public ResponseEntity<FeedbackDetailResponse> getMyFeedbackDetail(
             @PathVariable Long feedbackId) {
 
-        return CommonResponse.ok(feedbackService.getMyFeedbackDetailForCurrentUser(feedbackId), "피드백 상세입니다.");
+        return ResponseEntity.ok(feedbackService.getMyFeedbackDetailForCurrentUser(feedbackId));
     }
 
     @GetMapping("/{feedbackId}/attachments/{attachmentId}")

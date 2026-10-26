@@ -24,11 +24,7 @@ describe("dashboard.api", () => {
   it("대시보드 스냅샷 요청은 공통 인증 갱신 경로를 사용한다", async () => {
     const { api, dashboardApi } = await loadModules();
     api.get.mockResolvedValue({
-      data: {
-        code: "SUCCESS",
-        message: "ok",
-        data: null,
-      },
+      data: null,
     });
 
     await dashboardApi.getDashboardSnapshot();

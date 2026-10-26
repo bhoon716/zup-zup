@@ -20,7 +20,7 @@ export function useAdminDlqNotificationDeliveries(page: number = 0, size: number
     queryKey: adminNotificationDeliveryKeys.dlq(page, size),
     queryFn: async () => {
       const response = await adminApi.getAdminDlqNotificationDeliveries(page, size);
-      return response.data;
+      return response;
     },
   });
 }
@@ -33,7 +33,7 @@ export function useAdminNotificationDelivery(id: number | null, enabled: boolean
     queryKey: adminNotificationDeliveryKeys.detail(id ?? 0),
     queryFn: async () => {
       const response = await adminApi.getAdminNotificationDelivery(id ?? 0);
-      return response.data;
+      return response;
     },
     enabled: enabled && id !== null,
   });
@@ -48,9 +48,9 @@ export function useReplayAdminNotificationDelivery() {
   return useMutation({
     mutationFn: ({ id, request }: { id: number; request: NotificationDeliveryReplayRequest }) =>
       adminApi.replayAdminNotificationDelivery(id, request),
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminNotificationDeliveryKeys.all });
-      toast.success(response.message || "delivery 재처리를 요청했습니다.");
+      toast.success("delivery 재처리를 요청했습니다.");
     },
     onError: (error: AxiosError<{ message: string }>) => {
       toast.error(error.response?.data?.message || "delivery 재처리 요청에 실패했습니다.");

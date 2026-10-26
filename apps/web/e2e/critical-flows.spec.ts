@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const response = (data: unknown) => ({ code: "SUCCESS", message: "ok", data });
+const response = (data: unknown) => (data);
 const announcementPage = {
   content: [{ id: 1, title: "점검 안내", previewContent: "오늘 밤 점검합니다.", pinned: true, createdAt: "2026-07-13T10:00:00" }],
   pageable: { pageNumber: 0, pageSize: 20, offset: 0 }, totalElements: 1, totalPages: 1, last: true,

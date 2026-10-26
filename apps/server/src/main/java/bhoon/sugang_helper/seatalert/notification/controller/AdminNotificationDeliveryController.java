@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.seatalert.notification.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.seatalert.notification.dto.request.NotificationDeliveryReplayRequest;
 import bhoon.sugang_helper.seatalert.notification.dto.response.AdminNotificationDeliveryResponse;
 import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
@@ -29,24 +28,24 @@ public class AdminNotificationDeliveryController {
     private final AdminNotificationDeliveryService notificationDeliveryService;
 
     @GetMapping("/dlq")
-    public ResponseEntity<CommonResponse<Page<AdminNotificationDeliveryResponse>>> getDeadLetters(
+    public ResponseEntity<Page<AdminNotificationDeliveryResponse>> getDeadLetters(
             @PageableDefault(size = 20) Pageable pageable) {
-        return CommonResponse.ok(notificationDeliveryService.getDeadLetters(pageable), "알림 DLQ 목록입니다.");
+        return ResponseEntity.ok(notificationDeliveryService.getDeadLetters(pageable));
     }
 
     @GetMapping("/{deliveryId}")
-    public ResponseEntity<CommonResponse<AdminNotificationDeliveryResponse>> getDelivery(
+    public ResponseEntity<AdminNotificationDeliveryResponse> getDelivery(
             @PathVariable Long deliveryId) {
-        return CommonResponse.ok(notificationDeliveryService.getDelivery(deliveryId), "알림 delivery 상세입니다.");
+        return ResponseEntity.ok(notificationDeliveryService.getDelivery(deliveryId));
     }
 
     @PostMapping("/{deliveryId}/replay")
-    public ResponseEntity<CommonResponse<AdminNotificationDeliveryResponse>> replay(
+    public ResponseEntity<AdminNotificationDeliveryResponse> replay(
             @PathVariable Long deliveryId,
             @RequestBody(required = false) NotificationDeliveryReplayRequest request) {
         boolean forceSentReplay = request != null && request.forceSentReplay();
         AdminNotificationDeliveryResponse response = notificationDeliveryService.replay(
                 notificationDeliveryService.getCurrentAdminId(), deliveryId, forceSentReplay);
-        return CommonResponse.ok(response, "알림 delivery 재처리를 예약했습니다.");
+        return ResponseEntity.ok(response);
     }
 }

@@ -20,7 +20,7 @@ export const useAnnouncements = (params: UseAnnouncementsParams = {}) => {
     queryKey: ["announcements", { keyword, searchType, page, size }],
     queryFn: async () => {
       const response = await announcementApi.getAnnouncements({ keyword, searchType, page, size });
-      return response.data.content;
+      return response.content;
     },
     enabled: params.enabled ?? true,
   });
@@ -31,7 +31,7 @@ export const useAnnouncement = (id: number) => {
     queryKey: ["announcements", id],
     queryFn: async () => {
       const response = await announcementApi.getAnnouncement(id);
-      return response.data;
+      return response;
     },
     enabled: Number.isFinite(id) && id > 0,
   });

@@ -1,11 +1,5 @@
 import api from "@/shared/api/client";
-import type {
-  AnnouncementDetailResponse,
-  AnnouncementListItemResponse,
-  AnnouncementSearchType,
-  CommonResponse,
-  PageResponse,
-} from "@/shared/types/api";
+import type { AnnouncementDetailResponse, AnnouncementListItemResponse, AnnouncementSearchType, PageResponse } from "@/shared/types/api";
 
 export interface AnnouncementSearchParams {
   keyword?: string;
@@ -16,7 +10,7 @@ export interface AnnouncementSearchParams {
 
 export const getAnnouncements = async (
   params: AnnouncementSearchParams = {}
-): Promise<CommonResponse<PageResponse<AnnouncementListItemResponse>>> => {
+): Promise<PageResponse<AnnouncementListItemResponse>> => {
   const keyword = params.keyword?.trim();
   const { data } = await api.get("/api/v1/announcements", {
     params: {
@@ -29,7 +23,7 @@ export const getAnnouncements = async (
   return data;
 };
 
-export const getAnnouncement = async (id: number): Promise<CommonResponse<AnnouncementDetailResponse>> => {
+export const getAnnouncement = async (id: number): Promise<AnnouncementDetailResponse> => {
   const { data } = await api.get(`/api/v1/announcements/${id}`);
   return data;
 };

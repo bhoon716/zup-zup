@@ -1,11 +1,7 @@
 /**
  * 서버의 표준 응답 형식을 정의합니다.
  */
-export interface CommonResponse<T = unknown> {
-  code: string;
-  message: string;
-  data: T;
-}
+
 
 /**
  * 무한 스크롤 등에서 사용되는 분할 페이지 응답 형식입니다.

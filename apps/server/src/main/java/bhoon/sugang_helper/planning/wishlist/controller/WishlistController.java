@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.planning.wishlist.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistResponse;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistToggleResponse;
 import bhoon.sugang_helper.planning.wishlist.service.WishlistService;
@@ -21,14 +20,13 @@ public class WishlistController {
     private final WishlistService wishlistService;
 
     @PostMapping("/{courseKey}")
-    public ResponseEntity<CommonResponse<WishlistToggleResponse>> toggleWishlist(@PathVariable String courseKey) {
+    public ResponseEntity<WishlistToggleResponse> toggleWishlist(@PathVariable String courseKey) {
         WishlistToggleResponse response = wishlistService.toggleWishlist(courseKey);
-        String message = response.isWished() ? "찜 목록에 추가되었습니다." : "찜 목록에서 삭제되었습니다.";
-        return CommonResponse.ok(response, message);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
-    public ResponseEntity<CommonResponse<List<WishlistResponse>>> getMyWishlist() {
-        return CommonResponse.ok(wishlistService.getMyWishlist(), "찜 목록을 조회했습니다.");
+    public ResponseEntity<List<WishlistResponse>> getMyWishlist() {
+        return ResponseEntity.ok(wishlistService.getMyWishlist());
     }
 }

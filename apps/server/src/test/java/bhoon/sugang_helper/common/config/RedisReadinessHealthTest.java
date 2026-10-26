@@ -50,6 +50,8 @@ import org.springframework.test.web.servlet.MockMvc;
 })
 class RedisReadinessHealthTest {
 
+    private static final String STATUS_PATH = "$.status";
+
     @Autowired
     private MockMvc mockMvc;
     @Autowired
@@ -67,12 +69,12 @@ class RedisReadinessHealthTest {
 
         mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.status").value("DOWN"));
+                .andExpect(jsonPath(STATUS_PATH).value("DOWN"));
 
         mockMvc.perform(get("/health"))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.data.status").value("DOWN"))
-                .andExpect(jsonPath("$.data.details").doesNotExist());
+                .andExpect(jsonPath(STATUS_PATH).value("DOWN"))
+                .andExpect(jsonPath("$.details").doesNotExist());
     }
 
     @Test
@@ -87,15 +89,15 @@ class RedisReadinessHealthTest {
 
         mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.status").value("DOWN"));
+                .andExpect(jsonPath(STATUS_PATH).value("DOWN"));
 
         mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
+                .andExpect(jsonPath(STATUS_PATH).value("UP"));
 
         mockMvc.perform(get("/health"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("UP"));
+                .andExpect(jsonPath(STATUS_PATH).value("UP"));
     }
 
     @SpringBootConfiguration

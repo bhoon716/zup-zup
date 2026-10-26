@@ -40,11 +40,7 @@ describe("useSubscriptions hooks", () => {
 
   it("로그인 상태에서는 구독 목록을 조회한다", async () => {
     vi.mocked(useUser).mockReturnValue({ data: { id: 1 } } as never);
-    vi.mocked(subscriptionApi.getMySubscriptions).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: [{ id: 1, courseKey: "CSE-101", courseName: "자료구조", professorName: "김교수", isActive: true, createdAt: "2026-01-01T00:00:00" }],
-    } as never);
+    vi.mocked(subscriptionApi.getMySubscriptions).mockResolvedValue([{ id: 1, courseKey: "CSE-101", courseName: "자료구조", professorName: "김교수", isActive: true, createdAt: "2026-01-01T00:00:00" }] as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -56,11 +52,7 @@ describe("useSubscriptions hooks", () => {
   });
 
   it("구독 성공 시 목록 캐시를 무효화하고 성공 토스트를 노출한다", async () => {
-    vi.mocked(subscriptionApi.subscribe).mockResolvedValue({
-      code: "SUCCESS",
-      message: "구독 성공",
-      data: null,
-    } as never);
+    vi.mocked(subscriptionApi.subscribe).mockResolvedValue(null as never);
 
     const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
@@ -73,7 +65,7 @@ describe("useSubscriptions hooks", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["subscriptions"] });
-    expect(toast.success).toHaveBeenCalledWith("구독 성공");
+    expect(toast.success).toHaveBeenCalledWith("구독이 완료되었습니다");
   });
 
   it("구독 취소 실패 시 에러 토스트를 노출한다", async () => {

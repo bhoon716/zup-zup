@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.seatalert.notification.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.seatalert.notification.dto.response.NotificationHistoryResponse;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQuery;
@@ -26,12 +25,12 @@ public class NotificationController {
      * 현재 로그인한 사용자의 전체 알림 수신 내역을 조회합니다.
      */
     @GetMapping("/history")
-    public ResponseEntity<CommonResponse<Slice<NotificationHistoryResponse>>> getMyNotificationHistory(
+    public ResponseEntity<Slice<NotificationHistoryResponse>> getMyNotificationHistory(
             @PageableDefault(size = 30) Pageable pageable) {
         Pageable boundedPageable = PageableGuard.requireBounded(pageable, MAX_HISTORY_PAGE_SIZE, 10_000);
         Slice<NotificationHistoryResponse> histories = notificationHistoryQuery
                 .findForCurrentUser(boundedPageable)
                 .map(NotificationHistoryResponse::from);
-        return CommonResponse.ok(histories, "전체 알림 수신 내역입니다.");
+        return ResponseEntity.ok(histories);
     }
 }

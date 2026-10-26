@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.support.feedback.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackAttachmentDownloadRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
@@ -45,21 +44,19 @@ public class AdminFeedbackController {
      * 시스템에 등록된 모든 문의 및 건의 사항을 조회합니다.
      */
     @GetMapping
-    public ResponseEntity<CommonResponse<Page<AdminFeedbackResponse>>> getAllFeedbacks(
+    public ResponseEntity<Page<AdminFeedbackResponse>> getAllFeedbacks(
             @RequestParam(required = false) String deletion,
             @PageableDefault(size = 20) Pageable pageable) {
-        return CommonResponse.ok(
-                feedbackService.getFeedbacksForAdmin(pageable, AdminFeedbackDeletionFilter.from(deletion)),
-                "전체 피드백 목록입니다.");
+        return ResponseEntity.ok(feedbackService.getFeedbacksForAdmin(pageable, AdminFeedbackDeletionFilter.from(deletion)));
     }
 
     /**
      * 특정 문의 사항의 상세 내용 및 메타 정보를 조회합니다.
      */
     @GetMapping("/{feedbackId}")
-    public ResponseEntity<CommonResponse<AdminFeedbackDetailResponse>> getFeedbackDetail(
+    public ResponseEntity<AdminFeedbackDetailResponse> getFeedbackDetail(
             @PathVariable Long feedbackId) {
-        return CommonResponse.ok(feedbackService.getFeedbackDetailForAdmin(feedbackId), "피드백 상세입니다.");
+        return ResponseEntity.ok(feedbackService.getFeedbackDetailForAdmin(feedbackId));
     }
 
     @PostMapping("/{feedbackId}/attachments/{attachmentId}/download")
@@ -94,13 +91,13 @@ public class AdminFeedbackController {
      * 문의 사항에 대한 관리자 공식 답변을 등록합니다.
      */
     @PostMapping("/{feedbackId}/reply")
-    public ResponseEntity<CommonResponse<Long>> createReply(
+    public ResponseEntity<Long> createReply(
             @PathVariable Long feedbackId,
             @Valid @RequestBody FeedbackReplyCreateRequest request) {
 
         Long replyId = feedbackService.createFeedbackReplyForCurrentAdmin(feedbackId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(CommonResponse.success(replyId, "답변이 등록되었습니다."));
+                .body(replyId);
     }
 
     /**

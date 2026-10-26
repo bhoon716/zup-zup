@@ -3,7 +3,6 @@ package bhoon.sugang_helper.campus.dday.controller;
 import bhoon.sugang_helper.campus.dday.dto.request.DdaySettingRequest;
 import bhoon.sugang_helper.campus.dday.dto.response.DdaySettingResponse;
 import bhoon.sugang_helper.campus.dday.service.DdaySettingService;
-import bhoon.sugang_helper.common.response.CommonResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -28,21 +27,21 @@ public class AdminDdaySettingController {
     private final DdaySettingService ddaySettingService;
 
     @GetMapping
-    public ResponseEntity<CommonResponse<List<DdaySettingResponse>>> getAllDdays() {
-        return CommonResponse.ok(ddaySettingService.getAllDdays(), "전체 D-Day 목록입니다.");
+    public ResponseEntity<List<DdaySettingResponse>> getAllDdays() {
+        return ResponseEntity.ok(ddaySettingService.getAllDdays());
     }
 
     @PostMapping
-    public ResponseEntity<CommonResponse<DdaySettingResponse>> createDday(
+    public ResponseEntity<DdaySettingResponse> createDday(
             @RequestBody @Valid DdaySettingRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(CommonResponse.success(ddaySettingService.createDday(request), "D-Day 설정을 생성했습니다."));
+                .body(ddaySettingService.createDday(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CommonResponse<DdaySettingResponse>> updateDday(@PathVariable Long id,
+    public ResponseEntity<DdaySettingResponse> updateDday(@PathVariable Long id,
                                                                           @RequestBody @Valid DdaySettingRequest request) {
-        return CommonResponse.ok(ddaySettingService.updateDday(id, request), "D-Day 설정을 수정했습니다.");
+        return ResponseEntity.ok(ddaySettingService.updateDday(id, request));
     }
 
     @DeleteMapping("/{id}")

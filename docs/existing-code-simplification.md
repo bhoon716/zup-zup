@@ -321,3 +321,12 @@ useReviews의 목록·상세 캐시에 전체 updatedCourse를 합치던 두 곳
 최신 사용자 기준에 따라 DTO 122개를 request 27개·response 53개·result 28개와 command 6개·criteria 4개·external 2개·provider 1개·diagnostic 1개로 분류했다. 직접 API에 노출되는 Dashboard Result·공유 Snapshot·감사 메타데이터는 response, 내부 User/조회 결과는 result다. 요청·서비스 입력·외부 수집 결과를 억지로 동일 역할에 넣지 않았다. 클래스명·필드·Jackson/validation 애노테이션은 유지했고 DTO 복제·변환 계층을 추가하지 않았다. 전체 목록과 판단은 dto-classification.md에 기록했다.
 
 package/import와 생성자 쿼리, 같은 패키지의 테스트 경로를 함께 수정하고 현재 소스를 가리키는 문서 링크를 갱신했다. 서버·테스트 컴파일, PMD·Checkstyle main/test 모두 통과했다. 생성자 쿼리·감사 JSON·대시보드 관련 기존 20건도 실패/오류/skip 없이 통과했다. 로그는 작업 디렉터리의 dto-classification-check.log·dto-classification-tests.log다. 실제 코드의 정상 응답 래퍼·일정 통합·페이지 크기·주석·인터페이스 동작 변경은 후속 단위에서 진행한다.
+
+
+## 정상 응답 직접 반환 완료
+
+CommonResponse와 프론트 공통 성공 타입을 제거하고 26개 컨트롤러를 실제 객체·배열·Page/Slice·숫자·문자열·무본문으로 전환했다. 오류 공통 응답과 인터셉터·상태·쿠키/Location·파일 헤더·페이지 객체는 유지했다. 문자열은 JSON 문자열을 보장하고 nullable 대표 시간표는 기존 200/빈 본문을 클라이언트에서 null로 정규화한다. 성공 토스트는 기존 기능별 문구 또는 실제 수집 결과 문자열을 사용한다. API 소비 훅·상태 저장소·화면·SSR 메타데이터·사이트맵과 모의 응답을 함께 바꿨다. 업무 metadata.data와 오류/요청 data는 유지했다. 상세 계약은 api-response-contract.md에 있다.
+
+서버 MockMvc 계약 6건과 웹 nullable 2건·SEO/사이트맵 2건을 보강했다. 초기 실패는 옛 성공 포장/문구 기대값과 Page 대신 이전 메서드를 mock하던 테스트, 쿠키 헤더 문자열 순서, JSON 경로 상수 중복이었다. 결과/오류 검증을 새 계약으로 옮겼고 쿠키는 실제 maxAge·값을 확인했다. 사이트맵 테스트 추가 중 기존 두 테스트를 덮어쓴 것을 확인해 모두 복원하고 새 검증만 더했다. 테스트를 삭제·skip하거나 핵심 assertion을 약화시켜 통과시키지 않았다.
+
+최종 검증: 서버 120 suite·536 tests 실패/오류/skip 0, PMD·Checkstyle main/test 위반 0, check bootJar 성공. 웹 79파일·279건, 타입 검사·ESLint(경고 0)·production build 성공. Playwright 기존 인증 갱신·관리자 첨부·리뷰 생성/수정 네 건이 retries=0으로 모두 통과(19.5초)했다. 실제 백엔드·제공자 대신 가짜 응답을 사용했다. 빌드의 API_URL도 연결되지 않는 로컬 주소로 고정했다. 로그는 작업 디렉터리 direct-response-*에 있다. 운영 프론트·서버는 같은 응답 계약으로 함께 전환해야 하며 아직 배포하지 않았다.

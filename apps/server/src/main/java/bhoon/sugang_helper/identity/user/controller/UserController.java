@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.identity.user.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.dto.command.SendVerificationCodeCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateProfileCommand;
@@ -65,7 +64,7 @@ public class UserController {
      * 신규 가입 유저의 초기 설정(알림 이메일 등)을 저장하고 온보딩 상태를 완료로 변경합니다.
      */
     @PostMapping("/onboard")
-    public ResponseEntity<CommonResponse<UserResponse>> completeOnboarding(
+    public ResponseEntity<UserResponse> completeOnboarding(
             @Valid @RequestBody OnboardingRequest request) {
         UserOnboardingResult result = userService.completeOnboarding(new CompleteOnboardingCommand(
                 request.getNotificationEmail(),
@@ -74,17 +73,17 @@ public class UserController {
                 request.isFcmEnabled(),
                 request.isDiscordEnabled()));
         UserResponse response = UserResponse.from(result);
-        return CommonResponse.ok(response, "온보딩 설정이 완료되었습니다.");
+        return ResponseEntity.ok(response);
     }
 
     /**
      * 입력한 이메일로 인증 코드를 전송합니다.
      */
     @PostMapping("/email/code")
-    public ResponseEntity<CommonResponse<Void>> sendVerificationCode(
+    public ResponseEntity<Void> sendVerificationCode(
             @Valid @RequestBody EmailRequest request, HttpServletRequest httpRequest) {
         userService.sendVerificationCode(new SendVerificationCodeCommand(request.getEmail()), resolveClientIp(httpRequest));
-        return CommonResponse.ok(null, "인증 코드가 전송되었습니다. 이메일을 확인해주세요.");
+        return ResponseEntity.ok(null);
     }
 
     private String resolveClientIp(HttpServletRequest request) {
@@ -99,37 +98,37 @@ public class UserController {
      * 이메일로 전송된 인증 코드를 검증합니다.
      */
     @PostMapping("/email/verify")
-    public ResponseEntity<CommonResponse<Void>> verifyEmail(
+    public ResponseEntity<Void> verifyEmail(
             @Valid @RequestBody EmailVerificationRequest request) {
         userService.verifyEmail(new VerifyEmailCommand(request.getEmail(), request.getCode()));
-        return CommonResponse.ok(null, "이메일 인증이 완료되었습니다.");
+        return ResponseEntity.ok(null);
     }
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
      */
     @GetMapping("/me")
-    public ResponseEntity<CommonResponse<UserResponse>> getMyProfile() {
+    public ResponseEntity<UserResponse> getMyProfile() {
         UserProfileResult result = userService.getMyProfile();
         UserResponse response = UserResponse.from(result);
-        return CommonResponse.ok(response, "사용자 프로필 정보입니다.");
+        return ResponseEntity.ok(response);
     }
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 수정합니다.
      */
     @PatchMapping("/me")
-    public ResponseEntity<CommonResponse<UserResponse>> updateProfile(@Valid @RequestBody UserUpdateRequest request) {
+    public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody UserUpdateRequest request) {
         UserProfileUpdateResult result = userService.updateProfile(new UpdateProfileCommand(request.getName()));
         UserResponse response = UserResponse.from(result);
-        return CommonResponse.ok(response, "사용자 프로필 정보가 수정되었습니다.");
+        return ResponseEntity.ok(response);
     }
 
     /**
      * 현재 로그인한 사용자의 알림 수신 설정을 수정합니다.
      */
     @PatchMapping("/settings")
-    public ResponseEntity<CommonResponse<UserResponse>> updateSettings(
+    public ResponseEntity<UserResponse> updateSettings(
             @Valid @RequestBody UserSettingsRequest request) {
         UserSettingsResult result = userService.updateSettings(new UpdateSettingsCommand(
                 request.getNotificationEmail(),
@@ -138,35 +137,35 @@ public class UserController {
                 request.isFcmEnabled(),
                 request.isDiscordEnabled()));
         UserResponse response = UserResponse.from(result);
-        return CommonResponse.ok(response, "사용자 알림 설정이 수정되었습니다.");
+        return ResponseEntity.ok(response);
     }
 
     /**
      * 현재 로그인한 사용자의 활성화된 채널로 테스트 알림을 발송합니다.
      */
     @PostMapping("/notifications/test")
-    public ResponseEntity<CommonResponse<Void>> sendTestNotification() {
+    public ResponseEntity<Void> sendTestNotification() {
         userService.sendTestNotification();
-        return CommonResponse.ok(null, "알림 테스트를 전송했습니다.");
+        return ResponseEntity.ok(null);
     }
 
     /**
      * 사용자 계정을 삭제하고 회원 탈퇴를 처리합니다.
      */
     @DeleteMapping("/me")
-    public ResponseEntity<CommonResponse<Void>> withdraw(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<Void> withdraw(HttpServletRequest request, HttpServletResponse response) {
         userService.withdraw();
         authSessionLogout.logout(request, response);
-        return CommonResponse.ok(null, "회원 탈퇴가 완료되었습니다.");
+        return ResponseEntity.ok(null);
     }
 
     /**
      * 현재 계정에 연동된 디스코드 계정을 해제합니다.
      */
     @DeleteMapping("/me/discord")
-    public ResponseEntity<CommonResponse<Void>> unlinkDiscord() {
+    public ResponseEntity<Void> unlinkDiscord() {
         userService.unlinkDiscord();
-        return CommonResponse.ok(null, "디스코드 연동이 해제되었습니다.");
+        return ResponseEntity.ok(null);
     }
 
     @GetMapping("/discord/authorize")

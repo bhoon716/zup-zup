@@ -72,8 +72,8 @@ class DatabaseReadinessHealthTest {
 
         mockMvc.perform(get("/health"))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.data.status").value("DOWN"))
-                .andExpect(jsonPath("$.data.details").doesNotExist());
+                .andExpect(jsonPath("$.status").value("DOWN"))
+                .andExpect(jsonPath("$.details").doesNotExist());
     }
 
     @SpringBootConfiguration

@@ -1,20 +1,10 @@
 import api from "@/shared/api/client";
-import type {
-  CommonResponse,
-  AdminDashboardSnapshotResponse,
-  AdminCrawlTargetRequest,
-  AdminCrawlTargetResponse,
-  AdminNotificationDeliveryResponse,
-  AnnouncementRequest,
-  AnnouncementDetailResponse,
-  NotificationDeliveryReplayRequest,
-  PageResponse,
-} from '@/shared/types/api';
+import type { AdminDashboardSnapshotResponse, AdminCrawlTargetRequest, AdminCrawlTargetResponse, AdminNotificationDeliveryResponse, AnnouncementRequest, AnnouncementDetailResponse, NotificationDeliveryReplayRequest, PageResponse } from '@/shared/types/api';
 
 /**
  * 관리자 페이지에서 필요한 개요와 크롤링 타겟을 한 번에 조회합니다.
  */
-export const getDashboardSnapshot = async (): Promise<CommonResponse<AdminDashboardSnapshotResponse>> => {
+export const getDashboardSnapshot = async (): Promise<AdminDashboardSnapshotResponse> => {
   const { data } = await api.get('/api/v1/admin/dashboard');
   return data;
 };
@@ -22,7 +12,7 @@ export const getDashboardSnapshot = async (): Promise<CommonResponse<AdminDashbo
 /**
  * 기본 타겟으로 강의 크롤링을 즉시 실행합니다.
  */
-export const crawlCourses = async (): Promise<CommonResponse<string>> => {
+export const crawlCourses = async (): Promise<string> => {
   const { data } = await api.post('/api/v1/admin/courses/crawl');
   return data;
 };
@@ -32,7 +22,7 @@ export const crawlCourses = async (): Promise<CommonResponse<string>> => {
  */
 export const crawlCoursesByTarget = async (
   request: AdminCrawlTargetRequest
-): Promise<CommonResponse<string>> => {
+): Promise<string> => {
   const { data } = await api.post('/api/v1/admin/courses/crawl/target', request);
   return data;
 };
@@ -40,7 +30,7 @@ export const crawlCoursesByTarget = async (
 /**
  * 현재 설정된 기본 크롤링 타겟(년도, 학기) 정보를 조회합니다.
  */
-export const getCrawlTarget = async (): Promise<CommonResponse<AdminCrawlTargetResponse>> => {
+export const getCrawlTarget = async (): Promise<AdminCrawlTargetResponse> => {
   const { data } = await api.get('/api/v1/admin/courses/crawl-target');
   return data;
 };
@@ -50,7 +40,7 @@ export const getCrawlTarget = async (): Promise<CommonResponse<AdminCrawlTargetR
  */
 export const updateCrawlTarget = async (
   request: AdminCrawlTargetRequest
-): Promise<CommonResponse<AdminCrawlTargetResponse>> => {
+): Promise<AdminCrawlTargetResponse> => {
   const { data } = await api.put('/api/v1/admin/courses/crawl-target', request);
   return data;
 };
@@ -58,7 +48,7 @@ export const updateCrawlTarget = async (
 /**
  * 관리자용 테스트 알림을 발송합니다.
  */
-export const sendTestNotification = async (): Promise<CommonResponse<void>> => {
+export const sendTestNotification = async (): Promise<void> => {
   const { data } = await api.post('/api/v1/admin/notifications/test');
   return data;
 };
@@ -69,8 +59,8 @@ export const sendTestNotification = async (): Promise<CommonResponse<void>> => {
 export const getAdminDlqNotificationDeliveries = async (
   page: number = 0,
   size: number = 20,
-): Promise<CommonResponse<PageResponse<AdminNotificationDeliveryResponse>>> => {
-  const { data } = await api.get<CommonResponse<PageResponse<AdminNotificationDeliveryResponse>>>(
+): Promise<PageResponse<AdminNotificationDeliveryResponse>> => {
+  const { data } = await api.get<PageResponse<AdminNotificationDeliveryResponse>>(
     '/api/v1/admin/notification-deliveries/dlq',
     { params: { page, size } },
   );
@@ -82,8 +72,8 @@ export const getAdminDlqNotificationDeliveries = async (
  */
 export const getAdminNotificationDelivery = async (
   deliveryId: number,
-): Promise<CommonResponse<AdminNotificationDeliveryResponse>> => {
-  const { data } = await api.get<CommonResponse<AdminNotificationDeliveryResponse>>(
+): Promise<AdminNotificationDeliveryResponse> => {
+  const { data } = await api.get<AdminNotificationDeliveryResponse>(
     `/api/v1/admin/notification-deliveries/${deliveryId}`,
   );
   return data;
@@ -95,8 +85,8 @@ export const getAdminNotificationDelivery = async (
 export const replayAdminNotificationDelivery = async (
   deliveryId: number,
   request: NotificationDeliveryReplayRequest = {},
-): Promise<CommonResponse<AdminNotificationDeliveryResponse>> => {
-  const { data } = await api.post<CommonResponse<AdminNotificationDeliveryResponse>>(
+): Promise<AdminNotificationDeliveryResponse> => {
+  const { data } = await api.post<AdminNotificationDeliveryResponse>(
     `/api/v1/admin/notification-deliveries/${deliveryId}/replay`,
     request,
   );
@@ -109,7 +99,7 @@ export const replayAdminNotificationDelivery = async (
 export const getAdminAnnouncements = async (
   page: number = 0,
   size: number = 20,
-): Promise<CommonResponse<PageResponse<AnnouncementDetailResponse>>> => {
+): Promise<PageResponse<AnnouncementDetailResponse>> => {
   const { data } = await api.get('/api/v1/admin/announcements', { params: { page, size } });
   return data;
 };
@@ -119,7 +109,7 @@ export const getAdminAnnouncements = async (
  */
 export const createAdminAnnouncement = async (
   request: AnnouncementRequest
-): Promise<CommonResponse<AnnouncementDetailResponse>> => {
+): Promise<AnnouncementDetailResponse> => {
   const { data } = await api.post('/api/v1/admin/announcements', request);
   return data;
 };
@@ -130,7 +120,7 @@ export const createAdminAnnouncement = async (
 export const updateAdminAnnouncement = async (
   id: number,
   request: AnnouncementRequest
-): Promise<CommonResponse<AnnouncementDetailResponse>> => {
+): Promise<AnnouncementDetailResponse> => {
   const { data } = await api.put(`/api/v1/admin/announcements/${id}`, request);
   return data;
 };
@@ -138,7 +128,7 @@ export const updateAdminAnnouncement = async (
 /**
  * 관리자 공지사항을 삭제합니다.
  */
-export const deleteAdminAnnouncement = async (id: number): Promise<CommonResponse<void>> => {
+export const deleteAdminAnnouncement = async (id: number): Promise<void> => {
   const { data } = await api.delete(`/api/v1/admin/announcements/${id}`);
   return data;
 };

@@ -12,7 +12,7 @@ export const useNotifications = () => {
     queryKey: ["notifications"],
     queryFn: async ({ pageParam }) => {
       const response = await notificationApi.getNotifications(pageParam);
-      return response.data.data;
+      return response.data;
     },
     enabled: isAuthenticated,
     initialPageParam: 0,

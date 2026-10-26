@@ -132,7 +132,7 @@ describe("shared api client", () => {
     const responseHandlers: {
       onRejected?: (error: unknown) => Promise<unknown>;
     } = {};
-    const retryResponse = { data: { code: "SUCCESS" } };
+    const retryResponse = { data: undefined };
     const requestMock = vi.fn(async () => retryResponse);
     const apiMock = Object.assign(requestMock, {
       defaults: { headers: { common: {} as Record<string, unknown> } },
@@ -368,7 +368,7 @@ describe("shared api client", () => {
     } = {};
     const refreshResponses: Array<Error | null> = [transientError, null, definitiveError, transientError];
     let refreshCalls = 0;
-    const requestMock = vi.fn(async () => ({ data: { code: "SUCCESS" } }));
+    const requestMock = vi.fn(async () => ({ data: undefined }));
     const apiMock = Object.assign(requestMock, {
       defaults: { headers: { common: {} as Record<string, unknown> } },
       interceptors: {
@@ -409,7 +409,7 @@ describe("shared api client", () => {
 
     await expect(rejectProtectedRequest(1)).rejects.toBe(transientError);
     resetAuthRefreshState();
-    await expect(rejectProtectedRequest(2)).resolves.toEqual({ data: { code: "SUCCESS" } });
+    await expect(rejectProtectedRequest(2)).resolves.toEqual({ data: undefined });
     expect(refreshCalls).toBe(2);
 
     await expect(rejectProtectedRequest(3)).rejects.toBe(definitiveError);

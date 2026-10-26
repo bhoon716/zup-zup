@@ -29,11 +29,7 @@ describe("useUser hook", () => {
   });
 
   it("내 정보 조회 성공 시 사용자 데이터를 반환한다", async () => {
-    vi.mocked(userApi.getMyProfile).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: { id: 1, name: "홍길동" },
-    } as never);
+    vi.mocked(userApi.getMyProfile).mockResolvedValue({ id: 1, name: "홍길동" } as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -63,11 +59,7 @@ describe("useUser hook", () => {
   });
 
   it("내 정보 조회는 공통 세션 갱신 경로를 사용한다", async () => {
-    vi.mocked(userApi.getMyProfile).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: null,
-    } as never);
+    vi.mocked(userApi.getMyProfile).mockResolvedValue(null as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -104,11 +96,7 @@ describe("useUser hook", () => {
 
   it("프로필 수정 성공 시 Query 캐시와 인증 스토어를 함께 갱신한다", async () => {
     const updatedUser = { id: 1, name: "수정된 사용자" };
-    vi.mocked(userApi.updateProfile).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: updatedUser,
-    } as never);
+    vi.mocked(userApi.updateProfile).mockResolvedValue(updatedUser as never);
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => useUpdateProfile(), { wrapper });
@@ -122,11 +110,7 @@ describe("useUser hook", () => {
 
   it("온보딩 완료 성공 시 Query 캐시와 인증 스토어를 함께 갱신한다", async () => {
     const onboardedUser = { id: 1, name: "사용자", onboardingCompleted: true };
-    vi.mocked(userApi.completeOnboarding).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: onboardedUser,
-    } as never);
+    vi.mocked(userApi.completeOnboarding).mockResolvedValue(onboardedUser as never);
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
     const { result } = renderHook(() => useCompleteOnboarding(), { wrapper });

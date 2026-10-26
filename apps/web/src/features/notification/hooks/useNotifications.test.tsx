@@ -20,14 +20,10 @@ const mockNotifications = [
 const handlers = [
   http.get('*/api/v1/notifications/history', () => {
     return HttpResponse.json({
-      code: 'SUCCESS',
-      message: 'Success',
-      data: {
         content: mockNotifications,
         number: 0,
         last: true,
-      },
-    });
+      });
   }),
 ];
 
@@ -57,13 +53,9 @@ describe('useNotifications hook', () => {
     server.use(
       http.get('*/api/v1/notifications/history', () => {
         return HttpResponse.json({
-          code: 'SUCCESS',
-          message: 'Success',
-          data: {
             number: 0,
             last: true,
-          },
-        });
+          });
       }),
     );
 

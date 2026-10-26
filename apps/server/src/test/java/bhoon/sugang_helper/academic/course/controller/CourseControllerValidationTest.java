@@ -127,6 +127,6 @@ class CourseControllerValidationTest {
 
         mockMvc.perform(get("/api/v1/courses/search-default-semester"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.semester").value("U211600010"));
+                .andExpect(jsonPath("$.semester").value("U211600010"));
     }
 }

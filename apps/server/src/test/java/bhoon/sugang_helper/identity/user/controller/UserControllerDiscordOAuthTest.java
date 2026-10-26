@@ -154,7 +154,8 @@ class UserControllerDiscordOAuthTest {
 
         var result = controller.withdraw(request, response);
 
-        assertThat(result.getBody().getMessage()).isEqualTo("회원 탈퇴가 완료되었습니다.");
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        assertThat(result.getBody()).isNull();
         verify(userService).withdraw();
         verify(authSessionLogout).logout(request, response);
     }

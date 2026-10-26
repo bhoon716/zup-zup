@@ -99,7 +99,7 @@ export const useReviews = (reviewScopeKey: string, courseKey: string) => {
     queryKey: ["review", reviewScopeKey],
     queryFn: async () => {
       const response = await reviewApi.getReviews(courseKey, 0, 1);
-      const review = response.data.content[0];
+      const review = response.content[0];
       return review?.isMine ? review : null;
     },
     enabled: !!reviewScopeKey && !!courseKey,
@@ -114,10 +114,10 @@ export const useCreateReview = (reviewScopeKey: string, courseKey: string) => {
       const previousReview = queryClient.getQueryData<ReviewResponse | null>(["review", reviewScopeKey]);
       const previousCourse = queryClient.getQueryData<Course>(["course-detail", courseKey]);
 
-      queryClient.setQueryData(["review", reviewScopeKey], response.data);
+      queryClient.setQueryData(["review", reviewScopeKey], response);
 
       if (previousCourse) {
-        const updatedCourse = updateCourseReviewStats(previousCourse, previousReview?.rating ?? null, response.data.rating);
+        const updatedCourse = updateCourseReviewStats(previousCourse, previousReview?.rating ?? null, response.rating);
         queryClient.setQueryData(["course-detail", courseKey], updatedCourse);
         queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current, updatedCourse));
         updateCourseDetailCaches(queryClient, updatedCourse);
@@ -135,10 +135,10 @@ export const useUpdateReview = (reviewScopeKey: string, courseKey: string) => {
       const previousReview = queryClient.getQueryData<ReviewResponse | null>(["review", reviewScopeKey]);
       const previousCourse = queryClient.getQueryData<Course>(["course-detail", courseKey]);
 
-      queryClient.setQueryData(["review", reviewScopeKey], response.data);
+      queryClient.setQueryData(["review", reviewScopeKey], response);
 
       if (previousCourse) {
-        const updatedCourse = updateCourseReviewStats(previousCourse, previousReview?.rating ?? null, response.data.rating);
+        const updatedCourse = updateCourseReviewStats(previousCourse, previousReview?.rating ?? null, response.rating);
         queryClient.setQueryData(["course-detail", courseKey], updatedCourse);
         queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current, updatedCourse));
         updateCourseDetailCaches(queryClient, updatedCourse);
@@ -164,7 +164,7 @@ export const useCourseEmojis = (reviewScopeKey: string, courseKey: string) => {
     queryKey: ["course-emojis", reviewScopeKey],
     queryFn: async () => {
       const response = await reviewApi.getCourseEmojis(courseKey);
-      return response.data;
+      return response;
     },
     enabled: !!reviewScopeKey && !!courseKey,
   });

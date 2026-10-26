@@ -328,17 +328,17 @@ class FlywayMigrationValidationTest {
                             WHERE target_id = 102
                             """, String.class)).isEqualTo("STATUS_CHANGED");
             assertThat(jdbcTemplate.queryForObject("""
-                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.data.previousStatus'))
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.previousStatus'))
                             FROM admin_action_logs
                             WHERE target_id = 102
                             """, String.class)).isEqualTo("PENDING");
             assertThat(jdbcTemplate.queryForObject("""
-                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.data.newStatus'))
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.newStatus'))
                             FROM admin_action_logs
                             WHERE target_id = 102
                             """, String.class)).isEqualTo("COMPLETED");
             assertThat(jdbcTemplate.queryForObject("""
-                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.data.reason'))
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.reason'))
                             FROM admin_action_logs
                             WHERE target_id = 103
                     """, String.class)).isEqualTo("already_safe");

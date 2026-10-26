@@ -3,7 +3,6 @@ package bhoon.sugang_helper.campus.announcement.controller;
 import bhoon.sugang_helper.campus.announcement.dto.request.AnnouncementRequest;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
-import bhoon.sugang_helper.common.response.CommonResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,39 +31,39 @@ public class AdminAnnouncementController {
      * 관리자용 전체 공지사항 목록을 조회합니다. (비공개 포함)
      */
     @GetMapping
-    public ResponseEntity<CommonResponse<Page<AnnouncementDetailResponse>>> getAnnouncements(
+    public ResponseEntity<Page<AnnouncementDetailResponse>> getAnnouncements(
             @PageableDefault(size = 20) Pageable pageable) {
         Page<AnnouncementDetailResponse> response = announcementService.getAdminAnnouncements(pageable);
-        return CommonResponse.ok(response, "전체 공지사항 목록입니다.");
+        return ResponseEntity.ok(response);
     }
 
     /**
      * 새로운 공지사항을 작성하고 등록합니다.
      */
     @PostMapping
-    public ResponseEntity<CommonResponse<AnnouncementDetailResponse>> createAnnouncement(
+    public ResponseEntity<AnnouncementDetailResponse> createAnnouncement(
             @Valid @RequestBody AnnouncementRequest request) {
         AnnouncementDetailResponse response = announcementService.createAnnouncement(request);
-        return CommonResponse.ok(response, "공지사항을 등록했습니다.");
+        return ResponseEntity.ok(response);
     }
 
     /**
      * 기존 공지사항 정보를 수정합니다.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<CommonResponse<AnnouncementDetailResponse>> updateAnnouncement(
+    public ResponseEntity<AnnouncementDetailResponse> updateAnnouncement(
             @PathVariable Long id,
             @Valid @RequestBody AnnouncementRequest request) {
         AnnouncementDetailResponse response = announcementService.updateAnnouncement(id, request);
-        return CommonResponse.ok(response, "공지사항을 수정했습니다.");
+        return ResponseEntity.ok(response);
     }
 
     /**
      * 특정 공지사항을 삭제합니다.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<CommonResponse<Void>> deleteAnnouncement(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteAnnouncement(@PathVariable Long id) {
         announcementService.deleteAnnouncement(id);
-        return CommonResponse.ok(null, "공지사항을 삭제했습니다.");
+        return ResponseEntity.ok(null);
     }
 }

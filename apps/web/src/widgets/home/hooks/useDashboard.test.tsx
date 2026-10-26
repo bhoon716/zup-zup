@@ -60,11 +60,7 @@ const mockSnapshot = {
 
 const server = setupServer(
   http.get("*/api/v1/dashboard", () => {
-    return HttpResponse.json({
-      code: "SUCCESS",
-      message: "ok",
-      data: mockSnapshot,
-    });
+    return HttpResponse.json(mockSnapshot);
   }),
 );
 
@@ -107,13 +103,9 @@ describe("useDashboardSnapshot hook", () => {
     server.use(
       http.get("*/api/v1/dashboard", () => {
         return HttpResponse.json({
-          code: "SUCCESS",
-          message: "ok",
-          data: {
             ...mockSnapshot,
             user: null,
-          },
-        });
+          });
       }),
     );
 

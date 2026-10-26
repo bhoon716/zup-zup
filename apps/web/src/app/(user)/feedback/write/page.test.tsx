@@ -85,7 +85,7 @@ describe("FeedbackWritePage attachment previews", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCompressImage.mockImplementation(async (file: File) => file);
-    mockCreateFeedback.mockResolvedValue({ code: "SUCCESS", message: "ok", data: 1 });
+    mockCreateFeedback.mockResolvedValue(1);
     mockCreateObjectUrl.mockReturnValue("blob:feedback-image");
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,

@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.identity.user.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.identity.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +15,8 @@ public class UserNotificationTestController {
     private final UserService userService;
 
     @PostMapping("/test")
-    public ResponseEntity<CommonResponse<Void>> sendTestNotification() {
+    public ResponseEntity<Void> sendTestNotification() {
         userService.sendTestNotification();
-        return CommonResponse.ok(null, "알림 테스트를 전송했습니다.");
+        return ResponseEntity.ok(null);
     }
 }

@@ -28,11 +28,7 @@ describe("admin notification delivery hooks", () => {
   });
 
   it("DLQ 목록을 관리자 페이지 키로 조회한다", async () => {
-    vi.mocked(adminApi.getAdminDlqNotificationDeliveries).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: { content: [], totalElements: 0 },
-    } as never);
+    vi.mocked(adminApi.getAdminDlqNotificationDeliveries).mockResolvedValue({ content: [], totalElements: 0 } as never);
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
 
@@ -43,11 +39,7 @@ describe("admin notification delivery hooks", () => {
   });
 
   it("성공한 재처리 뒤 DLQ 목록과 상세 캐시를 무효화한다", async () => {
-    vi.mocked(adminApi.replayAdminNotificationDelivery).mockResolvedValue({
-      code: "SUCCESS",
-      message: "재처리 대기열에 넣었습니다.",
-      data: {},
-    } as never);
+    vi.mocked(adminApi.replayAdminNotificationDelivery).mockResolvedValue({} as never);
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");

@@ -80,7 +80,7 @@ export const useTimetablePage = () => {
     mutationFn: (name: string) => timetableApi.createTimetable({ name, primary: timetables.length === 0 }),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["timetables"] });
-      setSelectedTimetableId(response.data.id);
+      setSelectedTimetableId(response.id);
       toast.success("시간표가 생성되었습니다.");
     },
     onError: () => toast.error("시간표 생성에 실패했습니다."),

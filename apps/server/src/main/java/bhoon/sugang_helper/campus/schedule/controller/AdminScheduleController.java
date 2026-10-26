@@ -3,7 +3,6 @@ package bhoon.sugang_helper.campus.schedule.controller;
 import bhoon.sugang_helper.campus.schedule.dto.request.ScheduleRequest;
 import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleResponse;
 import bhoon.sugang_helper.campus.schedule.service.ScheduleService;
-import bhoon.sugang_helper.common.response.CommonResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -31,24 +30,24 @@ public class AdminScheduleController {
      * 전체 일정의 목록(기간이 지난 일정 포함)을 최신순으로 반환합니다.
      */
     @GetMapping
-    public ResponseEntity<CommonResponse<List<ScheduleResponse>>> getAllSchedules() {
-        return CommonResponse.ok(scheduleService.getAllSchedules(), "전체 일정 목록입니다.");
+    public ResponseEntity<List<ScheduleResponse>> getAllSchedules() {
+        return ResponseEntity.ok(scheduleService.getAllSchedules());
     }
 
     /**
      * 주어진 데이터(ScheduleRequest)를 바탕으로 데이터베이스에 새로운 일정을 추가합니다.
      */
     @PostMapping
-    public ResponseEntity<CommonResponse<ScheduleResponse>> createSchedule(
+    public ResponseEntity<ScheduleResponse> createSchedule(
             @RequestBody @Valid ScheduleRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(CommonResponse.success(scheduleService.createSchedule(request), "일정을 생성했습니다."));
+                .body(scheduleService.createSchedule(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CommonResponse<ScheduleResponse>> updateSchedule(@PathVariable Long id,
+    public ResponseEntity<ScheduleResponse> updateSchedule(@PathVariable Long id,
                                                                            @RequestBody @Valid ScheduleRequest request) {
-        return CommonResponse.ok(scheduleService.updateSchedule(id, request), "일정을 수정했습니다.");
+        return ResponseEntity.ok(scheduleService.updateSchedule(id, request));
     }
 
     /**

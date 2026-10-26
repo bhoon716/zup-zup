@@ -97,13 +97,13 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 6. DuckDNS hostname과 OCI reserved IP가 일치하는지 확인한다.
 7. `curl https://<API_HOST>/health`와 외부 uptime provider로 공개 dependency-aware readiness endpoint를 확인한다.
 
-공개 `/health`는 내부 actuator readiness(`DB·Redis`)를 민감정보 없이 반영하며, 의존성 장애 시 HTTP 503과 `data.status=DOWN`을 반환한다. 프로세스 생존만 확인해야 하는 경우에는 외부에 노출하지 않은 management port의 `http://127.0.0.1:8081/actuator/health/liveness`를 사용하고, 배포·Compose healthcheck와 Prometheus는 `http://127.0.0.1:8081/actuator/health/readiness`를 사용한다.
+공개 `/health`는 내부 actuator readiness(`DB·Redis`)를 민감정보 없이 반영하며, 의존성 장애 시 HTTP 503과 `status=DOWN`을 반환한다. 프로세스 생존만 확인해야 하는 경우에는 외부에 노출하지 않은 management port의 `http://127.0.0.1:8081/actuator/health/liveness`를 사용하고, 배포·Compose healthcheck와 Prometheus는 `http://127.0.0.1:8081/actuator/health/readiness`를 사용한다.
 
 세부적인 staging 전송, Flyway migrate, 수동 SHA 재배포, cutover, 서버 교체 절차는 runbook을 그대로 따른다. 배포 script는 Ubuntu SSH로 직접 실행하며 `/usr/local/sbin` wrapper나 sudoers 파일은 사용하지 않는다.
 
 ## 외부 uptime monitor
 
-`https://<API_HOST>/health`를 60초마다 확인하고 2회 연속 실패와 복구를 이메일로 알리도록 provider를 설정합니다. 이 경로는 DB·Redis를 포함한 dependency-aware readiness이며, 장애 시 HTTP 503/`data.status=DOWN`을 반환합니다. 응답에는 secret이나 DB 오류 세부정보를 넣지 않습니다. provider token·수신 주소는 저장소가 아닌 provider secret에 보관합니다. 검증 체크리스트는 [`uptime/README.md`](./uptime/README.md)에 있습니다.
+`https://<API_HOST>/health`를 60초마다 확인하고 2회 연속 실패와 복구를 이메일로 알리도록 provider를 설정합니다. 이 경로는 DB·Redis를 포함한 dependency-aware readiness이며, 장애 시 HTTP 503/`status=DOWN`을 반환합니다. 응답에는 secret이나 DB 오류 세부정보를 넣지 않습니다. provider token·수신 주소는 저장소가 아닌 provider secret에 보관합니다. 검증 체크리스트는 [`uptime/README.md`](./uptime/README.md)에 있습니다.
 
 호스트에서 실제 응답과 민감 정보 노출 여부를 확인하려면 다음을 실행합니다.
 

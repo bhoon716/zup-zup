@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.common.health;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +23,7 @@ public class HealthController {
     private final HealthEndpoint healthEndpoint;
 
     @GetMapping("/health")
-    public ResponseEntity<CommonResponse<HealthCheckResponse>> checkHealth() {
+    public ResponseEntity<HealthCheckResponse> checkHealth() {
         HealthComponent readiness = healthEndpoint.healthForPath(READINESS_GROUP);
         boolean isReady = readiness != null && Status.UP.equals(readiness.getStatus());
         String status = isReady ? Status.UP.getCode() : Status.DOWN.getCode();
@@ -40,7 +39,6 @@ public class HealthController {
             log.warn("Health check failed: readinessStatus={}", readinessStatus);
         }
         HttpStatus httpStatus = isReady ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;
-        String message = isReady ? "헬스 체크 통과" : "의존성 헬스 체크 실패";
-        return ResponseEntity.status(httpStatus).body(CommonResponse.success(response, message));
+        return ResponseEntity.status(httpStatus).body(response);
     }
 }

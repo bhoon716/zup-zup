@@ -33,11 +33,7 @@ describe("useAdminActions hooks", () => {
 
   it("크롤링 성공 시 통계 쿼리를 무효화하고 성공 토스트를 노출한다", async () => {
     const mockedCrawlCourses = vi.mocked(adminApi.crawlCourses);
-    mockedCrawlCourses.mockResolvedValue({
-      code: "SUCCESS",
-      message: "크롤링 시작",
-      data: "ok",
-    } as never);
+    mockedCrawlCourses.mockResolvedValue("크롤링 시작" as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -73,11 +69,7 @@ describe("useAdminActions hooks", () => {
 
   it("테스트 알림 전송 성공 시 성공 토스트를 노출한다", async () => {
     const mockedSend = vi.mocked(adminApi.sendTestNotification);
-    mockedSend.mockResolvedValue({
-      code: "SUCCESS",
-      message: "알림 전송 완료",
-      data: undefined,
-    } as never);
+    mockedSend.mockResolvedValue(undefined as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -88,16 +80,12 @@ describe("useAdminActions hooks", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(toast.success).toHaveBeenCalledWith("알림 전송 완료");
+    expect(toast.success).toHaveBeenCalledWith("테스트 알림이 성공적으로 전송되었습니다.");
   });
 
   it("기본 크롤링 타겟 조회 성공 시 타겟 데이터를 반환한다", async () => {
     const mockedGetTarget = vi.mocked(adminApi.getCrawlTarget);
-    mockedGetTarget.mockResolvedValue({
-      code: "SUCCESS",
-      message: "조회 성공",
-      data: { year: "2025", semester: "U211600020" },
-    } as never);
+    mockedGetTarget.mockResolvedValue({ year: "2025", semester: "U211600020" } as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -109,11 +97,7 @@ describe("useAdminActions hooks", () => {
 
   it("기본 크롤링 타겟 저장 성공 시 관련 쿼리를 무효화하고 토스트를 노출한다", async () => {
     const mockedUpdateTarget = vi.mocked(adminApi.updateCrawlTarget);
-    mockedUpdateTarget.mockResolvedValue({
-      code: "SUCCESS",
-      message: "저장 완료",
-      data: { year: "2026", semester: "U211600010" },
-    } as never);
+    mockedUpdateTarget.mockResolvedValue({ year: "2026", semester: "U211600010" } as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -127,16 +111,12 @@ describe("useAdminActions hooks", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "dashboard-snapshot"] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["courses", "search-default-semester"] });
-    expect(toast.success).toHaveBeenCalledWith("저장 완료");
+    expect(toast.success).toHaveBeenCalledWith("기본 크롤링 타겟을 저장했습니다.");
   });
 
   it("특정 타겟 크롤링 성공 시 통계 쿼리를 무효화하고 토스트를 노출한다", async () => {
     const mockedCrawlByTarget = vi.mocked(adminApi.crawlCoursesByTarget);
-    mockedCrawlByTarget.mockResolvedValue({
-      code: "SUCCESS",
-      message: "특정 타겟 크롤링 시작",
-      data: "ok",
-    } as never);
+    mockedCrawlByTarget.mockResolvedValue("특정 타겟 크롤링 시작" as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);

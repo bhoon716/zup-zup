@@ -5,7 +5,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import java.time.Instant;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,13 +43,13 @@ class HealthControllerTest {
         given(healthEndpoint.healthForPath(READINESS_GROUP)).willReturn(Health.up().build());
 
         // when
-        ResponseEntity<CommonResponse<HealthCheckResponse>> response = healthController.checkHealth();
+        ResponseEntity<HealthCheckResponse> response = healthController.checkHealth();
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getData().status()).isEqualTo("UP");
-        assertThat(response.getBody().getData().version()).isEqualTo("test-version");
+        assertThat(response.getBody().status()).isEqualTo("UP");
+        assertThat(response.getBody().version()).isEqualTo("test-version");
         verify(healthEndpoint).healthForPath(READINESS_GROUP);
     }
 
@@ -63,13 +62,13 @@ class HealthControllerTest {
         given(healthEndpoint.healthForPath(READINESS_GROUP)).willReturn(readinessHealth);
 
         // when
-        ResponseEntity<CommonResponse<HealthCheckResponse>> response = healthController.checkHealth();
+        ResponseEntity<HealthCheckResponse> response = healthController.checkHealth();
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getData().status()).isEqualTo("DOWN");
-        assertThat(response.getBody().getData().version()).isEqualTo("test-version");
+        assertThat(response.getBody().status()).isEqualTo("DOWN");
+        assertThat(response.getBody().version()).isEqualTo("test-version");
         assertThat(readinessHealth.getDetails()).containsKey(dependency);
         verify(healthEndpoint).healthForPath(READINESS_GROUP);
     }

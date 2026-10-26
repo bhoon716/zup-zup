@@ -1,17 +1,5 @@
 import api from "@/shared/api/client";
-import type {
-  CommonResponse,
-  PageResponse,
-  FeedbackResponse,
-  FeedbackDetailResponse,
-  AdminFeedbackDeletionFilter,
-  AdminFeedbackDetailResponse,
-  AdminFeedbackResponse,
-  FeedbackCreateRequest,
-  FeedbackStatusUpdateRequest,
-  FeedbackReplyCreateRequest,
-  FeedbackReplyUpdateRequest,
-} from "@/shared/types/api";
+import type { PageResponse, FeedbackResponse, FeedbackDetailResponse, AdminFeedbackDeletionFilter, AdminFeedbackDetailResponse, AdminFeedbackResponse, FeedbackCreateRequest, FeedbackStatusUpdateRequest, FeedbackReplyCreateRequest, FeedbackReplyUpdateRequest } from "@/shared/types/api";
 
 /**
  * 새로운 문의 및 건의사항 등록 (이미지 포함)
@@ -19,7 +7,7 @@ import type {
 export const createFeedback = async (
   request: FeedbackCreateRequest,
   files: File[]
-): Promise<CommonResponse<number>> => {
+): Promise<number> => {
   const formData = new FormData();
   
   // JSON 데이터를 Blob으로 변환하여 추가 (Spring @RequestPart 매핑용)
@@ -30,7 +18,7 @@ export const createFeedback = async (
     formData.append('files', file);
   });
 
-  const { data } = await api.post<CommonResponse<number>>('/api/v1/feedbacks', formData, {
+  const { data } = await api.post<number>('/api/v1/feedbacks', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -44,8 +32,8 @@ export const createFeedback = async (
 export const getMyFeedbacks = async (
   page: number = 0,
   size: number = 10
-): Promise<CommonResponse<PageResponse<FeedbackResponse>>> => {
-  const { data } = await api.get<CommonResponse<PageResponse<FeedbackResponse>>>('/api/v1/feedbacks/me', {
+): Promise<PageResponse<FeedbackResponse>> => {
+  const { data } = await api.get<PageResponse<FeedbackResponse>>('/api/v1/feedbacks/me', {
     params: { page, size },
   });
   return data;
@@ -56,8 +44,8 @@ export const getMyFeedbacks = async (
  */
 export const getMyFeedbackDetail = async (
   feedbackId: number
-): Promise<CommonResponse<FeedbackDetailResponse>> => {
-  const { data } = await api.get<CommonResponse<FeedbackDetailResponse>>(`/api/v1/feedbacks/${feedbackId}`);
+): Promise<FeedbackDetailResponse> => {
+  const { data } = await api.get<FeedbackDetailResponse>(`/api/v1/feedbacks/${feedbackId}`);
   return data;
 };
 
@@ -77,8 +65,8 @@ export const getFeedbacksForAdmin = async (
   page: number = 0,
   deletion: AdminFeedbackDeletionFilter = 'ALL',
   size: number = 20
-): Promise<CommonResponse<PageResponse<AdminFeedbackResponse>>> => {
-  const { data } = await api.get<CommonResponse<PageResponse<AdminFeedbackResponse>>>('/api/v1/admin/feedbacks', {
+): Promise<PageResponse<AdminFeedbackResponse>> => {
+  const { data } = await api.get<PageResponse<AdminFeedbackResponse>>('/api/v1/admin/feedbacks', {
     params: { page, size, deletion },
   });
   return data;
@@ -89,8 +77,8 @@ export const getFeedbacksForAdmin = async (
  */
 export const getFeedbackDetailForAdmin = async (
   feedbackId: number
-): Promise<CommonResponse<AdminFeedbackDetailResponse>> => {
-  const { data } = await api.get<CommonResponse<AdminFeedbackDetailResponse>>(`/api/v1/admin/feedbacks/${feedbackId}`);
+): Promise<AdminFeedbackDetailResponse> => {
+  const { data } = await api.get<AdminFeedbackDetailResponse>(`/api/v1/admin/feedbacks/${feedbackId}`);
   return data;
 };
 
@@ -125,8 +113,8 @@ export const updateFeedbackStatus = async (
 export const createFeedbackReply = async (
   feedbackId: number,
   request: FeedbackReplyCreateRequest
-): Promise<CommonResponse<number>> => {
-  const { data } = await api.post<CommonResponse<number>>(`/api/v1/admin/feedbacks/${feedbackId}/reply`, request);
+): Promise<number> => {
+  const { data } = await api.post<number>(`/api/v1/admin/feedbacks/${feedbackId}/reply`, request);
   return data;
 };
 
