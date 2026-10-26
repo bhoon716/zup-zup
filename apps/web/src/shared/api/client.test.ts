@@ -1,5 +1,6 @@
 import { AxiosError, AxiosHeaders, isCancel, type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Blob as NodeBlob } from "node:buffer";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type SilentRequest = AxiosRequestConfig & { silentAuthFailure: boolean };
 
@@ -19,6 +20,11 @@ describe("session api client", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("안전한 요청과 정확한 강의 검색 POST는 CSRF 조회 없이 세션 쿠키로 전송한다", async () => {
@@ -136,6 +142,91 @@ describe("session api client", () => {
     await api.post("/resource");
     expect(writeTokens).toEqual(["csrf-1", code === "A003" ? "csrf-2" : "csrf-1"]);
     expect(csrfRequests).toBe(code === "A003" ? 2 : 1);
+  });
+
+  it("다른 탭에서 재로그인한 뒤 Blob CSRF 실패는 다음 사용자 클릭에서만 복구한다", async () => {
+    vi.stubGlobal("Blob", NodeBlob);
+    const { default: api, registerAuthFailureHandler } = await import("./client");
+    const download = () => api.post("/download", {}, { responseType: "blob" });
+    const handler = vi.fn(); registerAuthFailureHandler(handler);
+    let serverSession = "A";
+    let csrfRequests = 0;
+    const tokens: unknown[] = [];
+    api.defaults.adapter = async config => {
+      if (config.url === "/api/auth/csrf") {
+        csrfRequests += 1;
+        return response(config, { token: serverSession });
+      }
+      tokens.push(config.headers.get("X-CSRF-TOKEN"));
+      if (tokens.at(-1) !== serverSession) {
+        return response(config, new NodeBlob([JSON.stringify({ code: "A003" })], { type: "application/json" }), 403);
+      }
+      return response(config, new NodeBlob(["image"], { type: "image/png" }));
+    };
+    await download();
+    serverSession = "B";
+
+    await expect(download()).rejects.toMatchObject({ response: { status: 403 } });
+    expect(tokens).toEqual(["A", "A"]);
+    expect(csrfRequests).toBe(1);
+    expect(handler).not.toHaveBeenCalled();
+
+    await expect(download()).resolves.toMatchObject({ status: 200, data: expect.any(NodeBlob) });
+    expect(tokens).toEqual(["A", "A", "B"]);
+    expect(csrfRequests).toBe(2);
+  });
+
+  it.each([
+    [403, "application/json", JSON.stringify({ code: "A002" })],
+    [403, "application/json", "{"],
+    [403, "application/json", ""],
+    [403, "application/json", JSON.stringify([{ code: "A003" }])],
+    [403, "application/octet-stream", JSON.stringify({ code: "A003" })],
+    [403, "application/json", JSON.stringify({ code: "A003", details: "x".repeat(65_536) })],
+    [500, "application/json", JSON.stringify({ code: "A003" })],
+  ])("일반 Blob 오류는 CSRF 캐시·인증을 바꾸거나 재전송하지 않는다 (%s, %s, %#)", async (status, type, body) => {
+    vi.stubGlobal("Blob", NodeBlob);
+    const { default: api, registerAuthFailureHandler } = await import("./client");
+    const handler = vi.fn(); registerAuthFailureHandler(handler);
+    let csrfRequests = 0;
+    const tokens: unknown[] = [];
+    api.defaults.adapter = async config => {
+      if (config.url === "/api/auth/csrf") return response(config, { token: `csrf-${++csrfRequests}` });
+      tokens.push(config.headers.get("X-CSRF-TOKEN"));
+      return response(config, new NodeBlob([body], { type }), status);
+    };
+    await expect(api.post("/download", {}, { responseType: "blob" })).rejects.toMatchObject({ response: { status } });
+    expect(tokens).toHaveLength(1);
+    await expect(api.post("/download", {}, { responseType: "blob" })).rejects.toMatchObject({ response: { status } });
+    expect(tokens).toEqual(["csrf-1", "csrf-1"]);
+    expect(csrfRequests).toBe(1);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("오래된 Blob 오류를 읽는 동안 세션이 바뀌면 새 CSRF 캐시를 유지한다", async () => {
+    vi.stubGlobal("Blob", NodeBlob);
+    const { default: api, resetSessionState } = await import("./client");
+    const reading = deferred<void>();
+    const decoded = deferred<string>();
+    const blob = new NodeBlob([JSON.stringify({ code: "A003" })], { type: "application/json" });
+    vi.spyOn(blob, "text").mockImplementation(() => { reading.resolve(); return decoded.promise; });
+    let csrfRequests = 0;
+    const tokens: unknown[] = [];
+    api.defaults.adapter = async config => {
+      if (config.url === "/api/auth/csrf") return response(config, { token: `csrf-${++csrfRequests}` });
+      if (config.url === "/old-download") return response(config, blob, 403);
+      tokens.push(config.headers.get("X-CSRF-TOKEN"));
+      return response(config, null);
+    };
+    const old = Promise.allSettled([api.post("/old-download", {}, { responseType: "blob" })]);
+    await reading.promise;
+    resetSessionState();
+    await api.post("/new-write");
+    decoded.resolve(JSON.stringify({ code: "A003" }));
+    expect((await old)[0].status).toBe("rejected");
+    await api.post("/new-write");
+    expect(csrfRequests).toBe(2);
+    expect(tokens).toEqual(["csrf-2", "csrf-2"]);
   });
 
   it("이전 세대의 401은 현재 인증 상태와 새 CSRF 캐시를 변경하지 않는다", async () => {

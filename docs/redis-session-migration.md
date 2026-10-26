@@ -88,3 +88,8 @@ k6는 SESSION_COOKIE와 CSRF_TOKEN 환경변수 또는 gitignored `apps/server/s
 로그는 작업 디렉터리의 `session-server-final-fixed.log`, `session-server-redis6-final.log`, `session-web-full-final.log`, `session-web-types-final-root.log`, `session-web-lint-final-root.log`, `session-web-build.log`, `session-web-e2e.log`, `session-k6-contract.log`, `session-compose-local-final.log`, `session-compose-runtime-final.log`에 있다. 자격 증명 값은 출력하지 않았고 원본 dev 작업 폴더를 수정하지 않았다. 실제 OAuth 교환·운영 DB/Redis·TLS 프록시 쿠키와 저장소 밖 JWT 소비자는 여전히 미검증이다.
 
 코드 전환 커밋은 `a6ab4b5abf9d9a773c443389f9173d20b3f7d9ac`다. HTML의 코드 기준도 이 커밋이며 구조 그림과 검증 메타데이터는 별도 문서 커밋으로 보존한다.
+
+
+## 후속 심층 리뷰와 Blob 오류 복구
+
+`878f16f9a` 기준 심층 리뷰 뒤 사용자 승인으로 첨부 다운로드의 JSON Blob A003 오류도 현재 세대의 CSRF 캐시를 폐기하도록 수정했다. 일반 403은 구분하며, 사용자의 다음 클릭에서 새 토큰을 준비하고 자동 재전송은 하지 않는다. 웹 311건·타입/lint/build·실제 두 탭을 포함한 Playwright 9건(retries 0)이 통과했다. 남은 시간 입력·세션 응답 경합·일정 수정/삭제 경합은 코드 수정 없이 [해결안 비교](deep-review-remediation-options.md)에 근거 수준·장단점·계약 영향과 함께 남겼다.

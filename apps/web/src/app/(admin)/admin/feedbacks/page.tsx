@@ -33,6 +33,7 @@ import {
   useAdminFeedbackAttachmentDownload
 } from "@/features/feedback/hooks/useFeedback";
 import { AdminFeedbackDeletionFilter, FeedbackStatus, FeedbackType } from "@/shared/types/api";
+import { isCsrfFailure } from "@/shared/api/auth-error";
 
 const PREVIEW_FILE_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -179,8 +180,10 @@ export default function AdminFeedbackPage() {
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
-    } catch {
-      toast.error("첨부파일을 열람할 수 없습니다.");
+    } catch (error) {
+      toast.error(isCsrfFailure(error)
+        ? "로그인 상태가 변경되었습니다. 다시 시도해 주세요."
+        : "첨부파일을 열람할 수 없습니다.");
     }
   };
 

@@ -1,5 +1,5 @@
 import axios, { AxiosError, CanceledError, type InternalAxiosRequestConfig } from "axios";
-import { isUnauthenticated } from "@/shared/api/auth-error";
+import { isCsrfFailure, isUnauthenticated } from "@/shared/api/auth-error";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "",
@@ -70,18 +70,28 @@ api.interceptors.request.use(async config => {
 
 api.interceptors.response.use(
   response => response,
-  (error: AxiosError<{ code?: string }>) => {
+  async (error: AxiosError<unknown>) => {
     const request = error.config as SessionRequestConfig | undefined;
-    if (request?.sessionGeneration === sessionGeneration) {
-      const unauthorized = isUnauthenticated(error);
-      if (unauthorized || (error.response?.status === 403 && error.response.data?.code === "A003")) {
-        csrfToken = null;
-        csrfPromise = null;
+    if (!request || request.sessionGeneration !== sessionGeneration) return Promise.reject(error);
+    const errorResponse = error.response;
+    if (errorResponse?.status === 403 && errorResponse.data instanceof Blob
+      && errorResponse.data.type.split(";", 1)[0].trim().toLowerCase() === "application/json"
+      && errorResponse.data.size <= 65_536) {
+      try {
+        errorResponse.data = JSON.parse(await errorResponse.data.text());
+      } catch {
+        return Promise.reject(error);
       }
-      if (unauthorized && !request.silentAuthFailure && handledFailureGeneration !== sessionGeneration) {
-        handledFailureGeneration = sessionGeneration;
-        authFailureHandler?.();
-      }
+    }
+    if (request.sessionGeneration !== sessionGeneration) return Promise.reject(error);
+    const unauthorized = isUnauthenticated(error);
+    if (unauthorized || isCsrfFailure(error)) {
+      csrfToken = null;
+      csrfPromise = null;
+    }
+    if (unauthorized && !request.silentAuthFailure && handledFailureGeneration !== sessionGeneration) {
+      handledFailureGeneration = sessionGeneration;
+      authFailureHandler?.();
     }
     return Promise.reject(error);
   },
