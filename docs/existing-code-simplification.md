@@ -248,3 +248,14 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 Java 21 `./gradlew --offline clean check bootJar`: **118개 클래스, 523건 통과, 실패/오류/skip 0**, PMD main/test 0·Checkstyle main/test 0, 실행 JAR 생성 성공. 추가 8건은 만료/정상·실패·정산 6건과 실제 HTTP 취소 및 scheduler 지연 진단 각 1건이다. 초기 probe 컴파일의 Micrometer 자원 종료 API 사용 오류를 수정한 뒤 집중 검증과 clean 전체 검증을 통과했다. 기존 테스트를 삭제하거나 skip하지 않았다. 이번 후속에서는 웹 코드가 바뀌지 않았으며 위 29dfb568f의 웹 검증 결과와 구분한다.
 
 로그는 작업 디렉터리의 webpush-expired-before.log / webpush-expired-focused.log / notification-probes-focused.log / notification-followup-clean.log에 있다. JUnit XML의 system-out에 두 probe의 실측을 남겼다. 전체 구조 산출물은 [독립 HTML](current-architecture.html)로 제공하며 실제 소스·기본값·제약·검증 근거 링크를 포함한다. 브라우저 시각 검증과 최종 커밋은 아래 완료 기록에 추가한다.
+
+
+### HTML 완료 기록과 최종 로컬 변경 단위
+
+- `3ff6e6b95`: 만료 WebPush 단말 격리와 실제 발송/이력/정산 회귀 6건.
+- `16234ac48`: 실제 WebPush HTTP 취소·scheduler 지연 검증과 실측 기록.
+- `docs/current-architecture.html`은 코드 기준 `16234ac48`의 독립 파일이다. 전체 구조·수집/알림·사용자 요청·경계/검증 4개 탭, 트랜잭션·중복 방지·실패·재시도·시간 제한과 남은 한계를 실제 코드/테스트 링크로 연결한다. HTML 추가 뒤 production 코드는 바뀌지 않았다.
+- Chromium에서 file://로 열어 1440·390·320px 각각 4개 탭을 확인했다. 모든 화면에서 document.scrollWidth가 viewport와 같았고 Home/End/ArrowRight 탭 이동·접기/펼치기·실제 Java 파일 링크 이동을 통과했다. 소스 링크 73개 모두 실존, 외부 HTTP 요청·JS 오류·깨진 링크 0이었다. 데스크톱·모바일 스크린샷을 시각적으로 확인해 글자·카드 잘림이 없음을 확인했다.
+- 증거는 작업 디렉터리의 architecture-html-verification.json과 architecture-{overview,delivery,requests,boundaries}-{desktop,mobile}.png 8개다. HTML SHA-256은 0a09a340f7f8510ed18a1a59c47e3efe8da6bc2374d9e2d9a63c3abafbc5c77c다.
+- 원본 dev에는 기존 unstaged 6개와 untracked 진단 문서 1개가 그대로 남아 있다. 필요한 수집 코드·테스트·지침·정책/진단은 단순화 브랜치에 이미 커밋돼 있으며, 원본의 미커밋 표시는 원본을 보존했기 때문이다. 과거 backend-redesign-checklist 메모는 의도적으로 복사하지 않았다. HEAD·상태·7개 파일 SHA-256 보존도 재확인했다.
+- 원격 push·PR·병합·공개 게시·배포·실제 제공자/단말 발송·운영 DB/권한 변경은 수행하지 않았다. CIRCUIT_OPEN attempts 정책과 HTTP/scheduler 설정의 후속 변경은 승인된 범위가 아니므로 남은 위험을 기록하는 데서 마쳤다.
