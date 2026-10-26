@@ -328,17 +328,17 @@ class FlywayMigrationValidationTest {
                             WHERE target_id = 102
                             """, String.class)).isEqualTo("STATUS_CHANGED");
             assertThat(jdbcTemplate.queryForObject("""
-                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.previousStatus'))
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.data.previousStatus'))
                             FROM admin_action_logs
                             WHERE target_id = 102
                             """, String.class)).isEqualTo("PENDING");
             assertThat(jdbcTemplate.queryForObject("""
-                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.newStatus'))
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.data.newStatus'))
                             FROM admin_action_logs
                             WHERE target_id = 102
                             """, String.class)).isEqualTo("COMPLETED");
             assertThat(jdbcTemplate.queryForObject("""
-                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.reason'))
+                            SELECT JSON_UNQUOTE(JSON_EXTRACT(meta_data, '$.data.reason'))
                             FROM admin_action_logs
                             WHERE target_id = 103
                     """, String.class)).isEqualTo("already_safe");
@@ -361,6 +361,15 @@ class FlywayMigrationValidationTest {
                     outboxId, existingUserId, "EMAIL", "DLQ", 5, null, "N001");
             Long deliveryId = jdbcTemplate.queryForObject(
                     "SELECT id FROM seat_notification_deliveries WHERE outbox_id = ?", Long.class, outboxId);
+
+            jdbcTemplate.update("""
+                    INSERT INTO schedules (id, schedule_type, start_date, end_date)
+                    VALUES (501, ?, '2026-10-26', '2026-10-27')
+                    """, "보존 일정");
+            jdbcTemplate.update("""
+                    INSERT INTO dday_settings (id, title, target_date)
+                    VALUES (502, ?, '2026-10-26')
+                    """, "옛 디데이");
 
             Flyway head = Flyway.configure()
                     .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
@@ -394,6 +403,18 @@ class FlywayMigrationValidationTest {
             assertThat(tableCount(jdbcTemplate, "crawler_run_failures")).isEqualTo(1);
             assertThat(columnNullable(jdbcTemplate, COURSES_TABLE_NAME, "last_crawled_at")).isEqualTo("YES");
             assertAllCourseKeyCollationsMatchCourses(jdbcTemplate);
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT schedule_type FROM schedules WHERE id = 501", String.class)).isEqualTo("보존 일정");
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT dday_enabled FROM schedules WHERE id = 501", Boolean.class)).isFalse();
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT deleted_at FROM schedules WHERE id = 501", Object.class)).isNull();
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT title FROM dday_settings WHERE id = 502", String.class)).isEqualTo("옛 디데이");
+            String expandedScheduleTitle = "가".repeat(255);
+            jdbcTemplate.update("UPDATE schedules SET schedule_type = ? WHERE id = 501", expandedScheduleTitle);
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT CHAR_LENGTH(schedule_type) FROM schedules WHERE id = 501", Integer.class)).isEqualTo(255);
         }
     }
 }
