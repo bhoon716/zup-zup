@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/shared/api/client';
-import type { CommonResponse, ScheduleResponse, ScheduleRequest } from '@/shared/types/api';
+import * as scheduleApi from '@/features/schedule/api/schedule.api';
 
 /**
  * 예정된 일정 목록을 조회하는 훅 (유저용 - 비로그인 유저도 허용)
@@ -8,10 +7,7 @@ import type { CommonResponse, ScheduleResponse, ScheduleRequest } from '@/shared
 export const useUpcomingSchedules = (enabled = true) => {
   return useQuery({
     queryKey: ['schedules', 'upcoming'],
-    queryFn: async () => {
-      const response = await api.get<CommonResponse<ScheduleResponse[]>>('/api/v1/schedules');
-      return response.data.data;
-    },
+    queryFn: scheduleApi.getUpcomingSchedules,
     staleTime: 5 * 60 * 1000, // 5분
     enabled,
   });
@@ -23,10 +19,7 @@ export const useUpcomingSchedules = (enabled = true) => {
 export const useAdminAllSchedules = () => {
   return useQuery({
     queryKey: ['schedules', 'admin-all'],
-    queryFn: async () => {
-      const response = await api.get<CommonResponse<ScheduleResponse[]>>('/api/v1/admin/schedules');
-      return response.data.data;
-    },
+    queryFn: scheduleApi.getAdminSchedules,
     staleTime: 1 * 60 * 1000,
   });
 };
@@ -38,10 +31,7 @@ export const useCreateSchedule = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (request: ScheduleRequest) => {
-      const response = await api.post<CommonResponse<ScheduleResponse>>('/api/v1/admin/schedules', request);
-      return response.data.data;
-    },
+    mutationFn: scheduleApi.createSchedule,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] });
     },
@@ -55,10 +45,7 @@ export const useUpdateSchedule = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, request }: { id: number; request: ScheduleRequest }) => {
-      const response = await api.put<CommonResponse<ScheduleResponse>>(`/api/v1/admin/schedules/${id}`, request);
-      return response.data.data;
-    },
+    mutationFn: scheduleApi.updateSchedule,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] });
     },
@@ -72,9 +59,7 @@ export const useDeleteSchedule = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: number) => {
-      await api.delete(`/api/v1/admin/schedules/${id}`);
-    },
+    mutationFn: scheduleApi.deleteSchedule,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] });
     },
