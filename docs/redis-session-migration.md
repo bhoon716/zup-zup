@@ -83,6 +83,8 @@ k6는 SESSION_COOKIE와 CSRF_TOKEN 환경변수 또는 gitignored `apps/server/s
 - 웹 79파일·300건 통과, TypeScript·ESLint 통과, production build 통과. Playwright 7건은 재시도 없이 10.0초에 통과했다. 시간표 mutation fixture에 빠진 `/api/auth/csrf`를 추가하고 요청 헤더를 함께 검증했다. 브라우저 테스트는 가짜 API를 쓰므로 실제 서버/Redis E2E와 구분한다.
 - k6 helper의 세션·CSRF·역할별 pool·환경변수/명시값·anonymous 계약 3건 통과. 실제 부하 요청은 보내지 않았다.
 - 예제 파일만 사용하는 local/runtime Compose config 계약 검사 통과. 검사 스크립트의 `python` 이름이 없는 환경이어서 실행 쉘에만 python3 함수를 제공했다. 시스템이나 저장소의 Python 설정은 바꾸지 않았다. 이 검사는 Compose를 기동하거나 운영에 적용하지 않는다.
-- Markdown 검사에서는 기존 HEAD와 현재가 모두 오래된 링크 159개로 같았고 이번 변경으로 새로 깨진 링크는 0개였다. append-only 과거 결정 문서를 이번 범위에서 재작성하지 않았다. HTML/컴포넌트 그림도 세션 기준으로 갱신하고 1440/390/320px·5탭·98개 소스 링크를 확인했다. 알림 그림 3개는 유지했다.
+- Markdown 검사에서는 기존 HEAD와 현재가 모두 오래된 링크 159개로 같았고 이번 변경으로 새로 깨진 링크는 0개였다. append-only 과거 결정 문서를 이번 범위에서 재작성하지 않았다. HTML/컴포넌트 그림도 세션 기준으로 갱신하고 1440/390/320px·5탭·101개 소스 링크를 확인했다. 알림 그림 3개는 유지했다.
 
 로그는 작업 디렉터리의 `session-server-final-fixed.log`, `session-server-redis6-final.log`, `session-web-full-final.log`, `session-web-types-final-root.log`, `session-web-lint-final-root.log`, `session-web-build.log`, `session-web-e2e.log`, `session-k6-contract.log`, `session-compose-local-final.log`, `session-compose-runtime-final.log`에 있다. 자격 증명 값은 출력하지 않았고 원본 dev 작업 폴더를 수정하지 않았다. 실제 OAuth 교환·운영 DB/Redis·TLS 프록시 쿠키와 저장소 밖 JWT 소비자는 여전히 미검증이다.
+
+코드 전환 커밋은 `a6ab4b5abf9d9a773c443389f9173d20b3f7d9ac`다. HTML의 코드 기준도 이 커밋이며 구조 그림과 검증 메타데이터는 별도 문서 커밋으로 보존한다.
