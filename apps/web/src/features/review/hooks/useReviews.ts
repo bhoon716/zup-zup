@@ -56,6 +56,13 @@ const updateCourseReviewStats = (course: Course, previousRating: number | null, 
   };
 };
 
+const withReviewStats = (course: Course, updatedCourse: Course): Course => ({
+  ...course,
+  averageRating: updatedCourse.averageRating,
+  reviewCount: updatedCourse.reviewCount,
+  isReviewed: updatedCourse.isReviewed,
+});
+
 const updateCourseLists = (current: unknown, updatedCourse: Course) => {
   if (!current || typeof current !== "object" || !("pages" in current) || !Array.isArray((current as CourseInfiniteCache).pages)) {
     return current;
@@ -69,7 +76,7 @@ const updateCourseLists = (current: unknown, updatedCourse: Course) => {
     pages: cache.pages.map((page) => ({
       ...page,
       content: page.content.map((course) =>
-        getReviewScopeKey(course) === updatedScopeKey ? { ...course, ...updatedCourse } : course
+        getReviewScopeKey(course) === updatedScopeKey ? withReviewStats(course, updatedCourse) : course
       ),
     })),
   };
@@ -83,7 +90,7 @@ const updateCourseDetailCaches = (queryClient: ReturnType<typeof useQueryClient>
       return;
     }
 
-    queryClient.setQueryData(queryKey, { ...currentCourse, ...updatedCourse });
+    queryClient.setQueryData(queryKey, withReviewStats(currentCourse, updatedCourse));
   });
 };
 

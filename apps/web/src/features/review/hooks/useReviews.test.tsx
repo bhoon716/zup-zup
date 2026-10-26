@@ -38,6 +38,13 @@ describe("강의 리뷰 훅", () => {
     professor: "김교수",
     name: "자료구조",
     classNumber: "01",
+    academicYear: "2026",
+    semester: "U211600010",
+    capacity: 30,
+    current: 20,
+    available: 10,
+    classTime: "월 1,2",
+    schedules: [{ dayOfWeek: "MONDAY", startTime: "09:00", endTime: "11:00" }],
     averageRating: 4,
     reviewCount: 10,
     isReviewed: false,
@@ -48,6 +55,12 @@ describe("강의 리뷰 훅", () => {
     courseKey: OTHER_COURSE_KEY,
     academicYear: "2025",
     semester: "U211600020",
+    classNumber: "02",
+    capacity: 50,
+    current: 35,
+    available: 15,
+    classTime: "화 3,4",
+    schedules: [{ dayOfWeek: "TUESDAY", startTime: "11:00", endTime: "13:00" }],
   };
 
   const DIFFERENT_SCOPE_COURSE: Course = {
@@ -133,7 +146,7 @@ describe("강의 리뷰 훅", () => {
     expect(result.current.data).toBeNull();
   });
 
-  it("리뷰를 생성하고 같은 과목코드+교수의 다른 학기 캐시까지 갱신한다", async () => {
+  it("리뷰 생성 시 같은 범위의 통계만 갱신하고 다른 학기·분반의 강의 정보는 보존한다", async () => {
     vi.mocked(reviewApi.createReview).mockResolvedValue({
       code: "SUCCESS",
       message: "ok",
@@ -175,11 +188,18 @@ describe("강의 리뷰 훅", () => {
     expect(updatedSameScopeCourse?.averageRating).toBeCloseTo(4.1, 1);
     expect(updatedSameScopeCourse?.reviewCount).toBe(11);
     expect(updatedSameScopeCourse?.isReviewed).toBe(true);
+    expect(updatedSameScopeCourse).toEqual({
+      ...SAME_SCOPE_COURSE,
+      averageRating: expect.closeTo(4.09, 2),
+      reviewCount: 11,
+      isReviewed: true,
+    });
 
     const untouchedDifferentScopeCourse = queryClient.getQueryData<Course>(["course-detail", DIFFERENT_SCOPE_COURSE_KEY]);
     expect(untouchedDifferentScopeCourse?.averageRating).toBe(2);
     expect(untouchedDifferentScopeCourse?.reviewCount).toBe(3);
     expect(untouchedDifferentScopeCourse?.isReviewed).toBe(false);
+    expect(untouchedDifferentScopeCourse).toEqual(DIFFERENT_SCOPE_COURSE);
 
     const updatedCourses = queryClient.getQueryData<{
       pages: Array<{ content: Course[]; last: boolean; number: number }>;
@@ -194,10 +214,12 @@ describe("강의 리뷰 훅", () => {
     expect(updatedCourses?.pages[0].content[2].averageRating).toBe(2);
     expect(updatedCourses?.pages[0].content[2].reviewCount).toBe(3);
     expect(updatedCourses?.pages[0].content[2].isReviewed).toBe(false);
+    expect(updatedCourses?.pages[0].content[1]).toEqual(updatedSameScopeCourse);
+    expect(updatedCourses?.pages[0].content[2]).toEqual(DIFFERENT_SCOPE_COURSE);
     expect(queryClient.getQueryData(["courses", "search-default-semester"])).toEqual({ semester: "U211600025" });
   });
 
-  it("리뷰를 수정하고 같은 리뷰 그룹 캐시를 갱신한다", async () => {
+  it("리뷰 수정 시 같은 범위의 통계만 갱신하고 다른 학기·분반의 강의 정보는 보존한다", async () => {
     vi.mocked(reviewApi.updateReview).mockResolvedValue({
       code: "SUCCESS",
       message: "ok",
@@ -211,6 +233,7 @@ describe("강의 리뷰 훅", () => {
     });
     queryClient.setQueryData(["course-detail", COURSE_KEY], MOCK_COURSE);
     queryClient.setQueryData(["course-detail", OTHER_COURSE_KEY], SAME_SCOPE_COURSE);
+    queryClient.setQueryData(["course-detail", DIFFERENT_SCOPE_COURSE_KEY], DIFFERENT_SCOPE_COURSE);
     queryClient.setQueryData(["courses", { name: "자료" }], {
       pages: [
         {
@@ -241,6 +264,19 @@ describe("강의 리뷰 훅", () => {
     expect(updatedSameScopeCourse?.averageRating).toBeCloseTo(4.2, 1);
     expect(updatedSameScopeCourse?.reviewCount).toBe(10);
     expect(updatedSameScopeCourse?.isReviewed).toBe(true);
+    expect(updatedSameScopeCourse).toEqual({
+      ...SAME_SCOPE_COURSE,
+      averageRating: expect.closeTo(4.2, 5),
+      reviewCount: 10,
+      isReviewed: true,
+    });
+    const updatedCourses = queryClient.getQueryData<{
+      pages: Array<{ content: Course[] }>;
+    }>(["courses", { name: "자료" }]);
+    expect(updatedCourses?.pages[0].content[1]).toEqual(updatedSameScopeCourse);
+    expect(updatedCourses?.pages[0].content[2]).toEqual(DIFFERENT_SCOPE_COURSE);
+    expect(queryClient.getQueryData(["course-detail", DIFFERENT_SCOPE_COURSE_KEY]))
+      .toEqual(DIFFERENT_SCOPE_COURSE);
   });
 
   it("리뷰 반응(좋아요/싫어요)을 토글한다", async () => {
