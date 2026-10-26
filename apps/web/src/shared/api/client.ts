@@ -15,11 +15,6 @@ const api = axios.create({
 
 
 
-export const setAccessToken = (token: string | null) => {
-
-  void token;
-};
-
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
   skipAuthRefresh?: boolean;
@@ -152,6 +147,9 @@ api.interceptors.response.use(
       const refreshAttempt = startRefresh();
       try {
         await refreshAttempt.promise;
+        if (refreshAttempt.generation !== authGeneration) {
+          return Promise.reject(error);
+        }
         return api(originalRequest);
       } catch (refreshError) {
         handleDefinitiveAuthFailure(refreshError, originalRequest, refreshAttempt.generation);

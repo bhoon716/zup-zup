@@ -418,4 +418,47 @@ describe("shared api client", () => {
     await expect(rejectProtectedRequest(4)).rejects.toBe(transientError);
     expect(refreshCalls).toBe(4);
   });
+
+  it.each([false, true])("로그아웃 뒤 완료된 refresh는 이전 요청을 재전송하지 않는다 (새 요청 공유: %s)", async shareAfterLogout => {
+    const handlers: { reject?: (error: unknown) => Promise<unknown> } = {};
+    let completeRefresh!: (value: unknown) => void;
+    const refresh = new Promise(resolve => { completeRefresh = resolve; });
+    const retry = vi.fn(async () => ({ data: "current" }));
+    const post = vi.fn().mockReturnValueOnce(refresh).mockResolvedValue({ data: null });
+    const apiMock = Object.assign(retry, {
+      defaults: { headers: { common: {} } },
+      interceptors: { response: { use: (_success: unknown, reject: (error: unknown) => Promise<unknown>) => {
+        handlers.reject = reject;
+      } } },
+      post,
+    });
+    vi.doMock("axios", () => ({
+      AxiosError: class AxiosError {},
+      default: { create: () => apiMock },
+    }));
+    const { resetAuthRefreshState, registerAuthFailureHandler } = await import("./client");
+    const logout = vi.fn();
+    registerAuthFailureHandler(logout);
+    const expired = (id: number) => ({ config: { url: `/api/v1/protected/${id}` }, response: { status: 401 } });
+    const firstError = expired(1);
+    const requests = [handlers.reject!(firstError)];
+    resetAuthRefreshState();
+    const expectedErrors = [firstError];
+    if (shareAfterLogout) {
+      const secondError = expired(2);
+      requests.push(handlers.reject!(secondError));
+      expectedErrors.push(secondError);
+    }
+    const settled = Promise.allSettled(requests);
+    expect(post).toHaveBeenCalledTimes(1);
+    completeRefresh({ data: null });
+    expect(await settled).toEqual(expectedErrors.map(reason => ({ status: "rejected", reason })));
+    expect(retry).not.toHaveBeenCalled();
+    expect(logout).not.toHaveBeenCalled();
+
+    await expect(handlers.reject!(expired(3))).resolves.toEqual({ data: "current" });
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
 });
