@@ -14,7 +14,7 @@ import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDelivery
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ class SeatNotificationOutboxRecoveryTest {
     @Autowired
     private SeatNotificationDeliveryRepository deliveryRepository;
     @MockitoBean
-    private SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private SubscriptionQueryService subscriptionQueryService;
     @MockitoBean
     private UserNotificationQuery userNotificationQuery;
     @MockitoBean
@@ -57,7 +57,7 @@ class SeatNotificationOutboxRecoveryTest {
                 .build());
         NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
                 true, false, false, false, null);
-        when(subscriptionRecipientQuery.findActiveRecipientIds("course-key")).thenReturn(List.of(1L));
+        when(subscriptionQueryService.findActiveRecipientIds("course-key")).thenReturn(List.of(1L));
         when(userNotificationQuery.findByIds(List.of(1L))).thenReturn(List.of(user));
         when(userNotificationQuery.findDevicesByUserIds(List.of(1L))).thenReturn(List.of());
 

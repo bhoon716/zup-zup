@@ -14,7 +14,7 @@ import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +38,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
     @Mock
     private SeatNotificationDeliveryRepository deliveryRepository;
     @Mock
-    private SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private SubscriptionQueryService subscriptionQueryService;
     @Mock
     private UserNotificationQuery userNotificationQuery;
     @Mock
@@ -86,7 +86,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
                     true, true, true, true, null));
         }
 
-        when(subscriptionRecipientQuery.findActiveRecipientIds(courseKey)).thenReturn(mockRecipientIds);
+        when(subscriptionQueryService.findActiveRecipientIds(courseKey)).thenReturn(mockRecipientIds);
         when(userNotificationQuery.findByIds(any())).thenReturn(mockRecipients);
         when(userNotificationQuery.findDevicesByUserIds(any())).thenReturn(List.of());
         when(notificationChannelPolicy.isChannelEnabled(any(), any())).thenReturn(true);

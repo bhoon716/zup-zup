@@ -4,6 +4,8 @@ import bhoon.sugang_helper.seatalert.subscription.entity.Subscription;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
     List<Subscription> findByCourseKeyAndIsActiveTrue(String courseKey);
@@ -18,5 +20,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     void deleteAllByUserId(Long userId);
 
-    List<Long> findUserIdByCourseKeyAndIsActiveTrue(String courseKey);
+    @Query("select s.userId from Subscription s where s.courseKey = :courseKey and s.isActive = true")
+    List<Long> findUserIdByCourseKeyAndIsActiveTrue(@Param("courseKey") String courseKey);
 }

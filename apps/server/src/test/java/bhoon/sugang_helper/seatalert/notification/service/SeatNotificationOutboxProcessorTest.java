@@ -15,7 +15,7 @@ import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -42,7 +42,7 @@ class SeatNotificationOutboxProcessorTest {
     @Mock
     private SeatNotificationDeliveryRepository deliveryRepository;
     @Mock
-    private SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private SubscriptionQueryService subscriptionQueryService;
     @Mock
     private UserNotificationQuery userNotificationQuery;
     @Mock

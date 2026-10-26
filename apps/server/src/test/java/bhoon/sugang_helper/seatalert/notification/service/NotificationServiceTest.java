@@ -33,7 +33,7 @@ import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +60,7 @@ class NotificationServiceTest {
     @Mock
     private RedisService redisService;
     @Mock
-    private SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private SubscriptionQueryService subscriptionQueryService;
     @Mock
     private UserNotificationQuery userNotificationQuery;
     @Mock
@@ -91,7 +91,7 @@ class NotificationServiceTest {
         // 모든 알림 채널 활성화 상태로 초기화
         NotificationProperties props = new NotificationProperties(true, true, true, true);
         NotificationChannelPolicy notificationChannelPolicy = new NotificationChannelPolicy(props);
-        notificationService = new NotificationService(redisService, subscriptionRecipientQuery, userNotificationQuery,
+        notificationService = new NotificationService(redisService, subscriptionQueryService, userNotificationQuery,
                 notificationHistoryRepository, List.of(notificationSender), notificationChannelPolicy,
                 notificationProviderExecutor);
         lenient().doAnswer(invocation -> {
@@ -108,7 +108,7 @@ class NotificationServiceTest {
         String redisKey = "ALERT:" + COURSE_KEY;
 
         given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(true);
-        given(subscriptionRecipientQuery.findActiveRecipientIds(COURSE_KEY)).willReturn(List.of());
+        given(subscriptionQueryService.findActiveRecipientIds(COURSE_KEY)).willReturn(List.of());
 
         // When
         notificationService.handleSeatOpenedEvent(event);
@@ -134,7 +134,7 @@ class NotificationServiceTest {
         verify(redisService, times(1)).setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class));
         verify(redisService, never()).setValues(anyString(), anyString(), any(Duration.class));
         verify(redisService, never()).deleteValues(anyString());
-        verify(subscriptionRecipientQuery, never()).findActiveRecipientIds(anyString());
+        verify(subscriptionQueryService, never()).findActiveRecipientIds(anyString());
     }
 
     @Test
@@ -154,7 +154,7 @@ class NotificationServiceTest {
                 .emailEnabled(true).build();
 
         given(redisService.setValuesIfAbsent(eq(redisKey), eq("PENDING"), any(Duration.class))).willReturn(true);
-        given(subscriptionRecipientQuery.findActiveRecipientIds(COURSE_KEY)).willReturn(List.of(1L, 2L));
+        given(subscriptionQueryService.findActiveRecipientIds(COURSE_KEY)).willReturn(List.of(1L, 2L));
         addRecipient(user);
         addRecipient(secondUser);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
@@ -195,7 +195,7 @@ class NotificationServiceTest {
 
         given(redisService.setValuesIfAbsent(eq("ALERT:" + COURSE_KEY), eq("PENDING"), any(Duration.class)))
                 .willReturn(true);
-        given(subscriptionRecipientQuery.findActiveRecipientIds(anyString())).willReturn(List.of(1L));
+        given(subscriptionQueryService.findActiveRecipientIds(anyString())).willReturn(List.of(1L));
         addRecipient(user);
         addDevice(fcmDevice);
         addDevice(webDevice);

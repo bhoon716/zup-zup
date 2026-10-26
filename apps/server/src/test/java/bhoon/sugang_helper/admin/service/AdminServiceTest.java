@@ -22,7 +22,7 @@ import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQuery;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationTestSender;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionStatisticsQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -42,7 +42,7 @@ class AdminServiceTest {
     @Mock
     private UserNotificationQuery userNotificationQuery;
     @Mock
-    private SubscriptionStatisticsQuery subscriptionStatisticsQuery;
+    private SubscriptionQueryService subscriptionQueryService;
     @Mock
     private NotificationHistoryQuery notificationHistoryQuery;
     @Mock
@@ -59,7 +59,7 @@ class AdminServiceTest {
     @DisplayName("관리자 대시보드 통계를 정상적으로 조회한다")
     void getDashboardStats() {
         when(userIdentityQuery.countUsers()).thenReturn(100L);
-        when(subscriptionStatisticsQuery.countActiveSubscriptions()).thenReturn(50L);
+        when(subscriptionQueryService.countActiveSubscriptions()).thenReturn(50L);
         when(notificationHistoryQuery.countCreatedAfter(any(LocalDateTime.class))).thenReturn(20L);
         when(crawlerStatusQuery.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
 
@@ -75,7 +75,7 @@ class AdminServiceTest {
     @DisplayName("관리자 대시보드 스냅샷을 한 번에 조회한다")
     void getDashboardSnapshot() {
         when(userIdentityQuery.countUsers()).thenReturn(100L);
-        when(subscriptionStatisticsQuery.countActiveSubscriptions()).thenReturn(50L);
+        when(subscriptionQueryService.countActiveSubscriptions()).thenReturn(50L);
         when(notificationHistoryQuery.countCreatedAfter(any(LocalDateTime.class))).thenReturn(20L);
         when(notificationHistoryQuery.findCreatedAtAfter(any(LocalDateTime.class))).thenReturn(List.of());
         when(notificationHistoryQuery.findLatest()).thenReturn(List.of());

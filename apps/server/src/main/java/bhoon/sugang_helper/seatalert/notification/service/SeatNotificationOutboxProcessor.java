@@ -12,7 +12,7 @@ import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDelivery
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,7 +37,7 @@ public class SeatNotificationOutboxProcessor {
 
     private final SeatNotificationOutboxRepository outboxRepository;
     private final SeatNotificationDeliveryRepository deliveryRepository;
-    private final SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private final SubscriptionQueryService subscriptionQueryService;
     private final UserNotificationQuery userNotificationQuery;
     private final NotificationChannelPolicy notificationChannelPolicy;
     private final NotificationService notificationService;
@@ -133,7 +133,7 @@ public class SeatNotificationOutboxProcessor {
     }
 
     private void materializeDeliveries(SeatNotificationOutbox outbox) {
-        List<Long> recipientIds = subscriptionRecipientQuery.findActiveRecipientIds(outbox.getCourseKey());
+        List<Long> recipientIds = subscriptionQueryService.findActiveRecipientIds(outbox.getCourseKey());
         if (recipientIds.isEmpty()) {
             outbox.markCompleted();
             return;

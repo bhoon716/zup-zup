@@ -16,7 +16,7 @@ import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +40,7 @@ public class NotificationService implements NotificationTestSender, UserNotifica
     private static final Duration USER_TEST_COOLDOWN = Duration.ofSeconds(10);
 
     private final RedisService redisService;
-    private final SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private final SubscriptionQueryService subscriptionQueryService;
     private final UserNotificationQuery userNotificationQuery;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
@@ -156,7 +156,7 @@ public class NotificationService implements NotificationTestSender, UserNotifica
      * 해당 과목을 구독 중인 모든 사용자에게 알림을 발송합니다.
      */
     private void notifySubscribers(SeatOpenedEvent event) {
-        List<Long> recipientIds = subscriptionRecipientQuery.findActiveRecipientIds(event.courseKey());
+        List<Long> recipientIds = subscriptionQueryService.findActiveRecipientIds(event.courseKey());
         if (recipientIds.isEmpty()) {
             return;
         }

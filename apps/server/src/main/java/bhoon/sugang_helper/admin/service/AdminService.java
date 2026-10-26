@@ -18,7 +18,7 @@ import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQuery;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationTestSender;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionStatisticsQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -40,7 +40,7 @@ public class AdminService {
     private static final long CRAWLER_DELAY_MINUTES = 15L;
     private final UserIdentityQuery userIdentityQuery;
     private final UserNotificationQuery userNotificationQuery;
-    private final SubscriptionStatisticsQuery subscriptionStatisticsQuery;
+    private final SubscriptionQueryService subscriptionQueryService;
     private final NotificationHistoryQuery notificationHistoryQuery;
     private final NotificationTestSender notificationTestSender;
     private final CrawlerAdminSnapshotQuery crawlerAdminSnapshotQuery;
@@ -51,7 +51,7 @@ public class AdminService {
      */
     public AdminDashboardResponse getDashboardStats() {
         long totalUsers = userIdentityQuery.countUsers();
-        long totalActiveSubscriptions = subscriptionStatisticsQuery.countActiveSubscriptions();
+        long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
@@ -71,7 +71,7 @@ public class AdminService {
     public AdminOverviewResponse getDashboardOverview() {
         LocalDateTime now = LocalDateTime.now();
         long totalUsers = userIdentityQuery.countUsers();
-        long totalActiveSubscriptions = subscriptionStatisticsQuery.countActiveSubscriptions();
+        long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
         LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
         long todayNotifications = notificationHistoryQuery.countCreatedAfter(startOfToday);
         LocalDateTime lastCrawledAt = crawlerStatusQuery.findLastSuccessAt().orElse(null);

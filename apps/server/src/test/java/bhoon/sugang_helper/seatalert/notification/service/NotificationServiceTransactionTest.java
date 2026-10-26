@@ -20,16 +20,14 @@ import bhoon.sugang_helper.seatalert.notification.client.WebPushNotificationSend
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import java.time.Duration;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.task.SyncTaskExecutor;
@@ -54,7 +52,7 @@ class NotificationServiceTransactionTest {
     private static final String PROFESSOR = "Test Professor";
 
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    private SeatNotificationOutboxService outboxService;
 
     @Autowired
     private PlatformTransactionManager transactionManager;
@@ -64,7 +62,7 @@ class NotificationServiceTransactionTest {
     @MockitoBean
     private RedisService redisService;
     @MockitoBean
-    private SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private SubscriptionQueryService subscriptionQueryService;
     @MockitoBean
     private UserNotificationQuery userNotificationQuery;
     @MockitoBean
@@ -99,7 +97,7 @@ class NotificationServiceTransactionTest {
         when(discordNotificationSender.supports(NotificationChannel.DISCORD)).thenReturn(false);
 
         // when
-        transactionTemplate.executeWithoutResult(status -> eventPublisher.publishEvent(event));
+        transactionTemplate.executeWithoutResult(status -> outboxService.enqueue(event));
 
         // then
         org.assertj.core.api.Assertions.assertThat(outboxRepository.count()).isEqualTo(1);
@@ -115,7 +113,7 @@ class NotificationServiceTransactionTest {
 
         // when
         transactionTemplate.executeWithoutResult(status -> {
-            eventPublisher.publishEvent(event);
+            outboxService.enqueue(event);
             status.setRollbackOnly();
         });
 
