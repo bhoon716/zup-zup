@@ -3,9 +3,9 @@ package bhoon.sugang_helper.seatalert.notification.service;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 
-/**
- * Keeps permanent recipient/configuration failures out of the retry budget.
- */
+
+
+
 public final class NotificationFailureClassifier {
 
     private NotificationFailureClassifier() {

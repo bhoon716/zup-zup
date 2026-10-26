@@ -60,15 +60,15 @@ class JwtAuthenticationFilterTest {
     @Test
     @DisplayName("토큰이 없어도 필터 체인은 항상 진행된다")
     void doFilter_withoutToken_stillContinuesFilterChain() throws Exception {
-        // given
+
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/health");
         MockHttpServletResponse response = new MockHttpServletResponse();
         given(jwtProvider.resolveToken(request)).willReturn(null);
 
-        // when
+
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
-        // then
+
         verify(filterChain).doFilter(request, response);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
@@ -76,7 +76,7 @@ class JwtAuthenticationFilterTest {
     @Test
     @DisplayName("유효한 토큰이면 인증 정보를 저장하고 필터 체인을 진행한다")
     void doFilter_withValidToken_setsAuthenticationAndContinuesFilterChain() throws Exception {
-        // given
+
         MockHttpServletRequest request = new MockHttpServletRequest("GET", TIMETABLES_PATH);
         MockHttpServletResponse response = new MockHttpServletResponse();
         given(jwtProvider.resolveToken(request)).willReturn(VALID_TOKEN);
@@ -86,10 +86,10 @@ class JwtAuthenticationFilterTest {
         given(authentication.getName()).willReturn("tester@example.com");
         given(userAccessRevocationService.isRevoked(1L)).willReturn(false);
 
-        // when
+
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
-        // then
+
         verify(filterChain).doFilter(request, response);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isEqualTo(authentication);
     }

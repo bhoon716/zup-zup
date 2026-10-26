@@ -6,7 +6,7 @@ RUN addgroup --system --gid 10001 sugang-user \
     && mkdir -p /app/config /app/data/uploads \
     && chown -R 10001:10001 /app
 
-# CI에서 생성한 bootJar를 그대로 사용한다.
+
 ARG JAR_FILE=build/libs/app.jar
 COPY --chown=10001:10001 ${JAR_FILE} /app/app.jar
 

@@ -18,7 +18,7 @@ public class RedisConfig {
         return builder -> builder
                 .autoReconnect(true)
                 .disconnectedBehavior(ClientOptions.DisconnectedBehavior.REJECT_COMMANDS)
-                // A true filter result drops commands queued before a disconnect.
+
                 .replayFilter(command -> true);
     }
 

@@ -5,9 +5,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-/**
- * Canonical delivery key를 provider 제약에 맞는 짧고 불투명한 key로 변환합니다.
- */
+
+
+
 public final class NotificationDeliveryIdempotencyKey {
 
     private static final int PROVIDER_KEY_LENGTH = 22;

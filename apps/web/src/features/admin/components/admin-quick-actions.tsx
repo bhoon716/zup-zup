@@ -11,10 +11,10 @@ interface AdminQuickActionsProps {
   isSendingTest: boolean;
 }
 
-/**
- * 관리자용 퀵 컨트롤 센터 컴포넌트입니다.
- * 통계 새로고침, 데이터 수집, 테스트 알림 등의 즉각적인 제어 기능을 제공합니다.
- */
+
+
+
+
 export function AdminQuickActions({
   onRefresh,
   onCrawl,

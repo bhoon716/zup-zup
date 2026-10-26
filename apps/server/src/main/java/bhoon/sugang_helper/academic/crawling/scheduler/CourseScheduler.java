@@ -20,9 +20,9 @@ public class CourseScheduler {
     @Value("${jbnu.crawler.run-on-startup:false}")
     private boolean runOnStartup;
 
-    /**
-     * 애플리케이션 시작 시 설정에 따라 크롤링을 1회 즉시 실행합니다.
-     */
+
+
+
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         if (runOnStartup) {
@@ -36,9 +36,9 @@ public class CourseScheduler {
         }
     }
 
-    /**
-     * 설정 시간마다 강의 크롤링 작업을 실행합니다.
-     */
+
+
+
     @Scheduled(cron = "${jbnu.crawler.cron}")
     public void runCrawler() {
         log.info("[Scheduler] Starting course crawling task.");

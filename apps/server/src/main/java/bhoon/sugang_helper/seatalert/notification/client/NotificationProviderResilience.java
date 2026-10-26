@@ -24,9 +24,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * Bounds synchronous provider calls and isolates a failing provider with a small in-memory circuit breaker.
- */
+
+
+
 @Component
 @SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.NullAssignment"})
 public class NotificationProviderResilience implements AutoCloseable {

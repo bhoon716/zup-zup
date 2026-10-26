@@ -88,7 +88,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (user) {
       if (user.onboardingCompleted) {
-        // 온보딩이 끝난 사용자는 홈으로 보낸다.
+
         router.replace("/");
       } else {
         if (!notificationEmail && !verified) {
@@ -115,7 +115,7 @@ export default function OnboardingPage() {
     let timer: NodeJS.Timeout;
     let expirationTimer: NodeJS.Timeout;
     if (emailSent && timeLeft > 0 && !verified) {
-      // 인증 코드 입력 유효 시간을 초 단위로 감소시킨다.
+
       timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
@@ -171,7 +171,7 @@ export default function OnboardingPage() {
   };
 
   const handleDiscordConnect = () => {
-    // Discord OAuth starts on the backend and must perform a full document navigation.
+
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/api/v1/users/discord/authorize?returnPath=/onboarding";
   };
@@ -189,7 +189,7 @@ export default function OnboardingPage() {
 
     try {
       if (!(user && data.notificationEmail === user.email)) {
-        // 구글 계정 메일이 아닌 경우에는 별도 인증 완료가 필요하다.
+
         if (data.emailEnabled && !verified) {
           toast.error("이메일 인증을 완료해주세요.");
           return;

@@ -34,7 +34,7 @@ import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-/** Cross-domain, read-only projection for course search filtering and sorting. */
+
 @Repository
 public class CourseSearchReadRepository {
 

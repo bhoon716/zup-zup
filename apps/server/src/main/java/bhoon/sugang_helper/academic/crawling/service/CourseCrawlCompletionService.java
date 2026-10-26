@@ -7,9 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 수집된 강의 반영과 크롤링 성공 기록을 하나의 트랜잭션으로 완료합니다.
- */
+
+
+
 @Service
 @RequiredArgsConstructor
 public class CourseCrawlCompletionService {

@@ -25,9 +25,9 @@ public class CourseEmojiReviewService {
     private final CourseReviewCatalogService courseReviewCatalog;
     private final UserIdentityQueryService userIdentityQuery;
 
-    /**
-     * 강의에 이모지 토글 리액션을 남기거나 취소합니다.
-     */
+
+
+
     @Transactional
     public void toggleEmoji(String courseKey, String emoji) {
         if (emoji == null || emoji.isBlank()) {
@@ -59,9 +59,9 @@ public class CourseEmojiReviewService {
                 );
     }
 
-    /**
-     * 강의의 이모지 통계(카운트 + 본인 탭 여부)를 반환합니다.
-     */
+
+
+
     @Transactional(readOnly = true)
     public List<CourseEmojiReviewResponse> getCourseEmojiStats(String courseKey) {
         CourseReference course = getCourse(courseKey);

@@ -59,9 +59,9 @@ public class JbnuCourseApiClient implements CourseApiClient {
     @Autowired(required = false)
     private MeterRegistry meterRegistry;
 
-    /**
-     * JUMP JSON 강의 데이터를 가져옵니다.
-     */
+
+
+
     public String fetchCourseData(String year, String semester) {
         try (InputStream responseStream = fetchCourseDataStream(year, semester)) {
             return new String(responseStream.readAllBytes(), StandardCharsets.UTF_8);
@@ -114,7 +114,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
             httpClientBuilder.connectTimeout(Duration.ofMillis(timeoutMs));
         }
 
-        // A fresh cookie store per attempt keeps school sessions isolated between runs and retries.
+
         try (HttpClient httpClient = httpClientBuilder.build()) {
             RestClient restClient = createRestClient(httpClient);
             try {
@@ -159,7 +159,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
 
     byte[] readResponse(ClientHttpResponse response) throws IOException {
         if (response.getStatusCode().isError()) {
-            // Keep only the status; upstream bodies and URLs must not enter diagnostic records.
+
             throw new RestClientResponseException("JUMP responded with HTTP " + response.getStatusCode().value(),
                     response.getStatusCode().value(), response.getStatusText(), null, new byte[0],
                     StandardCharsets.UTF_8);
@@ -168,7 +168,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
         if ("gzip".equalsIgnoreCase(response.getHeaders().getFirst(HttpHeaders.CONTENT_ENCODING))) {
             body = new GZIPInputStream(body);
         }
-        // Limit decoded bytes while reading, before allocating the complete response in memory.
+
         try (InputStream input = maximumResponseBytes > 0
                 ? new BoundedInputStream(body, maximumResponseBytes) : body) {
             return input.readAllBytes();

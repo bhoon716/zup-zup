@@ -18,10 +18,10 @@ interface AdminActivityLogProps {
   getLogMeta: (level: string) => { label: string; className: string };
 }
 
-/**
- * 시스템 활동 로그 테이블 컴포넌트입니다.
- * 실시간으로 발생하는 시스템 이벤트와 오류 정보를 가독성 있게 표시합니다.
- */
+
+
+
+
 export function AdminActivityLog({
   logs,
   formatDateTime,

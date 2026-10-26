@@ -46,17 +46,17 @@ class EmailNotificationSenderTest {
     @Test
     @DisplayName("이메일 발송 성공")
     void send_success() {
-        // given
+
         String to = "recipient@example.com";
         String title = "제목";
         String content = "내용";
         given(mailSender.createMimeMessage()).willReturn(mock(MimeMessage.class));
         given(templateService.loadTemplate(eq("notification"), anyMap())).willReturn("<html>HTML Content</html>");
 
-        // when
+
         emailNotificationSender.send(NotificationTarget.of(to), title, content);
 
-        // then
+
         verify(mailSender, times(1)).send(any(MimeMessage.class));
         verify(templateService, times(1)).loadTemplate(eq("notification"), anyMap());
     }

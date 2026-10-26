@@ -49,9 +49,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * 문의 및 건의사항(버그 리포트, 기능 제안 등) 관련 비즈니스 로직을 처리하는 서비스 클래스입니다. 사용자의 의견 등록, 조회 및 관리자의 답변 관리 기능을 담당합니다.
- */
+
+
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -76,9 +76,9 @@ public class FeedbackService {
     @Value("${app.feedback.max-upload-bytes:10485760}")
     private long maximumUploadBytes;
 
-    /**
-     * 사용자의 새로운 문의 및 건의사항을 등록하고 첨부 파일을 저장합니다.
-     */
+
+
+
     @Transactional
     public Long createFeedback(Long userId, FeedbackCreateRequest request, List<MultipartFile> files) {
         return createFeedback(userId, request, files, null);
@@ -131,9 +131,9 @@ public class FeedbackService {
         return baseName + fileUrl.substring(sanitizedExtensionStart);
     }
 
-    /**
-     * 특정 사용자가 작성한 문의 및 건의 목록을 페이징하여 조회합니다.
-     */
+
+
+
     @Transactional(readOnly = true)
     public Page<FeedbackResponse> getMyFeedbacks(Long userId, Pageable pageable) {
         return feedbackRepository.findAllByUserId(userId, PageableGuard.requireBounded(pageable))
@@ -145,9 +145,9 @@ public class FeedbackService {
         return getMyFeedbacks(requireCurrentUser().id(), pageable);
     }
 
-    /**
-     * 특정 문의 사항의 상세 내용 및 운영진 답변 목록을 조회합니다.
-     */
+
+
+
     @Transactional(readOnly = true)
     public FeedbackDetailResponse getMyFeedbackDetail(Long userId, Long feedbackId) {
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -165,9 +165,9 @@ public class FeedbackService {
         return getMyFeedbackDetail(requireCurrentUser().id(), feedbackId);
     }
 
-    /**
-     * 문의 및 건의 게시글을 삭제 처리(소프트 삭제) 합니다.
-     */
+
+
+
     @Transactional
     public void deleteFeedback(Long userId, Long feedbackId) {
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -207,9 +207,9 @@ public class FeedbackService {
         return getAttachment(requireCurrentUser(), feedbackId, attachmentId);
     }
 
-    /**
-     * 관리자는 명시적으로 확인한 뒤 전용 경로에서만 보존된 첨부파일을 열람합니다.
-     */
+
+
+
     @Transactional
     public FeedbackAttachmentDownload getAttachmentForAdmin(UserIdentity admin, Long feedbackId, Long attachmentId,
                                                             boolean confirmed) {
@@ -234,11 +234,11 @@ public class FeedbackService {
         return getAttachmentForAdmin(requireCurrentAdmin(), feedbackId, attachmentId, confirmed);
     }
 
-    /* 관리자 전용 기능 */
 
-    /**
-     * 관리자를 위해 시스템의 모든 문의 및 건의 목록을 조회합니다.
-     */
+
+
+
+
     @Transactional(readOnly = true)
     public Page<AdminFeedbackResponse> getFeedbacksForAdmin(Pageable pageable,
                                                              AdminFeedbackDeletionFilter deletionFilter) {
@@ -260,9 +260,9 @@ public class FeedbackService {
                         authorLabel(isWithdrawnAuthor(feedback.authorId(), withdrawnByUserId))));
     }
 
-    /**
-     * 관리자용 문의 및 건의 상세 조회 로직을 수행합니다.
-     */
+
+
+
     @Transactional(readOnly = true)
     public AdminFeedbackDetailResponse getFeedbackDetailForAdmin(Long feedbackId) {
         AdminFeedbackDetail feedback = adminFeedbackReadRepository
@@ -296,9 +296,9 @@ public class FeedbackService {
                         .toList());
     }
 
-    /**
-     * 문의 사항에 대한 운영진 답변을 생성하고 로그를 남깁니다.
-     */
+
+
+
     @Transactional
     public Long createFeedbackReply(Long adminId, Long feedbackId, FeedbackReplyCreateRequest request) {
         userIdentityQuery.findById(adminId)
@@ -325,9 +325,9 @@ public class FeedbackService {
         return createFeedbackReply(requireCurrentAdmin().id(), feedbackId, request);
     }
 
-    /**
-     * 기 등록된 운영진 답변 내용을 수정하고 변경 전 내용을 로그로 기록합니다.
-     */
+
+
+
     @Transactional
     public void updateFeedbackReply(Long adminId, Long replyId, FeedbackReplyUpdateRequest request) {
         userIdentityQuery.findById(adminId)
@@ -350,9 +350,9 @@ public class FeedbackService {
         updateFeedbackReply(requireCurrentAdmin().id(), replyId, request);
     }
 
-    /**
-     * 등록된 운영진 답변을 보존용 soft delete 처리하고 액션 로그를 남깁니다.
-     */
+
+
+
     @Transactional
     public void deleteFeedbackReply(Long adminId, Long replyId) {
         userIdentityQuery.findById(adminId)
@@ -374,9 +374,9 @@ public class FeedbackService {
         deleteFeedbackReply(requireCurrentAdmin().id(), replyId);
     }
 
-    /**
-     * 문의 사항의 처리 상태를 변경하고 액션 로그를 생성합니다.
-     */
+
+
+
     @Transactional
     public void updateFeedbackStatus(Long adminId, Long feedbackId, FeedbackStatusUpdateRequest request) {
         userIdentityQuery.findById(adminId)
@@ -422,9 +422,9 @@ public class FeedbackService {
                 .collect(Collectors.toMap(UserDisplayName::id, UserDisplayName::name, (first, ignored) -> first));
     }
 
-    /**
-     * 문의 및 건의 요청 빈도 제한을 검증합니다.
-     */
+
+
+
     private void validateRateLimit(Long userId, String clientIp, List<MultipartFile> files) {
         long totalUploadBytes = files == null ? 0 : files.stream().mapToLong(MultipartFile::getSize).sum();
         if (maximumUploadBytes > 0 && totalUploadBytes > maximumUploadBytes) {

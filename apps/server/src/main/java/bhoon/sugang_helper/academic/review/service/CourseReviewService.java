@@ -36,17 +36,17 @@ public class CourseReviewService {
     private final CourseReviewCatalogService courseReviewCatalog;
     private final UserIdentityQueryService userIdentityQuery;
 
-    /**
-     * 현재 로그인한 사용자를 조회합니다.
-     */
+
+
+
     private UserIdentity getCurrentUser() {
         return userIdentityQuery.findByEmail(SecurityUtil.getCurrentUserEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 
-    /**
-     * 현재 로그인한 사용자의 ID를 조회합니다. 로그인하지 않은 경우 null을 반환합니다.
-     */
+
+
+
     private Long getCurrentUserIdOrNull() {
         String email = SecurityUtil.getCurrentUserEmailOrNull();
         if (email == null) {
@@ -57,9 +57,9 @@ public class CourseReviewService {
                 .orElse(null);
     }
 
-    /**
-     * 강의 리뷰를 작성합니다.
-     */
+
+
+
     @Transactional
     public ReviewResponse createReview(String courseKey, ReviewCreateRequest request) {
         UserIdentity user = getCurrentUser();
@@ -87,9 +87,9 @@ public class CourseReviewService {
         return ReviewResponse.of(saved, user.id());
     }
 
-    /**
-     * 특정 강의의 리뷰 목록을 조회합니다. 현재 로그인한 사용자의 리뷰가 있다면 가장 상단에 위치합니다.
-     */
+
+
+
     @Transactional(readOnly = true)
     public Page<ReviewResponse> getReviews(String courseKey, Pageable pageable) {
         Long currentUserId = getCurrentUserIdOrNull();
@@ -100,9 +100,9 @@ public class CourseReviewService {
                 .map(review -> ReviewResponse.of(review, currentUserId));
     }
 
-    /**
-     * 자신이 작성한 리뷰를 수정합니다.
-     */
+
+
+
     @Transactional
     public ReviewResponse updateReview(Long reviewId, ReviewUpdateRequest request) {
         UserIdentity user = getCurrentUser();
@@ -122,9 +122,9 @@ public class CourseReviewService {
         return ReviewResponse.of(review, user.id());
     }
 
-    /**
-     * 자신이 작성한 리뷰를 삭제합니다.
-     */
+
+
+
     @Transactional
     public void deleteReview(Long reviewId) {
         UserIdentity user = getCurrentUser();
@@ -142,18 +142,18 @@ public class CourseReviewService {
         updateCourseReviewStats(courseReviewCatalog.findReviewCourseKeys(course));
     }
 
-    /**
-     * 리뷰 작성자 본인인지 확인합니다. (ADMIN 계정은 통과)
-     */
+
+
+
     private void validateReviewOwner(CourseReview review, UserIdentity user) {
         if (!review.getUserId().equals(user.id()) && !user.administrator()) {
             throw new CustomException(ErrorCode.REVIEW_UNAUTHORIZED);
         }
     }
 
-    /**
-     * 리뷰에 공감/비공감 반응을 남기거나 취소/변경합니다.
-     */
+
+
+
     @Transactional
     public void toggleReaction(Long reviewId, ReviewReactionRequest request) {
         UserIdentity user = getCurrentUser();
@@ -167,9 +167,9 @@ public class CourseReviewService {
                         () -> handleNewReaction(review, targetReaction, user.id()));
     }
 
-    /**
-     * 새로운 반응을 추가합니다.
-     */
+
+
+
     private void handleNewReaction(CourseReview review, ReactionType type, Long userId) {
         CourseReviewReaction newReaction = CourseReviewReaction.builder()
                 .review(review)
@@ -182,9 +182,9 @@ public class CourseReviewService {
         log.info("[Review Reaction] Added. reviewId={}, userId={}, type={}", review.getId(), userId, type);
     }
 
-    /**
-     * 기존 반응을 취소하거나 변경합니다.
-     */
+
+
+
     private void handleExistingReaction(CourseReview review, CourseReviewReaction existing, ReactionType targetType,
                                         Long userId) {
         if (existing.getReactionType() == targetType) {
@@ -202,9 +202,9 @@ public class CourseReviewService {
         }
     }
 
-    /**
-     * 반응 타입에 따라 리뷰의 공감/비공감 카운트를 증가시킵니다.
-     */
+
+
+
     private void incrementReactionCount(CourseReview review, ReactionType type) {
         if (type == ReactionType.LIKE) {
             reviewRepository.incrementLikeCount(review.getId());
@@ -213,9 +213,9 @@ public class CourseReviewService {
         }
     }
 
-    /**
-     * 반응 타입에 따라 리뷰의 공감/비공감 카운트를 감소시킵니다.
-     */
+
+
+
     private void decrementReactionCount(CourseReview review, ReactionType type) {
         if (type == ReactionType.LIKE) {
             reviewRepository.decrementLikeCount(review.getId());
@@ -224,9 +224,9 @@ public class CourseReviewService {
         }
     }
 
-    /**
-     * 특정 강의의 전체 리뷰 통계(평균 별점, 리뷰 수)를 업데이트합니다.
-     */
+
+
+
     private void updateCourseReviewStats(List<String> courseKeys) {
         long count = reviewRepository.countByCourseKeys(courseKeys);
         Double avg = reviewRepository.getAverageRatingByCourseKeys(courseKeys);

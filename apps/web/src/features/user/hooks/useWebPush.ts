@@ -24,7 +24,7 @@ export const useWebPush = () => {
       let alias = customAlias;
       
       if (!alias) {
-          // 사용자 지정 별칭이 없으면 기기/브라우저 정보를 조합해 기본 이름을 만든다.
+
           alias = "Unknown Device";
           if (ua.includes("Win")) alias = "Windows PC";
           else if (ua.includes("Mac")) alias = "Mac";

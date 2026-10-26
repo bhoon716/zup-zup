@@ -74,7 +74,7 @@ class ReviewScopeContractTest {
     @ValueSource(strings = {"   ", " 교수 미지정 "})
     @DisplayName("교수 미지정 변형은 다른 학기·분반의 별점과 이모지를 연결하지 않는다")
     void unassignedProfessorKeepsEachOfferingSeparate(String professor) {
-        // given
+
         Course current = saveCourse(CURRENT, SUBJECT, professor);
         Course previous = saveCourse(PREVIOUS, SUBJECT, professor);
         saveReview(PREVIOUS, 1L, 1);
@@ -82,18 +82,18 @@ class ReviewScopeContractTest {
         saveEmoji(PREVIOUS, 1L, "👍");
         saveEmoji(CURRENT, 2L, "🔥");
 
-        // when & then
+
         assertThat(reviewQuery.hasReviewByUser(CURRENT, SUBJECT, professor, 1L)).isFalse();
         assertThat(reviewService.getReviews(CURRENT, PageRequest.of(0, 10)))
                 .extracting(ReviewResponse::id).containsExactly(otherReview.getId());
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
                 .containsExactly(new CourseEmojiReviewResponse("🔥", 1L, false));
 
-        // when
+
         reviewService.createReview(CURRENT, new ReviewCreateRequest(3));
         emojiService.toggleEmoji(CURRENT, "👍");
 
-        // then
+
         assertThat(reviewQuery.hasReviewByUser(CURRENT, SUBJECT, professor, 1L)).isTrue();
         assertThat(current.getReviewCount()).isEqualTo(2);
         assertThat(current.getAverageRating()).isEqualTo(4.0f);
@@ -109,7 +109,7 @@ class ReviewScopeContractTest {
     @ValueSource(strings = {" 김교수 ", " 외부교원1 "})
     @DisplayName("같은 과목·교수는 학기·분반을 공유하고 다른 교수·과목은 제외한다")
     void identifiableProfessorSharesOnlyItsReviewScope(String professor) {
-        // given
+
         Course current = saveCourse(CURRENT, SUBJECT, professor);
         Course previous = saveCourse(PREVIOUS, SUBJECT, professor.trim());
         Course otherProfessor = saveCourse("OTHER-PROFESSOR", SUBJECT, "외부교원2");
@@ -123,18 +123,18 @@ class ReviewScopeContractTest {
         saveEmoji(otherProfessor.getCourseKey(), 1L, "🔥");
         saveEmoji(otherSubject.getCourseKey(), 1L, "🔥");
 
-        // when & then
+
         assertThat(reviewQuery.hasReviewByUser(CURRENT, SUBJECT, professor, 1L)).isTrue();
         assertThat(reviewService.getReviews(CURRENT, PageRequest.of(0, 10)))
                 .extracting(ReviewResponse::id).containsExactly(myReview.getId(), otherReview.getId());
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
                 .containsExactly(new CourseEmojiReviewResponse("👍", 2L, true));
 
-        // when: toggle through another offering cancels the original shared reaction.
+
         emojiService.toggleEmoji(CURRENT, "👍");
         reviewService.updateReview(myReview.getId(), new ReviewUpdateRequest(1));
 
-        // then
+
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
                 .containsExactly(new CourseEmojiReviewResponse("👍", 1L, false));
         assertThat(List.of(current, previous)).allSatisfy(course -> {
@@ -142,11 +142,11 @@ class ReviewScopeContractTest {
             assertThat(course.getAverageRating()).isEqualTo(2.0f);
         });
 
-        // when
+
         reviewService.deleteReview(myReview.getId());
         emojiService.toggleEmoji(CURRENT, "👍");
 
-        // then
+
         assertThat(List.of(current, previous)).allSatisfy(course -> {
             assertThat(course.getReviewCount()).isEqualTo(1);
             assertThat(course.getAverageRating()).isEqualTo(3.0f);
@@ -170,11 +170,11 @@ class ReviewScopeContractTest {
     @Test
     @DisplayName("식별 가능한 교수의 대상 조회가 비어 있으면 입력 강의 키로 대체하지 않는다")
     void missingProfessorScopeDoesNotFallBackToCurrentKey() {
-        // given
+
         saveCourse(CURRENT, SUBJECT, "김교수");
         saveReview(CURRENT, 1L, 5);
 
-        // when & then
+
         assertThat(reviewQuery.hasReviewByUser(CURRENT, SUBJECT, "외부교원1", 1L)).isFalse();
     }
 

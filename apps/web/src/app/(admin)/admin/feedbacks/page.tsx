@@ -45,10 +45,10 @@ type AttachmentPreview = {
   filename: string;
 };
 
-/**
- * 줍줍 관리자용 문의 및 건의 통합 관리 페이지입니다.
- * 모든 사용자의 의견을 리스트로 확인하고 답변을 작성/수정/삭제할 수 있습니다.
- */
+
+
+
+
 export default function AdminFeedbackPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [deletionFilter, setDeletionFilter] = useState<AdminFeedbackDeletionFilter>("ALL");
@@ -231,7 +231,7 @@ export default function AdminFeedbackPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[800px]">
-          {/* 목록 사이드바 */}
+          {             }
           <div className="lg:col-span-4 bg-white dark:bg-[#151515] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden flex flex-col shadow-sm">
             <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 flex justify-between items-center">
               <span className="text-xs font-black text-gray-500 uppercase tracking-wider">목록 (전체 {listData?.totalElements || 0}건)</span>
@@ -271,7 +271,7 @@ export default function AdminFeedbackPage() {
             </div>
           </div>
 
-          {/* 상세 내용 판넬 */}
+          {              }
           <div className="lg:col-span-8 bg-white dark:bg-[#151515] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden flex flex-col shadow-sm">
             {!selectedId ? (
               <div className="flex-1 flex flex-col items-center justify-center p-12 opacity-30 text-center">
@@ -284,7 +284,7 @@ export default function AdminFeedbackPage() {
               </div>
             ) : detailData && (
               <div className="flex-1 flex flex-col h-full overflow-hidden animate-in fade-in duration-300">
-                {/* 헤더 */}
+                {        }
                 <div className="p-6 border-b border-gray-100 dark:border-gray-800">
                   <div className="flex justify-between items-start gap-4 mb-4">
                     <div className="space-y-1">
@@ -315,7 +315,7 @@ export default function AdminFeedbackPage() {
                   
                 </div>
 
-                {/* 내용 및 답변 스크롤 영역 */}
+                {                    }
                 <div className="flex-1 overflow-y-auto p-6 space-y-8">
                   <div className="bg-gray-50/50 dark:bg-black/20 p-5 rounded-xl border border-gray-100 dark:border-gray-800">
                     <div className="text-[14px] text-gray-700 dark:text-gray-300 leading-relaxed font-medium whitespace-pre-wrap">
@@ -361,7 +361,7 @@ export default function AdminFeedbackPage() {
                   </div>
                 </div>
 
-                {/* 답변 입력 */}
+                {           }
                 {!detailData.deleted && <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20">
                   <div className="relative">
                     <Textarea 

@@ -38,7 +38,7 @@ describe('useNotifications hook', () => {
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
     
-    // 알림 조회는 로그인 상태에서만 활성화되므로 상태를 주입한다.
+
     useAuthStore.setState({ isAuthenticated: true });
     
     const { result } = renderHook(() => useNotifications(), { wrapper });

@@ -31,7 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 헤더에서 토큰 추출
+
         String token = jwtProvider.resolveToken(request);
         clearInvalidSessionAuthentication(request);
 

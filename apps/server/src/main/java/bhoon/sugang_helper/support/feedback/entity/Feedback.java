@@ -22,9 +22,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
-/**
- * 피드백(건의사항/버그리포트)의 기본 정보를 관리하는 엔티티 클래스입니다. 작성자 정보, 피드백 유형, 내용 및 처리 상태를 포함합니다.
- */
+
+
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -75,16 +75,16 @@ public class Feedback extends BaseTimeEntity {
         this.status = FeedbackStatus.PENDING;
     }
 
-    /**
-     * 상태 변경
-     */
+
+
+
     public void updateStatus(FeedbackStatus status) {
         this.status = status;
     }
 
-    /**
-     * 소프트 삭제 처리
-     */
+
+
+
     public void delete() {
         this.deletedAt = LocalDateTime.now();
     }

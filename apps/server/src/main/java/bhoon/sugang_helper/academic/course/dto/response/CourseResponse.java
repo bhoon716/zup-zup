@@ -48,14 +48,14 @@ public class CourseResponse {
 
     private final LocalDateTime lastCrawledAt;
 
-    /**
-     * 강의 엔티티를 클라이언트 응답용 DTO로 변환합니다. (목록용)
-     */
+
+
+
     public static CourseResponse from(Course course, String currentYear, String currentSemester,
                                       LocalDateTime lastCrawledAt) {
-        // 여석 유무에 따른 상태 결정
+
         String status = course.getAvailable() > 0 ? "AVAILABLE" : "FULL";
-        // 현재 추적 중인 학기인지 확인
+
         boolean isSubscribable = course.isMatchingTarget(currentYear, currentSemester);
 
         return CourseResponse.builder()

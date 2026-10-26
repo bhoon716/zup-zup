@@ -94,14 +94,14 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
                 .thenReturn(List.of(NotificationTarget.of("target")));
         when(deliveryRepository.existsByOutboxIdAndUserIdAndChannel(anyLong(), anyLong(), any())).thenReturn(false);
 
-        // Warm-up JIT compilation and Mockito reflections
+
         for (int w = 0; w < 5; w++) {
             processor.materializePendingOutboxes();
         }
 
         int totalDeliveries = subscriberCount * NotificationChannel.values().length;
 
-        // 1. 단건 save() N회 직렬 수행 시뮬레이션
+
         long startLoopSave = System.nanoTime();
         for (long i = 1; i <= subscriberCount; i++) {
             for (NotificationChannel channel : NotificationChannel.values()) {
@@ -114,7 +114,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
         }
         long durationLoopSaveNs = System.nanoTime() - startLoopSave;
 
-        // 2. saveAll() Bulk Save 수행
+
         long startBulkSave = System.nanoTime();
         processor.materializePendingOutboxes();
         long durationBulkSaveNs = System.nanoTime() - startBulkSave;

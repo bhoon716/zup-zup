@@ -6,9 +6,9 @@ import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/**
- * 강의 대상 학년 정보를 정의하는 열거형
- */
+
+
+
 @Getter
 @RequiredArgsConstructor
 public enum TargetGrade {
@@ -22,9 +22,9 @@ public enum TargetGrade {
 
     private final String description;
 
-    /**
-     * 입력된 값(코드, 설명, 또는 이름)으로부터 TargetGrade를 추출
-     */
+
+
+
     @JsonCreator
     public static TargetGrade from(String value) {
         if (value == null || value.isBlank()) {
@@ -40,9 +40,9 @@ public enum TargetGrade {
                 .orElse(null);
     }
 
-    /**
-     * JSON 변환 시 설명(description)을 값으로 사용
-     */
+
+
+
     @JsonValue
     public String getDescription() {
         return description;

@@ -9,9 +9,9 @@ import bhoon.sugang_helper.academic.course.enums.LectureLanguage;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
 import java.util.List;
 
-/**
- * 파싱된 개별 강의 정보를 담는 DTO입니다.
- */
+
+
+
 public record ParsedCourseDto(
         String courseKey,
         String subjectCode,

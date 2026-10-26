@@ -19,9 +19,9 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * 한 건을 선점해 처리한 뒤 다음 건을 가져옵니다. 대기 중인 작업의 lease를 미리 시작하지 않습니다.
- */
+
+
+
 @Component
 @Slf4j
 public class SeatNotificationOutboxWorker {
@@ -44,7 +44,7 @@ public class SeatNotificationOutboxWorker {
         for (NotificationChannel channel : NotificationChannel.values()) {
             AtomicInteger inFlight = new AtomicInteger();
             inFlightByChannel.put(channel, inFlight);
-            // 기존 지표 이름을 유지하며 현재 처리 중인 한 건만 집계합니다.
+
             meterRegistry.gauge("notification.outbox.queue.depth", Tags.of("channel", channel.name()), inFlight);
         }
     }
@@ -79,7 +79,7 @@ public class SeatNotificationOutboxWorker {
         try {
             processor.processDelivery(claim);
         } catch (RuntimeException exception) {
-            // 정산까지 실패한 건도 PROCESSING lease 만료 후 기존 복구 경로가 다시 가져옵니다.
+
             log.error("[Notification Outbox] Delivery processing failed. deliveryId={}, failureCode={}",
                     claim.deliveryId(), SensitiveDataRedactor.failureCode(exception));
         } finally {

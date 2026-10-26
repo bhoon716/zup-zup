@@ -25,7 +25,7 @@ const createQueryClient = () =>
       queries: {
         staleTime: 60 * 1000,
         refetchOnWindowFocus: false,
-        // 401 에러는 재시도해도 실패할 가능성이 높으므로 즉시 중단한다.
+
         retry: (failureCount, error: unknown) => {
           if (error && typeof error === "object" && "response" in error) {
             const responseError = error as { response?: { status?: number } };
@@ -51,9 +51,9 @@ export const getAppQueryClient = () => {
   return browserQueryClient;
 };
 
-/**
- * 온보딩 완료 여부를 체크하여 미완료 시 온보딩 페이지로 강제 이동시키는 가드 컴포넌트입니다.
- */
+
+
+
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -76,9 +76,9 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-/**
- * 세션 상태 및 서비스 워커 푸시 알림 이벤트를 처리하는 인증 프로바이더입니다.
- */
+
+
+
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
   const queryClient = useQueryClient();
@@ -91,10 +91,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       authState.setLoginModalOpen(true);
     });
 
-    // Firebase SDK를 앱 시작 시 한 번 초기화한다.
+
     getFirebaseApp();
 
-    // 읽기 가능한 힌트와 무관하게 서버 세션을 한 번 확인한다.
+
     void checkSession();
 
     const revalidateRestoredSession = () => {
@@ -106,7 +106,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("focus", revalidateRestoredSession);
     window.addEventListener("online", revalidateRestoredSession);
 
-    // 서비스 워커 등록 (PWA 설치 가능성 확보)
+
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("/sw.js").then(
@@ -120,7 +120,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'PUSH_NOTIFICATION') {
-        // 서비스 워커 메시지를 인앱 토스트로 연결한다.
+
         const { title, body } = event.data;
         toast.info(title, {
           description: body,
@@ -128,7 +128,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           action: {
             label: '보기',
             onClick: () => {
-              // The sanitized URL may point to an installed PWA route and needs a full navigation.
+
               // eslint-disable-next-line @next/next/no-location-assign-relative-destination
               window.location.href = resolveAllowedPwaUrl(event.data.url, window.location.origin);
             },
@@ -154,9 +154,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 
-/**
- * React Query, Toaster, Tooltip 등 전역 상태 및 UI 프로바이더들을 통합 관리하는 컴포넌트입니다.
- */
+
+
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(getAppQueryClient);
 

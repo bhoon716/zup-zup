@@ -47,9 +47,9 @@ public class JbnuCourseParser {
             "^(\\d{1,2}:\\d{2})\\s*[-~]\\s*(\\d{1,2}:\\d{2})$");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    /**
-     * JUMP JSON 응답을 ParsedCourseDto 리스트로 변환합니다.
-     */
+
+
+
     public List<ParsedCourseDto> parseCourses(String jsonData) {
         return parseJumpCourses(jsonData, null, null);
     }
@@ -178,9 +178,9 @@ public class JbnuCourseParser {
     private String firstNonBlank(String first, String second) {
         return first != null && !first.isBlank() ? first : second;
     }
-    /**
-     * 과목명 끝 숫자가 분반(CLSS)과 동일하면 과목명에서 제거한다.
-     */
+
+
+
     private String normalizeSubjectName(String rawSubjectName, String classNumber) {
         if (rawSubjectName == null || rawSubjectName.isBlank()) {
             return rawSubjectName;
@@ -204,9 +204,9 @@ public class JbnuCourseParser {
         return matcher.group("subjectName").trim();
     }
 
-    /**
-     * 학과명 끝의 학년 표기(예: "영어영문 3")를 제거하여 학과명만 보존한다.
-     */
+
+
+
     private String normalizeDepartmentName(String rawDepartment, TargetGrade targetGrade) {
         if (rawDepartment == null || rawDepartment.isBlank()) {
             return rawDepartment;
@@ -270,20 +270,20 @@ public class JbnuCourseParser {
         return null;
     }
 
-    /**
-     * 강의 고유 키 생성 (연도:학기:과목코드:분반)
-     */
+
+
+
     private String generateCourseKey(String year, String semester, String sbjtCd, String clss) {
         return String.format("%s:%s:%s:%s", year, semester, sbjtCd, clss);
     }
 
-    /**
-     * 대상 학년 정보 추출 (기본 컬럼 외에 학과 정보의 학년 필드도 분석)
-     */
+
+
+
     private TargetGrade parseTargetGrade(String gradeNm, String deptNm) {
         TargetGrade grade = TargetGrade.from(gradeNm);
 
-        // 구체적인 학년이나 대학원이 파싱되면 즉시 반환
+
         if (grade != null) {
             return grade;
         }
@@ -292,12 +292,12 @@ public class JbnuCourseParser {
             return null;
         }
 
-        // "계열"이 포함된 경우 1학년으로 간주하여 얼리 리턴
+
         if (deptNm.contains("계열")) {
             return TargetGrade.GRADE_1;
         }
 
-        // "학과명 3", "학과명 3,학과명 3" 형식에서 마지막 숫자를 학년으로 간주
+
         Matcher matcher = GRADE_IN_DEPT_PATTERN.matcher(deptNm);
         String lastMatchedGrade = null;
         while (matcher.find()) {
@@ -311,9 +311,9 @@ public class JbnuCourseParser {
         return null;
     }
 
-    /**
-     * 교양 과목 정보(영역, 상세영역) 추출
-     */
+
+
+
     private String normalizeClassroom(String value) {
         if (value == null || value.isBlank() || value.equals(":")) {
             return null;
@@ -329,9 +329,9 @@ public class JbnuCourseParser {
         }
     }
 
-    /**
-     * 시간 정보 문자열을 파싱하여 스케줄 DTO 리스트를 생성합니다.
-     */
+
+
+
     private List<ParsedCourseScheduleDto> parseSchedules(String timeString) {
         List<ParsedCourseScheduleDto> schedules = new ArrayList<>();
         if (timeString == null || timeString.isBlank()) {
@@ -369,9 +369,9 @@ public class JbnuCourseParser {
         return new ParsedCourseScheduleDto(day, timeRange.start(), timeRange.end());
     }
 
-    /**
-     * 연속된 시간대 정보를 하나의 시간대로 병합합니다. (예: 1A, 1B -> 1시간)
-     */
+
+
+
     private List<ParsedCourseScheduleDto> mergeConsecutiveSchedules(List<ParsedCourseScheduleDto> schedules) {
         if (schedules.isEmpty()) {
             return schedules;
@@ -402,9 +402,9 @@ public class JbnuCourseParser {
         return merged;
     }
 
-    /**
-     * 교시 토큰(예: 1-A)을 파싱하여 시간 범위로 변환
-     */
+
+
+
     private TimeRange parseTimeRange(String periodToken) {
         if (periodToken == null) {
             return null;
@@ -455,21 +455,21 @@ public class JbnuCourseParser {
         String half = halfValue.toUpperCase();
         int hour = 8 + slot;
 
-        // A 교시는 정각부터 30분간
+
         if ("A".equals(half)) {
             return new TimeRange(LocalTime.of(hour, 0), LocalTime.of(hour, 30));
         }
 
-        // B 교시는 30분부터 다음 정각까지 (15교시는 예외 처리)
+
         if (slot == 15) {
             return new TimeRange(LocalTime.of(23, 30), LocalTime.of(23, 59));
         }
         return new TimeRange(LocalTime.of(hour, 30), LocalTime.of(hour + 1, 0));
     }
 
-    /**
-     * 시간 범위를 담는 내부 레코드
-     */
+
+
+
     private record TimeRange(LocalTime start, LocalTime end) {
     }
 }

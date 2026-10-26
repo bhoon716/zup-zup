@@ -18,9 +18,9 @@ public class NotificationController {
 
     private final NotificationHistoryQueryService notificationHistoryQuery;
 
-    /**
-     * 현재 로그인한 사용자의 전체 알림 수신 내역을 조회합니다.
-     */
+
+
+
     @GetMapping("/history")
     public ResponseEntity<Slice<NotificationHistoryResponse>> getMyNotificationHistory(
             Pageable pageable) {

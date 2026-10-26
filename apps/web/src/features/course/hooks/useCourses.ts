@@ -24,7 +24,7 @@ export const useCourses = (
         courses = sliceData;
       }
 
-      // 백엔드 응답 필드명이 달라도 화면에서 동일한 속성으로 다루도록 정규화한다.
+
       const normalizedCourses = courses.map(course => normalizeCourse(course));
 
       return {

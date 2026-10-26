@@ -16,9 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 관리자가 DLQ delivery를 조회하고 원인 조치 후 동일 delivery만 선택적으로 재처리합니다.
- */
+
+
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)

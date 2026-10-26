@@ -42,8 +42,8 @@ class JwtProviderTest {
     private static final String ROLE = "ROLE_USER";
     private static final Long USER_ID = 1L;
     private static final String TEST_SECRET_KEY = "testSecretKeytestSecretKeytestSecretKeytestSecretKey";
-    private static final long ACCESS_TOKEN_EXPIRATION = 1000L * 60 * 30; // 30 min
-    private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7; // 7 days
+    private static final long ACCESS_TOKEN_EXPIRATION = 1000L * 60 * 30;
+    private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7;
     @Mock
     private RedisService redisService;
     @InjectMocks
@@ -60,11 +60,11 @@ class JwtProviderTest {
     @Test
     @DisplayName("Access Token 생성 테스트")
     void createAccessToken() {
-        // given
-        // when
+
+
         String token = jwtProvider.createAccessToken(USER_ID, EMAIL, ROLE);
 
-        // then
+
         assertThat(token).isNotNull();
         assertTrue(jwtProvider.validateToken(token));
         assertFalse(jwtProvider.validateRefreshToken(token));
@@ -111,13 +111,13 @@ class JwtProviderTest {
     @Test
     @DisplayName("토큰 유효성 검사 - 유효한 토큰")
     void validateToken_valid() {
-        // given
+
         String token = jwtProvider.createAccessToken(USER_ID, EMAIL, ROLE);
 
-        // when
+
         boolean isValid = jwtProvider.validateToken(token);
 
-        // then
+
         assertTrue(isValid);
     }
 
@@ -373,13 +373,13 @@ class JwtProviderTest {
     @Test
     @DisplayName("Authentication 조회 테스트")
     void getAuthentication() {
-        // given
+
         String token = jwtProvider.createAccessToken(USER_ID, EMAIL, ROLE);
 
-        // when
+
         Authentication authentication = jwtProvider.getAuthentication(token);
 
-        // then
+
         assertThat(authentication.getName()).isEqualTo(EMAIL);
         assertThat(authentication.getAuthorities()).hasSize(1);
         assertThat(authentication.getAuthorities().iterator().next().getAuthority()).isEqualTo(ROLE);

@@ -1,9 +1,9 @@
 package bhoon.sugang_helper.academic.review.dto.criteria;
 
-/**
- * 리뷰를 묶는 기준 키입니다. 같은 과목코드와 식별 가능한 교수 조합을 하나의 리뷰 그룹으로 봅니다.
- * 교수 식별자가 없으면 해당 강의의 courseKey만 리뷰 그룹으로 봅니다.
- */
+
+
+
+
 public record ReviewScopeKey(String subjectCode, String professor) {
 
     public static ReviewScopeKey from(String subjectCode, String professor) {

@@ -6,9 +6,9 @@ type FeedbackMetadata = {
   language?: string;
 };
 
-/**
- * Keeps client-provided feedback metadata small and limited to the server contract.
- */
+
+
+
 export function buildFeedbackMetadata(platform: string, language: string): string {
   const metadata: FeedbackMetadata = {};
   const os = platform.trim();

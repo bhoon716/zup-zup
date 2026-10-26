@@ -17,9 +17,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
-/**
- * 사용자의 피드백에 대해 관리자가 남긴 답변을 관리하는 엔티티 클래스입니다. 답변 내용과 작성자(관리자) 정보를 포함합니다.
- */
+
+
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -51,16 +51,16 @@ public class FeedbackReply extends BaseTimeEntity {
         this.content = content;
     }
 
-    /**
-     * 답변 내용 수정
-     */
+
+
+
     public void updateContent(String content) {
         this.content = content;
     }
 
-    /**
-     * 소프트 삭제 처리
-     */
+
+
+
     public void delete() {
         this.deletedAt = LocalDateTime.now();
     }

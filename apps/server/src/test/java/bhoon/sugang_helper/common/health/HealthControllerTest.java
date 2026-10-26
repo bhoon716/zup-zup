@@ -39,13 +39,13 @@ class HealthControllerTest {
 
     @Test
     void externalHealthReturnsOkWhenReadinessIsUp() {
-        // given
+
         given(healthEndpoint.healthForPath(READINESS_GROUP)).willReturn(Health.up().build());
 
-        // when
+
         ResponseEntity<HealthCheckResponse> response = healthController.checkHealth();
 
-        // then
+
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().status()).isEqualTo("UP");
@@ -58,13 +58,13 @@ class HealthControllerTest {
     void externalHealthReturnsServiceUnavailableWhenReadinessIsDown(
             String dependency,
             Health readinessHealth) {
-        // given
+
         given(healthEndpoint.healthForPath(READINESS_GROUP)).willReturn(readinessHealth);
 
-        // when
+
         ResponseEntity<HealthCheckResponse> response = healthController.checkHealth();
 
-        // then
+
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().status()).isEqualTo("DOWN");

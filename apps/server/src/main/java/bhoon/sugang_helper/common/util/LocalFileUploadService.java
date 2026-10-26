@@ -29,9 +29,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * 로컬 파일 시스템에 파일을 업로드하고 관리하는 서비스 클래스입니다. 파일의 무결성 검증(MIME 타입 및 확장자) 및 보안 처리를 담당합니다.
- */
+
+
+
 @Component
 @Slf4j
 public class LocalFileUploadService {
@@ -53,9 +53,9 @@ public class LocalFileUploadService {
         this.imageUploadSanitizer = imageUploadSanitizer;
     }
 
-    /**
-     * 여러 개의 이미지 파일을 업로드하고 저장된 URL 리스트를 반환합니다.
-     */
+
+
+
     public List<String> uploadImages(List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
             return new ArrayList<>();
@@ -96,9 +96,9 @@ public class LocalFileUploadService {
         return fileUrls;
     }
 
-    /**
-     * 검증된 단일 이미지 파일을 서버 로컬 디렉토리에 저장하고 접근 URL을 반환합니다.
-     */
+
+
+
     private String saveSanitizedImage(SanitizedImage image, Path uploadPath) {
         String savedName = UUID.randomUUID() + "." + image.extension();
         Path filePath = uploadPath.resolve(savedName);
@@ -113,9 +113,9 @@ public class LocalFileUploadService {
         }
     }
 
-    /**
-     * 이미지 파일 여부를 MIME 타입과 확장자로 검증합니다.
-     */
+
+
+
     private String validateImageFile(MultipartFile file) {
         try (InputStream input = file.getInputStream()) {
             String mimeType = tika.detect(input);
@@ -123,7 +123,7 @@ public class LocalFileUploadService {
                 throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
             }
 
-            // 확장자 기반의 추가 검증 (화이트리스트 방식)
+
             String originalName = file.getOriginalFilename();
             if (originalName != null) {
                 String lowerName = originalName.toLowerCase();

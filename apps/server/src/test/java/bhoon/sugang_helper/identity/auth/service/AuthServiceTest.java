@@ -44,7 +44,7 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
-@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Existing cookie contract assertions intentionally repeat attributes.
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class AuthServiceTest {
 
     private static final Long USER_ID = 1L;
@@ -73,7 +73,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("토큰 재발급 성공")
     void reissue_success() {
-        // given
+
         String refreshToken = "valid-refresh-token";
         String email = "test@example.com";
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
@@ -94,10 +94,10 @@ class AuthServiceTest {
         given(jwtProvider.getUserId("new-access-token")).willReturn(USER_ID);
         ReflectionTestUtils.setField(authService, "refreshCookieSecure", true);
 
-        // when
+
         String result = authService.reissue(request, response);
 
-        // then
+
         assertThat(result).isEqualTo("new-access-token");
         ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
         verify(response, times(2)).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
@@ -119,7 +119,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("Redis registry가 없거나 rotation이 실패하면 새 토큰을 발급하지 않는다")
     void reissue_rotationRejected_throwsException() {
-        // given
+
         String refreshToken = "valid-refresh-token";
         String email = "test@example.com";
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
@@ -134,7 +134,7 @@ class AuthServiceTest {
                 .willReturn(Optional.of(new AuthenticatedUser(USER_ID, email, Role.USER.getKey())));
         given(jwtProvider.rotateRefreshToken(email, refreshToken)).willReturn(null);
 
-        // when & then
+
         assertThatThrownBy(() -> authService.reissue(request, response))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);
@@ -169,7 +169,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("로그아웃 성공시 리프레시 쿠키를 안전하게 삭제한다")
     void logout_success_clearsCookieSafely() {
-        // given
+
         String refreshToken = "valid-refresh-token";
         String email = "test@example.com";
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
@@ -185,10 +185,10 @@ class AuthServiceTest {
         given(request.getSession(false)).willReturn(session);
         ReflectionTestUtils.setField(authService, "refreshCookieSecure", true);
 
-        // when
+
         authService.logout(request, response);
 
-        // then
+
         ArgumentCaptor<String> cookieCaptor = ArgumentCaptor.forClass(String.class);
         verify(response, times(2)).addHeader(eq(HttpHeaders.SET_COOKIE), cookieCaptor.capture());
         java.util.List<String> cookies = cookieCaptor.getAllValues();
@@ -233,13 +233,13 @@ class AuthServiceTest {
     @Test
     @DisplayName("토큰 재발급 실패 시 브라우저의 인증 쿠키(refresh_token, is_logged_in) 파기 헤더를 전송한다")
     void reissue_whenRefreshTokenInvalid_clearsAuthCookiesAndThrowsException() {
-        // given
+
         String refreshToken = "invalid-refresh-token";
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
         given(request.getCookies()).willReturn(new Cookie[]{cookie});
         given(jwtProvider.validateRefreshToken(refreshToken)).willReturn(false);
 
-        // when & then
+
         assertThatThrownBy(() -> authService.reissue(request, response))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);

@@ -23,10 +23,10 @@ class CourseSchedulerTest {
     @Test
     @DisplayName("스케줄러가 크롤러 호출하는지 확인")
     void runCrawler_calls_service() {
-        // when
+
         courseScheduler.runCrawler();
 
-        // then
+
         verify(courseCrawlerService, times(1)).crawlAndSaveCourses();
     }
 }

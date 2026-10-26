@@ -94,7 +94,7 @@ class UserServiceTest {
     @Test
     @DisplayName("사용자 프로필 정보를 정상적으로 수정한다")
     void updateProfile() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -105,10 +105,10 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-        // when
+
         UserProfileUpdateResult result = userService.updateProfile(new UpdateProfileCommand(NEW_NAME));
 
-        // then
+
         assertThat(result.name()).isEqualTo(NEW_NAME);
         assertThat(user.getName()).isEqualTo(NEW_NAME);
     }
@@ -116,7 +116,7 @@ class UserServiceTest {
     @Test
     @DisplayName("회원 탈퇴 시 식별자는 익명화하고 비식별 이력은 보존한다")
     void withdraw_softDeletesAndAnonymizesAccount() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -132,10 +132,10 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-        // when
+
         userService.withdraw();
 
-        // then
+
         assertThat(user.isDeleted()).isTrue();
         assertThat(user.getEmail()).isEqualTo("deleted-1@deleted.invalid");
         assertThat(user.getName()).isEqualTo("탈퇴한 사용자");
@@ -180,7 +180,7 @@ class UserServiceTest {
     @Test
     @DisplayName("내 프로필 정보를 조회한다")
     void getMyProfile() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -191,10 +191,10 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-        // when
+
         UserProfileResult result = userService.getMyProfile();
 
-        // then
+
         assertThat(result.email()).isEqualTo(TEST_EMAIL);
         assertThat(result.name()).isEqualTo("Test User");
     }
@@ -202,11 +202,11 @@ class UserServiceTest {
     @Test
     @DisplayName("사용자 정보를 찾을 수 없으면 예외를 발생시킨다")
     void getMyProfile_UserNotFound_ThrowsException() {
-        // given
+
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
 
-        // when & then
+
         assertThatThrownBy(() -> userService.getMyProfile())
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
@@ -215,7 +215,7 @@ class UserServiceTest {
     @Test
     @DisplayName("사용자 설정을 정상적으로 업데이트한다 (디스코드 포함)")
     void updateSettings() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -230,10 +230,10 @@ class UserServiceTest {
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
         when(emailVerificationService.isVerified(1L, NEW_EMAIL)).thenReturn(true);
 
-        // when
+
         UserSettingsResult result = userService.updateSettings(request);
 
-        // then
+
         assertThat(result.notificationEmail()).isEqualTo(NEW_EMAIL);
         assertThat(result.emailEnabled()).isTrue();
         assertThat(result.discordEnabled()).isTrue();
@@ -244,7 +244,7 @@ class UserServiceTest {
     @Test
     @DisplayName("온보딩을 정상적으로 완료한다")
     void completeOnboarding() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -260,10 +260,10 @@ class UserServiceTest {
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
         when(emailVerificationService.isVerified(1L, NOTIFY_EMAIL)).thenReturn(true);
 
-        // when
+
         UserOnboardingResult result = userService.completeOnboarding(request);
 
-        // then
+
         assertThat(result.onboardingCompleted()).isTrue();
         assertThat(user.isOnboardingCompleted()).isTrue();
         assertThat(user.getNotificationEmail()).isEqualTo(NOTIFY_EMAIL);
@@ -272,7 +272,7 @@ class UserServiceTest {
     @Test
     @DisplayName("사용자 알림 테스트 발송 시 활성화된 채널로 발송한다")
     void sendTestNotification() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -287,17 +287,17 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-        // when
+
         userService.sendTestNotification();
 
-        // then
+
         verify(notificationTestSender, times(1)).sendUserTestNotification(eq(user.getId()));
     }
 
     @Test
     @DisplayName("활성화된 알림 채널이 없으면 사용자 알림 테스트 발송에 실패한다")
     void sendTestNotification_NoChannel() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -312,7 +312,7 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-        // when & then
+
         assertThatThrownBy(() -> userService.sendTestNotification())
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);

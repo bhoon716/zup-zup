@@ -96,10 +96,10 @@ function buildLayoutsForDay(dayBlocks: RenderingBlock[]): Map<string, BlockLayou
   return layouts;
 }
 
-/**
- * 시간표의 그리드 UI를 렌더링하고 각 강의 블록을 배치하는 컴포넌트입니다.
- * 시작/종료 시간을 동적으로 계산하여 스크롤 및 배치 레이아웃을 생성합니다.
- */
+
+
+
+
 export function TimetableGrid({ timetable, className, isPreview = false }: TimetableGridProps) {
   const blocks = useMemo(() => getRenderingBlocks(timetable), [timetable]);
   const [courseDetailOpen, setCourseDetailOpen] = useState(false);
@@ -204,7 +204,7 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
         </div>
 
         <div className={cn("flex-1 grid grid-cols-[20px_repeat(6,minmax(0,1fr))] md:grid-cols-[60px_repeat(6,1fr)] relative", isPreview && "grid-cols-[40px_repeat(6,1fr)]")}>
-          {/* Y-axis timeline */}
+          {                     }
           <div className="col-start-1 col-span-1 row-start-1 border-r border-slate-200 bg-slate-50 md:bg-slate-50/30 text-xs text-slate-400 font-medium select-none z-30 sticky left-0">
             {hoursArray.map((hour) => (
               <div key={hour} className="border-b border-slate-200 relative flex flex-col items-center justify-center gap-0.5 h-(--slot-height)">
@@ -224,14 +224,14 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
             ))}
           </div>
 
-          {/* Vertical Guides */}
+          {                     }
           <div className="col-start-2 col-span-6 row-start-1 grid grid-cols-6 pointer-events-none z-0">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className={cn("h-full", i < 5 && "border-r border-slate-100")}></div>
             ))}
           </div>
 
-          {/* Horizontal Guides */}
+          {                       }
           <div className="col-start-2 col-span-6 row-start-1 pointer-events-none z-0 flex flex-col">
             {hoursArray.map((hour) => (
               <div key={hour} className="w-full border-b border-slate-100 relative h-(--slot-height)">
@@ -240,7 +240,7 @@ export function TimetableGrid({ timetable, className, isPreview = false }: Timet
             ))}
           </div>
 
-          {/* Course Blocks Layer */}
+          {                         }
           <div className="col-start-2 col-span-6 row-start-1 grid grid-cols-6 h-full pointer-events-none z-10">
             {DISPLAY_DAYS.map((day) => {
               const dayBlocks = dayBlocksMap.get(day) ?? [];

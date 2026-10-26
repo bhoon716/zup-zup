@@ -3,9 +3,9 @@ package bhoon.sugang_helper.academic.crawling.exception;
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
 import java.io.IOException;
 
-/**
- * JUMP 요청 실패에 대한 운영 진단 정보와 원인 예외를 보존합니다.
- */
+
+
+
 public class CrawlerUpstreamFailure extends IOException {
 
     private final CrawlerFailureStage stage;

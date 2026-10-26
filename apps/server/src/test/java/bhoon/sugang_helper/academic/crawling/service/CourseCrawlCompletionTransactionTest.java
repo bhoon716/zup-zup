@@ -111,7 +111,7 @@ class CourseCrawlCompletionTransactionTest {
     @Test
     @DisplayName("다음 청크의 outbox 저장이 실패하면 앞 청크에 저장한 강의와 좌석 이력도 롤백한다")
     void outboxFailureRollsBackPreviouslyWrittenChunksAndCrawlerSuccess() {
-        // given
+
         courseRepository.saveAndFlush(fullCourse());
         List<ParsedCourseDto> courses = new ArrayList<>();
         for (int index = 0; index < 100; index++) {
@@ -120,7 +120,7 @@ class CourseCrawlCompletionTransactionTest {
         courses.add(parsedCourseWithAvailableSeat());
         doThrow(new IllegalStateException("outbox write failed")).when(outboxRepository).save(any());
 
-        // when & then
+
         assertThatThrownBy(() -> completionService.complete(courses))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("outbox write failed");
@@ -133,10 +133,10 @@ class CourseCrawlCompletionTransactionTest {
 
     @Test
     void rejectsEnqueueOutsideTheCatalogTransaction() {
-        // given
+
         SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, "김교수", 0, 1);
 
-        // when & then
+
         assertThatThrownBy(() -> outboxService.enqueue(event))
                 .isInstanceOf(IllegalTransactionStateException.class);
         assertThat(outboxRepository.count()).isZero();

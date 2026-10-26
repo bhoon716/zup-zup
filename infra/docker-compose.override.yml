@@ -1,4 +1,4 @@
-# Local development defaults. Production CD transfers only docker-compose.yml.
+
 
 services:
   db:

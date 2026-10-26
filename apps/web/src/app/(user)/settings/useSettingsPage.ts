@@ -31,9 +31,9 @@ const settingsSchema = z.object({
 
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 
-/**
- * API 에러 객체에서 메시지를 추출하거나 기본 메시지를 반환합니다.
- */
+
+
+
 const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof AxiosError) {
     const responseData = error.response?.data as { message?: string } | undefined;
@@ -195,7 +195,7 @@ export const useSettingsPage = () => {
   };
 
   const handleDiscordConnect = () => {
-    // Discord OAuth starts on the backend and must perform a full document navigation.
+
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/api/v1/users/discord/authorize?returnPath=/settings";
   };

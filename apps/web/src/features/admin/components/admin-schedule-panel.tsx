@@ -21,9 +21,9 @@ import {
 } from "@/shared/ui/select";
 import type { ScheduleResponse, ScheduleRequest } from "@/shared/types/api";
 
-/**
- * 5분 단위 시간 선택 컴포넌트
- */
+
+
+
 function TimePicker({ 
   value, 
   onChange,
@@ -36,7 +36,7 @@ function TimePicker({
   const currentHour = value ? value.split(":")[0] : "";
   const currentMinute = value ? value.split(":")[1] : "";
 
-  const hours = Array.from({ length: 11 }, (_, i) => (i + 8).toString().padStart(2, "0")); // 08시 ~ 18시
+  const hours = Array.from({ length: 11 }, (_, i) => (i + 8).toString().padStart(2, "0"));
   const minutes = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, "0"));
 
   return (
@@ -122,9 +122,9 @@ export function AdminSchedulePanel() {
   const [isAdding, setIsAdding] = useState(false);
   const [isCustomType, setIsCustomType] = useState(false);
 
-  /**
-   * 입력 폼의 상태를 초기화하고 편집/추가 모드를 종료합니다.
-   */
+
+
+
   const resetForm = () => {
     setDraftType("");
     setDraftStartDate("");
@@ -138,15 +138,15 @@ export function AdminSchedulePanel() {
     setIsCustomType(false);
   };
 
-  /**
-   * 선택된 기존 일정을 입력 폼에 바인딩하여 편집 모드로 진입합니다.
-   */
+
+
+
   const handleEdit = (schedule: ScheduleResponse) => {
     setActionError("");
     setEditingId(schedule.id);
     setDraftType(schedule.scheduleType);
     
-    // 기본 프리셋에 없는 경우, 커스텀 타입(기타)으로 간주
+
     setIsCustomType(!SCHEDULE_TYPE_OPTIONS.includes(schedule.scheduleType));
     
     setDraftStartDate(schedule.startDate);
@@ -157,9 +157,9 @@ export function AdminSchedulePanel() {
     setIsAdding(false);
   };
 
-  /**
-   * 편집 또는 생성 중인 일정 데이터를 백엔드로 전송하여 저장합니다.
-   */
+
+
+
   const handleSave = () => {
     const request: ScheduleRequest = {
       scheduleType: draftType,
@@ -232,11 +232,11 @@ export function AdminSchedulePanel() {
 
       <div className="space-y-4">
         {actionError && <p role="alert" className="text-sm text-red-600">{actionError}</p>}
-        {/* Form Area */}
+        {               }
         {(isAdding || editingId) && (
           <div className="flex flex-col gap-6 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100 mb-8">
             <div className="flex flex-col gap-6">
-              {/* 구분 */}
+              {        }
               <div className="space-y-2 xl:w-[320px] shrink-0">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">구분</label>
                 {!isCustomType ? (
@@ -289,7 +289,7 @@ export function AdminSchedulePanel() {
                 )}
               </div>
 
-              {/* 시작 및 종료 일시 */}
+              {                }
               <div className="flex flex-col lg:flex-row flex-1 gap-6 lg:items-end">
                 <div className="flex flex-1 flex-wrap items-center gap-3">
                   <div className="space-y-2 min-w-[140px] flex-1">
@@ -334,7 +334,7 @@ export function AdminSchedulePanel() {
                 </div>
               </div>
 
-              {/* 액션 버튼 */}
+              {           }
               <div className="flex items-center gap-1 shrink-0">
                 <Button
                   variant="outline"
@@ -368,7 +368,7 @@ export function AdminSchedulePanel() {
           </div>
         )}
 
-        {/* List Area */}
+        {               }
         <div className="mt-6">
           {isLoading ? (
             <div className="flex h-32 items-center justify-center">

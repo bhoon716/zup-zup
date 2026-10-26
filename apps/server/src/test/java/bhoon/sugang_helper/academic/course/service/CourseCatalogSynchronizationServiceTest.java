@@ -83,15 +83,15 @@ class CourseCatalogSynchronizationServiceTest {
     @Test
     @DisplayName("여석이 처음 열릴 때만 그 시점의 좌석 정보를 outbox에 전달한다")
     void seatOpening_EnqueuesOnlyTheFullToAvailableTransition() {
-        // given
+
         Course existing = createCourse("김교수", 50, 50);
         given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
 
-        // when
+
         synchronizationService.synchronize(List.of(createDto("김교수", 50, 49)));
         synchronizationService.synchronize(List.of(createDto("김교수", 50, 48)));
 
-        // then
+
         verify(outboxService).enqueue(new SeatOpenedEvent(COURSE_KEY, "컴퓨터프로그래밍", "김교수", 0, 1));
         verifyNoMoreInteractions(outboxService);
     }
@@ -99,13 +99,13 @@ class CourseCatalogSynchronizationServiceTest {
     @Test
     @DisplayName("outbox 저장 실패를 성공으로 삼키지 않고 호출자에게 전달한다")
     void outboxWriteFailure_PropagatesFailure() {
-        // given
+
         Course existing = createCourse("김교수", 50, 50);
         given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
         IllegalStateException failure = new IllegalStateException("outbox write failed");
         doThrow(failure).when(outboxService).enqueue(any());
 
-        // when & then
+
         assertThatThrownBy(() -> synchronizationService.synchronize(List.of(createDto("김교수", 50, 49))))
                 .isSameAs(failure);
     }

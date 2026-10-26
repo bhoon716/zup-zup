@@ -34,7 +34,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Image fixture parts intentionally reuse field and MIME labels.
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class LocalFileUploadServiceTest {
 
     @TempDir

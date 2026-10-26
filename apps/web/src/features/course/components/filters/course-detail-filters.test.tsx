@@ -11,7 +11,7 @@ interface MultiSelectFilterProps {
   placeholder: string;
 }
 
-// MultiSelectFilter 모킹
+
 vi.mock("@/shared/ui/multi-select-filter", () => ({
   MultiSelectFilter: ({ options, onChange, placeholder }: MultiSelectFilterProps) => (
     <div data-testid={`multi-select-${placeholder}`}>

@@ -37,10 +37,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtProvider.createAccessToken(user.getUserId(), user.getEmail(), user.getRoleKey());
         String refreshToken = jwtProvider.createRefreshToken(user.getUserId(), user.getEmail());
 
-        // 인증 쿠키는 공통 서비스 로직으로 설정한다.
+
         authService.addRefreshTokenCookie(response, refreshToken);
 
-        // 세션에는 JWT 원문 대신 Spring Security 인증 주체와 권한만 저장한다.
+
         authService.saveSessionAuthentication(request, response, accessToken);
 
         log.info("[OAuth2] Social login successful. userId={}, authenticationSaved=true", user.getUserId());

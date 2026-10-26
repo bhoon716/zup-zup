@@ -4,9 +4,9 @@ import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 import type { AdminCrawlTargetRequest } from '@/shared/types/api';
 
-/**
- * 기본 타겟으로 강의 크롤링을 실행하는 훅입니다.
- */
+
+
+
 export const useCrawlCourses = () => {
   const queryClient = useQueryClient();
 
@@ -23,9 +23,9 @@ export const useCrawlCourses = () => {
   });
 };
 
-/**
- * 관리자용 테스트 알림을 발송하는 훅입니다.
- */
+
+
+
 export const useSendTestNotification = () => {
   return useMutation({
     mutationFn: () => adminApi.sendTestNotification(),
@@ -39,9 +39,9 @@ export const useSendTestNotification = () => {
   });
 };
 
-/**
- * 현재 설정된 기본 크롤링 타겟 정보를 조회하는 훅입니다.
- */
+
+
+
 export const useAdminCrawlTarget = () => {
   return useQuery({
     queryKey: ['admin', 'crawl-target'],
@@ -52,9 +52,9 @@ export const useAdminCrawlTarget = () => {
   });
 };
 
-/**
- * 기본 크롤링 타겟을 수정하고 저장하는 훅입니다.
- */
+
+
+
 export const useUpdateAdminCrawlTarget = () => {
   const queryClient = useQueryClient();
 
@@ -72,9 +72,9 @@ export const useUpdateAdminCrawlTarget = () => {
   });
 };
 
-/**
- * 특정 년도와 학기를 대상으로 강의 크롤링을 실행하는 훅입니다.
- */
+
+
+
 export const useCrawlCoursesByTarget = () => {
   const queryClient = useQueryClient();
 

@@ -41,7 +41,7 @@ class WebPushHttpCancellationTest {
 
     @Test
     void documentsThatOuterTimeoutLeavesTheRealWebPushHttpRequestRunning() throws Exception {
-        // given: real encryption and HTTP transport, with only endpoint validation bypassed for localhost.
+
         Security.addProvider(new BouncyCastleProvider());
         ObservedPushService pushService = new ObservedPushService(generateKeyPair());
         WebPushNotificationSender sender = new WebPushNotificationSender("", "", "",
@@ -79,14 +79,14 @@ class WebPushHttpCancellationTest {
             server.start();
             long startedAt = System.nanoTime();
 
-            // when: the production five-second wait includes sender payload creation and SDK encryption.
+
             assertThatThrownBy(() -> resilience.execute(NotificationChannel.WEB,
                     () -> sender.send(NotificationTarget.ofWeb(endpoint, receiverKey, auth), "title", "body")))
                     .isInstanceOf(NotificationProviderException.class)
                     .hasFieldOrPropertyWithValue("reason", "TIMEOUT");
             long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
 
-            // then: this characterizes a limitation; update these expectations if cancellation is later propagated.
+
             assertThat(requestReceived.getCount()).isZero();
             assertThat(encryptedRequestBytes.get()).isPositive();
             Future<HttpResponse> httpRequest = pushService.request();

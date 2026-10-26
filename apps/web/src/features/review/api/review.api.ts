@@ -36,7 +36,7 @@ export const toggleReviewReaction = async (
   return data;
 };
 
-/** 강의의 이모지 리뷰 통계(카운트 + 본인 탭 여부)를 조회합니다. */
+
 export const getCourseEmojis = async (
   courseKey: string
 ): Promise<EmojiReviewResponse[]> => {
@@ -44,7 +44,7 @@ export const getCourseEmojis = async (
   return data;
 };
 
-/** 특정 이모지를 토글합니다. */
+
 export const toggleCourseEmoji = async (
   courseKey: string,
   emoji: string

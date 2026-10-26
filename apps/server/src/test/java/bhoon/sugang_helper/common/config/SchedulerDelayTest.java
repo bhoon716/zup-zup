@@ -40,7 +40,7 @@ class SchedulerDelayTest {
 
     @Test
     void slowCrawlDelaysOutboxAndFreshnessChecksWithoutOverlapAndBothRecover() throws Exception {
-        // given: real scheduled entry points share the production scheduler; only their I/O is fake.
+
         CourseCrawlFetcher fetcher = mock(CourseCrawlFetcher.class);
         CourseCrawlCompletionService completion = mock(CourseCrawlCompletionService.class);
         CourseCrawlerTargetService targetService = mock(CourseCrawlerTargetService.class);
@@ -81,7 +81,7 @@ class SchedulerDelayTest {
                 assertThat(fetchStarted.await(2, TimeUnit.SECONDS)).isTrue();
                 long enqueuedAt = System.nanoTime();
                 Instant due = Instant.now();
-                // Only these polling intervals are scaled 1000:1; the fake 300 ms stall is not a production forecast.
+
                 ScheduledFuture<?> outbox = scheduler.scheduleWithFixedDelay(observe(() -> {
                     outboxStartedAt.compareAndSet(0, System.nanoTime());
                     dependentStarted.countDown();
@@ -95,7 +95,7 @@ class SchedulerDelayTest {
                     freshnessCompletedTwice.countDown();
                 }), due, Duration.ofMillis(60));
 
-                // when: the crawl holds the only scheduler thread longer than both polling intervals.
+
                 assertThat(dependentStarted.await(300, TimeUnit.MILLISECONDS)).isFalse();
                 assertThat(outboxStartedAt.get()).isZero();
                 assertThat(freshnessStartedAt.get()).isZero();
@@ -103,7 +103,7 @@ class SchedulerDelayTest {
                 releaseFetch.countDown();
                 crawl.get(2, TimeUnit.SECONDS);
 
-                // then: overdue real jobs run, their following polls recover, and no scheduled jobs overlap.
+
                 assertThat(outboxCompletedTwice.await(2, TimeUnit.SECONDS)).isTrue();
                 assertThat(freshnessCompletedTwice.await(2, TimeUnit.SECONDS)).isTrue();
                 outbox.cancel(false);

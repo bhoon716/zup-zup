@@ -88,27 +88,27 @@ class JbnuCourseParserTest {
     @Test
     @DisplayName("분류별 정상 빈 배열은 빈 목록으로 반환한다")
     void parseCourses_allowsEmptyCourseList() {
-        // given
+
         String json = "{\"dsEstSbjList\":[]}";
 
-        // when
+
         List<ParsedCourseDto> courses = parser.parseCourses(json);
 
-        // then
+
         assertThat(courses).isEmpty();
     }
 
     @Test
     @DisplayName("수집용 스트림 파싱에서도 정상 빈 배열은 빈 iterator로 반환한다")
     void streamCourses_allowsEmptyCourseList() {
-        // given
+
         ByteArrayInputStream stream = new ByteArrayInputStream(
                 "{\"dsEstSbjList\":[]}".getBytes(StandardCharsets.UTF_8));
 
-        // when
+
         Iterator<ParsedCourseDto> courses = parser.streamCourses(stream, "2026", "U211600025");
 
-        // then
+
         assertThat(courses).isExhausted();
     }
 

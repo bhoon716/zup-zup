@@ -11,9 +11,9 @@ import { Loader2 } from "lucide-react";
 import { DashboardCountdown } from "./dashboard-countdown";
 import { useClientReady } from "@/shared/lib/use-client-ready";
 
-/**
- * 에브리타임 실제 사용자 후기 리스트입니다.
- */
+
+
+
 const everyTimeReviews = [
   {
     id: 1,
@@ -53,9 +53,9 @@ const everyTimeReviews = [
   },
 ];
 
-/**
- * 날짜를 포맷팅하는 유틸리티 함수입니다.
- */
+
+
+
 const formatDate = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -68,9 +68,9 @@ const formatDate = (value: string) => {
   }).format(date);
 };
 
-/**
- * 서비스의 주요 특징을 정의하는 상수 리스트입니다.
- */
+
+
+
 const features = [
   {
     title: "실시간 여석 알림",
@@ -95,9 +95,9 @@ const features = [
   },
 ];
 
-/**
- * 인덱스 페이지에서 서비스를 소개하고 핵심 기능을 보여주는 랜딩용 섹션입니다.
- */
+
+
+
 export function HomeLanding() {
   const isClientReady = useClientReady();
 
@@ -110,7 +110,7 @@ export function HomeLanding() {
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section: 서비스의 핵심 가치 전달 */}
+      {                                 }
       <section className="relative pt-16 pb-24 md:pt-32 md:pb-40 overflow-hidden flex items-center">
         <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center text-center relative z-10 w-full">
           <motion.h1
@@ -156,7 +156,7 @@ export function HomeLanding() {
         </div>
       </section>
 
-      {/* 특징 섹션 */}
+      {           }
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -184,7 +184,7 @@ export function HomeLanding() {
         </div>
       </section>
 
-      {/* 생생한 사용자 후기 섹션 */}
+      {                   }
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -206,12 +206,12 @@ export function HomeLanding() {
             </div>
           ) : (
             <div className="relative w-full overflow-hidden py-4">
-              {/* 좌우 그라데이션 페이드 효과 */}
+              {                     }
               <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-[#fafafa] dark:from-black to-transparent z-10 pointer-events-none" />
               <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-[#fafafa] dark:from-black to-transparent z-10 pointer-events-none" />
 
               <div className="flex w-max gap-6 animate-marquee hover:[animation-play-state:paused]">
-                {/* 첫 번째 세트 */}
+                {             }
                 {everyTimeReviews.map((review) => (
                   <div
                     key={`first-${review.id}`}
@@ -219,20 +219,20 @@ export function HomeLanding() {
                   >
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
-                        {/* 카드 헤더 (익명 정보) */}
+                        {                   }
                         <div className="flex items-center justify-between mb-3">
                           <div>
                             <div className="text-xs font-bold text-slate-800 dark:text-slate-200">익명</div>
                           </div>
                         </div>
 
-                        {/* 카드 본문 */}
+                        {           }
                         <p className="text-[13px] leading-relaxed text-slate-600 dark:text-slate-300 font-semibold break-all line-clamp-3">
                           {review.content}
                         </p>
                       </div>
 
-                      {/* 카드 푸터 (출처 표시) */}
+                      {                   }
                       <div className="mt-4 flex justify-end">
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">
                           {review.source}
@@ -242,7 +242,7 @@ export function HomeLanding() {
                   </div>
                 ))}
 
-                {/* 무한 루프를 위한 두 번째 세트 복제 */}
+                {                          }
                 {everyTimeReviews.map((review) => (
                   <div
                     key={`second-${review.id}`}
@@ -250,20 +250,20 @@ export function HomeLanding() {
                   >
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
-                        {/* 카드 헤더 (익명 정보) */}
+                        {                   }
                         <div className="flex items-center justify-between mb-3">
                           <div>
                             <div className="text-xs font-bold text-slate-800 dark:text-slate-200">익명</div>
                           </div>
                         </div>
 
-                        {/* 카드 본문 */}
+                        {           }
                         <p className="text-[13px] leading-relaxed text-slate-600 dark:text-slate-300 font-semibold break-all line-clamp-3">
                           {review.content}
                         </p>
                       </div>
 
-                      {/* 카드 푸터 (출처 표시) */}
+                      {                   }
                       <div className="mt-4 flex justify-end">
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">
                           {review.source}
@@ -288,7 +288,7 @@ export function HomeLanding() {
         </div>
       </section>
 
-      {/* 다가오는 일정 섹션 */}
+      {                }
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-8">
@@ -356,7 +356,7 @@ export function HomeLanding() {
         </div>
       </section>
 
-      {/* 공지사항 섹션 */}
+      {             }
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="flex items-center justify-between mb-10">

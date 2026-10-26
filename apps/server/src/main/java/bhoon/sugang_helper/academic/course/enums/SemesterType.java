@@ -6,9 +6,9 @@ import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/**
- * 전북대학교 학기 구분 코드와 명칭을 관리하는 열거형입니다.
- */
+
+
+
 @Getter
 @RequiredArgsConstructor
 public enum SemesterType {
@@ -24,9 +24,9 @@ public enum SemesterType {
     private final String code;
     private final String description;
 
-    /**
-     * 학기 코드를 통해 해당하는 SemesterType을 반환합니다.
-     */
+
+
+
     public static SemesterType fromCode(String code) {
         return Arrays.stream(values())
                 .filter(s -> s.code.equals(code))

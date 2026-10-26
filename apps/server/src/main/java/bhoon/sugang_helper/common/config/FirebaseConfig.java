@@ -29,7 +29,7 @@ public class FirebaseConfig {
                 return;
             }
 
-            // 컨테이너/로컬 환경 모두 파일 시스템 경로를 기준으로 읽는다.
+
             try (FileInputStream serviceAccount = new FileInputStream(configPath)) {
                 FirebaseOptions options = FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.fromStream(serviceAccount))

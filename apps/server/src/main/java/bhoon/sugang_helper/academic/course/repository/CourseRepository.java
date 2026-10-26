@@ -11,23 +11,23 @@ import org.springframework.data.repository.query.Param;
 
 public interface CourseRepository extends JpaRepository<Course, Long> {
 
-    /**
-     * 고유 키를 기반으로 강의 정보를 조회합니다.
-     */
+
+
+
     Optional<Course> findByCourseKey(String courseKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Course c where c.courseKey = :courseKey")
     Optional<Course> findByCourseKeyForUpdate(@Param("courseKey") String courseKey);
 
-    /**
-     * 특정 고유 키를 가진 강의가 존재하는지 확인합니다.
-     */
+
+
+
     boolean existsByCourseKey(String courseKey);
 
-    /**
-     * 여러 고유 키 목록에 해당하는 강의 목록을 조회합니다.
-     */
+
+
+
     List<Course> findByCourseKeyIn(List<String> courseKeys);
 
     @Query("""
@@ -39,9 +39,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<String> findCourseKeysBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
                                                          @Param("professor") String professor);
 
-    /**
-     * 교양 영역(카테고리) 목록을 조회합니다.
-     */
+
+
+
     @Query("""
             select distinct c.generalCategory
             from Course c
@@ -51,9 +51,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
             """)
     List<String> findDistinctGeneralCategories();
 
-    /**
-     * 교양 상세 영역 목록을 조회합니다.
-     */
+
+
+
     @Query("""
             select distinct c.generalDetail
             from Course c

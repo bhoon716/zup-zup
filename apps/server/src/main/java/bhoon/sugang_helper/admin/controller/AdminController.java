@@ -18,18 +18,18 @@ public class AdminController {
 
     private final AdminService adminService;
 
-    /**
-     * 관리자 페이지에서 필요한 개요와 크롤링 타겟 정보를 한 번에 조회합니다.
-     */
+
+
+
     @GetMapping("/dashboard")
     public ResponseEntity<AdminDashboardSnapshotResponse> getDashboardSnapshot() {
         AdminDashboardSnapshotResponse response = adminService.getDashboardSnapshot();
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 현재 관리자의 알림 설정에 맞춰 테스트 알림을 발송합니다.
-     */
+
+
+
     @PostMapping("/notifications/test")
     public ResponseEntity<Void> sendTestNotification() {
         adminService.sendTestNotification();

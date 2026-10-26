@@ -13,7 +13,7 @@ class CrawlerFailureSummaryTest {
 
     @Test
     void upstreamFailureSummaryPreservesSafeStageStatusAndRetryability() {
-        // given
+
         CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.wrap(
                 CrawlerFailureStage.COURSE_API, 503,
                 new RestClientResponseException("https://jump.example.test/secret", 503,
@@ -22,10 +22,10 @@ class CrawlerFailureSummaryTest {
         CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         failure.initCause(upstream);
 
-        // when
+
         CrawlerFailureSummary summary = CrawlerFailureSummary.from(CrawlerFailureStage.FETCH_PARSE, failure);
 
-        // then
+
         assertThat(summary.stage()).isEqualTo(CrawlerFailureStage.COURSE_API);
         assertThat(summary.failureType()).isEqualTo("RestClientResponseException");
         assertThat(summary.failureMessage())
@@ -41,7 +41,7 @@ class CrawlerFailureSummaryTest {
 
     @Test
     void responseStatusFailureRetainsHttpStatusWithoutResponseBody() {
-        // given
+
         CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.wrap(
                 CrawlerFailureStage.COURSE_API,
                 429,
@@ -50,10 +50,10 @@ class CrawlerFailureSummaryTest {
         CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         failure.initCause(upstream);
 
-        // when
+
         CrawlerFailureSummary summary = CrawlerFailureSummary.from(CrawlerFailureStage.FETCH_PARSE, failure);
 
-        // then
+
         assertThat(summary.stage()).isEqualTo(CrawlerFailureStage.COURSE_API);
         assertThat(summary.upstreamStatus()).isEqualTo(429);
         assertThat(summary.failureMessage())

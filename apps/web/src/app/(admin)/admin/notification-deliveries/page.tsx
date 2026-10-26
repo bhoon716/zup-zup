@@ -70,9 +70,9 @@ function DeliveryStatusBadge({ delivery }: { delivery: AdminNotificationDelivery
   );
 }
 
-/**
- * 관리자 전용 DLQ 목록과 선택 replay 화면입니다. 이 경로는 상위 admin layout의 AdminGuard를 상속합니다.
- */
+
+
+
 export default function AdminNotificationDeliveriesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [page, setPage] = useState(0);

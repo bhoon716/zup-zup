@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ==============================================================================
-# MacBook Off-Host Clean Restore Drill Script
-# Restores backup dump into an isolated local Docker MySQL container & asserts integrity
-# ==============================================================================
+
+
+
+
 
 LOCAL_BACKUP_DIR="${LOCAL_BACKUP_DIR:-$HOME/Backups/jbnu-sugang-helper}"
 DUMP_FILE="${1:-}"

@@ -62,9 +62,9 @@ public class JwtProvider {
         return createToken(userId, email, role, accessTokenExpiration, ACCESS_TOKEN_TYPE, null);
     }
 
-    /**
-     * 새 로그인용 refresh token을 만들고 원문이 아닌 family와 digest만 Redis에 저장합니다.
-     */
+
+
+
     public String createRefreshToken(Long userId, String email) {
         String tokenFamily = UUID.randomUUID().toString();
         String refreshToken = createRefreshToken(userId, email, tokenFamily);
@@ -149,9 +149,9 @@ public class JwtProvider {
         return false;
     }
 
-    /**
-     * Refresh token을 단일 사용으로 회전합니다. 기존 raw registry는 한 번만 읽어 opaque record로 전환합니다.
-     */
+
+
+
     public String rotateRefreshToken(String email, String presentedToken) {
         Long userId = getUserId(presentedToken);
         String tokenFamily = getTokenFamily(presentedToken);
@@ -196,10 +196,10 @@ public class JwtProvider {
         return null;
     }
 
-    /**
-     * 회전 후 응답 조립에 실패했을 때, 해당 요청이 만든 replacement만 이전 상태로 되돌립니다.
-     * 다른 요청이 이미 registry를 다시 회전했다면 CAS가 실패하므로 현재 family를 건드리지 않습니다.
-     */
+
+
+
+
     public boolean rollbackRefreshToken(String email, String presentedToken, String replacementToken) {
         String tokenFamily = getTokenFamily(presentedToken);
         return RefreshTokenRollback.rollback(redisService, refreshTokenKey(email), presentedToken, replacementToken,
@@ -207,25 +207,25 @@ public class JwtProvider {
                 refreshFamilyRevocationKey(email, tokenFamily), refreshTokenDuration());
     }
 
-    /**
-     * 현재 registry와 일치하는 refresh token만 로그아웃 시 삭제합니다.
-     */
+
+
+
     public void revokeRefreshToken(String email, String presentedToken) {
         String tokenFamily = getTokenFamily(presentedToken);
         RefreshTokenRevocation.revoke(redisService, refreshTokenKey(email), presentedToken, tokenFamily,
                 tokenHash(presentedToken), refreshFamilyRevocationKey(email, tokenFamily), refreshTokenDuration());
     }
 
-    /**
-     * 탈퇴처럼 모든 기기의 refresh session을 즉시 끊어야 할 때 현재 registry를 제거합니다.
-     */
+
+
+
     public void revokeAllRefreshTokens(String email) {
         redisService.deleteValues(refreshTokenKey(email));
     }
 
-    /**
-     * Access token 원문 대신 SHA-256 식별자로 blacklist를 저장합니다.
-     */
+
+
+
     public void blacklistAccessToken(String token) {
         long expiration = getExpiration(token);
         if (expiration > 0) {
@@ -271,7 +271,7 @@ public class JwtProvider {
     }
 
     private boolean isBlacklisted(String token) {
-        // 배포 전 raw key는 access token TTL(최대 2시간) 동안만 남는다. 새 raw key는 절대 쓰지 않는다.
+
         return redisService.hasKey(blacklistKey(token))
                 || redisService.hasKey(SecurityConstant.REDIS_BLACKLIST_PREFIX + token);
     }

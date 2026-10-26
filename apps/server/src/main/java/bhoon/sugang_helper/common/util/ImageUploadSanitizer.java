@@ -27,9 +27,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Decodes one allowed still image under bounded resources and re-encodes only pixel data.
- */
+
+
+
 @Component
 @Slf4j
 public class ImageUploadSanitizer {

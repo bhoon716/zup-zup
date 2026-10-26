@@ -22,7 +22,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Redirect assertions intentionally repeat the HTTP header name.
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class UserControllerDiscordOAuthTest {
 
     private UserService userService;

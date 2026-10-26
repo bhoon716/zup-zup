@@ -38,9 +38,9 @@ public class SubscriptionService {
     @Value("${app.subscription.max-limit:3}")
     private int maxLimit;
 
-    /**
-     * 특정 강의에 대한 여석 알림 구독을 신청
-     */
+
+
+
     @Transactional
     public SubscriptionResponse subscribe(SubscriptionRequest request) {
         UserIdentity user = getCurrentUser();
@@ -61,9 +61,9 @@ public class SubscriptionService {
         return SubscriptionResponse.of(saved, course.name(), course.professor());
     }
 
-    /**
-     * 구독 신청 전 중복 확인, 최대 한도 체크, 대상 학기 일치 여부 등을 검증
-     */
+
+
+
     private void validateSubscription(UserIdentity user, CourseSummary course) {
         if (subscriptionRepository.findByUserIdAndCourseKey(user.id(), course.courseKey()).isPresent()) {
             throw new CustomException(ErrorCode.SUBSCRIPTION_ALREADY_EXISTS);
@@ -79,9 +79,9 @@ public class SubscriptionService {
         }
     }
 
-    /**
-     * 특정 구독 정보를 삭제하여 알림 수신을 중단
-     */
+
+
+
     @Transactional
     public void unsubscribe(Long subscriptionId) {
         UserIdentity user = getCurrentUser();
@@ -96,9 +96,9 @@ public class SubscriptionService {
         log.info("[Subscription] Deleted: userId={}, subscriptionId={}", user.id(), subscriptionId);
     }
 
-    /**
-     * 현재 로그인한 사용자의 모든 구독 내역을 일괄 삭제
-     */
+
+
+
     @Transactional
     public void unsubscribeAll() {
         UserIdentity user = getCurrentUser();
@@ -106,9 +106,9 @@ public class SubscriptionService {
         log.info("[Subscription] Deleted All: userId={}", user.id());
     }
 
-    /**
-     * 현재 로그인한 사용자의 모든 구독 목록을 조회
-     */
+
+
+
     public List<SubscriptionResponse> getMySubscriptions() {
         UserIdentity user = getCurrentUser();
         List<Subscription> subscriptions = subscriptionRepository.findByUserId(user.id());
@@ -125,9 +125,9 @@ public class SubscriptionService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 구독 엔티티를 응답 DTO로 변환하며 강의 정보를 결합
-     */
+
+
+
     private SubscriptionResponse convertToResponse(Subscription subscription, CourseName course) {
         if (course == null) {
             return SubscriptionResponse.of(subscription, "Unknown", "Unknown");
@@ -135,9 +135,9 @@ public class SubscriptionService {
         return SubscriptionResponse.of(subscription, course.name(), course.professor());
     }
 
-    /**
-     * 보안 컨텍스트에서 현재 로그인한 사용자 엔티티를 획득
-     */
+
+
+
     private UserIdentity getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
         return userIdentityQuery.findByEmail(email)

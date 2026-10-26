@@ -20,9 +20,9 @@ const SEARCH_DRAFT_BASE_KEYS: (keyof CourseSearchCondition)[] = [
   "sortOrder",
 ];
 
-/**
- * "HH:mm" 또는 "HH:mm:ss" 형식의 문자열을 분(minutes) 단위 숫자로 변환
- */
+
+
+
 export function toMinutes(value?: string): number | null {
   if (!value) {
     return null;
@@ -39,25 +39,25 @@ export function toMinutes(value?: string): number | null {
 }
 
 
-/**
- * 분 단위 숫자를 "HH:mm:00" 형식의 시간 문자열로 변환
- */
+
+
+
 export function toTimeText(minutes: number): string {
   const hour = Math.floor(minutes / 60);
   const minute = minutes % 60;
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
 }
 
-/**
- * 시간대 정보를 식별하기 위한 고유 키 생성
- */
+
+
+
 export function toScheduleKey(schedule: ScheduleCondition): string {
   return `${schedule.dayOfWeek}-${schedule.startTime}-${schedule.endTime}`;
 }
 
-/**
- * 기존 시간표 정보를 분석하여 비어있는 시간대(공강) 목록을 생성
- */
+
+
+
 export function buildFreeSchedulesFromTimetable(
   timetable: TimetableDetailResponse,
 ): ScheduleCondition[] {
@@ -117,9 +117,9 @@ export function buildFreeSchedulesFromTimetable(
   return allSlots.filter((slot) => !occupiedSlotKeys.has(toScheduleKey(slot)));
 }
 
-/**
- * 검색 조건 객체에서 유효하지 않은 값(undefined, 빈 문자열 등)을 제거하여 정제
- */
+
+
+
 export function sanitizeCondition(
   condition: CourseSearchCondition,
 ): CourseSearchCondition {
@@ -144,9 +144,9 @@ export function sanitizeCondition(
   return sanitized;
 }
 
-/**
- * 기본 상태만 가진 검색 조건이면 서버 기본 학기를 반영한 조건으로 보여줌
- */
+
+
+
 export function resolveVisibleSearchCondition(
   draftCondition: CourseSearchCondition,
   resolvedDefaultCondition: CourseSearchCondition,

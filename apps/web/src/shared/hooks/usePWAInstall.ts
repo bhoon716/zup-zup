@@ -5,9 +5,9 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-/**
- * PWA 설치 기능을 관리하는 커스텀 훅입니다.
- */
+
+
+
 export const usePWAInstall = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
@@ -16,17 +16,17 @@ export const usePWAInstall = () => {
   useEffect(() => {
     const isDevelopment = process.env.NODE_ENV === "development";
 
-    // 플랫폼 감지 및 iOS 여부 확인
+
     let timeoutId: number | undefined;
     if (typeof window !== "undefined") {
       const userAgent = window.navigator.userAgent.toLowerCase();
       const isStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true || window.matchMedia("(display-mode: standalone)").matches;
 
-      // React 향후 렌더링 최적화를 위해 동기적 상태 업데이트를 피하고 즉시 지연 실행으로 처리합니다.
+
       timeoutId = window.setTimeout(() => {
         if (userAgent.includes("iphone") || userAgent.includes("ipad") || userAgent.includes("ipod")) {
           setPlatform("ios");
-          // iOS는 standalone이 아니면 항상 "설치 가능(안내 가능)" 상태로 간주
+
           if (!isStandalone) {
             setIsInstallable(true);
           }
@@ -58,10 +58,10 @@ export const usePWAInstall = () => {
     };
   }, []);
 
-  /**
-   * PWA 설치 프로세스를 실행합니다.
-   * 브라우저가 지원하면 자동으로 프롬프트를 띄우고, iOS의 경우 수동 설치 안내를 표시합니다.
-   */
+
+
+
+
   const install = async () => {
     if (platform === "ios") {
       alert("아이폰/아이패드에서는 Safari 하단 중앙의 '공유' 아이콘(□↑)을 누른 후, 리스트에서 '홈 화면에 추가'를 선택해 주세요.");

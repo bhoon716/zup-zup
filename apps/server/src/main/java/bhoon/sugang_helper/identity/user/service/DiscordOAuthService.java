@@ -48,13 +48,13 @@ public class DiscordOAuthService {
     @Value("${app.discord.client-id}")
     private String clientId;
 
-    @Value("${app.discord.client-secret}") // 추가 필요
+    @Value("${app.discord.client-secret}")
     private String clientSecret;
 
     @Value("${app.discord.redirect-uri:http://localhost:8080/api/v1/users/discord/callback}")
     private String redirectUri;
 
-    // Discord OAuth2 코드를 액세스 토큰으로 교환
+
     public String exchangeCodeForToken(String code) {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("client_id", clientId);
@@ -82,7 +82,7 @@ public class DiscordOAuthService {
         }
     }
 
-    // 액세스 토큰을 사용하여 Discord 유저 ID(Snowflake) 조회
+
     public String getDiscordUserId(String accessToken) {
         try {
             Map<String, Object> response = restClient.get()

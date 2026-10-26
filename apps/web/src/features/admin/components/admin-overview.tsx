@@ -8,10 +8,10 @@ interface AdminOverviewProps {
   onRefresh: () => void;
 }
 
-/**
- * 관리자 대시보드의 상단 개요 섹션 컴포넌트입니다.
- * 현재 서버 시간 정보와 수동 새로고침 버튼을 제공합니다.
- */
+
+
+
+
 export function AdminOverview({ serverClock, onRefresh }: AdminOverviewProps) {
   return (
     <section className="bg-white border-b border-slate-100">

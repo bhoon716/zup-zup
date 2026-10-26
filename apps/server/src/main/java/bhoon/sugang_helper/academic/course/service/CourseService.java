@@ -43,9 +43,9 @@ public class CourseService {
 
     private final CrawlerCourseSearchContextProvider searchContextProvider;
 
-    /**
-     * 필터 조건과 페이징 정보를 사용하여 강의 목록을 검색
-     */
+
+
+
     public Slice<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
         condition.validateSearchValues();
         CourseSearchContext context = searchContextProvider.getCurrentContext();
@@ -62,9 +62,9 @@ public class CourseService {
                         course, context.year(), context.semester().getCode(), context.lastCrawledAt()));
     }
 
-    /**
-     * 특정 강의의 여석 변화 이력을 조회
-     */
+
+
+
     public Slice<CourseSeatHistoryResponse> getCourseHistory(String courseKey, Pageable pageable) {
         PageableGuard.requireBounded(pageable, MAX_HISTORY_PAGE_SIZE, 10_000);
         Pageable boundedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
@@ -73,9 +73,9 @@ public class CourseService {
                 .map(CourseSeatHistoryResponse::from);
     }
 
-    /**
-     * 존재하는 모든 교양 영역 및 상세 카테고리 목록을 조회
-     */
+
+
+
     public List<CourseCategoryResponse> getCourseCategories() {
         return courseRepository.findDistinctGeneralCategories()
                 .stream()
@@ -86,9 +86,9 @@ public class CourseService {
                 .toList();
     }
 
-    /**
-     * 특정 강의의 상세 정보를 조회
-     */
+
+
+
     public CourseDetailResponse getCourse(String courseKey) {
         Course course = courseRepository.findByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "강의를 찾을 수 없습니다: " + courseKey));

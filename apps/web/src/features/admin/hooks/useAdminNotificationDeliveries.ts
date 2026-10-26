@@ -12,9 +12,9 @@ export const adminNotificationDeliveryKeys = {
   detail: (id: number) => [...adminNotificationDeliveryKeys.all, "detail", id] as const,
 };
 
-/**
- * DLQ 상태 delivery만 페이지 단위로 조회합니다.
- */
+
+
+
 export function useAdminDlqNotificationDeliveries(page: number = 0) {
   return useQuery({
     queryKey: adminNotificationDeliveryKeys.dlq(page),
@@ -25,9 +25,9 @@ export function useAdminDlqNotificationDeliveries(page: number = 0) {
   });
 }
 
-/**
- * 선택한 delivery 상세를 별도로 읽어 최신 상태를 표시합니다.
- */
+
+
+
 export function useAdminNotificationDelivery(id: number | null, enabled: boolean = true) {
   return useQuery({
     queryKey: adminNotificationDeliveryKeys.detail(id ?? 0),
@@ -39,9 +39,9 @@ export function useAdminNotificationDelivery(id: number | null, enabled: boolean
   });
 }
 
-/**
- * 선택한 delivery만 재처리하고 목록·상세 캐시를 새로고침합니다.
- */
+
+
+
 export function useReplayAdminNotificationDelivery() {
   const queryClient = useQueryClient();
 

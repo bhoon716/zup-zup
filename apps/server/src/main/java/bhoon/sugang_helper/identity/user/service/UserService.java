@@ -27,9 +27,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 사용자 관련 비즈니스 로직을 처리하는 서비스 클래스입니다. 가입 상태 조회, 프로필 수정, 온보딩 완료, 디스코드 연동 등을 담당합니다.
- */
+
+
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -45,17 +45,17 @@ public class UserService {
     private final JwtProvider jwtProvider;
     private final UserAccessRevocationService userAccessRevocationService;
 
-    /**
-     * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
-     */
+
+
+
     public UserProfileResult getMyProfile() {
         User user = getCurrentUser();
         return UserProfileResult.from(user);
     }
 
-    /**
-     * 현재 인증된 사용자가 있으면 반환하고, 없으면 비워 둡니다.
-     */
+
+
+
     public Optional<User> getCurrentUserOrNull() {
         String email = SecurityUtil.getCurrentUserEmailOrNull();
         if (email == null) {
@@ -66,9 +66,9 @@ public class UserService {
                 .filter(user -> !user.isDeleted());
     }
 
-    /**
-     * 사용자의 이름을 수정하고 변경된 프로필 정보를 반환합니다.
-     */
+
+
+
     @Transactional
     public UserProfileUpdateResult updateProfile(UpdateProfileCommand command) {
         User user = getCurrentUser();
@@ -77,9 +77,9 @@ public class UserService {
         return UserProfileUpdateResult.from(user);
     }
 
-    /**
-     * 사용자의 알림 설정을 수정하고 변경된 정보를 반환합니다.
-     */
+
+
+
     @Transactional
     public UserSettingsResult updateSettings(UpdateSettingsCommand command) {
         User user = getCurrentUser();
@@ -102,10 +102,10 @@ public class UserService {
         return UserSettingsResult.from(user);
     }
 
-    /**
-     * 회원 탈퇴 시 즉시 접근을 끊고 식별자와 발송 대상만 제거합니다.
-     * 비식별 이력은 관리자 감사 및 통계를 위해 보존합니다.
-     */
+
+
+
+
     @Transactional
     public void withdraw() {
         User user = getCurrentUser();
@@ -124,9 +124,9 @@ public class UserService {
         log.info("[User] Soft-deleted account: userId={}", userId);
     }
 
-    /**
-     * 신규 가입 유저의 온보딩 절차를 완료합니다.
-     */
+
+
+
     @Transactional
     public UserOnboardingResult completeOnboarding(CompleteOnboardingCommand command) {
         User user = getCurrentUser();
@@ -149,9 +149,9 @@ public class UserService {
         return UserOnboardingResult.from(user);
     }
 
-    /**
-     * 입령된 이메일로 인증 코드를 발송합니다.
-     */
+
+
+
     @Transactional
     public void sendVerificationCode(SendVerificationCodeCommand command) {
         sendVerificationCode(command, null);
@@ -163,9 +163,9 @@ public class UserService {
         emailVerificationService.sendCode(user.getId(), command.email(), clientIp);
     }
 
-    /**
-     * 이메일 인증 코드를 검증합니다.
-     */
+
+
+
     @Transactional
     public void verifyEmail(VerifyEmailCommand command) {
         User user = getCurrentUser();
@@ -175,9 +175,9 @@ public class UserService {
         }
     }
 
-    /**
-     * 디스코드 계정을 현재 사용자 계정과 연동합니다.
-     */
+
+
+
     @Transactional
     public void linkDiscordId(String discordId) {
         User user = getCurrentUser();
@@ -186,9 +186,9 @@ public class UserService {
                 SensitiveDataRedactor.fingerprint(discordId));
     }
 
-    /**
-     * 연동된 디스코드 계정을 해제합니다.
-     */
+
+
+
     @Transactional
     public void unlinkDiscord() {
         User user = getCurrentUser();
@@ -196,9 +196,9 @@ public class UserService {
         log.info("[User] Unlink Discord: userId={}", user.getId());
     }
 
-    /**
-     * 현재 활성화된 채널로 테스트 알림을 발송합니다.
-     */
+
+
+
     @Transactional
     public void sendTestNotification() {
         User user = getCurrentUser();
@@ -209,9 +209,9 @@ public class UserService {
         notificationTestSender.sendUserTestNotification(user.getId());
     }
 
-    /**
-     * 현재 인증된 사용자 정보를 컨텍스트에서 조회합니다.
-     */
+
+
+
     public User getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
         return userRepository.findByEmail(email)

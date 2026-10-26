@@ -13,7 +13,7 @@ describe("useAuthStore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useAuthStore.persist.clearStorage();
-    // Zustand store reset
+
     useAuthStore.setState({
       user: null,
       isAuthenticated: false,

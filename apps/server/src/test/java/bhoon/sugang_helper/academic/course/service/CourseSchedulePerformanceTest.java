@@ -55,7 +55,7 @@ class CourseSchedulePerformanceTest {
     private void runPerformanceTest(int courseCount, String testLabel) {
         int schedulesPerCourse = 3;
 
-        // 1. 기존 강의 데이터 생성 (각 3개의 시간표 포함)
+
         for (int i = 0; i < courseCount; i++) {
             Course course = Course.builder()
                     .courseKey("PERF-" + testLabel + "-" + i)
@@ -78,10 +78,10 @@ class CourseSchedulePerformanceTest {
         em.flush();
         em.clear();
 
-        // Hibernate 통계 데이터 초기화
+
         sessionFactory.getStatistics().clear();
 
-        // 2. 성능 측정 시작 (완전히 동일한 시간표 정보로 업데이트 수행)
+
         long startTime = System.nanoTime();
 
         for (int i = 0; i < courseCount; i++) {
@@ -108,7 +108,7 @@ class CourseSchedulePerformanceTest {
 
             existingCourse.updateMetadata(crawledCourse);
         }
-        em.flush(); // DB에 반영
+        em.flush();
 
         long endTime = System.nanoTime();
         double durationMs = (endTime - startTime) / 1_000_000.0;
@@ -126,7 +126,7 @@ class CourseSchedulePerformanceTest {
         log.info("개선 전 예상 쿼리 (DELETE & INSERT) 횟수: {}", expectedQueries);
         log.info("==================================================================");
 
-        // 최적화 후에는 동일한 데이터 업데이트 시 delete와 insert가 0회 발생해야 함
+
         assertThat(deleteCount).isZero();
         assertThat(insertCount).isZero();
     }

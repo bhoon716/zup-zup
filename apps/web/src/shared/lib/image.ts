@@ -1,6 +1,6 @@
-/**
- * JPEG/PNG 이미지를 리사이징하고 동일한 허용 포맷으로 압축합니다.
- */
+
+
+
 export const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png"] as const;
 
 export function isSupportedImageType(file: Pick<File, "type">): boolean {
@@ -19,7 +19,7 @@ export async function compressImage(file: File, maxWidth: number = 1280, quality
         let width = img.width;
         let height = img.height;
 
-        // 리사이징 비율 계산
+
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
           width = maxWidth;

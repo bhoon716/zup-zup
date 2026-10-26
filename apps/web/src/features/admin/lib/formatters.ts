@@ -1,17 +1,17 @@
-/**
- * 관리자 페이지에서 사용하는 데이터 포맷터 유틸리티입니다.
- */
 
-/**
- * 숫자를 한국 로케일 형식(천 단위 콤마)으로 변환합니다.
- */
+
+
+
+
+
+
 export function formatNumber(value: number | null | undefined): string {
   return typeof value === "number" ? value.toLocaleString() : "-";
 }
 
-/**
- * 날짜와 시간을 'YYYY. MM. DD. HH:mm:ss' 형식으로 변환합니다.
- */
+
+
+
 export function formatDateTime(value?: string | null): string {
   if (!value) return "-";
   const date = new Date(value);
@@ -28,9 +28,9 @@ export function formatDateTime(value?: string | null): string {
   }).format(date);
 }
 
-/**
- * 시간을 'HH:mm:ss' 형식으로 변환합니다.
- */
+
+
+
 export function formatTime(value?: string | null): string {
   if (!value) return "--:--:--";
   const date = new Date(value);
@@ -44,9 +44,9 @@ export function formatTime(value?: string | null): string {
   }).format(date);
 }
 
-/**
- * 현재 시간으로부터 얼마나 지났는지 상대적인 시간(초/분/시간 전)으로 표시합니다.
- */
+
+
+
 export function formatRelative(value?: string | null): string {
   if (!value) return "기록 없음";
   const date = new Date(value);
@@ -63,9 +63,9 @@ export function formatRelative(value?: string | null): string {
   return `${diffHour}시간 전`;
 }
 
-/**
- * 크롤러 상태에 따른 UI 메타데이터를 반환합니다.
- */
+
+
+
 export function getStatusMeta(status: string) {
   if (status === "RUNNING") {
     return {
@@ -88,9 +88,9 @@ export function getStatusMeta(status: string) {
   };
 }
 
-/**
- * 로그 레벨에 따른 UI 메타데이터를 반환합니다.
- */
+
+
+
 export function getLogMeta(level: string) {
   if (level === "ERROR") return { label: "오류", className: "bg-red-100 text-red-800" };
   if (level === "WARN") return { label: "경고", className: "bg-amber-100 text-amber-800" };

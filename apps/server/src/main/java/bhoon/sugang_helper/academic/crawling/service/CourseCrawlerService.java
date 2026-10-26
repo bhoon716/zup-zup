@@ -23,9 +23,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-/**
- * 외부 강의 데이터를 모두 수집·검증한 뒤 하나의 DB 트랜잭션으로 동기화합니다.
- */
+
+
+
 @Service
 @Slf4j
 public class CourseCrawlerService {

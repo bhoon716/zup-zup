@@ -10,9 +10,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * DLQ 기록은 실제 DLQ 진입 시각부터 최소 30일 동안 보존합니다.
- */
+
+
+
 @Component
 @RequiredArgsConstructor
 @Slf4j

@@ -22,26 +22,26 @@ class JbnuCourseHttpResponseTest {
 
     @Test
     void readsJsonWithUnexpectedContentTypeAtTheSizeLimit() throws IOException {
-        // given
+
         byte[] json = "{\"dsEstSbjList\":[]}".getBytes(StandardCharsets.UTF_8);
         MockClientHttpResponse response = new MockClientHttpResponse(json, HttpStatus.OK);
         response.getHeaders().set(HttpHeaders.CONTENT_TYPE, "text/html;charset=UTF-8");
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, json.length);
 
-        // when
+
         byte[] actual = client.readResponse(response);
 
-        // then
+
         assertThat(actual).isEqualTo(json);
     }
 
     @Test
     void rejectsAnOversizedResponseWhileReading() {
-        // given
+
         MockClientHttpResponse response = new MockClientHttpResponse(new byte[11], HttpStatus.OK);
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, 10);
 
-        // when & then
+
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOf(IOException.class)
                 .hasMessageContaining("maximum size");
@@ -49,25 +49,25 @@ class JbnuCourseHttpResponseTest {
 
     @Test
     void decodesGzipBeforeReturningTheBody() throws IOException {
-        // given
+
         byte[] json = "{\"dsEstSbjList\":[]}".getBytes(StandardCharsets.UTF_8);
         MockClientHttpResponse response = gzipResponse(json);
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, json.length);
 
-        // when
+
         byte[] actual = client.readResponse(response);
 
-        // then
+
         assertThat(actual).isEqualTo(json);
     }
 
     @Test
     void limitsTheDecompressedSizeOfGzipResponses() throws IOException {
-        // given
+
         MockClientHttpResponse response = gzipResponse(new byte[1_000]);
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, 100);
 
-        // when & then
+
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOf(IOException.class)
                 .hasMessageContaining("maximum size");
@@ -75,11 +75,11 @@ class JbnuCourseHttpResponseTest {
 
     @Test
     void preservesAnHttpFailureStatusWithoutKeepingItsBody() {
-        // given
+
         MockClientHttpResponse response = new MockClientHttpResponse(
                 "upstream secret".getBytes(StandardCharsets.UTF_8), HttpStatus.SERVICE_UNAVAILABLE);
 
-        // when & then
+
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOfSatisfying(RestClientResponseException.class, exception -> {
                     assertThat(exception.getStatusCode().value()).isEqualTo(503);

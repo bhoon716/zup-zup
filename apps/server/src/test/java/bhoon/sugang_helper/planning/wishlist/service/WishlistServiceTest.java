@@ -63,7 +63,7 @@ class WishlistServiceTest {
     @DisplayName("찜 토글 시 - 없는 강좌면 예외 발생")
     @Test
     void toggleWishlist_CourseNotFound_ThrowsException() {
-        // given
+
         String email = EMAIL;
         String courseKey = COURSE_KEY;
 
@@ -71,7 +71,7 @@ class WishlistServiceTest {
         given(userIdentityQuery.findByEmail(email)).willReturn(Optional.of(new UserIdentity(1L, false)));
         given(courseCatalogQuery.findByCourseKey(courseKey)).willReturn(Optional.empty());
 
-        // when & then
+
         assertThatThrownBy(() -> wishlistService.toggleWishlist(courseKey))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
@@ -80,7 +80,7 @@ class WishlistServiceTest {
     @DisplayName("찜 토글 시 - 이미 찜한 상태면 삭제(Un-wish) 후 false 반환")
     @Test
     void toggleWishlist_AlreadyExists_Delete() {
-        // given
+
         String email = EMAIL;
         String courseKey = COURSE_KEY;
         UserIdentity user = new UserIdentity(1L, false);
@@ -91,10 +91,10 @@ class WishlistServiceTest {
         given(courseCatalogQuery.findByCourseKey(courseKey)).willReturn(Optional.of(summary(courseKey, "Course", 20, 3)));
         given(wishlistRepository.findByUserIdAndCourseKey(1L, courseKey)).willReturn(Optional.of(wishlist));
 
-        // when
+
         var response = wishlistService.toggleWishlist(courseKey);
 
-        // then
+
         verify(wishlistRepository, times(1)).delete(wishlist);
         verify(wishlistRepository, times(0)).save(any(Wishlist.class));
         assertThat(response.isWished()).isFalse();
@@ -103,7 +103,7 @@ class WishlistServiceTest {
     @DisplayName("찜 토글 시 - 찜하지 않은 상태면 추가(Wish) 후 true 반환")
     @Test
     void toggleWishlist_NotExists_Save() {
-        // given
+
         String email = EMAIL;
         String courseKey = COURSE_KEY;
         UserIdentity user = new UserIdentity(1L, false);
@@ -113,10 +113,10 @@ class WishlistServiceTest {
         given(courseCatalogQuery.findByCourseKey(courseKey)).willReturn(Optional.of(summary(courseKey, "Course", 20, 3)));
         given(wishlistRepository.findByUserIdAndCourseKey(1L, courseKey)).willReturn(Optional.empty());
 
-        // when
+
         var response = wishlistService.toggleWishlist(courseKey);
 
-        // then
+
         verify(wishlistRepository, times(0)).delete(any(Wishlist.class));
         verify(wishlistRepository, times(1)).save(any(Wishlist.class));
         assertThat(response.isWished()).isTrue();
@@ -125,7 +125,7 @@ class WishlistServiceTest {
     @DisplayName("내 찜 목록 조회 - 빈 목록 반환")
     @Test
     void getMyWishlist_EmptyList_ReturnsEmpty() {
-        // given
+
         String email = EMAIL;
         UserIdentity user = new UserIdentity(1L, false);
 
@@ -133,17 +133,17 @@ class WishlistServiceTest {
         given(userIdentityQuery.findByEmail(email)).willReturn(Optional.of(user));
         given(wishlistRepository.findByUserId(1L)).willReturn(Collections.emptyList());
 
-        // when
+
         List<WishlistResponse> result = wishlistService.getMyWishlist();
 
-        // then
+
         assertThat(result).isEmpty();
     }
 
     @DisplayName("내 찜 목록 조회 - Course 정보 매핑 후 반환")
     @Test
     void getMyWishlist_Exists_ReturnsMappedResponse() {
-        // given
+
         String email = EMAIL;
         UserIdentity user = new UserIdentity(1L, false);
         Wishlist w1 = Wishlist.builder().userId(1L).courseKey(COURSE_KEY_1).build();
@@ -157,10 +157,10 @@ class WishlistServiceTest {
         given(wishlistRepository.findByUserId(1L)).willReturn(Arrays.asList(w1, w2));
         given(courseCatalogQuery.findByCourseKeyIn(anyList())).willReturn(Arrays.asList(c1, c2));
 
-        // when
+
         List<WishlistResponse> result = wishlistService.getMyWishlist();
 
-        // then
+
         assertThat(result).hasSize(2);
         assertThat(result.get(0).courseName()).isEqualTo("Course1");
         assertThat(result.get(1).courseName()).isEqualTo("Course2");

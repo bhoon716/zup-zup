@@ -6,9 +6,9 @@ import Link from "next/link";
 import type { TimetableDetailResponse } from "@/shared/types/api";
 import { TimetableGrid } from "@/features/timetable/components/timetable-grid";
 
-/**
- * 대시보드에서 사용자의 대표 시간표를 시간표 페이지와 동일한 디자인으로 보여줍니다.
- */
+
+
+
 export function DashboardTimetable({ timetable }: { timetable: TimetableDetailResponse | null | undefined }) {
   return (
     <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-4 sm:p-7 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col min-h-[500px] sm:min-h-[600px]">

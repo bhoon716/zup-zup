@@ -104,7 +104,7 @@ class SlackAlertServiceTest {
 
     @Test
     void publicAlertRunsOnTheCallerThreadWithItsCorrelationContext() {
-        // given
+
         Thread callerThread = Thread.currentThread();
         MDC.put(CORRELATION_ID_KEY, CORRELATION_ID);
         doAnswer(invocation -> {
@@ -113,21 +113,21 @@ class SlackAlertServiceTest {
             return null;
         }).when(webhookClient).send(anyString());
 
-        // when
+
         service.alert(SlackAlertCategory.SERVER_5XX, "G001", new RuntimeException());
 
-        // then
+
         verify(webhookClient).send(anyString());
         assertThat(MDC.get(CORRELATION_ID_KEY)).isEqualTo(CORRELATION_ID);
     }
 
     @Test
     void webhookFailureDoesNotEscapeOrBypassCooldown() {
-        // given
+
         RuntimeException originalFailure = new IllegalStateException("database unavailable");
         doThrow(new IllegalStateException("webhook unavailable")).when(webhookClient).send(anyString());
 
-        // when & then
+
         assertThatCode(() -> service.alert(SlackAlertCategory.DB_PERSIST, UNEXPECTED_CODE, originalFailure))
                 .doesNotThrowAnyException();
         assertThatCode(() -> service.alert(SlackAlertCategory.DB_PERSIST, UNEXPECTED_CODE, originalFailure))

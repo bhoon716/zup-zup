@@ -63,7 +63,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
-@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Feedback request fixtures intentionally reuse compact payload values.
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class FeedbackServiceTest {
 
     @Mock
@@ -101,7 +101,7 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("사용자가 이미지를 포함하여 피드백을 등록한다.")
     void createFeedbackWithImages() {
-        // given
+
         Long userId = 1L;
         UserIdentity user = new UserIdentity(userId, false);
         FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
@@ -113,10 +113,10 @@ class FeedbackServiceTest {
         given(fileUploadService.uploadImages(anyList())).willReturn(List.of("/uploads/img1.png"));
         given(mockFile.getOriginalFilename()).willReturn("test.png");
 
-        // when
+
         feedbackService.createFeedback(userId, request, files);
 
-        // then
+
         verify(feedbackRepository).save(any(Feedback.class));
         verify(fileUploadService).uploadImages(anyList());
         verify(feedbackAttachmentRepository).save(any());
@@ -227,7 +227,7 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("타인의 피드백을 상세 조회하려고 하면 예외가 발생한다.")
     void getMyFeedbackDetailUnauthorized() {
-        // given
+
         Long userId = 1L;
         Long otherUserId = 2L;
         Long feedbackId = 10L;
@@ -235,7 +235,7 @@ class FeedbackServiceTest {
 
         given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
 
-        // when & then
+
         assertThatThrownBy(() -> feedbackService.getMyFeedbackDetail(userId, feedbackId))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining(ErrorCode.FEEDBACK_UNAUTHORIZED.getMessage());
@@ -380,7 +380,7 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("관리자가 피드백 상태를 직접 변경하고 액션 로그를 남긴다.")
     void updateFeedbackStatusByAdmin() {
-        // given
+
         Long adminId = 1L;
         Long feedbackId = 10L;
         UserIdentity admin = new UserIdentity(adminId, true);
@@ -390,10 +390,10 @@ class FeedbackServiceTest {
         given(userIdentityQuery.findById(adminId)).willReturn(Optional.of(admin));
         given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
 
-        // when
+
         feedbackService.updateFeedbackStatus(adminId, feedbackId, request);
 
-        // then
+
         assertThat(feedback.getStatus()).isEqualTo(FeedbackStatus.COMPLETED);
         verify(adminAuditRecorder).recordStatusChange(adminId, feedbackId, "PENDING", "COMPLETED");
     }

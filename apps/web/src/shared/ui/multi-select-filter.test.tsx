@@ -3,9 +3,9 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { MultiSelectFilter } from "./multi-select-filter";
 
-// Radix UI DropdownMenu needs PointerEvent to work in JSDOM
-// or we can mock the component for simpler testing.
-// Here we mock the Radix UI DropdownMenu for easier testing of the MultiSelectFilter logic.
+
+
+
 vi.mock("@/shared/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -64,11 +64,11 @@ describe("MultiSelectFilter", () => {
     render(<FilterHarness initial={[]} />);
     
     const items = screen.getAllByTestId("checkbox-item");
-    fireEvent.click(items[0]); // OPT1 선택
+    fireEvent.click(items[0]);
 
     expect(screen.getByTestId("selected-count")).toHaveTextContent("1");
     expect(items[0]).toHaveAttribute("aria-checked", "true");
-    // Trigger should now show "옵션1"
+
     const trigger = screen.getByRole("button", { name: "옵션1" });
     expect(trigger).toHaveTextContent("옵션1");
   });

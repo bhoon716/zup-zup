@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Set;
 
-/**
- * 버전이 있는 관리자 감사 로그 메타데이터 envelope입니다.
- */
+
+
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record AdminAuditMetadata(String schema, int version, String event, AdminAuditMetadataData data) {

@@ -82,22 +82,22 @@ class UserDeviceServiceTest {
     @Test
     @DisplayName("디바이스 등록 - 신규 등록 성공")
     void registerDevice_New_Success() {
-        // given
+
         mockUser();
         RegisterDeviceCommand request = new RegisterDeviceCommand(DeviceType.WEB, TOKEN, "P256DH", "AUTH", "Alias");
         given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.empty());
 
-        // when
+
         userDeviceService.registerDevice(request);
 
-        // then
+
         verify(userDeviceRepository, times(1)).save(any(UserDevice.class));
     }
 
     @Test
     @DisplayName("디바이스 등록 - 기존 디바이스 정보 업데이트")
     void registerDevice_Update_Success() {
-        // given
+
         mockUser();
         RegisterDeviceCommand request = new RegisterDeviceCommand(
                 DeviceType.WEB, TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
@@ -110,10 +110,10 @@ class UserDeviceServiceTest {
                 .build());
         given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.of(existingDevice));
 
-        // when
+
         userDeviceService.registerDevice(request);
 
-        // then
+
         verify(existingDevice, times(1)).updateToken(1L, TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
         verify(userDeviceRepository, times(0)).save(any(UserDevice.class));
     }
@@ -121,16 +121,16 @@ class UserDeviceServiceTest {
     @Test
     @DisplayName("디바이스 신규 등록 로그에 원문 토큰을 남기지 않는다")
     void registerDevice_New_DoesNotLogRawToken() {
-        // given
+
         String sensitiveToken = "sensitive-fcm-token-for-log-regression-test";
         mockUser();
         given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.empty());
 
-        // when
+
         userDeviceService.registerDevice(
                 new RegisterDeviceCommand(DeviceType.FCM, sensitiveToken, null, null, "Personal phone"));
 
-        // then
+
         assertThat(logAppender.list)
                 .extracting(ILoggingEvent::getFormattedMessage)
                 .noneMatch(message -> message.contains(sensitiveToken))
@@ -140,17 +140,17 @@ class UserDeviceServiceTest {
     @Test
     @DisplayName("기존 디바이스 갱신 로그에 원문 토큰을 남기지 않는다")
     void registerDevice_Update_DoesNotLogRawToken() {
-        // given
+
         String sensitiveToken = "sensitive-web-push-endpoint-for-log-regression-test";
         mockUser();
         UserDevice existingDevice = mock(UserDevice.class);
         given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.of(existingDevice));
 
-        // when
+
         userDeviceService.registerDevice(
                 new RegisterDeviceCommand(DeviceType.WEB, sensitiveToken, "P256DH", "AUTH", "Laptop"));
 
-        // then
+
         assertThat(logAppender.list)
                 .extracting(ILoggingEvent::getFormattedMessage)
                 .noneMatch(message -> message.contains(sensitiveToken))
@@ -160,12 +160,12 @@ class UserDeviceServiceTest {
     @Test
     @DisplayName("디바이스 등록 - 인증되지 않은 사용자 예외 발생")
     void registerDevice_UserNotFound_ThrowsException() {
-        // given
+
         given(SecurityUtil.getCurrentUserEmail()).willReturn(TEST_EMAIL);
         given(userRepository.findByEmail(TEST_EMAIL)).willReturn(Optional.empty());
         RegisterDeviceCommand request = new RegisterDeviceCommand(DeviceType.WEB, TOKEN, "P256DH", "AUTH", null);
 
-        // when & then
+
         assertThatThrownBy(() -> userDeviceService.registerDevice(request))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
@@ -174,35 +174,35 @@ class UserDeviceServiceTest {
     @Test
     @DisplayName("디바이스 해제 - 현재 사용자 기기 성공")
     void unregisterDevice_Success() {
-        // given
+
         mockUser();
         given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(1L);
 
-        // when
+
         userDeviceService.unregisterDevice(TOKEN);
 
-        // then
+
         verify(userDeviceRepository, times(1)).deleteByTokenAndUserId(TOKEN, 1L);
     }
 
     @Test
     @DisplayName("디바이스 해제 - 다른 사용자 기기는 삭제하지 않는다")
     void unregisterDevice_OtherUsersDevice_IsNoOp() {
-        // given
+
         mockUser();
         given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(0L);
 
-        // when
+
         userDeviceService.unregisterDevice(TOKEN);
 
-        // then
+
         verify(userDeviceRepository, times(1)).deleteByTokenAndUserId(TOKEN, 1L);
     }
 
     @Test
     @DisplayName("사용자 디바이스 목록 조회 - 성공")
     void getUserDevices_Success() {
-        // given
+
         UserDevice device = UserDevice.builder()
                 .userId(1L)
                 .type(DeviceType.WEB)
@@ -211,10 +211,10 @@ class UserDeviceServiceTest {
                 .build();
         given(userDeviceRepository.findByUserId(1L)).willReturn(Collections.singletonList(device));
 
-        // when
+
         List<UserDeviceResult> result = userDeviceService.getUserDevices(1L);
 
-        // then
+
         assertThat(result).hasSize(1);
         assertThat(result.get(0).alias()).isEqualTo("Alias");
     }

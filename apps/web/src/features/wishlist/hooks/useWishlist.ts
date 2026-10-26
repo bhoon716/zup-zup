@@ -37,7 +37,7 @@ export const useToggleWishlist = () => {
          if (exists) {
             newWishlist = previousWishlist.filter(item => item.courseKey !== courseKey);
          } else {
-             // 하트 토글 즉시 반영을 위해 최소 필드만 가진 임시 레코드를 넣는다.
+
              newWishlist = [...previousWishlist, { 
                 id: -1,
                 courseKey, 

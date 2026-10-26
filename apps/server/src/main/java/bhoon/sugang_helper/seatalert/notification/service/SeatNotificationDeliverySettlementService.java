@@ -12,9 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * provider 호출 전후 DB 전이를 짧은 트랜잭션으로 분리하고 claim token으로 stale worker를 차단합니다.
- */
+
+
+
 @Service
 @RequiredArgsConstructor
 public class SeatNotificationDeliverySettlementService {

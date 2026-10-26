@@ -115,9 +115,9 @@ public class AuthService {
         deleteRefreshTokenCookie(response);
     }
 
-    /**
-     * Redis-backed HTTP session에는 JWT 원문 대신 인증 주체와 권한만 저장합니다.
-     */
+
+
+
     public void saveSessionAuthentication(HttpServletRequest request, HttpServletResponse response, String accessToken) {
         Long userId = jwtProvider.getUserId(accessToken);
         if (userId == null) {

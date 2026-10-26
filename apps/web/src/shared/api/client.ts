@@ -12,11 +12,11 @@ const api = axios.create({
   withCredentials: true,
 });
 
-/**
- * 액세스 토큰을 수동으로 설정하는 함수 (현재 쿠키 방식 사용 중으로 구조만 유지)
- */
+
+
+
 export const setAccessToken = (token: string | null) => {
-  // 이전 인터페이스 호환을 위해 함수 형태만 유지한다.
+
   void token;
 };
 
@@ -141,7 +141,7 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // 리프레시 요청 자체가 실패했거나 이미 재시도한 요청인 경우
+
     if (originalRequest.url === "/api/auth/refresh" || originalRequest._retry || originalRequest.skipAuthRefresh) {
       return Promise.reject(error);
     }

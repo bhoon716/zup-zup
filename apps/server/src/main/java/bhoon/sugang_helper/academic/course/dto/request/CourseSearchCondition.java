@@ -126,9 +126,9 @@ public class CourseSearchCondition {
 
     private Long userId;
 
-    /**
-     * 강의 검색 조건을 생성하기 위한 빌더 생성자
-     */
+
+
+
     @Builder
     public CourseSearchCondition(String name, String keyword, String professor, String subjectCode, String academicYear,
                                  String semester, List<String> classifications,

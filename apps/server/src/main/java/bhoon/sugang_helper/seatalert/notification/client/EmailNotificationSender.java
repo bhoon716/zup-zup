@@ -15,9 +15,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
-/**
- * 이메일 채널을 통한 알림 발송을 담당하는 컴포넌트입니다.
- */
+
+
+
 @Component
 @Slf4j
 public class EmailNotificationSender implements NotificationSender {
@@ -43,9 +43,9 @@ public class EmailNotificationSender implements NotificationSender {
         return channel == NotificationChannel.EMAIL;
     }
 
-    /**
-     * 알림 대상에게 이메일을 발송합니다.
-     */
+
+
+
     @Override
     public void send(NotificationTarget target, String title, String message) {
         send(target, title, message, null);

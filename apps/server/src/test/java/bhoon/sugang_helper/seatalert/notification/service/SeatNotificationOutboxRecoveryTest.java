@@ -54,7 +54,7 @@ class SeatNotificationOutboxRecoveryTest {
 
     @Test
     void persistedOutboxIsDeliveredAfterAWorkerRestart() {
-        // Given: a persisted outbox survives the worker process.
+
         SeatNotificationOutbox outbox = outboxRepository.saveAndFlush(SeatNotificationOutbox.builder()
                 .courseKey("course-key")
                 .courseName("Course")
@@ -69,13 +69,13 @@ class SeatNotificationOutboxRecoveryTest {
                 new NotificationDevice(1L, NotificationDeviceType.FCM, "fcm-token", null, null),
                 new NotificationDevice(1L, NotificationDeviceType.WEB, "web-endpoint", "p256", "auth")));
 
-        // When
+
 
         processor.materializePendingOutboxes();
         List<SeatNotificationDeliveryClaim> deliveryClaims = processor.claimReadyDeliveries();
         deliveryClaims.forEach(processor::processDelivery);
 
-        // Then: each channel is materialized and settled once, and another poll has no work.
+
         assertThat(deliveryClaims).hasSize(4);
         assertThat(deliveryRepository.findAll())
                 .extracting(SeatNotificationDelivery::getChannel)

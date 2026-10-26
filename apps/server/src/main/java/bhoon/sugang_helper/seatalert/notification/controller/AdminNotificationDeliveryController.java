@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 단일 관리자도 전체 DLQ를 안전한 운영 정보만으로 조회하고 선택 재처리할 수 있는 API입니다.
- */
+
+
+
 @RestController
 @RequestMapping("/api/v1/admin/notification-deliveries")
 @RequiredArgsConstructor

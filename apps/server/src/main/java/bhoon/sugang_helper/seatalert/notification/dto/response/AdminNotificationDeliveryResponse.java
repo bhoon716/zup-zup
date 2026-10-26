@@ -6,9 +6,9 @@ import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDeliver
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import java.time.LocalDateTime;
 
-/**
- * 관리자 운영 화면에 필요한 delivery 상태만 제공하며 수신자와 원본 idempotency key는 제외합니다.
- */
+
+
+
 public record AdminNotificationDeliveryResponse(
         Long id,
         Long outboxId,

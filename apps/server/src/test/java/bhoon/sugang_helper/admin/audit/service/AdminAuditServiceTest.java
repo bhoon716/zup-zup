@@ -29,7 +29,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
-@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Audit-envelope assertions intentionally repeat stable contract values.
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class AdminAuditServiceTest {
 
     private static final long ADMIN_ID = 1L;

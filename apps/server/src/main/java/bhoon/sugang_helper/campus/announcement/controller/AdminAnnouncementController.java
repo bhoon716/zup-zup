@@ -27,9 +27,9 @@ public class AdminAnnouncementController {
 
     private final AnnouncementService announcementService;
 
-    /**
-     * 관리자용 전체 공지사항 목록을 조회합니다. (비공개 포함)
-     */
+
+
+
     @GetMapping
     public ResponseEntity<Page<AnnouncementDetailResponse>> getAnnouncements(
             Pageable pageable) {
@@ -38,9 +38,9 @@ public class AdminAnnouncementController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 새로운 공지사항을 작성하고 등록합니다.
-     */
+
+
+
     @PostMapping
     public ResponseEntity<AnnouncementDetailResponse> createAnnouncement(
             @Valid @RequestBody AnnouncementRequest request) {
@@ -48,9 +48,9 @@ public class AdminAnnouncementController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 기존 공지사항 정보를 수정합니다.
-     */
+
+
+
     @PutMapping("/{id}")
     public ResponseEntity<AnnouncementDetailResponse> updateAnnouncement(
             @PathVariable Long id,
@@ -59,9 +59,9 @@ public class AdminAnnouncementController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 특정 공지사항을 삭제합니다.
-     */
+
+
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAnnouncement(@PathVariable Long id) {
         announcementService.deleteAnnouncement(id);

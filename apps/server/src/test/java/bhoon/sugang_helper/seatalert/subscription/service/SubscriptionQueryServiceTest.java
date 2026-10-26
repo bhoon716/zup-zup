@@ -21,13 +21,13 @@ class SubscriptionQueryServiceTest {
 
     @Test
     void recipientsAndStatisticsExcludeCancelledSubscriptions() {
-        // given
+
         Subscription cancelled = subscription(2L, "course-a");
         cancelled.cancel();
         repository.saveAllAndFlush(List.of(
                 subscription(1L, "course-a"), cancelled, subscription(3L, "course-b")));
 
-        // when & then
+
         assertThat(queryService.findActiveRecipientIds("course-a")).containsExactly(1L);
         assertThat(queryService.findActiveRecipientIds("missing-course")).isEmpty();
         assertThat(queryService.countActiveSubscriptions()).isEqualTo(2);

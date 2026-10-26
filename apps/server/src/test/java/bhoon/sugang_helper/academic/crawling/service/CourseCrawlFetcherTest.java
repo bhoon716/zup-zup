@@ -54,13 +54,13 @@ class CourseCrawlFetcherTest {
     @Test
     @DisplayName("실제 파서로 전체 응답을 파싱한 뒤 불변 목록으로 반환한다")
     void fetch_ReturnsCompleteParsedList() {
-        // given
+
         stubResponses(Map.of("1", courseResponse(SUBJECT_CODE), "2", courseResponse("COMP102")));
 
-        // when
+
         List<ParsedCourseDto> courses = fetcher.fetch(YEAR, SEMESTER);
 
-        // then
+
         assertThat(courses).extracting(ParsedCourseDto::courseKey).containsExactly(
                 "2026:U211600025:COMP101:01", "2026:U211600025:COMP102:01");
         assertThatThrownBy(() -> courses.add(courses.get(0))).isInstanceOf(UnsupportedOperationException.class);
@@ -69,10 +69,10 @@ class CourseCrawlFetcherTest {
     @Test
     @DisplayName("서로 다른 분류의 courseKey가 중복이면 빈 분류가 있어도 거부한다")
     void fetch_RejectsDuplicateCourseKeys() {
-        // given
+
         stubResponses(Map.of("2", courseResponse(SUBJECT_CODE), "3", courseResponse(SUBJECT_CODE)));
 
-        // when & then
+
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER))
                 .isInstanceOf(CustomException.class)
                 .satisfies(exception -> assertThat(((CustomException) exception).getErrorCode())
@@ -82,13 +82,13 @@ class CourseCrawlFetcherTest {
     @Test
     @DisplayName("빈 분류가 있어도 모든 certDivision을 설정 순서대로 조회한다")
     void fetch_CallsExactCertDivisionsInOrder() {
-        // given
+
         stubResponses(Map.of("1", courseResponse(SUBJECT_CODE)));
 
-        // when
+
         fetcher.fetch(YEAR, SEMESTER);
 
-        // then
+
         assertAllDivisionsRequestedInOrder();
     }
 
@@ -96,7 +96,7 @@ class CourseCrawlFetcherTest {
     @ValueSource(strings = {"1", "2", "5", "7", "3", "4"})
     @DisplayName("첫 번째·중간·마지막 분류의 정상 빈 응답을 허용한다")
     void fetch_AllowsEmptyDivisionAtAnyPosition(String emptyDivision) {
-        // given
+
         given(apiClient.fetchCourseDataStream(eq(YEAR), eq(SEMESTER), anyString()))
                 .willAnswer(invocation -> {
                     String division = invocation.getArgument(2);
@@ -104,10 +104,10 @@ class CourseCrawlFetcherTest {
                             ? EMPTY_RESPONSE : courseResponse("COMP" + division));
                 });
 
-        // when
+
         List<ParsedCourseDto> courses = fetcher.fetch(YEAR, SEMESTER);
 
-        // then
+
         assertThat(courses).extracting(ParsedCourseDto::subjectCode)
                 .containsExactlyElementsOf(CERT_DIVISIONS.stream()
                         .filter(division -> !division.equals(emptyDivision))
@@ -119,10 +119,10 @@ class CourseCrawlFetcherTest {
     @Test
     @DisplayName("모든 분류가 정상 빈 배열이면 전체 조회 후 C003으로 실패한다")
     void fetch_RejectsEmptyCombinedResult() {
-        // given
+
         stubResponses(Map.of());
 
-        // when & then
+
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER))
                 .isInstanceOf(CustomException.class)
                 .satisfies(exception -> assertThat(((CustomException) exception).getErrorCode())
@@ -134,10 +134,10 @@ class CourseCrawlFetcherTest {
     @MethodSource("invalidDivisionResponses")
     @DisplayName("빈 분류와 정상 강의 뒤에서 실제 오류 응답이 오면 전체 조회가 실패한다")
     void fetch_RejectsInvalidResponseAfterEmptyDivision(String description, String response, ErrorCode errorCode) {
-        // given
+
         stubResponses(Map.of("2", courseResponse(SUBJECT_CODE), "5", response));
 
-        // when & then
+
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER))
                 .as(description)
                 .isInstanceOf(CustomException.class)
@@ -149,10 +149,10 @@ class CourseCrawlFetcherTest {
     @Test
     @DisplayName("빈 분류가 있어도 필수 강의 정보가 누락되면 전체 결과를 거부한다")
     void fetch_RejectsMissingRequiredFieldAfterEmptyDivision() {
-        // given
+
         stubResponses(Map.of("2", "{\"dsEstSbjList\":[{\"SBJCT_CD\":\"COMP101\",\"DVCLS_NO\":\"01\"}]}"));
 
-        // when & then
+
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER))
                 .isInstanceOf(CustomException.class)
                 .satisfies(exception -> assertThat(((CustomException) exception).getErrorCode())
@@ -163,14 +163,14 @@ class CourseCrawlFetcherTest {
     @Test
     @DisplayName("빈 분류 이후 통신에 실패하면 수집을 중단하고 원래 예외를 전달한다")
     void fetch_PropagatesUpstreamFailureAfterEmptyDivision() {
-        // given
+
         CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         given(apiClient.fetchCourseDataStream(YEAR, SEMESTER, "1")).willReturn(responseStream(EMPTY_RESPONSE));
         given(apiClient.fetchCourseDataStream(YEAR, SEMESTER, "2"))
                 .willReturn(responseStream(courseResponse(SUBJECT_CODE)));
         given(apiClient.fetchCourseDataStream(YEAR, SEMESTER, "5")).willThrow(failure);
 
-        // when & then
+
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER)).isSameAs(failure);
         verify(apiClient, never()).fetchCourseDataStream(YEAR, SEMESTER, "7");
     }

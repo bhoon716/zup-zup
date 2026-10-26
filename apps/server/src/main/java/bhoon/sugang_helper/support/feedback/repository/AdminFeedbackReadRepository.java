@@ -19,9 +19,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-/**
- * Hibernate의 전역 soft-delete restriction 밖에서 관리자용 최소 projection을 조회합니다.
- */
+
+
+
 @Repository
 @RequiredArgsConstructor
 public class AdminFeedbackReadRepository {

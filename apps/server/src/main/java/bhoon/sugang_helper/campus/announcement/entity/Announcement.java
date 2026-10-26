@@ -42,9 +42,9 @@ public class Announcement extends BaseTimeEntity {
         this.published = published;
     }
 
-    /**
-     * 공지사항의 제목, 내용, 고정 여부, 공개 여부를 업데이트합니다.
-     */
+
+
+
     public void update(String title, String content, boolean pinned, boolean published) {
         this.title = title;
         this.content = content;

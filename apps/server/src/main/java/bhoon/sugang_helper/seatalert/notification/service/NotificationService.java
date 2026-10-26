@@ -21,9 +21,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/**
- * 사용자에게 다양한 채널(Email, FCM, WebPush, Discord)을 통해 알림을 발송하는 통합 서비스입니다. 중복 발송 방지 및 알림 이력 관리 기능을 포함합니다.
- */
+
+
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -74,7 +74,7 @@ public class NotificationService {
                         || exception.isRetryable()) {
                     throw exception;
                 }
-                // The sender already removed this expired endpoint; continue with the other devices.
+
                 expiredSubscription = exception;
             }
         }
@@ -84,9 +84,9 @@ public class NotificationService {
         saveHistory(userId, outbox.getCourseKey(), message, channel);
     }
 
-    /**
-     * 특정 사용자에게 여러 채널로 테스트 알림을 발송합니다.
-     */
+
+
+
     public void sendAdminTestNotification(Long userId, List<NotificationChannel> channels) {
         NotificationRecipient user = userNotificationQuery.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
@@ -106,9 +106,9 @@ public class NotificationService {
         return delivered;
     }
 
-    /**
-     * 사용자 단에서 요청한 테스트 알림을 발송하며, 쿨타임을 적용합니다.
-     */
+
+
+
     public void sendUserTestNotification(Long userId) {
         String cooldownKey = USER_TEST_COOLDOWN_KEY_PREFIX + userId;
         boolean acquired = redisService.setValuesIfAbsent(cooldownKey, "LOCK", USER_TEST_COOLDOWN);
@@ -133,9 +133,9 @@ public class NotificationService {
         }
     }
 
-    /**
-     * 관리자·사용자 테스트 알림의 대상 확인과 발송을 수행합니다.
-     */
+
+
+
     private boolean sendNotification(NotificationRecipient user, List<NotificationDevice> devices,
                                      NotificationMessage message,
                                      NotificationChannel channel, boolean failOnMissingTarget) {
@@ -154,9 +154,9 @@ public class NotificationService {
         return true;
     }
 
-    /**
-     * 빈자리 알림 메시지를 생성합니다.
-     */
+
+
+
     private NotificationMessage createSeatOpenedMessage(SeatOpenedEvent event) {
         String professor = (event.professor() != null && !event.professor().isBlank()) ? event.professor() : "미지정";
         String title = String.format("[줍줍] %s (%s) 여석 발생!", event.courseName(), professor);
@@ -165,18 +165,18 @@ public class NotificationService {
         return new NotificationMessage(title, body);
     }
 
-    /**
-     * 시스템 테스트 알림 메시지를 생성합니다.
-     */
+
+
+
     private NotificationMessage createTestMessage() {
         return new NotificationMessage(
                 "[줍줍] 시스템 테스트 알림",
                 "줍줍 테스트 알림입니다. 수신이 정상적인지 확인해 주세요.");
     }
 
-    /**
-     * 지정된 채널의 발송 객체를 통해 실제로 알림을 발송합니다.
-     */
+
+
+
     private void dispatch(NotificationTarget target, String title, String message, NotificationChannel channel) {
         notificationSenders.stream()
                 .filter(sender -> sender.supports(channel))
@@ -184,9 +184,9 @@ public class NotificationService {
                         () -> sender.send(target, title, message)));
     }
 
-    /**
-     * 알림 발송 이력을 저장합니다.
-     */
+
+
+
     private void saveHistory(Long userId, String courseKey, NotificationMessage notification,
                              NotificationChannel channel) {
         notificationHistoryRepository.save(NotificationHistory.builder()
@@ -198,9 +198,9 @@ public class NotificationService {
                 .build());
     }
 
-    /**
-     * 알림 메시지 구조체
-     */
+
+
+
     private record NotificationMessage(String title, String body) {
     }
 

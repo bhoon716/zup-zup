@@ -22,9 +22,9 @@ public class AnnouncementController {
 
     private final AnnouncementService announcementService;
 
-    /**
-     * 공개된 공지사항 목록을 검색 조건에 따라 조회합니다.
-     */
+
+
+
     @GetMapping
     public ResponseEntity<Page<AnnouncementListResponse>> getAnnouncements(
             @RequestParam(required = false) String keyword,
@@ -35,9 +35,9 @@ public class AnnouncementController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 특정 공지사항의 상세 내용을 조회합니다.
-     */
+
+
+
     @GetMapping("/{id}")
     public ResponseEntity<AnnouncementDetailResponse> getAnnouncement(@PathVariable Long id) {
         AnnouncementDetailResponse response = announcementService.getPublicAnnouncement(id);

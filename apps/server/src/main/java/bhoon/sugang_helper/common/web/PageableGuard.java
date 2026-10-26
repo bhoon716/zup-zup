@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-/** Consistent bounds for every pageable endpoint to protect DB offset and response memory. */
+
 public final class PageableGuard {
 
     private static final Logger log = LoggerFactory.getLogger(PageableGuard.class);

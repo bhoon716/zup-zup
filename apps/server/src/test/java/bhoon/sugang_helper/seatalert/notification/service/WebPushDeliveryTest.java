@@ -98,7 +98,7 @@ class WebPushDeliveryTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void expiredSubscriptionDoesNotPreventDeliveryToTheOtherDevice(boolean expiredFirst) {
-        // Given: the real sender removes a 404/410 endpoint before reporting INVALID_RECIPIENT.
+
         String expired = expiredFirst ? FIRST : SECOND;
         stubSender(target -> {
             if (target.equals(expired)) {
@@ -107,10 +107,10 @@ class WebPushDeliveryTest {
             }
         });
 
-        // When
+
         processReadyDelivery();
 
-        // Then
+
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertDelivery(SeatNotificationDeliveryStatus.SENT, SeatNotificationOutboxStatus.COMPLETED, 0);
         assertSuccessfulHistory();
@@ -119,16 +119,16 @@ class WebPushDeliveryTest {
 
     @Test
     void allExpiredSubscriptionsKeepTheExistingPermanentFailureSettlement() {
-        // Given
+
         stubSender(target -> {
             devices.removeIf(device -> device.token().equals(target));
             throw invalidSubscription();
         });
 
-        // When
+
         processReadyDelivery();
 
-        // Then
+
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertThat(devices).isEmpty();
         assertDelivery(SeatNotificationDeliveryStatus.DLQ, SeatNotificationOutboxStatus.DLQ, 1);
@@ -140,7 +140,7 @@ class WebPushDeliveryTest {
     @ParameterizedTest
     @ValueSource(ints = {0, 1})
     void temporaryFailureKeepsWholeDeliveryRetryAndTheSameIdempotencyKey(int failedTargetIndex) {
-        // Given: index 1 means the first device already succeeded before the second fails.
+
         String failed = failedTargetIndex == 0 ? FIRST : SECOND;
         stubSender(target -> {
             if (target.equals(failed)) {
@@ -149,25 +149,25 @@ class WebPushDeliveryTest {
             }
         });
 
-        // When
+
         processReadyDelivery();
 
-        // Then
+
         assertDelivery(SeatNotificationDeliveryStatus.PENDING, SeatNotificationOutboxStatus.PROCESSING, 1);
         assertThat(histories.findAll()).isEmpty();
         assertThat(attemptedTargets).containsExactlyElementsOf(
                 failedTargetIndex == 0 ? List.of(FIRST) : List.of(FIRST, SECOND));
         String key = delivery().getIdempotencyKey();
         SeatNotificationDelivery ready = delivery();
-        // Advance only the due time; do not reset attempts or use the admin replay path.
+
         ReflectionTestUtils.setField(ready, "nextAttemptAt", LocalDateTime.now().minusSeconds(1));
         deliveries.saveAndFlush(ready);
         stubSender(target -> { });
 
-        // When: the ordinary retry sends the whole current target list again.
+
         processReadyDelivery();
 
-        // Then: a prior success may be repeated; per-device exactly-once is not introduced.
+
         assertThat(attemptedTargets).containsExactlyElementsOf(failedTargetIndex == 0
                 ? List.of(FIRST, FIRST, SECOND) : List.of(FIRST, SECOND, FIRST, SECOND));
         assertThat(attemptedKeys).containsOnly(NotificationDeliveryIdempotencyKey.providerKey(key));
@@ -177,7 +177,7 @@ class WebPushDeliveryTest {
 
     @Test
     void otherPermanentWebPushErrorsAreNotIgnored() {
-        // Given
+
         stubSender(target -> {
             if (target.equals(SECOND)) {
                 throw new NotificationProviderException(ErrorCode.WEB_PUSH_MISSING_KEYS,
@@ -185,10 +185,10 @@ class WebPushDeliveryTest {
             }
         });
 
-        // When
+
         processReadyDelivery();
 
-        // Then
+
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertDelivery(SeatNotificationDeliveryStatus.DLQ, SeatNotificationOutboxStatus.DLQ, 1);
         assertThat(histories.findAll()).isEmpty();

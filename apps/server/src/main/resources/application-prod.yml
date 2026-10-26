@@ -9,7 +9,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   flyway:
-    # DDL credentials remain in the one-shot Compose migrator, never in the runtime JVM.
+
     enabled: false
     baseline-on-migrate: true
     baseline-version: 3

@@ -32,10 +32,10 @@ interface CourseSmartFiltersProps {
   skipPersonalFetch?: boolean;
 }
 
-/**
- * 강의 검색 결과에 적용할 스마트 필터 구성을 제공하는 컴포넌트입니다.
- * 찜한 강의, 여석 유무, 공강 시간대 등의 추가 필터링 조건을 관리합니다.
- */
+
+
+
+
 export function CourseSmartFilters({
   condition,
   setCondition,
@@ -71,7 +71,7 @@ export function CourseSmartFilters({
     }
   }, [initialTimetables, refetchTimetables, resolvedUser, setLoginModalOpen]);
 
-  // 찜한 강의만 보기 토글 핸들러
+
   const handleWishedOnlyChange = useCallback((checked: boolean) => {
     if (checked && !resolvedUser) {
       toast.error("찜한 강의 필터는 로그인 후 사용할 수 있습니다.");
@@ -91,9 +91,9 @@ export function CourseSmartFilters({
     }));
   }, [setCondition]);
 
-  /**
-   * 내 시간표 정보를 가져와서 비어있는 시간대(공강)를 자동으로 선택합니다.
-   */
+
+
+
   const handleImportFromTimetable = async (timetableId: number, name: string) => {
     try {
       const detail = await timetableApi.getTimetable(timetableId);
@@ -123,7 +123,7 @@ export function CourseSmartFilters({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        {/* 찜한 강의만 보기 */}
+        {               }
         <div className="flex items-center justify-between">
           <Label htmlFor="wished-only" className="text-sm font-medium">
             찜한 강의만 보기
@@ -135,7 +135,7 @@ export function CourseSmartFilters({
           />
         </div>
 
-        {/* 여석 있는 강의만 보기 */}
+        {                  }
         <div className="flex items-center justify-between">
           <Label htmlFor="available-only" className="text-sm font-medium">
             여석 있는 강의만 보기
@@ -147,7 +147,7 @@ export function CourseSmartFilters({
           />
         </div>
 
-        {/* 공개 강의만 보기 */}
+        {               }
         <div className="flex items-center justify-between">
           <Label htmlFor="disclosure-only" className="text-sm font-medium">
             공개 강의만 보기
@@ -165,7 +165,7 @@ export function CourseSmartFilters({
         </div>
       </div>
 
-      {/* 공강 시간표 설정 */}
+      {               }
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

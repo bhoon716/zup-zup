@@ -31,7 +31,7 @@ class SchedulingConfigTest {
     @ValueSource(booleans = {false, true})
     void dueTasksDoNotOverlapWhileALongTaskRunsEvenWhenVirtualThreadsAreEnabled(boolean virtualThreads) {
         contextRunner.withPropertyValues("spring.threads.virtual.enabled=" + virtualThreads).run(context -> {
-            // given
+
             assertThat(context).hasSingleBean(TaskScheduler.class);
             ThreadPoolTaskScheduler scheduler = context.getBean("taskScheduler", ThreadPoolTaskScheduler.class);
             assertThat(scheduler.getScheduledThreadPoolExecutor().getCorePoolSize()).isEqualTo(1);
@@ -41,11 +41,11 @@ class SchedulingConfigTest {
             scheduler.schedule(() -> waitForRelease(firstStarted, releaseFirst), Instant.now());
 
             try {
-                // when
+
                 assertThat(firstStarted.await(2, TimeUnit.SECONDS)).isTrue();
                 scheduler.schedule(secondStarted::countDown, Instant.now());
 
-                // then
+
                 assertThat(secondStarted.await(100, TimeUnit.MILLISECONDS)).isFalse();
                 releaseFirst.countDown();
                 assertThat(secondStarted.await(2, TimeUnit.SECONDS)).isTrue();
@@ -57,19 +57,19 @@ class SchedulingConfigTest {
 
     @Test
     void closingTheContextCancelsPendingTasksAndTerminatesTheScheduler() throws InterruptedException {
-        // given
+
         AtomicReference<ScheduledThreadPoolExecutor> executor = new AtomicReference<>();
         AtomicReference<ScheduledFuture<?>> pending = new AtomicReference<>();
         AtomicInteger executions = new AtomicInteger();
 
-        // when
+
         contextRunner.withPropertyValues("spring.threads.virtual.enabled=true").run(context -> {
             ThreadPoolTaskScheduler scheduler = context.getBean("taskScheduler", ThreadPoolTaskScheduler.class);
             executor.set(scheduler.getScheduledThreadPoolExecutor());
             pending.set(scheduler.schedule(executions::incrementAndGet, Instant.now().plusSeconds(3_600)));
         });
 
-        // then
+
         assertThat(executor.get().isShutdown()).isTrue();
         assertThat(executor.get().awaitTermination(2, TimeUnit.SECONDS)).isTrue();
         assertThat(pending.get().isCancelled()).isTrue();

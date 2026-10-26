@@ -10,9 +10,9 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * 원문을 복원하거나 짧은 문구를 대입 확인할 수 없도록 키 기반 HMAC 지문을 만듭니다.
- */
+
+
+
 @Component
 public class AdminAuditContentFingerprint {
 

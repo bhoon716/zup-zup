@@ -85,9 +85,9 @@ public class UserDeviceService {
         log.info("[UserDevice] Deleted device by ID: userId={}, deviceId={}", user.getId(), deviceId);
     }
 
-    /**
-     * WebPush 발송 실패(404/410) 시 호출되는 Self-Healing 메서드
-     */
+
+
+
     @Transactional
     public void deleteDeviceByToken(String token) {
         userDeviceRepository.findByToken(token)

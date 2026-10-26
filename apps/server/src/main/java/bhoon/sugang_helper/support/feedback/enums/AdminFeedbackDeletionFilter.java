@@ -4,9 +4,9 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import java.util.Locale;
 
-/**
- * 관리자 피드백 목록의 삭제 상태 필터입니다.
- */
+
+
+
 public enum AdminFeedbackDeletionFilter {
     ALL,
     ACTIVE,

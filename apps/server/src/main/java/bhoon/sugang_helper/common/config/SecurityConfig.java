@@ -78,17 +78,17 @@ public class SecurityConfig {
     @Value("${app.cors.require-https:false}")
     private boolean requireHttpsOrigins;
 
-    /**
-     * 비밀번호 암호화를 위한 Encoder 빈을 등록합니다.
-     */
+
+
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * HTTP 보안 필터 체인을 구성합니다.
-     */
+
+
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository securityContextRepository) throws Exception {
         http
@@ -122,9 +122,9 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * CORS(Cross-Origin Resource Sharing) 설정을 구성합니다.
-     */
+
+
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = createCorsConfiguration(allowedOrigins, requireHttpsOrigins);

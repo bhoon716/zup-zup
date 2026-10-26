@@ -27,7 +27,7 @@ for (const action of ["create", "update"] as const) {
       emailEnabled: false, webPushEnabled: false, fcmEnabled: false, discordEnabled: false,
       onboardingCompleted: true };
 
-    // Keep all I/O local; every API request below is fulfilled without a server/provider call.
+
     await context.route("**/*", (route) => new URL(route.request().url()).origin === "http://127.0.0.1:3100"
       ? route.continue() : route.abort());
     await page.route("**/api/**", (route) => {
@@ -71,7 +71,7 @@ for (const action of ["create", "update"] as const) {
     const otherCard = page.locator("article").filter({ hasText: "학수-02" });
     const dialog = page.getByRole("dialog", { name: "강의 상세 정보" });
     const submitLabel = action === "create" ? "등록" : "수정";
-    // Load both detail caches before changing the shared review statistics.
+
     await otherCard.getByRole("button", { name: "자료구조", exact: true }).click();
     await expect(dialog.getByRole("button", { name: submitLabel, exact: true })).toBeEnabled();
     await dialog.getByRole("button", { name: "닫기", exact: true }).click();

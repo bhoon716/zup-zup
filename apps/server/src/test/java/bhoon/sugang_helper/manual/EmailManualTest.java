@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-/**
- * AWS SES를 통한 실제 이메일 발송을 수동으로 테스트하기 위한 클래스입니다. 이 테스트는 실제 메일이 발송되므로 'manual' 태그를 사용하여 평소에는 실행되지 않도록 설정되어 있습니다.
- */
+
+
+
 @Tag("manual")
 @SpringBootTest
 public class EmailManualTest {

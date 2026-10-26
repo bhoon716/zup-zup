@@ -158,7 +158,7 @@ export const useToggleReviewReaction = (reviewScopeKey: string) => {
   });
 };
 
-/** 강의의 이모지 리뷰 통계를 실시간 조회합니다. */
+
 export const useCourseEmojis = (reviewScopeKey: string, courseKey: string) => {
   return useQuery({
     queryKey: ["course-emojis", reviewScopeKey],
@@ -170,7 +170,7 @@ export const useCourseEmojis = (reviewScopeKey: string, courseKey: string) => {
   });
 };
 
-/** 이모지를 토글합니다. 성공 시 해당 강의 이모지 캐시를 자동 무효화합니다. */
+
 export const useToggleCourseEmoji = (reviewScopeKey: string, courseKey: string) => {
   const queryClient = useQueryClient();
   return useMutation({

@@ -8,7 +8,7 @@ public class SecurityConstant {
     public static final String IS_LOGGED_IN_COOKIE_NAME = "is_logged_in";
     public static final String CLAIM_ROLE = "role";
     public static final String CLAIM_USER_ID = "uid";
-    public static final int REFRESH_TOKEN_COOKIE_MAX_AGE = 14 * 24 * 60 * 60; // 2주
+    public static final int REFRESH_TOKEN_COOKIE_MAX_AGE = 14 * 24 * 60 * 60;
 
     public static final String REDIS_REFRESH_TOKEN_PREFIX = "RT:";
     public static final String REDIS_REFRESH_TOKEN_REVOCATION_PREFIX = "RTR:";

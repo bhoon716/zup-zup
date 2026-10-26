@@ -90,7 +90,7 @@ import org.springframework.util.unit.DataSize;
         "spring.security.oauth2.client.provider.google.user-info-uri=https://www.googleapis.com/oauth2/v3/userinfo",
         "spring.security.oauth2.client.provider.google.user-name-attribute=sub"
 })
-@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Authorization cases intentionally exercise one protected path.
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class SecurityRequestAuthorizationTest {
 
     @Autowired

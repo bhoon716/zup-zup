@@ -17,9 +17,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 민감한 관리자 조작을 동일한 최소화된 형식으로 감사합니다.
- */
+
+
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
