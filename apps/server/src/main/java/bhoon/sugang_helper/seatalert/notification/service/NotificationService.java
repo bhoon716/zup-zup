@@ -14,6 +14,7 @@ import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
 import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
+import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
 import java.time.Duration;
 import java.util.List;
@@ -61,9 +62,25 @@ public class NotificationService implements NotificationTestSender, UserNotifica
                 outbox.getCourseKey(), outbox.getCourseName(), outbox.getProfessor(),
                 outbox.getPreviousSeats(), outbox.getCurrentSeats()));
         String providerKey = NotificationDeliveryIdempotencyKey.providerKey(idempotencyKey);
+        boolean delivered = false;
+        NotificationProviderException expiredSubscription = null;
         for (NotificationTarget target : targets) {
-            notificationProviderResilience.execute(channel,
-                    () -> sender.send(target, message.title(), message.body(), providerKey));
+            try {
+                notificationProviderResilience.execute(channel,
+                        () -> sender.send(target, message.title(), message.body(), providerKey));
+                delivered = true;
+            } catch (NotificationProviderException exception) {
+                if (channel != NotificationChannel.WEB
+                        || exception.getErrorCode() != ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION
+                        || exception.isRetryable()) {
+                    throw exception;
+                }
+                // The sender already removed this expired endpoint; continue with the other devices.
+                expiredSubscription = exception;
+            }
+        }
+        if (!delivered && expiredSubscription != null) {
+            throw expiredSubscription;
         }
         saveHistory(userId, outbox.getCourseKey(), message, channel);
     }
