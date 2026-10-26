@@ -47,10 +47,10 @@ JS/TS/JSX는 Babel AST와 비주석 토큰, Java/Groovy/Alloy는 문자열·텍�
 | [apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/dto/provider/NotificationTarget.java:8](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/dto/provider/NotificationTarget.java#L8) | field meaning / external mapping |
 | [apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/dto/provider/NotificationTarget.java:9](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/dto/provider/NotificationTarget.java#L9) | field meaning / external mapping |
 | [apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/dto/provider/NotificationTarget.java:10](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/dto/provider/NotificationTarget.java#L10) | field meaning / external mapping |
-| [apps/web/src/app/(admin)/admin/feedbacks/page.tsx:214](../apps/web/src/app/(admin)/admin/feedbacks/page.tsx#L214) | license/generated/toolchain/analysis directive |
-| [apps/web/src/app/(admin)/admin/notification-deliveries/page.tsx:107](../apps/web/src/app/(admin)/admin/notification-deliveries/page.tsx#L107) | empty block comment preserves lint behavior |
-| [apps/web/src/app/(user)/onboarding/page.tsx:175](../apps/web/src/app/(user)/onboarding/page.tsx#L175) | license/generated/toolchain/analysis directive |
-| [apps/web/src/app/(user)/settings/useSettingsPage.ts:199](../apps/web/src/app/(user)/settings/useSettingsPage.ts#L199) | license/generated/toolchain/analysis directive |
+| [apps/web/src/app/%28admin%29/admin/feedbacks/page.tsx:214](../apps/web/src/app/%28admin%29/admin/feedbacks/page.tsx#L214) | license/generated/toolchain/analysis directive |
+| [apps/web/src/app/%28admin%29/admin/notification-deliveries/page.tsx:107](../apps/web/src/app/%28admin%29/admin/notification-deliveries/page.tsx#L107) | empty block comment preserves lint behavior |
+| [apps/web/src/app/%28user%29/onboarding/page.tsx:175](../apps/web/src/app/%28user%29/onboarding/page.tsx#L175) | license/generated/toolchain/analysis directive |
+| [apps/web/src/app/%28user%29/settings/useSettingsPage.ts:199](../apps/web/src/app/%28user%29/settings/useSettingsPage.ts#L199) | license/generated/toolchain/analysis directive |
 | [apps/web/src/app/providers.tsx:132](../apps/web/src/app/providers.tsx#L132) | license/generated/toolchain/analysis directive |
 | [apps/web/src/app/sitemap.ts:78](../apps/web/src/app/sitemap.ts#L78) | empty block comment preserves lint behavior |
 | [apps/web/src/features/auth/components/login-card.tsx:22](../apps/web/src/features/auth/components/login-card.tsx#L22) | license/generated/toolchain/analysis directive |

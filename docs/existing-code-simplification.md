@@ -330,3 +330,32 @@ CommonResponse와 프론트 공통 성공 타입을 제거하고 26개 컨트롤
 서버 MockMvc 계약 6건과 웹 nullable 2건·SEO/사이트맵 2건을 보강했다. 초기 실패는 옛 성공 포장/문구 기대값과 Page 대신 이전 메서드를 mock하던 테스트, 쿠키 헤더 문자열 순서, JSON 경로 상수 중복이었다. 결과/오류 검증을 새 계약으로 옮겼고 쿠키는 실제 maxAge·값을 확인했다. 사이트맵 테스트 추가 중 기존 두 테스트를 덮어쓴 것을 확인해 모두 복원하고 새 검증만 더했다. 테스트를 삭제·skip하거나 핵심 assertion을 약화시켜 통과시키지 않았다.
 
 최종 검증: 서버 120 suite·536 tests 실패/오류/skip 0, PMD·Checkstyle main/test 위반 0, check bootJar 성공. 웹 79파일·279건, 타입 검사·ESLint(경고 0)·production build 성공. Playwright 기존 인증 갱신·관리자 첨부·리뷰 생성/수정 네 건이 retries=0으로 모두 통과(19.5초)했다. 실제 백엔드·제공자 대신 가짜 응답을 사용했다. 빌드의 API_URL도 연결되지 않는 로컬 주소로 고정했다. 로그는 작업 디렉터리 direct-response-*에 있다. 운영 프론트·서버는 같은 응답 계약으로 함께 전환해야 하며 아직 배포하지 않았다.
+
+
+## 일정 통합·페이지 정책·전달 인터페이스 정리 완료
+
+일정과 D-day를 Schedule 하나로 통합하고 기존 일반 목록은 유지했다. 대표 선택은 여러 일정에 가능하며 진행 중 우선/종료 임박·예정 시작 임박·ID 보조 순으로 반환한다. 서울 시각의 시작 포함/종료 제외, 시각 없는 시작 0시·종료 다음날 0시, 생략한 선택값 보존·명시 해제, soft delete·복원 후 선택 유지, 관리자 권한을 검증했다. 옛 Dday 도메인·별도 API·웹 훅/패널을 제거하고 중복 320줄 관리자 페이지를 같은 패널로 통일했다. 옛 테스트의 게스트401/갱신 생략과 D-day 정렬 보장은 새 일정 계약 테스트로 옮겼다. V29는 기존 일정을 보존하고 선택 false/삭제시각 null을 추가한다. 옛 dday_settings는 매핑 없이 남겨 자동 DROP/DELETE를 하지 않는다. 사용자의 옛 데이터 폐기 허용에 따라 이관·ID 매핑을 만들지 않았으며 운영 DB에 접속하지 않았다.
+
+모든 페이지 API는 요청한 page와 기존 sort를 유지하며 항상 30건을 사용한다. 원래 Page/Slice 응답과 offset 상한을 보존하고 실제 고정 크기로 offset을 계산한다. size=1/100/음수/0/잘못된 문자열과 다음 페이지를 요청하는 계약 테스트를 보강했다. 웹의 size 인수와 cache key 요소를 없앴으며 Kakao 외부 검색·outbox batch·대시보드 내부 제한 조회는 변경하지 않았다. 기존 API mock 호출 중 중복 2건은 page/sort/filter/metadata를 함께 확인하는 새 계약 테스트로 통합했다.
+
+단일 구현 전달 인터페이스 21개를 제거하고 구체 서비스 19개를 직접 사용한다. 서비스 메서드·업무 본문·거래·검증은 유지했다. NotificationSender 네 구현과 외부 HTTP 경계 두 인터페이스, Spring Data 및 프레임워크 계약은 보존했다. 목록은 internal-interface-simplification.md에 있다.
+
+서버 집중 49건이 통과했고 전체 검사 첫 시도는 기존 공지 테스트의 size2 기대값과 미사용 import1건으로 실패했다. 기존 정렬/고정 공지 assertion을 유지하며 기대값을 새 정책30으로 바꾸고 import를 정리한 뒤 전체 123 suite·572건이 실패/오류/skip 없이 통과했다. PMD·Checkstyle main/test 위반0, check bootJar 성공. 웹 전체79파일·295건, 타입·lint(경고0)·production build, Playwright5건이 retries=0으로 통과(7.9초). 새 브라우저 검증은 가짜 API의 일정 생성·선택·수정·삭제·복원이며 운영 API/제공자를 호출하지 않는다. 로그는 TASK/schedule-page-*에 있다.
+
+읽기 전용 DB 기록·설정 점검과 보류된 계획은 simplification-review.md에 따로 기록했다. CrawlerRunFailure/Status/AdminActionLog·PasswordEncoder를 삭제하지 않았고, 로깅 정책·새 알림함·공지 채널 전달도 구현하지 않았다.
+
+
+## 주석 정리와 최종 MySQL 검증
+
+기능 변경과 별도로 소스273개 파일에서 설명/Javadoc/죽은 코드 주석1,423개를 제거했다. 과목 필드·외부 연동 매핑36개, 린터 지시8개, 빈 블록 lint 의미6개, shebang20개와 heredoc 내부1개를 보존했다. 문자열·URL·정규식·템플릿과 설정값은 언어별 토큰/AST/파싱 동등성으로 검증했다. 변경 계획 SHA273개 일치·재스캔 changed0/skip0·경계 자체검사16개·diff 검사 통과. 예외의 실제 위치와 이유는 comment-cleanup.md에 있다. 문서·생성물·vendor·lockfile·기존 migration은 제외했다.
+
+최종 clean check migrationTest bootJar의 일반572건·정적검사는 통과했으나 첫 MySQL 업그레이드 검증은 정상 래퍼 제거 때 실수로 바뀐 감사 JSON 검사 경로3곳에서 실패했다. 감사 업무 metadata.data는 유지돼야 하므로 원래 SQL 경로를 복원했고 기존 기대값(PENDING/COMPLETED/already_safe)을 약화하지 않았다. 과거 migration SQL은 바꾸지 않았다. 실제 MySQL fixture에 기존 일정·D-day 행을 추가해 V29 후 원본·기본선택false·deletedAt null·255자 확장도 확인했다. 재실행 check migrationTest bootJar가58초에 성공했고 일반572건+MySQL2건 실패/오류/skip0, PMD·Checkstyle main/test0이다. 테스트 보정은 bc785e618, 주석 정리는 0bb2bf766 별도 커밋이다.
+
+주석 정리 후 웹79파일295건·타입·lint 경고0·production build와 Playwright5건(retries0,8.4초)이 모두 통과했다. Compose runtime/local 렌더링·CD 정적 계약도 통과했다. 처음 두 shell 검사는 환경에 python 명령이 없어 시작하지 못해 TASK의 python3 임시 별칭으로 재실행했으며 소스는 바꾸지 않았다. 로그는 final-clean-server.log(실패 포함), final-mysql-verified.log(최종 성공), final-web-*.log, final-infra-*.log에 보존했다.
+
+일정 선택은 기존 행 기본false이므로 배포 후 관리자가 대표 일정을 지정해야 한다. 옛 ddays API는 제거되고 정상 응답 포장도 바뀌므로 프론트·서버를 같은 계약으로 전환해야 한다. V29는 추가/확장만 수행하지만 자동 다운 마이그레이션을 제공하지 않으므로 적용 전 확인·백업이 필요하다. 운영 DB/외부 제공자/실제 브라우저 push 구독은 사용하지 않았다. 기존 HTTP 요청 잔존·단일 scheduler 지연·부분 성공 중복 가능성과 사용자가 유지한 회로 차단 attempts 정책은 그대로다.
+
+HTML은 코드 기준0bb2bf766으로 업데이트하고 현재 DTO/응답·페이지30·일정/API/삭제복원 및 실제 소스링크를 맞췄다. 기존 알림 흐름/두 시퀀스는 동작이 바뀌지 않아 원본을 보존했다. 추가 삭제·설정 정리는 simplification-review.md의 읽기 전용 후보로 남겼다.
+
+
+최종 시각 확인은 1440/390/320px의 5탭 모두 overflow0, 소스링크88개 정상, JS 오류·외부 요청0, SVG 글자 경계·marker 오류0, 키보드 탭·모바일 pan 정상이다. HTML과 current-components.png만 갱신됐고 기존 알림 흐름·두 시퀀스 PNG는 동일하다. Library 기존 파일 교체는 자동 승인 검토에서 payload/Library destination에 대한 명시적 사용자 승인 확인 부족으로 실행 전에 거부됐다. 전송은 시작하지 않았고 다른 경로로 우회하지 않았다. 로컬 산출물은 완성돼 있으며 Library 저장은 승인 대기다.
