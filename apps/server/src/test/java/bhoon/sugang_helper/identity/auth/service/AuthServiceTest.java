@@ -40,7 +40,6 @@ class AuthServiceTest {
     void setUp() {
         SecurityContextRepositoryConfig config = new SecurityContextRepositoryConfig();
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
-        config.persistentSessionCookie().customize(serializer);
         csrfTokens = config.csrfTokenRepository();
         authService = new AuthService(userIdentityQuery, config.securityContextRepository(), csrfTokens,
                 config.httpSessionIdResolver(serializer));

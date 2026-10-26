@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.common.config;
 
-import org.springframework.boot.autoconfigure.session.DefaultCookieSerializerCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -21,11 +20,6 @@ public class SecurityContextRepositoryConfig {
     @Bean
     public CsrfTokenRepository csrfTokenRepository() {
         return new HttpSessionCsrfTokenRepository();
-    }
-
-    @Bean
-    public DefaultCookieSerializerCustomizer persistentSessionCookie() {
-        return serializer -> serializer.setCookieMaxAge(RedisConfig.SESSION_TIMEOUT_SECONDS);
     }
 
     @Bean

@@ -68,7 +68,7 @@ class SessionAuthenticationFilterTest {
     }
 
     @Test
-    void everyRequestUsesTheActiveUserAndCurrentRoleAndRollsTheCookieOnly() throws Exception {
+    void everyRequestUsesTheActiveUserAndCurrentRoleWithoutReissuingTheCookie() throws Exception {
         MockHttpServletRequest request = authenticatedRequest(ADMIN_ROLE);
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.getSession().setMaxInactiveInterval(2_592_000);
@@ -81,7 +81,7 @@ class SessionAuthenticationFilterTest {
         verify(contexts).saveContext(current.capture(), eq(request), eq(response));
         assertThat(current.getValue().getAuthentication().getAuthorities())
                 .extracting("authority").containsExactly(USER_ROLE);
-        verify(sessionIds).setSessionId(request, response, request.getSession().getId());
+        verifyNoInteractions(sessionIds);
         assertThat(request.getSession().getMaxInactiveInterval()).isEqualTo(2_592_000);
         verify(chain).doFilter(request, response);
     }

@@ -187,14 +187,14 @@ class RedisSessionEndToEndTest {
 
     @Test
     @Order(2)
-    void thirtyDayIdlePeriodAndPersistentCookieRollForwardOnAnAuthenticatedRequest() throws Exception {
+    void browserCookieHasNoExpiryAndOnlyTheThirtyDayServerIdlePeriodRollsForward() throws Exception {
         AuthenticatedUser user = account(21L, "rolling-user@example.test", "ROLE_USER");
         Browser browser = new Browser();
         HttpResponse<String> login = login(browser, user);
         String id = sessionId(browser);
         RedisSession before = stored(id);
         assertThat(before.getMaxInactiveInterval()).isEqualTo(THIRTY_DAYS);
-        assertPersistentCookie(login);
+        assertBrowserSessionCookie(login);
         Instant oldAccess = Instant.now().minus(Duration.ofDays(29));
         before.setLastAccessedTime(oldAccess);
         sessions.save(before);
@@ -207,7 +207,7 @@ class RedisSessionEndToEndTest {
         assertThat(refreshed.getMaxInactiveInterval()).isEqualTo(THIRTY_DAYS);
         assertThat(refreshed.getLastAccessedTime()).isAfterOrEqualTo(requestStarted).isAfter(oldAccess);
         assertThat(sessionId(browser)).isEqualTo(id);
-        assertPersistentCookie(probe);
+        assertThat(probe.headers().allValues("Set-Cookie").size()).isZero();
     }
 
     @Test
@@ -347,10 +347,15 @@ class RedisSessionEndToEndTest {
         return session;
     }
 
-    private void assertPersistentCookie(HttpResponse<String> response) {
-        assertThat(response.headers().allValues("Set-Cookie")).anySatisfy(cookie ->
-                assertThat(cookie).contains("SESSION=", "Max-Age=" + RedisConfig.SESSION_TIMEOUT_SECONDS,
-                        "HttpOnly", "SameSite=Lax"));
+    private void assertBrowserSessionCookie(HttpResponse<String> response) {
+        var headers = response.headers().allValues("Set-Cookie").stream()
+                .filter(header -> header.startsWith("SESSION=")).toList();
+        assertThat(headers.size()).isEqualTo(1);
+        String cookie = headers.getFirst();
+        assertThat(cookie.contains("Max-Age=")).as("browser session cookie has no Max-Age").isFalse();
+        assertThat(cookie.contains("Expires=")).as("browser session cookie has no Expires").isFalse();
+        assertThat(cookie.contains("HttpOnly")).isTrue();
+        assertThat(cookie.contains("SameSite=Lax")).isTrue();
     }
 
     private final class Browser {

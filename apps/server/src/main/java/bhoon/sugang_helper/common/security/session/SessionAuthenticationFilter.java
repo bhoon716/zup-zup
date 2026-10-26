@@ -76,7 +76,6 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         context.setAuthentication(principal.authentication(user.get().roleKey()));
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
-        sessionIdResolver.setSessionId(request, response, session.getId());
     }
 
     private void invalidate(HttpServletRequest request, HttpServletResponse response, HttpSession session) {

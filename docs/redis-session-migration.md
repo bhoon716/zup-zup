@@ -6,7 +6,7 @@
 
 - Google OAuth로 사용자를 확인한 뒤 ID·email로 현재 DB의 미삭제 사용자를 다시 확인하고 세션에 직렬화 가능한 SessionPrincipal을 저장한다. 기존 세션 ID를 회전하여 로그인 전 ID로 인증을 이어가지 않는다. Discord 외부 OAuth와 연동 state 검사는 유지한다.
 - Spring Session의 RedisIndexedSessionRepository를 사용한다. namespace는 `zup:sessions:v2`, 미사용 만료는 2,592,000초(30일)다. `@EnableRedisIndexedHttpSession`에 실제 interval을 명시하며 YAML 기본값만 바꿔 적용됐다고 가정하지 않는다.
-- 유효한 인증 HTTP 요청은 활동으로 인정한다. Spring Session의 last-access 갱신과 같은 CookieSerializer/HttpSessionIdResolver를 통한 SESSION 쿠키 갱신으로 서버 TTL과 브라우저 만료를 함께 연장한다. 웹 푸시를 받는 것만으로 로그인 기간을 연장하지 않는다. 인증 API의 자동 조회도 HTTP 활동에는 포함하며 사람의 클릭 여부를 별도로 추적하지 않는다.
+- SESSION은 Max-Age/Expires를 지정하지 않는 브라우저 세션 쿠키다. 유효한 인증 HTTP 요청은 활동으로 인정하며 Spring Session의 last-access 갱신으로 Redis 미사용 30일 만료만 연장한다. 일반 인증 응답은 SESSION을 다시 발급하지 않고, 로그인·새 세션·ID 회전·로그아웃에 필요한 기본 쿠키 처리는 유지한다. 브라우저 재시작·세션 복원 시 로그인 유지는 보장하지 않는다. 웹 푸시를 받는 것만으로 로그인 기간을 연장하지 않는다. 인증 API의 자동 조회도 HTTP 활동에는 포함하며 사람의 클릭 여부를 별도로 추적하지 않는다.
 - 일반 로그아웃은 현재 세션만 무효화한다. 다른 기기·과목 구독·푸시 등록·채널 설정은 유지한다. 새로운 전체 로그아웃 UI/API는 이번 범위로 추가하지 않는다.
 - 탈퇴는 principal index의 email 후보를 찾고 저장된 userId까지 일치하는 모든 세션을 폐기한다. 같은 이메일로 재가입한 다른 userId의 세션은 지우지 않는다. 매 요청의 현재 DB id/email/미삭제 검사로 삭제·경합·재가입의 오래된 권한을 차단한다. 현재 역할도 확인하므로 세션의 과거 ADMIN 권한만 신뢰하지 않는다.
 - DB/Redis 장애는 기존 인증으로 계속 처리하거나 메모리 저장소로 대체하지 않는다. 일시 장애를 확정 로그아웃으로 바꾸지도 않으며 실패 응답으로 요청을 거절한다.
@@ -27,7 +27,7 @@
 
 웹은 변경 요청 전에 CSRF를 한 번 준비해 공유하고 헤더로 전달한다. 안전한 조회에는 준비하지 않으며, CSRF·인증 오류 뒤 원래 변경 요청을 자동 재전송하지 않는다. 401은 기존 로그인 안내/guest 흐름으로 처리하고 일반 권한 403은 로그인 상태를 지우지 않는다. 토큰 준비 중 로그아웃·계정 변경이 일어나면 이전 변경 요청은 보내지 않는다. 일시적인 저장소 오류에서는 사용자 상태를 인증 완료로 새로 승격하지 않는다.
 
-SESSION의 HttpOnly·SameSite·domain/path는 Boot의 CookieSerializer 설정을 재사용한다. 운영 프로필 템플릿은 TLS 종료 프록시 뒤에서도 Secure가 빠지지 않도록 `server.servlet.session.cookie.secure=true`를 명시한다. Compose 템플릿도 표준 `SERVER_SERVLET_SESSION_COOKIE_SECURE` 키를 사용하며 로컬 HTTP override만 false다. 실제 운영 환경은 변경하지 않았다. 공통 customizer는 max-age를 30일로 설정하고 활동 시 같은 serializer로 갱신한다. 운영 HTTPS·프록시의 실제 쿠키 플래그는 배포 전 확인해야 한다. 개발용 H2 console도 상태 변경 POST에는 CSRF가 적용되므로 기존 console HTML 양식은 토큰 전송 없이 차단될 수 있다. 운영 프로필의 H2 console 비활성화는 유지한다.
+SESSION의 HttpOnly·SameSite·domain/path는 Boot의 CookieSerializer 설정을 재사용한다. 운영 프로필 템플릿은 TLS 종료 프록시 뒤에서도 Secure가 빠지지 않도록 `server.servlet.session.cookie.secure=true`를 명시한다. Compose 템플릿도 표준 `SERVER_SERVLET_SESSION_COOKIE_SECURE` 키를 사용하며 로컬 HTTP override만 false다. 실제 운영 환경은 변경하지 않았다. 30일 max-age를 강제하던 customizer와 일반 인증 요청의 명시적 setSessionId 호출은 제거했다. Remember-me나 새 절대 만료 규칙은 추가하지 않았다. 로그아웃의 Max-Age=0 삭제 쿠키는 필요한 동작이다. 운영 HTTPS·프록시의 실제 쿠키 플래그는 배포 전 확인해야 한다. 개발용 H2 console도 상태 변경 POST에는 CSRF가 적용되므로 기존 console HTML 양식은 토큰 전송 없이 차단될 수 있다. 운영 프로필의 H2 console 비활성화는 유지한다.
 
 참고 자료는 [Spring Session Redis 구성](https://docs.spring.io/spring-session/reference/configuration/redis.html), [Spring Security CSRF](https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html)다. 실제 구현 API와 경계는 로컬 Spring Session 3.5.4·Security 6.5.7 소스를 기준으로 대조했다.
 
@@ -74,7 +74,7 @@ k6는 SESSION_COOKIE와 CSRF_TOKEN 환경변수 또는 gitignored `apps/server/s
 실제 HTTP/Redis E2E는 격리 Redis 컨테이너와 테스트 전용 HTTP 서버를 사용하고 DB 사용자 조회 경계만 가짜로 둔다. OAuth 성공 handler 이후를 실행하며 실제 Google·Discord 교환이나 운영 DB 쿼리·TLS 프록시를 검증한 것은 아니다. 마지막 Redis 장애 케이스는 해당 테스트가 만든 컨테이너만 중지한다.
 
 
-## 최종 로컬 검증 결과
+## 이전 persistent 쿠키 단계의 로컬 검증 결과
 
 - `./gradlew --offline clean check bootJar sessionTest` 통과(1분 9초). 서버 122 suite·543건과 격리 Redis HTTP 7건, 실패·오류·skip 0. Checkstyle main/test·PMD main/test 위반 0, 실행 JAR 생성 완료.
 - 최초 HTTP E2E는 Redis 7.4에서 통과했고, 현재 Compose와 같은 Redis 6 계열로 바꾼 뒤 `check bootJar sessionTest`도 통과했다(1분 10초). 실제 운영 Redis에 연결한 결과가 아니다.
@@ -93,3 +93,15 @@ k6는 SESSION_COOKIE와 CSRF_TOKEN 환경변수 또는 gitignored `apps/server/s
 ## 후속 심층 리뷰와 Blob 오류 복구
 
 `878f16f9a` 기준 심층 리뷰 뒤 사용자 승인으로 첨부 다운로드의 JSON Blob A003 오류도 현재 세대의 CSRF 캐시를 폐기하도록 수정했다. 일반 403은 구분하며, 사용자의 다음 클릭에서 새 토큰을 준비하고 자동 재전송은 하지 않는다. 웹 311건·타입/lint/build·실제 두 탭을 포함한 Playwright 9건(retries 0)이 통과했다. 남은 시간 입력·세션 응답 경합·일정 수정/삭제 경합은 코드 수정 없이 [해결안 비교](deep-review-remediation-options.md)에 근거 수준·장단점·계약 영향과 함께 남겼다.
+
+
+## 최신 결정: 기본 브라우저 세션 쿠키
+
+사용자는 브라우저 세션 쿠키 + Redis 서버 만료를 선택했다. 위 최종 동작 계약은 최신 선택을 반영한다. Redis의 미사용 30일·활동 연장은 그대로이며 브라우저 쿠키 자체의 영속 만료 연장은 제거한다. 운영 Secure·기존 HttpOnly/SameSite·CSRF/CORS·현재 사용자/권한 확인과 기기별 로그아웃·탈퇴 회수는 유지한다. 고정 30일 영속 쿠키나 Remember-me를 적용한 것이 아니다.
+
+지연 응답 경합 실험은 사용자 지시에 따라 중단했다. 중단 전 시도는 재현 fixture의 재로그인 응답이 기대한 302 대신 403여서 목표 순서의 검증을 완료하지 못했다. 이를 쿠키 덮어쓰기 또는 Redis 손상의 실행 증거로 사용하지 않는다. 심화 fixture는 최종 테스트에서 제거했고 기존 7개 실제 Redis HTTP 기본 검증은 새 쿠키 정책으로 유지한다. 실패 로그 browser-session-cookie-before.log·browser-session-cookie-race-before.log는 작업 디렉터리에 보존했다.
+
+Redis ID 회전 뒤 늦은 저장 위험은 미해결이며 추가 조사를 생략한다. mapper 보강·세대별 쿠키·잠금 등은 구현하지 않았다. 이 변경을 모든 세션 경합이나 500의 해결로 보고하지 않는다.
+
+
+최신 기본 검증 결과: clean check bootJar sessionTest 통과. 서버 543건 + 실제 격리 Redis6 HTTP 7건, 실패·오류·skip 0, Checkstyle·PMD 위반 0, 실행 JAR 생성 완료. 로그인 SESSION의 Max-Age/Expires 없음·HttpOnly/SameSite 유지, 정상 인증 응답 Set-Cookie 없음, Redis last-access/30일 interval·미사용 만료·ID 회전/CSRF·현재 logout·UID 탈퇴 회수·권한·DB/Redis 장애 거부를 확인했다. 웹은 변경하지 않아 직전 315건·브라우저 9건 결과를 반복 실행으로 집계하지 않는다. 실제 OAuth·운영 Redis/TLS는 미검증이며 심화 경합 재현은 생략했다.
