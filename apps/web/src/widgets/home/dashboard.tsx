@@ -41,7 +41,7 @@ export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse })
         </motion.div>
 
         <div className="w-full xl:w-auto flex justify-end shrink-0">
-          <DashboardCountdown upcomingSchedules={upcomingSchedules} />
+          <DashboardCountdown />
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import bhoon.sugang_helper.campus.schedule.entity.Schedule;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import lombok.AccessLevel;
@@ -33,36 +34,36 @@ public class ScheduleResponse {
     @JsonProperty("dDay")
     private String dDay;
 
-    /**
-     * 엔티티를 전달받아 현재 날짜 기준의 D-Day를 계산한 후 응답 프록시로 변환합니다.
-     */
-    public static ScheduleResponse from(Schedule schedule) {
-        LocalDate today = LocalDate.now();
+    private boolean ddayEnabled;
+
+    private LocalDateTime deletedAt;
+
+    public static ScheduleResponse from(Schedule schedule, LocalDate today) {
         LocalDate startDate = schedule.getStartDate();
         LocalDate endDate = schedule.getEndDate();
 
         String dDayStr;
-        if (startDate != null && endDate != null && !today.isBefore(startDate) && !today.isAfter(endDate)) {
+        if (!today.isBefore(startDate) && !today.isAfter(endDate)) {
             dDayStr = "D-Day";
-        } else if (startDate != null && today.isBefore(startDate)) {
+        } else if (today.isBefore(startDate)) {
             long daysBetween = ChronoUnit.DAYS.between(today, startDate);
             dDayStr = "D-" + daysBetween;
-        } else if (endDate != null && today.isAfter(endDate)) {
+        } else {
             long daysAfter = ChronoUnit.DAYS.between(endDate, today);
             dDayStr = "D+" + daysAfter;
-        } else if (startDate != null) {
-            long daysBetween = ChronoUnit.DAYS.between(today, startDate);
-            if (daysBetween == 0) {
-                dDayStr = "D-Day";
-            } else if (daysBetween > 0) {
-                dDayStr = "D-" + daysBetween;
-            } else {
-                dDayStr = "D+" + Math.abs(daysBetween);
-            }
-        } else {
-            dDayStr = "D-Day";
         }
 
+        return from(schedule, dDayStr);
+    }
+
+    public static ScheduleResponse fromDday(Schedule schedule, LocalDateTime now) {
+        if (schedule.isOngoingAt(now)) {
+            return from(schedule, "진행 중");
+        }
+        return from(schedule, now.toLocalDate());
+    }
+
+    private static ScheduleResponse from(Schedule schedule, String dDayStr) {
         return ScheduleResponse.builder()
                 .id(schedule.getId())
                 .scheduleType(schedule.getScheduleType())
@@ -71,6 +72,8 @@ public class ScheduleResponse {
                 .startTime(schedule.getStartTime())
                 .endTime(schedule.getEndTime())
                 .dDay(dDayStr)
+                .ddayEnabled(schedule.isDdayEnabled())
+                .deletedAt(schedule.getDeletedAt())
                 .build();
     }
 }

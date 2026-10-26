@@ -47,7 +47,8 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
           </div>
         ) : (
           schedules?.map((event, idx) => {
-            const isDDay = event.dDay === "D-Day";
+            const isOngoing = event.dDay === "진행 중";
+            const isDDay = event.dDay === "D-Day" || isOngoing;
             return (
               <motion.div
                 key={event.id}
@@ -80,7 +81,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
                       "text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md",
                       isDDay ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-500"
                     )}>
-                      {isDDay ? "Today" : "Scheduled"}
+                      {isOngoing ? "진행 중" : isDDay ? "Today" : "Scheduled"}
                     </span>
                   </div>
                   <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 break-keep">

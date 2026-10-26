@@ -367,9 +367,9 @@ class FlywayMigrationValidationTest {
                     .locations(MIGRATION_LOCATION)
                     .load();
 
-            assertThat(head.migrate().migrationsExecuted).isEqualTo(10);
+            assertThat(head.migrate().migrationsExecuted).isEqualTo(11);
             head.validate();
-            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("28");
+            assertThat(head.info().current().getVersion().getVersion()).isEqualTo("29");
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT oauth_issuer IS NULL FROM users WHERE email = ?", Boolean.class, existingUserEmail))
                     .isTrue();

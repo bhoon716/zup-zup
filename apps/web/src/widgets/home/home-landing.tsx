@@ -133,7 +133,7 @@ export function HomeLanding() {
           </motion.p>
 
           <div className="mb-8 w-full flex justify-center">
-            <DashboardCountdown upcomingSchedules={upcomingSchedules} suppressFetch={!isClientReady || isScheduleLoading} />
+            <DashboardCountdown suppressFetch={!isClientReady || isScheduleLoading} />
           </div>
 
           <motion.div

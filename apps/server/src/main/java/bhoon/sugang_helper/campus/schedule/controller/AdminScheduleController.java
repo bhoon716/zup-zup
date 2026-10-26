@@ -12,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,17 +27,11 @@ public class AdminScheduleController {
 
     private final ScheduleService scheduleService;
 
-    /**
-     * 전체 일정의 목록(기간이 지난 일정 포함)을 최신순으로 반환합니다.
-     */
     @GetMapping
     public ResponseEntity<List<ScheduleResponse>> getAllSchedules() {
         return ResponseEntity.ok(scheduleService.getAllSchedules());
     }
 
-    /**
-     * 주어진 데이터(ScheduleRequest)를 바탕으로 데이터베이스에 새로운 일정을 추가합니다.
-     */
     @PostMapping
     public ResponseEntity<ScheduleResponse> createSchedule(
             @RequestBody @Valid ScheduleRequest request) {
@@ -46,16 +41,18 @@ public class AdminScheduleController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ScheduleResponse> updateSchedule(@PathVariable Long id,
-                                                                           @RequestBody @Valid ScheduleRequest request) {
+                                                            @RequestBody @Valid ScheduleRequest request) {
         return ResponseEntity.ok(scheduleService.updateSchedule(id, request));
     }
 
-    /**
-     * 일정 ID로 일정을 찾고 이를 데이터베이스에서 영구히 삭제합니다.
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSchedule(@PathVariable Long id) {
         scheduleService.deleteSchedule(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<ScheduleResponse> restoreSchedule(@PathVariable Long id) {
+        return ResponseEntity.ok(scheduleService.restoreSchedule(id));
     }
 }

@@ -16,11 +16,13 @@ public class ScheduleController {
 
     private final ScheduleService scheduleService;
 
-    /**
-     * 사용자의 대시보드에서 보일 최신 예정 일정들을 불러옵니다.
-     */
     @GetMapping
     public ResponseEntity<List<ScheduleResponse>> getUpcomingSchedules() {
         return ResponseEntity.ok(scheduleService.getUpcomingSchedules());
+    }
+
+    @GetMapping("/ddays")
+    public ResponseEntity<List<ScheduleResponse>> getDdaySchedules() {
+        return ResponseEntity.ok(scheduleService.getDdaySchedules());
     }
 }

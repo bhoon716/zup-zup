@@ -9,8 +9,8 @@ API 입력은 request, API 직렬화 출력은 response, 서비스·조회 내�
 | diagnostic | 1 |
 | external | 2 |
 | provider | 1 |
-| request | 27 |
-| response | 53 |
+| request | 26 |
+| response | 52 |
 | result | 28 |
 
 ## 공유·별도 역할의 판단
@@ -60,7 +60,6 @@ API 입력은 request, API 직렬화 출력은 response, 서비스·조회 내�
 - [ReviewReactionRequest](../apps/server/src/main/java/bhoon/sugang_helper/academic/review/dto/request/ReviewReactionRequest.java)
 - [ReviewUpdateRequest](../apps/server/src/main/java/bhoon/sugang_helper/academic/review/dto/request/ReviewUpdateRequest.java)
 - [AnnouncementRequest](../apps/server/src/main/java/bhoon/sugang_helper/campus/announcement/dto/request/AnnouncementRequest.java)
-- [DdaySettingRequest](../apps/server/src/main/java/bhoon/sugang_helper/campus/dday/dto/request/DdaySettingRequest.java)
 - [ScheduleRequest](../apps/server/src/main/java/bhoon/sugang_helper/campus/schedule/dto/request/ScheduleRequest.java)
 - [EmailRequest](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/dto/request/EmailRequest.java)
 - [EmailVerificationRequest](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/dto/request/EmailVerificationRequest.java)
@@ -105,7 +104,6 @@ API 입력은 request, API 직렬화 출력은 response, 서비스·조회 내�
 - [AnnouncementDetailResponse](../apps/server/src/main/java/bhoon/sugang_helper/campus/announcement/dto/response/AnnouncementDetailResponse.java)
 - [AnnouncementListResponse](../apps/server/src/main/java/bhoon/sugang_helper/campus/announcement/dto/response/AnnouncementListResponse.java)
 - [AnnouncementPreview](../apps/server/src/main/java/bhoon/sugang_helper/campus/announcement/dto/response/AnnouncementPreview.java)
-- [DdaySettingResponse](../apps/server/src/main/java/bhoon/sugang_helper/campus/dday/dto/response/DdaySettingResponse.java)
 - [ScheduleResponse](../apps/server/src/main/java/bhoon/sugang_helper/campus/schedule/dto/response/ScheduleResponse.java)
 - [ScheduleSummary](../apps/server/src/main/java/bhoon/sugang_helper/campus/schedule/dto/response/ScheduleSummary.java)
 - [DashboardNotificationResult](../apps/server/src/main/java/bhoon/sugang_helper/dashboard/dto/response/DashboardNotificationResult.java)

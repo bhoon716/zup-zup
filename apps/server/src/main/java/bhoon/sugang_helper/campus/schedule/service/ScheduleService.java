@@ -7,26 +7,49 @@ import bhoon.sugang_helper.campus.schedule.entity.Schedule;
 import bhoon.sugang_helper.campus.schedule.repository.ScheduleRepository;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import java.time.LocalDate;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ScheduleService implements UpcomingScheduleQuery {
 
     private final ScheduleRepository scheduleRepository;
+    private final Clock clock;
 
-    /**
-     * 유저용: 날짜가 지나지 않은(오늘 포함) 진행 중 또는 예정된 일정 목록을 조회
-     */
+    @Autowired
+    public ScheduleService(ScheduleRepository scheduleRepository) {
+        this(scheduleRepository, Clock.system(ZoneId.of("Asia/Seoul")));
+    }
+
+    ScheduleService(ScheduleRepository scheduleRepository, Clock clock) {
+        this.scheduleRepository = scheduleRepository;
+        this.clock = clock.withZone(ZoneId.of("Asia/Seoul"));
+    }
+
     public List<ScheduleResponse> getUpcomingSchedules() {
-        return scheduleRepository.findUpcomingSchedules(LocalDate.now())
+        LocalDateTime now = LocalDateTime.now(clock);
+        return scheduleRepository.findUpcomingSchedules(now.toLocalDate())
                 .stream()
-                .map(ScheduleResponse::from)
+                .map(schedule -> ScheduleResponse.from(schedule, now.toLocalDate()))
+                .toList();
+    }
+
+    public List<ScheduleResponse> getDdaySchedules() {
+        LocalDateTime now = LocalDateTime.now(clock);
+        return scheduleRepository.findByDdayEnabledTrueAndDeletedAtIsNullAndEndDateGreaterThanEqual(now.toLocalDate())
+                .stream()
+                .filter(schedule -> now.isBefore(schedule.endsAt()))
+                .sorted(Comparator.comparing((Schedule schedule) -> !schedule.isOngoingAt(now))
+                        .thenComparing(schedule -> schedule.isOngoingAt(now) ? schedule.endsAt() : schedule.startsAt())
+                        .thenComparing(Schedule::getId))
+                .map(schedule -> ScheduleResponse.fromDday(schedule, now))
                 .toList();
     }
 
@@ -44,49 +67,62 @@ public class ScheduleService implements UpcomingScheduleQuery {
                 .toList();
     }
 
-    /**
-     * 어드민용: 만료된 일정을 포함한 모든 일정을 시작일 역순으로 정렬하여 조회
-     */
     public List<ScheduleResponse> getAllSchedules() {
+        LocalDateTime now = LocalDateTime.now(clock);
         return scheduleRepository.findAllByOrderByStartDateDescStartTimeDesc()
                 .stream()
-                .map(ScheduleResponse::from)
+                .map(schedule -> ScheduleResponse.from(schedule, now.toLocalDate()))
                 .toList();
     }
 
-    /**
-     * 새로운 일정을 생성
-     */
     @Transactional
     public ScheduleResponse createSchedule(ScheduleRequest request) {
+        validatePeriod(request);
         Schedule schedule = Schedule.builder()
                 .scheduleType(request.getScheduleType())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
+                .ddayEnabled(Boolean.TRUE.equals(request.getDdayEnabled()))
                 .build();
-        return ScheduleResponse.from(scheduleRepository.save(schedule));
+        return ScheduleResponse.from(scheduleRepository.save(schedule), LocalDateTime.now(clock).toLocalDate());
     }
 
-    /**
-     * 특정 일정을 수정
-     */
     @Transactional
     public ScheduleResponse updateSchedule(Long id, ScheduleRequest request) {
-        Schedule schedule = getScheduleEntity(id);
+        Schedule schedule = getActiveSchedule(id);
+        validatePeriod(request);
         schedule.update(request.getScheduleType(), request.getStartDate(),
-                request.getEndDate(), request.getStartTime(), request.getEndTime());
-        return ScheduleResponse.from(schedule);
+                request.getEndDate(), request.getStartTime(), request.getEndTime(),
+                request.getDdayEnabled() == null ? schedule.isDdayEnabled() : request.getDdayEnabled());
+        return ScheduleResponse.from(schedule, LocalDateTime.now(clock).toLocalDate());
     }
 
-    /**
-     * 특정 일정을 삭제
-     */
     @Transactional
     public void deleteSchedule(Long id) {
+        getActiveSchedule(id).delete(LocalDateTime.now(clock));
+    }
+
+    @Transactional
+    public ScheduleResponse restoreSchedule(Long id) {
         Schedule schedule = getScheduleEntity(id);
-        scheduleRepository.delete(schedule);
+        schedule.restore();
+        return ScheduleResponse.from(schedule, LocalDateTime.now(clock).toLocalDate());
+    }
+
+    private Schedule getActiveSchedule(Long id) {
+        Schedule schedule = getScheduleEntity(id);
+        if (schedule.getDeletedAt() != null) {
+            throw new CustomException(ErrorCode.NOT_FOUND, "해당 일정을 찾을 수 없습니다.");
+        }
+        return schedule;
+    }
+
+    private void validatePeriod(ScheduleRequest request) {
+        if (!request.isValidPeriod()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "종료 일시는 시작 일시보다 빠를 수 없습니다.");
+        }
     }
 
     private Schedule getScheduleEntity(Long id) {

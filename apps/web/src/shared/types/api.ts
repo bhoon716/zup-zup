@@ -491,9 +491,11 @@ export interface ScheduleResponse {
   scheduleType: string;
   startDate: string; // "YYYY-MM-DD"
   endDate: string; // "YYYY-MM-DD"
-  startTime?: string; // "HH:mm"
-  endTime?: string; // "HH:mm"
+  startTime?: string | null; // "HH:mm"
+  endTime?: string | null; // "HH:mm"
   dDay: string;
+  ddayEnabled: boolean;
+  deletedAt: string | null;
 }
 
 export interface ScheduleRequest {
@@ -502,21 +504,7 @@ export interface ScheduleRequest {
   endDate: string; // "YYYY-MM-DD"
   startTime?: string; // "HH:mm"
   endTime?: string; // "HH:mm"
-}
-
-// D-Day 관련
-export interface DdaySettingResponse {
-  id: number;
-  title: string;
-  targetDate: string; // "YYYY-MM-DD"
-  targetTime?: string; // "HH:mm"
-  dDay: string;
-}
-
-export interface DdaySettingRequest {
-  title: string;
-  targetDate: string; // "YYYY-MM-DD"
-  targetTime?: string; // "HH:mm"
+  ddayEnabled?: boolean;
 }
 
 // 공지사항 관련

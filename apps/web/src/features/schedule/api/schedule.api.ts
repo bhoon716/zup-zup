@@ -1,3 +1,4 @@
+import { AxiosError, type AxiosRequestConfig } from 'axios';
 import api from '@/shared/api/client';
 import type { ScheduleRequest, ScheduleResponse } from '@/shared/types/api';
 
@@ -23,4 +24,20 @@ export const updateSchedule = async ({ id, request }: { id: number; request: Sch
 
 export const deleteSchedule = async (id: number) => {
   await api.delete(`/api/v1/admin/schedules/${id}`);
+};
+
+export const getDdaySchedules = async () => {
+  try {
+    const config = { skipAuthRefresh: true } as AxiosRequestConfig & { skipAuthRefresh: boolean };
+    const response = await api.get<ScheduleResponse[]>('/api/v1/schedules/ddays', config);
+    return response.data;
+  } catch (error) {
+    if ((error as AxiosError).response?.status === 401) return [];
+    throw error;
+  }
+};
+
+export const restoreSchedule = async (id: number) => {
+  const response = await api.patch<ScheduleResponse>(`/api/v1/admin/schedules/${id}/restore`);
+  return response.data;
 };
