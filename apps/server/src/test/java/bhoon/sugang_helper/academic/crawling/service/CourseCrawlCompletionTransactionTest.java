@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doThrow;
 
 import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
+import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogSynchronizationService;
@@ -26,6 +27,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -37,11 +39,14 @@ import org.springframework.transaction.support.TransactionTemplate;
 class CourseCrawlCompletionTransactionTest {
 
     private static final String COURSE_KEY = "2026:U211600010:COMP101:01";
+    private static final String COURSE_NAME = "컴퓨터프로그래밍";
 
     @Autowired
     private PlatformTransactionManager transactionManager;
     @Autowired
     private CourseCrawlCompletionService completionService;
+    @Autowired
+    private SeatNotificationOutboxService outboxService;
     @Autowired
     private CourseRepository courseRepository;
     @Autowired
@@ -77,7 +82,13 @@ class CourseCrawlCompletionTransactionTest {
         assertThat(courseSeatHistoryRepository.count()).isEqualTo(1);
         assertThat(crawlerStatusRepository.findById(1L))
                 .hasValueSatisfying(status -> assertThat(status.getLastSuccessAt()).isNotNull());
-        assertThat(outboxRepository.count()).isEqualTo(1);
+        assertThat(outboxRepository.findAll()).singleElement().satisfies(outbox -> {
+            assertThat(outbox.getCourseKey()).isEqualTo(COURSE_KEY);
+            assertThat(outbox.getCourseName()).isEqualTo(COURSE_NAME);
+            assertThat(outbox.getProfessor()).isEqualTo("김교수");
+            assertThat(outbox.getPreviousSeats()).isZero();
+            assertThat(outbox.getCurrentSeats()).isEqualTo(1);
+        });
     }
 
     @Test
@@ -120,11 +131,22 @@ class CourseCrawlCompletionTransactionTest {
         assertThat(outboxRepository.count()).isZero();
     }
 
+    @Test
+    void rejectsEnqueueOutsideTheCatalogTransaction() {
+        // given
+        SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, "김교수", 0, 1);
+
+        // when & then
+        assertThatThrownBy(() -> outboxService.enqueue(event))
+                .isInstanceOf(IllegalTransactionStateException.class);
+        assertThat(outboxRepository.count()).isZero();
+    }
+
     private Course fullCourse() {
         return Course.builder()
                 .courseKey(COURSE_KEY)
                 .subjectCode("COMP101")
-                .name("컴퓨터프로그래밍")
+                .name(COURSE_NAME)
                 .classNumber("01")
                 .professor("김교수")
                 .capacity(60)
@@ -143,7 +165,7 @@ class CourseCrawlCompletionTransactionTest {
                 courseKey,
                 "COMP101",
                 null,
-                "컴퓨터프로그래밍",
+                COURSE_NAME,
                 "01",
                 "김교수",
                 60,
