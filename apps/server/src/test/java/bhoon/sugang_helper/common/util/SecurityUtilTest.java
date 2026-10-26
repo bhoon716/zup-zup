@@ -24,7 +24,7 @@ class SecurityUtilTest {
     @Test
     @DisplayName("현재 사용자 이메일 추출 성공")
     void getCurrentUserEmail_success() {
-        // given
+
         String email = "test@example.com";
         SecurityContext securityContext = mock(SecurityContext.class);
         Authentication authentication = mock(Authentication.class);
@@ -33,22 +33,22 @@ class SecurityUtilTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
 
-        // when
+
         String result = SecurityUtil.getCurrentUserEmail();
 
-        // then
+
         assertThat(result).isEqualTo(email);
     }
 
     @Test
     @DisplayName("인증 정보가 없을 때 예외 발생")
     void getCurrentUserEmail_no_authentication() {
-        // given
+
         SecurityContextHolder.clearContext();
 
-        // when & then
+
         assertThatThrownBy(SecurityUtil::getCurrentUserEmail)
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AUTHENTICATION_REQUIRED);
     }
 }

@@ -16,9 +16,9 @@ interface FeedbackListProps {
   getStatusBadge: (status: FeedbackStatus) => React.ReactNode;
 }
 
-/**
- * 사용자가 작성한 문의 및 건의 목록을 보여주는 컴포넌트입니다.
- */
+
+
+
 export function FeedbackList({
   isLoading,
   feedbackList,

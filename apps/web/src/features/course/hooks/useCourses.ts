@@ -15,7 +15,7 @@ export const useCourses = (
     enabled: options?.enabled ?? true,
     queryFn: async ({ pageParam = 0 }) => {
       const response = await courseApi.searchCourses(condition, pageParam as number);
-      const sliceData = response.data;
+      const sliceData = response;
 
       let courses: Course[] = [];
       if ('content' in sliceData) {
@@ -24,7 +24,7 @@ export const useCourses = (
         courses = sliceData;
       }
 
-      // 백엔드 응답 필드명이 달라도 화면에서 동일한 속성으로 다루도록 정규화한다.
+
       const normalizedCourses = courses.map(course => normalizeCourse(course));
 
       return {
@@ -58,7 +58,7 @@ export const useCourseHistory = (courseKey: string) => {
     queryKey: ['course-history', courseKey],
     queryFn: async ({ pageParam }) => {
       const response = await courseApi.getCourseHistory(courseKey, pageParam);
-      return response.data;
+      return response;
     },
     enabled: !!courseKey,
     initialPageParam: 0,
@@ -71,7 +71,7 @@ export const useCourseDetail = (courseKey: string) => {
     queryKey: ['course-detail', courseKey],
     queryFn: async () => {
       const response = await courseApi.getCourseDetail(courseKey);
-      const course = response.data;
+      const course = response;
       if (!course) return null;
 
       return normalizeCourse(course);
@@ -84,7 +84,7 @@ export const useSearchDefaultSemester = () => {
     queryKey: ['courses', 'search-default-semester'],
     queryFn: async () => {
       const response = await courseApi.getSearchDefaultSemester();
-      return response.data;
+      return response;
     },
     staleTime: 1000 * 60 * 60,
   });

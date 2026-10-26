@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check local Markdown links across the repository."""
+"""저장소 전체의 Markdown 내부 링크가 유효한지 검사합니다."""
 
 from __future__ import annotations
 
@@ -185,7 +185,7 @@ def find_broken_links_in_markdown(markdown_path: Path, root: Path) -> list[Broke
                     source=markdown_path,
                     line=line_number,
                     target=target,
-                    reason="missing file",
+                    reason="파일 없음",
                 )
             )
             continue
@@ -201,7 +201,7 @@ def find_broken_links_in_markdown(markdown_path: Path, root: Path) -> list[Broke
                         source=markdown_path,
                         line=line_number,
                         target=target,
-                        reason="missing heading",
+                    reason="제목 없음",
                     )
                 )
 
@@ -221,13 +221,13 @@ def _format_broken_link(item: BrokenLink, root: Path) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Check local Markdown links across the repository."
+        description="저장소 전체에서 Markdown 내부 링크가 유효한지 검사합니다."
     )
     parser.add_argument(
         "--root",
         type=Path,
         default=Path(__file__).resolve().parents[2],
-        help="Repository root to scan.",
+        help="검사할 저장소 루트 경로.",
     )
     args = parser.parse_args(argv)
 
@@ -236,10 +236,10 @@ def main(argv: list[str] | None = None) -> int:
     if broken:
         for item in broken:
             print(_format_broken_link(item, root))
-        print(f"Broken links: {len(broken)}", file=sys.stderr)
+        print(f"깨진 링크: {len(broken)}개", file=sys.stderr)
         return 1
 
-    print(f"OK: checked {len(scan_markdown_files(root))} markdown files")
+    print(f"확인 완료: Markdown 파일 {len(scan_markdown_files(root))}개 검사")
     return 0
 
 

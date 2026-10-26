@@ -31,7 +31,7 @@ class CustomAuthenticationEntryPointTest {
         assertThat(response.getContentType()).startsWith("application/json");
         assertThat(json.get("status").asInt()).isEqualTo(401);
         assertThat(json.get("code").asText()).isEqualTo("A001");
-        assertThat(json.get("message").asText()).isEqualTo("유효하지 않은 토큰입니다.");
+        assertThat(json.get("message").asText()).isEqualTo("로그인이 필요합니다.");
         assertThat(json.get("path").asText()).isEqualTo("/api/v1/users/devices/token/[REDACTED]");
         assertThat(json.has("details")).isFalse();
         assertThat(json.get("correlationId").asText()).isNotBlank();

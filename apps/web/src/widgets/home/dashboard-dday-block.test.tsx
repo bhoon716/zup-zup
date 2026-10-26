@@ -15,6 +15,8 @@ function createSchedule(id: number): ScheduleResponse {
     startDate: "2026-07-23",
     endDate: "2026-07-23",
     dDay: `D-${id}`,
+    ddayEnabled: false,
+    deletedAt: null,
   };
 }
 
@@ -56,6 +58,13 @@ describe("DashboardDDayBlock", () => {
 
     expect(screen.getByText("현재 등록된 주요 일정이 없습니다.")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "주요 일정 목록" })).not.toBeInTheDocument();
+  });
+
+  it("대표 지정되지 않은 일정과 진행 중인 일정도 일반 목록에 표시한다", () => {
+    render(<DashboardDDayBlock upcomingSchedules={[{ ...createSchedule(1), dDay: "진행 중" }, createSchedule(2)]} />);
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getAllByText("진행 중")).toHaveLength(2);
+    expect(screen.getByText("주요 일정 2")).toBeInTheDocument();
   });
 
   it("로딩 중에는 기존 높이를 유지하면서 진행 상태를 알린다", () => {

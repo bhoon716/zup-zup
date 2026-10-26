@@ -15,15 +15,11 @@ describe("useHealth hook", () => {
 
   it("헬스체크 데이터를 조회한다", async () => {
     vi.mocked(healthApi.checkHealth).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: {
         status: "UP",
         version: "1.0.0",
         buildTime: "2026-02-17T00:00:00",
         timestamp: "2026-02-17T12:00:00",
-      },
-    } as never);
+      } as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);

@@ -9,7 +9,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   flyway:
-    # DDL credentials remain in the one-shot Compose migrator, never in the runtime JVM.
+
     enabled: false
     baseline-on-migrate: true
     baseline-version: 3
@@ -57,35 +57,16 @@ spring:
   mail:
     from: no-reply@zup-zup.com
     from-name: 줍줍
-    properties:
-      mail:
-        smtp:
-          connectiontimeout: ${SPRING_MAIL_SMTP_CONNECTIONTIMEOUT:5000}
-          timeout: ${SPRING_MAIL_SMTP_TIMEOUT:5000}
-          writetimeout: ${SPRING_MAIL_SMTP_WRITETIMEOUT:5000}
 
 server:
   shutdown: graceful
   servlet:
     session:
-      timeout: 2h
-
-springdoc:
-  api-docs:
-    enabled: false
-  swagger-ui:
-    enabled: false
-
-jwt:
-  secret: ${JWT_SECRET}
-  access:
-    expiration: 7200000
-  refresh:
-    expiration: 1209600000
+      timeout: 30d
+      cookie:
+        secure: true
 
 app:
-  auth:
-    refresh-cookie-secure: ${APP_AUTH_REFRESH_COOKIE_SECURE:true}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
     require-https: ${APP_CORS_REQUIRE_HTTPS:true}
@@ -110,8 +91,6 @@ app:
         open-seconds: ${APP_NOTIFICATION_PROVIDER_CIRCUIT_OPEN_SECONDS:30}
     outbox:
       poll-ms: ${APP_NOTIFICATION_OUTBOX_POLL_MS:5000}
-      worker-threads: ${APP_NOTIFICATION_OUTBOX_WORKER_THREADS:8}
-      queue-capacity: ${APP_NOTIFICATION_OUTBOX_QUEUE_CAPACITY:32}
       batch-size: ${APP_NOTIFICATION_OUTBOX_BATCH_SIZE:50}
       max-attempts: ${APP_NOTIFICATION_OUTBOX_MAX_ATTEMPTS:5}
       lease-seconds: ${APP_NOTIFICATION_OUTBOX_LEASE_SECONDS:60}

@@ -17,9 +17,9 @@ interface FeedbackDetailViewProps {
   getTypeIcon: (type: FeedbackType) => React.ReactNode;
 }
 
-/**
- * 문의 및 건의사항의 상세 내용과 운영진 답변을 보여주는 컴포넌트입니다.
- */
+
+
+
 export function FeedbackDetailView({
   isLoading,
   feedbackDetail,

@@ -1,0 +1,136 @@
+package bhoon.sugang_helper.support.feedback.repository;
+
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentAccess;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentSummary;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackReplySummary;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackSummary;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
+import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+
+
+
+@Repository
+@RequiredArgsConstructor
+public class AdminFeedbackReadRepository {
+
+    private static final String DELETED_AT_COLUMN = "deleted_at";
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public Page<AdminFeedbackSummary> findFeedbacks(AdminFeedbackDeletionFilter deletionFilter, Pageable pageable) {
+        String condition = deletionCondition(deletionFilter);
+        Long total = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM feedbacks f WHERE " + condition, Long.class);
+        String sql = """
+                SELECT f.id, f.user_id AS author_id, f.type, f.title, f.status, f.created_at, f.deleted_at,
+                       EXISTS (SELECT 1 FROM feedback_replies r WHERE r.feedback_id = f.id) AS has_replies
+                FROM feedbacks f
+                WHERE %s
+                ORDER BY f.created_at DESC, f.id DESC
+                LIMIT ? OFFSET ?
+                """.formatted(condition);
+        List<AdminFeedbackSummary> content = jdbcTemplate.query(sql,
+                (resultSet, rowNum) -> new AdminFeedbackSummary(
+                        resultSet.getLong("id"),
+                        FeedbackType.valueOf(resultSet.getString("type")),
+                        resultSet.getString("title"),
+                        FeedbackStatus.valueOf(resultSet.getString("status")),
+                        resultSet.getObject("created_at", LocalDateTime.class),
+                        resultSet.getBoolean("has_replies"),
+                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
+                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class),
+                        resultSet.getObject("author_id", Long.class)),
+                pageable.getPageSize(), offset(pageable));
+        return new PageImpl<>(content, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()), total);
+    }
+
+    public Optional<AdminFeedbackDetail> findFeedbackDetail(Long feedbackId) {
+        List<AdminFeedbackDetail> details = jdbcTemplate.query("""
+                        SELECT f.id, f.user_id AS author_id, f.type, f.title, f.content, f.status, f.created_at, f.deleted_at
+                        FROM feedbacks f
+                        WHERE f.id = ?
+                        """,
+                (resultSet, rowNum) -> new AdminFeedbackDetail(
+                        resultSet.getLong("id"),
+                        FeedbackType.valueOf(resultSet.getString("type")),
+                        resultSet.getString("title"),
+                        resultSet.getString("content"),
+                        FeedbackStatus.valueOf(resultSet.getString("status")),
+                        resultSet.getObject("created_at", LocalDateTime.class),
+                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
+                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class),
+                        resultSet.getObject("author_id", Long.class)),
+                feedbackId);
+        return details.stream().findFirst();
+    }
+
+    public List<AdminFeedbackReplySummary> findReplies(Long feedbackId) {
+        return jdbcTemplate.query("""
+                        SELECT id, content, created_at, updated_at, deleted_at
+                        FROM feedback_replies
+                        WHERE feedback_id = ?
+                        ORDER BY created_at ASC, id ASC
+                        """,
+                (resultSet, rowNum) -> new AdminFeedbackReplySummary(
+                        resultSet.getLong("id"),
+                        resultSet.getString("content"),
+                        resultSet.getObject("created_at", LocalDateTime.class),
+                        resultSet.getObject("updated_at", LocalDateTime.class),
+                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
+                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class)),
+                feedbackId);
+    }
+
+    public List<AdminFeedbackAttachmentSummary> findAttachments(Long feedbackId) {
+        return jdbcTemplate.query("""
+                        SELECT id
+                        FROM feedback_attachments
+                        WHERE feedback_id = ?
+                        ORDER BY id ASC
+                        """,
+                (resultSet, rowNum) -> new AdminFeedbackAttachmentSummary(resultSet.getLong("id")),
+                feedbackId);
+    }
+
+    public Optional<AdminFeedbackAttachmentAccess> findAttachmentForAdmin(Long feedbackId, Long attachmentId) {
+        List<AdminFeedbackAttachmentAccess> attachments = jdbcTemplate.query("""
+                        SELECT a.id, a.feedback_id, a.file_url, a.original_name
+                        FROM feedback_attachments a
+                        INNER JOIN feedbacks f ON f.id = a.feedback_id
+                        WHERE a.feedback_id = ?
+                          AND a.id = ?
+                        """,
+                (resultSet, rowNum) -> new AdminFeedbackAttachmentAccess(
+                        resultSet.getLong("id"),
+                        resultSet.getLong("feedback_id"),
+                        resultSet.getString("file_url"),
+                        resultSet.getString("original_name")),
+                feedbackId,
+                attachmentId);
+        return attachments.stream().findFirst();
+    }
+
+    private String deletionCondition(AdminFeedbackDeletionFilter deletionFilter) {
+        return switch (deletionFilter) {
+            case ALL -> "1 = 1";
+            case ACTIVE -> "f.deleted_at IS NULL";
+            case DELETED -> "f.deleted_at IS NOT NULL";
+        };
+    }
+
+    private long offset(Pageable pageable) {
+        return (long) pageable.getPageNumber() * pageable.getPageSize();
+    }
+}

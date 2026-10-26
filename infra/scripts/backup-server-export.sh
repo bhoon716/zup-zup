@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ==============================================================================
-# OCI Server Backup Export Script
-# Mysqldump + Uploads archiving + SHA-256 sidecar generation
-# ==============================================================================
+
+
+
+
 
 RELEASE_ROOT="${RELEASE_ROOT:-/home/ubuntu/jbnu-sugang-helper}"
 BACKUP_DIR="${RELEASE_ROOT}/backups/export"
@@ -34,7 +34,7 @@ else
   echo "[BACKUP-EXPORT] WARNING: sugang-helper-mysql container is not running. Skipping DB export."
 fi
 
-# Archive uploads volume if present
+
 UPLOADS_VOL_PATH="/var/lib/docker/volumes/sugang-helper-app-uploads/_data"
 if [ -d "${UPLOADS_VOL_PATH}" ]; then
   echo "[BACKUP-EXPORT] Archiving uploads directory..."

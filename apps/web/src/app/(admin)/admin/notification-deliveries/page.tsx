@@ -33,8 +33,6 @@ const CHANNEL_LABELS: Record<NotificationDeliveryChannel, string> = {
   DISCORD: "디스코드",
 };
 
-const PAGE_SIZE = 20;
-
 const failureReason = (delivery: AdminNotificationDeliveryResponse) => {
   if (!delivery.lastError) return "-";
   return delivery.lastErrorReason || "기타 수신 실패";
@@ -72,9 +70,9 @@ function DeliveryStatusBadge({ delivery }: { delivery: AdminNotificationDelivery
   );
 }
 
-/**
- * 관리자 전용 DLQ 목록과 선택 replay 화면입니다. 이 경로는 상위 admin layout의 AdminGuard를 상속합니다.
- */
+
+
+
 export default function AdminNotificationDeliveriesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
@@ -83,7 +81,7 @@ export default function AdminNotificationDeliveriesPage() {
     isLoading: isListLoading,
     isError: isListError,
     refetch,
-  } = useAdminDlqNotificationDeliveries(page, PAGE_SIZE);
+  } = useAdminDlqNotificationDeliveries(page);
   const {
     data: selectedDelivery,
     isLoading: isDetailLoading,
@@ -91,7 +89,7 @@ export default function AdminNotificationDeliveriesPage() {
   } = useAdminNotificationDelivery(selectedId, selectedId !== null);
   const replayMutation = useReplayAdminNotificationDelivery();
   const totalPages = dlqPage?.totalPages
-    ?? Math.max(1, Math.ceil((dlqPage?.totalElements ?? 0) / PAGE_SIZE));
+    ?? Math.max(1, Math.ceil((dlqPage?.totalElements ?? 0) / (dlqPage?.size ?? 30)));
 
   const moveToPage = (nextPage: number) => {
     setSelectedId(null);

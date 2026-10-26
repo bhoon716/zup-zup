@@ -14,9 +14,9 @@ interface UserProfileProps {
   onLinkClick?: () => void;
 }
 
-/**
- * 데스크톱 환경의 사용자 프로필 및 로그아웃 버튼을 렌더링합니다.
- */
+
+
+
 export function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLoginClick }: UserProfileProps) {
   if (isLoading) return <div className="h-8 w-24 animate-pulse bg-muted/50 rounded-xl" />;
   
@@ -50,9 +50,9 @@ export function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLogi
   );
 }
 
-/**
- * 모바일 환경의 사용자 상태(프로필/로그인 유도)를 렌더링합니다.
- */
+
+
+
 export function HeaderMobileUserStatus({ user, isLoading, onLinkClick }: Omit<UserProfileProps, 'isPending' | 'onLogout' | 'onLoginClick'> & { onLinkClick: () => void }) {
   if (isLoading) return <div className="h-10 w-full animate-pulse bg-muted/50 rounded-xl" />;
 

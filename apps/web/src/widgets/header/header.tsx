@@ -26,10 +26,10 @@ import { useHasMounted } from "@/shared/hooks/useHasMounted";
 import { NavLinks } from "./ui/nav-links";
 import { HeaderDesktopUser, HeaderMobileUserStatus } from "./ui/user-status";
 
-/**
- * 애플리케이션의 최상단 공통 헤더 컴포넌트입니다.
- * 서비스 로고, 내비게이션 메뉴, PWA 설치 유도 및 사용자 인증 상태(로그인/로그아웃)를 관리합니다.
- */
+
+
+
+
 export function Header() {
   const mobileMenuTriggerId = "header-mobile-menu-trigger";
   const mobileMenuContentId = "header-mobile-menu-content";

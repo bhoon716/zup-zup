@@ -6,7 +6,6 @@ interface UseAnnouncementsParams {
   keyword?: string;
   searchType?: AnnouncementSearchType;
   page?: number;
-  size?: number;
   enabled?: boolean;
 }
 
@@ -14,13 +13,12 @@ export const useAnnouncements = (params: UseAnnouncementsParams = {}) => {
   const keyword = params.keyword?.trim() ?? "";
   const searchType = params.searchType ?? "TITLE_CONTENT";
   const page = params.page ?? 0;
-  const size = params.size ?? 20;
 
   return useQuery({
-    queryKey: ["announcements", { keyword, searchType, page, size }],
+    queryKey: ["announcements", { keyword, searchType, page }],
     queryFn: async () => {
-      const response = await announcementApi.getAnnouncements({ keyword, searchType, page, size });
-      return response.data.content;
+      const response = await announcementApi.getAnnouncements({ keyword, searchType, page });
+      return response.content;
     },
     enabled: params.enabled ?? true,
   });
@@ -31,7 +29,7 @@ export const useAnnouncement = (id: number) => {
     queryKey: ["announcements", id],
     queryFn: async () => {
       const response = await announcementApi.getAnnouncement(id);
-      return response.data;
+      return response;
     },
     enabled: Number.isFinite(id) && id > 0,
   });

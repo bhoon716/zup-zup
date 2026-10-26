@@ -1,5 +1,8 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+
+import bhoon.sugang_helper.common.dto.result.LoadedFile;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import java.io.IOException;
@@ -28,9 +31,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * 로컬 파일 시스템에 파일을 업로드하고 관리하는 서비스 클래스입니다. 파일의 무결성 검증(MIME 타입 및 확장자) 및 보안 처리를 담당합니다.
- */
+
+
+
 @Component
 @Slf4j
 public class LocalFileUploadService {
@@ -52,9 +55,9 @@ public class LocalFileUploadService {
         this.imageUploadSanitizer = imageUploadSanitizer;
     }
 
-    /**
-     * 여러 개의 이미지 파일을 업로드하고 저장된 URL 리스트를 반환합니다.
-     */
+
+
+
     public List<String> uploadImages(List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
             return new ArrayList<>();
@@ -72,7 +75,7 @@ public class LocalFileUploadService {
                 Files.createDirectories(uploadPath);
             }
         } catch (IOException e) {
-            log.error("Failed to create upload directories: {}", uploadPath, e);
+            log.error("업로드 디렉터리 생성 실패. path= {}", uploadPath, SensitiveDataRedactor.safeStackTrace(e));
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
 
@@ -84,7 +87,7 @@ public class LocalFileUploadService {
 
                 imageUploadSanitizer.validateSourceSize(file);
                 String mimeType = validateImageFile(file);
-                ImageUploadSanitizer.SanitizedImage image = imageUploadSanitizer.sanitize(file, mimeType);
+                SanitizedImage image = imageUploadSanitizer.sanitize(file, mimeType);
                 fileUrls.add(saveSanitizedImage(image, uploadPath));
             }
         } catch (RuntimeException exception) {
@@ -95,10 +98,10 @@ public class LocalFileUploadService {
         return fileUrls;
     }
 
-    /**
-     * 검증된 단일 이미지 파일을 서버 로컬 디렉토리에 저장하고 접근 URL을 반환합니다.
-     */
-    private String saveSanitizedImage(ImageUploadSanitizer.SanitizedImage image, Path uploadPath) {
+
+
+
+    private String saveSanitizedImage(SanitizedImage image, Path uploadPath) {
         String savedName = UUID.randomUUID() + "." + image.extension();
         Path filePath = uploadPath.resolve(savedName);
 
@@ -107,14 +110,14 @@ public class LocalFileUploadService {
             return UPLOAD_URL_PREFIX + savedName;
         } catch (IOException e) {
             deleteFile(filePath);
-            log.error("Failed to transfer file to {}", filePath, e);
+            log.error("파일 저장 실패. path= {}", filePath, SensitiveDataRedactor.safeStackTrace(e));
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
     }
 
-    /**
-     * 이미지 파일 여부를 MIME 타입과 확장자로 검증합니다.
-     */
+
+
+
     private String validateImageFile(MultipartFile file) {
         try (InputStream input = file.getInputStream()) {
             String mimeType = tika.detect(input);
@@ -122,7 +125,7 @@ public class LocalFileUploadService {
                 throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
             }
 
-            // 확장자 기반의 추가 검증 (화이트리스트 방식)
+
             String originalName = file.getOriginalFilename();
             if (originalName != null) {
                 String lowerName = originalName.toLowerCase();
@@ -133,7 +136,7 @@ public class LocalFileUploadService {
             }
             return mimeType;
         } catch (IOException e) {
-            log.error("Failed to validate image file", e);
+            log.error("이미지 파일 검증 실패.", SensitiveDataRedactor.safeStackTrace(e));
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
     }
@@ -199,7 +202,7 @@ public class LocalFileUploadService {
                     .filter(this::isOlderThanMinimumAge)
                     .forEach(this::deleteFile);
         } catch (IOException e) {
-            log.warn("Failed to scan upload directory for orphaned files: {}", uploadPath, e);
+            log.warn("미사용 업로드 파일 검색 실패. path= {}", uploadPath, SensitiveDataRedactor.safeStackTrace(e));
         }
     }
 
@@ -230,7 +233,7 @@ public class LocalFileUploadService {
         try {
             return Files.getLastModifiedTime(file).toInstant().isBefore(Instant.now().minus(orphanMinimumAge));
         } catch (IOException e) {
-            log.warn("Failed to read upload file metadata: {}", file, e);
+            log.warn("업로드 파일 속성 읽기 실패. path= {}", file, SensitiveDataRedactor.safeStackTrace(e));
             return false;
         }
     }
@@ -239,10 +242,7 @@ public class LocalFileUploadService {
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            log.warn("Failed to delete upload file: {}", filePath, e);
+            log.warn("업로드 파일 삭제 실패. path= {}", filePath, SensitiveDataRedactor.safeStackTrace(e));
         }
-    }
-
-    public record LoadedFile(Resource resource, MediaType contentType) {
     }
 }

@@ -64,8 +64,8 @@ if app_env.get("APP_CORS_ALLOWED_ORIGINS") != "http://localhost:3000":
     raise SystemExit("local CORS must allow only localhost frontend origin")
 if app_env.get("APP_CORS_REQUIRE_HTTPS") != "false":
     raise SystemExit("local CORS must allow HTTP localhost development")
-if app_env.get("APP_AUTH_REFRESH_COOKIE_SECURE") != "false":
-    raise SystemExit("local refresh cookies must allow HTTP localhost development")
+if app_env.get("SERVER_SERVLET_SESSION_COOKIE_SECURE") != "false":
+    raise SystemExit("local SESSION cookies must allow HTTP localhost development")
 
 migrate_env = env_map(services["migrate"])
 if migrate_env.get("FLYWAY_LOCATIONS") != "filesystem:/flyway/sql":

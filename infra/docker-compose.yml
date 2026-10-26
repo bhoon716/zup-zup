@@ -92,7 +92,7 @@ services:
       FILE_UPLOAD_DIR: /app/data/uploads
       LOG_FILE: /tmp/application.log
       APP_CORS_REQUIRE_HTTPS: "true"
-      APP_AUTH_REFRESH_COOKIE_SECURE: "true"
+      SERVER_SERVLET_SESSION_COOKIE_SECURE: "true"
       TZ: ${TZ:?TZ must be set}
     ports:
       - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT_HOST:-8080}:8080"

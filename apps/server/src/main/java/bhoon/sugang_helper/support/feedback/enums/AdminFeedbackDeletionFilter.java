@@ -1,0 +1,26 @@
+package bhoon.sugang_helper.support.feedback.enums;
+
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import java.util.Locale;
+
+
+
+
+public enum AdminFeedbackDeletionFilter {
+    ALL,
+    ACTIVE,
+    DELETED;
+
+    public static AdminFeedbackDeletionFilter from(String value) {
+        if (value == null || value.isBlank()) {
+            return ALL;
+        }
+
+        try {
+            return valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "삭제 상태 필터가 올바르지 않습니다.");
+        }
+    }
+}

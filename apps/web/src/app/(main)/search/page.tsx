@@ -77,9 +77,9 @@ function MobileKeywordSearch({ initialKeyword, isLoading, onSearch }: MobileKeyw
   );
 }
 
-/**
- * 강의 검색 페이지 메인 컴포넌트
- */
+
+
+
 export default function SearchPage() {
   const { data: defaultSemester, isLoading: isSemesterLoading } = useSearchDefaultSemester();
   const user = useAuthStore((state) => state.user);
@@ -88,7 +88,7 @@ export default function SearchPage() {
   const verifiedUser = isAuthenticated ? user : null;
   const skipPersonalFetch = isUserLoading || !verifiedUser;
 
-  // 사용자가 변경한 검색 조건
+
   const [userCondition, setUserCondition] = useState<CourseSearchCondition>({
     academicYear: FALLBACK_DEFAULT_CONDITION.academicYear,
     disclosure: FALLBACK_DEFAULT_CONDITION.disclosure,
@@ -100,7 +100,7 @@ export default function SearchPage() {
   const [sortOrder, setSortOrder] = useState<CourseSortOrder>("asc");
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
-  // 서버 학기 + 사용자 조건을 합쳐 최종 검색 조건 파생 (useEffect 없이 자동 동기화)
+
   const searchCondition = useMemo<CourseSearchCondition>(
     () => ({
       ...FALLBACK_DEFAULT_CONDITION,
@@ -154,31 +154,31 @@ export default function SearchPage() {
 
 
 
-  /**
-   * 무한 페이징 데이터를 평탄화하여 전체 강의 리스트 생성
-   */
+
+
+
   const allCourses = useMemo(
     () => data?.pages.flatMap((page) => page.content) || [],
     [data],
   );
 
-  /**
-   * 검색 조건이 변경될 때마다 갱신되는 고유 키
-   */
+
+
+
   const searchConditionKey = useMemo(
     () => JSON.stringify({ ...searchCondition, sortOption, sortOrder }),
     [searchCondition, sortOption, sortOrder],
   );
 
-  /**
-   * 활성화된 필터들을 칩(Chip) 형태로 표시하기 위한 데이터 가공
-   */
+
+
+
   const activeFilters = useMemo<FilterChip[]>(() => {
     const filters: FilterChip[] = [];
 
 
 
-    // 기존 텍스트 기반 학과 검색 칩
+
     if (searchCondition.department) {
       filters.push({
         id: "department",
@@ -318,19 +318,19 @@ export default function SearchPage() {
     return count;
   }, [searchCondition]);
 
-  /**
-   * 개별 필터 칩 삭제 핸들러입니다.
-   * 선택된 필터 속성만 검색 조건에서 제거합니다.
-   */
+
+
+
+
   const clearSingleFilter = useCallback((patch: Partial<CourseSearchCondition>) => {
     setUserCondition((prev) => ({ ...prev, ...patch }));
     setDraftCondition((prev) => ({ ...prev, ...patch }));
   }, []);
 
-  /**
-   * 모든 필터 초기화 핸들러입니다.
-   * 검색 조건을 초기 상태로 되돌리고 입력 중인 키워드도 비웁니다.
-   */
+
+
+
+
   const resetAllFilters = useCallback(() => {
     setUserCondition(resolvedDefaultCondition);
     setDraftCondition(resolvedDefaultCondition);
@@ -351,10 +351,10 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
-      {/* 모바일 검색 영역 (상단) */}
+      {                    }
       <div className="sticky top-16 z-30 border-b border-border/50 bg-white/95 px-4 py-4 backdrop-blur-md lg:hidden">
         <div className="space-y-3">
-          {/* 강의명 검색창 */}
+          {             }
           <MobileKeywordSearch
             key={draftCondition.keyword || "empty-mobile-keyword"}
             initialKeyword={draftCondition.keyword || ""}
@@ -364,7 +364,7 @@ export default function SearchPage() {
             }}
           />
 
-          {/* 상세 검색 필터 토글 버튼 */}
+          {                    }
           <button
             type="button"
             onClick={() => setIsFilterExpanded(!isFilterExpanded)}
@@ -387,7 +387,7 @@ export default function SearchPage() {
             </motion.div>
           </button>
 
-          {/* 펼쳐지는 상세 필터 본문 */}
+          {                   }
           <AnimatePresence>
             {isFilterExpanded && (
               <motion.div

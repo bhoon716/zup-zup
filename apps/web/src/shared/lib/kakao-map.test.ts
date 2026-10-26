@@ -98,7 +98,7 @@ describe("kakao-map escapeHtml 및 InfoWindow XSS 검증", () => {
       });
 
       expect(result.status).toBe("OK");
-      // InfoWindow HTML content 내 place_name이 raw HTML이 아닌 이스케이프된 형태여야 함
+
       expect(mockInfoWindowContent).not.toContain("<img src=x onerror=alert('xss')>");
       expect(mockInfoWindowContent).toContain("&lt;img src=x onerror=alert(&#39;xss&#39;)&gt; &amp; &quot;건물&quot;");
     });

@@ -9,10 +9,10 @@ import { DashboardDDayBlock } from "./dashboard-dday-block";
 import { DashboardCountdown } from "./dashboard-countdown";
 import type { DashboardSnapshotResponse } from "@/shared/types/api";
 
-/**
- * 사용자의 개인 대시보드를 렌더링하는 메인 컴포넌트입니다.
- * 환영 메시지, 수강신청 일정(세로), 공지사항, 대표 시간표, 최근 알림 및 찜한 강의 요약을 포함합니다.
- */
+
+
+
+
 export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse }) {
   const { user, notifications, primaryTimetable, upcomingSchedules, announcements } = snapshot;
 
@@ -22,7 +22,7 @@ export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse })
 
   return (
     <main className="grow py-8 md:py-12 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto w-full">
-      {/* 환영 헤더 섹션: 좌측 인사말 + 우측 종강 D-Day 바 (오른쪽 벽 정렬) */}
+      {                                                 }
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-8 gap-6 w-full">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -41,12 +41,12 @@ export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse })
         </motion.div>
 
         <div className="w-full xl:w-auto flex justify-end shrink-0">
-          <DashboardCountdown upcomingSchedules={upcomingSchedules} />
+          <DashboardCountdown />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* 좌측: 대표 시간표 (Lg 기준 7/12) - 컴팩트 사이즈 조정 */}
+        {                                          }
         <div className="lg:col-span-7 flex flex-col gap-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -58,7 +58,7 @@ export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse })
           </motion.div>
         </div>
 
-        {/* 우측: 알림 및 공지사항 (Lg 기준 5/12) - 정보 스트림 집중 */}
+        {                                            }
         <div className="lg:col-span-5 flex flex-col gap-6">
           <motion.div
             initial={{ opacity: 0, x: 20 }}

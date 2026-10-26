@@ -6,49 +6,49 @@ import { Loader2, Play, Save, Settings2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { CRAWL_SEMESTER_OPTIONS, getCrawlYearOptions } from "@/features/admin/lib/crawl-semester-options";
 
-/**
- * 관리자 크롤링 타겟 패널의 Props 인터페이스입니다.
- */
+
+
+
 interface AdminCrawlTargetPanelProps {
-  /** 현재 DB에 저장되어 스케줄러가 사용하는 년도 */
+
   configuredYear: string;
-  /** 현재 DB에 저장되어 스케줄러가 사용하는 학기 코드 */
+
   configuredSemester: string;
-  /** 기본 년도 입력 변경 핸들러 */
+
   onConfiguredYearChange: (value: string) => void;
-  /** 기본 학기 코드 입력 변경 핸들러 */
+
   onConfiguredSemesterChange: (value: string) => void;
-  /** 수정된 기본 설정을 서버에 저장합니다. */
+
   onSaveConfiguredTarget: () => void;
-  /** 현재 저장된 기본 설정으로 크롤링을 실행합니다. */
+
   onRunConfiguredTarget: () => void;
-  /** 설정 정보 로딩 상태 */
+
   isConfiguredTargetLoading: boolean;
-  /** 설정 저장 진행 상태 */
+
   isSavingConfiguredTarget: boolean;
-  /** 저장된 값으로 실행 진행 상태 */
+
   isRunningConfiguredTarget: boolean;
-  /** 저장 가능 여부 (유효성 검증 결과) */
+
   canSaveConfiguredTarget: boolean;
-  /** 1회성 실행을 위해 입력 중인 년도 */
+
   runYear: string;
-  /** 1회성 실행을 위해 입력 중인 학기 코드 */
+
   runSemester: string;
-  /** 1회성 년도 입력 변경 핸들러 */
+
   onRunYearChange: (value: string) => void;
-  /** 1회성 학기 코드 입력 변경 핸들러 */
+
   onRunSemesterChange: (value: string) => void;
-  /** 입력한 특정 값으로 크롤링을 1회 즉시 실행합니다. */
+
   onRunCustomTarget: () => void;
-  /** 1회성 실행 진행 상태 */
+
   isRunningCustomTarget: boolean;
-  /** 1회성 실행 가능 여부 */
+
   canRunCustomTarget: boolean;
 }
 
-/**
- * 관리자 크롤링 타겟 설정/실행 패널 컴포넌트입니다.
- */
+
+
+
 export function AdminCrawlTargetPanel({
   configuredYear,
   configuredSemester,

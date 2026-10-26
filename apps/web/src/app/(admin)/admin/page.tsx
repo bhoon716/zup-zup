@@ -20,10 +20,10 @@ import {
   getStatusMeta,
 } from "@/features/admin/lib/formatters";
 
-/**
- * 관리자 대시보드 페이지 메인 모니터링 컴포넌트입니다.
- * 서비스 전체의 핵심 지표, 알림 발송 실시간 트래픽, 최근 활동 로그를 통합 관제합니다.
- */
+
+
+
+
 export default function AdminDashboardPage() {
   const {
     data: snapshot,
@@ -34,14 +34,14 @@ export default function AdminDashboardPage() {
 
   const overview = snapshot?.overview;
 
-  /**
-   * 대시보드 모니터링 데이터를 최신 상태로 갱신합니다.
-   */
+
+
+
   const handleRefresh = () => {
     void refetchSnapshot();
   };
 
-  // 로딩 상태 처리
+
   if (isSnapshotLoading) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 min-h-[70dvh]">
@@ -53,7 +53,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // 에러 발생 혹은 데이터 부재 처리
+
   if (isSnapshotError || !snapshot || !overview) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 px-6 min-h-[70dvh]">
@@ -135,28 +135,28 @@ export default function AdminDashboardPage() {
         <AdminOverview serverClock={serverClockText} onRefresh={handleRefresh} />
 
         <div className="mx-auto max-w-[1920px] space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 sm:py-8 lg:space-y-12 lg:px-8">
-          {/* 주요 통계 그리드 섹션 */}
+          {                  }
           <section className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             {statItems.map((stat, i) => (
               <AdminStatCard key={stat.label} {...stat} index={i} />
             ))}
           </section>
 
-          {/* 트래픽 시각화 차트 섹션 (가독성 향상을 위해 더 넓게 배치) */}
+          {                                        }
           <section className="grid grid-cols-1 gap-12 lg:grid-cols-3">
             <div className="lg:col-span-3">
               <AdminTrafficChart traffic={overview.notificationTraffic ?? []} />
             </div>
           </section>
 
-          {/* 시스템 활동 로그 섹션 */}
+          {                  }
           <AdminActivityLog 
             logs={overview.recentLogs} 
             formatDateTime={formatDateTime}
             getLogMeta={getLogMeta}
           />
 
-          {/* 푸터 섹션 */}
+          {           }
           <footer className="py-20 text-center">
             <div className="flex items-center justify-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.3em] mb-4">
                <div className="h-px w-8 bg-slate-100"></div>

@@ -9,11 +9,11 @@ export const useDashboardSnapshot = (options?: { enabled?: boolean }) => {
     queryFn: async () => {
       try {
         const response = await dashboardApi.getDashboardSnapshot();
-        if (!response.data.user) {
+        if (!response.user) {
           return null;
         }
 
-        return response.data;
+        return response;
       } catch (error) {
         if (error && typeof error === "object" && "response" in error) {
           const responseError = error as { response?: { status?: number } };

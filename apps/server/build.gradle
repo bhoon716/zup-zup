@@ -29,7 +29,7 @@ java {
 pmd {
     toolVersion = "7.5.0"
     ruleSetFiles = files("config/pmd/pmd-ruleset.xml")
-    ruleSets = [] // 기본 룰셋 무시하고 명시한 룰셋만 사용
+    ruleSets = []
     ignoreFailures = false
     consoleOutput = true
 }
@@ -55,7 +55,7 @@ repositories {
 }
 
 dependencies {
-    // 의존성 제약 조건
+
     constraints {
         implementation('org.bitbucket.b_c:jose4j') {
             version {
@@ -80,7 +80,7 @@ dependencies {
         }
     }
 
-    // spring boot
+
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
@@ -90,70 +90,59 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
 
-    // AWS SES (이메일 발송)
+
     implementation 'io.awspring.cloud:spring-cloud-aws-starter-ses:3.3.0'
 
-    // 테스트 의존성
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'io.github.cdimascio:java-dotenv:5.2.2'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mysql'
 
-    // db
+
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-mysql'
     runtimeOnly 'com.mysql:mysql-connector-j'
     runtimeOnly 'com.h2database:h2'
     testImplementation 'com.h2database:h2'
 
-    // lombok
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // JUnit 플랫폼 런처
+
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // JWT (토큰 인증)
-    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-    implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
-    implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // 문서화 (Swagger/OpenAPI)
-    implementation('org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5') {
-        exclude group: 'org.apache.commons', module: 'commons-lang3'
-    }
-    implementation 'org.apache.commons:commons-lang3:3.18.0'
 
-    // QueryDSL (동적 쿼리)
+
     implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.0'
     annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:6.0:jpa'
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
     annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
-    // 모니터링 (Prometheus)
+
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    // HTML 파싱 (Jsoup)
-    implementation 'org.jsoup:jsoup:1.18.3'
 
-    // 세션 관리 (Redis)
     implementation 'org.springframework.session:spring-session-data-redis'
 
-    // 파이어베이스 (푸시 알림)
+
     implementation 'com.google.firebase:firebase-admin:9.7.0'
 
-    // 웹 푸시
+
     implementation 'nl.martijndwars:web-push:5.1.1'
     implementation 'org.bouncycastle:bcprov-jdk18on:1.84'
 
-    // 파일 유효성 검사 (Tika)
+
     implementation 'org.apache.tika:tika-core:3.3.0'
 }
 
 tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'manual', 'performance', 'migration'
+        excludeTags 'session'
     }
 }
 
@@ -168,6 +157,19 @@ tasks.register('migrationTest', Test) {
     }
     reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/migrationTest')
     reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/migrationTest')
+}
+
+tasks.register('sessionTest', Test) {
+    group = 'verification'
+    description = 'Runs isolated Redis session HTTP end-to-end tests.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+    useJUnitPlatform {
+        includeTags 'session'
+    }
+    reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/sessionTest')
+    reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/sessionTest')
 }
 
 task manualTest(type: Test) {

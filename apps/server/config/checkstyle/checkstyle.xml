@@ -8,21 +8,21 @@
     <property name="severity" value="warning"/>
     <property name="fileExtensions" value="java, properties, xml"/>
 
-    <!-- Excludes all 'module-info.java' files              -->
+
     <module name="BeforeExecutionExclusionFileFilter">
         <property name="fileNamePattern" value="module\-info\.java$"/>
     </module>
 
     <module name="TreeWalker">
-        <!-- Imports -->
+
         <module name="AvoidStarImport"/>
-        <module name="IllegalImport"/> <!-- defaults to sun.* packages -->
+        <module name="IllegalImport"/>
         <module name="RedundantImport"/>
         <module name="UnusedImports">
             <property name="processJavadoc" value="false"/>
         </module>
 
-        <!-- Formatting -->
+
         <module name="EmptyBlock">
             <property name="option" value="TEXT"/>
             <property name="tokens"

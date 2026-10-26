@@ -9,8 +9,8 @@
 - 실패 알림: 연속 2회 실패 후 이메일
 - 복구 알림: recovery 이메일 활성화
 - 의미: 공개 `/health`는 DB·Redis를 포함한 dependency-aware readiness이며, 프로세스 liveness 전용이 아님
-- 성공 조건: HTTP 200 및 `data.status=UP`, response body에 내부 세부정보가 없음
-- 실패 조건: DB 또는 Redis readiness가 DOWN이면 HTTP 503 및 `data.status=DOWN`
+- 성공 조건: HTTP 200 및 `status=UP`, response body에 내부 세부정보가 없음
+- 실패 조건: DB 또는 Redis readiness가 DOWN이면 HTTP 503 및 `status=DOWN`
 - timeout: provider 기본값보다 짧은 운영 승인값(예: 10초 이하)
 
 검증 절차:

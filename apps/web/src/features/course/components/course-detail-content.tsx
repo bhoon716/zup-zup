@@ -13,10 +13,10 @@ interface CourseDetailContentProps {
   course: Course;
 }
 
-/**
- * 강의 상세 정보를 보여주는 공통 콘텐츠 컴포넌트입니다.
- * 다이얼로그나 모달 내부에서 사용됩니다.
- */
+
+
+
+
 export function CourseDetailContent({ course: rawCourse }: CourseDetailContentProps) {
   const reviewScopeKey = getReviewScopeKey(rawCourse);
   const isProfessorUnassigned = !hasIdentifiableProfessor(rawCourse);
@@ -66,9 +66,9 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
   );
 }
 
-/**
- * 강의 상단 기본 정보 섹션
- */
+
+
+
 function CourseHeader({ 
   course, 
   classLabel, 
@@ -160,9 +160,9 @@ function CourseHeader({
   );
 }
 
-/**
- * 학점, 성격평가 등 강의 메타 정보 요약 그리드
- */
+
+
+
 function CourseSummaryGrid({ course }: { course: Course }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -174,9 +174,9 @@ function CourseSummaryGrid({ course }: { course: Course }) {
   );
 }
 
-/**
- * 강의 일정 및 위치 정보 섹션
- */
+
+
+
 function CourseTimeLocation({ course, mapQuery }: { course: Course; mapQuery: string }) {
   return (
     <div className="lg:col-span-2 flex flex-col h-full">
@@ -223,9 +223,9 @@ function CourseTimeLocation({ course, mapQuery }: { course: Course; mapQuery: st
   );
 }
 
-/**
- * 수강 신청 현황 (인원 및 신청률) 섹션
- */
+
+
+
 function CourseSeatStatus({ course, percent, available }: { course: Course; percent: number; available: number }) {
   const isFull = available <= 0;
   const { current = 0, capacity = 0 } = course;
@@ -283,9 +283,9 @@ function CourseSeatStatus({ course, percent, available }: { course: Course; perc
   );
 }
 
-/**
- * 학과명에서 학년 정보를 제거하고 정규화된 학과 라벨을 반환합니다.
- */
+
+
+
 function formatDepartmentLabel(department?: string, targetGradeLabel?: string): string {
   if (!department) {
     return "";
@@ -314,9 +314,9 @@ function formatDepartmentLabel(department?: string, targetGradeLabel?: string): 
     .join(", ");
 }
 
-/**
- * 학년 라벨(예: "3학년")에서 숫자(예: "3")만 추출합니다.
- */
+
+
+
 function extractGradeNumber(targetGradeLabel?: string): string | null {
   if (!targetGradeLabel) {
     return null;

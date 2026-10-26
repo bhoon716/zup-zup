@@ -1,27 +1,59 @@
-# AGENTS
+# 에이전트 지침
 
-Keep this file short. Use it as a map, not a manual.
+목차를 확인하고, 필요한 지침만 읽어라.
 
-## Start Here
+## 목차
 
-- Read `.agents/docs/index.md` first.
-- Read `.agents/issues/index.md` before creating or updating issue files.
-- Use `.agents/docs/PRD.md` for product scope and `.agents/docs/ARD.md` for architecture and deployment constraints.
-- Use `DESIGN.md` for frontend visual language, layout, typography, and component styling.
-- Use `docs/feature-updates.md` for release history and `docs/troubleshooting.md` for evidence summaries and performance notes.
-- Keep durable decisions in `docs/`, not in chat.
+1. 작업 흐름
+2. Spring / Java
+3. Test
+4. Commit Convention
+5. Documentation
 
-## Working Notes
+## 작업 흐름
 
-- Prefer small, reversible changes.
-- Think before coding: state assumptions, and ask when requirements are ambiguous.
-- Simplicity first: do not add abstractions, patterns, or new structure unless the request needs them.
-- Surgical changes only: touch only files and lines directly tied to the request.
-- Goal-driven execution: define success criteria and verify them with targeted checks before stopping.
-- Keep new docs short and specific.
-- Do not introduce a workflow framework unless the user asks for it.
+새 기능, 동작 변경, 주요 리팩토링에는 다음 흐름을 적용한다. 단순 오탈자·포맷·문서 수정은 작업 규모에 맞게 절차를 줄인다.
 
-## Notes
+1. **문제와 해결 방안 논의**
+   - 요구사항·현재 문제·제약을 확인하고 여러 해결 방안을 비교한다.
+   - 사용자가 이해하지 못한 개념이나 미해결 질문이 있으면 설명과 대화를 이어가며 정리한다. 기능 정책과 주요 기술 선택은 사용자와 합의한 뒤 확정한다.
+   - 미결정 사안은 선택지·추천·근거를 제안하는 데까지만 진행하고, 사용자가 확정하기 전에는 구현하지 않는다.
+   - “다음 작업 진행”은 기존에 합의한 범위를 이어가라는 뜻으로 해석한다. 신규 기능·화면 노출·기능 정책·주요 기술 선택을 임의로 확정하지 않는다. 합의한 범위의 구현·수정·검증은 진행하되 추가 결정이 필요한 부분은 사용자 확정 후 구현한다.
+   - 서브에이전트 사용이 허용되고 가능한 환경에서는 복잡한 문제의 브레인스토밍에 서로 다른 관점의 독립 검토를 활용한다.
+2. **기준에 따른 결정과 기록**
+   - 요구사항 충족, 인지 부채, 운영 복잡도, 신뢰성, 비용 등 해당 문제에 중요한 기준을 먼저 세운다.
+   - 기술 선택은 실제 문제와 대안 비교에 근거한다. 확인하지 않은 성능 개선이나 막연한 확장 가능성을 도입 근거로 단정하지 않는다.
+   - 합의한 결정과 근거를 문서화한 뒤 구현한다.
+3. **규칙 확인·구현·테스트**
+   - 관련 개발 규칙과 기존 의사결정을 확인하고, 합의한 범위 안에서 기능을 구현한다.
+   - Test 지침에 따라 변경한 동작을 검증한다.
+4. **코드 리뷰와 리팩토링 반복**
+   - 정확성, 요구사항 준수, 실패 처리, 보안, 과도한 복잡도를 검토한다. 서브에이전트 사용이 허용되고 가능한 환경에서는 관점별 리뷰를 병렬로 진행한다.
+   - 리뷰 지적은 코드와 근거로 확인한 뒤 수정한다. 수정한 부분을 다시 검토하고 필요한 검증을 반복하여 중요한 미해결 문제가 남지 않게 한다.
+   - 리팩토링은 실제 이해·변경 비용을 줄이는 데 집중한다. 새로운 계층이나 추상화를 추가할 때도 필요성과 비용을 비교한다.
+5. **기존 결정과의 정합성 확인**
+   - 최종 변경이 관련 `docs/decisions/`와 충돌하지 않는지 확인한다. 변경된 사용자 결정은 기존 기록 뒤에 추가하여 현재 기준을 명확히 한다.
+   - 반복적으로 확인하는 명확한 구현 제약은 기존 개발 규칙 문서에 반영하여 다음 작업에서 미리 확인할 수 있게 한다. 의사결정의 배경·대안·이력은 보존한다.
 
-- Do not paste long transcripts into logs, findings, or reviews.
-- Do not edit or delete existing log content when writing logs; always append new entries. (append-only)
+## Spring / Java
+
+- FQCN을 코드에 직접 사용하지 말고, import 후 단순 클래스명을 사용해라.
+- 조기 반환(early return)과 continue를 활용해 조건문·반복문의 불필요한 중첩을 줄이고, 코드의 들여쓰기 깊이를 낮게 유지해라.
+- Java 테스트 코드에서는 given, when, then, given & when 등의 주석 패턴을 사용해라.
+
+## Test
+
+- 테스트는 단위 테스트와 최종 E2E 테스트만 진행한다. 통합 테스트는 진행하지 않는다.
+- 기능 개발·수정 시 변경한 동작을 단위 테스트로 검증한다. 실제 DB·외부 시스템과의 연결을 확인할 필요가 있으면 최종 E2E 테스트를 추가한다.
+- 실행하지 못한 검증과 남은 문제는 완료 보고에 명시한다.
+
+## Commit Convention
+
+- AngularJS commit message rule과 한국어를 사용해라.
+
+## Documentation
+
+- 내가 중요한 의사결정을 내리면, 저장 여부를 따로 묻지 말고 항상 해당 내용을 `docs/decisions/`에 기록해.
+- 유사한 의사결정 문서가 있으면 해당 문서에다가 추가해. 수정이나 삭제 금지(append-only).
+- 논의 중 확인한 개념·선택지·장단점·미해결 질문은 `docs/`의 관련 문서에 자동으로 정리한다. 제안과 미확정 사항은 확정된 의사결정과 구분한다.
+- 의사결정에는 해결할 문제, 선택 기준, 검토한 대안, 선택 이유, 수용한 비용·제약을 기록한다. 확인된 사실·측정 결과·추정을 구분하여 다른 개발자나 면접관도 판단 근거를 따라갈 수 있게 작성한다.

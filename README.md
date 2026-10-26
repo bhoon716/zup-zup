@@ -71,7 +71,7 @@ flowchart LR
 | 구분 | 기술 |
 | --- | --- |
 | Frontend | Next.js 16.3.0-preview.5, React 19.2.7, TanStack Query, Zustand, React Hook Form, Zod |
-| Backend | Spring Boot 3.5.9, JPA, Security, Redis, Flyway, Swagger/OpenAPI |
+| Backend | Spring Boot 3.5.9, JPA, Security, Redis, Flyway |
 | Infra | Docker Compose, MySQL, Redis, existing Nginx Proxy Manager edge, DuckDNS, external uptime monitor |
 | 운영 | Vercel, OCI A1 ARM64 |
 

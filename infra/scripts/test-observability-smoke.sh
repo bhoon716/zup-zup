@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# This smoke runs from the Docker host after the observability profile and the
-# application are started. It intentionally uses a small, digest-pinned
-# BusyBox container on the internal runtime network because Loki is distroless
-# and the production host must not publish Loki, Alloy, or Prometheus ports.
+
+
+
+
 readonly DEFAULT_PROBE_IMAGE="busybox@sha256:162f541afa4542abb43b3bc51efd26c659dd8fa8b0db3a0b8e348908d75efed1"
 readonly DEFAULT_RUNTIME_NETWORK="sugang-helper-runtime"
 readonly DEFAULT_GRAFANA_URL="http://127.0.0.1:3000"

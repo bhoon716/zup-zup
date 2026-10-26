@@ -2,19 +2,18 @@
 
 import { motion } from "framer-motion";
 import { CalendarDays } from "lucide-react";
-import { useActiveDday } from "@/features/admin/hooks/useDday";
+import { useScheduleDdays } from "@/features/schedule/hooks/useSchedules";
 import { useClientReady } from "@/shared/lib/use-client-ready";
-import type { ScheduleResponse } from "@/shared/types/api";
 
 export function DashboardCountdown({
   suppressFetch = false,
 }: {
-  upcomingSchedules?: ScheduleResponse[];
   suppressFetch?: boolean;
 } = {}) {
   const isClientReady = useClientReady();
 
-  const { data: activeDday } = useActiveDday(isClientReady && !suppressFetch);
+  const { data: schedules } = useScheduleDdays(isClientReady && !suppressFetch);
+  const activeDday = schedules?.[0];
 
   if (!activeDday) return null;
 
@@ -26,7 +25,7 @@ export function DashboardCountdown({
     >
       <CalendarDays className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
       <span className="text-[10px] sm:text-xs font-black text-indigo-600 dark:text-indigo-400 tracking-tight whitespace-nowrap">
-        앞으로 {activeDday.title}까지
+        {activeDday.dDay === "진행 중" ? activeDday.scheduleType : `앞으로 ${activeDday.scheduleType}까지`}
       </span>
       <span className="text-sm sm:text-base font-black text-gray-900 dark:text-gray-100 font-mono tracking-tight whitespace-nowrap">
         {activeDday.dDay}

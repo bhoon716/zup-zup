@@ -7,8 +7,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
@@ -36,7 +34,7 @@ class ProductionConfigTemplateTest {
         assertThat(content).contains("redirect-uri: ${GOOGLE_REDIRECT_URI}");
         assertThat(content).contains("access-key: ${AWS_ACCESS_KEY_ID}");
         assertThat(content).contains("secret-key: ${AWS_SECRET_ACCESS_KEY}");
-        assertThat(content).contains("secret: ${JWT_SECRET}");
+        assertThat(content).contains("${APP_ADMIN_AUDIT_FINGERPRINT_SECRET:${JWT_SECRET}}");
         assertThat(content).contains("allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}");
         assertThat(content).contains("success-redirect-uri: ${APP_OAUTH2_SUCCESS_REDIRECT_URI}");
         assertThat(content).contains("failure-redirect-uri: ${APP_OAUTH2_FAILURE_REDIRECT_URI}");
@@ -85,10 +83,11 @@ class ProductionConfigTemplateTest {
                 .contains("probes:\n        enabled: true")
                 .contains("group:\n        readiness:\n          include: readinessState,db,redis")
                 .contains("prometheus:\n      access: read-only")
-                .contains("api-docs:\n    enabled: false")
-                .contains("swagger-ui:\n    enabled: false")
                 .contains("require-https: ${APP_CORS_REQUIRE_HTTPS:true}")
-                .contains("refresh-cookie-secure: ${APP_AUTH_REFRESH_COOKIE_SECURE:true}")
+                .contains("timeout: 30d")
+                .contains("cookie:\n        secure: true")
+                .doesNotContain("\njwt:\n")
+                .doesNotContain("refresh-cookie-secure:")
                 .doesNotContain("include: health, info, prometheus");
     }
 
@@ -101,12 +100,5 @@ class ProductionConfigTemplateTest {
                 .contains("connect-timeout: 2s");
     }
 
-    @Test
-    void localJwtFallbackMeetsJjwtHmacMinimum() throws IOException {
-        String content = readClasspathResource("application.yml");
-        Matcher matcher = Pattern.compile("secret: \\$\\{JWT_SECRET:([^}]+)\\}").matcher(content);
 
-        assertThat(matcher.find()).isTrue();
-        assertThat(matcher.group(1).getBytes(StandardCharsets.UTF_8)).hasSizeGreaterThanOrEqualTo(32);
-    }
 }

@@ -3,9 +3,11 @@ package bhoon.sugang_helper.common.error;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.common.response.ErrorResponse;
+import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import ch.qos.logback.core.read.ListAppender;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -40,8 +42,34 @@ class GlobalExceptionHandlerTest {
                 assertThat(event.getFormattedMessage())
                         .contains("[API_ERROR] correlationId=" + response.getBody().getCorrelationId());
                 assertThat(event.getThrowableProxy()).isNotNull();
-                assertThat(event.getThrowableProxy().getClassName()).isEqualTo(exception.getClass().getName());
+                assertThat(event.getThrowableProxy().getMessage()).contains(exception.getClass().getName());
             });
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void renderedStackKeepsOriginalFramesAndCauseTypesWithoutSensitiveMessages() {
+        Exception cause = new IllegalArgumentException("cookie=session-secret query=private-user@example.com");
+        Exception exception = new IllegalStateException("authorization=Bearer top-secret", cause);
+        exception.addSuppressed(new IllegalStateException("password=suppressed-secret"));
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            new GlobalExceptionHandler().handleAny(new MockHttpServletRequest("GET", REQUEST_PATH), exception);
+            ILoggingEvent event = appender.list.getFirst();
+            String rendered = event.getFormattedMessage() + ThrowableProxyUtil.asString(event.getThrowableProxy());
+            assertThat(rendered)
+                    .contains(IllegalStateException.class.getName(), IllegalArgumentException.class.getName(),
+                            "Suppressed:", "Caused by:", "renderedStackKeepsOriginalFramesAndCauseTypes")
+                    .doesNotContain("session-secret", "private-user@example.com", "top-secret", "suppressed-secret");
+            assertThat(event.getThrowableProxy().getStackTraceElementProxyArray()[0].getStackTraceElement())
+                    .isEqualTo(exception.getStackTrace()[0]);
+            assertThat(exception.getMessage()).contains("top-secret");
         } finally {
             logger.detachAppender(appender);
             appender.stop();
@@ -96,10 +124,10 @@ class GlobalExceptionHandlerTest {
                 assertThat(event.getThrowableProxy()).isNotNull();
                 assertThat(event.getFormattedMessage()).contains(STACK_TRACE_INCLUDED);
             });
-            assertThat(appender.list.get(0).getThrowableProxy().getCause().getClassName())
-                    .isEqualTo(IllegalArgumentException.class.getName());
-            assertThat(appender.list.get(1).getThrowableProxy().getCause().getClassName())
-                    .isEqualTo(UnsupportedOperationException.class.getName());
+            assertThat(appender.list.get(0).getThrowableProxy().getCause().getMessage())
+                    .contains(IllegalArgumentException.class.getName());
+            assertThat(appender.list.get(1).getThrowableProxy().getCause().getMessage())
+                    .contains(UnsupportedOperationException.class.getName());
         } finally {
             logger.detachAppender(appender);
             appender.stop();

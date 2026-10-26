@@ -27,7 +27,7 @@ export function CourseDetailFilters({
   condition,
   setCondition,
 }: CourseDetailFiltersProps) {
-  // 이수 구분 옵션들 평탄화 (그룹별 라벨 포함)
+
   const classificationOptions = React.useMemo(() => CLASSIFICATION_GROUPS.flatMap((group) =>
     group.items.map((item) => ({
       label: `${group.label}: ${item}`,
@@ -35,7 +35,7 @@ export function CourseDetailFilters({
     })),
   ), []);
 
-  // 성적 평가 옵션들 평탄화
+
   const gradingOptions = React.useMemo(() =>
     GRADING_GROUPS.flatMap((group) =>
       group.items.map((item) => ({
@@ -44,25 +44,25 @@ export function CourseDetailFilters({
       })),
     ), []);
 
-  // 강의 언어 옵션
+
   const languageOptions = React.useMemo(() => LANGUAGES.map((lang) => ({
     label: lang,
     value: lang,
   })), []);
 
-  // 학점 옵션
+
   const creditOptions = React.useMemo(() => CREDITS.map((credit) => ({
     label: `${credit}학점`,
     value: credit,
   })), []);
 
-  // 강의 방식 옵션
+
   const directionOptions = React.useMemo(() => COURSE_DIRECTIONS.map((dir) => ({
     label: dir,
     value: dir,
   })), []);
 
-  // 대상 학년 옵션
+
   const gradeOptions = React.useMemo(() => TARGET_GRADES.map((grade) => ({
     label: grade === "GRADUATE" ? "대학원" : `${grade}학년`,
     value: grade,
@@ -70,7 +70,7 @@ export function CourseDetailFilters({
 
   return (
     <div className="space-y-4">
-      {/* 이수 구분 */}
+      {           }
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">이수 구분</Label>
         <MultiSelectFilter
@@ -87,7 +87,7 @@ export function CourseDetailFilters({
         />
       </div>
 
-      {/* 강의 언어 */}
+      {           }
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">강의 언어</Label>
         <MultiSelectFilter
@@ -104,7 +104,7 @@ export function CourseDetailFilters({
         />
       </div>
 
-      {/* 성적 평가 */}
+      {           }
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">성적 평가</Label>
         <MultiSelectFilter
@@ -121,7 +121,7 @@ export function CourseDetailFilters({
         />
       </div>
 
-      {/* 학점 */}
+      {        }
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">학점</Label>
         <MultiSelectFilter
@@ -138,7 +138,7 @@ export function CourseDetailFilters({
         />
       </div>
 
-      {/* 강의 방식 */}
+      {           }
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">강의 방식</Label>
         <MultiSelectFilter
@@ -155,7 +155,7 @@ export function CourseDetailFilters({
         />
       </div>
 
-      {/* 대상 학년 */}
+      {           }
       <div className="space-y-1.5">
         <Label className="text-[11px] font-bold text-muted-foreground">대상 학년</Label>
         <MultiSelectFilter

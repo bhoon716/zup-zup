@@ -9,9 +9,9 @@ import { useFeedbackDetail, useDeleteFeedback } from "@/features/feedback/hooks/
 import { FeedbackType } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
 
-/**
- * 건의사항 상세 페이지 컴포넌트
- */
+
+
+
 export default function FeedbackDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const resolvedParams = use(params);

@@ -25,9 +25,9 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setCharacterEncoding("UTF-8");
 
-        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.INVALID_TOKEN, request.getRequestURI());
+        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.AUTHENTICATION_REQUIRED, request.getRequestURI());
         response.setHeader("X-Error-Id", errorResponse.getCorrelationId());
-        log.warn("[AUTHENTICATION_FAILED] correlationId={} method={} path={} exceptionType={}",
+        log.warn("[AUTHENTICATION_FAILED] 인증 실패. correlationId={} method={} path={} exceptionType={}",
                 errorResponse.getCorrelationId(), request.getMethod(), errorResponse.getPath(),
                 authException.getClass().getSimpleName());
         objectMapper.writeValue(response.getWriter(), errorResponse);

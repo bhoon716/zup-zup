@@ -4,7 +4,7 @@ import * as webPush from '@/features/user/lib/webpush';
 import { extractSubscriptionKeys } from '@/features/user/lib/webpush';
 import * as userApi from '@/features/user/api/user.api';
 import { toast } from 'sonner';
-import { reportClientError } from '@/shared/telemetry/client-error';
+import { buildClientErrorEvent, reportClientError } from '@/shared/telemetry/client-error';
 
 export const useWebPush = () => {
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,7 @@ export const useWebPush = () => {
       let alias = customAlias;
       
       if (!alias) {
-          // 사용자 지정 별칭이 없으면 기기/브라우저 정보를 조합해 기본 이름을 만든다.
+
           alias = "Unknown Device";
           if (ua.includes("Win")) alias = "Windows PC";
           else if (ua.includes("Mac")) alias = "Mac";
@@ -69,7 +69,8 @@ export const useWebPush = () => {
         try {
           await userApi.unregisterDevice(token);
         } catch (e) {
-          console.warn('Backend unregistration failed (might be already deleted)', e);
+          console.warn('서버의 웹 푸시 기기 해제 실패. 브라우저 구독 해제는 계속 진행.',
+            buildClientErrorEvent(e, { source: "web-push", operation: "unregister-device" }));
         }
 
         await subscription.unsubscribe();

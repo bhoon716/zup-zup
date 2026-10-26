@@ -58,40 +58,22 @@ const mockDetail = {
 };
 
 const handlers = [
+  http.get('*/api/auth/csrf', () => HttpResponse.json({ token: 'timetable-csrf-token' })),
   http.get('*/api/v1/users/me', () => {
-    return HttpResponse.json({
-      code: 'SUCCESS',
-      message: 'Success',
-      data: mockUser,
-    });
+    return HttpResponse.json(mockUser);
   }),
   http.get('*/api/v1/timetables', () => {
-    return HttpResponse.json({
-      code: 'SUCCESS',
-      message: 'Success',
-      data: mockTimetables,
-    });
+    return HttpResponse.json(mockTimetables);
   }),
   http.get('*/api/v1/timetables/1', () => {
-    return HttpResponse.json({
-      code: 'SUCCESS',
-      message: 'Success',
-      data: mockDetail,
-    });
+    return HttpResponse.json(mockDetail);
   }),
   http.get('*/api/v1/timetables/primary', () => {
-    return HttpResponse.json({
-      code: 'SUCCESS',
-      message: 'Success',
-      data: mockDetail,
-    });
+    return HttpResponse.json(mockDetail);
   }),
-  http.post('*/api/v1/timetables/1/courses', () => {
-    return HttpResponse.json({
-      code: 'SUCCESS',
-      message: 'Course added',
-      data: null,
-    });
+  http.post('*/api/v1/timetables/1/courses', ({ request }) => {
+    expect(request.headers.get('X-CSRF-TOKEN')).toBe('timetable-csrf-token');
+    return HttpResponse.json(null);
   }),
 ];
 

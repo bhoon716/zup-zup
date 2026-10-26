@@ -1,0 +1,126 @@
+package bhoon.sugang_helper.seatalert.notification.client;
+
+import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.identity.user.service.UserDeviceService;
+import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
+import java.security.Security;
+import lombok.extern.slf4j.Slf4j;
+import nl.martijndwars.webpush.Notification;
+import nl.martijndwars.webpush.PushService;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class WebPushNotificationSender implements NotificationSender {
+
+    private final String publicKey;
+    private final String privateKey;
+    private final String subject;
+    private final ObjectMapper objectMapper;
+    private final UserDeviceService userDeviceWebPushManagement;
+    private PushService pushService;
+
+    public WebPushNotificationSender(
+            @Value("${app.webpush.public-key}") String publicKey,
+            @Value("${app.webpush.private-key}") String privateKey,
+            @Value("${app.webpush.subject}") String subject,
+            ObjectMapper objectMapper,
+            UserDeviceService userDeviceWebPushManagement) {
+        this.publicKey = publicKey;
+        this.privateKey = privateKey;
+        this.subject = subject;
+        this.objectMapper = objectMapper;
+        this.userDeviceWebPushManagement = userDeviceWebPushManagement;
+    }
+
+    @PostConstruct
+    public void init() {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+            log.info("[WebPush] 암호화 제공자 등록 완료.");
+        }
+        try {
+            if (publicKey != null && !publicKey.trim().isEmpty() &&
+                    privateKey != null && !privateKey.trim().isEmpty()) {
+                this.pushService = new PushService(publicKey, privateKey, subject);
+                log.info("[WebPush] 발송 서비스 초기화 완료.");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("웹푸시 PushService 초기화에 실패했습니다.", e);
+        }
+    }
+
+    @Override
+    public boolean supports(NotificationChannel channel) {
+        return channel == NotificationChannel.WEB;
+    }
+
+    @Override
+    public void send(NotificationTarget target, String title, String message) {
+        send(target, title, message, null);
+    }
+
+    @Override
+    public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
+        if (pushService == null) {
+            throw new CustomException(ErrorCode.WEB_PUSH_NOT_INITIALIZED);
+        }
+
+        if (target.getP256dh() == null || target.getAuth() == null) {
+            throw new CustomException(ErrorCode.WEB_PUSH_MISSING_KEYS);
+        }
+
+        userDeviceWebPushManagement.validateEndpoint(target.getRecipient());
+        String endpointFingerprint = SensitiveDataRedactor.fingerprint(target.getRecipient());
+
+        try {
+            String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/", idempotencyKey));
+            Notification.NotificationBuilder notificationBuilder = Notification.builder()
+                    .endpoint(target.getRecipient())
+                    .userPublicKey(target.getP256dh())
+                    .userAuth(target.getAuth())
+                    .payload(payload);
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+                notificationBuilder.topic(idempotencyKey);
+            }
+            Notification notification = notificationBuilder.build();
+
+            log.debug("[WebPush] 단말 발송 시작. endpointFingerprint={}", endpointFingerprint);
+            var response = pushService.send(notification);
+            int statusCode = response.getStatusLine().getStatusCode();
+
+            if (statusCode == 404 || statusCode == 410) {
+                userDeviceWebPushManagement.deleteDeviceByToken(target.getRecipient());
+                throw new NotificationProviderException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION,
+                        false, "INVALID_RECIPIENT", statusCode, null);
+            }
+
+            if (statusCode >= 400) {
+                boolean retryable = statusCode == 429 || statusCode >= 500;
+                String reason = statusCode == 429 ? "RATE_LIMIT" : statusCode >= 500 ? "OUTAGE" : "PERMANENT";
+                throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
+                        retryable, reason, statusCode, null);
+            }
+
+            log.debug("[WebPush] 단말 발송 완료. endpointFingerprint={}", endpointFingerprint);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            log.debug("[WebPush] 단말 발송 실패. endpointFingerprint={}, failureCode={}, exceptionType={}",
+                    endpointFingerprint, ErrorCode.WEB_PUSH_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
+                    true, "ERROR", null, e);
+        }
+    }
+
+    private record WebPushPayload(String title, String body, String url, String idempotencyKey) {
+    }
+}

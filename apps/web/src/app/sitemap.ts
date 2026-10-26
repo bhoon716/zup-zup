@@ -62,9 +62,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       next: { revalidate: 3600 },
     });
     if (annRes.ok) {
-      const annData = (await annRes.json()) as { data?: { id: number; updatedAt?: string }[] };
-      if (Array.isArray(annData.data)) {
-        annData.data.forEach((ann) => {
+      const annData = (await annRes.json()) as { content?: { id: number; updatedAt?: string }[] };
+      if (Array.isArray(annData.content)) {
+        annData.content.forEach((ann) => {
           dynamicRoutes.push({
             url: `${baseUrl}/announcements/${ann.id}`,
             lastModified: ann.updatedAt ? new Date(ann.updatedAt) : now,

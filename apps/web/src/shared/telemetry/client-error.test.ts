@@ -77,4 +77,19 @@ describe("client error telemetry", () => {
 
     expect(mockTrack).toHaveBeenCalledTimes(1);
   });
+  it("개발 모드에서도 오류 객체·요청 헤더·원문 메시지를 콘솔에 전달하지 않는다", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const error = Object.assign(new Error("cookie=private-cookie token=private-token"), {
+      config: { headers: { "X-XSRF-TOKEN": "private-csrf" } },
+      response: { status: 403, data: { email: "private@example.com" } },
+    });
+
+    reportClientError(error, { source: "web-push", operation: "unsubscribe" });
+
+    expect(consoleError).toHaveBeenCalledExactlyOnceWith(
+      "[ClientError] 화면 작업 실패. source=web-push type=Error",
+      { source: "web-push", error_type: "Error", fatal: false, operation: "unsubscribe", status_code: 403 },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toMatch(/private-cookie|private-token|private-csrf|private@example/);
+  });
 });

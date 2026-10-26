@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Plus, Trash2, Edit2, Loader2, Save, X } from "lucide-react";
+import { Calendar, Plus, Trash2, Edit2, Loader2, Save, X, RotateCcw } from "lucide-react";
 import {
   useAdminSchedules,
   useCreateSchedule,
   useDeleteSchedule,
   useUpdateSchedule,
-} from "@/features/admin/hooks/useAdminSchedules";
+  useRestoreSchedule,
+} from "@/features/schedule/hooks/useSchedules";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import {
@@ -15,79 +16,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectGroup,
-  SelectLabel,
 } from "@/shared/ui/select";
 import type { ScheduleResponse, ScheduleRequest } from "@/shared/types/api";
 
-/**
- * 5분 단위 시간 선택 컴포넌트
- */
-function TimePicker({ 
-  value, 
-  onChange,
-  clearLabel = "선택한 시간 초기화",
-}: { 
-  value: string; 
-  onChange: (val: string) => void; 
-  clearLabel?: string;
-}) {
-  const currentHour = value ? value.split(":")[0] : "";
-  const currentMinute = value ? value.split(":")[1] : "";
 
-  const hours = Array.from({ length: 11 }, (_, i) => (i + 8).toString().padStart(2, "0")); // 08시 ~ 18시
-  const minutes = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, "0"));
 
-  return (
-    <div className="flex items-center gap-2">
-      <Select 
-        value={currentHour} 
-        onValueChange={(h) => onChange(`${h}:${currentMinute || "00"}`)}
-      >
-        <SelectTrigger className="w-[82px] bg-white h-11 rounded-full border-slate-200 px-3">
-          <SelectValue placeholder="시" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>시</SelectLabel>
-            {hours.map((h) => (
-              <SelectItem key={h} value={h}>{h}시</SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-      <span className="text-slate-300 font-bold">:</span>
-      <Select 
-        value={currentMinute} 
-        onValueChange={(m) => onChange(`${currentHour || "00"}:${m}`)}
-      >
-        <SelectTrigger className="w-[82px] bg-white h-11 rounded-full border-slate-200 px-3">
-          <SelectValue placeholder="분" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>분 (5분)</SelectLabel>
-            {minutes.map((m) => (
-              <SelectItem key={m} value={m}>{m}분</SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-      {value && (
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-11 w-8 text-slate-300 hover:text-red-500 transition-colors"
-          aria-label={clearLabel}
-          title={clearLabel}
-          onClick={() => onChange("")}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      )}
-    </div>
-  );
-}
 
 const SCHEDULE_TYPE_OPTIONS = [
   "장바구니(예비)",
@@ -107,6 +40,7 @@ export function AdminSchedulePanel() {
   const { mutate: createSchedule, isPending: isCreating } = useCreateSchedule();
   const { mutate: updateSchedule, isPending: isUpdating } = useUpdateSchedule();
   const { mutate: deleteSchedule, isPending: isDeleting } = useDeleteSchedule();
+  const { mutate: restoreSchedule, isPending: isRestoring } = useRestoreSchedule();
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draftType, setDraftType] = useState("");
@@ -114,46 +48,50 @@ export function AdminSchedulePanel() {
   const [draftEndDate, setDraftEndDate] = useState("");
   const [draftStartTime, setDraftStartTime] = useState("");
   const [draftEndTime, setDraftEndTime] = useState("");
+  const [draftDdayEnabled, setDraftDdayEnabled] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const [isAdding, setIsAdding] = useState(false);
   const [isCustomType, setIsCustomType] = useState(false);
 
-  /**
-   * 입력 폼의 상태를 초기화하고 편집/추가 모드를 종료합니다.
-   */
+
+
+
   const resetForm = () => {
     setDraftType("");
     setDraftStartDate("");
     setDraftEndDate("");
     setDraftStartTime("");
     setDraftEndTime("");
+    setDraftDdayEnabled(false);
+    setActionError("");
     setEditingId(null);
     setIsAdding(false);
     setIsCustomType(false);
   };
 
-  /**
-   * 선택된 기존 일정을 입력 폼에 바인딩하여 편집 모드로 진입합니다.
-   */
+
+
+
   const handleEdit = (schedule: ScheduleResponse) => {
+    setActionError("");
     setEditingId(schedule.id);
     setDraftType(schedule.scheduleType);
     
-    // 기본 프리셋에 없는 경우, 커스텀 타입(기타)으로 간주
-    if (!SCHEDULE_TYPE_OPTIONS.includes(schedule.scheduleType)) {
-      setIsCustomType(true);
-    }
+
+    setIsCustomType(!SCHEDULE_TYPE_OPTIONS.includes(schedule.scheduleType));
     
     setDraftStartDate(schedule.startDate);
     setDraftEndDate(schedule.endDate);
     setDraftStartTime(schedule.startTime || "");
     setDraftEndTime(schedule.endTime || "");
+    setDraftDdayEnabled(schedule.ddayEnabled);
     setIsAdding(false);
   };
 
-  /**
-   * 편집 또는 생성 중인 일정 데이터를 백엔드로 전송하여 저장합니다.
-   */
+
+
+
   const handleSave = () => {
     const request: ScheduleRequest = {
       scheduleType: draftType,
@@ -161,16 +99,39 @@ export function AdminSchedulePanel() {
       endDate: draftEndDate,
       startTime: draftStartTime || undefined,
       endTime: draftEndTime || undefined,
+      ddayEnabled: draftDdayEnabled,
     };
 
+    setActionError("");
+    const options = {
+      onSuccess: resetForm,
+      onError: () => setActionError("일정을 저장하지 못했습니다. 다시 시도해 주세요."),
+    };
     if (editingId) {
-      updateSchedule({ id: editingId, request }, { onSuccess: resetForm });
+      updateSchedule({ id: editingId, request }, options);
     } else {
-      createSchedule(request, { onSuccess: resetForm });
+      createSchedule(request, options);
     }
   };
 
+  const handleDelete = (id: number) => {
+    if (!window.confirm("이 일정을 삭제하시겠습니까? 관리자 목록에서 다시 복원할 수 있습니다.")) return;
+    setActionError("");
+    deleteSchedule(id, {
+      onSuccess: () => { if (editingId === id) resetForm(); },
+      onError: () => setActionError("일정을 삭제하지 못했습니다. 다시 시도해 주세요."),
+    });
+  };
+
+  const handleRestore = (id: number) => {
+    setActionError("");
+    restoreSchedule(id, {
+      onError: () => setActionError("일정을 복원하지 못했습니다. 다시 시도해 주세요."),
+    });
+  };
+
   const isSaving = isCreating || isUpdating;
+  const isMutating = isSaving || isDeleting || isRestoring;
 
   return (
     <motion.section
@@ -186,7 +147,7 @@ export function AdminSchedulePanel() {
           <div>
             <h2 className="text-xl font-bold tracking-tight text-slate-900">수강 신청 일정 관리</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">
-              대시보드에 표시될 주요 일정을 추가, 수정, 삭제합니다.
+              주요 일정을 관리하고 대표 D-day를 선택합니다. 삭제한 일정은 이 목록에서 복원할 수 있습니다.
             </p>
           </div>
         </div>
@@ -202,11 +163,12 @@ export function AdminSchedulePanel() {
       </div>
 
       <div className="space-y-4">
-        {/* Form Area */}
+        {actionError && <p role="alert" className="text-sm text-red-600">{actionError}</p>}
+        {               }
         {(isAdding || editingId) && (
           <div className="flex flex-col gap-6 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100 mb-8">
-            <div className="flex flex-col xl:flex-row gap-6 xl:gap-20 xl:items-end">
-              {/* 구분 */}
+            <div className="flex flex-col gap-6">
+              {        }
               <div className="space-y-2 xl:w-[320px] shrink-0">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">구분</label>
                 {!isCustomType ? (
@@ -221,7 +183,7 @@ export function AdminSchedulePanel() {
                       }
                     }}
                   >
-                    <SelectTrigger className="w-full bg-white h-11 rounded-xl border-slate-200">
+                    <SelectTrigger aria-label="일정 구분" className="w-full bg-white h-11 rounded-xl border-slate-200">
                       <SelectValue placeholder="구분 선택" />
                     </SelectTrigger>
                     <SelectContent>
@@ -237,6 +199,7 @@ export function AdminSchedulePanel() {
                     <Input
                       value={draftType}
                       onChange={(e) => setDraftType(e.target.value)}
+                      aria-label="일정 이름"
                       placeholder="입력"
                       className="bg-white flex-1 h-11 rounded-xl border-slate-200 min-w-0"
                       autoFocus
@@ -258,12 +221,13 @@ export function AdminSchedulePanel() {
                 )}
               </div>
 
-              {/* 시작 및 종료 일시 */}
-              <div className="flex flex-col md:flex-row flex-1 gap-12 md:items-end">
-                <div className="flex flex-1 items-center gap-5">
-                  <div className="space-y-2 xl:w-[140px]">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">시작일</label>
+              {                }
+              <div className="flex flex-col lg:flex-row flex-1 gap-6 lg:items-end">
+                <div className="flex flex-1 flex-wrap items-center gap-3">
+                  <div className="space-y-2 min-w-[140px] flex-1">
+                    <label htmlFor="schedule-start-date" className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">시작일</label>
                     <Input
+                      id="schedule-start-date"
                       type="date"
                       value={draftStartDate}
                       onChange={(e) => setDraftStartDate(e.target.value)}
@@ -271,19 +235,25 @@ export function AdminSchedulePanel() {
                     />
                   </div>
                   <div className="space-y-2 shrink-0">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">시작 시간</label>
-                    <TimePicker 
-                      value={draftStartTime} 
-                      onChange={setDraftStartTime}
-                      clearLabel="시작 시간 초기화"
-                    />
+                    <label htmlFor="schedule-start-time" className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">시작 시간</label>
+                    <div className="flex items-center gap-2">
+                      <Input id="schedule-start-time" type="time" step={60} value={draftStartTime}
+                        onChange={(event) => setDraftStartTime(event.target.value)}
+                        className="bg-white h-11 w-[160px] rounded-xl border-slate-200" />
+                      {draftStartTime && <Button type="button" variant="ghost" size="icon"
+                        className="h-11 w-8 text-slate-300 hover:text-red-500"
+                        aria-label="시작 시간 초기화" onClick={() => setDraftStartTime("")}>
+                        <X className="h-4 w-4" />
+                      </Button>}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-1 items-center gap-5">
-                  <div className="space-y-2 xl:w-[140px]">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">종료일</label>
+                <div className="flex flex-1 flex-wrap items-center gap-3">
+                  <div className="space-y-2 min-w-[140px] flex-1">
+                    <label htmlFor="schedule-end-date" className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">종료일</label>
                     <Input
+                      id="schedule-end-date"
                       type="date"
                       value={draftEndDate}
                       onChange={(e) => setDraftEndDate(e.target.value)}
@@ -291,17 +261,22 @@ export function AdminSchedulePanel() {
                     />
                   </div>
                   <div className="space-y-2 shrink-0">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">종료 시간</label>
-                    <TimePicker 
-                      value={draftEndTime} 
-                      onChange={setDraftEndTime}
-                      clearLabel="종료 시간 초기화"
-                    />
+                    <label htmlFor="schedule-end-time" className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">종료 시간</label>
+                    <div className="flex items-center gap-2">
+                      <Input id="schedule-end-time" type="time" step={60} value={draftEndTime}
+                        onChange={(event) => setDraftEndTime(event.target.value)}
+                        className="bg-white h-11 w-[160px] rounded-xl border-slate-200" />
+                      {draftEndTime && <Button type="button" variant="ghost" size="icon"
+                        className="h-11 w-8 text-slate-300 hover:text-red-500"
+                        aria-label="종료 시간 초기화" onClick={() => setDraftEndTime("")}>
+                        <X className="h-4 w-4" />
+                      </Button>}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* 액션 버튼 */}
+              {           }
               <div className="flex items-center gap-1 shrink-0">
                 <Button
                   variant="outline"
@@ -322,10 +297,20 @@ export function AdminSchedulePanel() {
                 </Button>
               </div>
             </div>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={draftDdayEnabled}
+                onChange={(event) => setDraftDdayEnabled(event.target.checked)}
+                className="h-4 w-4 accent-indigo-600"
+              />
+              대표 D-day로 표시
+            </label>
+            <p className="text-xs text-slate-500">여러 일정을 선택할 수 있습니다. 진행 중인 일정, 시작이 가까운 일정 순서로 대표 표시됩니다.</p>
           </div>
         )}
 
-        {/* List Area */}
+        {               }
         <div className="mt-6">
           {isLoading ? (
             <div className="flex h-32 items-center justify-center">
@@ -347,6 +332,8 @@ export function AdminSchedulePanel() {
                       <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-black tracking-widest text-indigo-600">
                         {schedule.scheduleType}
                       </span>
+                      {schedule.ddayEnabled && <span className="rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-700">대표 D-day</span>}
+                      {schedule.deletedAt && <span className="rounded-md bg-red-50 px-2 py-0.5 text-xs font-bold text-red-600">삭제됨</span>}
                       <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-black tracking-widest text-slate-600">
                         {schedule.dDay}
                       </span>
@@ -356,13 +343,27 @@ export function AdminSchedulePanel() {
                       {" "}~{" "} 
                       {schedule.endDate} {schedule.endTime ? schedule.endTime : ""}
                     </div>
+                    {schedule.deletedAt && schedule.ddayEnabled && (
+                      <p className="text-xs text-slate-500">복원하면 이전 대표 D-day 지정도 함께 복원됩니다.</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 self-end sm:self-auto">
+                    {schedule.deletedAt ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => handleRestore(schedule.id)}
+                        disabled={isMutating}
+                        aria-label={`${schedule.scheduleType} 복원`}
+                        title="복원하면 이전 대표 D-day 지정도 복원됩니다"
+                      >
+                        <RotateCcw className="mr-1 h-4 w-4" /> 복원
+                      </Button>
+                    ) : <>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => handleEdit(schedule)}
-                      disabled={isDeleting || isSaving}
+                      disabled={isMutating}
                       className="h-9 w-9 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                       aria-label={`${schedule.scheduleType} 수정`}
                       title={`${schedule.scheduleType} 수정`}
@@ -372,14 +373,15 @@ export function AdminSchedulePanel() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => deleteSchedule(schedule.id)}
-                      disabled={isDeleting || isSaving}
+                      onClick={() => handleDelete(schedule.id)}
+                      disabled={isMutating}
                       className="h-9 w-9 text-slate-400 hover:bg-red-50 hover:text-red-600"
                       aria-label={`${schedule.scheduleType} 삭제`}
                       title={`${schedule.scheduleType} 삭제`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                    </>}
                   </div>
                 </div>
               ))}

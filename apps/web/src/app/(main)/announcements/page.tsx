@@ -24,9 +24,9 @@ import {
 } from "@/shared/ui/select";
 import { cn } from "@/shared/lib/utils";
 
-/**
- * 날짜 문자열을 한국어 양식(YYYY. MM. DD.)으로 변환합니다.
- */
+
+
+
 const formatDateTime = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -62,9 +62,9 @@ const itemVariants: Variants = {
   }
 };
 
-/**
- * 공지사항 목록을 검색 조건과 함께 렌더링하는 페이지 컴포넌트입니다.
- */
+
+
+
 export default function AnnouncementsPage() {
   const [keyword, setKeyword] = useState("");
   const [searchType, setSearchType] = useState<AnnouncementSearchType>("TITLE_CONTENT");
@@ -77,7 +77,7 @@ export default function AnnouncementsPage() {
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* 헤더 섹션 */}
+        {           }
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -94,7 +94,7 @@ export default function AnnouncementsPage() {
           </p>
         </motion.div>
 
-        {/* 검색 및 필터 섹션 */}
+        {                }
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -130,7 +130,7 @@ export default function AnnouncementsPage() {
           </div>
         </motion.div>
 
-        {/* 공지사항 목록 */}
+        {             }
         {isLoading ? (
           <div className="flex flex-col items-center justify-center rounded-3xl border border-white bg-white/50 py-24 shadow-sm backdrop-blur">
             <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
@@ -156,7 +156,7 @@ export default function AnnouncementsPage() {
                       "relative overflow-hidden rounded-[2rem] border border-white bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all duration-300 group-hover:-translate-y-1 group-hover:border-primary/20 group-hover:shadow-[0_12px_30px_rgba(0,0,0,0.06)] sm:p-7",
                       announcement.pinned && "ring-1 ring-primary/20"
                     )}>
-                      {/* 고정 뱃지 */}
+                      {           }
                       {announcement.pinned && (
                         <div className="mb-4 flex">
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black text-primary ring-1 ring-primary/30">

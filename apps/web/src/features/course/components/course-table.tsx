@@ -44,9 +44,9 @@ interface CourseTableProps {
   skipPersonalFetch?: boolean;
 }
 
-/**
- * 여석 상태에 따른 라벨 및 스타일 정보 반환
- */
+
+
+
 function getSeatStatus(available: number) {
   if (available <= 0) {
     return {
@@ -71,9 +71,9 @@ function getSeatStatus(available: number) {
   };
 }
 
-/**
- * 이수 구분에 따른 왼쪽 포인트 색상 반환
- */
+
+
+
 function getClassificationStripe(classification?: string) {
   const normalized = classification || "";
 
@@ -96,9 +96,9 @@ function getClassificationStripe(classification?: string) {
   return "bg-gray-400";
 }
 
-/**
- * 검색된 강의 목록을 표시하는 테이블 컴포넌트 (무한 스크롤 지원)
- */
+
+
+
 export function CourseTable({
   courses,
   onLoadMore,
@@ -142,9 +142,9 @@ export function CourseTable({
     [resolvedWishlist],
   );
 
-  /**
-   * 무한 스크롤을 위한 Intersection Observer 콜백
-   */
+
+
+
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const isIntersecting = entries.some((entry) => entry.isIntersecting);
@@ -174,9 +174,9 @@ export function CourseTable({
     };
   }, [handleObserver]);
 
-  /**
-   * 여석 알림 구독 상태를 토글 (구독 신청 또는 취소)
-   */
+
+
+
   const handleSubscribe = (courseKey: string) => {
     if (!resolvedUser) {
       setLoginModalOpen(true);
@@ -193,9 +193,9 @@ export function CourseTable({
     subscribe({ courseKey });
   };
 
-  /**
-   * 강의 카드를 클릭했을 때 해당 강의의 상세 정보를 다이얼로그로 표시
-   */
+
+
+
   const handleCourseClick = (course: Course) => {
     setSelectedCourse(course);
     setIsDialogOpen(true);
@@ -268,7 +268,7 @@ export function CourseTable({
                         </h2>
                       </div>
 
-                      {/* 모바일용 상단 우측 여석 상태 */}
+                      {                      }
                       <div className="flex items-center gap-2 pt-1 md:hidden">
                         <span
                           className={cn(

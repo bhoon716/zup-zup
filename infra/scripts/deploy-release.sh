@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Ubuntu-owned deploy entrypoint. The workflow copies this file to the fixed
-# release root and executes it over SSH; no privileged wrapper is needed.
+
+
 readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"
 readonly STAGING_ROOT="${RELEASE_ROOT}/.staging"
 readonly RUNTIME_ENV="${RELEASE_ROOT}/.env"

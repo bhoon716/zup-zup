@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -9,9 +11,9 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileCopyUtils;
 
-/**
- * 이메일 HTML 템플릿을 로드하고 변수를 치환하는 서비스입니다.
- */
+
+
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -19,9 +21,9 @@ public class EmailTemplateService {
 
     private static final String TEMPLATE_PATH = "templates/email/";
 
-    /**
-     * 템플릿 파일을 읽어와서 변수({{key}})를 value로 치환합니다.
-     */
+
+
+
     public String loadTemplate(String templateName, Map<String, String> values) {
         try {
             ClassPathResource resource = new ClassPathResource(TEMPLATE_PATH + templateName + ".html");
@@ -34,7 +36,7 @@ public class EmailTemplateService {
 
             return content;
         } catch (Exception e) {
-            log.error("[EmailTemplate] Failed to load template: {}", templateName, e);
+            log.error("[EmailTemplate] 이메일 템플릿 읽기 실패. template= {}", templateName, SensitiveDataRedactor.safeStackTrace(e));
             return "Content Error: " + values.toString();
         }
     }

@@ -9,6 +9,7 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.redis.LettuceClientOptionsBuilderCustomizer;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 
@@ -16,7 +17,8 @@ class RedisConfigTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(RedisAutoConfiguration.class))
-            .withUserConfiguration(RedisConfig.class)
+            .withBean(LettuceClientOptionsBuilderCustomizer.class,
+                    () -> new RedisConfig().redisClientOptionsBuilderCustomizer())
             .withPropertyValues(
                     "spring.data.redis.host=redis",
                     "spring.data.redis.port=6379",

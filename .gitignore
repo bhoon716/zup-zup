@@ -29,7 +29,9 @@
 /apps/web/.env.local
 /apps/server/.env
 /infra/.env
+/infra/.env.loadtest.local
 /infra/.local/
+/.performance-results/
 
 # Local development launchers and runtime files
 /start.sh
