@@ -17,6 +17,7 @@ import bhoon.sugang_helper.identity.user.dto.UserIdentity;
 import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleRequest;
+import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleTimeRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.TimetableRequest;
 import bhoon.sugang_helper.planning.timetable.entity.Timetable;
 import bhoon.sugang_helper.planning.timetable.entity.TimetableEntry;
@@ -147,7 +148,7 @@ class TimetableServiceTest {
         given(timetableRepository.findById(1L)).willReturn(Optional.of(timetable));
 
         CustomScheduleRequest request = new CustomScheduleRequest("Lunch", null, List.of(
-                new CustomScheduleRequest.CustomScheduleTimeRequest("월", LocalTime.of(9, 45), LocalTime.of(10, 45),
+                new CustomScheduleTimeRequest("월", LocalTime.of(9, 45), LocalTime.of(10, 45),
                         null)));
 
         // when

@@ -12,6 +12,9 @@ import bhoon.sugang_helper.identity.user.dto.UserDisplayName;
 import bhoon.sugang_helper.identity.user.dto.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserDisplayNameQuery;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackAttachmentAccess;
+import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackDetail;
+import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackSummary;
 import bhoon.sugang_helper.support.feedback.dto.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
@@ -217,7 +220,7 @@ public class FeedbackService {
             throw new CustomException(ErrorCode.INVALID_INPUT, "첨부파일 열람을 확인해주세요.");
         }
 
-        AdminFeedbackReadRepository.FeedbackAttachmentAccess attachment = adminFeedbackReadRepository
+        AdminFeedbackAttachmentAccess attachment = adminFeedbackReadRepository
                 .findAttachmentForAdmin(feedbackId, attachmentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
         var file = fileUploadService.loadFile(attachment.fileUrl());
@@ -239,10 +242,10 @@ public class FeedbackService {
     @Transactional(readOnly = true)
     public Page<AdminFeedbackResponse> getFeedbacksForAdmin(Pageable pageable,
                                                              AdminFeedbackDeletionFilter deletionFilter) {
-        Page<AdminFeedbackReadRepository.FeedbackSummary> feedbacks = adminFeedbackReadRepository.findFeedbacks(
+        Page<AdminFeedbackSummary> feedbacks = adminFeedbackReadRepository.findFeedbacks(
                 deletionFilter, PageableGuard.requireBounded(pageable));
         Map<Long, Boolean> withdrawnByUserId = findAccountStatuses(feedbacks.getContent().stream()
-                .map(AdminFeedbackReadRepository.FeedbackSummary::authorId)
+                .map(AdminFeedbackSummary::authorId)
                 .toList());
         return feedbacks
                 .map(feedback -> new AdminFeedbackResponse(
@@ -262,7 +265,7 @@ public class FeedbackService {
      */
     @Transactional(readOnly = true)
     public AdminFeedbackDetailResponse getFeedbackDetailForAdmin(Long feedbackId) {
-        AdminFeedbackReadRepository.FeedbackDetail feedback = adminFeedbackReadRepository
+        AdminFeedbackDetail feedback = adminFeedbackReadRepository
                 .findFeedbackDetail(feedbackId)
                 .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
         Map<Long, Boolean> withdrawnByUserId = findAccountStatuses(feedback.authorId() == null

@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.academic.course.dto;
 
-import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
 import java.util.Arrays;
 import java.util.List;
@@ -20,7 +19,7 @@ public record CourseSearchCriteria(
         List<String> lectureLanguages,
         Boolean isAvailableOnly,
         String dayOfWeek,
-        List<SelectedSchedule> selectedSchedules,
+        List<CourseSelectedSchedule> selectedSchedules,
         List<String> credits,
         Integer lectureHours,
         Integer minLectureHours,
@@ -91,13 +90,5 @@ public record CourseSearchCriteria(
             throw new IllegalArgumentException("search predicate values must not be null");
         }
         return value.trim();
-    }
-
-    @Builder
-    public record SelectedSchedule(
-            CourseDayOfWeek dayOfWeek,
-            String startTime,
-            String endTime
-    ) {
     }
 }

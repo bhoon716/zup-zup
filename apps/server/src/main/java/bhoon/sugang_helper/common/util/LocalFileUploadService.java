@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.dto.LoadedFile;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import java.io.IOException;
@@ -84,7 +85,7 @@ public class LocalFileUploadService {
 
                 imageUploadSanitizer.validateSourceSize(file);
                 String mimeType = validateImageFile(file);
-                ImageUploadSanitizer.SanitizedImage image = imageUploadSanitizer.sanitize(file, mimeType);
+                SanitizedImage image = imageUploadSanitizer.sanitize(file, mimeType);
                 fileUrls.add(saveSanitizedImage(image, uploadPath));
             }
         } catch (RuntimeException exception) {
@@ -98,7 +99,7 @@ public class LocalFileUploadService {
     /**
      * 검증된 단일 이미지 파일을 서버 로컬 디렉토리에 저장하고 접근 URL을 반환합니다.
      */
-    private String saveSanitizedImage(ImageUploadSanitizer.SanitizedImage image, Path uploadPath) {
+    private String saveSanitizedImage(SanitizedImage image, Path uploadPath) {
         String savedName = UUID.randomUUID() + "." + image.extension();
         Path filePath = uploadPath.resolve(savedName);
 
@@ -241,8 +242,5 @@ public class LocalFileUploadService {
         } catch (IOException e) {
             log.warn("Failed to delete upload file: {}", filePath, e);
         }
-    }
-
-    public record LoadedFile(Resource resource, MediaType contentType) {
     }
 }

@@ -2,7 +2,7 @@ package bhoon.sugang_helper.academic.course.repository;
 
 import static bhoon.sugang_helper.academic.course.entity.QCourse.course;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCriteria;
+import bhoon.sugang_helper.academic.course.dto.CourseSelectedSchedule;
 import bhoon.sugang_helper.academic.course.entity.QCourseSchedule;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import com.querydsl.core.BooleanBuilder;
@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 final class SelectedSchedulePredicateBuilder {
 
-    BooleanExpression build(List<CourseSearchCriteria.SelectedSchedule> selectedSchedules) {
+    BooleanExpression build(List<CourseSelectedSchedule> selectedSchedules) {
         List<ValidScheduleCondition> validConditions = toValidConditions(selectedSchedules);
         if (validConditions.isEmpty()) {
             return null;
@@ -71,7 +71,7 @@ final class SelectedSchedulePredicateBuilder {
     }
 
     private List<ValidScheduleCondition> toValidConditions(
-            List<CourseSearchCriteria.SelectedSchedule> selectedSchedules) {
+            List<CourseSelectedSchedule> selectedSchedules) {
         if (selectedSchedules == null || selectedSchedules.isEmpty()) {
             return List.of();
         }
@@ -82,7 +82,7 @@ final class SelectedSchedulePredicateBuilder {
                 .toList();
     }
 
-    private Optional<ValidScheduleCondition> toValidCondition(CourseSearchCriteria.SelectedSchedule condition) {
+    private Optional<ValidScheduleCondition> toValidCondition(CourseSelectedSchedule condition) {
         if (condition.dayOfWeek() == null) {
             return Optional.empty();
         }

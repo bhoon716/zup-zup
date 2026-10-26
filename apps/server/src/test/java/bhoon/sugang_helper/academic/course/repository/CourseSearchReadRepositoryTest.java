@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.academic.course.dto.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.dto.CourseSearchCriteria;
+import bhoon.sugang_helper.academic.course.dto.CourseSelectedSchedule;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.entity.CourseSchedule;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
@@ -314,12 +315,12 @@ class CourseSearchReadRepositoryTest {
         // 사용자가 월요일 9-10시, 10-11시 두 슬롯을 선택함
         CourseSearchCriteria condition = baseCondition()
                 .selectedSchedules(List.of(
-                        CourseSearchCriteria.SelectedSchedule.builder()
+                        CourseSelectedSchedule.builder()
                                 .dayOfWeek(CourseDayOfWeek.MONDAY)
                                 .startTime("09:00:00")
                                 .endTime("10:00:00")
                                 .build(),
-                        CourseSearchCriteria.SelectedSchedule.builder()
+                        CourseSelectedSchedule.builder()
                                 .dayOfWeek(CourseDayOfWeek.MONDAY)
                                 .startTime("10:00:00")
                                 .endTime("11:00:00")
@@ -374,12 +375,12 @@ class CourseSearchReadRepositoryTest {
         // 사용자가 월요일 9-10시, 수요일 13-14시를 선택함
         CourseSearchCriteria condition = baseCondition()
                 .selectedSchedules(List.of(
-                        CourseSearchCriteria.SelectedSchedule.builder()
+                        CourseSelectedSchedule.builder()
                                 .dayOfWeek(CourseDayOfWeek.MONDAY)
                                 .startTime("09:00:00")
                                 .endTime("10:00:00")
                                 .build(),
-                        CourseSearchCriteria.SelectedSchedule.builder()
+                        CourseSelectedSchedule.builder()
                                 .dayOfWeek(CourseDayOfWeek.WEDNESDAY)
                                 .startTime("13:00:00")
                                 .endTime("14:00:00")

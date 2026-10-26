@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.academic.course.service;
 
 import bhoon.sugang_helper.academic.course.dto.CourseName;
+import bhoon.sugang_helper.academic.course.dto.CourseScheduleSummary;
 import bhoon.sugang_helper.academic.course.dto.CourseSummary;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
@@ -53,7 +54,7 @@ public class CourseCatalogQueryService {
                 course.getClassTime(),
                 course.getClassroom(),
                 course.getSchedules().stream()
-                        .map(schedule -> new CourseSummary.CourseScheduleSummary(
+                        .map(schedule -> new CourseScheduleSummary(
                                 schedule.getDayOfWeek().name(),
                                 schedule.getStartTime().toString(),
                                 schedule.getEndTime().toString()))

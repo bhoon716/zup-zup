@@ -31,7 +31,4 @@ public record CourseSummary(
     public boolean isMatchingTarget(String year, String semesterCode) {
         return academicYear.equals(year) && semester.equals(semesterCode);
     }
-
-    public record CourseScheduleSummary(String dayOfWeek, String startTime, String endTime) {
-    }
 }

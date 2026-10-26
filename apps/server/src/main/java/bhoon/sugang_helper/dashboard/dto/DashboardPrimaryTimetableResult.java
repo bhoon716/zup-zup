@@ -1,16 +1,16 @@
 package bhoon.sugang_helper.dashboard.dto;
 
-import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery.CourseSnapshot;
-import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery.CustomScheduleSnapshot;
-import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery.PrimaryTimetableSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.PrimaryTimetableSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.TimetableCourseSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.TimetableCustomScheduleSnapshot;
 import java.util.List;
 
 public record DashboardPrimaryTimetableResult(
         Long id,
         String name,
         boolean isPrimary,
-        List<CourseSnapshot> courses,
-        List<CustomScheduleSnapshot> customSchedules,
+        List<TimetableCourseSnapshot> courses,
+        List<TimetableCustomScheduleSnapshot> customSchedules,
         String totalCredits) {
 
     public static DashboardPrimaryTimetableResult from(PrimaryTimetableSnapshot timetable) {

@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
 import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.ParsedCourseScheduleDto;
 import bhoon.sugang_helper.academic.course.enums.CourseAccreditation;
 import bhoon.sugang_helper.academic.course.enums.CourseClassification;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
@@ -85,7 +86,6 @@ public class JbnuCourseParser {
             if (rows == null || !rows.isArray()) {
                 throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP response is missing dsEstSbjList");
             }
-            // 분류별 미개설은 정상이며, 전체 0건 여부는 수집기가 합산 후 판단한다.
             int rowIndex = 0;
             for (JsonNode row : rows) {
                 try {
@@ -332,8 +332,8 @@ public class JbnuCourseParser {
     /**
      * 시간 정보 문자열을 파싱하여 스케줄 DTO 리스트를 생성합니다.
      */
-    private List<ParsedCourseDto.ScheduleDto> parseSchedules(String timeString) {
-        List<ParsedCourseDto.ScheduleDto> schedules = new ArrayList<>();
+    private List<ParsedCourseScheduleDto> parseSchedules(String timeString) {
+        List<ParsedCourseScheduleDto> schedules = new ArrayList<>();
         if (timeString == null || timeString.isBlank()) {
             return schedules;
         }
@@ -345,7 +345,7 @@ public class JbnuCourseParser {
                 continue;
             }
 
-            ParsedCourseDto.ScheduleDto schedule = parseCourseSchedule(trimmedToken.split("\\s+"));
+            ParsedCourseScheduleDto schedule = parseCourseSchedule(trimmedToken.split("\\s+"));
             if (schedule == null) {
                 continue;
             }
@@ -354,7 +354,7 @@ public class JbnuCourseParser {
         return mergeConsecutiveSchedules(schedules);
     }
 
-    private ParsedCourseDto.ScheduleDto parseCourseSchedule(String[] parts) {
+    private ParsedCourseScheduleDto parseCourseSchedule(String[] parts) {
         if (parts.length < 2) {
             return null;
         }
@@ -366,31 +366,31 @@ public class JbnuCourseParser {
             return null;
         }
 
-        return new ParsedCourseDto.ScheduleDto(day, timeRange.start(), timeRange.end());
+        return new ParsedCourseScheduleDto(day, timeRange.start(), timeRange.end());
     }
 
     /**
      * 연속된 시간대 정보를 하나의 시간대로 병합합니다. (예: 1A, 1B -> 1시간)
      */
-    private List<ParsedCourseDto.ScheduleDto> mergeConsecutiveSchedules(List<ParsedCourseDto.ScheduleDto> schedules) {
+    private List<ParsedCourseScheduleDto> mergeConsecutiveSchedules(List<ParsedCourseScheduleDto> schedules) {
         if (schedules.isEmpty()) {
             return schedules;
         }
 
-        List<ParsedCourseDto.ScheduleDto> sorted = schedules.stream()
+        List<ParsedCourseScheduleDto> sorted = schedules.stream()
                 .sorted(Comparator
-                        .comparing((ParsedCourseDto.ScheduleDto schedule) -> schedule.dayOfWeek().ordinal())
-                        .thenComparing(ParsedCourseDto.ScheduleDto::startTime))
+                        .comparing((ParsedCourseScheduleDto schedule) -> schedule.dayOfWeek().ordinal())
+                        .thenComparing(ParsedCourseScheduleDto::startTime))
                 .toList();
 
-        List<ParsedCourseDto.ScheduleDto> merged = new ArrayList<>();
-        ParsedCourseDto.ScheduleDto current = sorted.get(0);
+        List<ParsedCourseScheduleDto> merged = new ArrayList<>();
+        ParsedCourseScheduleDto current = sorted.get(0);
 
         for (int i = 1; i < sorted.size(); i++) {
-            ParsedCourseDto.ScheduleDto next = sorted.get(i);
+            ParsedCourseScheduleDto next = sorted.get(i);
             if (current.dayOfWeek() == next.dayOfWeek()
                     && current.endTime().equals(next.startTime())) {
-                current = new ParsedCourseDto.ScheduleDto(current.dayOfWeek(), current.startTime(), next.endTime());
+                current = new ParsedCourseScheduleDto(current.dayOfWeek(), current.startTime(), next.endTime());
                 continue;
             }
 

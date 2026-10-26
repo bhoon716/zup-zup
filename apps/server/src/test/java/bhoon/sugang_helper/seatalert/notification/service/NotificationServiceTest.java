@@ -24,6 +24,7 @@ import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import bhoon.sugang_helper.identity.user.enums.DeviceType;
+import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
@@ -430,8 +431,8 @@ class NotificationServiceTest {
     }
 
     private void addDevice(UserDevice device) {
-        NotificationDevice.Type type = device.getType() == DeviceType.WEB
-                ? NotificationDevice.Type.WEB : NotificationDevice.Type.FCM;
+        NotificationDeviceType type = device.getType() == DeviceType.WEB
+                ? NotificationDeviceType.WEB : NotificationDeviceType.FCM;
         devicesByUser.computeIfAbsent(device.getUserId(), ignored -> new java.util.ArrayList<>())
                 .add(new NotificationDevice(device.getUserId(), type, device.getToken(),
                         device.getP256dh(), device.getAuth()));

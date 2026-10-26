@@ -182,7 +182,7 @@ public class CourseSearchCondition {
                 .isAvailableOnly(isAvailableOnly)
                 .dayOfWeek(dayOfWeek)
                 .selectedSchedules(selectedSchedules == null ? null : selectedSchedules.stream()
-                        .map(schedule -> CourseSearchCriteria.SelectedSchedule.builder()
+                        .map(schedule -> CourseSelectedSchedule.builder()
                                 .dayOfWeek(schedule.getDayOfWeek())
                                 .startTime(schedule.getStartTime())
                                 .endTime(schedule.getEndTime())

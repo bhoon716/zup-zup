@@ -16,7 +16,7 @@ public class TimetableCourseResponse {
     private String credits;
     private String classification;
     private String classroom;
-    private List<ScheduleResponse> schedules;
+    private List<TimetableCourseScheduleResponse> schedules;
 
     public static TimetableCourseResponse of(CourseSummary course) {
         return TimetableCourseResponse.builder()
@@ -28,24 +28,8 @@ public class TimetableCourseResponse {
                 .classification(course.classification())
                 .classroom(course.classroom())
                 .schedules(course.schedules().stream()
-                        .map(ScheduleResponse::of)
+                        .map(TimetableCourseScheduleResponse::of)
                         .collect(Collectors.toList()))
                 .build();
-    }
-
-    @Getter
-    @Builder
-    public static class ScheduleResponse {
-        private String dayOfWeek;
-        private String startTime;
-        private String endTime;
-
-        public static ScheduleResponse of(CourseSummary.CourseScheduleSummary schedule) {
-            return ScheduleResponse.builder()
-                    .dayOfWeek(schedule.dayOfWeek())
-                    .startTime(schedule.startTime())
-                    .endTime(schedule.endTime())
-                    .build();
-        }
     }
 }

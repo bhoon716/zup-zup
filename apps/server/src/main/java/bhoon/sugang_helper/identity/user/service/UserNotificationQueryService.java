@@ -5,6 +5,7 @@ import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import bhoon.sugang_helper.identity.user.enums.DeviceType;
+import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import java.util.List;
@@ -69,7 +70,7 @@ public class UserNotificationQueryService implements UserNotificationQuery {
         return new NotificationDevice(
                 device.getUserId(),
                 device.getType() == DeviceType.WEB
-                        ? NotificationDevice.Type.WEB : NotificationDevice.Type.FCM,
+                        ? NotificationDeviceType.WEB : NotificationDeviceType.FCM,
                 device.getToken(),
                 device.getP256dh(),
                 device.getAuth());

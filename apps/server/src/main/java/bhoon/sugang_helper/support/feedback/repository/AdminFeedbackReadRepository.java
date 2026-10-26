@@ -1,5 +1,10 @@
 package bhoon.sugang_helper.support.feedback.repository;
 
+import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackAttachmentAccess;
+import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackAttachmentSummary;
+import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackDetail;
+import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackReplySummary;
+import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackSummary;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
@@ -25,7 +30,7 @@ public class AdminFeedbackReadRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public Page<FeedbackSummary> findFeedbacks(AdminFeedbackDeletionFilter deletionFilter, Pageable pageable) {
+    public Page<AdminFeedbackSummary> findFeedbacks(AdminFeedbackDeletionFilter deletionFilter, Pageable pageable) {
         String condition = deletionCondition(deletionFilter);
         Long total = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM feedbacks f WHERE " + condition, Long.class);
         String sql = """
@@ -36,8 +41,8 @@ public class AdminFeedbackReadRepository {
                 ORDER BY f.created_at DESC, f.id DESC
                 LIMIT ? OFFSET ?
                 """.formatted(condition);
-        List<FeedbackSummary> content = jdbcTemplate.query(sql,
-                (resultSet, rowNum) -> new FeedbackSummary(
+        List<AdminFeedbackSummary> content = jdbcTemplate.query(sql,
+                (resultSet, rowNum) -> new AdminFeedbackSummary(
                         resultSet.getLong("id"),
                         FeedbackType.valueOf(resultSet.getString("type")),
                         resultSet.getString("title"),
@@ -51,13 +56,13 @@ public class AdminFeedbackReadRepository {
         return new PageImpl<>(content, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()), total);
     }
 
-    public Optional<FeedbackDetail> findFeedbackDetail(Long feedbackId) {
-        List<FeedbackDetail> details = jdbcTemplate.query("""
+    public Optional<AdminFeedbackDetail> findFeedbackDetail(Long feedbackId) {
+        List<AdminFeedbackDetail> details = jdbcTemplate.query("""
                         SELECT f.id, f.user_id AS author_id, f.type, f.title, f.content, f.status, f.created_at, f.deleted_at
                         FROM feedbacks f
                         WHERE f.id = ?
                         """,
-                (resultSet, rowNum) -> new FeedbackDetail(
+                (resultSet, rowNum) -> new AdminFeedbackDetail(
                         resultSet.getLong("id"),
                         FeedbackType.valueOf(resultSet.getString("type")),
                         resultSet.getString("title"),
@@ -71,14 +76,14 @@ public class AdminFeedbackReadRepository {
         return details.stream().findFirst();
     }
 
-    public List<FeedbackReplySummary> findReplies(Long feedbackId) {
+    public List<AdminFeedbackReplySummary> findReplies(Long feedbackId) {
         return jdbcTemplate.query("""
                         SELECT id, content, created_at, updated_at, deleted_at
                         FROM feedback_replies
                         WHERE feedback_id = ?
                         ORDER BY created_at ASC, id ASC
                         """,
-                (resultSet, rowNum) -> new FeedbackReplySummary(
+                (resultSet, rowNum) -> new AdminFeedbackReplySummary(
                         resultSet.getLong("id"),
                         resultSet.getString("content"),
                         resultSet.getObject("created_at", LocalDateTime.class),
@@ -88,26 +93,26 @@ public class AdminFeedbackReadRepository {
                 feedbackId);
     }
 
-    public List<FeedbackAttachmentSummary> findAttachments(Long feedbackId) {
+    public List<AdminFeedbackAttachmentSummary> findAttachments(Long feedbackId) {
         return jdbcTemplate.query("""
                         SELECT id
                         FROM feedback_attachments
                         WHERE feedback_id = ?
                         ORDER BY id ASC
                         """,
-                (resultSet, rowNum) -> new FeedbackAttachmentSummary(resultSet.getLong("id")),
+                (resultSet, rowNum) -> new AdminFeedbackAttachmentSummary(resultSet.getLong("id")),
                 feedbackId);
     }
 
-    public Optional<FeedbackAttachmentAccess> findAttachmentForAdmin(Long feedbackId, Long attachmentId) {
-        List<FeedbackAttachmentAccess> attachments = jdbcTemplate.query("""
+    public Optional<AdminFeedbackAttachmentAccess> findAttachmentForAdmin(Long feedbackId, Long attachmentId) {
+        List<AdminFeedbackAttachmentAccess> attachments = jdbcTemplate.query("""
                         SELECT a.id, a.feedback_id, a.file_url, a.original_name
                         FROM feedback_attachments a
                         INNER JOIN feedbacks f ON f.id = a.feedback_id
                         WHERE a.feedback_id = ?
                           AND a.id = ?
                         """,
-                (resultSet, rowNum) -> new FeedbackAttachmentAccess(
+                (resultSet, rowNum) -> new AdminFeedbackAttachmentAccess(
                         resultSet.getLong("id"),
                         resultSet.getLong("feedback_id"),
                         resultSet.getString("file_url"),
@@ -127,44 +132,5 @@ public class AdminFeedbackReadRepository {
 
     private long offset(Pageable pageable) {
         return (long) pageable.getPageNumber() * pageable.getPageSize();
-    }
-
-    public record FeedbackSummary(
-            Long id,
-            FeedbackType type,
-            String title,
-            FeedbackStatus status,
-            LocalDateTime createdAt,
-            boolean hasReplies,
-            boolean deleted,
-            LocalDateTime deletedAt,
-            Long authorId) {
-    }
-
-    public record FeedbackDetail(
-            Long id,
-            FeedbackType type,
-            String title,
-            String content,
-            FeedbackStatus status,
-            LocalDateTime createdAt,
-            boolean deleted,
-            LocalDateTime deletedAt,
-            Long authorId) {
-    }
-
-    public record FeedbackReplySummary(
-            Long id,
-            String content,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt,
-            boolean deleted,
-            LocalDateTime deletedAt) {
-    }
-
-    public record FeedbackAttachmentSummary(Long id) {
-    }
-
-    public record FeedbackAttachmentAccess(Long id, Long feedbackId, String fileUrl, String originalName) {
     }
 }

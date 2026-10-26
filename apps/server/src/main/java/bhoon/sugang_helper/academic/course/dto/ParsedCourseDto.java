@@ -2,13 +2,11 @@ package bhoon.sugang_helper.academic.course.dto;
 
 import bhoon.sugang_helper.academic.course.enums.CourseAccreditation;
 import bhoon.sugang_helper.academic.course.enums.CourseClassification;
-import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.enums.CourseStatus;
 import bhoon.sugang_helper.academic.course.enums.DisclosureStatus;
 import bhoon.sugang_helper.academic.course.enums.GradingMethod;
 import bhoon.sugang_helper.academic.course.enums.LectureLanguage;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
-import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -44,15 +42,6 @@ public record ParsedCourseDto(
         String generalCategoryByYear,
         String courseDirection,
         String classDuration,
-        List<ScheduleDto> schedules
+        List<ParsedCourseScheduleDto> schedules
 ) {
-    /**
-     * 강의 시간표 정보를 담는 DTO입니다.
-     */
-    public record ScheduleDto(
-            CourseDayOfWeek dayOfWeek,
-            LocalTime startTime,
-            LocalTime endTime
-    ) {
-    }
 }

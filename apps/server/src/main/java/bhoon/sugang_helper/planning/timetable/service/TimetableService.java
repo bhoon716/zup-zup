@@ -8,6 +8,11 @@ import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.UserIdentity;
 import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.planning.timetable.dto.PrimaryTimetableSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.TimetableCourseScheduleSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.TimetableCourseSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.TimetableCustomScheduleSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.TimetableCustomScheduleTimeSnapshot;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.TimetableRequest;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseResponse;
@@ -116,19 +121,19 @@ public class TimetableService implements PrimaryTimetableQuery {
                 timetable.getName(),
                 timetable.isPrimary(),
                 timetable.getCourses().stream()
-                        .map(course -> new PrimaryTimetableQuery.CourseSnapshot(
+                        .map(course -> new TimetableCourseSnapshot(
                                 course.getCourseKey(), course.getName(), course.getProfessor(), course.getClassTime(),
                                 course.getCredits(), course.getClassification(), course.getClassroom(),
                                 course.getSchedules().stream()
-                                        .map(schedule -> new PrimaryTimetableQuery.CourseScheduleSnapshot(
+                                        .map(schedule -> new TimetableCourseScheduleSnapshot(
                                                 schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()))
                                         .toList()))
                         .toList(),
                 timetable.getCustomSchedules().stream()
-                        .map(schedule -> new PrimaryTimetableQuery.CustomScheduleSnapshot(
+                        .map(schedule -> new TimetableCustomScheduleSnapshot(
                                 schedule.getId(), schedule.getTitle(), schedule.getProfessor(),
                                 schedule.getSchedules().stream()
-                                        .map(time -> new PrimaryTimetableQuery.CustomScheduleTimeSnapshot(
+                                        .map(time -> new TimetableCustomScheduleTimeSnapshot(
                                                 time.getId(), time.getDayOfWeek(), time.getStartTime(),
                                                 time.getEndTime(), time.getClassroom()))
                                         .toList()))

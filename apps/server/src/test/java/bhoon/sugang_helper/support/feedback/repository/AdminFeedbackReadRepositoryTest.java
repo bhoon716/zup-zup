@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
+import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackAttachmentSummary;
+import bhoon.sugang_helper.support.feedback.dto.AdminFeedbackSummary;
 import bhoon.sugang_helper.support.feedback.entity.Feedback;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackAttachment;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackReply;
@@ -69,9 +71,9 @@ class AdminFeedbackReadRepositoryTest {
                 AdminFeedbackDeletionFilter.DELETED, PageRequest.of(0, 10));
         var detail = adminFeedbackReadRepository.findFeedbackDetail(deletedFeedback.getId()).orElseThrow();
 
-        assertThat(all.getContent()).extracting(AdminFeedbackReadRepository.FeedbackSummary::id)
+        assertThat(all.getContent()).extracting(AdminFeedbackSummary::id)
                 .containsExactlyInAnyOrder(activeFeedback.getId(), deletedFeedback.getId());
-        assertThat(activeOnly.getContent()).extracting(AdminFeedbackReadRepository.FeedbackSummary::id)
+        assertThat(activeOnly.getContent()).extracting(AdminFeedbackSummary::id)
                 .containsExactly(activeFeedback.getId());
         assertThat(deletedOnly.getContent()).singleElement().satisfies(item -> {
             assertThat(item.id()).isEqualTo(deletedFeedback.getId());
@@ -87,7 +89,7 @@ class AdminFeedbackReadRepositoryTest {
                     assertThat(reply.content()).isEqualTo("삭제된 답변");
                 });
         assertThat(adminFeedbackReadRepository.findAttachments(deletedFeedback.getId()))
-                .extracting(AdminFeedbackReadRepository.FeedbackAttachmentSummary::id)
+                .extracting(AdminFeedbackAttachmentSummary::id)
                 .hasSize(1);
         assertThat(adminFeedbackReadRepository.findAttachmentForAdmin(deletedFeedback.getId(), attachment.getId()))
                 .hasValueSatisfying(access -> {

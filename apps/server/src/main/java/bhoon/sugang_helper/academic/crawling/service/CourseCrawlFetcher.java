@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
 import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.ParsedCourseScheduleDto;
 import bhoon.sugang_helper.academic.crawling.client.CourseApiClient;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
@@ -128,7 +129,7 @@ public class CourseCrawlFetcher {
         if (course.schedules() == null) {
             return;
         }
-        for (ParsedCourseDto.ScheduleDto schedule : course.schedules()) {
+        for (ParsedCourseScheduleDto schedule : course.schedules()) {
             if (schedule == null
                     || schedule.dayOfWeek() == null
                     || schedule.startTime() == null

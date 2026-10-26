@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.academic.course.service;
 
 import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.ParsedCourseScheduleDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.entity.CourseSchedule;
 import bhoon.sugang_helper.academic.course.entity.CourseSeatHistory;
@@ -124,9 +125,9 @@ public class CourseCatalogSynchronizationService {
         if (dto.schedules() != null) {
             dto.schedules().stream()
                     .sorted(Comparator
-                            .comparing((ParsedCourseDto.ScheduleDto schedule) -> schedule.dayOfWeek().ordinal())
-                            .thenComparing(ParsedCourseDto.ScheduleDto::startTime)
-                            .thenComparing(ParsedCourseDto.ScheduleDto::endTime))
+                            .comparing((ParsedCourseScheduleDto schedule) -> schedule.dayOfWeek().ordinal())
+                            .thenComparing(ParsedCourseScheduleDto::startTime)
+                            .thenComparing(ParsedCourseScheduleDto::endTime))
                     .forEach(schedule -> course.addSchedule(new CourseSchedule(
                             schedule.dayOfWeek(), schedule.startTime(), schedule.endTime())));
         }

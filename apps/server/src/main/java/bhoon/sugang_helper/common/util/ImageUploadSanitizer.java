@@ -204,9 +204,6 @@ public class ImageUploadSanitizer {
         imageDecodeExecutor.shutdownNow();
     }
 
-    record SanitizedImage(byte[] content, String extension) {
-    }
-
     private static final class BoundedOutputStream extends java.io.OutputStream {
 
         private final int maximumSize;

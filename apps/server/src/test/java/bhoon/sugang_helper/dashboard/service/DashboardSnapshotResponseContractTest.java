@@ -7,10 +7,10 @@ import bhoon.sugang_helper.campus.schedule.dto.ScheduleSummary;
 import bhoon.sugang_helper.dashboard.dto.DashboardNotificationResult;
 import bhoon.sugang_helper.dashboard.dto.DashboardPrimaryTimetableResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardSnapshotResponse;
-import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery.CourseScheduleSnapshot;
-import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery.CourseSnapshot;
-import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery.CustomScheduleSnapshot;
-import bhoon.sugang_helper.planning.timetable.service.PrimaryTimetableQuery.CustomScheduleTimeSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.TimetableCourseScheduleSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.TimetableCourseSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.TimetableCustomScheduleSnapshot;
+import bhoon.sugang_helper.planning.timetable.dto.TimetableCustomScheduleTimeSnapshot;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,12 +34,12 @@ class DashboardSnapshotResponseContractTest {
                         10L,
                         "대표 시간표",
                         true,
-                        List.of(new CourseSnapshot(
+                        List.of(new TimetableCourseSnapshot(
                                 "CS101", "자료구조", "홍길동", "월 1-A", "3", "전공", "공대",
-                                List.of(new CourseScheduleSnapshot("MONDAY", "09:00", "10:00")))),
-                        List.of(new CustomScheduleSnapshot(
+                                List.of(new TimetableCourseScheduleSnapshot("MONDAY", "09:00", "10:00")))),
+                        List.of(new TimetableCustomScheduleSnapshot(
                                 20L, "동아리", "김교수",
-                                List.of(new CustomScheduleTimeSnapshot(
+                                List.of(new TimetableCustomScheduleTimeSnapshot(
                                         30L, "TUESDAY", LocalTime.of(18, 0), LocalTime.of(19, 0), "공대")))),
                         "3"))
                 .upcomingSchedules(List.of(new ScheduleSummary(

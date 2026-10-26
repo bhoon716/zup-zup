@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.ParsedCourseScheduleDto;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
 import bhoon.sugang_helper.common.error.CustomException;
@@ -201,7 +202,7 @@ class JbnuCourseParserTest {
                 }
                 """)).get(0);
 
-        assertThat(course.schedules()).extracting(ParsedCourseDto.ScheduleDto::dayOfWeek)
+        assertThat(course.schedules()).extracting(ParsedCourseScheduleDto::dayOfWeek)
                 .containsExactly(CourseDayOfWeek.TUESDAY);
         assertThat(course.schedules().get(0).startTime()).isEqualTo(LocalTime.of(11, 30));
         assertThat(course.schedules().get(0).endTime()).isEqualTo(LocalTime.of(12, 0));
