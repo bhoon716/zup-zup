@@ -31,7 +31,7 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
+          "mappings": [{"type": "special", "options": {"match": "nan", "result": {"text": "N/A"}}}],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -256,7 +256,8 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "noValue": "N/A"
+          "noValue": "N/A",
+          "mappings": [{"type": "special", "options": {"match": "nan", "result": {"text": "N/A"}}}]
         },
         "overrides": [
           {
@@ -364,7 +365,8 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "noValue": "N/A"
+          "noValue": "N/A",
+          "mappings": [{"type": "special", "options": {"match": "nan", "result": {"text": "N/A"}}}]
         },
         "overrides": [
           {
@@ -480,7 +482,8 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "noValue": "N/A"
+          "noValue": "N/A",
+          "mappings": [{"type": "special", "options": {"match": "nan", "result": {"text": "N/A"}}}]
         },
         "overrides": [
           {
@@ -646,7 +649,8 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "noValue": "N/A"
+          "noValue": "N/A",
+          "mappings": [{"type": "special", "options": {"match": "nan", "result": {"text": "N/A"}}}]
         },
         "overrides": [
           {
@@ -789,7 +793,8 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "noValue": "N/A"
+          "noValue": "N/A",
+          "mappings": [{"type": "special", "options": {"match": "nan", "result": {"text": "N/A"}}}]
         },
         "overrides": [
           {
