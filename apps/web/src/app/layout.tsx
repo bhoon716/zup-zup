@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Header } from "@/widgets/header/header";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Geist_Mono, Noto_Sans_KR } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "@/app/providers";
 import { ThirdPartyAnalytics } from "@/shared/analytics/third-party-analytics";
@@ -16,15 +16,19 @@ import {
   SITE_URL,
 } from "@/shared/seo/branding";
 
-const notoSansKr = Noto_Sans_KR({
-  weight: ["400", "700", "900"],
+const notoSansKr = localFont({
+  src: "./fonts/NotoSansKR.woff2",
+  weight: "100 900",
+  style: "normal",
   display: "swap",
   preload: false,
   variable: "--font-noto-sans-kr",
 });
 
-const geistMono = Geist_Mono({
-  weight: ["400", "500", "700"],
+const geistMono = localFont({
+  src: "./fonts/GeistMono.woff2",
+  weight: "100 900",
+  style: "normal",
   display: "swap",
   preload: false,
   variable: "--font-geist-mono",
