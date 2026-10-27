@@ -1,0 +1,756 @@
+{
+  "status": "LOCAL PROPOSAL ONLY — NOT APPLIED",
+  "dashboardUid": "zup-zup-operations",
+  "expectedDashboardVersion": 19,
+  "instructions": "운영 변경 승인 후 최신 dashboard GET/version을 재확인한다. panel ID와 원본 hash를 검증하고 아래 필드만 교체한다. 그 외 패널·변수·레이아웃·권한은 그대로 보존한다. 충돌 시 전체 dashboard를 덮어쓰지 않는다. 이 파일은 자동 적용되지 않는다.",
+  "panels": [
+    {
+      "panelId": 16,
+      "expectedPanelSha256": "54a8e9bb8ddb8480e603cb7c8bedca0000d5e0dbb7376796472c3b0a2d620c54",
+      "set": {
+        "title": "알림 제공자 응답 지연 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+        "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 평균·분위수는 각 시점의 $__rate_interval 구간이며 Max의 계측 창과 같은 시간 범위라고 해석하지 않습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다.  측정 경계는 제공자 호출 wrapper의 대기 시간이며 timeout·실패도 포함합니다. timeout 이후 하위 HTTP 요청이 실제로 끝났거나 취소됐다는 증거로 쓰지 않습니다.",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "(((sum by (provider, outcome) (rate(notification_provider_latency_seconds_sum{job=\"sugang-helper-app\"}[$__rate_interval]))) / (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])))) * 1000) and on (provider, outcome) (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "Average · {{provider}} / {{outcome}}",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "B",
+            "expr": "((sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)) * (0 / 0)",
+            "legendFormat": "Min (미계측) · {{provider}} / {{outcome}}",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "C",
+            "expr": "((max by (provider, outcome) (notification_provider_latency_seconds_max{job=\"sugang-helper-app\"}) > 0) * 1000) and on (provider, outcome) (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "Max (계측 창) · {{provider}} / {{outcome}}",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "D",
+            "expr": "(histogram_quantile(0.50, sum by (provider, outcome, le) (rate(notification_provider_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on (provider, outcome) (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p50 · {{provider}} / {{outcome}}",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "E",
+            "expr": "(histogram_quantile(0.95, sum by (provider, outcome, le) (rate(notification_provider_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on (provider, outcome) (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p95 · {{provider}} / {{outcome}}",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "F",
+            "expr": "(histogram_quantile(0.99, sum by (provider, outcome, le) (rate(notification_provider_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on (provider, outcome) (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p99 · {{provider}} / {{outcome}}",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ms",
+            "noValue": "N/A"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Min (미계측)"
+              },
+              "properties": [
+                {
+                  "id": "noValue",
+                  "value": "N/A (미계측)"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "panelId": 18,
+      "expectedPanelSha256": "d86f9ddb40297327e65535f037c63d1caa56d9d128186cbcc85abd0b4db0aa24",
+      "set": {
+        "title": "JBNU 외부 API 지연 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+        "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 평균·분위수는 각 시점의 $__rate_interval 구간이며 Max의 계측 창과 같은 시간 범위라고 해석하지 않습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다.  측정 경계는 상위 API 한 번의 시도(필요한 bootstrap/본문 수신 포함)입니다. 재시도 사이 sleep이나 전체 수집·파싱·DB 반영의 총시간은 아닙니다.",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "(((sum(rate(crawler_upstream_latency_seconds_sum{job=\"sugang-helper-app\"}[$__rate_interval]))) / (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])))) * 1000) and on () (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "Average",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "B",
+            "expr": "((sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)) * (0 / 0)",
+            "legendFormat": "Min (미계측)",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "C",
+            "expr": "((max(crawler_upstream_latency_seconds_max{job=\"sugang-helper-app\"}) > 0) * 1000) and on () (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "Max (계측 창)",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "D",
+            "expr": "(histogram_quantile(0.50, sum by (le) (rate(crawler_upstream_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p50",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "E",
+            "expr": "(histogram_quantile(0.95, sum by (le) (rate(crawler_upstream_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p95",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "F",
+            "expr": "(histogram_quantile(0.99, sum by (le) (rate(crawler_upstream_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p99",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ms",
+            "noValue": "N/A"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Min (미계측)"
+              },
+              "properties": [
+                {
+                  "id": "noValue",
+                  "value": "N/A (미계측)"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "panelId": 21,
+      "expectedPanelSha256": "c7cb4631ffa4e6e0ef43d349bb34ce598b7f495debf8792fd36d36482869def4",
+      "set": {
+        "title": "HTTP 응답 지연 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+        "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 평균·분위수는 각 시점의 $__rate_interval 구간이며 Max의 계측 창과 같은 시간 범위라고 해석하지 않습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다. \n\n기존 운영 해석 참고(임시 기준):\n\n**읽는 법:** p50도 함께 오르면 전반적인 처리 지연입니다. p50은 안정적인데 p95/p99만 치솟으면 일부 URI의 느린 요청, DB·외부 API 대기, 큐 적체를 의심하세요. 평균·최대와 함께 HTTP 오류 추이 및 아래 URI별 표를 확인합니다. 분위수 계열은 Prometheus에 요청 지연 분포 데이터가 수집될 때 표시됩니다. 비어 있으면 계측·수집 설정과 해당 시간대의 요청 발생 여부를 확인하세요.\n\n**운영 기준(명시적 SLO가 없을 때의 임시 기준):** p95 < 500ms이고 추세가 안정적이면 대체로 양호합니다. p95가 500ms를 5분 이상 넘으면 주의, p95 ≥ 1초가 지속되거나 p99 ≥ 1초와 오류 증가가 동반되면 위험으로 보고 원인을 조사하세요. 실제 목표가 정해지면 이 기준을 서비스 SLO에 맞추세요. 최대 한 번의 스파이크만으로 장애로 판단하지 마세요.",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "(((sum(rate(http_server_requests_seconds_sum{job=\"sugang-helper-app\"}[$__rate_interval]))) / (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])))) * 1000) and on () (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "Average",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "B",
+            "expr": "((sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)) * (0 / 0)",
+            "legendFormat": "Min (미계측)",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "C",
+            "expr": "((max(http_server_requests_seconds_max{job=\"sugang-helper-app\"}) > 0) * 1000) and on () (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "Max (계측 창)",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "D",
+            "expr": "(histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p50",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "E",
+            "expr": "(histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p95",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "F",
+            "expr": "(histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p99",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ms",
+            "noValue": "N/A"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Min (미계측)"
+              },
+              "properties": [
+                {
+                  "id": "noValue",
+                  "value": "N/A (미계측)"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "panelId": 33,
+      "expectedPanelSha256": "90ecee0304eec4129ec4f2ad7c2f359b77078db6aa0b8b5d514d6827f28b4247",
+      "set": {
+        "title": "URI별 HTTP 지연 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+        "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 이 표/요약의 평균·분위수는 대시보드 선택 기간($__range)의 증가량 기준이고, Max는 그 기간에 scrape된 time-window max의 최대입니다. 따라서 선택기간 시작 이전의 계측 창 관측이 Max에 포함될 수 있습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다. URI는 Spring 라우트 템플릿 단위이며 빈 uri만 제외합니다. method/status는 기존처럼 함께 집계합니다. UNKNOWN·정적/관리 경로를 자동 제외한 API 전용 지표는 아닙니다.\n\n기존 운영 해석 참고(임시 기준):\n\n**읽는 법:** p50은 괜찮은데 p95/p99만 높은 URI부터 조사하세요. 그 URI의 DB 쿼리, 외부 API 대기, 캐시 미스, 요청 크기 차이를 확인합니다. 세 값이 함께 오르면 전체 부하나 포화를 의심합니다. 분위수는 Prometheus에 요청 지연 분포 데이터가 수집될 때 표시됩니다. 표가 비면 해당 수집 설정, 선택한 시간 범위의 요청량, URI가 라우트 템플릿으로 집계되는지 확인하세요.\n\n**운영 기준(명시적 SLO가 없을 때의 임시 기준):** p95 < 500ms는 대체로 양호, 500ms 이상이 5분 이상 지속되면 주의, 1초 이상이 지속되면 위험으로 보고 원인을 조사하세요. 실제 서비스 SLO가 정해지면 그 기준에 맞추세요.",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "label_replace((((sum by (uri) (increase(http_server_requests_seconds_sum{job=\"sugang-helper-app\",uri!=\"\"}[$__range]))) / (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])))) * 1000) and on (uri) (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0), \"statistic\", \"Average\", \"\", \"\")",
+            "legendFormat": "Average",
+            "editorMode": "code",
+            "instant": true,
+            "range": false,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "B",
+            "expr": "label_replace(((sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0)) * (0 / 0), \"statistic\", \"Min (미계측)\", \"\", \"\")",
+            "legendFormat": "Min (미계측)",
+            "editorMode": "code",
+            "instant": true,
+            "range": false,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "C",
+            "expr": "label_replace(((max by (uri) (max_over_time(http_server_requests_seconds_max{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0) * 1000) and on (uri) (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0), \"statistic\", \"Max (계측 창)\", \"\", \"\")",
+            "legendFormat": "Max (계측 창)",
+            "editorMode": "code",
+            "instant": true,
+            "range": false,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "D",
+            "expr": "label_replace((histogram_quantile(0.50, sum by (uri, le) (increase(http_server_requests_seconds_bucket{job=\"sugang-helper-app\",uri!=\"\"}[$__range]))) * 1000) and on (uri) (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0), \"statistic\", \"p50\", \"\", \"\")",
+            "legendFormat": "p50",
+            "editorMode": "code",
+            "instant": true,
+            "range": false,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "E",
+            "expr": "label_replace((histogram_quantile(0.95, sum by (uri, le) (increase(http_server_requests_seconds_bucket{job=\"sugang-helper-app\",uri!=\"\"}[$__range]))) * 1000) and on (uri) (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0), \"statistic\", \"p95\", \"\", \"\")",
+            "legendFormat": "p95",
+            "editorMode": "code",
+            "instant": true,
+            "range": false,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "F",
+            "expr": "label_replace((histogram_quantile(0.99, sum by (uri, le) (increase(http_server_requests_seconds_bucket{job=\"sugang-helper-app\",uri!=\"\"}[$__range]))) * 1000) and on (uri) (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0), \"statistic\", \"p99\", \"\", \"\")",
+            "legendFormat": "p99",
+            "editorMode": "code",
+            "instant": true,
+            "range": false,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "footer": {
+                "reducers": []
+              },
+              "inspect": false
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "orange",
+                  "value": 500
+                },
+                {
+                  "color": "red",
+                  "value": 1000
+                }
+              ]
+            },
+            "unit": "ms",
+            "noValue": "N/A"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Min (미계측)"
+              },
+              "properties": [
+                {
+                  "id": "noValue",
+                  "value": "N/A (미계측)"
+                }
+              ]
+            }
+          ]
+        },
+        "transformations": [
+          {
+            "id": "joinByLabels",
+            "options": {
+              "value": "statistic"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "panelId": 27,
+      "expectedPanelSha256": "20aeb1e00c3f55cfebc420818cc12829d4d742c7e132c44178b7ec62ac65650b",
+      "set": {
+        "title": "DB 커넥션 획득 지연 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+        "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 평균·분위수는 각 시점의 $__rate_interval 구간이며 Max의 계측 창과 같은 시간 범위라고 해석하지 않습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다. \n\n기존 운영 해석 참고(임시 기준):\n\n**읽는 법:** p50은 괜찮은데 p95/p99만 오르면 일부 요청이 커넥션을 오래 기다리는 꼬리 지연입니다. `Pending`이 동시에 늘거나 획득 타임아웃이 생기면 풀 포화 가능성이 큽니다.\n\n**초기 기준(서비스 기준선에 맞춰 조정):** 정상은 p95가 수십 ms 이내로 안정되고 Pending이 0인 상태입니다. 주의는 p95 100ms 이상이 수 분 지속되거나 Pending이 반복되는 경우입니다. 위험은 p95 500ms 이상 지속, 커넥션 획득 타임아웃 또는 요청 지연·5xx가 함께 증가하는 경우입니다. 단일 p99/최대 스파이크만으로 장애를 판단하지 말고 추세와 Pending, HTTP 지연을 함께 확인하세요.\n\n지연이 오르면 느린 SQL/트랜잭션, 긴 커넥션 점유, 풀 최대치, DB CPU·I/O 순서로 확인합니다.",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "(((sum(rate(hikaricp_connections_acquire_seconds_sum{job=\"sugang-helper-app\"}[$__rate_interval]))) / (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])))) * 1000) and on () (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "Average",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "B",
+            "expr": "((sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)) * (0 / 0)",
+            "legendFormat": "Min (미계측)",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "C",
+            "expr": "((max(hikaricp_connections_acquire_seconds_max{job=\"sugang-helper-app\"}) > 0) * 1000) and on () (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "Max (계측 창)",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "D",
+            "expr": "(histogram_quantile(0.50, sum by (le) (rate(hikaricp_connections_acquire_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p50",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "E",
+            "expr": "(histogram_quantile(0.95, sum by (le) (rate(hikaricp_connections_acquire_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p95",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          },
+          {
+            "refId": "F",
+            "expr": "(histogram_quantile(0.99, sum by (le) (rate(hikaricp_connections_acquire_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+            "legendFormat": "p99",
+            "editorMode": "code",
+            "instant": false,
+            "range": true,
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ms",
+            "noValue": "N/A"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Min (미계측)"
+              },
+              "properties": [
+                {
+                  "id": "noValue",
+                  "value": "N/A (미계측)"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

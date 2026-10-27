@@ -27,14 +27,126 @@
     {
       "datasource": "Prometheus",
       "fieldConfig": {
-        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 200 }, { "color": "red", "value": 500 }] }, "unit": "ms" }
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 200
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          },
+          "unit": "ms",
+          "noValue": "N/A"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Min (미계측)"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "N/A (미계측)"
+              }
+            ]
+          }
+        ]
       },
-      "gridPos": { "h": 4, "w": 3, "x": 3, "y": 1 },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
       "id": 2,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "expr": "(sum(rate(http_server_requests_seconds_sum[5m])) / sum(rate(http_server_requests_seconds_count[5m]))) * 1000", "legendFormat": "Average", "refId": "A" }],
-      "title": "Average Latency",
-      "type": "stat"
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(((sum(increase(http_server_requests_seconds_sum{job=\"sugang-helper-app\"}[$__range]))) / (sum(increase(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__range])))) * 1000) and on () (sum(increase(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__range])) > 0)",
+          "legendFormat": "Average",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "B",
+          "expr": "((sum(increase(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__range])) > 0)) * (0 / 0)",
+          "legendFormat": "Min (미계측)",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "C",
+          "expr": "((max(max_over_time(http_server_requests_seconds_max{job=\"sugang-helper-app\"}[$__range])) > 0) * 1000) and on () (sum(increase(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__range])) > 0)",
+          "legendFormat": "Max (계측 창)",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "D",
+          "expr": "(histogram_quantile(0.50, sum by (le) (increase(http_server_requests_seconds_bucket{job=\"sugang-helper-app\"}[$__range]))) * 1000) and on () (sum(increase(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__range])) > 0)",
+          "legendFormat": "p50",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "E",
+          "expr": "(histogram_quantile(0.95, sum by (le) (increase(http_server_requests_seconds_bucket{job=\"sugang-helper-app\"}[$__range]))) * 1000) and on () (sum(increase(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__range])) > 0)",
+          "legendFormat": "p95",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "F",
+          "expr": "(histogram_quantile(0.99, sum by (le) (increase(http_server_requests_seconds_bucket{job=\"sugang-helper-app\"}[$__range]))) * 1000) and on () (sum(increase(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__range])) > 0)",
+          "legendFormat": "p99",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        }
+      ],
+      "title": "HTTP 지연 통계 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+      "type": "stat",
+      "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 이 표/요약의 평균·분위수는 대시보드 선택 기간($__range)의 증가량 기준이고, Max는 그 기간에 scrape된 time-window max의 최대입니다. 따라서 선택기간 시작 이전의 계측 창 관측이 Max에 포함될 수 있습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다. "
     },
     {
       "datasource": "Prometheus",
@@ -141,14 +253,92 @@
     },
     {
       "datasource": "Prometheus",
-      "fieldConfig": { "defaults": { "unit": "ms" } },
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "noValue": "N/A"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Min (미계측)"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "N/A (미계측)"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 6
+      },
       "id": 16,
       "targets": [
-        { "expr": "(sum(rate(notification_provider_latency_seconds_sum[5m])) by (provider, outcome) / sum(rate(notification_provider_latency_seconds_count[5m])) by (provider, outcome)) * 1000", "legendFormat": "Avg {{provider}} / {{outcome}}", "refId": "A" }
+        {
+          "refId": "A",
+          "expr": "(((sum by (provider, outcome) (rate(notification_provider_latency_seconds_sum{job=\"sugang-helper-app\"}[$__rate_interval]))) / (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])))) * 1000) and on (provider, outcome) (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "Average · {{provider}} / {{outcome}}",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "B",
+          "expr": "((sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)) * (0 / 0)",
+          "legendFormat": "Min (미계측) · {{provider}} / {{outcome}}",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "C",
+          "expr": "((max by (provider, outcome) (notification_provider_latency_seconds_max{job=\"sugang-helper-app\"}) > 0) * 1000) and on (provider, outcome) (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "Max (계측 창) · {{provider}} / {{outcome}}",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "D",
+          "expr": "(histogram_quantile(0.50, sum by (provider, outcome, le) (rate(notification_provider_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on (provider, outcome) (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p50 · {{provider}} / {{outcome}}",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "E",
+          "expr": "(histogram_quantile(0.95, sum by (provider, outcome, le) (rate(notification_provider_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on (provider, outcome) (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p95 · {{provider}} / {{outcome}}",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "F",
+          "expr": "(histogram_quantile(0.99, sum by (provider, outcome, le) (rate(notification_provider_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on (provider, outcome) (sum by (provider, outcome) (rate(notification_provider_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p99 · {{provider}} / {{outcome}}",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        }
       ],
-      "title": "Notification Provider Dispatch Latency (average)",
-      "type": "timeseries"
+      "title": "알림 제공자 응답 지연 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+      "type": "timeseries",
+      "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 평균·분위수는 각 시점의 $__rate_interval 구간이며 Max의 계측 창과 같은 시간 범위라고 해석하지 않습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다.  측정 경계는 제공자 호출 wrapper의 대기 시간이며 timeout·실패도 포함합니다. timeout 이후 하위 HTTP 요청이 실제로 끝났거나 취소됐다는 증거로 쓰지 않습니다."
     },
     {
       "collapsed": false,
@@ -171,14 +361,92 @@
     },
     {
       "datasource": "Prometheus",
-      "fieldConfig": { "defaults": { "unit": "ms" } },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 14 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "noValue": "N/A"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Min (미계측)"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "N/A (미계측)"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 14
+      },
       "id": 18,
       "targets": [
-        { "expr": "(sum(rate(crawler_upstream_latency_seconds_sum[5m])) / sum(rate(crawler_upstream_latency_seconds_count[5m]))) * 1000", "legendFormat": "Avg JBNU upstream", "refId": "A" }
+        {
+          "refId": "A",
+          "expr": "(((sum(rate(crawler_upstream_latency_seconds_sum{job=\"sugang-helper-app\"}[$__rate_interval]))) / (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])))) * 1000) and on () (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "Average",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "B",
+          "expr": "((sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)) * (0 / 0)",
+          "legendFormat": "Min (미계측)",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "C",
+          "expr": "((max(crawler_upstream_latency_seconds_max{job=\"sugang-helper-app\"}) > 0) * 1000) and on () (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "Max (계측 창)",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "D",
+          "expr": "(histogram_quantile(0.50, sum by (le) (rate(crawler_upstream_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p50",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "E",
+          "expr": "(histogram_quantile(0.95, sum by (le) (rate(crawler_upstream_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p95",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "F",
+          "expr": "(histogram_quantile(0.99, sum by (le) (rate(crawler_upstream_latency_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(crawler_upstream_latency_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p99",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        }
       ],
-      "title": "JBNU Course Upstream Latency (average)",
-      "type": "timeseries"
+      "title": "JBNU 외부 API 지연 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+      "type": "timeseries",
+      "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 평균·분위수는 각 시점의 $__rate_interval 구간이며 Max의 계측 창과 같은 시간 범위라고 해석하지 않습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다.  측정 경계는 상위 API 한 번의 시도(필요한 bootstrap/본문 수신 포함)입니다. 재시도 사이 sleep이나 전체 수집·파싱·DB 반영의 총시간은 아닙니다."
     },
     {
       "datasource": "Prometheus",
@@ -209,15 +477,92 @@
     },
     {
       "datasource": "Prometheus",
-      "fieldConfig": { "defaults": { "unit": "ms" } },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 22 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "noValue": "N/A"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Min (미계측)"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "N/A (미계측)"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 22
+      },
       "id": 21,
       "targets": [
-        { "expr": "(sum(rate(http_server_requests_seconds_sum[5m])) / sum(rate(http_server_requests_seconds_count[5m]))) * 1000", "legendFormat": "Average", "refId": "A" },
-        { "expr": "max(http_server_requests_seconds_max) * 1000", "legendFormat": "Max", "refId": "B" }
+        {
+          "refId": "A",
+          "expr": "(((sum(rate(http_server_requests_seconds_sum{job=\"sugang-helper-app\"}[$__rate_interval]))) / (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])))) * 1000) and on () (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "Average",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "B",
+          "expr": "((sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)) * (0 / 0)",
+          "legendFormat": "Min (미계측)",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "C",
+          "expr": "((max(http_server_requests_seconds_max{job=\"sugang-helper-app\"}) > 0) * 1000) and on () (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "Max (계측 창)",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "D",
+          "expr": "(histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p50",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "E",
+          "expr": "(histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p95",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "F",
+          "expr": "(histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(http_server_requests_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p99",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        }
       ],
-      "title": "HTTP Latency (average / max)",
-      "type": "timeseries"
+      "title": "HTTP 응답 지연 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+      "type": "timeseries",
+      "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 평균·분위수는 각 시점의 $__rate_interval 구간이며 Max의 계측 창과 같은 시간 범위라고 해석하지 않습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다. "
     },
     {
       "datasource": "Prometheus",
@@ -298,15 +643,92 @@
     },
     {
       "datasource": "Prometheus",
-      "fieldConfig": { "defaults": { "unit": "ms" } },
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 38 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "noValue": "N/A"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Min (미계측)"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "N/A (미계측)"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 38
+      },
       "id": 27,
       "targets": [
-        { "expr": "(sum(rate(hikaricp_connections_acquire_seconds_sum[5m])) / sum(rate(hikaricp_connections_acquire_seconds_count[5m]))) * 1000", "legendFormat": "Avg Acquire Time", "refId": "A" },
-        { "expr": "hikaricp_connections_acquire_seconds_max * 1000", "legendFormat": "Max Acquire Time", "refId": "B" }
+        {
+          "refId": "A",
+          "expr": "(((sum(rate(hikaricp_connections_acquire_seconds_sum{job=\"sugang-helper-app\"}[$__rate_interval]))) / (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])))) * 1000) and on () (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "Average",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "B",
+          "expr": "((sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)) * (0 / 0)",
+          "legendFormat": "Min (미계측)",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "C",
+          "expr": "((max(hikaricp_connections_acquire_seconds_max{job=\"sugang-helper-app\"}) > 0) * 1000) and on () (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "Max (계측 창)",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "D",
+          "expr": "(histogram_quantile(0.50, sum by (le) (rate(hikaricp_connections_acquire_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p50",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "E",
+          "expr": "(histogram_quantile(0.95, sum by (le) (rate(hikaricp_connections_acquire_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p95",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "F",
+          "expr": "(histogram_quantile(0.99, sum by (le) (rate(hikaricp_connections_acquire_seconds_bucket{job=\"sugang-helper-app\"}[$__rate_interval]))) * 1000) and on () (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"sugang-helper-app\"}[$__rate_interval])) > 0)",
+          "legendFormat": "p99",
+          "editorMode": "code",
+          "instant": false,
+          "range": true,
+          "datasource": "Prometheus"
+        }
       ],
-      "title": "HikariCP Connection Acquire Latency",
-      "type": "timeseries"
+      "title": "DB 커넥션 획득 지연 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+      "type": "timeseries",
+      "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 평균·분위수는 각 시점의 $__rate_interval 구간이며 Max의 계측 창과 같은 시간 범위라고 해석하지 않습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다. "
     },
     {
       "collapsed": false,
@@ -351,6 +773,108 @@
       ],
       "title": "Process Open File Descriptors",
       "type": "timeseries"
+    }
+  ,
+    {
+      "id": 33,
+      "type": "table",
+      "title": "URI별 HTTP 지연 (ms) | 평균 · min N/A · max · p50 · p95 · p99",
+      "datasource": "Prometheus",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 53
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "noValue": "N/A"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Min (미계측)"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "N/A (미계측)"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "label_replace((((sum by (uri) (increase(http_server_requests_seconds_sum{job=\"sugang-helper-app\",uri!=\"\"}[$__range]))) / (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])))) * 1000) and on (uri) (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0), \"statistic\", \"Average\", \"\", \"\")",
+          "legendFormat": "Average",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "B",
+          "expr": "label_replace(((sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0)) * (0 / 0), \"statistic\", \"Min (미계측)\", \"\", \"\")",
+          "legendFormat": "Min (미계측)",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "C",
+          "expr": "label_replace(((max by (uri) (max_over_time(http_server_requests_seconds_max{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0) * 1000) and on (uri) (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0), \"statistic\", \"Max (계측 창)\", \"\", \"\")",
+          "legendFormat": "Max (계측 창)",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "D",
+          "expr": "label_replace((histogram_quantile(0.50, sum by (uri, le) (increase(http_server_requests_seconds_bucket{job=\"sugang-helper-app\",uri!=\"\"}[$__range]))) * 1000) and on (uri) (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0), \"statistic\", \"p50\", \"\", \"\")",
+          "legendFormat": "p50",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "E",
+          "expr": "label_replace((histogram_quantile(0.95, sum by (uri, le) (increase(http_server_requests_seconds_bucket{job=\"sugang-helper-app\",uri!=\"\"}[$__range]))) * 1000) and on (uri) (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0), \"statistic\", \"p95\", \"\", \"\")",
+          "legendFormat": "p95",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        },
+        {
+          "refId": "F",
+          "expr": "label_replace((histogram_quantile(0.99, sum by (uri, le) (increase(http_server_requests_seconds_bucket{job=\"sugang-helper-app\",uri!=\"\"}[$__range]))) * 1000) and on (uri) (sum by (uri) (increase(http_server_requests_seconds_count{job=\"sugang-helper-app\",uri!=\"\"}[$__range])) > 0), \"statistic\", \"p99\", \"\", \"\")",
+          "legendFormat": "p99",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "datasource": "Prometheus"
+        }
+      ],
+      "description": "평균은 관측 횟수로 가중한 sum/count이며, p50·p95·p99는 동일한 집계 차원의 histogram bucket을 이용한 추정값입니다. 최소 요청 시간은 현재 계측하지 않으므로 Min은 NaN을 N/A로 표시하는 명시적 빈값입니다. 0이나 bucket의 하한을 최소값으로 만들지 않습니다. Max는 Micrometer time-window max입니다. 기본 구성에서는 expiry 1분 × bufferLength 3이며 무관측 시 만료됩니다. 한 요청의 정확한 선택기간 최대값/전체 생애 최대값이 아닙니다. 이 표/요약의 평균·분위수는 대시보드 선택 기간($__range)의 증가량 기준이고, Max는 그 기간에 scrape된 time-window max의 최대입니다. 따라서 선택기간 시작 이전의 계측 창 관측이 Max에 포함될 수 있습니다. 요청이 없거나 scrape 표본이 부족하면 N/A입니다. 5분 무트래픽을 0ms 지연으로 채우지 않습니다. 분위수는 histogram 활성화·앱 재시작 뒤 새 관측과 최소 두 scrape가 있어야 나오며 과거 구간을 소급 생성하지 않습니다. bucket의 최저/최고 경계와 표본 수에 따라 추정 오차가 있습니다. URI는 Spring 라우트 템플릿 단위이며 빈 uri만 제외합니다. method/status는 기존처럼 함께 집계합니다. UNKNOWN·정적/관리 경로를 자동 제외한 API 전용 지표는 아닙니다.",
+      "transformations": [
+        {
+          "id": "joinByLabels",
+          "options": {
+            "value": "statistic"
+          }
+        }
+      ]
     }
   ],
   "schemaVersion": 39,
