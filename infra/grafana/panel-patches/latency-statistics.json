@@ -137,7 +137,18 @@
               ]
             },
             "unit": "ms",
-            "noValue": "N/A"
+            "noValue": "N/A",
+            "mappings": [
+              {
+                "type": "special",
+                "options": {
+                  "match": "nan",
+                  "result": {
+                    "text": "N/A"
+                  }
+                }
+              }
+            ]
           },
           "overrides": [
             {
@@ -289,7 +300,18 @@
               ]
             },
             "unit": "ms",
-            "noValue": "N/A"
+            "noValue": "N/A",
+            "mappings": [
+              {
+                "type": "special",
+                "options": {
+                  "match": "nan",
+                  "result": {
+                    "text": "N/A"
+                  }
+                }
+              }
+            ]
           },
           "overrides": [
             {
@@ -441,7 +463,18 @@
               ]
             },
             "unit": "ms",
-            "noValue": "N/A"
+            "noValue": "N/A",
+            "mappings": [
+              {
+                "type": "special",
+                "options": {
+                  "match": "nan",
+                  "result": {
+                    "text": "N/A"
+                  }
+                }
+              }
+            ]
           },
           "overrides": [
             {
@@ -573,7 +606,18 @@
               ]
             },
             "unit": "ms",
-            "noValue": "N/A"
+            "noValue": "N/A",
+            "mappings": [
+              {
+                "type": "special",
+                "options": {
+                  "match": "nan",
+                  "result": {
+                    "text": "N/A"
+                  }
+                }
+              }
+            ]
           },
           "overrides": [
             {
@@ -733,7 +777,18 @@
               ]
             },
             "unit": "ms",
-            "noValue": "N/A"
+            "noValue": "N/A",
+            "mappings": [
+              {
+                "type": "special",
+                "options": {
+                  "match": "nan",
+                  "result": {
+                    "text": "N/A"
+                  }
+                }
+              }
+            ]
           },
           "overrides": [
             {

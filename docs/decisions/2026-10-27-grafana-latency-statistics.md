@@ -113,3 +113,9 @@ histogram_quantile(0.95, sum by (uri, le) (rate(http_server_requests_seconds_buc
 ## 로컬 최종 정적 검사
 
 새 테스트를 포함한 `checkstyleTest`와 `pmdTest`가 통과했다. 운영 증설·재부팅과 충돌하지 않도록 이후 운영 SSH 조회와 지표 추가 조회는 중단하고 로컬 검증만 수행했다.
+
+## 운영 반영과 브라우저 표시 보정
+
+사용자 배포 승인 후 PR #36의 main `49b8a4fae`로 서버 CD가 성공했고, 운영 custom UID는 version 19/hash 가드 확인 후 5패널만 갱신해 version 20이 됐다. 다른 운영 패널 25개는 보존했다. 실제 HTTP/Hikari bucket과 URI 분위수·평균/max를 확인했으며 새 관측 없는 제공자는 발송 테스트 없이 무데이터로 남겼다.
+
+최종 Mac 브라우저 확인에서 Grafana noValue가 NaN에는 적용되지 않아 min이 NaN으로 보이는 것을 확인했다. 요청 최소값을 꾸미지 않고 기존 NaN에 special value mapping(nan → N/A)만 적용한다. 동일한 6개 latency 패널과 5개 선택 패치의 표시 속성만 변경하며 PromQL·자료·단위·집계·다른 패널은 유지한다. 공식 근거: https://grafana.com/docs/grafana/latest/visualizations/panels-visualizations/configure-value-mappings/ .
