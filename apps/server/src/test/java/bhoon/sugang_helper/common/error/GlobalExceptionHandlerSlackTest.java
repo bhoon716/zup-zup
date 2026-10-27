@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.common.error;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import bhoon.sugang_helper.common.alert.SlackAlertCategory;
 import bhoon.sugang_helper.common.alert.SlackAlertService;
@@ -25,8 +26,23 @@ class GlobalExceptionHandlerSlackTest {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/courses");
         RuntimeException exception = new IllegalStateException("database unavailable");
 
+        handler.handleCustomException(request, new CustomException(ErrorCode.INVALID_INPUT));
         handler.handleAny(request, exception);
 
-        verify(slackAlertService).alert(SlackAlertCategory.SERVER_5XX, "G001", exception);
+        verify(slackAlertService).alert(SlackAlertCategory.SERVER_5XX, "G001", exception,
+                "failureType=IllegalStateException");
+        verifyNoMoreInteractions(slackAlertService);
+    }
+
+    @Test
+    void forwardsOnlyTheRootCauseTypeAsAdditionalDiagnosticMetadata() {
+        SlackAlertService alerts = Mockito.mock(SlackAlertService.class);
+        RuntimeException failure = new IllegalStateException("token=private-token",
+                new IllegalArgumentException("email=private@example.com"));
+
+        new GlobalExceptionHandler(alerts).handleAny(new MockHttpServletRequest("GET", "/api/test"), failure);
+
+        verify(alerts).alert(SlackAlertCategory.SERVER_5XX, "G001", failure,
+                "failureType=IllegalArgumentException");
     }
 }

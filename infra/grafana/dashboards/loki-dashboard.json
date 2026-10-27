@@ -20,7 +20,7 @@
       "id": 1,
       "targets": [
         {
-          "expr": "sum(count_over_time({job=~\"$job\"}[$__interval])) / $__interval_ms * 1000",
+          "expr": "sum(count_over_time({app=\"jbnu-sugang-helper\",job=~\"$job\"}[$__interval])) / $__interval_ms * 1000",
           "legendFormat": "Total Logs/s",
           "refId": "A"
         }
@@ -35,7 +35,7 @@
       "id": 2,
       "targets": [
         {
-          "expr": "sum(count_over_time({job=~\"$job\"} |~ \"(?i)(error|exception|panic|fatal)\" [$__interval])) / $__interval_ms * 1000",
+          "expr": "sum(count_over_time({app=\"jbnu-sugang-helper\",job=~\"$job\"} |~ \"(?i)(error|exception|panic|fatal)\" [$__interval])) / $__interval_ms * 1000",
           "legendFormat": "Error Logs/s",
           "refId": "A"
         }
@@ -62,7 +62,7 @@
       },
       "targets": [
         {
-          "expr": "{job=~\"$job\"} |= \"$search\"",
+          "expr": "{app=\"jbnu-sugang-helper\",job=~\"$job\"} |= \"$search\"",
           "refId": "A"
         }
       ],
@@ -88,7 +88,7 @@
       },
       "targets": [
         {
-          "expr": "{job=~\"$job\"} |= \"corr=$correlationId\"",
+          "expr": "{app=\"jbnu-sugang-helper\",job=~\"$job\"} |= \"corr=$correlationId\"",
           "refId": "A"
         }
       ],
@@ -105,13 +105,13 @@
         "allValue": ".*",
         "current": { "selected": true, "text": "All", "value": "$__all" },
         "datasource": "Loki",
-        "definition": "label_values(job)",
+        "definition": "label_values({app=\"jbnu-sugang-helper\"}, job)",
         "hide": 0,
         "includeAll": true,
         "label": "Service (Job)",
         "multi": true,
         "name": "job",
-        "query": "label_values(job)",
+        "query": "label_values({app=\"jbnu-sugang-helper\"}, job)",
         "refresh": 1,
         "type": "query"
       },

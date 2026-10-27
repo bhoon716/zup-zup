@@ -3,6 +3,9 @@
 import { track } from "@vercel/analytics";
 
 const MAX_LABEL_LENGTH = 64;
+const TRANSPORT_CODES = new Set([
+  "ERR_NETWORK", "ECONNABORTED", "ETIMEDOUT", "ERR_CANCELED", "ERR_BAD_REQUEST", "ERR_BAD_RESPONSE",
+]);
 const reportedErrors = new WeakSet<object>();
 
 export type ClientErrorSource =
@@ -87,6 +90,11 @@ export function buildClientErrorEvent(error: unknown, context: ClientErrorContex
     event.status_code = status;
   }
 
+  const transportCode = readErrorProperty(error, "code");
+  if (typeof transportCode === "string" && TRANSPORT_CODES.has(transportCode)) {
+    event.transport_code = transportCode;
+  }
+
   return event;
 }
 
@@ -113,6 +121,7 @@ export function reportClientError(error: unknown, context: ClientErrorContext) {
       description: `${event.source}:${event.error_type}`,
       fatal: event.fatal,
       ...("status_code" in event ? { status_code: event.status_code } : {}),
+      ...("transport_code" in event ? { transport_code: event.transport_code } : {}),
     };
 
     if (analyticsWindow.gtag) {

@@ -5,14 +5,47 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.slf4j.LoggerFactory;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 class PageableGuardTest {
+
+    @Test
+    void rejectedPageIsWarnedOnlyByTheFinalApiHandler() {
+        Logger guard = (Logger) LoggerFactory.getLogger(PageableGuard.class);
+        Logger handler = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> events = new ListAppender<>();
+        Level previous = guard.getLevel();
+        guard.setLevel(Level.DEBUG);
+        events.start();
+        guard.addAppender(events);
+        handler.addAppender(events);
+        try {
+            try {
+                PageableGuard.requireBounded(PageRequest.of(0, 101));
+            } catch (CustomException failure) {
+                new GlobalExceptionHandler().handleCustomException(
+                        new MockHttpServletRequest("GET", "/api/test"), failure);
+            }
+            assertThat(events.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.DEBUG, Level.WARN);
+            assertThat(events.list.getLast().getFormattedMessage()).contains("[API_ERROR]", "code=G002");
+        } finally {
+            guard.detachAppender(events);
+            handler.detachAppender(events);
+            guard.setLevel(previous);
+            events.stop();
+        }
+    }
 
     @Test
     void rejectsOversizedPage() {

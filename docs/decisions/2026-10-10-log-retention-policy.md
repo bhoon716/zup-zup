@@ -120,3 +120,57 @@ DB·첨부 파일 백업과 같은 서버 보관·외부 수동 복사 방식을
 기존 이벤트 태그와 오류 코드, correlationId/crawlerRunId, 예외 타입과 stack frame을 유지한다. 예외 메시지는 외부 응답·개인정보·자격 증명을 포함할 수 있으므로 원문을 출력하지 않고, cause/suppressed를 포함한 안전한 stack 복사본으로 기록한다. 사용자 자유입력과 이메일 원문도 기록하지 않는다. 정상 HTTP와 반복적인 세부 성공 이벤트는 DEBUG, 최종 오류와 재시도·DLQ 정산은 기존 의미에 맞는 WARN/ERROR로 남긴다. 이미 오류 ID가 붙은 HTTP 응답의 요약은 DEBUG로 내려 중복 경고를 줄인다.
 
 모든 원문을 남기는 방법과 정해진 진단 정보만 남기는 방법을 비교해 후자를 선택한다. 예외 메시지의 세부 내용이 사라지는 진단 비용을 수용하며, 타입·원래 frame·원인 연결과 식별자로 추적한다. 기존 Slack 동기 전송, 시간 제한 및 cooldown 정책은 바꾸지 않는다. 검증은 mock payload와 격리된 로컬 실행으로 수행하며 실제 Slack 발송이나 운영 로그 열람은 하지 않는다.
+
+## 추가 검토·로컬 수정: 로깅 재점검을 진행하고 안전한 진단 정보를 보강한다
+
+- 기록일: 2026-10-27
+- 상태: 로컬 검토·수정 승인, 운영 반영 전
+- 범위: 앱 로그·기존 Slack 오류 안내·웹 오류 메타데이터·기존 Loki 조회식
+
+사용자는 로깅 재점검을 보류하지 말고 남은 작업을 순차 진행하도록 요청했다. 비민감 정보의 불필요한 마스킹은 완화하되 자격 증명·세션·개인정보 보호는 유지한다. 별도 관리자 로그 화면·새 알림 채널·영구 알림함은 추가하지 않는다. 운영 증설 중에는 SSH·로그 조회를 멈추고 로컬만 검증한다.
+
+앱과 수집 파이프라인을 두 독립 검토자가 읽고 단일 작성자가 근거를 확인했다. fingerprint 직접 호출 12개와 별도 기기 fingerprint 4개는 이메일·외부 Discord 식별자·기기 토큰/endpoint 대상이었다. 문의 답변 본문은 HMAC으로 요약하고, 내부 userId·courseKey·시간표/작업 ID는 이미 검색 가능하다. 비민감 필드의 과잉 마스킹 사례를 찾지 못해 보호 장치를 제거하지 않는다. 원문 예외 메시지·HTTP body·Authorization·Cookie·OAuth code/state는 계속 출력하지 않는다.
+
+### 로컬 변경과 보존할 계약
+
+- HTTP filter에서 탈출한 예외는 현재 response status가 200이어도 성공처럼 기록하지 않는다. `completed=false`, `responseStatusAtExit`, 안전한 exceptionType을 남기고 같은 예외를 그대로 전파한다. 응답·인증·본문은 변경하지 않는다. 이미 X-Error-Id로 보고된 경우의 중복 억제는 유지한다. elapsedMs는 단조 시간으로 측정한다.
+- 반복 API 오류의 stack 생략 시에도 rootCauseType을 요약에 남긴다. Slack에는 기존 allowlist의 `failureType`으로 원인 타입만 전달한다. stack 샘플링·cooldown·민감 원문 제외를 유지한다.
+- 페이지 범위 guard의 사전 로그만 DEBUG로 낮추고 최종 API handler의 WARN·오류 코드·correlation을 유지한다. 페이지 크기/권한/응답 계약은 바꾸지 않는다.
+- 웹 오류는 네트워크·timeout·취소 등 정해진 전송 코드만 allowlist로 기록한다. 임의 error.code·URL·headers·config·body·원문 message는 보내지 않는다. 같은 Error 객체 중복 억제도 유지한다.
+
+### 수집·보관 검토에서 남은 차이
+
+다음 항목은 발견한 공백과 제안이며 이번 수정으로 해결되었다고 간주하지 않는다.
+
+1. Loki의 720h 보관·compactor 삭제, Logback 파일의 14일/1GB 제한과 Compose의 `/tmp` tmpfs는 과거 압축 로그의 영구 보관을 보장하지 않는다. 저장소 밖 운영 아카이브 존재는 미확인이다. 기존 30일 이후 압축 영구 보관 결정을 폐기하지 않으며, 실제 보관 경로·주기·용량 대응을 확정한 뒤 별도 구현한다. 자동 삭제·운영 volume 변경은 하지 않는다.
+2. Alloy는 Docker daemon 전체를 발견하고 고정 app 라벨을 붙인다. 이 app 라벨은 Compose 프로젝트 필터가 아니다. 프로젝트 필터를 무작정 추가하면 기존 NPM 등 로그가 빠질 수 있으므로 먼저 수집 대상 목록을 확인한다. correlationId/crawlerRunId를 Loki 라벨로 올리지 않은 현재 구성을 유지한다.
+3. 저장소 Prometheus scrape는 앱만 대상으로 한다. 수집계 내부 지표·호스트 파일시스템·디스크 증가와 경보의 보완안은 별도 우선순위로 남긴다. 앞선 증설 전 조회에서 해당 Prometheus rule group과 Grafana 조직의 alert rule은 각각 0개였다. 다른 조직/외부 감시 전체가 없다는 뜻은 아니다.
+4. Discord callback의 서비스 ERROR와 최종 WARN은 중복 후보지만 단계·최초 원인 타입을 잃지 않게 정리해야 한다. 모든 내부 ERROR를 일괄 DEBUG로 바꾸지 않는다.
+
+### 다음 보완의 우선순위와 검증안
+
+| 우선순위 | 보완 후보 | 최소 변경·검증 | 이번 상태 |
+| --- | --- | --- | --- |
+| 높음 | 30일 이후 압축 로그 보관 경로 | 운영 복구 후 내용 없이 기존 파일 수/총바이트/기간부터 확인. 경로·주기·디스크 예산을 결정한 뒤 격리 환경에서 압축·재조회·재시작 보존 검증 | 설계/확인 필요, 운영·삭제 미실행 |
+| 높음 | 디스크 및 수집 중단 감지 | 수집계 상태·실패율·남은 공간의 집계부터 확인. 임계치·지속 시간·no-data·알림 대상 확정 후 한 규칙씩 검증 | 제안만 |
+| 중간 | 실제 수집 대상 범위 | Docker/Compose label 메타 목록과 NPM 포함 여부 확인 뒤 keep 규칙을 검토. 라벨 cardinality와 누락 비교 | 제안만 |
+| 중간 | 이미 있는 검색/chunk/claim 지연 시각화 | 기존 Timer의 가중 평균·time-window max부터 필요한 패널만 추가. 레이블·시간창·빈값 검사 | latency 합의 범위 외는 제안만 |
+
+운영 증설 중 지표 공백을 서비스 장애로 단정하지 않는다. 검증은 fake provider·mock payload·단위 테스트 및 격리된 로컬 설정 검사로 한정하며, 배포·재시작·실제 Slack/Discord 발송은 부모가 순서를 조율하기 전 수행하지 않는다.
+
+### Loki 기본 All 조회식 수정과 검증
+
+기존 Loki 대시보드의 기본 All 값 `.*`는 네 패널에서 `{job=~".*"}`로 확장된다. 동일하게 고정한 Loki 이미지의 격리 parser endpoint에서 이 식이 non-empty matcher 오류(400)를 내는 것을 재현했다. `app="jbnu-sugang-helper"`를 추가한 All/단일 job/복수 job 식은 모두 parser 검증 200을 받았다. 데이터 조회 성공·실제 수집량을 증명하는 검사는 아니다.
+
+로컬 대시보드의 네 selector와 job 변수 조회를 같은 app 범위로 맞췄다. Alloy는 현재 자신이 수집하는 모든 로그에 이 app 라벨을 붙이므로 그 수집집합과 job 없는 대상의 All 포함을 유지한다. All을 `.+`로 바꾸면 job 없는 컨테이너를 제외할 수 있어 채택하지 않았다. 저장소 밖 별도 writer의 app 라벨/수집 범위는 미확인이다. 수집 설정·보관기간·Loki 라벨은 바꾸지 않는다.
+
+검증 컨테이너는 로컬 Docker Desktop, 외부 네트워크 없음, 호스트 포트 없음, 캐시 이미지만 사용했다. 종료 후 자동 제거했다. 공식 [Loki parser의 matcher 검사](https://github.com/grafana/loki/blob/main/pkg/logql/syntax/parser.go)와 [LogQL stream selector](https://grafana.com/docs/loki/latest/query/log_queries/#log-stream-selector)도 함께 확인했다. 운영 Loki/Grafana를 조회하거나 수정하지 않았다.
+
+### 이번 로컬 검증 결과
+
+- 서버 관련 단위 테스트 37개 통과: HTTP 예외 전파·응답 불변·중복 억제·안전한 원인 타입·민감정보 보호·mock Slack payload.
+- 서버 main/test 전체 컴파일, Checkstyle·PMD main/test 및 bootJar 통과.
+- 웹 telemetry 단위 테스트 10개·타입 검사·변경 파일 lint 통과. 분석 SDK는 mock으로 대체했다.
+- 동일 pinned Loki 이미지의 parser에서 기존 All 음성 검사 1개, 수정 All/단일/복수 job과 실제 네 패널을 포함한 양성 검사 7개 통과. 데이터 수집/검색의 운영 E2E 검증은 하지 않았다.
+- 기존 observability 계약 검사에서 Compose와 Alloy/Loki/Prometheus 설정 검증 통과. source/discovery/retention 값은 변경하지 않았다.
+- 초기 로컬 진단은 HTTP 도구 부재·기동 대기·데이터 조회 취소로 완료되지 않았으므로 통과 근거로 쓰지 않았다. 검증 도구를 parser endpoint로 좁혀 최종 결과를 확보했고 그 과정의 임시 컨테이너를 종료했다.

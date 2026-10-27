@@ -87,16 +87,22 @@ class GlobalExceptionHandlerTest {
         try {
             GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
-            handler.handleAny(request, new IllegalStateException("first failure"));
-            handler.handleAny(request, new IllegalStateException("repeated failure"));
+            handler.handleAny(request, new IllegalStateException("first failure",
+                    new IllegalArgumentException("email=private@example.com")));
+            handler.handleAny(request, new IllegalStateException("repeated failure",
+                    new IllegalArgumentException("token=private-token")));
 
             assertThat(appender.list).hasSize(2);
             assertThat(appender.list.get(0).getThrowableProxy()).isNotNull();
             assertThat(appender.list.get(1).getThrowableProxy()).isNull();
             assertThat(appender.list.get(0).getFormattedMessage()).contains(STACK_TRACE_INCLUDED);
             assertThat(appender.list.get(1).getFormattedMessage()).contains("stackTraceIncluded=false");
-            assertThat(appender.list).allSatisfy(event ->
-                    assertThat(event.getLevel()).isEqualTo(Level.ERROR));
+            assertThat(appender.list).allSatisfy(event -> {
+                assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+                assertThat(event.getFormattedMessage())
+                        .contains("rootCauseType=IllegalArgumentException")
+                        .doesNotContain("private@example.com", "private-token");
+            });
         } finally {
             logger.detachAppender(appender);
             appender.stop();
