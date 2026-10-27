@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryDispatch;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryFailureResult;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;

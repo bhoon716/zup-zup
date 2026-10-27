@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.common.health;
+package bhoon.sugang_helper.common.dto.response;
 
 import java.time.Instant;
 import java.time.LocalDateTime;

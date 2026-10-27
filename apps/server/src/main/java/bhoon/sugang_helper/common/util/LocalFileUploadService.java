@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.dto.result.SanitizedImage;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 
 import bhoon.sugang_helper.common.dto.result.LoadedFile;
