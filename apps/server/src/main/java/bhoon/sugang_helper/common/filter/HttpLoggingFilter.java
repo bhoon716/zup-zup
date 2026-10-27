@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -21,7 +22,7 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
 
         String uri = SensitiveDataRedactor.redactPath(request.getRequestURI());
         if (uri.startsWith("/actuator")) {
@@ -31,18 +32,33 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
 
         boolean queryPresent = request.getQueryString() != null;
         String method = request.getMethod();
+        String failureType = null;
 
         try {
             filterChain.doFilter(request, response);
+        } catch (IOException | ServletException | RuntimeException | Error exception) {
+            failureType = exception.getClass().getSimpleName();
+            throw exception;
         } finally {
-            long tookMs = System.currentTimeMillis() - start;
+            long tookMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             int status = response.getStatus();
-            logByStatus(method, uri, queryPresent, status, tookMs, response.getHeader("X-Error-Id") != null);
+            logByStatus(method, uri, queryPresent, status, tookMs,
+                    response.getHeader("X-Error-Id") != null, failureType);
         }
     }
 
     private void logByStatus(String method, String uri, boolean queryPresent, int status, long tookMs,
-                             boolean errorAlreadyLogged) {
+                             boolean errorAlreadyLogged, String failureType) {
+        if (failureType != null) {
+            String failureMessage = "[HTTP] 요청 처리 중 예외 전파. method={} path={} queryPresent={} "
+                    + "responseStatusAtExit={} elapsedMs={} exceptionType={} completed=false";
+            if (errorAlreadyLogged) {
+                log.debug(failureMessage, method, uri, queryPresent, status, tookMs, failureType);
+            } else {
+                log.error(failureMessage, method, uri, queryPresent, status, tookMs, failureType);
+            }
+            return;
+        }
         int resolvedStatus = status == 0 ? HttpServletResponse.SC_OK : status;
         String message = "[HTTP] 요청 처리 결과. method={} path={} queryPresent={} status={} elapsedMs={}";
         if (errorAlreadyLogged || uri.equals("/health") || resolvedStatus < 400) {

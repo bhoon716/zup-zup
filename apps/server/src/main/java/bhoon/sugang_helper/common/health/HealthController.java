@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.health;
 
+import bhoon.sugang_helper.common.dto.response.HealthCheckResponse;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

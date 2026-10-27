@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.dto.result.SanitizedImage;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import jakarta.annotation.PreDestroy;

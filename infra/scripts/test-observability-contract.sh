@@ -89,6 +89,14 @@ for required in ("http://prometheus:9090", "http://loki:3100"):
 for dashboard in (repo_root / "infra/grafana/dashboards").glob("*.json"):
     json.loads(dashboard.read_text(encoding="utf-8"))
 
+loki_dashboard = json.loads((repo_root / "infra/grafana/dashboards/loki-dashboard.json").read_text(encoding="utf-8"))
+log_queries = [target["expr"] for panel in loki_dashboard["panels"] for target in panel.get("targets", [])]
+if len(log_queries) != 4 or any('{app="jbnu-sugang-helper",job=~"$job"}' not in query for query in log_queries):
+    raise SystemExit("Loki queries must retain a non-empty app matcher when All expands to .*")
+job_variable = next(variable for variable in loki_dashboard["templating"]["list"] if variable["name"] == "job")
+if job_variable["allValue"] != ".*" or 'app="jbnu-sugang-helper"' not in job_variable["query"]:
+    raise SystemExit("Loki job choices must use the same app scope without excluding missing jobs from All")
+
 images_path.write_text(
     "\n".join(
         str(services[name]["image"])

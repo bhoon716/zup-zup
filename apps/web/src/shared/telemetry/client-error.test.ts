@@ -37,6 +37,23 @@ describe("client error telemetry", () => {
     });
   });
 
+  it.each(["ERR_NETWORK", "ECONNABORTED", "ETIMEDOUT", "ERR_CANCELED"])(
+    "알려진 전송 코드 %s만 진단 필드로 보존한다",
+    (code) => {
+      const error = Object.assign(new Error("token=private-token"), { code });
+      expect(buildClientErrorEvent(error, { source: "react-query" }).transport_code).toBe(code);
+    },
+  );
+
+  it("임의 오류 코드와 원문 요청 정보를 전송하지 않는다", () => {
+    const event = buildClientErrorEvent({
+      name: "AxiosError", code: "private-token", message: "cookie=private-cookie",
+      config: { url: "https://private.example?code=private-oauth", headers: { Authorization: "private-header" } },
+    }, { source: "react-query" });
+    expect(event).not.toHaveProperty("transport_code");
+    expect(JSON.stringify(event)).not.toMatch(/private-token|private-cookie|private-oauth|private-header/);
+  });
+
   it("Vercel Analytics, GA4, Clarity에 동일한 클라이언트 오류 이벤트를 전달한다", () => {
     const gtag = vi.fn();
     const clarity = vi.fn();

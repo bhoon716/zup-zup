@@ -158,3 +158,20 @@ management:
           include: readinessState,db,redis
     prometheus:
       access: read-only
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        notification.provider.latency: true
+        crawler.upstream.latency: true
+        hikaricp.connections.acquire: true
+      minimum-expected-value:
+        http.server.requests: 1us
+        notification.provider.latency: 1us
+        crawler.upstream.latency: 1us
+        hikaricp.connections.acquire: 1us
+      maximum-expected-value:
+        http.server.requests: 1m
+        notification.provider.latency: 10s
+        crawler.upstream.latency: 10m
+        hikaricp.connections.acquire: 1m

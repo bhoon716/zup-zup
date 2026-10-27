@@ -103,7 +103,8 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.of(errorCode, req.getRequestURI());
         log(errorCode, req.getMethod(), errorResponse.getPath(), errorResponse.getCorrelationId(), exception);
         if (errorCode.getStatus().is5xxServerError() && slackAlertService != null) {
-            slackAlertService.alert(SlackAlertCategory.SERVER_5XX, errorCode.getCode(), exception);
+            slackAlertService.alert(SlackAlertCategory.SERVER_5XX, errorCode.getCode(), exception,
+                    "failureType=" + findRootCause(exception).getClass().getSimpleName());
         }
         return ResponseEntity.status(errorCode.getStatus())
                 .header("X-Error-Id", errorResponse.getCorrelationId())
@@ -111,8 +112,10 @@ public class GlobalExceptionHandler {
     }
 
     private void log(ErrorCode errorCode, String method, String path, String correlationId, Exception exception) {
-        String message = String.format("[API_ERROR] correlationId=%s code=%s method=%s path=%s exceptionType=%s API 요청 처리 실패.",
-                correlationId, errorCode.getCode(), method, path, exception.getClass().getSimpleName());
+        String message = String.format("[API_ERROR] correlationId=%s code=%s method=%s path=%s "
+                        + "exceptionType=%s rootCauseType=%s API 요청 처리 실패.",
+                correlationId, errorCode.getCode(), method, path, exception.getClass().getSimpleName(),
+                findRootCause(exception).getClass().getSimpleName());
 
         if (errorCode.getStatus().is5xxServerError()) {
             boolean includeStackTrace = shouldLogStackTrace(errorCode, exception);

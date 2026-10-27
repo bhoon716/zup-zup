@@ -1,4 +1,4 @@
-package bhoon.sugang_helper.seatalert.notification.service;
+package bhoon.sugang_helper.seatalert.notification.dto.result;
 
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
@@ -6,7 +6,7 @@ import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 
 
 
-record SeatNotificationDeliveryDispatch(
+public record SeatNotificationDeliveryDispatch(
         Long userId,
         NotificationChannel channel,
         SeatNotificationOutbox outbox,
