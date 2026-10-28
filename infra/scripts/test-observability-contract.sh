@@ -57,6 +57,17 @@ grafana_ports = services["grafana"].get("ports", [])
 if len(grafana_ports) != 1 or str(grafana_ports[0].get("host_ip")) != "127.0.0.1":
     raise SystemExit("Grafana must publish exactly one localhost-only port")
 
+grafana_environment = services["grafana"].get("environment", {})
+grafana_domain_settings = {
+    "GF_SERVER_DOMAIN": "grafana.zup-zup.com",
+    "GF_SERVER_ROOT_URL": "https://grafana.zup-zup.com/",
+    "GF_SECURITY_COOKIE_SECURE": "true",
+    "GF_LIVE_ALLOWED_ORIGINS": "https://grafana.zup-zup.com,https://jbnu-sugang-helper-grafana.duckdns.org",
+}
+for key, expected in grafana_domain_settings.items():
+    if grafana_environment.get(key) != expected:
+        raise SystemExit(f"Grafana domain contract is missing or changed: {key}")
+
 alloy_mounts = {str(item.get("target")): item for item in services["alloy"].get("volumes", [])}
 if alloy_mounts.get("/var/run/docker.sock", {}).get("read_only") is not True:
     raise SystemExit("Alloy must mount the Docker socket read-only")

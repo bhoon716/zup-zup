@@ -295,6 +295,10 @@ services:
     tmpfs:
       - /tmp:mode=1777
     environment:
+      GF_SERVER_DOMAIN: "grafana.zup-zup.com"
+      GF_SERVER_ROOT_URL: "https://grafana.zup-zup.com/"
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_LIVE_ALLOWED_ORIGINS: "https://grafana.zup-zup.com,https://jbnu-sugang-helper-grafana.duckdns.org"
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
       GF_USERS_ALLOW_SIGN_UP: "false"
