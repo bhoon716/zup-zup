@@ -544,6 +544,7 @@ export default function SearchPage() {
               <CourseTable
                 key={searchConditionKey}
                 courses={allCourses}
+                unmaskPublicCourseInfo={!searchCondition.isWishedOnly && !searchCondition.selectedSchedules?.length}
                 onLoadMore={fetchNextPage}
                 hasMore={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
