@@ -98,7 +98,7 @@
   ],
   "schemaVersion": 39,
   "style": "dark",
-  "tags": ["sugang-helper", "loki", "logs"],
+  "tags": ["sugang-helper", "loki", "logs", "legacy"],
   "templating": {
     "list": [
       {
@@ -143,7 +143,8 @@
     "hidden": false,
     "refresh_intervals": ["10s", "30s", "1m", "5m", "15m"]
   },
-  "title": "Application & Service Logs (Loki)",
+  "title": "[이전 보기] Application & Service Logs (Loki)",
   "uid": "sadlil-loki-apps-dashboard",
-  "version": 15
+  "version": 15,
+  "links": [{"title": "줍줍 통합 운영 대시보드", "type": "link", "url": "/d/zup-zup-operations", "keepTime": true, "targetBlank": false}]
 }

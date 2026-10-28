@@ -36,6 +36,8 @@ public class CourseResponse {
 
     private final String credits;
 
+    private final String disclosure;
+
     private final String classroom;
 
     private final String status;
@@ -71,6 +73,7 @@ public class CourseResponse {
                 .classification(course.getClassification() != null ? course.getClassification().getDescription() : null)
                 .classTime(course.getClassTime())
                 .credits(course.getCredits())
+                .disclosure(course.getDisclosure() != null ? course.getDisclosure().getDescription() : null)
                 .classroom(course.getClassroom())
                 .status(status)
                 .averageRating(course.getAverageRating())
