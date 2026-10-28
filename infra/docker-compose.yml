@@ -299,7 +299,6 @@ services:
       GF_SERVER_ROOT_URL: "https://grafana.zup-zup.com/"
       GF_SECURITY_COOKIE_SECURE: "true"
       GF_LIVE_ALLOWED_ORIGINS: "https://grafana.zup-zup.com,https://jbnu-sugang-helper-grafana.duckdns.org"
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: "/var/lib/grafana/dashboards/zup-zup-operations.json"
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
       GF_USERS_ALLOW_SIGN_UP: "false"
