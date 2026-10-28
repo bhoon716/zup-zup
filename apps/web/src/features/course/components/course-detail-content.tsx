@@ -11,16 +11,18 @@ import { CourseReviewSection } from "@/features/review/components/course-review-
 
 interface CourseDetailContentProps {
   course: Course;
+  unmaskPublicCourseInfo?: boolean;
 }
 
 
 
 
 
-export function CourseDetailContent({ course: rawCourse }: CourseDetailContentProps) {
+export function CourseDetailContent({ course: rawCourse, unmaskPublicCourseInfo = false }: CourseDetailContentProps) {
   const reviewScopeKey = getReviewScopeKey(rawCourse);
   const isProfessorUnassigned = !hasIdentifiableProfessor(rawCourse);
   const course = normalizeCourse(rawCourse);
+  const clarityUnmask = unmaskPublicCourseInfo && course.disclosure === "공개" ? true : undefined;
   const capacity = course.capacity ?? 0;
   const current = course.current ?? 0;
   const available = course.available ?? 0;
@@ -38,14 +40,16 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
         classLabel={classLabel} 
         departmentLabel={departmentLabel} 
         targetGradeLabel={targetGradeLabel} 
+        clarityUnmask={clarityUnmask}
       />
 
-      <CourseSummaryGrid course={course} />
+      <CourseSummaryGrid course={course} clarityUnmask={clarityUnmask} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <CourseTimeLocation 
           course={course} 
           mapQuery={mapQuery} 
+          clarityUnmask={clarityUnmask}
         />
         <CourseSeatStatus 
           course={course} 
@@ -73,12 +77,14 @@ function CourseHeader({
   course, 
   classLabel, 
   departmentLabel, 
-  targetGradeLabel 
+  targetGradeLabel,
+  clarityUnmask,
 }: { 
   course: Course; 
   classLabel: string; 
   departmentLabel: string; 
   targetGradeLabel: string;
+  clarityUnmask?: true;
 }) {
   const isFull = (course.available ?? 0) <= 0;
 
@@ -106,7 +112,7 @@ function CourseHeader({
         <div>
           <div className="relative pl-3">
             <div className="absolute left-0 top-1 bottom-1 w-1 rounded-full bg-primary/70"></div>
-            <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
+            <h1 data-clarity-unmask={clarityUnmask} className="text-3xl md:text-4xl font-black text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
               {course.name}
             </h1>
           </div>
@@ -163,10 +169,10 @@ function CourseHeader({
 
 
 
-function CourseSummaryGrid({ course }: { course: Course }) {
+function CourseSummaryGrid({ course, clarityUnmask }: { course: Course; clarityUnmask?: true }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <DetailBox label="학점 / 시간" value={`${course.credits || "-"}학점`} subValue={course.lectureHours ? ` (${course.lectureHours}시간)` : ""} />
+      <DetailBox label="학점 / 시간" value={`${course.credits || "-"}학점`} subValue={course.lectureHours ? ` (${course.lectureHours}시간)` : ""} clarityUnmask={clarityUnmask} />
       <DetailBox label="성적평가" value={formatGradingMethod(course.gradingMethod)} />
       <DetailBox label="강의방식" value={course.courseStatus || "일반"} />
       <DetailBox label="강의언어" value={formatLanguage(course.lectureLanguage)} />
@@ -177,7 +183,7 @@ function CourseSummaryGrid({ course }: { course: Course }) {
 
 
 
-function CourseTimeLocation({ course, mapQuery }: { course: Course; mapQuery: string }) {
+function CourseTimeLocation({ course, mapQuery, clarityUnmask }: { course: Course; mapQuery: string; clarityUnmask?: true }) {
   return (
     <div className="lg:col-span-2 flex flex-col h-full">
       <div className="flex items-center gap-2 mb-3">
@@ -191,13 +197,13 @@ function CourseTimeLocation({ course, mapQuery }: { course: Course; mapQuery: st
             {course.schedules && course.schedules.length > 0 ? (
               course.schedules.map((s, idx) => (
                 <div key={idx} className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 transition-colors hover:border-primary/30">
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono tracking-tight">
+                  <span data-clarity-unmask={clarityUnmask} className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono tracking-tight">
                     {formatDayOfWeek(s.dayOfWeek)} {s.startTime} ~ {s.endTime}
                   </span>
                 </div>
               ))
             ) : (
-              <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 italic text-gray-400 text-sm">
+              <div data-clarity-unmask={clarityUnmask} className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 italic text-gray-400 text-sm">
                 {course.classTime || "시간 미배정"}
               </div>
             )}
@@ -326,11 +332,11 @@ function extractGradeNumber(targetGradeLabel?: string): string | null {
   return match ? match[1] : null;
 }
 
-function DetailBox({ label, value, subValue }: { label: string; value: string; subValue?: string }) {
+function DetailBox({ label, value, subValue, clarityUnmask }: { label: string; value: string; subValue?: string; clarityUnmask?: true }) {
   return (
     <div className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center gap-1 hover:bg-primary/5 hover:border-primary/20 transition-colors group">
       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{label}</span>
-      <div className="text-lg font-bold text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors">
+      <div data-clarity-unmask={clarityUnmask} className="text-lg font-bold text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors">
         {value}
         {subValue && <span className="text-sm font-normal text-gray-400">{subValue}</span>}
       </div>

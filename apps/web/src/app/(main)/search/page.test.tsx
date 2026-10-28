@@ -1,9 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import SearchPage from "./page";
 import { COURSE_GUIDE_MODAL_STORAGE_KEY } from "@/features/course/components/course-guide-modal";
+import type { CourseSearchCondition } from "@/shared/types/api";
 
 const createLocalStorageMock = () => {
   const store = new Map<string, string>();
@@ -22,7 +23,7 @@ const createLocalStorageMock = () => {
   };
 };
 
-const { mockAuthState, mockCourseTable, mockUseCourses } = vi.hoisted(() => ({
+const { mockAuthState, mockCourseTable, mockUseCourses, mockSearchBar } = vi.hoisted(() => ({
   mockAuthState: {
     user: null as null | { id: number; email: string; name: string; role: string },
     isAuthenticated: false,
@@ -30,6 +31,7 @@ const { mockAuthState, mockCourseTable, mockUseCourses } = vi.hoisted(() => ({
   },
   mockCourseTable: vi.fn(),
   mockUseCourses: vi.fn(),
+  mockSearchBar: vi.fn(),
 }));
 
 vi.mock("@/features/course/hooks/useCourses", () => ({
@@ -45,7 +47,10 @@ vi.mock("@/features/auth/store/useAuthStore", () => ({
 }));
 
 vi.mock("@/features/course/components/course-search-bar", () => ({
-  CourseSearchBar: () => <div data-testid="course-search-bar" />,
+  CourseSearchBar: (props: unknown) => {
+    mockSearchBar(props);
+    return <div data-testid="course-search-bar" />;
+  },
 }));
 
 vi.mock("@/features/course/components/course-table", () => ({
@@ -78,6 +83,18 @@ describe("SearchPage", () => {
       hasNextPage: false,
       isFetchingNextPage: false,
     });
+  });
+
+  it.each([
+    { condition: { isWishedOnly: true }, label: "찜" },
+    { condition: { selectedSchedules: [{ dayOfWeek: "월", startTime: "09:00", endTime: "10:00" }] }, label: "개인 공강" },
+  ])("$label 필터는 공개 강의 예외를 끄고 초기화 시 복구한다", ({ condition }) => {
+    render(<SearchPage />);
+    expect(mockCourseTable.mock.lastCall?.[0].unmaskPublicCourseInfo).toBe(true);
+    act(() => mockSearchBar.mock.lastCall?.[0].onSearch(condition as CourseSearchCondition));
+    expect(mockCourseTable.mock.lastCall?.[0].unmaskPublicCourseInfo).toBe(false);
+    act(() => mockSearchBar.mock.lastCall?.[0].onSearch({}));
+    expect(mockCourseTable.mock.lastCall?.[0].unmaskPublicCourseInfo).toBe(true);
   });
 
   it("정렬 기준과 정렬 방향 버튼에 이름을 제공한다", () => {

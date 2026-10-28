@@ -34,6 +34,7 @@ import type { Course, Subscription, TimetableResponse, User, WishlistResponse } 
 
 interface CourseTableProps {
   courses: Course[];
+  unmaskPublicCourseInfo?: boolean;
   onLoadMore?: () => void;
   hasMore?: boolean;
   isFetchingNextPage?: boolean;
@@ -101,6 +102,7 @@ function getClassificationStripe(classification?: string) {
 
 export function CourseTable({
   courses,
+  unmaskPublicCourseInfo = false,
   onLoadMore,
   hasMore,
   isFetchingNextPage,
@@ -216,6 +218,7 @@ export function CourseTable({
       <div className="space-y-2.5">
         {courses.map((rawCourse, index) => {
           const course = normalizeCourse(rawCourse);
+          const clarityUnmask = unmaskPublicCourseInfo && course.disclosure === "공개" ? true : undefined;
           const subscription = subscriptionMap.get(course.courseKey);
           const subscribed = !!subscription;
           const wished = wishlistSet.has(course.courseKey);
@@ -246,7 +249,7 @@ export function CourseTable({
                           <span className="rounded border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
                             {formatClassification(course.classification)}
                           </span>
-                          <span className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
+                          <span data-clarity-unmask={clarityUnmask} className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
                             {course.credits || 0}학점
                           </span>
                           <span className="text-[10px] font-semibold tracking-wide text-gray-600">
@@ -254,7 +257,7 @@ export function CourseTable({
                           </span>
                         </div>
 
-                        <h2 className="mb-1 text-sm font-bold text-foreground md:mb-1.5 md:text-base">
+                        <h2 data-clarity-unmask={clarityUnmask} className="mb-1 text-sm font-bold text-foreground md:mb-1.5 md:text-base">
                           <button
                             type="button"
                             className="block max-w-full truncate rounded-sm text-left transition-colors group-hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -302,7 +305,7 @@ export function CourseTable({
 
                       <span className="flex items-center gap-1">
                         <Clock3 className="h-3 w-3 text-gray-400 md:h-3.5 md:w-3.5" />
-                        <span className="max-w-[120px] truncate md:max-w-none">
+                        <span data-clarity-unmask={clarityUnmask} className="max-w-[120px] truncate md:max-w-none">
                           {course.classTime || "시간 미배정"}
                         </span>
                       </span>
@@ -504,6 +507,7 @@ export function CourseTable({
 
       <CourseDetailDialog
         course={selectedCourse}
+        unmaskPublicCourseInfo={unmaskPublicCourseInfo}
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
       />
