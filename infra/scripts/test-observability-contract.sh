@@ -98,46 +98,15 @@ for required in ("http://prometheus:9090", "http://loki:3100"):
         raise SystemExit(f"Grafana datasource is missing: {required}")
 
 for dashboard in (repo_root / "infra/grafana/dashboards").glob("*.json"):
-    json.loads(dashboard.read_text(encoding="utf-8"))
+    definition = json.loads(dashboard.read_text(encoding="utf-8"))
+    if definition.get("uid") == "zup-zup-operations":
+        raise SystemExit("The imported operations dashboard must not be file-provisioned")
 
-dashboard_root = repo_root / "infra/grafana/dashboards"
-unified = json.loads((dashboard_root / "zup-zup-operations.json").read_text(encoding="utf-8"))
-
-def flatten_panels(panels):
-    for panel in panels:
-        yield panel
-        yield from flatten_panels(panel.get("panels", []))
-
-unified_panels = list(flatten_panels(unified["panels"]))
-panel_ids = [panel["id"] for panel in unified_panels]
-if unified["uid"] != "zup-zup-operations" or len(panel_ids) != len(set(panel_ids)):
-    raise SystemExit("Unified dashboard must preserve its UID and use unique panel IDs")
-original_panel_ids = {1, 3, 4, 5, 7, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34}
-if not original_panel_ids.issubset(panel_ids):
-    raise SystemExit("Unified dashboard lost an original operations panel ID")
-
-def query_signature(panel):
-    return panel["type"], tuple(target.get("expr") for target in panel.get("targets", []))
-
-unified_queries = {query_signature(panel) for panel in unified_panels if panel.get("targets")}
-for filename in ("application-metrics-dashboard.json", "loki-dashboard.json"):
-    legacy = json.loads((dashboard_root / filename).read_text(encoding="utf-8"))
-    for panel in flatten_panels(legacy["panels"]):
-        if panel.get("targets") and query_signature(panel) not in unified_queries:
-            raise SystemExit(f"Unified dashboard lost legacy panel queries: {filename}/{panel['id']}")
-
-variable_names = {variable["name"] for variable in unified["templating"]["list"]}
-if variable_names != {"log_level", "log_source", "job", "correlationId", "search"}:
-    raise SystemExit("Unified dashboard must retain both operations and Loki variables")
-for panel_id in (402, 16, 18, 21, 27, 33):
-    panel = next(panel for panel in unified_panels if panel["id"] == panel_id)
-    if len(panel.get("targets", [])) != 6 or "(0 / 0)" not in panel["targets"][1]["expr"]:
-        raise SystemExit(f"Latency panel {panel_id} must retain six statistics with unmeasured min")
-if grafana_environment.get("GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH") != "/var/lib/grafana/dashboards/zup-zup-operations.json":
-    raise SystemExit("Grafana must use the unified dashboard as its default entry point")
+if "GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH" in grafana_environment:
+    raise SystemExit("Imported dashboards must use database preferences rather than a home JSON file")
 provider = (repo_root / "infra/grafana/provisioning/dashboards/dashboard.yml").read_text(encoding="utf-8")
 if "disableDeletion: true" not in provider:
-    raise SystemExit("Dashboard provisioning must not delete preserved dashboards")
+    raise SystemExit("Removing a dashboard file must preserve its database definition")
 
 loki_dashboard = json.loads((repo_root / "infra/grafana/dashboards/loki-dashboard.json").read_text(encoding="utf-8"))
 log_queries = [target["expr"] for panel in loki_dashboard["panels"] for target in panel.get("targets", [])]

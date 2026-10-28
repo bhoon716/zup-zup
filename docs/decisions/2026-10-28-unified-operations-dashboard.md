@@ -35,3 +35,15 @@ Grafana 기본 홈 경로는 새 원본 파일로 지정한다. 기존 사용자
 ## 구현 전 검증 기록
 
 서버 `check bootJar`(Java 21)는 단위 테스트 559개와 Checkstyle/PMD를 포함해 통과했다. observability 계약과 나머지 infra 계약도 로컬에서 검증한다. 배포 직전 브라우저의 읽기 API에서 운영 정의 버전이 백업과 동일한 v21/v5/v4임을 확인했다. 실제 배포·화면 결과는 작업 산출물에 별도로 기록하며, 이 기록만으로 미실행 검증을 통과로 간주하지 않는다.
+
+## 사용자 정정: JSON import와 DB 관리로 전환
+
+사용자는 저장소의 파일 프로비저닝 방식에 반대하고, JSON 파일을 작성한 뒤 Grafana에서 import하여 직접 편집하도록 명시했다. 위 파일 관리 선택은 더 이상 현재 정책이 아니다. Clarity 검색 응답 보완과 이전 도메인 네 설정은 유지하며 PR 전체를 되돌리지 않는다.
+
+통합 정의는 작업 산출물 `grafana-db-import-20261028/zup-zup-operations.import.json`으로 보관한다. 활성 `infra/grafana/dashboards`에서는 통합판 JSON을 제거하고 파일 기반 홈 경로도 제거한다. 이전 메트릭·Loki 파일의 제목/링크 변경과 통합판 파일 검사를 되돌린다. 기존 두 파일의 unrelated 프로비저닝은 삭제하지 않는다.
+
+`disableDeletion=true`는 DB 정의·UID·이력 보존을 위해 유지한다. Grafana 13.1.0의 `handleMissingDashboardFiles`는 이 설정에서 사라진 파일의 DB 대시보드를 삭제하지 않고 `UnprovisionDashboard`로 관리 기록만 제거한다. 이것은 `editable=true`로 파일 재동기화를 숨기는 방식이 아니다. 다음 CD에도 동일 UID가 활성 JSON에 없어야 하며 계약 검사에서 이를 보호한다.
+
+운영 전환 전 서버의 비공개 `/var/backups/zup-zup-grafana-db-import-20261028T073318Z`에 SQLite backup API로 만든 DB 사본과 Compose·공급자·원본 JSON 및 해시를 보관했다. API 기반 백업 읽기는 401로 중단했고 그 요청을 재시도하지 않았다. 비밀번호 재설정이나 토큰·권한 변경은 하지 않는다.
+
+정상 후속 배포로 파일 관리를 해제한 다음 같은 UID로 import한다. 브라우저 UI에서 소규모 설명 수정·저장·새로고침과 프로비저닝 재읽기 이후에도 저장 내용이 유지되는지 확인한다. 홈 진입점은 필요 시 Grafana DB의 기존 사용자/조직 환경설정으로 선택하며 파일 경로를 다시 추가하지 않는다. 대시보드 삭제·DB 전체 복원은 정상 전환에 사용하지 않는다.

@@ -883,7 +883,7 @@
     }
   ],
   "schemaVersion": 39,
-  "tags": ["sugang-helper", "application-metrics", "spring-boot", "crawling", "notification", "legacy"],
+  "tags": ["sugang-helper", "application-metrics", "spring-boot", "crawling", "notification"],
   "templating": {
     "list": []
   },
@@ -891,8 +891,7 @@
     "from": "now-1h",
     "to": "now"
   },
-  "title": "[이전 보기] JBNU Sugang Helper - All-in-One Service Observability",
+  "title": "JBNU Sugang Helper - All-in-One Service Observability",
   "uid": "sugang-helper-metrics",
-  "version": 3,
-  "links": [{"title": "줍줍 통합 운영 대시보드", "type": "link", "url": "/d/zup-zup-operations", "keepTime": true, "targetBlank": false}]
+  "version": 3
 }
