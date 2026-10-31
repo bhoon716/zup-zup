@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
 import { AxiosError } from "axios";
+import { trackOnboardingStarted } from "@/shared/analytics/onboarding-events";
 
 interface OnboardingForm {
   notificationEmail: string;
@@ -58,7 +59,7 @@ export default function OnboardingPage() {
   const discordStatus = searchParams.get("discord");
 
   const { data: user, isLoading } = useUser();
-  const { mutate: completeOnboarding, isPending } = useCompleteOnboarding();
+  const { mutate: completeOnboarding, isPending } = useCompleteOnboarding(user?.id);
   const { subscribe, unsubscribe, loading: loadingWebPush } = useWebPush();
 
   const [emailSent, setEmailSent] = useState(false);
@@ -84,6 +85,12 @@ export default function OnboardingPage() {
   const webPushEnabled = useWatch({ control, name: "webPushEnabled" });
   const discordEnabled = useWatch({ control, name: "discordEnabled" });
   const deviceName = useWatch({ control, name: "deviceName" });
+
+  useEffect(() => {
+    if (!isLoading && user && !user.onboardingCompleted) {
+      trackOnboardingStarted(user.id);
+    }
+  }, [isLoading, user]);
 
   useEffect(() => {
     if (user) {
