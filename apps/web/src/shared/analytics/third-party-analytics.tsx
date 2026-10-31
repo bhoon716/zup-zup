@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
+import { initializeOnboardingAnalytics } from "./onboarding-events";
 
 const CLARITY_PROJECT_ID_PATTERN = /^[a-z0-9]+$/i;
 const GA_MEASUREMENT_ID_PATTERN = /^G-[a-z0-9]+$/i;
@@ -41,6 +42,7 @@ function GooglePageViews({ measurementId }: { measurementId: string }) {
   useEffect(() => {
     window.dataLayer = window.dataLayer || [];
     window.gtag = window.gtag || ((...args: unknown[]) => window.dataLayer.push(args));
+    initializeOnboardingAnalytics(measurementId);
     window.gtag(
       "event",
       "page_view",

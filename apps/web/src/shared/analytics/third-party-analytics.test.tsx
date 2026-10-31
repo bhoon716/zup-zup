@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ThirdPartyAnalytics } from "./third-party-analytics";
+import * as onboardingEvents from "./onboarding-events";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/feedbacks",
@@ -15,10 +16,12 @@ vi.mock("next/script", () => ({
 
 describe("ThirdPartyAnalytics", () => {
   beforeEach(() => {
+    vi.spyOn(onboardingEvents, "initializeOnboardingAnalytics");
     window.history.replaceState({}, "", "/feedbacks?token=secret&message=private");
     delete window.gtag;
     window.dataLayer = [];
   });
+  afterEach(() => vi.restoreAllMocks());
 
   it("production에서 설정된 Clarity와 GA4만 한 번 초기화한다", () => {
     const { rerender } = render(
@@ -32,6 +35,7 @@ describe("ThirdPartyAnalytics", () => {
     expect(screen.getAllByTestId("clarity-script")).toHaveLength(1);
     expect(screen.getAllByTestId("ga-loader")).toHaveLength(1);
     expect(screen.getAllByTestId("ga-bootstrap")).toHaveLength(1);
+    expect(onboardingEvents.initializeOnboardingAnalytics).toHaveBeenCalledWith("G-ABC123");
     expect(screen.getByTestId("ga-loader")).toHaveAttribute(
       "src",
       "https://www.googletagmanager.com/gtag/js?id=G-ABC123",
@@ -60,6 +64,7 @@ describe("ThirdPartyAnalytics", () => {
 
     expect(screen.queryByTestId("clarity-script")).not.toBeInTheDocument();
     expect(screen.queryByTestId("ga-loader")).not.toBeInTheDocument();
+    expect(onboardingEvents.initializeOnboardingAnalytics).not.toHaveBeenCalled();
   });
 
   it("production이어도 ID가 없거나 형식이 잘못되면 해당 공급자를 초기화하지 않는다", () => {

@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { AxiosError } from "axios";
 import * as userApi from "@/features/user/api/user.api";
 import { useCompleteOnboarding, useUpdateProfile, useUser } from "./useUser";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
+import { trackOnboardingCompleted, trackOnboardingFailed } from "@/shared/analytics/onboarding-events";
+
+vi.mock("@/shared/analytics/onboarding-events", () => ({
+  trackOnboardingCompleted: vi.fn(), trackOnboardingFailed: vi.fn(),
+}));
 
 const { mockSetAuthUser } = vi.hoisted(() => ({
   mockSetAuthUser: vi.fn(),
@@ -120,5 +125,37 @@ describe("useUser hook", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(queryClient.getQueryData(["user", "me"])).toEqual(onboardedUser);
     expect(mockSetAuthUser).toHaveBeenCalledWith(onboardedUser);
+  });
+
+  it("버튼 제출과 재렌더만으로 완료를 기록하지 않고 언마운트 후에도 저장 성공을 한 번 기록한다", async () => {
+    let resolve!: (value: never) => void;
+    vi.mocked(userApi.completeOnboarding).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+    const wrapper = createQueryWrapper(createTestQueryClient());
+    const { result, rerender, unmount } = renderHook(() => useCompleteOnboarding(1), { wrapper });
+    act(() => result.current.mutate({} as never));
+    rerender();
+    expect(trackOnboardingCompleted).not.toHaveBeenCalled();
+    expect(trackOnboardingFailed).not.toHaveBeenCalled();
+    unmount();
+    await act(async () => resolve({ data: { onboardingCompleted: true } } as never));
+    await waitFor(() => expect(trackOnboardingCompleted).toHaveBeenCalledExactlyOnceWith(1));
+    expect(trackOnboardingFailed).not.toHaveBeenCalled();
+  });
+
+  it("최종 저장 실패를 한 번 기록하고 수동 재시도 성공 때 완료를 기록한다", async () => {
+    const error = new AxiosError("private token");
+    vi.mocked(userApi.completeOnboarding).mockRejectedValueOnce(error).mockResolvedValueOnce({
+      data: { onboardingCompleted: true },
+    } as never);
+    const wrapper = createQueryWrapper(createTestQueryClient());
+    const { result } = renderHook(() => useCompleteOnboarding(1), { wrapper });
+    act(() => result.current.mutate({} as never));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(trackOnboardingFailed).toHaveBeenCalledExactlyOnceWith(1, error);
+    expect(trackOnboardingCompleted).not.toHaveBeenCalled();
+    act(() => result.current.mutate({} as never));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(trackOnboardingFailed).toHaveBeenCalledTimes(1);
+    expect(trackOnboardingCompleted).toHaveBeenCalledExactlyOnceWith(1);
   });
 });
