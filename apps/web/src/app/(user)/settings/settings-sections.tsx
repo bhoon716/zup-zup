@@ -368,14 +368,15 @@ export function WebPushSection({
       </div>
 
       <div className="space-y-3">
-        <h4 className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-slate-400">등록된 기기 목록</h4>
+        <h4 className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-slate-400">내 계정에 등록된 기기</h4>
+        <p className="px-1 text-xs text-slate-400">같은 계정에 등록한 다른 기기도 함께 표시됩니다.</p>
         {devices.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-white/50 py-6 text-center">
             <p className="text-sm font-medium text-slate-400">등록된 기기가 없습니다.</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {devices.map((device, idx) => (
+            {devices.map((device) => (
               <motion.div
                 layout
                 key={device.id}
@@ -388,7 +389,6 @@ export function WebPushSection({
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-slate-700">{device.alias || "알 수 없는 기기"}</span>
-                      {idx === 0 && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-black tracking-tighter text-primary">THIS</span>}
                     </div>
                     <span className="text-[10px] font-medium text-slate-400">{new Date(device.registeredAt).toLocaleDateString()} 등록</span>
                   </div>

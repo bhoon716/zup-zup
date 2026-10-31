@@ -30,6 +30,29 @@ describe("WebPushSection Component", () => {
     expect(screen.getByText("현재 기기 등록")).toBeInTheDocument();
     expect(screen.getByText("내 크롬 브라우저")).toBeInTheDocument();
   });
+
+  it.each([
+    ["맥북 한 대만 등록한 경우", ["내 맥북"]],
+    ["여러 기기를 등록한 경우", ["내 맥북", "내 아이폰"]],
+    ["서버 목록 순서가 바뀐 경우", ["내 아이폰", "내 맥북"]],
+  ])("%s에도 목록 순서로 현재 기기를 단정하지 않는다", (_, aliases) => {
+    render(
+      <WebPushSection
+        {...defaultProps}
+        devices={aliases.map((alias, index) => ({
+          ...defaultProps.devices[0], id: index + 1, alias,
+        }))}
+      />
+    );
+
+    expect(screen.queryByText("THIS", { exact: true })).not.toBeInTheDocument();
+    expect(screen.getByText("내 계정에 등록된 기기")).toBeInTheDocument();
+    expect(screen.getByText("같은 계정에 등록한 다른 기기도 함께 표시됩니다.")).toBeInTheDocument();
+    for (const alias of aliases) {
+      expect(screen.getByText(alias, { exact: true })).toBeInTheDocument();
+    }
+  });
+
 });
 
 describe("SettingsActionBar Component", () => {
