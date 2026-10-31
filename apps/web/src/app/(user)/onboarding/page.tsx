@@ -73,7 +73,7 @@ export default function OnboardingPage() {
     defaultValues: {
       notificationEmail: "",
       emailEnabled: true,
-      webPushEnabled: true,
+      webPushEnabled: false,
       fcmEnabled: false,
       discordEnabled: false,
     },
@@ -176,17 +176,34 @@ export default function OnboardingPage() {
     window.location.href = "/api/v1/users/discord/authorize?returnPath=/onboarding";
   };
 
+  const updateWebPush = async (enabled: boolean, customAlias?: string) => {
+    if (!tryStart()) return;
+
+    setValue("webPushEnabled", false);
+    try {
+      if (enabled) {
+        const registered = await subscribe(customAlias);
+        setValue("webPushEnabled", registered);
+      } else {
+        await unsubscribe();
+      }
+    } finally {
+      finish();
+    }
+  };
+
   const handleRegisterDevice = async () => {
     if (!deviceName?.trim()) {
       toast.error("기기 이름을 입력해 주세요.");
       return;
     }
-    await subscribe(deviceName);
+    await updateWebPush(true, deviceName.trim());
   };
 
   const onSubmit = async (data: OnboardingForm) => {
     if (!tryStart()) return;
 
+    let saving = false;
     try {
       if (!(user && data.notificationEmail === user.email)) {
 
@@ -202,8 +219,10 @@ export default function OnboardingPage() {
       }
 
       if (data.webPushEnabled) {
+        setValue("webPushEnabled", false);
         const registered = await subscribe(data.deviceName);
         if (!registered) return;
+        setValue("webPushEnabled", true);
       }
 
       if (!data.emailEnabled && !data.webPushEnabled && !data.discordEnabled) {
@@ -224,10 +243,12 @@ export default function OnboardingPage() {
           onSuccess: () => {
             router.replace("/");
           },
+          onSettled: finish,
         }
       );
+      saving = true;
     } finally {
-      finish();
+      if (!saving) finish();
     }
   };
 
@@ -393,21 +414,19 @@ export default function OnboardingPage() {
                   </div>
                   <Switch 
                     id="webPushEnabled" 
+                    aria-label="웹 푸시 (현재 기기)"
                     checked={webPushEnabled}
-                    onCheckedChange={async (checked) => {
-                      setValue("webPushEnabled", checked);
-                      if (checked) {
-                         const success = await subscribe();
-                         if (!success) setValue("webPushEnabled", false);
-                      } else {
-                          await unsubscribe();
-                      }
+                    onCheckedChange={(checked) => {
+                      void updateWebPush(checked, deviceName?.trim() || undefined);
                     }}
-                    disabled={loadingWebPush}
+                    disabled={isPending || isSubmitting || loadingWebPush}
                     className="data-[state=checked]:bg-[#56296E]"
                   />
                 </div>
                 <div className="px-4 pb-4 pt-0 space-y-3">
+                  <p className="text-xs leading-relaxed text-gray-500">
+                    웹 푸시는 선택 사항입니다. 기기 등록에 성공하면 켜집니다. 사용할 수 없거나 권한을 허용하지 않아도 이메일 등 다른 알림을 선택하고 완료할 수 있습니다.
+                  </p>
                   <div className="space-y-1.5">
                     <Input 
                       placeholder="기기 이름 (예: 내 노트북, 스마트폰)" 
@@ -424,7 +443,7 @@ export default function OnboardingPage() {
                   <Button 
                     type="button"
                     onClick={handleRegisterDevice}
-                    disabled={loadingWebPush}
+                    disabled={isPending || isSubmitting || loadingWebPush}
                     className="w-full py-6 bg-white border-2 border-[#56296E] text-[#56296E] hover:bg-purple-50 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2"
                   >
                     <Smartphone className="w-4 h-4" />

@@ -50,7 +50,10 @@ export const useWebPush = () => {
       return true;
     } catch (error) {
       reportClientError(error, { source: "web-push", operation: "subscribe" });
-      const message = error instanceof Error ? error.message : '웹 푸시 설정에 실패했습니다.';
+      const isError = error instanceof Error || error instanceof DOMException;
+      const message = isError && error.name === 'NotAllowedError'
+        ? '웹 푸시 권한이 허용되지 않았습니다. 브라우저 설정에서 알림 권한을 확인하거나, 웹 푸시를 끄고 이메일 등 다른 알림으로 계속해 주세요.'
+        : isError ? error.message : '웹 푸시 설정에 실패했습니다.';
       toast.error(message);
       return false;
     } finally {

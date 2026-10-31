@@ -71,7 +71,7 @@ export async function getSubscription() {
 
 export async function subscribeToPush() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    throw new Error("브라우저가 푸시 알림을 지원하지 않습니다.");
+    throw new Error("이 브라우저에서는 웹 푸시를 사용할 수 없습니다. iPhone/iPad는 홈 화면에 추가한 뒤 실행해 주세요. 웹 푸시를 끄고 이메일 등 다른 알림으로 계속할 수 있습니다.");
   }
 
   const registration = await navigator.serviceWorker.register("/sw.js");

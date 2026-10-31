@@ -35,6 +35,7 @@ jobs:
         working-directory: apps/web
         env:
           NEXT_PUBLIC_API_URL: http://127.0.0.1:8080
+          NEXT_PUBLIC_VAPID_KEY: AQID # 브라우저 테스트의 가짜 PushManager 전용 공개키
         run: |
           npm run build
           npm run e2e
