@@ -263,7 +263,8 @@ export const useSettingsPage = () => {
 
     setIsSubmitting(true);
     try {
-      await updateSettings({ ...values, fcmEnabled: false });
+      // 읽기 전용 FCM 값은 구버전 서버와 왕복할 때도 덮어쓰지 않는다.
+      await updateSettings({ ...values, fcmEnabled: user?.fcmEnabled ?? false });
       toast.success("알림 설정이 저장되었습니다.");
       const response = await getMyProfile();
       setUser(response);

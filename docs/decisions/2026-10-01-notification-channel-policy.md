@@ -1053,3 +1053,12 @@
 - 테스트는 Testcontainers MySQL 8.4의 새 빈 DB와 기존 Flyway 파일만 사용한다. 컨테이너가 제공한 접속 정보만 사용하며 운영 datasource·credential·실사용자 데이터를 읽지 않는다.
 - 합성 FCM 사용자·기기·과거 알림과 4개 delivery 상태, WEB 대조군으로 실제 Hibernate enum 읽기와 repository ready/count/retention 쿼리를 검증한다. 과거 FCM 행·상태·횟수·키·오류를 보존하면서 지원 WEB의 기존 처리 조건이 유지되는지 확인한다.
 - 로컬에서는 컴파일·Checkstyle·PMD만 확인했다. 실제 MySQL 실행은 PR의 기존 격리 CI에서 수행하며, 성공 전에는 실행 검증을 완료했다고 보고하지 않는다. 운영 DB 데이터 분포와 실제 운영 수신은 여전히 검증 대상이 아니다.
+
+
+### 배포 혼합 버전 호환성 보강
+
+- 독립 검토에서 신 웹의 false 강제 요청은 구 서버에서 과거 true를 덮어쓰고, 모든 true를 거절하는 신 서버는 열린 구 웹의 지원 채널 설정 저장까지 막는 것을 원문 mock으로 확인했다. 웹과 서버의 동시 배포를 가정하지 않는다.
+- 웹은 읽은 legacy FCM 값을 동일하게 왕복한다. 서버는 현재 false인 사용자의 true 요청만 신규 활성화로 거절하며, 현재 true의 단순 echo는 허용한다. 엔티티는 일반 설정·온보딩 저장에서 기존 FCM 값을 변경하지 않는다.
+- 기존 true는 활성 발송 권한이 아닌 호환용 과거 값이다. FCM 등록·materialize·claim·dispatch·정산·replay·자동삭제 차단은 그대로 유지한다. 새 FCM 토글이나 capability API는 추가하지 않는다.
+- true/false 프로필의 왕복 및 legacy true 온보딩 단위를 보강하고, 구/신 서버 모의 환경에서 과거 값 보존과 이메일 설정 변경을 확인하는 로컬 E2E를 추가한다. 실제 구 서버나 운영 데이터에 테스트 요청을 보내지 않는다.
+- DB 복구 테스트의 이전 4개 기대값을 지원 EMAIL·WEB·DISCORD 3개와 FCM 제외 조건으로 바로잡는다. 단언 삭제·skip·필수 CI 완화 없이 기존 CI에서 실행한다.

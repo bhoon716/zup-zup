@@ -76,7 +76,10 @@ class SeatNotificationOutboxRecoveryTest {
         deliveryClaims.forEach(processor::processDelivery);
 
 
-        assertThat(deliveryClaims).hasSize(4);
+        assertThat(deliveryClaims).hasSize(3)
+                .extracting(SeatNotificationDeliveryClaim::channel)
+                .containsExactlyInAnyOrder(NotificationChannel.EMAIL, NotificationChannel.WEB, NotificationChannel.DISCORD)
+                .doesNotContain(NotificationChannel.FCM);
         assertThat(deliveryRepository.findAll())
                 .extracting(SeatNotificationDelivery::getChannel)
                 .containsExactlyInAnyOrderElementsOf(NotificationChannel.supportedChannels());

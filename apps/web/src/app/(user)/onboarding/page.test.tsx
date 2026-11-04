@@ -78,6 +78,26 @@ describe("OnboardingPage", () => {
     expect(mockReplace).toHaveBeenCalledWith("/");
   });
 
+  it("과거 FCM true 값은 온보딩 요청에서도 그대로 왕복한다", async () => {
+    mockUseUser.mockReturnValue({
+      data: {
+        id: 1, discordId: null, email: "user@example.com", onboardingCompleted: false,
+        fcmEnabled: true,
+      },
+      isLoading: false,
+    });
+    const user = userEvent.setup();
+    render(<OnboardingPage />);
+    await user.click(completeButton());
+    await waitFor(() => expect(mockCompleteOnboarding).toHaveBeenCalledTimes(1));
+    expect(mockCompleteOnboarding).toHaveBeenCalledWith(
+      expect.objectContaining({ fcmEnabled: true, emailEnabled: true, webPushEnabled: false }),
+      expect.any(Object),
+    );
+    expect(mockSubscribe).not.toHaveBeenCalled();
+    expect(screen.queryByRole("switch", { name: /FCM/ })).not.toBeInTheDocument();
+  });
+
   it("명시적 선택 후 구독이 성공해야 켜지고 완료 시 true로 저장한다", async () => {
     const user = userEvent.setup();
     const subscription = createDeferred<boolean>();

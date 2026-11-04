@@ -80,8 +80,8 @@ public class UserService {
 
     @Transactional
     public UserSettingsResult updateSettings(UpdateSettingsCommand command) {
-        rejectRetiredFcm(command.fcmEnabled());
         User user = getCurrentUser();
+        rejectRetiredFcmActivation(user, command.fcmEnabled());
 
         String newEmail = command.notificationEmail();
         if (newEmail != null && !newEmail.equals(user.getEmail()) && !newEmail.equals(user.getNotificationEmail())) {
@@ -126,8 +126,8 @@ public class UserService {
 
     @Transactional
     public UserOnboardingResult completeOnboarding(CompleteOnboardingCommand command) {
-        rejectRetiredFcm(command.fcmEnabled());
         User user = getCurrentUser();
+        rejectRetiredFcmActivation(user, command.fcmEnabled());
         String newEmail = command.notificationEmail();
 
         if (newEmail != null && !newEmail.equals(user.getEmail())) {
@@ -215,8 +215,8 @@ public class UserService {
                 .filter(user -> !user.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
-    private void rejectRetiredFcm(boolean requested) {
-        if (requested) {
+    private void rejectRetiredFcmActivation(User user, boolean requested) {
+        if (requested && !user.isFcmEnabled()) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "FCM 앱 푸시는 지원이 종료되었습니다.");
         }
     }

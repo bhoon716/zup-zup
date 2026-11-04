@@ -241,7 +241,7 @@ export default function OnboardingPage() {
           notificationEmail: data.notificationEmail,
           emailEnabled: data.emailEnabled,
           webPushEnabled: data.webPushEnabled,
-          fcmEnabled: false,
+          fcmEnabled: user?.fcmEnabled ?? false,
           discordEnabled: data.discordEnabled,
         },
         {
