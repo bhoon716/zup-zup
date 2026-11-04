@@ -9,9 +9,9 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- * JUMP의 BASIC 요청 형식(DataMap 직렬화 후 AES-CBC)을 생성합니다.
- */
+
+
+
 final class JbnuJumpRequestEncoder {
 
     private static final String KEY_MARK = "전북대학교 JUMP시스템";

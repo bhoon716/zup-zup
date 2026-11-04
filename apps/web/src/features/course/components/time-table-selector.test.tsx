@@ -25,7 +25,7 @@ describe("TimeTableSelector", () => {
   });
 
   it("사각형 드래그로 여러 칸을 한 번에 선택한다", () => {
-    // JSDOM does not implement elementFromPoint, so we mock it
+
     const originalElementFromPoint = document.elementFromPoint;
     document.elementFromPoint = vi.fn();
 
@@ -34,14 +34,14 @@ describe("TimeTableSelector", () => {
     const startCell = getByRole("button", { name: "월 1교시" });
     const endCell = getByRole("button", { name: "화 2교시" });
 
-    // Mock elementFromPoint to return endCell when moving
+
     vi.mocked(document.elementFromPoint).mockReturnValue(endCell);
 
     fireEvent.pointerDown(startCell, { pointerId: 1, pointerType: "mouse", button: 0 });
     fireEvent.pointerMove(endCell, { pointerId: 1, pointerType: "mouse", clientX: 100, clientY: 100 });
     fireEvent.pointerUp(window, { pointerId: 1, pointerType: "mouse" });
 
-    // restore
+
     document.elementFromPoint = originalElementFromPoint;
 
     expect(getByTestId("selected-count")).toHaveTextContent("4");
@@ -69,21 +69,21 @@ describe("TimeTableSelector", () => {
 
     render(<SelectorHarness initial={initial} />);
 
-    // JSDOM does not implement elementFromPoint, so we mock it
+
     const originalElementFromPoint = document.elementFromPoint;
     document.elementFromPoint = vi.fn();
 
     const startCell = screen.getByRole("button", { name: "화 2교시" });
     const endCell = screen.getByRole("button", { name: "월 1교시" });
 
-    // Mock elementFromPoint to return endCell when moving
+
     vi.mocked(document.elementFromPoint).mockReturnValue(endCell);
 
     fireEvent.pointerDown(startCell, { pointerId: 2, pointerType: "mouse", button: 0 });
     fireEvent.pointerMove(endCell, { pointerId: 2, pointerType: "mouse", clientX: 50, clientY: 50 });
     fireEvent.pointerUp(window, { pointerId: 2, pointerType: "mouse" });
 
-    // restore
+
     document.elementFromPoint = originalElementFromPoint;
 
     expect(screen.getByTestId("selected-count")).toHaveTextContent("0");
@@ -93,7 +93,7 @@ describe("TimeTableSelector", () => {
     render(<SelectorHarness initial={[]} />);
     const selectAll = screen.getByRole("button", { name: "전체 선택" });
     fireEvent.click(selectAll);
-    // 6 days * 14 slots = 84
+
     expect(screen.getByTestId("selected-count")).toHaveTextContent("84");
   });
 

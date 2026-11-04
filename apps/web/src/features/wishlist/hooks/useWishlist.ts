@@ -15,7 +15,7 @@ export const useWishlist = (enabled = true, initialUser?: User | null) => {
     queryKey: ['wishlist'],
     queryFn: async () => {
       const response = await wishlistApi.getMyWishlist();
-      return response.data ?? null;
+      return response ?? null;
     },
     enabled: enabled && canFetch,
   });
@@ -37,7 +37,7 @@ export const useToggleWishlist = () => {
          if (exists) {
             newWishlist = previousWishlist.filter(item => item.courseKey !== courseKey);
          } else {
-             // 하트 토글 즉시 반영을 위해 최소 필드만 가진 임시 레코드를 넣는다.
+
              newWishlist = [...previousWishlist, { 
                 id: -1,
                 courseKey, 
@@ -56,8 +56,8 @@ export const useToggleWishlist = () => {
       const message = (err as AxiosError<{ message: string }>).response?.data?.message || '찜 상태 변경에 실패했습니다';
       toast.error(message);
     },
-    onSuccess: (response) => {
-       toast.success(response.message || '찜 목록이 업데이트되었습니다.');
+    onSuccess: () => {
+       toast.success('찜 목록이 업데이트되었습니다.');
     },
     onSettled: () => {
        queryClient.invalidateQueries({ queryKey: ['wishlist'] });

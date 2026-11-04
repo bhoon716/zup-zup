@@ -11,10 +11,10 @@ interface AdminTrafficChartProps {
   traffic: TrafficPoint[];
 }
 
-/**
- * 관리자 대시보드 알림 트래픽 시각화 컴포넌트입니다.
- * 최근 24시간 동안의 발송 패턴을 역동적인 막대 그래프로 표시합니다.
- */
+
+
+
+
 export function AdminTrafficChart({ traffic }: AdminTrafficChartProps) {
   const maxTraffic = Math.max(...traffic.map((point) => point.count), 1);
 

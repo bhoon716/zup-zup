@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.support.feedback.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
-import bhoon.sugang_helper.support.feedback.dto.FeedbackAttachmentDownload;
+import bhoon.sugang_helper.common.web.PageableGuard;
+import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.response.FeedbackDetailResponse;
 import bhoon.sugang_helper.support.feedback.dto.response.FeedbackResponse;
@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,9 +27,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * 일반 사용자용 피드백 API 컨트롤러입니다. 건의사항 및 버그 리포트 등록, 조회, 삭제 기능을 제공합니다.
- */
+
+
+
 @RestController
 @RequestMapping("/api/v1/feedbacks")
 @RequiredArgsConstructor
@@ -38,11 +37,11 @@ public class FeedbackController {
 
     private final FeedbackService feedbackService;
 
-    /**
-     * 새로운 피드백(건의/제보)을 등록합니다.
-     */
+
+
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<CommonResponse<Long>> createFeedback(
+    public ResponseEntity<Long> createFeedback(
             @Valid @RequestPart("feedback") FeedbackCreateRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             HttpServletRequest httpRequest) {
@@ -50,27 +49,28 @@ public class FeedbackController {
         Long feedbackId = feedbackService.createFeedbackForCurrentUser(
                 request, files, resolveClientIp(httpRequest));
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(CommonResponse.success(feedbackId, "피드백이 등록되었습니다."));
+                .body(feedbackId);
     }
 
-    /**
-     * 내가 작성한 모든 피드백 목록을 조회합니다.
-     */
+
+
+
     @GetMapping("/me")
-    public ResponseEntity<CommonResponse<Page<FeedbackResponse>>> getMyFeedbacks(
-            @PageableDefault(size = 10) Pageable pageable) {
+    public ResponseEntity<Page<FeedbackResponse>> getMyFeedbacks(
+            Pageable pageable) {
+        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
 
-        return CommonResponse.ok(feedbackService.getMyFeedbacksForCurrentUser(pageable), "내 피드백 목록입니다.");
+        return ResponseEntity.ok(feedbackService.getMyFeedbacksForCurrentUser(fixedPageable));
     }
 
-    /**
-     * 내가 작성한 특정 피드백의 상세 내용을 조회합니다.
-     */
+
+
+
     @GetMapping("/{feedbackId}")
-    public ResponseEntity<CommonResponse<FeedbackDetailResponse>> getMyFeedbackDetail(
+    public ResponseEntity<FeedbackDetailResponse> getMyFeedbackDetail(
             @PathVariable Long feedbackId) {
 
-        return CommonResponse.ok(feedbackService.getMyFeedbackDetailForCurrentUser(feedbackId), "피드백 상세입니다.");
+        return ResponseEntity.ok(feedbackService.getMyFeedbackDetailForCurrentUser(feedbackId));
     }
 
     @GetMapping("/{feedbackId}/attachments/{attachmentId}")
@@ -85,9 +85,9 @@ public class FeedbackController {
                 .body(download.resource());
     }
 
-    /**
-     * 작성한 피드백을 삭제합니다 (소프트 삭제 적용).
-     */
+
+
+
     @DeleteMapping("/{feedbackId}")
     public ResponseEntity<Void> deleteFeedback(@PathVariable Long feedbackId) {
 

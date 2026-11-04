@@ -5,16 +5,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,9 +38,9 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
     @Mock
     private SeatNotificationDeliveryRepository deliveryRepository;
     @Mock
-    private SubscriptionRecipientQuery subscriptionRecipientQuery;
+    private SubscriptionQueryService subscriptionQueryService;
     @Mock
-    private UserNotificationQuery userNotificationQuery;
+    private UserNotificationQueryService userNotificationQuery;
     @Mock
     private NotificationChannelPolicy notificationChannelPolicy;
     @Mock
@@ -86,7 +86,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
                     true, true, true, true, null));
         }
 
-        when(subscriptionRecipientQuery.findActiveRecipientIds(courseKey)).thenReturn(mockRecipientIds);
+        when(subscriptionQueryService.findActiveRecipientIds(courseKey)).thenReturn(mockRecipientIds);
         when(userNotificationQuery.findByIds(any())).thenReturn(mockRecipients);
         when(userNotificationQuery.findDevicesByUserIds(any())).thenReturn(List.of());
         when(notificationChannelPolicy.isChannelEnabled(any(), any())).thenReturn(true);
@@ -94,14 +94,14 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
                 .thenReturn(List.of(NotificationTarget.of("target")));
         when(deliveryRepository.existsByOutboxIdAndUserIdAndChannel(anyLong(), anyLong(), any())).thenReturn(false);
 
-        // Warm-up JIT compilation and Mockito reflections
+
         for (int w = 0; w < 5; w++) {
             processor.materializePendingOutboxes();
         }
 
         int totalDeliveries = subscriberCount * NotificationChannel.values().length;
 
-        // 1. 단건 save() N회 직렬 수행 시뮬레이션
+
         long startLoopSave = System.nanoTime();
         for (long i = 1; i <= subscriberCount; i++) {
             for (NotificationChannel channel : NotificationChannel.values()) {
@@ -114,7 +114,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
         }
         long durationLoopSaveNs = System.nanoTime() - startLoopSave;
 
-        // 2. saveAll() Bulk Save 수행
+
         long startBulkSave = System.nanoTime();
         processor.materializePendingOutboxes();
         long durationBulkSaveNs = System.nanoTime() - startBulkSave;

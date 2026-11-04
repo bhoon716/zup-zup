@@ -6,7 +6,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
@@ -15,10 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "wishlists", indexes = {
-        @Index(name = "idx_wishlist_user_id", columnList = "userId"),
-        @Index(name = "idx_wishlist_course_key", columnList = "courseKey")
-}, uniqueConstraints = {
+@Table(name = "wishlists", uniqueConstraints = {
         @UniqueConstraint(name = "uk_wishlist_user_course", columnNames = {"userId", "courseKey"})
 })
 @Getter

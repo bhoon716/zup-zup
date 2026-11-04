@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MouseEvent } from "react";
 
 import { Header } from "./header";
-import { IS_LOGGED_IN_COOKIE_NAME } from "@/shared/lib/cookie";
 
 type MockUser = {
   id: number;
@@ -102,7 +101,6 @@ describe("Header", () => {
     mockAuthStore.user = null;
     mockAuthStore.isAuthenticated = false;
     mockAuthStore.isLoading = false;
-    document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
   });
 
   it("모바일 메뉴 버튼에 접근 가능한 이름을 제공한다", () => {
@@ -120,7 +118,7 @@ describe("Header", () => {
     expect(screen.getByRole("group", { name: "모바일 메뉴" })).toBeInTheDocument();
   });
 
-  it("세션 로딩 여부는 로그인 힌트 쿠키가 아니라 인증 스토어만 따른다", () => {
+  it("세션 로딩 여부는 인증 스토어를 따른다", () => {
     mockAuthStore.isLoading = true;
     render(<Header />);
 
@@ -168,23 +166,12 @@ describe("Header", () => {
     );
   });
 
-  it("인증 스토어 로딩이 끝나면 로그인 힌트 쿠키가 있어도 로딩 상태를 표시하지 않는다", () => {
+  it("세션 검증이 끝난 게스트는 로그인 상태를 표시하지 않는다", () => {
     mockAuthStore.isLoading = false;
-    document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=true; path=/`;
     render(<Header />);
 
     expect(mockNavLinks).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: false })
-    );
-  });
-
-  it("로그인 여부는 인증 스토어의 사용자만 따른다", () => {
-    mockAuthStore.isLoading = false;
-    document.cookie = `${IS_LOGGED_IN_COOKIE_NAME}=true; path=/`;
-    render(<Header />);
-
-    expect(mockNavLinks).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoggedIn: false })
+      expect.objectContaining({ isLoading: false, isLoggedIn: false })
     );
   });
 

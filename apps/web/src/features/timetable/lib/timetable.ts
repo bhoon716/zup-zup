@@ -31,26 +31,26 @@ export interface RenderingBlock {
 }
 
 const COURSE_COLORS = [
-  '#ef4444', // Red
-  '#3b82f6', // Blue
-  '#10b981', // Emerald
-  '#f59e0b', // Amber
-  '#8b5cf6', // Violet
-  '#f43f5e', // Rose
-  '#06b6d4', // Cyan
-  '#84cc16', // Lime
-  '#f97316', // Orange
-  '#6366f1', // Indigo
-  '#14b8a6', // Teal
-  '#ec4899', // Pink
-  '#eab308', // Yellow
-  '#0ea5e9', // Sky
-  '#d946ef', // Fuchsia
-  '#22c55e', // Green
+  '#ef4444',
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#8b5cf6',
+  '#f43f5e',
+  '#06b6d4',
+  '#84cc16',
+  '#f97316',
+  '#6366f1',
+  '#14b8a6',
+  '#ec4899',
+  '#eab308',
+  '#0ea5e9',
+  '#d946ef',
+  '#22c55e',
 ];
 
 export const getCourseColor = (courseId: string | number): string => {
-  // Returns the same color based on the course identifier to maintain consistency on the screen.
+
   const str = String(courseId);
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -132,7 +132,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
 
     if (processedKeys.has(current.key)) continue;
 
-    // 같은 강의가 연속 시간대로 붙어 있으면 하나의 블록으로 합친다.
+
     const consecutive = [current];
     processedKeys.add(current.key);
     
@@ -204,7 +204,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
               subTitle: other.subTitle,
             });
           } else {
-            // 겹침 안내 다이얼로그에서 시간대별 충돌 목록을 보여주기 위해 구간을 모은다.
+
             overlapRegions.push({
               startTime: overlapStartTime,
               endTime: overlapEndTime,
@@ -225,9 +225,9 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
     };
   });
 };
-/**
- * 연속된 시간대의 스케줄 정보를 하나로 병합합니다.
- */
+
+
+
 export function mergeAdjacentSchedules(schedules: CustomScheduleTimeResponse[]): CustomScheduleTimeResponse[] {
   const merged: CustomScheduleTimeResponse[] = [];
   const sorted = [...schedules].sort((a, b) => {

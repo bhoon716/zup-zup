@@ -1,9 +1,13 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
+import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogSynchronizationService;
@@ -12,6 +16,7 @@ import bhoon.sugang_helper.common.alert.SlackAlertService;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxService;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -32,18 +39,21 @@ import org.springframework.transaction.support.TransactionTemplate;
 class CourseCrawlCompletionTransactionTest {
 
     private static final String COURSE_KEY = "2026:U211600010:COMP101:01";
+    private static final String COURSE_NAME = "컴퓨터프로그래밍";
 
     @Autowired
     private PlatformTransactionManager transactionManager;
     @Autowired
     private CourseCrawlCompletionService completionService;
     @Autowired
+    private SeatNotificationOutboxService outboxService;
+    @Autowired
     private CourseRepository courseRepository;
     @Autowired
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
     @Autowired
     private CrawlerStatusRepository crawlerStatusRepository;
-    @Autowired
+    @MockitoSpyBean
     private SeatNotificationOutboxRepository outboxRepository;
 
     @MockitoBean
@@ -72,7 +82,13 @@ class CourseCrawlCompletionTransactionTest {
         assertThat(courseSeatHistoryRepository.count()).isEqualTo(1);
         assertThat(crawlerStatusRepository.findById(1L))
                 .hasValueSatisfying(status -> assertThat(status.getLastSuccessAt()).isNotNull());
-        assertThat(outboxRepository.count()).isEqualTo(1);
+        assertThat(outboxRepository.findAll()).singleElement().satisfies(outbox -> {
+            assertThat(outbox.getCourseKey()).isEqualTo(COURSE_KEY);
+            assertThat(outbox.getCourseName()).isEqualTo(COURSE_NAME);
+            assertThat(outbox.getProfessor()).isEqualTo("김교수");
+            assertThat(outbox.getPreviousSeats()).isZero();
+            assertThat(outbox.getCurrentSeats()).isEqualTo(1);
+        });
     }
 
     @Test
@@ -92,11 +108,45 @@ class CourseCrawlCompletionTransactionTest {
         assertThat(outboxRepository.count()).isZero();
     }
 
+    @Test
+    @DisplayName("다음 청크의 outbox 저장이 실패하면 앞 청크에 저장한 강의와 좌석 이력도 롤백한다")
+    void outboxFailureRollsBackPreviouslyWrittenChunksAndCrawlerSuccess() {
+
+        courseRepository.saveAndFlush(fullCourse());
+        List<ParsedCourseDto> courses = new ArrayList<>();
+        for (int index = 0; index < 100; index++) {
+            courses.add(parsedCourse("new-course-" + index, 59));
+        }
+        courses.add(parsedCourseWithAvailableSeat());
+        doThrow(new IllegalStateException("outbox write failed")).when(outboxRepository).save(any());
+
+
+        assertThatThrownBy(() -> completionService.complete(courses))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("outbox write failed");
+        assertThat(courseRepository.count()).isEqualTo(1);
+        assertThat(courseRepository.findByCourseKey(COURSE_KEY).orElseThrow().getCurrent()).isEqualTo(60);
+        assertThat(courseSeatHistoryRepository.count()).isZero();
+        assertThat(crawlerStatusRepository.findById(1L)).isEmpty();
+        assertThat(outboxRepository.count()).isZero();
+    }
+
+    @Test
+    void rejectsEnqueueOutsideTheCatalogTransaction() {
+
+        SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, "김교수", 0, 1);
+
+
+        assertThatThrownBy(() -> outboxService.enqueue(event))
+                .isInstanceOf(IllegalTransactionStateException.class);
+        assertThat(outboxRepository.count()).isZero();
+    }
+
     private Course fullCourse() {
         return Course.builder()
                 .courseKey(COURSE_KEY)
                 .subjectCode("COMP101")
-                .name("컴퓨터프로그래밍")
+                .name(COURSE_NAME)
                 .classNumber("01")
                 .professor("김교수")
                 .capacity(60)
@@ -107,15 +157,19 @@ class CourseCrawlCompletionTransactionTest {
     }
 
     private ParsedCourseDto parsedCourseWithAvailableSeat() {
+        return parsedCourse(COURSE_KEY, 59);
+    }
+
+    private ParsedCourseDto parsedCourse(String courseKey, int current) {
         return new ParsedCourseDto(
-                COURSE_KEY,
+                courseKey,
                 "COMP101",
                 null,
-                "컴퓨터프로그래밍",
+                COURSE_NAME,
                 "01",
                 "김교수",
                 60,
-                59,
+                current,
                 null,
                 "2026",
                 "U211600010",

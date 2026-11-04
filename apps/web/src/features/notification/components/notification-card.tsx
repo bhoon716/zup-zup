@@ -8,10 +8,10 @@ interface NotificationCardProps {
   notification: NotificationHistory;
 }
 
-/**
- * 알림 히스토리의 한 행을 렌더링합니다.
- * 서버가 저장한 제목과 본문을 그대로 보여줍니다.
- */
+
+
+
+
 export function NotificationCard({ notification }: NotificationCardProps) {
   const sentAt = notification.sentAt || notification.createdAt;
 

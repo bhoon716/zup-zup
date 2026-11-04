@@ -17,9 +17,9 @@ import { Switch } from "@/shared/ui/switch";
 
 import { cn } from "@/shared/lib/utils";
 
-/**
- * 날짜와 시간을 한국어 형식으로 포맷팅합니다.
- */
+
+
+
 const formatDateTime = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
@@ -32,17 +32,17 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-/**
- * 마크다운 문법을 제거하고 본문 미리보기를 생성합니다.
- */
+
+
+
 const extractPreview = (content: string) => {
   const plainText = content
-    .replace(/\*\*([^*]+)\*\*/g, "$1") // 강조 제거
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/`([^`]+)`/g, "$1") // 코드 제거
-    .replace(/\[([^\]]+)]\(([^)]+)\)/g, "$1") // 링크 제거
-    .replace(/#{1,6}\s*/g, "") // 제목 기호 제거
-    .replace(/>\s*/g, "") // 인용 기호 제거
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)]\(([^)]+)\)/g, "$1")
+    .replace(/#{1,6}\s*/g, "")
+    .replace(/>\s*/g, "")
     .replace(/\r\n/g, " ")
     .replace(/\n/g, " ")
     .trim();
@@ -50,9 +50,9 @@ const extractPreview = (content: string) => {
   return plainText.length <= 90 ? plainText : `${plainText.substring(0, 90)}...`;
 };
 
-/**
- * 검색 키워드와 타입에 따라 공지사항이 일치하는지 확인합니다.
- */
+
+
+
 const matchesSearch = (
   announcement: AnnouncementDetailResponse,
   keyword: string,
@@ -72,9 +72,9 @@ const matchesSearch = (
   }
 };
 
-/**
- * 공지사항 목록 아이템 컴포넌트입니다.
- */
+
+
+
 function AnnouncementItem({ 
   announcement, 
   isActive, 
@@ -118,9 +118,9 @@ function AnnouncementItem({
   );
 }
 
-/**
- * 관리자용 공지사항 관리 패널 컴포넌트입니다.
- */
+
+
+
 export function AdminAnnouncementPanel() {
   const { data: announcements, isLoading } = useAdminAnnouncements();
   const { mutate: createAnnouncement, isPending: isCreating } = useCreateAdminAnnouncement();

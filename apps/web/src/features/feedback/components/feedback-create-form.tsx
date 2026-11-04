@@ -42,9 +42,9 @@ interface FeedbackCreateFormProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
-/**
- * 새로운 문의 및 건의사항 작성을 위한 폼 컴포넌트입니다.
- */
+
+
+
 export function FeedbackCreateForm({
   onSubmit,
   isPending,
@@ -71,7 +71,7 @@ export function FeedbackCreateForm({
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          {/* 분류 선택 */}
+          {           }
           <FormField
             control={form.control}
             name="type"
@@ -109,7 +109,7 @@ export function FeedbackCreateForm({
             )}
           />
 
-          {/* 제목 입력 */}
+          {           }
           <FormField
             control={form.control}
             name="title"
@@ -130,7 +130,7 @@ export function FeedbackCreateForm({
             )}
           />
 
-          {/* 내용 입력 */}
+          {           }
           <FormField
             control={form.control}
             name="content"
@@ -151,7 +151,7 @@ export function FeedbackCreateForm({
             )}
           />
 
-          {/* 이미지 첨부 */}
+          {            }
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">이미지 첨부 (최대 3장)</span>

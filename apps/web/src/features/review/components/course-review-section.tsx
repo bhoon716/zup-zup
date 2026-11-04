@@ -34,10 +34,10 @@ const CourseEmojiPicker = dynamic(
   },
 );
 
-/**
- * 강의 상세 화면의 리뷰 섹션입니다.
- * 전체 평균 별점, 별점 입력/수정, 이모지 반응만 제공합니다.
- */
+
+
+
+
 export function CourseReviewSection({
   courseKey,
   reviewScopeKey,

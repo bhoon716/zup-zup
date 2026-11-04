@@ -1,7 +1,8 @@
 package bhoon.sugang_helper.academic.course.service;
 
-import bhoon.sugang_helper.academic.course.dto.CourseName;
-import bhoon.sugang_helper.academic.course.dto.CourseSummary;
+import bhoon.sugang_helper.academic.course.dto.result.CourseName;
+import bhoon.sugang_helper.academic.course.dto.result.CourseScheduleSummary;
+import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import java.util.List;
@@ -13,30 +14,26 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CourseCatalogQueryService implements CourseCatalogQuery {
+public class CourseCatalogQueryService {
 
     private final CourseRepository courseRepository;
 
-    @Override
     public Optional<CourseSummary> findByCourseKey(String courseKey) {
         return courseRepository.findByCourseKey(courseKey).map(CourseCatalogQueryService::toSummary);
     }
 
-    @Override
     public List<CourseSummary> findByCourseKeyIn(List<String> courseKeys) {
         return courseRepository.findByCourseKeyIn(courseKeys).stream()
                 .map(CourseCatalogQueryService::toSummary)
                 .toList();
     }
 
-    @Override
     public List<CourseName> findNamesByCourseKeyIn(List<String> courseKeys) {
         return courseRepository.findByCourseKeyIn(courseKeys).stream()
                 .map(course -> new CourseName(course.getCourseKey(), course.getName(), course.getProfessor()))
                 .toList();
     }
 
-    @Override
     public boolean existsByCourseKey(String courseKey) {
         return courseRepository.existsByCourseKey(courseKey);
     }
@@ -57,7 +54,7 @@ public class CourseCatalogQueryService implements CourseCatalogQuery {
                 course.getClassTime(),
                 course.getClassroom(),
                 course.getSchedules().stream()
-                        .map(schedule -> new CourseSummary.CourseScheduleSummary(
+                        .map(schedule -> new CourseScheduleSummary(
                                 schedule.getDayOfWeek().name(),
                                 schedule.getStartTime().toString(),
                                 schedule.getEndTime().toString()))

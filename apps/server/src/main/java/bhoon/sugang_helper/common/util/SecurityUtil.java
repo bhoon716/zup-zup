@@ -15,7 +15,7 @@ public class SecurityUtil {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null ||
                 "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new CustomException(ErrorCode.INVALID_TOKEN, "인증 정보가 없습니다.");
+            throw new CustomException(ErrorCode.AUTHENTICATION_REQUIRED, "인증 정보가 없습니다.");
         }
         return authentication.getName();
     }

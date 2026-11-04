@@ -17,7 +17,7 @@ class SecurityConfigCorsPolicyTest {
                 .containsExactly("https://zup-zup.com", "https://www.zup-zup.com");
         assertThat(configuration.getAllowedOriginPatterns()).isNull();
         assertThat(configuration.getAllowCredentials()).isTrue();
-        assertThat(configuration.getAllowedHeaders()).containsExactly("Content-Type");
+        assertThat(configuration.getAllowedHeaders()).containsExactly("Content-Type", "X-CSRF-TOKEN");
     }
 
     @Test

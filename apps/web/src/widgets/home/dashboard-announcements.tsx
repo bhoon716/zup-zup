@@ -18,9 +18,9 @@ const formatDate = (value: string) => {
   }).format(date);
 };
 
-/**
- * 서비스 및 학사의 주요 공지사항을 보여주는 컴포넌트입니다.
- */
+
+
+
 export function DashboardAnnouncements({ announcements }: { announcements?: AnnouncementListItemResponse[] } = {}) {
   const { data: fetchedAnnouncements, isLoading } = useAnnouncements({ enabled: announcements === undefined });
   const latestAnnouncements = (announcements ?? fetchedAnnouncements ?? []).slice(0, 4);

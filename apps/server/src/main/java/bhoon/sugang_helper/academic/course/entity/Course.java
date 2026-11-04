@@ -32,7 +32,7 @@ import org.hibernate.annotations.BatchSize;
 @Table(name = "courses")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuppressWarnings("PMD.TooManyFields") // Course is a direct mapping of the external academic-course record.
+@SuppressWarnings("PMD.TooManyFields")
 public class Course extends BaseTimeEntity {
 
     @Id
@@ -143,9 +143,9 @@ public class Course extends BaseTimeEntity {
     @BatchSize(size = 20)
     private List<CourseSchedule> schedules = new ArrayList<>();
 
-    /**
-     * 강의 엔티티 생성을 위한 빌더 생성자
-     */
+
+
+
     @Builder
     public Course(String courseKey, String subjectCode, String stdtrNo, String name, String classNumber, String professor,
                   Integer capacity, Integer current, TargetGrade targetGrade, String academicYear, String semester,
@@ -189,39 +189,39 @@ public class Course extends BaseTimeEntity {
         this.reviewCount = reviewCount != null ? reviewCount : 0;
     }
 
-    /**
-     * 강의 별점 및 리뷰 수 업데이트
-     */
+
+
+
     public void updateReviewStats(float averageRating, int reviewCount) {
         this.averageRating = averageRating;
         this.reviewCount = reviewCount;
     }
 
-    /**
-     * 현재 수강 신청 가능한 여석 계산
-     */
+
+
+
     public int getAvailable() {
         return Math.max(0, capacity - current);
     }
 
-    /**
-     * 입력받은 년도와 학기가 현재 강의의 정보와 일치하는지 확인
-     */
+
+
+
     public boolean isMatchingTarget(String year, String semester) {
         return this.academicYear.equals(year) && this.semester.equals(semester);
     }
 
-    /**
-     * 강의 시간표 정보 추가
-     */
+
+
+
     public void addSchedule(CourseSchedule schedule) {
         this.schedules.add(schedule);
         schedule.setCourse(this);
     }
 
-    /**
-     * 크롤링된 새로운 정보와 현재 강의 정보를 비교하여 변경 사항이 있는지 확인
-     */
+
+
+
     @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NPathComplexity"})
     public boolean hasMetadataOrScheduleChanged(Course other) {
         if (other.getStdtrNo() != null && !Objects.equals(this.stdtrNo, other.getStdtrNo())) {
@@ -257,9 +257,9 @@ public class Course extends BaseTimeEntity {
         return !isSameSchedules(other.getSchedules());
     }
 
-    /**
-     * 크롤링된 새로운 정보로 강의 메타데이터 업데이트 (변경점이 있는 경우에만 수행하고 true 반환)
-     */
+
+
+
     public boolean updateMetadata(Course other) {
         if (!hasMetadataOrScheduleChanged(other)) {
             return false;
@@ -292,7 +292,7 @@ public class Course extends BaseTimeEntity {
         this.generalCategoryByYear = other.getGeneralCategoryByYear();
         this.courseDirection = other.getCourseDirection();
         this.classDuration = other.getClassDuration();
-        // 시간표 변경 사항 비교 및 최적화
+
         if (!isSameSchedules(other.getSchedules())) {
             this.schedules.clear();
             for (CourseSchedule schedule : other.getSchedules()) {

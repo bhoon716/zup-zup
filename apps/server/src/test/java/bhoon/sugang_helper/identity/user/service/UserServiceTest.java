@@ -1,5 +1,8 @@
 package bhoon.sugang_helper.identity.user.service;
 
+import bhoon.sugang_helper.support.feedback.service.FeedbackAccountLifecycleService;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionAccountLifecycleService;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
@@ -11,16 +14,15 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.security.jwt.JwtProvider;
-import bhoon.sugang_helper.common.security.jwt.UserAccessRevocationService;
+import bhoon.sugang_helper.identity.auth.service.SessionInvalidator;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.CompleteOnboardingCommand;
-import bhoon.sugang_helper.identity.user.dto.UpdateProfileCommand;
-import bhoon.sugang_helper.identity.user.dto.UpdateSettingsCommand;
-import bhoon.sugang_helper.identity.user.dto.UserOnboardingResult;
-import bhoon.sugang_helper.identity.user.dto.UserProfileResult;
-import bhoon.sugang_helper.identity.user.dto.UserProfileUpdateResult;
-import bhoon.sugang_helper.identity.user.dto.UserSettingsResult;
+import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
+import bhoon.sugang_helper.identity.user.dto.command.UpdateProfileCommand;
+import bhoon.sugang_helper.identity.user.dto.command.UpdateSettingsCommand;
+import bhoon.sugang_helper.identity.user.dto.result.UserOnboardingResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserProfileResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserProfileUpdateResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserSettingsResult;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
@@ -53,25 +55,22 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private UserSubscriptionCleanup subscriptionAccountLifecycle;
+    private SubscriptionAccountLifecycleService subscriptionAccountLifecycle;
 
     @Mock
     private UserDeviceRepository userDeviceRepository;
 
     @Mock
-    private UserFeedbackCleanup feedbackAccountLifecycle;
+    private FeedbackAccountLifecycleService feedbackAccountLifecycle;
 
     @Mock
     private EmailVerificationService emailVerificationService;
 
     @Mock
-    private UserNotificationTestSender notificationTestSender;
+    private NotificationService notificationTestSender;
 
     @Mock
-    private JwtProvider jwtProvider;
-
-    @Mock
-    private UserAccessRevocationService userAccessRevocationService;
+    private SessionInvalidator sessionInvalidator;
 
     @InjectMocks
     private UserService userService;
@@ -91,7 +90,7 @@ class UserServiceTest {
     @Test
     @DisplayName("사용자 프로필 정보를 정상적으로 수정한다")
     void updateProfile() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -102,10 +101,10 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-        // when
+
         UserProfileUpdateResult result = userService.updateProfile(new UpdateProfileCommand(NEW_NAME));
 
-        // then
+
         assertThat(result.name()).isEqualTo(NEW_NAME);
         assertThat(user.getName()).isEqualTo(NEW_NAME);
     }
@@ -113,7 +112,7 @@ class UserServiceTest {
     @Test
     @DisplayName("회원 탈퇴 시 식별자는 익명화하고 비식별 이력은 보존한다")
     void withdraw_softDeletesAndAnonymizesAccount() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -129,18 +128,17 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-        // when
+
         userService.withdraw();
 
-        // then
+
         assertThat(user.isDeleted()).isTrue();
         assertThat(user.getEmail()).isEqualTo("deleted-1@deleted.invalid");
         assertThat(user.getName()).isEqualTo("탈퇴한 사용자");
         assertThat(user.getNotificationEmail()).isNull();
         assertThat(user.getDiscordId()).isNull();
         assertThat(user.hasEnabledNotificationChannels()).isFalse();
-        verify(jwtProvider).revokeAllRefreshTokens(TEST_EMAIL);
-        verify(userAccessRevocationService).revoke(1L);
+        verify(sessionInvalidator).invalidateAll(1L, TEST_EMAIL);
         verify(emailVerificationService).clearVerificationState(1L, TEST_EMAIL, NOTIFY_EMAIL);
         verify(userRepository).saveAndFlush(user);
         verify(subscriptionAccountLifecycle).cancelAllForUser(1L);
@@ -166,8 +164,7 @@ class UserServiceTest {
         assertThatThrownBy(userService::withdraw)
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
-        verify(jwtProvider, never()).revokeAllRefreshTokens(TEST_EMAIL);
-        verify(userAccessRevocationService, never()).revoke(1L);
+        verify(sessionInvalidator, never()).invalidateAll(1L, TEST_EMAIL);
         verify(emailVerificationService, never()).clearVerificationState(
                 org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString());
@@ -177,7 +174,7 @@ class UserServiceTest {
     @Test
     @DisplayName("내 프로필 정보를 조회한다")
     void getMyProfile() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -188,10 +185,10 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-        // when
+
         UserProfileResult result = userService.getMyProfile();
 
-        // then
+
         assertThat(result.email()).isEqualTo(TEST_EMAIL);
         assertThat(result.name()).isEqualTo("Test User");
     }
@@ -199,11 +196,11 @@ class UserServiceTest {
     @Test
     @DisplayName("사용자 정보를 찾을 수 없으면 예외를 발생시킨다")
     void getMyProfile_UserNotFound_ThrowsException() {
-        // given
+
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
 
-        // when & then
+
         assertThatThrownBy(() -> userService.getMyProfile())
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
@@ -212,7 +209,7 @@ class UserServiceTest {
     @Test
     @DisplayName("사용자 설정을 정상적으로 업데이트한다 (디스코드 포함)")
     void updateSettings() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -227,10 +224,10 @@ class UserServiceTest {
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
         when(emailVerificationService.isVerified(1L, NEW_EMAIL)).thenReturn(true);
 
-        // when
+
         UserSettingsResult result = userService.updateSettings(request);
 
-        // then
+
         assertThat(result.notificationEmail()).isEqualTo(NEW_EMAIL);
         assertThat(result.emailEnabled()).isTrue();
         assertThat(result.discordEnabled()).isTrue();
@@ -241,7 +238,7 @@ class UserServiceTest {
     @Test
     @DisplayName("온보딩을 정상적으로 완료한다")
     void completeOnboarding() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -257,10 +254,10 @@ class UserServiceTest {
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
         when(emailVerificationService.isVerified(1L, NOTIFY_EMAIL)).thenReturn(true);
 
-        // when
+
         UserOnboardingResult result = userService.completeOnboarding(request);
 
-        // then
+
         assertThat(result.onboardingCompleted()).isTrue();
         assertThat(user.isOnboardingCompleted()).isTrue();
         assertThat(user.getNotificationEmail()).isEqualTo(NOTIFY_EMAIL);
@@ -269,7 +266,7 @@ class UserServiceTest {
     @Test
     @DisplayName("사용자 알림 테스트 발송 시 활성화된 채널로 발송한다")
     void sendTestNotification() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -284,17 +281,17 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-        // when
+
         userService.sendTestNotification();
 
-        // then
+
         verify(notificationTestSender, times(1)).sendUserTestNotification(eq(user.getId()));
     }
 
     @Test
     @DisplayName("활성화된 알림 채널이 없으면 사용자 알림 테스트 발송에 실패한다")
     void sendTestNotification_NoChannel() {
-        // given
+
         User user = User.builder()
                 .id(1L)
                 .email(TEST_EMAIL)
@@ -309,7 +306,7 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-        // when & then
+
         assertThatThrownBy(() -> userService.sendTestNotification())
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);

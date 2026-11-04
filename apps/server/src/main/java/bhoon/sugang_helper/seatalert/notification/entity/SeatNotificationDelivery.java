@@ -11,7 +11,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -29,9 +28,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "seat_notification_deliveries", indexes = {
-        @Index(name = "idx_seat_notif_delivery_ready", columnList = "status,next_attempt_at")
-}, uniqueConstraints = {
+@Table(name = "seat_notification_deliveries", uniqueConstraints = {
         @UniqueConstraint(name = "uk_seat_notif_delivery_outbox_user_channel",
                 columnNames = {"outbox_id", "user_id", "channel"})
 })

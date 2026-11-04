@@ -15,9 +15,9 @@ import { useMyFeedbacks } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackStatus, FeedbackType } from "@/shared/types/api";
 import { FeedbackList } from "@/features/feedback/components/feedback-list";
 
-/**
- * 건의 게시판 목록 페이지 컴포넌트
- */
+
+
+
 function FeedbackPageContent() {
   const router = useRouter();
   const { data: feedbackList, isLoading: isListLoading } = useMyFeedbacks();

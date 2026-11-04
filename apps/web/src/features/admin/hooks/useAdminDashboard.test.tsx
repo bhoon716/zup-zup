@@ -15,9 +15,6 @@ describe("useAdminDashboardSnapshot hook", () => {
 
   it("관리자 개요와 크롤링 타겟을 한 번에 조회한다", async () => {
     vi.mocked(adminApi.getDashboardSnapshot).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: {
         overview: {
           totalUsers: 100,
           totalActiveSubscriptions: 50,
@@ -33,8 +30,7 @@ describe("useAdminDashboardSnapshot hook", () => {
           year: "2026",
           semester: "U211600020",
         },
-      },
-    } as never);
+      } as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);

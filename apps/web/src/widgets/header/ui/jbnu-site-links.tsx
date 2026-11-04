@@ -21,9 +21,9 @@ interface JBNUSiteLinksProps {
   onLinkClick?: () => void;
 }
 
-/**
- * 전북대학교 주요 사이트 바로가기 링크들을 렌더링합니다.
- */
+
+
+
 export function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
   const dropdownTriggerId = "jbnu-site-links-trigger";
   const dropdownContentId = "jbnu-site-links-content";

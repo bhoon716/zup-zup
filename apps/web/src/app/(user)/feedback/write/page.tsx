@@ -15,9 +15,9 @@ import { buildFeedbackMetadata } from "@/features/feedback/feedback-metadata";
 import { useCreateFeedback } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackCreateForm } from "@/features/feedback/components/feedback-create-form";
 
-/**
- * 건의사항 작성 페이지 컴포넌트
- */
+
+
+
 function FeedbackWritePageContent() {
   const router = useRouter();
 

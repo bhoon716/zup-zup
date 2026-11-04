@@ -67,6 +67,7 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc list-inside text-sm text-muted-foreground pl-2 space-y-1">
               <li>Clarity에는 화면의 텍스트를 마스킹해 비밀번호·토큰·사용자 식별정보·건의사항 본문이 기록되지 않도록 합니다.</li>
+              <li>공개 강의 검색과 상세 화면의 공개 강의명·학점·강의 시간만 마스킹 예외로 표시합니다. 개인 시간표·구독·찜과 공강 조건을 사용하는 검색, 입력값·리뷰·건의 내용은 계속 보호합니다.</li>
               <li>Google Analytics 4에는 query가 제거된 화면 경로만 전송하며 사용자 ID, Google Signals 및 광고 개인화를 사용하지 않습니다.</li>
               <li>수집 결과는 서비스 내부가 아니라 Microsoft Clarity 및 Google Analytics 운영 콘솔에서 확인합니다.</li>
             </ul>

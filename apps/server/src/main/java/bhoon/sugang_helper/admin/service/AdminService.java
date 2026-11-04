@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.admin.service;
 
-import bhoon.sugang_helper.academic.crawling.dto.CrawlerAdminSnapshot;
-import bhoon.sugang_helper.academic.crawling.service.CrawlerAdminSnapshotQuery;
-import bhoon.sugang_helper.academic.crawling.service.CrawlerStatusQuery;
+import bhoon.sugang_helper.academic.crawling.dto.response.CrawlerAdminSnapshot;
+import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
+import bhoon.sugang_helper.academic.crawling.service.CrawlerRunStateService;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminHourlyTrafficResponse;
@@ -11,14 +11,14 @@ import bhoon.sugang_helper.admin.dto.response.AdminRecentLogResponse;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationHistoryItem;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQuery;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationTestSender;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionStatisticsQuery;
+import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -38,20 +38,20 @@ public class AdminService {
 
     private static final DateTimeFormatter HOUR_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final long CRAWLER_DELAY_MINUTES = 15L;
-    private final UserIdentityQuery userIdentityQuery;
-    private final UserNotificationQuery userNotificationQuery;
-    private final SubscriptionStatisticsQuery subscriptionStatisticsQuery;
-    private final NotificationHistoryQuery notificationHistoryQuery;
-    private final NotificationTestSender notificationTestSender;
-    private final CrawlerAdminSnapshotQuery crawlerAdminSnapshotQuery;
-    private final CrawlerStatusQuery crawlerStatusQuery;
+    private final UserIdentityQueryService userIdentityQuery;
+    private final UserNotificationQueryService userNotificationQuery;
+    private final SubscriptionQueryService subscriptionQueryService;
+    private final NotificationHistoryQueryService notificationHistoryQuery;
+    private final NotificationService notificationTestSender;
+    private final CourseCrawlerTargetService crawlerAdminSnapshotQuery;
+    private final CrawlerRunStateService crawlerStatusQuery;
 
-    /**
-     * 관리자 대시보드 기본 통계 정보를 조회합니다.
-     */
+
+
+
     public AdminDashboardResponse getDashboardStats() {
         long totalUsers = userIdentityQuery.countUsers();
-        long totalActiveSubscriptions = subscriptionStatisticsQuery.countActiveSubscriptions();
+        long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
@@ -65,13 +65,13 @@ public class AdminService {
                 .build();
     }
 
-    /**
-     * 관리자 대시보드 시스템 현황 및 트래픽 정보를 포함한 전체 개요를 조회합니다.
-     */
+
+
+
     public AdminOverviewResponse getDashboardOverview() {
         LocalDateTime now = LocalDateTime.now();
         long totalUsers = userIdentityQuery.countUsers();
-        long totalActiveSubscriptions = subscriptionStatisticsQuery.countActiveSubscriptions();
+        long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
         LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
         long todayNotifications = notificationHistoryQuery.countCreatedAfter(startOfToday);
         LocalDateTime lastCrawledAt = crawlerStatusQuery.findLastSuccessAt().orElse(null);
@@ -89,9 +89,9 @@ public class AdminService {
                 .build();
     }
 
-    /**
-     * 관리자 페이지에서 필요한 개요와 크롤링 타겟을 한 번에 조회합니다.
-     */
+
+
+
     public AdminDashboardSnapshotResponse getDashboardSnapshot() {
         AdminOverviewResponse overview = getDashboardOverview();
         CrawlerAdminSnapshot crawlTarget = crawlerAdminSnapshotQuery.findCurrentAdminSnapshot();
@@ -102,9 +102,9 @@ public class AdminService {
                 .build();
     }
 
-    /**
-     * 현재 시간을 기준으로 크롤러의 동작 상태를 판단합니다.
-     */
+
+
+
     private String resolveCrawlerStatus(LocalDateTime now, LocalDateTime lastCrawledAt) {
         if (lastCrawledAt == null) {
             return "UNKNOWN";
@@ -115,9 +115,9 @@ public class AdminService {
         return "RUNNING";
     }
 
-    /**
-     * 최근 24시간 동안의 시간별 알림 발송 트래픽 통계를 생성합니다.
-     */
+
+
+
     private List<AdminHourlyTrafficResponse> buildHourlyNotificationTraffic(LocalDateTime now) {
         LocalDateTime startHour = now.minusHours(23)
                 .withMinute(0)
@@ -147,9 +147,9 @@ public class AdminService {
                 .toList();
     }
 
-    /**
-     * 알림 기록 및 크롤러 상태를 기반으로 최근 시스템 로그 목록을 구성합니다.
-     */
+
+
+
     private List<AdminRecentLogResponse> buildRecentLogs(LocalDateTime now, LocalDateTime lastCrawledAt) {
         List<AdminRecentLogResponse> notificationLogs = notificationHistoryQuery.findLatest()
                 .stream()
@@ -176,9 +176,9 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 알림 이력 데이터를 로그 형태의 응답 객체로 변환합니다.
-     */
+
+
+
     private AdminRecentLogResponse toNotificationLog(NotificationHistoryItem history) {
         String message = String.format("알림 발송 완료: %s (%s)", history.title(), history.channel().name());
         return AdminRecentLogResponse.builder()
@@ -189,9 +189,9 @@ public class AdminService {
                 .build();
     }
 
-    /**
-     * 크롤러의 최종 실행 이력을 바탕으로 크롤러 관련 로그를 생성합니다.
-     */
+
+
+
     private AdminRecentLogResponse buildCrawlerLog(LocalDateTime now, LocalDateTime lastCrawledAt) {
         if (lastCrawledAt == null) {
             return AdminRecentLogResponse.builder()
@@ -219,9 +219,9 @@ public class AdminService {
                 .build();
     }
 
-    /**
-     * 현재 관리자의 활성화된 알림 채널로 테스트 알림을 발송합니다.
-     */
+
+
+
     @Transactional
     public void sendTestNotification() {
         String email = SecurityUtil.getCurrentUserEmail();

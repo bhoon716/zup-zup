@@ -14,9 +14,9 @@ public class CrawlManualTriggerTest {
     @Autowired
     private CourseCrawlerService courseCrawlerService;
 
-    /**
-     * 강의 크롤링 프로세스를 수동으로 즉시 실행하여 작동 여부를 테스트합니다.
-     */
+
+
+
     @Test
     void triggerCrawl() {
         System.out.println("Starting manual crawl trigger...");

@@ -44,10 +44,10 @@ export const CourseSearchBar = memo(function CourseSearchBar({
   const isFocusedRef = useRef(false);
   const isSyncingRef = useRef(false);
 
-  /**
-   * 외부에서 전달된 초기 검색 조건이 실질적으로 변경될 경우(예: 필터 칩 삭제)
-   * 로컬 상태를 갱신합니다. (isSyncingRef 플래그로 부모 onConditionChange 무한 루프 차단)
-   */
+
+
+
+
   useEffect(() => {
     const nextSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
     if (nextSnapshot === prevInitialRef.current) return;
@@ -62,15 +62,15 @@ export const CourseSearchBar = memo(function CourseSearchBar({
     }
   }, [initialCondition, resolvedDefaultCondition]);
   
-  // UI 상태: 접기/펼치기
+
   const [smartOpen, setSmartOpen] = useState(true);
   const [basicOpen, setBasicOpen] = useState(true);
   const [detailOpen, setDetailOpen] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
-  /**
-   * 사용자가 자식 컴포넌트 내부에서 조작하여 로컬 검색 조건을 변경할 때만 상위 컴포넌트에 알립니다.
-   */
+
+
+
   useEffect(() => {
     if (isSyncingRef.current) {
       isSyncingRef.current = false;
@@ -79,10 +79,10 @@ export const CourseSearchBar = memo(function CourseSearchBar({
     onConditionChange?.(condition);
   }, [condition, onConditionChange]);
 
-  /**
-   * 검색 버튼 클릭 시 호출되며, 선택된 검색 조건을 부모 컴포넌트로 전달합니다.
-   * 학년도와 학기 선택 여부를 검증합니다.
-   */
+
+
+
+
   const handleSearch = () => {
     if (!condition.academicYear || !condition.semester) {
       toast.error("학년도와 학기를 선택해주세요.");
@@ -91,10 +91,10 @@ export const CourseSearchBar = memo(function CourseSearchBar({
     onSearch({ ...condition, keyword: keyword || undefined });
   };
 
-  /**
-   * 모든 검색 조건을 기본값으로 초기화하고 검색을 수행합니다.
-   * 초기화 성공 시 토스트 메시지를 표시합니다.
-   */
+
+
+
+
   const handleReset = () => {
     const resetCond = { ...resolvedDefaultCondition };
     setCondition(resetCond);
@@ -149,7 +149,7 @@ export const CourseSearchBar = memo(function CourseSearchBar({
       )}
 
       <div className={cn("space-y-3 pr-1 scrollbar-hide", !hideHeader ? "flex-1 overflow-y-auto" : "h-auto overflow-visible")}>
-        {/* 스마트 필터 섹션 */}
+        {               }
         <FilterSection
           idBase="course-search-smart"
           title="스마트 필터"
@@ -168,7 +168,7 @@ export const CourseSearchBar = memo(function CourseSearchBar({
           />
         </FilterSection>
 
-        {/* 기본 정보 섹션 */}
+        {              }
         <FilterSection
           idBase="course-search-basic"
           title="기본 정보"
@@ -183,7 +183,7 @@ export const CourseSearchBar = memo(function CourseSearchBar({
           />
         </FilterSection>
 
-        {/* 강의 상세 섹션 */}
+        {              }
         <FilterSection
           idBase="course-search-detail"
           title="강의 상세"

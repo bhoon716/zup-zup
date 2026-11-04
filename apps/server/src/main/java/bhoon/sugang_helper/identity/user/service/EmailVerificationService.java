@@ -18,9 +18,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-/**
- * 사용자의 이메일 인증 로직을 담당하는 서비스입니다. 인증 코드를 Redis에 저장하고 발송하며, 검증 결과를 관리합니다.
- */
+
+
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,9 +43,9 @@ public class EmailVerificationService {
     @Value("${spring.mail.from-name}")
     private String fromName;
 
-    /**
-     * 인증 코드를 생성하여 사용자 이메일로 발송합니다.
-     */
+
+
+
     public void sendCode(Long userId, String email) {
         sendCode(userId, email, null);
     }
@@ -71,13 +71,13 @@ public class EmailVerificationService {
         }
 
         sendEmail(email, mimeMessage);
-        log.info("[EmailVerification] Sent code to user={}, emailMasked={}", userId,
-                SensitiveDataRedactor.maskEmail(email));
+        log.info("[EmailVerification] 인증 코드 발송 완료. userId={}, emailFingerprint={}", userId,
+                SensitiveDataRedactor.fingerprint(email));
     }
 
-    /**
-     * 사용자가 입력한 인증 코드를 검증합니다.
-     */
+
+
+
     public boolean verifyCode(Long userId, String email, String code) {
         String key = getCodeKey(userId, email);
         String savedCode = redisService.getValues(key);
@@ -91,8 +91,8 @@ public class EmailVerificationService {
             redisService.deleteValues(getAttemptKey(userId, email));
             redisService.setValues(getVerifiedKey(userId, email), "true",
                     Duration.ofMinutes(VERIFIED_EXPIRATION_MINUTES));
-            log.info("[EmailVerification] Verified user={}, emailMasked={}", userId,
-                    SensitiveDataRedactor.maskEmail(email));
+            log.info("[EmailVerification] 이메일 인증 완료. userId={}, emailFingerprint={}", userId,
+                    SensitiveDataRedactor.fingerprint(email));
             return true;
         }
 
@@ -104,17 +104,17 @@ public class EmailVerificationService {
         return false;
     }
 
-    /**
-     * 해당 이메일이 이미 인증되었는지 확인합니다.
-     */
+
+
+
     public boolean isVerified(Long userId, String email) {
         String value = redisService.getValues(getVerifiedKey(userId, email));
         return "true".equals(value);
     }
 
-    /**
-     * 탈퇴 시 해당 계정과 이메일에 연결된 단기 인증 상태를 즉시 제거합니다.
-     */
+
+
+
     public void clearVerificationState(Long userId, String... emails) {
         redisService.deleteValues(SEND_COOLDOWN_PREFIX + "USER:" + userId);
         if (emails == null) {
@@ -132,9 +132,9 @@ public class EmailVerificationService {
         }
     }
 
-    /**
-     * 실제 이메일을 발송하는 내부 메서드입니다.
-     */
+
+
+
     private MimeMessage createEmailMessage(String to, String title, String content) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
@@ -159,15 +159,15 @@ public class EmailVerificationService {
     }
 
     private CustomException emailSendException(String to, Exception exception) {
-        log.error("[EmailVerification] Email dispatch failed. recipientMasked={}, failureCode={}, exceptionType={}",
-                SensitiveDataRedactor.maskEmail(to), ErrorCode.EMAIL_SEND_ERROR.getCode(),
+        log.error("[EmailVerification] 인증 이메일 발송 실패. recipientFingerprint={}, failureCode={}, exceptionType={}",
+                SensitiveDataRedactor.fingerprint(to), ErrorCode.EMAIL_SEND_ERROR.getCode(),
                 SensitiveDataRedactor.exceptionType(exception));
         return new CustomException(ErrorCode.EMAIL_SEND_ERROR, "Failed to send verification email");
     }
 
-    /**
-     * 6자리 난수 인증 코드를 생성합니다.
-     */
+
+
+
     private String generateCode() {
         SecureRandom random = new SecureRandom();
         int code = 100000 + random.nextInt(900000);
@@ -230,7 +230,7 @@ public class EmailVerificationService {
             try {
                 redisService.compareAndDeleteValues(key, token);
             } catch (RuntimeException exception) {
-                log.warn("[EmailVerification] Cooldown rollback failed. exceptionType={}",
+                log.warn("[EmailVerification] 발송 실패 후 대기 제한 복구 실패. exceptionType={}",
                         SensitiveDataRedactor.exceptionType(exception));
             }
         }

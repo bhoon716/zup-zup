@@ -59,9 +59,9 @@ public class JbnuCourseApiClient implements CourseApiClient {
     @Autowired(required = false)
     private MeterRegistry meterRegistry;
 
-    /**
-     * JUMP JSON 강의 데이터를 가져옵니다.
-     */
+
+
+
     public String fetchCourseData(String year, String semester) {
         try (InputStream responseStream = fetchCourseDataStream(year, semester)) {
             return new String(responseStream.readAllBytes(), StandardCharsets.UTF_8);
@@ -114,7 +114,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
             httpClientBuilder.connectTimeout(Duration.ofMillis(timeoutMs));
         }
 
-        // A fresh cookie store per attempt keeps school sessions isolated between runs and retries.
+
         try (HttpClient httpClient = httpClientBuilder.build()) {
             RestClient restClient = createRestClient(httpClient);
             try {
@@ -159,7 +159,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
 
     byte[] readResponse(ClientHttpResponse response) throws IOException {
         if (response.getStatusCode().isError()) {
-            // Keep only the status; upstream bodies and URLs must not enter diagnostic records.
+
             throw new RestClientResponseException("JUMP responded with HTTP " + response.getStatusCode().value(),
                     response.getStatusCode().value(), response.getStatusText(), null, new byte[0],
                     StandardCharsets.UTF_8);
@@ -168,7 +168,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
         if ("gzip".equalsIgnoreCase(response.getHeaders().getFirst(HttpHeaders.CONTENT_ENCODING))) {
             body = new GZIPInputStream(body);
         }
-        // Limit decoded bytes while reading, before allocating the complete response in memory.
+
         try (InputStream input = maximumResponseBytes > 0
                 ? new BoundedInputStream(body, maximumResponseBytes) : body) {
             return input.readAllBytes();
@@ -186,12 +186,12 @@ public class JbnuCourseApiClient implements CourseApiClient {
         String exceptionType = SensitiveDataRedactor.exceptionType(
                 CrawlerUpstreamFailure.rootCause(e));
         if (retryable) {
-            log.warn("[Crawler] upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
+            log.warn("[Crawler] 상위 강의 API 요청 실패. upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
                             + "attempt={}/{} upstreamStatus={} exceptionType={} retryable={} result={}",
                     currentRunId(), year, semester, targetCertDivision, stage, retryCount, maximumAttempts,
                     statusLabel(status), exceptionType, true, result);
         } else {
-            log.error("[Crawler] upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
+            log.error("[Crawler] 상위 강의 API 요청 실패. upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
                             + "attempt={}/{} upstreamStatus={} exceptionType={} retryable={} result={}",
                     currentRunId(), year, semester, targetCertDivision, stage, retryCount, maximumAttempts,
                     statusLabel(status), exceptionType, false, result);
@@ -288,7 +288,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
             long waitTime = (long) retryWaitMs * retryCount;
             CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.find(failure);
             CrawlerFailureStage stage = upstream == null ? CrawlerFailureStage.FETCH_PARSE : upstream.stage();
-            log.info("[Crawler] upstream_retry_wait runId={} year={} semester={} certDiv={} stage={} "
+            log.debug("[Crawler] 상위 강의 API 재시도 대기. upstream_retry_wait runId={} year={} semester={} certDiv={} stage={} "
                             + "attempt={} waitMs={} result=waiting",
                     currentRunId(), year, semester, targetCertDivision, stage, retryCount, waitTime);
             Thread.sleep(waitTime);

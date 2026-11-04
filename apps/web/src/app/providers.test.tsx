@@ -6,7 +6,6 @@ import Providers, { getAppQueryClient } from "./providers";
 const {
   mockCheckSession,
   mockReplace,
-  mockGetCookie,
   mockSetUser,
   mockLogout,
   mockRegisterAuthFailureHandler,
@@ -15,7 +14,6 @@ const {
 } = vi.hoisted(() => {
   const mockCheckSession = vi.fn();
   const mockReplace = vi.fn();
-  const mockGetCookie = vi.fn();
   const mockSetUser = vi.fn();
   const mockLogout = vi.fn();
   const mockRegisterAuthFailureHandler = vi.fn();
@@ -41,7 +39,6 @@ const {
   return {
     mockCheckSession,
     mockReplace,
-    mockGetCookie,
     mockSetUser,
     mockLogout,
     mockRegisterAuthFailureHandler,
@@ -61,11 +58,6 @@ vi.mock("@/widgets/auth/login-modal", () => ({
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(),
   useRouter: vi.fn(),
-}));
-
-vi.mock("@/shared/lib/cookie", () => ({
-  getCookie: (name: string) => mockGetCookie(name),
-  IS_LOGGED_IN_COOKIE_NAME: "is_logged_in",
 }));
 
 vi.mock("@/shared/api/client", () => ({
@@ -97,7 +89,6 @@ describe("Providers", () => {
     mockState.user = null;
     mockState.isAuthenticated = false;
     mockedUseRouter.mockReturnValue({ replace: mockReplace } as never);
-    mockGetCookie.mockReturnValue("true");
     getAppQueryClient().clear();
   });
 
@@ -139,7 +130,7 @@ describe("Providers", () => {
     expect(queryClient.getQueryData(["timetables"])).toBeUndefined();
   });
 
-  it("is_logged_in 쿠키가 true일 때 세션 부트스트랩을 수행한다", async () => {
+  it("저장된 사용자가 없어도 서버 세션을 확인한다", async () => {
     mockedUsePathname.mockReturnValue("/search");
 
     render(
@@ -152,22 +143,7 @@ describe("Providers", () => {
     expect(mockSetUser).not.toHaveBeenCalled();
   });
 
-  it("로그인 힌트와 저장된 사용자가 없어도 권위 있는 세션 부트스트랩을 수행한다", async () => {
-    mockGetCookie.mockReturnValue(undefined);
-    mockedUsePathname.mockReturnValue("/search");
-
-    render(
-      <Providers>
-        <div>child</div>
-      </Providers>
-    );
-
-    await waitFor(() => expect(mockCheckSession).toHaveBeenCalledTimes(1));
-    expect(mockSetUser).not.toHaveBeenCalled();
-  });
-
-  it("로그인 힌트 쿠키가 없어도 저장된 사용자가 있으면 세션을 재검증한다", async () => {
-    mockGetCookie.mockReturnValue(undefined);
+  it("저장된 사용자가 있어도 서버 세션을 재검증한다", async () => {
     mockState.user = {
       id: 1,
       email: "user@test.com",
@@ -187,7 +163,6 @@ describe("Providers", () => {
   });
 
   it("복원된 미검증 사용자는 window focus 시 세션을 다시 검증한다", async () => {
-    mockGetCookie.mockReturnValue(undefined);
     mockState.user = {
       id: 1,
       email: "user@test.com",

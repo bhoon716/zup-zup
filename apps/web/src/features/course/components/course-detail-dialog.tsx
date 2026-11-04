@@ -16,9 +16,10 @@ interface CourseDetailDialogProps {
   course: Course | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  unmaskPublicCourseInfo?: boolean;
 }
 
-export function CourseDetailDialog({ course, open, onOpenChange }: CourseDetailDialogProps) {
+export function CourseDetailDialog({ course, open, onOpenChange, unmaskPublicCourseInfo = false }: CourseDetailDialogProps) {
   const courseKey = course?.courseKey ?? "";
   const { data: detailedCourse, isLoading } = useCourseDetail(open ? courseKey : "");
   if (!course) return null;
@@ -37,7 +38,7 @@ export function CourseDetailDialog({ course, open, onOpenChange }: CourseDetailD
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : (
-            <CourseDetailContent course={displayCourse} />
+            <CourseDetailContent course={displayCourse} unmaskPublicCourseInfo={unmaskPublicCourseInfo} />
           )}
         </div>
       </DialogContent>

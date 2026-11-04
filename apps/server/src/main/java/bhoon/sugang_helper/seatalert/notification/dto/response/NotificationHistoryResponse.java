@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.dto.response;
 
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationHistoryItem;
+import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import java.time.LocalDateTime;
 import lombok.Builder;

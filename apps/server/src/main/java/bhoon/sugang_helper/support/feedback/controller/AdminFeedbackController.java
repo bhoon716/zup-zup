@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.support.feedback.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
+import bhoon.sugang_helper.common.web.PageableGuard;
 import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackAttachmentDownloadRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,9 +29,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 관리자 전용 문의 및 건의사항 관리 API 컨트롤러입니다. 전체 목록 조회, 상태 변경, 답변 작성(CRUD) 기능을 제공하며 관리자 권한(ROLE_ADMIN)이 필요합니다.
- */
+
+
+
 @RestController
 @RequestMapping("/api/v1/admin/feedbacks")
 @RequiredArgsConstructor
@@ -41,25 +40,24 @@ public class AdminFeedbackController {
 
     private final FeedbackService feedbackService;
 
-    /**
-     * 시스템에 등록된 모든 문의 및 건의 사항을 조회합니다.
-     */
+
+
+
     @GetMapping
-    public ResponseEntity<CommonResponse<Page<AdminFeedbackResponse>>> getAllFeedbacks(
+    public ResponseEntity<Page<AdminFeedbackResponse>> getAllFeedbacks(
             @RequestParam(required = false) String deletion,
-            @PageableDefault(size = 20) Pageable pageable) {
-        return CommonResponse.ok(
-                feedbackService.getFeedbacksForAdmin(pageable, AdminFeedbackDeletionFilter.from(deletion)),
-                "전체 피드백 목록입니다.");
+            Pageable pageable) {
+        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
+        return ResponseEntity.ok(feedbackService.getFeedbacksForAdmin(fixedPageable, AdminFeedbackDeletionFilter.from(deletion)));
     }
 
-    /**
-     * 특정 문의 사항의 상세 내용 및 메타 정보를 조회합니다.
-     */
+
+
+
     @GetMapping("/{feedbackId}")
-    public ResponseEntity<CommonResponse<AdminFeedbackDetailResponse>> getFeedbackDetail(
+    public ResponseEntity<AdminFeedbackDetailResponse> getFeedbackDetail(
             @PathVariable Long feedbackId) {
-        return CommonResponse.ok(feedbackService.getFeedbackDetailForAdmin(feedbackId), "피드백 상세입니다.");
+        return ResponseEntity.ok(feedbackService.getFeedbackDetailForAdmin(feedbackId));
     }
 
     @PostMapping("/{feedbackId}/attachments/{attachmentId}/download")
@@ -78,9 +76,9 @@ public class AdminFeedbackController {
                 .body(download.resource());
     }
 
-    /**
-     * 문의 사항의 처리 상태(대기 중, 처리 중, 완료, 반려)를 수동으로 변경합니다.
-     */
+
+
+
     @PatchMapping("/{feedbackId}/status")
     public ResponseEntity<Void> updateFeedbackStatus(
             @PathVariable Long feedbackId,
@@ -90,22 +88,22 @@ public class AdminFeedbackController {
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * 문의 사항에 대한 관리자 공식 답변을 등록합니다.
-     */
+
+
+
     @PostMapping("/{feedbackId}/reply")
-    public ResponseEntity<CommonResponse<Long>> createReply(
+    public ResponseEntity<Long> createReply(
             @PathVariable Long feedbackId,
             @Valid @RequestBody FeedbackReplyCreateRequest request) {
 
         Long replyId = feedbackService.createFeedbackReplyForCurrentAdmin(feedbackId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(CommonResponse.success(replyId, "답변이 등록되었습니다."));
+                .body(replyId);
     }
 
-    /**
-     * 등록된 운영진 답변을 수정합니다.
-     */
+
+
+
     @PatchMapping("/reply/{replyId}")
     public ResponseEntity<Void> updateReply(
             @PathVariable Long replyId,
@@ -115,9 +113,9 @@ public class AdminFeedbackController {
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * 등록된 운영진 답변을 보존용 soft delete 처리합니다.
-     */
+
+
+
     @DeleteMapping("/reply/{replyId}")
     public ResponseEntity<Void> deleteReply(
             @PathVariable Long replyId) {

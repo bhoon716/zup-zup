@@ -37,6 +37,23 @@ describe("client error telemetry", () => {
     });
   });
 
+  it.each(["ERR_NETWORK", "ECONNABORTED", "ETIMEDOUT", "ERR_CANCELED"])(
+    "알려진 전송 코드 %s만 진단 필드로 보존한다",
+    (code) => {
+      const error = Object.assign(new Error("token=private-token"), { code });
+      expect(buildClientErrorEvent(error, { source: "react-query" }).transport_code).toBe(code);
+    },
+  );
+
+  it("임의 오류 코드와 원문 요청 정보를 전송하지 않는다", () => {
+    const event = buildClientErrorEvent({
+      name: "AxiosError", code: "private-token", message: "cookie=private-cookie",
+      config: { url: "https://private.example?code=private-oauth", headers: { Authorization: "private-header" } },
+    }, { source: "react-query" });
+    expect(event).not.toHaveProperty("transport_code");
+    expect(JSON.stringify(event)).not.toMatch(/private-token|private-cookie|private-oauth|private-header/);
+  });
+
   it("Vercel Analytics, GA4, Clarity에 동일한 클라이언트 오류 이벤트를 전달한다", () => {
     const gtag = vi.fn();
     const clarity = vi.fn();
@@ -76,5 +93,20 @@ describe("client error telemetry", () => {
     reportClientError(error, { source: "timetable", operation: "export-image" });
 
     expect(mockTrack).toHaveBeenCalledTimes(1);
+  });
+  it("개발 모드에서도 오류 객체·요청 헤더·원문 메시지를 콘솔에 전달하지 않는다", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const error = Object.assign(new Error("cookie=private-cookie token=private-token"), {
+      config: { headers: { "X-XSRF-TOKEN": "private-csrf" } },
+      response: { status: 403, data: { email: "private@example.com" } },
+    });
+
+    reportClientError(error, { source: "web-push", operation: "unsubscribe" });
+
+    expect(consoleError).toHaveBeenCalledExactlyOnceWith(
+      "[ClientError] 화면 작업 실패. source=web-push type=Error",
+      { source: "web-push", error_type: "Error", fatal: false, operation: "unsubscribe", status_code: 403 },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toMatch(/private-cookie|private-token|private-csrf|private@example/);
   });
 });

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ==============================================================================
-# MacBook Off-Host Backup Sync Script
-# Runs on Local MacBook to pull DB & Uploads backups from OCI Server
-# ==============================================================================
+
+
+
+
 
 SERVER_HOST="${SERVER_HOST:-api.zup-zup.com}"
 SERVER_USER="${SERVER_USER:-ubuntu}"
@@ -34,14 +34,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Step 1: Sync into an isolated staging directory
+
 echo "[1/4] Syncing MySQL dumps and export archives into staging via rsync..." | tee -a "${LOG_FILE}"
 rsync -avz --include="*.sql.gz" --include="*.tar.gz" --include="*.sha256" --include="*/" --exclude="*" \
   -e "ssh -o StrictHostKeyChecking=accept-new" \
   "${SERVER_USER}@${SERVER_HOST}:${REMOTE_BACKUP_DIR}/" \
   "${STAGING_DIR}/" | tee -a "${LOG_FILE}"
 
-# Step 2: Verify Checksums on MacBook
+
 echo "[2/4] Verifying SHA-256 checksums on MacBook..." | tee -a "${LOG_FILE}"
 CHECKSUM_ERRORS=0
 CHECKSUM_FILES=0
@@ -88,7 +88,7 @@ if [ "${CHECKSUM_ERRORS}" -gt 0 ]; then
 fi
 echo "[SUCCESS] All checksums verified successfully!" | tee -a "${LOG_FILE}"
 
-# Step 3: Promote only files from the fully verified staging set.
+
 echo "[3/4] Promoting verified backups..." | tee -a "${LOG_FILE}"
 promote_file() {
   local source_file="$1"
@@ -110,7 +110,7 @@ while IFS= read -r -d '' source_file; do
   promote_file "${source_file}"
 done < <(find "${STAGING_DIR}" -type f -name "*.sha256" -print0)
 
-# Step 4: Retention Cleanup (Delete backups older than RETENTION_DAYS)
+
 echo "[4/4] Cleaning up MacBook backups older than ${RETENTION_DAYS} days..." | tee -a "${LOG_FILE}"
 find "${LOCAL_BACKUP_DIR}/mysql" -type f -mtime +"${RETENTION_DAYS}" -delete
 find "${LOCAL_BACKUP_DIR}/logs" -type f -mtime +"${RETENTION_DAYS}" -delete

@@ -9,7 +9,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -19,10 +18,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "user_devices", indexes = {
-        @Index(name = "idx_user_device_user_id", columnList = "userId"),
-        @Index(name = "idx_user_device_token", columnList = "token")
-})
+@Table(name = "user_devices")
 public class UserDevice extends BaseTimeEntity {
 
     @Id

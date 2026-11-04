@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.dto.result.SanitizedImage;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import jakarta.annotation.PreDestroy;
@@ -27,9 +28,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Decodes one allowed still image under bounded resources and re-encodes only pixel data.
- */
+
+
+
 @Component
 @Slf4j
 public class ImageUploadSanitizer {
@@ -89,7 +90,7 @@ public class ImageUploadSanitizer {
             if (cause instanceof Error error) {
                 throw error;
             }
-            log.warn("Image decode failed: {}", cause.getClass().getSimpleName());
+            log.warn("이미지 디코딩 실패. exceptionType= {}", cause.getClass().getSimpleName());
             throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
         }
     }
@@ -202,9 +203,6 @@ public class ImageUploadSanitizer {
     @PreDestroy
     void stopImageDecoder() {
         imageDecodeExecutor.shutdownNow();
-    }
-
-    record SanitizedImage(byte[] content, String extension) {
     }
 
     private static final class BoundedOutputStream extends java.io.OutputStream {

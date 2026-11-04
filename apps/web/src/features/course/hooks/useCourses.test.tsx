@@ -20,9 +20,6 @@ describe("useCourses hooks", () => {
   it("강의 목록 응답을 화면용 필드로 정규화한다", async () => {
     const mockedSearchCourses = vi.mocked(courseApi.searchCourses);
     mockedSearchCourses.mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: {
         content: [
           {
             courseKey: "CSE-101",
@@ -36,8 +33,7 @@ describe("useCourses hooks", () => {
         ],
         last: true,
         number: 0,
-      },
-    } as never);
+      } as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -57,23 +53,15 @@ describe("useCourses hooks", () => {
     const mockedSearchCourses = vi.mocked(courseApi.searchCourses);
     mockedSearchCourses
       .mockResolvedValueOnce({
-        code: "SUCCESS",
-        message: "ok",
-        data: {
           content: [],
           last: false,
           number: 0,
-        },
-      } as never)
+        } as never)
       .mockResolvedValueOnce({
-        code: "SUCCESS",
-        message: "ok",
-        data: {
           content: [],
           last: true,
           number: 1,
-        },
-      } as never);
+        } as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -102,9 +90,6 @@ describe("useCourses hooks", () => {
   it("강의 상세 조회 결과를 동일한 규격으로 정규화한다", async () => {
     const mockedDetail = vi.mocked(courseApi.getCourseDetail);
     mockedDetail.mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: {
         courseKey: "CSE-201",
         subjectCode: "CSE201",
         name: "운영체제",
@@ -112,8 +97,7 @@ describe("useCourses hooks", () => {
         totalSeats: 30,
         currentSeats: 18,
         professorName: "이교수",
-      },
-    } as never);
+      } as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -128,11 +112,7 @@ describe("useCourses hooks", () => {
 
   it("검색 기본 학기 조회 결과를 반환한다", async () => {
     const mockedDefaultSemester = vi.mocked(courseApi.getSearchDefaultSemester);
-    mockedDefaultSemester.mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: { semester: "U211600025" },
-    } as never);
+    mockedDefaultSemester.mockResolvedValue({ semester: "U211600025" } as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);

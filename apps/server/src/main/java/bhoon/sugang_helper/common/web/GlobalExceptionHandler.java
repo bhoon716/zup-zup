@@ -5,8 +5,7 @@ import bhoon.sugang_helper.common.alert.SlackAlertService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.response.ErrorResponse;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -74,11 +73,6 @@ public class GlobalExceptionHandler {
         return response(req, ErrorCode.MAX_FILE_UPLOAD_SIZE_EXCEEDED, e);
     }
 
-    @ExceptionHandler({ExpiredJwtException.class, JwtException.class})
-    public ResponseEntity<ErrorResponse> handleJwt(HttpServletRequest req, JwtException e) {
-        return response(req, ErrorCode.INVALID_TOKEN, e);
-    }
-
     @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
     public ResponseEntity<ErrorResponse> handleForbidden(HttpServletRequest req, RuntimeException e) {
         return response(req, ErrorCode.FORBIDDEN, e);
@@ -109,7 +103,8 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.of(errorCode, req.getRequestURI());
         log(errorCode, req.getMethod(), errorResponse.getPath(), errorResponse.getCorrelationId(), exception);
         if (errorCode.getStatus().is5xxServerError() && slackAlertService != null) {
-            slackAlertService.alert(SlackAlertCategory.SERVER_5XX, errorCode.getCode(), exception);
+            slackAlertService.alert(SlackAlertCategory.SERVER_5XX, errorCode.getCode(), exception,
+                    "failureType=" + findRootCause(exception).getClass().getSimpleName());
         }
         return ResponseEntity.status(errorCode.getStatus())
                 .header("X-Error-Id", errorResponse.getCorrelationId())
@@ -117,14 +112,16 @@ public class GlobalExceptionHandler {
     }
 
     private void log(ErrorCode errorCode, String method, String path, String correlationId, Exception exception) {
-        String message = String.format("[API_ERROR] correlationId=%s code=%s method=%s path=%s exceptionType=%s",
-                correlationId, errorCode.getCode(), method, path, exception.getClass().getSimpleName());
+        String message = String.format("[API_ERROR] correlationId=%s code=%s method=%s path=%s "
+                        + "exceptionType=%s rootCauseType=%s API 요청 처리 실패.",
+                correlationId, errorCode.getCode(), method, path, exception.getClass().getSimpleName(),
+                findRootCause(exception).getClass().getSimpleName());
 
         if (errorCode.getStatus().is5xxServerError()) {
             boolean includeStackTrace = shouldLogStackTrace(errorCode, exception);
             String stackTraceState = " stackTraceIncluded=" + includeStackTrace;
             if (includeStackTrace) {
-                log.error(message + stackTraceState, exception);
+                log.error(message + stackTraceState, SensitiveDataRedactor.safeStackTrace(exception));
             } else {
                 log.error(message + stackTraceState);
             }

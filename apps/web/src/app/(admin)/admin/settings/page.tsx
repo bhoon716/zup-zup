@@ -18,12 +18,11 @@ import { Button } from "@/shared/ui/button";
 import { AdminQuickActions } from "@/features/admin/components/admin-quick-actions";
 import { AdminCrawlTargetPanel } from "@/features/admin/components/admin-crawl-target-panel";
 import { AdminSchedulePanel } from "@/features/admin/components/admin-schedule-panel";
-import { AdminDdayPanel } from "@/features/admin/components/admin-dday-panel";
 
-/**
- * 관리자 제어 및 설정 관리 페이지 컴포넌트입니다.
- * 수강신청 일정, 크롤러 동작 조건, 알림 테스트 등을 통합 제어합니다.
- */
+
+
+
+
 export default function AdminSettingsPage() {
   const {
     data: snapshot,
@@ -53,7 +52,7 @@ export default function AdminSettingsPage() {
     void refetchSnapshot();
   };
 
-  // 로딩 상태 처리
+
   if (isSnapshotLoading) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 min-h-[70dvh]">
@@ -65,7 +64,7 @@ export default function AdminSettingsPage() {
     );
   }
 
-  // 에러 발생 혹은 데이터 부재 처리
+
   if (isSnapshotError || !snapshot || !crawlTarget) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 px-6 min-h-[70dvh]">
@@ -135,7 +134,7 @@ export default function AdminSettingsPage() {
         </motion.div>
 
         <section className="grid grid-cols-1 gap-12 lg:grid-cols-3">
-          {/* 퀵 컨트롤 센터 섹션 (크롤링 즉시 실행 & 테스트 알림) */}
+          {                                      }
           <AdminQuickActions 
             onRefresh={handleRefresh}
             onCrawl={() => crawlCourses()}
@@ -144,7 +143,7 @@ export default function AdminSettingsPage() {
             isSendingTest={isSendingTest}
           />
 
-          {/* 크롤링 대상 학기 설정 섹션 */}
+          {                     }
           <div className="lg:col-span-2">
             <AdminCrawlTargetPanel
               configuredYear={configuredYear}
@@ -198,9 +197,8 @@ export default function AdminSettingsPage() {
           </div>
         </section>
 
-        {/* 주요 D-Day 학사 일정 관리 섹션 */}
+        {                          }
         <AdminSchedulePanel />
-        <AdminDdayPanel />
       </main>
     </div>
   );

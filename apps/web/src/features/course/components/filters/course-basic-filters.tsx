@@ -27,7 +27,7 @@ export function CourseBasicFilters({
   const academicYearSelectId = `${idBasePrefix}-academic-year-select`;
   const semesterSelectId = `${idBasePrefix}-semester-select`;
 
-  // 교수명 & 학과명 독립 로컬 상태 및 포커스 관리 (입력 시 한글 IME 조합 깨짐 및 커서 깜빡임 완벽 차단)
+
   const [localProf, setLocalProf] = useState(() => condition.professor || "");
   const [localDept, setLocalDept] = useState(() => condition.department || "");
   const isProfFocusedRef = useRef(false);
@@ -57,7 +57,7 @@ export function CourseBasicFilters({
 
   return (
     <div className="space-y-4">
-      {/* 학년도 및 학기 (세로 1줄 레이아웃) */}
+      {                           }
       <div className="flex flex-col gap-4">
         <div className="space-y-1.5">
           <Label className="text-[11px] font-bold text-muted-foreground">학년도</Label>
@@ -102,7 +102,7 @@ export function CourseBasicFilters({
         </div>
       </div>
 
-      {/* 교수명 및 학과명 직접 입력 (세로 1줄 레이아웃) */}
+      {                                  }
       <div className="flex flex-col gap-4">
         <div className="space-y-1.5">
           <Label className="text-[11px] font-bold text-muted-foreground">교수명</Label>

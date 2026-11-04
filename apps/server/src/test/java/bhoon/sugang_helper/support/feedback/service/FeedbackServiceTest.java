@@ -11,16 +11,22 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.admin.audit.service.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
+import bhoon.sugang_helper.common.dto.result.LoadedFile;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
-import bhoon.sugang_helper.identity.user.dto.UserAccountStatus;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserDisplayNameQuery;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
-import bhoon.sugang_helper.support.feedback.dto.FeedbackAttachmentDownload;
+import bhoon.sugang_helper.identity.user.dto.result.UserAccountStatus;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
+import bhoon.sugang_helper.identity.user.service.UserDisplayNameQueryService;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentAccess;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentSummary;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackReplySummary;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackSummary;
+import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
@@ -57,7 +63,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
-@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Feedback request fixtures intentionally reuse compact payload values.
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class FeedbackServiceTest {
 
     @Mock
@@ -67,13 +73,13 @@ class FeedbackServiceTest {
     @Mock
     private FeedbackReplyRepository feedbackReplyRepository;
     @Mock
-    private AdminAuditRecorder adminAuditRecorder;
+    private AdminAuditService adminAuditRecorder;
     @Mock
     private AdminFeedbackReadRepository adminFeedbackReadRepository;
     @Mock
-    private UserIdentityQuery userIdentityQuery;
+    private UserIdentityQueryService userIdentityQuery;
     @Mock
-    private UserDisplayNameQuery userDisplayNameQuery;
+    private UserDisplayNameQueryService userDisplayNameQuery;
     @Mock
     private LocalFileUploadService fileUploadService;
     @Mock
@@ -95,7 +101,7 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("사용자가 이미지를 포함하여 피드백을 등록한다.")
     void createFeedbackWithImages() {
-        // given
+
         Long userId = 1L;
         UserIdentity user = new UserIdentity(userId, false);
         FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
@@ -107,10 +113,10 @@ class FeedbackServiceTest {
         given(fileUploadService.uploadImages(anyList())).willReturn(List.of("/uploads/img1.png"));
         given(mockFile.getOriginalFilename()).willReturn("test.png");
 
-        // when
+
         feedbackService.createFeedback(userId, request, files);
 
-        // then
+
         verify(feedbackRepository).save(any(Feedback.class));
         verify(fileUploadService).uploadImages(anyList());
         verify(feedbackAttachmentRepository).save(any());
@@ -221,7 +227,7 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("타인의 피드백을 상세 조회하려고 하면 예외가 발생한다.")
     void getMyFeedbackDetailUnauthorized() {
-        // given
+
         Long userId = 1L;
         Long otherUserId = 2L;
         Long feedbackId = 10L;
@@ -229,7 +235,7 @@ class FeedbackServiceTest {
 
         given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
 
-        // when & then
+
         assertThatThrownBy(() -> feedbackService.getMyFeedbackDetail(userId, feedbackId))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining(ErrorCode.FEEDBACK_UNAUTHORIZED.getMessage());
@@ -299,13 +305,13 @@ class FeedbackServiceTest {
         Long attachmentId = 20L;
         UserIdentity admin = new UserIdentity(1L, true);
         org.springframework.core.io.Resource resource = mock(org.springframework.core.io.Resource.class);
-        AdminFeedbackReadRepository.FeedbackAttachmentAccess attachment =
-                new AdminFeedbackReadRepository.FeedbackAttachmentAccess(
+        AdminFeedbackAttachmentAccess attachment =
+                new AdminFeedbackAttachmentAccess(
                         attachmentId, feedbackId, "/uploads/private.png", "private.png");
         given(adminFeedbackReadRepository.findAttachmentForAdmin(feedbackId, attachmentId))
                 .willReturn(Optional.of(attachment));
         given(fileUploadService.loadFile("/uploads/private.png"))
-                .willReturn(new LocalFileUploadService.LoadedFile(resource, MediaType.IMAGE_PNG));
+                .willReturn(new LoadedFile(resource, MediaType.IMAGE_PNG));
 
         assertThatThrownBy(() -> feedbackService.getAttachmentForAdmin(admin, feedbackId, attachmentId, false))
                 .isInstanceOf(CustomException.class)
@@ -344,7 +350,7 @@ class FeedbackServiceTest {
         Long attachmentId = 20L;
         UserIdentity admin = new UserIdentity(1L, true);
         given(adminFeedbackReadRepository.findAttachmentForAdmin(feedbackId, attachmentId)).willReturn(Optional.of(
-                new AdminFeedbackReadRepository.FeedbackAttachmentAccess(
+                new AdminFeedbackAttachmentAccess(
                         attachmentId, feedbackId, "/uploads/missing.png", "missing.png")));
         given(fileUploadService.loadFile("/uploads/missing.png"))
                 .willThrow(new IllegalStateException("file unavailable"));
@@ -374,7 +380,7 @@ class FeedbackServiceTest {
     @Test
     @DisplayName("관리자가 피드백 상태를 직접 변경하고 액션 로그를 남긴다.")
     void updateFeedbackStatusByAdmin() {
-        // given
+
         Long adminId = 1L;
         Long feedbackId = 10L;
         UserIdentity admin = new UserIdentity(adminId, true);
@@ -384,10 +390,10 @@ class FeedbackServiceTest {
         given(userIdentityQuery.findById(adminId)).willReturn(Optional.of(admin));
         given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
 
-        // when
+
         feedbackService.updateFeedbackStatus(adminId, feedbackId, request);
 
-        // then
+
         assertThat(feedback.getStatus()).isEqualTo(FeedbackStatus.COMPLETED);
         verify(adminAuditRecorder).recordStatusChange(adminId, feedbackId, "PENDING", "COMPLETED");
     }
@@ -457,7 +463,7 @@ class FeedbackServiceTest {
     void getFeedbacksForAdmin_includesDeletedContentWithMaskedIdentity() {
         Long feedbackId = 10L;
         LocalDateTime deletedAt = LocalDateTime.of(2026, 7, 13, 6, 0);
-        AdminFeedbackReadRepository.FeedbackSummary summary = new AdminFeedbackReadRepository.FeedbackSummary(
+        AdminFeedbackSummary summary = new AdminFeedbackSummary(
                 feedbackId,
                 FeedbackType.BUG,
                 "삭제 문의",
@@ -467,7 +473,7 @@ class FeedbackServiceTest {
                 true,
                 deletedAt,
                 73L);
-        AdminFeedbackReadRepository.FeedbackDetail detail = new AdminFeedbackReadRepository.FeedbackDetail(
+        AdminFeedbackDetail detail = new AdminFeedbackDetail(
                 feedbackId,
                 FeedbackType.BUG,
                 "삭제 문의",
@@ -485,10 +491,10 @@ class FeedbackServiceTest {
                 .willReturn(new PageImpl<>(List.of(summary), PageRequest.of(0, 20), 1));
         given(adminFeedbackReadRepository.findFeedbackDetail(feedbackId)).willReturn(Optional.of(detail));
         given(adminFeedbackReadRepository.findReplies(feedbackId)).willReturn(List.of(
-                new AdminFeedbackReadRepository.FeedbackReplySummary(
+                new AdminFeedbackReplySummary(
                         30L, "삭제된 답변", deletedAt, deletedAt, true, deletedAt)));
         given(adminFeedbackReadRepository.findAttachments(feedbackId)).willReturn(List.of(
-                new AdminFeedbackReadRepository.FeedbackAttachmentSummary(40L)));
+                new AdminFeedbackAttachmentSummary(40L)));
 
         Page<AdminFeedbackResponse> list = feedbackService.getFeedbacksForAdmin(
                 PageRequest.of(0, 20), AdminFeedbackDeletionFilter.ALL);
@@ -512,7 +518,7 @@ class FeedbackServiceTest {
     @DisplayName("활성 피드백도 관리자 응답에서는 환경 메타 정보를 제외한다.")
     void getFeedbackDetailForAdmin_excludesActiveMetaInfo() {
         Long feedbackId = 10L;
-        AdminFeedbackReadRepository.FeedbackDetail detail = new AdminFeedbackReadRepository.FeedbackDetail(
+        AdminFeedbackDetail detail = new AdminFeedbackDetail(
                 feedbackId,
                 FeedbackType.BUG,
                 "활성 문의",
@@ -541,7 +547,7 @@ class FeedbackServiceTest {
     void getFeedbackDetailForAdmin_marksMissingAuthorAsWithdrawn() {
         Long feedbackId = 11L;
         Long missingUserId = 404L;
-        AdminFeedbackReadRepository.FeedbackDetail detail = new AdminFeedbackReadRepository.FeedbackDetail(
+        AdminFeedbackDetail detail = new AdminFeedbackDetail(
                 feedbackId,
                 FeedbackType.BUG,
                 "작성자 계정이 없는 문의",

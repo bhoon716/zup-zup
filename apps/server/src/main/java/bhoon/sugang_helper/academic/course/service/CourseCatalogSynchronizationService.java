@@ -1,12 +1,14 @@
 package bhoon.sugang_helper.academic.course.service;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseScheduleDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.entity.CourseSchedule;
 import bhoon.sugang_helper.academic.course.entity.CourseSeatHistory;
 import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
+import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.ArrayList;
@@ -21,24 +23,22 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CourseCatalogSynchronizationService implements CourseCatalogSynchronizer {
+public class CourseCatalogSynchronizationService {
 
     private static final int CHUNK_SIZE = 100;
 
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final SeatNotificationOutboxService outboxService;
     private final MeterRegistry meterRegistry;
 
     @Transactional
-    @Override
     public void synchronize(List<ParsedCourseDto> parsedCourses) {
         Set<String> seenStdtrNos = new HashSet<>();
         for (int offset = 0; offset < parsedCourses.size(); offset += CHUNK_SIZE) {
@@ -125,9 +125,9 @@ public class CourseCatalogSynchronizationService implements CourseCatalogSynchro
         if (dto.schedules() != null) {
             dto.schedules().stream()
                     .sorted(Comparator
-                            .comparing((ParsedCourseDto.ScheduleDto schedule) -> schedule.dayOfWeek().ordinal())
-                            .thenComparing(ParsedCourseDto.ScheduleDto::startTime)
-                            .thenComparing(ParsedCourseDto.ScheduleDto::endTime))
+                            .comparing((ParsedCourseScheduleDto schedule) -> schedule.dayOfWeek().ordinal())
+                            .thenComparing(ParsedCourseScheduleDto::startTime)
+                            .thenComparing(ParsedCourseScheduleDto::endTime))
                     .forEach(schedule -> course.addSchedule(new CourseSchedule(
                             schedule.dayOfWeek(), schedule.startTime(), schedule.endTime())));
         }
@@ -150,7 +150,7 @@ public class CourseCatalogSynchronizationService implements CourseCatalogSynchro
         existingCourse.updateMetadata(crawledCourse);
 
         if (wasFull && existingCourse.getAvailable() > 0) {
-            publishSeatOpenedEvent(existingCourse);
+            enqueueSeatOpening(existingCourse);
         }
         return seatsChanged ? toSeatHistory(existingCourse) : null;
     }
@@ -163,10 +163,10 @@ public class CourseCatalogSynchronizationService implements CourseCatalogSynchro
                 .build();
     }
 
-    private void publishSeatOpenedEvent(Course course) {
-        log.info("[Crawler] Seat opening detected. courseName={}, available={}", course.getName(),
+    private void enqueueSeatOpening(Course course) {
+        log.debug("[Crawler] 빈자리 증가 감지. courseKey={}, available={}", course.getCourseKey(),
                 course.getAvailable());
-        eventPublisher.publishEvent(new SeatOpenedEvent(
+        outboxService.enqueue(new SeatOpenedEvent(
                 course.getCourseKey(), course.getName(), course.getProfessor(), 0, course.getAvailable()));
     }
 

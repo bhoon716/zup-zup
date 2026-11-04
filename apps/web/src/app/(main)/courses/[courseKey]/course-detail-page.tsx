@@ -7,9 +7,17 @@ import { Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 
+function decodeCourseKey(courseKey: string) {
+  try {
+    return decodeURIComponent(courseKey);
+  } catch {
+    return courseKey;
+  }
+}
+
 export default function CourseDetailPage() {
   const params = useParams();
-  const courseKey = params.courseKey as string;
+  const courseKey = decodeCourseKey(params.courseKey as string);
 
   const { data: course, isLoading: isCourseLoading, error: courseError } = useCourseDetail(courseKey);
 
@@ -59,7 +67,7 @@ export default function CourseDetailPage() {
         </div>
 
         <div className="bg-card border rounded-2xl p-0 overflow-hidden shadow-sm">
-            <CourseDetailContent course={course} />
+            <CourseDetailContent course={course} unmaskPublicCourseInfo />
         </div>
       </main>
     </div>

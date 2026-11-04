@@ -2,9 +2,9 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import * as notificationApi from "@/features/notification/api/notification.api";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
-/**
- * 유저의 최근 수신 알림 목록을 조회하는 훅
- */
+
+
+
 export const useNotifications = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
@@ -12,7 +12,7 @@ export const useNotifications = () => {
     queryKey: ["notifications"],
     queryFn: async ({ pageParam }) => {
       const response = await notificationApi.getNotifications(pageParam);
-      return response.data.data;
+      return response.data;
     },
     enabled: isAuthenticated,
     initialPageParam: 0,

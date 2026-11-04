@@ -10,9 +10,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * DLQ 기록은 실제 DLQ 진입 시각부터 최소 30일 동안 보존합니다.
- */
+
+
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -31,6 +31,6 @@ public class NotificationDeliveryRetentionScheduler {
         long effectiveRetentionDays = Math.max(MINIMUM_RETENTION_DAYS, retentionDays);
         long deletedCount = deliveryRepository.deleteByStatusAndDeadLetteredAtBefore(
                 SeatNotificationDeliveryStatus.DLQ, LocalDateTime.now().minusDays(effectiveRetentionDays));
-        log.info("[Notification Delivery] DLQ retention cleanup completed. deletedCount={}", deletedCount);
+        log.info("[Notification Delivery] 보존 기간이 지난 DLQ 정리 완료. deletedCount={}", deletedCount);
     }
 }

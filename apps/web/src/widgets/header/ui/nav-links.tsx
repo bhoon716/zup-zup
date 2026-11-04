@@ -26,9 +26,9 @@ interface NavLinksProps {
   onLinkClick?: () => void;
 }
 
-/**
- * 메인 내비게이션 링크들을 렌더링하는 컴포넌트입니다.
- */
+
+
+
 export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = false, onGuardedAction, onLinkClick }: NavLinksProps) {
   const adminMenuTriggerId = "header-admin-menu-trigger";
   const adminMenuContentId = "header-admin-menu-content";

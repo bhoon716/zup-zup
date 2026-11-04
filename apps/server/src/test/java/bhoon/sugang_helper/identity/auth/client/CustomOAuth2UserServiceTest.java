@@ -7,10 +7,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
-import bhoon.sugang_helper.identity.user.dto.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.exception.OAuthAccountProvisioningException;
-import bhoon.sugang_helper.identity.user.service.OAuthAccountProvisioner;
+import bhoon.sugang_helper.identity.user.service.UserOAuthAccountService;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
@@ -31,17 +31,19 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 @ExtendWith(MockitoExtension.class)
 class CustomOAuth2UserServiceTest {
 
+    private static final String EMAIL_ATTRIBUTE = "email";
+
     private static final String EMAIL = "rejoined@example.com";
     private static final String NAME = "사용자";
     private static final String SUBJECT = "google-subject";
     private static final String ISSUER = "https://accounts.google.com";
 
     @Mock
-    private OAuthAccountProvisioner accountProvisioner;
+    private UserOAuthAccountService accountProvisioner;
 
     @Test
     void mapsProviderIdentityToTheAuthenticatedPrincipal() {
-        OAuth2User delegate = delegateUser(Map.of("email", EMAIL, "name", NAME, "sub", SUBJECT));
+        OAuth2User delegate = delegateUser(Map.of(EMAIL_ATTRIBUTE, EMAIL, "name", NAME, "sub", SUBJECT));
         given(accountProvisioner.findOrCreate(ISSUER, SUBJECT, EMAIL, NAME))
                 .willReturn(new AuthenticatedUser(1L, "original@example.com", Role.ADMIN.getKey()));
 
@@ -60,7 +62,7 @@ class CustomOAuth2UserServiceTest {
 
     @Test
     void convertsAccountBindingConflictToAnOAuthAuthenticationFailure() {
-        OAuth2User delegate = delegateUser(Map.of("email", EMAIL, "name", NAME, "sub", "different-subject"));
+        OAuth2User delegate = delegateUser(Map.of(EMAIL_ATTRIBUTE, EMAIL, "name", NAME, "sub", "different-subject"));
         given(accountProvisioner.findOrCreate(ISSUER, "different-subject", EMAIL, NAME))
                 .willThrow(new OAuthAccountProvisioningException(
                         "oauth_identity_conflict", "OAuth identity is already bound"));
@@ -76,7 +78,7 @@ class CustomOAuth2UserServiceTest {
 
         assertThatThrownBy(() -> serviceReturning(delegate).loadUser(oauth2UserRequest()))
                 .isInstanceOf(OAuth2AuthenticationException.class)
-                .hasMessageContaining("email");
+                .hasMessageContaining(EMAIL_ATTRIBUTE);
 
         verifyNoInteractions(accountProvisioner);
     }
@@ -101,7 +103,7 @@ class CustomOAuth2UserServiceTest {
                 .clientSecret("client-secret")
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .redirectUri("http://localhost/login/oauth2/code/google")
-                .scope("profile", "email")
+                .scope("profile", EMAIL_ATTRIBUTE)
                 .authorizationUri("https://accounts.example/authorize")
                 .tokenUri("https://accounts.example/token")
                 .userInfoUri("https://accounts.example/userinfo")

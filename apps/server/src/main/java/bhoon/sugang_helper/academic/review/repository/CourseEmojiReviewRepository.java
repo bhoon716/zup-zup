@@ -8,14 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface CourseEmojiReviewRepository extends JpaRepository<CourseEmojiReview, Long> {
-    Optional<CourseEmojiReview> findByCourseKeyAndUserIdAndEmoji(String courseKey, Long userId, String emoji);
-
-    List<CourseEmojiReview> findByCourseKey(String courseKey);
-
-    long countByCourseKeyAndEmoji(String courseKey, String emoji);
-
-    boolean existsByCourseKeyAndUserIdAndEmoji(String courseKey, Long userId, String emoji);
-
     @Query("""
             select r
             from CourseEmojiReview r
@@ -41,15 +33,6 @@ public interface CourseEmojiReviewRepository extends JpaRepository<CourseEmojiRe
     long countByCourseKeysAndUserIdAndEmoji(@Param("courseKeys") List<String> courseKeys,
                                             @Param("userId") Long userId,
                                             @Param("emoji") String emoji);
-
-    @Query("""
-            select r.emoji, count(r)
-            from CourseEmojiReview r
-            where r.courseKey = :courseKey
-            group by r.emoji
-            order by count(r) desc, r.emoji asc
-            """)
-    List<Object[]> findEmojiStatsByCourseKey(@Param("courseKey") String courseKey);
 
     @Query("""
             select r.emoji, count(r)

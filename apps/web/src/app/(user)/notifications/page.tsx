@@ -7,16 +7,16 @@ import { motion } from "framer-motion";
 
 export const dynamic = 'force-dynamic';
 
-/**
- * 알림 히스토리와 구독 목록을 보여주는 페이지입니다.
- * 왼쪽에는 수신된 알림 내역을, 오른쪽에는 현재 구독 중인 강의 목록을 배치합니다.
- */
+
+
+
+
 export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       <main className="max-w-[1600px] mx-auto p-6 md:p-10 lg:p-12">
         <div className="flex flex-col lg:flex-row gap-8 items-start">
-          {/* 왼쪽: 알림 히스토리 섹션 */}
+          {                    }
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -42,7 +42,7 @@ export default function NotificationsPage() {
             </div>
           </motion.div>
 
-          {/* 오른쪽: 구독 강의 섹션 (사이드바) */}
+          {                          }
           <motion.aside 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}

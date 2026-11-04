@@ -1,0 +1,6 @@
+ALTER TABLE schedules
+    MODIFY COLUMN schedule_type VARCHAR(255) NOT NULL;
+ALTER TABLE schedules
+    ADD COLUMN dday_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE schedules
+    ADD COLUMN deleted_at DATETIME(6) NULL;

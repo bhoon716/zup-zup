@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.identity.user.service;
 
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.identity.user.dto.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;
@@ -16,12 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UserOAuthAccountService implements OAuthAccountProvisioner {
+public class UserOAuthAccountService {
 
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Override
     @Transactional
     public AuthenticatedUser findOrCreate(String issuer, String subject, String email, String name) {
         User user = userRepository.findByOauthIssuerAndOauthSubjectAndDeletedAtIsNull(issuer, subject)
@@ -41,7 +40,7 @@ public class UserOAuthAccountService implements OAuthAccountProvisioner {
                     "oauth_identity_conflict", "OAuth identity is already bound");
         }
         user.bindOAuthIdentity(issuer, subject);
-        log.info("[OAuth2] Legacy user identity bound. userId={}", user.getId());
+        log.info("[OAuth2] 기존 사용자 로그인 식별자 연결. userId={}", user.getId());
         return user;
     }
 
@@ -54,8 +53,8 @@ public class UserOAuthAccountService implements OAuthAccountProvisioner {
                 .oauthSubject(subject)
                 .build();
         User savedUser = userRepository.save(newUser);
-        log.info("[OAuth2] New user sign-up complete. userId={}, emailMasked={}",
-                savedUser.getId(), SensitiveDataRedactor.maskEmail(email));
+        log.info("[OAuth2] 신규 사용자 가입 완료. userId={}, emailFingerprint={}",
+                savedUser.getId(), SensitiveDataRedactor.fingerprint(email));
         eventPublisher.publishEvent(new UserRegisteredEvent(savedUser.getId(), email));
         return savedUser;
     }

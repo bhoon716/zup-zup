@@ -30,10 +30,10 @@ interface CustomScheduleDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/**
- * 사용자가 직접 시간표에 일정을 추가할 수 있는 다이얼로그 컴포넌트입니다.
- * 그리드 방식의 시간 선택기(TimeTableSelector)를 사용하여 편리하게 다중 시간대를 선택할 수 있습니다.
- */
+
+
+
+
 export function CustomScheduleDialog({ timetableId, open, onOpenChange }: CustomScheduleDialogProps) {
   const addCustomSchedule = useAddCustomSchedule();
   const [selectedSchedules, setSelectedSchedules] = useState<ScheduleCondition[]>([]);
@@ -102,7 +102,7 @@ export function CustomScheduleDialog({ timetableId, open, onOpenChange }: Custom
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto">
           <div className="px-8 py-6 space-y-8">
-            {/* 기본 정보 섹션 */}
+            {              }
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
@@ -144,7 +144,7 @@ export function CustomScheduleDialog({ timetableId, open, onOpenChange }: Custom
 
             <hr className="border-gray-100 dark:border-gray-800" />
 
-            {/* 시간 선택 섹션 */}
+            {              }
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-2 text-base font-bold text-gray-800 dark:text-gray-100 ml-1">

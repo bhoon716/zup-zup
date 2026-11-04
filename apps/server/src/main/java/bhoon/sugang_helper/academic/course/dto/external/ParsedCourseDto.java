@@ -1,0 +1,47 @@
+package bhoon.sugang_helper.academic.course.dto.external;
+
+import bhoon.sugang_helper.academic.course.enums.CourseAccreditation;
+import bhoon.sugang_helper.academic.course.enums.CourseClassification;
+import bhoon.sugang_helper.academic.course.enums.CourseStatus;
+import bhoon.sugang_helper.academic.course.enums.DisclosureStatus;
+import bhoon.sugang_helper.academic.course.enums.GradingMethod;
+import bhoon.sugang_helper.academic.course.enums.LectureLanguage;
+import bhoon.sugang_helper.academic.course.enums.TargetGrade;
+import java.util.List;
+
+
+
+
+public record ParsedCourseDto(
+        String courseKey,
+        String subjectCode,
+        String stdtrNo,
+        String name,
+        String classNumber,
+        String professor,
+        Integer capacity,
+        Integer current,
+        TargetGrade targetGrade,
+        String academicYear,
+        String semester,
+        CourseClassification classification,
+        String department,
+        GradingMethod gradingMethod,
+        String classTime,
+        String credits,
+        LectureLanguage lectureLanguage,
+        DisclosureStatus disclosure,
+        String disclosureReason,
+        Integer lectureHours,
+        String generalCategory,
+        String generalDetail,
+        CourseAccreditation accreditation,
+        CourseStatus status,
+        String classroom,
+        Boolean hasSyllabus,
+        String generalCategoryByYear,
+        String courseDirection,
+        String classDuration,
+        List<ParsedCourseScheduleDto> schedules
+) {
+}

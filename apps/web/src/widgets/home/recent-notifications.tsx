@@ -6,10 +6,10 @@ import { format } from "date-fns";
 
 import { NotificationHistory } from "@/shared/types/api";
 
-/**
- * 사용자의 최근 알림 내역 중 최상위 3개를 요약하여 보여줍니다.
- * 전체 알림 페이지로 이동할 수 있는 링크를 제공합니다.
- */
+
+
+
+
 export function RecentNotifications({ notifications }: { notifications: NotificationHistory[] }) {
   const limitedNotifications = notifications?.slice(0, 3) || [];
 

@@ -31,9 +31,9 @@ const settingsSchema = z.object({
 
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 
-/**
- * API 에러 객체에서 메시지를 추출하거나 기본 메시지를 반환합니다.
- */
+
+
+
 const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof AxiosError) {
     const responseData = error.response?.data as { message?: string } | undefined;
@@ -105,7 +105,7 @@ export const useSettingsPage = () => {
           getMyProfile(),
           getDevices(),
         ]);
-        const userData = profileRes.data;
+        const userData = profileRes;
         setUser(userData);
 
         const initialEmail = userData.notificationEmail || "";
@@ -118,7 +118,7 @@ export const useSettingsPage = () => {
           discordEnabled: userData.discordEnabled,
         });
 
-        setDevices(deviceRes.data);
+        setDevices(deviceRes);
       } catch (error) {
         reportClientError(error, { source: "settings", operation: "fetch-profile" });
         toast.error("프로필 정보를 불러오는데 실패했습니다.");
@@ -181,8 +181,8 @@ export const useSettingsPage = () => {
 
     setIsSendingTest(true);
     try {
-      const response = await sendTestNotification();
-      toast.success(response.message || "알림 테스트를 전송했습니다.");
+      await sendTestNotification();
+      toast.success("알림 테스트를 전송했습니다.");
       setTestCooldownSeconds(10);
     } catch (error: unknown) {
       if (error instanceof AxiosError && error.response?.status === 429) {
@@ -195,7 +195,7 @@ export const useSettingsPage = () => {
   };
 
   const handleDiscordConnect = () => {
-    // Discord OAuth starts on the backend and must perform a full document navigation.
+
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/api/v1/users/discord/authorize?returnPath=/settings";
   };
@@ -208,7 +208,7 @@ export const useSettingsPage = () => {
       await unlinkDiscord();
       toast.success("디스코드 연동이 해제되었습니다.");
       const response = await getMyProfile();
-      setUser(response.data);
+      setUser(response);
       setValue("discordEnabled", false);
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "연동 해제 실패"));
@@ -227,7 +227,7 @@ export const useSettingsPage = () => {
       const success = await subscribe(deviceAlias);
       if (success) {
         const deviceRes = await getDevices();
-        setDevices(deviceRes.data);
+        setDevices(deviceRes);
         setDeviceAlias("");
         setValue("webPushEnabled", true, { shouldDirty: true });
         toast.success("현재 기기가 등록되었습니다.");
@@ -269,13 +269,13 @@ export const useSettingsPage = () => {
       await updateSettings(values);
       toast.success("알림 설정이 저장되었습니다.");
       const response = await getMyProfile();
-      setUser(response.data);
+      setUser(response);
       reset({
-        notificationEmail: response.data.notificationEmail || "",
-        emailEnabled: response.data.emailEnabled,
-        webPushEnabled: response.data.webPushEnabled,
-        fcmEnabled: response.data.fcmEnabled,
-        discordEnabled: response.data.discordEnabled,
+        notificationEmail: response.notificationEmail || "",
+        emailEnabled: response.emailEnabled,
+        webPushEnabled: response.webPushEnabled,
+        fcmEnabled: response.fcmEnabled,
+        discordEnabled: response.discordEnabled,
       });
       setAuthCode("");
     } catch (error: unknown) {

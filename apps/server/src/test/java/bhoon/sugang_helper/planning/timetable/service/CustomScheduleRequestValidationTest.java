@@ -3,6 +3,7 @@ package bhoon.sugang_helper.planning.timetable.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleRequest;
+import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleTimeRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -56,7 +57,7 @@ class CustomScheduleRequestValidationTest {
         CustomScheduleRequest request = new CustomScheduleRequest(
                 "점심",
                 null,
-                List.of(new CustomScheduleRequest.CustomScheduleTimeRequest(
+                List.of(new CustomScheduleTimeRequest(
                         "",
                         null,
                         LocalTime.of(10, 0),

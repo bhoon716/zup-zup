@@ -2,9 +2,9 @@ package bhoon.sugang_helper.identity.auth.client;
 
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
-import bhoon.sugang_helper.identity.user.dto.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.exception.OAuthAccountProvisioningException;
-import bhoon.sugang_helper.identity.user.service.OAuthAccountProvisioner;
+import bhoon.sugang_helper.identity.user.service.UserOAuthAccountService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
-    private final OAuthAccountProvisioner accountProvisioner;
+    private final UserOAuthAccountService accountProvisioner;
 
     @Override
     @Transactional
@@ -40,8 +40,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String name = requiredAttribute(attributes, "name");
         String subject = requiredAttribute(attributes, userNameAttributeName);
 
-        log.info("[OAuth2] Social login request. provider={}, emailMasked={}", registrationId,
-                SensitiveDataRedactor.maskEmail(email));
+        log.info("[OAuth2] 외부 계정 로그인 요청. provider={}, emailFingerprint={}", registrationId,
+                SensitiveDataRedactor.fingerprint(email));
         AuthenticatedUser user;
         try {
             user = accountProvisioner.findOrCreate(issuer, subject, email, name);
@@ -49,7 +49,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             throw new OAuth2AuthenticationException(
                     new OAuth2Error(exception.errorCode()), exception.getMessage());
         }
-        log.info("Social login load complete (OAuth2): userId={}", user.id());
+        log.info("[OAuth2] 로그인 사용자 조회 완료. userId={}", user.id());
 
         return new OAuth2AuthenticatedUser(
                 user.id(), user.email(), user.roleKey(), attributes, userNameAttributeName);

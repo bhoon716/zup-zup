@@ -4,9 +4,9 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import lombok.Getter;
 
-/**
- * Provider failure with an explicit retry classification for the durable outbox.
- */
+
+
+
 @Getter
 public class NotificationProviderException extends CustomException {
 

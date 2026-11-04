@@ -35,10 +35,7 @@ describe("useWishlist hooks", () => {
 
   it("로그인 사용자일 때 찜 목록을 조회한다", async () => {
     vi.mocked(useUser).mockReturnValue({ data: { id: 1 } } as never);
-    vi.mocked(wishlistApi.getMyWishlist).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: [
+    vi.mocked(wishlistApi.getMyWishlist).mockResolvedValue([
         {
           id: 1,
           userId: 1,
@@ -55,8 +52,7 @@ describe("useWishlist hooks", () => {
           classNumber: "01",
           createdAt: "2026-01-01T00:00:00",
         },
-      ],
-    } as never);
+      ] as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -69,11 +65,7 @@ describe("useWishlist hooks", () => {
 
   it("인증 스토어가 인증된 상태면 사용자 쿼리 데이터 없이 찜 목록을 조회한다", async () => {
     vi.mocked(useUser).mockReturnValue({ data: null } as never);
-    vi.mocked(wishlistApi.getMyWishlist).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: [],
-    } as never);
+    vi.mocked(wishlistApi.getMyWishlist).mockResolvedValue([] as never);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -144,11 +136,7 @@ describe("useWishlist hooks", () => {
     ];
 
     const mockedToggle = vi.mocked(wishlistApi.toggleWishlist);
-    mockedToggle.mockResolvedValue({
-      code: "SUCCESS",
-      message: "찜 갱신 완료",
-      data: { isWished: true },
-    } as never);
+    mockedToggle.mockResolvedValue({ isWished: true } as never);
 
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(["wishlist"], initialWishlist);
@@ -166,7 +154,7 @@ describe("useWishlist hooks", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(toast.success).toHaveBeenCalledWith("찜 갱신 완료");
+    expect(toast.success).toHaveBeenCalledWith("찜 목록이 업데이트되었습니다.");
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["wishlist"] });
   });
 });

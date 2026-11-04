@@ -11,9 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
-/**
- * Stores only the small, non-identifying environment metadata needed for feedback triage.
- */
+
+
+
 @Component
 public class FeedbackMetadataNormalizer {
 
@@ -28,9 +28,9 @@ public class FeedbackMetadataNormalizer {
         this.objectMapper = objectMapper;
     }
 
-    /**
-     * Validates the client-provided JSON and serializes allowed fields in a deterministic order.
-     */
+
+
+
     public String normalize(String metadata) {
         if (metadata == null) {
             return "{}";

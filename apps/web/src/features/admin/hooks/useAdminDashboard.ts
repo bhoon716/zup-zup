@@ -6,7 +6,7 @@ export const useAdminDashboardSnapshot = () => {
     queryKey: ["admin", "dashboard-snapshot"],
     queryFn: async () => {
       const response = await adminApi.getDashboardSnapshot();
-      return response.data;
+      return response;
     },
   });
 };

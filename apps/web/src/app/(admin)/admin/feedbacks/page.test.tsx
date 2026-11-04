@@ -155,6 +155,20 @@ describe("AdminFeedbackPage attachment preview", () => {
     expect(screen.queryByRole("dialog", { name: "첨부파일 미리보기" })).not.toBeInTheDocument();
   });
 
+  it.each([
+    ["A003", "로그인 상태가 변경되었습니다. 다시 시도해 주세요."],
+    ["A002", "첨부파일을 열람할 수 없습니다."],
+  ])("다운로드 %s 오류는 안내만 표시하고 자동으로 다시 요청하지 않는다", async (code, message) => {
+    mockDownloadAttachment.mockRejectedValueOnce({ response: { status: 403, data: { code } } });
+    render(<AdminFeedbackPage />);
+    fireEvent.click(screen.getByText("이미지 첨부 문의"));
+    fireEvent.click(screen.getByRole("button", { name: "첨부파일 1" }));
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(message));
+    expect(mockDownloadAttachment).toHaveBeenCalledTimes(1);
+    expect(createObjectUrl).not.toHaveBeenCalled();
+  });
+
   it("ignores a late attachment response after the selected feedback changes", async () => {
     let resolveBlob: (blob: Blob) => void = () => {};
     const pendingBlob = new Promise<Blob>((resolve) => {

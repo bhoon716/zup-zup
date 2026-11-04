@@ -17,10 +17,10 @@ import { useAnnouncement } from "@/features/announcement/hooks/useAnnouncements"
 import { MarkdownViewer } from "@/shared/ui/markdown-viewer";
 import { Button } from "@/shared/ui/button";
 
-/**
- * 날짜 문자열을 한국어 양식(YYYY. MM. DD. HH:mm)으로 변환합니다.
- * 유효하지 않은 날짜의 경우 "-"를 반환합니다.
- */
+
+
+
+
 const formatDateTime = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -35,9 +35,9 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-/**
- * 특정 공지사항의 상세 내용을 보여주는 페이지 컴포넌트입니다.
- */
+
+
+
 export default function AnnouncementDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params?.id ?? 0);
@@ -89,7 +89,7 @@ export default function AnnouncementDetailPage() {
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
       <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* 상단 네비게이션 */}
+        {              }
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
@@ -114,18 +114,18 @@ export default function AnnouncementDetailPage() {
           </Button>
         </motion.div>
 
-        {/* 메인 공지사항 카드 */}
+        {                }
         <motion.article
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="relative overflow-hidden rounded-[2.5rem] border border-white bg-white shadow-[0_20px_40px_rgba(0,0,0,0.04)] sm:rounded-[3rem]"
         >
-          {/* 장식용 상단 바 */}
+          {              }
           <div className="h-2 w-full bg-primary/20" />
 
           <div className="p-6 sm:p-10 lg:p-12">
-            {/* 고정 상태 및 태그 */}
+            {                }
             <div className="mb-6 flex flex-wrap items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Megaphone className="h-5 w-5" />
@@ -138,7 +138,7 @@ export default function AnnouncementDetailPage() {
               )}
             </div>
 
-            {/* 제목부 */}
+            {         }
             <header className="mb-10 lg:mb-12">
               <h1 className="text-2xl font-black leading-snug text-slate-900 sm:text-3xl lg:text-4xl">
                 {announcement.title}
@@ -156,12 +156,12 @@ export default function AnnouncementDetailPage() {
               </div>
             </header>
 
-            {/* 본문부 */}
+            {         }
             <div className="prose prose-slate max-w-none">
               <MarkdownViewer content={announcement.content} className="text-base text-slate-700 leading-relaxed sm:text-lg" />
             </div>
 
-            {/* 하단 푸터 (다음글/이전글 등의 확장을 고려한 공간) */}
+            {                                   }
             <footer className="mt-16 sm:mt-24">
               <div className="rounded-3xl bg-slate-50/80 p-6 sm:p-8">
                 <h3 className="mb-2 text-base font-black text-slate-900">도움이 필요하신가요?</h3>
@@ -177,7 +177,7 @@ export default function AnnouncementDetailPage() {
           </div>
         </motion.article>
 
-        {/* 이전 다음글 링크가 제공된다면 여기에 추가될 수 있음 */}
+        {                                   }
         <div className="mt-8 flex justify-center">
            <Link href="/announcements" className="text-sm font-bold text-slate-400 transition-colors hover:text-primary">
               모든 공지사항 보기

@@ -21,7 +21,7 @@ import org.springframework.data.redis.core.script.RedisScript;
 @ExtendWith(MockitoExtension.class)
 class RedisServiceTest {
 
-    private static final String REFRESH_TOKEN_KEY = "RT:test@example.com";
+    private static final String VERIFICATION_KEY = "verification:test@example.com";
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
@@ -40,31 +40,15 @@ class RedisServiceTest {
     }
 
     @Test
-    void compareAndSetRefreshRecordUsesOneRedisScriptExecution() {
-        when(redisTemplate.execute(any(), eq(List.of(REFRESH_TOKEN_KEY)),
-                eq("v2:family:old-digest"), eq("v2:family:new-digest"), eq("1209600000")))
+    void compareAndDeleteVerificationValueUsesOneRedisScriptExecution() {
+        when(redisTemplate.execute(any(), eq(List.of(VERIFICATION_KEY)), eq("verification-token")))
                 .thenReturn(1L);
 
-        boolean updated = redisService.compareAndSetValues(REFRESH_TOKEN_KEY, "v2:family:old-digest",
-                "v2:family:new-digest", Duration.ofDays(14));
-
-        assertThat(updated).isTrue();
-        ArgumentCaptor<RedisScript<Long>> scriptCaptor = ArgumentCaptor.captor();
-        verify(redisTemplate).execute(scriptCaptor.capture(), eq(List.of(REFRESH_TOKEN_KEY)),
-                eq("v2:family:old-digest"), eq("v2:family:new-digest"), eq("1209600000"));
-        assertThat(scriptCaptor.getValue().getScriptAsString()).contains("GET", "SET", "PX");
-    }
-
-    @Test
-    void compareAndDeleteRefreshRecordUsesOneRedisScriptExecution() {
-        when(redisTemplate.execute(any(), eq(List.of(REFRESH_TOKEN_KEY)), eq("v2:family:digest")))
-                .thenReturn(1L);
-
-        boolean deleted = redisService.compareAndDeleteValues(REFRESH_TOKEN_KEY, "v2:family:digest");
+        boolean deleted = redisService.compareAndDeleteValues(VERIFICATION_KEY, "verification-token");
 
         assertThat(deleted).isTrue();
         ArgumentCaptor<RedisScript<Long>> scriptCaptor = ArgumentCaptor.captor();
-        verify(redisTemplate).execute(scriptCaptor.capture(), eq(List.of(REFRESH_TOKEN_KEY)), eq("v2:family:digest"));
+        verify(redisTemplate).execute(scriptCaptor.capture(), eq(List.of(VERIFICATION_KEY)), eq("verification-token"));
         assertThat(scriptCaptor.getValue().getScriptAsString()).contains("GET", "DEL");
     }
 }

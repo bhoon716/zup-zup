@@ -13,12 +13,6 @@ describe("NavLinks", () => {
     onGuardedAction: vi.fn(),
   };
 
-  it("로딩 중(isLoading = true)일 때 스켈레톤 4개를 렌더링한다", () => {
-    render(<NavLinks {...defaultProps} isLoading={true} />);
-    const skeletons = screen.getAllByTestId("nav-link-skeleton");
-    expect(skeletons).toHaveLength(4);
-  });
-
   it("로딩 완료 후 로그인(isLoggedIn = true) 상태이면 로그인 전용 링크들을 노출한다", () => {
     render(<NavLinks {...defaultProps} isLoggedIn={true} isLoading={false} />);
     

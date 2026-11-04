@@ -35,17 +35,13 @@ describe("CourseGuideModal", () => {
     });
   });
 
-  it("처음 진입하면 가이드 모달을 자동으로 연다", async () => {
-    render(<CourseGuideModal />);
-
-    expect(await screen.findByText("강의 검색 사용법")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "이해했어요" })).toBeInTheDocument();
-  });
-
-  it("닫으면 저장하고 다시 노출하지 않는다", async () => {
+  it("첫 진입에 열고 닫으면 저장하여 다시 노출하지 않는다", async () => {
     const { rerender } = render(<CourseGuideModal />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "이해했어요" }));
+    expect(await screen.findByText("강의 검색 사용법")).toBeInTheDocument();
+    const dismiss = screen.getByRole("button", { name: "이해했어요" });
+    expect(dismiss).toBeInTheDocument();
+    fireEvent.click(dismiss);
 
     await waitFor(() => {
       expect(screen.queryByText("강의 검색 사용법")).not.toBeInTheDocument();

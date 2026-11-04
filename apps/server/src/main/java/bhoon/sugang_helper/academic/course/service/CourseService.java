@@ -1,8 +1,10 @@
 package bhoon.sugang_helper.academic.course.service;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCondition;
-import bhoon.sugang_helper.academic.course.dto.CourseSearchContext;
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCriteria;
+import bhoon.sugang_helper.academic.review.service.CourseReviewQueryService;
+import bhoon.sugang_helper.academic.crawling.service.CrawlerCourseSearchContextProvider;
+import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
+import bhoon.sugang_helper.academic.course.dto.result.CourseSearchContext;
+import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.dto.response.CourseCategoryResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseDetailResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseResponse;
@@ -15,8 +17,8 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.common.web.PageableGuard;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -36,14 +38,14 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final CourseSearchReadRepository courseSearchReadRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
-    private final UserIdentityQuery userIdentityQuery;
-    private final CourseReviewQuery courseReviewQuery;
+    private final UserIdentityQueryService userIdentityQuery;
+    private final CourseReviewQueryService courseReviewQuery;
 
-    private final CourseSearchContextProvider searchContextProvider;
+    private final CrawlerCourseSearchContextProvider searchContextProvider;
 
-    /**
-     * 필터 조건과 페이징 정보를 사용하여 강의 목록을 검색
-     */
+
+
+
     public Slice<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
         condition.validateSearchValues();
         CourseSearchContext context = searchContextProvider.getCurrentContext();
@@ -60,9 +62,9 @@ public class CourseService {
                         course, context.year(), context.semester().getCode(), context.lastCrawledAt()));
     }
 
-    /**
-     * 특정 강의의 여석 변화 이력을 조회
-     */
+
+
+
     public Slice<CourseSeatHistoryResponse> getCourseHistory(String courseKey, Pageable pageable) {
         PageableGuard.requireBounded(pageable, MAX_HISTORY_PAGE_SIZE, 10_000);
         Pageable boundedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
@@ -71,9 +73,9 @@ public class CourseService {
                 .map(CourseSeatHistoryResponse::from);
     }
 
-    /**
-     * 존재하는 모든 교양 영역 및 상세 카테고리 목록을 조회
-     */
+
+
+
     public List<CourseCategoryResponse> getCourseCategories() {
         return courseRepository.findDistinctGeneralCategories()
                 .stream()
@@ -84,9 +86,9 @@ public class CourseService {
                 .toList();
     }
 
-    /**
-     * 특정 강의의 상세 정보를 조회
-     */
+
+
+
     public CourseDetailResponse getCourse(String courseKey) {
         Course course = courseRepository.findByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "강의를 찾을 수 없습니다: " + courseKey));

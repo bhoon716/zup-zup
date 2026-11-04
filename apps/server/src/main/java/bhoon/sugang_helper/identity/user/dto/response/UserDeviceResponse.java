@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.identity.user.dto.response;
 
-import bhoon.sugang_helper.identity.user.dto.UserDeviceResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserDeviceResult;
+
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import bhoon.sugang_helper.identity.user.enums.DeviceType;
 import java.time.LocalDateTime;

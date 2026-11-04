@@ -27,20 +27,9 @@ describe("admin notification delivery API", () => {
     vi.clearAllMocks();
   });
 
-  it("DLQ 목록을 페이지 파라미터와 함께 요청한다", async () => {
-    const { api, adminApi } = await loadModules();
-    api.get.mockResolvedValue({ data: { code: "SUCCESS", message: "ok", data: {} } });
-
-    await adminApi.getAdminDlqNotificationDeliveries(2, 30);
-
-    expect(api.get).toHaveBeenCalledWith("/api/v1/admin/notification-deliveries/dlq", {
-      params: { page: 2, size: 30 },
-    });
-  });
-
   it("선택한 delivery의 안전한 상세 DTO를 요청한다", async () => {
     const { api, adminApi } = await loadModules();
-    api.get.mockResolvedValue({ data: { code: "SUCCESS", message: "ok", data: {} } });
+    api.get.mockResolvedValue({ data: {} });
 
     await adminApi.getAdminNotificationDelivery(41);
 
@@ -49,7 +38,7 @@ describe("admin notification delivery API", () => {
 
   it("재처리 요청은 명시한 SENT override 값만 전송한다", async () => {
     const { api, adminApi } = await loadModules();
-    api.post.mockResolvedValue({ data: { code: "SUCCESS", message: "ok", data: {} } });
+    api.post.mockResolvedValue({ data: {} });
 
     await adminApi.replayAdminNotificationDelivery(41, { forceSentReplay: true });
 

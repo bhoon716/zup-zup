@@ -1,9 +1,9 @@
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
-/**
- * 서버 응답 값을 화면용 한글 표현으로 변환한다.
- */
+
+
+
 
 const CLASSIFICATION_MAP: Record<string, string> = {
   'SERIES_COMMON': '계열공통',
@@ -156,9 +156,9 @@ export function toEngDayOfWeek(value: string): string {
   return ENG_DAY_MAP[value] || value;
 }
 
-/**
- * 상대 시간을 한글 문구로 변환한다.
- */
+
+
+
 export function formatRelativeTime(dateString?: string): string {
   if (!dateString) return '-';
   try {
@@ -171,11 +171,11 @@ export function formatRelativeTime(dateString?: string): string {
   }
 }
 
-/**
- * 강의실 위치 문자열에서 콜론(:)을 제거하고 공백을 정리한다.
- */
+
+
+
 export function formatClassroom(value?: string): string {
   if (!value) return '';
-  // 콜론(:)을 공백으로 바꾸고 연속된 공백을 하나로 합친 뒤 앞뒤 공백 제거
+
   return value.replace(/:/g, ' ').replace(/\s+/g, ' ').trim();
 }

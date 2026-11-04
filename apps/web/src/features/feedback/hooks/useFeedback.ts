@@ -20,7 +20,7 @@ import {
   FeedbackStatusUpdateRequest 
 } from "@/shared/types/api";
 
-// 문의 및 건의 관련 React Query 키 정의
+
 export const feedbackKeys = {
   all: ["feedback"] as const,
   myList: (page: number) => [...feedbackKeys.all, "my", { page }] as const,
@@ -29,38 +29,38 @@ export const feedbackKeys = {
   detail: (id: number) => [...feedbackKeys.all, "detail", id] as const,
 };
 
-// ================= User Hooks =================
 
-/**
- * 내 문의 및 건의 목록을 조회하는 훅
- */
+
+
+
+
 export function useMyFeedbacks(page: number = 0) {
   return useQuery({
     queryKey: feedbackKeys.myList(page),
     queryFn: async () => {
       const response = await getMyFeedbacks(page);
-      return response.data;
+      return response;
     },
   });
 }
 
-/**
- * 특정 문의 및 건의사항의 상세 내용을 조회하는 훅
- */
+
+
+
 export function useFeedbackDetail(id: number, enabled: boolean = true) {
   return useQuery({
     queryKey: feedbackKeys.detail(id),
     queryFn: async () => {
       const response = await getMyFeedbackDetail(id);
-      return response.data;
+      return response;
     },
     enabled: enabled && !!id,
   });
 }
 
-/**
- * 새로운 문의 및 건의를 생성하는 훅
- */
+
+
+
 export function useCreateFeedback() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -72,9 +72,9 @@ export function useCreateFeedback() {
   });
 }
 
-/**
- * 문의 및 건의 게시글을 삭제하는 훅 (Soft Delete)
- */
+
+
+
 export function useDeleteFeedback() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -85,11 +85,11 @@ export function useDeleteFeedback() {
   });
 }
 
-// ================= Admin Hooks =================
 
-/**
- * 관리자용 문의 및 건의 전체 목록 조회 훅
- */
+
+
+
+
 export function useFeedbacksForAdmin(
   page: number = 0,
   deletion: AdminFeedbackDeletionFilter = "ALL"
@@ -98,14 +98,14 @@ export function useFeedbacksForAdmin(
     queryKey: feedbackKeys.adminList(page, deletion),
     queryFn: async () => {
       const response = await getFeedbacksForAdmin(page, deletion);
-      return response.data;
+      return response;
     },
   });
 }
 
-/**
- * 확인된 관리자 첨부파일 요청을 수행한다.
- */
+
+
+
 export function useAdminFeedbackAttachmentDownload() {
   return useMutation({
     mutationFn: ({ feedbackId, attachmentId }: { feedbackId: number; attachmentId: number }) =>
@@ -113,23 +113,23 @@ export function useAdminFeedbackAttachmentDownload() {
   });
 }
 
-/**
- * 관리자용 문의 및 건의 상세 조회 훅
- */
+
+
+
 export function useAdminFeedbackDetail(id: number, enabled: boolean = true) {
   return useQuery({
     queryKey: [...feedbackKeys.detail(id), "admin"],
     queryFn: async () => {
       const response = await getFeedbackDetailForAdmin(id);
-      return response.data;
+      return response;
     },
     enabled: enabled && !!id,
   });
 }
 
-/**
- * 문의 및 건의 처리 상태를 변경하는 훅
- */
+
+
+
 export function useUpdateFeedbackStatus() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -142,9 +142,9 @@ export function useUpdateFeedbackStatus() {
   });
 }
 
-/**
- * 문의 및 건의에 대한 관리자 답변을 등록하는 훅
- */
+
+
+
 export function useCreateFeedbackReply() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -157,9 +157,9 @@ export function useCreateFeedbackReply() {
   });
 }
 
-/**
- * 등록된 관리자 답변을 수정하는 훅
- */
+
+
+
 export function useUpdateFeedbackReply() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -172,9 +172,9 @@ export function useUpdateFeedbackReply() {
   });
 }
 
-/**
- * 등록된 관리자 답변을 삭제하는 훅
- */
+
+
+
 export function useDeleteFeedbackReply() {
   const queryClient = useQueryClient();
   return useMutation({

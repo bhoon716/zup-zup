@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Persistent post-deploy observability operations. The release root is fixed
-# because this wrapper is deployed only to the production release root.
+
+
 readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"
 readonly RUNTIME_ENV="${RELEASE_ROOT}/.env"
 readonly COMPOSE_FILE="${RELEASE_ROOT}/docker-compose.yml"

@@ -9,9 +9,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 최소화된 관리자 감사 로그의 운영상 보존 기간을 적용합니다.
- */
+
+
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -26,12 +26,12 @@ public class AdminAuditLogRetentionScheduler {
     @Transactional
     public void removeExpiredLogs() {
         if (retentionDays <= 0) {
-            log.info("[Admin Audit] Retention cleanup skipped because it is disabled.");
+            log.debug("[Admin Audit] 보존 기간 정리 비활성화로 실행 생략.");
             return;
         }
 
         long deletedCount = adminActionLogRepository.deleteByCreatedAtBefore(
                 LocalDateTime.now().minusDays(retentionDays));
-        log.info("[Admin Audit] Retention cleanup completed. deletedCount={}", deletedCount);
+        log.info("[Admin Audit] 보존 기간이 지난 기록 정리 완료. deletedCount={}", deletedCount);
     }
 }

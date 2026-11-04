@@ -11,9 +11,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 크롤링 대상(년도, 학기) 설정을 저장하는 엔티티입니다.
- */
+
+
+
 @Getter
 @Entity
 @Table(name = "crawler_settings")
@@ -30,18 +30,18 @@ public class CrawlerSetting {
     @Column(name = "target_semester", nullable = false, length = 20)
     private String targetSemester;
 
-    /**
-     * 새로운 크롤링 설정을 생성합니다.
-     */
+
+
+
     @Builder
     public CrawlerSetting(String targetYear, String targetSemester) {
         this.targetYear = targetYear;
         this.targetSemester = targetSemester;
     }
 
-    /**
-     * 크롤링 대상 년도와 학기를 업데이트합니다.
-     */
+
+
+
     public void updateTarget(String targetYear, String targetSemester) {
         this.targetYear = targetYear;
         this.targetSemester = targetSemester;

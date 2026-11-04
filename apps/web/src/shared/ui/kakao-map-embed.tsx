@@ -10,9 +10,9 @@ interface KakaoMapEmbedProps {
   className?: string;
 }
 
-/**
- * 키워드를 기반으로 카카오맵을 특정 컨테이너에 임베드하여 보여주는 컴포넌트입니다.
- */
+
+
+
 export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);

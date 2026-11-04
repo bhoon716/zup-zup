@@ -8,10 +8,10 @@ import { Button } from "@/shared/ui/button";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
 import type { Course, Subscription } from "@/shared/types/api";
 
-/**
- * 사용자가 구독한 강의 목록을 사이드바 형태로 렌더링합니다.
- * 강의 클릭 시 상세 모달을 표시하며, 알림 구독 해제 기능을 제공합니다.
- */
+
+
+
+
 export function SubscriptionList() {
   const { data: subscriptions, isLoading } = useSubscriptions();
   const { mutate: unsubscribe, isPending: isUnsubscribing } = useUnsubscribe();
@@ -20,9 +20,9 @@ export function SubscriptionList() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  /**
-   * 구독 정보를 Course 타입으로 매핑하여 상세 다이얼로그를 엽니다.
-   */
+
+
+
   const handleCardClick = (sub: Subscription) => {
     const parts = sub.courseKey.split(':');
     const mapped: Course = {

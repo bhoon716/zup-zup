@@ -1,14 +1,16 @@
 package bhoon.sugang_helper.academic.course.service;
 
+import bhoon.sugang_helper.academic.review.service.CourseReviewQueryService;
+import bhoon.sugang_helper.academic.crawling.service.CrawlerCourseSearchContextProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mockStatic;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCondition;
-import bhoon.sugang_helper.academic.course.dto.CourseSearchContext;
-import bhoon.sugang_helper.academic.course.dto.CourseSearchCriteria;
+import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
+import bhoon.sugang_helper.academic.course.dto.result.CourseSearchContext;
+import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.dto.response.CourseDetailResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseSeatHistoryResponse;
@@ -21,8 +23,8 @@ import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepositor
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -59,13 +61,13 @@ class CourseServiceTest {
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
     @Mock
-    private UserIdentityQuery userIdentityQuery;
+    private UserIdentityQueryService userIdentityQuery;
 
     @Mock
-    private CourseReviewQuery courseReviewQuery;
+    private CourseReviewQueryService courseReviewQuery;
 
     @Mock
-    private CourseSearchContextProvider searchContextProvider;
+    private CrawlerCourseSearchContextProvider searchContextProvider;
 
     private CourseService courseService;
     private MockedStatic<SecurityUtil> securityUtilMockedStatic;
@@ -107,7 +109,7 @@ class CourseServiceTest {
     @Test
     @DisplayName("조건으로 과목 검색 성공")
     void searchCourses_success() {
-        // given
+
         CourseSearchCondition condition = CourseSearchCondition.builder()
                 .name("테스트")
                 .build();
@@ -117,10 +119,10 @@ class CourseServiceTest {
                 .willReturn(new SliceImpl<>(List.of(course)));
         mockSearchContext();
 
-        // when
+
         Slice<CourseResponse> responses = courseService.searchCourses(condition, PageRequest.of(0, 10));
 
-        // then
+
         assertThat(responses.getContent()).hasSize(1);
         assertThat(responses.getContent().get(0).getName()).isEqualTo(COURSE_NAME);
     }
@@ -128,26 +130,26 @@ class CourseServiceTest {
     @Test
     @DisplayName("강좌 상세 조회 성공")
     void getCourse_success() {
-        // given
+
         Course course = createCourse();
         given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(course));
         mockSearchContext();
 
-        // when
+
         CourseDetailResponse response = courseService.getCourse(COURSE_KEY);
 
-        // then
+
         assertThat(response.getName()).isEqualTo(COURSE_NAME);
     }
 
     @Test
     @DisplayName("강좌 상세 조회 실패 - 존재하지 않는 강좌")
     void getCourse_notFound_throwsException() {
-        // given
+
         String invalidCourseKey = "NOT_FOUND";
         given(courseRepository.findByCourseKey(invalidCourseKey)).willReturn(Optional.empty());
 
-        // when & then
+
         assertThatThrownBy(() -> courseService.getCourse(invalidCourseKey))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
@@ -156,7 +158,7 @@ class CourseServiceTest {
     @Test
     @DisplayName("강좌 시트 이력 조회 성공")
     void getCourseHistory_success() {
-        // given
+
         CourseSeatHistory history = CourseSeatHistory.builder()
                 .courseKey(COURSE_KEY)
                 .capacity(50)
@@ -166,10 +168,10 @@ class CourseServiceTest {
                 org.mockito.ArgumentMatchers.eq(COURSE_KEY), any(Pageable.class)))
                 .willReturn(new SliceImpl<>(List.of(history)));
 
-        // when
+
         Slice<CourseSeatHistoryResponse> responses = courseService.getCourseHistory(COURSE_KEY, PageRequest.of(0, 30));
 
-        // then
+
         assertThat(responses).hasSize(1);
         assertThat(responses.getContent().get(0).getCapacity()).isEqualTo(50);
     }
@@ -177,7 +179,7 @@ class CourseServiceTest {
     @Test
     @DisplayName("강좌 상세 조회 성공 - 로그인 상태")
     void getCourse_withLogin() {
-        // given
+
         Long userId = 1L;
         UserIdentity user = new UserIdentity(userId, false);
         Course course = createCourse();
@@ -187,10 +189,10 @@ class CourseServiceTest {
         given(courseReviewQuery.hasReviewByUser(COURSE_KEY, SUBJECT_CODE, PROFESSOR, userId)).willReturn(true);
         mockSearchContext();
 
-        // when
+
         CourseDetailResponse response = courseService.getCourse(COURSE_KEY);
 
-        // then
+
         assertThat(response).isNotNull();
         assertThat(response.getCourseKey()).isEqualTo(COURSE_KEY);
         assertThat(response.getIsReviewed()).isTrue();

@@ -2,7 +2,7 @@ package bhoon.sugang_helper.admin.audit.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bhoon.sugang_helper.admin.audit.dto.ContentSummary;
+import bhoon.sugang_helper.admin.audit.dto.response.ContentSummary;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

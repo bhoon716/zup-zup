@@ -11,16 +11,18 @@ import { CourseReviewSection } from "@/features/review/components/course-review-
 
 interface CourseDetailContentProps {
   course: Course;
+  unmaskPublicCourseInfo?: boolean;
 }
 
-/**
- * 강의 상세 정보를 보여주는 공통 콘텐츠 컴포넌트입니다.
- * 다이얼로그나 모달 내부에서 사용됩니다.
- */
-export function CourseDetailContent({ course: rawCourse }: CourseDetailContentProps) {
+
+
+
+
+export function CourseDetailContent({ course: rawCourse, unmaskPublicCourseInfo = false }: CourseDetailContentProps) {
   const reviewScopeKey = getReviewScopeKey(rawCourse);
   const isProfessorUnassigned = !hasIdentifiableProfessor(rawCourse);
   const course = normalizeCourse(rawCourse);
+  const clarityUnmask = unmaskPublicCourseInfo && course.disclosure === "공개" ? true : undefined;
   const capacity = course.capacity ?? 0;
   const current = course.current ?? 0;
   const available = course.available ?? 0;
@@ -38,14 +40,16 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
         classLabel={classLabel} 
         departmentLabel={departmentLabel} 
         targetGradeLabel={targetGradeLabel} 
+        clarityUnmask={clarityUnmask}
       />
 
-      <CourseSummaryGrid course={course} />
+      <CourseSummaryGrid course={course} clarityUnmask={clarityUnmask} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <CourseTimeLocation 
           course={course} 
           mapQuery={mapQuery} 
+          clarityUnmask={clarityUnmask}
         />
         <CourseSeatStatus 
           course={course} 
@@ -66,19 +70,21 @@ export function CourseDetailContent({ course: rawCourse }: CourseDetailContentPr
   );
 }
 
-/**
- * 강의 상단 기본 정보 섹션
- */
+
+
+
 function CourseHeader({ 
   course, 
   classLabel, 
   departmentLabel, 
-  targetGradeLabel 
+  targetGradeLabel,
+  clarityUnmask,
 }: { 
   course: Course; 
   classLabel: string; 
   departmentLabel: string; 
   targetGradeLabel: string;
+  clarityUnmask?: true;
 }) {
   const isFull = (course.available ?? 0) <= 0;
 
@@ -106,7 +112,7 @@ function CourseHeader({
         <div>
           <div className="relative pl-3">
             <div className="absolute left-0 top-1 bottom-1 w-1 rounded-full bg-primary/70"></div>
-            <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
+            <h1 data-clarity-unmask={clarityUnmask} className="text-3xl md:text-4xl font-black text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
               {course.name}
             </h1>
           </div>
@@ -160,13 +166,13 @@ function CourseHeader({
   );
 }
 
-/**
- * 학점, 성격평가 등 강의 메타 정보 요약 그리드
- */
-function CourseSummaryGrid({ course }: { course: Course }) {
+
+
+
+function CourseSummaryGrid({ course, clarityUnmask }: { course: Course; clarityUnmask?: true }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <DetailBox label="학점 / 시간" value={`${course.credits || "-"}학점`} subValue={course.lectureHours ? ` (${course.lectureHours}시간)` : ""} />
+      <DetailBox label="학점 / 시간" value={`${course.credits || "-"}학점`} subValue={course.lectureHours ? ` (${course.lectureHours}시간)` : ""} clarityUnmask={clarityUnmask} />
       <DetailBox label="성적평가" value={formatGradingMethod(course.gradingMethod)} />
       <DetailBox label="강의방식" value={course.courseStatus || "일반"} />
       <DetailBox label="강의언어" value={formatLanguage(course.lectureLanguage)} />
@@ -174,10 +180,10 @@ function CourseSummaryGrid({ course }: { course: Course }) {
   );
 }
 
-/**
- * 강의 일정 및 위치 정보 섹션
- */
-function CourseTimeLocation({ course, mapQuery }: { course: Course; mapQuery: string }) {
+
+
+
+function CourseTimeLocation({ course, mapQuery, clarityUnmask }: { course: Course; mapQuery: string; clarityUnmask?: true }) {
   return (
     <div className="lg:col-span-2 flex flex-col h-full">
       <div className="flex items-center gap-2 mb-3">
@@ -191,13 +197,13 @@ function CourseTimeLocation({ course, mapQuery }: { course: Course; mapQuery: st
             {course.schedules && course.schedules.length > 0 ? (
               course.schedules.map((s, idx) => (
                 <div key={idx} className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 transition-colors hover:border-primary/30">
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono tracking-tight">
+                  <span data-clarity-unmask={clarityUnmask} className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono tracking-tight">
                     {formatDayOfWeek(s.dayOfWeek)} {s.startTime} ~ {s.endTime}
                   </span>
                 </div>
               ))
             ) : (
-              <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 italic text-gray-400 text-sm">
+              <div data-clarity-unmask={clarityUnmask} className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 italic text-gray-400 text-sm">
                 {course.classTime || "시간 미배정"}
               </div>
             )}
@@ -223,9 +229,9 @@ function CourseTimeLocation({ course, mapQuery }: { course: Course; mapQuery: st
   );
 }
 
-/**
- * 수강 신청 현황 (인원 및 신청률) 섹션
- */
+
+
+
 function CourseSeatStatus({ course, percent, available }: { course: Course; percent: number; available: number }) {
   const isFull = available <= 0;
   const { current = 0, capacity = 0 } = course;
@@ -283,9 +289,9 @@ function CourseSeatStatus({ course, percent, available }: { course: Course; perc
   );
 }
 
-/**
- * 학과명에서 학년 정보를 제거하고 정규화된 학과 라벨을 반환합니다.
- */
+
+
+
 function formatDepartmentLabel(department?: string, targetGradeLabel?: string): string {
   if (!department) {
     return "";
@@ -314,9 +320,9 @@ function formatDepartmentLabel(department?: string, targetGradeLabel?: string): 
     .join(", ");
 }
 
-/**
- * 학년 라벨(예: "3학년")에서 숫자(예: "3")만 추출합니다.
- */
+
+
+
 function extractGradeNumber(targetGradeLabel?: string): string | null {
   if (!targetGradeLabel) {
     return null;
@@ -326,11 +332,11 @@ function extractGradeNumber(targetGradeLabel?: string): string | null {
   return match ? match[1] : null;
 }
 
-function DetailBox({ label, value, subValue }: { label: string; value: string; subValue?: string }) {
+function DetailBox({ label, value, subValue, clarityUnmask }: { label: string; value: string; subValue?: string; clarityUnmask?: true }) {
   return (
     <div className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center gap-1 hover:bg-primary/5 hover:border-primary/20 transition-colors group">
       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{label}</span>
-      <div className="text-lg font-bold text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors">
+      <div data-clarity-unmask={clarityUnmask} className="text-lg font-bold text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors">
         {value}
         {subValue && <span className="text-sm font-normal text-gray-400">{subValue}</span>}
       </div>

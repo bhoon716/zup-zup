@@ -4,7 +4,7 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
@@ -41,9 +41,9 @@ public class FcmNotificationSender implements NotificationSender {
             Message fcmMessage = builder.build();
 
             FirebaseMessaging.getInstance().send(fcmMessage);
-            log.info("[FCM] Message sent. tokenFingerprint={}", tokenFingerprint);
+            log.debug("[FCM] 메시지 발송 완료. tokenFingerprint={}", tokenFingerprint);
         } catch (Exception e) {
-            log.error("[FCM] Dispatch failed. tokenFingerprint={}, failureCode={}, exceptionType={}",
+            log.debug("[FCM] 메시지 발송 실패. tokenFingerprint={}, failureCode={}, exceptionType={}",
                     tokenFingerprint, ErrorCode.FCM_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new CustomException(ErrorCode.FCM_SEND_ERROR);
         }

@@ -1,15 +1,11 @@
-/**
- * 서버의 표준 응답 형식을 정의합니다.
- */
-export interface CommonResponse<T = unknown> {
-  code: string;
-  message: string;
-  data: T;
-}
 
-/**
- * 무한 스크롤 등에서 사용되는 분할 페이지 응답 형식입니다.
- */
+
+
+
+
+
+
+
 export interface SliceResponse<T> {
   content: T[];
   pageable: {
@@ -37,7 +33,7 @@ export interface SliceResponse<T> {
   empty: boolean;
 }
 
-// 페이지 응답(관리자/이전 형식)
+
 export interface PageResponse<T> {
   content: T[];
   pageable: {
@@ -59,8 +55,8 @@ export interface PageResponse<T> {
   empty: boolean;
 }
 
-// 강의 관련
-// 서버 열거형 문자열과 일대일 매핑
+
+
 export type CourseClassification = '계열공통' | '교양' | '교직(대학원)' | '교직(대)' | '교직' | '군사학' | '기초필수' | '선수' | '일반선택' | '전공' | '전공(대학원)' | '전공(대)' | '전공선택' | '전공필수';
 export type GradingMethod = 'Pass/Fail' | '기타(법전원)' | '상대평가Ⅰ' | '상대평가Ⅱ' | '상대평가Ⅲ' | '절대평가';
 export type LectureLanguage = '한국어' | '영어' | '독일어' | '스페인어' | '일본어' | '중국어' | '프랑스어';
@@ -69,9 +65,9 @@ export type CourseDayOfWeek =
   | 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA' | 'SU'
   | '월' | '화' | '수' | '목' | '금' | '토' | '일';
 
-/**
- * 강의 기본 정보 인터페이스
- */
+
+
+
 export interface Course {
   courseKey: string;
   subjectCode: string;
@@ -91,13 +87,13 @@ export interface Course {
   lectureLanguage?: LectureLanguage;
   classTime?: string;
   credits?: string;
-  // 확장 필드
+
   lectureHours?: number;
   hasSyllabus?: boolean;
   generalCategoryByYear?: string;
   courseDirection?: string;
   classDuration?: string;
-  // 교양/공개 설정 관련 필드
+
   generalCategory?: string;
   generalDetail?: string;
   accreditation?: string;
@@ -107,7 +103,7 @@ export interface Course {
   disclosureReason?: string;
   lastCrawledAt?: string;
   isSubscribable?: boolean;
-  // 명세 호환 필드
+
   totalSeats?: number;
   currentSeats?: number;
   professorName?: string;
@@ -128,9 +124,9 @@ export interface ScheduleCondition {
   endTime: string;
 }
 
-/**
- * 강의 검색 조건 인터페이스
- */
+
+
+
 export interface CourseSearchCondition {
   academicYear?: string;
   semester?: string;
@@ -184,10 +180,10 @@ export interface CourseSeatHistory {
   detectedAt: string;
 }
 
-// 구독 관련
-/**
- * 여석 알림 구독 정보 인터페이스
- */
+
+
+
+
 export interface Subscription {
   id: number;
   courseKey: string;
@@ -201,10 +197,10 @@ export interface SubscriptionRequest {
   courseKey: string;
 }
 
-// 사용자 관련
-/**
- * 사용자 정보 인터페이스
- */
+
+
+
+
 export interface User {
   id: number;
   email: string;
@@ -239,7 +235,7 @@ export interface UserUpdateRequest {
   name: string;
 }
 
-// 이메일 인증
+
 export interface EmailRequest {
   email: string;
 }
@@ -249,7 +245,7 @@ export interface EmailVerificationRequest {
   code: string;
 }
 
-// 알림 관련
+
 export interface NotificationHistory {
   id: number;
   courseKey: string;
@@ -260,7 +256,7 @@ export interface NotificationHistory {
   createdAt?: string;
 }
 
-// 기기 등록 관련
+
 export interface UserDevice {
   id: number;
   type: 'FCM' | 'WEB';
@@ -327,9 +323,9 @@ export interface AdminDashboardSnapshotResponse {
 export type NotificationDeliveryChannel = 'EMAIL' | 'FCM' | 'WEB' | 'DISCORD';
 export type NotificationDeliveryStatus = 'PENDING' | 'PROCESSING' | 'SENT' | 'DLQ';
 
-/**
- * 관리자에게만 제공되는 delivery DTO입니다. 수신자와 원본 idempotency key는 포함하지 않습니다.
- */
+
+
+
 export interface AdminNotificationDeliveryResponse {
   id: number;
   outboxId: number;
@@ -348,25 +344,25 @@ export interface NotificationDeliveryReplayRequest {
   forceSentReplay?: boolean;
 }
 
-/**
- * 관리자 크롤링 타겟 설정을 위한 요청 데이터 인터페이스입니다.
- */
+
+
+
 export interface AdminCrawlTargetRequest {
   year: string;
   semester: string;
 }
 
-/**
- * 관리자 크롤링 타겟 조회 시 반환되는 응답 데이터 인터페이스입니다.
- */
+
+
+
 export interface AdminCrawlTargetResponse {
   year: string;
   semester: string;
 }
 
-/**
- * 검색 기본 학기 설정 조회/응답 데이터 인터페이스입니다.
- */
+
+
+
 export interface SearchDefaultSemesterResponse {
   semester: string;
 }
@@ -387,7 +383,7 @@ export interface DashboardSnapshotResponse {
   announcements: AnnouncementListItemResponse[];
 }
 
-// 찜 관련
+
 export interface WishlistResponse {
   id: number;
   userId?: number;
@@ -409,7 +405,7 @@ export interface WishlistToggleResponse {
   isWished: boolean;
 }
 
-// 시간표 관련
+
 export interface TimetableEntryResponse {
   courseKey: string;
   name: string;
@@ -440,9 +436,9 @@ export interface CustomScheduleResponse {
   schedules: CustomScheduleTimeResponse[];
 }
 
-/**
- * 시간표 요약 정보 인터페이스
- */
+
+
+
 export interface TimetableResponse {
   id: number;
   name: string;
@@ -451,9 +447,9 @@ export interface TimetableResponse {
   customSchedules: CustomScheduleResponse[];
 }
 
-/**
- * 시간표 상세 정보 인터페이스
- */
+
+
+
 export interface TimetableDetailResponse {
   id: number;
   name: string;
@@ -478,8 +474,8 @@ export interface TimetableRequest {
 
 export interface CustomScheduleTimeRequest {
   dayOfWeek: string;
-  startTime: string; // 시:분:초 형식 (서버 LocalTime 호환)
-  endTime: string;   // 시:분:초 형식
+  startTime: string;
+  endTime: string;
   classroom?: string;
 }
 
@@ -489,41 +485,29 @@ export interface CustomScheduleRequest {
   schedules: CustomScheduleTimeRequest[];
 }
 
-// 일정 관리 관련
+
 export interface ScheduleResponse {
   id: number;
   scheduleType: string;
-  startDate: string; // "YYYY-MM-DD"
-  endDate: string; // "YYYY-MM-DD"
-  startTime?: string; // "HH:mm"
-  endTime?: string; // "HH:mm"
+  startDate: string;
+  endDate: string;
+  startTime?: string | null;
+  endTime?: string | null;
   dDay: string;
+  ddayEnabled: boolean;
+  deletedAt: string | null;
 }
 
 export interface ScheduleRequest {
   scheduleType: string;
-  startDate: string; // "YYYY-MM-DD"
-  endDate: string; // "YYYY-MM-DD"
-  startTime?: string; // "HH:mm"
-  endTime?: string; // "HH:mm"
+  startDate: string;
+  endDate: string;
+  startTime?: string;
+  endTime?: string;
+  ddayEnabled?: boolean;
 }
 
-// D-Day 관련
-export interface DdaySettingResponse {
-  id: number;
-  title: string;
-  targetDate: string; // "YYYY-MM-DD"
-  targetTime?: string; // "HH:mm"
-  dDay: string;
-}
 
-export interface DdaySettingRequest {
-  title: string;
-  targetDate: string; // "YYYY-MM-DD"
-  targetTime?: string; // "HH:mm"
-}
-
-// 공지사항 관련
 export type AnnouncementSearchType = "TITLE" | "CONTENT" | "TITLE_CONTENT";
 
 export interface AnnouncementListItemResponse {
@@ -551,7 +535,7 @@ export interface AnnouncementRequest {
   published?: boolean;
 }
 
-// 강의 리뷰 관련
+
 export interface ReviewResponse {
   id: number;
   courseKey: string;
@@ -575,14 +559,14 @@ export interface ReviewReactionRequest {
   reactionType: 'LIKE' | 'DISLIKE';
 }
 
-// 강의 리뷰 관련
+
 export interface EmojiReviewResponse {
   emoji: string;
   count: number;
   isMine: boolean;
 }
 
-// 피드백 (건의사항/버그리포트) 관련
+
 export type FeedbackType = 'BUG' | 'SUGGESTION' | 'OTHER';
 export type FeedbackStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
 

@@ -7,7 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
@@ -19,9 +18,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.BatchSize;
 
 @Entity
-@Table(name = "timetables", indexes = {
-        @Index(name = "idx_timetable_user_id", columnList = "userId")
-})
+@Table(name = "timetables")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Timetable extends BaseTimeEntity {

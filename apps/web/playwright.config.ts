@@ -8,6 +8,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [["html", { outputFolder: "playwright-report", open: "never" }], ["line"]] : "list",
   use: {
+
+    serviceWorkers: "block",
     baseURL: "http://127.0.0.1:3100",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

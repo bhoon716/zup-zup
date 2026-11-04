@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.planning.timetable.controller;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.TimetableCourseRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.TimetableRequest;
@@ -27,66 +26,60 @@ public class TimetableController {
     private final TimetableService timetableService;
 
     @PostMapping
-    public CommonResponse<TimetableResponse> createTimetable(@Valid @RequestBody TimetableRequest request) {
-        return CommonResponse.success(timetableService.createTimetable(request), "시간표가 생성되었습니다.");
+    public TimetableResponse createTimetable(@Valid @RequestBody TimetableRequest request) {
+        return timetableService.createTimetable(request);
     }
 
     @GetMapping
-    public CommonResponse<List<TimetableResponse>> getMyTimetables() {
-        return CommonResponse.success(timetableService.getMyTimetables(), "시간표 목록을 조회했습니다.");
+    public List<TimetableResponse> getMyTimetables() {
+        return timetableService.getMyTimetables();
     }
 
     @GetMapping("/primary")
-    public CommonResponse<TimetableDetailResponse> getPrimaryTimetable() {
-        return CommonResponse.success(timetableService.getPrimaryTimetable(), "대표 시간표를 조회했습니다.");
+    public TimetableDetailResponse getPrimaryTimetable() {
+        return timetableService.getPrimaryTimetable();
     }
 
     @GetMapping("/{timetableId}")
-    public CommonResponse<TimetableDetailResponse> getTimetableDetail(@PathVariable Long timetableId) {
-        return CommonResponse.success(timetableService.getTimetableDetail(timetableId), "시간표 상세 정보를 조회했습니다.");
+    public TimetableDetailResponse getTimetableDetail(@PathVariable Long timetableId) {
+        return timetableService.getTimetableDetail(timetableId);
     }
 
     @PostMapping("/{timetableId}/courses")
-    public CommonResponse<Void> addCourse(
+    public void addCourse(
             @PathVariable Long timetableId,
             @Valid @RequestBody TimetableCourseRequest request) {
         timetableService.addCourse(timetableId, request.getCourseKey());
-        return CommonResponse.success(null, "강좌가 시간표에 추가되었습니다.");
     }
 
     @DeleteMapping("/{timetableId}/courses/{courseKey}")
-    public CommonResponse<Void> deleteCourse(
+    public void deleteCourse(
             @PathVariable Long timetableId,
             @PathVariable String courseKey) {
         timetableService.deleteCourse(timetableId, courseKey);
-        return CommonResponse.success(null, "강좌가 시간표에서 삭제되었습니다.");
     }
 
     @PostMapping("/{timetableId}/custom-schedules")
-    public CommonResponse<Void> addCustomSchedule(
+    public void addCustomSchedule(
             @PathVariable Long timetableId,
             @Valid @RequestBody CustomScheduleRequest request) {
         timetableService.addCustomSchedule(timetableId, request);
-        return CommonResponse.success(null, "일정이 추가되었습니다.");
     }
 
     @DeleteMapping("/{timetableId}/custom-schedules/{scheduleId}")
-    public CommonResponse<Void> deleteCustomSchedule(
+    public void deleteCustomSchedule(
             @PathVariable Long timetableId,
             @PathVariable Long scheduleId) {
         timetableService.deleteCustomSchedule(timetableId, scheduleId);
-        return CommonResponse.success(null, "일정이 삭제되었습니다.");
     }
 
     @PatchMapping("/{timetableId}/primary")
-    public CommonResponse<Void> setPrimary(@PathVariable Long timetableId) {
+    public void setPrimary(@PathVariable Long timetableId) {
         timetableService.setPrimary(timetableId);
-        return CommonResponse.success(null, "대표 시간표로 설정되었습니다.");
     }
 
     @DeleteMapping("/{timetableId}")
-    public CommonResponse<Void> deleteTimetable(@PathVariable Long timetableId) {
+    public void deleteTimetable(@PathVariable Long timetableId) {
         timetableService.deleteTimetable(timetableId);
-        return CommonResponse.success(null, "시간표가 삭제되었습니다.");
     }
 }

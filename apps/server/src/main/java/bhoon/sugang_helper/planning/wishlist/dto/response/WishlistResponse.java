@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.planning.wishlist.dto.response;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSummary;
+import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
 import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;
 import java.time.LocalDateTime;
 import lombok.Builder;

@@ -4,9 +4,8 @@ const { mockFont } = vi.hoisted(() => ({
   mockFont: vi.fn(() => ({ variable: "mock-font" })),
 }));
 
-vi.mock("next/font/google", () => ({
-  Geist_Mono: mockFont,
-  Noto_Sans_KR: mockFont,
+vi.mock("next/font/local", () => ({
+  default: mockFont,
 }));
 vi.mock("@/widgets/header/header", () => ({ Header: () => null }));
 vi.mock("@/app/providers", () => ({ default: () => null }));

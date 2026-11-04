@@ -38,6 +38,13 @@ describe("강의 리뷰 훅", () => {
     professor: "김교수",
     name: "자료구조",
     classNumber: "01",
+    academicYear: "2026",
+    semester: "U211600010",
+    capacity: 30,
+    current: 20,
+    available: 10,
+    classTime: "월 1,2",
+    schedules: [{ dayOfWeek: "MONDAY", startTime: "09:00", endTime: "11:00" }],
     averageRating: 4,
     reviewCount: 10,
     isReviewed: false,
@@ -48,6 +55,12 @@ describe("강의 리뷰 훅", () => {
     courseKey: OTHER_COURSE_KEY,
     academicYear: "2025",
     semester: "U211600020",
+    classNumber: "02",
+    capacity: 50,
+    current: 35,
+    available: 15,
+    classTime: "화 3,4",
+    schedules: [{ dayOfWeek: "TUESDAY", startTime: "11:00", endTime: "13:00" }],
   };
 
   const DIFFERENT_SCOPE_COURSE: Course = {
@@ -97,14 +110,10 @@ describe("강의 리뷰 훅", () => {
 
   it("강의 리뷰를 단건으로 불러온다", async () => {
     vi.mocked(reviewApi.getReviews).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: {
         content: [MOCK_REVIEW],
         last: true,
         number: 0,
-      },
-    } as Awaited<ReturnType<typeof reviewApi.getReviews>>);
+      } as Awaited<ReturnType<typeof reviewApi.getReviews>>);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -112,18 +121,15 @@ describe("강의 리뷰 훅", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.rating).toBe(5);
+    expect(reviewApi.getReviews).toHaveBeenCalledWith(COURSE_KEY, 0);
   });
 
   it("첫 번째 리뷰가 타인의 리뷰면 내 리뷰로 반환하지 않는다", async () => {
     vi.mocked(reviewApi.getReviews).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: {
         content: [{ ...MOCK_REVIEW, isMine: false }],
         last: true,
         number: 0,
-      },
-    } as Awaited<ReturnType<typeof reviewApi.getReviews>>);
+      } as Awaited<ReturnType<typeof reviewApi.getReviews>>);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -133,12 +139,8 @@ describe("강의 리뷰 훅", () => {
     expect(result.current.data).toBeNull();
   });
 
-  it("리뷰를 생성하고 같은 과목코드+교수의 다른 학기 캐시까지 갱신한다", async () => {
-    vi.mocked(reviewApi.createReview).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: MOCK_REVIEW,
-    } as Awaited<ReturnType<typeof reviewApi.createReview>>);
+  it("리뷰 생성 시 같은 범위의 통계만 갱신하고 다른 학기·분반의 강의 정보는 보존한다", async () => {
+    vi.mocked(reviewApi.createReview).mockResolvedValue(MOCK_REVIEW as Awaited<ReturnType<typeof reviewApi.createReview>>);
 
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(["course-detail", COURSE_KEY], MOCK_COURSE);
@@ -175,11 +177,18 @@ describe("강의 리뷰 훅", () => {
     expect(updatedSameScopeCourse?.averageRating).toBeCloseTo(4.1, 1);
     expect(updatedSameScopeCourse?.reviewCount).toBe(11);
     expect(updatedSameScopeCourse?.isReviewed).toBe(true);
+    expect(updatedSameScopeCourse).toEqual({
+      ...SAME_SCOPE_COURSE,
+      averageRating: expect.closeTo(4.09, 2),
+      reviewCount: 11,
+      isReviewed: true,
+    });
 
     const untouchedDifferentScopeCourse = queryClient.getQueryData<Course>(["course-detail", DIFFERENT_SCOPE_COURSE_KEY]);
     expect(untouchedDifferentScopeCourse?.averageRating).toBe(2);
     expect(untouchedDifferentScopeCourse?.reviewCount).toBe(3);
     expect(untouchedDifferentScopeCourse?.isReviewed).toBe(false);
+    expect(untouchedDifferentScopeCourse).toEqual(DIFFERENT_SCOPE_COURSE);
 
     const updatedCourses = queryClient.getQueryData<{
       pages: Array<{ content: Course[]; last: boolean; number: number }>;
@@ -194,15 +203,13 @@ describe("강의 리뷰 훅", () => {
     expect(updatedCourses?.pages[0].content[2].averageRating).toBe(2);
     expect(updatedCourses?.pages[0].content[2].reviewCount).toBe(3);
     expect(updatedCourses?.pages[0].content[2].isReviewed).toBe(false);
+    expect(updatedCourses?.pages[0].content[1]).toEqual(updatedSameScopeCourse);
+    expect(updatedCourses?.pages[0].content[2]).toEqual(DIFFERENT_SCOPE_COURSE);
     expect(queryClient.getQueryData(["courses", "search-default-semester"])).toEqual({ semester: "U211600025" });
   });
 
-  it("리뷰를 수정하고 같은 리뷰 그룹 캐시를 갱신한다", async () => {
-    vi.mocked(reviewApi.updateReview).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: MOCK_REVIEW,
-    } as Awaited<ReturnType<typeof reviewApi.updateReview>>);
+  it("리뷰 수정 시 같은 범위의 통계만 갱신하고 다른 학기·분반의 강의 정보는 보존한다", async () => {
+    vi.mocked(reviewApi.updateReview).mockResolvedValue(MOCK_REVIEW as Awaited<ReturnType<typeof reviewApi.updateReview>>);
 
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(["review", REVIEW_SCOPE_KEY], {
@@ -211,6 +218,7 @@ describe("강의 리뷰 훅", () => {
     });
     queryClient.setQueryData(["course-detail", COURSE_KEY], MOCK_COURSE);
     queryClient.setQueryData(["course-detail", OTHER_COURSE_KEY], SAME_SCOPE_COURSE);
+    queryClient.setQueryData(["course-detail", DIFFERENT_SCOPE_COURSE_KEY], DIFFERENT_SCOPE_COURSE);
     queryClient.setQueryData(["courses", { name: "자료" }], {
       pages: [
         {
@@ -241,14 +249,23 @@ describe("강의 리뷰 훅", () => {
     expect(updatedSameScopeCourse?.averageRating).toBeCloseTo(4.2, 1);
     expect(updatedSameScopeCourse?.reviewCount).toBe(10);
     expect(updatedSameScopeCourse?.isReviewed).toBe(true);
+    expect(updatedSameScopeCourse).toEqual({
+      ...SAME_SCOPE_COURSE,
+      averageRating: expect.closeTo(4.2, 5),
+      reviewCount: 10,
+      isReviewed: true,
+    });
+    const updatedCourses = queryClient.getQueryData<{
+      pages: Array<{ content: Course[] }>;
+    }>(["courses", { name: "자료" }]);
+    expect(updatedCourses?.pages[0].content[1]).toEqual(updatedSameScopeCourse);
+    expect(updatedCourses?.pages[0].content[2]).toEqual(DIFFERENT_SCOPE_COURSE);
+    expect(queryClient.getQueryData(["course-detail", DIFFERENT_SCOPE_COURSE_KEY]))
+      .toEqual(DIFFERENT_SCOPE_COURSE);
   });
 
   it("리뷰 반응(좋아요/싫어요)을 토글한다", async () => {
-    vi.mocked(reviewApi.toggleReviewReaction).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: undefined,
-    } as Awaited<ReturnType<typeof reviewApi.toggleReviewReaction>>);
+    vi.mocked(reviewApi.toggleReviewReaction).mockResolvedValue(undefined as Awaited<ReturnType<typeof reviewApi.toggleReviewReaction>>);
 
     const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
@@ -264,11 +281,7 @@ describe("강의 리뷰 훅", () => {
   });
 
   it("이모지 통계를 성공적으로 불러온다", async () => {
-    vi.mocked(reviewApi.getCourseEmojis).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: MOCK_EMOJIS,
-    } as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>);
+    vi.mocked(reviewApi.getCourseEmojis).mockResolvedValue(MOCK_EMOJIS as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -293,17 +306,9 @@ describe("강의 리뷰 훅", () => {
         ? (fetchCounts.get(courseKey) === 1 ? MOCK_EMOJIS : authoritativeEmojis)
         : [{ emoji: "🥹", count: 7, isMine: false }];
 
-      return {
-        code: "SUCCESS",
-        message: "ok",
-        data,
-      } as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>;
+      return data as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>;
     });
-    vi.mocked(reviewApi.toggleCourseEmoji).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: undefined,
-    } as Awaited<ReturnType<typeof reviewApi.toggleCourseEmoji>>);
+    vi.mocked(reviewApi.toggleCourseEmoji).mockResolvedValue(undefined as Awaited<ReturnType<typeof reviewApi.toggleCourseEmoji>>);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -339,17 +344,9 @@ describe("강의 리뷰 훅", () => {
     });
 
     vi.mocked(reviewApi.getCourseEmojis)
-      .mockResolvedValueOnce({
-        code: "SUCCESS",
-        message: "ok",
-        data: MOCK_EMOJIS,
-      } as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>)
+      .mockResolvedValueOnce(MOCK_EMOJIS as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>)
       .mockReturnValueOnce(pendingRefetch);
-    vi.mocked(reviewApi.toggleCourseEmoji).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: undefined,
-    } as Awaited<ReturnType<typeof reviewApi.toggleCourseEmoji>>);
+    vi.mocked(reviewApi.toggleCourseEmoji).mockResolvedValue(undefined as Awaited<ReturnType<typeof reviewApi.toggleCourseEmoji>>);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
@@ -368,11 +365,7 @@ describe("강의 리뷰 훅", () => {
     await waitFor(() => expect(reviewApi.getCourseEmojis).toHaveBeenCalledTimes(2));
     expect(result.current.toggle.isPending).toBe(true);
 
-    resolveRefetch({
-      code: "SUCCESS",
-      message: "ok",
-      data: authoritativeEmojis,
-    } as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>);
+    resolveRefetch(authoritativeEmojis as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>);
 
     await act(async () => {
       await togglePromise;
@@ -389,16 +382,8 @@ describe("강의 리뷰 훅", () => {
     ];
 
     vi.mocked(reviewApi.getCourseEmojis)
-      .mockResolvedValueOnce({
-        code: "SUCCESS",
-        message: "ok",
-        data: MOCK_EMOJIS,
-      } as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>)
-      .mockResolvedValue({
-        code: "SUCCESS",
-        message: "ok",
-        data: authoritativeEmojis,
-      } as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>);
+      .mockResolvedValueOnce(MOCK_EMOJIS as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>)
+      .mockResolvedValue(authoritativeEmojis as Awaited<ReturnType<typeof reviewApi.getCourseEmojis>>);
     vi.mocked(reviewApi.toggleCourseEmoji).mockRejectedValue(new Error("응답 유실"));
 
     const queryClient = createTestQueryClient();
@@ -419,11 +404,7 @@ describe("강의 리뷰 훅", () => {
   });
 
   it("이모지 토글 시 캐시를 즉시 반영하고 0개가 되면 제거한다", async () => {
-    vi.mocked(reviewApi.toggleCourseEmoji).mockResolvedValue({
-      code: "SUCCESS",
-      message: "ok",
-      data: undefined,
-    } as Awaited<ReturnType<typeof reviewApi.toggleCourseEmoji>>);
+    vi.mocked(reviewApi.toggleCourseEmoji).mockResolvedValue(undefined as Awaited<ReturnType<typeof reviewApi.toggleCourseEmoji>>);
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);

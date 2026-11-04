@@ -10,7 +10,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.AccessLevel;
@@ -21,9 +20,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "seat_notification_outbox", indexes = {
-        @Index(name = "idx_seat_notification_outbox_status_created", columnList = "status,created_at")
-})
+@Table(name = "seat_notification_outbox")
 public class SeatNotificationOutbox extends BaseTimeEntity {
 
     @Id

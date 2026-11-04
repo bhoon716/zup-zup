@@ -18,10 +18,10 @@ interface AdminStatCardProps {
   index: number;
 }
 
-/**
- * 관리자 대시보드 지표 카드 컴포넌트입니다.
- * 각 지표의 현재 수치와 상태 정보를 역동적인 애니메이션과 함께 표시합니다.
- */
+
+
+
+
 export function AdminStatCard({
   label,
   value,

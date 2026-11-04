@@ -5,9 +5,9 @@ import org.slf4j.MDC;
 import org.springframework.core.task.TaskDecorator;
 import org.springframework.stereotype.Component;
 
-/**
- * Copies the submitting thread's MDC into an asynchronous task and removes it after execution.
- */
+
+
+
 @Component
 public class MdcTaskDecorator implements TaskDecorator {
 

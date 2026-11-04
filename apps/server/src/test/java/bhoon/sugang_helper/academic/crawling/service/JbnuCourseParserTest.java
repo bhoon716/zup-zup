@@ -3,7 +3,8 @@ package bhoon.sugang_helper.academic.crawling.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bhoon.sugang_helper.academic.course.dto.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseScheduleDto;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
 import bhoon.sugang_helper.common.error.CustomException;
@@ -85,10 +86,30 @@ class JbnuCourseParserTest {
     }
 
     @Test
-    void parseCourses_rejectsEmptyCourseList() {
-        assertThatThrownBy(() -> parser.parseCourses("{\"dsEstSbjList\":[]}"))
-                .isInstanceOf(CustomException.class)
-                .satisfies(t -> assertThat(((CustomException) t).getDetail()).contains("course list is empty"));
+    @DisplayName("분류별 정상 빈 배열은 빈 목록으로 반환한다")
+    void parseCourses_allowsEmptyCourseList() {
+
+        String json = "{\"dsEstSbjList\":[]}";
+
+
+        List<ParsedCourseDto> courses = parser.parseCourses(json);
+
+
+        assertThat(courses).isEmpty();
+    }
+
+    @Test
+    @DisplayName("수집용 스트림 파싱에서도 정상 빈 배열은 빈 iterator로 반환한다")
+    void streamCourses_allowsEmptyCourseList() {
+
+        ByteArrayInputStream stream = new ByteArrayInputStream(
+                "{\"dsEstSbjList\":[]}".getBytes(StandardCharsets.UTF_8));
+
+
+        Iterator<ParsedCourseDto> courses = parser.streamCourses(stream, "2026", "U211600025");
+
+
+        assertThat(courses).isExhausted();
     }
 
     @Test
@@ -181,7 +202,7 @@ class JbnuCourseParserTest {
                 }
                 """)).get(0);
 
-        assertThat(course.schedules()).extracting(ParsedCourseDto.ScheduleDto::dayOfWeek)
+        assertThat(course.schedules()).extracting(ParsedCourseScheduleDto::dayOfWeek)
                 .containsExactly(CourseDayOfWeek.TUESDAY);
         assertThat(course.schedules().get(0).startTime()).isEqualTo(LocalTime.of(11, 30));
         assertThat(course.schedules().get(0).endTime()).isEqualTo(LocalTime.of(12, 0));

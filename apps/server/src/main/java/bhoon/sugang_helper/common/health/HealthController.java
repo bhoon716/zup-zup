@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.common.health;
 
-import bhoon.sugang_helper.common.response.CommonResponse;
+import bhoon.sugang_helper.common.dto.response.HealthCheckResponse;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class HealthController {
     private final HealthEndpoint healthEndpoint;
 
     @GetMapping("/health")
-    public ResponseEntity<CommonResponse<HealthCheckResponse>> checkHealth() {
+    public ResponseEntity<HealthCheckResponse> checkHealth() {
         HealthComponent readiness = healthEndpoint.healthForPath(READINESS_GROUP);
         boolean isReady = readiness != null && Status.UP.equals(readiness.getStatus());
         String status = isReady ? Status.UP.getCode() : Status.DOWN.getCode();
@@ -34,13 +34,12 @@ public class HealthController {
                 buildProperties.getTime(),
                 LocalDateTime.now());
         if (isReady) {
-            log.info("Health check passed");
+            log.debug("상태 확인 정상.");
         } else {
             String readinessStatus = readiness == null ? "UNKNOWN" : readiness.getStatus().getCode();
-            log.warn("Health check failed: readinessStatus={}", readinessStatus);
+            log.warn("상태 확인 실패. readinessStatus={}", readinessStatus);
         }
         HttpStatus httpStatus = isReady ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;
-        String message = isReady ? "헬스 체크 통과" : "의존성 헬스 체크 실패";
-        return ResponseEntity.status(httpStatus).body(CommonResponse.success(response, message));
+        return ResponseEntity.status(httpStatus).body(response);
     }
 }

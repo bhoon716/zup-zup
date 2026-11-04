@@ -8,21 +8,21 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.academic.crawling.dto.CrawlerAdminSnapshot;
-import bhoon.sugang_helper.academic.crawling.service.CrawlerAdminSnapshotQuery;
-import bhoon.sugang_helper.academic.crawling.service.CrawlerStatusQuery;
+import bhoon.sugang_helper.academic.crawling.dto.response.CrawlerAdminSnapshot;
+import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
+import bhoon.sugang_helper.academic.crawling.service.CrawlerRunStateService;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQuery;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationTestSender;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionStatisticsQuery;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
+import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -38,19 +38,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class AdminServiceTest {
 
     @Mock
-    private UserIdentityQuery userIdentityQuery;
+    private UserIdentityQueryService userIdentityQuery;
     @Mock
-    private UserNotificationQuery userNotificationQuery;
+    private UserNotificationQueryService userNotificationQuery;
     @Mock
-    private SubscriptionStatisticsQuery subscriptionStatisticsQuery;
+    private SubscriptionQueryService subscriptionQueryService;
     @Mock
-    private NotificationHistoryQuery notificationHistoryQuery;
+    private NotificationHistoryQueryService notificationHistoryQuery;
     @Mock
-    private NotificationTestSender notificationTestSender;
+    private NotificationService notificationTestSender;
     @Mock
-    private CrawlerAdminSnapshotQuery crawlerAdminSnapshotQuery;
+    private CourseCrawlerTargetService crawlerAdminSnapshotQuery;
     @Mock
-    private CrawlerStatusQuery crawlerStatusQuery;
+    private CrawlerRunStateService crawlerStatusQuery;
 
     @InjectMocks
     private AdminService adminService;
@@ -59,7 +59,7 @@ class AdminServiceTest {
     @DisplayName("관리자 대시보드 통계를 정상적으로 조회한다")
     void getDashboardStats() {
         when(userIdentityQuery.countUsers()).thenReturn(100L);
-        when(subscriptionStatisticsQuery.countActiveSubscriptions()).thenReturn(50L);
+        when(subscriptionQueryService.countActiveSubscriptions()).thenReturn(50L);
         when(notificationHistoryQuery.countCreatedAfter(any(LocalDateTime.class))).thenReturn(20L);
         when(crawlerStatusQuery.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
 
@@ -75,7 +75,7 @@ class AdminServiceTest {
     @DisplayName("관리자 대시보드 스냅샷을 한 번에 조회한다")
     void getDashboardSnapshot() {
         when(userIdentityQuery.countUsers()).thenReturn(100L);
-        when(subscriptionStatisticsQuery.countActiveSubscriptions()).thenReturn(50L);
+        when(subscriptionQueryService.countActiveSubscriptions()).thenReturn(50L);
         when(notificationHistoryQuery.countCreatedAfter(any(LocalDateTime.class))).thenReturn(20L);
         when(notificationHistoryQuery.findCreatedAtAfter(any(LocalDateTime.class))).thenReturn(List.of());
         when(notificationHistoryQuery.findLatest()).thenReturn(List.of());

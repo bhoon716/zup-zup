@@ -85,3 +85,23 @@ academic/crawling/
 ## 추가 범위: 중복 저장소 통합
 
 사용자는 폴더 정리 후 합칠 수 있는 저장소도 합치도록 요청했다. 앞서 저장소 계약 통합을 후속 작업으로 남긴 실행 순서를 변경하여, 중복 JPA 계약 25쌍과 단일 구현의 조회 계약 두 곳을 현재 단계에서 통합한다. 상세 범위는 [저장소 인터페이스 통합 결정](2026-10-13-repository-interface-policy.md#추가-결정-및-구현-중복-저장소-인터페이스를-현재-단계에서-통합한다)을 따른다. 쿼리·잠금·트랜잭션·DB 구조·업무 정책은 유지한다.
+
+
+## 추가 결정: DTO를 실제 역할에 따라 request·response·result와 별도 범주로 분류한다
+
+- 결정일: 2026-10-27
+- 상태: Accepted — 현재 사용자 DTO 정리 요청 범위
+
+사용자는 DTO를 request/response/result에 정리하고 셋에 맞지 않는 것은 의미 있는 별도 폴더에 두도록 요청했다. API 입력·출력·내부 결과를 호출부와 JSON 경계로 구분하며, 접미사만으로 이동하지 않는다. 이미 올바르게 분류된 타입과 command/criteria/external/provider/diagnostic의 구분을 유지한다.
+
+현재 누락된 내부 결과 SeatNotificationDeliveryDispatch·SeatNotificationDeliveryFailureResult·SanitizedImage는 dto/result로, HealthCheckResponse는 common/dto/response로 이동했다. 필요한 public 접근성과 import만 조정하고 HTTP JSON·업무 동작·DB·설정을 바꾸지 않는다. 영구 알림함의 미완성 변경을 완성·삭제하지 않으며 이번 요청으로 commit/push/배포를 하지 않는다.
+
+이동 목록·기존 미커밋과의 구분·검증 결과 및 기존 전체 테스트 컴파일 차단은 [작업 기록](../dto-package-classification-20261027.md)에 남긴다.
+
+
+## 후속 승인: DTO 분류 변경만 로컬 커밋한다
+
+- 결정일: 2026-10-27
+- 상태: Accepted — DTO 변경의 선택적 로컬 커밋에 한정
+
+사용자가 DTO 정리 변경만 커밋하도록 추가 승인했다. 영구 알림함 초안·다른 변경·기존 테스트 오류 수정은 포함하지 않는다. 혼합 파일은 DTO import만 선택적으로 스테이징하고 기존 미커밋 작업 보존을 확인한다. push·merge·배포는 하지 않는다.

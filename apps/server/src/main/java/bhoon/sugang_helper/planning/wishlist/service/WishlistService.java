@@ -1,12 +1,12 @@
 package bhoon.sugang_helper.planning.wishlist.service;
 
-import bhoon.sugang_helper.academic.course.dto.CourseSummary;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogQuery;
+import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
+import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistResponse;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistToggleResponse;
 import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;
@@ -28,8 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class WishlistService {
 
     private final WishlistRepository wishlistRepository;
-    private final CourseCatalogQuery courseCatalogQuery;
-    private final UserIdentityQuery userIdentityQuery;
+    private final CourseCatalogQueryService courseCatalogQuery;
+    private final UserIdentityQueryService userIdentityQuery;
 
     @Transactional
     public WishlistToggleResponse toggleWishlist(String courseKey) {
@@ -40,7 +40,7 @@ public class WishlistService {
                 .orElse(null);
         if (existingWishlist != null) {
             wishlistRepository.delete(existingWishlist);
-            log.info("[Wishlist] Removed course from wishlist. userId={}, courseKey={}", user.id(), courseKey);
+            log.debug("[Wishlist] 관심 강의 제거. userId={}, courseKey={}", user.id(), courseKey);
             return WishlistToggleResponse.of(false);
         }
 
@@ -49,7 +49,7 @@ public class WishlistService {
                 .courseKey(courseKey)
                 .build();
         wishlistRepository.save(wishlist);
-        log.info("[Wishlist] Added course to wishlist. userId={}, courseKey={}", user.id(), courseKey);
+        log.debug("[Wishlist] 관심 강의 추가. userId={}, courseKey={}", user.id(), courseKey);
         return WishlistToggleResponse.of(true);
     }
 
@@ -88,7 +88,7 @@ public class WishlistService {
     private WishlistResponse toWishlistResponse(Wishlist wishlist, Map<String, CourseSummary> courseMap) {
         CourseSummary course = courseMap.get(wishlist.getCourseKey());
         if (course == null) {
-            log.warn("[Wishlist] Course information not found, excluded from response. courseKey={}",
+            log.warn("[Wishlist] 강의 정보가 없어 응답에서 제외. courseKey={}",
                     wishlist.getCourseKey());
             return null;
         }

@@ -5,12 +5,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.common.security.jwt.JwtProvider;
 import bhoon.sugang_helper.identity.auth.service.AuthService;
 import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.enums.Role;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,16 +18,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class OAuth2SuccessHandlerTest {
 
     private static final String EMAIL = "test@example.com";
-
-    @Mock
-    private JwtProvider jwtProvider;
     @Mock
     private AuthService authService;
     @InjectMocks
@@ -42,21 +35,18 @@ class OAuth2SuccessHandlerTest {
     }
 
     @Test
-    void successDoesNotStoreRawJwtAttributesInHttpSession() throws Exception {
-        HttpServletRequest request = new MockHttpServletRequest();
-        HttpServletResponse response = new MockHttpServletResponse();
+    void providerIdentityStartsAServerSessionBeforeRedirect() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
         Authentication authentication = mock(Authentication.class);
-        OAuth2User oauth2User = new OAuth2AuthenticatedUser(
-                1L, EMAIL, Role.USER.getKey(), Map.of("email", EMAIL, "sub", "google-subject"), "sub");
-        given(authentication.getPrincipal()).willReturn(oauth2User);
-        given(jwtProvider.createAccessToken(1L, EMAIL, Role.USER.getKey())).willReturn("access-token");
-        given(jwtProvider.createRefreshToken(1L, EMAIL)).willReturn("refresh-token");
+        var user = new OAuth2AuthenticatedUser(1L, EMAIL, Role.USER.getKey(),
+                Map.of("email", EMAIL, "sub", "google-subject"), "sub");
+        given(authentication.getPrincipal()).willReturn(user);
 
         successHandler.onAuthenticationSuccess(request, response, authentication);
 
-        verify(authService).addRefreshTokenCookie(response, "refresh-token");
-        verify(authService).saveSessionAuthentication(request, response, "access-token");
-        assertThat(((MockHttpServletRequest) request).getSession(false)).isNull();
-        assertThat(((MockHttpServletResponse) response).getRedirectedUrl()).isEqualTo("https://web.example.com");
+        verify(authService).login(request, response, 1L, EMAIL);
+        assertThat(response.getRedirectedUrl()).isEqualTo("https://web.example.com");
+        assertThat(response.getHeaders("Set-Cookie")).isEmpty();
     }
 }

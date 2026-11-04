@@ -5,7 +5,7 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import java.util.Map;
@@ -15,9 +15,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
-/**
- * 이메일 채널을 통한 알림 발송을 담당하는 컴포넌트입니다.
- */
+
+
+
 @Component
 @Slf4j
 public class EmailNotificationSender implements NotificationSender {
@@ -43,9 +43,9 @@ public class EmailNotificationSender implements NotificationSender {
         return channel == NotificationChannel.EMAIL;
     }
 
-    /**
-     * 알림 대상에게 이메일을 발송합니다.
-     */
+
+
+
     @Override
     public void send(NotificationTarget target, String title, String message) {
         send(target, title, message, null);
@@ -54,7 +54,7 @@ public class EmailNotificationSender implements NotificationSender {
     @Override
     public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         String recipient = target.getRecipient();
-        String recipientMasked = SensitiveDataRedactor.maskEmail(recipient);
+        String recipientFingerprint = SensitiveDataRedactor.fingerprint(recipient);
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -70,11 +70,11 @@ public class EmailNotificationSender implements NotificationSender {
             }
 
             javaMailSender.send(mimeMessage);
-            log.info("[EmailNotification] Dispatched. recipientMasked={}, fromMasked={}",
-                    recipientMasked, SensitiveDataRedactor.maskEmail(from));
+            log.debug("[EmailNotification] 이메일 발송 완료. recipientFingerprint={}, fromFingerprint={}",
+                    recipientFingerprint, SensitiveDataRedactor.fingerprint(from));
         } catch (Exception e) {
-            log.error("[EmailNotification] Dispatch failed. recipientMasked={}, failureCode={}, exceptionType={}",
-                    recipientMasked, ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            log.debug("[EmailNotification] 이메일 발송 실패. recipientFingerprint={}, failureCode={}, exceptionType={}",
+                    recipientFingerprint, ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new CustomException(ErrorCode.EMAIL_SEND_ERROR);
         }
     }

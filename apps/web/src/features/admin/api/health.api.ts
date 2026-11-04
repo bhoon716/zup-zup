@@ -1,5 +1,5 @@
 import api from "@/shared/api/client";
-import type { CommonResponse } from '@/shared/types/api';
+
 
 export interface HealthStatus {
   status: string;
@@ -8,7 +8,7 @@ export interface HealthStatus {
   timestamp: string;
 }
 
-export const checkHealth = async (): Promise<CommonResponse<HealthStatus>> => {
+export const checkHealth = async (): Promise<HealthStatus> => {
   const { data } = await api.get('/health');
   return data;
 };

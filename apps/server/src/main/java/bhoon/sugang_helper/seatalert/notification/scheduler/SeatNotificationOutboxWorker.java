@@ -1,7 +1,8 @@
 package bhoon.sugang_helper.seatalert.notification.scheduler;
 
+import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
@@ -9,97 +10,89 @@ import jakarta.annotation.PreDestroy;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
+import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * Claims deliveries in FIFO order and processes only a bounded number at once.
- * The permit is acquired before claiming, so an overloaded worker leaves rows pending rather than losing them.
- */
+
+
+
 @Component
+@Slf4j
 public class SeatNotificationOutboxWorker {
 
     private final SeatNotificationOutboxProcessor processor;
-    private final ThreadPoolExecutor executor;
-    private final Semaphore capacity;
-    private final Map<NotificationChannel, AtomicInteger> queueDepths = new EnumMap<>(NotificationChannel.class);
+    private final int batchSize;
+    private final AtomicBoolean running = new AtomicBoolean();
+    private final Map<NotificationChannel, AtomicInteger> inFlightByChannel = new EnumMap<>(NotificationChannel.class);
+    private volatile boolean stopping;
 
-    @Autowired
     public SeatNotificationOutboxWorker(
             SeatNotificationOutboxProcessor processor,
             MeterRegistry meterRegistry,
-            @Value("${app.notification.outbox.worker-threads:8}") int workerThreads,
-            @Value("${app.notification.outbox.queue-capacity:32}") int queueCapacity) {
-        this(processor, meterRegistry, workerThreads, queueCapacity,
-                new ThreadPoolExecutor(workerThreads, workerThreads, 0L, TimeUnit.MILLISECONDS,
-                        new ArrayBlockingQueue<>(queueCapacity), new ThreadPoolExecutor.AbortPolicy()));
-    }
-
-    SeatNotificationOutboxWorker(SeatNotificationOutboxProcessor processor, MeterRegistry meterRegistry,
-                                 int workerThreads, int queueCapacity, ThreadPoolExecutor executor) {
-        if (workerThreads < 1 || queueCapacity < 1) {
-            throw new IllegalArgumentException("notification worker capacity must be positive");
+            @Value("${app.notification.outbox.batch-size:50}") int batchSize) {
+        if (batchSize < 1) {
+            throw new IllegalArgumentException("notification batch size must be positive");
         }
         this.processor = processor;
-        this.executor = executor;
-        this.capacity = new Semaphore(workerThreads + queueCapacity);
+        this.batchSize = batchSize;
         for (NotificationChannel channel : NotificationChannel.values()) {
-            AtomicInteger depth = new AtomicInteger();
-            queueDepths.put(channel, depth);
-            meterRegistry.gauge("notification.outbox.queue.depth", Tags.of("channel", channel.name()), depth);
+            AtomicInteger inFlight = new AtomicInteger();
+            inFlightByChannel.put(channel, inFlight);
+
+            meterRegistry.gauge("notification.outbox.queue.depth", Tags.of("channel", channel.name()), inFlight);
         }
     }
 
     @Scheduled(fixedDelayString = "${app.notification.outbox.poll-ms:5000}")
     public void processPendingNotifications() {
-        processor.materializePendingOutboxes();
-        int available = capacity.availablePermits();
-        if (available == 0) {
+        if (stopping || Thread.currentThread().isInterrupted() || !running.compareAndSet(false, true)) {
             return;
         }
-        List<SeatNotificationDeliveryClaim> claims = processor.claimReadyDeliveries(available);
-        for (SeatNotificationDeliveryClaim claim : claims) {
-            submit(claim);
-        }
-    }
-
-    private void submit(SeatNotificationDeliveryClaim claim) {
-        capacity.acquireUninterruptibly();
-        AtomicInteger depth = claim.channel() == null ? null : queueDepths.get(claim.channel());
         try {
-            if (depth != null) {
-                depth.incrementAndGet();
-            }
-            AtomicInteger metricDepth = depth;
-            executor.execute(() -> {
-                try {
-                    processor.processDelivery(claim);
-                } finally {
-                    capacity.release();
-                    if (metricDepth != null) {
-                        metricDepth.decrementAndGet();
-                    }
+            processor.materializePendingOutboxes();
+            for (int processed = 0; processed < batchSize; processed++) {
+                if (stopping || Thread.currentThread().isInterrupted()) {
+                    return;
                 }
-            });
-        } catch (RejectedExecutionException exception) {
-            capacity.release();
-            if (depth != null) {
-                depth.decrementAndGet();
+                List<SeatNotificationDeliveryClaim> claims = processor.claimReadyDeliveries(1);
+                if (claims.isEmpty()) {
+                    return;
+                }
+                process(claims.getFirst());
             }
-            throw exception;
+        } finally {
+            running.set(false);
         }
     }
 
+    private void process(SeatNotificationDeliveryClaim claim) {
+        AtomicInteger inFlight = claim.channel() == null ? null : inFlightByChannel.get(claim.channel());
+        if (inFlight != null) {
+            inFlight.incrementAndGet();
+        }
+        try {
+            processor.processDelivery(claim);
+        } catch (RuntimeException exception) {
+
+            log.error("[Notification Outbox] 발송 작업 처리 실패. deliveryId={}, failureCode={}, exceptionType={}",
+                    claim.deliveryId(), SensitiveDataRedactor.failureCode(exception),
+                    SensitiveDataRedactor.exceptionType(exception), SensitiveDataRedactor.safeStackTrace(exception));
+        } finally {
+            if (inFlight != null) {
+                inFlight.decrementAndGet();
+            }
+        }
+    }
+
+    @EventListener(ContextClosedEvent.class)
     @PreDestroy
     public void shutdown() {
-        executor.shutdownNow();
+        stopping = true;
     }
 }

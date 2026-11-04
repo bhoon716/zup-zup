@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.admin.audit.service;
 
-import bhoon.sugang_helper.admin.audit.dto.AdminAuditMetadata;
+import bhoon.sugang_helper.admin.audit.dto.response.AdminAuditMetadata;
 import bhoon.sugang_helper.admin.audit.dto.response.AdminActionLogResponse;
 import bhoon.sugang_helper.admin.audit.entity.AdminActionLog;
 import bhoon.sugang_helper.admin.audit.enums.ActionType;
@@ -17,13 +17,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 민감한 관리자 조작을 동일한 최소화된 형식으로 감사합니다.
- */
+
+
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AdminAuditService implements AdminAuditRecorder {
+public class AdminAuditService {
 
     private static final int MAX_PAGE_SIZE = 100;
 

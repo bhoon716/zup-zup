@@ -48,13 +48,13 @@ public class DiscordOAuthService {
     @Value("${app.discord.client-id}")
     private String clientId;
 
-    @Value("${app.discord.client-secret}") // 추가 필요
+    @Value("${app.discord.client-secret}")
     private String clientSecret;
 
     @Value("${app.discord.redirect-uri:http://localhost:8080/api/v1/users/discord/callback}")
     private String redirectUri;
 
-    // Discord OAuth2 코드를 액세스 토큰으로 교환
+
     public String exchangeCodeForToken(String code) {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("client_id", clientId);
@@ -77,12 +77,12 @@ public class DiscordOAuthService {
 
             return (String) response.get("access_token");
         } catch (Exception e) {
-            log.error("[DiscordOAuth] Token exchange failed. exceptionType={}", e.getClass().getSimpleName());
+            log.error("[DiscordOAuth] 토큰 교환 실패. exceptionType={}", e.getClass().getSimpleName());
             throw new CustomException(ErrorCode.INVALID_INPUT, "Discord 인증 중 오류가 발생했습니다.");
         }
     }
 
-    // 액세스 토큰을 사용하여 Discord 유저 ID(Snowflake) 조회
+
     public String getDiscordUserId(String accessToken) {
         try {
             Map<String, Object> response = restClient.get()
@@ -97,7 +97,7 @@ public class DiscordOAuthService {
 
             return (String) response.get("id");
         } catch (Exception e) {
-            log.error("[DiscordOAuth] User info request failed. exceptionType={}", e.getClass().getSimpleName());
+            log.error("[DiscordOAuth] 사용자 정보 요청 실패. exceptionType={}", e.getClass().getSimpleName());
             throw new CustomException(ErrorCode.INVALID_INPUT, "Discord 유저 정보를 가져올 수 없습니다.");
         }
     }

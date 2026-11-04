@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 import { AxiosError } from 'axios';
+import { trackOnboardingCompleted, trackOnboardingFailed } from '@/shared/analytics/onboarding-events';
 
 export const useUser = (options?: { enabled?: boolean }) => {
   return useQuery({
@@ -12,7 +13,7 @@ export const useUser = (options?: { enabled?: boolean }) => {
     queryFn: async () => {
       try {
         const response = await userApi.getMyProfile();
-        return response.data ?? null;
+        return response ?? null;
       } catch (error: unknown) {
         const axiosError = error as AxiosError<{ message?: string }>;
         if (axiosError.response?.status === 401) {
@@ -53,8 +54,8 @@ export const useWithdraw = () => {
 
   return useMutation({
     mutationFn: userApi.withdraw,
-    onSuccess: (response) => {
-      toast.success(response.message || '회원 탈퇴가 완료되었습니다');
+    onSuccess: () => {
+      toast.success('회원 탈퇴가 완료되었습니다');
       logout();
       queryClient.clear();
       router.replace('/login');
@@ -71,10 +72,10 @@ export const useUpdateProfile = () => {
   return useMutation({
     mutationFn: (request: Parameters<typeof userApi.updateProfile>[0]) => userApi.updateProfile(request),
     onSuccess: (response) => {
-      const user = response.data ?? null;
+      const user = response ?? null;
       queryClient.setQueryData(['user', 'me'], user);
       useAuthStore.getState().setUser(user);
-      toast.success(response.message || '프로필이 수정되었습니다');
+      toast.success('프로필이 수정되었습니다');
     },
     onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '프로필 수정에 실패했습니다';
@@ -83,16 +84,26 @@ export const useUpdateProfile = () => {
   });
 };
 
-export const useCompleteOnboarding = () => {
+export const useCompleteOnboarding = (accountId?: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (request: Parameters<typeof userApi.completeOnboarding>[0]) => userApi.completeOnboarding(request),
+    mutationFn: async (request: Parameters<typeof userApi.completeOnboarding>[0]) => {
+      try {
+        const response = await userApi.completeOnboarding(request);
+        // 화면 이탈이나 인증 스토어 갱신에 따른 언마운트에도 실제 저장 결과를 기록한다.
+        trackOnboardingCompleted(accountId);
+        return response;
+      } catch (error) {
+        trackOnboardingFailed(accountId, error);
+        throw error;
+      }
+    },
     onSuccess: (response) => {
-      const user = response.data ?? null;
+      const user = response ?? null;
       queryClient.setQueryData(['user', 'me'], user);
       useAuthStore.getState().setUser(user);
-      toast.success(response.message || '설정이 완료되었습니다');
+      toast.success('설정이 완료되었습니다');
     },
     onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '설정 저장에 실패했습니다';

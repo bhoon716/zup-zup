@@ -84,9 +84,9 @@ function sortSchedules(schedules: ScheduleCondition[]): ScheduleCondition[] {
   });
 }
 
-/**
- * 드래그 상태를 기반으로 다음 선택된 스케줄 목록을 계산합니다.
- */
+
+
+
 function buildNextSchedulesFromDrag(dragState: DragState): ScheduleCondition[] {
   const dragCells = getDragCells(dragState.start, dragState.currentCell);
   const nextMap = new Map(dragState.snapshot.map((s) => [toScheduleKey(s), s]));
@@ -110,13 +110,13 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
   const [hoveredSlot, setHoveredSlot] = useState<number | null>(null);
   const activePointerIdRef = useRef<number | null>(null);
 
-  // 선택된 시간대 키 세트
+
   const selectedKeySet = useMemo(
     () => new Set(selected.map((s) => toScheduleKey(s))),
     [selected],
   );
 
-  // 현재 드래그 영역에 포함된 시간대 키 세트
+
   const dragRectKeySet = useMemo(() => {
     if (!dragState) return new Set<string>();
     return new Set(
@@ -126,7 +126,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     );
   }, [dragState]);
 
-  // 화면에 표시될 최종 선택 상태 (드래그 중인 미실행 변경사항 포함)
+
   const displayKeySet = useMemo(() => {
     if (!dragState) return selectedKeySet;
     const previewSet = new Set(dragState.snapshot.map((s) => toScheduleKey(s)));
@@ -140,9 +140,9 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     return previewSet;
   }, [dragState, dragRectKeySet, selectedKeySet]);
 
-  /**
-   * 드래그 선택을 시작합니다.
-   */
+
+
+
   const startDrag = useCallback((day: CourseDayOfWeek, slot: number) => {
     const dayIndex = DAYS.indexOf(day);
     if (dayIndex < 0) return;
@@ -161,9 +161,9 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     setHoveredSlot(slot);
   }, [selected, selectedKeySet]);
 
-  /**
-   * 드래그 중인 현재 위치를 업데이트합니다.
-   */
+
+
+
   const updateDragCell = useCallback((day: CourseDayOfWeek, slot: number) => {
     const dayIndex = DAYS.indexOf(day);
     if (dayIndex < 0) return;
@@ -177,9 +177,9 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     });
   }, []);
 
-  /**
-   * 드래그 작업을 완료하고 변경사항을 적용합니다.
-   */
+
+
+
   const finishDrag = useCallback((pointerId?: number) => {
     if (pointerId !== undefined && activePointerIdRef.current !== pointerId) return;
     if (!dragState) return;
@@ -203,9 +203,9 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     };
   }, [dragState, finishDrag]);
 
-  /**
-   * 포인터 이동 이벤트 처리 핸들러
-   */
+
+
+
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!dragState || activePointerIdRef.current !== event.pointerId) return;
 
@@ -220,9 +220,9 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     updateDragCell(day, slot);
   };
 
-  /**
-   * 셀 포인터 다운 이벤트 처리 핸들러
-   */
+
+
+
   const handlePointerDownCell = (event: PointerEvent<HTMLButtonElement>, day: CourseDayOfWeek, slot: number) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     activePointerIdRef.current = event.pointerId;
@@ -234,9 +234,9 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     }
   };
 
-  /**
-   * 특정 요일의 모든 시간을 선택하거나 해제합니다.
-   */
+
+
+
   const handleSelectAllByDay = (day: CourseDayOfWeek) => {
     const daySchedules = SLOT_NUMBERS.map((slot) => toSchedule(day, slot));
     const dayScheduleKeys = new Set(daySchedules.map((s) => toScheduleKey(s)));
@@ -281,7 +281,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
       </div>
 
       <div className="w-full">
-        {/* 요일 헤더 */}
+        {           }
         <div className={cn("mb-1 grid gap-1", GRID_COLUMNS_CLASS)}>
           <div className="flex items-center justify-center rounded-sm border border-border/60 bg-muted text-[9px] font-black text-foreground">시간</div>
           {DAYS.map((day) => (
@@ -300,7 +300,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
           ))}
         </div>
 
-        {/* 시간표 격자 */}
+        {            }
         <div className="space-y-1">
           {SLOT_NUMBERS.map((slot) => {
             const slotRange = getSlotRange(slot);

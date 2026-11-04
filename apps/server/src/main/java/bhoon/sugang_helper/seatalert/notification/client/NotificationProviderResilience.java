@@ -24,12 +24,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * Bounds synchronous provider calls and isolates a failing provider with a small in-memory circuit breaker.
- */
+
+
+
 @Component
 @SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.NullAssignment"})
-public class NotificationProviderResilience implements NotificationProviderExecutor, AutoCloseable {
+public class NotificationProviderResilience implements AutoCloseable {
 
     private final MeterRegistry meterRegistry;
     private final Duration timeout;
@@ -75,7 +75,6 @@ public class NotificationProviderResilience implements NotificationProviderExecu
         this.mdcTaskDecorator = mdcTaskDecorator;
     }
 
-    @Override
     public void execute(NotificationChannel provider, Runnable operation) {
         Circuit circuit = circuits.computeIfAbsent(provider, ignored -> new Circuit());
         Counter circuitOpenCounter = counter("notification.provider.circuit.open", "provider", provider.name());

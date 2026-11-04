@@ -9,6 +9,7 @@ describe("PrivacyPage", () => {
     expect(screen.getAllByText(/Microsoft Clarity/)).not.toHaveLength(0);
     expect(screen.getAllByText(/Google Analytics 4/)).not.toHaveLength(0);
     expect(screen.getByText(/텍스트를 마스킹/)).toBeInTheDocument();
+    expect(screen.getByText(/공개 강의명·학점·강의 시간만/)).toBeInTheDocument();
     expect(screen.getByText(/광고 개인화/)).toBeInTheDocument();
   });
 });

@@ -12,8 +12,8 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import bhoon.sugang_helper.common.util.EmailTemplateService;
-import bhoon.sugang_helper.identity.user.service.UserDeviceWebPushManagement;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.identity.user.service.UserDeviceService;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -43,10 +43,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-/**
- * Provider requests must carry the same delivery-scoped, provider-safe key on every retry.
- */
-@SuppressWarnings("PMD.AvoidDuplicateLiterals") // The repeated key is the contract under test.
+
+
+
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class NotificationSenderIdempotencyContractTest {
 
     private static final String IDEMPOTENCY_KEY = "c4Q4eVIRb9WX_qvYn9r1PQ";
@@ -93,7 +93,7 @@ class NotificationSenderIdempotencyContractTest {
     @Test
     void webPushCarriesTheDeliveryKeyInBothTopicAndEncryptedPayload() throws Exception {
         WebPushNotificationSender sender = new WebPushNotificationSender("", "", "",
-                new ObjectMapper(), mock(UserDeviceWebPushManagement.class));
+                new ObjectMapper(), mock(UserDeviceService.class));
         Method idempotentSend = idempotentSendMethod(sender);
         PushService pushService = mock(PushService.class);
         HttpResponse response = mock(HttpResponse.class);
@@ -161,7 +161,7 @@ class NotificationSenderIdempotencyContractTest {
         }
     }
 
-    @SuppressWarnings("unchecked") // Firebase's data accessor is deliberately package-private.
+    @SuppressWarnings("unchecked")
     private static Map<String, String> fcmData(Message message) {
         return (Map<String, String>) ReflectionTestUtils.getField(message, "data");
     }

@@ -1,11 +1,11 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
-import bhoon.sugang_helper.admin.audit.service.AdminAuditRecorder;
+import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.common.web.PageableGuard;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.seatalert.notification.dto.response.AdminNotificationDeliveryResponse;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
@@ -16,17 +16,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 관리자가 DLQ delivery를 조회하고 원인 조치 후 동일 delivery만 선택적으로 재처리합니다.
- */
+
+
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AdminNotificationDeliveryService {
 
     private final SeatNotificationDeliveryRepository deliveryRepository;
-    private final AdminAuditRecorder adminAuditRecorder;
-    private final UserIdentityQuery userIdentityQuery;
+    private final AdminAuditService adminAuditRecorder;
+    private final UserIdentityQueryService userIdentityQuery;
 
     public Page<AdminNotificationDeliveryResponse> getDeadLetters(Pageable pageable) {
         return deliveryRepository.findByStatusOrderByDeadLetteredAtDescIdDesc(

@@ -3,8 +3,8 @@ package bhoon.sugang_helper.identity.user.service;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.RegisterDeviceCommand;
-import bhoon.sugang_helper.identity.user.dto.UserDeviceResult;
+import bhoon.sugang_helper.identity.user.dto.command.RegisterDeviceCommand;
+import bhoon.sugang_helper.identity.user.dto.result.UserDeviceResult;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import bhoon.sugang_helper.identity.user.enums.DeviceType;
@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserDeviceService implements UserDeviceWebPushManagement {
+public class UserDeviceService {
 
     private final UserDeviceRepository userDeviceRepository;
     private final UserRepository userRepository;
@@ -42,9 +42,9 @@ public class UserDeviceService implements UserDeviceWebPushManagement {
                         device -> {
                             device.updateToken(user.getId(), command.token(), command.p256dh(), command.auth(),
                                     command.alias());
-                            log.info("[UserDevice] Updated existing device: userId={}, tokenFingerprint={}, alias={}",
+                            log.info("[UserDevice] 기존 알림 기기 갱신. userId={}, tokenFingerprint={}",
                                     user.getId(),
-                                    tokenFingerprint(command.token()), command.alias());
+                                    tokenFingerprint(command.token()));
                         },
                         () -> {
                             UserDevice newDevice = UserDevice.builder()
@@ -56,8 +56,8 @@ public class UserDeviceService implements UserDeviceWebPushManagement {
                                     .alias(command.alias())
                                     .build();
                             userDeviceRepository.save(newDevice);
-                            log.info("[UserDevice] Registered new device: userId={}, tokenFingerprint={}, alias={}",
-                                    user.getId(), tokenFingerprint(command.token()), command.alias());
+                            log.info("[UserDevice] 알림 기기 등록. userId={}, tokenFingerprint={}",
+                                    user.getId(), tokenFingerprint(command.token()));
                         });
     }
 
@@ -66,7 +66,7 @@ public class UserDeviceService implements UserDeviceWebPushManagement {
         User user = getCurrentUserOrThrow();
         long deletedCount = userDeviceRepository.deleteByTokenAndUserId(token, user.getId());
         if (deletedCount > 0) {
-            log.info("[UserDevice] Unregistered device: userId={}, tokenFingerprint={}",
+            log.info("[UserDevice] 알림 기기 등록 해제. userId={}, tokenFingerprint={}",
                     user.getId(), tokenFingerprint(token));
         }
     }
@@ -82,22 +82,21 @@ public class UserDeviceService implements UserDeviceWebPushManagement {
         }
 
         userDeviceRepository.delete(device);
-        log.info("[UserDevice] Deleted device by ID: userId={}, deviceId={}", user.getId(), deviceId);
+        log.info("[UserDevice] 지정 알림 기기 삭제. userId={}, deviceId={}", user.getId(), deviceId);
     }
 
-    /**
-     * WebPush 발송 실패(404/410) 시 호출되는 Self-Healing 메서드
-     */
+
+
+
     @Transactional
     public void deleteDeviceByToken(String token) {
         userDeviceRepository.findByToken(token)
                 .ifPresent(device -> {
                     userDeviceRepository.delete(device);
-                    log.info("[UserDevice] Auto-deleted invalid device: tokenFingerprint={}", tokenFingerprint(token));
+                    log.info("[UserDevice] 유효하지 않은 알림 기기 자동 삭제. tokenFingerprint={}", tokenFingerprint(token));
                 });
     }
 
-    @Override
     public void validateEndpoint(String endpoint) {
         webPushEndpointValidator.validate(endpoint);
     }

@@ -3,9 +3,9 @@ package bhoon.sugang_helper.seatalert.notification.client;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.identity.user.service.UserDeviceWebPushManagement;
+import bhoon.sugang_helper.identity.user.service.UserDeviceService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.NotificationTarget;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -25,7 +25,7 @@ public class WebPushNotificationSender implements NotificationSender {
     private final String privateKey;
     private final String subject;
     private final ObjectMapper objectMapper;
-    private final UserDeviceWebPushManagement userDeviceWebPushManagement;
+    private final UserDeviceService userDeviceWebPushManagement;
     private PushService pushService;
 
     public WebPushNotificationSender(
@@ -33,7 +33,7 @@ public class WebPushNotificationSender implements NotificationSender {
             @Value("${app.webpush.private-key}") String privateKey,
             @Value("${app.webpush.subject}") String subject,
             ObjectMapper objectMapper,
-            UserDeviceWebPushManagement userDeviceWebPushManagement) {
+            UserDeviceService userDeviceWebPushManagement) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
         this.subject = subject;
@@ -45,13 +45,13 @@ public class WebPushNotificationSender implements NotificationSender {
     public void init() {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
-            log.info("[WebPush] Registered BouncyCastleProvider.");
+            log.info("[WebPush] 암호화 제공자 등록 완료.");
         }
         try {
             if (publicKey != null && !publicKey.trim().isEmpty() &&
                     privateKey != null && !privateKey.trim().isEmpty()) {
                 this.pushService = new PushService(publicKey, privateKey, subject);
-                log.info("[WebPush] Finished PushService initialization.");
+                log.info("[WebPush] 발송 서비스 초기화 완료.");
             }
         } catch (Exception e) {
             throw new RuntimeException("웹푸시 PushService 초기화에 실패했습니다.", e);
@@ -93,7 +93,7 @@ public class WebPushNotificationSender implements NotificationSender {
             }
             Notification notification = notificationBuilder.build();
 
-            log.info("[WebPush] Starting notification transfer. endpointFingerprint={}", endpointFingerprint);
+            log.debug("[WebPush] 단말 발송 시작. endpointFingerprint={}", endpointFingerprint);
             var response = pushService.send(notification);
             int statusCode = response.getStatusLine().getStatusCode();
 
@@ -110,11 +110,11 @@ public class WebPushNotificationSender implements NotificationSender {
                         retryable, reason, statusCode, null);
             }
 
-            log.info("[WebPush] Completed notification transfer. endpointFingerprint={}", endpointFingerprint);
+            log.debug("[WebPush] 단말 발송 완료. endpointFingerprint={}", endpointFingerprint);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[WebPush] Transfer failed. endpointFingerprint={}, failureCode={}, exceptionType={}",
+            log.debug("[WebPush] 단말 발송 실패. endpointFingerprint={}, failureCode={}, exceptionType={}",
                     endpointFingerprint, ErrorCode.WEB_PUSH_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
                     true, "ERROR", null, e);

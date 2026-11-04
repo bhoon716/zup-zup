@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.academic.review.service;
 
-import bhoon.sugang_helper.academic.course.dto.CourseReference;
-import bhoon.sugang_helper.academic.course.service.CourseReviewCatalog;
-import bhoon.sugang_helper.academic.review.dto.ReviewScopeKey;
+import bhoon.sugang_helper.academic.course.dto.result.CourseReference;
+import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
+import bhoon.sugang_helper.academic.review.dto.criteria.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewCreateRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewReactionRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewUpdateRequest;
@@ -16,8 +16,8 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
 import bhoon.sugang_helper.common.web.PageableGuard;
-import bhoon.sugang_helper.identity.user.dto.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQuery;
+import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,20 +33,20 @@ public class CourseReviewService {
 
     private final CourseReviewRepository reviewRepository;
     private final CourseReviewReactionRepository reactionRepository;
-    private final CourseReviewCatalog courseReviewCatalog;
-    private final UserIdentityQuery userIdentityQuery;
+    private final CourseReviewCatalogService courseReviewCatalog;
+    private final UserIdentityQueryService userIdentityQuery;
 
-    /**
-     * 현재 로그인한 사용자를 조회합니다.
-     */
+
+
+
     private UserIdentity getCurrentUser() {
         return userIdentityQuery.findByEmail(SecurityUtil.getCurrentUserEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 
-    /**
-     * 현재 로그인한 사용자의 ID를 조회합니다. 로그인하지 않은 경우 null을 반환합니다.
-     */
+
+
+
     private Long getCurrentUserIdOrNull() {
         String email = SecurityUtil.getCurrentUserEmailOrNull();
         if (email == null) {
@@ -57,18 +57,18 @@ public class CourseReviewService {
                 .orElse(null);
     }
 
-    /**
-     * 강의 리뷰를 작성합니다.
-     */
+
+
+
     @Transactional
     public ReviewResponse createReview(String courseKey, ReviewCreateRequest request) {
         UserIdentity user = getCurrentUser();
 
         CourseReference course = getCourseForUpdate(courseKey);
         ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
-        List<String> courseKeys = findCourseKeysForScope(course, scope);
+        List<String> courseKeys = courseReviewCatalog.findReviewCourseKeys(course);
 
-        if (hasReviewForScope(course, scope, courseKeys, user.id())) {
+        if (reviewRepository.countByCourseKeysAndUserId(courseKeys, user.id()) > 0) {
             throw new CustomException(ErrorCode.REVIEW_ALREADY_EXISTS);
         }
 
@@ -79,30 +79,30 @@ public class CourseReviewService {
                 .build();
 
         CourseReview saved = reviewRepository.saveAndFlush(review);
-        log.info("[Review] Created. reviewId={}, courseKey={}, subjectCode={}, professor={}, userId={}",
-                saved.getId(), courseKey, scope.subjectCode(), scope.professor(), user.id());
+        log.info("[Review] 리뷰 등록. reviewId={}, courseKey={}, subjectCode={}, userId={}",
+                saved.getId(), courseKey, scope.subjectCode(), user.id());
 
-        updateCourseReviewStats(course, scope, courseKeys);
+        updateCourseReviewStats(courseKeys);
 
         return ReviewResponse.of(saved, user.id());
     }
 
-    /**
-     * 특정 강의의 리뷰 목록을 조회합니다. 현재 로그인한 사용자의 리뷰가 있다면 가장 상단에 위치합니다.
-     */
+
+
+
     @Transactional(readOnly = true)
     public Page<ReviewResponse> getReviews(String courseKey, Pageable pageable) {
         Long currentUserId = getCurrentUserIdOrNull();
         CourseReference course = getCourse(courseKey);
-        ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
-
-        return findReviewsForScope(course, scope, currentUserId, PageableGuard.requireBounded(pageable))
+        Pageable boundedPageable = PageableGuard.requireBounded(pageable);
+        List<String> courseKeys = courseReviewCatalog.findReviewCourseKeys(course);
+        return reviewRepository.findByCourseKeysWithMyReviewFirst(courseKeys, currentUserId, boundedPageable)
                 .map(review -> ReviewResponse.of(review, currentUserId));
     }
 
-    /**
-     * 자신이 작성한 리뷰를 수정합니다.
-     */
+
+
+
     @Transactional
     public ReviewResponse updateReview(Long reviewId, ReviewUpdateRequest request) {
         UserIdentity user = getCurrentUser();
@@ -115,16 +115,16 @@ public class CourseReviewService {
         CourseReference course = getCourseForUpdate(review.getCourseKey());
         review.update(request.rating());
         reviewRepository.saveAndFlush(review);
-        log.info("[Review] Updated. reviewId={}, userId={}", reviewId, user.id());
+        log.info("[Review] 리뷰 수정. reviewId={}, userId={}", reviewId, user.id());
 
-        updateCourseReviewStats(course);
+        updateCourseReviewStats(courseReviewCatalog.findReviewCourseKeys(course));
 
         return ReviewResponse.of(review, user.id());
     }
 
-    /**
-     * 자신이 작성한 리뷰를 삭제합니다.
-     */
+
+
+
     @Transactional
     public void deleteReview(Long reviewId) {
         UserIdentity user = getCurrentUser();
@@ -137,23 +137,23 @@ public class CourseReviewService {
         CourseReference course = getCourseForUpdate(review.getCourseKey());
         reviewRepository.delete(review);
         reviewRepository.flush();
-        log.info("[Review] Deleted. reviewId={}, userId={}", reviewId, user.id());
+        log.info("[Review] 리뷰 삭제. reviewId={}, userId={}", reviewId, user.id());
 
-        updateCourseReviewStats(course);
+        updateCourseReviewStats(courseReviewCatalog.findReviewCourseKeys(course));
     }
 
-    /**
-     * 리뷰 작성자 본인인지 확인합니다. (ADMIN 계정은 통과)
-     */
+
+
+
     private void validateReviewOwner(CourseReview review, UserIdentity user) {
         if (!review.getUserId().equals(user.id()) && !user.administrator()) {
             throw new CustomException(ErrorCode.REVIEW_UNAUTHORIZED);
         }
     }
 
-    /**
-     * 리뷰에 공감/비공감 반응을 남기거나 취소/변경합니다.
-     */
+
+
+
     @Transactional
     public void toggleReaction(Long reviewId, ReviewReactionRequest request) {
         UserIdentity user = getCurrentUser();
@@ -167,9 +167,9 @@ public class CourseReviewService {
                         () -> handleNewReaction(review, targetReaction, user.id()));
     }
 
-    /**
-     * 새로운 반응을 추가합니다.
-     */
+
+
+
     private void handleNewReaction(CourseReview review, ReactionType type, Long userId) {
         CourseReviewReaction newReaction = CourseReviewReaction.builder()
                 .review(review)
@@ -179,32 +179,32 @@ public class CourseReviewService {
         reactionRepository.save(newReaction);
         incrementReactionCount(review, type);
 
-        log.info("[Review Reaction] Added. reviewId={}, userId={}, type={}", review.getId(), userId, type);
+        log.debug("[Review Reaction] 리뷰 반응 등록. reviewId={}, userId={}, type={}", review.getId(), userId, type);
     }
 
-    /**
-     * 기존 반응을 취소하거나 변경합니다.
-     */
+
+
+
     private void handleExistingReaction(CourseReview review, CourseReviewReaction existing, ReactionType targetType,
                                         Long userId) {
         if (existing.getReactionType() == targetType) {
             reactionRepository.delete(existing);
             decrementReactionCount(review, targetType);
-            log.info("[Review Reaction] Removed. reviewId={}, userId={}, type={}", review.getId(), userId, targetType);
+            log.debug("[Review Reaction] 리뷰 반응 취소. reviewId={}, userId={}, type={}", review.getId(), userId, targetType);
         } else {
             ReactionType oldType = existing.getReactionType();
             existing.updateReactionType(targetType);
 
             decrementReactionCount(review, oldType);
             incrementReactionCount(review, targetType);
-            log.info("[Review Reaction] Switched. reviewId={}, userId={}, oldType={}, newType={}",
+            log.debug("[Review Reaction] 리뷰 반응 변경. reviewId={}, userId={}, oldType={}, newType={}",
                     review.getId(), userId, oldType, targetType);
         }
     }
 
-    /**
-     * 반응 타입에 따라 리뷰의 공감/비공감 카운트를 증가시킵니다.
-     */
+
+
+
     private void incrementReactionCount(CourseReview review, ReactionType type) {
         if (type == ReactionType.LIKE) {
             reviewRepository.incrementLikeCount(review.getId());
@@ -213,9 +213,9 @@ public class CourseReviewService {
         }
     }
 
-    /**
-     * 반응 타입에 따라 리뷰의 공감/비공감 카운트를 감소시킵니다.
-     */
+
+
+
     private void decrementReactionCount(CourseReview review, ReactionType type) {
         if (type == ReactionType.LIKE) {
             reviewRepository.decrementLikeCount(review.getId());
@@ -224,50 +224,13 @@ public class CourseReviewService {
         }
     }
 
-    /**
-     * 특정 강의의 전체 리뷰 통계(평균 별점, 리뷰 수)를 업데이트합니다.
-     */
-    private void updateCourseReviewStats(CourseReference course) {
-        ReviewScopeKey scope = ReviewScopeKey.from(course.subjectCode(), course.professor());
-        updateCourseReviewStats(course, scope, findCourseKeysForScope(course, scope));
-    }
 
-    private void updateCourseReviewStats(CourseReference course, ReviewScopeKey scope, List<String> courseKeys) {
-        if (!scope.hasIdentifiableProfessor()) {
-            long count = reviewRepository.countByCourseKey(course.courseKey());
-            Double avg = reviewRepository.getAverageRatingByCourseKey(course.courseKey());
-            courseReviewCatalog.updateReviewStats(course, avg != null ? avg.floatValue() : 0.0f, (int) count);
-            return;
-        }
 
+
+    private void updateCourseReviewStats(List<String> courseKeys) {
         long count = reviewRepository.countByCourseKeys(courseKeys);
         Double avg = reviewRepository.getAverageRatingByCourseKeys(courseKeys);
-        courseReviewCatalog.updateReviewStats(course, avg != null ? avg.floatValue() : 0.0f, (int) count);
-    }
-
-    private boolean hasReviewForScope(CourseReference course, ReviewScopeKey scope, List<String> courseKeys,
-                                      Long userId) {
-        if (!scope.hasIdentifiableProfessor()) {
-            return reviewRepository.existsByCourseKeyAndUserId(course.courseKey(), userId);
-        }
-        return reviewRepository.countByCourseKeysAndUserId(courseKeys, userId) > 0;
-    }
-
-    private Page<CourseReview> findReviewsForScope(CourseReference course, ReviewScopeKey scope, Long currentUserId,
-                                                    Pageable pageable) {
-        if (!scope.hasIdentifiableProfessor()) {
-            return reviewRepository.findByCourseKeyWithMyReviewFirst(course.courseKey(), currentUserId, pageable);
-        }
-
-        var courseKeys = findCourseKeysForScope(course, scope);
-        return reviewRepository.findByCourseKeysWithMyReviewFirst(courseKeys, currentUserId, pageable);
-    }
-
-    private List<String> findCourseKeysForScope(CourseReference course, ReviewScopeKey scope) {
-        if (!scope.hasIdentifiableProfessor()) {
-            return List.of();
-        }
-        return courseReviewCatalog.findCourseKeysBySubjectCodeAndProfessor(scope.subjectCode(), scope.professor());
+        courseReviewCatalog.updateReviewStats(courseKeys, avg != null ? avg.floatValue() : 0.0f, (int) count);
     }
 
     private CourseReference getCourse(String courseKey) {

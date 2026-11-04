@@ -4,7 +4,11 @@ import bhoon.sugang_helper.common.error.CustomException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayDeque;
 import java.util.HexFormat;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Queue;
 import java.util.regex.Pattern;
 
 public final class SensitiveDataRedactor {
@@ -29,16 +33,46 @@ public final class SensitiveDataRedactor {
         }
     }
 
-    public static String maskEmail(String email) {
-        if (email == null || email.isBlank()) {
-            return "<none>";
+    public static Throwable safeStackTrace(Throwable original) {
+        if (original == null) {
+            return null;
         }
+        Map<Throwable, Throwable> copies = new IdentityHashMap<>();
+        Queue<Throwable> pending = new ArrayDeque<>();
+        Throwable result = copyStackTrace(original);
+        copies.put(original, result);
+        pending.add(original);
+        while (!pending.isEmpty()) {
+            Throwable source = pending.remove();
+            Throwable target = copies.get(source);
+            Throwable cause = source.getCause();
+            if (cause != null && cause != source) {
+                target.initCause(copyStackTrace(cause, copies, pending));
+            }
+            for (Throwable suppressed : source.getSuppressed()) {
+                if (suppressed != source) {
+                    target.addSuppressed(copyStackTrace(suppressed, copies, pending));
+                }
+            }
+        }
+        return result;
+    }
 
-        int atIndex = email.indexOf('@');
-        if (atIndex <= 0 || atIndex == email.length() - 1) {
-            return "<masked>";
+    private static Throwable copyStackTrace(Throwable source, Map<Throwable, Throwable> copies,
+                                             Queue<Throwable> pending) {
+        Throwable copy = copies.get(source);
+        if (copy == null) {
+            copy = copyStackTrace(source);
+            copies.put(source, copy);
+            pending.add(source);
         }
-        return email.charAt(0) + "***" + email.substring(atIndex);
+        return copy;
+    }
+
+    private static Throwable copyStackTrace(Throwable source) {
+        Throwable copy = new Throwable(source.getClass().getName() + " (원문 메시지 생략)");
+        copy.setStackTrace(source.getStackTrace());
+        return copy;
     }
 
     public static String failureCode(Throwable throwable) {

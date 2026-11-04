@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CourseTable } from "./course-table";
+import type { Course } from "@/shared/types/api";
 
 const { mockSetLoginModalOpen, mockToggleWishlist, mockSubscribe, mockUnsubscribe, mockAddToTimetable } = vi.hoisted(() => ({
   mockSetLoginModalOpen: vi.fn(),
@@ -72,7 +73,8 @@ const testCourse = {
   courseKey: "TEST-COURSE",
   name: "Theories of International Relations",
   classification: "전공필수",
-  credits: 3,
+  credits: "3",
+  classNumber: "01",
   subjectCode: "0000125258",
   stdtrNo: "GECO178",
   professor: "이진영",
@@ -84,7 +86,7 @@ const testCourse = {
   averageRating: 4.2,
   reviewCount: 13,
   isSubscribable: true,
-} as never;
+} as Course;
 
 describe("CourseTable", () => {
   beforeEach(() => {
@@ -97,6 +99,24 @@ describe("CourseTable", () => {
     }
 
     vi.stubGlobal("IntersectionObserver", MockIntersectionObserver as never);
+  });
+
+  it.each([
+    { enabled: true, disclosure: "공개", visible: true },
+    { enabled: false, disclosure: "공개", visible: false },
+    { enabled: true, disclosure: "비공개", visible: false },
+    { enabled: true, disclosure: undefined, visible: false },
+  ])("공개 맥락 $enabled / 공개 상태 $disclosure의 Clarity 예외를 제한한다", ({ enabled, disclosure, visible }) => {
+    const { container } = render(<CourseTable courses={[{ ...testCourse, disclosure }]} unmaskPublicCourseInfo={enabled} />);
+    expect(container.querySelectorAll("[data-clarity-unmask]")).toHaveLength(visible ? 3 : 0);
+    if (visible) {
+      for (const element of [screen.getByRole("heading", { name: testCourse.name }), screen.getByText("3학점"), screen.getByText("월 6")]) {
+        expect(element).toHaveAttribute("data-clarity-unmask", "true");
+      }
+    }
+    for (const element of [screen.getByText(testCourse.professor!), screen.getByText("공학관 101"), screen.getByRole("button", { name: `${testCourse.name} 관심 강의 추가` }), screen.getByRole("button", { name: `${testCourse.name} 여석 알림 받기` })]) {
+      expect(element.closest("[data-clarity-unmask]")).toBeNull();
+    }
   });
 
   it("카드 제목을 순서에 맞는 heading으로 렌더링하고 아이콘 버튼에 이름을 제공한다", () => {

@@ -1,18 +1,20 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryDispatch;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryFailureResult;
 import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.identity.user.dto.NotificationDevice;
-import bhoon.sugang_helper.identity.user.dto.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQuery;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
+import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
+import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionRecipientQuery;
+import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,8 +39,8 @@ public class SeatNotificationOutboxProcessor {
 
     private final SeatNotificationOutboxRepository outboxRepository;
     private final SeatNotificationDeliveryRepository deliveryRepository;
-    private final SubscriptionRecipientQuery subscriptionRecipientQuery;
-    private final UserNotificationQuery userNotificationQuery;
+    private final SubscriptionQueryService subscriptionQueryService;
+    private final UserNotificationQueryService userNotificationQuery;
     private final NotificationChannelPolicy notificationChannelPolicy;
     private final NotificationService notificationService;
     private final SeatNotificationDeliverySettlementService settlementService;
@@ -92,7 +94,7 @@ public class SeatNotificationOutboxProcessor {
             notificationService.deliverSeatOpening(
                     dispatch.userId(), dispatch.channel(), dispatch.outbox(), dispatch.idempotencyKey());
             if (!settlementService.markSent(claim)) {
-                log.info("[Notification Outbox] Ignored stale success settlement. deliveryId={}", claim.deliveryId());
+                log.info("[Notification Outbox] 선점이 바뀐 작업의 성공 정산 생략. deliveryId={}", claim.deliveryId());
             }
         } catch (RuntimeException e) {
             String failureCode = SensitiveDataRedactor.failureCode(e);
@@ -100,15 +102,17 @@ public class SeatNotificationOutboxProcessor {
             SeatNotificationDeliveryFailureResult result = settlementService.markFailure(
                     claim, failureCode, attempts);
             if (!result.settled()) {
-                log.info("[Notification Outbox] Ignored stale failure settlement. deliveryId={}", claim.deliveryId());
+                log.info("[Notification Outbox] 선점이 바뀐 작업의 실패 정산 생략. deliveryId={}", claim.deliveryId());
             } else if (result.deadLettered()) {
                 meterRegistry.counter("notification.outbox.dlq", CHANNEL_TAG, dispatch.channel().name()).increment();
-                log.error("[Notification Outbox] Delivery moved to DLQ. deliveryId={}, outboxId={}, channel={}, failureCode={}",
-                        claim.deliveryId(), dispatch.outbox().getId(), dispatch.channel(), failureCode);
+                log.error("[Notification Outbox] 발송 재시도 종료 후 DLQ 이동. deliveryId={}, outboxId={}, channel={}, failureCode={}, exceptionType={}",
+                        claim.deliveryId(), dispatch.outbox().getId(), dispatch.channel(), failureCode,
+                        SensitiveDataRedactor.exceptionType(e), SensitiveDataRedactor.safeStackTrace(e));
             } else {
                 meterRegistry.counter("notification.outbox.retry", CHANNEL_TAG, dispatch.channel().name()).increment();
-                log.warn("[Notification Outbox] Delivery scheduled for retry. deliveryId={}, attempts={}, channel={}, failureCode={}",
-                        claim.deliveryId(), result.attempts(), dispatch.channel(), failureCode);
+                log.warn("[Notification Outbox] 발송 재시도 예약. deliveryId={}, attempts={}, channel={}, failureCode={}, exceptionType={}",
+                        claim.deliveryId(), result.attempts(), dispatch.channel(), failureCode,
+                        SensitiveDataRedactor.exceptionType(e));
             }
         }
     }
@@ -133,7 +137,7 @@ public class SeatNotificationOutboxProcessor {
     }
 
     private void materializeDeliveries(SeatNotificationOutbox outbox) {
-        List<Long> recipientIds = subscriptionRecipientQuery.findActiveRecipientIds(outbox.getCourseKey());
+        List<Long> recipientIds = subscriptionQueryService.findActiveRecipientIds(outbox.getCourseKey());
         if (recipientIds.isEmpty()) {
             outbox.markCompleted();
             return;

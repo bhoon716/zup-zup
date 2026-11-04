@@ -10,6 +10,17 @@ describe("public metadata branding", () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("직접 반환된 공지 DTO를 서버 메타데이터에서 읽는다", async () => {
+    vi.stubEnv("API_URL", "http://metadata.test");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ id: 7, title: "점검 안내", content: "안내 내용" }),
+    }));
+    const metadata = await getAnnouncementMetadata(7);
+    expect(metadata.title).toBe("점검 안내 | 줍줍");
+    expect(metadata.description).toBe("안내 내용");
   });
 
   it("강의·공지 fallback metadata에도 공유 이미지를 유지한다", async () => {

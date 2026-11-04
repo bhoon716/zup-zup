@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.identity.user.service;
 
 import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.UserDashboardProfile;
+import bhoon.sugang_helper.identity.user.dto.result.UserDashboardProfile;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import java.util.Optional;
@@ -12,11 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserDashboardQueryService implements UserDashboardQuery {
+public class UserDashboardQueryService {
 
     private final UserRepository userRepository;
 
-    @Override
     public Optional<UserDashboardProfile> findCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmailOrNull();
         if (email == null) {

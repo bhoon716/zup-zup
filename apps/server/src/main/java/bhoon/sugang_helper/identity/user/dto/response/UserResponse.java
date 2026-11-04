@@ -1,9 +1,10 @@
 package bhoon.sugang_helper.identity.user.dto.response;
 
-import bhoon.sugang_helper.identity.user.dto.UserOnboardingResult;
-import bhoon.sugang_helper.identity.user.dto.UserProfileResult;
-import bhoon.sugang_helper.identity.user.dto.UserProfileUpdateResult;
-import bhoon.sugang_helper.identity.user.dto.UserSettingsResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserProfileResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserProfileUpdateResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserSettingsResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserOnboardingResult;
+
 import bhoon.sugang_helper.identity.user.entity.User;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

@@ -28,8 +28,8 @@ const fetchPublicData = async <T>(path: string): Promise<T | null> => {
       return null;
     }
 
-    const body = await response.json() as { data?: T };
-    return body.data ?? null;
+    const body = await response.json() as T;
+    return body ?? null;
   } catch {
     return null;
   }

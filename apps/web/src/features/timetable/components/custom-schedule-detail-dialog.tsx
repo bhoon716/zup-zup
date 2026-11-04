@@ -15,14 +15,14 @@ interface CustomScheduleDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/**
- * 커스텀 일정을 클릭했을 때 보여주는 상세 정보 및 삭제 다용로그입니다.
- */
+
+
+
 export function CustomScheduleDetailDialog({ block, timetableId, open, onOpenChange }: CustomScheduleDetailDialogProps) {
   const removeCustomSchedule = useRemoveCustomSchedule();
   const { data: timetable } = useTimetableDetail(timetableId, open && !!block);
 
-  // 현재 클릭된 일정의 전체 정보를 가져옵니다 (같은 그룹의 다른 시간대 포함)
+
   const fullSchedule = timetable?.customSchedules.find(s => s.id === block?.id);
 
   if (!block || !fullSchedule) return null;

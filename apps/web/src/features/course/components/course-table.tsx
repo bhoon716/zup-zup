@@ -34,6 +34,7 @@ import type { Course, Subscription, TimetableResponse, User, WishlistResponse } 
 
 interface CourseTableProps {
   courses: Course[];
+  unmaskPublicCourseInfo?: boolean;
   onLoadMore?: () => void;
   hasMore?: boolean;
   isFetchingNextPage?: boolean;
@@ -44,9 +45,9 @@ interface CourseTableProps {
   skipPersonalFetch?: boolean;
 }
 
-/**
- * 여석 상태에 따른 라벨 및 스타일 정보 반환
- */
+
+
+
 function getSeatStatus(available: number) {
   if (available <= 0) {
     return {
@@ -71,9 +72,9 @@ function getSeatStatus(available: number) {
   };
 }
 
-/**
- * 이수 구분에 따른 왼쪽 포인트 색상 반환
- */
+
+
+
 function getClassificationStripe(classification?: string) {
   const normalized = classification || "";
 
@@ -96,11 +97,12 @@ function getClassificationStripe(classification?: string) {
   return "bg-gray-400";
 }
 
-/**
- * 검색된 강의 목록을 표시하는 테이블 컴포넌트 (무한 스크롤 지원)
- */
+
+
+
 export function CourseTable({
   courses,
+  unmaskPublicCourseInfo = false,
   onLoadMore,
   hasMore,
   isFetchingNextPage,
@@ -142,9 +144,9 @@ export function CourseTable({
     [resolvedWishlist],
   );
 
-  /**
-   * 무한 스크롤을 위한 Intersection Observer 콜백
-   */
+
+
+
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const isIntersecting = entries.some((entry) => entry.isIntersecting);
@@ -174,9 +176,9 @@ export function CourseTable({
     };
   }, [handleObserver]);
 
-  /**
-   * 여석 알림 구독 상태를 토글 (구독 신청 또는 취소)
-   */
+
+
+
   const handleSubscribe = (courseKey: string) => {
     if (!resolvedUser) {
       setLoginModalOpen(true);
@@ -193,9 +195,9 @@ export function CourseTable({
     subscribe({ courseKey });
   };
 
-  /**
-   * 강의 카드를 클릭했을 때 해당 강의의 상세 정보를 다이얼로그로 표시
-   */
+
+
+
   const handleCourseClick = (course: Course) => {
     setSelectedCourse(course);
     setIsDialogOpen(true);
@@ -216,6 +218,7 @@ export function CourseTable({
       <div className="space-y-2.5">
         {courses.map((rawCourse, index) => {
           const course = normalizeCourse(rawCourse);
+          const clarityUnmask = unmaskPublicCourseInfo && course.disclosure === "공개" ? true : undefined;
           const subscription = subscriptionMap.get(course.courseKey);
           const subscribed = !!subscription;
           const wished = wishlistSet.has(course.courseKey);
@@ -246,7 +249,7 @@ export function CourseTable({
                           <span className="rounded border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
                             {formatClassification(course.classification)}
                           </span>
-                          <span className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
+                          <span data-clarity-unmask={clarityUnmask} className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
                             {course.credits || 0}학점
                           </span>
                           <span className="text-[10px] font-semibold tracking-wide text-gray-600">
@@ -254,7 +257,7 @@ export function CourseTable({
                           </span>
                         </div>
 
-                        <h2 className="mb-1 text-sm font-bold text-foreground md:mb-1.5 md:text-base">
+                        <h2 data-clarity-unmask={clarityUnmask} className="mb-1 text-sm font-bold text-foreground md:mb-1.5 md:text-base">
                           <button
                             type="button"
                             className="block max-w-full truncate rounded-sm text-left transition-colors group-hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -268,7 +271,7 @@ export function CourseTable({
                         </h2>
                       </div>
 
-                      {/* 모바일용 상단 우측 여석 상태 */}
+                      {                      }
                       <div className="flex items-center gap-2 pt-1 md:hidden">
                         <span
                           className={cn(
@@ -302,7 +305,7 @@ export function CourseTable({
 
                       <span className="flex items-center gap-1">
                         <Clock3 className="h-3 w-3 text-gray-400 md:h-3.5 md:w-3.5" />
-                        <span className="max-w-[120px] truncate md:max-w-none">
+                        <span data-clarity-unmask={clarityUnmask} className="max-w-[120px] truncate md:max-w-none">
                           {course.classTime || "시간 미배정"}
                         </span>
                       </span>
@@ -504,6 +507,7 @@ export function CourseTable({
 
       <CourseDetailDialog
         course={selectedCourse}
+        unmaskPublicCourseInfo={unmaskPublicCourseInfo}
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
       />

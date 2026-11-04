@@ -29,7 +29,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
-@SuppressWarnings("PMD.AvoidDuplicateLiterals") // Redis key fixtures intentionally repeat the verification namespace.
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class EmailVerificationServiceTest {
 
     private static final String EMAIL = "test@example.com";
@@ -52,7 +52,7 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("인증 코드를 생성하여 Redis에 저장하고 이메일을 발송한다")
     void sendCode() {
-        // given
+
         Long userId = 1L;
         ReflectionTestUtils.setField(emailVerificationService, "from", FROM);
         ReflectionTestUtils.setField(emailVerificationService, "fromName", FROM_NAME);
@@ -62,10 +62,10 @@ class EmailVerificationServiceTest {
         when(templateService.loadTemplate(eq("verification_code"), anyMap())).thenReturn("<html>HTML</html>");
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
 
-        // when
+
         emailVerificationService.sendCode(userId, EMAIL);
 
-        // then
+
         verify(redisService, times(1)).setValues(eq("EMAIL_CODE:" + userId + ":" + EMAIL), anyString(),
                 any(Duration.class));
         verify(javaMailSender, times(1)).send(any(MimeMessage.class));
@@ -74,7 +74,7 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("이메일 dispatch 실패 시 cooldown을 유지하고 예외를 발생시킨다")
     void sendCode_MailDispatchError_PreservesCooldown() {
-        // given
+
         Long userId = 1L;
         ReflectionTestUtils.setField(emailVerificationService, "from", FROM);
         ReflectionTestUtils.setField(emailVerificationService, "fromName", FROM_NAME);
@@ -84,7 +84,7 @@ class EmailVerificationServiceTest {
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         doThrow(new RuntimeException("Mail server error")).when(javaMailSender).send(any(MimeMessage.class));
 
-        // when & then
+
         assertThatThrownBy(() -> emailVerificationService.sendCode(userId, EMAIL, "192.0.2.10"))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_SEND_ERROR);
@@ -165,7 +165,7 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("올바른 코드로 인증을 완료한다")
     void verifyCode_Success() {
-        // given
+
         Long userId = 1L;
         String email = EMAIL;
         String code = CODE;
@@ -173,10 +173,10 @@ class EmailVerificationServiceTest {
 
         when(redisService.getValues(key)).thenReturn(code);
 
-        // when
+
         boolean result = emailVerificationService.verifyCode(userId, email, code);
 
-        // then
+
         assertThat(result).isTrue();
         verify(redisService).deleteValues(key);
         verify(redisService).setValues(eq("EMAIL_VERIFIED:" + userId + ":" + email), eq("true"), any(Duration.class));
@@ -185,17 +185,17 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("잘못된 코드로 인증 시도 시 실패한다")
     void verifyCode_WrongCode_ReturnsFalse() {
-        // given
+
         Long userId = 1L;
         String email = EMAIL;
         String key = "EMAIL_CODE:" + userId + ":" + email;
 
         when(redisService.getValues(key)).thenReturn("123456");
 
-        // when
+
         boolean result = emailVerificationService.verifyCode(userId, email, "654321");
 
-        // then
+
         assertThat(result).isFalse();
         verify(redisService, never()).deleteValues(anyString());
     }
@@ -215,17 +215,17 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("인증 여부를 확인한다")
     void isVerified() {
-        // given
+
         Long userId = 1L;
         String email = EMAIL;
         String key = "EMAIL_VERIFIED:" + userId + ":" + email;
 
         when(redisService.getValues(key)).thenReturn("true");
 
-        // when
+
         boolean result = emailVerificationService.isVerified(userId, email);
 
-        // then
+
         assertThat(result).isTrue();
     }
 

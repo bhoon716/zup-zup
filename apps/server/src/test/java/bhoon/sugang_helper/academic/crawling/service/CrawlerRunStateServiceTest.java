@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.academic.crawling.dto.CrawlerFailureSummary;
+import bhoon.sugang_helper.academic.crawling.dto.diagnostic.CrawlerFailureSummary;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerRunFailure;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerStatus;
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
