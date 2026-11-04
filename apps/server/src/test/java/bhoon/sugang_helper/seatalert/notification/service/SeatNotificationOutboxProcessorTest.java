@@ -137,14 +137,15 @@ class SeatNotificationOutboxProcessorTest {
     void claimReadyDeliveriesUsesBoundedFifoPageSize() {
         org.mockito.Mockito.doReturn(java.util.List.of()).when(deliveryRepository).findReadyForUpdate(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(Pageable.class));
+                org.mockito.ArgumentMatchers.any(), eq(NotificationChannel.FCM),
+                org.mockito.ArgumentMatchers.any(Pageable.class));
 
         processor.claimReadyDeliveries(4);
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
         verify(deliveryRepository).findReadyForUpdate(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(), pageable.capture());
+                org.mockito.ArgumentMatchers.any(), eq(NotificationChannel.FCM), pageable.capture());
         assertThat(pageable.getValue().getPageSize()).isEqualTo(4);
     }
 

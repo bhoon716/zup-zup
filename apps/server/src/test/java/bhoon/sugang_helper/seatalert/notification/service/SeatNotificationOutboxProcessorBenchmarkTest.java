@@ -99,12 +99,12 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
             processor.materializePendingOutboxes();
         }
 
-        int totalDeliveries = subscriberCount * NotificationChannel.values().length;
+        int totalDeliveries = subscriberCount * NotificationChannel.supportedChannels().size();
 
 
         long startLoopSave = System.nanoTime();
         for (long i = 1; i <= subscriberCount; i++) {
-            for (NotificationChannel channel : NotificationChannel.values()) {
+            for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
                 deliveryRepository.save(SeatNotificationDelivery.builder()
                         .outbox(outbox)
                         .userId(i)
@@ -126,7 +126,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
         System.out.println(" 📊 [ISSUE-148] Outbox 구체화 수동 성능 테스트 (Before vs After)");
         System.out.println("==================================================");
         System.out.printf("• 테스트 조건: 구독 유저 %,d 명 × %,d 개 채널 = 총 %,d 건 알림 대상\n",
-                subscriberCount, NotificationChannel.values().length, totalDeliveries);
+                subscriberCount, NotificationChannel.supportedChannels().size(), totalDeliveries);
         System.out.printf("• [Before] 루프 단건 save()  소요 시간: %.3f ms (DB 레포지토리 호출: %,d회)\n",
                 loopSaveMs, totalDeliveries);
         System.out.printf("• [After]  Bulk saveAll()    소요 시간: %.3f ms (DB 레포지토리 호출: 1회)\n",

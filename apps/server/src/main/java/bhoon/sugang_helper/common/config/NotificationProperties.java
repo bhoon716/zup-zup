@@ -6,6 +6,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record NotificationProperties(
         boolean email,
         boolean discord,
-        boolean webpush,
-        boolean fcm) {
+        boolean webpush) {
 }

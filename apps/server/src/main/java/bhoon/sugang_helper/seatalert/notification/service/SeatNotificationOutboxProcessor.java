@@ -73,8 +73,10 @@ public class SeatNotificationOutboxProcessor {
                 SeatNotificationDeliveryStatus.PENDING,
                 SeatNotificationDeliveryStatus.PROCESSING,
                 now,
+                NotificationChannel.FCM,
                 PageRequest.of(0, Math.max(1, limit)));
         return deliveries.stream()
+                .filter(delivery -> delivery.getChannel() != NotificationChannel.FCM)
                 .map(delivery -> {
                     String claimToken = delivery.claim(now.plusSeconds(leaseSeconds));
                     recordClaimLag(delivery, now);
@@ -85,7 +87,7 @@ public class SeatNotificationOutboxProcessor {
 
     public void processDelivery(SeatNotificationDeliveryClaim claim) {
         SeatNotificationDeliveryDispatch dispatch = settlementService.loadForDispatch(claim);
-        if (dispatch == null) {
+        if (dispatch == null || dispatch.channel() == NotificationChannel.FCM) {
             return;
         }
 
@@ -154,7 +156,7 @@ public class SeatNotificationOutboxProcessor {
             if (user == null) {
                 continue;
             }
-            for (NotificationChannel channel : NotificationChannel.values()) {
+            for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
                 if (!notificationChannelPolicy.isChannelEnabled(user, channel)
                         || notificationChannelPolicy.resolveTargets(user, devicesByUser.get(userId), channel).isEmpty()
                         || deliveryRepository.existsByOutboxIdAndUserIdAndChannel(outbox.getId(), userId, channel)) {
@@ -170,7 +172,8 @@ public class SeatNotificationOutboxProcessor {
         if (!deliveriesToSave.isEmpty()) {
             deliveryRepository.saveAll(deliveriesToSave);
         }
-        if (deliveryRepository.countByOutboxIdAndStatusIn(outbox.getId(), ACTIVE_DELIVERY_STATUSES) == 0) {
+        if (deliveryRepository.countByOutboxIdAndStatusInAndChannelNot(
+                outbox.getId(), ACTIVE_DELIVERY_STATUSES, NotificationChannel.FCM) == 0) {
             outbox.markCompleted();
         } else {
             outbox.markProcessing();

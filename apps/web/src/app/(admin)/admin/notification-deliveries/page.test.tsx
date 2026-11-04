@@ -72,6 +72,26 @@ describe("AdminNotificationDeliveriesPage", () => {
     });
   });
 
+  it("과거 FCM 실패는 조회할 수 있지만 재처리하지 않는다", () => {
+    const legacyDelivery = { ...delivery, channel: "FCM", lastError: "N002" };
+    mockUseAdminDlqNotificationDeliveries.mockReturnValue({
+      data: { content: [legacyDelivery], totalElements: 1 },
+      isLoading: false, isError: false, refetch: vi.fn(),
+    });
+    mockUseAdminNotificationDelivery.mockImplementation((id: number | null) => ({
+      data: id === delivery.id ? legacyDelivery : undefined,
+      isLoading: false, isError: false,
+    }));
+    render(<AdminNotificationDeliveriesPage />);
+    fireEvent.click(screen.getByRole("button", { name: /알고리즘/ }));
+    expect(screen.getByRole("button", { name: /알고리즘/ })).toHaveTextContent("FCM (지원 종료)");
+    expect(screen.getByText("FCM (지원 종료)", { selector: "dd" })).toBeVisible();
+    const replay = screen.getByRole("button", { name: "선택 delivery 재처리" });
+    expect(replay).toBeDisabled();
+    fireEvent.click(replay);
+    expect(mockReplay).not.toHaveBeenCalled();
+  });
+
   it("전체 DLQ를 페이지 이동으로 조회할 수 있다", async () => {
     const secondPageDelivery = {
       ...delivery,

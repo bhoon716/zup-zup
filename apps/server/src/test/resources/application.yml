@@ -108,10 +108,6 @@ app:
       email: ${APP_NOTIFICATION_EMAIL:true}
       discord: ${APP_NOTIFICATION_DISCORD:false}
       webpush: ${APP_NOTIFICATION_WEBPUSH:false}
-      fcm: ${APP_NOTIFICATION_FCM:false}
-
-  firebase:
-    config-path: ${FIREBASE_CONFIG_PATH:./src/main/resources/firebase/firebase-key.json}
   webpush:
     public-key: ${APP_WEBPUSH_PUBLIC_KEY:}
     private-key: ${APP_WEBPUSH_PRIVATE_KEY:}

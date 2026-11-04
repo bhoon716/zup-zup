@@ -78,7 +78,7 @@ class NotificationServiceTest {
         lenient().when(userNotificationQuery.findDevicesByUserId(anyLong()))
                 .thenAnswer(invocation -> devicesByUser.getOrDefault(invocation.getArgument(0), List.of()));
 
-        NotificationProperties props = new NotificationProperties(true, true, true, true);
+        NotificationProperties props = new NotificationProperties(true, true, true);
         NotificationChannelPolicy notificationChannelPolicy = new NotificationChannelPolicy(props);
         notificationService = new NotificationService(redisService, userNotificationQuery,
                 notificationHistoryRepository, List.of(notificationSender), notificationChannelPolicy,
@@ -206,18 +206,19 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("관리자 테스트 알림 발송 - 푸시 (FCM/WEB)")
+    @DisplayName("관리자 테스트 알림 발송 - 웹 푸시")
     void sendTestNotification_Push() {
 
         User user = User.builder().id(1L).email(EMAIL).build();
-        UserDevice device = UserDevice.builder().userId(1L).type(DeviceType.FCM).token(DEVICE_TOKEN).build();
+        UserDevice device = UserDevice.builder().userId(1L).type(DeviceType.WEB).token(DEVICE_TOKEN)
+                .p256dh("p256").auth("auth").build();
         addRecipient(user);
         addDevice(device);
 
-        given(notificationSender.supports(NotificationChannel.FCM)).willReturn(true);
+        given(notificationSender.supports(NotificationChannel.WEB)).willReturn(true);
 
 
-        notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.FCM));
+        notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.WEB));
 
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
@@ -282,7 +283,7 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("durable delivery는 네 채널에 provider-safe key를 전파하고 발송 이력을 남긴다")
+    @DisplayName("durable delivery는 지원하는 세 채널에 provider-safe key를 전파하고 발송 이력을 남긴다")
     void deliversSeatOpeningWithProviderSafeIdempotencyKey() {
 
         String canonicalKey = "d35e8a1f-3135-4f9b-92b3-635f0c9ea641";
@@ -307,19 +308,19 @@ class NotificationServiceTest {
                 .previousSeats(0)
                 .currentSeats(1)
                 .build();
-        for (NotificationChannel channel : NotificationChannel.values()) {
+        for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
             given(notificationSender.supports(channel)).willReturn(true);
         }
 
 
-        for (NotificationChannel channel : NotificationChannel.values()) {
+        for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
             notificationService.deliverSeatOpening(1L, channel, outbox, canonicalKey);
         }
 
 
-        verify(notificationSender, times(4)).send(any(NotificationTarget.class), anyString(), anyString(),
+        verify(notificationSender, times(3)).send(any(NotificationTarget.class), anyString(), anyString(),
                 eq(NotificationDeliveryIdempotencyKey.providerKey(canonicalKey)));
-        verify(notificationHistoryRepository, times(4)).save(any(NotificationHistory.class));
+        verify(notificationHistoryRepository, times(3)).save(any(NotificationHistory.class));
     }
 
     private void addRecipient(User user) {

@@ -100,10 +100,6 @@ app:
       email: true
       discord: true
       webpush: true
-      fcm: true
-
-  firebase:
-    config-path: ${FIREBASE_CONFIG_PATH}
   webpush:
     public-key: ${WEBPUSH_PUBLIC_KEY}
     private-key: ${WEBPUSH_PRIVATE_KEY}

@@ -5,12 +5,13 @@ workflow_file="${1:-.github/workflows/cd.yml}"
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 deploy_script="${repo_root}/infra/scripts/deploy-release.sh"
 
-python3 - "${workflow_file}" "${deploy_script}" <<'PY'
+python3 - "${workflow_file}" "${deploy_script}" "${repo_root}" <<'PY'
 import sys
 from pathlib import Path
 
 workflow = Path(sys.argv[1]).read_text(encoding="utf-8")
 deploy = Path(sys.argv[2]).read_text(encoding="utf-8")
+repo_root = Path(sys.argv[3])
 
 def require(text, fragment, message):
     if fragment not in text:
@@ -53,6 +54,16 @@ for fragment in (
 
 if '|| fail "observability data-plane smoke failed"' in deploy:
     raise SystemExit("observability smoke must not stop a ready application")
+
+for path in (
+    repo_root / ".github/workflows/ci.yml",
+    repo_root / "infra/scripts/deploy-release.sh",
+    repo_root / "infra/scripts/compose-observability-diagnostics.sh",
+):
+    content = path.read_text(encoding="utf-8")
+    for forbidden in ("FIREBASE_CONFIG_PATH", "ci-firebase.json", "firebase-key.json"):
+        if forbidden in content:
+            raise SystemExit(f"{path.name} must not require retired Firebase credentials: {forbidden}")
 
 print("minimal production CD contract passed")
 PY

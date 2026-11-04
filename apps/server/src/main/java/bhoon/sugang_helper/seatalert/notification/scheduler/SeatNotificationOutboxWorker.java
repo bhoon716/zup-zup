@@ -41,7 +41,7 @@ public class SeatNotificationOutboxWorker {
         }
         this.processor = processor;
         this.batchSize = batchSize;
-        for (NotificationChannel channel : NotificationChannel.values()) {
+        for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
             AtomicInteger inFlight = new AtomicInteger();
             inFlightByChannel.put(channel, inFlight);
 

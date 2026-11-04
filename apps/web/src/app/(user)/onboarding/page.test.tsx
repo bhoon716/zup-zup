@@ -73,7 +73,7 @@ describe("OnboardingPage", () => {
     expect(mockSubscribe).not.toHaveBeenCalled();
     expect(mockUnsubscribe).not.toHaveBeenCalled();
     expect(mockCompleteOnboarding).toHaveBeenCalledWith(
-      expect.objectContaining({ emailEnabled: true, webPushEnabled: false }), expect.any(Object),
+      expect.objectContaining({ emailEnabled: true, webPushEnabled: false, fcmEnabled: false }), expect.any(Object),
     );
     expect(mockReplace).toHaveBeenCalledWith("/");
   });

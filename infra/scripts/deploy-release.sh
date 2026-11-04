@@ -170,7 +170,6 @@ IMAGE_TAG=${sha}
 APP_BUILD_CONTEXT=${staging_dir}
 APP_ENV_FILE=${staging_dir}/apps/server/.env
 APP_PROD_CONFIG_PATH=${staging_dir}/application-prod.yml
-FIREBASE_CONFIG_PATH=${RELEASE_ROOT}/secrets/firebase-key.json
 EOF
 chmod 0600 "${compose_env}"
 compose_stage=(docker compose --project-name sugang-helper --env-file "${RUNTIME_ENV}" --env-file "${compose_env}" -f "${staging_dir}/docker-compose.yml")
@@ -213,7 +212,6 @@ IMAGE_TAG=${sha}
 APP_BUILD_CONTEXT=${RELEASE_ROOT}
 APP_ENV_FILE=${APP_ENV_FILE}
 APP_PROD_CONFIG_PATH=${RELEASE_ROOT}/application-prod.yml
-FIREBASE_CONFIG_PATH=${RELEASE_ROOT}/secrets/firebase-key.json
 EOF
 chmod 0600 "${runtime_env_tmp}"
 mv -f "${runtime_env_tmp}" "${runtime_env}"

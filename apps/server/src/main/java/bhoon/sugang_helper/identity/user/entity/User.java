@@ -91,11 +91,10 @@ public class User extends BaseEntity {
     }
 
     public void updateSettings(String notificationEmail, boolean emailEnabled, boolean webPushEnabled,
-                               boolean fcmEnabled, boolean discordEnabled) {
+                               boolean discordEnabled) {
         this.notificationEmail = notificationEmail;
         this.emailEnabled = emailEnabled;
         this.webPushEnabled = webPushEnabled;
-        this.fcmEnabled = fcmEnabled;
         this.discordEnabled = discordEnabled;
     }
 
@@ -111,11 +110,10 @@ public class User extends BaseEntity {
     }
 
     public void completeOnboarding(String notificationEmail, boolean emailEnabled, boolean webPushEnabled,
-                                   boolean fcmEnabled, boolean discordEnabled) {
+                                   boolean discordEnabled) {
         this.notificationEmail = notificationEmail;
         this.emailEnabled = emailEnabled;
         this.webPushEnabled = webPushEnabled;
-        this.fcmEnabled = fcmEnabled;
         this.discordEnabled = discordEnabled;
         this.onboardingCompleted = true;
     }
@@ -164,6 +162,6 @@ public class User extends BaseEntity {
     }
 
     public boolean hasEnabledNotificationChannels() {
-        return emailEnabled || fcmEnabled || webPushEnabled || discordEnabled;
+        return emailEnabled || webPushEnabled || discordEnabled;
     }
 }

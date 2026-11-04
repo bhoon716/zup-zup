@@ -20,14 +20,17 @@ public interface SeatNotificationDeliveryRepository extends JpaRepository<SeatNo
 
     long countByOutboxIdAndStatusNot(Long outboxId, SeatNotificationDeliveryStatus status);
 
-    long countByOutboxIdAndStatus(Long outboxId, SeatNotificationDeliveryStatus status);
+    long countByOutboxIdAndStatusAndChannelNot(
+            Long outboxId, SeatNotificationDeliveryStatus status, NotificationChannel excludedChannel);
 
-    long countByOutboxIdAndStatusIn(Long outboxId, List<SeatNotificationDeliveryStatus> statuses);
+    long countByOutboxIdAndStatusInAndChannelNot(
+            Long outboxId, List<SeatNotificationDeliveryStatus> statuses, NotificationChannel excludedChannel);
 
     Page<SeatNotificationDelivery> findByStatusOrderByDeadLetteredAtDescIdDesc(
             SeatNotificationDeliveryStatus status, Pageable pageable);
 
-    long deleteByStatusAndDeadLetteredAtBefore(SeatNotificationDeliveryStatus status, LocalDateTime cutoff);
+    long deleteByStatusAndDeadLetteredAtBeforeAndChannelNot(
+            SeatNotificationDeliveryStatus status, LocalDateTime cutoff, NotificationChannel excludedChannel);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select d from SeatNotificationDelivery d where d.id = :id")
@@ -48,13 +51,15 @@ public interface SeatNotificationDeliveryRepository extends JpaRepository<SeatNo
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select d from SeatNotificationDelivery d
-            where (d.status = :pending and d.nextAttemptAt <= :now)
-               or (d.status = :processing and d.lockedUntil < :now)
+            where d.channel <> :excludedChannel
+              and ((d.status = :pending and d.nextAttemptAt <= :now)
+               or (d.status = :processing and d.lockedUntil < :now))
             order by d.nextAttemptAt, d.id
             """)
     List<SeatNotificationDelivery> findReadyForUpdate(
             @Param("pending") SeatNotificationDeliveryStatus pending,
             @Param("processing") SeatNotificationDeliveryStatus processing,
             @Param("now") LocalDateTime now,
+            @Param("excludedChannel") NotificationChannel excludedChannel,
             Pageable pageable);
 }

@@ -2,7 +2,6 @@
 
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { registerAuthFailureHandler } from "@/shared/api/client";
-import { getFirebaseApp } from "@/shared/lib/firebase";
 import { resolveAllowedPwaUrl } from "@/shared/lib/pwa-navigation";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, Suspense } from "react";
@@ -92,7 +91,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
 
-    getFirebaseApp();
 
 
     void checkSession();
@@ -129,7 +127,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
             label: '보기',
             onClick: () => {
 
-              // eslint-disable-next-line @next/next/no-location-assign-relative-destination
               window.location.href = resolveAllowedPwaUrl(event.data.url, window.location.origin);
             },
           }

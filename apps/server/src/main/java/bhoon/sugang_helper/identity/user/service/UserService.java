@@ -80,6 +80,7 @@ public class UserService {
 
     @Transactional
     public UserSettingsResult updateSettings(UpdateSettingsCommand command) {
+        rejectRetiredFcm(command.fcmEnabled());
         User user = getCurrentUser();
 
         String newEmail = command.notificationEmail();
@@ -93,7 +94,6 @@ public class UserService {
                 command.notificationEmail(),
                 command.emailEnabled(),
                 command.webPushEnabled(),
-                command.fcmEnabled(),
                 command.discordEnabled());
         log.info("[User] 알림 설정 변경. userId={}, emailEnabled={}, webPushEnabled={}",
                 user.getId(), command.emailEnabled(), command.webPushEnabled());
@@ -126,6 +126,7 @@ public class UserService {
 
     @Transactional
     public UserOnboardingResult completeOnboarding(CompleteOnboardingCommand command) {
+        rejectRetiredFcm(command.fcmEnabled());
         User user = getCurrentUser();
         String newEmail = command.notificationEmail();
 
@@ -139,7 +140,6 @@ public class UserService {
                 newEmail,
                 command.emailEnabled(),
                 command.webPushEnabled(),
-                command.fcmEnabled(),
                 command.discordEnabled());
         log.info("[User] 초기 설정 완료. userId={}, emailFingerprint={}", user.getId(),
                 SensitiveDataRedactor.fingerprint(user.getEmail()));
@@ -215,4 +215,10 @@ public class UserService {
                 .filter(user -> !user.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
+    private void rejectRetiredFcm(boolean requested) {
+        if (requested) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "FCM 앱 푸시는 지원이 종료되었습니다.");
+        }
+    }
+
 }

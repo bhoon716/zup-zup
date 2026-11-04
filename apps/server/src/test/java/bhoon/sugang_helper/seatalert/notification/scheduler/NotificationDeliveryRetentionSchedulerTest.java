@@ -3,6 +3,7 @@ package bhoon.sugang_helper.seatalert.notification.scheduler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
+import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import java.time.LocalDateTime;
@@ -38,8 +39,9 @@ class NotificationDeliveryRetentionSchedulerTest {
         scheduler.removeExpiredDeadLetters();
 
         LocalDateTime latestExpectedCutoff = LocalDateTime.now().minusDays(30).plusSeconds(1);
-        verify(deliveryRepository).deleteByStatusAndDeadLetteredAtBefore(
-                org.mockito.ArgumentMatchers.eq(SeatNotificationDeliveryStatus.DLQ), cutoffCaptor.capture());
+        verify(deliveryRepository).deleteByStatusAndDeadLetteredAtBeforeAndChannelNot(
+                org.mockito.ArgumentMatchers.eq(SeatNotificationDeliveryStatus.DLQ), cutoffCaptor.capture(),
+                org.mockito.ArgumentMatchers.eq(NotificationChannel.FCM));
         assertThat(cutoffCaptor.getValue()).isBetween(earliestExpectedCutoff, latestExpectedCutoff);
     }
 }

@@ -32,6 +32,9 @@ public class UserDeviceService {
 
     @Transactional
     public void registerDevice(RegisterDeviceCommand command) {
+        if (command.type() == DeviceType.FCM) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "FCM 앱 푸시는 지원이 종료되었습니다.");
+        }
         User user = getCurrentUserOrThrow();
         if (command.type() == DeviceType.WEB) {
             webPushEndpointValidator.validate(command.token());

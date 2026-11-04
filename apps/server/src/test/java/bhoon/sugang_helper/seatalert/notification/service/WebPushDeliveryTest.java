@@ -244,7 +244,7 @@ class WebPushDeliveryTest {
     @TestConfiguration
     static class TestConfig {
         @Bean NotificationProperties notificationProperties() {
-            return new NotificationProperties(true, true, true, true);
+            return new NotificationProperties(true, true, true);
         }
         @Bean SimpleMeterRegistry meterRegistry() {
             return new SimpleMeterRegistry();

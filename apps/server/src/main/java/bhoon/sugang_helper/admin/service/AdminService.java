@@ -242,9 +242,6 @@ public class AdminService {
         if (user.emailEnabled()) {
             channels.add(NotificationChannel.EMAIL);
         }
-        if (user.fcmEnabled()) {
-            channels.add(NotificationChannel.FCM);
-        }
         if (user.webPushEnabled()) {
             channels.add(NotificationChannel.WEB);
         }

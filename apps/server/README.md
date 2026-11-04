@@ -56,9 +56,11 @@
 - Prometheus
 - MySQL, H2
 - Redis
-- Firebase Admin
 - Web Push
 - Apache Tika
+
+웹 푸시는 표준 Push API·VAPID를 사용하며 Firebase SDK나 Firebase 키 파일을 요구하지 않습니다.
+과거 FCM 데이터의 조회·DB 호환성은 유지합니다.
 
 ## 강의 수집 구조
 

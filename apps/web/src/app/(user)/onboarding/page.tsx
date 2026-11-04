@@ -20,7 +20,6 @@ interface OnboardingForm {
   notificationEmail: string;
   emailEnabled: boolean;
   webPushEnabled: boolean;
-  fcmEnabled: boolean;
   discordEnabled: boolean;
   deviceName: string;
 }
@@ -75,7 +74,6 @@ export default function OnboardingPage() {
       notificationEmail: "",
       emailEnabled: true,
       webPushEnabled: false,
-      fcmEnabled: false,
       discordEnabled: false,
     },
   });
@@ -243,7 +241,7 @@ export default function OnboardingPage() {
           notificationEmail: data.notificationEmail,
           emailEnabled: data.emailEnabled,
           webPushEnabled: data.webPushEnabled,
-          fcmEnabled: data.fcmEnabled,
+          fcmEnabled: false,
           discordEnabled: data.discordEnabled,
         },
         {

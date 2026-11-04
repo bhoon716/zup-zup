@@ -25,7 +25,6 @@ const settingsSchema = z.object({
   notificationEmail: z.string().email("유효한 이메일 주소를 입력해 주세요.").or(z.literal("")),
   emailEnabled: z.boolean(),
   webPushEnabled: z.boolean(),
-  fcmEnabled: z.boolean(),
   discordEnabled: z.boolean(),
 });
 
@@ -78,7 +77,6 @@ export const useSettingsPage = () => {
       notificationEmail: "",
       emailEnabled: true,
       webPushEnabled: true,
-      fcmEnabled: true,
       discordEnabled: false,
     },
   });
@@ -114,7 +112,6 @@ export const useSettingsPage = () => {
           notificationEmail: initialEmail,
           emailEnabled: userData.emailEnabled,
           webPushEnabled: userData.webPushEnabled,
-          fcmEnabled: userData.fcmEnabled,
           discordEnabled: userData.discordEnabled,
         });
 
@@ -266,7 +263,7 @@ export const useSettingsPage = () => {
 
     setIsSubmitting(true);
     try {
-      await updateSettings(values);
+      await updateSettings({ ...values, fcmEnabled: false });
       toast.success("알림 설정이 저장되었습니다.");
       const response = await getMyProfile();
       setUser(response);
@@ -274,7 +271,6 @@ export const useSettingsPage = () => {
         notificationEmail: response.notificationEmail || "",
         emailEnabled: response.emailEnabled,
         webPushEnabled: response.webPushEnabled,
-        fcmEnabled: response.fcmEnabled,
         discordEnabled: response.discordEnabled,
       });
       setAuthCode("");

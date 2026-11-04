@@ -122,13 +122,13 @@ class UserDeviceServiceTest {
     @DisplayName("디바이스 신규 등록 로그에 원문 토큰을 남기지 않는다")
     void registerDevice_New_DoesNotLogRawToken() {
 
-        String sensitiveToken = "sensitive-fcm-token-for-log-regression-test";
+        String sensitiveToken = "sensitive-web-push-endpoint-for-registration-log-test";
         mockUser();
         given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.empty());
 
 
         userDeviceService.registerDevice(
-                new RegisterDeviceCommand(DeviceType.FCM, sensitiveToken, null, null, "Personal phone"));
+                new RegisterDeviceCommand(DeviceType.WEB, sensitiveToken, "p256", "auth", "Personal phone"));
 
 
         assertThat(logAppender.list)

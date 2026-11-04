@@ -79,14 +79,14 @@ class SeatNotificationOutboxRecoveryTest {
         assertThat(deliveryClaims).hasSize(4);
         assertThat(deliveryRepository.findAll())
                 .extracting(SeatNotificationDelivery::getChannel)
-                .containsExactlyInAnyOrder(NotificationChannel.values());
+                .containsExactlyInAnyOrderElementsOf(NotificationChannel.supportedChannels());
         assertThat(deliveryRepository.findAll()).allSatisfy(delivery ->
                 assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.SENT));
         assertThat(processor.claimReadyDeliveries()).isEmpty();
         assertThat(outboxRepository.findById(outbox.getId())).get()
                 .extracting(SeatNotificationOutbox::getStatus)
                 .isEqualTo(SeatNotificationOutboxStatus.COMPLETED);
-        for (NotificationChannel channel : NotificationChannel.values()) {
+        for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
             verify(notificationService).deliverSeatOpening(eq(1L), eq(channel), any(), any());
         }
     }
@@ -96,7 +96,7 @@ class SeatNotificationOutboxRecoveryTest {
 
         @Bean
         NotificationProperties notificationProperties() {
-            return new NotificationProperties(true, true, true, true);
+            return new NotificationProperties(true, true, true);
         }
 
         @Bean

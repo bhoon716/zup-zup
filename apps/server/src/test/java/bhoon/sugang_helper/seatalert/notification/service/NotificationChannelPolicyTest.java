@@ -18,7 +18,7 @@ class NotificationChannelPolicyTest {
     @Test
     void resolveTargets_UsesNotificationEmailFallback() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
-                new NotificationProperties(true, true, true, true));
+                new NotificationProperties(true, true, true));
         NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, "notify@example.com",
                 false, false, false, false, null);
 
@@ -31,7 +31,7 @@ class NotificationChannelPolicyTest {
     @Test
     void resolveTargets_UsesWebDeviceDetails() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
-                new NotificationProperties(true, true, true, true));
+                new NotificationProperties(true, true, true));
         NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, null,
                 false, false, false, false, null);
         NotificationDevice device = new NotificationDevice(1L, NotificationDeviceType.WEB,
@@ -48,31 +48,31 @@ class NotificationChannelPolicyTest {
     @Test
     void isChannelEnabled_RequiresGlobalAndUserSettings() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
-                new NotificationProperties(true, false, true, true));
+                new NotificationProperties(true, false, true));
         NotificationRecipient user = new NotificationRecipient(1L, false, null, null,
                 true, false, true, true, "discord-id");
 
         assertThat(policy.isChannelEnabled(user, NotificationChannel.EMAIL)).isTrue();
         assertThat(policy.isChannelEnabled(user, NotificationChannel.DISCORD)).isFalse();
         assertThat(policy.isChannelEnabled(user, NotificationChannel.WEB)).isFalse();
-        assertThat(policy.isChannelEnabled(user, NotificationChannel.FCM)).isTrue();
+        assertThat(policy.isChannelEnabled(user, NotificationChannel.FCM)).isFalse();
     }
 
     @Test
     void userEnabledChannels_UsesOnlyUserPreferences() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
-                new NotificationProperties(false, false, false, false));
+                new NotificationProperties(false, false, false));
         NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, null,
                 true, false, true, false, null);
 
         assertThat(policy.userEnabledChannels(user))
-                .containsExactly(NotificationChannel.EMAIL, NotificationChannel.FCM);
+                .containsExactly(NotificationChannel.EMAIL);
     }
 
     @Test
     void isChannelEnabled_RejectsSoftDeletedUser() {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
-                new NotificationProperties(true, true, true, true));
+                new NotificationProperties(true, true, true));
         NotificationRecipient user = new NotificationRecipient(1L, true, USER_EMAIL, null,
                 true, false, false, false, null);
 

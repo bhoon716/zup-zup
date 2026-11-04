@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.scheduler;
 
+import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import java.time.LocalDateTime;
@@ -29,8 +30,9 @@ public class NotificationDeliveryRetentionScheduler {
     @Transactional
     public void removeExpiredDeadLetters() {
         long effectiveRetentionDays = Math.max(MINIMUM_RETENTION_DAYS, retentionDays);
-        long deletedCount = deliveryRepository.deleteByStatusAndDeadLetteredAtBefore(
-                SeatNotificationDeliveryStatus.DLQ, LocalDateTime.now().minusDays(effectiveRetentionDays));
+        long deletedCount = deliveryRepository.deleteByStatusAndDeadLetteredAtBeforeAndChannelNot(
+                SeatNotificationDeliveryStatus.DLQ, LocalDateTime.now().minusDays(effectiveRetentionDays),
+                NotificationChannel.FCM);
         log.info("[Notification Delivery] 보존 기간이 지난 DLQ 정리 완료. deletedCount={}", deletedCount);
     }
 }

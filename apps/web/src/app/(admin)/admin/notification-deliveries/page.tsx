@@ -28,7 +28,7 @@ import { Button } from "@/shared/ui/button";
 
 const CHANNEL_LABELS: Record<NotificationDeliveryChannel, string> = {
   EMAIL: "이메일",
-  FCM: "FCM",
+  FCM: "FCM (지원 종료)",
   WEB: "웹 푸시",
   DISCORD: "디스코드",
 };
@@ -97,7 +97,7 @@ export default function AdminNotificationDeliveriesPage() {
   };
 
   const handleReplay = async () => {
-    if (selectedId === null) return;
+    if (selectedId === null || selectedDelivery?.channel === "FCM") return;
     if (!window.confirm("원인 수정이 확인된 선택 delivery만 재처리합니다. 계속할까요?")) return;
 
     try {
@@ -255,7 +255,7 @@ export default function AdminNotificationDeliveriesPage() {
                     <Button
                       type="button"
                       onClick={() => void handleReplay()}
-                      disabled={replayMutation.isPending || selectedDelivery.status !== "DLQ"}
+                      disabled={replayMutation.isPending || selectedDelivery.status !== "DLQ" || selectedDelivery.channel === "FCM"}
                       className="gap-2 rounded-xl bg-primary text-xs font-bold text-white hover:bg-primary-dark"
                     >
                       {replayMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}

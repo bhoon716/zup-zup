@@ -129,7 +129,6 @@ dependencies {
     implementation 'org.springframework.session:spring-session-data-redis'
 
 
-    implementation 'com.google.firebase:firebase-admin:9.7.0'
 
 
     implementation 'nl.martijndwars:web-push:5.1.1'

@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
 import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
+import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.util.SecurityUtil;
@@ -49,6 +50,9 @@ public class AdminNotificationDeliveryService {
     public AdminNotificationDeliveryResponse replay(Long adminId, Long deliveryId, boolean forceSentReplay) {
         SeatNotificationDelivery delivery = deliveryRepository.findByIdForUpdate(deliveryId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+        if (delivery.getChannel() == NotificationChannel.FCM) {
+            throw new CustomException(ErrorCode.NOTIFICATION_DELIVERY_REPLAY_NOT_ALLOWED);
+        }
         SeatNotificationDeliveryStatus previousStatus = delivery.getStatus();
         if (previousStatus != SeatNotificationDeliveryStatus.DLQ
                 && !(previousStatus == SeatNotificationDeliveryStatus.SENT && forceSentReplay)) {
