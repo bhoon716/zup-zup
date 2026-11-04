@@ -1045,3 +1045,11 @@
 - shell 구문 5개와 CD·release-layout·runtime/local/observability Compose 렌더링 계약이 통과했다. Docker 서비스나 운영 컨테이너를 시작한 검증이 아니다.
 - 빌드된 JAR에 Firebase SDK·초기화·FCM 발송 클래스가 없고, npm lockfile에도 Firebase 패키지가 없음을 확인했다. 기존 Flyway 마이그레이션 변경은 없다.
 - 브라우저 검증은 가짜 측정 ID `G-LOCALTEST`·가짜 VAPID 키와 로컬 API·외부 DNS 차단으로 수행했다. 운영 이벤트·실계정·실제 푸시 수신 및 운영 DB 호환성은 검증하지 않았다. 운영 서버·커널·권한·credential은 변경하지 않았다.
+
+
+### 추가 검증: 격리 MySQL에서 과거 FCM 데이터의 읽기와 실행 제외를 확인한다
+
+- 사용자가 PR·CI·배포 진행과 함께 실제 DB 호환성의 검증 공백을 줄일 안전한 방법을 요청했다. 기존 CI의 `migrationTest` 경로에 최종 E2E `RetiredFcmMysqlEndToEndTest`를 추가한다.
+- 테스트는 Testcontainers MySQL 8.4의 새 빈 DB와 기존 Flyway 파일만 사용한다. 컨테이너가 제공한 접속 정보만 사용하며 운영 datasource·credential·실사용자 데이터를 읽지 않는다.
+- 합성 FCM 사용자·기기·과거 알림과 4개 delivery 상태, WEB 대조군으로 실제 Hibernate enum 읽기와 repository ready/count/retention 쿼리를 검증한다. 과거 FCM 행·상태·횟수·키·오류를 보존하면서 지원 WEB의 기존 처리 조건이 유지되는지 확인한다.
+- 로컬에서는 컴파일·Checkstyle·PMD만 확인했다. 실제 MySQL 실행은 PR의 기존 격리 CI에서 수행하며, 성공 전에는 실행 검증을 완료했다고 보고하지 않는다. 운영 DB 데이터 분포와 실제 운영 수신은 여전히 검증 대상이 아니다.
