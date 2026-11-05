@@ -43,7 +43,7 @@ describe('웹 푸시 기기 이름과 등록 주소', () => {
     await act(async () => { expect(await result.current.subscribe()).toBe(true); });
 
     expect(registerDevice).toHaveBeenCalledWith({
-      type: 'WEB', token: 'https://example.invalid/push', p256dh: 'fake', auth: 'fake', alias,
+      token: 'https://example.invalid/push', p256dh: 'fake', auth: 'fake', alias,
     });
   });
 
@@ -59,7 +59,7 @@ describe('웹 푸시 기기 이름과 등록 주소', () => {
       const { result, unmount } = renderHook(() => useWebPush());
       await act(async () => { expect(await result.current.subscribe(alias)).toBe(true); });
       expect(registerDevice).toHaveBeenLastCalledWith({
-        type: 'WEB', token: endpoint, p256dh: 'fake', auth: 'fake', alias,
+        token: endpoint, p256dh: 'fake', auth: 'fake', alias,
       });
       unmount();
     }

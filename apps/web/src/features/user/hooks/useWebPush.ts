@@ -39,7 +39,6 @@ export const useWebPush = () => {
       }
 
       await userApi.registerDevice({
-        type: 'WEB',
         token,
         p256dh,
         auth,

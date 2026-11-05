@@ -7,7 +7,6 @@ import bhoon.sugang_helper.academic.review.entity.CourseReview;
 import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
-import bhoon.sugang_helper.identity.user.enums.DeviceType;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
@@ -86,14 +85,12 @@ class UserDataConstraintTest {
     void userDeviceDuplicateConstraint() {
         userDeviceRepository.saveAndFlush(UserDevice.builder()
                 .userId(1L)
-                .type(DeviceType.WEB)
                 .token("token-1")
                 .alias("desktop")
                 .build());
 
         assertThatThrownBy(() -> userDeviceRepository.saveAndFlush(UserDevice.builder()
                 .userId(2L)
-                .type(DeviceType.WEB)
                 .token("token-1")
                 .alias("desktop-2")
                 .build()))

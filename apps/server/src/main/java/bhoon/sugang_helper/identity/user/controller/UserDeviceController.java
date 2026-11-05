@@ -37,7 +37,6 @@ public class UserDeviceController {
     @PostMapping
     public ResponseEntity<Void> registerDevice(@Valid @RequestBody UserDeviceRequest request) {
         userDeviceService.registerDevice(new RegisterDeviceCommand(
-                request.getType(),
                 request.getToken(),
                 request.getP256dh(),
                 request.getAuth(),

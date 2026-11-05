@@ -228,7 +228,6 @@ export interface NotificationHistory {
 
 export interface UserDevice {
   id: number;
-  type: 'WEB';
   token: string;
   p256dh?: string;
   auth?: string;
@@ -237,7 +236,6 @@ export interface UserDevice {
 }
 
 export interface UserDeviceRequest {
-  type: 'WEB';
   token: string;
   p256dh?: string;
   auth?: string;
@@ -246,7 +244,6 @@ export interface UserDeviceRequest {
 
 export interface UserDeviceResponse {
   id: number;
-  type: 'WEB';
   alias?: string;
   maskedToken: string;
   registeredAt: string;

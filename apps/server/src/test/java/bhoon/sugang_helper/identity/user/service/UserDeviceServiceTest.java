@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
@@ -18,7 +19,6 @@ import bhoon.sugang_helper.identity.user.dto.command.RegisterDeviceCommand;
 import bhoon.sugang_helper.identity.user.dto.result.UserDeviceResult;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
-import bhoon.sugang_helper.identity.user.enums.DeviceType;
 import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import ch.qos.logback.classic.Logger;
@@ -32,6 +32,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -39,6 +42,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class UserDeviceServiceTest {
 
     private static final String TEST_EMAIL = "test@example.com";
@@ -82,23 +86,32 @@ class UserDeviceServiceTest {
     @Test
     @DisplayName("디바이스 등록 - 신규 등록 성공")
     void registerDevice_New_Success() {
-
+        // given
         mockUser();
-        RegisterDeviceCommand request = new RegisterDeviceCommand(DeviceType.WEB, TOKEN, "P256DH", "AUTH", "Alias");
+        RegisterDeviceCommand request = new RegisterDeviceCommand(TOKEN, "P256DH", "AUTH", "Alias");
         given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.empty());
 
+        // when
         userDeviceService.registerDevice(request);
 
-        verify(userDeviceRepository, times(1)).save(any(UserDevice.class));
+        // then
+        verify(webPushEndpointValidator).validate(TOKEN);
+        ArgumentCaptor<UserDevice> savedDevice = ArgumentCaptor.forClass(UserDevice.class);
+        verify(userDeviceRepository).save(savedDevice.capture());
+        assertThat(savedDevice.getValue().getUserId()).isEqualTo(1L);
+        assertThat(savedDevice.getValue().getToken()).isEqualTo(TOKEN);
+        assertThat(savedDevice.getValue().getP256dh()).isEqualTo("P256DH");
+        assertThat(savedDevice.getValue().getAuth()).isEqualTo("AUTH");
+        assertThat(savedDevice.getValue().getAlias()).isEqualTo("Alias");
     }
 
     @Test
     @DisplayName("디바이스 등록 - 기존 디바이스 정보 업데이트")
     void registerDevice_Update_Success() {
-
+        // given
         mockUser();
         RegisterDeviceCommand request = new RegisterDeviceCommand(
-                DeviceType.WEB, TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
+                TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
         UserDevice existingDevice = spy(UserDevice.builder()
                 .userId(1L)
                 .token(TOKEN)
@@ -108,10 +121,33 @@ class UserDeviceServiceTest {
                 .build());
         given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.of(existingDevice));
 
+        // when
         userDeviceService.registerDevice(request);
 
+        // then
+        verify(webPushEndpointValidator).validate(TOKEN);
         verify(existingDevice, times(1)).updateToken(1L, TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
         verify(userDeviceRepository, times(0)).save(any(UserDevice.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "http://fcm.googleapis.com/fixture-web-push-endpoint",
+            "https://untrusted.example.invalid/fixture-web-push-endpoint",
+            "https://fcm.googleapis.com:444/fixture-web-push-endpoint"
+    })
+    void registerDevice_InvalidEndpointIsRejectedBeforeLookupOrSave(String endpoint) {
+        // given
+        mockUser();
+        UserDeviceService service = new UserDeviceService(
+                userDeviceRepository, userRepository, new WebPushEndpointValidator());
+        RegisterDeviceCommand request = new RegisterDeviceCommand(endpoint, "P256DH", "AUTH", "Alias");
+
+        // when & then
+        assertThatThrownBy(() -> service.registerDevice(request))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+        verifyNoInteractions(userDeviceRepository);
     }
 
     @Test
@@ -123,7 +159,7 @@ class UserDeviceServiceTest {
         given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.empty());
 
         userDeviceService.registerDevice(
-                new RegisterDeviceCommand(DeviceType.WEB, sensitiveToken, "p256", "auth", "Personal phone"));
+                new RegisterDeviceCommand(sensitiveToken, "p256", "auth", "Personal phone"));
 
         assertThat(logAppender.list)
                 .extracting(ILoggingEvent::getFormattedMessage)
@@ -141,7 +177,7 @@ class UserDeviceServiceTest {
         given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.of(existingDevice));
 
         userDeviceService.registerDevice(
-                new RegisterDeviceCommand(DeviceType.WEB, sensitiveToken, "P256DH", "AUTH", "Laptop"));
+                new RegisterDeviceCommand(sensitiveToken, "P256DH", "AUTH", "Laptop"));
 
         assertThat(logAppender.list)
                 .extracting(ILoggingEvent::getFormattedMessage)
@@ -155,7 +191,7 @@ class UserDeviceServiceTest {
 
         given(SecurityUtil.getCurrentUserEmail()).willReturn(TEST_EMAIL);
         given(userRepository.findByEmail(TEST_EMAIL)).willReturn(Optional.empty());
-        RegisterDeviceCommand request = new RegisterDeviceCommand(DeviceType.WEB, TOKEN, "P256DH", "AUTH", null);
+        RegisterDeviceCommand request = new RegisterDeviceCommand(TOKEN, "P256DH", "AUTH", null);
 
         assertThatThrownBy(() -> userDeviceService.registerDevice(request))
                 .isInstanceOf(CustomException.class)
@@ -192,7 +228,6 @@ class UserDeviceServiceTest {
 
         UserDevice device = UserDevice.builder()
                 .userId(1L)
-                .type(DeviceType.WEB)
                 .token(TOKEN)
                 .alias("Alias")
                 .build();

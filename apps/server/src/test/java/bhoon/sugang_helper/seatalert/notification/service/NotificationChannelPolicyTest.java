@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import java.util.List;
@@ -34,8 +33,7 @@ class NotificationChannelPolicyTest {
                 new NotificationProperties(true, true, true));
         NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, null,
                 false, false, false, null);
-        NotificationDevice device = new NotificationDevice(1L, NotificationDeviceType.WEB,
-                "endpoint", "p256", "auth");
+        NotificationDevice device = new NotificationDevice(1L, "endpoint", "p256", "auth");
 
         List<NotificationTarget> targets = policy.resolveTargets(user, List.of(device), NotificationChannel.WEB);
 

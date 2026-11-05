@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
@@ -66,7 +65,7 @@ class SeatNotificationOutboxRecoveryTest {
         when(subscriptionQueryService.findActiveRecipientIds("course-key")).thenReturn(List.of(1L));
         when(userNotificationQuery.findByIds(List.of(1L))).thenReturn(List.of(user));
         when(userNotificationQuery.findDevicesByUserIds(List.of(1L))).thenReturn(List.of(
-                new NotificationDevice(1L, NotificationDeviceType.WEB, "web-endpoint", "p256", "auth")));
+                new NotificationDevice(1L, "web-endpoint", "p256", "auth")));
 
         processor.materializePendingOutboxes();
         List<SeatNotificationDeliveryClaim> deliveryClaims = processor.claimReadyDeliveries();

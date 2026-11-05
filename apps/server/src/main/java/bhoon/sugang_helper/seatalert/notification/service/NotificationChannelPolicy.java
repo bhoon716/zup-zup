@@ -3,7 +3,6 @@ package bhoon.sugang_helper.seatalert.notification.service;
 import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import java.util.Arrays;
@@ -75,7 +74,6 @@ public class NotificationChannelPolicy {
         }
 
         return devices.stream()
-                .filter(device -> device.type() == NotificationDeviceType.WEB)
                 .map(device -> NotificationTarget.ofWeb(device.token(), device.p256dh(), device.auth()))
                 .toList();
     }

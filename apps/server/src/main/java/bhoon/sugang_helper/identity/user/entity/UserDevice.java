@@ -1,11 +1,8 @@
 package bhoon.sugang_helper.identity.user.entity;
 
 import bhoon.sugang_helper.common.entity.BaseTimeEntity;
-import bhoon.sugang_helper.identity.user.enums.DeviceType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -28,10 +25,6 @@ public class UserDevice extends BaseTimeEntity {
     @Column(nullable = false)
     private Long userId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private DeviceType type;
-
     @Column(nullable = false, unique = true, length = 500)
     private String token;
 
@@ -45,9 +38,8 @@ public class UserDevice extends BaseTimeEntity {
     private String alias;
 
     @Builder
-    public UserDevice(Long userId, DeviceType type, String token, String p256dh, String auth, String alias) {
+    public UserDevice(Long userId, String token, String p256dh, String auth, String alias) {
         this.userId = userId;
-        this.type = type;
         this.token = token;
         this.p256dh = p256dh;
         this.auth = auth;

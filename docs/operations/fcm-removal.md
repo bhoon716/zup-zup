@@ -4,19 +4,19 @@
 
 알림 채널은 EMAIL·WEB·DISCORD만 지원한다. FCM 플래그·타입·과거 응답 호환은 제거한다.
 표준 웹 푸시에서 사용하는 `fcm.googleapis.com`, VAPID와 서비스 워커는 유지한다.
-기존 migration 파일은 수정하지 않고 [V31](../../apps/server/src/main/resources/db/migration/V31__remove_fcm_data_and_settings.sql)을 적용한다.
+기존 migration 파일은 수정하지 않고 [V31](../../apps/server/src/main/resources/db/migration/V31__remove_fcm_data_and_settings.sql)과 [V32](../../apps/server/src/main/resources/db/migration/V32__remove_user_device_type.sql)를 순서대로 적용한다.
 
 ## 배포 순서
 
 1. 운영 대상 건수와 아래 보존 대상의 상태를 읽기 조회로 확인하고, 데이터·스키마 백업 및 복구 가능성을 확인한다.
-2. 새 웹을 배포하고 배포 완료를 확인한다. 구버전 탭은 지원하지 않으며 사용자가 전체 페이지를 새로고침해야 한다. 입력값 보존은 보장하지 않는다.
-3. DB·Redis를 실행해 준비 상태를 확인한다. 이번 변경은 DB 엔진 업데이트가 아니므로 DB를 중지하지 않는다.
-4. 앱만 중지한다. stop 성공 뒤 Compose의 app 컨테이너 조회와 각 Docker inspect가 성공하고 모두 `State.Running=false`인지 확인한다. 조회·상태 확인 실패나 실행 중인 대상이 있으면 migration을 실행하지 않는다. 조회가 성공하면서 기존 앱 컨테이너가 없는 경우는 허용한다.
-5. DB가 실행 중인 상태에서 Flyway migration을 적용한다.
-6. 새 앱을 시작하고 readiness와 지원 채널의 정상 동작을 확인한다.
+2. DB·Redis를 실행해 준비 상태를 확인한다. 이번 변경은 DB 엔진 업데이트가 아니므로 DB를 중지하지 않는다.
+3. 앱만 중지한다. stop 성공 뒤 Compose의 app 컨테이너 조회와 각 Docker inspect가 성공하고 모두 `State.Running=false`인지 확인한다. 조회·상태 확인 실패나 실행 중인 대상이 있으면 migration을 실행하지 않는다. 조회가 성공하면서 기존 앱 컨테이너가 없는 경우는 허용한다.
+4. DB가 실행 중인 상태에서 Flyway migration을 적용한다. V31 뒤 V32가 `user_devices.type`만 제거하며 기기 행·구독 키·토큰 고유 제약은 보존한다.
+5. 새 앱을 시작하고 readiness와 지원 채널의 정상 동작을 확인한다.
+6. 새 웹을 배포한다. 새 웹은 기기 등록에 `type`을 보내지 않으므로 이 필드를 필수로 받는 구 서버보다 먼저 공개하지 않는다. 구버전 탭은 지원하지 않으며 사용자가 전체 페이지를 새로고침해야 한다. 입력값 보존은 보장하지 않는다.
 
 API 버전 표식·전용 갱신 화면·공개 웹 준비 파일은 사용하지 않는다.
-웹과 서버의 자동 배포가 동시에 시작되면 새 웹 완료를 확인한 뒤 서버 배포를 진행하도록 운영 순서를 조정한다.
+웹과 서버 자동 배포의 완료 순서는 보장되지 않는다. 실제 배포 승인 시 서버·DB 전환 완료 뒤 새 웹을 공개하도록 기존 배포 절차에서 순서를 확인한다.
 앱 중지부터 새 앱 준비까지 API 중단이 발생한다.
 
 ## 삭제·보존 대상
@@ -33,6 +33,8 @@ API 버전 표식·전용 갱신 화면·공개 웹 준비 파일은 사용하�
 outbox는 남은 PENDING/PROCESSING 작업이 있으면 PROCESSING, 활성 작업 없이 DLQ가 있으면 DLQ, 둘 다 없으면 COMPLETED로 정산한다.
 아직 materialize되지 않은 PENDING과 관계없는 outbox, 지원 채널의 행, 같은 숫자 ID의 다른 종류 감사 기록은 보존한다.
 감사 행은 delivery 삭제 전에 ID와 target type으로 식별하며 JSON 문자열 검색으로 삭제 범위를 넓히지 않는다.
+
+V32는 단일값 컬럼을 제거하는 스키마 변경이다. 이전 서버는 해당 컬럼을 요구하므로 V32 이후 구버전 JAR만으로 복귀하지 않는다.
 
 ## 실패와 복구
 

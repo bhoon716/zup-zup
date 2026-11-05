@@ -21,8 +21,6 @@ import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
-import bhoon.sugang_helper.identity.user.enums.DeviceType;
-import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
@@ -33,6 +31,7 @@ import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -202,7 +201,7 @@ class NotificationServiceTest {
     void sendTestNotification_Push() {
 
         User user = User.builder().id(1L).email(EMAIL).build();
-        UserDevice device = UserDevice.builder().userId(1L).type(DeviceType.WEB).token(DEVICE_TOKEN)
+        UserDevice device = UserDevice.builder().userId(1L).token(DEVICE_TOKEN)
                 .p256dh("p256").auth("auth").build();
         addRecipient(user);
         addDevice(device);
@@ -283,7 +282,7 @@ class NotificationServiceTest {
                 .discordId("discord-id")
                 .build();
         addRecipient(user);
-        addDevice(UserDevice.builder().userId(1L).type(DeviceType.WEB)
+        addDevice(UserDevice.builder().userId(1L)
                 .token("web-endpoint").p256dh("p256").auth("auth").build());
         SeatNotificationOutbox outbox = SeatNotificationOutbox.builder()
                 .courseKey(COURSE_KEY)
@@ -318,9 +317,8 @@ class NotificationServiceTest {
     }
 
     private void addDevice(UserDevice device) {
-        NotificationDeviceType type = NotificationDeviceType.WEB;
-        devicesByUser.computeIfAbsent(device.getUserId(), ignored -> new java.util.ArrayList<>())
-                .add(new NotificationDevice(device.getUserId(), type, device.getToken(),
+        devicesByUser.computeIfAbsent(device.getUserId(), ignored -> new ArrayList<>())
+                .add(new NotificationDevice(device.getUserId(), device.getToken(),
                         device.getP256dh(), device.getAuth()));
     }
 }

@@ -12,7 +12,6 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
@@ -223,7 +222,7 @@ class WebPushDeliveryTest {
     }
 
     private static NotificationDevice device(String endpoint) {
-        return new NotificationDevice(1L, NotificationDeviceType.WEB, endpoint, "p256", "auth");
+        return new NotificationDevice(1L, endpoint, "p256", "auth");
     }
 
     private static NotificationProviderException invalidSubscription() {

@@ -160,7 +160,6 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 | AdminFeedbackReadRepository.FeedbackAttachmentAccess | support/feedback/dto/AdminFeedbackAttachmentAccess |
 | LocalFileUploadService.LoadedFile | common/dto/LoadedFile |
 | ImageUploadSanitizer.SanitizedImage | common/util/SanitizedImage（기존 package-private 접근성 유지） |
-| NotificationDevice.Type | identity/user/enums/NotificationDeviceType |
 
 미사용 NotificationContext는 제거했고, 소유자 내부에서만 쓰는 private 타입 11개는 유지했다: Circuit, WebPushPayload, NotificationMessage, 세 JWT 클래스의 RefreshTokenRecord, 이미지 출력 제한의 BoundedOutputStream/ImageOutputLimitExceededException, parser TimeRange, 검색 ValidScheduleCondition, 이메일 SendCooldownLease. 테스트 전용 보조 타입도 무차별 분리하지 않았다. 독립 검토에서 외부 공유 누락, 옛 중첩 참조, 선언 본문·애너테이션·factory 변경은 발견되지 않았다. DashboardSnapshotResponseContractTest의 실제 Jackson JSON 검사와 CustomScheduleRequestValidationTest의 cascade validation 등 기존 계약 테스트로 확인했다.
 

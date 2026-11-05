@@ -7,7 +7,6 @@ import bhoon.sugang_helper.identity.user.dto.command.RegisterDeviceCommand;
 import bhoon.sugang_helper.identity.user.dto.result.UserDeviceResult;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
-import bhoon.sugang_helper.identity.user.enums.DeviceType;
 import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
@@ -33,9 +32,7 @@ public class UserDeviceService {
     @Transactional
     public void registerDevice(RegisterDeviceCommand command) {
         User user = getCurrentUserOrThrow();
-        if (command.type() == DeviceType.WEB) {
-            webPushEndpointValidator.validate(command.token());
-        }
+        webPushEndpointValidator.validate(command.token());
 
         userDeviceRepository.findByToken(command.token())
                 .ifPresentOrElse(
@@ -49,7 +46,6 @@ public class UserDeviceService {
                         () -> {
                             UserDevice newDevice = UserDevice.builder()
                                     .userId(user.getId())
-                                    .type(command.type())
                                     .token(command.token())
                                     .p256dh(command.p256dh())
                                     .auth(command.auth())

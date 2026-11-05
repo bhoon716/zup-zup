@@ -224,7 +224,6 @@
 | `identity/user/contract/UserRegisteredEvent.java` | [identity/user/event/UserRegisteredEvent.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/event/UserRegisteredEvent.java) |
 | `identity/user/contract/UserSessionLogout.java` | [identity/user/service/UserSessionLogout.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/service/UserSessionLogout.java) |
 | `identity/user/contract/UserSubscriptionCleanup.java` | [identity/user/service/UserSubscriptionCleanup.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/service/UserSubscriptionCleanup.java) |
-| `identity/user/domain/DeviceType.java` | [identity/user/enums/DeviceType.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/enums/DeviceType.java) |
 | `identity/user/domain/Role.java` | [identity/user/enums/Role.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/enums/Role.java) |
 | `identity/user/domain/User.java` | [identity/user/entity/User.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/entity/User.java) |
 | `identity/user/domain/UserDevice.java` | [identity/user/entity/UserDevice.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/entity/UserDevice.java) |
