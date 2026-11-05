@@ -15,11 +15,9 @@ class UserNotificationTestControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {"/api/v1/notifications/test", "/api/v1/users/notifications/test"})
     void preservesBothExistingNotificationUrls(String path) throws Exception {
-        // given
         UserNotificationTestService service = mock(UserNotificationTestService.class);
         var mvc = MockMvcBuilders.standaloneSetup(new UserNotificationTestController(service)).build();
 
-        // when & then
         mvc.perform(post(path)).andExpect(status().isOk());
         verify(service).sendTestNotification();
     }

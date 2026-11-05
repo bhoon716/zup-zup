@@ -2,7 +2,6 @@ package bhoon.sugang_helper.common.api.cache;
 
 import java.time.Duration;
 
-/** 다른 모듈이 사용하는 RedisAccess 계약. */
 public interface RedisAccess {
 
     void setValues(String key, String data);

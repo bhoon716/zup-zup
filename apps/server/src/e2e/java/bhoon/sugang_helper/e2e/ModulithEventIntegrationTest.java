@@ -189,7 +189,6 @@ class ModulithEventIntegrationTest {
 
     @BeforeEach
     void resetThroughHttp() throws Exception {
-        // given: real security, HTTP, Redis and a fresh H2 fixture; no production configuration.
         assertThat(transactionManager).isInstanceOf(JpaTransactionManager.class);
         simulatedProviderCall = false;
         browser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
@@ -211,10 +210,8 @@ class ModulithEventIntegrationTest {
 
     @Test
     void fullApplicationDiscoversOutboxListenerAndCommitsOnce() throws Exception {
-        // when
         assertThat(post("/crawl?mode=commit").statusCode()).isEqualTo(200);
 
-        // then: no listener is manually imported or registered by this fixture.
         JsonNode state = state();
         assertThat(state.path("current").asInt()).isEqualTo(59);
         assertThat(state.path("history").asInt()).isEqualTo(1);
@@ -226,22 +223,17 @@ class ModulithEventIntegrationTest {
 
     @Test
     void callerFailureRollsBackCourseHistorySuccessAndOutbox() throws Exception {
-        // when
         assertThat(post("/crawl?mode=rollback").statusCode()).isEqualTo(500);
 
-        // then
         assertCatalogRolledBack(state());
     }
 
     @Test
     void outboxFailureRollsBackAnEarlierWrittenChunk() throws Exception {
-        // given
         doThrow(new IllegalStateException("forced isolated outbox failure")).when(outbox).save(any());
 
-        // when
         assertThat(post("/crawl?mode=chunk-failure").statusCode()).isEqualTo(500);
 
-        // then
         JsonNode state = state();
         assertCatalogRolledBack(state);
         assertThat(state.path("courses").asInt()).isEqualTo(1);
@@ -249,10 +241,8 @@ class ModulithEventIntegrationTest {
 
     @Test
     void fullApplicationDiscoversBothWithdrawalListeners() throws Exception {
-        // when
         assertThat(post("/withdraw?rollback=false").statusCode()).isEqualTo(200);
 
-        // then
         JsonNode state = state();
         assertThat(state.path("withdrawn").asInt()).isEqualTo(1);
         assertThat(state.path("activeSubscriptions").asInt()).isZero();
@@ -262,29 +252,23 @@ class ModulithEventIntegrationTest {
 
     @Test
     void callerFailureRollsBackAllWithdrawalListeners() throws Exception {
-        // when
         assertThat(post("/withdraw?rollback=true").statusCode()).isEqualTo(500);
 
-        // then
         assertWithdrawalRolledBack(state());
     }
 
     @Test
     void withdrawalListenerFailureReachesHttpAndRollsBackAccount() throws Exception {
-        // given
         doThrow(new IllegalStateException("forced isolated feedback failure"))
                 .when(feedback).findAllByUserId(any());
 
-        // when
         assertThat(post("/withdraw?rollback=false").statusCode()).isEqualTo(500);
 
-        // then
         assertWithdrawalRolledBack(state());
     }
 
     @Test
     void automaticallyRegisteredListenersRejectEventsOutsideATransaction() throws Exception {
-        // when & then
         assertThat(post("/outside?event=seat").statusCode()).isEqualTo(500);
         assertThat(post("/outside?event=withdrawal").statusCode()).isEqualTo(500);
         assertCatalogRolledBack(state());
@@ -293,15 +277,12 @@ class ModulithEventIntegrationTest {
 
     @Test
     void popularitySortingAndPaginationKeepTheExistingQuerySemantics() throws Exception {
-        // given
         assertThat(post("/seed-search").statusCode()).isEqualTo(200);
 
-        // when
         JsonNode first = search(Map.of("sortBy", "popular", "sortOrder", "desc"), 0);
         JsonNode second = search(Map.of("sortBy", "popular", "sortOrder", "desc"), 1);
         JsonNode ascending = search(Map.of("sortBy", "popular", "sortOrder", "asc"), 0);
 
-        // then
         assertThat(first.path("content").size()).isEqualTo(30);
         assertThat(second.path("content").size()).isEqualTo(6);
         assertThat(first.path("last").asBoolean()).isFalse();
@@ -317,24 +298,19 @@ class ModulithEventIntegrationTest {
 
     @Test
     void wishedOnlySearchUsesTheAuthenticatedUserAcrossTheModuleContract() throws Exception {
-        // given
         assertThat(post("/seed-search").statusCode()).isEqualTo(200);
         loginFixture();
 
-        // when
         JsonNode result = search(Map.of("isWishedOnly", true, "userId", 999999L), 0);
 
-        // then
         assertThat(result.path("content").size()).isEqualTo(1);
         assertThat(result.path("content").get(0).path("courseKey").asText()).isEqualTo("modulith-course-b");
     }
 
     @Test
     void bothNotificationUrlsReachTheMovedUseCaseWithRealSecurityAndCsrf() throws Exception {
-        // given
         loginFixture();
 
-        // when & then
         for (String path : List.of("/api/v1/notifications/test", "/api/v1/users/notifications/test")) {
             HttpResponse<String> response = apiPost(path, Map.of());
             assertThat(response.statusCode()).isEqualTo(400);
@@ -346,7 +322,6 @@ class ModulithEventIntegrationTest {
 
     @Test
     void providerFailureDoesNotRollbackTheCommittedCatalogAndSchedulesRetry() throws Exception {
-        // given
         simulatedProviderCall = true;
         given(emailSender.supports(NotificationChannel.EMAIL)).willReturn(true);
         doThrow(new NotificationProviderException(ErrorCode.EMAIL_SEND_ERROR, true,
@@ -355,10 +330,8 @@ class ModulithEventIntegrationTest {
         assertThat(post("/enable-email").statusCode()).isEqualTo(200);
         assertThat(post("/crawl?mode=commit").statusCode()).isEqualTo(200);
 
-        // when
         HttpResponse<String> response = post("/dispatch");
 
-        // then
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(mapper.readTree(response.body()).path("claimed").asInt()).isEqualTo(1);
         verify(emailSender).send(any(), anyString(), anyString(), anyString());
@@ -372,14 +345,11 @@ class ModulithEventIntegrationTest {
 
     @Test
     void administratorReplayAndAuditCommitTogether() throws Exception {
-        // given
         long deliveryId = seedDeadLetterAndLoginAdmin();
 
-        // when
         HttpResponse<String> response = apiPost("/api/v1/admin/notification-deliveries/" + deliveryId
                 + "/replay", Map.of());
 
-        // then
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(state().path("pendingDeliveries").asInt()).isEqualTo(1);
         assertThat(state().path("audit").asInt()).isEqualTo(1);
@@ -387,15 +357,12 @@ class ModulithEventIntegrationTest {
 
     @Test
     void auditFailureRollsBackAdministratorReplay() throws Exception {
-        // given
         long deliveryId = seedDeadLetterAndLoginAdmin();
         doThrow(new IllegalStateException("isolated audit failure")).when(audits).save(any());
 
-        // when
         HttpResponse<String> response = apiPost("/api/v1/admin/notification-deliveries/" + deliveryId
                 + "/replay", Map.of());
 
-        // then
         assertThat(response.statusCode()).isEqualTo(500);
         JsonNode state = state();
         assertThat(state.path("pendingDeliveries").asInt()).isZero();

@@ -29,27 +29,22 @@ class UserNotificationTestServiceTest {
 
     @Test
     void sendsForTheAuthenticatedActiveRecipient() {
-        // given
         given(recipients.findByEmail(EMAIL)).willReturn(Optional.of(recipient(false, true)));
         try (var security = mockStatic(SecurityUtil.class)) {
             security.when(SecurityUtil::getCurrentUserEmail).thenReturn(EMAIL);
 
-            // when
             service.sendTestNotification();
 
-            // then
             verify(notifications).sendUserTestNotification(1L);
         }
     }
 
     @Test
     void rejectsDisabledChannelsBeforeSending() {
-        // given
         given(recipients.findByEmail(EMAIL)).willReturn(Optional.of(recipient(false, false)));
         try (var security = mockStatic(SecurityUtil.class)) {
             security.when(SecurityUtil::getCurrentUserEmail).thenReturn(EMAIL);
 
-            // when & then
             assertThatThrownBy(service::sendTestNotification).isInstanceOfSatisfying(CustomException.class,
                     exception -> assertThat(exception.getErrorCode())
                             .isEqualTo(ErrorCode.INVALID_INPUT));
@@ -59,12 +54,10 @@ class UserNotificationTestServiceTest {
 
     @Test
     void rejectsWithdrawnRecipients() {
-        // given
         given(recipients.findByEmail(EMAIL)).willReturn(Optional.of(recipient(true, true)));
         try (var security = mockStatic(SecurityUtil.class)) {
             security.when(SecurityUtil::getCurrentUserEmail).thenReturn(EMAIL);
 
-            // when & then
             assertThatThrownBy(service::sendTestNotification).isInstanceOfSatisfying(CustomException.class,
                     exception -> assertThat(exception.getErrorCode())
                             .isEqualTo(ErrorCode.USER_UNAUTHORIZED));
@@ -74,12 +67,10 @@ class UserNotificationTestServiceTest {
 
     @Test
     void rejectsMissingRecipients() {
-        // given
         given(recipients.findByEmail(EMAIL)).willReturn(Optional.empty());
         try (var security = mockStatic(SecurityUtil.class)) {
             security.when(SecurityUtil::getCurrentUserEmail).thenReturn(EMAIL);
 
-            // when & then
             assertThatThrownBy(service::sendTestNotification).isInstanceOf(CustomException.class);
             verifyNoInteractions(notifications);
         }

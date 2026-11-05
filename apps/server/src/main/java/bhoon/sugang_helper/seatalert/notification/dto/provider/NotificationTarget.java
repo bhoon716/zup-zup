@@ -5,9 +5,9 @@ import lombok.Getter;
 
 @Getter
 public class NotificationTarget {
-    private final String recipient; // 이메일, Discord 수신자, 웹 푸시 엔드포인트
-    private final String p256dh; // 웹푸시 전용 공개키
-    private final String auth; // 웹푸시 전용 인증키
+    private final String recipient;
+    private final String p256dh;
+    private final String auth;
 
     @Builder
     private NotificationTarget(String recipient, String p256dh, String auth) {

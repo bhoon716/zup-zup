@@ -81,7 +81,6 @@ class SynchronousModuleEventsTest {
 
     @Test
     void outboxListenerJoinsTheCallingTransactionAndThread() throws Exception {
-        // given
         Thread caller = Thread.currentThread();
         given(repository.save(any())).willAnswer(invocation -> {
             assertThat(Thread.currentThread()).isSameAs(caller);
@@ -92,10 +91,8 @@ class SynchronousModuleEventsTest {
             return invocation.getArgument(0);
         });
 
-        // when
         new TransactionTemplate(transactions).executeWithoutResult(status -> publish());
 
-        // then
         verify(repository).save(any());
         verify(dataSource).getConnection();
         verify(connection).commit();
@@ -104,11 +101,9 @@ class SynchronousModuleEventsTest {
 
     @Test
     void outboxFailureReachesTheCallerAndRollsBackItsTransaction() throws Exception {
-        // given
         IllegalStateException failure = new IllegalStateException("forced outbox failure");
         doThrow(failure).when(repository).save(any());
 
-        // when & then
         assertThatThrownBy(() -> new TransactionTemplate(transactions).executeWithoutResult(status -> publish()))
                 .isSameAs(failure);
         verify(connection).rollback();
@@ -117,7 +112,6 @@ class SynchronousModuleEventsTest {
 
     @Test
     void eventOutsideATransactionCannotPersistAnOutbox() {
-        // when & then
         assertThatThrownBy(this::publish).isInstanceOf(IllegalTransactionStateException.class);
         verifyNoInteractions(repository);
         verifyNoInteractions(dataSource);
@@ -125,13 +119,11 @@ class SynchronousModuleEventsTest {
 
     @Test
     void atomicListenersArePlainSynchronousListenersWithMandatoryPropagation() throws Exception {
-        // given
         List<Method> listeners = List.of(
                 SubscriptionAccountLifecycleService.class.getMethod("onUserWithdrawn", UserWithdrawnEvent.class),
                 FeedbackAccountLifecycleService.class.getMethod("onUserWithdrawn", UserWithdrawnEvent.class));
         AnnotationTransactionAttributeSource annotations = new AnnotationTransactionAttributeSource();
 
-        // when & then
         for (Method listener : listeners) {
             assertThat(AnnotatedElementUtils.hasAnnotation(listener, EventListener.class)).isTrue();
             assertThat(AnnotatedElementUtils.hasAnnotation(listener, TransactionalEventListener.class)).isFalse();

@@ -86,15 +86,12 @@ class UserDeviceServiceTest {
     @Test
     @DisplayName("디바이스 등록 - 신규 등록 성공")
     void registerDevice_New_Success() {
-        // given
         mockUser();
         RegisterDeviceCommand request = new RegisterDeviceCommand(TOKEN, "P256DH", "AUTH", "Alias");
         given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.empty());
 
-        // when
         userDeviceService.registerDevice(request);
 
-        // then
         verify(webPushEndpointValidator).validate(TOKEN);
         ArgumentCaptor<UserDevice> savedDevice = ArgumentCaptor.forClass(UserDevice.class);
         verify(userDeviceRepository).save(savedDevice.capture());
@@ -108,7 +105,6 @@ class UserDeviceServiceTest {
     @Test
     @DisplayName("디바이스 등록 - 기존 디바이스 정보 업데이트")
     void registerDevice_Update_Success() {
-        // given
         mockUser();
         RegisterDeviceCommand request = new RegisterDeviceCommand(
                 TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
@@ -121,10 +117,8 @@ class UserDeviceServiceTest {
                 .build());
         given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.of(existingDevice));
 
-        // when
         userDeviceService.registerDevice(request);
 
-        // then
         verify(webPushEndpointValidator).validate(TOKEN);
         verify(existingDevice, times(1)).updateToken(1L, TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
         verify(userDeviceRepository, times(0)).save(any(UserDevice.class));
@@ -137,13 +131,11 @@ class UserDeviceServiceTest {
             "https://fcm.googleapis.com:444/fixture-web-push-endpoint"
     })
     void registerDevice_InvalidEndpointIsRejectedBeforeLookupOrSave(String endpoint) {
-        // given
         mockUser();
         UserDeviceService service = new UserDeviceService(
                 userDeviceRepository, userRepository, new WebPushEndpointValidator());
         RegisterDeviceCommand request = new RegisterDeviceCommand(endpoint, "P256DH", "AUTH", "Alias");
 
-        // when & then
         assertThatThrownBy(() -> service.registerDevice(request))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);

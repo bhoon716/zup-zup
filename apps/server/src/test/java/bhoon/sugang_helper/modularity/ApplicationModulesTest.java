@@ -10,10 +10,8 @@ class ApplicationModulesTest {
 
     @Test
     void modulesHaveNoCyclesOrUndeclaredInternalDependencies() {
-        // given
         ApplicationModules modules = ApplicationModules.of(SugangHelperApplication.class);
 
-        // when & then
         modules.verify();
         assertThat(modules.stream().map(module -> module.getIdentifier().toString()))
                 .containsExactlyInAnyOrder("academic", "admin", "audit", "campus", "common",

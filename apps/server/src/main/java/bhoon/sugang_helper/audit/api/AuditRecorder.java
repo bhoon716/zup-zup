@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.audit.api;
 
-/** 다른 모듈이 사용하는 AuditRecorder 계약. */
 public interface AuditRecorder {
 
     void recordStatusChange(Long adminId, Long feedbackId, String previousStatus, String newStatus);

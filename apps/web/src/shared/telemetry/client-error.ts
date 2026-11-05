@@ -132,6 +132,5 @@ export function reportClientError(error: unknown, context: ClientErrorContext) {
     }
     analyticsWindow.clarity?.("event", "client_error");
   } catch {
-    // Client telemetry must never change the fallback or request error behavior.
   }
 }

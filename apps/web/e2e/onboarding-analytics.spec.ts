@@ -18,7 +18,6 @@ async function captureEvents(page: Page, baseURL: string) {
     };
     Reflect.deleteProperty(window, "PushManager");
   });
-  // 분석 스크립트/수집을 포함한 모든 외부 요청을 차단한다.
   await page.route("**/*", route => new URL(route.request().url()).origin === new URL(baseURL).origin
     ? route.continue() : route.abort());
   return events;
@@ -36,7 +35,6 @@ test("온보딩 시작은 새로고침·뒤로가기·앞으로가기에서 중�
   await expect.poll(() => events.map(event => event[1])).toEqual(["onboarding_started"]);
   await page.reload();
   await expect(page.getByRole("button", { name: "완료", exact: true })).toBeVisible();
-  // 가드가 있는 앱 화면 대신 로컬 정적 문서로 이동하여 실제 문서 복귀를 확인한다.
   await page.goto("/manifest.json");
   await page.goBack();
   await expect(page.getByRole("button", { name: "완료", exact: true })).toBeVisible();
@@ -94,7 +92,6 @@ test("저장 대기·중복 제출·503 실패 후 재시도 성공을 구분하
     { send_to: "G-LOCALTEST", page_path: "/onboarding", page_location: `${baseURL}/onboarding`, failure_reason: "server" },
     { send_to: "G-LOCALTEST", page_path: "/onboarding", page_location: `${baseURL}/onboarding` },
   ]);
-  // 완료된 사용자가 다시 들어와도 시작/완료를 추가하지 않는다.
   await page.goto("/onboarding");
   await expect(page).toHaveURL(/\/$/);
   expect(events).toHaveLength(3);

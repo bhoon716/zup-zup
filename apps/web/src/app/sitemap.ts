@@ -75,7 +75,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     }
   } catch {
-    // Ignore fetch errors during build
   }
 
   return [...staticRoutes, ...dynamicRoutes];

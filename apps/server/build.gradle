@@ -172,7 +172,6 @@ task performanceTest(type: Test) {
     }
 }
 
-// DB나 애플리케이션 컨텍스트를 시작하지 않는 모듈 모델 검증·문서 생성.
 tasks.register('modulithDocs', Test) {
     group = 'documentation'
     description = 'Generates documentation from the verified application module model.'
@@ -186,7 +185,6 @@ tasks.register('modulithDocs', Test) {
     reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/modulithDocs')
 }
 
-// 전체 앱의 HTTP E2E를 일반 테스트 fixture와 분리해 자동 탐색을 검증한다.
 sourceSets {
     modulithE2e {
         java.srcDir 'src/e2e/java'

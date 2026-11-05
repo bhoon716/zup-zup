@@ -75,7 +75,7 @@ public class CourseSearchCondition {
     private Boolean isAvailableOnly;
 
     @Size(max = 10)
-    private String dayOfWeek; // 예: MO, TU
+    private String dayOfWeek;
 
     @Valid
     @Size(max = 20)

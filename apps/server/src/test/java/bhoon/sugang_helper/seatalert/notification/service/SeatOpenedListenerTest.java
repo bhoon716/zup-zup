@@ -17,16 +17,13 @@ class SeatOpenedListenerTest {
 
     @Test
     void synchronouslyDelegatesToTheExistingOutbox() throws Exception {
-        // given
         SeatNotificationOutboxService service = mock(SeatNotificationOutboxService.class);
         SeatOpenedListener listener = new SeatOpenedListener(service);
         SeatOpenedEvent event = new SeatOpenedEvent("course", "강의", "교수", 0, 1);
         var method = SeatOpenedListener.class.getMethod("on", SeatOpenedEvent.class);
 
-        // when
         listener.on(event);
 
-        // then
         verify(service).enqueue(event);
         assertThat(AnnotatedElementUtils.hasAnnotation(method, EventListener.class)).isTrue();
         assertThat(AnnotatedElementUtils.hasAnnotation(method, Async.class)).isFalse();
@@ -35,14 +32,12 @@ class SeatOpenedListenerTest {
 
     @Test
     void outboxFailureIsNotSwallowed() {
-        // given
         SeatNotificationOutboxService service = mock(SeatNotificationOutboxService.class);
         SeatOpenedListener listener = new SeatOpenedListener(service);
         SeatOpenedEvent event = new SeatOpenedEvent("course", "강의", "교수", 0, 1);
         IllegalStateException failure = new IllegalStateException("forced outbox failure");
         doThrow(failure).when(service).enqueue(event);
 
-        // when & then
         assertThatThrownBy(() -> listener.on(event)).isSameAs(failure);
     }
 }

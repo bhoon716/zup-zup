@@ -96,7 +96,6 @@ export const useCompleteOnboarding = (accountId?: number) => {
     mutationFn: async (request: Parameters<typeof userApi.completeOnboarding>[0]) => {
       try {
         const response = await userApi.completeOnboarding(request);
-        // 화면 이탈이나 인증 스토어 갱신에 따른 언마운트에도 실제 저장 결과를 기록한다.
         trackOnboardingCompleted(accountId);
         return response;
       } catch (error) {

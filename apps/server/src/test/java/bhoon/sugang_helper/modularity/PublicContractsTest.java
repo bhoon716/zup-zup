@@ -14,7 +14,6 @@ class PublicContractsTest {
 
     @Test
     void publicContractsDoNotExposeBusinessImplementationTypes() {
-        // given
         JavaClasses application = new ClassFileImporter()
                 .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
                 .importPackages("bhoon.sugang_helper");
@@ -22,7 +21,6 @@ class PublicContractsTest {
         assertThat(application.stream().filter(type -> !type.getName().endsWith(".package-info"))
                 .filter(type -> type.isAnnotatedWith(NamedInterface.class))).isEmpty();
 
-        // when & then
         noClasses().that().resideInAnyPackage("..api..", "..events..")
                 .should().dependOnClassesThat()
                 .resideInAnyPackage("bhoon.sugang_helper..entity..", "bhoon.sugang_helper..repository..",

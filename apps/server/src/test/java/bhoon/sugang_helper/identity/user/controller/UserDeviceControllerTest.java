@@ -46,19 +46,16 @@ class UserDeviceControllerTest {
 
     @Test
     void registrationAcceptsWebPushKeysWithoutType() throws Exception {
-        // given
         String endpoint = "https://fcm.googleapis.com/fixture-web-push-endpoint";
         String body = """
                 {"token":"https://fcm.googleapis.com/fixture-web-push-endpoint",
                  "p256dh":"fixture-public-key","auth":"fixture-auth-key","alias":"내 브라우저"}
                 """;
 
-        // when
         ResultActions response = mockMvc.perform(post("/api/v1/users/devices")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body));
 
-        // then
         response.andExpect(status().isOk());
         verify(userDeviceService).registerDevice(new RegisterDeviceCommand(
                 endpoint, "fixture-public-key", "fixture-auth-key", "내 브라우저"));
@@ -67,17 +64,14 @@ class UserDeviceControllerTest {
 
     @Test
     void deviceListContainsDisplayFieldsWithoutTypeOrPrivateKeys() throws Exception {
-        // given
         User user = User.builder().id(7L).email("user@example.invalid").build();
         UserDeviceResult device = new UserDeviceResult(
                 11L, "내 브라우저", "https...point", LocalDateTime.of(2026, 11, 5, 12, 0));
         given(userDeviceService.getCurrentUserOrThrow()).willReturn(user);
         given(userDeviceService.getUserDevices(7L)).willReturn(List.of(device));
 
-        // when
         ResultActions response = mockMvc.perform(get("/api/v1/users/devices"));
 
-        // then
         response.andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(11))
@@ -95,10 +89,8 @@ class UserDeviceControllerTest {
 
     @Test
     void tokenUnregisterAcceptsTheTokenInTheRequestBody() throws Exception {
-        // given
         String token = "token/with?unsafe=value";
 
-        // when & then
         mockMvc.perform(delete("/api/v1/users/devices")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"token/with?unsafe=value\"}"))
@@ -109,10 +101,8 @@ class UserDeviceControllerTest {
 
     @Test
     void legacyTokenPathDecodesEncodedSpecialCharactersForDeployedClients() throws Exception {
-        // given
         String token = "token/with?unsafe=value";
 
-        // when & then
         mockMvc.perform(delete(URI.create("/api/v1/users/devices/token/token%2Fwith%3Funsafe%3Dvalue")))
                 .andExpect(status().isOk());
 

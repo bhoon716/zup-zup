@@ -210,7 +210,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
-      // 캡처 실패 무시
     }
   };
 

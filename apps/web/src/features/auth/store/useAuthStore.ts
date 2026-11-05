@@ -18,7 +18,6 @@ const getSafeStorage = (): Storage => {
       window.localStorage.removeItem(testKey);
       return window.localStorage;
     } catch {
-      // ignore and fallback
     }
   }
 

@@ -16,7 +16,6 @@ class CourseResponseTest {
     @EnumSource(DisclosureStatus.class)
     @NullSource
     void searchResponseIncludesActualDisclosure(DisclosureStatus disclosure) {
-        // given
         Course course = Course.builder()
                 .courseKey("2026:1:CSE101:01")
                 .name("공개 여부 확인 강의")
@@ -27,11 +26,9 @@ class CourseResponseTest {
                 .disclosure(disclosure)
                 .build();
 
-        // when
         CourseResponse response = CourseResponse.from(course, "2026", "U211600010", null);
         JsonNode json = new ObjectMapper().valueToTree(response);
 
-        // then
         assertThat(json.get("courseKey").asText()).isEqualTo(course.getCourseKey());
         assertThat(json.get("name").asText()).isEqualTo(course.getName());
         if (disclosure == null) {

@@ -100,7 +100,6 @@ export default function AdminNotificationDeliveriesPage() {
       await replayMutation.mutateAsync({ id: selectedId, request: {} });
       setSelectedId(null);
     } catch {
-      // The mutation hook presents the server's safe error message.
     }
   };
 

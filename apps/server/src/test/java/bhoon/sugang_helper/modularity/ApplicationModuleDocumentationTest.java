@@ -11,13 +11,10 @@ class ApplicationModuleDocumentationTest {
 
     @Test
     void documentsTheVerifiedModuleModel() {
-        // given
         ApplicationModules modules = ApplicationModules.of(SugangHelperApplication.class);
 
-        // when
         modules.verify();
 
-        // then
         new Documenter(modules, Documenter.Options.defaults().withOutputFolder("build/spring-modulith"))
                 .writeDocumentation()
                 .writeModuleMetadata();
