@@ -43,7 +43,7 @@ R-1·R-2는 도달 경로와 기존 guard를 독립적으로 반박한 코드·�
 
 ## R-1 — 늦은 응답의 이전 세션 쿠키
 
-위치는 [세션 인증 필터](../apps/server/src/main/java/bhoon/sugang_helper/common/security/session/SessionAuthenticationFilter.java)의 매 인증 응답 쿠키 갱신과 [로그인 ID 회전](../apps/server/src/main/java/bhoon/sugang_helper/identity/auth/service/AuthService.java)이다. 옛 S를 읽은 요청이 지연되는 동안 재로그인 N이 완료되고, 뒤늦은 S 응답이 같은 쿠키 이름을 덮을 수 있다. 지연 Redis delta가 불완전한 S hash를 다시 만들면 mapper 예외로 500도 가능하다는 코드 근거가 있다.
+위치는 [세션 인증 필터](../apps/server/src/main/java/bhoon/sugang_helper/identity/auth/session/SessionAuthenticationFilter.java)의 매 인증 응답 쿠키 갱신과 [로그인 ID 회전](../apps/server/src/main/java/bhoon/sugang_helper/identity/auth/service/AuthService.java)이다. 옛 S를 읽은 요청이 지연되는 동안 재로그인 N이 완료되고, 뒤늦은 S 응답이 같은 쿠키 이름을 덮을 수 있다. 지연 Redis delta가 불완전한 S hash를 다시 만들면 mapper 예외로 500도 가능하다는 코드 근거가 있다.
 
 | 방안 | 장점 | 단점·복잡도 | 계약 영향 |
 | --- | --- | --- | --- |

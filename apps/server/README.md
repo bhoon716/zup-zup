@@ -49,6 +49,7 @@
 ## 기술 스택
 
 - Spring Boot 3.5.9
+- Spring Modulith 1.4.14
 - Spring Data JPA
 - Spring Security
 - Spring Data Redis
@@ -66,6 +67,11 @@
 예약된 크롤러는 외부 응답 전체를 먼저 수집·파싱·검증합니다. 검증에 성공한 결과만
 `CourseSynchronizationService`의 단일 트랜잭션으로 전달하며, 강의·시간표·좌석 이력·성공 상태·알림 outbox는
 전부 반영되거나 전부 rollback됩니다. 실패 상태와 실행별 실패 이력은 rollback 이후 별도 트랜잭션으로 기록합니다.
+
+## 모듈 경계
+
+기능별 MVC를 유지하며 Spring Modulith로 순환 의존성과 내부 접근을 검사합니다.
+[모듈 구성과 검증 명령](../../docs/backend-modules.md)을 참고하세요.
 
 ## Local Run
 
