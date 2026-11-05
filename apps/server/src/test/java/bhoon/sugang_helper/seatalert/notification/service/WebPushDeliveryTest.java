@@ -12,7 +12,6 @@ import bhoon.sugang_helper.common.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
@@ -78,7 +77,7 @@ class WebPushDeliveryTest {
         histories.deleteAll();
         outboxes.deleteAll();
         NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
-                false, true, false, false, null);
+                false, true, false, null);
         when(subscriptions.findActiveRecipientIds(COURSE_KEY)).thenReturn(List.of(1L));
         when(users.findByIds(List.of(1L))).thenReturn(List.of(user));
         when(users.findById(1L)).thenReturn(Optional.of(user));
@@ -107,9 +106,7 @@ class WebPushDeliveryTest {
             }
         });
 
-
         processReadyDelivery();
-
 
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertDelivery(SeatNotificationDeliveryStatus.SENT, SeatNotificationOutboxStatus.COMPLETED, 0);
@@ -125,9 +122,7 @@ class WebPushDeliveryTest {
             throw invalidSubscription();
         });
 
-
         processReadyDelivery();
-
 
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertThat(devices).isEmpty();
@@ -149,9 +144,7 @@ class WebPushDeliveryTest {
             }
         });
 
-
         processReadyDelivery();
-
 
         assertDelivery(SeatNotificationDeliveryStatus.PENDING, SeatNotificationOutboxStatus.PROCESSING, 1);
         assertThat(histories.findAll()).isEmpty();
@@ -164,9 +157,7 @@ class WebPushDeliveryTest {
         deliveries.saveAndFlush(ready);
         stubSender(target -> { });
 
-
         processReadyDelivery();
-
 
         assertThat(attemptedTargets).containsExactlyElementsOf(failedTargetIndex == 0
                 ? List.of(FIRST, FIRST, SECOND) : List.of(FIRST, SECOND, FIRST, SECOND));
@@ -185,9 +176,7 @@ class WebPushDeliveryTest {
             }
         });
 
-
         processReadyDelivery();
-
 
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertDelivery(SeatNotificationDeliveryStatus.DLQ, SeatNotificationOutboxStatus.DLQ, 1);
@@ -233,7 +222,7 @@ class WebPushDeliveryTest {
     }
 
     private static NotificationDevice device(String endpoint) {
-        return new NotificationDevice(1L, NotificationDeviceType.WEB, endpoint, "p256", "auth");
+        return new NotificationDevice(1L, endpoint, "p256", "auth");
     }
 
     private static NotificationProviderException invalidSubscription() {
@@ -244,8 +233,9 @@ class WebPushDeliveryTest {
     @TestConfiguration
     static class TestConfig {
         @Bean NotificationProperties notificationProperties() {
-            return new NotificationProperties(true, true, true, true);
+            return new NotificationProperties(true, true, true);
         }
+
         @Bean SimpleMeterRegistry meterRegistry() {
             return new SimpleMeterRegistry();
         }

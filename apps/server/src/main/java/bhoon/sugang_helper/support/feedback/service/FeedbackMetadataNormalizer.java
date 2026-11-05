@@ -11,9 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
-
-
-
 @Component
 public class FeedbackMetadataNormalizer {
 
@@ -27,9 +24,6 @@ public class FeedbackMetadataNormalizer {
     public FeedbackMetadataNormalizer(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
-
-
-
 
     public String normalize(String metadata) {
         if (metadata == null) {

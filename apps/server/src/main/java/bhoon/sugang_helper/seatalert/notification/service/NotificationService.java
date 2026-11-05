@@ -21,9 +21,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-
-
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -84,9 +81,6 @@ public class NotificationService {
         saveHistory(userId, outbox.getCourseKey(), message, channel);
     }
 
-
-
-
     public void sendAdminTestNotification(Long userId, List<NotificationChannel> channels) {
         NotificationRecipient user = userNotificationQuery.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
@@ -105,9 +99,6 @@ public class NotificationService {
         }
         return delivered;
     }
-
-
-
 
     public void sendUserTestNotification(Long userId) {
         String cooldownKey = USER_TEST_COOLDOWN_KEY_PREFIX + userId;
@@ -133,9 +124,6 @@ public class NotificationService {
         }
     }
 
-
-
-
     private boolean sendNotification(NotificationRecipient user, List<NotificationDevice> devices,
                                      NotificationMessage message,
                                      NotificationChannel channel, boolean failOnMissingTarget) {
@@ -154,9 +142,6 @@ public class NotificationService {
         return true;
     }
 
-
-
-
     private NotificationMessage createSeatOpenedMessage(SeatOpenedEvent event) {
         String professor = (event.professor() != null && !event.professor().isBlank()) ? event.professor() : "미지정";
         String title = String.format("[줍줍] %s (%s) 여석 발생!", event.courseName(), professor);
@@ -165,17 +150,11 @@ public class NotificationService {
         return new NotificationMessage(title, body);
     }
 
-
-
-
     private NotificationMessage createTestMessage() {
         return new NotificationMessage(
                 "[줍줍] 시스템 테스트 알림",
                 "줍줍 테스트 알림입니다. 수신이 정상적인지 확인해 주세요.");
     }
-
-
-
 
     private void dispatch(NotificationTarget target, String title, String message, NotificationChannel channel) {
         notificationSenders.stream()
@@ -183,9 +162,6 @@ public class NotificationService {
                 .forEach(sender -> notificationProviderResilience.execute(channel,
                         () -> sender.send(target, title, message)));
     }
-
-
-
 
     private void saveHistory(Long userId, String courseKey, NotificationMessage notification,
                              NotificationChannel channel) {
@@ -197,9 +173,6 @@ public class NotificationService {
                 .channel(channel)
                 .build());
     }
-
-
-
 
     private record NotificationMessage(String title, String body) {
     }

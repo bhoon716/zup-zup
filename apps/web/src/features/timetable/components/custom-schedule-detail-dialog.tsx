@@ -15,13 +15,9 @@ interface CustomScheduleDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-
-
-
 export function CustomScheduleDetailDialog({ block, timetableId, open, onOpenChange }: CustomScheduleDetailDialogProps) {
   const removeCustomSchedule = useRemoveCustomSchedule();
   const { data: timetable } = useTimetableDetail(timetableId, open && !!block);
-
 
   const fullSchedule = timetable?.customSchedules.find(s => s.id === block?.id);
 

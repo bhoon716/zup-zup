@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-
-
-
-
 readonly DEFAULT_PROBE_IMAGE="busybox@sha256:162f541afa4542abb43b3bc51efd26c659dd8fa8b0db3a0b8e348908d75efed1"
 readonly DEFAULT_RUNTIME_NETWORK="sugang-helper-runtime"
 readonly DEFAULT_GRAFANA_URL="http://127.0.0.1:3000"

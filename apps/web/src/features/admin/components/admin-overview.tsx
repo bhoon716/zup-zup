@@ -8,10 +8,6 @@ interface AdminOverviewProps {
   onRefresh: () => void;
 }
 
-
-
-
-
 export function AdminOverview({ serverClock, onRefresh }: AdminOverviewProps) {
   return (
     <section className="bg-white border-b border-slate-100">

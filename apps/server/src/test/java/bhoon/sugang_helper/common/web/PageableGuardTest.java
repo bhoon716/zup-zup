@@ -71,6 +71,7 @@ class PageableGuardTest {
         assertThat(PageableGuard.requireBounded(PageRequest.of(100, 100)))
                 .isEqualTo(PageRequest.of(100, 100));
     }
+
     @ParameterizedTest
     @ValueSource(ints = {1, 30, 100, 2000})
     void fixesApiSizeAndPreservesPageAndSort(int requestedSize) {

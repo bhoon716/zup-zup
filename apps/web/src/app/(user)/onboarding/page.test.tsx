@@ -27,14 +27,21 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/shared/analytics/onboarding-events", () => ({ trackOnboardingStarted: vi.fn() }));
 
 const pushSwitch = () => screen.getByRole("switch", { name: "웹 푸시 (현재 기기)" });
+
 const deviceInput = () => screen.getByPlaceholderText("기기 이름 (예: 내 노트북, 스마트폰)");
+
 const completeButton = () => screen.getByRole("button", { name: "완료" });
+
 const registerButton = () => screen.getByRole("button", { name: "현재 기기 등록" });
 
 describe("OnboardingPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal("ResizeObserver", class { disconnect() {} observe() {} unobserve() {} });
+    vi.stubGlobal("ResizeObserver", class { disconnect() {}
+
+    observe() {}
+
+    unobserve() {} });
     mockUseUser.mockReturnValue({
       data: { id: 1, discordId: null, email: "user@example.com", onboardingCompleted: false }, isLoading: false,
     });

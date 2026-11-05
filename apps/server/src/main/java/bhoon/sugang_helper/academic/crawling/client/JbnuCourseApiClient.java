@@ -59,9 +59,6 @@ public class JbnuCourseApiClient implements CourseApiClient {
     @Autowired(required = false)
     private MeterRegistry meterRegistry;
 
-
-
-
     public String fetchCourseData(String year, String semester) {
         try (InputStream responseStream = fetchCourseDataStream(year, semester)) {
             return new String(responseStream.readAllBytes(), StandardCharsets.UTF_8);
@@ -113,7 +110,6 @@ public class JbnuCourseApiClient implements CourseApiClient {
         if (timeoutMs > 0) {
             httpClientBuilder.connectTimeout(Duration.ofMillis(timeoutMs));
         }
-
 
         try (HttpClient httpClient = httpClientBuilder.build()) {
             RestClient restClient = createRestClient(httpClient);

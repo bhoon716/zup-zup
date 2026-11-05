@@ -11,27 +11,15 @@ import org.springframework.data.repository.query.Param;
 
 public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {
 
-
-
-
     List<Announcement> findAllByOrderByPinnedDescCreatedAtDesc();
 
     Page<Announcement> findAllByOrderByPinnedDescCreatedAtDesc(Pageable pageable);
-
-
-
 
     List<Announcement> findByPublishedTrueOrderByPinnedDescCreatedAtDesc();
 
     Page<Announcement> findByPublishedTrueOrderByPinnedDescCreatedAtDesc(Pageable pageable);
 
-
-
-
     Optional<Announcement> findByIdAndPublishedTrue(Long id);
-
-
-
 
     @Query("""
             SELECT a FROM Announcement a
@@ -49,9 +37,6 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
             """)
     Page<Announcement> searchPublishedByTitle(@Param("keyword") String keyword, Pageable pageable);
 
-
-
-
     @Query("""
             SELECT a FROM Announcement a
             WHERE a.published = true
@@ -67,9 +52,6 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
             ORDER BY a.pinned DESC, a.createdAt DESC
             """)
     Page<Announcement> searchPublishedByContent(@Param("keyword") String keyword, Pageable pageable);
-
-
-
 
     @Query("""
             SELECT a FROM Announcement a

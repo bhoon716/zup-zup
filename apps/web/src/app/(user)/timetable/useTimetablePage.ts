@@ -78,30 +78,36 @@ export const useTimetablePage = () => {
 
   const createMutation = useMutation({
     mutationFn: (name: string) => timetableApi.createTimetable({ name, primary: timetables.length === 0 }),
+
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["timetables"] });
       setSelectedTimetableId(response.id);
       toast.success("시간표가 생성되었습니다.");
     },
+
     onError: () => toast.error("시간표 생성에 실패했습니다."),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => timetableApi.deleteTimetable(id),
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timetables"] });
       setSelectedTimetableId(null);
       toast.success("시간표가 삭제되었습니다.");
     },
+
     onError: () => toast.error("시간표 삭제에 실패했습니다."),
   });
 
   const setPrimaryMutation = useMutation({
     mutationFn: (id: number) => timetableApi.setPrimary(id),
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timetables"] });
       toast.success("대표 시간표로 설정되었습니다.");
     },
+
     onError: () => toast.error("대표 시간표 설정에 실패했습니다."),
   });
 
@@ -288,7 +294,9 @@ export const useTimetablePage = () => {
     handleExportImage,
     handleSidebarCourseClick,
     onCreateTimetable: (name: string) => createMutation.mutate(name),
+
     onDeleteTimetable: (id: number) => deleteMutation.mutate(id),
+
     onSetPrimaryTimetable: (id: number) => setPrimaryMutation.mutate(id),
     isCreatingTimetable: createMutation.isPending,
     handleAddCourse,

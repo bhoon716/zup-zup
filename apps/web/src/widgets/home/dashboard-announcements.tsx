@@ -18,9 +18,6 @@ const formatDate = (value: string) => {
   }).format(date);
 };
 
-
-
-
 export function DashboardAnnouncements({ announcements }: { announcements?: AnnouncementListItemResponse[] } = {}) {
   const { data: fetchedAnnouncements, isLoading } = useAnnouncements({ enabled: announcements === undefined });
   const latestAnnouncements = (announcements ?? fetchedAnnouncements ?? []).slice(0, 4);

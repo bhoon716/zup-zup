@@ -18,9 +18,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-
-
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -42,9 +39,6 @@ public class EmailVerificationService {
     private String from;
     @Value("${spring.mail.from-name}")
     private String fromName;
-
-
-
 
     public void sendCode(Long userId, String email) {
         sendCode(userId, email, null);
@@ -75,9 +69,6 @@ public class EmailVerificationService {
                 SensitiveDataRedactor.fingerprint(email));
     }
 
-
-
-
     public boolean verifyCode(Long userId, String email, String code) {
         String key = getCodeKey(userId, email);
         String savedCode = redisService.getValues(key);
@@ -104,16 +95,10 @@ public class EmailVerificationService {
         return false;
     }
 
-
-
-
     public boolean isVerified(Long userId, String email) {
         String value = redisService.getValues(getVerifiedKey(userId, email));
         return "true".equals(value);
     }
-
-
-
 
     public void clearVerificationState(Long userId, String... emails) {
         redisService.deleteValues(SEND_COOLDOWN_PREFIX + "USER:" + userId);
@@ -131,9 +116,6 @@ public class EmailVerificationService {
             redisService.deleteValues(SEND_COOLDOWN_PREFIX + "EMAIL:" + email);
         }
     }
-
-
-
 
     private MimeMessage createEmailMessage(String to, String title, String content) {
         try {
@@ -164,9 +146,6 @@ public class EmailVerificationService {
                 SensitiveDataRedactor.exceptionType(exception));
         return new CustomException(ErrorCode.EMAIL_SEND_ERROR, "Failed to send verification email");
     }
-
-
-
 
     private String generateCode() {
         SecureRandom random = new SecureRandom();

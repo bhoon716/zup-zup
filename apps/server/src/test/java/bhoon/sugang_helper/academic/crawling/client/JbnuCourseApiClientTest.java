@@ -33,10 +33,8 @@ class JbnuCourseApiClientTest {
         ReflectionTestUtils.setField(client, "maxRetries", 0);
         ReflectionTestUtils.setField(client, "maximumResponseBytes", 10 * 1024 * 1024);
 
-
         String result = client.fetchCourseData("2026", "U211600020");
         List<ParsedCourseDto> courses = new JbnuCourseParser().parseCourses(result, "2026", "U211600020");
-
 
         assertThat(result).contains("dsEstSbjList");
         assertThat(courses).isNotEmpty();

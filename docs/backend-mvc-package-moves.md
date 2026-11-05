@@ -224,7 +224,6 @@
 | `identity/user/contract/UserRegisteredEvent.java` | [identity/user/event/UserRegisteredEvent.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/event/UserRegisteredEvent.java) |
 | `identity/user/contract/UserSessionLogout.java` | [identity/user/service/UserSessionLogout.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/service/UserSessionLogout.java) |
 | `identity/user/contract/UserSubscriptionCleanup.java` | [identity/user/service/UserSubscriptionCleanup.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/service/UserSubscriptionCleanup.java) |
-| `identity/user/domain/DeviceType.java` | [identity/user/enums/DeviceType.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/enums/DeviceType.java) |
 | `identity/user/domain/Role.java` | [identity/user/enums/Role.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/enums/Role.java) |
 | `identity/user/domain/User.java` | [identity/user/entity/User.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/entity/User.java) |
 | `identity/user/domain/UserDevice.java` | [identity/user/entity/UserDevice.java](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/entity/UserDevice.java) |
@@ -298,7 +297,6 @@
 | `seatalert/notification/domain/SeatNotificationOutboxStatus.java` | [seatalert/notification/enums/SeatNotificationOutboxStatus.java](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/enums/SeatNotificationOutboxStatus.java) |
 | `seatalert/notification/infra/DiscordNotificationSender.java` | [seatalert/notification/client/DiscordNotificationSender.java](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/client/DiscordNotificationSender.java) |
 | `seatalert/notification/infra/EmailNotificationSender.java` | [seatalert/notification/client/EmailNotificationSender.java](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/client/EmailNotificationSender.java) |
-| `seatalert/notification/infra/FcmNotificationSender.java` | [seatalert/notification/client/FcmNotificationSender.java](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/client/FcmNotificationSender.java) |
 | `seatalert/notification/infra/NotificationHistoryJpaRepository.java` | [seatalert/notification/repository/NotificationHistoryRepository.java](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/repository/NotificationHistoryRepository.java) |
 | `seatalert/notification/infra/NotificationProviderResilience.java` | [seatalert/notification/client/NotificationProviderResilience.java](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/client/NotificationProviderResilience.java) |
 | `seatalert/notification/infra/SeatNotificationDeliveryJpaRepository.java` | [seatalert/notification/repository/SeatNotificationDeliveryRepository.java](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/repository/SeatNotificationDeliveryRepository.java) |

@@ -17,7 +17,9 @@ const {
 
 vi.mock("@/features/admin/hooks/useAdminNotificationDeliveries", () => ({
   useAdminDlqNotificationDeliveries: (...args: unknown[]) => mockUseAdminDlqNotificationDeliveries(...args),
+
   useAdminNotificationDelivery: (...args: unknown[]) => mockUseAdminNotificationDelivery(...args),
+
   useReplayAdminNotificationDelivery: () => mockUseReplayAdminNotificationDelivery(),
 }));
 

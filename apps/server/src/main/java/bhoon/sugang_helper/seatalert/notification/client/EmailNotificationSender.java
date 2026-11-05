@@ -15,9 +15,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
-
-
-
 @Component
 @Slf4j
 public class EmailNotificationSender implements NotificationSender {
@@ -42,9 +39,6 @@ public class EmailNotificationSender implements NotificationSender {
     public boolean supports(NotificationChannel channel) {
         return channel == NotificationChannel.EMAIL;
     }
-
-
-
 
     @Override
     public void send(NotificationTarget target, String title, String message) {

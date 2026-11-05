@@ -19,7 +19,6 @@ services:
       SERVER_SERVLET_SESSION_COOKIE_SECURE: "false"
     volumes: !override
       - ${APP_PROD_CONFIG_PATH:-../apps/server/src/main/resources/application-prod.yml}:/app/config/application-prod.yml:ro
-      - ${FIREBASE_CONFIG_PATH:?FIREBASE_CONFIG_PATH must be set}:/app/config/firebase-key.json:ro
       - local_app_uploads:/app/data/uploads
 
   grafana:

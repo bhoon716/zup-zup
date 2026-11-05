@@ -120,7 +120,6 @@ class CourseCrawlCompletionTransactionTest {
         courses.add(parsedCourseWithAvailableSeat());
         doThrow(new IllegalStateException("outbox write failed")).when(outboxRepository).save(any());
 
-
         assertThatThrownBy(() -> completionService.complete(courses))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("outbox write failed");
@@ -135,7 +134,6 @@ class CourseCrawlCompletionTransactionTest {
     void rejectsEnqueueOutsideTheCatalogTransaction() {
 
         SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, "김교수", 0, 1);
-
 
         assertThatThrownBy(() -> outboxService.enqueue(event))
                 .isInstanceOf(IllegalTransactionStateException.class);

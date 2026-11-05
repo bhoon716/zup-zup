@@ -3,10 +3,6 @@ import {group, sleep} from 'k6';
 import {SharedArray} from 'k6/data';
 import {BASE_URL, getAuthHeaders, validateResponse} from './common-utils.js';
 
-
-
-
-
 const filters = new SharedArray('검색 필터 데이터', function () {
     return [
         {name: '사회적가치와개인의자유', academicYear: '2026'},
@@ -37,11 +33,9 @@ export default function () {
 
         const filter = filters[Math.floor(Math.random() * filters.length)];
 
-
         const res = http.post(`${BASE_URL}/api/v1/courses/search?page=0`, JSON.stringify(filter), getAuthHeaders());
 
         validateResponse(res, '필터검색');
-
 
         sleep(Math.random() * 0.2 + 0.1);
     });

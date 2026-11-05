@@ -26,9 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
-
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,16 +40,10 @@ public class UserService {
     private final NotificationService notificationTestSender;
     private final SessionInvalidator sessionInvalidator;
 
-
-
-
     public UserProfileResult getMyProfile() {
         User user = getCurrentUser();
         return UserProfileResult.from(user);
     }
-
-
-
 
     public Optional<User> getCurrentUserOrNull() {
         String email = SecurityUtil.getCurrentUserEmailOrNull();
@@ -64,9 +55,6 @@ public class UserService {
                 .filter(user -> !user.isDeleted());
     }
 
-
-
-
     @Transactional
     public UserProfileUpdateResult updateProfile(UpdateProfileCommand command) {
         User user = getCurrentUser();
@@ -74,9 +62,6 @@ public class UserService {
         log.info("[User] 프로필 수정. userId={}", user.getId());
         return UserProfileUpdateResult.from(user);
     }
-
-
-
 
     @Transactional
     public UserSettingsResult updateSettings(UpdateSettingsCommand command) {
@@ -93,16 +78,11 @@ public class UserService {
                 command.notificationEmail(),
                 command.emailEnabled(),
                 command.webPushEnabled(),
-                command.fcmEnabled(),
                 command.discordEnabled());
         log.info("[User] 알림 설정 변경. userId={}, emailEnabled={}, webPushEnabled={}",
                 user.getId(), command.emailEnabled(), command.webPushEnabled());
         return UserSettingsResult.from(user);
     }
-
-
-
-
 
     @Transactional
     public void withdraw() {
@@ -121,9 +101,6 @@ public class UserService {
         log.info("[User] 회원 탈퇴 처리. userId={}", userId);
     }
 
-
-
-
     @Transactional
     public UserOnboardingResult completeOnboarding(CompleteOnboardingCommand command) {
         User user = getCurrentUser();
@@ -139,15 +116,11 @@ public class UserService {
                 newEmail,
                 command.emailEnabled(),
                 command.webPushEnabled(),
-                command.fcmEnabled(),
                 command.discordEnabled());
         log.info("[User] 초기 설정 완료. userId={}, emailFingerprint={}", user.getId(),
                 SensitiveDataRedactor.fingerprint(user.getEmail()));
         return UserOnboardingResult.from(user);
     }
-
-
-
 
     @Transactional
     public void sendVerificationCode(SendVerificationCodeCommand command) {
@@ -160,9 +133,6 @@ public class UserService {
         emailVerificationService.sendCode(user.getId(), command.email(), clientIp);
     }
 
-
-
-
     @Transactional
     public void verifyEmail(VerifyEmailCommand command) {
         User user = getCurrentUser();
@@ -172,9 +142,6 @@ public class UserService {
         }
     }
 
-
-
-
     @Transactional
     public void linkDiscordId(String discordId) {
         User user = getCurrentUser();
@@ -183,18 +150,12 @@ public class UserService {
                 SensitiveDataRedactor.fingerprint(discordId));
     }
 
-
-
-
     @Transactional
     public void unlinkDiscord() {
         User user = getCurrentUser();
         user.unlinkDiscord();
         log.info("[User] Discord 계정 연결 해제. userId={}", user.getId());
     }
-
-
-
 
     @Transactional
     public void sendTestNotification() {
@@ -206,13 +167,11 @@ public class UserService {
         notificationTestSender.sendUserTestNotification(user.getId());
     }
 
-
-
-
     public User getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
         return userRepository.findByEmail(email)
                 .filter(user -> !user.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
+
 }

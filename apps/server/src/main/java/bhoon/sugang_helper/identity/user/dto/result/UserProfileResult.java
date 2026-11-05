@@ -10,7 +10,6 @@ public record UserProfileResult(
         String notificationEmail,
         boolean emailEnabled,
         boolean webPushEnabled,
-        boolean fcmEnabled,
         boolean onboardingCompleted,
         String discordId,
         boolean discordEnabled) {
@@ -24,7 +23,6 @@ public record UserProfileResult(
                 user.getNotificationEmail(),
                 user.isEmailEnabled(),
                 user.isWebPushEnabled(),
-                user.isFcmEnabled(),
                 user.isOnboardingCompleted(),
                 user.getDiscordId(),
                 user.isDiscordEnabled());

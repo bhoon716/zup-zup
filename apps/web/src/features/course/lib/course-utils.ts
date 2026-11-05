@@ -20,9 +20,6 @@ const SEARCH_DRAFT_BASE_KEYS: (keyof CourseSearchCondition)[] = [
   "sortOrder",
 ];
 
-
-
-
 export function toMinutes(value?: string): number | null {
   if (!value) {
     return null;
@@ -38,25 +35,15 @@ export function toMinutes(value?: string): number | null {
   return hour * 60 + minute;
 }
 
-
-
-
-
 export function toTimeText(minutes: number): string {
   const hour = Math.floor(minutes / 60);
   const minute = minutes % 60;
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
 }
 
-
-
-
 export function toScheduleKey(schedule: ScheduleCondition): string {
   return `${schedule.dayOfWeek}-${schedule.startTime}-${schedule.endTime}`;
 }
-
-
-
 
 export function buildFreeSchedulesFromTimetable(
   timetable: TimetableDetailResponse,
@@ -109,16 +96,13 @@ export function buildFreeSchedulesFromTimetable(
         startTime: toTimeText(slotStart),
         endTime: toTimeText(slotEnd),
       };
-      
+
       occupiedSlotKeys.add(toScheduleKey(slotSchedule));
     }
   });
 
   return allSlots.filter((slot) => !occupiedSlotKeys.has(toScheduleKey(slot)));
 }
-
-
-
 
 export function sanitizeCondition(
   condition: CourseSearchCondition,
@@ -143,9 +127,6 @@ export function sanitizeCondition(
 
   return sanitized;
 }
-
-
-
 
 export function resolveVisibleSearchCondition(
   draftCondition: CourseSearchCondition,

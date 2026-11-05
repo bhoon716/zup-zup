@@ -36,14 +36,12 @@ export const toggleReviewReaction = async (
   return data;
 };
 
-
 export const getCourseEmojis = async (
   courseKey: string
 ): Promise<EmojiReviewResponse[]> => {
   const { data } = await api.get(`/api/v1/courses/${encodeURIComponent(courseKey)}/emojis`);
   return data;
 };
-
 
 export const toggleCourseEmoji = async (
   courseKey: string,

@@ -18,12 +18,6 @@ public class ScheduleResponse {
 
     private final String endTime;
 
-
-
-
-
-
-
     public static ScheduleResponse from(CourseSchedule schedule) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
         return ScheduleResponse.builder()

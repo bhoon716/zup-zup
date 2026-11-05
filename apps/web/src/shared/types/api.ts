@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 export interface SliceResponse<T> {
   content: T[];
   pageable: {
@@ -33,7 +25,6 @@ export interface SliceResponse<T> {
   empty: boolean;
 }
 
-
 export interface PageResponse<T> {
   content: T[];
   pageable: {
@@ -55,8 +46,6 @@ export interface PageResponse<T> {
   empty: boolean;
 }
 
-
-
 export type CourseClassification = '계열공통' | '교양' | '교직(대학원)' | '교직(대)' | '교직' | '군사학' | '기초필수' | '선수' | '일반선택' | '전공' | '전공(대학원)' | '전공(대)' | '전공선택' | '전공필수';
 export type GradingMethod = 'Pass/Fail' | '기타(법전원)' | '상대평가Ⅰ' | '상대평가Ⅱ' | '상대평가Ⅲ' | '절대평가';
 export type LectureLanguage = '한국어' | '영어' | '독일어' | '스페인어' | '일본어' | '중국어' | '프랑스어';
@@ -64,9 +53,6 @@ export type CourseDayOfWeek =
   | 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
   | 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA' | 'SU'
   | '월' | '화' | '수' | '목' | '금' | '토' | '일';
-
-
-
 
 export interface Course {
   courseKey: string;
@@ -124,9 +110,6 @@ export interface ScheduleCondition {
   endTime: string;
 }
 
-
-
-
 export interface CourseSearchCondition {
   academicYear?: string;
   semester?: string;
@@ -180,10 +163,6 @@ export interface CourseSeatHistory {
   detectedAt: string;
 }
 
-
-
-
-
 export interface Subscription {
   id: number;
   courseKey: string;
@@ -197,10 +176,6 @@ export interface SubscriptionRequest {
   courseKey: string;
 }
 
-
-
-
-
 export interface User {
   id: number;
   email: string;
@@ -209,7 +184,6 @@ export interface User {
   notificationEmail?: string;
   emailEnabled: boolean;
   webPushEnabled: boolean;
-  fcmEnabled: boolean;
   discordEnabled: boolean;
   discordId?: string;
   onboardingCompleted: boolean;
@@ -219,7 +193,6 @@ export interface OnboardingRequest {
   notificationEmail: string;
   emailEnabled: boolean;
   webPushEnabled: boolean;
-  fcmEnabled: boolean;
   discordEnabled?: boolean;
 }
 
@@ -227,14 +200,12 @@ export interface UserSettingsRequest {
   notificationEmail?: string;
   emailEnabled: boolean;
   webPushEnabled: boolean;
-  fcmEnabled: boolean;
   discordEnabled: boolean;
 }
 
 export interface UserUpdateRequest {
   name: string;
 }
-
 
 export interface EmailRequest {
   email: string;
@@ -245,21 +216,18 @@ export interface EmailVerificationRequest {
   code: string;
 }
 
-
 export interface NotificationHistory {
   id: number;
   courseKey: string;
   title: string;
   message: string;
-  channel?: 'FCM' | 'EMAIL' | 'WEB' | 'DISCORD';
+  channel?: 'EMAIL' | 'WEB' | 'DISCORD';
   sentAt?: string;
   createdAt?: string;
 }
 
-
 export interface UserDevice {
   id: number;
-  type: 'FCM' | 'WEB';
   token: string;
   p256dh?: string;
   auth?: string;
@@ -268,7 +236,6 @@ export interface UserDevice {
 }
 
 export interface UserDeviceRequest {
-  type: 'FCM' | 'WEB';
   token: string;
   p256dh?: string;
   auth?: string;
@@ -277,7 +244,6 @@ export interface UserDeviceRequest {
 
 export interface UserDeviceResponse {
   id: number;
-  type: 'FCM' | 'WEB';
   alias?: string;
   maskedToken: string;
   registeredAt: string;
@@ -320,11 +286,8 @@ export interface AdminDashboardSnapshotResponse {
   crawlTarget: AdminCrawlTargetResponse;
 }
 
-export type NotificationDeliveryChannel = 'EMAIL' | 'FCM' | 'WEB' | 'DISCORD';
+export type NotificationDeliveryChannel = 'EMAIL' | 'WEB' | 'DISCORD';
 export type NotificationDeliveryStatus = 'PENDING' | 'PROCESSING' | 'SENT' | 'DLQ';
-
-
-
 
 export interface AdminNotificationDeliveryResponse {
   id: number;
@@ -344,36 +307,25 @@ export interface NotificationDeliveryReplayRequest {
   forceSentReplay?: boolean;
 }
 
-
-
-
 export interface AdminCrawlTargetRequest {
   year: string;
   semester: string;
 }
-
-
-
 
 export interface AdminCrawlTargetResponse {
   year: string;
   semester: string;
 }
 
-
-
-
 export interface SearchDefaultSemesterResponse {
   semester: string;
 }
-
 
 export interface CourseSearchPageResponse {
   content: Course[];
   last: boolean;
   number: number;
 }
-
 
 export interface DashboardSnapshotResponse {
   user: User | null;
@@ -382,7 +334,6 @@ export interface DashboardSnapshotResponse {
   upcomingSchedules: ScheduleResponse[];
   announcements: AnnouncementListItemResponse[];
 }
-
 
 export interface WishlistResponse {
   id: number;
@@ -404,7 +355,6 @@ export interface WishlistResponse {
 export interface WishlistToggleResponse {
   isWished: boolean;
 }
-
 
 export interface TimetableEntryResponse {
   courseKey: string;
@@ -436,9 +386,6 @@ export interface CustomScheduleResponse {
   schedules: CustomScheduleTimeResponse[];
 }
 
-
-
-
 export interface TimetableResponse {
   id: number;
   name: string;
@@ -446,9 +393,6 @@ export interface TimetableResponse {
   courses: TimetableEntryResponse[];
   customSchedules: CustomScheduleResponse[];
 }
-
-
-
 
 export interface TimetableDetailResponse {
   id: number;
@@ -485,7 +429,6 @@ export interface CustomScheduleRequest {
   schedules: CustomScheduleTimeRequest[];
 }
 
-
 export interface ScheduleResponse {
   id: number;
   scheduleType: string;
@@ -506,7 +449,6 @@ export interface ScheduleRequest {
   endTime?: string;
   ddayEnabled?: boolean;
 }
-
 
 export type AnnouncementSearchType = "TITLE" | "CONTENT" | "TITLE_CONTENT";
 
@@ -535,7 +477,6 @@ export interface AnnouncementRequest {
   published?: boolean;
 }
 
-
 export interface ReviewResponse {
   id: number;
   courseKey: string;
@@ -559,13 +500,11 @@ export interface ReviewReactionRequest {
   reactionType: 'LIKE' | 'DISLIKE';
 }
 
-
 export interface EmojiReviewResponse {
   emoji: string;
   count: number;
   isMine: boolean;
 }
-
 
 export type FeedbackType = 'BUG' | 'SUGGESTION' | 'OTHER';
 export type FeedbackStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';

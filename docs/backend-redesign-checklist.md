@@ -125,7 +125,7 @@
 
 - 구독: `POST|GET /api/v1/subscriptions`, `DELETE /api/v1/subscriptions/{id}`, `DELETE /api/v1/subscriptions`
 - 사용자 알림 이력: `GET /api/v1/notifications/history`
-- 현재 코드의 채널 발송: 이메일, Discord, Web Push, FCM. 재설계에서는 이메일·Discord·Web Push를 유지하고 FCM을 제거하기로 결정했다. [채널 정책 결정](decisions/2026-10-01-notification-channel-policy.md)
+- 현재 코드의 채널 발송: 이메일, Discord, Web Push. [채널 정책 결정](decisions/2026-10-01-notification-channel-policy.md)
 - 내부 처리: 좌석 개방 이벤트, DB outbox, 채널별 delivery, 재시도·DLQ·보관 정리
 
 - [ ] 알림을 보내는 조건, 구독 상한, 강의별 중복 구독 및 구독 취소 경합을 확인한다.
@@ -134,7 +134,7 @@
 - [ ] 관리자 재처리의 안전 조건, DLQ 보존/삭제 기간, 사용자의 알림 이력 보존을 정한다.
 - [ ] 채널 사용 여부와 사용자 동의·설정, 유효하지 않은 기기 제거·Discord 연동 해제의 효과를 확인한다.
 - [x] 선택한 채널 각각에 전달하고 채널별 발송 결과를 구분하는 방향을 결정한다. 구체적인 재시도 정책은 미정이다.
-- [x] PWA 전환에 따라 FCM 제거와 이메일·Discord·Web Push 유지를 결정한다.
+- [x] PWA의 알림 채널을 이메일·Discord·Web Push로 구성한다.
 - [x] 재발송 우선·중복 알림 허용·원래 감지 시각 표시와 중복 방지 목적의 MQ 보류를 결정한다. [결정 기록](decisions/2026-10-01-notification-duplicate-and-mq-policy.md)
 - [x] at-least-once 전달 목표와 외부 서비스의 수락·처리 응답을 완료 기준으로 결정한다. [결정 기록](decisions/2026-10-01-notification-at-least-once-delivery.md)
 - [x] 늦게라도 발생 사실을 전달하며 지연만을 이유로 미발송 작업을 취소·만료·삭제하지 않는 방향을 결정한다. [결정 기록](decisions/2026-10-01-delayed-seat-alert-delivery.md)
@@ -143,7 +143,7 @@
 - [ ] 발송 생략·설정 누락과 실제 성공을 구분하고, 미전달 작업의 재시도·보존·복구 정책을 정한다.
 - [x] 이메일·Discord·Web Push의 공식 멱등성 계약과 현재 구현을 조사한다. [조사 자료](backend-notification-idempotency-research.md)
 - [ ] 최초 감지 시각의 저장·보존·메시지 표시와 실제 상태 차이 안내를 구현한다.
-- [ ] 서버·웹 FCM/Firebase 구현·설정·의존성·배포/CI 연결을 제거하고 기존 FCM 데이터의 전환 방법을 정한다.
+- [x] 서버·웹 알림 구현·설정·의존성과 배포/CI 연결을 이메일·Discord·Web Push 기준으로 정리한다. 운영 전환은 [배포 안내](operations/deployment.md)를 따른다.
 - [ ] 이메일·Discord·Web Push 공급자별 시간 초과·회로 차단·실패 분류·복구 기준을 검토한다.
 - [ ] outbox가 요구하는 전달 보장과 현재 규모를 증거로 남기고, 더 단순한 대안과 비용을 비교한다.
 
@@ -255,7 +255,7 @@
 | Spring Data JPA, QueryDSL | 관계 데이터 접근과 `CourseSearchReadRepository` 동적 검색 | [ ] QueryDSL이 해결하는 실제 검색 요구와 JPQL/SQL 대안을 비교한다. |
 | Flyway, MySQL, H2 | 운영 스키마 버전 관리와 로컬/테스트 데이터베이스 | [ ] H2와 MySQL 차이, migration 검증 경로, 배포 순서의 비용을 확인한다. |
 | AWS Spring Cloud SES, Spring Mail | 이메일 발송 구성 | [ ] SES와 Mail 추상화의 실제 연결·중복 계층·로컬 대체 필요성을 확인한다. |
-| Firebase Admin, Web Push, BouncyCastle, Discord API | FCM, 브라우저 push, Discord OAuth/알림 | [ ] 채널별 실제 이용·사용자 설정·운영 비용과 미사용 채널 제거 조건을 확인한다. |
+| Web Push, BouncyCastle, Discord API | 브라우저 push, Discord OAuth/알림 | [ ] 채널별 실제 이용·사용자 설정·운영 비용과 미사용 채널 제거 조건을 확인한다. |
 | Jsoup | JBNU 수집 응답 파싱 | [ ] 파서가 의존하는 문서 구조와 크기·보안 제약을 확인한다. |
 | Apache Tika, 로컬 파일 업로드 처리 | 문의 첨부 형식 검사·파일/이미지 제약 | [ ] 실제 MIME 탐지 범위와 파일 저장·검증 대안을 검토한다. |
 | Micrometer Prometheus, Actuator | 앱 지표·health/readiness endpoint | [ ] 대시보드·알림에서 쓰는 지표와 외부 가시성 경계를 확인한다. |

@@ -1,8 +1,5 @@
 package bhoon.sugang_helper.admin.audit.enums;
 
-
-
-
 public enum ActionType {
     STATUS_CHANGE,
     REPLY_CREATE,

@@ -80,16 +80,10 @@ public class SecurityConfig {
     @Value("${app.cors.require-https:false}")
     private boolean requireHttpsOrigins;
 
-
-
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
-
-
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository securityContextRepository,
@@ -126,9 +120,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-
-
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

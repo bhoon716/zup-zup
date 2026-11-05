@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryDispatch;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryFailureResult;
-import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
@@ -13,9 +13,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-
-
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +29,10 @@ public class SeatNotificationDeliverySettlementService {
         return deliveryRepository.findClaimedForDispatch(
                         claim.deliveryId(), SeatNotificationDeliveryStatus.PROCESSING, claim.claimToken())
                 .map(delivery -> new SeatNotificationDeliveryDispatch(
-                        delivery.getUserId(), delivery.getChannel(), delivery.getOutbox(), delivery.getIdempotencyKey()))
+                        delivery.getUserId(),
+                        delivery.getChannel(),
+                        delivery.getOutbox(),
+                        delivery.getIdempotencyKey()))
                 .orElse(null);
     }
 
@@ -71,10 +71,12 @@ public class SeatNotificationDeliverySettlementService {
     private void updateOutboxTerminalStatus(SeatNotificationOutbox outbox) {
         SeatNotificationOutbox lockedOutbox = outboxRepository.findByIdForUpdate(outbox.getId())
                 .orElseThrow(() -> new IllegalStateException("notification outbox not found: " + outbox.getId()));
-        if (deliveryRepository.countByOutboxIdAndStatusIn(outbox.getId(), ACTIVE_DELIVERY_STATUSES) != 0) {
+        if (deliveryRepository.countByOutboxIdAndStatusIn(
+                outbox.getId(), ACTIVE_DELIVERY_STATUSES) != 0) {
             return;
         }
-        if (deliveryRepository.countByOutboxIdAndStatus(outbox.getId(), SeatNotificationDeliveryStatus.DLQ) > 0) {
+        if (deliveryRepository.countByOutboxIdAndStatus(
+                outbox.getId(), SeatNotificationDeliveryStatus.DLQ) > 0) {
             lockedOutbox.markDeadLettered();
         } else {
             lockedOutbox.markCompleted();

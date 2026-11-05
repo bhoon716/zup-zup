@@ -51,9 +51,6 @@ public class TimetableService {
     private final CourseCatalogQueryService courseCatalogQuery;
     private final UserIdentityQueryService userIdentityQuery;
 
-
-
-
     @Transactional
     public TimetableResponse createTimetable(TimetableRequest request) {
         UserIdentity user = getCurrentUser();
@@ -72,9 +69,6 @@ public class TimetableService {
         return TimetableResponse.of(timetableRepository.save(timetable));
     }
 
-
-
-
     @EventListener
     @Transactional
     public void handleUserRegisteredEvent(UserRegisteredEvent event) {
@@ -87,18 +81,12 @@ public class TimetableService {
         log.info("[Timetable] 새 사용자 기본 시간표 생성. userId={}", event.userId());
     }
 
-
-
-
     public List<TimetableResponse> getMyTimetables() {
         UserIdentity user = getCurrentUser();
         return timetableRepository.findByUserId(user.id()).stream()
                 .map(TimetableResponse::of)
                 .toList();
     }
-
-
-
 
     public TimetableDetailResponse getPrimaryTimetable() {
         UserIdentity user = getCurrentUser();
@@ -140,17 +128,11 @@ public class TimetableService {
                 timetable.getTotalCredits()));
     }
 
-
-
-
     public TimetableDetailResponse getTimetableDetail(Long timetableId) {
         Timetable timetable = getTimetable(timetableId);
         validateOwnership(timetable);
         return getTimetableDetail(timetable);
     }
-
-
-
 
     @Transactional
     public void addCourse(Long timetableId, String courseKey) {
@@ -167,9 +149,6 @@ public class TimetableService {
         timetable.addEntry(entry);
     }
 
-
-
-
     @Transactional
     public void deleteCourse(Long timetableId, String courseKey) {
         Timetable timetable = getTimetable(timetableId);
@@ -181,9 +160,6 @@ public class TimetableService {
         timetable.removeEntry(entry);
         timetableEntryRepository.delete(entry);
     }
-
-
-
 
     @Transactional
     public void addCustomSchedule(Long timetableId, CustomScheduleRequest request) {
@@ -210,9 +186,6 @@ public class TimetableService {
         timetable.addCustomSchedule(schedule);
     }
 
-
-
-
     @Transactional
     public void deleteCustomSchedule(Long timetableId, Long scheduleId) {
         Timetable timetable = getTimetable(timetableId);
@@ -229,9 +202,6 @@ public class TimetableService {
         customScheduleRepository.delete(schedule);
     }
 
-
-
-
     @Transactional
     public void setPrimary(Long timetableId) {
         Timetable timetable = getTimetable(timetableId);
@@ -241,9 +211,6 @@ public class TimetableService {
         timetable.setPrimary(true);
         log.info("[Timetable] 대표 시간표 변경. timetableId={}", timetableId);
     }
-
-
-
 
     @Transactional
     public void deleteTimetable(Long timetableId) {
@@ -261,18 +228,12 @@ public class TimetableService {
         promoteNextPrimary(userId, timetableId);
     }
 
-
-
-
     private TimetableDetailResponse getTimetableDetail(Timetable timetable) {
         Map<String, CourseSummary> courseMap = findCoursesByKey(timetable);
         List<TimetableCourseResponse> courses = mapTimetableCourses(timetable, courseMap);
         String totalCredits = calculateTotalCredits(courses);
         return TimetableDetailResponse.of(timetable, courses, totalCredits);
     }
-
-
-
 
     private Map<String, CourseSummary> findCoursesByKey(Timetable timetable) {
         List<String> courseKeys = timetable.getEntries().stream()
@@ -284,9 +245,6 @@ public class TimetableService {
                         (existing, replacement) -> existing));
     }
 
-
-
-
     private List<TimetableCourseResponse> mapTimetableCourses(
             Timetable timetable, Map<String, CourseSummary> courseMap) {
         return timetable.getEntries().stream()
@@ -296,9 +254,6 @@ public class TimetableService {
                 .map(TimetableCourseResponse::of)
                 .toList();
     }
-
-
-
 
     private String calculateTotalCredits(List<TimetableCourseResponse> courses) {
         double totalCredits = courses.stream()
@@ -320,9 +275,6 @@ public class TimetableService {
         }
     }
 
-
-
-
     private void validateTimetableLimit(Long userId) {
         long currentCount = timetableRepository.countByUserId(userId);
         if (currentCount < MAX_TIMETABLE_COUNT) {
@@ -333,9 +285,6 @@ public class TimetableService {
                 "시간표는 최대 " + MAX_TIMETABLE_COUNT + "개까지 생성 가능합니다.");
     }
 
-
-
-
     private void validateCourseLimit(int currentSize) {
         if (currentSize < MAX_COURSE_COUNT) {
             return;
@@ -345,9 +294,6 @@ public class TimetableService {
                 "시간표당 최대 " + MAX_COURSE_COUNT + "개의 강좌만 담을 수 있습니다.");
     }
 
-
-
-
     private void validateCourseExists(String courseKey) {
         if (courseCatalogQuery.existsByCourseKey(courseKey)) {
             return;
@@ -356,9 +302,6 @@ public class TimetableService {
         throw new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 강좌입니다.");
     }
 
-
-
-
     private void validateCourseNotDuplicated(Long timetableId, String courseKey) {
         if (timetableEntryRepository.findByTimetableIdAndCourseKey(timetableId, courseKey).isEmpty()) {
             return;
@@ -366,9 +309,6 @@ public class TimetableService {
 
         throw new CustomException(ErrorCode.INVALID_INPUT, "이미 시간표에 존재하는 강좌입니다.");
     }
-
-
-
 
     private void promoteNextPrimary(Long userId, Long deletedTimetableId) {
         timetableRepository.findByUserId(userId).stream()

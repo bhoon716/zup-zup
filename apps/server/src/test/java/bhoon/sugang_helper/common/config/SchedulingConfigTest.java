@@ -45,7 +45,6 @@ class SchedulingConfigTest {
                 assertThat(firstStarted.await(2, TimeUnit.SECONDS)).isTrue();
                 scheduler.schedule(secondStarted::countDown, Instant.now());
 
-
                 assertThat(secondStarted.await(100, TimeUnit.MILLISECONDS)).isFalse();
                 releaseFirst.countDown();
                 assertThat(secondStarted.await(2, TimeUnit.SECONDS)).isTrue();
@@ -62,13 +61,11 @@ class SchedulingConfigTest {
         AtomicReference<ScheduledFuture<?>> pending = new AtomicReference<>();
         AtomicInteger executions = new AtomicInteger();
 
-
         contextRunner.withPropertyValues("spring.threads.virtual.enabled=true").run(context -> {
             ThreadPoolTaskScheduler scheduler = context.getBean("taskScheduler", ThreadPoolTaskScheduler.class);
             executor.set(scheduler.getScheduledThreadPoolExecutor());
             pending.set(scheduler.schedule(executions::incrementAndGet, Instant.now().plusSeconds(3_600)));
         });
-
 
         assertThat(executor.get().isShutdown()).isTrue();
         assertThat(executor.get().awaitTermination(2, TimeUnit.SECONDS)).isTrue();

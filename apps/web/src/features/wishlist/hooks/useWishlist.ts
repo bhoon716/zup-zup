@@ -10,7 +10,7 @@ import type { User } from "@/shared/types/api";
 export const useWishlist = (enabled = true, initialUser?: User | null) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const canFetch = initialUser !== undefined ? !!initialUser : isAuthenticated;
-  
+
   return useQuery({
     queryKey: ['wishlist'],
     queryFn: async () => {
@@ -25,15 +25,16 @@ export const useToggleWishlist = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (courseKey: string) => wishlistApi.toggleWishlist(courseKey),
+
     onMutate: async (courseKey) => {
       await queryClient.cancelQueries({ queryKey: ['wishlist'] });
-      
+
       const previousWishlist = queryClient.getQueryData<WishlistResponse[]>(['wishlist']);
 
       if (previousWishlist) {
          const exists = previousWishlist.some(item => item.courseKey === courseKey);
          let newWishlist;
-         
+
          if (exists) {
             newWishlist = previousWishlist.filter(item => item.courseKey !== courseKey);
          } else {
@@ -45,20 +46,23 @@ export const useToggleWishlist = () => {
                 professor: '', 
              } as WishlistResponse];
          }
-         
+
          queryClient.setQueryData(['wishlist'], newWishlist);
       }
-      
+
       return { previousWishlist };
     },
+
     onError: (err, newTodo, context) => {
       queryClient.setQueryData(['wishlist'], context?.previousWishlist);
       const message = (err as AxiosError<{ message: string }>).response?.data?.message || '찜 상태 변경에 실패했습니다';
       toast.error(message);
     },
+
     onSuccess: () => {
        toast.success('찜 목록이 업데이트되었습니다.');
     },
+
     onSettled: () => {
        queryClient.invalidateQueries({ queryKey: ['wishlist'] });
     },

@@ -3,11 +3,11 @@ import { expect, test } from "@playwright/test";
 const profile = {
   id: 31, name: "로컬 사용자", email: "device@example.invalid", role: "USER",
   notificationEmail: "device@example.invalid", onboardingCompleted: true,
-  emailEnabled: true, webPushEnabled: false, fcmEnabled: false, discordEnabled: false,
+  emailEnabled: true, webPushEnabled: false, discordEnabled: false,
 };
 const devices = [
-  { id: 11, type: "WEB", alias: "내 맥북", registeredAt: "2026-10-31T15:00:00Z" },
-  { id: 12, type: "WEB", alias: "내 아이폰", registeredAt: "2026-10-31T16:00:00Z" },
+  { id: 11, alias: "내 맥북", registeredAt: "2026-10-31T15:00:00Z" },
+  { id: 12, alias: "내 아이폰", registeredAt: "2026-10-31T16:00:00Z" },
 ];
 
 test.beforeEach(async ({ page, baseURL }) => {
@@ -69,8 +69,8 @@ for (const [name, userAgent, expectedAlias] of [
     await page.goto("/onboarding");
     await page.getByRole("switch", { name: "웹 푸시 (현재 기기)" }).click();
     await expect.poll(() => registered.length).toBe(1);
-    expect(registered[0]).toMatchObject({
-      type: "WEB", alias: expectedAlias, token: `https://example.invalid/${name}/push`,
+    expect(registered[0]).toEqual({
+      alias: expectedAlias, token: `https://example.invalid/${name}/push`, p256dh: "fake", auth: "fake",
     });
   });
 }

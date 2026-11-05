@@ -3,7 +3,6 @@ package bhoon.sugang_helper.seatalert.notification.service;
 import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import java.util.Arrays;
@@ -41,7 +40,7 @@ public class NotificationChannelPolicy {
             case EMAIL -> List.of(NotificationTarget.of(resolveNotificationEmail(user)));
             case DISCORD ->
                     user.discordId() != null ? List.of(NotificationTarget.of(user.discordId())) : List.of();
-            case WEB, FCM -> resolveDeviceTargets(devices, channel);
+            case WEB -> resolveDeviceTargets(devices);
         };
     }
 
@@ -50,7 +49,6 @@ public class NotificationChannelPolicy {
             case EMAIL -> "등록된 이메일 정보가 없습니다.";
             case DISCORD -> "디스코드 연동 정보가 없습니다. 먼저 디스코드를 연동해 주세요.";
             case WEB -> "등록된 웹 푸시 기기가 없습니다. 먼저 기기를 등록해 주세요.";
-            case FCM -> "등록된 앱 푸시 기기가 없습니다. 먼저 기기를 등록해 주세요.";
         };
     }
 
@@ -59,7 +57,6 @@ public class NotificationChannelPolicy {
             case EMAIL -> notificationProperties.email();
             case DISCORD -> notificationProperties.discord();
             case WEB -> notificationProperties.webpush();
-            case FCM -> notificationProperties.fcm();
         };
     }
 
@@ -68,21 +65,16 @@ public class NotificationChannelPolicy {
             case EMAIL -> user.emailEnabled();
             case DISCORD -> user.discordEnabled();
             case WEB -> user.webPushEnabled();
-            case FCM -> user.fcmEnabled();
         };
     }
 
-    private List<NotificationTarget> resolveDeviceTargets(List<NotificationDevice> devices,
-                                                           NotificationChannel channel) {
+    private List<NotificationTarget> resolveDeviceTargets(List<NotificationDevice> devices) {
         if (devices == null) {
             return List.of();
         }
 
-        NotificationDeviceType type = (channel == NotificationChannel.WEB)
-                ? NotificationDeviceType.WEB : NotificationDeviceType.FCM;
         return devices.stream()
-                .filter(device -> device.type() == type)
-                .map(device -> toDeviceTarget(device, channel))
+                .map(device -> NotificationTarget.ofWeb(device.token(), device.p256dh(), device.auth()))
                 .toList();
     }
 
@@ -92,10 +84,4 @@ public class NotificationChannelPolicy {
                 : user.email();
     }
 
-    private NotificationTarget toDeviceTarget(NotificationDevice device, NotificationChannel channel) {
-        if (channel == NotificationChannel.WEB) {
-            return NotificationTarget.ofWeb(device.token(), device.p256dh(), device.auth());
-        }
-        return NotificationTarget.of(device.token());
-    }
 }

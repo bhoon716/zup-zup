@@ -85,8 +85,6 @@
 /apps/server/*.mv.db
 /apps/server/*.trace.db
 /apps/server/secrets/
-/apps/server/src/main/resources/firebase/
-/apps/server/src/main/resources/firebase/*.json
 /apps/server/**/application.yml
 !/apps/server/src/main/resources/application-prod.yml
 /apps/server/nbproject/private/

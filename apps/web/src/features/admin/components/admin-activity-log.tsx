@@ -18,10 +18,6 @@ interface AdminActivityLogProps {
   getLogMeta: (level: string) => { label: string; className: string };
 }
 
-
-
-
-
 export function AdminActivityLog({
   logs,
   formatDateTime,

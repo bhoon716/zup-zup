@@ -17,9 +17,6 @@ import { Switch } from "@/shared/ui/switch";
 
 import { cn } from "@/shared/lib/utils";
 
-
-
-
 const formatDateTime = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
@@ -32,9 +29,6 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-
-
-
 const extractPreview = (content: string) => {
   const plainText = content
     .replace(/\*\*([^*]+)\*\*/g, "$1")
@@ -46,12 +40,9 @@ const extractPreview = (content: string) => {
     .replace(/\r\n/g, " ")
     .replace(/\n/g, " ")
     .trim();
-  
+
   return plainText.length <= 90 ? plainText : `${plainText.substring(0, 90)}...`;
 };
-
-
-
 
 const matchesSearch = (
   announcement: AnnouncementDetailResponse,
@@ -71,9 +62,6 @@ const matchesSearch = (
     default: return title.includes(normalizedKeyword) || content.includes(normalizedKeyword);
   }
 };
-
-
-
 
 function AnnouncementItem({ 
   announcement, 
@@ -117,9 +105,6 @@ function AnnouncementItem({
     </button>
   );
 }
-
-
-
 
 export function AdminAnnouncementPanel() {
   const { data: announcements, isLoading } = useAdminAnnouncements();
@@ -324,4 +309,3 @@ export function AdminAnnouncementPanel() {
     </motion.section>
   );
 }
-

@@ -28,15 +28,9 @@ public interface CourseReviewRepository extends JpaRepository<CourseReview, Long
     @Query("update CourseReview r set r.dislikeCount = case when r.dislikeCount > 0 then r.dislikeCount - 1 else 0 end where r.id = :reviewId")
     void decrementDislikeCount(@Param("reviewId") Long reviewId);
 
-
-
-
     @Query("select r from CourseReview r where r.courseKey in :courseKeys and r.userId = :userId")
     Optional<CourseReview> findByCourseKeysAndUserId(@Param("courseKeys") List<String> courseKeys,
                                                      @Param("userId") Long userId);
-
-
-
 
     @Query("""
             select r
@@ -48,21 +42,12 @@ public interface CourseReviewRepository extends JpaRepository<CourseReview, Long
                                                          @Param("userId") Long userId,
                                                          Pageable pageable);
 
-
-
-
     @Query("select count(r) from CourseReview r where r.courseKey in :courseKeys and r.userId = :userId")
     long countByCourseKeysAndUserId(@Param("courseKeys") List<String> courseKeys,
                                     @Param("userId") Long userId);
 
-
-
-
     @Query("select count(r) from CourseReview r where r.courseKey in :courseKeys")
     long countByCourseKeys(@Param("courseKeys") List<String> courseKeys);
-
-
-
 
     @Query("select coalesce(avg(r.rating), 0.0) from CourseReview r where r.courseKey in :courseKeys")
     Double getAverageRatingByCourseKeys(@Param("courseKeys") List<String> courseKeys);

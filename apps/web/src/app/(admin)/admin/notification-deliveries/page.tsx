@@ -28,7 +28,6 @@ import { Button } from "@/shared/ui/button";
 
 const CHANNEL_LABELS: Record<NotificationDeliveryChannel, string> = {
   EMAIL: "이메일",
-  FCM: "FCM",
   WEB: "웹 푸시",
   DISCORD: "디스코드",
 };
@@ -69,9 +68,6 @@ function DeliveryStatusBadge({ delivery }: { delivery: AdminNotificationDelivery
     </Badge>
   );
 }
-
-
-
 
 export default function AdminNotificationDeliveriesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);

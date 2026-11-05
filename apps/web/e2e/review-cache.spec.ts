@@ -26,9 +26,8 @@ for (const action of ["create", "update"] as const) {
     const writeCsrfTokens: string[] = [];
     const searchCsrfTokens: Array<string | undefined> = [];
     const user = { id: 1, email: "reviewer@example.com", name: "수강생", role: "USER",
-      emailEnabled: false, webPushEnabled: false, fcmEnabled: false, discordEnabled: false,
+      emailEnabled: false, webPushEnabled: false, discordEnabled: false,
       onboardingCompleted: true };
-
 
     await context.route("**/*", (route) => new URL(route.request().url()).origin === "http://127.0.0.1:3100"
       ? route.continue() : route.abort());

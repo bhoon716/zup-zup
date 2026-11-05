@@ -24,9 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-
-
-
 @Component
 @SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.NullAssignment"})
 public class NotificationProviderResilience implements AutoCloseable {
@@ -154,7 +151,6 @@ public class NotificationProviderResilience implements AutoCloseable {
     private ErrorCode providerErrorCode(NotificationChannel provider) {
         return switch (provider) {
             case EMAIL -> ErrorCode.EMAIL_SEND_ERROR;
-            case FCM -> ErrorCode.FCM_SEND_ERROR;
             case WEB -> ErrorCode.WEB_PUSH_SEND_ERROR;
             case DISCORD -> ErrorCode.DISCORD_SEND_ERROR;
         };

@@ -40,6 +40,7 @@ export const useLogout = () => {
       queryClient.clear();
       router.replace('/login');
     },
+
     onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '로그아웃에 실패했습니다';
       toast.error(message);
@@ -60,23 +61,27 @@ export const useWithdraw = () => {
       queryClient.clear();
       router.replace('/login');
     },
+
     onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '회원 탈퇴에 실패했습니다';
       toast.error(message);
     },
   });
 };
+
 export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (request: Parameters<typeof userApi.updateProfile>[0]) => userApi.updateProfile(request),
+
     onSuccess: (response) => {
       const user = response ?? null;
       queryClient.setQueryData(['user', 'me'], user);
       useAuthStore.getState().setUser(user);
       toast.success('프로필이 수정되었습니다');
     },
+
     onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '프로필 수정에 실패했습니다';
       toast.error(message);
@@ -99,12 +104,14 @@ export const useCompleteOnboarding = (accountId?: number) => {
         throw error;
       }
     },
+
     onSuccess: (response) => {
       const user = response ?? null;
       queryClient.setQueryData(['user', 'me'], user);
       useAuthStore.getState().setUser(user);
       toast.success('설정이 완료되었습니다');
     },
+
     onError: (error: AxiosError<{ message: string }>) => {
       const message = error.response?.data?.message || '설정 저장에 실패했습니다';
       toast.error(message);

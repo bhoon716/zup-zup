@@ -56,9 +56,10 @@
 - Prometheus
 - MySQL, H2
 - Redis
-- Firebase Admin
 - Web Push
 - Apache Tika
+
+알림은 EMAIL·WEB·DISCORD를 지원하며 웹 푸시는 표준 Push API·VAPID를 사용합니다.
 
 ## 강의 수집 구조
 

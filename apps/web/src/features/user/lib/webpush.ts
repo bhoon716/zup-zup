@@ -1,9 +1,6 @@
-
-
 import { buildClientErrorEvent, reportClientError } from "@/shared/telemetry/client-error";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
-
 
 function isSameUint8Array(a: Uint8Array, b: Uint8Array) {
   if (a.length !== b.length) return false;
@@ -13,7 +10,6 @@ function isSameUint8Array(a: Uint8Array, b: Uint8Array) {
   return true;
 }
 
-
 function hasSameApplicationServerKey(subscription: PushSubscription, expectedKey: Uint8Array) {
   const existingKeyBuffer = subscription.options?.applicationServerKey;
   if (!existingKeyBuffer) return false;
@@ -21,7 +17,6 @@ function hasSameApplicationServerKey(subscription: PushSubscription, expectedKey
   const existingKey = new Uint8Array(existingKeyBuffer);
   return isSameUint8Array(existingKey, expectedKey);
 }
-
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -36,7 +31,6 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-
 export function extractSubscriptionKeys(subscription: PushSubscription) {
   const json = subscription.toJSON();
   const endpoint = json.endpoint;
@@ -50,11 +44,9 @@ export function extractSubscriptionKeys(subscription: PushSubscription) {
   return { endpoint, p256dh, auth };
 }
 
-
-
 export async function getSubscription() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return null;
-  
+
   try {
     const registration = await Promise.race([
       navigator.serviceWorker.ready,
@@ -68,14 +60,13 @@ export async function getSubscription() {
   }
 }
 
-
 export async function subscribeToPush() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     throw new Error("이 브라우저에서는 웹 푸시를 사용할 수 없습니다. iPhone/iPad는 홈 화면에 추가한 뒤 실행해 주세요. 웹 푸시를 끄고 이메일 등 다른 알림으로 계속할 수 있습니다.");
   }
 
   const registration = await navigator.serviceWorker.register("/sw.js");
-  
+
   await Promise.race([
     navigator.serviceWorker.ready,
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error("서비스 워커 로드 타임아웃")), 15000))
@@ -92,7 +83,6 @@ export async function subscribeToPush() {
     if (hasSameApplicationServerKey(existingSubscription, applicationServerKey)) {
       return existingSubscription;
     }
-
 
     await existingSubscription.unsubscribe();
   }
@@ -119,7 +109,6 @@ export async function subscribeToPush() {
     throw error;
   }
 }
-
 
 export async function unsubscribeFromPush() {
   try {

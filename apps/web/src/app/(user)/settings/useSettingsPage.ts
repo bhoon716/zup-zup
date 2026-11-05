@@ -25,14 +25,10 @@ const settingsSchema = z.object({
   notificationEmail: z.string().email("유효한 이메일 주소를 입력해 주세요.").or(z.literal("")),
   emailEnabled: z.boolean(),
   webPushEnabled: z.boolean(),
-  fcmEnabled: z.boolean(),
   discordEnabled: z.boolean(),
 });
 
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
-
-
-
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof AxiosError) {
@@ -78,7 +74,6 @@ export const useSettingsPage = () => {
       notificationEmail: "",
       emailEnabled: true,
       webPushEnabled: true,
-      fcmEnabled: true,
       discordEnabled: false,
     },
   });
@@ -114,7 +109,6 @@ export const useSettingsPage = () => {
           notificationEmail: initialEmail,
           emailEnabled: userData.emailEnabled,
           webPushEnabled: userData.webPushEnabled,
-          fcmEnabled: userData.fcmEnabled,
           discordEnabled: userData.discordEnabled,
         });
 
@@ -251,17 +245,17 @@ export const useSettingsPage = () => {
   };
 
   const onSubmit = async (values: SettingsFormValues) => {
-    if (user) {
-      const isOriginal = values.notificationEmail === (user.notificationEmail || "");
-      const isGoogle = values.notificationEmail === user.email || (!values.notificationEmail && !user.notificationEmail);
-      const isVerified = isOriginal || isGoogle || verifiedEmail === values.notificationEmail;
+    if (!user) {
+      toast.error("프로필 정보를 확인한 뒤 다시 시도해 주세요.");
+      return;
+    }
+    const isOriginal = values.notificationEmail === (user.notificationEmail || "");
+    const isGoogle = values.notificationEmail === user.email || (!values.notificationEmail && !user.notificationEmail);
+    const isVerified = isOriginal || isGoogle || verifiedEmail === values.notificationEmail;
 
-      if (!isOriginal && !isGoogle) {
-        if (values.emailEnabled && !isVerified) {
-          toast.error("변경된 이메일 인증을 완료해주세요.");
-          return;
-        }
-      }
+    if (values.emailEnabled && !isVerified) {
+      toast.error("변경된 이메일 인증을 완료해주세요.");
+      return;
     }
 
     setIsSubmitting(true);
@@ -274,7 +268,6 @@ export const useSettingsPage = () => {
         notificationEmail: response.notificationEmail || "",
         emailEnabled: response.emailEnabled,
         webPushEnabled: response.webPushEnabled,
-        fcmEnabled: response.fcmEnabled,
         discordEnabled: response.discordEnabled,
       });
       setAuthCode("");

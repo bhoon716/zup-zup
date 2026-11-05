@@ -11,18 +11,12 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileCopyUtils;
 
-
-
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailTemplateService {
 
     private static final String TEMPLATE_PATH = "templates/email/";
-
-
-
 
     public String loadTemplate(String templateName, Map<String, String> values) {
         try {

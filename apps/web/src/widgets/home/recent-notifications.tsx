@@ -6,10 +6,6 @@ import { format } from "date-fns";
 
 import { NotificationHistory } from "@/shared/types/api";
 
-
-
-
-
 export function RecentNotifications({ notifications }: { notifications: NotificationHistory[] }) {
   const limitedNotifications = notifications?.slice(0, 3) || [];
 

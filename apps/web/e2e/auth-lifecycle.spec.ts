@@ -7,7 +7,7 @@ type SessionLifecycleWindow = Window & typeof globalThis & {
 
 const user = {
   id: 1, email: "lifecycle@example.com", name: "인증 흐름 사용자", role: "USER",
-  emailEnabled: false, webPushEnabled: false, fcmEnabled: false, discordEnabled: false,
+  emailEnabled: false, webPushEnabled: false, discordEnabled: false,
   onboardingCompleted: true,
 };
 

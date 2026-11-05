@@ -88,7 +88,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
-      FIREBASE_CONFIG_PATH: /app/config/firebase-key.json
       FILE_UPLOAD_DIR: /app/data/uploads
       LOG_FILE: /tmp/application.log
       APP_CORS_REQUIRE_HTTPS: "true"
@@ -99,7 +98,6 @@ services:
       - "${MANAGEMENT_BIND_ADDRESS:-127.0.0.1}:${MANAGEMENT_PORT_HOST:-8081}:8081"
     volumes:
       - ${APP_PROD_CONFIG_PATH:-../apps/server/src/main/resources/application-prod.yml}:/app/config/application-prod.yml:ro
-      - ${FIREBASE_CONFIG_PATH:?FIREBASE_CONFIG_PATH must be set}:/app/config/firebase-key.json:ro
       - app_uploads:/app/data/uploads
     networks:
       - sugang-helper-runtime

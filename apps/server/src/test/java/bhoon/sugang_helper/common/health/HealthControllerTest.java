@@ -43,9 +43,7 @@ class HealthControllerTest {
 
         given(healthEndpoint.healthForPath(READINESS_GROUP)).willReturn(Health.up().build());
 
-
         ResponseEntity<HealthCheckResponse> response = healthController.checkHealth();
-
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
@@ -62,9 +60,7 @@ class HealthControllerTest {
 
         given(healthEndpoint.healthForPath(READINESS_GROUP)).willReturn(readinessHealth);
 
-
         ResponseEntity<HealthCheckResponse> response = healthController.checkHealth();
-
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(response.getBody()).isNotNull();

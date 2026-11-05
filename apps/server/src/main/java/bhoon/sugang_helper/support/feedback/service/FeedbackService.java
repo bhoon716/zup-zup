@@ -49,9 +49,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-
-
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -75,9 +72,6 @@ public class FeedbackService {
     private long dailyQuota;
     @Value("${app.feedback.max-upload-bytes:10485760}")
     private long maximumUploadBytes;
-
-
-
 
     @Transactional
     public Long createFeedback(Long userId, FeedbackCreateRequest request, List<MultipartFile> files) {
@@ -131,9 +125,6 @@ public class FeedbackService {
         return baseName + fileUrl.substring(sanitizedExtensionStart);
     }
 
-
-
-
     @Transactional(readOnly = true)
     public Page<FeedbackResponse> getMyFeedbacks(Long userId, Pageable pageable) {
         return feedbackRepository.findAllByUserId(userId, PageableGuard.requireBounded(pageable))
@@ -144,9 +135,6 @@ public class FeedbackService {
     public Page<FeedbackResponse> getMyFeedbacksForCurrentUser(Pageable pageable) {
         return getMyFeedbacks(requireCurrentUser().id(), pageable);
     }
-
-
-
 
     @Transactional(readOnly = true)
     public FeedbackDetailResponse getMyFeedbackDetail(Long userId, Long feedbackId) {
@@ -164,9 +152,6 @@ public class FeedbackService {
     public FeedbackDetailResponse getMyFeedbackDetailForCurrentUser(Long feedbackId) {
         return getMyFeedbackDetail(requireCurrentUser().id(), feedbackId);
     }
-
-
-
 
     @Transactional
     public void deleteFeedback(Long userId, Long feedbackId) {
@@ -207,9 +192,6 @@ public class FeedbackService {
         return getAttachment(requireCurrentUser(), feedbackId, attachmentId);
     }
 
-
-
-
     @Transactional
     public FeedbackAttachmentDownload getAttachmentForAdmin(UserIdentity admin, Long feedbackId, Long attachmentId,
                                                             boolean confirmed) {
@@ -234,11 +216,6 @@ public class FeedbackService {
         return getAttachmentForAdmin(requireCurrentAdmin(), feedbackId, attachmentId, confirmed);
     }
 
-
-
-
-
-
     @Transactional(readOnly = true)
     public Page<AdminFeedbackResponse> getFeedbacksForAdmin(Pageable pageable,
                                                              AdminFeedbackDeletionFilter deletionFilter) {
@@ -259,9 +236,6 @@ public class FeedbackService {
                         feedback.deletedAt(),
                         authorLabel(isWithdrawnAuthor(feedback.authorId(), withdrawnByUserId))));
     }
-
-
-
 
     @Transactional(readOnly = true)
     public AdminFeedbackDetailResponse getFeedbackDetailForAdmin(Long feedbackId) {
@@ -296,9 +270,6 @@ public class FeedbackService {
                         .toList());
     }
 
-
-
-
     @Transactional
     public Long createFeedbackReply(Long adminId, Long feedbackId, FeedbackReplyCreateRequest request) {
         userIdentityQuery.findById(adminId)
@@ -325,9 +296,6 @@ public class FeedbackService {
         return createFeedbackReply(requireCurrentAdmin().id(), feedbackId, request);
     }
 
-
-
-
     @Transactional
     public void updateFeedbackReply(Long adminId, Long replyId, FeedbackReplyUpdateRequest request) {
         userIdentityQuery.findById(adminId)
@@ -350,9 +318,6 @@ public class FeedbackService {
         updateFeedbackReply(requireCurrentAdmin().id(), replyId, request);
     }
 
-
-
-
     @Transactional
     public void deleteFeedbackReply(Long adminId, Long replyId) {
         userIdentityQuery.findById(adminId)
@@ -373,9 +338,6 @@ public class FeedbackService {
     public void deleteFeedbackReplyForCurrentAdmin(Long replyId) {
         deleteFeedbackReply(requireCurrentAdmin().id(), replyId);
     }
-
-
-
 
     @Transactional
     public void updateFeedbackStatus(Long adminId, Long feedbackId, FeedbackStatusUpdateRequest request) {
@@ -421,9 +383,6 @@ public class FeedbackService {
         return userDisplayNameQuery.findByIds(adminIds).stream()
                 .collect(Collectors.toMap(UserDisplayName::id, UserDisplayName::name, (first, ignored) -> first));
     }
-
-
-
 
     private void validateRateLimit(Long userId, String clientIp, List<MultipartFile> files) {
         long totalUploadBytes = files == null ? 0 : files.stream().mapToLong(MultipartFile::getSize).sum();

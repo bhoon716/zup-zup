@@ -34,13 +34,11 @@ describe("TimeTableSelector", () => {
     const startCell = getByRole("button", { name: "월 1교시" });
     const endCell = getByRole("button", { name: "화 2교시" });
 
-
     vi.mocked(document.elementFromPoint).mockReturnValue(endCell);
 
     fireEvent.pointerDown(startCell, { pointerId: 1, pointerType: "mouse", button: 0 });
     fireEvent.pointerMove(endCell, { pointerId: 1, pointerType: "mouse", clientX: 100, clientY: 100 });
     fireEvent.pointerUp(window, { pointerId: 1, pointerType: "mouse" });
-
 
     document.elementFromPoint = originalElementFromPoint;
 
@@ -69,20 +67,17 @@ describe("TimeTableSelector", () => {
 
     render(<SelectorHarness initial={initial} />);
 
-
     const originalElementFromPoint = document.elementFromPoint;
     document.elementFromPoint = vi.fn();
 
     const startCell = screen.getByRole("button", { name: "화 2교시" });
     const endCell = screen.getByRole("button", { name: "월 1교시" });
 
-
     vi.mocked(document.elementFromPoint).mockReturnValue(endCell);
 
     fireEvent.pointerDown(startCell, { pointerId: 2, pointerType: "mouse", button: 0 });
     fireEvent.pointerMove(endCell, { pointerId: 2, pointerType: "mouse", clientX: 50, clientY: 50 });
     fireEvent.pointerUp(window, { pointerId: 2, pointerType: "mouse" });
-
 
     document.elementFromPoint = originalElementFromPoint;
 

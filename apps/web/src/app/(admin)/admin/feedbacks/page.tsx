@@ -46,10 +46,6 @@ type AttachmentPreview = {
   filename: string;
 };
 
-
-
-
-
 export default function AdminFeedbackPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [deletionFilter, setDeletionFilter] = useState<AdminFeedbackDeletionFilter>("ALL");
@@ -62,7 +58,7 @@ export default function AdminFeedbackPage() {
 
   const { data: listData, isLoading: isListLoading } = useFeedbacksForAdmin(0, deletionFilter);
   const { data: detailData, isLoading: isDetailLoading } = useAdminFeedbackDetail(selectedId!, !!selectedId);
-  
+
   const updateStatusMutation = useUpdateFeedbackStatus();
   const createReplyMutation = useCreateFeedbackReply();
   const updateReplyMutation = useUpdateFeedbackReply();

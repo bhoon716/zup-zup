@@ -1,6 +1,5 @@
 import api from "@/shared/api/client";
 
-
 export interface HealthStatus {
   status: string;
   version: string;

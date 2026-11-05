@@ -22,9 +22,6 @@ public class AnnouncementController {
 
     private final AnnouncementService announcementService;
 
-
-
-
     @GetMapping
     public ResponseEntity<Page<AnnouncementListResponse>> getAnnouncements(
             @RequestParam(required = false) String keyword,
@@ -34,9 +31,6 @@ public class AnnouncementController {
         Page<AnnouncementListResponse> response = announcementService.getPublicAnnouncements(keyword, searchType, fixedPageable);
         return ResponseEntity.ok(response);
     }
-
-
-
 
     @GetMapping("/{id}")
     public ResponseEntity<AnnouncementDetailResponse> getAnnouncement(@PathVariable Long id) {

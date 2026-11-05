@@ -9,9 +9,6 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-
-
-
 final class JbnuJumpRequestEncoder {
 
     private static final String KEY_MARK = "전북대학교 JUMP시스템";

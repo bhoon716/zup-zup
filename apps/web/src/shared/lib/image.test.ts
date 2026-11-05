@@ -30,6 +30,7 @@ describe("compressImage", () => {
         width: 0,
         height: 0,
         getContext: () => context,
+
         toBlob: (callback: BlobCallback, type?: string) => {
           outputType = type ?? "";
           callback(new Blob(["compressed"], { type: outputType }));

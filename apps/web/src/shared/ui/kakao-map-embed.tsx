@@ -10,9 +10,6 @@ interface KakaoMapEmbedProps {
   className?: string;
 }
 
-
-
-
 export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);

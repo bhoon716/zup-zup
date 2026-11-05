@@ -2,10 +2,6 @@ import http from 'k6/http';
 import {group, sleep} from 'k6';
 import {BASE_URL, getAuthHeaders, validateResponse} from './common-utils.js';
 
-
-
-
-
 export const options = {
     vus: 500,
     duration: '20m',
@@ -20,9 +16,7 @@ export default function () {
 
         const res = http.post(`${BASE_URL}/api/v1/courses/search?page=0`, '{}', getAuthHeaders());
 
-
         validateResponse(res, '기본강좌조회');
-
 
         sleep(5);
     });

@@ -9,7 +9,7 @@ import { useAuthStore } from '@/features/auth/store/useAuthStore';
 const mockNotifications = [
   {
     id: 1,
-    channel: 'FCM',
+    channel: 'WEB',
     courseKey: 'TEST-101',
     title: 'Test Title',
     message: 'Test Message',
@@ -37,10 +37,9 @@ describe('useNotifications hook', () => {
   it('fetches notifications successfully', async () => {
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
-    
 
     useAuthStore.setState({ isAuthenticated: true });
-    
+
     const { result } = renderHook(() => useNotifications(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

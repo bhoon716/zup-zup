@@ -77,7 +77,6 @@ export const isOverlapping = (
   return start1 < end2 && start2 < end1;
 };
 
-
 export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock[] => {
   const flattened: RenderingBlock[] = [];
 
@@ -132,14 +131,13 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
 
     if (processedKeys.has(current.key)) continue;
 
-
     const consecutive = [current];
     processedKeys.add(current.key);
-    
+
     for (let j = i + 1; j < sorted.length; j++) {
       const next = sorted[j];
       const last = consecutive[consecutive.length - 1];
-      
+
       if (
         next.id === current.id &&
         next.dayOfWeek === current.dayOfWeek &&
@@ -174,7 +172,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
       endTime: string;
       overlappingBlocks: { title: string; subTitle?: string }[];
     }[] = [];
-    
+
     if (overlappingBlocks.length > 0) {
       overlappingBlocks.forEach((other) => {
         const blockStartMin = getTimeInMinutes(block.startTime);
@@ -225,8 +223,6 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
     };
   });
 };
-
-
 
 export function mergeAdjacentSchedules(schedules: CustomScheduleTimeResponse[]): CustomScheduleTimeResponse[] {
   const merged: CustomScheduleTimeResponse[] = [];

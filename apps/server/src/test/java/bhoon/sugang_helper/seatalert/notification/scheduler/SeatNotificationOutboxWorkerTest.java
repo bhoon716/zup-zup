@@ -69,9 +69,7 @@ class SeatNotificationOutboxWorkerTest {
             return null;
         }).when(processor).processDelivery(any());
 
-
         worker.processPendingNotifications();
-
 
         var ordered = inOrder(processor);
         ordered.verify(processor).materializePendingOutboxes();
@@ -109,7 +107,6 @@ class SeatNotificationOutboxWorkerTest {
             appender.stop();
         }
 
-
         verify(processor).processDelivery(first);
         verify(processor).processDelivery(second);
         assertThat(meterRegistry.get("notification.outbox.queue.depth").tag("channel", "EMAIL").gauge().value())
@@ -133,9 +130,7 @@ class SeatNotificationOutboxWorkerTest {
             Future<?> runningPoll = caller.submit(worker::processPendingNotifications);
             assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
 
-
             worker.processPendingNotifications();
-
 
             verify(processor).materializePendingOutboxes();
             verify(processor).claimReadyDeliveries(1);
@@ -158,10 +153,8 @@ class SeatNotificationOutboxWorkerTest {
             return null;
         }).when(processor).processDelivery(first);
 
-
         worker.processPendingNotifications();
         worker.processPendingNotifications();
-
 
         verify(processor).materializePendingOutboxes();
         verify(processor).claimReadyDeliveries(1);
@@ -174,9 +167,7 @@ class SeatNotificationOutboxWorkerTest {
 
         worker.shutdown();
 
-
         worker.processPendingNotifications();
-
 
         verifyNoInteractions(processor);
     }
@@ -187,7 +178,6 @@ class SeatNotificationOutboxWorkerTest {
         doThrow(new IllegalStateException("database unavailable")).doNothing()
                 .when(processor).materializePendingOutboxes();
         when(processor.claimReadyDeliveries(1)).thenReturn(List.of());
-
 
         assertThatThrownBy(worker::processPendingNotifications).isInstanceOf(IllegalStateException.class);
         worker.processPendingNotifications();
@@ -202,7 +192,6 @@ class SeatNotificationOutboxWorkerTest {
         try {
 
             worker.processPendingNotifications();
-
 
             verify(processor, never()).claimReadyDeliveries(1);
             assertThat(Thread.currentThread().isInterrupted()).isTrue();

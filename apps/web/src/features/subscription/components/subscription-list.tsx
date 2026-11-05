@@ -8,10 +8,6 @@ import { Button } from "@/shared/ui/button";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
 import type { Course, Subscription } from "@/shared/types/api";
 
-
-
-
-
 export function SubscriptionList() {
   const { data: subscriptions, isLoading } = useSubscriptions();
   const { mutate: unsubscribe, isPending: isUnsubscribing } = useUnsubscribe();
@@ -19,9 +15,6 @@ export function SubscriptionList() {
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-
-
 
   const handleCardClick = (sub: Subscription) => {
     const parts = sub.courseKey.split(':');

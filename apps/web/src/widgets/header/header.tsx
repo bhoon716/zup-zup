@@ -26,10 +26,6 @@ import { useHasMounted } from "@/shared/hooks/useHasMounted";
 import { NavLinks } from "./ui/nav-links";
 import { HeaderDesktopUser, HeaderMobileUserStatus } from "./ui/user-status";
 
-
-
-
-
 export function Header() {
   const mobileMenuTriggerId = "header-mobile-menu-trigger";
   const mobileMenuContentId = "header-mobile-menu-content";

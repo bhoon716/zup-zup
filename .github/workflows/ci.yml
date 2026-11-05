@@ -75,6 +75,7 @@ jobs:
           bash infra/scripts/test-runtime-contract.sh
           bash infra/scripts/test-observability-contract.sh
           bash infra/scripts/test-cd-workflow-contract.sh
+          bash infra/scripts/test-deploy-quiescence.sh
           bash infra/scripts/test-app-env-preflight.sh
           bash infra/scripts/test-release-layout-contract.sh
           bash infra/scripts/test-local-app-image-flow.sh
@@ -190,7 +191,6 @@ jobs:
           APP_OAUTH2_SUCCESS_REDIRECT_URI: http://localhost:3000
           APP_OAUTH2_FAILURE_REDIRECT_URI: http://localhost:3000/login?error=true
           APP_OAUTH2_AUTHORIZED_REDIRECT_URI: http://localhost:3000
-          FIREBASE_CONFIG_PATH: /tmp/ci-firebase.json
           WEBPUSH_PUBLIC_KEY: ci-webpush-public
           WEBPUSH_PRIVATE_KEY: ci-webpush-private
           WEBPUSH_SUBJECT: mailto:ci@example.test
@@ -199,7 +199,6 @@ jobs:
           DISCORD_CLIENT_SECRET: ""
           DISCORD_REDIRECT_URI: http://localhost:8080/api/v1/users/discord/callback
         run: |
-          printf '{}' > /tmp/ci-firebase.json
           ./gradlew clean check migrationTest bootJar --no-daemon
 
       - name: QEMU 설정

@@ -18,17 +18,11 @@ public class AdminController {
 
     private final AdminService adminService;
 
-
-
-
     @GetMapping("/dashboard")
     public ResponseEntity<AdminDashboardSnapshotResponse> getDashboardSnapshot() {
         AdminDashboardSnapshotResponse response = adminService.getDashboardSnapshot();
         return ResponseEntity.ok(response);
     }
-
-
-
 
     @PostMapping("/notifications/test")
     public ResponseEntity<Void> sendTestNotification() {

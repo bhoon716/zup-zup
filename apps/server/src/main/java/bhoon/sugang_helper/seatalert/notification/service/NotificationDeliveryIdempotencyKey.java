@@ -5,9 +5,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-
-
-
 public final class NotificationDeliveryIdempotencyKey {
 
     private static final int PROVIDER_KEY_LENGTH = 22;

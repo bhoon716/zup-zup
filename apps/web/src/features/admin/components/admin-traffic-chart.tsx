@@ -11,10 +11,6 @@ interface AdminTrafficChartProps {
   traffic: TrafficPoint[];
 }
 
-
-
-
-
 export function AdminTrafficChart({ traffic }: AdminTrafficChartProps) {
   const maxTraffic = Math.max(...traffic.map((point) => point.count), 1);
 

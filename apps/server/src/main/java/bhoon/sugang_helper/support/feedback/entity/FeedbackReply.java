@@ -17,9 +17,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
-
-
-
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -51,15 +48,9 @@ public class FeedbackReply extends BaseTimeEntity {
         this.content = content;
     }
 
-
-
-
     public void updateContent(String content) {
         this.content = content;
     }
-
-
-
 
     public void delete() {
         this.deletedAt = LocalDateTime.now();

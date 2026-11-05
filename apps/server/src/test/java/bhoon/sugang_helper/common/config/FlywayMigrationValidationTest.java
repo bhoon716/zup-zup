@@ -176,19 +176,19 @@ class FlywayMigrationValidationTest {
             assertThat(indexCount(jdbcTemplate, USERS_TABLE_NAME, "uk_users_oauth_identity")).isEqualTo(2);
             jdbcTemplate.update("""
                             INSERT INTO users (
-                                discord_enabled, email, email_enabled, fcm_enabled, name,
+                                discord_enabled, email, email_enabled, name,
                                 onboarding_completed, role, web_push_enabled, oauth_issuer, oauth_subject
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """,
-                    false, "oauth-user@example.com", false, false, "OAuth User", false, "USER", false,
+                    false, "oauth-user@example.com", false, "OAuth User", false, "USER", false,
                     "https://accounts.google.com", "unique-subject");
             assertThatThrownBy(() -> jdbcTemplate.update("""
                             INSERT INTO users (
-                                discord_enabled, email, email_enabled, fcm_enabled, name,
+                                discord_enabled, email, email_enabled, name,
                                 onboarding_completed, role, web_push_enabled, oauth_issuer, oauth_subject
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """,
-                    false, "other-oauth-user@example.com", false, false, "Other OAuth User", false, "USER", false,
+                    false, "other-oauth-user@example.com", false, "Other OAuth User", false, "USER", false,
                     "https://accounts.google.com", "unique-subject"))
                     .hasMessageContaining("uk_users_oauth_identity");
             assertThat(columnNullable(jdbcTemplate, COURSES_TABLE_NAME, "last_crawled_at")).isEqualTo("YES");
@@ -425,6 +425,7 @@ class FlywayMigrationValidationTest {
 
         }
     }
+
     private static void assertOnlyRequiredNonUniqueIndexes(JdbcTemplate jdbc) {
         List<String> optionalIndexes = jdbc.queryForList("""
                 SELECT DISTINCT CONCAT(s.TABLE_NAME, '.', s.INDEX_NAME)
@@ -494,7 +495,7 @@ class FlywayMigrationValidationTest {
                 "SELECT idempotency_key FROM seat_notification_deliveries WHERE id = ?", String.class, deliveryId);
         Flyway head = Flyway.configure()
                 .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
-                .locations(MIGRATION_LOCATION).load();
+                .locations(MIGRATION_LOCATION).target("30").load();
         assertThat(head.migrate().migrationsExecuted).isEqualTo(1);
         head.validate();
         assertThat(head.info().current().getVersion().getVersion()).isEqualTo("30");

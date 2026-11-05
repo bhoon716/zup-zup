@@ -47,10 +47,6 @@ const {
   };
 });
 
-vi.mock("@/shared/lib/firebase", () => ({
-  getFirebaseApp: vi.fn(),
-}));
-
 vi.mock("@/widgets/auth/login-modal", () => ({
   LoginModal: () => null,
 }));

@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-
-
-
-
-
 SERVER_HOST="${SERVER_HOST:-api.zup-zup.com}"
 SERVER_USER="${SERVER_USER:-ubuntu}"
 REMOTE_BACKUP_DIR="${REMOTE_BACKUP_DIR:-/home/ubuntu/jbnu-sugang-helper/backups}"
@@ -34,13 +29,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-
 echo "[1/4] Syncing MySQL dumps and export archives into staging via rsync..." | tee -a "${LOG_FILE}"
 rsync -avz --include="*.sql.gz" --include="*.tar.gz" --include="*.sha256" --include="*/" --exclude="*" \
   -e "ssh -o StrictHostKeyChecking=accept-new" \
   "${SERVER_USER}@${SERVER_HOST}:${REMOTE_BACKUP_DIR}/" \
   "${STAGING_DIR}/" | tee -a "${LOG_FILE}"
-
 
 echo "[2/4] Verifying SHA-256 checksums on MacBook..." | tee -a "${LOG_FILE}"
 CHECKSUM_ERRORS=0
@@ -88,8 +81,8 @@ if [ "${CHECKSUM_ERRORS}" -gt 0 ]; then
 fi
 echo "[SUCCESS] All checksums verified successfully!" | tee -a "${LOG_FILE}"
 
-
 echo "[3/4] Promoting verified backups..." | tee -a "${LOG_FILE}"
+
 promote_file() {
   local source_file="$1"
   local relative_path="${source_file#"${STAGING_DIR}/"}"
@@ -109,7 +102,6 @@ done < <(find "${STAGING_DIR}" -type f ! -name "*.sha256" -print0)
 while IFS= read -r -d '' source_file; do
   promote_file "${source_file}"
 done < <(find "${STAGING_DIR}" -type f -name "*.sha256" -print0)
-
 
 echo "[4/4] Cleaning up MacBook backups older than ${RETENTION_DAYS} days..." | tee -a "${LOG_FILE}"
 find "${LOCAL_BACKUP_DIR}/mysql" -type f -mtime +"${RETENTION_DAYS}" -delete

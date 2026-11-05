@@ -33,9 +33,7 @@ class SecurityUtilTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
 
-
         String result = SecurityUtil.getCurrentUserEmail();
-
 
         assertThat(result).isEqualTo(email);
     }
@@ -45,7 +43,6 @@ class SecurityUtilTest {
     void getCurrentUserEmail_no_authentication() {
 
         SecurityContextHolder.clearContext();
-
 
         assertThatThrownBy(SecurityUtil::getCurrentUserEmail)
                 .isInstanceOf(CustomException.class)

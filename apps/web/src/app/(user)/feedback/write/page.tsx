@@ -15,9 +15,6 @@ import { buildFeedbackMetadata } from "@/features/feedback/feedback-metadata";
 import { useCreateFeedback } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackCreateForm } from "@/features/feedback/components/feedback-create-form";
 
-
-
-
 function FeedbackWritePageContent() {
   const router = useRouter();
 

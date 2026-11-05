@@ -80,7 +80,6 @@ dependencies {
         }
     }
 
-
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
@@ -90,9 +89,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
 
-
     implementation 'io.awspring.cloud:spring-cloud-aws-starter-ses:3.3.0'
-
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
@@ -100,41 +97,28 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mysql'
 
-
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-mysql'
     runtimeOnly 'com.mysql:mysql-connector-j'
     runtimeOnly 'com.h2database:h2'
     testImplementation 'com.h2database:h2'
 
-
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-
-
 
     implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.0'
     annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:6.0:jpa'
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
     annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
-
     implementation 'io.micrometer:micrometer-registry-prometheus'
-
 
     implementation 'org.springframework.session:spring-session-data-redis'
 
-
-    implementation 'com.google.firebase:firebase-admin:9.7.0'
-
-
     implementation 'nl.martijndwars:web-push:5.1.1'
     implementation 'org.bouncycastle:bcprov-jdk18on:1.84'
-
 
     implementation 'org.apache.tika:tika-core:3.3.0'
 }

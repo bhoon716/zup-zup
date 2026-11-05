@@ -79,13 +79,11 @@ class WebPushHttpCancellationTest {
             server.start();
             long startedAt = System.nanoTime();
 
-
             assertThatThrownBy(() -> resilience.execute(NotificationChannel.WEB,
                     () -> sender.send(NotificationTarget.ofWeb(endpoint, receiverKey, auth), "title", "body")))
                     .isInstanceOf(NotificationProviderException.class)
                     .hasFieldOrPropertyWithValue("reason", "TIMEOUT");
             long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
-
 
             assertThat(requestReceived.getCount()).isZero();
             assertThat(encryptedRequestBytes.get()).isPositive();

@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const response = (data: unknown) => data;
 const profile = {
   id: 71, email: "onboarding@example.invalid", name: "로컬 사용자", role: "USER",
-  emailEnabled: true, webPushEnabled: false, fcmEnabled: false, discordEnabled: false,
+  emailEnabled: true, webPushEnabled: false, discordEnabled: false,
   onboardingCompleted: false,
 };
 
@@ -105,6 +105,7 @@ test("웹 푸시 권한 거부 후 이메일로 완료하면 저장 실패 이�
   await page.addInitScript(() => {
     const registration = { pushManager: {
       getSubscription: async () => null,
+
       subscribe: async () => { throw new DOMException("Permission denied", "NotAllowedError"); },
     } };
     Object.defineProperty(window, "PushManager", { configurable: true, value: class {} });

@@ -38,9 +38,6 @@ public class SubscriptionService {
     @Value("${app.subscription.max-limit:3}")
     private int maxLimit;
 
-
-
-
     @Transactional
     public SubscriptionResponse subscribe(SubscriptionRequest request) {
         UserIdentity user = getCurrentUser();
@@ -61,9 +58,6 @@ public class SubscriptionService {
         return SubscriptionResponse.of(saved, course.name(), course.professor());
     }
 
-
-
-
     private void validateSubscription(UserIdentity user, CourseSummary course) {
         if (subscriptionRepository.findByUserIdAndCourseKey(user.id(), course.courseKey()).isPresent()) {
             throw new CustomException(ErrorCode.SUBSCRIPTION_ALREADY_EXISTS);
@@ -79,9 +73,6 @@ public class SubscriptionService {
         }
     }
 
-
-
-
     @Transactional
     public void unsubscribe(Long subscriptionId) {
         UserIdentity user = getCurrentUser();
@@ -96,18 +87,12 @@ public class SubscriptionService {
         log.info("[Subscription] 구독 취소. userId={}, subscriptionId={}", user.id(), subscriptionId);
     }
 
-
-
-
     @Transactional
     public void unsubscribeAll() {
         UserIdentity user = getCurrentUser();
         subscriptionRepository.deleteAllByUserId(user.id());
         log.info("[Subscription] 전체 구독 취소. userId={}", user.id());
     }
-
-
-
 
     public List<SubscriptionResponse> getMySubscriptions() {
         UserIdentity user = getCurrentUser();
@@ -125,18 +110,12 @@ public class SubscriptionService {
                 .collect(Collectors.toList());
     }
 
-
-
-
     private SubscriptionResponse convertToResponse(Subscription subscription, CourseName course) {
         if (course == null) {
             return SubscriptionResponse.of(subscription, "Unknown", "Unknown");
         }
         return SubscriptionResponse.of(subscription, course.name(), course.professor());
     }
-
-
-
 
     private UserIdentity getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();

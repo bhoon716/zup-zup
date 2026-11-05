@@ -20,14 +20,17 @@ public interface SeatNotificationDeliveryRepository extends JpaRepository<SeatNo
 
     long countByOutboxIdAndStatusNot(Long outboxId, SeatNotificationDeliveryStatus status);
 
-    long countByOutboxIdAndStatus(Long outboxId, SeatNotificationDeliveryStatus status);
+    long countByOutboxIdAndStatus(
+            Long outboxId, SeatNotificationDeliveryStatus status);
 
-    long countByOutboxIdAndStatusIn(Long outboxId, List<SeatNotificationDeliveryStatus> statuses);
+    long countByOutboxIdAndStatusIn(
+            Long outboxId, List<SeatNotificationDeliveryStatus> statuses);
 
     Page<SeatNotificationDelivery> findByStatusOrderByDeadLetteredAtDescIdDesc(
             SeatNotificationDeliveryStatus status, Pageable pageable);
 
-    long deleteByStatusAndDeadLetteredAtBefore(SeatNotificationDeliveryStatus status, LocalDateTime cutoff);
+    long deleteByStatusAndDeadLetteredAtBefore(
+            SeatNotificationDeliveryStatus status, LocalDateTime cutoff);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select d from SeatNotificationDelivery d where d.id = :id")

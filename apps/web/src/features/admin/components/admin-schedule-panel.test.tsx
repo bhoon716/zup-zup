@@ -10,9 +10,13 @@ const mockRestoreSchedule = vi.fn();
 
 vi.mock("@/features/schedule/hooks/useSchedules", () => ({
   useAdminSchedules: () => ({ data: mockAdminSchedules(), isLoading: false }),
+
   useCreateSchedule: () => ({ mutate: mockCreateSchedule, isPending: false }),
+
   useUpdateSchedule: () => ({ mutate: mockUpdateSchedule, isPending: false }),
+
   useDeleteSchedule: () => ({ mutate: mockDeleteSchedule, isPending: false }),
+
   useRestoreSchedule: () => ({ mutate: mockRestoreSchedule, isPending: false }),
 }));
 

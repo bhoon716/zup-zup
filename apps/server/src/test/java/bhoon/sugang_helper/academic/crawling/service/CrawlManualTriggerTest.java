@@ -14,9 +14,6 @@ public class CrawlManualTriggerTest {
     @Autowired
     private CourseCrawlerService courseCrawlerService;
 
-
-
-
     @Test
     void triggerCrawl() {
         System.out.println("Starting manual crawl trigger...");

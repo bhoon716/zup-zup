@@ -101,9 +101,7 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-
         UserProfileUpdateResult result = userService.updateProfile(new UpdateProfileCommand(NEW_NAME));
-
 
         assertThat(result.name()).isEqualTo(NEW_NAME);
         assertThat(user.getName()).isEqualTo(NEW_NAME);
@@ -120,7 +118,6 @@ class UserServiceTest {
                 .notificationEmail(NOTIFY_EMAIL)
                 .emailEnabled(true)
                 .webPushEnabled(true)
-                .fcmEnabled(true)
                 .discordEnabled(true)
                 .discordId("discord-id")
                 .role(Role.USER)
@@ -128,9 +125,7 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-
         userService.withdraw();
-
 
         assertThat(user.isDeleted()).isTrue();
         assertThat(user.getEmail()).isEqualTo("deleted-1@deleted.invalid");
@@ -185,9 +180,7 @@ class UserServiceTest {
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-
         UserProfileResult result = userService.getMyProfile();
-
 
         assertThat(result.email()).isEqualTo(TEST_EMAIL);
         assertThat(result.name()).isEqualTo("Test User");
@@ -199,7 +192,6 @@ class UserServiceTest {
 
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
-
 
         assertThatThrownBy(() -> userService.getMyProfile())
                 .isInstanceOf(CustomException.class)
@@ -218,15 +210,13 @@ class UserServiceTest {
                 .build();
 
         UpdateSettingsCommand request = new UpdateSettingsCommand(
-                NEW_EMAIL, true, true, false, true);
+                NEW_EMAIL, true, true, true);
 
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
         when(emailVerificationService.isVerified(1L, NEW_EMAIL)).thenReturn(true);
 
-
         UserSettingsResult result = userService.updateSettings(request);
-
 
         assertThat(result.notificationEmail()).isEqualTo(NEW_EMAIL);
         assertThat(result.emailEnabled()).isTrue();
@@ -248,15 +238,13 @@ class UserServiceTest {
                 .build();
 
         CompleteOnboardingCommand request = new CompleteOnboardingCommand(
-                "notify@example.com", true, true, false, false);
+                "notify@example.com", true, true, false);
 
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
         when(emailVerificationService.isVerified(1L, NOTIFY_EMAIL)).thenReturn(true);
 
-
         UserOnboardingResult result = userService.completeOnboarding(request);
-
 
         assertThat(result.onboardingCompleted()).isTrue();
         assertThat(user.isOnboardingCompleted()).isTrue();
@@ -274,16 +262,13 @@ class UserServiceTest {
                 .role(Role.USER)
                 .emailEnabled(true)
                 .webPushEnabled(true)
-                .fcmEnabled(false)
                 .discordEnabled(false)
                 .build();
 
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
 
-
         userService.sendTestNotification();
-
 
         verify(notificationTestSender, times(1)).sendUserTestNotification(eq(user.getId()));
     }
@@ -299,13 +284,11 @@ class UserServiceTest {
                 .role(Role.USER)
                 .emailEnabled(false)
                 .webPushEnabled(false)
-                .fcmEnabled(false)
                 .discordEnabled(false)
                 .build();
 
         securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
-
 
         assertThatThrownBy(() -> userService.sendTestNotification())
                 .isInstanceOf(CustomException.class)

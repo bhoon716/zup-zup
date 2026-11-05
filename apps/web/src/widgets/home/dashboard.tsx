@@ -9,10 +9,6 @@ import { DashboardDDayBlock } from "./dashboard-dday-block";
 import { DashboardCountdown } from "./dashboard-countdown";
 import type { DashboardSnapshotResponse } from "@/shared/types/api";
 
-
-
-
-
 export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse }) {
   const { user, notifications, primaryTimetable, upcomingSchedules, announcements } = snapshot;
 

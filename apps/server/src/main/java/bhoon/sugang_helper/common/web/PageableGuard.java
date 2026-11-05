@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-
 public final class PageableGuard {
 
     private static final Logger log = LoggerFactory.getLogger(PageableGuard.class);

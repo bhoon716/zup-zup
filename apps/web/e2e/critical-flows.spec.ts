@@ -22,7 +22,7 @@ test("session expiry opens login guidance without replaying the request", async 
 
 test("renders an authenticated admin feedback attachment preview", async ({ page }) => {
   const admin = { id: 1, email: "admin@example.com", name: "관리자", role: "ADMIN", emailEnabled: false,
-    webPushEnabled: false, fcmEnabled: false, discordEnabled: false, onboardingCompleted: true };
+    webPushEnabled: false, discordEnabled: false, onboardingCompleted: true };
   await page.route("**/api/v1/users/me", (route) => route.fulfill({ json: response(admin) }));
   await page.route("**/api/v1/admin/feedbacks?**", (route) => route.fulfill({ json: response({
     content: [{ id: 7, type: "BUG", title: "첨부 확인", status: "PENDING", createdAt: "2026-07-13T10:00:00", hasReplies: false, deleted: false, deletedAt: null, authorLabel: "사용자" }],

@@ -17,9 +17,6 @@ interface FeedbackDetailViewProps {
   getTypeIcon: (type: FeedbackType) => React.ReactNode;
 }
 
-
-
-
 export function FeedbackDetailView({
   isLoading,
   feedbackDetail,

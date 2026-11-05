@@ -27,9 +27,6 @@ public class CourseCrawlerTargetService {
     @Value("${jbnu.crawler.default-semester}")
     private String defaultSemester;
 
-
-
-
     @Transactional(readOnly = true)
     public AdminCrawlTargetResponse getCurrentTarget() {
         CrawlerSetting setting = resolveCurrentSetting();
@@ -41,9 +38,6 @@ public class CourseCrawlerTargetService {
         return new CrawlerAdminSnapshot(setting.getTargetYear(), setting.getTargetSemester());
     }
 
-
-
-
     @Transactional(readOnly = true)
     public SearchDefaultSemesterResponse getSearchDefaultSemester() {
         CrawlerSetting setting = resolveCurrentSetting();
@@ -51,9 +45,6 @@ public class CourseCrawlerTargetService {
                 .semester(setting.getTargetSemester())
                 .build();
     }
-
-
-
 
     @Transactional
     public AdminCrawlTargetResponse updateTarget(String year, String semester) {
@@ -63,26 +54,17 @@ public class CourseCrawlerTargetService {
         return toResponse(setting);
     }
 
-
-
-
     @Transactional(readOnly = true)
     public CrawlTargetInfo getCurrentTargetValue() {
         CrawlerSetting setting = resolveCurrentSetting();
         return new CrawlTargetInfo(setting.getTargetYear(), SemesterType.fromCode(setting.getTargetSemester()));
     }
 
-
-
-
     public CrawlTargetInfo normalizeTarget(String year, String semester) {
         String normalizedYear = normalizeYear(year);
         SemesterType normalizedSemester = normalizeSemesterType(semester);
         return new CrawlTargetInfo(normalizedYear, normalizedSemester);
     }
-
-
-
 
     private String normalizeYear(String year) {
         if (year == null) {
@@ -94,9 +76,6 @@ public class CourseCrawlerTargetService {
         }
         return normalized;
     }
-
-
-
 
     private SemesterType normalizeSemesterType(String semester) {
         if (semester == null) {
@@ -112,9 +91,6 @@ public class CourseCrawlerTargetService {
         }
     }
 
-
-
-
     private CrawlerSetting resolveCurrentSetting() {
         return crawlerSettingRepository.findTopByOrderByIdAsc()
                 .orElseGet(() -> CrawlerSetting.builder()
@@ -122,9 +98,6 @@ public class CourseCrawlerTargetService {
                         .targetSemester(defaultSemester)
                         .build());
     }
-
-
-
 
     private CrawlerSetting getOrCreateSetting() {
         return crawlerSettingRepository.findTopByOrderByIdAsc()
@@ -136,9 +109,6 @@ public class CourseCrawlerTargetService {
                     return crawlerSettingRepository.save(defaultSetting);
                 });
     }
-
-
-
 
     private AdminCrawlTargetResponse toResponse(CrawlerSetting setting) {
         return AdminCrawlTargetResponse.builder()

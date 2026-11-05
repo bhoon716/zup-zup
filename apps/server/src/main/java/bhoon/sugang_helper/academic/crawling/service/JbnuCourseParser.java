@@ -47,9 +47,6 @@ public class JbnuCourseParser {
             "^(\\d{1,2}:\\d{2})\\s*[-~]\\s*(\\d{1,2}:\\d{2})$");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-
-
-
     public List<ParsedCourseDto> parseCourses(String jsonData) {
         return parseJumpCourses(jsonData, null, null);
     }
@@ -179,8 +176,6 @@ public class JbnuCourseParser {
         return first != null && !first.isBlank() ? first : second;
     }
 
-
-
     private String normalizeSubjectName(String rawSubjectName, String classNumber) {
         if (rawSubjectName == null || rawSubjectName.isBlank()) {
             return rawSubjectName;
@@ -203,9 +198,6 @@ public class JbnuCourseParser {
 
         return matcher.group("subjectName").trim();
     }
-
-
-
 
     private String normalizeDepartmentName(String rawDepartment, TargetGrade targetGrade) {
         if (rawDepartment == null || rawDepartment.isBlank()) {
@@ -270,19 +262,12 @@ public class JbnuCourseParser {
         return null;
     }
 
-
-
-
     private String generateCourseKey(String year, String semester, String sbjtCd, String clss) {
         return String.format("%s:%s:%s:%s", year, semester, sbjtCd, clss);
     }
 
-
-
-
     private TargetGrade parseTargetGrade(String gradeNm, String deptNm) {
         TargetGrade grade = TargetGrade.from(gradeNm);
-
 
         if (grade != null) {
             return grade;
@@ -292,11 +277,9 @@ public class JbnuCourseParser {
             return null;
         }
 
-
         if (deptNm.contains("계열")) {
             return TargetGrade.GRADE_1;
         }
-
 
         Matcher matcher = GRADE_IN_DEPT_PATTERN.matcher(deptNm);
         String lastMatchedGrade = null;
@@ -310,9 +293,6 @@ public class JbnuCourseParser {
 
         return null;
     }
-
-
-
 
     private String normalizeClassroom(String value) {
         if (value == null || value.isBlank() || value.equals(":")) {
@@ -328,9 +308,6 @@ public class JbnuCourseParser {
             return 0;
         }
     }
-
-
-
 
     private List<ParsedCourseScheduleDto> parseSchedules(String timeString) {
         List<ParsedCourseScheduleDto> schedules = new ArrayList<>();
@@ -369,9 +346,6 @@ public class JbnuCourseParser {
         return new ParsedCourseScheduleDto(day, timeRange.start(), timeRange.end());
     }
 
-
-
-
     private List<ParsedCourseScheduleDto> mergeConsecutiveSchedules(List<ParsedCourseScheduleDto> schedules) {
         if (schedules.isEmpty()) {
             return schedules;
@@ -401,9 +375,6 @@ public class JbnuCourseParser {
         merged.add(current);
         return merged;
     }
-
-
-
 
     private TimeRange parseTimeRange(String periodToken) {
         if (periodToken == null) {
@@ -455,20 +426,15 @@ public class JbnuCourseParser {
         String half = halfValue.toUpperCase();
         int hour = 8 + slot;
 
-
         if ("A".equals(half)) {
             return new TimeRange(LocalTime.of(hour, 0), LocalTime.of(hour, 30));
         }
-
 
         if (slot == 15) {
             return new TimeRange(LocalTime.of(23, 30), LocalTime.of(23, 59));
         }
         return new TimeRange(LocalTime.of(hour, 30), LocalTime.of(hour + 1, 0));
     }
-
-
-
 
     private record TimeRange(LocalTime start, LocalTime end) {
     }

@@ -121,8 +121,6 @@ if app_environment.get("SPRING_DATASOURCE_PASSWORD") != db_environment.get("MYSQ
     fail("runtime app and MySQL must use the same root password")
 if app_environment.get("REDIS_HOST") != "redis":
     fail("runtime app must connect to the Compose redis service")
-if app_environment.get("FIREBASE_CONFIG_PATH") != "/app/config/firebase-key.json":
-    fail("runtime app must use the mounted Firebase config path")
 if app_environment.get("LOG_FILE") != "/tmp/application.log":
     fail("runtime app logs must stay writable on the read-only container")
 if app_environment.get("APP_CORS_REQUIRE_HTTPS") != "true":

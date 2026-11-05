@@ -31,6 +31,7 @@ vi.mock("@/features/timetable/hooks/useTimetable", () => ({
     mutate: mockAddToTimetable,
     isPending: false,
   }),
+
   useTimetables: () => ({
     data: [],
   }),
@@ -41,9 +42,11 @@ vi.mock("@/features/subscription/hooks/useSubscriptions", () => ({
     mutate: mockSubscribe,
     isPending: false,
   }),
+
   useSubscriptions: () => ({
     data: [],
   }),
+
   useUnsubscribe: () => ({
     mutate: mockUnsubscribe,
     isPending: false,
@@ -54,6 +57,7 @@ vi.mock("@/features/wishlist/hooks/useWishlist", () => ({
   useToggleWishlist: () => ({
     mutate: mockToggleWishlist,
   }),
+
   useWishlist: () => ({
     data: [],
   }),
@@ -94,7 +98,9 @@ describe("CourseTable", () => {
 
     class MockIntersectionObserver {
       observe() {}
+
       disconnect() {}
+
       unobserve() {}
     }
 

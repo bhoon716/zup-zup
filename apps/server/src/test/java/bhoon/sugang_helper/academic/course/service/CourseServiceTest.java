@@ -119,9 +119,7 @@ class CourseServiceTest {
                 .willReturn(new SliceImpl<>(List.of(course)));
         mockSearchContext();
 
-
         Slice<CourseResponse> responses = courseService.searchCourses(condition, PageRequest.of(0, 10));
-
 
         assertThat(responses.getContent()).hasSize(1);
         assertThat(responses.getContent().get(0).getName()).isEqualTo(COURSE_NAME);
@@ -135,9 +133,7 @@ class CourseServiceTest {
         given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(course));
         mockSearchContext();
 
-
         CourseDetailResponse response = courseService.getCourse(COURSE_KEY);
-
 
         assertThat(response.getName()).isEqualTo(COURSE_NAME);
     }
@@ -148,7 +144,6 @@ class CourseServiceTest {
 
         String invalidCourseKey = "NOT_FOUND";
         given(courseRepository.findByCourseKey(invalidCourseKey)).willReturn(Optional.empty());
-
 
         assertThatThrownBy(() -> courseService.getCourse(invalidCourseKey))
                 .isInstanceOf(CustomException.class)
@@ -168,9 +163,7 @@ class CourseServiceTest {
                 org.mockito.ArgumentMatchers.eq(COURSE_KEY), any(Pageable.class)))
                 .willReturn(new SliceImpl<>(List.of(history)));
 
-
         Slice<CourseSeatHistoryResponse> responses = courseService.getCourseHistory(COURSE_KEY, PageRequest.of(0, 30));
-
 
         assertThat(responses).hasSize(1);
         assertThat(responses.getContent().get(0).getCapacity()).isEqualTo(50);
@@ -189,9 +182,7 @@ class CourseServiceTest {
         given(courseReviewQuery.hasReviewByUser(COURSE_KEY, SUBJECT_CODE, PROFESSOR, userId)).willReturn(true);
         mockSearchContext();
 
-
         CourseDetailResponse response = courseService.getCourse(COURSE_KEY);
-
 
         assertThat(response).isNotNull();
         assertThat(response.getCourseKey()).isEqualTo(COURSE_KEY);

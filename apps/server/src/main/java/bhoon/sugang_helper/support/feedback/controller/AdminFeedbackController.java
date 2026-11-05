@@ -29,9 +29,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-
-
-
 @RestController
 @RequestMapping("/api/v1/admin/feedbacks")
 @RequiredArgsConstructor
@@ -40,9 +37,6 @@ public class AdminFeedbackController {
 
     private final FeedbackService feedbackService;
 
-
-
-
     @GetMapping
     public ResponseEntity<Page<AdminFeedbackResponse>> getAllFeedbacks(
             @RequestParam(required = false) String deletion,
@@ -50,9 +44,6 @@ public class AdminFeedbackController {
         Pageable fixedPageable = PageableGuard.fixedSize(pageable);
         return ResponseEntity.ok(feedbackService.getFeedbacksForAdmin(fixedPageable, AdminFeedbackDeletionFilter.from(deletion)));
     }
-
-
-
 
     @GetMapping("/{feedbackId}")
     public ResponseEntity<AdminFeedbackDetailResponse> getFeedbackDetail(
@@ -76,9 +67,6 @@ public class AdminFeedbackController {
                 .body(download.resource());
     }
 
-
-
-
     @PatchMapping("/{feedbackId}/status")
     public ResponseEntity<Void> updateFeedbackStatus(
             @PathVariable Long feedbackId,
@@ -87,9 +75,6 @@ public class AdminFeedbackController {
         feedbackService.updateFeedbackStatusForCurrentAdmin(feedbackId, request);
         return ResponseEntity.ok().build();
     }
-
-
-
 
     @PostMapping("/{feedbackId}/reply")
     public ResponseEntity<Long> createReply(
@@ -101,9 +86,6 @@ public class AdminFeedbackController {
                 .body(replyId);
     }
 
-
-
-
     @PatchMapping("/reply/{replyId}")
     public ResponseEntity<Void> updateReply(
             @PathVariable Long replyId,
@@ -112,9 +94,6 @@ public class AdminFeedbackController {
         feedbackService.updateFeedbackReplyForCurrentAdmin(replyId, request);
         return ResponseEntity.ok().build();
     }
-
-
-
 
     @DeleteMapping("/reply/{replyId}")
     public ResponseEntity<Void> deleteReply(

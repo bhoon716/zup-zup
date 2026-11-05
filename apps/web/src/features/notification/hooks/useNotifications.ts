@@ -2,9 +2,6 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import * as notificationApi from "@/features/notification/api/notification.api";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
-
-
-
 export const useNotifications = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 

@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.config.NotificationProperties;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
@@ -62,21 +61,19 @@ class SeatNotificationOutboxRecoveryTest {
                 .currentSeats(1)
                 .build());
         NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
-                true, true, true, true, "discord-id");
+                true, true, true, "discord-id");
         when(subscriptionQueryService.findActiveRecipientIds("course-key")).thenReturn(List.of(1L));
         when(userNotificationQuery.findByIds(List.of(1L))).thenReturn(List.of(user));
         when(userNotificationQuery.findDevicesByUserIds(List.of(1L))).thenReturn(List.of(
-                new NotificationDevice(1L, NotificationDeviceType.FCM, "fcm-token", null, null),
-                new NotificationDevice(1L, NotificationDeviceType.WEB, "web-endpoint", "p256", "auth")));
-
-
+                new NotificationDevice(1L, "web-endpoint", "p256", "auth")));
 
         processor.materializePendingOutboxes();
         List<SeatNotificationDeliveryClaim> deliveryClaims = processor.claimReadyDeliveries();
         deliveryClaims.forEach(processor::processDelivery);
 
-
-        assertThat(deliveryClaims).hasSize(4);
+        assertThat(deliveryClaims).hasSize(3)
+                .extracting(SeatNotificationDeliveryClaim::channel)
+                .containsExactlyInAnyOrder(NotificationChannel.EMAIL, NotificationChannel.WEB, NotificationChannel.DISCORD);
         assertThat(deliveryRepository.findAll())
                 .extracting(SeatNotificationDelivery::getChannel)
                 .containsExactlyInAnyOrder(NotificationChannel.values());
@@ -96,7 +93,7 @@ class SeatNotificationOutboxRecoveryTest {
 
         @Bean
         NotificationProperties notificationProperties() {
-            return new NotificationProperties(true, true, true, true);
+            return new NotificationProperties(true, true, true);
         }
 
         @Bean

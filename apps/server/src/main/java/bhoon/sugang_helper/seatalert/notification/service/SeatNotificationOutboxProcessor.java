@@ -170,7 +170,8 @@ public class SeatNotificationOutboxProcessor {
         if (!deliveriesToSave.isEmpty()) {
             deliveryRepository.saveAll(deliveriesToSave);
         }
-        if (deliveryRepository.countByOutboxIdAndStatusIn(outbox.getId(), ACTIVE_DELIVERY_STATUSES) == 0) {
+        if (deliveryRepository.countByOutboxIdAndStatusIn(
+                outbox.getId(), ACTIVE_DELIVERY_STATUSES) == 0) {
             outbox.markCompleted();
         } else {
             outbox.markProcessing();

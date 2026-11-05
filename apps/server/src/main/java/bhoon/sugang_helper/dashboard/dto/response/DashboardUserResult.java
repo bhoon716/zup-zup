@@ -10,7 +10,6 @@ public record DashboardUserResult(
         String notificationEmail,
         boolean emailEnabled,
         boolean webPushEnabled,
-        boolean fcmEnabled,
         boolean onboardingCompleted,
         String discordId,
         boolean discordEnabled) {
@@ -24,7 +23,6 @@ public record DashboardUserResult(
                 user.notificationEmail(),
                 user.emailEnabled(),
                 user.webPushEnabled(),
-                user.fcmEnabled(),
                 user.onboardingCompleted(),
                 user.discordId(),
                 user.discordEnabled());

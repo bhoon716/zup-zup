@@ -27,9 +27,6 @@ public class AdminAnnouncementController {
 
     private final AnnouncementService announcementService;
 
-
-
-
     @GetMapping
     public ResponseEntity<Page<AnnouncementDetailResponse>> getAnnouncements(
             Pageable pageable) {
@@ -38,18 +35,12 @@ public class AdminAnnouncementController {
         return ResponseEntity.ok(response);
     }
 
-
-
-
     @PostMapping
     public ResponseEntity<AnnouncementDetailResponse> createAnnouncement(
             @Valid @RequestBody AnnouncementRequest request) {
         AnnouncementDetailResponse response = announcementService.createAnnouncement(request);
         return ResponseEntity.ok(response);
     }
-
-
-
 
     @PutMapping("/{id}")
     public ResponseEntity<AnnouncementDetailResponse> updateAnnouncement(
@@ -58,9 +49,6 @@ public class AdminAnnouncementController {
         AnnouncementDetailResponse response = announcementService.updateAnnouncement(id, request);
         return ResponseEntity.ok(response);
     }
-
-
-
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAnnouncement(@PathVariable Long id) {

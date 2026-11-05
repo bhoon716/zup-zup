@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
-import bhoon.sugang_helper.identity.user.enums.DeviceType;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
@@ -50,7 +49,6 @@ class UserDeviceServiceIntegrationTest {
         User owner = saveUser("owner@example.com");
         UserDevice device = userDeviceRepository.saveAndFlush(UserDevice.builder()
                 .userId(owner.getId())
-                .type(DeviceType.WEB)
                 .token("owner-device-token")
                 .alias("Owner browser")
                 .build());
@@ -67,7 +65,6 @@ class UserDeviceServiceIntegrationTest {
         User owner = saveUser("owner@example.com");
         UserDevice device = userDeviceRepository.saveAndFlush(UserDevice.builder()
                 .userId(owner.getId())
-                .type(DeviceType.WEB)
                 .token("owner-device-token")
                 .alias("Owner browser")
                 .build());

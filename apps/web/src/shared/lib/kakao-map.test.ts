@@ -23,9 +23,11 @@ describe("kakao-map escapeHtml 및 InfoWindow XSS 검증", () => {
           this.lat = lat;
           this.lng = lng;
         }
+
         getLat() {
           return this.lat;
         }
+
         getLng() {
           return this.lng;
         }
@@ -33,6 +35,7 @@ describe("kakao-map escapeHtml 및 InfoWindow XSS 검증", () => {
 
       class MockMap {
         setCenter() {}
+
         setLevel() {}
       }
 
@@ -46,7 +49,9 @@ describe("kakao-map escapeHtml 및 InfoWindow XSS 검증", () => {
           this.content = options.content;
           mockInfoWindowContent = options.content;
         }
+
         open() {}
+
         close() {}
       }
 

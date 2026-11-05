@@ -55,7 +55,6 @@ class CourseSchedulePerformanceTest {
     private void runPerformanceTest(int courseCount, String testLabel) {
         int schedulesPerCourse = 3;
 
-
         for (int i = 0; i < courseCount; i++) {
             Course course = Course.builder()
                     .courseKey("PERF-" + testLabel + "-" + i)
@@ -78,9 +77,7 @@ class CourseSchedulePerformanceTest {
         em.flush();
         em.clear();
 
-
         sessionFactory.getStatistics().clear();
-
 
         long startTime = System.nanoTime();
 
@@ -125,7 +122,6 @@ class CourseSchedulePerformanceTest {
         log.info("Entity Insert 횟수: {}", insertCount);
         log.info("개선 전 예상 쿼리 (DELETE & INSERT) 횟수: {}", expectedQueries);
         log.info("==================================================================");
-
 
         assertThat(deleteCount).isZero();
         assertThat(insertCount).isZero();

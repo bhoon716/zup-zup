@@ -27,18 +27,12 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-
-
-
 @RestController
 @RequestMapping("/api/v1/feedbacks")
 @RequiredArgsConstructor
 public class FeedbackController {
 
     private final FeedbackService feedbackService;
-
-
-
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Long> createFeedback(
@@ -52,9 +46,6 @@ public class FeedbackController {
                 .body(feedbackId);
     }
 
-
-
-
     @GetMapping("/me")
     public ResponseEntity<Page<FeedbackResponse>> getMyFeedbacks(
             Pageable pageable) {
@@ -62,9 +53,6 @@ public class FeedbackController {
 
         return ResponseEntity.ok(feedbackService.getMyFeedbacksForCurrentUser(fixedPageable));
     }
-
-
-
 
     @GetMapping("/{feedbackId}")
     public ResponseEntity<FeedbackDetailResponse> getMyFeedbackDetail(
@@ -84,9 +72,6 @@ public class FeedbackController {
                         .toString())
                 .body(download.resource());
     }
-
-
-
 
     @DeleteMapping("/{feedbackId}")
     public ResponseEntity<Void> deleteFeedback(@PathVariable Long feedbackId) {

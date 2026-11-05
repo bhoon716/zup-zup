@@ -10,14 +10,9 @@ interface CreditStatsCardProps {
   maxCredits?: number;
 }
 
-
-
-
-
 export function CreditStatsCard({ totalCredits, maxCredits = 18 }: CreditStatsCardProps) {
 
   const [open, setOpen] = React.useState(false);
-  
 
   const creditPercent = Math.max(0, Math.min(100, (totalCredits / maxCredits) * 100));
   const isCreditWarning = totalCredits < 6 || totalCredits > maxCredits;

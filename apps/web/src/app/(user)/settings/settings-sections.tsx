@@ -10,7 +10,6 @@ import {
   Monitor,
   Loader2,
   Save,
-  Smartphone,
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -384,7 +383,7 @@ export function WebPushSection({
               >
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg bg-slate-50 p-2">
-                    {device.type === "WEB" ? <Monitor className="h-4 w-4 text-slate-400" /> : <Smartphone className="h-4 w-4 text-slate-400" />}
+                    <Monitor className="h-4 w-4 text-slate-400" />
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">

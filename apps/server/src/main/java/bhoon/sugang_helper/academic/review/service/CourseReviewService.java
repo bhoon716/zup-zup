@@ -36,16 +36,10 @@ public class CourseReviewService {
     private final CourseReviewCatalogService courseReviewCatalog;
     private final UserIdentityQueryService userIdentityQuery;
 
-
-
-
     private UserIdentity getCurrentUser() {
         return userIdentityQuery.findByEmail(SecurityUtil.getCurrentUserEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
-
-
-
 
     private Long getCurrentUserIdOrNull() {
         String email = SecurityUtil.getCurrentUserEmailOrNull();
@@ -56,9 +50,6 @@ public class CourseReviewService {
                 .map(UserIdentity::id)
                 .orElse(null);
     }
-
-
-
 
     @Transactional
     public ReviewResponse createReview(String courseKey, ReviewCreateRequest request) {
@@ -87,9 +78,6 @@ public class CourseReviewService {
         return ReviewResponse.of(saved, user.id());
     }
 
-
-
-
     @Transactional(readOnly = true)
     public Page<ReviewResponse> getReviews(String courseKey, Pageable pageable) {
         Long currentUserId = getCurrentUserIdOrNull();
@@ -99,9 +87,6 @@ public class CourseReviewService {
         return reviewRepository.findByCourseKeysWithMyReviewFirst(courseKeys, currentUserId, boundedPageable)
                 .map(review -> ReviewResponse.of(review, currentUserId));
     }
-
-
-
 
     @Transactional
     public ReviewResponse updateReview(Long reviewId, ReviewUpdateRequest request) {
@@ -122,9 +107,6 @@ public class CourseReviewService {
         return ReviewResponse.of(review, user.id());
     }
 
-
-
-
     @Transactional
     public void deleteReview(Long reviewId) {
         UserIdentity user = getCurrentUser();
@@ -142,17 +124,11 @@ public class CourseReviewService {
         updateCourseReviewStats(courseReviewCatalog.findReviewCourseKeys(course));
     }
 
-
-
-
     private void validateReviewOwner(CourseReview review, UserIdentity user) {
         if (!review.getUserId().equals(user.id()) && !user.administrator()) {
             throw new CustomException(ErrorCode.REVIEW_UNAUTHORIZED);
         }
     }
-
-
-
 
     @Transactional
     public void toggleReaction(Long reviewId, ReviewReactionRequest request) {
@@ -167,9 +143,6 @@ public class CourseReviewService {
                         () -> handleNewReaction(review, targetReaction, user.id()));
     }
 
-
-
-
     private void handleNewReaction(CourseReview review, ReactionType type, Long userId) {
         CourseReviewReaction newReaction = CourseReviewReaction.builder()
                 .review(review)
@@ -181,9 +154,6 @@ public class CourseReviewService {
 
         log.debug("[Review Reaction] 리뷰 반응 등록. reviewId={}, userId={}, type={}", review.getId(), userId, type);
     }
-
-
-
 
     private void handleExistingReaction(CourseReview review, CourseReviewReaction existing, ReactionType targetType,
                                         Long userId) {
@@ -202,9 +172,6 @@ public class CourseReviewService {
         }
     }
 
-
-
-
     private void incrementReactionCount(CourseReview review, ReactionType type) {
         if (type == ReactionType.LIKE) {
             reviewRepository.incrementLikeCount(review.getId());
@@ -213,9 +180,6 @@ public class CourseReviewService {
         }
     }
 
-
-
-
     private void decrementReactionCount(CourseReview review, ReactionType type) {
         if (type == ReactionType.LIKE) {
             reviewRepository.decrementLikeCount(review.getId());
@@ -223,9 +187,6 @@ public class CourseReviewService {
             reviewRepository.decrementDislikeCount(review.getId());
         }
     }
-
-
-
 
     private void updateCourseReviewStats(List<String> courseKeys) {
         long count = reviewRepository.countByCourseKeys(courseKeys);

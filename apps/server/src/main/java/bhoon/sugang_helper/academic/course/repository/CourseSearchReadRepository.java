@@ -34,7 +34,6 @@ import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-
 @Repository
 public class CourseSearchReadRepository {
 

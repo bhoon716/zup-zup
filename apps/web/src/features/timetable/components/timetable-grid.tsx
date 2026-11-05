@@ -96,10 +96,6 @@ function buildLayoutsForDay(dayBlocks: RenderingBlock[]): Map<string, BlockLayou
   return layouts;
 }
 
-
-
-
-
 export function TimetableGrid({ timetable, className, isPreview = false }: TimetableGridProps) {
   const blocks = useMemo(() => getRenderingBlocks(timetable), [timetable]);
   const [courseDetailOpen, setCourseDetailOpen] = useState(false);

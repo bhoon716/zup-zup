@@ -21,8 +21,6 @@ import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
-import bhoon.sugang_helper.identity.user.enums.DeviceType;
-import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
@@ -33,6 +31,7 @@ import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,7 +77,7 @@ class NotificationServiceTest {
         lenient().when(userNotificationQuery.findDevicesByUserId(anyLong()))
                 .thenAnswer(invocation -> devicesByUser.getOrDefault(invocation.getArgument(0), List.of()));
 
-        NotificationProperties props = new NotificationProperties(true, true, true, true);
+        NotificationProperties props = new NotificationProperties(true, true, true);
         NotificationChannelPolicy notificationChannelPolicy = new NotificationChannelPolicy(props);
         notificationService = new NotificationService(redisService, userNotificationQuery,
                 notificationHistoryRepository, List.of(notificationSender), notificationChannelPolicy,
@@ -101,9 +100,7 @@ class NotificationServiceTest {
 
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
-
         notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.EMAIL));
-
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
@@ -117,14 +114,13 @@ class NotificationServiceTest {
                 .id(1L)
                 .email(EMAIL)
                 .emailEnabled(true)
+                .webPushEnabled(true)
                 .build();
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
-
         notificationService.sendUserTestNotification(user.getId());
-
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
@@ -138,15 +134,13 @@ class NotificationServiceTest {
                 .id(1L)
                 .email(EMAIL)
                 .emailEnabled(true)
-                .fcmEnabled(true)
+                .webPushEnabled(true)
                 .build();
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
-
         notificationService.sendUserTestNotification(user.getId());
-
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(redisService, never()).deleteValues(anyString());
@@ -159,11 +153,10 @@ class NotificationServiceTest {
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
-                .fcmEnabled(true)
+                .webPushEnabled(true)
                 .build();
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
-
 
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
                 .isInstanceOf(CustomException.class)
@@ -182,7 +175,6 @@ class NotificationServiceTest {
         RuntimeException failure = new RuntimeException("provider unavailable");
         doThrow(failure).when(notificationSender).send(any(), anyString(), anyString());
 
-
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId())).isSameAs(failure);
         verify(redisService).deleteValues("ALERT:USER_TEST:1");
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
@@ -199,26 +191,24 @@ class NotificationServiceTest {
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
 
-
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
     }
 
     @Test
-    @DisplayName("관리자 테스트 알림 발송 - 푸시 (FCM/WEB)")
+    @DisplayName("관리자 테스트 알림 발송 - 웹 푸시")
     void sendTestNotification_Push() {
 
         User user = User.builder().id(1L).email(EMAIL).build();
-        UserDevice device = UserDevice.builder().userId(1L).type(DeviceType.FCM).token(DEVICE_TOKEN).build();
+        UserDevice device = UserDevice.builder().userId(1L).token(DEVICE_TOKEN)
+                .p256dh("p256").auth("auth").build();
         addRecipient(user);
         addDevice(device);
 
-        given(notificationSender.supports(NotificationChannel.FCM)).willReturn(true);
+        given(notificationSender.supports(NotificationChannel.WEB)).willReturn(true);
 
-
-        notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.FCM));
-
+        notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.WEB));
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
@@ -230,7 +220,6 @@ class NotificationServiceTest {
 
         User user = User.builder().id(1L).email(EMAIL).build();
         addRecipient(user);
-
 
         assertThatThrownBy(
                 () -> notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.WEB)))
@@ -253,9 +242,7 @@ class NotificationServiceTest {
 
         given(notificationSender.supports(NotificationChannel.DISCORD)).willReturn(true);
 
-
         notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.DISCORD));
-
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
@@ -272,7 +259,6 @@ class NotificationServiceTest {
                 .build();
         addRecipient(user);
 
-
         assertThatThrownBy(() -> notificationService.sendAdminTestNotification(user.getId(),
                 List.of(NotificationChannel.DISCORD)))
                 .isInstanceOf(CustomException.class)
@@ -282,7 +268,7 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("durable delivery는 네 채널에 provider-safe key를 전파하고 발송 이력을 남긴다")
+    @DisplayName("durable delivery는 지원하는 세 채널에 provider-safe key를 전파하고 발송 이력을 남긴다")
     void deliversSeatOpeningWithProviderSafeIdempotencyKey() {
 
         String canonicalKey = "d35e8a1f-3135-4f9b-92b3-635f0c9ea641";
@@ -292,13 +278,11 @@ class NotificationServiceTest {
                 .role(Role.USER)
                 .emailEnabled(true)
                 .webPushEnabled(true)
-                .fcmEnabled(true)
                 .discordEnabled(true)
                 .discordId("discord-id")
                 .build();
         addRecipient(user);
-        addDevice(UserDevice.builder().userId(1L).type(DeviceType.FCM).token(DEVICE_TOKEN).build());
-        addDevice(UserDevice.builder().userId(1L).type(DeviceType.WEB)
+        addDevice(UserDevice.builder().userId(1L)
                 .token("web-endpoint").p256dh("p256").auth("auth").build());
         SeatNotificationOutbox outbox = SeatNotificationOutbox.builder()
                 .courseKey(COURSE_KEY)
@@ -311,15 +295,13 @@ class NotificationServiceTest {
             given(notificationSender.supports(channel)).willReturn(true);
         }
 
-
         for (NotificationChannel channel : NotificationChannel.values()) {
             notificationService.deliverSeatOpening(1L, channel, outbox, canonicalKey);
         }
 
-
-        verify(notificationSender, times(4)).send(any(NotificationTarget.class), anyString(), anyString(),
+        verify(notificationSender, times(3)).send(any(NotificationTarget.class), anyString(), anyString(),
                 eq(NotificationDeliveryIdempotencyKey.providerKey(canonicalKey)));
-        verify(notificationHistoryRepository, times(4)).save(any(NotificationHistory.class));
+        verify(notificationHistoryRepository, times(3)).save(any(NotificationHistory.class));
     }
 
     private void addRecipient(User user) {
@@ -330,16 +312,13 @@ class NotificationServiceTest {
                 user.getNotificationEmail(),
                 user.isEmailEnabled(),
                 user.isWebPushEnabled(),
-                user.isFcmEnabled(),
                 user.isDiscordEnabled(),
                 user.getDiscordId()));
     }
 
     private void addDevice(UserDevice device) {
-        NotificationDeviceType type = device.getType() == DeviceType.WEB
-                ? NotificationDeviceType.WEB : NotificationDeviceType.FCM;
-        devicesByUser.computeIfAbsent(device.getUserId(), ignored -> new java.util.ArrayList<>())
-                .add(new NotificationDevice(device.getUserId(), type, device.getToken(),
+        devicesByUser.computeIfAbsent(device.getUserId(), ignored -> new ArrayList<>())
+                .add(new NotificationDevice(device.getUserId(), device.getToken(),
                         device.getP256dh(), device.getAuth()));
     }
 }

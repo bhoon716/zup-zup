@@ -5,9 +5,6 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-
-
-
 export const usePWAInstall = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
@@ -16,12 +13,10 @@ export const usePWAInstall = () => {
   useEffect(() => {
     const isDevelopment = process.env.NODE_ENV === "development";
 
-
     let timeoutId: number | undefined;
     if (typeof window !== "undefined") {
       const userAgent = window.navigator.userAgent.toLowerCase();
       const isStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true || window.matchMedia("(display-mode: standalone)").matches;
-
 
       timeoutId = window.setTimeout(() => {
         if (userAgent.includes("iphone") || userAgent.includes("ipad") || userAgent.includes("ipod")) {
@@ -57,10 +52,6 @@ export const usePWAInstall = () => {
       window.removeEventListener("beforeinstallprompt", handler);
     };
   }, []);
-
-
-
-
 
   const install = async () => {
     if (platform === "ios") {

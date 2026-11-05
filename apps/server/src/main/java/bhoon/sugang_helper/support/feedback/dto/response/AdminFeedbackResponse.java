@@ -4,9 +4,6 @@ import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import java.time.LocalDateTime;
 
-
-
-
 public record AdminFeedbackResponse(
         Long id,
         FeedbackType type,

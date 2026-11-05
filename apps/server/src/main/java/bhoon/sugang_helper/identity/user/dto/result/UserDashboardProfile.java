@@ -8,7 +8,6 @@ public record UserDashboardProfile(
         String notificationEmail,
         boolean emailEnabled,
         boolean webPushEnabled,
-        boolean fcmEnabled,
         boolean onboardingCompleted,
         String discordId,
         boolean discordEnabled) {

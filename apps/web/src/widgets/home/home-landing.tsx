@@ -11,9 +11,6 @@ import { Loader2 } from "lucide-react";
 import { DashboardCountdown } from "./dashboard-countdown";
 import { useClientReady } from "@/shared/lib/use-client-ready";
 
-
-
-
 const everyTimeReviews = [
   {
     id: 1,
@@ -53,9 +50,6 @@ const everyTimeReviews = [
   },
 ];
 
-
-
-
 const formatDate = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -67,9 +61,6 @@ const formatDate = (value: string) => {
     day: "2-digit",
   }).format(date);
 };
-
-
-
 
 const features = [
   {
@@ -95,9 +86,6 @@ const features = [
   },
 ];
 
-
-
-
 export function HomeLanding() {
   const isClientReady = useClientReady();
 
@@ -105,7 +93,7 @@ export function HomeLanding() {
   const { data: announcements, isLoading: announcementsLoading } = useAnnouncements({ enabled: isClientReady });
   const isScheduleLoading = !isClientReady || upcomingSchedulesLoading;
   const isAnnouncementLoading = !isClientReady || announcementsLoading;
-  
+
   const latestAnnouncements = (announcements ?? []).slice(0, 4);
 
   return (

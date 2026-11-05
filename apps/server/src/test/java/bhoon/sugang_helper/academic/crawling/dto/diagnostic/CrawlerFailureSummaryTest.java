@@ -22,9 +22,7 @@ class CrawlerFailureSummaryTest {
         CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         failure.initCause(upstream);
 
-
         CrawlerFailureSummary summary = CrawlerFailureSummary.from(CrawlerFailureStage.FETCH_PARSE, failure);
-
 
         assertThat(summary.stage()).isEqualTo(CrawlerFailureStage.COURSE_API);
         assertThat(summary.failureType()).isEqualTo("RestClientResponseException");
@@ -50,9 +48,7 @@ class CrawlerFailureSummaryTest {
         CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         failure.initCause(upstream);
 
-
         CrawlerFailureSummary summary = CrawlerFailureSummary.from(CrawlerFailureStage.FETCH_PARSE, failure);
-
 
         assertThat(summary.stage()).isEqualTo(CrawlerFailureStage.COURSE_API);
         assertThat(summary.upstreamStatus()).isEqualTo(429);

@@ -3,13 +3,13 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { MultiSelectFilter } from "./multi-select-filter";
 
-
-
-
 vi.mock("@/shared/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div data-testid="dropdown-content">{children}</div>,
+
   DropdownMenuItem: ({
     children,
     onClick,
@@ -62,7 +62,7 @@ describe("MultiSelectFilter", () => {
 
   it("옵션을 선택하면 선택된 개수가 업데이트된다", () => {
     render(<FilterHarness initial={[]} />);
-    
+
     const items = screen.getAllByTestId("checkbox-item");
     fireEvent.click(items[0]);
 
@@ -75,14 +75,14 @@ describe("MultiSelectFilter", () => {
 
   it("여러 옵션을 선택하면 '외 n개' 형식이 표시된다", () => {
     render(<FilterHarness initial={["OPT1", "OPT2"]} />);
-    
+
     expect(screen.getByText("옵션1 외 1개")).toBeInTheDocument();
     expect(screen.getByTestId("selected-count")).toHaveTextContent("2");
   });
 
   it("배지의 X 버튼을 누르면 선택이 해제된다", () => {
     render(<FilterHarness initial={["OPT1"]} />);
-    
+
     const xButton = screen.getByRole("button", { name: "옵션1 선택 해제" });
     fireEvent.click(xButton);
 

@@ -24,7 +24,6 @@ import { Input } from "@/shared/ui/input";
 import { Textarea } from "@/shared/ui/textarea";
 import { cn } from "@/shared/lib/utils";
 
-
 const formSchema = z.object({
   type: z.enum(["BUG", "SUGGESTION", "OTHER"] as const),
   title: z.string().min(2, "제목은 2자 이상 입력해주세요.").max(100, "제목은 100자 이하로 입력해주세요."),
@@ -41,9 +40,6 @@ interface FeedbackCreateFormProps {
   onRemoveFile: (index: number) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
-
-
-
 
 export function FeedbackCreateForm({
   onSubmit,

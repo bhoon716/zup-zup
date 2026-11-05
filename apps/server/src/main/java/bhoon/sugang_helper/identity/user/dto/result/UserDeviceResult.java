@@ -1,12 +1,10 @@
 package bhoon.sugang_helper.identity.user.dto.result;
 
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
-import bhoon.sugang_helper.identity.user.enums.DeviceType;
 import java.time.LocalDateTime;
 
 public record UserDeviceResult(
         Long id,
-        DeviceType type,
         String alias,
         String maskedToken,
         LocalDateTime registeredAt) {
@@ -18,7 +16,6 @@ public record UserDeviceResult(
 
         return new UserDeviceResult(
                 device.getId(),
-                device.getType(),
                 device.getAlias(),
                 masked,
                 device.getCreatedAt());

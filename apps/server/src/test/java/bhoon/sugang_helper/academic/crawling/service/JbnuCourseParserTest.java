@@ -91,9 +91,7 @@ class JbnuCourseParserTest {
 
         String json = "{\"dsEstSbjList\":[]}";
 
-
         List<ParsedCourseDto> courses = parser.parseCourses(json);
-
 
         assertThat(courses).isEmpty();
     }
@@ -105,9 +103,7 @@ class JbnuCourseParserTest {
         ByteArrayInputStream stream = new ByteArrayInputStream(
                 "{\"dsEstSbjList\":[]}".getBytes(StandardCharsets.UTF_8));
 
-
         Iterator<ParsedCourseDto> courses = parser.streamCourses(stream, "2026", "U211600025");
-
 
         assertThat(courses).isExhausted();
     }

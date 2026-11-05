@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-
-
 readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"
 readonly RUNTIME_ENV="${RELEASE_ROOT}/.env"
 readonly COMPOSE_FILE="${RELEASE_ROOT}/docker-compose.yml"
@@ -41,13 +39,11 @@ printf '%s\n' \
   "APP_BUILD_CONTEXT=${RELEASE_ROOT}" \
   "APP_ENV_FILE=${RELEASE_ROOT}/apps/server/.env" \
   "APP_PROD_CONFIG_PATH=${RELEASE_ROOT}/application-prod.yml" \
-  "FIREBASE_CONFIG_PATH=${RELEASE_ROOT}/secrets/firebase-key.json" \
   >"${diagnostics_env}"
 chmod 0600 "${diagnostics_env}"
 export APP_BUILD_CONTEXT="${RELEASE_ROOT}"
 export APP_ENV_FILE="${RELEASE_ROOT}/apps/server/.env"
 export APP_PROD_CONFIG_PATH="${RELEASE_ROOT}/application-prod.yml"
-export FIREBASE_CONFIG_PATH="${RELEASE_ROOT}/secrets/firebase-key.json"
 
 compose=(
   docker compose

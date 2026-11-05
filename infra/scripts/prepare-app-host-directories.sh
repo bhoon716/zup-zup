@@ -8,15 +8,10 @@ fi
 
 install -d -o root -g root -m 0750 /var/lib/jbnu-sugang-helper
 
-
-
-
 install -d -o root -g root -m 0750 \
   /var/lib/jbnu-sugang-helper/loki \
   /var/lib/jbnu-sugang-helper/alloy \
   /var/lib/jbnu-sugang-helper/prometheus
-
-
 
 install -d -o 10001 -g 10001 -m 0750 /var/lib/jbnu-sugang-helper/loki
 install -d -o 472 -g 472 -m 0750 /var/lib/jbnu-sugang-helper/grafana

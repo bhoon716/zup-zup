@@ -19,11 +19,17 @@ const {
 
 vi.mock("@/features/feedback/hooks/useFeedback", () => ({
   useFeedbacksForAdmin: (...args: unknown[]) => mockUseFeedbacksForAdmin(...args),
+
   useAdminFeedbackDetail: (...args: unknown[]) => mockUseAdminFeedbackDetail(...args),
+
   useUpdateFeedbackStatus: () => ({ mutateAsync: vi.fn() }),
+
   useCreateFeedbackReply: () => ({ mutateAsync: vi.fn() }),
+
   useUpdateFeedbackReply: () => ({ mutateAsync: vi.fn() }),
+
   useDeleteFeedbackReply: () => ({ mutateAsync: vi.fn() }),
+
   useAdminFeedbackAttachmentDownload: () => mockUseAdminFeedbackAttachmentDownload(),
 }));
 

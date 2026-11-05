@@ -15,9 +15,6 @@ import { useMyFeedbacks } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackStatus, FeedbackType } from "@/shared/types/api";
 import { FeedbackList } from "@/features/feedback/components/feedback-list";
 
-
-
-
 function FeedbackPageContent() {
   const router = useRouter();
   const { data: feedbackList, isLoading: isListLoading } = useMyFeedbacks();

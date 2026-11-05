@@ -3,7 +3,6 @@ package bhoon.sugang_helper.seatalert.notification.client;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
@@ -16,8 +15,6 @@ import bhoon.sugang_helper.identity.user.service.UserDeviceService;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.Message;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import java.lang.reflect.InvocationTargetException;
@@ -27,7 +24,6 @@ import java.security.KeyPairGenerator;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
-import java.util.Map;
 import java.util.Properties;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
@@ -35,7 +31,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -43,35 +38,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-
-
-
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class NotificationSenderIdempotencyContractTest {
 
     private static final String IDEMPOTENCY_KEY = "c4Q4eVIRb9WX_qvYn9r1PQ";
     private static final String TITLE = "여석 발생";
     private static final String BODY = "빈자리가 생겼습니다.";
-
-    @Test
-    void fcmCarriesTheDeliveryKeyInTheDataPayload() throws Exception {
-        FcmNotificationSender sender = new FcmNotificationSender();
-        Method idempotentSend = idempotentSendMethod(sender);
-        FirebaseMessaging firebaseMessaging = mock(FirebaseMessaging.class);
-        ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
-
-        try (MockedStatic<FirebaseMessaging> firebaseMessagingStatic = org.mockito.Mockito.mockStatic(FirebaseMessaging.class)) {
-            firebaseMessagingStatic.when(FirebaseMessaging::getInstance).thenReturn(firebaseMessaging);
-            when(firebaseMessaging.send(any(Message.class))).thenReturn("provider-message-id");
-
-            invokeIdempotentSend(idempotentSend, sender, NotificationTarget.of("fcm-token"));
-
-            verify(firebaseMessaging).send(messageCaptor.capture());
-        }
-
-        assertThat(fcmData(messageCaptor.getValue()))
-                .containsEntry("idempotencyKey", IDEMPOTENCY_KEY);
-    }
 
     @Test
     void emailCarriesTheDeliveryKeyInASafeCustomHeader() throws Exception {
@@ -159,11 +131,6 @@ class NotificationSenderIdempotencyContractTest {
         } catch (InvocationTargetException exception) {
             throw new AssertionError("idempotent notification dispatch failed", exception.getCause());
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, String> fcmData(Message message) {
-        return (Map<String, String>) ReflectionTestUtils.getField(message, "data");
     }
 
     private static String generateP256dh() throws Exception {

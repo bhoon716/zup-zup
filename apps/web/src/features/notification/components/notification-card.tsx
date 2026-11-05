@@ -8,10 +8,6 @@ interface NotificationCardProps {
   notification: NotificationHistory;
 }
 
-
-
-
-
 export function NotificationCard({ notification }: NotificationCardProps) {
   const sentAt = notification.sentAt || notification.createdAt;
 

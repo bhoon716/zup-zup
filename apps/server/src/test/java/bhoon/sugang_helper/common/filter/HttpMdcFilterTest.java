@@ -48,9 +48,7 @@ class HttpMdcFilterTest {
             return null;
         }).when(filterChain).doFilter(any(), any());
 
-
         httpMdcFilter.doFilterInternal(request, response, filterChain);
-
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(response).setHeader(eq(HttpMdcFilter.HEADER_CORRELATION_ID), captor.capture());
@@ -71,9 +69,7 @@ class HttpMdcFilterTest {
             return null;
         }).when(filterChain).doFilter(any(), any());
 
-
         httpMdcFilter.doFilterInternal(request, response, filterChain);
-
 
         verify(response).setHeader(HttpMdcFilter.HEADER_CORRELATION_ID, existingId);
         assertThat(MDC.get(HttpMdcFilter.MDC_KEY_CORRELATION_ID)).isNull();
@@ -91,9 +87,7 @@ class HttpMdcFilterTest {
             return null;
         }).when(filterChain).doFilter(any(), any());
 
-
         httpMdcFilter.doFilterInternal(request, response, filterChain);
-
 
         verify(response).setHeader(HttpMdcFilter.HEADER_CORRELATION_ID, maxLengthId);
         assertThat(MDC.get(HttpMdcFilter.MDC_KEY_CORRELATION_ID)).isNull();
@@ -112,9 +106,7 @@ class HttpMdcFilterTest {
             return null;
         }).when(filterChain).doFilter(any(), any());
 
-
         httpMdcFilter.doFilterInternal(request, response, filterChain);
-
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(response).setHeader(eq(HttpMdcFilter.HEADER_CORRELATION_ID), captor.capture());
@@ -133,9 +125,7 @@ class HttpMdcFilterTest {
 
         when(request.getHeader(HttpMdcFilter.HEADER_CORRELATION_ID)).thenReturn(malformedId);
 
-
         httpMdcFilter.doFilterInternal(request, response, filterChain);
-
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(response).setHeader(eq(HttpMdcFilter.HEADER_CORRELATION_ID), captor.capture());

@@ -96,7 +96,7 @@ class AdminServiceTest {
     void sendTestNotification_Success() {
         String email = "test@example.com";
         NotificationRecipient recipient = new NotificationRecipient(
-                7L, false, email, email, true, true, false, false, null);
+                7L, false, email, email, true, true, false, null);
 
         try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
             securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(email);

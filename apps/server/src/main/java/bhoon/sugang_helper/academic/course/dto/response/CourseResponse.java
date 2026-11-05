@@ -50,9 +50,6 @@ public class CourseResponse {
 
     private final LocalDateTime lastCrawledAt;
 
-
-
-
     public static CourseResponse from(Course course, String currentYear, String currentSemester,
                                       LocalDateTime lastCrawledAt) {
 

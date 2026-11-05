@@ -44,10 +44,6 @@ export const CourseSearchBar = memo(function CourseSearchBar({
   const isFocusedRef = useRef(false);
   const isSyncingRef = useRef(false);
 
-
-
-
-
   useEffect(() => {
     const nextSnapshot = JSON.stringify(initialCondition ?? resolvedDefaultCondition);
     if (nextSnapshot === prevInitialRef.current) return;
@@ -61,15 +57,11 @@ export const CourseSearchBar = memo(function CourseSearchBar({
       setKeyword(nextCond.keyword || "");
     }
   }, [initialCondition, resolvedDefaultCondition]);
-  
 
   const [smartOpen, setSmartOpen] = useState(true);
   const [basicOpen, setBasicOpen] = useState(true);
   const [detailOpen, setDetailOpen] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-
-
-
 
   useEffect(() => {
     if (isSyncingRef.current) {
@@ -79,10 +71,6 @@ export const CourseSearchBar = memo(function CourseSearchBar({
     onConditionChange?.(condition);
   }, [condition, onConditionChange]);
 
-
-
-
-
   const handleSearch = () => {
     if (!condition.academicYear || !condition.semester) {
       toast.error("학년도와 학기를 선택해주세요.");
@@ -90,10 +78,6 @@ export const CourseSearchBar = memo(function CourseSearchBar({
     }
     onSearch({ ...condition, keyword: keyword || undefined });
   };
-
-
-
-
 
   const handleReset = () => {
     const resetCond = { ...resolvedDefaultCondition };

@@ -71,7 +71,7 @@ class SeatNotificationOutboxProcessorTest {
 
     @Test
     void failedChannelIsRetriedWithoutMarkingTheOutboxComplete() {
-        String secret = "fcm-token-should-not-appear";
+        String secret = "device-token-should-not-appear";
         SeatNotificationDelivery delivery = processingDelivery();
         SeatNotificationDeliveryClaim claim = new SeatNotificationDeliveryClaim(1L, "claim-token");
         when(settlementService.loadForDispatch(claim)).thenReturn(dispatch(delivery));
@@ -137,7 +137,8 @@ class SeatNotificationOutboxProcessorTest {
     void claimReadyDeliveriesUsesBoundedFifoPageSize() {
         org.mockito.Mockito.doReturn(java.util.List.of()).when(deliveryRepository).findReadyForUpdate(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(Pageable.class));
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(Pageable.class));
 
         processor.claimReadyDeliveries(4);
 

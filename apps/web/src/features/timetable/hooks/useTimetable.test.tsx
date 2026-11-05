@@ -38,7 +38,6 @@ const mockUser = {
   notificationEmail: 'test@jbnu.ac.kr',
   emailEnabled: true,
   webPushEnabled: true,
-  fcmEnabled: true,
   discordEnabled: false,
   onboardingCompleted: true,
 };

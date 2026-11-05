@@ -32,9 +32,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-
-
-
 @Component
 @Slf4j
 public class LocalFileUploadService {
@@ -55,9 +52,6 @@ public class LocalFileUploadService {
     public LocalFileUploadService(ImageUploadSanitizer imageUploadSanitizer) {
         this.imageUploadSanitizer = imageUploadSanitizer;
     }
-
-
-
 
     public List<String> uploadImages(List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
@@ -99,9 +93,6 @@ public class LocalFileUploadService {
         return fileUrls;
     }
 
-
-
-
     private String saveSanitizedImage(SanitizedImage image, Path uploadPath) {
         String savedName = UUID.randomUUID() + "." + image.extension();
         Path filePath = uploadPath.resolve(savedName);
@@ -116,16 +107,12 @@ public class LocalFileUploadService {
         }
     }
 
-
-
-
     private String validateImageFile(MultipartFile file) {
         try (InputStream input = file.getInputStream()) {
             String mimeType = tika.detect(input);
             if (!ALLOWED_IMAGE_MIME_TYPES.contains(mimeType)) {
                 throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
             }
-
 
             String originalName = file.getOriginalFilename();
             if (originalName != null) {

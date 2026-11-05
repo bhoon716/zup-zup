@@ -86,9 +86,7 @@ class SubscriptionServiceTest {
             ReflectionTestUtils.setField(subscription, "id", 1L);
             given(subscriptionRepository.save(any(Subscription.class))).willReturn(subscription);
 
-
             SubscriptionResponse response = subscriptionService.subscribe(request);
-
 
             assertThat(response.getCourseKey()).isEqualTo(course.courseKey());
             assertThat(response.getCourseName()).isEqualTo(course.name());
@@ -106,7 +104,6 @@ class SubscriptionServiceTest {
             given(courseCatalogQuery.findByCourseKey(request.getCourseKey())).willReturn(Optional.of(course));
             given(subscriptionRepository.findByUserIdAndCourseKey(user.id(), course.courseKey()))
                     .willReturn(Optional.of(Subscription.builder().build()));
-
 
             assertThatThrownBy(() -> subscriptionService.subscribe(request))
                     .isInstanceOf(CustomException.class)
@@ -127,7 +124,6 @@ class SubscriptionServiceTest {
             given(subscriptionRepository.findByUserIdAndCourseKey(user.id(), course.courseKey()))
                     .willReturn(Optional.empty());
             given(subscriptionRepository.countByUserIdAndIsActiveTrue(user.id())).willReturn(3L);
-
 
             assertThatThrownBy(() -> subscriptionService.subscribe(request))
                     .isInstanceOf(CustomException.class)

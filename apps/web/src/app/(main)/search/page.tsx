@@ -77,9 +77,6 @@ function MobileKeywordSearch({ initialKeyword, isLoading, onSearch }: MobileKeyw
   );
 }
 
-
-
-
 export default function SearchPage() {
   const { data: defaultSemester, isLoading: isSemesterLoading } = useSearchDefaultSemester();
   const user = useAuthStore((state) => state.user);
@@ -87,7 +84,6 @@ export default function SearchPage() {
   const isUserLoading = useAuthStore((state) => state.isLoading && !state.user);
   const verifiedUser = isAuthenticated ? user : null;
   const skipPersonalFetch = isUserLoading || !verifiedUser;
-
 
   const [userCondition, setUserCondition] = useState<CourseSearchCondition>({
     academicYear: FALLBACK_DEFAULT_CONDITION.academicYear,
@@ -99,7 +95,6 @@ export default function SearchPage() {
   const [sortOption, setSortOption] = useState<CourseSortOption>("name");
   const [sortOrder, setSortOrder] = useState<CourseSortOrder>("asc");
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
-
 
   const searchCondition = useMemo<CourseSearchCondition>(
     () => ({
@@ -152,32 +147,18 @@ export default function SearchPage() {
     setSortOrder(getDefaultCourseSortOrder(value));
   }, []);
 
-
-
-
-
-
   const allCourses = useMemo(
     () => data?.pages.flatMap((page) => page.content) || [],
     [data],
   );
-
-
-
 
   const searchConditionKey = useMemo(
     () => JSON.stringify({ ...searchCondition, sortOption, sortOrder }),
     [searchCondition, sortOption, sortOrder],
   );
 
-
-
-
   const activeFilters = useMemo<FilterChip[]>(() => {
     const filters: FilterChip[] = [];
-
-
-
 
     if (searchCondition.department) {
       filters.push({
@@ -318,18 +299,10 @@ export default function SearchPage() {
     return count;
   }, [searchCondition]);
 
-
-
-
-
   const clearSingleFilter = useCallback((patch: Partial<CourseSearchCondition>) => {
     setUserCondition((prev) => ({ ...prev, ...patch }));
     setDraftCondition((prev) => ({ ...prev, ...patch }));
   }, []);
-
-
-
-
 
   const resetAllFilters = useCallback(() => {
     setUserCondition(resolvedDefaultCondition);

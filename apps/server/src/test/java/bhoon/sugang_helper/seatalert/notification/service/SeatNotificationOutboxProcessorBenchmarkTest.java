@@ -83,7 +83,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
         for (long i = 1; i <= subscriberCount; i++) {
             mockRecipientIds.add(i);
             mockRecipients.add(new NotificationRecipient(i, false, "user" + i + "@jbnu.ac.kr", null,
-                    true, true, true, true, null));
+                    true, true, true, null));
         }
 
         when(subscriptionQueryService.findActiveRecipientIds(courseKey)).thenReturn(mockRecipientIds);
@@ -94,13 +94,11 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
                 .thenReturn(List.of(NotificationTarget.of("target")));
         when(deliveryRepository.existsByOutboxIdAndUserIdAndChannel(anyLong(), anyLong(), any())).thenReturn(false);
 
-
         for (int w = 0; w < 5; w++) {
             processor.materializePendingOutboxes();
         }
 
         int totalDeliveries = subscriberCount * NotificationChannel.values().length;
-
 
         long startLoopSave = System.nanoTime();
         for (long i = 1; i <= subscriberCount; i++) {
@@ -113,7 +111,6 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
             }
         }
         long durationLoopSaveNs = System.nanoTime() - startLoopSave;
-
 
         long startBulkSave = System.nanoTime();
         processor.materializePendingOutboxes();

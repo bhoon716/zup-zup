@@ -42,9 +42,7 @@ class AnnouncementServiceTest {
         given(announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(any()))
                 .willReturn(new PageImpl<>(List.of(announcement)));
 
-
         List<AnnouncementListResponse> result = announcementService.getPublicAnnouncements(null, null);
-
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).isEqualTo("제목");
@@ -69,9 +67,7 @@ class AnnouncementServiceTest {
         ReflectionTestUtils.setField(announcement, "id", id);
         given(announcementRepository.findByIdAndPublishedTrue(id)).willReturn(Optional.of(announcement));
 
-
         AnnouncementDetailResponse result = announcementService.getPublicAnnouncement(id);
-
 
         assertThat(result.getTitle()).isEqualTo("제목");
     }
@@ -82,7 +78,6 @@ class AnnouncementServiceTest {
 
         Long id = 1L;
         given(announcementRepository.findByIdAndPublishedTrue(id)).willReturn(Optional.empty());
-
 
         assertThatThrownBy(() -> announcementService.getPublicAnnouncement(id))
                 .isInstanceOf(CustomException.class)
@@ -97,9 +92,7 @@ class AnnouncementServiceTest {
         Announcement savedAnnouncement = createAnnouncement("제목", "내용", true, true);
         given(announcementRepository.save(any(Announcement.class))).willReturn(savedAnnouncement);
 
-
         AnnouncementDetailResponse result = announcementService.createAnnouncement(request);
-
 
         assertThat(result.getTitle()).isEqualTo("제목");
         verify(announcementRepository).save(any(Announcement.class));
@@ -113,9 +106,7 @@ class AnnouncementServiceTest {
         Announcement announcement = createAnnouncement("제목", "내용", false, true);
         given(announcementRepository.findById(id)).willReturn(Optional.of(announcement));
 
-
         announcementService.deleteAnnouncement(id);
-
 
         verify(announcementRepository).delete(announcement);
     }

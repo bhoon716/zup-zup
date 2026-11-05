@@ -33,7 +33,6 @@ describe("useAuthStore", () => {
       role: "ADMIN",
       emailEnabled: false,
       webPushEnabled: false,
-      fcmEnabled: false,
       discordEnabled: false,
       onboardingCompleted: false,
     };
@@ -59,7 +58,6 @@ describe("useAuthStore", () => {
       role: "USER", 
       emailEnabled: false,
       webPushEnabled: false,
-      fcmEnabled: false,
       discordEnabled: false,
       onboardingCompleted: true 
     };
@@ -84,7 +82,6 @@ describe("useAuthStore", () => {
       role: "USER", 
       emailEnabled: false,
       webPushEnabled: false,
-      fcmEnabled: false,
       discordEnabled: false,
       onboardingCompleted: true 
     };
@@ -107,7 +104,6 @@ describe("useAuthStore", () => {
       role: "USER",
       emailEnabled: false,
       webPushEnabled: false,
-      fcmEnabled: false,
       discordEnabled: false,
       onboardingCompleted: true,
     };
@@ -154,7 +150,6 @@ describe("useAuthStore", () => {
         role: "USER",
         emailEnabled: false,
         webPushEnabled: false,
-        fcmEnabled: false,
         discordEnabled: false,
         onboardingCompleted: true,
       });
@@ -183,7 +178,6 @@ describe("useAuthStore", () => {
         role: "USER",
         emailEnabled: false,
         webPushEnabled: false,
-        fcmEnabled: false,
         discordEnabled: false,
         onboardingCompleted: true,
       };
@@ -229,7 +223,6 @@ describe("useAuthStore", () => {
         role: "USER",
         emailEnabled: false,
         webPushEnabled: false,
-        fcmEnabled: false,
         discordEnabled: false,
         onboardingCompleted: true,
       };
@@ -269,7 +262,6 @@ describe("useAuthStore", () => {
         role: "USER",
         emailEnabled: false,
         webPushEnabled: false,
-        fcmEnabled: false,
         discordEnabled: false,
         onboardingCompleted: true,
       };
@@ -311,7 +303,6 @@ describe("useAuthStore", () => {
         role: "USER",
         emailEnabled: false,
         webPushEnabled: false,
-        fcmEnabled: false,
         discordEnabled: false,
         onboardingCompleted: true,
       };
@@ -355,12 +346,11 @@ describe("useAuthStore", () => {
       role: "USER", 
       emailEnabled: false,
       webPushEnabled: false,
-      fcmEnabled: false,
       discordEnabled: false,
       onboardingCompleted: true 
     };
     useAuthStore.setState({ user, isAuthenticated: true });
-    
+
     useAuthStore.getState().logout();
 
     const state = useAuthStore.getState();

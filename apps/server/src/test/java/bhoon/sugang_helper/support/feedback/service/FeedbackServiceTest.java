@@ -113,9 +113,7 @@ class FeedbackServiceTest {
         given(fileUploadService.uploadImages(anyList())).willReturn(List.of("/uploads/img1.png"));
         given(mockFile.getOriginalFilename()).willReturn("test.png");
 
-
         feedbackService.createFeedback(userId, request, files);
-
 
         verify(feedbackRepository).save(any(Feedback.class));
         verify(fileUploadService).uploadImages(anyList());
@@ -234,7 +232,6 @@ class FeedbackServiceTest {
         Feedback feedback = Feedback.builder().userId(otherUserId).build();
 
         given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
-
 
         assertThatThrownBy(() -> feedbackService.getMyFeedbackDetail(userId, feedbackId))
                 .isInstanceOf(CustomException.class)
@@ -390,9 +387,7 @@ class FeedbackServiceTest {
         given(userIdentityQuery.findById(adminId)).willReturn(Optional.of(admin));
         given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
 
-
         feedbackService.updateFeedbackStatus(adminId, feedbackId, request);
-
 
         assertThat(feedback.getStatus()).isEqualTo(FeedbackStatus.COMPLETED);
         verify(adminAuditRecorder).recordStatusChange(adminId, feedbackId, "PENDING", "COMPLETED");

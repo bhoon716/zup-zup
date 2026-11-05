@@ -19,9 +19,6 @@ import {
 } from "@/shared/ui/select";
 import type { ScheduleResponse, ScheduleRequest } from "@/shared/types/api";
 
-
-
-
 const SCHEDULE_TYPE_OPTIONS = [
   "장바구니(예비)",
   "학부 2~4학년 전공",
@@ -54,9 +51,6 @@ export function AdminSchedulePanel() {
   const [isAdding, setIsAdding] = useState(false);
   const [isCustomType, setIsCustomType] = useState(false);
 
-
-
-
   const resetForm = () => {
     setDraftType("");
     setDraftStartDate("");
@@ -70,17 +64,13 @@ export function AdminSchedulePanel() {
     setIsCustomType(false);
   };
 
-
-
-
   const handleEdit = (schedule: ScheduleResponse) => {
     setActionError("");
     setEditingId(schedule.id);
     setDraftType(schedule.scheduleType);
-    
 
     setIsCustomType(!SCHEDULE_TYPE_OPTIONS.includes(schedule.scheduleType));
-    
+
     setDraftStartDate(schedule.startDate);
     setDraftEndDate(schedule.endDate);
     setDraftStartTime(schedule.startTime || "");
@@ -88,9 +78,6 @@ export function AdminSchedulePanel() {
     setDraftDdayEnabled(schedule.ddayEnabled);
     setIsAdding(false);
   };
-
-
-
 
   const handleSave = () => {
     const request: ScheduleRequest = {
@@ -119,6 +106,7 @@ export function AdminSchedulePanel() {
     setActionError("");
     deleteSchedule(id, {
       onSuccess: () => { if (editingId === id) resetForm(); },
+
       onError: () => setActionError("일정을 삭제하지 못했습니다. 다시 시도해 주세요."),
     });
   };

@@ -62,10 +62,24 @@ test("공개 검색의 허용 텍스트와 popup만 예외이며 개인 필터·
   }
 });
 
-for (const path of ["/notifications", "/timetable"]) {
-  test(`${path}의 공개 강의도 개인 맥락과 상세 popup은 보호한다`, async ({ page }) => {
+test.use({ timezoneId: "Asia/Seoul" });
+
+for (const { path, label, now } of [
+  { path: "/notifications", label: "월요일", now: "2026-11-02T03:00:00Z" },
+  { path: "/timetable", label: "월요일", now: "2026-11-02T03:00:00Z" },
+  { path: "/timetable", label: "화요일", now: "2026-11-03T03:00:00Z" },
+]) {
+  test(`${path}의 공개 강의도 ${label} 개인 맥락과 상세 popup은 보호한다`, async ({ page }) => {
+    await page.clock.setFixedTime(new Date(now));
     await page.goto(path);
-    const privateCourse = page.locator("aside").getByText(course.name, { exact: true });
+    const sidebar = page.locator("aside");
+    const privateCourse = path === "/timetable"
+      ? sidebar.getByText("시간표 강의 1건", { exact: true }).locator("..").getByText(course.name, { exact: true })
+      : sidebar.getByRole("heading", { name: course.name, exact: true });
+    if (path === "/timetable") {
+      await expect(sidebar.getByText(course.name, { exact: true })).toHaveCount(label === "월요일" ? 2 : 1);
+    }
+    await expect(privateCourse).toHaveCount(1);
     await expect(privateCourse).toBeVisible();
     await expect(page.locator("body")).toHaveAttribute("data-clarity-mask", "true");
     await expect(page.locator(unmasked)).toHaveCount(0);

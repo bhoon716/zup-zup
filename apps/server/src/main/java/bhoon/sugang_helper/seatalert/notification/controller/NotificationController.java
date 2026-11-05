@@ -18,9 +18,6 @@ public class NotificationController {
 
     private final NotificationHistoryQueryService notificationHistoryQuery;
 
-
-
-
     @GetMapping("/history")
     public ResponseEntity<Slice<NotificationHistoryResponse>> getMyNotificationHistory(
             Pageable pageable) {

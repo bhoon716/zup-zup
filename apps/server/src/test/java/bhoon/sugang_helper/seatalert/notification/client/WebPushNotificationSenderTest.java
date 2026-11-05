@@ -46,7 +46,7 @@ class WebPushNotificationSenderTest {
     @DisplayName("WEB 채널 지원 여부 확인")
     void supports_web_channel() {
         assertThat(webPushNotificationSender.supports(NotificationChannel.WEB)).isTrue();
-        assertThat(webPushNotificationSender.supports(NotificationChannel.FCM)).isFalse();
+        assertThat(webPushNotificationSender.supports(NotificationChannel.EMAIL)).isFalse();
     }
 
     @Test

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-
-
 readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"
 readonly STAGING_ROOT="${RELEASE_ROOT}/.staging"
 readonly RUNTIME_ENV="${RELEASE_ROOT}/.env"
@@ -111,7 +109,7 @@ cleanup() {
     rm -rf -- "${staging_dir}" || true
   fi
   if [ "${rc}" -ne 0 ]; then
-    echo "deploy failed at ${stage}; app remains stopped after migration or startup failure" >&2
+    echo "deploy failed at ${stage}; no automatic rollback was performed; inspect application and migration state before recovery" >&2
   fi
 }
 trap cleanup EXIT
@@ -170,7 +168,6 @@ IMAGE_TAG=${sha}
 APP_BUILD_CONTEXT=${staging_dir}
 APP_ENV_FILE=${staging_dir}/apps/server/.env
 APP_PROD_CONFIG_PATH=${staging_dir}/application-prod.yml
-FIREBASE_CONFIG_PATH=${RELEASE_ROOT}/secrets/firebase-key.json
 EOF
 chmod 0600 "${compose_env}"
 compose_stage=(docker compose --project-name sugang-helper --env-file "${RUNTIME_ENV}" --env-file "${compose_env}" -f "${staging_dir}/docker-compose.yml")
@@ -213,7 +210,6 @@ IMAGE_TAG=${sha}
 APP_BUILD_CONTEXT=${RELEASE_ROOT}
 APP_ENV_FILE=${APP_ENV_FILE}
 APP_PROD_CONFIG_PATH=${RELEASE_ROOT}/application-prod.yml
-FIREBASE_CONFIG_PATH=${RELEASE_ROOT}/secrets/firebase-key.json
 EOF
 chmod 0600 "${runtime_env_tmp}"
 mv -f "${runtime_env_tmp}" "${runtime_env}"
@@ -248,7 +244,21 @@ stage="app-image-pull"
 "${compose[@]}" pull app || fail "application image pull failed"
 
 stage="stop-app"
-"${compose[@]}" stop app >/dev/null 2>&1 || true
+"${compose[@]}" stop app >/dev/null 2>&1 \
+  || fail "application stop failed; migration was not started"
+app_container_ids="$("${compose[@]}" ps --all --quiet app)" \
+  || fail "application container lookup failed; migration was not started"
+while IFS= read -r app_container_id; do
+  [ -n "${app_container_id}" ] || continue
+  if [[ ! "${app_container_id}" =~ ^[0-9a-f]{12,64}$ ]]; then
+    fail "application container lookup returned an invalid ID; migration was not started"
+  fi
+  app_running="$(docker inspect --type container --format '{{.State.Running}}' "${app_container_id}")" \
+    || fail "application state inspection failed; migration was not started"
+  if [ "${app_running}" != false ]; then
+    fail "application is not confirmed stopped; migration was not started"
+  fi
+done <<<"${app_container_ids}"
 app_quiesced=true
 
 stage="flyway-migrate"

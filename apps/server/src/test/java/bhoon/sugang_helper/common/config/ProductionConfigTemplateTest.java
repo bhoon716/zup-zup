@@ -39,7 +39,6 @@ class ProductionConfigTemplateTest {
         assertThat(content).contains("success-redirect-uri: ${APP_OAUTH2_SUCCESS_REDIRECT_URI}");
         assertThat(content).contains("failure-redirect-uri: ${APP_OAUTH2_FAILURE_REDIRECT_URI}");
         assertThat(content).contains("authorized-redirect-uri: ${APP_OAUTH2_AUTHORIZED_REDIRECT_URI}");
-        assertThat(content).contains("config-path: ${FIREBASE_CONFIG_PATH}");
         assertThat(content).contains("public-key: ${WEBPUSH_PUBLIC_KEY}");
         assertThat(content).contains("private-key: ${WEBPUSH_PRIVATE_KEY}");
         assertThat(content).contains("subject: ${WEBPUSH_SUBJECT}");
@@ -99,6 +98,5 @@ class ProductionConfigTemplateTest {
                 .contains("timeout: 2s")
                 .contains("connect-timeout: 2s");
     }
-
 
 }

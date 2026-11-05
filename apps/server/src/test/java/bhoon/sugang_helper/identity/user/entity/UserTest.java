@@ -16,13 +16,11 @@ class UserTest {
         String email = "test@example.com";
         Role role = Role.USER;
 
-
         User user = User.builder()
                 .name(name)
                 .email(email)
                 .role(role)
                 .build();
-
 
         assertThat(user.getName()).isEqualTo(name);
         assertThat(user.getEmail()).isEqualTo(email);
@@ -40,9 +38,7 @@ class UserTest {
                 .build();
         String newName = "updated";
 
-
         user.update(newName);
-
 
         assertThat(user.getName()).isEqualTo(newName);
     }
@@ -57,9 +53,7 @@ class UserTest {
                 .role(Role.USER)
                 .build();
 
-
         String roleKey = user.getRoleKey();
-
 
         assertThat(roleKey).isEqualTo("ROLE_USER");
     }

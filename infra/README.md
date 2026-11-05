@@ -16,7 +16,7 @@
 
 ## 로컬 실행
 
-처음 한 번만 예시 환경을 복사하고 실제 로컬 비밀값·Firebase 파일 경로를 입력합니다. 예시 파일이나 실제 비밀값은 commit하지 않습니다.
+처음 한 번만 예시 환경을 복사하고 실제 로컬 비밀값을 입력합니다. 예시 파일이나 실제 비밀값은 commit하지 않습니다.
 
 ```bash
 cd infra
@@ -125,3 +125,7 @@ API_HOST=<api-duckdns-fqdn> bash scripts/test-uptime-contract.sh
 - [장애 복구 정책(기존 문서)](../docs/disaster-recovery-policy.md)
 
 세션 전환 후 운영 Compose는 `SERVER_SERVLET_SESSION_COOKIE_SECURE=true`, 로컬 HTTP override는 `false`를 명시한다. 운영 환경은 실행하거나 변경하지 않았으며 [인증 전환 계약](../docs/redis-session-migration.md)을 먼저 확인한다.
+
+## 배포
+
+DB·Redis의 준비 상태를 확인한 뒤 앱만 중지하고, 실제 중지 확인 → Flyway migration → 새 앱 시작 순서로 배포한다.

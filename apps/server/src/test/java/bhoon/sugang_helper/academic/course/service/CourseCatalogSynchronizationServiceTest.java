@@ -87,10 +87,8 @@ class CourseCatalogSynchronizationServiceTest {
         Course existing = createCourse("김교수", 50, 50);
         given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
 
-
         synchronizationService.synchronize(List.of(createDto("김교수", 50, 49)));
         synchronizationService.synchronize(List.of(createDto("김교수", 50, 48)));
-
 
         verify(outboxService).enqueue(new SeatOpenedEvent(COURSE_KEY, "컴퓨터프로그래밍", "김교수", 0, 1));
         verifyNoMoreInteractions(outboxService);
@@ -104,7 +102,6 @@ class CourseCatalogSynchronizationServiceTest {
         given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
         IllegalStateException failure = new IllegalStateException("outbox write failed");
         doThrow(failure).when(outboxService).enqueue(any());
-
 
         assertThatThrownBy(() -> synchronizationService.synchronize(List.of(createDto("김교수", 50, 49))))
                 .isSameAs(failure);
