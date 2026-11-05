@@ -165,7 +165,7 @@ jobs:
             -e FLYWAY_CLEAN_DISABLED=true \
             "${FLYWAY_IMAGE}" migrate
 
-      - name: Test·static analysis·migration regression·JAR
+      - name: Test·static analysis·migration regression·HTTP E2E·JAR
         working-directory: apps/server
         env:
           AWS_ACCESS_KEY_ID: ci-access-key
@@ -199,7 +199,7 @@ jobs:
           DISCORD_CLIENT_SECRET: ""
           DISCORD_REDIRECT_URI: http://localhost:8080/api/v1/users/discord/callback
         run: |
-          ./gradlew clean check migrationTest bootJar --no-daemon
+          ./gradlew clean check migrationTest modulithE2e sessionTest bootJar --no-daemon
 
       - name: QEMU 설정
         if: needs.changes.outputs.docker_image == 'true'

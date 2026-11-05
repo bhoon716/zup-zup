@@ -130,7 +130,7 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'manual', 'performance', 'migration'
-        excludeTags 'session'
+        excludeTags 'session', 'modulith-docs'
     }
 }
 
@@ -170,4 +170,46 @@ task performanceTest(type: Test) {
     useJUnitPlatform {
         includeTags 'performance'
     }
+}
+
+// DB나 애플리케이션 컨텍스트를 시작하지 않는 모듈 모델 검증·문서 생성.
+tasks.register('modulithDocs', Test) {
+    group = 'documentation'
+    description = 'Generates documentation from the verified application module model.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'modulith-docs'
+    }
+    outputs.dir layout.buildDirectory.dir('spring-modulith')
+    reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/modulithDocs')
+    reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/modulithDocs')
+}
+
+// 전체 앱의 HTTP E2E를 일반 테스트 fixture와 분리해 자동 탐색을 검증한다.
+sourceSets {
+    modulithE2e {
+        java.srcDir 'src/e2e/java'
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    modulithE2eImplementation.extendsFrom testImplementation
+    modulithE2eRuntimeOnly.extendsFrom testRuntimeOnly
+    modulithE2eCompileOnly.extendsFrom compileOnly
+    modulithE2eAnnotationProcessor.extendsFrom annotationProcessor
+}
+
+tasks.register('modulithE2e', Test) {
+    group = 'verification'
+    description = 'Runs full-application HTTP event E2E with isolated H2 and Redis.'
+    testClassesDirs = sourceSets.modulithE2e.output.classesDirs
+    classpath = sourceSets.modulithE2e.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'modulith-e2e'
+    }
+    reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/modulithE2e')
+    reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/modulithE2e')
 }
