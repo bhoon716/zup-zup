@@ -16,9 +16,6 @@ interface FeedbackListProps {
   getStatusBadge: (status: FeedbackStatus) => React.ReactNode;
 }
 
-
-
-
 export function FeedbackList({
   isLoading,
   feedbackList,

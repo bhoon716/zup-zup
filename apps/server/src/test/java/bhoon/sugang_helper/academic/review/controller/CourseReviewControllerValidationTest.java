@@ -80,6 +80,7 @@ class CourseReviewControllerValidationTest {
 
         verify(reviewService).getReviews(COURSE_KEY, pageRequest);
     }
+
     @ParameterizedTest
     @ValueSource(strings = {"1", "100", "-1", "0", "invalid"})
     void ignoresClientSizeAndPreservesPageAndSort(String size) throws Exception {

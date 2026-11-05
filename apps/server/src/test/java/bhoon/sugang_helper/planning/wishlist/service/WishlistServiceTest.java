@@ -71,7 +71,6 @@ class WishlistServiceTest {
         given(userIdentityQuery.findByEmail(email)).willReturn(Optional.of(new UserIdentity(1L, false)));
         given(courseCatalogQuery.findByCourseKey(courseKey)).willReturn(Optional.empty());
 
-
         assertThatThrownBy(() -> wishlistService.toggleWishlist(courseKey))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
@@ -91,9 +90,7 @@ class WishlistServiceTest {
         given(courseCatalogQuery.findByCourseKey(courseKey)).willReturn(Optional.of(summary(courseKey, "Course", 20, 3)));
         given(wishlistRepository.findByUserIdAndCourseKey(1L, courseKey)).willReturn(Optional.of(wishlist));
 
-
         var response = wishlistService.toggleWishlist(courseKey);
-
 
         verify(wishlistRepository, times(1)).delete(wishlist);
         verify(wishlistRepository, times(0)).save(any(Wishlist.class));
@@ -113,9 +110,7 @@ class WishlistServiceTest {
         given(courseCatalogQuery.findByCourseKey(courseKey)).willReturn(Optional.of(summary(courseKey, "Course", 20, 3)));
         given(wishlistRepository.findByUserIdAndCourseKey(1L, courseKey)).willReturn(Optional.empty());
 
-
         var response = wishlistService.toggleWishlist(courseKey);
-
 
         verify(wishlistRepository, times(0)).delete(any(Wishlist.class));
         verify(wishlistRepository, times(1)).save(any(Wishlist.class));
@@ -133,9 +128,7 @@ class WishlistServiceTest {
         given(userIdentityQuery.findByEmail(email)).willReturn(Optional.of(user));
         given(wishlistRepository.findByUserId(1L)).willReturn(Collections.emptyList());
 
-
         List<WishlistResponse> result = wishlistService.getMyWishlist();
-
 
         assertThat(result).isEmpty();
     }
@@ -157,9 +150,7 @@ class WishlistServiceTest {
         given(wishlistRepository.findByUserId(1L)).willReturn(Arrays.asList(w1, w2));
         given(courseCatalogQuery.findByCourseKeyIn(anyList())).willReturn(Arrays.asList(c1, c2));
 
-
         List<WishlistResponse> result = wishlistService.getMyWishlist();
-
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).courseName()).isEqualTo("Course1");

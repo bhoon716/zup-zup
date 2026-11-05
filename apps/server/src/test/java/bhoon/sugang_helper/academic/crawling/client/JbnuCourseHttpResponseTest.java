@@ -28,9 +28,7 @@ class JbnuCourseHttpResponseTest {
         response.getHeaders().set(HttpHeaders.CONTENT_TYPE, "text/html;charset=UTF-8");
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, json.length);
 
-
         byte[] actual = client.readResponse(response);
-
 
         assertThat(actual).isEqualTo(json);
     }
@@ -40,7 +38,6 @@ class JbnuCourseHttpResponseTest {
 
         MockClientHttpResponse response = new MockClientHttpResponse(new byte[11], HttpStatus.OK);
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, 10);
-
 
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOf(IOException.class)
@@ -54,9 +51,7 @@ class JbnuCourseHttpResponseTest {
         MockClientHttpResponse response = gzipResponse(json);
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, json.length);
 
-
         byte[] actual = client.readResponse(response);
-
 
         assertThat(actual).isEqualTo(json);
     }
@@ -66,7 +61,6 @@ class JbnuCourseHttpResponseTest {
 
         MockClientHttpResponse response = gzipResponse(new byte[1_000]);
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, 100);
-
 
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOf(IOException.class)
@@ -78,7 +72,6 @@ class JbnuCourseHttpResponseTest {
 
         MockClientHttpResponse response = new MockClientHttpResponse(
                 "upstream secret".getBytes(StandardCharsets.UTF_8), HttpStatus.SERVICE_UNAVAILABLE);
-
 
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOfSatisfying(RestClientResponseException.class, exception -> {

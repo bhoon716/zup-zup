@@ -14,10 +14,6 @@ interface CourseDetailContentProps {
   unmaskPublicCourseInfo?: boolean;
 }
 
-
-
-
-
 export function CourseDetailContent({ course: rawCourse, unmaskPublicCourseInfo = false }: CourseDetailContentProps) {
   const reviewScopeKey = getReviewScopeKey(rawCourse);
   const isProfessorUnassigned = !hasIdentifiableProfessor(rawCourse);
@@ -69,9 +65,6 @@ export function CourseDetailContent({ course: rawCourse, unmaskPublicCourseInfo 
     </div>
   );
 }
-
-
-
 
 function CourseHeader({ 
   course, 
@@ -166,9 +159,6 @@ function CourseHeader({
   );
 }
 
-
-
-
 function CourseSummaryGrid({ course, clarityUnmask }: { course: Course; clarityUnmask?: true }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -179,9 +169,6 @@ function CourseSummaryGrid({ course, clarityUnmask }: { course: Course; clarityU
     </div>
   );
 }
-
-
-
 
 function CourseTimeLocation({ course, mapQuery, clarityUnmask }: { course: Course; mapQuery: string; clarityUnmask?: true }) {
   return (
@@ -228,9 +215,6 @@ function CourseTimeLocation({ course, mapQuery, clarityUnmask }: { course: Cours
     </div>
   );
 }
-
-
-
 
 function CourseSeatStatus({ course, percent, available }: { course: Course; percent: number; available: number }) {
   const isFull = available <= 0;
@@ -289,9 +273,6 @@ function CourseSeatStatus({ course, percent, available }: { course: Course; perc
   );
 }
 
-
-
-
 function formatDepartmentLabel(department?: string, targetGradeLabel?: string): string {
   if (!department) {
     return "";
@@ -319,9 +300,6 @@ function formatDepartmentLabel(department?: string, targetGradeLabel?: string): 
     )
     .join(", ");
 }
-
-
-
 
 function extractGradeNumber(targetGradeLabel?: string): string | null {
   if (!targetGradeLabel) {

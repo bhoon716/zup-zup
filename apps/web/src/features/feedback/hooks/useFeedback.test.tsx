@@ -76,7 +76,7 @@ describe("useFeedback hooks", () => {
       const queryClient = createTestQueryClient();
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
       const wrapper = createQueryWrapper(queryClient);
-      
+
       const { result } = renderHook(() => useCreateFeedback(), { wrapper });
 
       await result.current.mutateAsync({ 

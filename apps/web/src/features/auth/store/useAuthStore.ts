@@ -21,14 +21,19 @@ const getSafeStorage = (): Storage => {
       // ignore and fallback
     }
   }
-  
+
   const store = new Map<string, string>();
   return {
     getItem: (key) => store.get(key) ?? null,
+
     setItem: (key, value) => store.set(key, value),
+
     removeItem: (key) => store.delete(key),
+
     clear: () => store.clear(),
+
     key: (index) => Array.from(store.keys())[index] ?? null,
+
     get length() { return store.size; }
   };
 };
@@ -60,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
         }
         set({ user, isAuthenticated: !!user, isLoading: false });
       },
-      
+
       checkSession: async () => {
         if (sessionCheckPromise) {
           return sessionCheckPromise;

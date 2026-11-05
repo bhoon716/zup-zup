@@ -4,9 +4,6 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import java.util.Locale;
 
-
-
-
 public enum AdminFeedbackDeletionFilter {
     ALL,
     ACTIVE,

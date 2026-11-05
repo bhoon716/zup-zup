@@ -143,9 +143,6 @@ public class Course extends BaseTimeEntity {
     @BatchSize(size = 20)
     private List<CourseSchedule> schedules = new ArrayList<>();
 
-
-
-
     @Builder
     public Course(String courseKey, String subjectCode, String stdtrNo, String name, String classNumber, String professor,
                   Integer capacity, Integer current, TargetGrade targetGrade, String academicYear, String semester,
@@ -189,38 +186,23 @@ public class Course extends BaseTimeEntity {
         this.reviewCount = reviewCount != null ? reviewCount : 0;
     }
 
-
-
-
     public void updateReviewStats(float averageRating, int reviewCount) {
         this.averageRating = averageRating;
         this.reviewCount = reviewCount;
     }
 
-
-
-
     public int getAvailable() {
         return Math.max(0, capacity - current);
     }
-
-
-
 
     public boolean isMatchingTarget(String year, String semester) {
         return this.academicYear.equals(year) && this.semester.equals(semester);
     }
 
-
-
-
     public void addSchedule(CourseSchedule schedule) {
         this.schedules.add(schedule);
         schedule.setCourse(this);
     }
-
-
-
 
     @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NPathComplexity"})
     public boolean hasMetadataOrScheduleChanged(Course other) {
@@ -256,9 +238,6 @@ public class Course extends BaseTimeEntity {
         }
         return !isSameSchedules(other.getSchedules());
     }
-
-
-
 
     public boolean updateMetadata(Course other) {
         if (!hasMetadataOrScheduleChanged(other)) {

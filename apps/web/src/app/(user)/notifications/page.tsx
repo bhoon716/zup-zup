@@ -7,10 +7,6 @@ import { motion } from "framer-motion";
 
 export const dynamic = 'force-dynamic';
 
-
-
-
-
 export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc]">

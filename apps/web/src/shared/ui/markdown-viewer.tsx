@@ -11,11 +11,6 @@ interface MarkdownViewerProps {
   className?: string;
 }
 
-
-
-
-
-
 export function MarkdownViewer({ content, className }: MarkdownViewerProps) {
   if (!content || !content.trim()) {
     return <p className={cn("text-sm text-slate-500 italic", className)}>내용이 없습니다.</p>;
@@ -30,32 +25,34 @@ export function MarkdownViewer({ content, className }: MarkdownViewerProps) {
           h1: ({ className, ...props }) => (
             <h1 className={cn("mt-6 mb-4 text-3xl font-black text-slate-900 border-b pb-2", className)} {...props} />
           ),
+
           h2: ({ className, ...props }) => (
             <h2 className={cn("mt-6 mb-3 text-2xl font-black text-slate-900", className)} {...props} />
           ),
+
           h3: ({ className, ...props }) => (
             <h3 className={cn("mt-5 mb-2 text-xl font-bold text-slate-900", className)} {...props} />
           ),
+
           h4: ({ className, ...props }) => (
             <h4 className={cn("mt-4 mb-2 text-lg font-bold text-slate-900", className)} {...props} />
           ),
-
 
           p: ({ className, ...props }) => (
             <p className={cn("mb-4 text-sm leading-7 text-slate-700 last:mb-0", className)} {...props} />
           ),
 
-
           ul: ({ className, ...props }) => (
             <ul className={cn("mb-4 ml-5 list-disc space-y-1 text-sm leading-7 text-slate-700", className)} {...props} />
           ),
+
           ol: ({ className, ...props }) => (
             <ol className={cn("mb-4 ml-5 list-decimal space-y-1 text-sm leading-7 text-slate-700", className)} {...props} />
           ),
+
           li: ({ className, ...props }) => (
             <li className={cn("pl-1", className)} {...props} />
           ),
-
 
           blockquote: ({ className, ...props }) => (
             <blockquote
@@ -67,12 +64,10 @@ export function MarkdownViewer({ content, className }: MarkdownViewerProps) {
             />
           ),
 
-
           code: ({ className, children, ...props }) => {
 
-
             const isInline = !className?.includes("language-");
-            
+
             if (isInline) {
               return (
                 <code
@@ -96,7 +91,6 @@ export function MarkdownViewer({ content, className }: MarkdownViewerProps) {
             );
           },
 
-
           a: ({ className, ...props }) => (
             <a
               className={cn("font-bold text-primary underline underline-offset-4 hover:text-primary-dark transition-colors", className)}
@@ -106,21 +100,22 @@ export function MarkdownViewer({ content, className }: MarkdownViewerProps) {
             />
           ),
 
-
           hr: ({ className, ...props }) => (
             <hr className={cn("my-8 border-slate-200", className)} {...props} />
           ),
-
 
           table: ({ className, ...props }) => (
             <div className="my-6 w-full overflow-x-auto rounded-xl border border-slate-200">
               <table className={cn("w-full border-collapse text-sm text-slate-700", className)} {...props} />
             </div>
           ),
+
           thead: ({ className, ...props }) => <thead className={cn("bg-slate-50", className)} {...props} />,
+
           th: ({ className, ...props }) => (
             <th className={cn("border-b border-slate-200 px-4 py-2.5 text-left font-bold text-slate-900", className)} {...props} />
           ),
+
           td: ({ className, ...props }) => (
             <td className={cn("border-b border-slate-100 px-4 py-3", className)} {...props} />
           ),
@@ -131,4 +126,3 @@ export function MarkdownViewer({ content, className }: MarkdownViewerProps) {
     </div>
   );
 }
-

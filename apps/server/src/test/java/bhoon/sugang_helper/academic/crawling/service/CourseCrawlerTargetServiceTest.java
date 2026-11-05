@@ -43,9 +43,7 @@ class CourseCrawlerTargetServiceTest {
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.of(setting));
         ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
 
-
         var response = crawlerTargetService.getSearchDefaultSemester();
-
 
         assertThat(response.getSemester()).isEqualTo(SemesterType.SUMMER_SESSION.getCode());
         verify(crawlerSettingRepository).findTopByOrderByIdAsc();
@@ -59,9 +57,7 @@ class CourseCrawlerTargetServiceTest {
         ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
 
-
         AdminCrawlTargetResponse response = crawlerTargetService.getCurrentTarget();
-
 
         assertThat(response.getYear()).isEqualTo(ACADEMIC_YEAR);
         assertThat(response.getSemester()).isEqualTo(SemesterType.FIRST_SEMESTER.getCode());
@@ -76,9 +72,7 @@ class CourseCrawlerTargetServiceTest {
         ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
 
-
         var response = crawlerTargetService.getSearchDefaultSemester();
-
 
         assertThat(response.getSemester()).isEqualTo(SemesterType.FIRST_SEMESTER.getCode());
         verify(crawlerSettingRepository, never()).save(any(CrawlerSetting.class));
@@ -92,9 +86,7 @@ class CourseCrawlerTargetServiceTest {
         ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
 
-
         CrawlTargetInfo targetInfo = crawlerTargetService.getCurrentTargetValue();
-
 
         assertThat(targetInfo.year()).isEqualTo(ACADEMIC_YEAR);
         assertThat(targetInfo.semester()).isEqualTo(SemesterType.FIRST_SEMESTER);
@@ -111,9 +103,7 @@ class CourseCrawlerTargetServiceTest {
                 .build();
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.of(setting));
 
-
         CrawlTargetInfo targetInfo = crawlerTargetService.getCurrentTargetValue();
-
 
         assertThat(targetInfo.year()).isEqualTo(ACADEMIC_YEAR);
         assertThat(targetInfo.semester()).isEqualTo(SemesterType.WINTER_SESSION);

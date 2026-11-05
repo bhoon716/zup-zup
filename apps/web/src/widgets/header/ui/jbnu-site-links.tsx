@@ -21,9 +21,6 @@ interface JBNUSiteLinksProps {
   onLinkClick?: () => void;
 }
 
-
-
-
 export function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
   const dropdownTriggerId = "jbnu-site-links-trigger";
   const dropdownContentId = "jbnu-site-links-content";

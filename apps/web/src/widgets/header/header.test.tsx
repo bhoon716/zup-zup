@@ -91,6 +91,7 @@ vi.mock("./ui/user-status", () => ({
     mockDesktopUser(props);
     return <div data-testid="desktop-user" />;
   },
+
   HeaderMobileUserStatus: () => <div data-testid="mobile-user" />,
 }));
 

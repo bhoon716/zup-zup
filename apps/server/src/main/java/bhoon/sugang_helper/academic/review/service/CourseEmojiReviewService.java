@@ -25,9 +25,6 @@ public class CourseEmojiReviewService {
     private final CourseReviewCatalogService courseReviewCatalog;
     private final UserIdentityQueryService userIdentityQuery;
 
-
-
-
     @Transactional
     public void toggleEmoji(String courseKey, String emoji) {
         if (emoji == null || emoji.isBlank()) {
@@ -58,9 +55,6 @@ public class CourseEmojiReviewService {
                         }
                 );
     }
-
-
-
 
     @Transactional(readOnly = true)
     public List<CourseEmojiReviewResponse> getCourseEmojiStats(String courseKey) {

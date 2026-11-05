@@ -18,7 +18,6 @@ public record CourseSummary(
         String classroom,
         List<CourseScheduleSummary> schedules) {
 
-
     @SuppressWarnings("PMD.UnusedAssignment")
     public CourseSummary {
         schedules = schedules == null ? List.of() : List.copyOf(schedules);

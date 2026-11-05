@@ -38,9 +38,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-
-
-
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class NotificationSenderIdempotencyContractTest {
 

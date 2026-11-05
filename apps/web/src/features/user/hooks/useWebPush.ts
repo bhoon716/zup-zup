@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import * as webPush from '@/features/user/lib/webpush';
 import { extractSubscriptionKeys } from '@/features/user/lib/webpush';
@@ -13,7 +12,7 @@ export const useWebPush = () => {
     setLoading(true);
     try {
       const subscription = await webPush.subscribeToPush();
-      
+
       if (!subscription) {
         throw new Error('푸시 구독 객체를 생성할 수 없습니다.');
       }
@@ -22,7 +21,7 @@ export const useWebPush = () => {
 
       const ua = navigator.userAgent;
       let alias = customAlias;
-      
+
       if (!alias) {
 
           alias = "Unknown Device";
@@ -66,10 +65,10 @@ export const useWebPush = () => {
     setLoading(true);
     try {
       const subscription = await webPush.getSubscription();
-      
+
       if (subscription) {
         const token = subscription.endpoint;
-        
+
         try {
           await userApi.unregisterDevice(token);
         } catch (e) {

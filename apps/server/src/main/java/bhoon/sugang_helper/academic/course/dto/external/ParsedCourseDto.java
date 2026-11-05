@@ -9,9 +9,6 @@ import bhoon.sugang_helper.academic.course.enums.LectureLanguage;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
 import java.util.List;
 
-
-
-
 public record ParsedCourseDto(
         String courseKey,
         String subjectCode,

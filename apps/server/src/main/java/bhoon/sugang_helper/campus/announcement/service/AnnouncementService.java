@@ -30,9 +30,6 @@ public class AnnouncementService {
     private final AnnouncementRepository announcementRepository;
     private final MeterRegistry meterRegistry;
 
-
-
-
     public List<AnnouncementListResponse> getPublicAnnouncements(String keyword, AnnouncementSearchType searchType) {
         return getPublicAnnouncements(keyword, searchType, PageRequest.of(0, MAX_PAGE_SIZE)).getContent();
     }
@@ -64,17 +61,11 @@ public class AnnouncementService {
                 .toList();
     }
 
-
-
-
     public AnnouncementDetailResponse getPublicAnnouncement(Long id) {
         Announcement announcement = announcementRepository.findByIdAndPublishedTrue(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "공개된 공지사항을 찾을 수 없습니다."));
         return AnnouncementDetailResponse.from(announcement);
     }
-
-
-
 
     public List<AnnouncementDetailResponse> getAdminAnnouncements() {
         return getAdminAnnouncements(PageRequest.of(0, MAX_PAGE_SIZE)).getContent();
@@ -85,9 +76,6 @@ public class AnnouncementService {
                         PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, 10_000))
                 .map(AnnouncementDetailResponse::from);
     }
-
-
-
 
     @Transactional
     public AnnouncementDetailResponse createAnnouncement(AnnouncementRequest request) {
@@ -100,9 +88,6 @@ public class AnnouncementService {
         return AnnouncementDetailResponse.from(announcementRepository.save(announcement));
     }
 
-
-
-
     @Transactional
     public AnnouncementDetailResponse updateAnnouncement(Long id, AnnouncementRequest request) {
         Announcement announcement = getAnnouncement(id);
@@ -114,25 +99,16 @@ public class AnnouncementService {
         return AnnouncementDetailResponse.from(announcement);
     }
 
-
-
-
     @Transactional
     public void deleteAnnouncement(Long id) {
         Announcement announcement = getAnnouncement(id);
         announcementRepository.delete(announcement);
     }
 
-
-
-
     private Announcement getAnnouncement(Long id) {
         return announcementRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "공지사항을 찾을 수 없습니다."));
     }
-
-
-
 
     private Page<Announcement> findPublicAnnouncements(
             String keyword, AnnouncementSearchType searchType, Pageable pageable) {

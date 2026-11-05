@@ -14,9 +14,6 @@ export const CRAWL_SEMESTER_OPTIONS: CrawlSemesterOption[] = [
   { code: "U211600008", label: "SW 특별학기" },
 ];
 
-
-
-
 export const getCrawlYearOptions = () => {
   const currentYear = new Date().getFullYear();
   const years = [];

@@ -57,9 +57,7 @@ class CourseSearchReadRepositoryTest {
                 .sortBy(NAME_SORT)
                 .build();
 
-
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
-
 
         assertThat(response.getContent())
                 .extracting(Course::getName)
@@ -79,9 +77,7 @@ class CourseSearchReadRepositoryTest {
                 .sortBy(NAME_SORT)
                 .build();
 
-
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
-
 
         assertThat(response.getContent())
                 .extracting(Course::getName)
@@ -96,12 +92,10 @@ class CourseSearchReadRepositoryTest {
         saveCourseWithStdtrNo("CK2", DS, "CSE101");
         saveCourseWithStdtrNo("CK3", OS, null);
 
-
         var byStdtrNo = courseSearchReadRepository.searchCourses(
                 baseCondition().keyword(" geco178 ").sortBy(NAME_SORT).build(), PageRequest.of(0, 10));
         var byName = courseSearchReadRepository.searchCourses(
                 baseCondition().keyword("자료").sortBy(NAME_SORT).build(), PageRequest.of(0, 10));
-
 
         assertThat(byStdtrNo.getContent()).extracting(Course::getName).containsExactly(ALG);
         assertThat(byName.getContent()).extracting(Course::getName).containsExactly(DS);
@@ -123,9 +117,7 @@ class CourseSearchReadRepositoryTest {
                 .sortBy("popular")
                 .build();
 
-
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
-
 
         assertThat(response.getContent())
                 .extracting(Course::getName)
@@ -170,9 +162,7 @@ class CourseSearchReadRepositoryTest {
                 .build()
                 .toCriteria(null);
 
-
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
-
 
         assertThat(condition.sortBy()).isEqualTo("popular");
         assertThat(response.getContent())
@@ -202,9 +192,7 @@ class CourseSearchReadRepositoryTest {
                 .sortOrder("desc")
                 .build();
 
-
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
-
 
         assertThat(response.getContent())
                 .extracting(Course::getName)
@@ -241,9 +229,7 @@ class CourseSearchReadRepositoryTest {
                 .sortOrder("desc")
                 .build();
 
-
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
-
 
         assertThat(response.getContent())
                 .extracting(Course::getName)
@@ -312,7 +298,6 @@ class CourseSearchReadRepositoryTest {
         course.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(11, 0)));
         courseRepository.save(course);
 
-
         CourseSearchCriteria condition = baseCondition()
                 .selectedSchedules(List.of(
                         CourseSelectedSchedule.builder()
@@ -328,9 +313,7 @@ class CourseSearchReadRepositoryTest {
                 ))
                 .build();
 
-
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
-
 
         assertThat(response.getContent())
                 .extracting(Course::getName)
@@ -372,7 +355,6 @@ class CourseSearchReadRepositoryTest {
                 new CourseSchedule(CourseDayOfWeek.FRIDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)));
         courseRepository.save(course2);
 
-
         CourseSearchCriteria condition = baseCondition()
                 .selectedSchedules(List.of(
                         CourseSelectedSchedule.builder()
@@ -388,9 +370,7 @@ class CourseSearchReadRepositoryTest {
                 ))
                 .build();
 
-
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
-
 
         assertThat(response.getContent())
                 .extracting(Course::getName)

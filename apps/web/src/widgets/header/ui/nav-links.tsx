@@ -26,9 +26,6 @@ interface NavLinksProps {
   onLinkClick?: () => void;
 }
 
-
-
-
 export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = false, onGuardedAction, onLinkClick }: NavLinksProps) {
   const adminMenuTriggerId = "header-admin-menu-trigger";
   const adminMenuContentId = "header-admin-menu-content";

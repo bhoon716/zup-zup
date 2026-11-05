@@ -17,10 +17,6 @@ import { useAnnouncement } from "@/features/announcement/hooks/useAnnouncements"
 import { MarkdownViewer } from "@/shared/ui/markdown-viewer";
 import { Button } from "@/shared/ui/button";
 
-
-
-
-
 const formatDateTime = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -34,9 +30,6 @@ const formatDateTime = (value: string) => {
     minute: "2-digit",
   }).format(date);
 };
-
-
-
 
 export default function AnnouncementDetailPage() {
   const params = useParams<{ id: string }>();

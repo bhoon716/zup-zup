@@ -24,7 +24,6 @@ export const useCourses = (
         courses = sliceData;
       }
 
-
       const normalizedCourses = courses.map(course => normalizeCourse(course));
 
       return {
@@ -79,6 +78,7 @@ export const useCourseDetail = (courseKey: string) => {
     enabled: !!courseKey,
   });
 };
+
 export const useSearchDefaultSemester = () => {
   return useQuery<SearchDefaultSemesterResponse>({
     queryKey: ['courses', 'search-default-semester'],

@@ -35,7 +35,6 @@ export function CourseDetailFilters({
     })),
   ), []);
 
-
   const gradingOptions = React.useMemo(() =>
     GRADING_GROUPS.flatMap((group) =>
       group.items.map((item) => ({
@@ -44,24 +43,20 @@ export function CourseDetailFilters({
       })),
     ), []);
 
-
   const languageOptions = React.useMemo(() => LANGUAGES.map((lang) => ({
     label: lang,
     value: lang,
   })), []);
-
 
   const creditOptions = React.useMemo(() => CREDITS.map((credit) => ({
     label: `${credit}학점`,
     value: credit,
   })), []);
 
-
   const directionOptions = React.useMemo(() => COURSE_DIRECTIONS.map((dir) => ({
     label: dir,
     value: dir,
   })), []);
-
 
   const gradeOptions = React.useMemo(() => TARGET_GRADES.map((grade) => ({
     label: grade === "GRADUATE" ? "대학원" : `${grade}학년`,

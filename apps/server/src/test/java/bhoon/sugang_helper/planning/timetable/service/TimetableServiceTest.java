@@ -79,9 +79,7 @@ class TimetableServiceTest {
         given(timetableRepository.countByUserId(1L)).willReturn(0L);
         given(timetableRepository.save(any(Timetable.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-
         var response = timetableService.createTimetable(request);
-
 
         assertThat(response.getName()).isEqualTo("My Timetable");
         verify(timetableRepository, times(1)).save(any(Timetable.class));
@@ -94,7 +92,6 @@ class TimetableServiceTest {
         mockUser();
         TimetableRequest request = new TimetableRequest("My Timetable", false);
         given(timetableRepository.countByUserId(1L)).willReturn(10L);
-
 
         assertThatThrownBy(() -> timetableService.createTimetable(request))
                 .isInstanceOf(CustomException.class)
@@ -112,9 +109,7 @@ class TimetableServiceTest {
         given(courseCatalogQuery.existsByCourseKey("CK1")).willReturn(true);
         given(timetableEntryRepository.findByTimetableIdAndCourseKey(1L, "CK1")).willReturn(Optional.empty());
 
-
         timetableService.addCourse(1L, "CK1");
-
 
         assertThat(timetable.getEntries()).hasSize(1);
     }
@@ -132,9 +127,7 @@ class TimetableServiceTest {
         given(courseCatalogQuery.existsByCourseKey("NEW")).willReturn(true);
         given(timetableEntryRepository.findByTimetableIdAndCourseKey(1L, "NEW")).willReturn(Optional.empty());
 
-
         timetableService.addCourse(1L, "NEW");
-
 
         assertThat(timetable.getEntries()).hasSize(2);
     }
@@ -151,9 +144,7 @@ class TimetableServiceTest {
                 new CustomScheduleTimeRequest("월", LocalTime.of(9, 45), LocalTime.of(10, 45),
                         null)));
 
-
         timetableService.addCustomSchedule(1L, request);
-
 
         assertThat(timetable.getCustomSchedules()).hasSize(1);
     }
@@ -169,9 +160,7 @@ class TimetableServiceTest {
         given(timetableRepository.findById(2L)).willReturn(Optional.of(newPrimary));
         given(timetableRepository.findByUserIdAndIsPrimaryTrue(1L)).willReturn(List.of(oldPrimary));
 
-
         timetableService.setPrimary(2L);
-
 
         assertThat(oldPrimary.isPrimary()).isFalse();
         assertThat(newPrimary.isPrimary()).isTrue();
@@ -190,9 +179,7 @@ class TimetableServiceTest {
         given(timetableRepository.findById(1L)).willReturn(Optional.of(primary));
         given(timetableRepository.findByUserId(1L)).willReturn(List.of(primary, other));
 
-
         timetableService.deleteTimetable(1L);
-
 
         verify(timetableRepository, times(1)).delete(primary);
         assertThat(other.isPrimary()).isTrue();
@@ -204,9 +191,7 @@ class TimetableServiceTest {
 
         UserRegisteredEvent event = new UserRegisteredEvent(1L, "new@example.com");
 
-
         timetableService.handleUserRegisteredEvent(event);
-
 
         verify(timetableRepository, times(1)).save(any(Timetable.class));
     }

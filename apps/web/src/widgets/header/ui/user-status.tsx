@@ -14,12 +14,9 @@ interface UserProfileProps {
   onLinkClick?: () => void;
 }
 
-
-
-
 export function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLoginClick }: UserProfileProps) {
   if (isLoading) return <div className="h-8 w-24 animate-pulse bg-muted/50 rounded-xl" />;
-  
+
   if (!user) {
     return (
       <Button asChild size="sm" className="bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-sm">
@@ -49,9 +46,6 @@ export function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLogi
     </div>
   );
 }
-
-
-
 
 export function HeaderMobileUserStatus({ user, isLoading, onLinkClick }: Omit<UserProfileProps, 'isPending' | 'onLogout' | 'onLoginClick'> & { onLinkClick: () => void }) {
   if (isLoading) return <div className="h-10 w-full animate-pulse bg-muted/50 rounded-xl" />;

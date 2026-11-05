@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 export function isInAppBrowser() {
   if (typeof window === "undefined") return false;
   const ua = window.navigator.userAgent.toLowerCase();
-  
+
   const inAppPatterns = [
     "kakaotalk",
     "instagram",

@@ -4,9 +4,6 @@ const KAKAO_MAP_SCRIPT_ID = "kakao-map-sdk";
 
 const DEFAULT_CENTER = { lat: 35.846521, lng: 127.129558 };
 
-
-
-
 export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -16,14 +13,12 @@ export function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
-
 const JBNU_CAMPUS_BOUNDS = {
   minLat: 35.8380,
   maxLat: 35.8580,
   minLng: 127.1200,
   maxLng: 127.1420,
 };
-
 
 const OFF_CAMPUS_KEYWORDS = ["익산", "고창", "남원", "새만금", "군산", "병원", "혁신도시"];
 
@@ -96,11 +91,9 @@ declare global {
 
 let kakaoSdkPromise: Promise<KakaoMapApi> | null = null;
 
-
 function isKakaoReady(kakao?: KakaoMapApi): kakao is KakaoMapApi {
   return Boolean(kakao?.maps?.services);
 }
-
 
 function getKakaoScript(appKey: string): HTMLScriptElement {
   const script = document.createElement("script");
@@ -109,9 +102,6 @@ function getKakaoScript(appKey: string): HTMLScriptElement {
   script.src = `https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&libraries=services&appkey=${appKey}`;
   return script;
 }
-
-
-
 
 export async function loadKakaoMapSdk(appKey: string): Promise<KakaoMapApi> {
   if (typeof window === "undefined") {
@@ -174,9 +164,6 @@ export interface KakaoMapRenderResult {
   place?: KakaoPlaceResult;
 }
 
-
-
-
 export async function renderKakaoMapByKeyword(params: {
   container: HTMLElement;
   appKey: string;
@@ -209,7 +196,6 @@ export async function renderKakaoMapByKeyword(params: {
             resolve({ status });
             return;
           }
-
 
           const campusPlace = !isOffCampus
             ? data.find((p) => {
@@ -247,7 +233,6 @@ export async function renderKakaoMapByKeyword(params: {
         options ? { location: options.location, radius: options.radius, size: 10, page: 1 } : { size: 10, page: 1 },
       );
     };
-
 
     if (!isOffCampus) {
       doSearch({ location: initialCenter, radius: 1500 });

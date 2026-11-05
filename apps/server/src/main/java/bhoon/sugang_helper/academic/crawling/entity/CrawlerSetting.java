@@ -11,9 +11,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-
-
-
 @Getter
 @Entity
 @Table(name = "crawler_settings")
@@ -30,17 +27,11 @@ public class CrawlerSetting {
     @Column(name = "target_semester", nullable = false, length = 20)
     private String targetSemester;
 
-
-
-
     @Builder
     public CrawlerSetting(String targetYear, String targetSemester) {
         this.targetYear = targetYear;
         this.targetSemester = targetSemester;
     }
-
-
-
 
     public void updateTarget(String targetYear, String targetSemester) {
         this.targetYear = targetYear;

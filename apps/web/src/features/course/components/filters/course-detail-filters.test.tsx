@@ -11,7 +11,6 @@ interface MultiSelectFilterProps {
   placeholder: string;
 }
 
-
 vi.mock("@/shared/ui/multi-select-filter", () => ({
   MultiSelectFilter: ({ options, onChange, placeholder }: MultiSelectFilterProps) => (
     <div data-testid={`multi-select-${placeholder}`}>
@@ -40,7 +39,7 @@ function FiltersHarness() {
 describe("CourseDetailFilters", () => {
   it("이수 구분을 선택하면 condition의 classifications가 업데이트된다", () => {
     render(<FiltersHarness />);
-    
+
     const btn = screen.getByTestId("btn-이수 구분 선택");
     fireEvent.click(btn);
 
@@ -51,7 +50,7 @@ describe("CourseDetailFilters", () => {
 
   it("여러 필터를 동시에 업데이트할 수 있다", () => {
     render(<FiltersHarness />);
-    
+
     const langBtn = screen.getByTestId("btn-강의 언어 선택");
     fireEvent.click(langBtn);
 

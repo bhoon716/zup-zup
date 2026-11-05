@@ -34,10 +34,6 @@ const CourseEmojiPicker = dynamic(
   },
 );
 
-
-
-
-
 export function CourseReviewSection({
   courseKey,
   reviewScopeKey,
@@ -94,6 +90,7 @@ export function CourseReviewSection({
             setDraftRating(null);
             toast.success("리뷰가 수정되었습니다.");
           },
+
           onError: (err: unknown) => {
             let errorMsg = "수정에 실패했습니다.";
             if (axios.isAxiosError(err)) {
@@ -113,6 +110,7 @@ export function CourseReviewSection({
           setDraftRating(null);
           toast.success("리뷰가 등록되었습니다.");
         },
+
         onError: (err: unknown) => {
           let errorMsg = "작성에 실패했습니다. 이미 작성하셨을 수 있습니다.";
           if (axios.isAxiosError(err)) {

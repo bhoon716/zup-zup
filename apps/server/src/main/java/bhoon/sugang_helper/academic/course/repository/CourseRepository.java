@@ -11,22 +11,13 @@ import org.springframework.data.repository.query.Param;
 
 public interface CourseRepository extends JpaRepository<Course, Long> {
 
-
-
-
     Optional<Course> findByCourseKey(String courseKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Course c where c.courseKey = :courseKey")
     Optional<Course> findByCourseKeyForUpdate(@Param("courseKey") String courseKey);
 
-
-
-
     boolean existsByCourseKey(String courseKey);
-
-
-
 
     List<Course> findByCourseKeyIn(List<String> courseKeys);
 
@@ -39,9 +30,6 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<String> findCourseKeysBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
                                                          @Param("professor") String professor);
 
-
-
-
     @Query("""
             select distinct c.generalCategory
             from Course c
@@ -50,9 +38,6 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
             order by c.generalCategory
             """)
     List<String> findDistinctGeneralCategories();
-
-
-
 
     @Query("""
             select distinct c.generalDetail

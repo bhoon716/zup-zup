@@ -20,10 +20,8 @@ class CourseBatchOptimizationTest {
         Course original = createSampleCourse(SAMPLE_COURSE_KEY, 50, 20);
         Course crawledIdentical = createSampleCourse(SAMPLE_COURSE_KEY, 50, 20);
 
-
         boolean changed = original.hasMetadataOrScheduleChanged(crawledIdentical);
         boolean updated = original.updateMetadata(crawledIdentical);
-
 
         assertThat(changed).isFalse();
         assertThat(updated).isFalse();
@@ -36,10 +34,8 @@ class CourseBatchOptimizationTest {
         Course original = createSampleCourse(SAMPLE_COURSE_KEY, 50, 20);
         Course crawledModified = createSampleCourse(SAMPLE_COURSE_KEY, 50, 25);
 
-
         boolean changed = original.hasMetadataOrScheduleChanged(crawledModified);
         boolean updated = original.updateMetadata(crawledModified);
-
 
         assertThat(changed).isTrue();
         assertThat(updated).isTrue();
@@ -56,10 +52,8 @@ class CourseBatchOptimizationTest {
         crawledWithNewSchedule.addSchedule(
                 new CourseSchedule(CourseDayOfWeek.TUESDAY, LocalTime.of(10, 0), LocalTime.of(12, 0)));
 
-
         boolean changed = original.hasMetadataOrScheduleChanged(crawledWithNewSchedule);
         boolean updated = original.updateMetadata(crawledWithNewSchedule);
-
 
         assertThat(changed).isTrue();
         assertThat(updated).isTrue();

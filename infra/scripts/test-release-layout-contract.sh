@@ -17,6 +17,7 @@ for required in \
 done
 
 fixture_root="$(mktemp -d)"
+
 cleanup() {
   rm -rf -- "${fixture_root}"
 }

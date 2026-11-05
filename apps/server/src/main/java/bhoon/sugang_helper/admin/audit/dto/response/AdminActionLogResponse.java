@@ -4,9 +4,6 @@ import bhoon.sugang_helper.admin.audit.enums.ActionType;
 import bhoon.sugang_helper.admin.audit.enums.TargetType;
 import java.time.LocalDateTime;
 
-
-
-
 public record AdminActionLogResponse(
         Long id,
         Long adminId,

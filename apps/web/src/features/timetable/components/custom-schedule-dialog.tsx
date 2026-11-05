@@ -30,10 +30,6 @@ interface CustomScheduleDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-
-
-
-
 export function CustomScheduleDialog({ timetableId, open, onOpenChange }: CustomScheduleDialogProps) {
   const addCustomSchedule = useAddCustomSchedule();
   const [selectedSchedules, setSelectedSchedules] = useState<ScheduleCondition[]>([]);

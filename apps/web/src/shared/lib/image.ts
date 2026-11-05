@@ -1,6 +1,3 @@
-
-
-
 export const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png"] as const;
 
 export function isSupportedImageType(file: Pick<File, "type">): boolean {
@@ -18,7 +15,6 @@ export async function compressImage(file: File, maxWidth: number = 1280, quality
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
-
 
         if (width > maxWidth) {
           height = (height * maxWidth) / width;

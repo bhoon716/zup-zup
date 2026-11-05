@@ -95,14 +95,12 @@ class SchedulerDelayTest {
                     freshnessCompletedTwice.countDown();
                 }), due, Duration.ofMillis(60));
 
-
                 assertThat(dependentStarted.await(300, TimeUnit.MILLISECONDS)).isFalse();
                 assertThat(outboxStartedAt.get()).isZero();
                 assertThat(freshnessStartedAt.get()).isZero();
                 long releasedAt = System.nanoTime();
                 releaseFetch.countDown();
                 crawl.get(2, TimeUnit.SECONDS);
-
 
                 assertThat(outboxCompletedTwice.await(2, TimeUnit.SECONDS)).isTrue();
                 assertThat(freshnessCompletedTwice.await(2, TimeUnit.SECONDS)).isTrue();

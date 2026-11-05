@@ -58,7 +58,6 @@ describe('TimetableGrid', () => {
     renderGrid(mockTimetable);
 
     expect(screen.getByText('Java Programming')).toBeInTheDocument();
-    
 
     expect(screen.getByText(/John Doe/)).toBeInTheDocument();
     expect(screen.getByText(/공학관 101/)).toBeInTheDocument();
@@ -69,7 +68,6 @@ describe('TimetableGrid', () => {
     expect(screen.getByText('수')).toBeInTheDocument();
     expect(screen.getByText('목')).toBeInTheDocument();
     expect(screen.getByText('금')).toBeInTheDocument();
-
 
     expect(screen.getByText(/9:00/)).toBeInTheDocument();
     expect(screen.getByText(/10:00/)).toBeInTheDocument();

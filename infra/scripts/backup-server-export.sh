@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-
-
-
-
-
 RELEASE_ROOT="${RELEASE_ROOT:-/home/ubuntu/jbnu-sugang-helper}"
 BACKUP_DIR="${RELEASE_ROOT}/backups/export"
 TIMESTAMP="$(date +'%Y%m%d_%H%M%S')"
@@ -33,7 +28,6 @@ if docker ps --format '{{.Names}}' | grep -q "sugang-helper-mysql"; then
 else
   echo "[BACKUP-EXPORT] WARNING: sugang-helper-mysql container is not running. Skipping DB export."
 fi
-
 
 UPLOADS_VOL_PATH="/var/lib/docker/volumes/sugang-helper-app-uploads/_data"
 if [ -d "${UPLOADS_VOL_PATH}" ]; then

@@ -18,10 +18,6 @@ interface AdminStatCardProps {
   index: number;
 }
 
-
-
-
-
 export function AdminStatCard({
   label,
   value,

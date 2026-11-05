@@ -54,7 +54,6 @@ public class DiscordOAuthService {
     @Value("${app.discord.redirect-uri:http://localhost:8080/api/v1/users/discord/callback}")
     private String redirectUri;
 
-
     public String exchangeCodeForToken(String code) {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("client_id", clientId);
@@ -81,7 +80,6 @@ public class DiscordOAuthService {
             throw new CustomException(ErrorCode.INVALID_INPUT, "Discord 인증 중 오류가 발생했습니다.");
         }
     }
-
 
     public String getDiscordUserId(String accessToken) {
         try {

@@ -62,9 +62,7 @@ class EmailVerificationServiceTest {
         when(templateService.loadTemplate(eq("verification_code"), anyMap())).thenReturn("<html>HTML</html>");
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
 
-
         emailVerificationService.sendCode(userId, EMAIL);
-
 
         verify(redisService, times(1)).setValues(eq("EMAIL_CODE:" + userId + ":" + EMAIL), anyString(),
                 any(Duration.class));
@@ -83,7 +81,6 @@ class EmailVerificationServiceTest {
         when(templateService.loadTemplate(eq("verification_code"), anyMap())).thenReturn("<html>HTML</html>");
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         doThrow(new RuntimeException("Mail server error")).when(javaMailSender).send(any(MimeMessage.class));
-
 
         assertThatThrownBy(() -> emailVerificationService.sendCode(userId, EMAIL, "192.0.2.10"))
                 .isInstanceOf(CustomException.class)
@@ -173,9 +170,7 @@ class EmailVerificationServiceTest {
 
         when(redisService.getValues(key)).thenReturn(code);
 
-
         boolean result = emailVerificationService.verifyCode(userId, email, code);
-
 
         assertThat(result).isTrue();
         verify(redisService).deleteValues(key);
@@ -192,9 +187,7 @@ class EmailVerificationServiceTest {
 
         when(redisService.getValues(key)).thenReturn("123456");
 
-
         boolean result = emailVerificationService.verifyCode(userId, email, "654321");
-
 
         assertThat(result).isFalse();
         verify(redisService, never()).deleteValues(anyString());
@@ -222,9 +215,7 @@ class EmailVerificationServiceTest {
 
         when(redisService.getValues(key)).thenReturn("true");
 
-
         boolean result = emailVerificationService.isVerified(userId, email);
-
 
         assertThat(result).isTrue();
     }

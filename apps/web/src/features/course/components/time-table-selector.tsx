@@ -84,9 +84,6 @@ function sortSchedules(schedules: ScheduleCondition[]): ScheduleCondition[] {
   });
 }
 
-
-
-
 function buildNextSchedulesFromDrag(dragState: DragState): ScheduleCondition[] {
   const dragCells = getDragCells(dragState.start, dragState.currentCell);
   const nextMap = new Map(dragState.snapshot.map((s) => [toScheduleKey(s), s]));
@@ -110,12 +107,10 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
   const [hoveredSlot, setHoveredSlot] = useState<number | null>(null);
   const activePointerIdRef = useRef<number | null>(null);
 
-
   const selectedKeySet = useMemo(
     () => new Set(selected.map((s) => toScheduleKey(s))),
     [selected],
   );
-
 
   const dragRectKeySet = useMemo(() => {
     if (!dragState) return new Set<string>();
@@ -125,7 +120,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
       ),
     );
   }, [dragState]);
-
 
   const displayKeySet = useMemo(() => {
     if (!dragState) return selectedKeySet;
@@ -139,9 +133,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     });
     return previewSet;
   }, [dragState, dragRectKeySet, selectedKeySet]);
-
-
-
 
   const startDrag = useCallback((day: CourseDayOfWeek, slot: number) => {
     const dayIndex = DAYS.indexOf(day);
@@ -161,9 +152,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     setHoveredSlot(slot);
   }, [selected, selectedKeySet]);
 
-
-
-
   const updateDragCell = useCallback((day: CourseDayOfWeek, slot: number) => {
     const dayIndex = DAYS.indexOf(day);
     if (dayIndex < 0) return;
@@ -176,9 +164,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
       return { ...prev, currentCell: { dayIndex, slot } };
     });
   }, []);
-
-
-
 
   const finishDrag = useCallback((pointerId?: number) => {
     if (pointerId !== undefined && activePointerIdRef.current !== pointerId) return;
@@ -193,6 +178,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     if (!dragState) return;
 
     const handlePointerUp = (event: globalThis.PointerEvent) => finishDrag(event.pointerId);
+
     const handlePointerCancel = (event: globalThis.PointerEvent) => finishDrag(event.pointerId);
 
     window.addEventListener("pointerup", handlePointerUp);
@@ -202,9 +188,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
       window.removeEventListener("pointercancel", handlePointerCancel);
     };
   }, [dragState, finishDrag]);
-
-
-
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!dragState || activePointerIdRef.current !== event.pointerId) return;
@@ -220,9 +203,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     updateDragCell(day, slot);
   };
 
-
-
-
   const handlePointerDownCell = (event: PointerEvent<HTMLButtonElement>, day: CourseDayOfWeek, slot: number) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     activePointerIdRef.current = event.pointerId;
@@ -233,9 +213,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
       // 캡처 실패 무시
     }
   };
-
-
-
 
   const handleSelectAllByDay = (day: CourseDayOfWeek) => {
     const daySchedules = SLOT_NUMBERS.map((slot) => toSchedule(day, slot));

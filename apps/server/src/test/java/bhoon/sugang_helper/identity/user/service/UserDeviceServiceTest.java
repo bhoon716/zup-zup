@@ -87,9 +87,7 @@ class UserDeviceServiceTest {
         RegisterDeviceCommand request = new RegisterDeviceCommand(DeviceType.WEB, TOKEN, "P256DH", "AUTH", "Alias");
         given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.empty());
 
-
         userDeviceService.registerDevice(request);
-
 
         verify(userDeviceRepository, times(1)).save(any(UserDevice.class));
     }
@@ -110,9 +108,7 @@ class UserDeviceServiceTest {
                 .build());
         given(userDeviceRepository.findByToken(TOKEN)).willReturn(Optional.of(existingDevice));
 
-
         userDeviceService.registerDevice(request);
-
 
         verify(existingDevice, times(1)).updateToken(1L, TOKEN, "NEW_P256DH", "NEW_AUTH", "NewAlias");
         verify(userDeviceRepository, times(0)).save(any(UserDevice.class));
@@ -126,10 +122,8 @@ class UserDeviceServiceTest {
         mockUser();
         given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.empty());
 
-
         userDeviceService.registerDevice(
                 new RegisterDeviceCommand(DeviceType.WEB, sensitiveToken, "p256", "auth", "Personal phone"));
-
 
         assertThat(logAppender.list)
                 .extracting(ILoggingEvent::getFormattedMessage)
@@ -146,10 +140,8 @@ class UserDeviceServiceTest {
         UserDevice existingDevice = mock(UserDevice.class);
         given(userDeviceRepository.findByToken(sensitiveToken)).willReturn(Optional.of(existingDevice));
 
-
         userDeviceService.registerDevice(
                 new RegisterDeviceCommand(DeviceType.WEB, sensitiveToken, "P256DH", "AUTH", "Laptop"));
-
 
         assertThat(logAppender.list)
                 .extracting(ILoggingEvent::getFormattedMessage)
@@ -165,7 +157,6 @@ class UserDeviceServiceTest {
         given(userRepository.findByEmail(TEST_EMAIL)).willReturn(Optional.empty());
         RegisterDeviceCommand request = new RegisterDeviceCommand(DeviceType.WEB, TOKEN, "P256DH", "AUTH", null);
 
-
         assertThatThrownBy(() -> userDeviceService.registerDevice(request))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
@@ -178,9 +169,7 @@ class UserDeviceServiceTest {
         mockUser();
         given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(1L);
 
-
         userDeviceService.unregisterDevice(TOKEN);
-
 
         verify(userDeviceRepository, times(1)).deleteByTokenAndUserId(TOKEN, 1L);
     }
@@ -192,9 +181,7 @@ class UserDeviceServiceTest {
         mockUser();
         given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(0L);
 
-
         userDeviceService.unregisterDevice(TOKEN);
-
 
         verify(userDeviceRepository, times(1)).deleteByTokenAndUserId(TOKEN, 1L);
     }
@@ -211,9 +198,7 @@ class UserDeviceServiceTest {
                 .build();
         given(userDeviceRepository.findByUserId(1L)).willReturn(Collections.singletonList(device));
 
-
         List<UserDeviceResult> result = userDeviceService.getUserDevices(1L);
-
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).alias()).isEqualTo("Alias");

@@ -82,17 +82,14 @@ class ReviewScopeContractTest {
         saveEmoji(PREVIOUS, 1L, "👍");
         saveEmoji(CURRENT, 2L, "🔥");
 
-
         assertThat(reviewQuery.hasReviewByUser(CURRENT, SUBJECT, professor, 1L)).isFalse();
         assertThat(reviewService.getReviews(CURRENT, PageRequest.of(0, 10)))
                 .extracting(ReviewResponse::id).containsExactly(otherReview.getId());
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
                 .containsExactly(new CourseEmojiReviewResponse("🔥", 1L, false));
 
-
         reviewService.createReview(CURRENT, new ReviewCreateRequest(3));
         emojiService.toggleEmoji(CURRENT, "👍");
-
 
         assertThat(reviewQuery.hasReviewByUser(CURRENT, SUBJECT, professor, 1L)).isTrue();
         assertThat(current.getReviewCount()).isEqualTo(2);
@@ -123,17 +120,14 @@ class ReviewScopeContractTest {
         saveEmoji(otherProfessor.getCourseKey(), 1L, "🔥");
         saveEmoji(otherSubject.getCourseKey(), 1L, "🔥");
 
-
         assertThat(reviewQuery.hasReviewByUser(CURRENT, SUBJECT, professor, 1L)).isTrue();
         assertThat(reviewService.getReviews(CURRENT, PageRequest.of(0, 10)))
                 .extracting(ReviewResponse::id).containsExactly(myReview.getId(), otherReview.getId());
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
                 .containsExactly(new CourseEmojiReviewResponse("👍", 2L, true));
 
-
         emojiService.toggleEmoji(CURRENT, "👍");
         reviewService.updateReview(myReview.getId(), new ReviewUpdateRequest(1));
-
 
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
                 .containsExactly(new CourseEmojiReviewResponse("👍", 1L, false));
@@ -142,10 +136,8 @@ class ReviewScopeContractTest {
             assertThat(course.getAverageRating()).isEqualTo(2.0f);
         });
 
-
         reviewService.deleteReview(myReview.getId());
         emojiService.toggleEmoji(CURRENT, "👍");
-
 
         assertThat(List.of(current, previous)).allSatisfy(course -> {
             assertThat(course.getReviewCount()).isEqualTo(1);
@@ -173,7 +165,6 @@ class ReviewScopeContractTest {
 
         saveCourse(CURRENT, SUBJECT, "김교수");
         saveReview(CURRENT, 1L, 5);
-
 
         assertThat(reviewQuery.hasReviewByUser(CURRENT, SUBJECT, "외부교원1", 1L)).isFalse();
     }

@@ -26,7 +26,6 @@ class CourseSchedulerTest {
 
         courseScheduler.runCrawler();
 
-
         verify(courseCrawlerService, times(1)).crawlAndSaveCourses();
     }
 }

@@ -84,9 +84,6 @@ public class CourseDetailResponse {
 
     private final LocalDateTime lastCrawledAt;
 
-
-
-
     public static CourseDetailResponse from(Course course, String currentYear, String currentSemester,
                                             boolean isReviewed, LocalDateTime lastCrawledAt) {
 

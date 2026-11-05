@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 vi.mock('@/shared/telemetry/client-error', () => ({ reportClientError: vi.fn(), buildClientErrorEvent: vi.fn() }));
 
 describe('subscribeToPush', () => {

@@ -6,9 +6,6 @@ import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-
-
-
 @Getter
 @RequiredArgsConstructor
 public enum SemesterType {
@@ -23,9 +20,6 @@ public enum SemesterType {
 
     private final String code;
     private final String description;
-
-
-
 
     public static SemesterType fromCode(String code) {
         return Arrays.stream(values())

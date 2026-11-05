@@ -32,10 +32,6 @@ interface CourseSmartFiltersProps {
   skipPersonalFetch?: boolean;
 }
 
-
-
-
-
 export function CourseSmartFilters({
   condition,
   setCondition,
@@ -71,7 +67,6 @@ export function CourseSmartFilters({
     }
   }, [initialTimetables, refetchTimetables, resolvedUser, setLoginModalOpen]);
 
-
   const handleWishedOnlyChange = useCallback((checked: boolean) => {
     if (checked && !resolvedUser) {
       toast.error("찜한 강의 필터는 로그인 후 사용할 수 있습니다.");
@@ -90,9 +85,6 @@ export function CourseSmartFilters({
       selectedSchedules: selected.length > 0 ? selected : undefined,
     }));
   }, [setCondition]);
-
-
-
 
   const handleImportFromTimetable = async (timetableId: number, name: string) => {
     try {

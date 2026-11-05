@@ -6,9 +6,6 @@ type FeedbackMetadata = {
   language?: string;
 };
 
-
-
-
 export function buildFeedbackMetadata(platform: string, language: string): string {
   const metadata: FeedbackMetadata = {};
   const os = platform.trim();

@@ -6,9 +6,6 @@ import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDeliver
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import java.time.LocalDateTime;
 
-
-
-
 public record AdminNotificationDeliveryResponse(
         Long id,
         Long outboxId,

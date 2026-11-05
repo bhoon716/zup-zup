@@ -110,6 +110,7 @@ export const useCreateReview = (reviewScopeKey: string, courseKey: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (request: ReviewCreateRequest) => reviewApi.createReview(courseKey, request),
+
     onSuccess: (response) => {
       const previousReview = queryClient.getQueryData<ReviewResponse | null>(["review", reviewScopeKey]);
       const previousCourse = queryClient.getQueryData<Course>(["course-detail", courseKey]);
@@ -131,6 +132,7 @@ export const useUpdateReview = (reviewScopeKey: string, courseKey: string) => {
   return useMutation({
     mutationFn: ({ reviewId, request }: { reviewId: number; request: ReviewUpdateRequest }) =>
       reviewApi.updateReview(reviewId, request),
+
     onSuccess: (response) => {
       const previousReview = queryClient.getQueryData<ReviewResponse | null>(["review", reviewScopeKey]);
       const previousCourse = queryClient.getQueryData<Course>(["course-detail", courseKey]);
@@ -152,12 +154,12 @@ export const useToggleReviewReaction = (reviewScopeKey: string) => {
   return useMutation({
     mutationFn: ({ reviewId, request }: { reviewId: number; request: ReviewReactionRequest }) =>
       reviewApi.toggleReviewReaction(reviewId, request),
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review", reviewScopeKey] });
     },
   });
 };
-
 
 export const useCourseEmojis = (reviewScopeKey: string, courseKey: string) => {
   return useQuery({
@@ -170,11 +172,11 @@ export const useCourseEmojis = (reviewScopeKey: string, courseKey: string) => {
   });
 };
 
-
 export const useToggleCourseEmoji = (reviewScopeKey: string, courseKey: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (emoji: string) => reviewApi.toggleCourseEmoji(courseKey, emoji),
+
     onMutate: async (emoji: string) => {
       await queryClient.cancelQueries({ queryKey: ["course-emojis", reviewScopeKey] });
 
@@ -202,11 +204,13 @@ export const useToggleCourseEmoji = (reviewScopeKey: string, courseKey: string) 
 
       return { previousEmojis };
     },
+
     onError: (_error, _emoji, context) => {
       if (!context) return;
 
       queryClient.setQueryData(["course-emojis", reviewScopeKey], context.previousEmojis);
     },
+
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: ["course-emojis", reviewScopeKey] }),
   });

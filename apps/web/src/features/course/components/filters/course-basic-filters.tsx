@@ -27,7 +27,6 @@ export function CourseBasicFilters({
   const academicYearSelectId = `${idBasePrefix}-academic-year-select`;
   const semesterSelectId = `${idBasePrefix}-semester-select`;
 
-
   const [localProf, setLocalProf] = useState(() => condition.professor || "");
   const [localDept, setLocalDept] = useState(() => condition.department || "");
   const isProfFocusedRef = useRef(false);

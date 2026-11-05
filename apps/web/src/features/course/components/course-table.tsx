@@ -45,9 +45,6 @@ interface CourseTableProps {
   skipPersonalFetch?: boolean;
 }
 
-
-
-
 function getSeatStatus(available: number) {
   if (available <= 0) {
     return {
@@ -72,9 +69,6 @@ function getSeatStatus(available: number) {
   };
 }
 
-
-
-
 function getClassificationStripe(classification?: string) {
   const normalized = classification || "";
 
@@ -96,9 +90,6 @@ function getClassificationStripe(classification?: string) {
 
   return "bg-gray-400";
 }
-
-
-
 
 export function CourseTable({
   courses,
@@ -144,9 +135,6 @@ export function CourseTable({
     [resolvedWishlist],
   );
 
-
-
-
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const isIntersecting = entries.some((entry) => entry.isIntersecting);
@@ -176,9 +164,6 @@ export function CourseTable({
     };
   }, [handleObserver]);
 
-
-
-
   const handleSubscribe = (courseKey: string) => {
     if (!resolvedUser) {
       setLoginModalOpen(true);
@@ -194,9 +179,6 @@ export function CourseTable({
 
     subscribe({ courseKey });
   };
-
-
-
 
   const handleCourseClick = (course: Course) => {
     setSelectedCourse(course);

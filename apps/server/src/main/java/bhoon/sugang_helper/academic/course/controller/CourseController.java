@@ -43,7 +43,6 @@ public class CourseController {
         return ResponseEntity.ok(histories);
     }
 
-
     @GetMapping("/{courseKey}")
     public ResponseEntity<CourseDetailResponse> getCourse(
             @PathVariable String courseKey) {

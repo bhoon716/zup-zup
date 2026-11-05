@@ -9,9 +9,6 @@ public interface NotificationSender {
 
     void send(NotificationTarget target, String title, String message);
 
-
-
-
     default void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         send(target, title, message);
     }

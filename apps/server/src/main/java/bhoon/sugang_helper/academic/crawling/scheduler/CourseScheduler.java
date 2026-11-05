@@ -20,9 +20,6 @@ public class CourseScheduler {
     @Value("${jbnu.crawler.run-on-startup:false}")
     private boolean runOnStartup;
 
-
-
-
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         if (runOnStartup) {
@@ -35,9 +32,6 @@ public class CourseScheduler {
             }
         }
     }
-
-
-
 
     @Scheduled(cron = "${jbnu.crawler.cron}")
     public void runCrawler() {

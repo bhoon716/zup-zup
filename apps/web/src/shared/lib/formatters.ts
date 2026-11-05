@@ -1,10 +1,6 @@
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
-
-
-
-
 const CLASSIFICATION_MAP: Record<string, string> = {
   'SERIES_COMMON': '계열공통',
   'GENERAL_EDUCATION': '교양',
@@ -156,9 +152,6 @@ export function toEngDayOfWeek(value: string): string {
   return ENG_DAY_MAP[value] || value;
 }
 
-
-
-
 export function formatRelativeTime(dateString?: string): string {
   if (!dateString) return '-';
   try {
@@ -170,9 +163,6 @@ export function formatRelativeTime(dateString?: string): string {
     return '-';
   }
 }
-
-
-
 
 export function formatClassroom(value?: string): string {
   if (!value) return '';

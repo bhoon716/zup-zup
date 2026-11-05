@@ -57,9 +57,7 @@ class CourseCrawlFetcherTest {
 
         stubResponses(Map.of("1", courseResponse(SUBJECT_CODE), "2", courseResponse("COMP102")));
 
-
         List<ParsedCourseDto> courses = fetcher.fetch(YEAR, SEMESTER);
-
 
         assertThat(courses).extracting(ParsedCourseDto::courseKey).containsExactly(
                 "2026:U211600025:COMP101:01", "2026:U211600025:COMP102:01");
@@ -71,7 +69,6 @@ class CourseCrawlFetcherTest {
     void fetch_RejectsDuplicateCourseKeys() {
 
         stubResponses(Map.of("2", courseResponse(SUBJECT_CODE), "3", courseResponse(SUBJECT_CODE)));
-
 
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER))
                 .isInstanceOf(CustomException.class)
@@ -85,9 +82,7 @@ class CourseCrawlFetcherTest {
 
         stubResponses(Map.of("1", courseResponse(SUBJECT_CODE)));
 
-
         fetcher.fetch(YEAR, SEMESTER);
-
 
         assertAllDivisionsRequestedInOrder();
     }
@@ -104,9 +99,7 @@ class CourseCrawlFetcherTest {
                             ? EMPTY_RESPONSE : courseResponse("COMP" + division));
                 });
 
-
         List<ParsedCourseDto> courses = fetcher.fetch(YEAR, SEMESTER);
-
 
         assertThat(courses).extracting(ParsedCourseDto::subjectCode)
                 .containsExactlyElementsOf(CERT_DIVISIONS.stream()
@@ -122,7 +115,6 @@ class CourseCrawlFetcherTest {
 
         stubResponses(Map.of());
 
-
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER))
                 .isInstanceOf(CustomException.class)
                 .satisfies(exception -> assertThat(((CustomException) exception).getErrorCode())
@@ -137,7 +129,6 @@ class CourseCrawlFetcherTest {
 
         stubResponses(Map.of("2", courseResponse(SUBJECT_CODE), "5", response));
 
-
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER))
                 .as(description)
                 .isInstanceOf(CustomException.class)
@@ -151,7 +142,6 @@ class CourseCrawlFetcherTest {
     void fetch_RejectsMissingRequiredFieldAfterEmptyDivision() {
 
         stubResponses(Map.of("2", "{\"dsEstSbjList\":[{\"SBJCT_CD\":\"COMP101\",\"DVCLS_NO\":\"01\"}]}"));
-
 
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER))
                 .isInstanceOf(CustomException.class)
@@ -169,7 +159,6 @@ class CourseCrawlFetcherTest {
         given(apiClient.fetchCourseDataStream(YEAR, SEMESTER, "2"))
                 .willReturn(responseStream(courseResponse(SUBJECT_CODE)));
         given(apiClient.fetchCourseDataStream(YEAR, SEMESTER, "5")).willThrow(failure);
-
 
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER)).isSameAs(failure);
         verify(apiClient, never()).fetchCourseDataStream(YEAR, SEMESTER, "7");

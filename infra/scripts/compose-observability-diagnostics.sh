@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-
-
 readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"
 readonly RUNTIME_ENV="${RELEASE_ROOT}/.env"
 readonly COMPOSE_FILE="${RELEASE_ROOT}/docker-compose.yml"

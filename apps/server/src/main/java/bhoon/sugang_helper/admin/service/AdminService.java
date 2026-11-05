@@ -46,9 +46,6 @@ public class AdminService {
     private final CourseCrawlerTargetService crawlerAdminSnapshotQuery;
     private final CrawlerRunStateService crawlerStatusQuery;
 
-
-
-
     public AdminDashboardResponse getDashboardStats() {
         long totalUsers = userIdentityQuery.countUsers();
         long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
@@ -64,9 +61,6 @@ public class AdminService {
                 .lastCrawledAt(lastCrawledAt != null ? lastCrawledAt.toString() : null)
                 .build();
     }
-
-
-
 
     public AdminOverviewResponse getDashboardOverview() {
         LocalDateTime now = LocalDateTime.now();
@@ -89,9 +83,6 @@ public class AdminService {
                 .build();
     }
 
-
-
-
     public AdminDashboardSnapshotResponse getDashboardSnapshot() {
         AdminOverviewResponse overview = getDashboardOverview();
         CrawlerAdminSnapshot crawlTarget = crawlerAdminSnapshotQuery.findCurrentAdminSnapshot();
@@ -102,9 +93,6 @@ public class AdminService {
                 .build();
     }
 
-
-
-
     private String resolveCrawlerStatus(LocalDateTime now, LocalDateTime lastCrawledAt) {
         if (lastCrawledAt == null) {
             return "UNKNOWN";
@@ -114,9 +102,6 @@ public class AdminService {
         }
         return "RUNNING";
     }
-
-
-
 
     private List<AdminHourlyTrafficResponse> buildHourlyNotificationTraffic(LocalDateTime now) {
         LocalDateTime startHour = now.minusHours(23)
@@ -147,9 +132,6 @@ public class AdminService {
                 .toList();
     }
 
-
-
-
     private List<AdminRecentLogResponse> buildRecentLogs(LocalDateTime now, LocalDateTime lastCrawledAt) {
         List<AdminRecentLogResponse> notificationLogs = notificationHistoryQuery.findLatest()
                 .stream()
@@ -176,9 +158,6 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
-
-
-
     private AdminRecentLogResponse toNotificationLog(NotificationHistoryItem history) {
         String message = String.format("알림 발송 완료: %s (%s)", history.title(), history.channel().name());
         return AdminRecentLogResponse.builder()
@@ -188,9 +167,6 @@ public class AdminService {
                 .source("NotificationService")
                 .build();
     }
-
-
-
 
     private AdminRecentLogResponse buildCrawlerLog(LocalDateTime now, LocalDateTime lastCrawledAt) {
         if (lastCrawledAt == null) {
@@ -218,9 +194,6 @@ public class AdminService {
                 .source("CourseCrawler")
                 .build();
     }
-
-
-
 
     @Transactional
     public void sendTestNotification() {

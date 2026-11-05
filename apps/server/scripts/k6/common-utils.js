@@ -2,9 +2,7 @@ import {check} from 'k6';
 import {SharedArray} from 'k6/data';
 import {scenario} from 'k6/execution';
 
-
 export const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-
 
 const sessions = new SharedArray('Session Pool', function () {
     try {
@@ -17,13 +15,11 @@ const sessions = new SharedArray('Session Pool', function () {
 export function validateResponse(res, name = 'API') {
     const success = check(res, {
         [`${name} 상태 코드가 200임`]: (r) => r.status === 200,
+
         [`${name} 응답 본문이 유효함`]: (r) => r.body.length > 0,
     });
     return success;
 }
-
-
-
 
 export function getRandomUserAgent() {
     const agents = [
@@ -33,10 +29,6 @@ export function getRandomUserAgent() {
     ];
     return agents[Math.floor(Math.random() * agents.length)];
 }
-
-
-
-
 
 export function getAuthHeaders(options = {}) {
     const {sessionCookie = null, csrfToken = null, isAdmin = false} = options;

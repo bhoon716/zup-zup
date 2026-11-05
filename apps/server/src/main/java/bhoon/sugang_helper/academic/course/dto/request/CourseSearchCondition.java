@@ -126,9 +126,6 @@ public class CourseSearchCondition {
 
     private Long userId;
 
-
-
-
     @Builder
     public CourseSearchCondition(String name, String keyword, String professor, String subjectCode, String academicYear,
                                  String semester, List<String> classifications,

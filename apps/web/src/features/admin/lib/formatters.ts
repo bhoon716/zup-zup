@@ -1,16 +1,6 @@
-
-
-
-
-
-
-
 export function formatNumber(value: number | null | undefined): string {
   return typeof value === "number" ? value.toLocaleString() : "-";
 }
-
-
-
 
 export function formatDateTime(value?: string | null): string {
   if (!value) return "-";
@@ -28,9 +18,6 @@ export function formatDateTime(value?: string | null): string {
   }).format(date);
 }
 
-
-
-
 export function formatTime(value?: string | null): string {
   if (!value) return "--:--:--";
   const date = new Date(value);
@@ -44,9 +31,6 @@ export function formatTime(value?: string | null): string {
   }).format(date);
 }
 
-
-
-
 export function formatRelative(value?: string | null): string {
   if (!value) return "기록 없음";
   const date = new Date(value);
@@ -55,16 +39,13 @@ export function formatRelative(value?: string | null): string {
   const diffMs = Date.now() - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
   if (diffSec < 60) return `${diffSec}초 전`;
-  
+
   const diffMin = Math.floor(diffSec / 60);
   if (diffMin < 60) return `${diffMin}분 전`;
-  
+
   const diffHour = Math.floor(diffMin / 60);
   return `${diffHour}시간 전`;
 }
-
-
-
 
 export function getStatusMeta(status: string) {
   if (status === "RUNNING") {
@@ -87,9 +68,6 @@ export function getStatusMeta(status: string) {
     dotClass: "bg-slate-400",
   };
 }
-
-
-
 
 export function getLogMeta(level: string) {
   if (level === "ERROR") return { label: "오류", className: "bg-red-100 text-red-800" };

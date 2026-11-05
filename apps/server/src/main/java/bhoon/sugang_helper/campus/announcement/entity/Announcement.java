@@ -42,9 +42,6 @@ public class Announcement extends BaseTimeEntity {
         this.published = published;
     }
 
-
-
-
     public void update(String title, String content, boolean pinned, boolean published) {
         this.title = title;
         this.content = content;

@@ -43,9 +43,6 @@ public class CourseService {
 
     private final CrawlerCourseSearchContextProvider searchContextProvider;
 
-
-
-
     public Slice<CourseResponse> searchCourses(CourseSearchCondition condition, Pageable pageable) {
         condition.validateSearchValues();
         CourseSearchContext context = searchContextProvider.getCurrentContext();
@@ -62,9 +59,6 @@ public class CourseService {
                         course, context.year(), context.semester().getCode(), context.lastCrawledAt()));
     }
 
-
-
-
     public Slice<CourseSeatHistoryResponse> getCourseHistory(String courseKey, Pageable pageable) {
         PageableGuard.requireBounded(pageable, MAX_HISTORY_PAGE_SIZE, 10_000);
         Pageable boundedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
@@ -72,9 +66,6 @@ public class CourseService {
         return courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDescIdDesc(courseKey, boundedPageable)
                 .map(CourseSeatHistoryResponse::from);
     }
-
-
-
 
     public List<CourseCategoryResponse> getCourseCategories() {
         return courseRepository.findDistinctGeneralCategories()
@@ -85,9 +76,6 @@ public class CourseService {
                         .build())
                 .toList();
     }
-
-
-
 
     public CourseDetailResponse getCourse(String courseKey) {
         Course course = courseRepository.findByCourseKey(courseKey)

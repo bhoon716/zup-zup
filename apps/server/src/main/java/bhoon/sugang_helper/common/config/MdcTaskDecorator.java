@@ -5,9 +5,6 @@ import org.slf4j.MDC;
 import org.springframework.core.task.TaskDecorator;
 import org.springframework.stereotype.Component;
 
-
-
-
 @Component
 public class MdcTaskDecorator implements TaskDecorator {
 

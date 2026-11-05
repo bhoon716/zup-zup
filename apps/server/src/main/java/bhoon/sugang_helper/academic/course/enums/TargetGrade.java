@@ -6,9 +6,6 @@ import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-
-
-
 @Getter
 @RequiredArgsConstructor
 public enum TargetGrade {
@@ -21,9 +18,6 @@ public enum TargetGrade {
     GRADUATE("대학원생");
 
     private final String description;
-
-
-
 
     @JsonCreator
     public static TargetGrade from(String value) {
@@ -39,9 +33,6 @@ public enum TargetGrade {
                 .findFirst()
                 .orElse(null);
     }
-
-
-
 
     @JsonValue
     public String getDescription() {

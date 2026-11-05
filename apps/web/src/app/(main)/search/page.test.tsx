@@ -11,12 +11,15 @@ const createLocalStorageMock = () => {
 
   return {
     getItem: (key: string) => store.get(key) ?? null,
+
     setItem: (key: string, value: string) => {
       store.set(key, value);
     },
+
     removeItem: (key: string) => {
       store.delete(key);
     },
+
     clear: () => {
       store.clear();
     },
@@ -36,6 +39,7 @@ const { mockAuthState, mockCourseTable, mockUseCourses, mockSearchBar } = vi.hoi
 
 vi.mock("@/features/course/hooks/useCourses", () => ({
   useCourses: (...args: unknown[]) => mockUseCourses(...args),
+
   useSearchDefaultSemester: () => ({
     data: { semester: "U211600010" },
     isLoading: false,

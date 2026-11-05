@@ -3,9 +3,6 @@ package bhoon.sugang_helper.academic.crawling.exception;
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
 import java.io.IOException;
 
-
-
-
 public class CrawlerUpstreamFailure extends IOException {
 
     private final CrawlerFailureStage stage;

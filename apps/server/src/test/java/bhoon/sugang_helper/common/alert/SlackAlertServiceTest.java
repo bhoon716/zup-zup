@@ -122,9 +122,7 @@ class SlackAlertServiceTest {
             return null;
         }).when(webhookClient).send(anyString());
 
-
         service.alert(SlackAlertCategory.SERVER_5XX, SERVER_ERROR_CODE, new RuntimeException());
-
 
         verify(webhookClient).send(anyString());
         assertThat(MDC.get(CORRELATION_ID_KEY)).isEqualTo(CORRELATION_ID);
@@ -136,13 +134,13 @@ class SlackAlertServiceTest {
         RuntimeException originalFailure = new IllegalStateException("database unavailable");
         doThrow(new IllegalStateException("webhook unavailable")).when(webhookClient).send(anyString());
 
-
         assertThatCode(() -> service.alert(SlackAlertCategory.DB_PERSIST, UNEXPECTED_CODE, originalFailure))
                 .doesNotThrowAnyException();
         assertThatCode(() -> service.alert(SlackAlertCategory.DB_PERSIST, UNEXPECTED_CODE, originalFailure))
                 .doesNotThrowAnyException();
         verify(webhookClient).send(anyString());
     }
+
     @Test
     void includesOnlyAllowedDiagnosticsAndDoesNotClaimUnverifiedImpactOrRetrySuccess() {
         service.alert(SlackAlertCategory.DB_PERSIST, SERVER_ERROR_CODE, new IllegalStateException("private exception"),

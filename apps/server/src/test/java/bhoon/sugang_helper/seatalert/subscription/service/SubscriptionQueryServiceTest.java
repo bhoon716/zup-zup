@@ -27,7 +27,6 @@ class SubscriptionQueryServiceTest {
         repository.saveAllAndFlush(List.of(
                 subscription(1L, "course-a"), cancelled, subscription(3L, "course-b")));
 
-
         assertThat(queryService.findActiveRecipientIds("course-a")).containsExactly(1L);
         assertThat(queryService.findActiveRecipientIds("missing-course")).isEmpty();
         assertThat(queryService.countActiveSubscriptions()).isEqualTo(2);

@@ -63,6 +63,7 @@ class FixedPageSizeContractTest {
                     PageRequest.of(page, 30, Sort.by("createdAt").ascending()));
         }
     }
+
     @ParameterizedTest
     @ValueSource(strings = {"1", "100", "-1"})
     void fixesNotificationAndFilteredAdminFeedbackSizes(String size) throws Exception {

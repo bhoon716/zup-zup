@@ -15,10 +15,6 @@ const subscribe = (listener: () => void) => {
 
 const getSnapshot = () => isClientReady;
 
-
-
-
-
 export const useClientReady = () => {
   const ready = useSyncExternalStore(subscribe, getSnapshot, () => false);
 

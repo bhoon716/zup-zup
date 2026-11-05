@@ -24,9 +24,6 @@ import {
 } from "@/shared/ui/select";
 import { cn } from "@/shared/lib/utils";
 
-
-
-
 const formatDateTime = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -61,9 +58,6 @@ const itemVariants: Variants = {
     }
   }
 };
-
-
-
 
 export default function AnnouncementsPage() {
   const [keyword, setKeyword] = useState("");

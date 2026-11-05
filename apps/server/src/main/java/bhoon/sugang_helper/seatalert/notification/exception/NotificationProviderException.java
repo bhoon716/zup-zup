@@ -4,9 +4,6 @@ import bhoon.sugang_helper.common.error.CustomException;
 import bhoon.sugang_helper.common.error.ErrorCode;
 import lombok.Getter;
 
-
-
-
 @Getter
 public class NotificationProviderException extends CustomException {
 

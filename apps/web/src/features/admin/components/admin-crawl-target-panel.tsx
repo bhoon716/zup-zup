@@ -6,9 +6,6 @@ import { Loader2, Play, Save, Settings2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { CRAWL_SEMESTER_OPTIONS, getCrawlYearOptions } from "@/features/admin/lib/crawl-semester-options";
 
-
-
-
 interface AdminCrawlTargetPanelProps {
 
   configuredYear: string;
@@ -45,9 +42,6 @@ interface AdminCrawlTargetPanelProps {
 
   canRunCustomTarget: boolean;
 }
-
-
-
 
 export function AdminCrawlTargetPanel({
   configuredYear,

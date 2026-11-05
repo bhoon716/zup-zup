@@ -20,32 +20,20 @@ public class RedisService {
             Long.class);
     private final RedisTemplate<String, Object> redisTemplate;
 
-
-
-
     public void setValues(String key, String data) {
         ValueOperations<String, Object> values = redisTemplate.opsForValue();
         values.set(key, data);
     }
-
-
-
 
     public void setValues(String key, String data, Duration duration) {
         ValueOperations<String, Object> values = redisTemplate.opsForValue();
         values.set(key, data, duration);
     }
 
-
-
-
     public boolean setValuesIfAbsent(String key, String data, Duration duration) {
         ValueOperations<String, Object> values = redisTemplate.opsForValue();
         return Boolean.TRUE.equals(values.setIfAbsent(key, data, duration));
     }
-
-
-
 
     public String getValues(String key) {
         ValueOperations<String, Object> values = redisTemplate.opsForValue();
@@ -53,15 +41,9 @@ public class RedisService {
         return object == null ? null : object.toString();
     }
 
-
-
-
     public void deleteValues(String key) {
         redisTemplate.delete(key);
     }
-
-
-
 
     public boolean hasKey(String key) {
         return redisTemplate.hasKey(key);
@@ -72,9 +54,6 @@ public class RedisService {
                 String.valueOf(duration.toMillis()));
         return value == null ? 0 : value;
     }
-
-
-
 
     public boolean compareAndDeleteValues(String key, String expectedValue) {
         Long value = redisTemplate.execute(COMPARE_AND_DELETE, java.util.List.of(key), expectedValue);

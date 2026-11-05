@@ -25,17 +25,11 @@ public class AdminCourseController {
     private final CourseCrawlerService courseCrawlerService;
     private final CourseCrawlerTargetService crawlerTargetService;
 
-
-
-
     @GetMapping("/crawl-target")
     public ResponseEntity<AdminCrawlTargetResponse> getCrawlTarget() {
         AdminCrawlTargetResponse response = crawlerTargetService.getCurrentTarget();
         return ResponseEntity.ok(response);
     }
-
-
-
 
     @PutMapping("/crawl-target")
     public ResponseEntity<AdminCrawlTargetResponse> updateCrawlTarget(
@@ -44,17 +38,11 @@ public class AdminCourseController {
         return ResponseEntity.ok(response);
     }
 
-
-
-
     @PostMapping("/crawl")
     public ResponseEntity<JsonNode> crawlCourses() {
         courseCrawlerService.crawlAndSaveCourses();
         return ResponseEntity.ok(TextNode.valueOf("강의 크롤링 작업을 실행했습니다."));
     }
-
-
-
 
     @PostMapping("/crawl/target")
     public ResponseEntity<JsonNode> crawlCoursesByTarget(

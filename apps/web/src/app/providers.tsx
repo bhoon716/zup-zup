@@ -50,9 +50,6 @@ export const getAppQueryClient = () => {
   return browserQueryClient;
 };
 
-
-
-
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -75,9 +72,6 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-
-
-
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useAuthStore((state) => state.checkSession);
   const queryClient = useQueryClient();
@@ -90,9 +84,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       authState.setLoginModalOpen(true);
     });
 
-
-
-
     void checkSession();
 
     const revalidateRestoredSession = () => {
@@ -103,7 +94,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     window.addEventListener("focus", revalidateRestoredSession);
     window.addEventListener("online", revalidateRestoredSession);
-
 
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -149,10 +139,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return <OnboardingGuard>{children}</OnboardingGuard>;
 }
-
-
-
-
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(getAppQueryClient);

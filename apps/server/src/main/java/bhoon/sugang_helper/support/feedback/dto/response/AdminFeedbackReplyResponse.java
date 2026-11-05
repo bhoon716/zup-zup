@@ -2,9 +2,6 @@ package bhoon.sugang_helper.support.feedback.dto.response;
 
 import java.time.LocalDateTime;
 
-
-
-
 public record AdminFeedbackReplyResponse(
         Long id,
         String authorLabel,

@@ -19,10 +19,6 @@ import { AdminQuickActions } from "@/features/admin/components/admin-quick-actio
 import { AdminCrawlTargetPanel } from "@/features/admin/components/admin-crawl-target-panel";
 import { AdminSchedulePanel } from "@/features/admin/components/admin-schedule-panel";
 
-
-
-
-
 export default function AdminSettingsPage() {
   const {
     data: snapshot,
@@ -52,7 +48,6 @@ export default function AdminSettingsPage() {
     void refetchSnapshot();
   };
 
-
   if (isSnapshotLoading) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 min-h-[70dvh]">
@@ -63,7 +58,6 @@ export default function AdminSettingsPage() {
       </div>
     );
   }
-
 
   if (isSnapshotError || !snapshot || !crawlTarget) {
     return (

@@ -20,10 +20,6 @@ import {
   getStatusMeta,
 } from "@/features/admin/lib/formatters";
 
-
-
-
-
 export default function AdminDashboardPage() {
   const {
     data: snapshot,
@@ -34,13 +30,9 @@ export default function AdminDashboardPage() {
 
   const overview = snapshot?.overview;
 
-
-
-
   const handleRefresh = () => {
     void refetchSnapshot();
   };
-
 
   if (isSnapshotLoading) {
     return (
@@ -52,7 +44,6 @@ export default function AdminDashboardPage() {
       </div>
     );
   }
-
 
   if (isSnapshotError || !snapshot || !overview) {
     return (

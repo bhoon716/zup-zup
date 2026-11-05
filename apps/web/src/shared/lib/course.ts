@@ -8,10 +8,6 @@ export interface NormalizedCourse extends Course {
   professor: string;
 }
 
-
-
-
-
 export function normalizeCourse(course: Partial<Course>): NormalizedCourse {
   const capacity = Number(course.capacity ?? course.totalSeats ?? 0);
   const current = Number(course.current ?? course.currentSeats ?? 0);
@@ -31,19 +27,11 @@ export function normalizeCourse(course: Partial<Course>): NormalizedCourse {
   };
 }
 
-
-
-
 export function hasIdentifiableProfessor(course: Partial<Course>) {
   const professor = (course.professor ?? course.professorName ?? "").trim();
 
   return professor !== "" && professor !== "교수 미지정";
 }
-
-
-
-
-
 
 export function getReviewScopeKey(course: Partial<Course>) {
   const subjectCode = course.subjectCode ?? "";

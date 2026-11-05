@@ -1,9 +1,5 @@
 package bhoon.sugang_helper.academic.review.dto.criteria;
 
-
-
-
-
 public record ReviewScopeKey(String subjectCode, String professor) {
 
     public static ReviewScopeKey from(String subjectCode, String professor) {
