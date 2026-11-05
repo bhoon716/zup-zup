@@ -103,7 +103,7 @@ class SeatNotificationDeliverySettlementServiceTest {
             countInvocations.countDown();
             countInvocations.await(250, TimeUnit.MILLISECONDS);
             return result;
-        }).when(deliveryRepository).countByOutboxIdAndStatusInAndChannelNot(anyLong(), any(), any());
+        }).when(deliveryRepository).countByOutboxIdAndStatusIn(anyLong(), any());
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {

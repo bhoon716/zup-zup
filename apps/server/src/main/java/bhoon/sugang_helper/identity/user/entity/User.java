@@ -53,9 +53,6 @@ public class User extends BaseEntity {
     private boolean webPushEnabled;
 
     @Column(nullable = false)
-    private boolean fcmEnabled;
-
-    @Column(nullable = false)
     private boolean onboardingCompleted;
 
     @Column
@@ -73,7 +70,7 @@ public class User extends BaseEntity {
 
     @Builder
     public User(Long id, String name, String email, String notificationEmail, boolean emailEnabled,
-                boolean webPushEnabled, boolean fcmEnabled, boolean discordEnabled, String discordId,
+                boolean webPushEnabled, boolean discordEnabled, String discordId,
                 boolean onboardingCompleted, Role role, String oauthIssuer, String oauthSubject) {
         this.id = id;
         this.name = name;
@@ -83,7 +80,6 @@ public class User extends BaseEntity {
         this.notificationEmail = notificationEmail;
         this.emailEnabled = emailEnabled;
         this.webPushEnabled = webPushEnabled;
-        this.fcmEnabled = fcmEnabled;
         this.discordEnabled = discordEnabled;
         this.discordId = discordId;
         this.onboardingCompleted = onboardingCompleted;
@@ -150,7 +146,6 @@ public class User extends BaseEntity {
         this.notificationEmail = null;
         this.emailEnabled = false;
         this.webPushEnabled = false;
-        this.fcmEnabled = false;
         this.discordId = null;
         this.discordEnabled = false;
         this.onboardingCompleted = false;

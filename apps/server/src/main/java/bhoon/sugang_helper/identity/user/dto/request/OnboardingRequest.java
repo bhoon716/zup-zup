@@ -18,7 +18,5 @@ public class OnboardingRequest {
 
     private boolean webPushEnabled;
 
-    private boolean fcmEnabled;
-
     private boolean discordEnabled;
 }

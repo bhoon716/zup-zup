@@ -28,7 +28,7 @@
 
 ## 유지한 계약
 
-- NotificationSender: Email/Discord/FCM/WebPush 네 구현을 선택하는 실제 발송 경계다.
+- NotificationSender: Email/Discord/WebPush 세 구현을 선택하는 실제 발송 경계다.
 - CourseApiClient·SlackWebhookClient: 외부 HTTP 호출을 로컬 대체 제공자와 분리하는 경계다.
 - Spring Data repository, OAuth2UserService·TaskDecorator·AutoCloseable 등 프레임워크 계약, 실제 여러 메타데이터 타입이 구현하는 sealed interface는 유지했다.
 

@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
@@ -47,22 +46,6 @@ class ProductionConfigTemplateTest {
         assertThat(content).contains("client-id: ${DISCORD_CLIENT_ID}");
         assertThat(content).contains("client-secret: ${DISCORD_CLIENT_SECRET}");
         assertThat(content).contains("redirect-uri: ${DISCORD_REDIRECT_URI}");
-    }
-
-    @Test
-    void configurationDoesNotRequireFirebaseCredentials() throws IOException {
-        // given
-        List<String> resources = List.of("src/main/resources/application.yml",
-                "src/main/resources/application-prod.yml", "src/test/resources/application.yml");
-
-        for (String resource : resources) {
-            // when
-            String content = Files.readString(Path.of(resource));
-
-            // then
-            assertThat(content).as(resource)
-                    .doesNotContain("firebase:", "FIREBASE_CONFIG_PATH", "APP_NOTIFICATION_FCM", "\n      fcm:");
-        }
     }
 
     @Test
@@ -115,6 +98,5 @@ class ProductionConfigTemplateTest {
                 .contains("timeout: 2s")
                 .contains("connect-timeout: 2s");
     }
-
 
 }

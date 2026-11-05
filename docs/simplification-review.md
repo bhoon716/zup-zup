@@ -21,7 +21,6 @@ DB 제거와 로그 전환은 보존 계약도 다르다. 현재 logback은 14�
 | --- | --- | --- |
 | 제거 후보, 미실행 | SecurityConfig.passwordEncoder | 현재 주입·호출 없음. form/basic 로그인은 비활성이고 OAuth를 사용한다. 삭제는 별도 승인 뒤 인증 context 회귀로 확인한다. |
 | 유지 | MdcTaskDecorator | 제공자 timeout 경계와 스케줄러에 요청/실행 추적 정보를 전파한다. @Async 부재만으로 미사용이라 판단하지 않는다. |
-| 유지 | FirebaseConfig 및 Firebase 의존성 | PostConstruct의 FirebaseApp 초기화를 FcmNotificationSender가 FirebaseMessaging.getInstance()를 통해 사용한다. 설정 빈 직접 주입 여부만으로 삭제할 수 없다. |
 | 유지 | Redis template/Lettuce, SecurityContextRepositoryConfig | 세션·토큰 철회와 장애 시 재전송/거절 정책에 실제 사용한다. |
 | 유지 | SensitiveDataRedactor | fingerprint·maskEmail·failureCode·exceptionType·redactPath 다섯 함수가 로그·오류·발송에서 사용된다. 만능 비밀 탐지기는 아니지만 현재 보호 기능을 제거하면 원문 노출 가능성이 생긴다. |
 | 추가 확인 | FlywayConfig | H2 repair와 실제 MySQL migrate의 실행 전략이 다르다. 단순 파일 수 감소를 위해 지우지 않는다. |

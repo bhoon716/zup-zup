@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 const initialUser = {
   id: 1, email: 'onboarding@example.invalid', name: '테스트 사용자', role: 'USER',
-  emailEnabled: true, webPushEnabled: false, fcmEnabled: false, discordEnabled: false,
+  emailEnabled: true, webPushEnabled: false, discordEnabled: false,
   onboardingCompleted: false,
 };
 
@@ -27,6 +27,7 @@ for (const mode of ['unsupported', 'denied', 'supported', 'retry'] as const) {
       const registration = {
         pushManager: {
           getSubscription: async () => null,
+
           subscribe: async () => {
             if (mode === 'denied') throw new DOMException('Permission denied', 'NotAllowedError');
             return subscription;

@@ -66,7 +66,7 @@ class HttpLoggingFilterTest {
 
     @Test
     void doesNotLogOAuthQueryValuesOrTokenPathSegments() throws Exception {
-        String token = "fcm-token-should-not-appear";
+        String token = "device-token-should-not-appear";
         String authorizationCode = "oauth-code-should-not-appear";
         String state = "oauth-state-should-not-appear";
         MockHttpServletRequest request = new MockHttpServletRequest(
@@ -97,6 +97,7 @@ class HttpLoggingFilterTest {
             logger.setLevel(previous);
         }
     }
+
     @Test
     void logsUnreportedFailuresAndAvoidsDuplicateWarningsForHandledErrors() throws Exception {
         Logger logger = (Logger) LoggerFactory.getLogger(HttpLoggingFilter.class);

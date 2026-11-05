@@ -55,15 +55,5 @@ for fragment in (
 if '|| fail "observability data-plane smoke failed"' in deploy:
     raise SystemExit("observability smoke must not stop a ready application")
 
-for path in (
-    repo_root / ".github/workflows/ci.yml",
-    repo_root / "infra/scripts/deploy-release.sh",
-    repo_root / "infra/scripts/compose-observability-diagnostics.sh",
-):
-    content = path.read_text(encoding="utf-8")
-    for forbidden in ("FIREBASE_CONFIG_PATH", "ci-firebase.json", "firebase-key.json"):
-        if forbidden in content:
-            raise SystemExit(f"{path.name} must not require retired Firebase credentials: {forbidden}")
-
 print("minimal production CD contract passed")
 PY

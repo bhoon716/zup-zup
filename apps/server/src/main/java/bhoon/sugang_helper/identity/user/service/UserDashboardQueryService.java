@@ -35,7 +35,6 @@ public class UserDashboardQueryService {
                 user.getNotificationEmail(),
                 user.isEmailEnabled(),
                 user.isWebPushEnabled(),
-                user.isFcmEnabled(),
                 user.isOnboardingCompleted(),
                 user.getDiscordId(),
                 user.isDiscordEnabled());

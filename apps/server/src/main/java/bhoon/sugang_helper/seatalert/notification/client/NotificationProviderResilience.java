@@ -24,9 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-
-
-
 @Component
 @SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.NullAssignment"})
 public class NotificationProviderResilience implements AutoCloseable {
@@ -76,9 +73,6 @@ public class NotificationProviderResilience implements AutoCloseable {
     }
 
     public void execute(NotificationChannel provider, Runnable operation) {
-        if (provider == NotificationChannel.FCM) {
-            throw new CustomException(ErrorCode.INVALID_INPUT, "FCM 앱 푸시는 지원이 종료되었습니다.");
-        }
         Circuit circuit = circuits.computeIfAbsent(provider, ignored -> new Circuit());
         Counter circuitOpenCounter = counter("notification.provider.circuit.open", "provider", provider.name());
         if (!circuit.tryAcquire(Instant.now())) {
@@ -157,7 +151,6 @@ public class NotificationProviderResilience implements AutoCloseable {
     private ErrorCode providerErrorCode(NotificationChannel provider) {
         return switch (provider) {
             case EMAIL -> ErrorCode.EMAIL_SEND_ERROR;
-            case FCM -> ErrorCode.INVALID_INPUT;
             case WEB -> ErrorCode.WEB_PUSH_SEND_ERROR;
             case DISCORD -> ErrorCode.DISCORD_SEND_ERROR;
         };

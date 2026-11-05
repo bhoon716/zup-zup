@@ -27,14 +27,21 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/shared/analytics/onboarding-events", () => ({ trackOnboardingStarted: vi.fn() }));
 
 const pushSwitch = () => screen.getByRole("switch", { name: "웹 푸시 (현재 기기)" });
+
 const deviceInput = () => screen.getByPlaceholderText("기기 이름 (예: 내 노트북, 스마트폰)");
+
 const completeButton = () => screen.getByRole("button", { name: "완료" });
+
 const registerButton = () => screen.getByRole("button", { name: "현재 기기 등록" });
 
 describe("OnboardingPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal("ResizeObserver", class { disconnect() {} observe() {} unobserve() {} });
+    vi.stubGlobal("ResizeObserver", class { disconnect() {}
+
+    observe() {}
+
+    unobserve() {} });
     mockUseUser.mockReturnValue({
       data: { id: 1, discordId: null, email: "user@example.com", onboardingCompleted: false }, isLoading: false,
     });
@@ -73,29 +80,9 @@ describe("OnboardingPage", () => {
     expect(mockSubscribe).not.toHaveBeenCalled();
     expect(mockUnsubscribe).not.toHaveBeenCalled();
     expect(mockCompleteOnboarding).toHaveBeenCalledWith(
-      expect.objectContaining({ emailEnabled: true, webPushEnabled: false, fcmEnabled: false }), expect.any(Object),
+      expect.objectContaining({ emailEnabled: true, webPushEnabled: false }), expect.any(Object),
     );
     expect(mockReplace).toHaveBeenCalledWith("/");
-  });
-
-  it("과거 FCM true 값은 온보딩 요청에서도 그대로 왕복한다", async () => {
-    mockUseUser.mockReturnValue({
-      data: {
-        id: 1, discordId: null, email: "user@example.com", onboardingCompleted: false,
-        fcmEnabled: true,
-      },
-      isLoading: false,
-    });
-    const user = userEvent.setup();
-    render(<OnboardingPage />);
-    await user.click(completeButton());
-    await waitFor(() => expect(mockCompleteOnboarding).toHaveBeenCalledTimes(1));
-    expect(mockCompleteOnboarding).toHaveBeenCalledWith(
-      expect.objectContaining({ fcmEnabled: true, emailEnabled: true, webPushEnabled: false }),
-      expect.any(Object),
-    );
-    expect(mockSubscribe).not.toHaveBeenCalled();
-    expect(screen.queryByRole("switch", { name: /FCM/ })).not.toBeInTheDocument();
   });
 
   it("명시적 선택 후 구독이 성공해야 켜지고 완료 시 true로 저장한다", async () => {

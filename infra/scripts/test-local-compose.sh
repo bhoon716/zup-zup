@@ -58,10 +58,6 @@ def env_map(service):
     return {str(entry).split("=", 1)[0]: str(entry).split("=", 1)[1] for entry in environment}
 
 app_env = env_map(services["app"])
-if "FIREBASE_CONFIG_PATH" in app_env:
-    raise SystemExit("local app must not require retired Firebase credentials")
-if any(volume.get("target") == "/app/config/firebase-key.json" for volume in services["app"].get("volumes", [])):
-    raise SystemExit("local app must not mount retired Firebase credentials")
 if app_env.get("LOG_FILE") != "/tmp/application.log":
     raise SystemExit("local app logs must use the container temporary directory")
 if app_env.get("APP_CORS_ALLOWED_ORIGINS") != "http://localhost:3000":

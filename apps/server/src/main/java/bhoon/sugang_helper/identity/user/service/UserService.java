@@ -26,9 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
-
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,16 +40,10 @@ public class UserService {
     private final NotificationService notificationTestSender;
     private final SessionInvalidator sessionInvalidator;
 
-
-
-
     public UserProfileResult getMyProfile() {
         User user = getCurrentUser();
         return UserProfileResult.from(user);
     }
-
-
-
 
     public Optional<User> getCurrentUserOrNull() {
         String email = SecurityUtil.getCurrentUserEmailOrNull();
@@ -64,9 +55,6 @@ public class UserService {
                 .filter(user -> !user.isDeleted());
     }
 
-
-
-
     @Transactional
     public UserProfileUpdateResult updateProfile(UpdateProfileCommand command) {
         User user = getCurrentUser();
@@ -75,13 +63,9 @@ public class UserService {
         return UserProfileUpdateResult.from(user);
     }
 
-
-
-
     @Transactional
     public UserSettingsResult updateSettings(UpdateSettingsCommand command) {
         User user = getCurrentUser();
-        rejectRetiredFcmActivation(user, command.fcmEnabled());
 
         String newEmail = command.notificationEmail();
         if (newEmail != null && !newEmail.equals(user.getEmail()) && !newEmail.equals(user.getNotificationEmail())) {
@@ -100,10 +84,6 @@ public class UserService {
         return UserSettingsResult.from(user);
     }
 
-
-
-
-
     @Transactional
     public void withdraw() {
         User user = getCurrentUser();
@@ -121,13 +101,9 @@ public class UserService {
         log.info("[User] 회원 탈퇴 처리. userId={}", userId);
     }
 
-
-
-
     @Transactional
     public UserOnboardingResult completeOnboarding(CompleteOnboardingCommand command) {
         User user = getCurrentUser();
-        rejectRetiredFcmActivation(user, command.fcmEnabled());
         String newEmail = command.notificationEmail();
 
         if (newEmail != null && !newEmail.equals(user.getEmail())) {
@@ -146,9 +122,6 @@ public class UserService {
         return UserOnboardingResult.from(user);
     }
 
-
-
-
     @Transactional
     public void sendVerificationCode(SendVerificationCodeCommand command) {
         sendVerificationCode(command, null);
@@ -160,9 +133,6 @@ public class UserService {
         emailVerificationService.sendCode(user.getId(), command.email(), clientIp);
     }
 
-
-
-
     @Transactional
     public void verifyEmail(VerifyEmailCommand command) {
         User user = getCurrentUser();
@@ -172,9 +142,6 @@ public class UserService {
         }
     }
 
-
-
-
     @Transactional
     public void linkDiscordId(String discordId) {
         User user = getCurrentUser();
@@ -183,18 +150,12 @@ public class UserService {
                 SensitiveDataRedactor.fingerprint(discordId));
     }
 
-
-
-
     @Transactional
     public void unlinkDiscord() {
         User user = getCurrentUser();
         user.unlinkDiscord();
         log.info("[User] Discord 계정 연결 해제. userId={}", user.getId());
     }
-
-
-
 
     @Transactional
     public void sendTestNotification() {
@@ -206,19 +167,11 @@ public class UserService {
         notificationTestSender.sendUserTestNotification(user.getId());
     }
 
-
-
-
     public User getCurrentUser() {
         String email = SecurityUtil.getCurrentUserEmail();
         return userRepository.findByEmail(email)
                 .filter(user -> !user.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
-    }
-    private void rejectRetiredFcmActivation(User user, boolean requested) {
-        if (requested && !user.isFcmEnabled()) {
-            throw new CustomException(ErrorCode.INVALID_INPUT, "FCM 앱 푸시는 지원이 종료되었습니다.");
-        }
     }
 
 }

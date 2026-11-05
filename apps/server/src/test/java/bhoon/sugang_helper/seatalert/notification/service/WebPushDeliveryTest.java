@@ -78,7 +78,7 @@ class WebPushDeliveryTest {
         histories.deleteAll();
         outboxes.deleteAll();
         NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
-                false, true, false, false, null);
+                false, true, false, null);
         when(subscriptions.findActiveRecipientIds(COURSE_KEY)).thenReturn(List.of(1L));
         when(users.findByIds(List.of(1L))).thenReturn(List.of(user));
         when(users.findById(1L)).thenReturn(Optional.of(user));
@@ -107,9 +107,7 @@ class WebPushDeliveryTest {
             }
         });
 
-
         processReadyDelivery();
-
 
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertDelivery(SeatNotificationDeliveryStatus.SENT, SeatNotificationOutboxStatus.COMPLETED, 0);
@@ -125,9 +123,7 @@ class WebPushDeliveryTest {
             throw invalidSubscription();
         });
 
-
         processReadyDelivery();
-
 
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertThat(devices).isEmpty();
@@ -149,9 +145,7 @@ class WebPushDeliveryTest {
             }
         });
 
-
         processReadyDelivery();
-
 
         assertDelivery(SeatNotificationDeliveryStatus.PENDING, SeatNotificationOutboxStatus.PROCESSING, 1);
         assertThat(histories.findAll()).isEmpty();
@@ -164,9 +158,7 @@ class WebPushDeliveryTest {
         deliveries.saveAndFlush(ready);
         stubSender(target -> { });
 
-
         processReadyDelivery();
-
 
         assertThat(attemptedTargets).containsExactlyElementsOf(failedTargetIndex == 0
                 ? List.of(FIRST, FIRST, SECOND) : List.of(FIRST, SECOND, FIRST, SECOND));
@@ -185,9 +177,7 @@ class WebPushDeliveryTest {
             }
         });
 
-
         processReadyDelivery();
-
 
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertDelivery(SeatNotificationDeliveryStatus.DLQ, SeatNotificationOutboxStatus.DLQ, 1);
@@ -246,6 +236,7 @@ class WebPushDeliveryTest {
         @Bean NotificationProperties notificationProperties() {
             return new NotificationProperties(true, true, true);
         }
+
         @Bean SimpleMeterRegistry meterRegistry() {
             return new SimpleMeterRegistry();
         }

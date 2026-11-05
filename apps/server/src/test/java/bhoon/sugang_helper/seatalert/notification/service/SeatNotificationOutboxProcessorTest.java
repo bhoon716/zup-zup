@@ -71,7 +71,7 @@ class SeatNotificationOutboxProcessorTest {
 
     @Test
     void failedChannelIsRetriedWithoutMarkingTheOutboxComplete() {
-        String secret = "fcm-token-should-not-appear";
+        String secret = "device-token-should-not-appear";
         SeatNotificationDelivery delivery = processingDelivery();
         SeatNotificationDeliveryClaim claim = new SeatNotificationDeliveryClaim(1L, "claim-token");
         when(settlementService.loadForDispatch(claim)).thenReturn(dispatch(delivery));
@@ -137,7 +137,7 @@ class SeatNotificationOutboxProcessorTest {
     void claimReadyDeliveriesUsesBoundedFifoPageSize() {
         org.mockito.Mockito.doReturn(java.util.List.of()).when(deliveryRepository).findReadyForUpdate(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(), eq(NotificationChannel.FCM),
+                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(Pageable.class));
 
         processor.claimReadyDeliveries(4);
@@ -145,7 +145,7 @@ class SeatNotificationOutboxProcessorTest {
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
         verify(deliveryRepository).findReadyForUpdate(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(), eq(NotificationChannel.FCM), pageable.capture());
+                org.mockito.ArgumentMatchers.any(), pageable.capture());
         assertThat(pageable.getValue().getPageSize()).isEqualTo(4);
     }
 

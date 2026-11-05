@@ -7,7 +7,7 @@ test("일정 하나로 대표 지정·수정·삭제·복원을 관리한다", a
   const unexpected: string[] = [];
   const writeCsrfTokens: string[] = [];
   const admin = { id: 1, email: "admin@example.com", name: "관리자", role: "ADMIN", emailEnabled: false,
-    webPushEnabled: false, fcmEnabled: false, discordEnabled: false, onboardingCompleted: true };
+    webPushEnabled: false, discordEnabled: false, onboardingCompleted: true };
   await context.route("**/*", route => new URL(route.request().url()).origin === "http://127.0.0.1:3100"
     ? route.continue() : route.abort());
   await page.route("**/api/**", route => {

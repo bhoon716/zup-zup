@@ -8,10 +8,6 @@ interface NotificationCardProps {
   notification: NotificationHistory;
 }
 
-
-
-
-
 export function NotificationCard({ notification }: NotificationCardProps) {
   const sentAt = notification.sentAt || notification.createdAt;
 
@@ -32,7 +28,7 @@ export function NotificationCard({ notification }: NotificationCardProps) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-400">
-        <span>{notification.channel === "FCM" ? "FCM (지원 종료)" : notification.channel}</span>
+        <span>{notification.channel}</span>
         <span>·</span>
         <span>{sentAt ? format(new Date(sentAt), "yyyy.MM.dd HH:mm") : "-"}</span>
       </div>

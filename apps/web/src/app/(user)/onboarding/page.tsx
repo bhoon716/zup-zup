@@ -142,7 +142,6 @@ export default function OnboardingPage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-
   const onSendCode = async () => {
     const valid = await trigger("notificationEmail");
     if (!valid) return;
@@ -241,7 +240,6 @@ export default function OnboardingPage() {
           notificationEmail: data.notificationEmail,
           emailEnabled: data.emailEnabled,
           webPushEnabled: data.webPushEnabled,
-          fcmEnabled: user?.fcmEnabled ?? false,
           discordEnabled: data.discordEnabled,
         },
         {
@@ -268,7 +266,7 @@ export default function OnboardingPage() {
   if (!user) {
     return null;
   }
-  
+
   const isGoogleEmail = user.email === notificationEmail;
 
   return (

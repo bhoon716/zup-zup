@@ -62,34 +62,29 @@ class SeatNotificationOutboxRecoveryTest {
                 .currentSeats(1)
                 .build());
         NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
-                true, true, true, true, "discord-id");
+                true, true, true, "discord-id");
         when(subscriptionQueryService.findActiveRecipientIds("course-key")).thenReturn(List.of(1L));
         when(userNotificationQuery.findByIds(List.of(1L))).thenReturn(List.of(user));
         when(userNotificationQuery.findDevicesByUserIds(List.of(1L))).thenReturn(List.of(
-                new NotificationDevice(1L, NotificationDeviceType.FCM, "fcm-token", null, null),
                 new NotificationDevice(1L, NotificationDeviceType.WEB, "web-endpoint", "p256", "auth")));
-
-
 
         processor.materializePendingOutboxes();
         List<SeatNotificationDeliveryClaim> deliveryClaims = processor.claimReadyDeliveries();
         deliveryClaims.forEach(processor::processDelivery);
 
-
         assertThat(deliveryClaims).hasSize(3)
                 .extracting(SeatNotificationDeliveryClaim::channel)
-                .containsExactlyInAnyOrder(NotificationChannel.EMAIL, NotificationChannel.WEB, NotificationChannel.DISCORD)
-                .doesNotContain(NotificationChannel.FCM);
+                .containsExactlyInAnyOrder(NotificationChannel.EMAIL, NotificationChannel.WEB, NotificationChannel.DISCORD);
         assertThat(deliveryRepository.findAll())
                 .extracting(SeatNotificationDelivery::getChannel)
-                .containsExactlyInAnyOrderElementsOf(NotificationChannel.supportedChannels());
+                .containsExactlyInAnyOrder(NotificationChannel.values());
         assertThat(deliveryRepository.findAll()).allSatisfy(delivery ->
                 assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.SENT));
         assertThat(processor.claimReadyDeliveries()).isEmpty();
         assertThat(outboxRepository.findById(outbox.getId())).get()
                 .extracting(SeatNotificationOutbox::getStatus)
                 .isEqualTo(SeatNotificationOutboxStatus.COMPLETED);
-        for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
+        for (NotificationChannel channel : NotificationChannel.values()) {
             verify(notificationService).deliverSeatOpening(eq(1L), eq(channel), any(), any());
         }
     }

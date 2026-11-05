@@ -123,7 +123,7 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 
 한 번에 여러 delivery를 선점해 순서대로 기다리게 하면 뒤 순번의 lease가 발송 전에 만료될 수 있다. 그래서 `claimReadyDeliveries(1)`만 호출한다. 한 건의 RuntimeException은 기록하고 다음 건을 처리한다. 정산 실패로 PROCESSING에 남은 건은 기존 lease 만료 복구가 처리한다. 컨텍스트 종료 이벤트에서 새 선점을 막고 현재 건 뒤에는 다음 건을 가져오지 않는다. scheduler 종료는 진행 중 호출을 interrupt할 수 있으므로 현재 건의 완료를 보장하지는 않는다. 강제 중단·프로세스 장애 시에도 DB에 남은 작업은 기존 복구 경로를 따른다.
 
-필수로 유지한 별도 실행 경계는 두 곳이다. 제공자 Future 결과 대기는 기본 5초, 이미지 decode 결과 대기는 기본 2초다. Firebase의 재시도, WebPush의 무제한 Future 대기, timeout 없는 ImageIO read/encode를 같은 호출 스레드에서 실행하면 동등한 대기시간 제한을 유지할 수 없다. 이미지 worker는 이미 1개·대기열 0으로 이미지끼리 병렬 실행하지 않는다. 두 경계의 취소는 best effort이며 원격 발송·codec 연산의 강제 종료를 보장하지 않는다. servlet·DB·SDK의 필수 실행 기반도 제거하지 않았다.
+필수로 유지한 별도 실행 경계는 두 곳이다. 제공자 Future 결과 대기는 기본 5초, 이미지 decode 결과 대기는 기본 2초다. WebPush의 무제한 Future 대기와 timeout 없는 ImageIO read/encode를 같은 호출 스레드에서 실행하면 동등한 대기시간 제한을 유지할 수 없다. 이미지 worker는 이미 1개·대기열 0으로 이미지끼리 병렬 실행하지 않는다. 두 경계의 취소는 best effort이며 원격 발송·codec 연산의 강제 종료를 보장하지 않는다. servlet·DB·SDK의 필수 실행 기반도 제거하지 않았다.
 
 처리량·지연은 운영에서 측정하지 않았다. 발송 동시성은 8→1이므로 느린 건이 뒤의 건과 다른 예약 작업을 지연시킨다. 각 delivery의 대상이 1개이고 기본 batch 50건이 모두 5초 대기 제한을 소진하면 발송 대기만 이론상 약 250초이고 DB 시간이 추가된다. delivery 하나에 여러 단말이 있으면 더 길어질 수 있다. 기존 polling 5초·batch 상한·재시도 간격은 바꾸지 않았으며, obsolete worker-threads/queue-capacity 설정만 제거했다.
 
@@ -132,7 +132,7 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 - `SeatNotificationDelivery`와 migration V16의 `(outbox_id, user_id, channel)` unique 제약이 같은 delivery 생성을 막는다. V19에는 idempotency_key 고유 제약도 있다.
 - `SeatNotificationDeliveryRepository.findReadyForUpdate`는 비관적 쓰기 락으로 due PENDING 또는 lease가 만료된 PROCESSING을 선택한다. `claim()`은 새 UUID claimToken과 lockedUntil을 기록한다.
 - `SeatNotificationDeliverySettlementService`는 같은 claimToken인지 다시 검사해 stale worker 정산을 거부한다. SENT·retry/backoff·DLQ 전이와 관리자 replay의 기존 락을 유지했다.
-- 재시도는 delivery에 저장된 같은 UUID idempotencyKey를 재사용한다. `NotificationDeliveryIdempotencyKey.providerKey`는 SHA-256 → URL-safe Base64 앞 22자로 변환한다. Discord nonce/enforce_nonce, WebPush topic/payload 및 service worker notification tag, FCM data, email X-Idempotency-Key 전달이 유지된다. 이 값 전달만으로 모든 제공자의 exactly-once를 보장하지 않는다.
+- 재시도는 delivery에 저장된 같은 UUID idempotencyKey를 재사용한다. `NotificationDeliveryIdempotencyKey.providerKey`는 SHA-256 → URL-safe Base64 앞 22자로 변환한다. Discord nonce/enforce_nonce, WebPush topic/payload 및 service worker notification tag, email X-Idempotency-Key 전달이 유지된다. 이 값 전달만으로 모든 제공자의 exactly-once를 보장하지 않는다.
 - 실제 outbox 경로의 중복 방지는 위 DB/claim 장치다. `NotificationService.handleSeatOpenedEvent`와 `ALERT:<courseKey>` Redis 경로는 runtime 호출·이벤트 애너테이션이 없고 테스트만 호출하던 옛 경로여서 제거했다. 실제 outbox 중복 방지와 사용자 테스트의 `ALERT:USER_TEST:` 10초 쿨타임은 유지했다.
 - 외부 발송 성공 후 SENT 정산 커밋 전 장애가 나면 재시도가 다시 발송할 수 있다. 이 기존 한계는 순차 실행만으로 사라지지 않는다. 이미 materialize된 delivery에 구독 취소를 새로 소급 적용하는 정책 변경도 하지 않았다.
 

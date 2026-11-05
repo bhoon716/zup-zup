@@ -77,7 +77,6 @@ class SeatNotificationDeliveryClaimTest {
                         SeatNotificationDeliveryStatus.PENDING,
                         SeatNotificationDeliveryStatus.PROCESSING,
                         LocalDateTime.now(),
-                        NotificationChannel.FCM,
                         PageRequest.of(0, 1));
                 if (deliveries.isEmpty()) {
                     return false;

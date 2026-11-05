@@ -20,7 +20,7 @@ class NotificationChannelPolicyTest {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, true, true));
         NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, "notify@example.com",
-                false, false, false, false, null);
+                false, false, false, null);
 
         List<NotificationTarget> targets = policy.resolveTargets(user, List.of(), NotificationChannel.EMAIL);
 
@@ -33,7 +33,7 @@ class NotificationChannelPolicyTest {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, true, true));
         NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, null,
-                false, false, false, false, null);
+                false, false, false, null);
         NotificationDevice device = new NotificationDevice(1L, NotificationDeviceType.WEB,
                 "endpoint", "p256", "auth");
 
@@ -50,12 +50,11 @@ class NotificationChannelPolicyTest {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, false, true));
         NotificationRecipient user = new NotificationRecipient(1L, false, null, null,
-                true, false, true, true, "discord-id");
+                true, false, true, "discord-id");
 
         assertThat(policy.isChannelEnabled(user, NotificationChannel.EMAIL)).isTrue();
         assertThat(policy.isChannelEnabled(user, NotificationChannel.DISCORD)).isFalse();
         assertThat(policy.isChannelEnabled(user, NotificationChannel.WEB)).isFalse();
-        assertThat(policy.isChannelEnabled(user, NotificationChannel.FCM)).isFalse();
     }
 
     @Test
@@ -63,7 +62,7 @@ class NotificationChannelPolicyTest {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(false, false, false));
         NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, null,
-                true, false, true, false, null);
+                true, false, false, null);
 
         assertThat(policy.userEnabledChannels(user))
                 .containsExactly(NotificationChannel.EMAIL);
@@ -74,7 +73,7 @@ class NotificationChannelPolicyTest {
         NotificationChannelPolicy policy = new NotificationChannelPolicy(
                 new NotificationProperties(true, true, true));
         NotificationRecipient user = new NotificationRecipient(1L, true, USER_EMAIL, null,
-                true, false, false, false, null);
+                true, false, false, null);
 
         assertThat(policy.isChannelEnabled(user, NotificationChannel.EMAIL)).isFalse();
         assertThat(policy.resolveTargets(user, List.of(), NotificationChannel.EMAIL)).isEmpty();

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const profile = {
   id: 31, name: "로컬 사용자", email: "device@example.invalid", role: "USER",
   notificationEmail: "device@example.invalid", onboardingCompleted: true,
-  emailEnabled: true, webPushEnabled: false, fcmEnabled: false, discordEnabled: false,
+  emailEnabled: true, webPushEnabled: false, discordEnabled: false,
 };
 const devices = [
   { id: 11, type: "WEB", alias: "내 맥북", registeredAt: "2026-10-31T15:00:00Z" },

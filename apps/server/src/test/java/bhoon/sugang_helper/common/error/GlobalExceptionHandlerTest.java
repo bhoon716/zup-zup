@@ -201,7 +201,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void customExceptionDoesNotExposeSecretDetailOrTokenPath() {
-        String token = "fcm-token-should-not-appear";
+        String token = "device-token-should-not-appear";
         String email = "recipient@example.com";
         String detail = "recipient=" + email + ", token=" + token;
         MockHttpServletRequest request = new MockHttpServletRequest(

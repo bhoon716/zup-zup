@@ -30,9 +30,6 @@ const settingsSchema = z.object({
 
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 
-
-
-
 const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof AxiosError) {
     const responseData = error.response?.data as { message?: string } | undefined;
@@ -248,23 +245,22 @@ export const useSettingsPage = () => {
   };
 
   const onSubmit = async (values: SettingsFormValues) => {
-    if (user) {
-      const isOriginal = values.notificationEmail === (user.notificationEmail || "");
-      const isGoogle = values.notificationEmail === user.email || (!values.notificationEmail && !user.notificationEmail);
-      const isVerified = isOriginal || isGoogle || verifiedEmail === values.notificationEmail;
+    if (!user) {
+      toast.error("프로필 정보를 확인한 뒤 다시 시도해 주세요.");
+      return;
+    }
+    const isOriginal = values.notificationEmail === (user.notificationEmail || "");
+    const isGoogle = values.notificationEmail === user.email || (!values.notificationEmail && !user.notificationEmail);
+    const isVerified = isOriginal || isGoogle || verifiedEmail === values.notificationEmail;
 
-      if (!isOriginal && !isGoogle) {
-        if (values.emailEnabled && !isVerified) {
-          toast.error("변경된 이메일 인증을 완료해주세요.");
-          return;
-        }
-      }
+    if (values.emailEnabled && !isVerified) {
+      toast.error("변경된 이메일 인증을 완료해주세요.");
+      return;
     }
 
     setIsSubmitting(true);
     try {
-      // 읽기 전용 FCM 값은 구버전 서버와 왕복할 때도 덮어쓰지 않는다.
-      await updateSettings({ ...values, fcmEnabled: user?.fcmEnabled ?? false });
+      await updateSettings(values);
       toast.success("알림 설정이 저장되었습니다.");
       const response = await getMyProfile();
       setUser(response);

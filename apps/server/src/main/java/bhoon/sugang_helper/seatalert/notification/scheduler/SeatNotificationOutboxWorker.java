@@ -19,9 +19,6 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-
-
-
 @Component
 @Slf4j
 public class SeatNotificationOutboxWorker {
@@ -41,7 +38,7 @@ public class SeatNotificationOutboxWorker {
         }
         this.processor = processor;
         this.batchSize = batchSize;
-        for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
+        for (NotificationChannel channel : NotificationChannel.values()) {
             AtomicInteger inFlight = new AtomicInteger();
             inFlightByChannel.put(channel, inFlight);
 

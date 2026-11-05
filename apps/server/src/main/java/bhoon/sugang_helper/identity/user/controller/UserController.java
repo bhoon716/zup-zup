@@ -60,9 +60,6 @@ public class UserController {
     private static final String DISCORD_RETURN_PATH_ATTRIBUTE = "DISCORD_OAUTH_RETURN_PATH";
     private static final String ONBOARDING_PATH = "/onboarding";
 
-
-
-
     @PostMapping("/onboard")
     public ResponseEntity<UserResponse> completeOnboarding(
             @Valid @RequestBody OnboardingRequest request) {
@@ -70,14 +67,10 @@ public class UserController {
                 request.getNotificationEmail(),
                 request.isEmailEnabled(),
                 request.isWebPushEnabled(),
-                request.isFcmEnabled(),
                 request.isDiscordEnabled()));
         UserResponse response = UserResponse.from(result);
         return ResponseEntity.ok(response);
     }
-
-
-
 
     @PostMapping("/email/code")
     public ResponseEntity<Void> sendVerificationCode(
@@ -94,18 +87,12 @@ public class UserController {
         return request.getRemoteAddr();
     }
 
-
-
-
     @PostMapping("/email/verify")
     public ResponseEntity<Void> verifyEmail(
             @Valid @RequestBody EmailVerificationRequest request) {
         userService.verifyEmail(new VerifyEmailCommand(request.getEmail(), request.getCode()));
         return ResponseEntity.ok(null);
     }
-
-
-
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMyProfile() {
@@ -114,18 +101,12 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-
-
-
     @PatchMapping("/me")
     public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody UserUpdateRequest request) {
         UserProfileUpdateResult result = userService.updateProfile(new UpdateProfileCommand(request.getName()));
         UserResponse response = UserResponse.from(result);
         return ResponseEntity.ok(response);
     }
-
-
-
 
     @PatchMapping("/settings")
     public ResponseEntity<UserResponse> updateSettings(
@@ -134,14 +115,10 @@ public class UserController {
                 request.getNotificationEmail(),
                 request.isEmailEnabled(),
                 request.isWebPushEnabled(),
-                request.isFcmEnabled(),
                 request.isDiscordEnabled()));
         UserResponse response = UserResponse.from(result);
         return ResponseEntity.ok(response);
     }
-
-
-
 
     @PostMapping("/notifications/test")
     public ResponseEntity<Void> sendTestNotification() {
@@ -149,18 +126,12 @@ public class UserController {
         return ResponseEntity.ok(null);
     }
 
-
-
-
     @DeleteMapping("/me")
     public ResponseEntity<Void> withdraw(HttpServletRequest request, HttpServletResponse response) {
         userService.withdraw();
         authSessionLogout.logout(request, response);
         return ResponseEntity.ok(null);
     }
-
-
-
 
     @DeleteMapping("/me/discord")
     public ResponseEntity<Void> unlinkDiscord() {
@@ -181,9 +152,6 @@ public class UserController {
                 + "&response_type=code&scope=identify%20applications.commands&integration_type=1&state=" + state;
         return ResponseEntity.status(302).header("Location", location).build();
     }
-
-
-
 
     @GetMapping("/discord/callback")
     public ResponseEntity<Void> discordCallback(@RequestParam(name = "code", required = false) String code,
@@ -215,17 +183,11 @@ public class UserController {
         }
     }
 
-
-
-
     private void linkDiscordAccount(String code) {
         String accessToken = discordOAuthService.exchangeCodeForToken(code);
         String discordId = discordOAuthService.getDiscordUserId(accessToken);
         userService.linkDiscordId(discordId);
     }
-
-
-
 
     private String resolveDiscordRedirectPath(String state) {
         if ("onboarding".equals(state) || ONBOARDING_PATH.equals(state)) {
@@ -239,9 +201,6 @@ public class UserController {
         new SecureRandom().nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
-
-
-
 
     private ResponseEntity<Void> buildDiscordRedirectResponse(String redirectPath, String result) {
         return ResponseEntity.status(302)

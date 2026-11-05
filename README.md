@@ -139,6 +139,8 @@ docker compose up -d
 - 앱은 localhost 포트만 publish하고 DB·Redis host port는 열지 않습니다. 장애 감지는 외부 uptime monitor의 이메일 알림으로 시작합니다.
 - 배포·롤백 세부 절차는 [단일 OCI CI/CD 결정](./docs/decisions/2026-07-19-single-oci-cicd.md)과 [운영 runbook](./docs/operations/deployment.md)을 따릅니다.
 
+알림은 EMAIL·WEB·DISCORD를 지원하며 웹 푸시는 표준 Push API·VAPID를 사용합니다.
+
 ## 테스트와 검증
 
 - Web은 `cd apps/web && npm run test -- --run`으로 Vitest 기반 검증을 수행합니다.

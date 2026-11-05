@@ -54,9 +54,7 @@ class EmailNotificationSenderTest {
         given(mailSender.createMimeMessage()).willReturn(mock(MimeMessage.class));
         given(templateService.loadTemplate(eq("notification"), anyMap())).willReturn("<html>HTML Content</html>");
 
-
         emailNotificationSender.send(NotificationTarget.of(to), title, content);
-
 
         verify(mailSender, times(1)).send(any(MimeMessage.class));
         verify(templateService, times(1)).loadTemplate(eq("notification"), anyMap());
@@ -66,7 +64,7 @@ class EmailNotificationSenderTest {
     @DisplayName("이메일 채널 지원 여부 확인")
     void supports_email_channel() {
         assertThat(emailNotificationSender.supports(NotificationChannel.EMAIL)).isTrue();
-        assertThat(emailNotificationSender.supports(NotificationChannel.FCM)).isFalse();
+        assertThat(emailNotificationSender.supports(NotificationChannel.WEB)).isFalse();
     }
 
     @Test

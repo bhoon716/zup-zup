@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-
-
 readonly RELEASE_ROOT="/home/ubuntu/jbnu-sugang-helper"
 readonly STAGING_ROOT="${RELEASE_ROOT}/.staging"
 readonly RUNTIME_ENV="${RELEASE_ROOT}/.env"
@@ -111,7 +109,7 @@ cleanup() {
     rm -rf -- "${staging_dir}" || true
   fi
   if [ "${rc}" -ne 0 ]; then
-    echo "deploy failed at ${stage}; app remains stopped after migration or startup failure" >&2
+    echo "deploy failed at ${stage}; no automatic rollback was performed; inspect application and migration state before recovery" >&2
   fi
 }
 trap cleanup EXIT
@@ -246,7 +244,21 @@ stage="app-image-pull"
 "${compose[@]}" pull app || fail "application image pull failed"
 
 stage="stop-app"
-"${compose[@]}" stop app >/dev/null 2>&1 || true
+"${compose[@]}" stop app >/dev/null 2>&1 \
+  || fail "application stop failed; migration was not started"
+app_container_ids="$("${compose[@]}" ps --all --quiet app)" \
+  || fail "application container lookup failed; migration was not started"
+while IFS= read -r app_container_id; do
+  [ -n "${app_container_id}" ] || continue
+  if [[ ! "${app_container_id}" =~ ^[0-9a-f]{12,64}$ ]]; then
+    fail "application container lookup returned an invalid ID; migration was not started"
+  fi
+  app_running="$(docker inspect --type container --format '{{.State.Running}}' "${app_container_id}")" \
+    || fail "application state inspection failed; migration was not started"
+  if [ "${app_running}" != false ]; then
+    fail "application is not confirmed stopped; migration was not started"
+  fi
+done <<<"${app_container_ids}"
 app_quiesced=true
 
 stage="flyway-migrate"

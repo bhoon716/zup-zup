@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | [백엔드 전체 재설계의 진행 방식](2026-10-01-backend-redesign-approach.md) | Withdrawn | 사용자와 논의 전에 정한 구조·CRUD 중심의 첫 구현 제안 철회 |
 | [여석 발생 사실 발송과 상태 차이 안내](2026-10-01-seat-alert-occurrence-notification.md) | Accepted | 발송 전 강의 재조회 없이 발생 사실 전달, 수집·전달 시차 안내 |
-| [채널별 발송 결과 관리와 FCM 제거](2026-10-01-notification-channel-policy.md) | Accepted | 이메일·Discord·웹 푸시 각각의 결과 관리, PWA 전환에 따른 FCM 제거 |
+| [채널별 발송 결과 관리](2026-10-01-notification-channel-policy.md) | Accepted | 이메일·Discord·웹 푸시 각각의 결과 관리 |
 | [중복 알림 허용과 감지 시각 표시](2026-10-01-notification-duplicate-and-mq-policy.md) | Accepted | outbox 유지, 재발송 우선·중복 허용, 원래 감지 시각 표시, 중복 방지 목적의 MQ 보류 |
 | [at-least-once 전달 목표와 완료 기준](2026-10-01-notification-at-least-once-delivery.md) | Accepted | 외부 서비스의 발송 요청 수락·처리 응답과 DB 성공 기록을 기준으로 완료, 불확실한 발송 재시도 |
 | [지연된 여석 알림의 발송 대상 유지](2026-10-01-delayed-seat-alert-delivery.md) | Accepted | 늦게라도 발생 사실 전달, 지연만을 이유로 미발송 작업 취소·만료·삭제하지 않음 |

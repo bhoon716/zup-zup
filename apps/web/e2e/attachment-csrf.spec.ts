@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 const admin = { id: 1, email: "admin@example.test", name: "관리자", role: "ADMIN", emailEnabled: false,
-  webPushEnabled: false, fcmEnabled: false, discordEnabled: false, onboardingCompleted: true };
+  webPushEnabled: false, discordEnabled: false, onboardingCompleted: true };
 
 async function prepareServer(context: BrowserContext, baseURL: string) {
   const state = { session: "A", authenticated: true, csrfRequests: 0, logoutRequests: 0,

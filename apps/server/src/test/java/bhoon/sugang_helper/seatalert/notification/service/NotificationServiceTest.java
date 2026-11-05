@@ -101,9 +101,7 @@ class NotificationServiceTest {
 
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
-
         notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.EMAIL));
-
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
@@ -117,14 +115,13 @@ class NotificationServiceTest {
                 .id(1L)
                 .email(EMAIL)
                 .emailEnabled(true)
+                .webPushEnabled(true)
                 .build();
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
-
         notificationService.sendUserTestNotification(user.getId());
-
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
@@ -138,15 +135,13 @@ class NotificationServiceTest {
                 .id(1L)
                 .email(EMAIL)
                 .emailEnabled(true)
-                .fcmEnabled(true)
+                .webPushEnabled(true)
                 .build();
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
-
         notificationService.sendUserTestNotification(user.getId());
-
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(redisService, never()).deleteValues(anyString());
@@ -159,11 +154,10 @@ class NotificationServiceTest {
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
-                .fcmEnabled(true)
+                .webPushEnabled(true)
                 .build();
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
-
 
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
                 .isInstanceOf(CustomException.class)
@@ -182,7 +176,6 @@ class NotificationServiceTest {
         RuntimeException failure = new RuntimeException("provider unavailable");
         doThrow(failure).when(notificationSender).send(any(), anyString(), anyString());
 
-
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId())).isSameAs(failure);
         verify(redisService).deleteValues("ALERT:USER_TEST:1");
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
@@ -198,7 +191,6 @@ class NotificationServiceTest {
                 .build();
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
-
 
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
                 .isInstanceOf(CustomException.class)
@@ -217,9 +209,7 @@ class NotificationServiceTest {
 
         given(notificationSender.supports(NotificationChannel.WEB)).willReturn(true);
 
-
         notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.WEB));
-
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
@@ -231,7 +221,6 @@ class NotificationServiceTest {
 
         User user = User.builder().id(1L).email(EMAIL).build();
         addRecipient(user);
-
 
         assertThatThrownBy(
                 () -> notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.WEB)))
@@ -254,9 +243,7 @@ class NotificationServiceTest {
 
         given(notificationSender.supports(NotificationChannel.DISCORD)).willReturn(true);
 
-
         notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.DISCORD));
-
 
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
@@ -272,7 +259,6 @@ class NotificationServiceTest {
                 .discordId(null)
                 .build();
         addRecipient(user);
-
 
         assertThatThrownBy(() -> notificationService.sendAdminTestNotification(user.getId(),
                 List.of(NotificationChannel.DISCORD)))
@@ -293,12 +279,10 @@ class NotificationServiceTest {
                 .role(Role.USER)
                 .emailEnabled(true)
                 .webPushEnabled(true)
-                .fcmEnabled(true)
                 .discordEnabled(true)
                 .discordId("discord-id")
                 .build();
         addRecipient(user);
-        addDevice(UserDevice.builder().userId(1L).type(DeviceType.FCM).token(DEVICE_TOKEN).build());
         addDevice(UserDevice.builder().userId(1L).type(DeviceType.WEB)
                 .token("web-endpoint").p256dh("p256").auth("auth").build());
         SeatNotificationOutbox outbox = SeatNotificationOutbox.builder()
@@ -308,15 +292,13 @@ class NotificationServiceTest {
                 .previousSeats(0)
                 .currentSeats(1)
                 .build();
-        for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
+        for (NotificationChannel channel : NotificationChannel.values()) {
             given(notificationSender.supports(channel)).willReturn(true);
         }
 
-
-        for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
+        for (NotificationChannel channel : NotificationChannel.values()) {
             notificationService.deliverSeatOpening(1L, channel, outbox, canonicalKey);
         }
-
 
         verify(notificationSender, times(3)).send(any(NotificationTarget.class), anyString(), anyString(),
                 eq(NotificationDeliveryIdempotencyKey.providerKey(canonicalKey)));
@@ -331,14 +313,12 @@ class NotificationServiceTest {
                 user.getNotificationEmail(),
                 user.isEmailEnabled(),
                 user.isWebPushEnabled(),
-                user.isFcmEnabled(),
                 user.isDiscordEnabled(),
                 user.getDiscordId()));
     }
 
     private void addDevice(UserDevice device) {
-        NotificationDeviceType type = device.getType() == DeviceType.WEB
-                ? NotificationDeviceType.WEB : NotificationDeviceType.FCM;
+        NotificationDeviceType type = NotificationDeviceType.WEB;
         devicesByUser.computeIfAbsent(device.getUserId(), ignored -> new java.util.ArrayList<>())
                 .add(new NotificationDevice(device.getUserId(), type, device.getToken(),
                         device.getP256dh(), device.getAuth()));

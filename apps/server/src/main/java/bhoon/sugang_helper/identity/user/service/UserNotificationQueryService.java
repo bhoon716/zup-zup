@@ -4,7 +4,6 @@ import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
 import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
-import bhoon.sugang_helper.identity.user.enums.DeviceType;
 import bhoon.sugang_helper.identity.user.enums.NotificationDeviceType;
 import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
@@ -56,7 +55,6 @@ public class UserNotificationQueryService {
                 user.getNotificationEmail(),
                 user.isEmailEnabled(),
                 user.isWebPushEnabled(),
-                user.isFcmEnabled(),
                 user.isDiscordEnabled(),
                 user.getDiscordId());
     }
@@ -64,8 +62,7 @@ public class UserNotificationQueryService {
     private static NotificationDevice toNotificationDevice(UserDevice device) {
         return new NotificationDevice(
                 device.getUserId(),
-                device.getType() == DeviceType.WEB
-                        ? NotificationDeviceType.WEB : NotificationDeviceType.FCM,
+                NotificationDeviceType.WEB,
                 device.getToken(),
                 device.getP256dh(),
                 device.getAuth());

@@ -31,8 +31,6 @@ public class UserResponse {
 
     private boolean webPushEnabled;
 
-    private boolean fcmEnabled;
-
     private boolean onboardingCompleted;
 
     private String discordId;
@@ -48,7 +46,6 @@ public class UserResponse {
                 user.getNotificationEmail(),
                 user.isEmailEnabled(),
                 user.isWebPushEnabled(),
-                user.isFcmEnabled(),
                 user.isOnboardingCompleted(),
                 user.getDiscordId(),
                 user.isDiscordEnabled());
@@ -63,7 +60,6 @@ public class UserResponse {
                 result.notificationEmail(),
                 result.emailEnabled(),
                 result.webPushEnabled(),
-                result.fcmEnabled(),
                 result.onboardingCompleted(),
                 result.discordId(),
                 result.discordEnabled());
@@ -78,7 +74,6 @@ public class UserResponse {
                 result.notificationEmail(),
                 result.emailEnabled(),
                 result.webPushEnabled(),
-                result.fcmEnabled(),
                 result.onboardingCompleted(),
                 result.discordId(),
                 result.discordEnabled());
@@ -93,7 +88,6 @@ public class UserResponse {
                 result.notificationEmail(),
                 result.emailEnabled(),
                 result.webPushEnabled(),
-                result.fcmEnabled(),
                 result.onboardingCompleted(),
                 result.discordId(),
                 result.discordEnabled());
@@ -108,7 +102,6 @@ public class UserResponse {
                 result.notificationEmail(),
                 result.emailEnabled(),
                 result.webPushEnabled(),
-                result.fcmEnabled(),
                 result.onboardingCompleted(),
                 result.discordId(),
                 result.discordEnabled());
@@ -122,7 +115,6 @@ public class UserResponse {
             String notificationEmail,
             boolean emailEnabled,
             boolean webPushEnabled,
-            boolean fcmEnabled,
             boolean onboardingCompleted,
             String discordId,
             boolean discordEnabled) {
@@ -134,7 +126,6 @@ public class UserResponse {
                 .notificationEmail(notificationEmail)
                 .emailEnabled(emailEnabled)
                 .webPushEnabled(webPushEnabled)
-                .fcmEnabled(fcmEnabled)
                 .discordEnabled(discordEnabled)
                 .discordId(discordId)
                 .onboardingCompleted(onboardingCompleted)

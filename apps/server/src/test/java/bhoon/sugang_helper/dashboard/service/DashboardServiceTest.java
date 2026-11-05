@@ -49,9 +49,9 @@ class DashboardServiceTest {
     void getDashboardSnapshot() {
         UserDashboardProfile user = new UserDashboardProfile(
                 7L, "user@example.com", "홍길동", "USER", "user@example.com",
-                true, true, true, true, null, false);
+                true, true, true, null, false);
         NotificationHistoryItem notification = new NotificationHistoryItem(
-                1L, 7L, "TEST-101", "공석 발생", "테스트 메시지", NotificationChannel.FCM,
+                1L, 7L, "TEST-101", "공석 발생", "테스트 메시지", NotificationChannel.WEB,
                 LocalDateTime.of(2026, 9, 29, 10, 0));
         ScheduleSummary schedule = new ScheduleSummary(1L, "종강", null, null, null, null, "D-2");
         AnnouncementPreview announcement = new AnnouncementPreview(

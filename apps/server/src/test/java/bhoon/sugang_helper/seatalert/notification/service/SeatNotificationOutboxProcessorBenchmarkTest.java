@@ -83,7 +83,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
         for (long i = 1; i <= subscriberCount; i++) {
             mockRecipientIds.add(i);
             mockRecipients.add(new NotificationRecipient(i, false, "user" + i + "@jbnu.ac.kr", null,
-                    true, true, true, true, null));
+                    true, true, true, null));
         }
 
         when(subscriptionQueryService.findActiveRecipientIds(courseKey)).thenReturn(mockRecipientIds);
@@ -94,17 +94,15 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
                 .thenReturn(List.of(NotificationTarget.of("target")));
         when(deliveryRepository.existsByOutboxIdAndUserIdAndChannel(anyLong(), anyLong(), any())).thenReturn(false);
 
-
         for (int w = 0; w < 5; w++) {
             processor.materializePendingOutboxes();
         }
 
-        int totalDeliveries = subscriberCount * NotificationChannel.supportedChannels().size();
-
+        int totalDeliveries = subscriberCount * NotificationChannel.values().length;
 
         long startLoopSave = System.nanoTime();
         for (long i = 1; i <= subscriberCount; i++) {
-            for (NotificationChannel channel : NotificationChannel.supportedChannels()) {
+            for (NotificationChannel channel : NotificationChannel.values()) {
                 deliveryRepository.save(SeatNotificationDelivery.builder()
                         .outbox(outbox)
                         .userId(i)
@@ -113,7 +111,6 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
             }
         }
         long durationLoopSaveNs = System.nanoTime() - startLoopSave;
-
 
         long startBulkSave = System.nanoTime();
         processor.materializePendingOutboxes();
@@ -126,7 +123,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
         System.out.println(" 📊 [ISSUE-148] Outbox 구체화 수동 성능 테스트 (Before vs After)");
         System.out.println("==================================================");
         System.out.printf("• 테스트 조건: 구독 유저 %,d 명 × %,d 개 채널 = 총 %,d 건 알림 대상\n",
-                subscriberCount, NotificationChannel.supportedChannels().size(), totalDeliveries);
+                subscriberCount, NotificationChannel.values().length, totalDeliveries);
         System.out.printf("• [Before] 루프 단건 save()  소요 시간: %.3f ms (DB 레포지토리 호출: %,d회)\n",
                 loopSaveMs, totalDeliveries);
         System.out.printf("• [After]  Bulk saveAll()    소요 시간: %.3f ms (DB 레포지토리 호출: 1회)\n",

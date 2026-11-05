@@ -32,9 +32,6 @@ public class UserDeviceService {
 
     @Transactional
     public void registerDevice(RegisterDeviceCommand command) {
-        if (command.type() == DeviceType.FCM) {
-            throw new CustomException(ErrorCode.INVALID_INPUT, "FCM 앱 푸시는 지원이 종료되었습니다.");
-        }
         User user = getCurrentUserOrThrow();
         if (command.type() == DeviceType.WEB) {
             webPushEndpointValidator.validate(command.token());
@@ -87,9 +84,6 @@ public class UserDeviceService {
         userDeviceRepository.delete(device);
         log.info("[UserDevice] 지정 알림 기기 삭제. userId={}, deviceId={}", user.getId(), deviceId);
     }
-
-
-
 
     @Transactional
     public void deleteDeviceByToken(String token) {
