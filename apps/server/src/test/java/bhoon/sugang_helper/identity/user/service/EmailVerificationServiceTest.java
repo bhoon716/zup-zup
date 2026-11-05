@@ -13,8 +13,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import jakarta.mail.internet.MimeMessage;

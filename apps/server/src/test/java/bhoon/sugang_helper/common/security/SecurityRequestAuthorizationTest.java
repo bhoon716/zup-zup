@@ -15,8 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import bhoon.sugang_helper.admin.audit.controller.AdminActionLogController;
-import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
+import bhoon.sugang_helper.audit.controller.AdminActionLogController;
+import bhoon.sugang_helper.audit.service.AdminAuditService;
 import bhoon.sugang_helper.admin.controller.AdminController;
 import bhoon.sugang_helper.admin.service.AdminService;
 import bhoon.sugang_helper.campus.announcement.controller.AnnouncementController;
@@ -27,13 +27,13 @@ import bhoon.sugang_helper.identity.auth.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.test.web.servlet.MvcResult;
-import bhoon.sugang_helper.common.config.SecurityConfig;
+import bhoon.sugang_helper.identity.auth.config.SecurityConfig;
 import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
-import bhoon.sugang_helper.common.security.session.SessionAuthenticationFilter;
+import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2FailureHandler;

@@ -1,12 +1,14 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

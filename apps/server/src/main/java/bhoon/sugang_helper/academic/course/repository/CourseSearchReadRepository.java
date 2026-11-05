@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.academic.course.repository;
 
 import static bhoon.sugang_helper.academic.course.entity.QCourse.course;
-import static bhoon.sugang_helper.planning.wishlist.entity.QWishlist.wishlist;
+import bhoon.sugang_helper.academic.api.search.CourseWishlistQuery;
 
 import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.entity.Course;
@@ -15,10 +15,8 @@ import bhoon.sugang_helper.academic.course.enums.TargetGrade;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.core.types.dsl.StringExpression;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.util.Arrays;
@@ -38,10 +36,12 @@ import org.springframework.util.StringUtils;
 public class CourseSearchReadRepository {
 
     private final JPAQueryFactory queryFactory;
+    private final CourseWishlistQuery wishlistQuery;
     private final SelectedSchedulePredicateBuilder selectedSchedulePredicateBuilder;
 
-    public CourseSearchReadRepository(EntityManager em) {
+    public CourseSearchReadRepository(EntityManager em, CourseWishlistQuery wishlistQuery) {
         this.queryFactory = new JPAQueryFactory(em);
+        this.wishlistQuery = wishlistQuery;
         this.selectedSchedulePredicateBuilder = new SelectedSchedulePredicateBuilder();
     }
 
@@ -247,10 +247,7 @@ public class CourseSearchReadRepository {
         if (wishedOnly == null || !wishedOnly || userId == null) {
             return null;
         }
-        return JPAExpressions.selectOne()
-                .from(wishlist)
-                .where(wishlist.userId.eq(userId), wishlist.courseKey.eq(course.courseKey))
-                .exists();
+        return wishlistQuery.wishedBy(course.courseKey, userId);
     }
 
     private OrderSpecifier<?>[] getOrderSpecifiers(CourseSearchCriteria condition, boolean isPopularSort) {
@@ -304,10 +301,7 @@ public class CourseSearchReadRepository {
     }
 
     private NumberExpression<Long> popularCount() {
-        return Expressions.numberTemplate(Long.class,
-                "({0})", JPAExpressions.select(wishlist.count())
-                        .from(wishlist)
-                        .where(wishlist.courseKey.eq(course.courseKey)));
+        return wishlistQuery.popularity(course.courseKey);
     }
 
     private BooleanExpression containsAnyText(StringExpression field, String value) {

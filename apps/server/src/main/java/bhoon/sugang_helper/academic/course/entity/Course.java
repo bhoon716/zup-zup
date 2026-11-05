@@ -7,7 +7,7 @@ import bhoon.sugang_helper.academic.course.enums.DisclosureStatus;
 import bhoon.sugang_helper.academic.course.enums.GradingMethod;
 import bhoon.sugang_helper.academic.course.enums.LectureLanguage;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
-import bhoon.sugang_helper.common.entity.BaseTimeEntity;
+import bhoon.sugang_helper.common.api.persistence.BaseTimeEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

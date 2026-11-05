@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.common.config;
 
+import bhoon.sugang_helper.common.api.concurrent.MdcTaskDecorator;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.ExecutorService;

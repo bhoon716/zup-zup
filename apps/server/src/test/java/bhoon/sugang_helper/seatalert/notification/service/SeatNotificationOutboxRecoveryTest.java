@@ -6,10 +6,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.common.config.NotificationProperties;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.common.api.notifications.NotificationProperties;
+import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;

@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.common.security.util;
 
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;

@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.exception;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import lombok.Getter;
 
 @Getter

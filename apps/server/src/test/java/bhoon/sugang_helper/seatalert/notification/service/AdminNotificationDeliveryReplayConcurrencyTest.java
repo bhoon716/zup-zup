@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
+import bhoon.sugang_helper.audit.service.AdminAuditService;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
@@ -91,7 +91,7 @@ class AdminNotificationDeliveryReplayConcurrencyTest {
         try {
             service.replay(adminId, deliveryId, false);
             return true;
-        } catch (bhoon.sugang_helper.common.error.CustomException ignored) {
+        } catch (bhoon.sugang_helper.common.api.error.CustomException ignored) {
             return false;
         }
     }

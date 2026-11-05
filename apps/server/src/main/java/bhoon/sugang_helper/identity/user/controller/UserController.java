@@ -120,12 +120,6 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/notifications/test")
-    public ResponseEntity<Void> sendTestNotification() {
-        userService.sendTestNotification();
-        return ResponseEntity.ok(null);
-    }
-
     @DeleteMapping("/me")
     public ResponseEntity<Void> withdraw(HttpServletRequest request, HttpServletResponse response) {
         userService.withdraw();

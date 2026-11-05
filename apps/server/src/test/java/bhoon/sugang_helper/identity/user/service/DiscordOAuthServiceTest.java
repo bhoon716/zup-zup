@@ -10,8 +10,8 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;

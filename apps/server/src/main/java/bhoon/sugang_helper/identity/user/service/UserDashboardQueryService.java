@@ -1,7 +1,8 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.result.UserDashboardProfile;
+import bhoon.sugang_helper.identity.api.users.UserDashboardProfiles;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.UserDashboardProfile;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import java.util.Optional;
@@ -12,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserDashboardQueryService {
+public class UserDashboardQueryService implements UserDashboardProfiles {
 
     private final UserRepository userRepository;
 

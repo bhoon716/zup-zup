@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
 import bhoon.sugang_helper.academic.crawling.exception.CrawlerUpstreamFailure;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClientResponseException;
 

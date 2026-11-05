@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.support.feedback.controller;
 
-import bhoon.sugang_helper.common.web.PageableGuard;
+import bhoon.sugang_helper.common.api.web.PageableGuard;
 import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackAttachmentDownloadRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;

@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;

@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.repository;
 
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import jakarta.persistence.LockModeType;

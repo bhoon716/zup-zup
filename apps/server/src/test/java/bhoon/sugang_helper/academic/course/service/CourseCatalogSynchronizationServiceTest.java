@@ -11,10 +11,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
-import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
+import bhoon.sugang_helper.academic.events.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
-import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxService;
+import org.springframework.context.ApplicationEventPublisher;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +34,7 @@ class CourseCatalogSynchronizationServiceTest {
     @Mock
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
     @Mock
-    private SeatNotificationOutboxService outboxService;
+    private ApplicationEventPublisher eventPublisher;
     @Mock
     private MeterRegistry meterRegistry;
     @InjectMocks
@@ -51,7 +51,7 @@ class CourseCatalogSynchronizationServiceTest {
 
         verify(courseRepository, never()).saveAll(any());
         verifyNoInteractions(courseSeatHistoryRepository);
-        verifyNoInteractions(outboxService);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -64,7 +64,7 @@ class CourseCatalogSynchronizationServiceTest {
 
         verify(courseRepository).saveAll(any());
         verify(courseSeatHistoryRepository).saveAll(any());
-        verifyNoInteractions(outboxService);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -76,7 +76,7 @@ class CourseCatalogSynchronizationServiceTest {
 
         synchronizationService.synchronize(List.of(crawled));
 
-        verifyNoInteractions(outboxService);
+        verifyNoInteractions(eventPublisher);
         verify(courseSeatHistoryRepository).saveAll(any());
     }
 
@@ -90,8 +90,8 @@ class CourseCatalogSynchronizationServiceTest {
         synchronizationService.synchronize(List.of(createDto("김교수", 50, 49)));
         synchronizationService.synchronize(List.of(createDto("김교수", 50, 48)));
 
-        verify(outboxService).enqueue(new SeatOpenedEvent(COURSE_KEY, "컴퓨터프로그래밍", "김교수", 0, 1));
-        verifyNoMoreInteractions(outboxService);
+        verify(eventPublisher).publishEvent(new SeatOpenedEvent(COURSE_KEY, "컴퓨터프로그래밍", "김교수", 0, 1));
+        verifyNoMoreInteractions(eventPublisher);
     }
 
     @Test
@@ -101,7 +101,7 @@ class CourseCatalogSynchronizationServiceTest {
         Course existing = createCourse("김교수", 50, 50);
         given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
         IllegalStateException failure = new IllegalStateException("outbox write failed");
-        doThrow(failure).when(outboxService).enqueue(any());
+        doThrow(failure).when(eventPublisher).publishEvent(any(Object.class));
 
         assertThatThrownBy(() -> synchronizationService.synchronize(List.of(createDto("김교수", 50, 49))))
                 .isSameAs(failure);

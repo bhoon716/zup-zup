@@ -19,10 +19,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import bhoon.sugang_helper.planning.wishlist.repository.WishlistCourseSearch;
 import org.springframework.data.domain.PageRequest;
 
 @DataJpaTest
-@Import(CourseSearchReadRepository.class)
+@Import({CourseSearchReadRepository.class, WishlistCourseSearch.class})
 class CourseSearchReadRepositoryTest {
 
     private static final String ACADEMIC_YEAR = "2026";

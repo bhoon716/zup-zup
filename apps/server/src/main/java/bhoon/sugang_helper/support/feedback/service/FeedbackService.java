@@ -1,17 +1,17 @@
 package bhoon.sugang_helper.support.feedback.service;
 
-import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.redis.RedisService;
-import bhoon.sugang_helper.common.util.LocalFileUploadService;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.common.web.PageableGuard;
-import bhoon.sugang_helper.identity.user.dto.result.UserAccountStatus;
-import bhoon.sugang_helper.identity.user.dto.result.UserDisplayName;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserDisplayNameQueryService;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.audit.api.AuditRecorder;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.cache.RedisAccess;
+import bhoon.sugang_helper.common.api.storage.FileStorage;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.common.api.web.PageableGuard;
+import bhoon.sugang_helper.identity.api.users.UserAccountStatus;
+import bhoon.sugang_helper.identity.api.users.UserDisplayName;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
+import bhoon.sugang_helper.identity.api.users.UserDisplayNames;
+import bhoon.sugang_helper.identity.api.users.Users;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentAccess;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackSummary;
@@ -57,12 +57,12 @@ public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final FeedbackAttachmentRepository feedbackAttachmentRepository;
     private final FeedbackReplyRepository feedbackReplyRepository;
-    private final AdminAuditService adminAuditRecorder;
+    private final AuditRecorder adminAuditRecorder;
     private final AdminFeedbackReadRepository adminFeedbackReadRepository;
-    private final UserIdentityQueryService userIdentityQuery;
-    private final UserDisplayNameQueryService userDisplayNameQuery;
-    private final LocalFileUploadService fileUploadService;
-    private final RedisService redisService;
+    private final Users userIdentityQuery;
+    private final UserDisplayNames userDisplayNameQuery;
+    private final FileStorage fileUploadService;
+    private final RedisAccess redisService;
     private final FeedbackMetadataNormalizer feedbackMetadataNormalizer;
     @Value("${app.feedback.rate-limit.user-per-minute:5}")
     private long userRequestsPerMinute;

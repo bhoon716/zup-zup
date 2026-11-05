@@ -56,6 +56,10 @@ repositories {
 
 dependencies {
 
+    implementation platform('org.springframework.modulith:spring-modulith-bom:1.4.14')
+    implementation 'org.springframework.modulith:spring-modulith-api'
+    testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
+
     constraints {
         implementation('org.bitbucket.b_c:jose4j') {
             version {

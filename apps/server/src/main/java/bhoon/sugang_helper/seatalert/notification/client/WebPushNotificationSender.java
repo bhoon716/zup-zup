@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.seatalert.notification.client;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.identity.user.service.UserDeviceService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import bhoon.sugang_helper.identity.api.notifications.WebPushSubscriptionManagement;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,7 +25,7 @@ public class WebPushNotificationSender implements NotificationSender {
     private final String privateKey;
     private final String subject;
     private final ObjectMapper objectMapper;
-    private final UserDeviceService userDeviceWebPushManagement;
+    private final WebPushSubscriptionManagement userDeviceWebPushManagement;
     private PushService pushService;
 
     public WebPushNotificationSender(
@@ -33,7 +33,7 @@ public class WebPushNotificationSender implements NotificationSender {
             @Value("${app.webpush.private-key}") String privateKey,
             @Value("${app.webpush.subject}") String subject,
             ObjectMapper objectMapper,
-            UserDeviceService userDeviceWebPushManagement) {
+            WebPushSubscriptionManagement userDeviceWebPushManagement) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
         this.subject = subject;

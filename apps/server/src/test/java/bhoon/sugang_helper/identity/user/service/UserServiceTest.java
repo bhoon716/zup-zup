@@ -1,21 +1,19 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.support.feedback.service.FeedbackAccountLifecycleService;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionAccountLifecycleService;
+import bhoon.sugang_helper.identity.events.UserWithdrawnEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.identity.auth.service.SessionInvalidator;
-import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateProfileCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateSettingsCommand;
@@ -55,19 +53,13 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private SubscriptionAccountLifecycleService subscriptionAccountLifecycle;
+    private ApplicationEventPublisher eventPublisher;
 
     @Mock
     private UserDeviceRepository userDeviceRepository;
 
     @Mock
-    private FeedbackAccountLifecycleService feedbackAccountLifecycle;
-
-    @Mock
     private EmailVerificationService emailVerificationService;
-
-    @Mock
-    private NotificationService notificationTestSender;
 
     @Mock
     private SessionInvalidator sessionInvalidator;
@@ -136,9 +128,8 @@ class UserServiceTest {
         verify(sessionInvalidator).invalidateAll(1L, TEST_EMAIL);
         verify(emailVerificationService).clearVerificationState(1L, TEST_EMAIL, NOTIFY_EMAIL);
         verify(userRepository).saveAndFlush(user);
-        verify(subscriptionAccountLifecycle).cancelAllForUser(1L);
+        verify(eventPublisher).publishEvent(new UserWithdrawnEvent(1L));
         verify(userDeviceRepository, times(1)).deleteAllByUserId(1L);
-        verify(feedbackAccountLifecycle).deleteAllForUser(1L);
         verify(userRepository, never()).delete(user);
     }
 
@@ -251,48 +242,4 @@ class UserServiceTest {
         assertThat(user.getNotificationEmail()).isEqualTo(NOTIFY_EMAIL);
     }
 
-    @Test
-    @DisplayName("사용자 알림 테스트 발송 시 활성화된 채널로 발송한다")
-    void sendTestNotification() {
-
-        User user = User.builder()
-                .id(1L)
-                .email(TEST_EMAIL)
-                .name(TEST_NAME)
-                .role(Role.USER)
-                .emailEnabled(true)
-                .webPushEnabled(true)
-                .discordEnabled(false)
-                .build();
-
-        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
-
-        userService.sendTestNotification();
-
-        verify(notificationTestSender, times(1)).sendUserTestNotification(eq(user.getId()));
-    }
-
-    @Test
-    @DisplayName("활성화된 알림 채널이 없으면 사용자 알림 테스트 발송에 실패한다")
-    void sendTestNotification_NoChannel() {
-
-        User user = User.builder()
-                .id(1L)
-                .email(TEST_EMAIL)
-                .name(TEST_NAME)
-                .role(Role.USER)
-                .emailEnabled(false)
-                .webPushEnabled(false)
-                .discordEnabled(false)
-                .build();
-
-        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
-
-        assertThatThrownBy(() -> userService.sendTestNotification())
-                .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
-        verify(notificationTestSender, never()).sendUserTestNotification(user.getId());
-    }
 }

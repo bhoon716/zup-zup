@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.course.controller;
 
-import bhoon.sugang_helper.common.web.PageableGuard;
+import bhoon.sugang_helper.common.api.web.PageableGuard;
 import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.dto.response.CourseDetailResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseResponse;

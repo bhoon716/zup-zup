@@ -5,10 +5,10 @@ import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseScheduleDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.entity.CourseSchedule;
 import bhoon.sugang_helper.academic.course.entity.CourseSeatHistory;
-import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
+import bhoon.sugang_helper.academic.events.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
-import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxService;
+import org.springframework.context.ApplicationEventPublisher;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ public class CourseCatalogSynchronizationService {
 
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
-    private final SeatNotificationOutboxService outboxService;
+    private final ApplicationEventPublisher eventPublisher;
     private final MeterRegistry meterRegistry;
 
     @Transactional
@@ -166,7 +166,7 @@ public class CourseCatalogSynchronizationService {
     private void enqueueSeatOpening(Course course) {
         log.debug("[Crawler] 빈자리 증가 감지. courseKey={}, available={}", course.getCourseKey(),
                 course.getAvailable());
-        outboxService.enqueue(new SeatOpenedEvent(
+        eventPublisher.publishEvent(new SeatOpenedEvent(
                 course.getCourseKey(), course.getName(), course.getProfessor(), 0, course.getAvailable()));
     }
 

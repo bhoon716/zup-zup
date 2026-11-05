@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.identity.user.entity;
 
-import bhoon.sugang_helper.common.entity.BaseEntity;
+import bhoon.sugang_helper.common.api.persistence.BaseEntity;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

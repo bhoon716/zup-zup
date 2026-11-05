@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.security.session;
 
+import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -7,7 +8,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.config.RedisConfig;
-import bhoon.sugang_helper.common.config.SecurityConfig;
+import bhoon.sugang_helper.identity.auth.config.SecurityConfig;
 import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;

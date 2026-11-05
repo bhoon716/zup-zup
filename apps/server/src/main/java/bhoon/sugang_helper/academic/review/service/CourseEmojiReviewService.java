@@ -6,11 +6,11 @@ import bhoon.sugang_helper.academic.review.dto.criteria.ReviewScopeKey;
 import bhoon.sugang_helper.academic.review.dto.response.CourseEmojiReviewResponse;
 import bhoon.sugang_helper.academic.review.entity.CourseEmojiReview;
 import bhoon.sugang_helper.academic.review.repository.CourseEmojiReviewRepository;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
+import bhoon.sugang_helper.identity.api.users.Users;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CourseEmojiReviewService {
     private final CourseEmojiReviewRepository emojiReviewRepository;
     private final CourseReviewCatalogService courseReviewCatalog;
-    private final UserIdentityQueryService userIdentityQuery;
+    private final Users userIdentityQuery;
 
     @Transactional
     public void toggleEmoji(String courseKey, String emoji) {

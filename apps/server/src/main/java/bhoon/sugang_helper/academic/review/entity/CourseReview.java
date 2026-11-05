@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.review.entity;
 
-import bhoon.sugang_helper.common.entity.BaseEntity;
+import bhoon.sugang_helper.common.api.persistence.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

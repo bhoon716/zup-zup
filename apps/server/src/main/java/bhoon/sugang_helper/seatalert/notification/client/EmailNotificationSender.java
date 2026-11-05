@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.seatalert.notification.client;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.common.util.EmailTemplateService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.templates.EmailTemplates;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -20,13 +20,13 @@ import org.springframework.stereotype.Component;
 public class EmailNotificationSender implements NotificationSender {
 
     private final JavaMailSender javaMailSender;
-    private final EmailTemplateService templateService;
+    private final EmailTemplates templateService;
     private final String from;
     private final String fromName;
 
     public EmailNotificationSender(
             JavaMailSender javaMailSender,
-            EmailTemplateService templateService,
+            EmailTemplates templateService,
             @Value("${spring.mail.from}") String from,
             @Value("${spring.mail.from-name}") String fromName) {
         this.javaMailSender = javaMailSender;

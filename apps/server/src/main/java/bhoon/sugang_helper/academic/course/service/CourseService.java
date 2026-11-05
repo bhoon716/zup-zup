@@ -13,12 +13,12 @@ import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSearchReadRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.common.web.PageableGuard;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.common.api.web.PageableGuard;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
+import bhoon.sugang_helper.identity.api.users.Users;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -38,7 +38,7 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final CourseSearchReadRepository courseSearchReadRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
-    private final UserIdentityQueryService userIdentityQuery;
+    private final Users userIdentityQuery;
     private final CourseReviewQueryService courseReviewQuery;
 
     private final CrawlerCourseSearchContextProvider searchContextProvider;

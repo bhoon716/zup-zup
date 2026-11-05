@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.common.filter;
 
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

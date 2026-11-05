@@ -15,7 +15,7 @@ import bhoon.sugang_helper.academic.course.service.CourseService;
 import bhoon.sugang_helper.academic.crawling.controller.CourseSearchTargetController;
 import bhoon.sugang_helper.academic.crawling.dto.response.SearchDefaultSemesterResponse;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;

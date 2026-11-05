@@ -1,11 +1,12 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.api.storage.FileStorage;
 import bhoon.sugang_helper.common.dto.result.SanitizedImage;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 
-import bhoon.sugang_helper.common.dto.result.LoadedFile;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.storage.LoadedFile;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -34,7 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Component
 @Slf4j
-public class LocalFileUploadService {
+public class LocalFileUploadService implements FileStorage {
 
     private static final String UPLOAD_URL_PREFIX = "/uploads/";
     private static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of(

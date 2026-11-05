@@ -1,6 +1,11 @@
 package bhoon.sugang_helper.common.alert;
 
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.alerts.OperationalAlerts;
+import bhoon.sugang_helper.common.api.alerts.SlackAlertProperties;
+
+import bhoon.sugang_helper.common.api.alerts.SlackAlertCategory;
+
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -15,7 +20,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-public class SlackAlertService {
+public class SlackAlertService implements OperationalAlerts {
 
     private static final int MAX_DEDUPLICATION_KEYS = 256;
     private static final int MAX_STACK_TRACE_FRAMES = 3;

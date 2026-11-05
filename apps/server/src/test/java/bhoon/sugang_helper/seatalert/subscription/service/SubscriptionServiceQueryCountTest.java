@@ -8,7 +8,7 @@ import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
-import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;

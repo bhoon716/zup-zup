@@ -3,7 +3,7 @@ package bhoon.sugang_helper.identity.user.service;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.api.error.CustomException;
 import org.junit.jupiter.api.Test;
 
 class WebPushEndpointValidatorTest {

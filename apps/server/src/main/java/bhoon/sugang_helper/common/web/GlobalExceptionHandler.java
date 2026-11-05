@@ -1,11 +1,11 @@
 package bhoon.sugang_helper.common.web;
 
-import bhoon.sugang_helper.common.alert.SlackAlertCategory;
+import bhoon.sugang_helper.common.api.alerts.SlackAlertCategory;
 import bhoon.sugang_helper.common.alert.SlackAlertService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.response.ErrorResponse;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.response.ErrorResponse;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.IdentityHashMap;

@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.dashboard.dto.response;
 
-import bhoon.sugang_helper.planning.timetable.dto.result.PrimaryTimetableSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCustomScheduleSnapshot;
+import bhoon.sugang_helper.planning.api.PrimaryTimetableSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCourseSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCustomScheduleSnapshot;
 import java.util.List;
 
 public record DashboardPrimaryTimetableResult(

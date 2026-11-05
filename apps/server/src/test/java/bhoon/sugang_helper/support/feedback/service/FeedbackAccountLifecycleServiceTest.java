@@ -7,6 +7,7 @@ import bhoon.sugang_helper.support.feedback.entity.Feedback;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import bhoon.sugang_helper.support.feedback.repository.FeedbackRepository;
 import java.util.List;
+import bhoon.sugang_helper.identity.events.UserWithdrawnEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,7 +33,7 @@ class FeedbackAccountLifecycleServiceTest {
                 .build();
         when(feedbackRepository.findAllByUserId(7L)).thenReturn(List.of(feedback));
 
-        lifecycleService.deleteAllForUser(7L);
+        lifecycleService.onUserWithdrawn(new UserWithdrawnEvent(7L));
 
         assertThat(feedback.getDeletedAt()).isNotNull();
     }

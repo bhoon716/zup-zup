@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.controller;
 
-import bhoon.sugang_helper.common.web.PageableGuard;
+import bhoon.sugang_helper.common.api.web.PageableGuard;
 import bhoon.sugang_helper.seatalert.notification.dto.response.NotificationHistoryResponse;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import lombok.RequiredArgsConstructor;

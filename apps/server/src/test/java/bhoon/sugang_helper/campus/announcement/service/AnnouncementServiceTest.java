@@ -11,8 +11,8 @@ import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailRe
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementListResponse;
 import bhoon.sugang_helper.campus.announcement.entity.Announcement;
 import bhoon.sugang_helper.campus.announcement.repository.AnnouncementRepository;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;

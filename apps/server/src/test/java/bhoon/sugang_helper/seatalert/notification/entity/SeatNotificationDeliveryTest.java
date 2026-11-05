@@ -2,7 +2,7 @@ package bhoon.sugang_helper.seatalert.notification.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;

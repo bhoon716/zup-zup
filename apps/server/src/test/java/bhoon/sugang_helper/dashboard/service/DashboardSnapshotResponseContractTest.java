@@ -2,16 +2,16 @@ package bhoon.sugang_helper.dashboard.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementPreview;
-import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleSummary;
+import bhoon.sugang_helper.campus.api.AnnouncementPreview;
+import bhoon.sugang_helper.campus.api.ScheduleSummary;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardNotificationResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardPrimaryTimetableResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardSnapshotResponse;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseScheduleSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCustomScheduleSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCustomScheduleTimeSnapshot;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.planning.api.TimetableCourseScheduleSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCourseSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCustomScheduleSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCustomScheduleTimeSnapshot;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;

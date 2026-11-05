@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.planning.timetable.dto.response;
 
-import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
+import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Builder;

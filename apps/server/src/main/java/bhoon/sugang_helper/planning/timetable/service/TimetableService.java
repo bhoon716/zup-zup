@@ -1,18 +1,19 @@
 package bhoon.sugang_helper.planning.timetable.service;
 
-import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
-import bhoon.sugang_helper.planning.timetable.dto.result.PrimaryTimetableSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseScheduleSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCustomScheduleSnapshot;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCustomScheduleTimeSnapshot;
+import bhoon.sugang_helper.planning.api.Timetables;
+import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
+import bhoon.sugang_helper.academic.api.catalog.CourseCatalog;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
+import bhoon.sugang_helper.identity.events.UserRegisteredEvent;
+import bhoon.sugang_helper.identity.api.users.Users;
+import bhoon.sugang_helper.planning.api.PrimaryTimetableSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCourseScheduleSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCourseSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCustomScheduleSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCustomScheduleTimeSnapshot;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.TimetableRequest;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseResponse;
@@ -40,7 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class TimetableService {
+public class TimetableService implements Timetables {
 
     private static final int MAX_TIMETABLE_COUNT = 10;
     private static final int MAX_COURSE_COUNT = 10;
@@ -48,8 +49,8 @@ public class TimetableService {
     private final TimetableRepository timetableRepository;
     private final TimetableEntryRepository timetableEntryRepository;
     private final CustomScheduleRepository customScheduleRepository;
-    private final CourseCatalogQueryService courseCatalogQuery;
-    private final UserIdentityQueryService userIdentityQuery;
+    private final CourseCatalog courseCatalogQuery;
+    private final Users userIdentityQuery;
 
     @Transactional
     public TimetableResponse createTimetable(TimetableRequest request) {

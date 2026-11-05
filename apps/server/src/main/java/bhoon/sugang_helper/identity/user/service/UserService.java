@@ -1,13 +1,12 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.support.feedback.service.FeedbackAccountLifecycleService;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionAccountLifecycleService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.identity.events.UserWithdrawnEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.identity.auth.service.SessionInvalidator;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.dto.command.SendVerificationCodeCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateProfileCommand;
@@ -33,11 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final SubscriptionAccountLifecycleService subscriptionAccountLifecycle;
+    private final ApplicationEventPublisher eventPublisher;
     private final UserDeviceRepository userDeviceRepository;
-    private final FeedbackAccountLifecycleService feedbackAccountLifecycle;
     private final EmailVerificationService emailVerificationService;
-    private final NotificationService notificationTestSender;
     private final SessionInvalidator sessionInvalidator;
 
     public UserProfileResult getMyProfile() {
@@ -95,9 +92,8 @@ public class UserService {
         userRepository.saveAndFlush(user);
         sessionInvalidator.invalidateAll(userId, email);
         emailVerificationService.clearVerificationState(userId, email, notificationEmail);
-        subscriptionAccountLifecycle.cancelAllForUser(userId);
+        eventPublisher.publishEvent(new UserWithdrawnEvent(userId));
         userDeviceRepository.deleteAllByUserId(userId);
-        feedbackAccountLifecycle.deleteAllForUser(userId);
         log.info("[User] 회원 탈퇴 처리. userId={}", userId);
     }
 
@@ -155,16 +151,6 @@ public class UserService {
         User user = getCurrentUser();
         user.unlinkDiscord();
         log.info("[User] Discord 계정 연결 해제. userId={}", user.getId());
-    }
-
-    @Transactional
-    public void sendTestNotification() {
-        User user = getCurrentUser();
-        if (!user.hasEnabledNotificationChannels()) {
-            throw new CustomException(ErrorCode.INVALID_INPUT, "활성화된 알림 채널이 없습니다. 설정에서 알림을 활성화해주세요.");
-        }
-
-        notificationTestSender.sendUserTestNotification(user.getId());
     }
 
     public User getCurrentUser() {

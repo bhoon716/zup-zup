@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.redis;
 
+import bhoon.sugang_helper.common.api.cache.RedisAccess;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class RedisService {
+public class RedisService implements RedisAccess {
 
     private static final DefaultRedisScript<Long> ATOMIC_INCREMENT_WITH_TTL = new DefaultRedisScript<>(
             "local count = redis.call('INCR', KEYS[1]); "

@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.academic.crawling.scheduler;
 
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerService;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

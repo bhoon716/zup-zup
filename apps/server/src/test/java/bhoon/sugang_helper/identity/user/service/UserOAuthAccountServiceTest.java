@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
-import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;
+import bhoon.sugang_helper.identity.events.UserRegisteredEvent;
 import bhoon.sugang_helper.identity.user.exception.OAuthAccountProvisioningException;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import java.util.Optional;

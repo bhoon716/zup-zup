@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.academic.course.enums;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

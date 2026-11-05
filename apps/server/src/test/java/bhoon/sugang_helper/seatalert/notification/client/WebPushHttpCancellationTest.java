@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
-import bhoon.sugang_helper.common.config.MdcTaskDecorator;
+import bhoon.sugang_helper.common.api.concurrent.MdcTaskDecorator;
 import bhoon.sugang_helper.identity.user.service.UserDeviceService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 import com.fasterxml.jackson.databind.ObjectMapper;

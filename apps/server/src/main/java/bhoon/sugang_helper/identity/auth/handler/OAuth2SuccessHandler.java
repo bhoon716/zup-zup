@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.identity.auth.handler;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.identity.auth.service.AuthService;
 import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
 import jakarta.servlet.http.HttpServletRequest;

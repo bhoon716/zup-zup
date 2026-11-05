@@ -2,11 +2,11 @@ package bhoon.sugang_helper.seatalert.notification.service;
 
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryDispatch;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryFailureResult;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
@@ -40,7 +40,7 @@ public class SeatNotificationOutboxProcessor {
     private final SeatNotificationOutboxRepository outboxRepository;
     private final SeatNotificationDeliveryRepository deliveryRepository;
     private final SubscriptionQueryService subscriptionQueryService;
-    private final UserNotificationQueryService userNotificationQuery;
+    private final NotificationRecipients userNotificationQuery;
     private final NotificationChannelPolicy notificationChannelPolicy;
     private final NotificationService notificationService;
     private final SeatNotificationDeliverySettlementService settlementService;

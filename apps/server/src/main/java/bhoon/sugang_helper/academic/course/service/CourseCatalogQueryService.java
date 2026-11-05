@@ -1,8 +1,9 @@
 package bhoon.sugang_helper.academic.course.service;
 
-import bhoon.sugang_helper.academic.course.dto.result.CourseName;
-import bhoon.sugang_helper.academic.course.dto.result.CourseScheduleSummary;
-import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
+import bhoon.sugang_helper.academic.api.catalog.CourseCatalog;
+import bhoon.sugang_helper.academic.api.catalog.CourseName;
+import bhoon.sugang_helper.academic.api.catalog.CourseScheduleSummary;
+import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import java.util.List;
@@ -14,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CourseCatalogQueryService {
+public class CourseCatalogQueryService implements CourseCatalog {
 
     private final CourseRepository courseRepository;
 

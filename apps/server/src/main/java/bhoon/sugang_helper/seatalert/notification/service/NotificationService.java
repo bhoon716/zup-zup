@@ -1,13 +1,14 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
-import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.redis.RedisService;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationOperations;
+import bhoon.sugang_helper.academic.events.SeatOpenedEvent;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.cache.RedisAccess;
+import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
@@ -24,13 +25,13 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class NotificationService {
+public class NotificationService implements NotificationOperations {
 
     private static final String USER_TEST_COOLDOWN_KEY_PREFIX = "ALERT:USER_TEST:";
     private static final Duration USER_TEST_COOLDOWN = Duration.ofSeconds(10);
 
-    private final RedisService redisService;
-    private final UserNotificationQueryService userNotificationQuery;
+    private final RedisAccess redisService;
+    private final NotificationRecipients userNotificationQuery;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
     private final NotificationChannelPolicy notificationChannelPolicy;

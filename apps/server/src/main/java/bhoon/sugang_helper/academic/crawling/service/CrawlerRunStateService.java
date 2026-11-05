@@ -1,16 +1,17 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
+import bhoon.sugang_helper.academic.api.operations.CrawlerRuns;
 import bhoon.sugang_helper.academic.crawling.dto.diagnostic.CrawlerFailureSummary;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerRunFailure;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerStatus;
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
 import bhoon.sugang_helper.academic.crawling.repository.CrawlerRunFailureRepository;
 import bhoon.sugang_helper.academic.crawling.repository.CrawlerStatusRepository;
-import bhoon.sugang_helper.common.alert.SlackAlertCategory;
-import bhoon.sugang_helper.common.alert.SlackAlertService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.alerts.SlackAlertCategory;
+import bhoon.sugang_helper.common.api.alerts.OperationalAlerts;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class CrawlerRunStateService {
+public class CrawlerRunStateService implements CrawlerRuns {
 
     private final CrawlerStatusRepository crawlerStatusRepository;
     private final CrawlerRunFailureRepository crawlerRunFailureRepository;
-    private final SlackAlertService slackAlertService;
+    private final OperationalAlerts slackAlertService;
 
     @Transactional
     public void markSuccess() {

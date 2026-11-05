@@ -7,7 +7,7 @@ import static org.mockito.Mockito.doThrow;
 
 import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
-import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
+import bhoon.sugang_helper.academic.events.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogSynchronizationService;
@@ -15,6 +15,7 @@ import bhoon.sugang_helper.academic.crawling.repository.CrawlerStatusRepository;
 import bhoon.sugang_helper.common.alert.SlackAlertService;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxService;
+import bhoon.sugang_helper.seatalert.notification.service.SeatOpenedListener;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Import({CourseCatalogSynchronizationService.class, CourseCrawlCompletionService.class,
-        CrawlerRunStateService.class, SeatNotificationOutboxService.class})
+        CrawlerRunStateService.class, SeatNotificationOutboxService.class, SeatOpenedListener.class})
 class CourseCrawlCompletionTransactionTest {
 
     private static final String COURSE_KEY = "2026:U211600010:COMP101:01";
