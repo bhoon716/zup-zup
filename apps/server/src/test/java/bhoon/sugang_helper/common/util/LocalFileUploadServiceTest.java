@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.CRC32;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.MediaType;
@@ -52,35 +53,76 @@ class LocalFileUploadServiceTest {
     }
 
     @Test
+    @DisplayName("트랜잭션 롤백은 업로드된 파일을 삭제한다")
     void rollbackDeletesUploadedFiles() throws Exception {
+        // given
         configureUploadDirectory();
         Path uploadedFile = Files.writeString(uploadDirectory.resolve("rolled-back.png"), "content");
         TransactionSynchronizationManager.initSynchronization();
 
+        // when
         fileUploadService.deleteFilesAfterTransactionRollback(List.of("/uploads/rolled-back.png"));
         TransactionSynchronizationManager.getSynchronizations()
                 .forEach(sync -> sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
 
+        // then
         assertThat(uploadedFile).doesNotExist();
     }
 
     @Test
+    @DisplayName("롤백 정리는 트랜잭션이 없거나 커밋되면 파일을 유지한다")
+    void rollbackCleanupKeepsFilesWithoutAnActiveTransactionOrAfterCommit() throws Exception {
+        // given
+        configureUploadDirectory();
+        Path uploadedFile = Files.writeString(uploadDirectory.resolve("kept.png"), "content");
+
+        // when
+        fileUploadService.deleteFilesAfterTransactionRollback(List.of("/uploads/kept.png"));
+
+        // then
+        assertThat(uploadedFile).exists();
+
+        // given
+        TransactionSynchronizationManager.initSynchronization();
+
+        // when
+        fileUploadService.deleteFilesAfterTransactionRollback(List.of());
+
+        // then
+        assertThat(TransactionSynchronizationManager.getSynchronizations()).isEmpty();
+
+        // when
+        fileUploadService.deleteFilesAfterTransactionRollback(List.of("/uploads/kept.png"));
+        TransactionSynchronizationManager.getSynchronizations()
+                .forEach(sync -> sync.afterCompletion(TransactionSynchronization.STATUS_COMMITTED));
+
+        // then
+        assertThat(uploadedFile).exists();
+    }
+
+    @Test
+    @DisplayName("이미지 MIME 타입을 주장하는 SVG도 업로드를 거부한다")
     void svgUploadIsRejectedEvenWhenItClaimsAnImageMimeType() {
+        // given
         configureUploadDirectory();
         MockMultipartFile svg = new MockMultipartFile(
                 "file", "script.svg", "image/svg+xml", "<svg><script>alert(1)</script></svg>".getBytes());
 
+        // when & then
         assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(svg)))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FILE_TYPE);
     }
 
     @Test
+    @DisplayName("WebP 업로드를 거부한다")
     void webpUploadIsRejected() throws Exception {
+        // given
         configureUploadDirectory();
         byte[] source = staticWebpBytes();
         MockMultipartFile webp = new MockMultipartFile("file", "canvas.webp", "image/webp", source);
 
+        // when & then
         assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(webp)))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FILE_TYPE);
@@ -88,64 +130,84 @@ class LocalFileUploadServiceTest {
     }
 
     @Test
+    @DisplayName("저장 파일의 콘텐츠 타입은 이름 대신 실제 내용으로 판별한다")
     void storedContentTypeIsSniffedRatherThanTakenFromFilename() throws Exception {
+        // given
         configureUploadDirectory();
         Files.write(uploadDirectory.resolve("mismatch.jpg"), imageBytes("png"));
 
+        // when & then
         assertThat(fileUploadService.loadFile("/uploads/mismatch.jpg").contentType())
                 .isEqualTo(MediaType.IMAGE_PNG);
     }
 
     @Test
+    @DisplayName("기존 미지원 이미지는 다운로드용 콘텐츠 타입을 사용한다")
     void legacyUnsupportedImageFallsBackToDownloadContentType() throws Exception {
+        // given
         configureUploadDirectory();
         Files.write(uploadDirectory.resolve("legacy.webp"), staticWebpBytes());
 
+        // when & then
         assertThat(fileUploadService.loadFile("/uploads/legacy.webp").contentType())
                 .isEqualTo(MediaType.APPLICATION_OCTET_STREAM);
     }
 
     @Test
+    @DisplayName("저장 이미지는 주입된 PNG 메타데이터를 보존하지 않는다")
     void storedImageDoesNotRetainInjectedPngMetadata() throws Exception {
+        // given
         configureUploadDirectory();
         byte[] source = pngWithTextChunk("GPS_SENTINEL=35.123,127.456");
         MockMultipartFile png = new MockMultipartFile("file", "location.png", "image/png", source);
 
+        // when
         String fileUrl = fileUploadService.uploadImages(List.of(png)).getFirst();
 
+        // then
         assertThat(new String(Files.readAllBytes(storedPath(fileUrl)), StandardCharsets.ISO_8859_1))
                 .doesNotContain("GPS_SENTINEL");
     }
 
     @Test
+    @DisplayName("저장 이미지는 주입된 EXIF 메타데이터를 보존하지 않는다")
     void storedImageDoesNotRetainInjectedExifMetadata() throws Exception {
+        // given
         configureUploadDirectory();
         byte[] source = jpegWithExifMarker("EXIF_GPS_SENTINEL=35.123,127.456");
         MockMultipartFile jpeg = new MockMultipartFile("file", "location.jpg", "image/jpeg", source);
 
+        // when
         String fileUrl = fileUploadService.uploadImages(List.of(jpeg)).getFirst();
 
+        // then
         assertThat(new String(Files.readAllBytes(storedPath(fileUrl)), StandardCharsets.ISO_8859_1))
                 .doesNotContain("EXIF_GPS_SENTINEL");
     }
 
     @Test
+    @DisplayName("너비·높이 제한을 넘는 이미지는 저장 전에 거부한다")
     void oversizedDimensionsAreRejectedBeforeSaving() throws Exception {
+        // given
         configureUploadDirectory();
         MockMultipartFile oversized = new MockMultipartFile(
                 "file", "oversized.png", "image/png", pngWithDimensions(4097, 1));
 
+        // when & then
         assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(oversized)))
                 .isInstanceOf(CustomException.class);
         assertThat(uploadDirectory).isEmptyDirectory();
     }
 
     @Test
+    @DisplayName("과도한 픽셀 수의 이미지는 저장 전에 거부한다")
     void pixelBombIsRejectedBeforeSaving() throws Exception {
+        // given
         configureUploadDirectory();
         MockMultipartFile pixelBomb = new MockMultipartFile(
                 "file", "pixel-bomb.png", "image/png", pngWithDimensions(4096, 2049));
 
+        // when & then
         assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(pixelBomb)))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.IMAGE_PROCESSING_LIMIT_EXCEEDED);
@@ -153,21 +215,27 @@ class LocalFileUploadServiceTest {
     }
 
     @Test
+    @DisplayName("움직이는 이미지 형식은 저장 전에 거부한다")
     void animatedImageFormatsAreRejectedBeforeSaving() throws Exception {
+        // given
         configureUploadDirectory();
         MockMultipartFile gif = new MockMultipartFile("file", "animated.gif", "image/gif", imageBytes("gif"));
 
+        // when & then
         assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(gif)))
                 .isInstanceOf(CustomException.class);
         assertThat(uploadDirectory).isEmptyDirectory();
     }
 
     @Test
+    @DisplayName("움직이는 PNG 컨테이너는 디코딩 전에 거부한다")
     void animatedPngContainersAreRejectedBeforeDecoding() throws Exception {
+        // given
         configureUploadDirectory();
         MockMultipartFile apng = new MockMultipartFile(
                 "file", "animated.png", "image/png", pngWithChunk("acTL", new byte[8]));
 
+        // when & then
         assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(apng)))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_IMAGE_CONTENT);
@@ -175,19 +243,24 @@ class LocalFileUploadServiceTest {
     }
 
     @Test
+    @DisplayName("일괄 업로드 실패는 같은 요청에서 먼저 정제한 이미지도 삭제한다")
     void failedBatchDeletesImagesAlreadySanitizedInTheSameRequest() throws Exception {
+        // given
         configureUploadDirectory();
         MockMultipartFile valid = new MockMultipartFile("file", "valid.png", "image/png", imageBytes("png"));
         MockMultipartFile oversized = new MockMultipartFile(
                 "file", "oversized.png", "image/png", pngWithDimensions(4097, 1));
 
+        // when & then
         assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(valid, oversized)))
                 .isInstanceOf(CustomException.class);
         assertThat(uploadDirectory).isEmptyDirectory();
     }
 
     @Test
+    @DisplayName("디코딩 제한 시간을 넘으면 저장 없이 업로드를 거부한다")
     void decodeTimeoutRejectsTheUploadWithoutSaving() throws Exception {
+        // given
         configureUploadDirectory();
         ReflectionTestUtils.setField(imageUploadSanitizer, "imageDecodeTimeout", Duration.ofMillis(25));
         byte[] source = imageBytes("png");
@@ -200,6 +273,7 @@ class LocalFileUploadServiceTest {
                 ? new ByteArrayInputStream(source)
                 : slowInput(source));
 
+        // when & then
         assertThatThrownBy(() -> fileUploadService.uploadImages(List.of(slowPng)))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.IMAGE_PROCESSING_LIMIT_EXCEEDED);

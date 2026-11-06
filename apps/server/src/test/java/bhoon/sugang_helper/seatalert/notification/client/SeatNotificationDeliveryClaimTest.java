@@ -15,6 +15,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -30,14 +31,20 @@ class SeatNotificationDeliveryClaimTest {
 
     @Autowired
     private SeatNotificationOutboxRepository outboxRepository;
+
     @Autowired
     private SeatNotificationDeliveryRepository deliveryRepository;
+
     @Autowired
     private PlatformTransactionManager transactionManager;
 
     @Test
+    @DisplayName("경쟁하는 작업자는 같은 발송 작업을 한 번만 선점한다")
     void competingWorkersClaimTheSameDeliveryOnlyOnce() throws Exception {
+        // given
         TransactionTemplate setupTransaction = new TransactionTemplate(transactionManager);
+
+        // when
         setupTransaction.executeWithoutResult(status -> {
             SeatNotificationOutbox outbox = outboxRepository.save(SeatNotificationOutbox.builder()
                     .courseKey("course-key")
@@ -52,6 +59,7 @@ class SeatNotificationDeliveryClaimTest {
                     .build());
         });
 
+        // then
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);

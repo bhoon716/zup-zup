@@ -1,11 +1,9 @@
 package bhoon.sugang_helper.identity.auth.config;
 
-import org.springframework.security.web.access.AccessDeniedHandler;
-import org.springframework.security.web.AuthenticationEntryPoint;
-import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
 import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2FailureHandler;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2SuccessHandler;
+import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -21,7 +19,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
@@ -75,8 +75,10 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
+
     @Value("${app.cors.allowed-origins}")
     private String[] allowedOrigins;
+
     @Value("${app.cors.require-https:false}")
     private boolean requireHttpsOrigins;
 

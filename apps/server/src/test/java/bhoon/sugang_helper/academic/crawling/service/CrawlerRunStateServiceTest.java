@@ -11,8 +11,8 @@ import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerRunStatus;
 import bhoon.sugang_helper.academic.crawling.repository.CrawlerRunFailureRepository;
 import bhoon.sugang_helper.academic.crawling.repository.CrawlerStatusRepository;
-import bhoon.sugang_helper.common.api.alerts.SlackAlertCategory;
 import bhoon.sugang_helper.common.alert.SlackAlertService;
+import bhoon.sugang_helper.common.api.alerts.SlackAlertCategory;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import java.util.Optional;
@@ -31,8 +31,10 @@ class CrawlerRunStateServiceTest {
 
     @Mock
     private CrawlerStatusRepository crawlerStatusRepository;
+
     @Mock
     private CrawlerRunFailureRepository crawlerRunFailureRepository;
+
     @Mock
     private SlackAlertService slackAlertService;
 
@@ -42,10 +44,13 @@ class CrawlerRunStateServiceTest {
     @Test
     @DisplayName("성공 시 singleton crawler_status의 마지막 성공 시각을 갱신한다")
     void markSuccess_UpdatesSingletonStatus() {
+        // given
         given(crawlerStatusRepository.findById(CrawlerStatus.SINGLETON_ID)).willReturn(Optional.empty());
 
+        // when
         service.markSuccess();
 
+        // then
         ArgumentCaptor<CrawlerStatus> captor = ArgumentCaptor.forClass(CrawlerStatus.class);
         verify(crawlerStatusRepository).save(captor.capture());
         assertThat(captor.getValue().getId()).isEqualTo(CrawlerStatus.SINGLETON_ID);
@@ -56,12 +61,15 @@ class CrawlerRunStateServiceTest {
     @Test
     @DisplayName("실패 시 상태와 실행별 영구 실패 행에 비민감 요약을 함께 기록한다")
     void recordFailure_SavesStatusAndFailureRow() {
+        // given
         given(crawlerStatusRepository.findById(CrawlerStatus.SINGLETON_ID)).willReturn(Optional.empty());
         CustomException exception = new CustomException(
                 ErrorCode.CRAWLER_CONNECTION_ERROR, "외부 응답 원문 secret=do-not-store");
 
+        // when
         service.recordFailure(CrawlerFailureStage.FETCH_PARSE, exception);
 
+        // then
         ArgumentCaptor<CrawlerStatus> statusCaptor = ArgumentCaptor.forClass(CrawlerStatus.class);
         ArgumentCaptor<CrawlerRunFailure> failureCaptor = ArgumentCaptor.forClass(CrawlerRunFailure.class);
         verify(crawlerStatusRepository).save(statusCaptor.capture());
@@ -76,9 +84,11 @@ class CrawlerRunStateServiceTest {
     @Test
     @DisplayName("예상하지 못한 예외 메시지 원문도 실패 DB 기록에 저장하지 않는다")
     void unexpectedFailure_DoesNotPersistRawMessage() {
+        // given
         CrawlerFailureSummary summary = CrawlerFailureSummary.from(
                 CrawlerFailureStage.PERSIST, new IllegalStateException("password=secret"));
 
+        // when & then
         assertThat(summary.failureType()).isEqualTo("IllegalStateException");
         assertThat(summary.failureMessage()).isEqualTo("Unexpected crawler failure");
     }
@@ -86,10 +96,12 @@ class CrawlerRunStateServiceTest {
     @Test
     @DisplayName("실패 기록은 rollback된 크롤러 트랜잭션과 분리된 새 트랜잭션에서 저장한다")
     void recordFailure_RequiresNewTransaction() throws NoSuchMethodException {
+        // given
         Transactional transactional = CrawlerRunStateService.class
                 .getMethod("recordFailure", CrawlerFailureStage.class, RuntimeException.class)
                 .getAnnotation(Transactional.class);
 
+        // when & then
         assertThat(transactional).isNotNull();
         assertThat(transactional.propagation()).isEqualTo(Propagation.REQUIRES_NEW);
     }

@@ -1,12 +1,11 @@
 package bhoon.sugang_helper.common.security;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -21,17 +20,22 @@ import bhoon.sugang_helper.campus.schedule.controller.ScheduleController;
 import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleResponse;
 import bhoon.sugang_helper.campus.schedule.entity.Schedule;
 import bhoon.sugang_helper.campus.schedule.service.ScheduleService;
-import bhoon.sugang_helper.identity.auth.config.SecurityConfig;
 import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
-import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
+import bhoon.sugang_helper.identity.auth.config.SecurityConfig;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2FailureHandler;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2SuccessHandler;
+import bhoon.sugang_helper.identity.auth.service.SessionPrincipal;
+import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
+import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -51,15 +55,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
-import bhoon.sugang_helper.identity.auth.service.SessionPrincipal;
-import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
-import org.springframework.session.web.http.CookieSerializer;
-import java.util.Optional;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -89,19 +89,29 @@ class ScheduleAuthorizationTest {
             {"scheduleType":"수강신청","startDate":"2026-10-26","endDate":"2026-10-27",
              "startTime":"09:00","endTime":"18:00","ddayEnabled":true}
             """;
+
     @Autowired private MockMvc mockMvc;
+
     @MockitoBean private ScheduleService schedules;
+
     @MockitoBean private CookieSerializer cookieSerializer;
+
     @MockitoBean private UserIdentityQueryService userIdentityQuery;
+
     @MockitoBean private CustomOAuth2UserService customOAuth2UserService;
+
     @MockitoBean private OAuth2SuccessHandler oAuth2SuccessHandler;
+
     @MockitoBean private OAuth2FailureHandler oAuth2FailureHandler;
 
     @Test
+    @DisplayName("일정과 디데이 선택 목록은 공개 배열 응답을 유지한다")
     void schedulesAndDdaySelectionArePublicRawArrays() throws Exception {
+        // given
         when(schedules.getUpcomingSchedules()).thenReturn(List.of(response()));
         when(schedules.getDdaySchedules()).thenReturn(List.of(response()));
 
+        // when & then
         mockMvc.perform(get("/api/v1/schedules"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$[0].scheduleType").value("수강신청"))
                 .andExpect(jsonPath("$[0].ddayEnabled").value(true))
@@ -114,13 +124,17 @@ class ScheduleAuthorizationTest {
     }
 
     @ParameterizedTest
+    @DisplayName("모든 관리자 작업에는 관리자 권한이 필요하다")
     @ValueSource(strings = {"GET", "POST", "PUT", "DELETE", "PATCH"})
     void everyAdminOperationRequiresAnAdmin(String method) throws Exception {
+        // given
         String path = switch (method) {
             case "PUT", "DELETE" -> ADMIN_PATH + "/1";
             case "PATCH" -> ADMIN_PATH + "/1/restore";
             default -> ADMIN_PATH;
         };
+
+        // when & then
         mockMvc.perform(request(HttpMethod.valueOf(method), path).with(csrf().asHeader()).contentType(MediaType.APPLICATION_JSON)
                         .content(REQUEST))
                 .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("A001"));
@@ -130,13 +144,16 @@ class ScheduleAuthorizationTest {
     }
 
     @Test
+    @DisplayName("관리자 일정 CRUD는 상태 코드와 선택·복원 계약을 유지한다")
     void adminCrudKeepsStatusCodesAndSelectionAndRestorationContract() throws Exception {
+        // given
         when(schedules.getAllSchedules()).thenReturn(List.of(response()));
         when(schedules.createSchedule(any())).thenReturn(response());
         when(schedules.updateSchedule(eq(1L), any())).thenReturn(response());
         when(schedules.restoreSchedule(1L)).thenReturn(response());
         MockHttpSession admin = session("ROLE_ADMIN");
 
+        // when & then
         mockMvc.perform(get(ADMIN_PATH).session(admin)).andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].ddayEnabled").value(true));
         mockMvc.perform(post(ADMIN_PATH).with(csrf().asHeader()).session(admin).contentType(MediaType.APPLICATION_JSON).content(REQUEST))
@@ -151,7 +168,9 @@ class ScheduleAuthorizationTest {
     }
 
     @Test
+    @DisplayName("역전된 기간은 공통 오류이며 구형 디데이 API는 제공하지 않는다")
     void invertedPeriodIsACommonErrorAndLegacyDdayApiDoesNotExist() throws Exception {
+        // when & then
         mockMvc.perform(post(ADMIN_PATH).with(csrf().asHeader()).session(session("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(REQUEST.replace("2026-10-27", "2026-10-25")))

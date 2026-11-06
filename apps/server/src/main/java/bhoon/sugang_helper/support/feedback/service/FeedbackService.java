@@ -1,21 +1,17 @@
 package bhoon.sugang_helper.support.feedback.service;
 
 import bhoon.sugang_helper.audit.api.AuditRecorder;
+import bhoon.sugang_helper.common.api.cache.RedisAccess;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.cache.RedisAccess;
-import bhoon.sugang_helper.common.api.storage.FileStorage;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.common.api.storage.FileStorage;
 import bhoon.sugang_helper.common.api.web.PageableGuard;
 import bhoon.sugang_helper.identity.api.users.UserAccountStatus;
 import bhoon.sugang_helper.identity.api.users.UserDisplayName;
-import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.api.users.UserDisplayNames;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.api.users.Users;
-import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentAccess;
-import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
-import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackSummary;
-import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
@@ -26,6 +22,10 @@ import bhoon.sugang_helper.support.feedback.dto.response.AdminFeedbackReplyRespo
 import bhoon.sugang_helper.support.feedback.dto.response.AdminFeedbackResponse;
 import bhoon.sugang_helper.support.feedback.dto.response.FeedbackDetailResponse;
 import bhoon.sugang_helper.support.feedback.dto.response.FeedbackResponse;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentAccess;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackSummary;
+import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.entity.Feedback;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackAttachment;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackReply;
@@ -64,12 +64,16 @@ public class FeedbackService {
     private final FileStorage fileUploadService;
     private final RedisAccess redisService;
     private final FeedbackMetadataNormalizer feedbackMetadataNormalizer;
+
     @Value("${app.feedback.rate-limit.user-per-minute:5}")
     private long userRequestsPerMinute;
+
     @Value("${app.feedback.rate-limit.ip-per-minute:10}")
     private long ipRequestsPerMinute;
+
     @Value("${app.feedback.rate-limit.daily-quota:5}")
     private long dailyQuota;
+
     @Value("${app.feedback.max-upload-bytes:10485760}")
     private long maximumUploadBytes;
 
@@ -100,21 +104,26 @@ public class FeedbackService {
 
         Feedback savedFeedback = feedbackRepository.save(feedback);
 
-        if (files != null && !files.isEmpty()) {
-            List<String> fileUrls = fileUploadService.uploadImages(files);
-            fileUploadService.deleteFilesAfterTransactionRollback(fileUrls);
-
-            for (int i = 0; i < fileUrls.size(); i++) {
-                FeedbackAttachment attachment = FeedbackAttachment.builder()
-                        .feedback(savedFeedback)
-                        .fileUrl(fileUrls.get(i))
-                        .originalName(sanitizedAttachmentName(files.get(i).getOriginalFilename(), fileUrls.get(i)))
-                        .build();
-                feedbackAttachmentRepository.save(attachment);
-            }
-        }
+        saveAttachments(savedFeedback, files);
 
         return savedFeedback.getId();
+    }
+
+    private void saveAttachments(Feedback feedback, List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) {
+            return;
+        }
+        List<String> fileUrls = fileUploadService.uploadImages(files);
+        fileUploadService.deleteFilesAfterTransactionRollback(fileUrls);
+
+        for (int i = 0; i < fileUrls.size(); i++) {
+            FeedbackAttachment attachment = FeedbackAttachment.builder()
+                    .feedback(feedback)
+                    .fileUrl(fileUrls.get(i))
+                    .originalName(sanitizedAttachmentName(files.get(i).getOriginalFilename(), fileUrls.get(i)))
+                    .build();
+            feedbackAttachmentRepository.save(attachment);
+        }
     }
 
     private String sanitizedAttachmentName(String originalName, String fileUrl) {

@@ -25,6 +25,7 @@ class CourseClassificationTest {
             "전공필수, MAJOR_REQUIRED"
     })
     void fromDescription(String description, CourseClassification expected) {
+        // when & then
         assertThat(CourseClassification.from(description)).isEqualTo(expected);
     }
 
@@ -37,12 +38,14 @@ class CourseClassificationTest {
             "전공(대), MAJOR"
     })
     void fromAbbreviationOrGraduate(String description, CourseClassification expected) {
+        // when & then
         assertThat(CourseClassification.from(description)).isEqualTo(expected);
     }
 
     @DisplayName("유효하지 않은 문자열이 들어오면 null을 반환한다")
     @Test
     void fromInvalidDescription() {
+        // when & then
         assertThat(CourseClassification.from(null)).isNull();
         assertThat(CourseClassification.from("")).isNull();
         assertThat(CourseClassification.from("   ")).isNull();

@@ -37,6 +37,7 @@ class CustomScheduleRequestValidationTest {
     @Test
     @DisplayName("커스텀 일정 시간대 목록은 비어있을 수 없다")
     void schedulesMustNotBeEmpty() {
+        // given
         CustomScheduleRequest request = new CustomScheduleRequest(
                 "점심",
                 null,
@@ -44,6 +45,7 @@ class CustomScheduleRequestValidationTest {
 
         Set<ConstraintViolation<CustomScheduleRequest>> violations = validator.validate(request);
 
+        // when & then
         assertThat(violations)
                 .anySatisfy(violation -> {
                     assertThat(violation.getPropertyPath().toString()).isEqualTo("schedules");
@@ -54,6 +56,7 @@ class CustomScheduleRequestValidationTest {
     @Test
     @DisplayName("커스텀 일정의 개별 시간대 항목도 검증한다")
     void scheduleItemsAreValidated() {
+        // given
         CustomScheduleRequest request = new CustomScheduleRequest(
                 "점심",
                 null,
@@ -65,6 +68,7 @@ class CustomScheduleRequestValidationTest {
 
         Set<ConstraintViolation<CustomScheduleRequest>> violations = validator.validate(request);
 
+        // when & then
         assertThat(violations)
                 .anySatisfy(violation -> {
                     assertThat(violation.getPropertyPath().toString()).isEqualTo("schedules[0].dayOfWeek");

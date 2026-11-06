@@ -9,6 +9,7 @@ import bhoon.sugang_helper.common.dto.response.HealthCheckResponse;
 import java.time.Instant;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -39,12 +40,15 @@ class HealthControllerTest {
     }
 
     @Test
+    @DisplayName("준비 상태가 정상이면 외부 상태 확인은 성공한다")
     void externalHealthReturnsOkWhenReadinessIsUp() {
-
+        // given
         given(healthEndpoint.healthForPath(READINESS_GROUP)).willReturn(Health.up().build());
 
+        // when
         ResponseEntity<HealthCheckResponse> response = healthController.checkHealth();
 
+        // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().status()).isEqualTo("UP");
@@ -53,15 +57,18 @@ class HealthControllerTest {
     }
 
     @ParameterizedTest(name = "{0} 장애 시 외부 health endpoint는 실패한다")
+    @DisplayName("준비 상태가 실패하면 외부 상태 확인은 서비스 불가를 반환한다")
     @MethodSource("dependencyFailures")
     void externalHealthReturnsServiceUnavailableWhenReadinessIsDown(
             String dependency,
             Health readinessHealth) {
-
+        // given
         given(healthEndpoint.healthForPath(READINESS_GROUP)).willReturn(readinessHealth);
 
+        // when
         ResponseEntity<HealthCheckResponse> response = healthController.checkHealth();
 
+        // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().status()).isEqualTo("DOWN");

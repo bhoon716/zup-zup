@@ -18,7 +18,7 @@ class JbnuCourseApiClientTest {
     @Test
     @DisplayName("JUMP 세션을 획득하고 강좌 JSON을 가져옵니다")
     void fetchCourseData_realJumpCall() {
-
+        // given
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
         String apiUrl = firstNonBlank(dotenv.get("JBNU_API_URL"), System.getenv("JBNU_API_URL"),
                 "https://jump.jbnu.ac.kr/SCH/SucrLessnSbjctInq/list.do");
@@ -33,7 +33,10 @@ class JbnuCourseApiClientTest {
         ReflectionTestUtils.setField(client, "maxRetries", 0);
         ReflectionTestUtils.setField(client, "maximumResponseBytes", 10 * 1024 * 1024);
 
+        // when
         String result = client.fetchCourseData("2026", "U211600020");
+
+        // then
         List<ParsedCourseDto> courses = new JbnuCourseParser().parseCourses(result, "2026", "U211600020");
 
         assertThat(result).contains("dsEstSbjList");

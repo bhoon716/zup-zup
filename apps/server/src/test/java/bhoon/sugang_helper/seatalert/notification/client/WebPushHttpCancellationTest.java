@@ -34,14 +34,16 @@ import org.apache.http.HttpResponse;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.jose4j.lang.JoseException;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class WebPushHttpCancellationTest {
 
     @Test
+    @DisplayName("바깥 제한 시간 이후에도 실제 웹 푸시 HTTP 요청이 남는 동작을 확인한다")
     void documentsThatOuterTimeoutLeavesTheRealWebPushHttpRequestRunning() throws Exception {
-
+        // given
         Security.addProvider(new BouncyCastleProvider());
         ObservedPushService pushService = new ObservedPushService(generateKeyPair());
         WebPushNotificationSender sender = new WebPushNotificationSender("", "", "",
@@ -74,6 +76,8 @@ class WebPushHttpCancellationTest {
         String endpoint = "http://127.0.0.1:" + server.getAddress().getPort() + "/push";
 
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
+
+        // when & then
         try (NotificationProviderResilience resilience = new NotificationProviderResilience(
                 registry, 5_000, 3, 30, new MdcTaskDecorator())) {
             server.start();

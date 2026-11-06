@@ -1,50 +1,46 @@
 package bhoon.sugang_helper.e2e;
 
-import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.audit.repository.AdminActionLogRepository;
-import bhoon.sugang_helper.seatalert.api.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
-import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
-import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
-import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
-import bhoon.sugang_helper.seatalert.notification.service.UserNotificationTestService;
-import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
-import java.time.LocalDateTime;
-import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;
-import bhoon.sugang_helper.planning.wishlist.repository.WishlistRepository;
-import bhoon.sugang_helper.identity.auth.service.SessionPrincipal;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import bhoon.sugang_helper.SugangHelperApplication;
 import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
-import bhoon.sugang_helper.academic.events.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.crawling.client.CourseApiClient;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlCompletionService;
+import bhoon.sugang_helper.academic.events.SeatOpenedEvent;
+import bhoon.sugang_helper.audit.repository.AdminActionLogRepository;
 import bhoon.sugang_helper.common.alert.SlackAlertService;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.identity.auth.service.SessionPrincipal;
+import bhoon.sugang_helper.identity.events.UserWithdrawnEvent;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import bhoon.sugang_helper.identity.user.enums.Role;
-import bhoon.sugang_helper.identity.events.UserWithdrawnEvent;
 import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import bhoon.sugang_helper.identity.user.service.UserService;
+import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;
+import bhoon.sugang_helper.planning.wishlist.repository.WishlistRepository;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.DiscordNotificationSender;
 import bhoon.sugang_helper.seatalert.notification.client.EmailNotificationSender;
 import bhoon.sugang_helper.seatalert.notification.client.WebPushNotificationSender;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
+import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
+import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.seatalert.notification.scheduler.SeatNotificationOutboxWorker;
+import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
+import bhoon.sugang_helper.seatalert.notification.service.UserNotificationTestService;
 import bhoon.sugang_helper.seatalert.subscription.entity.Subscription;
 import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionRepository;
 import bhoon.sugang_helper.support.feedback.entity.Feedback;
@@ -52,6 +48,8 @@ import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import bhoon.sugang_helper.support.feedback.repository.FeedbackRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
@@ -59,6 +57,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +65,7 @@ import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,8 +75,8 @@ import org.springframework.boot.test.context.TestComponent;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -84,6 +84,7 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -169,18 +170,31 @@ class ModulithEventIntegrationTest {
     }
 
     @LocalServerPort private int port;
+
     @Autowired private ObjectMapper mapper;
+
     @Autowired private PlatformTransactionManager transactionManager;
+
     @MockitoBean private CourseApiClient courseApi;
+
     @MockitoBean private JavaMailSender mail;
+
     @MockitoBean private SlackAlertService slack;
+
     @MockitoBean private WebPushNotificationSender webPush;
+
     @MockitoBean private DiscordNotificationSender discord;
+
     @MockitoBean private EmailNotificationSender emailSender;
+
     @MockitoBean private SeatNotificationOutboxWorker worker;
+
     @MockitoSpyBean private SeatNotificationOutboxRepository outbox;
+
     @MockitoSpyBean private FeedbackRepository feedback;
+
     @MockitoSpyBean private AdminActionLogRepository audits;
+
     @MockitoSpyBean private UserNotificationTestService notificationUseCase;
 
     private HttpClient browser;
@@ -209,7 +223,9 @@ class ModulithEventIntegrationTest {
     }
 
     @Test
+    @DisplayName("전체 앱이 좌석 리스너를 발견하고 같은 결과의 Outbox를 한 번만 저장한다")
     void fullApplicationDiscoversOutboxListenerAndCommitsOnce() throws Exception {
+        // when & then
         assertThat(post("/crawl?mode=commit").statusCode()).isEqualTo(200);
 
         JsonNode state = state();
@@ -222,16 +238,21 @@ class ModulithEventIntegrationTest {
     }
 
     @Test
+    @DisplayName("호출자 실패는 강의·좌석 이력·성공 상태·Outbox를 함께 롤백한다")
     void callerFailureRollsBackCourseHistorySuccessAndOutbox() throws Exception {
+        // when & then
         assertThat(post("/crawl?mode=rollback").statusCode()).isEqualTo(500);
 
         assertCatalogRolledBack(state());
     }
 
     @Test
+    @DisplayName("Outbox 저장 실패는 앞서 저장한 청크도 롤백한다")
     void outboxFailureRollsBackAnEarlierWrittenChunk() throws Exception {
+        // given
         doThrow(new IllegalStateException("forced isolated outbox failure")).when(outbox).save(any());
 
+        // when & then
         assertThat(post("/crawl?mode=chunk-failure").statusCode()).isEqualTo(500);
 
         JsonNode state = state();
@@ -240,7 +261,9 @@ class ModulithEventIntegrationTest {
     }
 
     @Test
+    @DisplayName("전체 앱이 두 탈퇴 리스너를 발견해 관련 데이터를 정리한다")
     void fullApplicationDiscoversBothWithdrawalListeners() throws Exception {
+        // when & then
         assertThat(post("/withdraw?rollback=false").statusCode()).isEqualTo(200);
 
         JsonNode state = state();
@@ -251,24 +274,31 @@ class ModulithEventIntegrationTest {
     }
 
     @Test
+    @DisplayName("호출자 실패는 모든 탈퇴 리스너의 DB 변경을 롤백한다")
     void callerFailureRollsBackAllWithdrawalListeners() throws Exception {
+        // when & then
         assertThat(post("/withdraw?rollback=true").statusCode()).isEqualTo(500);
 
         assertWithdrawalRolledBack(state());
     }
 
     @Test
+    @DisplayName("탈퇴 리스너 실패가 HTTP 오류로 전달되고 계정 변경도 롤백된다")
     void withdrawalListenerFailureReachesHttpAndRollsBackAccount() throws Exception {
+        // given
         doThrow(new IllegalStateException("forced isolated feedback failure"))
                 .when(feedback).findAllByUserId(any());
 
+        // when & then
         assertThat(post("/withdraw?rollback=false").statusCode()).isEqualTo(500);
 
         assertWithdrawalRolledBack(state());
     }
 
     @Test
+    @DisplayName("자동 등록된 리스너는 트랜잭션 밖의 이벤트 처리를 거부한다")
     void automaticallyRegisteredListenersRejectEventsOutsideATransaction() throws Exception {
+        // when & then
         assertThat(post("/outside?event=seat").statusCode()).isEqualTo(500);
         assertThat(post("/outside?event=withdrawal").statusCode()).isEqualTo(500);
         assertCatalogRolledBack(state());
@@ -276,7 +306,9 @@ class ModulithEventIntegrationTest {
     }
 
     @Test
+    @DisplayName("인기순 정렬과 페이지 처리는 기존 검색 결과 순서를 유지한다")
     void popularitySortingAndPaginationKeepTheExistingQuerySemantics() throws Exception {
+        // when & then
         assertThat(post("/seed-search").statusCode()).isEqualTo(200);
 
         JsonNode first = search(Map.of("sortBy", "popular", "sortOrder", "desc"), 0);
@@ -297,7 +329,9 @@ class ModulithEventIntegrationTest {
     }
 
     @Test
+    @DisplayName("찜 검색은 모듈 계약을 거쳐 인증된 사용자의 목록만 조회한다")
     void wishedOnlySearchUsesTheAuthenticatedUserAcrossTheModuleContract() throws Exception {
+        // when & then
         assertThat(post("/seed-search").statusCode()).isEqualTo(200);
         loginFixture();
 
@@ -308,9 +342,12 @@ class ModulithEventIntegrationTest {
     }
 
     @Test
+    @DisplayName("기존 두 알림 URL은 실제 보안·CSRF 처리를 거쳐 이동한 서비스에 도달한다")
     void bothNotificationUrlsReachTheMovedUseCaseWithRealSecurityAndCsrf() throws Exception {
+        // given
         loginFixture();
 
+        // when & then
         for (String path : List.of("/api/v1/notifications/test", "/api/v1/users/notifications/test")) {
             HttpResponse<String> response = apiPost(path, Map.of());
             assertThat(response.statusCode()).isEqualTo(400);
@@ -321,12 +358,16 @@ class ModulithEventIntegrationTest {
     }
 
     @Test
+    @DisplayName("발송 제공자 실패는 커밋된 강의를 유지하고 재시도를 예약한다")
     void providerFailureDoesNotRollbackTheCommittedCatalogAndSchedulesRetry() throws Exception {
+        // given
         simulatedProviderCall = true;
         given(emailSender.supports(NotificationChannel.EMAIL)).willReturn(true);
         doThrow(new NotificationProviderException(ErrorCode.EMAIL_SEND_ERROR, true,
                 "isolated-provider-failure", 503, null))
                 .when(emailSender).send(any(), anyString(), anyString(), anyString());
+
+        // when & then
         assertThat(post("/enable-email").statusCode()).isEqualTo(200);
         assertThat(post("/crawl?mode=commit").statusCode()).isEqualTo(200);
 
@@ -344,25 +385,33 @@ class ModulithEventIntegrationTest {
     }
 
     @Test
+    @DisplayName("관리자 재전송과 감사 기록은 함께 커밋된다")
     void administratorReplayAndAuditCommitTogether() throws Exception {
+        // given
         long deliveryId = seedDeadLetterAndLoginAdmin();
 
+        // when
         HttpResponse<String> response = apiPost("/api/v1/admin/notification-deliveries/" + deliveryId
                 + "/replay", Map.of());
 
+        // then
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(state().path("pendingDeliveries").asInt()).isEqualTo(1);
         assertThat(state().path("audit").asInt()).isEqualTo(1);
     }
 
     @Test
+    @DisplayName("감사 기록 저장 실패는 관리자 재전송도 롤백한다")
     void auditFailureRollsBackAdministratorReplay() throws Exception {
+        // given
         long deliveryId = seedDeadLetterAndLoginAdmin();
         doThrow(new IllegalStateException("isolated audit failure")).when(audits).save(any());
 
+        // when
         HttpResponse<String> response = apiPost("/api/v1/admin/notification-deliveries/" + deliveryId
                 + "/replay", Map.of());
 
+        // then
         assertThat(response.statusCode()).isEqualTo(500);
         JsonNode state = state();
         assertThat(state.path("pendingDeliveries").asInt()).isZero();

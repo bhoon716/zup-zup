@@ -9,10 +9,10 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.api.notifications.NotificationProperties;
 import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
-import bhoon.sugang_helper.seatalert.api.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
@@ -21,6 +21,7 @@ import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOut
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -40,20 +41,26 @@ class SeatNotificationOutboxRecoveryTest {
 
     @Autowired
     private SeatNotificationOutboxProcessor processor;
+
     @Autowired
     private SeatNotificationOutboxRepository outboxRepository;
+
     @Autowired
     private SeatNotificationDeliveryRepository deliveryRepository;
+
     @MockitoBean
     private SubscriptionQueryService subscriptionQueryService;
+
     @MockitoBean
     private UserNotificationQueryService userNotificationQuery;
+
     @MockitoBean
     private NotificationService notificationService;
 
     @Test
+    @DisplayName("저장된 Outbox는 작업자가 재시작한 뒤에도 발송한다")
     void persistedOutboxIsDeliveredAfterAWorkerRestart() {
-
+        // given
         SeatNotificationOutbox outbox = outboxRepository.saveAndFlush(SeatNotificationOutbox.builder()
                 .courseKey("course-key")
                 .courseName("Course")
@@ -71,6 +78,7 @@ class SeatNotificationOutboxRecoveryTest {
         List<SeatNotificationDeliveryClaim> deliveryClaims = processor.claimReadyDeliveries();
         deliveryClaims.forEach(processor::processDelivery);
 
+        // when & then
         assertThat(deliveryClaims).hasSize(3)
                 .extracting(SeatNotificationDeliveryClaim::channel)
                 .containsExactlyInAnyOrder(NotificationChannel.EMAIL, NotificationChannel.WEB, NotificationChannel.DISCORD);

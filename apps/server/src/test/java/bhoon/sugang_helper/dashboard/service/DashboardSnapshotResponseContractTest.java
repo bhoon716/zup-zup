@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class DashboardSnapshotResponseContractTest {
@@ -25,7 +26,9 @@ class DashboardSnapshotResponseContractTest {
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     @Test
+    @DisplayName("소유 모듈의 계약을 조합해도 대시보드 JSON 필드를 보존한다")
     void preservesDashboardJsonFieldsAcrossOwnerContracts() {
+        // when
         DashboardSnapshotResponse response = DashboardSnapshotResponse.builder()
                 .notifications(List.of(new DashboardNotificationResult(
                         1L, "CS101", "공석 발생", "알림", NotificationChannel.EMAIL,
@@ -49,6 +52,7 @@ class DashboardSnapshotResponseContractTest {
                         50L, "공지", "미리보기", true, LocalDateTime.of(2026, 9, 29, 9, 0))))
                 .build();
 
+        // then
         JsonNode json = objectMapper.valueToTree(response);
 
         assertThat(json.path("notifications").get(0).has("sentAt")).isTrue();

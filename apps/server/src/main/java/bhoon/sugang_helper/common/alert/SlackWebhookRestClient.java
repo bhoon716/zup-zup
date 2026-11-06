@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.common.alert;
 
 import bhoon.sugang_helper.common.api.alerts.SlackAlertProperties;
-
 import java.time.Duration;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;

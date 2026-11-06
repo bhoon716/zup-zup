@@ -9,6 +9,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.slf4j.MDC;
 
 @Getter
 @JsonInclude(Include.NON_NULL)
@@ -30,7 +31,7 @@ public class ErrorResponse {
     private final String correlationId;
 
     public static ErrorResponse of(ErrorCode errorCode, String path) {
-        String mdcCorrelationId = org.slf4j.MDC.get("correlationId");
+        String mdcCorrelationId = MDC.get("correlationId");
         String correlationId = (mdcCorrelationId != null && !mdcCorrelationId.isBlank())
                 ? mdcCorrelationId
                 : UUID.randomUUID().toString();

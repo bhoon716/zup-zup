@@ -1,7 +1,5 @@
 package bhoon.sugang_helper.common.util;
 
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -9,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +25,7 @@ class SecurityUtilTest {
     @Test
     @DisplayName("현재 사용자 이메일 추출 성공")
     void getCurrentUserEmail_success() {
-
+        // given
         String email = "test@example.com";
         SecurityContext securityContext = mock(SecurityContext.class);
         Authentication authentication = mock(Authentication.class);
@@ -35,17 +34,20 @@ class SecurityUtilTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
 
+        // when
         String result = SecurityUtil.getCurrentUserEmail();
 
+        // then
         assertThat(result).isEqualTo(email);
     }
 
     @Test
     @DisplayName("인증 정보가 없을 때 예외 발생")
     void getCurrentUserEmail_no_authentication() {
-
+        // given
         SecurityContextHolder.clearContext();
 
+        // when & then
         assertThatThrownBy(SecurityUtil::getCurrentUserEmail)
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AUTHENTICATION_REQUIRED);

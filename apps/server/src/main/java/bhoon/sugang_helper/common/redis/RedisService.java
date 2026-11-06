@@ -2,6 +2,7 @@ package bhoon.sugang_helper.common.redis;
 
 import bhoon.sugang_helper.common.api.cache.RedisAccess;
 import java.time.Duration;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -51,13 +52,13 @@ public class RedisService implements RedisAccess {
     }
 
     public long increment(String key, Duration duration) {
-        Long value = redisTemplate.execute(ATOMIC_INCREMENT_WITH_TTL, java.util.List.of(key),
+        Long value = redisTemplate.execute(ATOMIC_INCREMENT_WITH_TTL, List.of(key),
                 String.valueOf(duration.toMillis()));
         return value == null ? 0 : value;
     }
 
     public boolean compareAndDeleteValues(String key, String expectedValue) {
-        Long value = redisTemplate.execute(COMPARE_AND_DELETE, java.util.List.of(key), expectedValue);
+        Long value = redisTemplate.execute(COMPARE_AND_DELETE, List.of(key), expectedValue);
         return Long.valueOf(1L).equals(value);
     }
 }

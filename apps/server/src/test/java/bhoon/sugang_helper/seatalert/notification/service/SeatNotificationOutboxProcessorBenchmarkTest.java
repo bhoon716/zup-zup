@@ -35,18 +35,25 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
 
     @Mock
     private SeatNotificationOutboxRepository outboxRepository;
+
     @Mock
     private SeatNotificationDeliveryRepository deliveryRepository;
+
     @Mock
     private SubscriptionQueryService subscriptionQueryService;
+
     @Mock
     private UserNotificationQueryService userNotificationQuery;
+
     @Mock
     private NotificationChannelPolicy notificationChannelPolicy;
+
     @Mock
     private NotificationService notificationService;
+
     @Mock
     private SeatNotificationDeliverySettlementService settlementService;
+
     @Mock
     private MeterRegistry meterRegistry;
 
@@ -63,6 +70,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
     @Test
     @DisplayName("[수동] 구독자 1,000명(4,000개 알림 건) 구체화시 saveAll Bulk Save 성능 수동 측정")
     void measureBulkSavePerformance() {
+        // given
         int subscriberCount = 1000;
         String courseKey = "COMP101";
 
@@ -94,6 +102,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
                 .thenReturn(List.of(NotificationTarget.of("target")));
         when(deliveryRepository.existsByOutboxIdAndUserIdAndChannel(anyLong(), anyLong(), any())).thenReturn(false);
 
+        // when
         for (int w = 0; w < 5; w++) {
             processor.materializePendingOutboxes();
         }
@@ -131,6 +140,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
         System.out.printf("• 🚀 DB Save 호출 횟수 감소: %,d 회 ➔ 1 회\n", totalDeliveries);
         System.out.println("==================================================\n");
 
+        // then
         assertThat(totalDeliveries).isEqualTo(4000);
     }
 }

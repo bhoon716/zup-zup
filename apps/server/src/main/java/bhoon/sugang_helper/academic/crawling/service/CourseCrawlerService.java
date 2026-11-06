@@ -2,12 +2,13 @@ package bhoon.sugang_helper.academic.crawling.service;
 
 import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
-import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.dto.diagnostic.CrawlerFailureSummary;
+import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -181,7 +182,7 @@ public class CourseCrawlerService {
 
     private void incrementCounter(String status) {
         if (meterRegistry != null) {
-            io.micrometer.core.instrument.Counter counter = meterRegistry.counter("crawler.runs", "status", status);
+            Counter counter = meterRegistry.counter("crawler.runs", "status", status);
             if (counter != null) {
                 counter.increment();
             }

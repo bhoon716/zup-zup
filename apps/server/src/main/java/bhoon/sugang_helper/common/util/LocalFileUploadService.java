@@ -1,12 +1,11 @@
 package bhoon.sugang_helper.common.util;
 
-import bhoon.sugang_helper.common.api.storage.FileStorage;
-import bhoon.sugang_helper.common.dto.result.SanitizedImage;
-import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
-
-import bhoon.sugang_helper.common.api.storage.LoadedFile;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.storage.FileStorage;
+import bhoon.sugang_helper.common.api.storage.LoadedFile;
+import bhoon.sugang_helper.common.dto.result.SanitizedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -45,8 +44,10 @@ public class LocalFileUploadService implements FileStorage {
             "image/png", MediaType.IMAGE_PNG);
     private final Tika tika = new Tika();
     private final ImageUploadSanitizer imageUploadSanitizer;
+
     @Value("${file.upload.dir:./data/uploads}")
     private String uploadDir;
+
     @Value("${file.upload.orphan-min-age:PT24H}")
     private Duration orphanMinimumAge;
 
@@ -168,16 +169,18 @@ public class LocalFileUploadService implements FileStorage {
     }
 
     public void deleteFilesAfterTransactionRollback(List<String> fileUrls) {
-        if (!fileUrls.isEmpty() && TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCompletion(int status) {
-                    if (status == STATUS_ROLLED_BACK) {
-                        deleteFiles(fileUrls);
-                    }
-                }
-            });
+        if (fileUrls.isEmpty() || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
         }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status != STATUS_ROLLED_BACK) {
+                    return;
+                }
+                deleteFiles(fileUrls);
+            }
+        });
     }
 
     public void deleteOrphanedFiles(Set<String> referencedFileUrls) {

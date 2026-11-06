@@ -1,13 +1,10 @@
 package bhoon.sugang_helper.identity.user.controller;
 
+import bhoon.sugang_helper.identity.auth.service.AuthService;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.dto.command.SendVerificationCodeCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateProfileCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateSettingsCommand;
-import bhoon.sugang_helper.identity.user.dto.result.UserOnboardingResult;
-import bhoon.sugang_helper.identity.user.dto.result.UserProfileResult;
-import bhoon.sugang_helper.identity.user.dto.result.UserProfileUpdateResult;
-import bhoon.sugang_helper.identity.user.dto.result.UserSettingsResult;
 import bhoon.sugang_helper.identity.user.dto.command.VerifyEmailCommand;
 import bhoon.sugang_helper.identity.user.dto.request.EmailRequest;
 import bhoon.sugang_helper.identity.user.dto.request.EmailVerificationRequest;
@@ -15,15 +12,19 @@ import bhoon.sugang_helper.identity.user.dto.request.OnboardingRequest;
 import bhoon.sugang_helper.identity.user.dto.request.UserSettingsRequest;
 import bhoon.sugang_helper.identity.user.dto.request.UserUpdateRequest;
 import bhoon.sugang_helper.identity.user.dto.response.UserResponse;
+import bhoon.sugang_helper.identity.user.dto.result.UserOnboardingResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserProfileResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserProfileUpdateResult;
+import bhoon.sugang_helper.identity.user.dto.result.UserSettingsResult;
 import bhoon.sugang_helper.identity.user.service.DiscordOAuthService;
 import bhoon.sugang_helper.identity.user.service.UserService;
-import bhoon.sugang_helper.identity.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
@@ -51,8 +52,10 @@ public class UserController {
 
     @Value("${app.oauth2.authorized-redirect-uri}")
     private String frontendBaseUrl;
+
     @Value("${app.discord.client-id}")
     private String discordClientId;
+
     @Value("${app.discord.redirect-uri}")
     private String discordRedirectUri;
 
@@ -164,7 +167,7 @@ public class UserController {
             if (code == null || code.isBlank() || state == null || state.isBlank()) {
                 throw new IllegalArgumentException("Discord OAuth callback is missing required parameters");
             }
-            if (expectedState == null || !java.security.MessageDigest.isEqual(
+            if (expectedState == null || !MessageDigest.isEqual(
                     expectedState.getBytes(StandardCharsets.UTF_8), state.getBytes(StandardCharsets.UTF_8))) {
                 throw new IllegalArgumentException("Invalid Discord OAuth state");
             }

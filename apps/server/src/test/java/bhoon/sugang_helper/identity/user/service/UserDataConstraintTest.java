@@ -66,12 +66,14 @@ class UserDataConstraintTest {
     @Test
     @DisplayName("구독은 사용자와 강의 조합 기준으로 중복 저장을 막는다")
     void subscriptionDuplicateConstraint() {
+        // given
         subscriptionRepository.saveAndFlush(Subscription.builder()
                 .userId(1L)
                 .courseKey("COURSE-1")
                 .isActive(true)
                 .build());
 
+        // when & then
         assertThatThrownBy(() -> subscriptionRepository.saveAndFlush(Subscription.builder()
                 .userId(1L)
                 .courseKey("COURSE-1")
@@ -83,12 +85,14 @@ class UserDataConstraintTest {
     @Test
     @DisplayName("기기 토큰은 중복 저장을 막는다")
     void userDeviceDuplicateConstraint() {
+        // given
         userDeviceRepository.saveAndFlush(UserDevice.builder()
                 .userId(1L)
                 .token("token-1")
                 .alias("desktop")
                 .build());
 
+        // when & then
         assertThatThrownBy(() -> userDeviceRepository.saveAndFlush(UserDevice.builder()
                 .userId(2L)
                 .token("token-1")
@@ -100,12 +104,14 @@ class UserDataConstraintTest {
     @Test
     @DisplayName("리뷰는 사용자와 강의 조합 기준으로 중복 저장을 막는다")
     void courseReviewDuplicateConstraint() {
+        // given
         courseReviewRepository.saveAndFlush(CourseReview.builder()
                 .courseKey("COURSE-1")
                 .userId(1L)
                 .rating(5)
                 .build());
 
+        // when & then
         assertThatThrownBy(() -> courseReviewRepository.saveAndFlush(CourseReview.builder()
                 .courseKey("COURSE-1")
                 .userId(1L)
@@ -117,12 +123,14 @@ class UserDataConstraintTest {
     @Test
     @DisplayName("사용자 대표 시간표는 하나만 저장할 수 있다")
     void primaryTimetableDuplicateConstraint() {
+        // given
         timetableRepository.saveAndFlush(Timetable.builder()
                 .userId(1L)
                 .name("대표 1")
                 .isPrimary(true)
                 .build());
 
+        // when & then
         assertThatThrownBy(() -> timetableRepository.saveAndFlush(Timetable.builder()
                 .userId(1L)
                 .name("대표 2")
@@ -134,6 +142,7 @@ class UserDataConstraintTest {
     @Test
     @DisplayName("soft-deleted 사용자는 ID와 이메일 기반 활성 인증 조회에서 제외된다")
     void activeIdentityQueryExcludesSoftDeletedUser() {
+        // given
         String email = "withdrawn@example.com";
         User user = userRepository.saveAndFlush(User.builder()
                 .email(email)
@@ -141,6 +150,7 @@ class UserDataConstraintTest {
                 .role(Role.USER)
                 .build());
 
+        // when & then
         assertThat(userRepository.findByIdAndEmailAndDeletedAtIsNull(user.getId(), email)).contains(user);
 
         user.withdraw();

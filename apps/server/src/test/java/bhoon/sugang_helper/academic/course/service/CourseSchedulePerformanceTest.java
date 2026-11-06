@@ -43,12 +43,14 @@ class CourseSchedulePerformanceTest {
     @Test
     @DisplayName("1. 청크 크기(100개 과목) 성능 측정: 동일한 시간표로 업데이트 시 발생하는 DELETE 및 INSERT 횟수를 측정한다")
     void measureQueryCountOnIdenticalSchedulesUpdate_chunkSize() {
+        // when
         runPerformanceTest(100, "청크 크기(100개 과목)");
     }
 
     @Test
     @DisplayName("2. 전체 학기 크기(5,395개 과목) 성능 측정: 동일한 시간표로 업데이트 시 발생하는 DELETE 및 INSERT 횟수를 측정한다")
     void measureQueryCountOnIdenticalSchedulesUpdate_totalSize() {
+        // when
         runPerformanceTest(5395, "전체 학기 크기(5,395개 과목)");
     }
 

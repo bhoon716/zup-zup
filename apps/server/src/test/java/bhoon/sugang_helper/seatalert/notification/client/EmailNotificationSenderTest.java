@@ -13,8 +13,8 @@ import static org.mockito.Mockito.verify;
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import jakarta.mail.internet.MimeMessage;
@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -35,6 +36,7 @@ class EmailNotificationSenderTest {
 
     @Mock
     private JavaMailSender mailSender;
+
     @Mock
     private EmailTemplateService templateService;
 
@@ -47,15 +49,17 @@ class EmailNotificationSenderTest {
     @Test
     @DisplayName("이메일 발송 성공")
     void send_success() {
-
+        // given
         String to = "recipient@example.com";
         String title = "제목";
         String content = "내용";
         given(mailSender.createMimeMessage()).willReturn(mock(MimeMessage.class));
         given(templateService.loadTemplate(eq("notification"), anyMap())).willReturn("<html>HTML Content</html>");
 
+        // when
         emailNotificationSender.send(NotificationTarget.of(to), title, content);
 
+        // then
         verify(mailSender, times(1)).send(any(MimeMessage.class));
         verify(templateService, times(1)).loadTemplate(eq("notification"), anyMap());
     }
@@ -63,6 +67,7 @@ class EmailNotificationSenderTest {
     @Test
     @DisplayName("이메일 채널 지원 여부 확인")
     void supports_email_channel() {
+        // when & then
         assertThat(emailNotificationSender.supports(NotificationChannel.EMAIL)).isTrue();
         assertThat(emailNotificationSender.supports(NotificationChannel.WEB)).isFalse();
     }
@@ -70,10 +75,11 @@ class EmailNotificationSenderTest {
     @Test
     @DisplayName("이메일 발송 실패 로그와 예외에 수신자 원문을 남기지 않는다")
     void send_failureDoesNotLogOrExposeRecipient() {
+        // given
         String recipient = "recipient@example.com";
         given(mailSender.createMimeMessage()).willReturn(mock(MimeMessage.class));
         given(templateService.loadTemplate(eq("notification"), anyMap())).willReturn("<html>HTML Content</html>");
-        org.mockito.Mockito.doThrow(new RuntimeException("provider rejected " + recipient))
+        Mockito.doThrow(new RuntimeException("provider rejected " + recipient))
                 .when(mailSender).send(any(MimeMessage.class));
         Logger logger = (Logger) LoggerFactory.getLogger(EmailNotificationSender.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
@@ -82,6 +88,7 @@ class EmailNotificationSenderTest {
         appender.start();
         logger.addAppender(appender);
 
+        // when & then
         try {
             assertThatThrownBy(() -> emailNotificationSender.send(NotificationTarget.of(recipient), "제목", "내용"))
                     .hasMessageNotContaining(recipient);

@@ -11,17 +11,19 @@ class UserTest {
     @Test
     @DisplayName("User 생성 테스트")
     void createUser() {
-
+        // given
         String name = "test";
         String email = "test@example.com";
         Role role = Role.USER;
 
+        // when
         User user = User.builder()
                 .name(name)
                 .email(email)
                 .role(role)
                 .build();
 
+        // then
         assertThat(user.getName()).isEqualTo(name);
         assertThat(user.getEmail()).isEqualTo(email);
         assertThat(user.getRole()).isEqualTo(role);
@@ -30,7 +32,7 @@ class UserTest {
     @Test
     @DisplayName("User 정보 수정 테스트")
     void updateUser() {
-
+        // when
         User user = User.builder()
                 .name("test")
                 .email("test@example.com")
@@ -40,13 +42,14 @@ class UserTest {
 
         user.update(newName);
 
+        // then
         assertThat(user.getName()).isEqualTo(newName);
     }
 
     @Test
     @DisplayName("Role Key 조회 테스트")
     void getRoleKey() {
-
+        // when
         User user = User.builder()
                 .name("test")
                 .email("test@example.com")
@@ -55,6 +58,7 @@ class UserTest {
 
         String roleKey = user.getRoleKey();
 
+        // then
         assertThat(roleKey).isEqualTo("ROLE_USER");
     }
 }

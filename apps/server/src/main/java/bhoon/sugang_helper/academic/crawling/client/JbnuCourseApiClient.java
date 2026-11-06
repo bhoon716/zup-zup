@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.zip.GZIPInputStream;
 import lombok.extern.slf4j.Slf4j;
@@ -44,18 +45,25 @@ public class JbnuCourseApiClient implements CourseApiClient {
 
     @Value("${jbnu.api.url}")
     private String apiUrl;
+
     @Value("${jbnu.api.bootstrap-url:" + DEFAULT_BOOTSTRAP_URL + "}")
     private String bootstrapUrl;
+
     @Value("${jbnu.api.cert-division:" + DEFAULT_CERT_DIVISION + "}")
     private String certDivision;
+
     @Value("${jbnu.api.timeout-ms}")
     private int timeoutMs;
+
     @Value("${jbnu.api.max-retries}")
     private int maxRetries;
+
     @Value("${jbnu.api.retry-wait-ms:1000}")
     private int retryWaitMs;
+
     @Value("${jbnu.api.max-response-bytes:10485760}")
     private int maximumResponseBytes;
+
     @Autowired(required = false)
     private MeterRegistry meterRegistry;
 
@@ -274,7 +282,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
         }
         Timer timer = meterRegistry.timer("crawler.upstream.latency");
         if (timer != null) {
-            timer.record(System.nanoTime() - startedAt, java.util.concurrent.TimeUnit.NANOSECONDS);
+            timer.record(System.nanoTime() - startedAt, TimeUnit.NANOSECONDS);
         }
     }
 

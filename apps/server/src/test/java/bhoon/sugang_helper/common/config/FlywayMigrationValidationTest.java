@@ -3,6 +3,7 @@ package bhoon.sugang_helper.common.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import java.util.TreeSet;
 import java.util.function.BooleanSupplier;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -115,7 +117,7 @@ class FlywayMigrationValidationTest {
                         ORDER BY table_name
                         """,
                 resultSet -> {
-                    Map<String, String> collations = new java.util.LinkedHashMap<>();
+                    Map<String, String> collations = new LinkedHashMap<>();
                     while (resultSet.next()) {
                         collations.put(resultSet.getString("TABLE_NAME"), resultSet.getString("COLLATION_NAME"));
                     }
@@ -144,7 +146,9 @@ class FlywayMigrationValidationTest {
     }
 
     @Test
+    @DisplayName("새 MySQL 스키마에 마이그레이션과 수집 기본 설정을 적용한다")
     void freshMySqlSchemaMigratesAndSeedsCrawlerSettings() {
+        // when & then
         try (MySQLContainer<?> mysql = new MySQLContainer<>(MYSQL_IMAGE)
                 .withDatabaseName(DATABASE_NAME)
                 .withUsername(DATABASE_USER)
@@ -241,7 +245,9 @@ class FlywayMigrationValidationTest {
     }
 
     @Test
+    @DisplayName("기존 스키마 이력을 검증한 뒤 새 마이그레이션을 적용한다")
     void existingSchemaHistoryValidatesBeforeApplyingNewMigrations() {
+        // when & then
         try (MySQLContainer<?> mysql = new MySQLContainer<>(MYSQL_IMAGE)
                 .withDatabaseName(DATABASE_NAME)
                 .withUsername(DATABASE_USER)
@@ -263,7 +269,7 @@ class FlywayMigrationValidationTest {
                             WHERE version IS NOT NULL
                             """,
                     resultSet -> {
-                        Map<String, Integer> checksums = new java.util.HashMap<>();
+                        Map<String, Integer> checksums = new HashMap<>();
                         while (resultSet.next()) {
                             checksums.put(resultSet.getString("version"), resultSet.getInt("checksum"));
                         }

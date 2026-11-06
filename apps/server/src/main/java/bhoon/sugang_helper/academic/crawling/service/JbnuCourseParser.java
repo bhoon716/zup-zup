@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -61,7 +62,7 @@ public class JbnuCourseParser {
 
     public Iterator<ParsedCourseDto> streamCourses(InputStream responseStream, String year, String semester) {
         try {
-            String jsonData = new String(responseStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            String jsonData = new String(responseStream.readAllBytes(), StandardCharsets.UTF_8);
             return parseJumpCourses(jsonData, year, semester).iterator();
         } catch (IOException e) {
             throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "Malformed crawler JSON: " + e.getMessage());

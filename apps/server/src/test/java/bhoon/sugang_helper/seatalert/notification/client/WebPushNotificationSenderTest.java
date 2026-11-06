@@ -45,6 +45,7 @@ class WebPushNotificationSenderTest {
     @Test
     @DisplayName("WEB 채널 지원 여부 확인")
     void supports_web_channel() {
+        // when & then
         assertThat(webPushNotificationSender.supports(NotificationChannel.WEB)).isTrue();
         assertThat(webPushNotificationSender.supports(NotificationChannel.EMAIL)).isFalse();
     }
@@ -52,8 +53,11 @@ class WebPushNotificationSenderTest {
     @Test
     @DisplayName("Web Push 성공 로그에 endpoint 원문을 남기지 않는다")
     void send_doesNotLogEndpoint() throws Exception {
+        // given
         String endpoint = "https://fcm.googleapis.com/fcm/send/endpoint-should-not-appear";
         PushService pushService = Mockito.mock(PushService.class);
+
+        // when
         HttpResponse response = Mockito.mock(HttpResponse.class);
         StatusLine statusLine = Mockito.mock(StatusLine.class);
         when(pushService.send(any(Notification.class))).thenReturn(response);
@@ -66,6 +70,7 @@ class WebPushNotificationSenderTest {
         appender.start();
         logger.addAppender(appender);
 
+        // then
         try {
             webPushNotificationSender.send(NotificationTarget.ofWeb(endpoint, generateP256dh(), generateAuth()),
                     "제목", "내용");

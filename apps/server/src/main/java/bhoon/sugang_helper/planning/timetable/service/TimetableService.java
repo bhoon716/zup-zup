@@ -1,21 +1,22 @@
 package bhoon.sugang_helper.planning.timetable.service;
 
-import bhoon.sugang_helper.planning.api.Timetables;
-import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
 import bhoon.sugang_helper.academic.api.catalog.CourseCatalog;
+import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
-import bhoon.sugang_helper.identity.events.UserRegisteredEvent;
 import bhoon.sugang_helper.identity.api.users.Users;
+import bhoon.sugang_helper.identity.events.UserRegisteredEvent;
 import bhoon.sugang_helper.planning.api.PrimaryTimetableSnapshot;
 import bhoon.sugang_helper.planning.api.TimetableCourseScheduleSnapshot;
 import bhoon.sugang_helper.planning.api.TimetableCourseSnapshot;
 import bhoon.sugang_helper.planning.api.TimetableCustomScheduleSnapshot;
 import bhoon.sugang_helper.planning.api.TimetableCustomScheduleTimeSnapshot;
+import bhoon.sugang_helper.planning.api.Timetables;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.TimetableRequest;
+import bhoon.sugang_helper.planning.timetable.dto.response.CustomScheduleResponse;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseResponse;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableDetailResponse;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableResponse;
@@ -105,28 +106,30 @@ public class TimetableService implements Timetables {
         }
 
         return Optional.of(new PrimaryTimetableSnapshot(
-                timetable.getId(),
-                timetable.getName(),
-                timetable.isPrimary(),
-                timetable.getCourses().stream()
-                        .map(course -> new TimetableCourseSnapshot(
-                                course.getCourseKey(), course.getName(), course.getProfessor(), course.getClassTime(),
-                                course.getCredits(), course.getClassification(), course.getClassroom(),
-                                course.getSchedules().stream()
-                                        .map(schedule -> new TimetableCourseScheduleSnapshot(
-                                                schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()))
-                                        .toList()))
-                        .toList(),
-                timetable.getCustomSchedules().stream()
-                        .map(schedule -> new TimetableCustomScheduleSnapshot(
-                                schedule.getId(), schedule.getTitle(), schedule.getProfessor(),
-                                schedule.getSchedules().stream()
-                                        .map(time -> new TimetableCustomScheduleTimeSnapshot(
-                                                time.getId(), time.getDayOfWeek(), time.getStartTime(),
-                                                time.getEndTime(), time.getClassroom()))
-                                        .toList()))
-                        .toList(),
+                timetable.getId(), timetable.getName(), timetable.isPrimary(),
+                timetable.getCourses().stream().map(this::toCourseSnapshot).toList(),
+                timetable.getCustomSchedules().stream().map(this::toCustomScheduleSnapshot).toList(),
                 timetable.getTotalCredits()));
+    }
+
+    private TimetableCourseSnapshot toCourseSnapshot(TimetableCourseResponse course) {
+        return new TimetableCourseSnapshot(
+                course.getCourseKey(), course.getName(), course.getProfessor(), course.getClassTime(),
+                course.getCredits(), course.getClassification(), course.getClassroom(),
+                course.getSchedules().stream()
+                        .map(schedule -> new TimetableCourseScheduleSnapshot(
+                                schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()))
+                        .toList());
+    }
+
+    private TimetableCustomScheduleSnapshot toCustomScheduleSnapshot(CustomScheduleResponse schedule) {
+        return new TimetableCustomScheduleSnapshot(
+                schedule.getId(), schedule.getTitle(), schedule.getProfessor(),
+                schedule.getSchedules().stream()
+                        .map(time -> new TimetableCustomScheduleTimeSnapshot(
+                                time.getId(), time.getDayOfWeek(), time.getStartTime(),
+                                time.getEndTime(), time.getClassroom()))
+                        .toList());
     }
 
     public TimetableDetailResponse getTimetableDetail(Long timetableId) {

@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.identity.user.service;
 
+import bhoon.sugang_helper.common.api.cache.RedisAccess;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.cache.RedisAccess;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.api.templates.EmailTemplates;
 import jakarta.mail.internet.InternetAddress;
@@ -35,8 +35,10 @@ public class EmailVerificationService {
     private final JavaMailSender javaMailSender;
     private final RedisAccess redisService;
     private final EmailTemplates templateService;
+
     @Value("${spring.mail.from}")
     private String from;
+
     @Value("${spring.mail.from-name}")
     private String fromName;
 

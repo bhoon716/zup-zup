@@ -7,8 +7,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
-import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.dto.response.AdminCrawlTargetResponse;
+import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerSetting;
 import bhoon.sugang_helper.academic.crawling.repository.CrawlerSettingRepository;
 import java.util.Optional;
@@ -35,7 +35,7 @@ class CourseCrawlerTargetServiceTest {
     @Test
     @DisplayName("검색 기본 학기는 현재 크롤링 타겟 학기를 따른다")
     void getSearchDefaultSemester_ReturnsCurrentTargetSemester() {
-
+        // given
         CrawlerSetting setting = CrawlerSetting.builder()
                 .targetYear(ACADEMIC_YEAR)
                 .targetSemester(SemesterType.SUMMER_SESSION.getCode())
@@ -43,8 +43,10 @@ class CourseCrawlerTargetServiceTest {
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.of(setting));
         ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
 
+        // when
         var response = crawlerTargetService.getSearchDefaultSemester();
 
+        // then
         assertThat(response.getSemester()).isEqualTo(SemesterType.SUMMER_SESSION.getCode());
         verify(crawlerSettingRepository).findTopByOrderByIdAsc();
     }
@@ -52,13 +54,15 @@ class CourseCrawlerTargetServiceTest {
     @Test
     @DisplayName("DB에 설정이 존재하지 않으면 현재 타겟은 기본 설정값을 조회만 하고 저장하지 않는다")
     void getCurrentTarget_NotFound_ReturnsDefaultValueWithoutSaving() {
-
+        // given
         ReflectionTestUtils.setField(crawlerTargetService, "defaultYear", ACADEMIC_YEAR);
         ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
 
+        // when
         AdminCrawlTargetResponse response = crawlerTargetService.getCurrentTarget();
 
+        // then
         assertThat(response.getYear()).isEqualTo(ACADEMIC_YEAR);
         assertThat(response.getSemester()).isEqualTo(SemesterType.FIRST_SEMESTER.getCode());
         verify(crawlerSettingRepository, never()).save(any(CrawlerSetting.class));
@@ -67,13 +71,15 @@ class CourseCrawlerTargetServiceTest {
     @Test
     @DisplayName("DB에 설정이 존재하지 않으면 검색 기본 학기도 기본값을 조회만 하고 저장하지 않는다")
     void getSearchDefaultSemester_NotFound_ReturnsDefaultValueWithoutSaving() {
-
+        // given
         ReflectionTestUtils.setField(crawlerTargetService, "defaultYear", ACADEMIC_YEAR);
         ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
 
+        // when
         var response = crawlerTargetService.getSearchDefaultSemester();
 
+        // then
         assertThat(response.getSemester()).isEqualTo(SemesterType.FIRST_SEMESTER.getCode());
         verify(crawlerSettingRepository, never()).save(any(CrawlerSetting.class));
     }
@@ -81,13 +87,15 @@ class CourseCrawlerTargetServiceTest {
     @Test
     @DisplayName("DB에 설정이 존재하지 않으면 현재 타겟 원시 값도 기본값을 조회만 하고 저장하지 않는다")
     void getCurrentTargetValue_NotFound_ReturnsDefaultValueWithoutSaving() {
-
+        // given
         ReflectionTestUtils.setField(crawlerTargetService, "defaultYear", ACADEMIC_YEAR);
         ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
 
+        // when
         CrawlTargetInfo targetInfo = crawlerTargetService.getCurrentTargetValue();
 
+        // then
         assertThat(targetInfo.year()).isEqualTo(ACADEMIC_YEAR);
         assertThat(targetInfo.semester()).isEqualTo(SemesterType.FIRST_SEMESTER);
         verify(crawlerSettingRepository, never()).save(any(CrawlerSetting.class));
@@ -96,15 +104,17 @@ class CourseCrawlerTargetServiceTest {
     @Test
     @DisplayName("현재 타겟의 원시 값(Record)을 정상적으로 조회한다")
     void getCurrentTargetValue_Success() {
-
+        // given
         CrawlerSetting setting = CrawlerSetting.builder()
                 .targetYear(ACADEMIC_YEAR)
                 .targetSemester(SemesterType.WINTER_SESSION.getCode())
                 .build();
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.of(setting));
 
+        // when
         CrawlTargetInfo targetInfo = crawlerTargetService.getCurrentTargetValue();
 
+        // then
         assertThat(targetInfo.year()).isEqualTo(ACADEMIC_YEAR);
         assertThat(targetInfo.semester()).isEqualTo(SemesterType.WINTER_SESSION);
     }

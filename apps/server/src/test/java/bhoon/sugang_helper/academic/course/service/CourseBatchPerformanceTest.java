@@ -45,6 +45,7 @@ class CourseBatchPerformanceTest {
     @Test
     @DisplayName("변경 없는 강의 1,000개 배치 업데이트 시 Entity Update 발생 0건 및 속도 비교")
     void measureUnchangedCoursesUpdatePerformance() {
+        // given
         int courseCount = 1000;
         List<Course> existingCourses = new ArrayList<>();
 
@@ -104,6 +105,7 @@ class CourseBatchPerformanceTest {
         log.info("개선 전 예상 Entity Update 쿼리 수: {}", courseCount);
         log.info("==================================================================");
 
+        // when & then
         assertThat(updateCount).isZero();
     }
 }

@@ -13,6 +13,7 @@ import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
 import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,13 +24,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class UserNotificationTestServiceTest {
 
     private static final String EMAIL = "module@example.invalid";
+
     @Mock private NotificationRecipients recipients;
+
     @Mock private NotificationService notifications;
+
     @InjectMocks private UserNotificationTestService service;
 
     @Test
+    @DisplayName("인증된 활성 수신자에게 테스트 알림을 요청한다")
     void sendsForTheAuthenticatedActiveRecipient() {
+        // given
         given(recipients.findByEmail(EMAIL)).willReturn(Optional.of(recipient(false, true)));
+
+        // when & then
         try (var security = mockStatic(SecurityUtil.class)) {
             security.when(SecurityUtil::getCurrentUserEmail).thenReturn(EMAIL);
 
@@ -40,8 +48,12 @@ class UserNotificationTestServiceTest {
     }
 
     @Test
+    @DisplayName("활성 채널이 없으면 발송 전에 거부한다")
     void rejectsDisabledChannelsBeforeSending() {
+        // given
         given(recipients.findByEmail(EMAIL)).willReturn(Optional.of(recipient(false, false)));
+
+        // when & then
         try (var security = mockStatic(SecurityUtil.class)) {
             security.when(SecurityUtil::getCurrentUserEmail).thenReturn(EMAIL);
 
@@ -53,8 +65,12 @@ class UserNotificationTestServiceTest {
     }
 
     @Test
+    @DisplayName("탈퇴한 수신자의 테스트 알림을 거부한다")
     void rejectsWithdrawnRecipients() {
+        // given
         given(recipients.findByEmail(EMAIL)).willReturn(Optional.of(recipient(true, true)));
+
+        // when & then
         try (var security = mockStatic(SecurityUtil.class)) {
             security.when(SecurityUtil::getCurrentUserEmail).thenReturn(EMAIL);
 
@@ -66,8 +82,12 @@ class UserNotificationTestServiceTest {
     }
 
     @Test
+    @DisplayName("존재하지 않는 수신자의 테스트 알림을 거부한다")
     void rejectsMissingRecipients() {
+        // given
         given(recipients.findByEmail(EMAIL)).willReturn(Optional.empty());
+
+        // when & then
         try (var security = mockStatic(SecurityUtil.class)) {
             security.when(SecurityUtil::getCurrentUserEmail).thenReturn(EMAIL);
 

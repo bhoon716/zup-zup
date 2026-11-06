@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.task.ThreadPoolTaskSchedulerBuilder;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -39,8 +40,9 @@ class SchedulerDelayTest {
     private final AtomicInteger maximumActiveTasks = new AtomicInteger();
 
     @Test
+    @DisplayName("느린 수집 중에는 발송·상태 확인이 겹치지 않고 이후 함께 회복한다")
     void slowCrawlDelaysOutboxAndFreshnessChecksWithoutOverlapAndBothRecover() throws Exception {
-
+        // given
         CourseCrawlFetcher fetcher = mock(CourseCrawlFetcher.class);
         CourseCrawlCompletionService completion = mock(CourseCrawlCompletionService.class);
         CourseCrawlerTargetService targetService = mock(CourseCrawlerTargetService.class);
@@ -68,6 +70,8 @@ class SchedulerDelayTest {
         when(runState.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
 
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
+
+        // when & then
         try {
             CourseCrawlerService crawler = new CourseCrawlerService(fetcher, completion, targetService, runState, registry);
             ReflectionTestUtils.setField(crawler, "staleThresholdMinutes", 15L);

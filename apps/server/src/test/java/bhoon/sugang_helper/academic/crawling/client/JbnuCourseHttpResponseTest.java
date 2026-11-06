@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPOutputStream;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,58 +22,71 @@ class JbnuCourseHttpResponseTest {
     private final JbnuCourseApiClient client = new JbnuCourseApiClient();
 
     @Test
+    @DisplayName("크기 경계의 JSON은 예상과 다른 Content-Type이어도 읽는다")
     void readsJsonWithUnexpectedContentTypeAtTheSizeLimit() throws IOException {
-
+        // given
         byte[] json = "{\"dsEstSbjList\":[]}".getBytes(StandardCharsets.UTF_8);
         MockClientHttpResponse response = new MockClientHttpResponse(json, HttpStatus.OK);
         response.getHeaders().set(HttpHeaders.CONTENT_TYPE, "text/html;charset=UTF-8");
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, json.length);
 
+        // when
         byte[] actual = client.readResponse(response);
 
+        // then
         assertThat(actual).isEqualTo(json);
     }
 
     @Test
+    @DisplayName("응답을 읽는 중 크기 제한을 넘으면 거부한다")
     void rejectsAnOversizedResponseWhileReading() {
-
+        // given
         MockClientHttpResponse response = new MockClientHttpResponse(new byte[11], HttpStatus.OK);
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, 10);
 
+        // when & then
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOf(IOException.class)
                 .hasMessageContaining("maximum size");
     }
 
     @Test
+    @DisplayName("gzip 압축을 해제한 본문을 반환한다")
     void decodesGzipBeforeReturningTheBody() throws IOException {
-
+        // given
         byte[] json = "{\"dsEstSbjList\":[]}".getBytes(StandardCharsets.UTF_8);
+
+        // when
         MockClientHttpResponse response = gzipResponse(json);
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, json.length);
 
         byte[] actual = client.readResponse(response);
 
+        // then
         assertThat(actual).isEqualTo(json);
     }
 
     @Test
+    @DisplayName("gzip 응답은 압축 해제된 본문의 크기도 제한한다")
     void limitsTheDecompressedSizeOfGzipResponses() throws IOException {
-
+        // when
         MockClientHttpResponse response = gzipResponse(new byte[1_000]);
         ReflectionTestUtils.setField(client, MAXIMUM_RESPONSE_BYTES_FIELD, 100);
 
+        // then
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOf(IOException.class)
                 .hasMessageContaining("maximum size");
     }
 
     @Test
+    @DisplayName("HTTP 실패 상태는 유지하되 응답 본문은 보존하지 않는다")
     void preservesAnHttpFailureStatusWithoutKeepingItsBody() {
-
+        // given
         MockClientHttpResponse response = new MockClientHttpResponse(
                 "upstream secret".getBytes(StandardCharsets.UTF_8), HttpStatus.SERVICE_UNAVAILABLE);
 
+        // when & then
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOfSatisfying(RestClientResponseException.class, exception -> {
                     assertThat(exception.getStatusCode().value()).isEqualTo(503);

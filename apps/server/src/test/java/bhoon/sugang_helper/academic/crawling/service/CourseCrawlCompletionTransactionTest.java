@@ -7,11 +7,11 @@ import static org.mockito.Mockito.doThrow;
 
 import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
-import bhoon.sugang_helper.academic.events.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogSynchronizationService;
 import bhoon.sugang_helper.academic.crawling.repository.CrawlerStatusRepository;
+import bhoon.sugang_helper.academic.events.SeatOpenedEvent;
 import bhoon.sugang_helper.common.alert.SlackAlertService;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxService;
@@ -27,8 +27,8 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -44,21 +44,28 @@ class CourseCrawlCompletionTransactionTest {
 
     @Autowired
     private PlatformTransactionManager transactionManager;
+
     @Autowired
     private CourseCrawlCompletionService completionService;
+
     @Autowired
     private SeatNotificationOutboxService outboxService;
+
     @Autowired
     private CourseRepository courseRepository;
+
     @Autowired
     private CourseSeatHistoryRepository courseSeatHistoryRepository;
+
     @Autowired
     private CrawlerStatusRepository crawlerStatusRepository;
+
     @MockitoSpyBean
     private SeatNotificationOutboxRepository outboxRepository;
 
     @MockitoBean
     private MeterRegistry meterRegistry;
+
     @MockitoBean
     private SlackAlertService slackAlertService;
 
@@ -73,12 +80,16 @@ class CourseCrawlCompletionTransactionTest {
     @Test
     @DisplayName("강의 반영, 좌석 이력, 크롤링 성공 상태와 알림 outbox가 함께 커밋된다")
     void commitsCatalogStateCrawlerStatusAndNotificationOutboxTogether() {
+        // given
         courseRepository.saveAndFlush(fullCourse());
 
+        // when
         new TransactionTemplate(transactionManager).executeWithoutResult(status ->
                 completionService.complete(List.of(parsedCourseWithAvailableSeat())));
 
         Course updated = courseRepository.findByCourseKey(COURSE_KEY).orElseThrow();
+
+        // then
         assertThat(updated.getCurrent()).isEqualTo(59);
         assertThat(courseSeatHistoryRepository.count()).isEqualTo(1);
         assertThat(crawlerStatusRepository.findById(1L))
@@ -95,13 +106,16 @@ class CourseCrawlCompletionTransactionTest {
     @Test
     @DisplayName("동기화 트랜잭션이 롤백되면 강의, 좌석 이력, 성공 상태와 알림 outbox가 남지 않는다")
     void rollsBackCatalogStateCrawlerStatusAndNotificationOutboxTogether() {
+        // given
         courseRepository.saveAndFlush(fullCourse());
 
+        // when
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             completionService.complete(List.of(parsedCourseWithAvailableSeat()));
             status.setRollbackOnly();
         });
 
+        // then
         Course unchanged = courseRepository.findByCourseKey(COURSE_KEY).orElseThrow();
         assertThat(unchanged.getCurrent()).isEqualTo(60);
         assertThat(courseSeatHistoryRepository.count()).isZero();
@@ -112,7 +126,7 @@ class CourseCrawlCompletionTransactionTest {
     @Test
     @DisplayName("다음 청크의 outbox 저장이 실패하면 앞 청크에 저장한 강의와 좌석 이력도 롤백한다")
     void outboxFailureRollsBackPreviouslyWrittenChunksAndCrawlerSuccess() {
-
+        // given
         courseRepository.saveAndFlush(fullCourse());
         List<ParsedCourseDto> courses = new ArrayList<>();
         for (int index = 0; index < 100; index++) {
@@ -121,6 +135,7 @@ class CourseCrawlCompletionTransactionTest {
         courses.add(parsedCourseWithAvailableSeat());
         doThrow(new IllegalStateException("outbox write failed")).when(outboxRepository).save(any());
 
+        // when & then
         assertThatThrownBy(() -> completionService.complete(courses))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("outbox write failed");
@@ -132,10 +147,12 @@ class CourseCrawlCompletionTransactionTest {
     }
 
     @Test
+    @DisplayName("강의 트랜잭션 밖에서는 Outbox 저장을 거부한다")
     void rejectsEnqueueOutsideTheCatalogTransaction() {
-
+        // given
         SeatOpenedEvent event = new SeatOpenedEvent(COURSE_KEY, COURSE_NAME, "김교수", 0, 1);
 
+        // when & then
         assertThatThrownBy(() -> outboxService.enqueue(event))
                 .isInstanceOf(IllegalTransactionStateException.class);
         assertThat(outboxRepository.count()).isZero();

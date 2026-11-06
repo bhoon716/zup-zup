@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class UserOAuthIdentityTest {
 
     @Test
+    @DisplayName("탈퇴는 명시적 재가입을 위해 OAuth 식별자를 해제한다")
     void withdrawalReleasesOAuthIdentityForAnExplicitRejoin() {
+        // given
         User user = User.builder()
                 .id(1L)
                 .email("user@example.com")
@@ -21,6 +24,7 @@ class UserOAuthIdentityTest {
 
         user.withdraw();
 
+        // when & then
         assertThat(user.isDeleted()).isTrue();
         assertThat(user.hasOAuthIdentity()).isFalse();
         assertThat(user.getOauthIssuer()).isNull();

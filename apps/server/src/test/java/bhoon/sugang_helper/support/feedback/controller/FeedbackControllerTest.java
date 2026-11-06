@@ -9,6 +9,7 @@ import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.support.feedback.service.FeedbackService;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -34,11 +35,14 @@ class FeedbackControllerTest {
     }
 
     @Test
+    @DisplayName("잘못된 피드백 JSON은 잘못된 요청으로 응답한다")
     void malformedFeedbackJsonReturnsBadRequest() throws Exception {
+        // given
         MockMultipartFile feedback = new MockMultipartFile(
                 "feedback", "feedback.json", MediaType.APPLICATION_JSON_VALUE,
                 "{\"type\":\"BUG\"".getBytes(StandardCharsets.UTF_8));
 
+        // when & then
         mockMvc.perform(multipart("/api/v1/feedbacks").file(feedback))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("G002"));

@@ -16,6 +16,7 @@ import jakarta.servlet.FilterChain;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -38,10 +39,15 @@ class SessionAuthenticationFilterTest {
     private static final String EMAIL = "user@example.com";
     private static final String USER_ROLE = "ROLE_USER";
     private static final String ADMIN_ROLE = "ROLE_ADMIN";
+
     @Mock private UserIdentityQueryService userIdentityQuery;
+
     @Mock private SecurityContextRepository contexts;
+
     @Mock private HttpSessionIdResolver sessionIds;
+
     @Mock private FilterChain chain;
+
     private SessionAuthenticationFilter filter;
 
     @BeforeEach
@@ -55,28 +61,36 @@ class SessionAuthenticationFilterTest {
     }
 
     @Test
+    @DisplayName("임의 Bearer 헤더는 인증을 생성하지 않는다")
     void arbitraryBearerHeaderDoesNotCreateAuthentication() throws Exception {
+        // given
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.addHeader("Authorization", "Bearer ignored-legacy-credential");
 
+        // when
         filter.doFilter(request, response, chain);
 
+        // then
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         verifyNoInteractions(userIdentityQuery, contexts, sessionIds);
         verify(chain).doFilter(request, response);
     }
 
     @Test
+    @DisplayName("매 요청은 활성 사용자와 현재 권한을 쓰고 쿠키를 재발급하지 않는다")
     void everyRequestUsesTheActiveUserAndCurrentRoleWithoutReissuingTheCookie() throws Exception {
+        // given
         MockHttpServletRequest request = authenticatedRequest(ADMIN_ROLE);
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.getSession().setMaxInactiveInterval(2_592_000);
         given(userIdentityQuery.findAuthenticatedUser(1L, EMAIL))
                 .willReturn(Optional.of(new AuthenticatedUser(1L, EMAIL, USER_ROLE)));
 
+        // when
         filter.doFilter(request, response, chain);
 
+        // then
         ArgumentCaptor<SecurityContext> current = ArgumentCaptor.forClass(SecurityContext.class);
         verify(contexts).saveContext(current.capture(), eq(request), eq(response));
         assertThat(current.getValue().getAuthentication().getAuthorities())
@@ -87,14 +101,18 @@ class SessionAuthenticationFilterTest {
     }
 
     @Test
+    @DisplayName("탈퇴·재가입 사용자는 예전 식별 정보를 재사용할 수 없다")
     void withdrawnOrRejoinedUserCannotReuseTheOldIdentity() throws Exception {
+        // given
         MockHttpServletRequest request = authenticatedRequest(USER_ROLE);
         MockHttpSession session = (MockHttpSession) request.getSession();
         MockHttpServletResponse response = new MockHttpServletResponse();
         given(userIdentityQuery.findAuthenticatedUser(1L, EMAIL)).willReturn(Optional.empty());
 
+        // when
         filter.doFilter(request, response, chain);
 
+        // then
         assertThat(session.isInvalid()).isTrue();
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         verify(sessionIds).expireSession(request, response);
@@ -103,15 +121,19 @@ class SessionAuthenticationFilterTest {
     }
 
     @Test
+    @DisplayName("DB 오류는 접근을 차단하되 저장된 세션은 삭제하지 않는다")
     void databaseFailureFailsClosedWithoutDeletingTheStoredSession() throws Exception {
+        // given
         MockHttpServletRequest request = authenticatedRequest(USER_ROLE);
         MockHttpSession session = (MockHttpSession) request.getSession();
         MockHttpServletResponse response = new MockHttpServletResponse();
         given(userIdentityQuery.findAuthenticatedUser(1L, EMAIL))
                 .willThrow(new DataAccessResourceFailureException("unavailable"));
 
+        // when
         filter.doFilter(request, response, chain);
 
+        // then
         assertUnavailable(response);
         assertThat(session.isInvalid()).isFalse();
         SecurityContext stored = (SecurityContext) session
@@ -122,15 +144,19 @@ class SessionAuthenticationFilterTest {
     }
 
     @Test
+    @DisplayName("Redis 읽기 오류는 브라우저 쿠키를 지우지 않고 접근을 차단한다")
     void redisReadFailureFailsClosedWithoutClearingTheBrowserCookie() throws Exception {
+        // given
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         SecurityContextHolder.setDeferredContext(() -> {
             throw new RedisConnectionFailureException("unavailable");
         });
 
+        // when
         filter.doFilter(request, response, chain);
 
+        // then
         assertUnavailable(response);
         verifyNoInteractions(userIdentityQuery, chain, sessionIds, contexts);
     }

@@ -2,13 +2,14 @@ package bhoon.sugang_helper.academic.course.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.dto.criteria.CourseSelectedSchedule;
+import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.entity.CourseSchedule;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;
+import bhoon.sugang_helper.planning.wishlist.repository.WishlistCourseSearch;
 import bhoon.sugang_helper.planning.wishlist.repository.WishlistRepository;
 import java.time.LocalTime;
 import java.util.List;
@@ -19,7 +20,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import bhoon.sugang_helper.planning.wishlist.repository.WishlistCourseSearch;
 import org.springframework.data.domain.PageRequest;
 
 @DataJpaTest
@@ -48,7 +48,7 @@ class CourseSearchReadRepositoryTest {
     @Test
     @DisplayName("교수명에 여러 값을 입력하면 OR 조건으로 검색한다")
     void searchCourses_matchesMultipleProfessorsWithOr() {
-
+        // given
         saveCourse("CK1", ALG, "김교수", CS);
         saveCourse("CK2", DS, "이교수", EE);
         saveCourse("CK3", OS, "박교수", ME);
@@ -58,8 +58,10 @@ class CourseSearchReadRepositoryTest {
                 .sortBy(NAME_SORT)
                 .build();
 
+        // when
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
 
+        // then
         assertThat(response.getContent())
                 .extracting(Course::getName)
                 .containsExactlyInAnyOrder(ALG, OS);
@@ -68,7 +70,7 @@ class CourseSearchReadRepositoryTest {
     @Test
     @DisplayName("학과명에 여러 값을 입력하면 OR 조건으로 검색한다")
     void searchCourses_matchesMultipleDepartmentsWithOr() {
-
+        // given
         saveCourse("CK1", ALG, "김교수", CS);
         saveCourse("CK2", DS, "이교수", EE);
         saveCourse("CK3", OS, "박교수", ME);
@@ -78,8 +80,10 @@ class CourseSearchReadRepositoryTest {
                 .sortBy(NAME_SORT)
                 .build();
 
+        // when
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
 
+        // then
         assertThat(response.getContent())
                 .extracting(Course::getName)
                 .containsExactlyInAnyOrder(DS, OS);
@@ -88,16 +92,18 @@ class CourseSearchReadRepositoryTest {
     @Test
     @DisplayName("통합 검색어는 강의명 부분 일치 또는 정규화된 학수번호 완전 일치로 검색한다")
     void searchCourses_matchesKeywordByNameOrStdtrNo() {
-
+        // given
         saveCourseWithStdtrNo("CK1", ALG, "GECO178");
         saveCourseWithStdtrNo("CK2", DS, "CSE101");
         saveCourseWithStdtrNo("CK3", OS, null);
 
+        // when
         var byStdtrNo = courseSearchReadRepository.searchCourses(
                 baseCondition().keyword(" geco178 ").sortBy(NAME_SORT).build(), PageRequest.of(0, 10));
         var byName = courseSearchReadRepository.searchCourses(
                 baseCondition().keyword("자료").sortBy(NAME_SORT).build(), PageRequest.of(0, 10));
 
+        // then
         assertThat(byStdtrNo.getContent()).extracting(Course::getName).containsExactly(ALG);
         assertThat(byName.getContent()).extracting(Course::getName).containsExactly(DS);
     }
@@ -105,7 +111,7 @@ class CourseSearchReadRepositoryTest {
     @Test
     @DisplayName("인기순 정렬은 찜 수 내림차순으로 정렬하고 찜이 없는 강의도 포함한다")
     void searchCourses_sortsByPopularityWithoutFilteringUnwishedCourses() {
-
+        // given
         saveCourse("CK1", ALG, "김교수", CS);
         saveCourse("CK2", DS, "이교수", CS);
         saveCourse("CK3", OS, "박교수", CS);
@@ -118,8 +124,10 @@ class CourseSearchReadRepositoryTest {
                 .sortBy("popular")
                 .build();
 
+        // when
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
 
+        // then
         assertThat(response.getContent())
                 .extracting(Course::getName)
                 .containsExactly(DS, ALG, OS);
@@ -128,6 +136,7 @@ class CourseSearchReadRepositoryTest {
     @Test
     @DisplayName("찜한 강의만 보기는 현재 사용자의 찜 목록과 일치하는 강의를 반환한다")
     void searchCourses_filtersToCurrentUsersWishlist() {
+        // given
         saveCourse("CK1", ALG, "김교수", CS);
         saveCourse("CK2", DS, "이교수", CS);
         saveWishlist(7L, "CK1");
@@ -138,8 +147,10 @@ class CourseSearchReadRepositoryTest {
                 .sortBy(NAME_SORT)
                 .build();
 
+        // when
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
 
+        // then
         assertThat(response.getContent()).extracting(Course::getName).containsExactly(ALG);
     }
 
@@ -147,7 +158,7 @@ class CourseSearchReadRepositoryTest {
     @ValueSource(strings = {"popular", "wishlist", "wishlistCount", "wishlist_count", "wished"})
     @DisplayName("찜순 정렬 별칭은 canonical popular로 정규화되어 찜 수 내림차순으로 정렬한다")
     void searchCourses_sortsByCanonicalizedWishlistAliases(String sortAlias) {
-
+        // given
         saveCourse("CK1", ALG, "김교수", CS);
         saveCourse("CK2", DS, "이교수", CS);
         saveCourse("CK3", OS, "박교수", CS);
@@ -163,8 +174,10 @@ class CourseSearchReadRepositoryTest {
                 .build()
                 .toCriteria(null);
 
+        // when
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
 
+        // then
         assertThat(condition.sortBy()).isEqualTo("popular");
         assertThat(response.getContent())
                 .extracting(Course::getName)
@@ -174,7 +187,7 @@ class CourseSearchReadRepositoryTest {
     @Test
     @DisplayName("평점 정렬은 평점 내림차순, 리뷰 개수 내림차순, 과목 키 오름차순으로 정렬한다")
     void searchCourses_sortsByRating() {
-
+        // given
         courseRepository.save(Course.builder()
                 .courseKey("CK1").subjectCode("CK1").name(ALG).classNumber("1")
                 .academicYear(ACADEMIC_YEAR).semester(SEMESTER_CODE)
@@ -193,8 +206,10 @@ class CourseSearchReadRepositoryTest {
                 .sortOrder("desc")
                 .build();
 
+        // when
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
 
+        // then
         assertThat(response.getContent())
                 .extracting(Course::getName)
                 .containsExactly(OS, ALG, DS);
@@ -203,7 +218,7 @@ class CourseSearchReadRepositoryTest {
     @Test
     @DisplayName("여석 정렬은 여석(정원-신청인원) 내림차순, 과목명 오름차순, 과목 키 오름차순으로 정렬한다")
     void searchCourses_sortsByAvailableSeats() {
-
+        // given
         courseRepository.save(Course.builder()
                 .courseKey("CK1").subjectCode("CK1").name(ALG).classNumber("1")
                 .academicYear(ACADEMIC_YEAR).semester(SEMESTER_CODE)
@@ -230,8 +245,10 @@ class CourseSearchReadRepositoryTest {
                 .sortOrder("desc")
                 .build();
 
+        // when
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
 
+        // then
         assertThat(response.getContent())
                 .extracting(Course::getName)
                 .containsExactly(ALG, "네트워크", OS, DS);
@@ -284,7 +301,7 @@ class CourseSearchReadRepositoryTest {
     @Test
     @DisplayName("연속된 공강 슬롯이 선택되었을 때, 해당 연속된 시간대 내에 속하는 긴 강의를 검색한다")
     void searchCourses_matchesContiguousFreeTimeSlots() {
-
+        // given
         Course course = Course.builder()
                 .courseKey("CK_CT")
                 .subjectCode("CK_CT")
@@ -314,8 +331,10 @@ class CourseSearchReadRepositoryTest {
                 ))
                 .build();
 
+        // when
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
 
+        // then
         assertThat(response.getContent())
                 .extracting(Course::getName)
                 .containsExactly("긴강의");
@@ -324,7 +343,7 @@ class CourseSearchReadRepositoryTest {
     @Test
     @DisplayName("여러 개의 요일별 공강이 선택되었을 때, 모든 수업 요일/시간이 공강 내에 포함되는지 확인한다")
     void searchCourses_matchesMultipleSchedules() {
-
+        // given
         Course course1 = Course.builder()
                 .courseKey("CK_MULT")
                 .subjectCode("CK_MULT")
@@ -371,8 +390,10 @@ class CourseSearchReadRepositoryTest {
                 ))
                 .build();
 
+        // when
         var response = courseSearchReadRepository.searchCourses(condition, PageRequest.of(0, 10));
 
+        // then
         assertThat(response.getContent())
                 .extracting(Course::getName)
                 .containsExactly("여러시간강의");

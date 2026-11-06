@@ -249,14 +249,6 @@ export interface UserDeviceResponse {
   registeredAt: string;
 }
 
-export interface AdminDashboardResponse {
-  totalUsers: number;
-  totalActiveSubscriptions: number;
-  todayNotificationCount: number;
-  crawlingStatus: string;
-  lastCrawledAt: string | null;
-}
-
 export interface AdminTrafficPointResponse {
   label: string;
   count: number;

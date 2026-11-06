@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.academic.course.repository;
 
 import static bhoon.sugang_helper.academic.course.entity.QCourse.course;
-import bhoon.sugang_helper.academic.api.search.CourseWishlistQuery;
 
+import bhoon.sugang_helper.academic.api.search.CourseWishlistQuery;
 import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.enums.CourseClassification;

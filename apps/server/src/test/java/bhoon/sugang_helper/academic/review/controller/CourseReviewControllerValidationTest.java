@@ -12,6 +12,7 @@ import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,7 +44,9 @@ class CourseReviewControllerValidationTest {
     }
 
     @Test
+    @DisplayName("잘못된 페이지 요청은 서비스 호출 전에 거부한다")
     void rejectsInvalidPageWithoutInvokingService() throws Exception {
+        // when & then
         mockMvc.perform(get(REVIEWS_PATH).param("page", "-1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT.getCode()));
@@ -52,7 +55,9 @@ class CourseReviewControllerValidationTest {
     }
 
     @Test
+    @DisplayName("지원하지 않는 정렬 방향은 서비스 호출 전에 거부한다")
     void rejectsUnsupportedSortDirectionWithoutInvokingService() throws Exception {
+        // when & then
         mockMvc.perform(get(REVIEWS_PATH).param("sort", "createdAt,unsupported"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT.getCode()));
@@ -61,7 +66,9 @@ class CourseReviewControllerValidationTest {
     }
 
     @Test
+    @DisplayName("빈 정렬 속성은 서비스 호출 전에 거부한다")
     void rejectsBlankSortPropertyWithoutInvokingService() throws Exception {
+        // when & then
         mockMvc.perform(get(REVIEWS_PATH).param("sort", ",desc"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT.getCode()));
@@ -70,11 +77,14 @@ class CourseReviewControllerValidationTest {
     }
 
     @Test
+    @DisplayName("기본 페이지와 정렬 요청을 허용한다")
     void acceptsDefaultPaginationAndSort() throws Exception {
+        // given
         PageRequest pageRequest = PageRequest.of(0, 30, Sort.by(Sort.Direction.DESC, "createdAt"));
         when(reviewService.getReviews(COURSE_KEY, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(), pageRequest, 0));
 
+        // when & then
         mockMvc.perform(get(REVIEWS_PATH))
                 .andExpect(status().isOk());
 
@@ -82,11 +92,15 @@ class CourseReviewControllerValidationTest {
     }
 
     @ParameterizedTest
+    @DisplayName("클라이언트의 크기는 무시하고 페이지 번호와 정렬은 유지한다")
     @ValueSource(strings = {"1", "100", "-1", "0", "invalid"})
     void ignoresClientSizeAndPreservesPageAndSort(String size) throws Exception {
+        // given
         PageRequest pageRequest = PageRequest.of(2, 30, Sort.by(Sort.Direction.ASC, "createdAt"));
         when(reviewService.getReviews(COURSE_KEY, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(), pageRequest, 100));
+
+        // when & then
         mockMvc.perform(get(REVIEWS_PATH).param("size", size).param("page", "2")
                         .param("sort", "createdAt,asc"))
                 .andExpect(status().isOk())

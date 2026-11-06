@@ -1,12 +1,11 @@
 package bhoon.sugang_helper.common.security;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -15,29 +14,28 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import bhoon.sugang_helper.audit.controller.AdminActionLogController;
-import bhoon.sugang_helper.audit.service.AdminAuditService;
 import bhoon.sugang_helper.admin.controller.AdminController;
 import bhoon.sugang_helper.admin.service.AdminService;
+import bhoon.sugang_helper.audit.controller.AdminActionLogController;
+import bhoon.sugang_helper.audit.service.AdminAuditService;
 import bhoon.sugang_helper.campus.announcement.controller.AnnouncementController;
 import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
-import bhoon.sugang_helper.identity.auth.controller.AuthController;
-import bhoon.sugang_helper.identity.auth.service.AuthService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.test.web.servlet.MvcResult;
-import bhoon.sugang_helper.identity.auth.config.SecurityConfig;
-import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
-import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
+import bhoon.sugang_helper.identity.auth.config.SecurityConfig;
+import bhoon.sugang_helper.identity.auth.controller.AuthController;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2FailureHandler;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2SuccessHandler;
+import bhoon.sugang_helper.identity.auth.service.AuthService;
+import bhoon.sugang_helper.identity.auth.service.SessionPrincipal;
+import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
+import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.seatalert.notification.controller.AdminNotificationDeliveryController;
 import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
@@ -45,9 +43,12 @@ import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
 import bhoon.sugang_helper.support.feedback.controller.FeedbackController;
 import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
 import bhoon.sugang_helper.support.feedback.service.FeedbackService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Optional;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Page;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -63,22 +64,22 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import bhoon.sugang_helper.identity.auth.service.SessionPrincipal;
-import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
-import org.springframework.session.web.http.CookieSerializer;
-import java.util.Optional;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.unit.DataSize;
 
 @SpringBootTest(classes = SecurityRequestAuthorizationTest.TestApplication.class)
@@ -105,34 +106,50 @@ class SecurityRequestAuthorizationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
     @Autowired private ObjectMapper objectMapper;
+
     @Autowired private CsrfTokenRepository csrfTokenRepository;
+
     @MockitoBean private AuthService authService;
+
     @Autowired
     private MultipartProperties multipartProperties;
+
     @MockitoBean
     private CookieSerializer cookieSerializer;
+
     @MockitoBean
     private AdminService adminService;
+
     @MockitoBean
     private AdminAuditService adminAuditService;
+
     @MockitoBean
     private AdminNotificationDeliveryService adminNotificationDeliveryService;
+
     @MockitoBean
     private AnnouncementService announcementService;
+
     @MockitoBean
     private FeedbackService feedbackService;
+
     @MockitoBean
     private UserIdentityQueryService userIdentityQuery;
+
     @MockitoBean
     private CustomOAuth2UserService customOAuth2UserService;
+
     @MockitoBean
     private OAuth2SuccessHandler oAuth2SuccessHandler;
+
     @MockitoBean
     private OAuth2FailureHandler oAuth2FailureHandler;
 
     @Test
+    @DisplayName("인증 없이 관리자 대시보드에 접근하면 거부한다")
     void adminDashboardWithoutAuthenticationIsRejected() throws Exception {
+        // when & then
         mockMvc.perform(get("/api/v1/admin/dashboard"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"))
@@ -140,7 +157,9 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("일반 사용자의 관리자 대시보드 접근을 금지한다")
     void adminDashboardWithNonAdminUserIsForbidden() throws Exception {
+        // when & then
         mockMvc.perform(get("/api/v1/admin/dashboard").session(authenticatedSession("ROLE_USER")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"))
@@ -148,31 +167,40 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("인증 없이 관리자 감사 로그에 접근하면 거부한다")
     void adminAuditLogsWithoutAuthenticationAreRejected() throws Exception {
+        // when & then
         mockMvc.perform(get("/api/v1/admin/audit-logs"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
     }
 
     @Test
+    @DisplayName("일반 사용자의 관리자 감사 로그 접근을 금지한다")
     void adminAuditLogsWithNonAdminUserAreForbidden() throws Exception {
+        // when & then
         mockMvc.perform(get("/api/v1/admin/audit-logs").session(authenticatedSession("ROLE_USER")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"));
     }
 
     @Test
+    @DisplayName("관리자는 감사 로그를 조회할 수 있다")
     void adminCanAccessAllAuditLogs() throws Exception {
+        // given
         given(adminAuditService.getActionLogs(any()))
                 .willReturn(Page.empty());
 
+        // when & then
         mockMvc.perform(get("/api/v1/admin/audit-logs?page=1&size=2").session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test
+    @DisplayName("알림 발송 운영에는 관리자 권한이 필요하다")
     void notificationDeliveryOperationsRequireAdminRole() throws Exception {
+        // when & then
         mockMvc.perform(get("/api/v1/admin/notification-deliveries/dlq"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
@@ -204,7 +232,9 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("관리자 피드백 목록에는 관리자 권한이 필요하다")
     void adminFeedbackListRequiresAdminRole() throws Exception {
+        // when & then
         mockMvc.perform(get("/api/v1/admin/feedbacks"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
@@ -223,7 +253,9 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("관리자 첨부 다운로드에는 관리자 권한이 필요하다")
     void adminFeedbackAttachmentDownloadRequiresAdminRole() throws Exception {
+        // when & then
         mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"confirmed\":true}"))
@@ -239,11 +271,14 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("관리자는 정제된 첨부를 실제 콘텐츠 타입으로 미리 볼 수 있다")
     void adminCanPreviewSanitizedAttachmentWithItsActualContentType() throws Exception {
+        // given
         given(feedbackService.getAttachmentForCurrentAdmin(10L, 20L, true)).willReturn(
                 new FeedbackAttachmentDownload(new ByteArrayResource(new byte[] {1, 2, 3}),
                         "attachment.png", MediaType.IMAGE_PNG));
 
+        // when & then
         mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/20/download").with(csrf().asHeader())
                         .session(authenticatedSession("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -251,14 +286,17 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.IMAGE_PNG))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
-                        org.hamcrest.Matchers.containsString("attachment.png")));
+                        Matchers.containsString("attachment.png")));
     }
 
     @Test
+    @DisplayName("피드백과 첨부의 연결이 맞지 않으면 찾을 수 없음으로 응답한다")
     void adminAttachmentRequestWithMismatchedFeedbackAndAttachmentReturnsNotFound() throws Exception {
+        // given
         given(feedbackService.getAttachmentForCurrentAdmin(10L, 99L, true))
                 .willThrow(new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
 
+        // when & then
         mockMvc.perform(post("/api/v1/admin/feedbacks/10/attachments/99/download").with(csrf().asHeader())
                         .session(authenticatedSession("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -268,10 +306,13 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("공개 공지 목록은 인증 없이 조회할 수 있다")
     void publicAnnouncementListIsAccessibleWithoutAuthentication() throws Exception {
+        // given
         given(announcementService.getPublicAnnouncements(eq(null), eq(AnnouncementSearchType.TITLE_CONTENT), any()))
                 .willReturn(Page.empty());
 
+        // when & then
         mockMvc.perform(get("/api/v1/announcements"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
@@ -279,34 +320,44 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("인증 없는 업로드 경로 접근은 정적 리소스 처리 전에 거부한다")
     void uploadPathWithoutAuthenticationIsRejectedBeforeStaticResourceHandling() throws Exception {
+        // when & then
         mockMvc.perform(get("/uploads/private-feedback.png"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
     }
 
     @Test
+    @DisplayName("인증 없는 첨부 다운로드를 거부한다")
     void attachmentDownloadWithoutAuthenticationIsRejected() throws Exception {
+        // when & then
         mockMvc.perform(get("/api/v1/feedbacks/10/attachments/20"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
     }
 
     @Test
+    @DisplayName("멀티파트 유입 제한은 피드백 첨부 정책과 일치한다")
     void multipartIngressBudgetMatchesFeedbackAttachmentPolicy() {
+        // when & then
         assertThat(multipartProperties.getMaxFileSize()).isEqualTo(DataSize.ofMegabytes(10));
         assertThat(multipartProperties.getMaxRequestSize()).isEqualTo(DataSize.ofMegabytes(11));
     }
 
     @Test
+    @DisplayName("인증 없는 Actuator 정보 접근을 거부한다")
     void actuatorInfoWithoutAuthenticationIsRejected() throws Exception {
+        // when & then
         mockMvc.perform(get("/actuator/info"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
     }
 
     @Test
+    @DisplayName("내부 관리용 상태 확인과 지표는 제공한다")
     void internalManagementHealthAndMetricsRemainAvailable() throws Exception {
+        // when & then
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk());
 
@@ -319,41 +370,53 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("H2 콘솔에는 관리자 권한이 필요하다")
     void h2ConsoleRequiresAdminRole() throws Exception {
+        // when & then
         mockMvc.perform(get("/h2-console/"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("A001"));
     }
 
     @Test
+    @DisplayName("세션 보안 문맥의 계정 정보로 보호된 요청을 인증한다")
     void sessionSecurityContextAuthenticatesProtectedRequestWithIdentity() throws Exception {
+        // when & then
         mockMvc.perform(get("/api/v1/admin/dashboard").session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 
     @Test
+    @DisplayName("구형 세션 principal로는 인증할 수 없다")
     void legacySessionPrincipalCannotAuthenticate() throws Exception {
+        // given
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(new UsernamePasswordAuthenticationToken("legacy@example.com", "",
                 List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
 
+        // when & then
         mockMvc.perform(get("/api/v1/admin/dashboard").session(session))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
+    @DisplayName("탈퇴 계정의 세션은 원래 만료 시각 전에도 거부한다")
     void deletedAccountSessionIsRejectedBeforeTheOriginalExpiry() throws Exception {
+        // given
         MockHttpSession session = authenticatedSession("ROLE_ADMIN");
         given(userIdentityQuery.findAuthenticatedUser(1L, "admin@example.com")).willReturn(Optional.empty());
 
+        // when & then
         mockMvc.perform(get("/api/v1/admin/dashboard").session(session))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
+    @DisplayName("CSRF는 마스킹된 토큰을 반환하고 변경 요청 실패는 전용 코드를 사용한다")
     void csrfEndpointReturnsAMaskedTokenAndMutationFailuresUseTheirOwnCode() throws Exception {
+        // when & then
         MvcResult csrf = mockMvc.perform(get("/api/auth/csrf"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.token").isString()).andReturn();
         MockHttpSession session = (MockHttpSession) csrf.getRequest().getSession(false);
@@ -371,7 +434,9 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("CSRF 예외는 정확히 일치하는 읽기 전용 검색 POST로 제한한다")
     void csrfExceptionIsRestrictedToTheExactReadOnlySearchPost() throws Exception {
+        // when & then
         mockMvc.perform(post("/api/v1/courses/search"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(post("/api/v1/courses/search/"))
@@ -391,7 +456,9 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("CORS는 명시된 출처만 허용한다")
     void corsAllowsOnlyTheExplicitOrigin() throws Exception {
+        // when & then
         mockMvc.perform(options("/api/v1/announcements")
                         .header(HttpHeaders.ORIGIN, "https://zup-zup.com")
                         .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))

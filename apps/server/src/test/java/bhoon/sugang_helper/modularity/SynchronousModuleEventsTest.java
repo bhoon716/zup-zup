@@ -22,6 +22,7 @@ import java.util.List;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.context.ApplicationListener;
@@ -80,8 +81,12 @@ class SynchronousModuleEventsTest {
     }
 
     @Test
+    @DisplayName("Outbox 처리는 호출자의 트랜잭션과 스레드에 참여한다")
     void outboxListenerJoinsTheCallingTransactionAndThread() throws Exception {
+        // given
         Thread caller = Thread.currentThread();
+
+        // when & then
         given(repository.save(any())).willAnswer(invocation -> {
             assertThat(Thread.currentThread()).isSameAs(caller);
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
@@ -100,10 +105,13 @@ class SynchronousModuleEventsTest {
     }
 
     @Test
+    @DisplayName("Outbox 실패는 호출자에게 전달되고 트랜잭션을 롤백한다")
     void outboxFailureReachesTheCallerAndRollsBackItsTransaction() throws Exception {
+        // given
         IllegalStateException failure = new IllegalStateException("forced outbox failure");
         doThrow(failure).when(repository).save(any());
 
+        // when & then
         assertThatThrownBy(() -> new TransactionTemplate(transactions).executeWithoutResult(status -> publish()))
                 .isSameAs(failure);
         verify(connection).rollback();
@@ -111,19 +119,24 @@ class SynchronousModuleEventsTest {
     }
 
     @Test
+    @DisplayName("트랜잭션 밖의 이벤트로는 Outbox를 저장할 수 없다")
     void eventOutsideATransactionCannotPersistAnOutbox() {
+        // when & then
         assertThatThrownBy(this::publish).isInstanceOf(IllegalTransactionStateException.class);
         verifyNoInteractions(repository);
         verifyNoInteractions(dataSource);
     }
 
     @Test
+    @DisplayName("원자성이 필요한 리스너는 동기 처리와 MANDATORY 전파를 유지한다")
     void atomicListenersArePlainSynchronousListenersWithMandatoryPropagation() throws Exception {
+        // given
         List<Method> listeners = List.of(
                 SubscriptionAccountLifecycleService.class.getMethod("onUserWithdrawn", UserWithdrawnEvent.class),
                 FeedbackAccountLifecycleService.class.getMethod("onUserWithdrawn", UserWithdrawnEvent.class));
         AnnotationTransactionAttributeSource annotations = new AnnotationTransactionAttributeSource();
 
+        // when & then
         for (Method listener : listeners) {
             assertThat(AnnotatedElementUtils.hasAnnotation(listener, EventListener.class)).isTrue();
             assertThat(AnnotatedElementUtils.hasAnnotation(listener, TransactionalEventListener.class)).isFalse();

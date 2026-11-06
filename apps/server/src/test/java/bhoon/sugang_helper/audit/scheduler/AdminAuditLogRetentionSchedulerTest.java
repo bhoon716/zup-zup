@@ -22,6 +22,7 @@ class AdminAuditLogRetentionSchedulerTest {
 
     @Mock
     private AdminActionLogRepository adminActionLogRepository;
+
     @Captor
     private ArgumentCaptor<LocalDateTime> cutoffCaptor;
 
@@ -36,10 +37,13 @@ class AdminAuditLogRetentionSchedulerTest {
     @Test
     @DisplayName("180일이 지난 최소화된 관리자 감사 로그를 정리한다.")
     void removeExpiredLogs_deletesOnlyRecordsOlderThanRetentionCutoff() {
+        // given
         LocalDateTime earliestExpectedCutoff = LocalDateTime.now().minusDays(180).minusSeconds(1);
 
+        // when
         scheduler.removeExpiredLogs();
 
+        // then
         LocalDateTime latestExpectedCutoff = LocalDateTime.now().minusDays(180).plusSeconds(1);
         verify(adminActionLogRepository).deleteByCreatedAtBefore(cutoffCaptor.capture());
         assertThat(cutoffCaptor.getValue()).isBetween(earliestExpectedCutoff, latestExpectedCutoff);
@@ -48,10 +52,13 @@ class AdminAuditLogRetentionSchedulerTest {
     @Test
     @DisplayName("보존 기간을 0 이하로 설정하면 자동 정리를 수행하지 않는다.")
     void removeExpiredLogs_skipsCleanupWhenRetentionIsDisabled() {
+        // given
         ReflectionTestUtils.setField(scheduler, "retentionDays", 0L);
 
+        // when
         scheduler.removeExpiredLogs();
 
+        // then
         verify(adminActionLogRepository, never()).deleteByCreatedAtBefore(any());
     }
 }

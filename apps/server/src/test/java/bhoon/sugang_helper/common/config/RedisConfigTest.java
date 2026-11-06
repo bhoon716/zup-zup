@@ -6,10 +6,11 @@ import static org.mockito.Mockito.mock;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.protocol.RedisCommand;
 import java.time.Duration;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.LettuceClientOptionsBuilderCustomizer;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 
@@ -27,7 +28,9 @@ class RedisConfigTest {
                     "spring.data.redis.connect-timeout=2s");
 
     @Test
+    @DisplayName("Redis 장애 후 재연결 중에는 요청을 빠르게 실패 처리한다")
     void redisClientFailsFastWhileReconnectingAfterAnOutage() {
+        // when & then
         contextRunner.run(context -> {
             LettuceConnectionFactory factory = context.getBean(LettuceConnectionFactory.class);
             var clientConfiguration = factory.getClientConfiguration();

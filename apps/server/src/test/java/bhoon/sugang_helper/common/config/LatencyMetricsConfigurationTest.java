@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.autoconfigure.metrics.MetricsProperties;
 import org.springframework.boot.actuate.autoconfigure.metrics.PropertiesMeterFilter;
@@ -28,8 +29,12 @@ class LatencyMetricsConfigurationTest {
             "hikaricp.connections.acquire");
 
     @Test
+    @DisplayName("운영 지연 시간 패널에 집계 가능한 버킷을 노출한다")
     void productionSettingsExportAggregatableBucketsForEveryLatencyPanel() throws IOException {
+        // given
         PrometheusMeterRegistry registry = registry(new MockClock());
+
+        // when & then
         try {
             for (String name : METERS) {
                 Timer timer = registry.timer(name);
@@ -56,9 +61,13 @@ class LatencyMetricsConfigurationTest {
     }
 
     @Test
+    @DisplayName("최대 지연 값은 만료되고 누적 요청 수는 유지된다")
     void exportedMaxExpiresWhileCumulativeRequestCountRemains() throws IOException {
+        // given
         MockClock clock = new MockClock();
         PrometheusMeterRegistry registry = registry(clock);
+
+        // when & then
         try {
             Timer timer = registry.timer("http.server.requests");
             timer.record(Duration.ofMillis(25));

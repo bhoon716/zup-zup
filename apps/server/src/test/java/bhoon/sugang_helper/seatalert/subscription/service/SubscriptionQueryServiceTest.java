@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bhoon.sugang_helper.seatalert.subscription.entity.Subscription;
 import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionRepository;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -16,17 +17,20 @@ class SubscriptionQueryServiceTest {
 
     @Autowired
     private SubscriptionRepository repository;
+
     @Autowired
     private SubscriptionQueryService queryService;
 
     @Test
+    @DisplayName("수신 대상과 통계는 취소된 구독을 제외한다")
     void recipientsAndStatisticsExcludeCancelledSubscriptions() {
-
+        // given
         Subscription cancelled = subscription(2L, "course-a");
         cancelled.cancel();
         repository.saveAllAndFlush(List.of(
                 subscription(1L, "course-a"), cancelled, subscription(3L, "course-b")));
 
+        // when & then
         assertThat(queryService.findActiveRecipientIds("course-a")).containsExactly(1L);
         assertThat(queryService.findActiveRecipientIds("missing-course")).isEmpty();
         assertThat(queryService.countActiveSubscriptions()).isEqualTo(2);

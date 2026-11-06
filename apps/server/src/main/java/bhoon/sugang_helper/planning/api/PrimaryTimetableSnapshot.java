@@ -1,6 +1,5 @@
 package bhoon.sugang_helper.planning.api;
 
-
 import java.util.List;
 
 public record PrimaryTimetableSnapshot(

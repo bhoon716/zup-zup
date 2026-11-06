@@ -1,9 +1,8 @@
 package bhoon.sugang_helper.admin.service;
 
 import bhoon.sugang_helper.academic.api.operations.CrawlerAdminSnapshot;
-import bhoon.sugang_helper.academic.api.operations.CrawlerTargets;
 import bhoon.sugang_helper.academic.api.operations.CrawlerRuns;
-import bhoon.sugang_helper.admin.dto.response.AdminDashboardResponse;
+import bhoon.sugang_helper.academic.api.operations.CrawlerTargets;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminHourlyTrafficResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminOverviewResponse;
@@ -12,8 +11,8 @@ import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
-import bhoon.sugang_helper.identity.api.users.Users;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
+import bhoon.sugang_helper.identity.api.users.Users;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.api.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.api.NotificationHistoryQueries;
@@ -24,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -46,23 +46,7 @@ public class AdminService {
     private final CrawlerTargets crawlerAdminSnapshotQuery;
     private final CrawlerRuns crawlerStatusQuery;
 
-    public AdminDashboardResponse getDashboardStats() {
-        long totalUsers = userIdentityQuery.countUsers();
-        long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
-
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
-        long todayNotifications = notificationHistoryQuery.countCreatedAfter(startOfToday);
-        LocalDateTime lastCrawledAt = crawlerStatusQuery.findLastSuccessAt().orElse(null);
-
-        return AdminDashboardResponse.builder().totalUsers(totalUsers)
-                .totalActiveSubscriptions(totalActiveSubscriptions).todayNotificationCount(todayNotifications)
-                .crawlingStatus(resolveCrawlerStatus(now, lastCrawledAt))
-                .lastCrawledAt(lastCrawledAt != null ? lastCrawledAt.toString() : null)
-                .build();
-    }
-
-    public AdminOverviewResponse getDashboardOverview() {
+    private AdminOverviewResponse getDashboardOverview() {
         LocalDateTime now = LocalDateTime.now();
         long totalUsers = userIdentityQuery.countUsers();
         long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
@@ -142,18 +126,8 @@ public class AdminService {
         allLogs.add(buildCrawlerLog(now, lastCrawledAt));
 
         return allLogs.stream()
-                .sorted((a, b) -> {
-                    if (a.getTimestamp() == null && b.getTimestamp() == null) {
-                        return 0;
-                    }
-                    if (a.getTimestamp() == null) {
-                        return 1;
-                    }
-                    if (b.getTimestamp() == null) {
-                        return -1;
-                    }
-                    return b.getTimestamp().compareTo(a.getTimestamp());
-                })
+                .sorted(Comparator.comparing(AdminRecentLogResponse::getTimestamp,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
                 .limit(20)
                 .collect(Collectors.toList());
     }

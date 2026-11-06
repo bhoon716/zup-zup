@@ -19,13 +19,16 @@ class CustomAuthenticationEntryPointTest {
     @Test
     @DisplayName("인증 실패 시 표준 에러 응답을 반환한다")
     void commence_returnsStandardErrorResponse() throws IOException {
+        // given
         String token = "token-should-not-appear";
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/users/devices/token/" + token);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
+        // when
         entryPoint.commence(request, response, new AuthenticationException("missing token " + token) {
         });
 
+        // then
         JsonNode json = objectMapper.readTree(response.getContentAsString());
         assertThat(response.getStatus()).isEqualTo(401);
         assertThat(response.getContentType()).startsWith("application/json");

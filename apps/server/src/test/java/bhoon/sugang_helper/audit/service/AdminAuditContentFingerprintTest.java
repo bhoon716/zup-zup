@@ -11,13 +11,16 @@ class AdminAuditContentFingerprintTest {
     @Test
     @DisplayName("답변 지문은 원문을 저장하지 않는 키 기반 HMAC-SHA-256 값이다.")
     void summarize_usesKeyedHmacFingerprint() {
+        // given
         String content = "비밀 답변 \"alice@example.com\"";
         AdminAuditContentFingerprint first = new AdminAuditContentFingerprint("first-secret");
         AdminAuditContentFingerprint sameKey = new AdminAuditContentFingerprint("first-secret");
         AdminAuditContentFingerprint differentKey = new AdminAuditContentFingerprint("second-secret");
 
+        // when
         ContentSummary summary = first.summarize(content);
 
+        // then
         assertThat(summary.length()).isEqualTo(content.length());
         assertThat(summary.fingerprint()).startsWith("hmac-sha256:").doesNotContain(content);
         assertThat(sameKey.summarize(content).fingerprint()).isEqualTo(summary.fingerprint());

@@ -29,6 +29,7 @@ import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpMethod;
@@ -46,7 +47,9 @@ class NotificationSenderIdempotencyContractTest {
     private static final String BODY = "빈자리가 생겼습니다.";
 
     @Test
+    @DisplayName("이메일은 안전한 사용자 정의 헤더로 발송 키를 전달한다")
     void emailCarriesTheDeliveryKeyInASafeCustomHeader() throws Exception {
+        // given
         JavaMailSender mailSender = mock(JavaMailSender.class);
         EmailTemplateService templateService = mock(EmailTemplateService.class);
         EmailNotificationSender sender = new EmailNotificationSender(mailSender, templateService,
@@ -58,16 +61,21 @@ class NotificationSenderIdempotencyContractTest {
 
         invokeIdempotentSend(idempotentSend, sender, NotificationTarget.of("recipient@example.com"));
 
+        // when & then
         assertThat(mimeMessage.getHeader("X-Idempotency-Key"))
                 .containsExactly(IDEMPOTENCY_KEY);
     }
 
     @Test
+    @DisplayName("웹 푸시는 Topic과 암호화된 본문에 같은 발송 키를 전달한다")
     void webPushCarriesTheDeliveryKeyInBothTopicAndEncryptedPayload() throws Exception {
+        // given
         WebPushNotificationSender sender = new WebPushNotificationSender("", "", "",
                 new ObjectMapper(), mock(UserDeviceService.class));
         Method idempotentSend = idempotentSendMethod(sender);
         PushService pushService = mock(PushService.class);
+
+        // when
         HttpResponse response = mock(HttpResponse.class);
         StatusLine statusLine = mock(StatusLine.class);
         ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
@@ -81,6 +89,7 @@ class NotificationSenderIdempotencyContractTest {
                 NotificationTarget.ofWeb("https://fcm.googleapis.com/fcm/send/web-push-token",
                         generateP256dh(), generateAuth()));
 
+        // then
         Notification sentNotification = notificationCaptor.getValue();
         JsonNode payload = new ObjectMapper().readTree(sentNotification.getPayload());
         assertThat(sentNotification.getTopic()).isEqualTo(IDEMPOTENCY_KEY);
@@ -88,13 +97,17 @@ class NotificationSenderIdempotencyContractTest {
     }
 
     @Test
+    @DisplayName("Discord는 발송 키를 중복 방지 nonce로 강제한다")
     void discordUsesTheDeliveryKeyAsAnEnforcedNonce() throws Exception {
+        // given
         DiscordNotificationSender sender = new DiscordNotificationSender();
         Method idempotentSend = idempotentSendMethod(sender);
         RestClient.Builder restClientBuilder = RestClient.builder().baseUrl("https://discord.com/api/v10");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
         ReflectionTestUtils.setField(sender, "restClient", restClientBuilder.build());
         ReflectionTestUtils.setField(sender, "botToken", "bot-token");
+
+        // when & then
         server.expect(requestTo("https://discord.com/api/v10/users/@me/channels"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header("Authorization", "Bot bot-token"))

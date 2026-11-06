@@ -9,6 +9,7 @@ import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -44,7 +45,9 @@ class UserDeviceServiceIntegrationTest {
     }
 
     @Test
+    @DisplayName("토큰 해제는 다른 사용자의 기기를 삭제하지 않는다")
     void tokenUnregisterDoesNotDeleteAnotherUsersDevice() {
+        // given
         User requester = saveUser("requester@example.com");
         User owner = saveUser("owner@example.com");
         UserDevice device = userDeviceRepository.saveAndFlush(UserDevice.builder()
@@ -54,6 +57,7 @@ class UserDeviceServiceIntegrationTest {
                 .build());
         authenticateAs(requester.getEmail());
 
+        // when & then
         assertThatCode(() -> userDeviceService.unregisterDevice(device.getToken()))
                 .doesNotThrowAnyException();
 
@@ -61,7 +65,9 @@ class UserDeviceServiceIntegrationTest {
     }
 
     @Test
+    @DisplayName("토큰 해제는 인증된 사용자의 기기를 삭제한다")
     void tokenUnregisterDeletesTheAuthenticatedUsersDevice() {
+        // given
         User owner = saveUser("owner@example.com");
         UserDevice device = userDeviceRepository.saveAndFlush(UserDevice.builder()
                 .userId(owner.getId())
@@ -72,6 +78,7 @@ class UserDeviceServiceIntegrationTest {
 
         userDeviceService.unregisterDevice(device.getToken());
 
+        // when & then
         assertThat(userDeviceRepository.findById(device.getId())).isEmpty();
     }
 

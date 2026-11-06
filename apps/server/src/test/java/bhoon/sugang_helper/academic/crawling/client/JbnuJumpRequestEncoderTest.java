@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class JbnuJumpRequestEncoderTest {
@@ -16,14 +18,18 @@ class JbnuJumpRequestEncoderTest {
     private static final String XB_DATA_PREFIX = "xb_data=";
 
     @Test
+    @DisplayName("조회 데이터를 JUMP 요청 형식으로 직렬화하고 암호화한다")
     void serializesDataMapWithJumpEnvelopeAndEncryptsIt() throws Exception {
+        // given
         Map<String, String> values = new LinkedHashMap<>();
         values.put("strYrsa", "2026");
         values.put("strSemstrCd", "SUSR016.010");
         values.put("strCertDivCd", "6");
 
+        // when
         String encoded = JbnuJumpRequestEncoder.encode(values);
 
+        // then
         assertThat(encoded).startsWith(XB_DATA_PREFIX);
         String cipherText = URLDecoder.decode(encoded.substring(XB_DATA_PREFIX.length()), StandardCharsets.UTF_8);
         String store = JbnuJumpRequestEncoder.derivedStore();
@@ -31,7 +37,7 @@ class JbnuJumpRequestEncoderTest {
         cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(store.getBytes(StandardCharsets.UTF_8), "AES"),
                 new IvParameterSpec(new StringBuilder(store).reverse().substring(0, 16)
                         .getBytes(StandardCharsets.UTF_8)));
-        String plainText = new String(cipher.doFinal(java.util.Base64.getDecoder().decode(cipherText)),
+        String plainText = new String(cipher.doFinal(Base64.getDecoder().decode(cipherText)),
                 StandardCharsets.UTF_8);
 
         assertThat(plainText).contains("%40d1%23strYrsa=2026");
@@ -41,21 +47,27 @@ class JbnuJumpRequestEncoderTest {
     }
 
     @Test
+    @DisplayName("기존 학기 코드를 JUMP 학기 코드로 변환한다")
     void mapsLegacySemesterCodesToJumpCodes() {
+        // when & then
         assertThat(JbnuCourseApiClient.toJumpSemesterCode("U211600010")).isEqualTo("SUSR016.010");
         assertThat(JbnuCourseApiClient.toJumpSemesterCode("U211600020")).isEqualTo("SUSR016.020");
         assertThat(JbnuCourseApiClient.toJumpSemesterCode("SUSR016.015")).isEqualTo("SUSR016.015");
     }
 
     @Test
+    @DisplayName("인증 구분이 비어 있어도 JUMP 요청을 직렬화하고 암호화한다")
     void serializesDataMapWithEmptyCertDivisionAndEncryptsIt() throws Exception {
+        // given
         Map<String, String> values = new LinkedHashMap<>();
         values.put("strYrsa", "2026");
         values.put("strSemstrCd", "SUSR016.010");
         values.put("strCertDivCd", "");
 
+        // when
         String encoded = JbnuJumpRequestEncoder.encode(values);
 
+        // then
         assertThat(encoded).startsWith(XB_DATA_PREFIX);
         String cipherText = URLDecoder.decode(encoded.substring(XB_DATA_PREFIX.length()), StandardCharsets.UTF_8);
         String store = JbnuJumpRequestEncoder.derivedStore();
@@ -63,7 +75,7 @@ class JbnuJumpRequestEncoderTest {
         cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(store.getBytes(StandardCharsets.UTF_8), "AES"),
                 new IvParameterSpec(new StringBuilder(store).reverse().substring(0, 16)
                         .getBytes(StandardCharsets.UTF_8)));
-        String plainText = new String(cipher.doFinal(java.util.Base64.getDecoder().decode(cipherText)),
+        String plainText = new String(cipher.doFinal(Base64.getDecoder().decode(cipherText)),
                 StandardCharsets.UTF_8);
 
         assertThat(plainText).contains("%40d1%23strCertDivCd=");

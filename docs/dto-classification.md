@@ -97,7 +97,6 @@ API 입력은 request, API 직렬화 출력은 response, 서비스·조회 내�
 - [AdminAuditMetadata](../apps/server/src/main/java/bhoon/sugang_helper/audit/dto/response/AdminAuditMetadata.java)
 - [AdminAuditMetadataData](../apps/server/src/main/java/bhoon/sugang_helper/audit/dto/response/AdminAuditMetadataData.java)
 - [ContentSummary](../apps/server/src/main/java/bhoon/sugang_helper/audit/dto/response/ContentSummary.java)
-- [AdminDashboardResponse](../apps/server/src/main/java/bhoon/sugang_helper/admin/dto/response/AdminDashboardResponse.java)
 - [AdminDashboardSnapshotResponse](../apps/server/src/main/java/bhoon/sugang_helper/admin/dto/response/AdminDashboardSnapshotResponse.java)
 - [AdminHourlyTrafficResponse](../apps/server/src/main/java/bhoon/sugang_helper/admin/dto/response/AdminHourlyTrafficResponse.java)
 - [AdminOverviewResponse](../apps/server/src/main/java/bhoon/sugang_helper/admin/dto/response/AdminOverviewResponse.java)

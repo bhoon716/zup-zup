@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,9 @@ class LogbackFileAppenderTest {
     Path tempDir;
 
     @Test
+    @DisplayName("설정된 호스트 파일 경로에 로그를 기록한다")
     void writesLogsToTheConfiguredHostFilePath() throws Exception {
+        // given
         Path logFile = tempDir.resolve("application.log");
 
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -43,6 +46,7 @@ class LogbackFileAppenderTest {
         context.stop();
         new StatusPrinter2().printInCaseOfErrorsOrWarnings(context);
 
+        // when & then
         assertTrue(Files.exists(logFile), "log file should be created");
         String contents = Files.readString(logFile, StandardCharsets.UTF_8);
         assertTrue(contents.contains("host-file-log-test"), "log file should contain emitted log line");

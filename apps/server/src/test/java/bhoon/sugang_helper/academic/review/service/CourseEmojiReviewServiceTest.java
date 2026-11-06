@@ -105,34 +105,41 @@ class CourseEmojiReviewServiceTest {
     @Test
     @DisplayName("이모지 토글 - 처음 탭하면 신규 리액션 생성")
     void toggleEmoji_AddNew() {
+        // given
         User user = createUser(USER_ID);
         mockCurrentUser(user);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
         when(emojiReviewRepository.findByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_THUMB))
                 .thenReturn(Optional.empty());
 
+        // when
         emojiReviewService.toggleEmoji(COURSE_KEY, EMOJI_THUMB);
 
+        // then
         verify(emojiReviewRepository).save(any(CourseEmojiReview.class));
     }
 
     @Test
     @DisplayName("이모지 토글 - 커스텀 시스템 이모지도 추가 가능")
     void toggleEmoji_AddCustomEmoji() {
+        // given
         User user = createUser(USER_ID);
         mockCurrentUser(user);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
         when(emojiReviewRepository.findByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_LAUGH))
                 .thenReturn(Optional.empty());
 
+        // when
         emojiReviewService.toggleEmoji(COURSE_KEY, EMOJI_LAUGH);
 
+        // then
         verify(emojiReviewRepository).save(any(CourseEmojiReview.class));
     }
 
     @Test
     @DisplayName("이모지 토글 - 동일 이모지 재탭 시 기존 리액션 삭제(취소)")
     void toggleEmoji_Cancel() {
+        // given
         User user = createUser(USER_ID);
         mockCurrentUser(user);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
@@ -142,8 +149,10 @@ class CourseEmojiReviewServiceTest {
         when(emojiReviewRepository.findByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_THUMB))
                 .thenReturn(Optional.of(existing));
 
+        // when
         emojiReviewService.toggleEmoji(COURSE_KEY, EMOJI_THUMB);
 
+        // then
         verify(emojiReviewRepository).delete(existing);
         verify(emojiReviewRepository, never()).save(any());
     }
@@ -151,9 +160,11 @@ class CourseEmojiReviewServiceTest {
     @Test
     @DisplayName("이모지 토글 - 빈 이모지는 거부한다")
     void toggleEmoji_BlankEmoji_throwsException() {
+        // given
         User user = createUser(USER_ID);
         mockCurrentUser(user);
 
+        // when & then
         assertThatThrownBy(() -> emojiReviewService.toggleEmoji(COURSE_KEY, " "))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
@@ -163,10 +174,12 @@ class CourseEmojiReviewServiceTest {
     @Test
     @DisplayName("이모지 토글 - 존재하지 않는 강의는 거부한다")
     void toggleEmoji_InvalidCourse_throwsException() {
+        // given
         User user = createUser(USER_ID);
         mockCurrentUser(user);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.empty());
 
+        // when & then
         assertThatThrownBy(() -> emojiReviewService.toggleEmoji(COURSE_KEY, EMOJI_THUMB))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
@@ -177,10 +190,12 @@ class CourseEmojiReviewServiceTest {
     @Test
     @DisplayName("이모지 토글 - 비로그인 상태면 인증 오류를 반환한다")
     void toggleEmoji_Unauthorized_throwsException() {
+        // given
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmail).thenReturn("anonymous@test.com");
         when(userIdentityQuery.findByEmail("anonymous@test.com")).thenReturn(Optional.empty());
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
 
+        // when & then
         assertThatThrownBy(() -> emojiReviewService.toggleEmoji(COURSE_KEY, EMOJI_THUMB))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
@@ -192,6 +207,7 @@ class CourseEmojiReviewServiceTest {
     @Test
     @DisplayName("이모지 통계 조회 - 모든 등록 이모지의 카운트 및 본인 탭 여부 반환")
     void getCourseEmojiStats_ReturnsMergedStats() {
+        // given
         User user = createUser(USER_ID);
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
         when(userIdentityQuery.findByEmail(user.getEmail())).thenReturn(Optional.of(identity(user)));
@@ -210,8 +226,10 @@ class CourseEmojiReviewServiceTest {
         when(emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_LAUGH))
                 .thenReturn(0L);
 
+        // when
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
+        // then
         assertThat(result).hasSize(3);
         CourseEmojiReviewResponse thumbResponse = result.stream()
                 .filter(r -> r.emoji().equals(EMOJI_THUMB))
@@ -235,6 +253,7 @@ class CourseEmojiReviewServiceTest {
     @Test
     @DisplayName("교수 미지정 강의는 같은 과목의 이전 학기 이모지를 자동 연결하지 않는다")
     void getCourseEmojiStats_UnassignedProfessor_UsesCourseKeyOnly() {
+        // given
         User user = createUser(USER_ID);
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
         when(userIdentityQuery.findByEmail(user.getEmail())).thenReturn(Optional.of(identity(user)));
@@ -244,8 +263,10 @@ class CourseEmojiReviewServiceTest {
         when(emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_FIRE))
                 .thenReturn(1L);
 
+        // when
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
+        // then
         assertThat(result).containsExactly(new CourseEmojiReviewResponse(EMOJI_FIRE, 1L, true));
         verify(emojiReviewRepository).findEmojiStatsByCourseKeys(List.of(COURSE_KEY));
     }
@@ -253,14 +274,17 @@ class CourseEmojiReviewServiceTest {
     @Test
     @DisplayName("교수 미지정 강의의 이모지 토글은 해당 강의에만 적용한다")
     void toggleEmoji_UnassignedProfessor_UsesCourseKeyOnly() {
+        // given
         User user = createUser(USER_ID);
         mockCurrentUser(user);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse(UNASSIGNED_PROFESSOR)));
         when(emojiReviewRepository.findByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_THUMB))
                 .thenReturn(Optional.empty());
 
+        // when
         emojiReviewService.toggleEmoji(COURSE_KEY, EMOJI_THUMB);
 
+        // then
         verify(emojiReviewRepository).findByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_THUMB);
         verify(emojiReviewRepository).save(any(CourseEmojiReview.class));
     }
@@ -268,6 +292,7 @@ class CourseEmojiReviewServiceTest {
     @Test
     @DisplayName("외부교원N 강의는 같은 교수 식별자 범위의 이모지를 조회한다")
     void getCourseEmojiStats_ExternalInstructor_UsesSharedProfessorScope() {
+        // given
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(null);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse(EXTERNAL_INSTRUCTOR)));
         List<String> courseKeys = List.of("LEGACY-C1", COURSE_KEY);
@@ -276,8 +301,10 @@ class CourseEmojiReviewServiceTest {
         when(emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys))
                 .thenReturn(List.<Object[]>of(new Object[]{EMOJI_THUMB, 2L}));
 
+        // when
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
+        // then
         assertThat(result).containsExactly(new CourseEmojiReviewResponse(EMOJI_THUMB, 2L, false));
         verify(emojiReviewRepository).findEmojiStatsByCourseKeys(courseKeys);
     }
@@ -285,6 +312,7 @@ class CourseEmojiReviewServiceTest {
     @Test
     @DisplayName("이모지 통계 조회 - 비로그인 상태에서도 카운트는 조회된다")
     void getCourseEmojiStats_AnonymousUser_DoesNotSetMine() {
+        // given
         securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(null);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
         when(emojiReviewRepository.findEmojiStatsByCourseKeys(List.of(COURSE_KEY)))
@@ -292,8 +320,10 @@ class CourseEmojiReviewServiceTest {
                         new Object[]{EMOJI_THUMB, 2L}
                 ));
 
+        // when
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
+        // then
         assertThat(result).hasSize(1);
         CourseEmojiReviewResponse thumbResponse = result.stream()
                 .filter(r -> r.emoji().equals(EMOJI_THUMB))

@@ -10,6 +10,7 @@ import bhoon.sugang_helper.seatalert.notification.dto.response.AdminNotification
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -53,7 +54,7 @@ public class AdminNotificationDeliveryService {
         }
 
         int attemptsBefore = delivery.getAttempts();
-        delivery.replay(java.time.LocalDateTime.now());
+        delivery.replay(LocalDateTime.now());
         delivery.getOutbox().markProcessing();
         adminAuditRecorder.recordDeliveryReplay(adminId, deliveryId, previousStatus.name(), attemptsBefore);
         return AdminNotificationDeliveryResponse.from(delivery);

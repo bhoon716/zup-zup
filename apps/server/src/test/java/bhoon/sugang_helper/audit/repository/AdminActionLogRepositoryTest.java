@@ -20,17 +20,21 @@ class AdminActionLogRepositoryTest {
 
     @Autowired
     private AdminActionLogRepository adminActionLogRepository;
+
     @Autowired
     private UserRepository userRepository;
 
     @Test
     @DisplayName("감사 로그는 최신 createdAt·id 순으로 중복 없이 페이지를 나눈다.")
     void findAllByOrderByCreatedAtDescIdDesc_returnsStablePages() {
+        // given
         User admin = userRepository.saveAndFlush(User.builder()
                 .email("admin@example.com")
                 .name("관리자")
                 .role(Role.ADMIN)
                 .build());
+
+        // when
         adminActionLogRepository.saveAndFlush(actionLog(admin, 1L));
         adminActionLogRepository.saveAndFlush(actionLog(admin, 2L));
         adminActionLogRepository.saveAndFlush(actionLog(admin, 3L));
@@ -40,6 +44,7 @@ class AdminActionLogRepositoryTest {
         Page<AdminActionLog> secondPage = adminActionLogRepository
                 .findAllByOrderByCreatedAtDescIdDesc(PageRequest.of(1, 2));
 
+        // then
         assertThat(firstPage.getTotalElements()).isEqualTo(3);
         assertThat(firstPage.getContent()).extracting(AdminActionLog::getTargetId).containsExactly(3L, 2L);
         assertThat(secondPage.getContent()).extracting(AdminActionLog::getTargetId).containsExactly(1L);

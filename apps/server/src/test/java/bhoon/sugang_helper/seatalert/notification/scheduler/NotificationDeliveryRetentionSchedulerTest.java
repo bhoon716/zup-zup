@@ -7,9 +7,11 @@ import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDelivery
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,6 +22,7 @@ class NotificationDeliveryRetentionSchedulerTest {
 
     @Mock
     private SeatNotificationDeliveryRepository deliveryRepository;
+
     @Captor
     private ArgumentCaptor<LocalDateTime> cutoffCaptor;
 
@@ -31,15 +34,19 @@ class NotificationDeliveryRetentionSchedulerTest {
     }
 
     @Test
+    @DisplayName("보존 기간을 최소 30일로 제한하고 DLQ 발송만 정리한다")
     void clampsConfiguredRetentionToAtLeastThirtyDaysAndOnlyPurgesDlqDeliveries() {
+        // given
         ReflectionTestUtils.setField(scheduler, "retentionDays", 7L);
         LocalDateTime earliestExpectedCutoff = LocalDateTime.now().minusDays(30).minusSeconds(1);
 
+        // when
         scheduler.removeExpiredDeadLetters();
 
+        // then
         LocalDateTime latestExpectedCutoff = LocalDateTime.now().minusDays(30).plusSeconds(1);
         verify(deliveryRepository).deleteByStatusAndDeadLetteredAtBefore(
-                org.mockito.ArgumentMatchers.eq(SeatNotificationDeliveryStatus.DLQ), cutoffCaptor.capture());
+                ArgumentMatchers.eq(SeatNotificationDeliveryStatus.DLQ), cutoffCaptor.capture());
         assertThat(cutoffCaptor.getValue()).isBetween(earliestExpectedCutoff, latestExpectedCutoff);
     }
 }

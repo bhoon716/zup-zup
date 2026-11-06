@@ -17,6 +17,7 @@ import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -45,17 +46,21 @@ class UserDeviceControllerTest {
     }
 
     @Test
+    @DisplayName("기기 등록은 타입 없이 웹 푸시 키를 받는다")
     void registrationAcceptsWebPushKeysWithoutType() throws Exception {
+        // given
         String endpoint = "https://fcm.googleapis.com/fixture-web-push-endpoint";
         String body = """
                 {"token":"https://fcm.googleapis.com/fixture-web-push-endpoint",
                  "p256dh":"fixture-public-key","auth":"fixture-auth-key","alias":"내 브라우저"}
                 """;
 
+        // when
         ResultActions response = mockMvc.perform(post("/api/v1/users/devices")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body));
 
+        // then
         response.andExpect(status().isOk());
         verify(userDeviceService).registerDevice(new RegisterDeviceCommand(
                 endpoint, "fixture-public-key", "fixture-auth-key", "내 브라우저"));
@@ -63,15 +68,19 @@ class UserDeviceControllerTest {
     }
 
     @Test
+    @DisplayName("기기 목록은 타입·비밀 키 없이 표시 필드만 포함한다")
     void deviceListContainsDisplayFieldsWithoutTypeOrPrivateKeys() throws Exception {
+        // given
         User user = User.builder().id(7L).email("user@example.invalid").build();
         UserDeviceResult device = new UserDeviceResult(
                 11L, "내 브라우저", "https...point", LocalDateTime.of(2026, 11, 5, 12, 0));
         given(userDeviceService.getCurrentUserOrThrow()).willReturn(user);
         given(userDeviceService.getUserDevices(7L)).willReturn(List.of(device));
 
+        // when
         ResultActions response = mockMvc.perform(get("/api/v1/users/devices"));
 
+        // then
         response.andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(11))
@@ -88,9 +97,12 @@ class UserDeviceControllerTest {
     }
 
     @Test
+    @DisplayName("기기 해제는 요청 본문으로 토큰을 받는다")
     void tokenUnregisterAcceptsTheTokenInTheRequestBody() throws Exception {
+        // given
         String token = "token/with?unsafe=value";
 
+        // when & then
         mockMvc.perform(delete("/api/v1/users/devices")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"token/with?unsafe=value\"}"))
@@ -100,9 +112,12 @@ class UserDeviceControllerTest {
     }
 
     @Test
+    @DisplayName("기존 토큰 경로는 배포된 클라이언트의 인코딩된 특수문자를 복원한다")
     void legacyTokenPathDecodesEncodedSpecialCharactersForDeployedClients() throws Exception {
+        // given
         String token = "token/with?unsafe=value";
 
+        // when & then
         mockMvc.perform(delete(URI.create("/api/v1/users/devices/token/token%2Fwith%3Funsafe%3Dvalue")))
                 .andExpect(status().isOk());
 

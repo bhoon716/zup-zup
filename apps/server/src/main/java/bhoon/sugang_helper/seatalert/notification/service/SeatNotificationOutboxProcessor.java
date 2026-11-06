@@ -1,13 +1,13 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
-import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryDispatch;
-import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryFailureResult;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryDispatch;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryFailureResult;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
@@ -16,7 +16,10 @@ import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDel
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -45,10 +48,13 @@ public class SeatNotificationOutboxProcessor {
     private final NotificationService notificationService;
     private final SeatNotificationDeliverySettlementService settlementService;
     private final MeterRegistry meterRegistry;
+
     @Value("${app.notification.outbox.batch-size:50}")
     private int batchSize;
+
     @Value("${app.notification.outbox.max-attempts:5}")
     private int maximumAttempts;
+
     @Value("${app.notification.outbox.lease-seconds:60}")
     private long leaseSeconds;
 
@@ -121,18 +127,18 @@ public class SeatNotificationOutboxProcessor {
         if (delivery.getCreatedAt() == null) {
             return;
         }
-        io.micrometer.core.instrument.Timer timer = meterRegistry.timer(
+        Timer timer = meterRegistry.timer(
                 "notification.outbox.claim.lag", CHANNEL_TAG, delivery.getChannel().name());
         if (timer != null) {
-            timer.record(java.time.Duration.between(delivery.getCreatedAt(), claimedAt));
+            timer.record(Duration.between(delivery.getCreatedAt(), claimedAt));
         }
     }
 
     private void recordClaimToAttemptLag(SeatNotificationDeliveryClaim claim, NotificationChannel channel) {
-        io.micrometer.core.instrument.Timer timer = meterRegistry.timer(
+        Timer timer = meterRegistry.timer(
                 "notification.outbox.claim_to_attempt", CHANNEL_TAG, channel.name());
         if (timer != null) {
-            timer.record(java.time.Duration.between(claim.claimedAt(), LocalDateTime.now()));
+            timer.record(Duration.between(claim.claimedAt(), LocalDateTime.now()));
         }
     }
 
@@ -148,7 +154,7 @@ public class SeatNotificationOutboxProcessor {
         Map<Long, List<NotificationDevice>> devicesByUser = userNotificationQuery.findDevicesByUserIds(userIds).stream()
                 .collect(Collectors.groupingBy(NotificationDevice::userId));
 
-        List<SeatNotificationDelivery> deliveriesToSave = new java.util.ArrayList<>();
+        List<SeatNotificationDelivery> deliveriesToSave = new ArrayList<>();
         for (Long userId : userIds) {
             NotificationRecipient user = usersById.get(userId);
             if (user == null) {

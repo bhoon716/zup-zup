@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -38,6 +39,7 @@ class AdminAuditServiceTest {
 
     @Mock
     private AdminActionLogRepository adminActionLogRepository;
+
     @Captor
     private ArgumentCaptor<AdminActionLog> actionLogCaptor;
 
@@ -53,11 +55,14 @@ class AdminAuditServiceTest {
     @Test
     @DisplayName("따옴표·개행·Unicode가 있는 답변 변경도 원문 없이 유효한 구조화 감사 로그가 된다.")
     void recordReplyUpdate_usesEscapedStructuredMetadataWithoutRawContent() throws Exception {
+        // given
         String beforeContent = "비밀 \"답변\"\nemail=alice@example.com\nBearer token-123";
         String afterContent = "새 \"답변\"\n유니코드 😀";
 
+        // when
         adminAuditService.recordReplyUpdated(ADMIN_ID, REPLY_ID, FEEDBACK_ID, beforeContent, afterContent);
 
+        // then
         verify(adminActionLogRepository).save(actionLogCaptor.capture());
         AdminActionLog savedLog = actionLogCaptor.getValue();
         JsonNode metadata = objectMapper.readTree(savedLog.getMetaData());
@@ -87,14 +92,16 @@ class AdminAuditServiceTest {
     @Test
     @DisplayName("상태·답변·첨부파일 접근·향후 DLQ 재처리가 같은 감사 모델로 저장된다.")
     void recordSensitiveAdminActions_usesTheSharedAuditModel() throws Exception {
+        // when
         adminAuditService.recordStatusChange(ADMIN_ID, FEEDBACK_ID, "PENDING", "COMPLETED");
         adminAuditService.recordReplyCreated(ADMIN_ID, REPLY_ID, FEEDBACK_ID, "답변");
         adminAuditService.recordReplyDeleted(ADMIN_ID, REPLY_ID, FEEDBACK_ID, "답변");
         adminAuditService.recordAttachmentAccess(ADMIN_ID, 30L, FEEDBACK_ID);
         adminAuditService.recordDeliveryReplay(ADMIN_ID, 40L, "DLQ", 2);
 
+        // then
         ArgumentCaptor<AdminActionLog> captor = ArgumentCaptor.forClass(AdminActionLog.class);
-        verify(adminActionLogRepository, org.mockito.Mockito.times(5)).save(captor.capture());
+        verify(adminActionLogRepository, Mockito.times(5)).save(captor.capture());
         assertThat(captor.getAllValues())
                 .extracting(AdminActionLog::getActionType)
                 .containsExactly(
@@ -116,6 +123,7 @@ class AdminAuditServiceTest {
     @Test
     @DisplayName("감사 로그 목록은 최신순 안정 정렬과 최대 100건 페이지 크기를 사용하고, legacy 원문은 반환하지 않는다.")
     void getActionLogs_boundsPagingAndRedactsUnexpectedLegacyMetadata() {
+        // given
         AdminActionLog legacyLog = AdminActionLog.builder()
                 .adminId(ADMIN_ID)
                 .actionType(ActionType.REPLY_UPDATE)
@@ -127,8 +135,10 @@ class AdminAuditServiceTest {
         given(adminActionLogRepository.findAllByOrderByCreatedAtDescIdDesc(any(Pageable.class)))
                 .willReturn(new PageImpl<>(List.of(legacyLog), PageRequest.of(3, 100), 301));
 
+        // when
         Page<AdminActionLogResponse> response = adminAuditService.getActionLogs(PageRequest.of(3, 100));
 
+        // then
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
         verify(adminActionLogRepository).findAllByOrderByCreatedAtDescIdDesc(pageableCaptor.capture());
         Pageable requestedPage = pageableCaptor.getValue();

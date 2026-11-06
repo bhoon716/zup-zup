@@ -2,7 +2,6 @@ package bhoon.sugang_helper.common.util;
 
 import bhoon.sugang_helper.common.api.templates.EmailTemplates;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
-
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;

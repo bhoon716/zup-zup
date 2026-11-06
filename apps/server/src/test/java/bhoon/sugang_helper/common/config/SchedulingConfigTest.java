@@ -9,6 +9,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -28,8 +29,10 @@ class SchedulingConfigTest {
             .withPropertyValues("spring.task.scheduling.pool.size=8");
 
     @ParameterizedTest
+    @DisplayName("가상 스레드가 활성화돼도 오래 걸리는 예약 작업은 겹치지 않는다")
     @ValueSource(booleans = {false, true})
     void dueTasksDoNotOverlapWhileALongTaskRunsEvenWhenVirtualThreadsAreEnabled(boolean virtualThreads) {
+        // when & then
         contextRunner.withPropertyValues("spring.threads.virtual.enabled=" + virtualThreads).run(context -> {
 
             assertThat(context).hasSingleBean(TaskScheduler.class);
@@ -55,18 +58,21 @@ class SchedulingConfigTest {
     }
 
     @Test
+    @DisplayName("컨텍스트 종료는 대기 작업을 취소하고 스케줄러를 종료한다")
     void closingTheContextCancelsPendingTasksAndTerminatesTheScheduler() throws InterruptedException {
-
+        // given
         AtomicReference<ScheduledThreadPoolExecutor> executor = new AtomicReference<>();
         AtomicReference<ScheduledFuture<?>> pending = new AtomicReference<>();
         AtomicInteger executions = new AtomicInteger();
 
+        // when
         contextRunner.withPropertyValues("spring.threads.virtual.enabled=true").run(context -> {
             ThreadPoolTaskScheduler scheduler = context.getBean("taskScheduler", ThreadPoolTaskScheduler.class);
             executor.set(scheduler.getScheduledThreadPoolExecutor());
             pending.set(scheduler.schedule(executions::incrementAndGet, Instant.now().plusSeconds(3_600)));
         });
 
+        // then
         assertThat(executor.get().isShutdown()).isTrue();
         assertThat(executor.get().awaitTermination(2, TimeUnit.SECONDS)).isTrue();
         assertThat(pending.get().isCancelled()).isTrue();

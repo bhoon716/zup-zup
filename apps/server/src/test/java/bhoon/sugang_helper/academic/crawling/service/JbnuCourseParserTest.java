@@ -23,9 +23,13 @@ class JbnuCourseParserTest {
     @Test
     @DisplayName("JUMP JSON에서 내부 코드와 학수번호를 분리해 파싱합니다")
     void parseCourses_jumpJson() {
+        // given
         String json = readFixture("/mock/jump_course_response.json");
+
+        // when
         List<ParsedCourseDto> courses = parser.parseCourses(json);
 
+        // then
         assertThat(courses).hasSize(1);
         ParsedCourseDto course = courses.get(0);
         assertThat(course.subjectCode()).isEqualTo("0000131925");
@@ -41,7 +45,9 @@ class JbnuCourseParserTest {
     }
 
     @Test
+    @DisplayName("강의 스트림은 JSON 행을 읽는다")
     void streamCoursesReadsJsonRows() {
+        // when
         Iterator<ParsedCourseDto> iterator = parser.streamCourses(
                 new ByteArrayInputStream(jsonResponse("""
                         {
@@ -53,11 +59,14 @@ class JbnuCourseParserTest {
                         }
                         """).getBytes(StandardCharsets.UTF_8)), "2026", "SUSR016.010");
 
+        // then
         assertThat(iterator).toIterable().extracting(ParsedCourseDto::stdtrNo).containsExactly("GECO001");
     }
 
     @Test
+    @DisplayName("학수번호가 누락된 강의도 파싱한다")
     void parseCourses_allowsMissingStdtrNo() {
+        // when
         ParsedCourseDto course = parser.parseCourses(jsonResponse("""
                 {
                   "SBJCT_CD": "A001",
@@ -67,19 +76,26 @@ class JbnuCourseParserTest {
                 }
                 """)).get(0);
 
+        // then
         assertThat(course.stdtrNo()).isNull();
     }
 
     @Test
+    @DisplayName("JUMP 오류 응답은 강의로 파싱하지 않는다")
     void parseCourses_rejectsJumpErrorEnvelope() {
+        // given
         String json = readFixture("/mock/jump_error_response.json");
+
+        // when & then
         assertThatThrownBy(() -> parser.parseCourses(json))
                 .isInstanceOf(CustomException.class)
                 .satisfies(t -> assertThat(((CustomException) t).getDetail()).contains("JUMP returned an error envelope"));
     }
 
     @Test
+    @DisplayName("필수 응답 형식이 누락되면 파싱을 거부한다")
     void parseCourses_rejectsMissingEnvelope() {
+        // when & then
         assertThatThrownBy(() -> parser.parseCourses("{}"))
                 .isInstanceOf(CustomException.class)
                 .satisfies(t -> assertThat(((CustomException) t).getDetail()).contains("missing dsEstSbjList"));
@@ -88,28 +104,34 @@ class JbnuCourseParserTest {
     @Test
     @DisplayName("분류별 정상 빈 배열은 빈 목록으로 반환한다")
     void parseCourses_allowsEmptyCourseList() {
-
+        // given
         String json = "{\"dsEstSbjList\":[]}";
 
+        // when
         List<ParsedCourseDto> courses = parser.parseCourses(json);
 
+        // then
         assertThat(courses).isEmpty();
     }
 
     @Test
     @DisplayName("수집용 스트림 파싱에서도 정상 빈 배열은 빈 iterator로 반환한다")
     void streamCourses_allowsEmptyCourseList() {
-
+        // given
         ByteArrayInputStream stream = new ByteArrayInputStream(
                 "{\"dsEstSbjList\":[]}".getBytes(StandardCharsets.UTF_8));
 
+        // when
         Iterator<ParsedCourseDto> courses = parser.streamCourses(stream, "2026", "U211600025");
 
+        // then
         assertThat(courses).isExhausted();
     }
 
     @Test
+    @DisplayName("강의 식별 정보가 누락되면 파싱을 거부한다")
     void parseCourses_rejectsMissingRequiredIdentity() {
+        // when & then
         assertThatThrownBy(() -> parser.parseCourses(jsonResponse("""
                 {
                   "SBJCT_CD": "A001",
@@ -122,7 +144,9 @@ class JbnuCourseParserTest {
     }
 
     @Test
+    @DisplayName("잘못된 JSON은 파싱을 거부한다")
     void parseCourses_rejectsMalformedJson() {
+        // when & then
         assertThatThrownBy(() -> parser.parseCourses("{\"dsEstSbjList\":["))
                 .isInstanceOf(CustomException.class)
                 .satisfies(t -> assertThat(((CustomException) t).getDetail()).contains("Malformed crawler JSON"));
@@ -131,6 +155,7 @@ class JbnuCourseParserTest {
     @Test
     @DisplayName("대상 학년과 학과의 학년 표기를 분리해 파싱합니다")
     void parseCourses_extractsGradeAndDepartment() {
+        // when
         ParsedCourseDto course = parser.parseCourses(jsonResponse("""
                 {
                   "SBJCT_CD": "A001",
@@ -143,6 +168,7 @@ class JbnuCourseParserTest {
                 }
                 """)).get(0);
 
+        // then
         assertThat(course.targetGrade()).isEqualTo(TargetGrade.GRADE_3);
         assertThat(course.department()).isEqualTo("컴퓨터공학부");
     }
@@ -150,6 +176,7 @@ class JbnuCourseParserTest {
     @Test
     @DisplayName("학년 배분 제한 과목은 전체 정원보다 허용 인원을 유효 정원으로 사용합니다")
     void parseCourses_usesAllowedEnrollmentAsEffectiveCapacity() {
+        // when
         ParsedCourseDto course = parser.parseCourses(jsonResponse("""
                 {
                   "SBJCT_CD": "0000100522",
@@ -165,6 +192,7 @@ class JbnuCourseParserTest {
                 }
                 """)).get(0);
 
+        // then
         assertThat(course.capacity()).isEqualTo(18);
         assertThat(course.current()).isEqualTo(18);
     }
@@ -172,6 +200,7 @@ class JbnuCourseParserTest {
     @Test
     @DisplayName("허용 인원이 없으면 기존 수강 정원을 사용합니다")
     void parseCourses_fallsBackToCourseCapacityWhenAllowedEnrollmentIsMissing() {
+        // when
         ParsedCourseDto course = parser.parseCourses(jsonResponse("""
                 {
                   "SBJCT_CD": "A001",
@@ -183,11 +212,14 @@ class JbnuCourseParserTest {
                 }
                 """)).get(0);
 
+        // then
         assertThat(course.capacity()).isEqualTo(50);
     }
 
     @Test
+    @DisplayName("단일 반 교시의 강의 시간을 보존한다")
     void parseCourses_preservesSingleHalfSlot() {
+        // when
         ParsedCourseDto course = parser.parseCourses(jsonResponse("""
                 {
                   "SBJCT_CD": "A001",
@@ -198,6 +230,7 @@ class JbnuCourseParserTest {
                 }
                 """)).get(0);
 
+        // then
         assertThat(course.schedules()).extracting(ParsedCourseScheduleDto::dayOfWeek)
                 .containsExactly(CourseDayOfWeek.TUESDAY);
         assertThat(course.schedules().get(0).startTime()).isEqualTo(LocalTime.of(11, 30));

@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.academic.api.operations.CrawlerAdminSnapshot;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
 import bhoon.sugang_helper.academic.crawling.service.CrawlerRunStateService;
-import bhoon.sugang_helper.admin.dto.response.AdminDashboardResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
@@ -39,16 +38,22 @@ class AdminServiceTest {
 
     @Mock
     private UserIdentityQueryService userIdentityQuery;
+
     @Mock
     private UserNotificationQueryService userNotificationQuery;
+
     @Mock
     private SubscriptionQueryService subscriptionQueryService;
+
     @Mock
     private NotificationHistoryQueryService notificationHistoryQuery;
+
     @Mock
     private NotificationService notificationTestSender;
+
     @Mock
     private CourseCrawlerTargetService crawlerAdminSnapshotQuery;
+
     @Mock
     private CrawlerRunStateService crawlerStatusQuery;
 
@@ -56,24 +61,9 @@ class AdminServiceTest {
     private AdminService adminService;
 
     @Test
-    @DisplayName("관리자 대시보드 통계를 정상적으로 조회한다")
-    void getDashboardStats() {
-        when(userIdentityQuery.countUsers()).thenReturn(100L);
-        when(subscriptionQueryService.countActiveSubscriptions()).thenReturn(50L);
-        when(notificationHistoryQuery.countCreatedAfter(any(LocalDateTime.class))).thenReturn(20L);
-        when(crawlerStatusQuery.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
-
-        AdminDashboardResponse result = adminService.getDashboardStats();
-
-        assertThat(result.getTotalUsers()).isEqualTo(100L);
-        assertThat(result.getTotalActiveSubscriptions()).isEqualTo(50L);
-        assertThat(result.getTodayNotificationCount()).isEqualTo(20L);
-        assertThat(result.getCrawlingStatus()).isEqualTo("RUNNING");
-    }
-
-    @Test
     @DisplayName("관리자 대시보드 스냅샷을 한 번에 조회한다")
     void getDashboardSnapshot() {
+        // given
         when(userIdentityQuery.countUsers()).thenReturn(100L);
         when(subscriptionQueryService.countActiveSubscriptions()).thenReturn(50L);
         when(notificationHistoryQuery.countCreatedAfter(any(LocalDateTime.class))).thenReturn(20L);
@@ -83,10 +73,14 @@ class AdminServiceTest {
         when(crawlerAdminSnapshotQuery.findCurrentAdminSnapshot())
                 .thenReturn(new CrawlerAdminSnapshot("2026", "U211600020"));
 
+        // when
         AdminDashboardSnapshotResponse result = adminService.getDashboardSnapshot();
 
+        // then
         assertThat(result.getOverview().getTotalUsers()).isEqualTo(100L);
         assertThat(result.getOverview().getTotalActiveSubscriptions()).isEqualTo(50L);
+        assertThat(result.getOverview().getTodayNotificationCount()).isEqualTo(20L);
+        assertThat(result.getOverview().getCrawlingStatus()).isEqualTo("RUNNING");
         assertThat(result.getCrawlTarget().year()).isEqualTo("2026");
         assertThat(result.getCrawlTarget().semester()).isEqualTo("U211600020");
     }
@@ -94,10 +88,12 @@ class AdminServiceTest {
     @Test
     @DisplayName("테스트 알림 전송이 성공한다")
     void sendTestNotification_Success() {
+        // given
         String email = "test@example.com";
         NotificationRecipient recipient = new NotificationRecipient(
                 7L, false, email, email, true, true, false, null);
 
+        // when & then
         try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
             securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(email);
             when(userNotificationQuery.findByEmail(email)).thenReturn(Optional.of(recipient));
@@ -112,8 +108,10 @@ class AdminServiceTest {
     @Test
     @DisplayName("사용자 미존재 시 테스트 알림 전송이 실패한다")
     void sendTestNotification_UserNotFound() {
+        // given
         String email = "notfound@example.com";
 
+        // when & then
         try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
             securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(email);
             when(userNotificationQuery.findByEmail(email)).thenReturn(Optional.empty());

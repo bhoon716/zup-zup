@@ -28,11 +28,13 @@ class CourseReviewRepositoryTest {
     @Test
     @DisplayName("같은 외부교원N의 학기별 강의 키를 사용해 리뷰를 묶고 다른 교수를 제외한다")
     void findsReviewsForCourseKeysWithinProfessorScope() {
+        // given
         Course previousCourse = courseRepository.saveAndFlush(course(PREVIOUS_COURSE_KEY, "외부교원1", "U211600010"));
         Course currentCourse = courseRepository.saveAndFlush(course(CURRENT_COURSE_KEY, "외부교원1", "U211600020"));
         Course differentProfessorCourse = courseRepository.saveAndFlush(
                 course("2026:U211600030:0000131925:1", "김교수", "U211600030"));
 
+        // when
         CourseReview myReview = reviewRepository.saveAndFlush(review(previousCourse.getCourseKey(), 1L, 5));
         reviewRepository.saveAndFlush(review(currentCourse.getCourseKey(), 2L, 3));
         reviewRepository.saveAndFlush(review(differentProfessorCourse.getCourseKey(), 3L, 1));
@@ -40,6 +42,7 @@ class CourseReviewRepositoryTest {
         List<String> courseKeys = courseRepository.findCourseKeysBySubjectCodeAndProfessor(SUBJECT_CODE, "외부교원1");
         var page = reviewRepository.findByCourseKeysWithMyReviewFirst(courseKeys, 1L, PageRequest.of(0, 10));
 
+        // then
         assertThat(courseKeys).containsExactlyInAnyOrder(PREVIOUS_COURSE_KEY, CURRENT_COURSE_KEY);
         assertThat(page.getContent()).hasSize(2);
         assertThat(page.getContent().getFirst().getId()).isEqualTo(myReview.getId());

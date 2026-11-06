@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -53,6 +54,7 @@ class DatabaseReadinessHealthTest {
 
     @Autowired
     private MockMvc mockMvc;
+
     @Autowired
     private DataSource dataSource;
 
@@ -62,10 +64,13 @@ class DatabaseReadinessHealthTest {
     }
 
     @Test
+    @DisplayName("DB에 연결할 수 없으면 외부 상태 확인은 실패한다")
     void externalHealthIsDownWhenDatabaseCannotBeReached() throws Exception {
+        // given
         given(dataSource.getConnection())
                 .willThrow(new SQLException("Database is unavailable"));
 
+        // when & then
         mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.status").value("DOWN"));

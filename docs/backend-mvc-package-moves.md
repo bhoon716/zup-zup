@@ -108,7 +108,6 @@
 | `academic/review/infra/CourseReviewReactionJpaRepository.java` | [academic/review/repository/CourseReviewReactionRepository.java](../apps/server/src/main/java/bhoon/sugang_helper/academic/review/repository/CourseReviewReactionRepository.java) |
 | `academic/review/presentation/CourseEmojiReviewController.java` | [academic/review/controller/CourseEmojiReviewController.java](../apps/server/src/main/java/bhoon/sugang_helper/academic/review/controller/CourseEmojiReviewController.java) |
 | `academic/review/presentation/CourseReviewController.java` | [academic/review/controller/CourseReviewController.java](../apps/server/src/main/java/bhoon/sugang_helper/academic/review/controller/CourseReviewController.java) |
-| `admin/application/AdminDashboardResponse.java` | [admin/dto/response/AdminDashboardResponse.java](../apps/server/src/main/java/bhoon/sugang_helper/admin/dto/response/AdminDashboardResponse.java) |
 | `admin/application/AdminDashboardSnapshotResponse.java` | [admin/dto/response/AdminDashboardSnapshotResponse.java](../apps/server/src/main/java/bhoon/sugang_helper/admin/dto/response/AdminDashboardSnapshotResponse.java) |
 | `admin/application/AdminHourlyTrafficResponse.java` | [admin/dto/response/AdminHourlyTrafficResponse.java](../apps/server/src/main/java/bhoon/sugang_helper/admin/dto/response/AdminHourlyTrafficResponse.java) |
 | `admin/application/AdminOverviewResponse.java` | [admin/dto/response/AdminOverviewResponse.java](../apps/server/src/main/java/bhoon/sugang_helper/admin/dto/response/AdminOverviewResponse.java) |

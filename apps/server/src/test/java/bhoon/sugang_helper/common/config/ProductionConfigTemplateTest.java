@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
@@ -20,9 +21,12 @@ class ProductionConfigTemplateTest {
     }
 
     @Test
+    @DisplayName("운영 설정의 외부 값은 환경 변수로 주입한다")
     void productionConfigUsesEnvironmentPlaceholdersForExternalizedValues() throws IOException {
+        // given
         String content = readClasspathResource("application-prod.yml");
 
+        // when & then
         assertThat(content).contains("password: ${SPRING_DATASOURCE_PASSWORD}");
         assertThat(content).contains("url: ${SPRING_DATASOURCE_URL}");
         assertThat(content).contains("username: ${SPRING_DATASOURCE_USERNAME}");
@@ -49,30 +53,42 @@ class ProductionConfigTemplateTest {
     }
 
     @Test
+    @DisplayName("운영 앱 실행 중에는 Flyway를 실행하지 않는다")
     void productionConfigDoesNotRunFlywayInsideTheRuntimeApplication() throws IOException {
+        // given
         String content = readClasspathResource("application-prod.yml");
 
+        // when & then
         assertThat(content).contains("enabled: false");
     }
 
     @Test
+    @DisplayName("앱 시작 시 Spring Batch 작업을 자동 실행하지 않는다")
     void applicationDoesNotAutoLaunchSpringBatchJobsAtStartup() throws IOException {
+        // given
         String content = readClasspathResource("application.yml");
 
+        // when & then
         assertThat(content).contains("batch:\n    job:\n      enabled: false");
     }
 
     @Test
+    @DisplayName("환경 변수 예시에 Google 콜백 주소를 선언한다")
     void environmentTemplateDeclaresGoogleRedirectUri() throws IOException {
+        // given
         String content = Files.readString(Path.of(".env.example"));
 
+        // when & then
         assertThat(content).contains("GOOGLE_REDIRECT_URI=");
     }
 
     @Test
+    @DisplayName("운영 설정은 진단 엔드포인트와 개발 도구를 제한한다")
     void productionConfigRestrictsDiagnosticEndpointsAndDeveloperTools() throws IOException {
+        // given
         String content = readClasspathResource("application-prod.yml");
 
+        // when & then
         assertThat(content)
                 .contains("h2:\n    console:\n      enabled: false")
                 .contains("management:\n  server:\n    port: 8081")
@@ -91,9 +107,12 @@ class ProductionConfigTemplateTest {
     }
 
     @Test
+    @DisplayName("Redis 연결과 명령 실행에는 제한 시간을 적용한다")
     void redisClientUsesBoundedConnectionAndCommandTimeouts() throws IOException {
+        // given
         String content = readClasspathResource("application.yml");
 
+        // when & then
         assertThat(content)
                 .contains("timeout: 2s")
                 .contains("connect-timeout: 2s");
