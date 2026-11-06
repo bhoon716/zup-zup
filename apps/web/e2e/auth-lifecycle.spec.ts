@@ -126,3 +126,39 @@ test("session expiry cancels a write waiting for an old CSRF response", async ({
     releaseCsrf();
   }
 });
+
+test("a restored admin cannot reveal admin content before server validation", async ({ page }) => {
+  const restoredAdmin = { ...user, role: "ADMIN" };
+  await page.addInitScript(profile => {
+    localStorage.setItem("auth-storage", JSON.stringify({ state: { user: profile }, version: 0 }));
+  }, restoredAdmin);
+  let releaseProfile!: () => void;
+  const profileGate = new Promise<void>(resolve => { releaseProfile = resolve; });
+  let signalProfileRequested!: () => void;
+  const profileRequested = new Promise<void>(resolve => { signalProfileRequested = resolve; });
+  const adminRequests: string[] = [];
+  await page.route("**/api/**", async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/v1/users/me") {
+      signalProfileRequested();
+      await profileGate;
+      await route.fulfill({ json: user });
+      return;
+    }
+    if (path.startsWith("/api/v1/admin/")) adminRequests.push(path);
+    await route.fulfill({ json: [] });
+  });
+  try {
+    await page.goto("/admin/announcements");
+    await profileRequested;
+    await expect(page.getByText("관리자 전용", { exact: true })).toHaveCount(0);
+    expect(adminRequests).toEqual([]);
+    releaseProfile();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText("관리자 전용", { exact: true })).toHaveCount(0);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("auth-storage")!).state.user.role)).toBe("USER");
+    expect(adminRequests).toEqual([]);
+  } finally {
+    releaseProfile();
+  }
+});

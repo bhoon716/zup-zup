@@ -5,12 +5,12 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { AxiosError } from "axios";
+import { AxiosError, CanceledError, isCancel } from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useWebPush } from "@/features/user/hooks/useWebPush";
-import type { User, UserDeviceResponse } from "@/shared/types/api";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
+import type { UserDeviceResponse } from "@/shared/types/api";
 import {
-  getMyProfile,
   updateSettings,
   getDevices,
   deleteDevice,
@@ -43,7 +43,10 @@ export const useSettingsPage = () => {
   const searchParams = useSearchParams();
   const discordStatus = searchParams.get("discord");
 
-  const [user, setUser] = useState<User | null>(null);
+  const authUser = useAuthStore((state) => state.isAuthenticated ? state.user : null);
+  const refreshUser = useAuthStore((state) => state.refreshUser);
+  const [readyUserId, setReadyUserId] = useState<number | null>(null);
+  const user = authUser?.id === readyUserId ? authUser : null;
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
@@ -94,14 +97,17 @@ export const useSettingsPage = () => {
   }, [discordStatus, router]);
 
   useEffect(() => {
+    let active = true;
     const fetchProfile = async () => {
       try {
         const [profileRes, deviceRes] = await Promise.all([
-          getMyProfile(),
+          refreshUser().then(profile => ({ profile, version: useAuthStore.getState().sessionVersion })),
           getDevices(),
         ]);
-        const userData = profileRes;
-        setUser(userData);
+        if (!active) return;
+        if (profileRes.version !== useAuthStore.getState().sessionVersion) throw new CanceledError();
+        const userData = profileRes.profile;
+        setReadyUserId(userData.id);
 
         const initialEmail = userData.notificationEmail || "";
 
@@ -114,15 +120,17 @@ export const useSettingsPage = () => {
 
         setDevices(deviceRes);
       } catch (error) {
+        if (!active || isCancel(error)) return;
         reportClientError(error, { source: "settings", operation: "fetch-profile" });
         toast.error("프로필 정보를 불러오는데 실패했습니다.");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
-    fetchProfile();
-  }, [reset]);
+    void fetchProfile();
+    return () => { active = false; };
+  }, [reset, refreshUser]);
 
   useEffect(() => {
     if (testCooldownSeconds <= 0) {
@@ -198,11 +206,12 @@ export const useSettingsPage = () => {
     if (!confirm("디스코드 연동을 해제하시겠습니까?")) return;
 
     setIsUnlinking(true);
+    const version = useAuthStore.getState().sessionVersion;
     try {
       await unlinkDiscord();
+      if (version !== useAuthStore.getState().sessionVersion) return;
       toast.success("디스코드 연동이 해제되었습니다.");
-      const response = await getMyProfile();
-      setUser(response);
+      await refreshUser();
       setValue("discordEnabled", false);
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "연동 해제 실패"));
@@ -259,11 +268,12 @@ export const useSettingsPage = () => {
     }
 
     setIsSubmitting(true);
+    const version = useAuthStore.getState().sessionVersion;
     try {
-      await updateSettings(values);
+      const response = await updateSettings(values);
+      if (version !== useAuthStore.getState().sessionVersion) return;
+      useAuthStore.getState().setUser(response);
       toast.success("알림 설정이 저장되었습니다.");
-      const response = await getMyProfile();
-      setUser(response);
       reset({
         notificationEmail: response.notificationEmail || "",
         emailEnabled: response.emailEnabled,

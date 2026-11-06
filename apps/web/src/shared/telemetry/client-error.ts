@@ -12,6 +12,7 @@ export type ClientErrorSource =
   | "route-error-boundary"
   | "global-error-boundary"
   | "react-query"
+  | "auth"
   | "service-worker"
   | "web-push"
   | "admin-schedule"

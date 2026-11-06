@@ -32,26 +32,11 @@ describe("user.api", () => {
     vi.useRealTimers();
   });
 
-  it("getMyProfile는 동시 호출을 하나의 요청으로 합친다", async () => {
-    vi.useFakeTimers();
+  it("getMyProfile는 사용자 캐시 없이 HTTP 응답을 반환한다", async () => {
     const { api, userApi } = await loadModules();
-    api.get.mockResolvedValue({
-      data: { id: 1, name: "테스터" },
-    });
-
-    const first = userApi.getMyProfile();
-    const second = userApi.getMyProfile();
-
-    expect(api.get).toHaveBeenCalledTimes(1);
-    await Promise.all([first, second]);
-
-    vi.advanceTimersByTime(101);
-    api.get.mockResolvedValueOnce({
-      data: { id: 1, name: "테스터" },
-    });
-
-    await userApi.getMyProfile();
-    expect(api.get).toHaveBeenCalledTimes(2);
+    api.get.mockResolvedValue({ data: { id: 1, name: "테스터" } });
+    expect(await userApi.getMyProfile()).toEqual({ id: 1, name: "테스터" });
+    expect(api.get).toHaveBeenCalledExactlyOnceWith("/api/v1/users/me");
   });
 
   it("getMyProfile는 bootstrap 요청에서 auth 실패 후속 처리를 억제할 수 있다", async () => {
