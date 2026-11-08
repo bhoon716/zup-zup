@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -50,25 +51,53 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
     private void logByStatus(String method, String uri, boolean queryPresent, int status, long tookMs,
                              boolean errorAlreadyLogged, String failureType) {
         if (failureType != null) {
-            String failureMessage = "[HTTP] 요청 처리 중 예외 전파. method={} path={} queryPresent={} "
-                    + "responseStatusAtExit={} elapsedMs={} exceptionType={} completed=false";
-            if (errorAlreadyLogged) {
-                log.debug(failureMessage, method, uri, queryPresent, status, tookMs, failureType);
-            } else {
-                log.error(failureMessage, method, uri, queryPresent, status, tookMs, failureType);
-            }
+            logEscapingFailure(method, uri, queryPresent, status, tookMs, errorAlreadyLogged, failureType);
             return;
         }
-        int resolvedStatus = status == 0 ? HttpServletResponse.SC_OK : status;
+        logCompletedRequest(method, uri, queryPresent, status, tookMs, errorAlreadyLogged);
+    }
+
+    private void logEscapingFailure(String method, String uri, boolean queryPresent, int status, long tookMs,
+                                    boolean errorAlreadyLogged, String failureType) {
+        String message = "[HTTP] 요청 처리 중 예외 전파. method={} path={} queryPresent={} "
+                + "responseStatusAtExit={} elapsedMs={} exceptionType={} completed=false";
+        failureLogEntry(errorAlreadyLogged)
+                .addKeyValue("event", "http_failure").addKeyValue("method", method)
+                .addKeyValue("path", uri).addKeyValue("queryPresent", queryPresent)
+                .addKeyValue("responseStatusAtExit", status).addKeyValue("elapsedMs", tookMs)
+                .addKeyValue("exceptionType", failureType).addKeyValue("completed", false)
+                .log(message, method, uri, queryPresent, status, tookMs, failureType);
+    }
+
+    private LoggingEventBuilder failureLogEntry(boolean errorAlreadyLogged) {
+        if (errorAlreadyLogged) {
+            return log.atDebug();
+        }
+        return log.atError();
+    }
+
+    private void logCompletedRequest(String method, String uri, boolean queryPresent, int status, long tookMs,
+                                     boolean errorAlreadyLogged) {
+        int resolvedStatus = status;
+        if (resolvedStatus == 0) {
+            resolvedStatus = HttpServletResponse.SC_OK;
+        }
         String message = "[HTTP] 요청 처리 결과. method={} path={} queryPresent={} status={} elapsedMs={}";
-        if (errorAlreadyLogged || uri.equals("/health") || resolvedStatus < 400) {
-            log.debug(message, method, uri, queryPresent, resolvedStatus, tookMs);
-            return;
+        completedRequestLogEntry(uri, resolvedStatus, errorAlreadyLogged)
+                .addKeyValue("event", "http_request").addKeyValue("method", method)
+                .addKeyValue("path", uri).addKeyValue("queryPresent", queryPresent)
+                .addKeyValue("status", resolvedStatus).addKeyValue("elapsedMs", tookMs)
+                .addKeyValue("completed", true)
+                .log(message, method, uri, queryPresent, resolvedStatus, tookMs);
+    }
+
+    private LoggingEventBuilder completedRequestLogEntry(String uri, int status, boolean errorAlreadyLogged) {
+        if (errorAlreadyLogged || uri.equals("/health") || status < 400) {
+            return log.atDebug();
         }
-        if (resolvedStatus >= 500) {
-            log.error(message, method, uri, queryPresent, resolvedStatus, tookMs);
-            return;
+        if (status >= 500) {
+            return log.atError();
         }
-        log.warn(message, method, uri, queryPresent, resolvedStatus, tookMs);
+        return log.atWarn();
     }
 }

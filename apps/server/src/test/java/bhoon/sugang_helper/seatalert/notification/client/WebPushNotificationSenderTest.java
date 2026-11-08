@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.identity.user.service.UserDeviceService;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -66,6 +67,8 @@ class WebPushNotificationSenderTest {
         webPushNotificationSender.init();
         ReflectionTestUtils.setField(webPushNotificationSender, "pushService", pushService);
         Logger logger = (Logger) LoggerFactory.getLogger(WebPushNotificationSender.class);
+        Level previousLevel = logger.getLevel();
+        logger.setLevel(Level.DEBUG);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
         logger.addAppender(appender);
@@ -82,6 +85,7 @@ class WebPushNotificationSenderTest {
         } finally {
             logger.detachAppender(appender);
             appender.stop();
+            logger.setLevel(previousLevel);
         }
     }
 

@@ -22,6 +22,7 @@ APP_ENV_FILE="${repo_root}/apps/server/.env.example" \
 
 python3 - "${compose_json}" "${repo_root}" "${images_file}" <<'PY'
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -115,6 +116,32 @@ if len(log_queries) != 4 or any('{app="jbnu-sugang-helper",job=~"$job"}' not in 
 job_variable = next(variable for variable in loki_dashboard["templating"]["list"] if variable["name"] == "job")
 if job_variable["allValue"] != ".*" or 'app="jbnu-sugang-helper"' not in job_variable["query"]:
     raise SystemExit("Loki job choices must use the same app scope without excluding missing jobs from All")
+
+firstline = re.search(r'firstline\s*=\s*("(?:\\.|[^"\\])*")', alloy)
+if not firstline:
+    raise SystemExit("App logs must retain JSON and legacy multiline boundaries")
+pattern = json.loads(firstline.group(1))
+for line in ('{"level":"INFO","message":"one event"}', "2026-11-06 12:00:00 INFO legacy"):
+    if not re.match(pattern, line):
+        raise SystemExit("App multiline must recognize both JSON and legacy log starts")
+if re.match(pattern, "\tat app.Main.run(Main.java:1)"):
+    raise SystemExit("Legacy stack frames must remain attached to their log event")
+
+trace_query = next(panel["targets"][0]["expr"] for panel in loki_dashboard["panels"] if panel["id"] == 4)
+if "${correlationId:regex}" not in trace_query or " |~ `" not in trace_query:
+    raise SystemExit("Trace search must escape the ID and support JSON plus legacy logs")
+trace_pattern = trace_query.split(" |~ `", 1)[1].removesuffix("`")
+trace_pattern = trace_pattern.replace("${correlationId:regex}", re.escape("request.123"))
+for line in ('{"correlationId":"request.123"}', '{"correlationId": "request.123"}', "[corr=request.123] legacy"):
+    if not re.search(trace_pattern, line):
+        raise SystemExit("Trace search must match both JSON and legacy logs")
+if re.search(trace_pattern, '{"correlationId":"requestX123"}'):
+    raise SystemExit("Trace search must treat punctuation in the ID literally")
+
+empty_trace_pattern = trace_query.split(" |~ `", 1)[1].removesuffix("`").replace("${correlationId:regex}", "")
+for line in ('{"correlationId":"request.123"}', "[corr=request.123] legacy"):
+    if not re.search(empty_trace_pattern, line):
+        raise SystemExit("Empty trace input must retain both JSON and legacy request logs")
 
 images_path.write_text(
     "\n".join(

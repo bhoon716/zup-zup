@@ -88,7 +88,7 @@
       },
       "targets": [
         {
-          "expr": "{app=\"jbnu-sugang-helper\",job=~\"$job\"} |= \"corr=$correlationId\"",
+          "expr": "{app=\"jbnu-sugang-helper\",job=~\"$job\"} |~ `corr=${correlationId:regex}|\"correlationId\"\\s*:\\s*\"${correlationId:regex}`",
           "refId": "A"
         }
       ],

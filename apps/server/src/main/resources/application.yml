@@ -1,4 +1,7 @@
 spring:
+  main:
+    banner-mode: "off"
+
   application:
     name: zup-zup
 
@@ -170,3 +173,9 @@ file:
       max-pixels: ${FILE_UPLOAD_IMAGE_MAX_PIXELS:8388608}
       max-output-bytes: ${FILE_UPLOAD_IMAGE_MAX_OUTPUT_BYTES:5242880}
       decode-timeout: ${FILE_UPLOAD_IMAGE_DECODE_TIMEOUT:PT2S}
+
+logging:
+  structured:
+    json:
+      add:
+        environment: ${jbnu.slack.environment:UNKNOWN}

@@ -90,27 +90,38 @@ public class CourseCrawlerService {
         }
 
         incrementCounter("STARTED");
-        boolean failed = false;
         try {
-            int currentYear = Year.now().getValue();
-            for (int y = currentYear; y > currentYear - 3; y--) {
-                String year = String.valueOf(y);
-                for (SemesterType semester : SemesterType.values()) {
-                    try {
-                        executeCrawl(year, semester.getCode());
-                    } catch (RuntimeException exception) {
-                        failed = true;
-                        incrementCounter("FAILED");
-                    }
-                }
-            }
-            if (!failed) {
+            if (crawlRecentTargets()) {
                 incrementCounter("SUCCEEDED");
             }
             return true;
         } finally {
             isCrawling.set(false);
         }
+    }
+
+    private boolean crawlRecentTargets() {
+        boolean failed = false;
+        int currentYear = Year.now().getValue();
+        for (int year = currentYear; year > currentYear - 3; year--) {
+            if (!crawlYear(String.valueOf(year))) {
+                failed = true;
+            }
+        }
+        return !failed;
+    }
+
+    private boolean crawlYear(String year) {
+        boolean failed = false;
+        for (SemesterType semester : SemesterType.values()) {
+            try {
+                executeCrawl(year, semester.getCode());
+            } catch (RuntimeException exception) {
+                failed = true;
+                incrementCounter("FAILED");
+            }
+        }
+        return !failed;
     }
 
     @Scheduled(fixedDelayString = "${jbnu.crawler.freshness-check-ms:60000}")
@@ -123,13 +134,17 @@ public class CourseCrawlerService {
                 .orElse(-1L);
         freshnessAgeSeconds.set(ageSeconds);
         boolean stale = ageSeconds < 0 || ageSeconds > Duration.ofMinutes(staleThresholdMinutes).toSeconds();
-        staleGauge.set(stale ? 1 : 0);
-        if (stale && staleAlertActive.compareAndSet(false, true)) {
-            log.error("[Crawler] 강의 데이터 신선도 기준 초과. ageSeconds={}, thresholdMinutes={}, alert=ADMIN", ageSeconds,
-                    staleThresholdMinutes);
-        } else if (!stale) {
+        if (!stale) {
+            staleGauge.set(0);
             staleAlertActive.set(false);
+            return;
         }
+        staleGauge.set(1);
+        if (!staleAlertActive.compareAndSet(false, true)) {
+            return;
+        }
+        log.error("[Crawler] 강의 데이터 신선도 기준 초과. ageSeconds={}, thresholdMinutes={}, alert=ADMIN", ageSeconds,
+                staleThresholdMinutes);
     }
 
     private void executeCrawl(String year, String semester) {
@@ -138,24 +153,15 @@ public class CourseCrawlerService {
         long startedAt = System.nanoTime();
         MDC.put("crawlerRunId", runId);
         try {
-            log.info("[Crawler] 수집 시작. run_started runId={} year={} semester={} stage={} result=started elapsedMs=0",
-                    runId, year, semester, stage);
+            logCrawlStarted(runId, year, semester, stage);
             List<ParsedCourseDto> parsedCourses = courseCrawlFetcher.fetch(year, semester);
-            log.debug("[Crawler] 수집 단계 완료. stage_completed runId={} year={} semester={} stage={} result=success "
-                            + "courseCount={} elapsedMs={}",
-                    runId, year, semester, stage, parsedCourses.size(), elapsedMs(startedAt));
+            logFetchCompleted(runId, year, semester, stage, parsedCourses.size(), startedAt);
             stage = CrawlerFailureStage.PERSIST;
             courseCrawlCompletionService.complete(parsedCourses);
-            log.info("[Crawler] 수집 완료. run_succeeded runId={} year={} semester={} stage={} result=success "
-                            + "courseCount={} elapsedMs={}",
-                    runId, year, semester, stage, parsedCourses.size(), elapsedMs(startedAt));
+            logCrawlSucceeded(runId, year, semester, stage, parsedCourses.size(), startedAt);
         } catch (RuntimeException exception) {
             CrawlerFailureSummary summary = CrawlerFailureSummary.from(stage, exception);
-            log.error("[Crawler] 수집 실패. run_failed runId={} year={} semester={} stage={} result=failed elapsedMs={} "
-                            + "failureCode={} exceptionType={} retryable={} upstreamStatus={}",
-                    runId, year, semester, summary.stage(), elapsedMs(startedAt),
-                    SensitiveDataRedactor.failureCode(exception), summary.failureType(),
-                    summary.retryableLabel(), summary.upstreamStatusLabel());
+            logCrawlFailed(runId, year, semester, summary, exception, startedAt);
             recordFailureWithoutMasking(stage, exception);
             if (exception instanceof CustomException customException) {
                 throw customException;
@@ -164,6 +170,49 @@ public class CourseCrawlerService {
         } finally {
             MDC.remove("crawlerRunId");
         }
+    }
+
+    private void logCrawlStarted(String runId, String year, String semester, CrawlerFailureStage stage) {
+        log.atInfo().addKeyValue("event", "run_started").addKeyValue("year", year)
+                .addKeyValue("semester", semester).addKeyValue("stage", stage.name())
+                .addKeyValue("result", "started")
+                .log("[Crawler] 수집 시작. run_started runId={} year={} semester={} stage={} result=started elapsedMs=0",
+                runId, year, semester, stage);
+    }
+
+    private void logFetchCompleted(String runId, String year, String semester, CrawlerFailureStage stage,
+                                   int courseCount, long startedAt) {
+        log.debug("[Crawler] 수집 단계 완료. stage_completed runId={} year={} semester={} stage={} result=success "
+                        + "courseCount={} elapsedMs={}",
+                runId, year, semester, stage, courseCount, elapsedMs(startedAt));
+    }
+
+    private void logCrawlSucceeded(String runId, String year, String semester, CrawlerFailureStage stage,
+                                   int courseCount, long startedAt) {
+        log.atInfo().addKeyValue("event", "run_succeeded").addKeyValue("year", year)
+                .addKeyValue("semester", semester).addKeyValue("stage", stage.name())
+                .addKeyValue("result", "success").addKeyValue("courseCount", courseCount)
+                .addKeyValue("elapsedMs", elapsedMs(startedAt))
+                .log("[Crawler] 수집 완료. run_succeeded runId={} year={} semester={} stage={} result=success "
+                        + "courseCount={} elapsedMs={}",
+                runId, year, semester, stage, courseCount, elapsedMs(startedAt));
+    }
+
+    private void logCrawlFailed(String runId, String year, String semester, CrawlerFailureSummary summary,
+                                RuntimeException exception, long startedAt) {
+        log.atError().addKeyValue("event", "run_failed").addKeyValue("year", year)
+                .addKeyValue("semester", semester).addKeyValue("stage", summary.stage().name())
+                .addKeyValue("result", "failed").addKeyValue("elapsedMs", elapsedMs(startedAt))
+                .addKeyValue("errorCode", SensitiveDataRedactor.failureCode(exception))
+                .addKeyValue("exceptionType", SensitiveDataRedactor.exceptionType(exception))
+                .addKeyValue("rootCauseType", summary.failureType())
+                .addKeyValue("retryable", summary.retryableLabel())
+                .addKeyValue("upstreamStatus", summary.upstreamStatusLabel())
+                .log("[Crawler] 수집 실패. run_failed runId={} year={} semester={} stage={} result=failed elapsedMs={} "
+                        + "failureCode={} exceptionType={} retryable={} upstreamStatus={}",
+                runId, year, semester, summary.stage(), elapsedMs(startedAt),
+                SensitiveDataRedactor.failureCode(exception), summary.failureType(),
+                summary.retryableLabel(), summary.upstreamStatusLabel());
     }
 
     private long elapsedMs(long startedAt) {
@@ -181,11 +230,13 @@ public class CourseCrawlerService {
     }
 
     private void incrementCounter(String status) {
-        if (meterRegistry != null) {
-            Counter counter = meterRegistry.counter("crawler.runs", "status", status);
-            if (counter != null) {
-                counter.increment();
-            }
+        if (meterRegistry == null) {
+            return;
         }
+        Counter counter = meterRegistry.counter("crawler.runs", "status", status);
+        if (counter == null) {
+            return;
+        }
+        counter.increment();
     }
 }

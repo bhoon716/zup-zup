@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -75,36 +76,89 @@ public class SlackAlertService implements OperationalAlerts {
     private String formatMessage(SlackAlertCategory category, String errorCode, Throwable exception,
                                  String diagnostic) {
         String detail = safeDiagnostic(diagnostic);
-        String summary = switch (category) {
-            case CRAWLER_FETCH -> "강의 API 수집 실패";
-            case CRAWLER_PARSE -> "강의 데이터 해석 실패";
-            case DB_PERSIST -> "수집 결과 DB 저장 실패";
-            case SERVER_5XX -> "API 요청 처리 실패";
-        };
-        String impact = switch (category) {
-            case CRAWLER_FETCH, CRAWLER_PARSE -> "이번 수집 실패. 기존 조회와 데이터 신선도 영향은 확인 필요";
-            case DB_PERSIST -> "이번 수집 저장 실패. 최신 강의·빈자리 알림 반영 여부 확인 필요";
-            case SERVER_5XX -> "해당 요청이 실패함. 다른 요청·사용자 영향은 확인 필요";
-        };
-        String retry = "확인 필요. 이 알림 자체는 작업을 재실행하지 않음";
-        if (detail.contains("retryable=true")) {
-            retry = "재시도 가능한 유형. 이번 실행의 횟수 소진·다음 예약 여부는 로그 확인 필요";
-        } else if (detail.contains("retryable=false")) {
-            retry = "자동 재시도 대상이 아닌 유형. 다음 실행·수동 조치 여부 확인 필요";
-        }
+        Objects.requireNonNull(category);
+        String summary = summaryFor(category);
+        String impact = impactFor(category);
+        String retry = retryDescription(detail);
+        String nextCheck = nextCheckFor(category);
         return String.join("\n",
                 "[줍줍 오류] " + summary,
+                "다음 확인: " + nextCheck,
+                "",
                 "환경: " + label(properties.environment()) + " | 발생 시각(UTC): " + Instant.now(),
                 "영향: " + impact,
-                "긴급도: 확인 필요. 반복 여부·신선도·실패 요청 범위를 확인한 뒤 판단",
                 "재시도: " + retry,
-                "식별: category=" + category + " errorCode=" + label(errorCode)
+                "긴급도: 확인 필요. 반복 여부·신선도·실패 요청 범위를 확인한 뒤 판단",
+                "",
+                "진단 정보 (로그 검색용)",
+                "category=" + category + " errorCode=" + label(errorCode)
                         + " exceptionType=" + label(SensitiveDataRedactor.exceptionType(exception)),
-                "추적: correlationId=" + label(MDC.get("correlationId"))
+                "correlationId=" + label(MDC.get("correlationId"))
                         + " crawlerRunId=" + label(MDC.get("crawlerRunId")),
-                "진단: " + (detail.isBlank() ? "추가 메타데이터 없음" : detail),
-                "상위 호출 위치: stackTraceTop3=" + stackTraceTop3(exception),
-                "다음 확인: Grafana에서 환경과 위 추적 ID로 검색 → 오류 코드·원인 타입·stack trace 확인");
+                "진단: " + diagnosticDescription(detail),
+                "상위 호출 위치: stackTraceTop3=" + stackTraceTop3(exception));
+    }
+
+    private String summaryFor(SlackAlertCategory category) {
+        if (category == SlackAlertCategory.CRAWLER_FETCH) {
+            return "강의 API 수집 실패";
+        }
+        if (category == SlackAlertCategory.CRAWLER_PARSE) {
+            return "강의 데이터 해석 실패";
+        }
+        if (category == SlackAlertCategory.DB_PERSIST) {
+            return "수집 결과 DB 저장 실패";
+        }
+        if (category == SlackAlertCategory.SERVER_5XX) {
+            return "API 요청 처리 실패";
+        }
+        throw new IllegalArgumentException("Unsupported alert category: " + category);
+    }
+
+    private String impactFor(SlackAlertCategory category) {
+        if (category == SlackAlertCategory.CRAWLER_FETCH || category == SlackAlertCategory.CRAWLER_PARSE) {
+            return "이번 수집 실패. 기존 조회와 데이터 신선도 영향은 확인 필요";
+        }
+        if (category == SlackAlertCategory.DB_PERSIST) {
+            return "이번 수집 저장 실패. 최신 강의·빈자리 알림 반영 여부 확인 필요";
+        }
+        if (category == SlackAlertCategory.SERVER_5XX) {
+            return "해당 요청이 실패함. 다른 요청·사용자 영향은 확인 필요";
+        }
+        throw new IllegalArgumentException("Unsupported alert category: " + category);
+    }
+
+    private String retryDescription(String detail) {
+        if (detail.contains("retryable=true")) {
+            return "재시도 가능한 유형. 이번 실행의 횟수 소진·다음 예약 여부는 로그 확인 필요";
+        }
+        if (detail.contains("retryable=false")) {
+            return "자동 재시도 대상이 아닌 유형. 다음 실행·수동 조치 여부 확인 필요";
+        }
+        return "확인 필요. 이 알림 자체는 작업을 재실행하지 않음";
+    }
+
+    private String nextCheckFor(SlackAlertCategory category) {
+        if (category == SlackAlertCategory.CRAWLER_FETCH) {
+            return "Grafana에서 수집 실행 ID로 외부 응답 상태와 최근 수집 성공 시각을 확인하세요.";
+        }
+        if (category == SlackAlertCategory.CRAWLER_PARSE) {
+            return "Grafana에서 수집 실행 ID로 해석 실패 위치와 최근 수집 성공 시각을 확인하세요.";
+        }
+        if (category == SlackAlertCategory.DB_PERSIST) {
+            return "Grafana에서 수집 실행 ID로 DB 오류와 최신 강의·알림 반영 여부를 확인하세요.";
+        }
+        if (category == SlackAlertCategory.SERVER_5XX) {
+            return "Grafana에서 요청 추적 ID로 실패 경로와 같은 오류의 반복 여부를 확인하세요.";
+        }
+        throw new IllegalArgumentException("Unsupported alert category: " + category);
+    }
+
+    private String diagnosticDescription(String detail) {
+        if (detail.isBlank()) {
+            return "추가 메타데이터 없음";
+        }
+        return detail;
     }
 
     private String safeDiagnostic(String diagnostic) {
@@ -131,7 +185,10 @@ public class SlackAlertService implements OperationalAlerts {
         if (value == null || value.isBlank()) {
             return "NONE";
         }
-        return value.matches("[\\p{L}\\p{N}_.:-]{1,128}") ? value : "INVALID";
+        if (!value.matches("[\\p{L}\\p{N}_.:-]{1,128}")) {
+            return "INVALID";
+        }
+        return value;
     }
 
     private String stackTraceTop3(Throwable exception) {

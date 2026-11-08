@@ -50,6 +50,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
@@ -68,11 +69,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -107,8 +111,10 @@ import org.testcontainers.utility.DockerImageName;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @SpringBootTest(classes = {SugangHelperApplication.class, ModulithEventIntegrationTest.Fixture.class},
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
-        "spring.config.location=optional:classpath:/modulith-e2e-absent.yml",
+        "spring.config.location=classpath:/application.yml",
+        "spring.profiles.active=modulith-e2e",
         "server.address=127.0.0.1",
+        "logging.structured.json.add.environment=E2E",
         "spring.datasource.url=jdbc:h2:mem:modulith-e2e;MODE=MySQL;DB_CLOSE_DELAY=-1",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
@@ -119,6 +125,7 @@ import org.testcontainers.utility.DockerImageName;
         "spring.data.redis.password=",
         "spring.data.redis.repositories.enabled=false",
         "spring.cloud.aws.ses.enabled=false",
+        "management.health.mail.enabled=false",
         "app.notification.channels.email=true",
         "spring.cloud.aws.region.static=us-east-1",
         "spring.cloud.aws.credentials.access-key=isolated-e2e",
@@ -220,6 +227,55 @@ class ModulithEventIntegrationTest {
         if (!simulatedProviderCall) {
             verifyNoInteractions(webPush, discord, emailSender);
         }
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    @DisplayName("실제 HTTP 오류 로그는 마스킹과 검색 필드를 유지한 한 행 JSON으로 출력된다")
+    void httpFailureProducesValidRedactedJsonLogs(CapturedOutput output) throws Exception {
+        // given
+        RuntimeException failure = new UnsupportedOperationException("token=private-runtime-token",
+                new IllegalArgumentException("cookie=private-runtime-cookie"));
+        failure.addSuppressed(new IOException("email=private-runtime@example.invalid"));
+        doThrow(failure).when(outbox).save(any());
+
+        // when
+        HttpResponse<String> response = post("/crawl?mode=commit&token=private-query-token");
+        List<JsonNode> records = jsonLogLines(output.getOut());
+
+        // then
+        assertThat(response.statusCode()).isEqualTo(500);
+        assertThat(records).isNotEmpty().allSatisfy(record -> {
+            assertThat(record.isObject()).isTrue();
+            assertThat(record.path("@timestamp").asText()).isNotBlank();
+            assertThat(record.path("level").asText()).isNotBlank();
+            assertThat(record.path("message").asText()).isNotBlank();
+            assertThat(record.path("environment").asText()).isEqualTo("E2E");
+        });
+        String correlationId = response.headers().firstValue("X-Error-Id").orElseThrow();
+        JsonNode error = records.stream()
+                .filter(record -> record.path("event").asText().equals("api_error"))
+                .filter(record -> record.path("correlationId").asText().equals(correlationId))
+                .findFirst().orElseThrow();
+        assertThat(error.path("level").asText()).isEqualTo("ERROR");
+        assertThat(error.path("errorCode").asText()).isEqualTo(ErrorCode.INTERNAL_ERROR.getCode());
+        assertThat(error.path("exceptionType").asText()).isEqualTo("UnsupportedOperationException");
+        assertThat(error.path("rootCauseType").asText()).isEqualTo("IllegalArgumentException");
+        assertThat(error.path("status").asInt()).isEqualTo(500);
+        assertThat(error.path("method").asText()).isEqualTo("POST");
+        assertThat(error.path("path").asText()).isEqualTo(PREFIX + "/crawl");
+        assertThat(error.path("stackTraceIncluded").asBoolean()).isTrue();
+        assertThat(error.path("stack_trace").asText()).contains("Caused by:", "Suppressed:", "원문 메시지 생략");
+        assertThat(output.getOut()).doesNotContain("private-runtime-token", "private-runtime-cookie",
+                "private-runtime@example.invalid", "private-query-token");
+    }
+
+    private List<JsonNode> jsonLogLines(String output) throws IOException {
+        List<JsonNode> records = new ArrayList<>();
+        for (String line : output.lines().filter(value -> !value.isBlank()).toList()) {
+            records.add(mapper.readTree(line));
+        }
+        return records;
     }
 
     @Test
@@ -546,11 +602,18 @@ class ModulithEventIntegrationTest {
         @PostMapping("/login")
         void login(HttpServletRequest request, HttpServletResponse response,
                    @RequestParam(defaultValue = "false") boolean admin) {
-            User user = admin ? users.saveAndFlush(User.builder().name("격리 관리자")
-                    .email("admin@example.invalid").role(Role.ADMIN).build()) : users.findByEmail(EMAIL).orElseThrow();
+            User user = requireLoginUser(admin);
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(new SessionPrincipal(user.getId(), user.getEmail()).authentication(user.getRole().getKey()));
             new HttpSessionSecurityContextRepository().saveContext(context, request, response);
+        }
+
+        private User requireLoginUser(boolean admin) {
+            if (admin) {
+                return users.saveAndFlush(User.builder().name("격리 관리자")
+                        .email("admin@example.invalid").role(Role.ADMIN).build());
+            }
+            return users.findByEmail(EMAIL).orElseThrow();
         }
 
         @PostMapping("/enable-email")
@@ -630,17 +693,21 @@ class ModulithEventIntegrationTest {
             context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(EMAIL, "unused", List.of()));
             SecurityContextHolder.setContext(context);
             try {
-                if (rollback) {
-                    new TransactionTemplate(transactions).executeWithoutResult(status -> {
-                        userService.withdraw();
-                        throw new IllegalStateException("forced isolated withdrawal rollback");
-                    });
-                    return;
-                }
-                userService.withdraw();
+                withdrawUser(rollback);
             } finally {
                 SecurityContextHolder.setContext(original);
             }
+        }
+
+        private void withdrawUser(boolean rollback) {
+            if (rollback) {
+                new TransactionTemplate(transactions).executeWithoutResult(status -> {
+                    userService.withdraw();
+                    throw new IllegalStateException("forced isolated withdrawal rollback");
+                });
+                return;
+            }
+            userService.withdraw();
         }
 
         @PostMapping("/outside")

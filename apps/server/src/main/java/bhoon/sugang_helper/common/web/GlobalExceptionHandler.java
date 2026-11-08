@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -101,7 +103,7 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ErrorResponse> response(HttpServletRequest req, ErrorCode errorCode, Exception exception) {
         ErrorResponse errorResponse = ErrorResponse.of(errorCode, req.getRequestURI());
-        log(errorCode, req.getMethod(), errorResponse.getPath(), errorResponse.getCorrelationId(), exception);
+        logApiError(errorCode, req.getMethod(), errorResponse.getPath(), errorResponse.getCorrelationId(), exception);
         if (errorCode.getStatus().is5xxServerError() && slackAlertService != null) {
             slackAlertService.alert(SlackAlertCategory.SERVER_5XX, errorCode.getCode(), exception,
                     "failureType=" + findRootCause(exception).getClass().getSimpleName());
@@ -111,24 +113,43 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 
-    private void log(ErrorCode errorCode, String method, String path, String correlationId, Exception exception) {
+    private void logApiError(ErrorCode errorCode, String method, String path, String correlationId, Exception exception) {
         String message = String.format("[API_ERROR] correlationId=%s code=%s method=%s path=%s "
                         + "exceptionType=%s rootCauseType=%s API 요청 처리 실패.",
                 correlationId, errorCode.getCode(), method, path, exception.getClass().getSimpleName(),
                 findRootCause(exception).getClass().getSimpleName());
 
-        if (errorCode.getStatus().is5xxServerError()) {
-            boolean includeStackTrace = shouldLogStackTrace(errorCode, exception);
-            String stackTraceState = " stackTraceIncluded=" + includeStackTrace;
-            if (includeStackTrace) {
-                log.error(message + stackTraceState, SensitiveDataRedactor.safeStackTrace(exception));
-            } else {
-                log.error(message + stackTraceState);
-            }
-            return;
+        LoggingEventBuilder entry = apiErrorLogEntry(errorCode)
+                .addKeyValue("event", "api_error")
+                .addKeyValue("errorCode", errorCode.getCode())
+                .addKeyValue("exceptionType", exception.getClass().getSimpleName())
+                .addKeyValue("rootCauseType", findRootCause(exception).getClass().getSimpleName())
+                .addKeyValue("method", method)
+                .addKeyValue("path", path)
+                .addKeyValue("status", errorCode.getStatus().value());
+        if (MDC.get("correlationId") == null) {
+            entry.addKeyValue("correlationId", correlationId);
         }
 
-        log.warn(message);
+        if (!errorCode.getStatus().is5xxServerError()) {
+            entry.log(message);
+            return;
+        }
+        boolean includeStackTrace = shouldLogStackTrace(errorCode, exception);
+        String stackTraceState = " stackTraceIncluded=" + includeStackTrace;
+        entry.addKeyValue("stackTraceIncluded", includeStackTrace);
+        if (!includeStackTrace) {
+            entry.log(message + stackTraceState);
+            return;
+        }
+        entry.setCause(SensitiveDataRedactor.safeStackTrace(exception)).log(message + stackTraceState);
+    }
+
+    private LoggingEventBuilder apiErrorLogEntry(ErrorCode errorCode) {
+        if (errorCode.getStatus().is5xxServerError()) {
+            return log.atError();
+        }
+        return log.atWarn();
     }
 
     private synchronized boolean shouldLogStackTrace(ErrorCode errorCode, Exception exception) {

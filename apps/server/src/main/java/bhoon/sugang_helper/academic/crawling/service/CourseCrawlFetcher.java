@@ -53,30 +53,46 @@ public class CourseCrawlFetcher {
 
     private void fetchSingleChunk(String year, String semester, String certDiv, List<ParsedCourseDto> accumulator) {
         long startNs = System.nanoTime();
-        log.debug("[Crawler] 강의 묶음 수집 시작. chunk_started runId={} year={} semester={} certDiv={} stage=COURSE_API result=started",
-                currentRunId(), year, semester, certDiv);
+        logChunkStarted(year, semester, certDiv);
 
         try (InputStream responseStream = apiClient.fetchCourseDataStream(year, semester, certDiv)) {
             Iterator<ParsedCourseDto> iterator = courseParser.streamCourses(responseStream, year, semester);
             int initialSize = accumulator.size();
             iterator.forEachRemaining(accumulator::add);
 
-            long elapsedMs = (System.nanoTime() - startNs) / 1_000_000;
-            log.debug("[Crawler] 강의 묶음 수집 완료. chunk_succeeded runId={} year={} semester={} certDiv={} stage=COURSE_API "
-                            + "result=success rowCount={} totalSoFar={} elapsedMs={}",
-                    currentRunId(), year, semester, certDiv, accumulator.size() - initialSize,
-                    accumulator.size(), elapsedMs);
+            logChunkSucceeded(year, semester, certDiv, accumulator.size() - initialSize, accumulator.size(), startNs);
         } catch (IOException exception) {
-            log.error("[Crawler] 강의 묶음 수집 실패. chunk_failed runId={} year={} semester={} certDiv={} stage=COURSE_API "
-                            + "result=failed failureCode=C001 exceptionType={} retryable=true",
-                    currentRunId(), year, semester, certDiv, exception.getClass().getSimpleName());
+            logChunkFailed(year, semester, certDiv, exception);
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         }
     }
 
+    private void logChunkStarted(String year, String semester, String certDiv) {
+        log.debug("[Crawler] 강의 묶음 수집 시작. chunk_started runId={} year={} semester={} certDiv={} stage=COURSE_API result=started",
+                currentRunId(), year, semester, certDiv);
+    }
+
+    private void logChunkSucceeded(String year, String semester, String certDiv, int courseCount,
+                                    int totalCount, long startNs) {
+        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000;
+        log.debug("[Crawler] 강의 묶음 수집 완료. chunk_succeeded runId={} year={} semester={} certDiv={} stage=COURSE_API "
+                        + "result=success rowCount={} totalSoFar={} elapsedMs={}",
+                currentRunId(), year, semester, certDiv, courseCount,
+                totalCount, elapsedMs);
+    }
+
+    private void logChunkFailed(String year, String semester, String certDiv, IOException exception) {
+        log.error("[Crawler] 강의 묶음 수집 실패. chunk_failed runId={} year={} semester={} certDiv={} stage=COURSE_API "
+                        + "result=failed failureCode=C001 exceptionType={} retryable=true",
+                currentRunId(), year, semester, certDiv, exception.getClass().getSimpleName());
+    }
+
     private String currentRunId() {
         String runId = MDC.get("crawlerRunId");
-        return runId == null || runId.isBlank() ? "NONE" : runId;
+        if (runId == null || runId.isBlank()) {
+            return "NONE";
+        }
+        return runId;
     }
 
     private void paceRequest(int currentIndex, int totalCount) {

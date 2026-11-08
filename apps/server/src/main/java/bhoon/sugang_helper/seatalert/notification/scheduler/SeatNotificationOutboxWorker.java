@@ -53,38 +53,45 @@ public class SeatNotificationOutboxWorker {
         }
         try {
             processor.materializePendingOutboxes();
-            for (int processed = 0; processed < batchSize; processed++) {
-                if (stopping || Thread.currentThread().isInterrupted()) {
-                    return;
-                }
-                List<SeatNotificationDeliveryClaim> claims = processor.claimReadyDeliveries(1);
-                if (claims.isEmpty()) {
-                    return;
-                }
-                process(claims.getFirst());
-            }
+            processReadyDeliveries();
         } finally {
             running.set(false);
         }
     }
 
+    private void processReadyDeliveries() {
+        for (int processed = 0; processed < batchSize; processed++) {
+            if (stopping || Thread.currentThread().isInterrupted()) {
+                return;
+            }
+            List<SeatNotificationDeliveryClaim> claims = processor.claimReadyDeliveries(1);
+            if (claims.isEmpty()) {
+                return;
+            }
+            process(claims.getFirst());
+        }
+    }
+
     private void process(SeatNotificationDeliveryClaim claim) {
-        AtomicInteger inFlight = claim.channel() == null ? null : inFlightByChannel.get(claim.channel());
+        AtomicInteger inFlight = inFlightByChannel.get(claim.channel());
         if (inFlight != null) {
             inFlight.incrementAndGet();
         }
         try {
             processor.processDelivery(claim);
         } catch (RuntimeException exception) {
-
-            log.error("[Notification Outbox] 발송 작업 처리 실패. deliveryId={}, failureCode={}, exceptionType={}",
-                    claim.deliveryId(), SensitiveDataRedactor.failureCode(exception),
-                    SensitiveDataRedactor.exceptionType(exception), SensitiveDataRedactor.safeStackTrace(exception));
+            logDeliveryProcessingFailure(claim, exception);
         } finally {
             if (inFlight != null) {
                 inFlight.decrementAndGet();
             }
         }
+    }
+
+    private void logDeliveryProcessingFailure(SeatNotificationDeliveryClaim claim, RuntimeException exception) {
+        log.error("[Notification Outbox] 발송 작업 처리 실패. deliveryId={}, failureCode={}, exceptionType={}",
+                claim.deliveryId(), SensitiveDataRedactor.failureCode(exception),
+                SensitiveDataRedactor.exceptionType(exception), SensitiveDataRedactor.safeStackTrace(exception));
     }
 
     @EventListener(ContextClosedEvent.class)

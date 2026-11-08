@@ -202,4 +202,21 @@ class SlackAlertServiceTest {
                         "이 알림 자체는 작업을 재실행하지 않음")
                 .doesNotContain("@everyone", "forged-secret", "unknown=secret");
     }
+    @Test
+    @DisplayName("실패 요약과 다음 확인을 기술 진단보다 먼저 보여준다")
+    void showsSummaryAndNextCheckBeforeDiagnosticDetails() {
+        // when
+        service.alert(SlackAlertCategory.CRAWLER_FETCH, "C001", new IllegalStateException("private-token"));
+
+        // then
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(webhookClient).send(captor.capture());
+        String message = captor.getValue();
+        assertThat(message.lines().limit(2).toList())
+                .hasSize(2).last().asString().startsWith("다음 확인:");
+        assertThat(message.indexOf("다음 확인:")).isLessThan(message.indexOf("진단 정보"));
+        assertThat(message).contains("진단 정보", "강의 API 수집 실패", "errorCode=C001")
+                .doesNotContain("private-token", "복구 완료", "재시도 성공");
+    }
+
 }

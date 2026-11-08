@@ -103,24 +103,43 @@ public class SeatNotificationOutboxProcessor {
                 log.info("[Notification Outbox] 선점이 바뀐 작업의 성공 정산 생략. deliveryId={}", claim.deliveryId());
             }
         } catch (RuntimeException e) {
-            String failureCode = SensitiveDataRedactor.failureCode(e);
-            int attempts = NotificationFailureClassifier.isRetryable(e) ? maximumAttempts : 1;
-            SeatNotificationDeliveryFailureResult result = settlementService.markFailure(
-                    claim, failureCode, attempts);
-            if (!result.settled()) {
-                log.info("[Notification Outbox] 선점이 바뀐 작업의 실패 정산 생략. deliveryId={}", claim.deliveryId());
-            } else if (result.deadLettered()) {
-                meterRegistry.counter("notification.outbox.dlq", CHANNEL_TAG, dispatch.channel().name()).increment();
-                log.error("[Notification Outbox] 발송 재시도 종료 후 DLQ 이동. deliveryId={}, outboxId={}, channel={}, failureCode={}, exceptionType={}",
-                        claim.deliveryId(), dispatch.outbox().getId(), dispatch.channel(), failureCode,
-                        SensitiveDataRedactor.exceptionType(e), SensitiveDataRedactor.safeStackTrace(e));
-            } else {
-                meterRegistry.counter("notification.outbox.retry", CHANNEL_TAG, dispatch.channel().name()).increment();
-                log.warn("[Notification Outbox] 발송 재시도 예약. deliveryId={}, attempts={}, channel={}, failureCode={}, exceptionType={}",
-                        claim.deliveryId(), result.attempts(), dispatch.channel(), failureCode,
-                        SensitiveDataRedactor.exceptionType(e));
-            }
+            handleDeliveryFailure(claim, dispatch, e);
         }
+    }
+
+    private void handleDeliveryFailure(SeatNotificationDeliveryClaim claim, SeatNotificationDeliveryDispatch dispatch,
+                                        RuntimeException failure) {
+        String failureCode = SensitiveDataRedactor.failureCode(failure);
+        int attempts = 1;
+        if (NotificationFailureClassifier.isRetryable(failure)) {
+            attempts = maximumAttempts;
+        }
+        SeatNotificationDeliveryFailureResult result = settlementService.markFailure(claim, failureCode, attempts);
+        if (!result.settled()) {
+            log.info("[Notification Outbox] 선점이 바뀐 작업의 실패 정산 생략. deliveryId={}", claim.deliveryId());
+            return;
+        }
+        if (result.deadLettered()) {
+            meterRegistry.counter("notification.outbox.dlq", CHANNEL_TAG, dispatch.channel().name()).increment();
+            logDeadLetteredDelivery(claim, dispatch, failureCode, failure);
+            return;
+        }
+        meterRegistry.counter("notification.outbox.retry", CHANNEL_TAG, dispatch.channel().name()).increment();
+        logRetryScheduled(claim, dispatch, result.attempts(), failureCode, failure);
+    }
+
+    private void logDeadLetteredDelivery(SeatNotificationDeliveryClaim claim, SeatNotificationDeliveryDispatch dispatch,
+                                         String failureCode, RuntimeException e) {
+        log.error("[Notification Outbox] 발송 재시도 종료 후 DLQ 이동. deliveryId={}, outboxId={}, channel={}, failureCode={}, exceptionType={}",
+                claim.deliveryId(), dispatch.outbox().getId(), dispatch.channel(), failureCode,
+                SensitiveDataRedactor.exceptionType(e), SensitiveDataRedactor.safeStackTrace(e));
+    }
+
+    private void logRetryScheduled(SeatNotificationDeliveryClaim claim, SeatNotificationDeliveryDispatch dispatch,
+                                   int attempts, String failureCode, RuntimeException e) {
+        log.warn("[Notification Outbox] 발송 재시도 예약. deliveryId={}, attempts={}, channel={}, failureCode={}, exceptionType={}",
+                claim.deliveryId(), attempts, dispatch.channel(), failureCode,
+                SensitiveDataRedactor.exceptionType(e));
     }
 
     private void recordClaimLag(SeatNotificationDelivery delivery, LocalDateTime claimedAt) {
@@ -160,18 +179,7 @@ public class SeatNotificationOutboxProcessor {
             if (user == null) {
                 continue;
             }
-            for (NotificationChannel channel : NotificationChannel.values()) {
-                if (!notificationChannelPolicy.isChannelEnabled(user, channel)
-                        || notificationChannelPolicy.resolveTargets(user, devicesByUser.get(userId), channel).isEmpty()
-                        || deliveryRepository.existsByOutboxIdAndUserIdAndChannel(outbox.getId(), userId, channel)) {
-                    continue;
-                }
-                deliveriesToSave.add(SeatNotificationDelivery.builder()
-                        .outbox(outbox)
-                        .userId(userId)
-                        .channel(channel)
-                        .build());
-            }
+            addRecipientDeliveries(outbox, user, devicesByUser.get(userId), deliveriesToSave);
         }
         if (!deliveriesToSave.isEmpty()) {
             deliveryRepository.saveAll(deliveriesToSave);
@@ -179,8 +187,25 @@ public class SeatNotificationOutboxProcessor {
         if (deliveryRepository.countByOutboxIdAndStatusIn(
                 outbox.getId(), ACTIVE_DELIVERY_STATUSES) == 0) {
             outbox.markCompleted();
-        } else {
-            outbox.markProcessing();
+            return;
+        }
+        outbox.markProcessing();
+    }
+
+    private void addRecipientDeliveries(SeatNotificationOutbox outbox, NotificationRecipient user,
+                                        List<NotificationDevice> devices,
+                                        List<SeatNotificationDelivery> deliveries) {
+        for (NotificationChannel channel : NotificationChannel.values()) {
+            if (!notificationChannelPolicy.isChannelEnabled(user, channel)
+                    || notificationChannelPolicy.resolveTargets(user, devices, channel).isEmpty()
+                    || deliveryRepository.existsByOutboxIdAndUserIdAndChannel(outbox.getId(), user.id(), channel)) {
+                continue;
+            }
+            deliveries.add(SeatNotificationDelivery.builder()
+                    .outbox(outbox)
+                    .userId(user.id())
+                    .channel(channel)
+                    .build());
         }
     }
 

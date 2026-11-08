@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.common.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
@@ -305,4 +306,31 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.MAX_FILE_UPLOAD_SIZE_EXCEEDED.getCode());
         assertThat(response.getBody().getDetails()).isNull();
     }
+    @Test
+    @DisplayName("API 오류 코드를 메시지 파싱 없이 별도 필드로 검색할 수 있다")
+    void exposesSearchableApiErrorFields() {
+        // given
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            // when
+            new GlobalExceptionHandler().handleAny(new MockHttpServletRequest("GET", REQUEST_PATH),
+                    new IllegalStateException("private-token"));
+
+            // then
+            assertThat(appender.list).hasSize(1);
+            ILoggingEvent event = appender.list.getFirst();
+            assertThat(event.getKeyValuePairs())
+                    .extracting(pair -> pair.key, pair -> pair.value)
+                    .contains(tuple("event", "api_error"),
+                            tuple("errorCode", ErrorCode.INTERNAL_ERROR.getCode()),
+                            tuple("exceptionType", "IllegalStateException"));
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
 }

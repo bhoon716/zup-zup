@@ -42,7 +42,7 @@ loki.process "docker" {
 	stage.match {
 		selector = "{job=\"app\"}"
 		stage.multiline {
-			firstline = "^\\d{4}-\\d{2}-\\d{2}"
+			firstline = "^(\\{|\\d{4}-\\d{2}-\\d{2})"
 		}
 	}
 	forward_to = [loki.write.local.receiver]
