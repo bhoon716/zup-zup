@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.common.security.exception;
 
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.response.ErrorResponse;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.response.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

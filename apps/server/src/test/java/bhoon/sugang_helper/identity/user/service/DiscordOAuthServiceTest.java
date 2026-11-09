@@ -10,9 +10,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.springframework.core.ParameterizedTypeReference;
@@ -26,15 +27,20 @@ import org.springframework.web.client.RestClient;
 class DiscordOAuthServiceTest {
 
     @Test
+    @DisplayName("Discord 클라이언트는 연결과 읽기 제한 시간을 사용한다")
     void discordRestClientUsesBoundedConnectAndReadTimeouts() {
+        // when
         SimpleClientHttpRequestFactory requestFactory = DiscordOAuthService.createRequestFactory();
 
+        // then
         assertThat(ReflectionTestUtils.getField(requestFactory, "connectTimeout")).isEqualTo(3_000);
         assertThat(ReflectionTestUtils.getField(requestFactory, "readTimeout")).isEqualTo(5_000);
     }
 
     @Test
+    @DisplayName("토큰 교환 제한 시간 초과를 업무 예외로 변환한다")
     void tokenExchangeTimeoutIsConvertedToCustomException() {
+        // given
         RestClient restClient = mock(RestClient.class, RETURNS_DEEP_STUBS);
         when(restClient.post()
                 .uri("/oauth2/token")
@@ -47,13 +53,16 @@ class DiscordOAuthServiceTest {
         ReflectionTestUtils.setField(service, "clientId", "client-id");
         ReflectionTestUtils.setField(service, "clientSecret", "client-secret");
 
+        // when & then
         assertThatThrownBy(() -> service.exchangeCodeForToken("code"))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
 
     @Test
+    @DisplayName("사용자 조회 제한 시간 초과를 업무 예외로 변환한다")
     void userLookupTimeoutIsConvertedToCustomException() {
+        // given
         RestClient restClient = mock(RestClient.class);
         RestClient.RequestHeadersUriSpec<?> getSpec = mock(RestClient.RequestHeadersUriSpec.class);
         RestClient.RequestHeadersSpec<?> requestSpec = mock(RestClient.RequestHeadersSpec.class);
@@ -67,6 +76,7 @@ class DiscordOAuthServiceTest {
                 .body(ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any());
         DiscordOAuthService service = new DiscordOAuthService(restClient);
 
+        // when & then
         assertThatThrownBy(() -> service.getDiscordUserId("access-token"))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);

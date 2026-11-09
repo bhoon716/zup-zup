@@ -2,8 +2,8 @@ package bhoon.sugang_helper.academic.crawling.dto.diagnostic;
 
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
 import bhoon.sugang_helper.academic.crawling.exception.CrawlerUpstreamFailure;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 
 public record CrawlerFailureSummary(CrawlerFailureStage stage, String failureType, String failureMessage,
                                     Integer upstreamStatus, Boolean retryable) {

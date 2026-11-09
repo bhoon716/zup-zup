@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.planning.timetable.entity;
 
-import bhoon.sugang_helper.common.entity.BaseTimeEntity;
+import bhoon.sugang_helper.common.api.persistence.BaseTimeEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

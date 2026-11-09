@@ -21,45 +21,15 @@ interface MyProfileRequestOptions {
   silentAuthFailure?: boolean;
 }
 
-type ProfileRequestMode = 'default' | 'silent';
-
-const profilePromises: Record<ProfileRequestMode, Promise<User> | null> = {
-  default: null,
-  silent: null,
-};
-
-export const clearMyProfileRequestCache = () => {
-  profilePromises.default = null;
-  profilePromises.silent = null;
-};
-
 export const getMyProfile = async (
   options: MyProfileRequestOptions = {},
 ): Promise<User> => {
-  const requestMode: ProfileRequestMode = options.silentAuthFailure ? 'silent' : 'default';
-  const activeRequest = profilePromises[requestMode];
-  if (activeRequest) return activeRequest;
-
-  const requestPromise = (async () => {
-    try {
-      const { data } = options.silentAuthFailure
-        ? await api.get('/api/v1/users/me', {
-            silentAuthFailure: true,
-          } as AxiosRequestConfig & { silentAuthFailure: boolean })
-        : await api.get('/api/v1/users/me');
-      return data;
-    } finally {
-
-      setTimeout(() => {
-        if (profilePromises[requestMode] === requestPromise) {
-          profilePromises[requestMode] = null;
-        }
-      }, 100);
-    }
-  })();
-
-  profilePromises[requestMode] = requestPromise;
-  return requestPromise;
+  const { data } = options.silentAuthFailure
+    ? await api.get('/api/v1/users/me', {
+        silentAuthFailure: true,
+      } as AxiosRequestConfig & { silentAuthFailure: boolean })
+    : await api.get('/api/v1/users/me');
+  return data;
 };
 
 export const logout = async (): Promise<void> => {

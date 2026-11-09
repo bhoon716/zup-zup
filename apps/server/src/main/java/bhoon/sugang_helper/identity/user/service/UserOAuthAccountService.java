@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
-import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;
+import bhoon.sugang_helper.identity.events.UserRegisteredEvent;
 import bhoon.sugang_helper.identity.user.exception.OAuthAccountProvisioningException;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

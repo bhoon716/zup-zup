@@ -12,7 +12,7 @@
 | CourseSearchContextProvider | [CrawlerCourseSearchContextProvider](../apps/server/src/main/java/bhoon/sugang_helper/academic/crawling/service/CrawlerCourseSearchContextProvider.java) |
 | CourseReviewQuery | [CourseReviewQueryService](../apps/server/src/main/java/bhoon/sugang_helper/academic/review/service/CourseReviewQueryService.java) |
 | PrimaryTimetableQuery | [TimetableService](../apps/server/src/main/java/bhoon/sugang_helper/planning/timetable/service/TimetableService.java) |
-| AdminAuditRecorder | [AdminAuditService](../apps/server/src/main/java/bhoon/sugang_helper/admin/audit/service/AdminAuditService.java) |
+| AdminAuditRecorder | [AdminAuditService](../apps/server/src/main/java/bhoon/sugang_helper/audit/service/AdminAuditService.java) |
 | DashboardAnnouncementQuery | [AnnouncementService](../apps/server/src/main/java/bhoon/sugang_helper/campus/announcement/service/AnnouncementService.java) |
 | UpcomingScheduleQuery | [ScheduleService](../apps/server/src/main/java/bhoon/sugang_helper/campus/schedule/service/ScheduleService.java) |
 | UserDeviceWebPushManagement | [UserDeviceService](../apps/server/src/main/java/bhoon/sugang_helper/identity/user/service/UserDeviceService.java) |

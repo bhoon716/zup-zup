@@ -13,17 +13,17 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.common.config.NotificationProperties;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.notifications.NotificationProperties;
 import bhoon.sugang_helper.common.redis.RedisService;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
@@ -55,12 +55,16 @@ class NotificationServiceTest {
 
     @Mock
     private RedisService redisService;
+
     @Mock
     private UserNotificationQueryService userNotificationQuery;
+
     @Mock
     private NotificationSender notificationSender;
+
     @Mock
     private NotificationHistoryRepository notificationHistoryRepository;
+
     @Mock
     private NotificationProviderResilience notificationProviderResilience;
 
@@ -91,7 +95,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("관리자 테스트 알림 발송 - 이메일")
     void sendTestNotification_Email() {
-
+        // given
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
@@ -100,8 +104,10 @@ class NotificationServiceTest {
 
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
+        // when
         notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.EMAIL));
 
+        // then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
@@ -109,7 +115,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("사용자 테스트 알림 발송 - 쿨타임 획득 시 정상 발송")
     void sendUserTestNotification_Success() {
-
+        // given
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
@@ -120,8 +126,10 @@ class NotificationServiceTest {
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
+        // when
         notificationService.sendUserTestNotification(user.getId());
 
+        // then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
@@ -129,7 +137,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("사용자 테스트 알림 - 대상 없는 활성 채널은 건너뛰고 다른 채널은 발송한다")
     void sendUserTestNotification_SkipsChannelWithoutTarget() {
-
+        // given
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
@@ -140,8 +148,10 @@ class NotificationServiceTest {
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
 
+        // when
         notificationService.sendUserTestNotification(user.getId());
 
+        // then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(redisService, never()).deleteValues(anyString());
     }
@@ -149,7 +159,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("사용자 테스트 알림 - 모든 활성 채널에 대상이 없으면 입력 오류를 반환한다")
     void sendUserTestNotification_FailsWhenNoTargetExists() {
-
+        // given
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
@@ -158,32 +168,38 @@ class NotificationServiceTest {
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
 
+        // when & then
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
-        verify(redisService, times(1)).deleteValues(anyString());
+        verify(redisService, never()).deleteValues(anyString());
     }
 
     @Test
-    @DisplayName("사용자 테스트 알림의 제공자 실패는 전파하고 재시도할 수 있게 쿨타임을 해제한다")
-    void sendUserTestNotification_ReleasesCooldownOnProviderFailure() {
-
+    @DisplayName("사용자 테스트 알림의 제공자 실패 후에도 요청 제한을 유지한다")
+    void sendUserTestNotification_KeepsCooldownOnProviderFailure() {
+        // given
         User user = User.builder().id(1L).email(EMAIL).emailEnabled(true).build();
         addRecipient(user);
-        given(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).willReturn(true);
+        given(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).willReturn(true, false);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
         RuntimeException failure = new RuntimeException("provider unavailable");
         doThrow(failure).when(notificationSender).send(any(), anyString(), anyString());
 
+        // when & then
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId())).isSameAs(failure);
-        verify(redisService).deleteValues("ALERT:USER_TEST:1");
+        verify(redisService, never()).deleteValues(anyString());
+        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
+        verify(notificationSender).send(any(), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
     @DisplayName("사용자 테스트 알림 발송 - 쿨타임 중이면 예외 발생")
     void sendUserTestNotification_Cooldown() {
-
+        // given
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
@@ -191,6 +207,7 @@ class NotificationServiceTest {
         addRecipient(user);
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
 
+        // when & then
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
@@ -199,7 +216,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("관리자 테스트 알림 발송 - 웹 푸시")
     void sendTestNotification_Push() {
-
+        // given
         User user = User.builder().id(1L).email(EMAIL).build();
         UserDevice device = UserDevice.builder().userId(1L).token(DEVICE_TOKEN)
                 .p256dh("p256").auth("auth").build();
@@ -208,8 +225,10 @@ class NotificationServiceTest {
 
         given(notificationSender.supports(NotificationChannel.WEB)).willReturn(true);
 
+        // when
         notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.WEB));
 
+        // then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
@@ -217,10 +236,11 @@ class NotificationServiceTest {
     @Test
     @DisplayName("관리자 테스트 알림 발송 - 기기 미등록 시 예외 발생")
     void sendTestNotification_Push_NoDevice() {
-
+        // given
         User user = User.builder().id(1L).email(EMAIL).build();
         addRecipient(user);
 
+        // when & then
         assertThatThrownBy(
                 () -> notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.WEB)))
                 .isInstanceOf(CustomException.class)
@@ -232,7 +252,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("관리자 테스트 알림 발송 - 디스코드")
     void sendTestNotification_Discord() {
-
+        // given
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
@@ -242,8 +262,10 @@ class NotificationServiceTest {
 
         given(notificationSender.supports(NotificationChannel.DISCORD)).willReturn(true);
 
+        // when
         notificationService.sendAdminTestNotification(user.getId(), List.of(NotificationChannel.DISCORD));
 
+        // then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
@@ -251,7 +273,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("관리자 테스트 알림 발송 - 디스코드 미연동 시 예외 발생")
     void sendTestNotification_Discord_NotLinked() {
-
+        // given
         User user = User.builder()
                 .id(1L)
                 .email(EMAIL)
@@ -259,6 +281,7 @@ class NotificationServiceTest {
                 .build();
         addRecipient(user);
 
+        // when & then
         assertThatThrownBy(() -> notificationService.sendAdminTestNotification(user.getId(),
                 List.of(NotificationChannel.DISCORD)))
                 .isInstanceOf(CustomException.class)
@@ -270,7 +293,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("durable delivery는 지원하는 세 채널에 provider-safe key를 전파하고 발송 이력을 남긴다")
     void deliversSeatOpeningWithProviderSafeIdempotencyKey() {
-
+        // given
         String canonicalKey = "d35e8a1f-3135-4f9b-92b3-635f0c9ea641";
         User user = User.builder()
                 .id(1L)
@@ -295,10 +318,12 @@ class NotificationServiceTest {
             given(notificationSender.supports(channel)).willReturn(true);
         }
 
+        // when
         for (NotificationChannel channel : NotificationChannel.values()) {
             notificationService.deliverSeatOpening(1L, channel, outbox, canonicalKey);
         }
 
+        // then
         verify(notificationSender, times(3)).send(any(NotificationTarget.class), anyString(), anyString(),
                 eq(NotificationDeliveryIdempotencyKey.providerKey(canonicalKey)));
         verify(notificationHistoryRepository, times(3)).save(any(NotificationHistory.class));

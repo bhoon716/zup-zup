@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.support.feedback.scheduler;
 
-import bhoon.sugang_helper.common.util.LocalFileUploadService;
+import bhoon.sugang_helper.common.api.storage.FileStorage;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackAttachment;
 import bhoon.sugang_helper.support.feedback.repository.FeedbackAttachmentRepository;
 import java.util.Set;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class FeedbackAttachmentCleanupScheduler {
 
     private final FeedbackAttachmentRepository feedbackAttachmentRepository;
-    private final LocalFileUploadService fileUploadService;
+    private final FileStorage fileUploadService;
 
     @Scheduled(cron = "${file.upload.orphan-cleanup-cron:0 0 4 * * *}")
     public void removeOrphanedFiles() {

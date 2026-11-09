@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -37,15 +38,20 @@ class SeatNotificationDeliverySettlementServiceTest {
 
     @Autowired
     private SeatNotificationDeliverySettlementService settlementService;
+
     @Autowired
     private SeatNotificationOutboxRepository outboxRepository;
+
     @MockitoSpyBean
     private SeatNotificationDeliveryRepository deliveryRepository;
+
     @PersistenceContext
     private EntityManager entityManager;
 
     @Test
+    @DisplayName("오래된 작업자는 다시 선점된 발송을 성공으로 정산할 수 없다")
     void staleWorkerCannotMarkAReclaimedDeliveryAsSent() {
+        // given
         SeatNotificationOutbox outbox = outboxRepository.saveAndFlush(SeatNotificationOutbox.builder()
                 .courseKey("course-key")
                 .courseName("Course")
@@ -63,9 +69,11 @@ class SeatNotificationDeliverySettlementServiceTest {
         String secondClaimToken = delivery.claim(now.plusMinutes(1));
         delivery = deliveryRepository.saveAndFlush(delivery);
 
+        // when
         boolean settled = settlementService.markSent(new SeatNotificationDeliveryClaim(
                 delivery.getId(), firstClaimToken));
 
+        // then
         assertThat(settled).isFalse();
         assertThat(deliveryRepository.findById(delivery.getId())).get()
                 .satisfies(current -> {
@@ -75,7 +83,9 @@ class SeatNotificationDeliverySettlementServiceTest {
     }
 
     @Test
+    @DisplayName("마지막 발송들이 동시에 끝나도 Outbox를 완료로 정산한다")
     void concurrentLastDeliveriesReconcileOutboxToCompleted() throws Exception {
+        // given
         SeatNotificationOutbox outbox = outboxRepository.saveAndFlush(SeatNotificationOutbox.builder()
                 .courseKey("course-key")
                 .courseName("Course")
@@ -106,6 +116,8 @@ class SeatNotificationDeliverySettlementServiceTest {
         }).when(deliveryRepository).countByOutboxIdAndStatusIn(anyLong(), any());
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        // when & then
         try {
             Future<Boolean> first = executor.submit(() -> settlementService.markSent(
                     new SeatNotificationDeliveryClaim(firstDelivery.getId(), firstDelivery.getClaimToken())));

@@ -2,7 +2,6 @@ package bhoon.sugang_helper.academic.course.dto.request;
 
 import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.dto.criteria.CourseSelectedSchedule;
-
 import bhoon.sugang_helper.academic.course.enums.CourseClassification;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.enums.CourseStatus;
@@ -10,8 +9,8 @@ import bhoon.sugang_helper.academic.course.enums.DisclosureStatus;
 import bhoon.sugang_helper.academic.course.enums.GradingMethod;
 import bhoon.sugang_helper.academic.course.enums.LectureLanguage;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -19,12 +18,14 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -75,7 +76,7 @@ public class CourseSearchCondition {
     private Boolean isAvailableOnly;
 
     @Size(max = 10)
-    private String dayOfWeek; // 예: MO, TU
+    private String dayOfWeek;
 
     @Valid
     @Size(max = 20)
@@ -113,7 +114,7 @@ public class CourseSearchCondition {
     private Double minCredits;
 
     @Size(max = 10)
-    private List<@jakarta.validation.constraints.NotNull TargetGrade> targetGrades;
+    private List<@NotNull TargetGrade> targetGrades;
 
     @Size(max = 20)
     private String disclosure;
@@ -230,27 +231,37 @@ public class CourseSearchCondition {
         if (disclosure != null && !disclosure.isBlank() && DisclosureStatus.from(disclosure) == null) {
             reject("disclosure");
         }
-        if (credits != null) {
-            for (String credit : credits) {
-                try {
-                    double value = Double.parseDouble(credit);
-                    if (value < 0 || value > 30) {
-                        reject("credits");
-                    }
-                } catch (NumberFormatException ex) {
-                    reject("credits");
-                }
-            }
-        }
+        validateCredits();
         if (minLectureHours != null && lectureHours != null && minLectureHours > lectureHours) {
             reject("lectureHours");
         }
-        if (selectedSchedules != null) {
-            for (ScheduleCondition schedule : selectedSchedules) {
-                if (schedule == null || schedule.getDayOfWeek() == null
-                        || !isValidTimeRange(schedule.getStartTime(), schedule.getEndTime())) {
-                    reject("selectedSchedules");
+        validateSelectedSchedules();
+    }
+
+    private void validateCredits() {
+        if (credits == null) {
+            return;
+        }
+        for (String credit : credits) {
+            try {
+                double value = Double.parseDouble(credit);
+                if (value < 0 || value > 30) {
+                    reject("credits");
                 }
+            } catch (NumberFormatException ex) {
+                reject("credits");
+            }
+        }
+    }
+
+    private void validateSelectedSchedules() {
+        if (selectedSchedules == null) {
+            return;
+        }
+        for (ScheduleCondition schedule : selectedSchedules) {
+            if (schedule == null || schedule.getDayOfWeek() == null
+                    || !isValidTimeRange(schedule.getStartTime(), schedule.getEndTime())) {
+                reject("selectedSchedules");
             }
         }
     }
@@ -266,7 +277,7 @@ public class CourseSearchCondition {
         }
     }
 
-    private <T> void validateEnumValues(List<String> values, java.util.function.Function<String, T> mapper,
+    private <T> void validateEnumValues(List<String> values, Function<String, T> mapper,
                                         String field) {
         if (values == null) {
             return;

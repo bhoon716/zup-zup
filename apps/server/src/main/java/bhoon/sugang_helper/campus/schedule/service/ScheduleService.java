@@ -1,12 +1,13 @@
 package bhoon.sugang_helper.campus.schedule.service;
 
-import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleSummary;
+import bhoon.sugang_helper.campus.api.AcademicSchedules;
+import bhoon.sugang_helper.campus.api.ScheduleSummary;
 import bhoon.sugang_helper.campus.schedule.dto.request.ScheduleRequest;
 import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleResponse;
 import bhoon.sugang_helper.campus.schedule.entity.Schedule;
 import bhoon.sugang_helper.campus.schedule.repository.ScheduleRepository;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -18,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class ScheduleService {
+public class ScheduleService implements AcademicSchedules {
 
     private final ScheduleRepository scheduleRepository;
     private final Clock clock;

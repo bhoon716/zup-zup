@@ -20,10 +20,10 @@ import bhoon.sugang_helper.academic.review.entity.CourseReviewReaction;
 import bhoon.sugang_helper.academic.review.enums.ReactionType;
 import bhoon.sugang_helper.academic.review.repository.CourseReviewReactionRepository;
 import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
@@ -134,6 +134,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("리뷰 작성 성공")
         void createReview_Success() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
             ReviewCreateRequest request = new ReviewCreateRequest(5);
@@ -152,8 +153,10 @@ class CourseReviewServiceTest {
             when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(savedReview);
             mockCourseStats(4.1, 11L);
 
+            // when
             ReviewResponse response = reviewService.createReview(COURSE_KEY, request);
 
+            // then
             assertThat(response.rating()).isEqualTo(5);
             verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 4.1f, 11);
 
@@ -163,6 +166,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("리뷰 작성 성공 - 코멘트 없이 별점만 작성")
         void createReview_Success_WithoutContent() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
             ReviewCreateRequest request = new ReviewCreateRequest(5);
@@ -181,8 +185,10 @@ class CourseReviewServiceTest {
             when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(savedReview);
             mockCourseStats(4.1, 11L);
 
+            // when
             ReviewResponse response = reviewService.createReview(COURSE_KEY, request);
 
+            // then
             assertThat(response.rating()).isEqualTo(5);
             verify(reviewRepository).saveAndFlush(any());
         }
@@ -190,6 +196,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("교수 미지정 강의는 해당 강의에만 별점 리뷰를 연결한다")
         void createReview_UnassignedProfessor_UsesCourseKeyOnly() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
             ReviewCreateRequest request = new ReviewCreateRequest(5);
@@ -200,8 +207,10 @@ class CourseReviewServiceTest {
             when(reviewRepository.countByCourseKeys(List.of(COURSE_KEY))).thenReturn(1L);
             when(reviewRepository.getAverageRatingByCourseKeys(List.of(COURSE_KEY))).thenReturn(5.0);
 
+            // when
             reviewService.createReview(COURSE_KEY, request);
 
+            // then
             verify(reviewRepository).countByCourseKeysAndUserId(List.of(COURSE_KEY), user.getId());
             verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 5.0f, 1);
         }
@@ -209,6 +218,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("리뷰 작성 실패 - 없는 강의")
         void createReview_Fail_CourseNotFound() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
@@ -217,6 +227,7 @@ class CourseReviewServiceTest {
 
             when(courseReviewCatalog.findByCourseKey(invalidCourseKey)).thenReturn(Optional.empty());
 
+            // when & then
             assertThatThrownBy(() -> reviewService.createReview(invalidCourseKey, request))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("detail", "유효하지 않은 강의입니다.");
@@ -225,6 +236,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("리뷰 작성 실패 - 이미 작성함")
         void createReview_Fail_AlreadyReviewed() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
             ReviewCreateRequest request = new ReviewCreateRequest(5);
@@ -232,6 +244,7 @@ class CourseReviewServiceTest {
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
             when(reviewRepository.countByCourseKeysAndUserId(List.of(COURSE_KEY), user.getId())).thenReturn(1L);
 
+            // when & then
             assertThatThrownBy(() -> reviewService.createReview(COURSE_KEY, request))
                     .isInstanceOf(CustomException.class)
                     .satisfies(e -> {
@@ -248,6 +261,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("리뷰 목록 조회 성공 (페이징)")
         void getReviews_Success() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
@@ -259,8 +273,10 @@ class CourseReviewServiceTest {
             when(reviewRepository.findByCourseKeysWithMyReviewFirst(List.of(COURSE_KEY), user.getId(), pageRequest))
                     .thenReturn(page);
 
+            // when
             Page<ReviewResponse> responsePage = reviewService.getReviews(COURSE_KEY, pageRequest);
 
+            // then
             assertThat(responsePage.getContent()).hasSize(1);
             assertThat(responsePage.getContent().get(0).isMine()).isFalse();
         }
@@ -268,6 +284,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("교수 미지정 강의의 별점 리뷰는 해당 강의에서만 조회한다")
         void getReviews_UnassignedProfessor_UsesCourseKeyOnly() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
@@ -278,8 +295,10 @@ class CourseReviewServiceTest {
             when(reviewRepository.findByCourseKeysWithMyReviewFirst(List.of(COURSE_KEY), user.getId(), pageRequest))
                     .thenReturn(page);
 
+            // when
             Page<ReviewResponse> responsePage = reviewService.getReviews(COURSE_KEY, pageRequest);
 
+            // then
             assertThat(responsePage.getContent()).hasSize(1);
             verify(reviewRepository).findByCourseKeysWithMyReviewFirst(List.of(COURSE_KEY), user.getId(), pageRequest);
         }
@@ -287,6 +306,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("외부교원N 강의의 별점 리뷰는 같은 교수 식별자 범위에서 조회한다")
         void getReviews_ExternalInstructor_UsesSharedProfessorScope() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
@@ -300,8 +320,10 @@ class CourseReviewServiceTest {
             when(reviewRepository.findByCourseKeysWithMyReviewFirst(courseKeys, user.getId(), pageRequest))
                     .thenReturn(page);
 
+            // when
             Page<ReviewResponse> responsePage = reviewService.getReviews(COURSE_KEY, pageRequest);
 
+            // then
             assertThat(responsePage.getContent()).hasSize(1);
             verify(reviewRepository).findByCourseKeysWithMyReviewFirst(courseKeys, user.getId(), pageRequest);
         }
@@ -314,6 +336,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("리뷰 수정 성공")
         void updateReview_Success() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
@@ -326,8 +349,10 @@ class CourseReviewServiceTest {
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             mockCourseStats(4.2, 10L);
 
+            // when
             ReviewResponse response = reviewService.updateReview(REVIEW_ID, request);
 
+            // then
             assertThat(response.rating()).isEqualTo(2);
             assertThat(review.getRating()).isEqualTo(2);
             verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 4.2f, 10);
@@ -337,6 +362,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("리뷰 수정 실패 - 남의 글 수정")
         void updateReview_Fail_Unauthorized() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
@@ -345,6 +371,7 @@ class CourseReviewServiceTest {
 
             when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
 
+            // when & then
             assertThatThrownBy(() -> reviewService.updateReview(REVIEW_ID, request))
                     .isInstanceOf(CustomException.class)
                     .hasMessageContaining("권한이 없습니다");
@@ -358,6 +385,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("공감/비공감 토글 - 새로운 '공감' 추가")
         void toggleReaction_AddNewReaction() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
@@ -367,8 +395,10 @@ class CourseReviewServiceTest {
             when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
             when(reactionRepository.findByReviewAndUserId(review, user.getId())).thenReturn(Optional.empty());
 
+            // when
             reviewService.toggleReaction(REVIEW_ID, request);
 
+            // then
             verify(reviewRepository).incrementLikeCount(any());
             verify(reactionRepository).save(any(CourseReviewReaction.class));
         }
@@ -376,6 +406,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("공감/비공감 토글 - '공감' 취소")
         void toggleReaction_CancelExistingReaction() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
@@ -390,8 +421,10 @@ class CourseReviewServiceTest {
             when(reactionRepository.findByReviewAndUserId(review, user.getId()))
                     .thenReturn(Optional.of(existingReaction));
 
+            // when
             reviewService.toggleReaction(REVIEW_ID, request);
 
+            // then
             verify(reviewRepository).decrementLikeCount(any());
             verify(reactionRepository).delete(existingReaction);
         }
@@ -399,6 +432,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("공감/비공감 토글 - '공감'을 '비공감'으로 변경")
         void toggleReaction_SwitchReaction() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
@@ -413,8 +447,10 @@ class CourseReviewServiceTest {
             when(reactionRepository.findByReviewAndUserId(review, user.getId()))
                     .thenReturn(Optional.of(existingReaction));
 
+            // when
             reviewService.toggleReaction(REVIEW_ID, request);
 
+            // then
             verify(reviewRepository).decrementLikeCount(any());
             verify(reviewRepository).incrementDislikeCount(any());
             assertThat(existingReaction.getReactionType()).isEqualTo(ReactionType.DISLIKE);
@@ -430,6 +466,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("리뷰 삭제 성공")
         void deleteReview_Success() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
@@ -440,8 +477,10 @@ class CourseReviewServiceTest {
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             mockCourseStats(4.0, 9L);
 
+            // when
             reviewService.deleteReview(REVIEW_ID);
 
+            // then
             verify(reviewRepository).delete(review);
             verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 4.0f, 9);
 
@@ -450,12 +489,14 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("리뷰 삭제 실패 - 권한 없음")
         void deleteReview_Fail_Unauthorized() {
+            // given
             User user = createUser(USER_ID, Role.USER);
             mockCurrentUser(user);
 
             CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
             when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
 
+            // when & then
             assertThatThrownBy(() -> reviewService.deleteReview(REVIEW_ID))
                     .isInstanceOf(CustomException.class)
                     .hasMessageContaining("권한이 없습니다");
@@ -464,6 +505,7 @@ class CourseReviewServiceTest {
         @Test
         @DisplayName("리뷰 삭제 성공 - 관리자 권한")
         void deleteReview_Admin_Success() {
+            // given
             User admin = createUser(USER_ID, Role.ADMIN);
             mockCurrentUser(admin);
 
@@ -474,8 +516,10 @@ class CourseReviewServiceTest {
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             mockCourseStats(4.0, 9L);
 
+            // when
             reviewService.deleteReview(REVIEW_ID);
 
+            // then
             verify(reviewRepository).delete(review);
             verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 4.0f, 9);
 

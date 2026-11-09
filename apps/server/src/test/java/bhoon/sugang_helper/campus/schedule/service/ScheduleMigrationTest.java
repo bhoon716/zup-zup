@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -11,7 +12,9 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 class ScheduleMigrationTest {
 
     @Test
+    @DisplayName("추가 마이그레이션은 기존 일정과 디데이를 보존하고 선택은 비활성화한다")
     void additiveMigrationPreservesScheduleAndLegacyDdayDataWithSelectionDisabled() {
+        // given
         DriverManagerDataSource dataSource = new DriverManagerDataSource(
                 "jdbc:h2:mem:schedule-" + UUID.randomUUID() + ";MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -33,6 +36,7 @@ class ScheduleMigrationTest {
         Flyway flyway = Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
                 .baselineOnMigrate(true).baselineVersion("28").target("29").load();
 
+        // when & then
         assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
         flyway.validate();
         assertThat(jdbc.queryForObject("SELECT schedule_type FROM schedules WHERE id = 1", String.class))

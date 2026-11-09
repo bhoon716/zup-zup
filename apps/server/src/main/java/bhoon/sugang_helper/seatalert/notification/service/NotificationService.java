@@ -1,13 +1,14 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
-import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.redis.RedisService;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationOperations;
+import bhoon.sugang_helper.academic.events.SeatOpenedEvent;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.cache.RedisAccess;
+import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
@@ -24,13 +25,13 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class NotificationService {
+public class NotificationService implements NotificationOperations {
 
     private static final String USER_TEST_COOLDOWN_KEY_PREFIX = "ALERT:USER_TEST:";
     private static final Duration USER_TEST_COOLDOWN = Duration.ofSeconds(10);
 
-    private final RedisService redisService;
-    private final UserNotificationQueryService userNotificationQuery;
+    private final RedisAccess redisService;
+    private final NotificationRecipients userNotificationQuery;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
     private final NotificationChannelPolicy notificationChannelPolicy;
@@ -107,21 +108,15 @@ public class NotificationService {
             throw new CustomException(ErrorCode.TOO_MANY_REQUESTS, "알림 테스트는 10초에 한 번만 가능합니다. 잠시 후 다시 시도해주세요.");
         }
 
-        try {
-            NotificationRecipient user = userNotificationQuery.findById(userId)
-                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-            List<NotificationChannel> channels = notificationChannelPolicy.userEnabledChannels(user);
-            boolean delivered = sendTestNotification(
-                    user, channels, false);
-            if (!delivered) {
-                throw new CustomException(ErrorCode.INVALID_INPUT,
-                        "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
-            }
-            log.info("[User] 테스트 알림 요청. userId={}, channels={}", user.id(), channels);
-        } catch (RuntimeException e) {
-            redisService.deleteValues(cooldownKey);
-            throw e;
+        NotificationRecipient user = userNotificationQuery.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        List<NotificationChannel> channels = notificationChannelPolicy.userEnabledChannels(user);
+        boolean delivered = sendTestNotification(user, channels, false);
+        if (!delivered) {
+            throw new CustomException(ErrorCode.INVALID_INPUT,
+                    "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
         }
+        log.info("[User] 테스트 알림 요청. userId={}, channels={}", user.id(), channels);
     }
 
     private boolean sendNotification(NotificationRecipient user, List<NotificationDevice> devices,

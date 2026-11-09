@@ -5,17 +5,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementPreview;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
-import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleSummary;
+import bhoon.sugang_helper.campus.api.AnnouncementPreview;
+import bhoon.sugang_helper.campus.api.ScheduleSummary;
 import bhoon.sugang_helper.campus.schedule.service.ScheduleService;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardSnapshotResponse;
-import bhoon.sugang_helper.identity.user.dto.result.UserDashboardProfile;
+import bhoon.sugang_helper.identity.api.users.UserDashboardProfile;
 import bhoon.sugang_helper.identity.user.service.UserDashboardQueryService;
-import bhoon.sugang_helper.planning.timetable.dto.result.PrimaryTimetableSnapshot;
+import bhoon.sugang_helper.planning.api.PrimaryTimetableSnapshot;
 import bhoon.sugang_helper.planning.timetable.service.TimetableService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,12 +32,16 @@ class DashboardServiceTest {
 
     @Mock
     private UserDashboardQueryService userDashboardQuery;
+
     @Mock
     private NotificationHistoryQueryService notificationHistoryQuery;
+
     @Mock
     private TimetableService primaryTimetableQuery;
+
     @Mock
     private ScheduleService upcomingScheduleQuery;
+
     @Mock
     private AnnouncementService dashboardAnnouncementQuery;
 
@@ -47,6 +51,7 @@ class DashboardServiceTest {
     @Test
     @DisplayName("대시보드 스냅샷을 한 번에 조회한다")
     void getDashboardSnapshot() {
+        // given
         UserDashboardProfile user = new UserDashboardProfile(
                 7L, "user@example.com", "홍길동", "USER", "user@example.com",
                 true, true, true, null, false);
@@ -64,8 +69,10 @@ class DashboardServiceTest {
         when(upcomingScheduleQuery.findUpcomingSchedules()).thenReturn(List.of(schedule));
         when(dashboardAnnouncementQuery.findDashboardAnnouncements(4)).thenReturn(List.of(announcement));
 
+        // when
         DashboardSnapshotResponse result = dashboardService.getDashboardSnapshot();
 
+        // then
         assertThat(result.getUser().name()).isEqualTo("홍길동");
         assertThat(result.getNotifications()).hasSize(1);
         assertThat(result.getNotifications().get(0).courseKey()).isEqualTo("TEST-101");
@@ -84,6 +91,7 @@ class DashboardServiceTest {
     @Test
     @DisplayName("비로그인 사용자는 공용 데이터만 조회한다")
     void getDashboardSnapshotForGuest() {
+        // given
         ScheduleSummary schedule = new ScheduleSummary(1L, "종강", null, null, null, null, "D-2");
         AnnouncementPreview announcement = new AnnouncementPreview(
                 1L, "테스트 공지", "미리보기용 본문", true, LocalDateTime.now());
@@ -92,8 +100,10 @@ class DashboardServiceTest {
         when(upcomingScheduleQuery.findUpcomingSchedules()).thenReturn(List.of(schedule));
         when(dashboardAnnouncementQuery.findDashboardAnnouncements(4)).thenReturn(List.of(announcement));
 
+        // when
         DashboardSnapshotResponse result = dashboardService.getDashboardSnapshot();
 
+        // then
         assertThat(result.getUser()).isNull();
         assertThat(result.getNotifications()).isEmpty();
         assertThat(result.getPrimaryTimetable()).isNull();

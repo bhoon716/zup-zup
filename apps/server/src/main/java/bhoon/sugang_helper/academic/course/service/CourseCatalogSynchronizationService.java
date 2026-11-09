@@ -5,10 +5,10 @@ import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseScheduleDto;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.entity.CourseSchedule;
 import bhoon.sugang_helper.academic.course.entity.CourseSeatHistory;
-import bhoon.sugang_helper.academic.course.event.SeatOpenedEvent;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
-import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxService;
+import bhoon.sugang_helper.academic.events.SeatOpenedEvent;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.ArrayList;
@@ -23,6 +23,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +36,7 @@ public class CourseCatalogSynchronizationService {
 
     private final CourseRepository courseRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
-    private final SeatNotificationOutboxService outboxService;
+    private final ApplicationEventPublisher eventPublisher;
     private final MeterRegistry meterRegistry;
 
     @Transactional
@@ -166,7 +167,7 @@ public class CourseCatalogSynchronizationService {
     private void enqueueSeatOpening(Course course) {
         log.debug("[Crawler] 빈자리 증가 감지. courseKey={}, available={}", course.getCourseKey(),
                 course.getAvailable());
-        outboxService.enqueue(new SeatOpenedEvent(
+        eventPublisher.publishEvent(new SeatOpenedEvent(
                 course.getCourseKey(), course.getName(), course.getProfessor(), 0, course.getAvailable()));
     }
 
@@ -178,7 +179,7 @@ public class CourseCatalogSynchronizationService {
         if (timer != null) {
             timer.record(System.nanoTime() - startedAt, TimeUnit.NANOSECONDS);
         }
-        io.micrometer.core.instrument.Counter counter = meterRegistry.counter("crawler.course.chunk.items");
+        Counter counter = meterRegistry.counter("crawler.course.chunk.items");
         if (counter != null) {
             counter.increment(chunkSize);
         }
@@ -187,7 +188,7 @@ public class CourseCatalogSynchronizationService {
     private void recordDuplicateStdtrNos(List<Course> crawledCourses, Set<String> seenStdtrNos) {
         long duplicateRows = countDuplicateStdtrNos(crawledCourses, seenStdtrNos);
         if (duplicateRows != 0 && meterRegistry != null) {
-            io.micrometer.core.instrument.Counter counter =
+            Counter counter =
                     meterRegistry.counter("crawler.course.stdtr_no.duplicates");
             if (counter != null) {
                 counter.increment(duplicateRows);

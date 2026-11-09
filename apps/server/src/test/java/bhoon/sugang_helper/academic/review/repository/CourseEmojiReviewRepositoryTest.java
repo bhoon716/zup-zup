@@ -28,8 +28,11 @@ class CourseEmojiReviewRepositoryTest {
     @Test
     @DisplayName("같은 외부교원N이면 이전 학기 이모지 리뷰를 조회한다")
     void findEmojiStatsBySubjectCodeAndProfessor_loadsLegacyReviewsForExternalInstructor() {
+        // given
         Course legacyCourse = courseRepository.saveAndFlush(course(LEGACY_COURSE_KEY, "외부교원1", "U211600010"));
         Course currentCourse = courseRepository.saveAndFlush(course(CURRENT_COURSE_KEY, "외부교원1", "U211600020"));
+
+        // when
         emojiReviewRepository.saveAndFlush(CourseEmojiReview.builder()
                 .courseKey(legacyCourse.getCourseKey())
                 .userId(1L)
@@ -41,6 +44,7 @@ class CourseEmojiReviewRepositoryTest {
                 scope.subjectCode(), scope.professor());
         List<Object[]> stats = emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys);
 
+        // then
         assertThat(scope.hasIdentifiableProfessor()).isTrue();
         assertThat(stats).singleElement().satisfies(row -> {
             assertThat(row[0]).isEqualTo("👍");
@@ -52,8 +56,11 @@ class CourseEmojiReviewRepositoryTest {
     @Test
     @DisplayName("실제 교수명이 있는 강의는 같은 과목의 다른 교수 이모지를 섞지 않는다")
     void findEmojiStatsBySubjectCodeAndProfessor_keepsKnownProfessorScoped() {
+        // given
         Course kimCourse = courseRepository.saveAndFlush(course(LEGACY_COURSE_KEY, "김교수", "U211600010"));
         Course leeCourse = courseRepository.saveAndFlush(course(CURRENT_COURSE_KEY, "이교수", "U211600020"));
+
+        // when
         emojiReviewRepository.saveAndFlush(CourseEmojiReview.builder()
                 .courseKey(kimCourse.getCourseKey())
                 .userId(1L)
@@ -70,6 +77,7 @@ class CourseEmojiReviewRepositoryTest {
                 scope.subjectCode(), scope.professor());
         List<Object[]> stats = emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys);
 
+        // then
         assertThat(stats).singleElement().satisfies(row -> {
             assertThat(row[0]).isEqualTo("👍");
             assertThat(row[1]).isEqualTo(1L);

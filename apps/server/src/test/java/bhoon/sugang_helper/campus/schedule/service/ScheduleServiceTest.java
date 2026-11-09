@@ -9,8 +9,8 @@ import bhoon.sugang_helper.campus.schedule.dto.request.ScheduleRequest;
 import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleResponse;
 import bhoon.sugang_helper.campus.schedule.entity.Schedule;
 import bhoon.sugang_helper.campus.schedule.repository.ScheduleRepository;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,6 +21,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,6 +44,7 @@ class ScheduleServiceTest {
 
     @Mock
     private ScheduleRepository scheduleRepository;
+
     private ScheduleService service;
 
     @BeforeEach
@@ -51,11 +53,14 @@ class ScheduleServiceTest {
     }
 
     @Test
+    @DisplayName("일반 목록과 대시보드는 미선택 일정과 날짜 기반 표시를 유지한다")
     void generalListAndDashboardKeepUnselectedSchedulesAndDateBasedLabels() {
+        // given
         Schedule ongoing = schedule(1, TODAY.minusDays(1), TODAY, null, LocalTime.of(9, 0), false);
         Schedule future = schedule(2, TODAY.plusDays(3), TODAY.plusDays(4), null, null, false);
         when(scheduleRepository.findUpcomingSchedules(TODAY)).thenReturn(List.of(ongoing, future));
 
+        // when & then
         assertThat(service.getUpcomingSchedules()).extracting(ScheduleResponse::getDDay)
                 .containsExactly(D_DAY, "D-3");
         assertThat(service.findUpcomingSchedules()).extracting(summary -> summary.id())
@@ -63,7 +68,9 @@ class ScheduleServiceTest {
     }
 
     @Test
+    @DisplayName("선택 일정은 진행 중 종료일과 예정 시작일·식별자 순서로 정렬한다")
     void selectedListSortsOngoingByEndThenFutureByStartAndId() {
+        // given
         Schedule first = schedule(2, TODAY.minusDays(1), TODAY, null, LocalTime.of(11, 0), true);
         Schedule second = schedule(1, TODAY.minusDays(2), TODAY, null, LocalTime.of(12, 0), true);
         Schedule tied = schedule(4, TODAY, TODAY, LocalTime.of(13, 0), LocalTime.of(14, 0), true);
@@ -72,14 +79,17 @@ class ScheduleServiceTest {
         Schedule ended = schedule(6, TODAY, TODAY, null, LocalTime.of(10, 0), true);
         selected(List.of(tied, future, second, ended, earlierId, first));
 
+        // when
         List<ScheduleResponse> response = service.getDdaySchedules();
 
+        // then
         assertThat(response).extracting(ScheduleResponse::getId).containsExactly(2L, 1L, 3L, 4L, 5L);
         assertThat(response).extracting(ScheduleResponse::getDDay)
                 .containsExactly(ONGOING, ONGOING, D_DAY, D_DAY, "D-2");
     }
 
     @ParameterizedTest
+    @DisplayName("시각이 지정된 일정은 시작을 포함하고 종료는 제외한다")
     @CsvSource({
             "2026-10-26T08:59:59, true, D-Day",
             "2026-10-26T09:00:00, true, 진행 중",
@@ -87,12 +97,15 @@ class ScheduleServiceTest {
             "2026-10-26T11:00:00, false, unused"
     })
     void explicitTimeUsesInclusiveStartAndExclusiveEnd(String localNow, boolean visible, String expectedLabel) {
+        // given
         Schedule schedule = schedule(1, TODAY, TODAY, LocalTime.of(9, 0), LocalTime.of(11, 0), true);
         selected(List.of(schedule));
         service = at(LocalDateTime.parse(localNow));
 
+        // when
         List<ScheduleResponse> response = service.getDdaySchedules();
 
+        // then
         assertThat(response).hasSize(visible ? 1 : 0);
         if (visible) {
             assertThat(response.getFirst().getDDay()).isEqualTo(expectedLabel);
@@ -100,28 +113,34 @@ class ScheduleServiceTest {
     }
 
     @ParameterizedTest
+    @DisplayName("종일 일정은 종료일 전체를 포함한다")
     @CsvSource({
             "2026-10-25T23:59:59, D-1",
             "2026-10-26T00:00:00, 진행 중",
             "2026-10-26T23:59:59, 진행 중"
     })
     void allDayPeriodIncludesWholeEndDate(String localNow, String expectedLabel) {
+        // given
         Schedule schedule = schedule(1, TODAY, TODAY, null, null, true);
         LocalDateTime now = LocalDateTime.parse(localNow);
         when(scheduleRepository.findByDdayEnabledTrueAndDeletedAtIsNullAndEndDateGreaterThanEqual(now.toLocalDate()))
                 .thenReturn(List.of(schedule));
         service = at(now);
 
+        // when & then
         assertThat(service.getDdaySchedules()).singleElement()
                 .extracting(ScheduleResponse::getDDay).isEqualTo(expectedLabel);
     }
 
     @Test
+    @DisplayName("종일 일정과 길이가 없는 일정은 종료 시각에 제외한다")
     void allDayAndZeroLengthPeriodsAreExcludedAtTheirEnd() {
+        // given
         Schedule allDay = schedule(1, TODAY.minusDays(1), TODAY.minusDays(1), null, null, true);
         Schedule point = schedule(2, TODAY, TODAY, LocalTime.of(10, 0), LocalTime.of(10, 0), true);
         selected(List.of(allDay, point));
 
+        // when & then
         assertThat(new ScheduleRequest(TITLE, TODAY, TODAY, LocalTime.of(10, 0), LocalTime.of(10, 0), true)
                 .isValidPeriod()).isTrue();
         assertThat(allDay.endsAt()).isEqualTo(TODAY.atStartOfDay());
@@ -129,13 +148,16 @@ class ScheduleServiceTest {
     }
 
     @Test
+    @DisplayName("서버와 시계가 UTC의 전날이어도 서울 날짜를 사용한다")
     void seoulDateIsUsedEvenWhenClockAndServerAreOnUtcPreviousDay() {
+        // given
         service = new ScheduleService(scheduleRepository,
                 Clock.fixed(Instant.parse("2026-10-25T15:00:00Z"), ZoneOffset.UTC));
         Schedule schedule = schedule(1, TODAY, TODAY, null, null, true);
         selected(List.of(schedule));
         when(scheduleRepository.findUpcomingSchedules(TODAY)).thenReturn(List.of(schedule));
 
+        // when & then
         assertThat(service.getDdaySchedules()).singleElement()
                 .extracting(ScheduleResponse::getDDay).isEqualTo(ONGOING);
         assertThat(service.getUpcomingSchedules()).singleElement()
@@ -143,10 +165,13 @@ class ScheduleServiceTest {
     }
 
     @Test
+    @DisplayName("일정 생성·수정 응답은 선택 여부와 수정한 일정 시간을 반영한다")
     void createAndEditKeepSelectionAndUpdatedTimesInResponses() {
+        // given
         when(scheduleRepository.save(any(Schedule.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ScheduleRequest request = new ScheduleRequest(TITLE, TODAY, TODAY.plusDays(1), null, null, true);
 
+        // when & then
         assertThat(service.createSchedule(request).isDdayEnabled()).isTrue();
         assertThat(service.createSchedule(new ScheduleRequest(TITLE, TODAY, TODAY, null, null)).isDdayEnabled())
                 .isFalse();
@@ -165,11 +190,16 @@ class ScheduleServiceTest {
     }
 
     @Test
+    @DisplayName("삭제된 일정은 재수정·재삭제할 수 없고 복원 시 선택 여부를 유지한다")
     void deletedScheduleCannotBeEditedOrDeletedAgainAndRestoreKeepsSelection() {
+        // given
         Schedule schedule = schedule(1, TODAY, TODAY, null, null, true);
         when(scheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
+
+        // when
         service.deleteSchedule(1L);
 
+        // then
         assertThat(schedule.getDeletedAt()).isEqualTo(LocalDateTime.of(TODAY, LocalTime.of(10, 0)));
         assertThatThrownBy(() -> service.updateSchedule(1L,
                 new ScheduleRequest(TITLE, TODAY, TODAY, null, null, false)))
@@ -182,11 +212,14 @@ class ScheduleServiceTest {
     }
 
     @Test
+    @DisplayName("관리자 목록에는 복원을 위해 과거·삭제 일정을 유지한다")
     void adminListRetainsPastAndDeletedSchedulesForRestoration() {
+        // given
         Schedule schedule = schedule(1, TODAY.minusDays(4), TODAY.minusDays(2), null, null, true);
         schedule.delete(LocalDateTime.now(CLOCK));
         when(scheduleRepository.findAllByOrderByStartDateDescStartTimeDesc()).thenReturn(List.of(schedule));
 
+        // when & then
         assertThat(service.getAllSchedules()).singleElement().satisfies(response -> {
             assertThat(response.getDDay()).isEqualTo("D+2");
             assertThat(response.getDeletedAt()).isNotNull();
@@ -194,8 +227,12 @@ class ScheduleServiceTest {
     }
 
     @Test
+    @DisplayName("존재하지 않는 일정과 역전된 기간을 거부한다")
     void missingScheduleAndInvertedPeriodAreRejected() {
+        // given
         when(scheduleRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // when & then
         assertThatThrownBy(() -> service.restoreSchedule(1L)).isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.NOT_FOUND);
         assertThatThrownBy(() -> service.createSchedule(new ScheduleRequest(TITLE, TODAY.plusDays(1), TODAY,

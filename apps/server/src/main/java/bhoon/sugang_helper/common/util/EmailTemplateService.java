@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.common.util;
 
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-
+import bhoon.sugang_helper.common.api.templates.EmailTemplates;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -14,7 +14,7 @@ import org.springframework.util.FileCopyUtils;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class EmailTemplateService {
+public class EmailTemplateService implements EmailTemplates {
 
     private static final String TEMPLATE_PATH = "templates/email/";
 

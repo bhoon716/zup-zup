@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.scheduler;
 
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -42,49 +42,61 @@ public class SeatNotificationOutboxWorker {
             AtomicInteger inFlight = new AtomicInteger();
             inFlightByChannel.put(channel, inFlight);
 
-            meterRegistry.gauge("notification.outbox.queue.depth", Tags.of("channel", channel.name()), inFlight);
+            meterRegistry.gauge("notification.outbox.in.flight", Tags.of("channel", channel.name()), inFlight);
         }
     }
 
-    @Scheduled(fixedDelayString = "${app.notification.outbox.poll-ms:5000}")
+    @Scheduled(fixedDelayString = "${app.notification.outbox.poll-ms:5000}", scheduler = "notificationTaskScheduler")
     public void processPendingNotifications() {
         if (stopping || Thread.currentThread().isInterrupted() || !running.compareAndSet(false, true)) {
             return;
         }
         try {
             processor.materializePendingOutboxes();
-            for (int processed = 0; processed < batchSize; processed++) {
-                if (stopping || Thread.currentThread().isInterrupted()) {
-                    return;
-                }
-                List<SeatNotificationDeliveryClaim> claims = processor.claimReadyDeliveries(1);
-                if (claims.isEmpty()) {
-                    return;
-                }
-                process(claims.getFirst());
-            }
+            processReadyDeliveries();
         } finally {
             running.set(false);
         }
     }
 
+    private void processReadyDeliveries() {
+        for (int processed = 0; processed < batchSize; processed++) {
+            if (stopping || Thread.currentThread().isInterrupted()) {
+                return;
+            }
+            List<SeatNotificationDeliveryClaim> claims = processor.claimReadyDeliveries(1);
+            if (claims.isEmpty()) {
+                return;
+            }
+            process(claims.getFirst());
+        }
+    }
+
     private void process(SeatNotificationDeliveryClaim claim) {
-        AtomicInteger inFlight = claim.channel() == null ? null : inFlightByChannel.get(claim.channel());
+        AtomicInteger inFlight = inFlightByChannel.get(claim.channel());
         if (inFlight != null) {
             inFlight.incrementAndGet();
         }
         try {
             processor.processDelivery(claim);
         } catch (RuntimeException exception) {
-
-            log.error("[Notification Outbox] 발송 작업 처리 실패. deliveryId={}, failureCode={}, exceptionType={}",
-                    claim.deliveryId(), SensitiveDataRedactor.failureCode(exception),
-                    SensitiveDataRedactor.exceptionType(exception), SensitiveDataRedactor.safeStackTrace(exception));
+            logDeliveryProcessingFailure(claim, exception);
         } finally {
             if (inFlight != null) {
                 inFlight.decrementAndGet();
             }
         }
+    }
+
+    private void logDeliveryProcessingFailure(SeatNotificationDeliveryClaim claim, RuntimeException exception) {
+        log.atError().addKeyValue("event", "notification_delivery_processing_failed")
+                .addKeyValue("deliveryId", claim.deliveryId())
+                .addKeyValue("failureCode", SensitiveDataRedactor.failureCode(exception))
+                .addKeyValue("exceptionType", SensitiveDataRedactor.exceptionType(exception))
+                .setCause(SensitiveDataRedactor.safeStackTrace(exception))
+                .log("[Notification Outbox] 발송 작업 처리 실패. deliveryId={}, failureCode={}, exceptionType={}",
+                        claim.deliveryId(), SensitiveDataRedactor.failureCode(exception),
+                        SensitiveDataRedactor.exceptionType(exception));
     }
 
     @EventListener(ContextClosedEvent.class)

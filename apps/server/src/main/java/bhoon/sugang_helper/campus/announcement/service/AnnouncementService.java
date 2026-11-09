@@ -1,17 +1,19 @@
 package bhoon.sugang_helper.campus.announcement.service;
 
-import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementPreview;
 import bhoon.sugang_helper.campus.announcement.dto.request.AnnouncementRequest;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementListResponse;
 import bhoon.sugang_helper.campus.announcement.entity.Announcement;
 import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;
 import bhoon.sugang_helper.campus.announcement.repository.AnnouncementRepository;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.web.PageableGuard;
+import bhoon.sugang_helper.campus.api.AnnouncementPreview;
+import bhoon.sugang_helper.campus.api.Announcements;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.web.PageableGuard;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AnnouncementService {
+public class AnnouncementService implements Announcements {
 
     private static final int MAX_KEYWORD_LENGTH = 100;
     private static final int MAX_PAGE_SIZE = 100;
@@ -48,7 +50,7 @@ public class AnnouncementService {
             if (meterRegistry != null) {
                 meterRegistry.timer("announcement.search.latency", "searchType", effectiveSearchType.name(),
                         "hasKeyword", Boolean.toString(!normalizedKeyword.isEmpty()))
-                        .record(System.nanoTime() - started, java.util.concurrent.TimeUnit.NANOSECONDS);
+                        .record(System.nanoTime() - started, TimeUnit.NANOSECONDS);
             }
         }
     }

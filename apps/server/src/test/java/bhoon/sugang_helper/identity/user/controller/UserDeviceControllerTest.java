@@ -17,6 +17,7 @@ import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -45,6 +46,7 @@ class UserDeviceControllerTest {
     }
 
     @Test
+    @DisplayName("기기 등록은 타입 없이 웹 푸시 키를 받는다")
     void registrationAcceptsWebPushKeysWithoutType() throws Exception {
         // given
         String endpoint = "https://fcm.googleapis.com/fixture-web-push-endpoint";
@@ -66,6 +68,7 @@ class UserDeviceControllerTest {
     }
 
     @Test
+    @DisplayName("기기 목록은 타입·비밀 키 없이 표시 필드만 포함한다")
     void deviceListContainsDisplayFieldsWithoutTypeOrPrivateKeys() throws Exception {
         // given
         User user = User.builder().id(7L).email("user@example.invalid").build();
@@ -94,6 +97,7 @@ class UserDeviceControllerTest {
     }
 
     @Test
+    @DisplayName("기기 해제는 요청 본문으로 토큰을 받는다")
     void tokenUnregisterAcceptsTheTokenInTheRequestBody() throws Exception {
         // given
         String token = "token/with?unsafe=value";
@@ -108,6 +112,7 @@ class UserDeviceControllerTest {
     }
 
     @Test
+    @DisplayName("기존 토큰 경로는 배포된 클라이언트의 인코딩된 특수문자를 복원한다")
     void legacyTokenPathDecodesEncodedSpecialCharactersForDeployedClients() throws Exception {
         // given
         String token = "token/with?unsafe=value";

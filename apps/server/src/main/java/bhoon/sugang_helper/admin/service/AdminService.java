@@ -1,29 +1,29 @@
 package bhoon.sugang_helper.admin.service;
 
-import bhoon.sugang_helper.academic.crawling.dto.response.CrawlerAdminSnapshot;
-import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
-import bhoon.sugang_helper.academic.crawling.service.CrawlerRunStateService;
-import bhoon.sugang_helper.admin.dto.response.AdminDashboardResponse;
+import bhoon.sugang_helper.academic.api.operations.CrawlerAdminSnapshot;
+import bhoon.sugang_helper.academic.api.operations.CrawlerRuns;
+import bhoon.sugang_helper.academic.api.operations.CrawlerTargets;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardSnapshotResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminHourlyTrafficResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminOverviewResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminRecentLogResponse;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
-import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
-import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
+import bhoon.sugang_helper.identity.api.users.Users;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationHistoryItem;
+import bhoon.sugang_helper.seatalert.api.NotificationHistoryQueries;
+import bhoon.sugang_helper.seatalert.api.NotificationOperations;
+import bhoon.sugang_helper.seatalert.api.Subscriptions;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -38,31 +38,15 @@ public class AdminService {
 
     private static final DateTimeFormatter HOUR_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final long CRAWLER_DELAY_MINUTES = 15L;
-    private final UserIdentityQueryService userIdentityQuery;
-    private final UserNotificationQueryService userNotificationQuery;
-    private final SubscriptionQueryService subscriptionQueryService;
-    private final NotificationHistoryQueryService notificationHistoryQuery;
-    private final NotificationService notificationTestSender;
-    private final CourseCrawlerTargetService crawlerAdminSnapshotQuery;
-    private final CrawlerRunStateService crawlerStatusQuery;
+    private final Users userIdentityQuery;
+    private final NotificationRecipients userNotificationQuery;
+    private final Subscriptions subscriptionQueryService;
+    private final NotificationHistoryQueries notificationHistoryQuery;
+    private final NotificationOperations notificationTestSender;
+    private final CrawlerTargets crawlerAdminSnapshotQuery;
+    private final CrawlerRuns crawlerStatusQuery;
 
-    public AdminDashboardResponse getDashboardStats() {
-        long totalUsers = userIdentityQuery.countUsers();
-        long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
-
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
-        long todayNotifications = notificationHistoryQuery.countCreatedAfter(startOfToday);
-        LocalDateTime lastCrawledAt = crawlerStatusQuery.findLastSuccessAt().orElse(null);
-
-        return AdminDashboardResponse.builder().totalUsers(totalUsers)
-                .totalActiveSubscriptions(totalActiveSubscriptions).todayNotificationCount(todayNotifications)
-                .crawlingStatus(resolveCrawlerStatus(now, lastCrawledAt))
-                .lastCrawledAt(lastCrawledAt != null ? lastCrawledAt.toString() : null)
-                .build();
-    }
-
-    public AdminOverviewResponse getDashboardOverview() {
+    private AdminOverviewResponse getDashboardOverview() {
         LocalDateTime now = LocalDateTime.now();
         long totalUsers = userIdentityQuery.countUsers();
         long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
@@ -142,18 +126,8 @@ public class AdminService {
         allLogs.add(buildCrawlerLog(now, lastCrawledAt));
 
         return allLogs.stream()
-                .sorted((a, b) -> {
-                    if (a.getTimestamp() == null && b.getTimestamp() == null) {
-                        return 0;
-                    }
-                    if (a.getTimestamp() == null) {
-                        return 1;
-                    }
-                    if (b.getTimestamp() == null) {
-                        return -1;
-                    }
-                    return b.getTimestamp().compareTo(a.getTimestamp());
-                })
+                .sorted(Comparator.comparing(AdminRecentLogResponse::getTimestamp,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
                 .limit(20)
                 .collect(Collectors.toList());
     }

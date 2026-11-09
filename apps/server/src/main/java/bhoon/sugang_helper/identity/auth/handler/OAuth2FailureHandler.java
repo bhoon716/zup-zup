@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.identity.auth.handler;
 
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;

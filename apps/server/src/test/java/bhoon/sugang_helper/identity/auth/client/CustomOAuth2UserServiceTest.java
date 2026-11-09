@@ -14,6 +14,7 @@ import bhoon.sugang_helper.identity.user.service.UserOAuthAccountService;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -42,13 +43,17 @@ class CustomOAuth2UserServiceTest {
     private UserOAuthAccountService accountProvisioner;
 
     @Test
+    @DisplayName("외부 제공자 식별 정보를 인증 principal로 변환한다")
     void mapsProviderIdentityToTheAuthenticatedPrincipal() {
+        // given
         OAuth2User delegate = delegateUser(Map.of(EMAIL_ATTRIBUTE, EMAIL, "name", NAME, "sub", SUBJECT));
         given(accountProvisioner.findOrCreate(ISSUER, SUBJECT, EMAIL, NAME))
                 .willReturn(new AuthenticatedUser(1L, "original@example.com", Role.ADMIN.getKey()));
 
+        // when
         OAuth2User result = serviceReturning(delegate).loadUser(oauth2UserRequest());
 
+        // then
         assertThat(result.getName()).isEqualTo(SUBJECT);
         assertThat(result.getAuthorities()).extracting(GrantedAuthority::getAuthority)
                 .containsExactly(Role.ADMIN.getKey());
@@ -61,21 +66,27 @@ class CustomOAuth2UserServiceTest {
     }
 
     @Test
+    @DisplayName("계정 연결 충돌은 OAuth 인증 실패로 변환한다")
     void convertsAccountBindingConflictToAnOAuthAuthenticationFailure() {
+        // given
         OAuth2User delegate = delegateUser(Map.of(EMAIL_ATTRIBUTE, EMAIL, "name", NAME, "sub", "different-subject"));
         given(accountProvisioner.findOrCreate(ISSUER, "different-subject", EMAIL, NAME))
                 .willThrow(new OAuthAccountProvisioningException(
                         "oauth_identity_conflict", "OAuth identity is already bound"));
 
+        // when & then
         assertThatThrownBy(() -> serviceReturning(delegate).loadUser(oauth2UserRequest()))
                 .isInstanceOf(OAuth2AuthenticationException.class)
                 .hasMessageContaining("already bound");
     }
 
     @Test
+    @DisplayName("외부 제공자 필수 속성 누락은 계정 생성 전에 거부한다")
     void rejectsMissingProviderAttributesBeforeProvisioningAnAccount() {
+        // given
         OAuth2User delegate = delegateUser(Map.of("name", NAME, "sub", SUBJECT));
 
+        // when & then
         assertThatThrownBy(() -> serviceReturning(delegate).loadUser(oauth2UserRequest()))
                 .isInstanceOf(OAuth2AuthenticationException.class)
                 .hasMessageContaining(EMAIL_ATTRIBUTE);

@@ -22,6 +22,7 @@ APP_ENV_FILE="${repo_root}/apps/server/.env.example" \
 
 python3 - "${compose_json}" "${repo_root}" "${images_file}" <<'PY'
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -34,6 +35,7 @@ services = compose.get("services", {})
 required_services = {
     "loki",
     "alloy",
+    "docker-log-proxy",
     "prometheus",
     "grafana",
     "observability-probe-tools",
@@ -49,7 +51,7 @@ for name in required_services:
     if not services[name].get("healthcheck") and name != "observability-probe-tools":
         raise SystemExit(f"{name} must define a healthcheck")
 
-for name in ("loki", "alloy", "prometheus"):
+for name in ("loki", "alloy", "docker-log-proxy", "prometheus"):
     if services[name].get("ports"):
         raise SystemExit(f"{name} must not publish a host port")
 
@@ -69,19 +71,43 @@ for key, expected in grafana_domain_settings.items():
         raise SystemExit(f"Grafana domain contract is missing or changed: {key}")
 
 alloy_mounts = {str(item.get("target")): item for item in services["alloy"].get("volumes", [])}
-if alloy_mounts.get("/var/run/docker.sock", {}).get("read_only") is not True:
-    raise SystemExit("Alloy must mount the Docker socket read-only")
+if "/var/run/docker.sock" in alloy_mounts:
+    raise SystemExit("Alloy must not mount the Docker socket")
+proxy = services["docker-log-proxy"]
+proxy_mounts = {str(item.get("target")): item for item in proxy.get("volumes", [])}
+if proxy_mounts.get("/var/run/docker.sock", {}).get("read_only") is not True:
+    raise SystemExit("Only the log proxy should mount the Docker socket")
+if set(proxy.get("networks", {})) != {"sugang-helper-docker-logs"}:
+    raise SystemExit("The log proxy must be isolated from the shared runtime network")
+if not compose["networks"]["sugang-helper-docker-logs"].get("internal"):
+    raise SystemExit("The Docker log network must be internal")
+if services["alloy"]["depends_on"].get("docker-log-proxy", {}).get("condition") != "service_healthy":
+    raise SystemExit("Alloy must wait for the Docker log proxy")
 
 runtime_network = compose.get("networks", {}).get("sugang-helper-runtime", {})
 if not runtime_network.get("internal"):
     raise SystemExit("observability services must use the internal runtime network")
 
+prometheus_mounts = {
+    item["target"]: item for item in services["prometheus"].get("volumes", [])
+}
+host_job_rules = prometheus_mounts.get("/etc/prometheus/rules/host-alerts.yml", {})
+disabled_rules = repo_root / "infra/prometheus/host-job-rules-disabled.yml"
+if host_job_rules.get("source") != str(disabled_rules) or not host_job_rules.get("read_only"):
+    raise SystemExit("Host job rules must be disabled until the host jobs are activated")
+if disabled_rules.read_text(encoding="utf-8").strip() != "groups: []":
+    raise SystemExit("Disabled host job rules must be empty")
+
 alloy = (repo_root / "infra/alloy/config.alloy").read_text(encoding="utf-8")
 for required in (
     'discovery.docker "containers"',
     'loki.source.docker "containers"',
+    'host             = "http://docker-log-proxy:2375"',
     'refresh_interval = "5s"',
     'target_label  = "job"',
+    'source_labels = ["__meta_docker_container_label_com_docker_compose_project"]',
+    'regex = "sugang-helper"',
+    'action = "keep"',
     'url = "http://loki:3100/loki/api/v1/push"',
 ):
     if required not in alloy:
@@ -97,6 +123,9 @@ for required in ("http://prometheus:9090", "http://loki:3100"):
     if required not in datasources:
         raise SystemExit(f"Grafana datasource is missing: {required}")
 
+prometheus_mounts = {str(item.get("target")): item for item in services["prometheus"].get("volumes", [])}
+if prometheus_mounts.get("/etc/prometheus/rules", {}).get("read_only") is not True:
+    raise SystemExit("Prometheus rules must be mounted read-only")
 for dashboard in (repo_root / "infra/grafana/dashboards").glob("*.json"):
     definition = json.loads(dashboard.read_text(encoding="utf-8"))
     if definition.get("uid") == "zup-zup-operations":
@@ -115,6 +144,32 @@ if len(log_queries) != 4 or any('{app="jbnu-sugang-helper",job=~"$job"}' not in 
 job_variable = next(variable for variable in loki_dashboard["templating"]["list"] if variable["name"] == "job")
 if job_variable["allValue"] != ".*" or 'app="jbnu-sugang-helper"' not in job_variable["query"]:
     raise SystemExit("Loki job choices must use the same app scope without excluding missing jobs from All")
+
+firstline = re.search(r'firstline\s*=\s*("(?:\\.|[^"\\])*")', alloy)
+if not firstline:
+    raise SystemExit("App logs must retain JSON and legacy multiline boundaries")
+pattern = json.loads(firstline.group(1))
+for line in ('{"level":"INFO","message":"one event"}', "2026-11-06 12:00:00 INFO legacy"):
+    if not re.match(pattern, line):
+        raise SystemExit("App multiline must recognize both JSON and legacy log starts")
+if re.match(pattern, "\tat app.Main.run(Main.java:1)"):
+    raise SystemExit("Legacy stack frames must remain attached to their log event")
+
+trace_query = next(panel["targets"][0]["expr"] for panel in loki_dashboard["panels"] if panel["id"] == 4)
+if "${correlationId:regex}" not in trace_query or " |~ `" not in trace_query:
+    raise SystemExit("Trace search must escape the ID and support JSON plus legacy logs")
+trace_pattern = trace_query.split(" |~ `", 1)[1].removesuffix("`")
+trace_pattern = trace_pattern.replace("${correlationId:regex}", re.escape("request.123"))
+for line in ('{"correlationId":"request.123"}', '{"correlationId": "request.123"}', "[corr=request.123] legacy"):
+    if not re.search(trace_pattern, line):
+        raise SystemExit("Trace search must match both JSON and legacy logs")
+if re.search(trace_pattern, '{"correlationId":"requestX123"}'):
+    raise SystemExit("Trace search must treat punctuation in the ID literally")
+
+empty_trace_pattern = trace_query.split(" |~ `", 1)[1].removesuffix("`").replace("${correlationId:regex}", "")
+for line in ('{"correlationId":"request.123"}', "[corr=request.123] legacy"):
+    if not re.search(empty_trace_pattern, line):
+        raise SystemExit("Empty trace input must retain both JSON and legacy request logs")
 
 images_path.write_text(
     "\n".join(
@@ -140,7 +195,20 @@ docker run --rm \
 
 docker run --rm \
   --entrypoint /bin/promtool \
-  -v "${repo_root}/infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+  -v "${repo_root}/infra/prometheus:/etc/prometheus:ro" \
+  -v "${repo_root}/infra/prometheus/host-job-rules-disabled.yml:/etc/prometheus/rules/host-alerts.yml:ro" \
   "${prometheus_image}" check config /etc/prometheus/prometheus.yml
+
+docker run --rm \
+  --entrypoint /bin/promtool \
+  -v "${repo_root}/infra/prometheus:/etc/prometheus:ro" \
+  --workdir /etc/prometheus \
+  "${prometheus_image}" test rules tests/alerts.test.yml
+
+docker run --rm \
+  --entrypoint /bin/promtool \
+  -v "${repo_root}/infra/prometheus:/etc/prometheus:ro" \
+  --workdir /etc/prometheus \
+  "${prometheus_image}" test rules tests/host-alerts.test.yml
 
 echo "observability config validation passed"

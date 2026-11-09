@@ -16,7 +16,6 @@ interface TimetableBlockProps {
 
 const DEFAULT_BLOCK_COLOR = '#56296E';
 
-// HEX 색상 코드를 RGB 객체로 변환합니다.
 const hexToRgb = (color: string) => {
   if (!color.startsWith('#')) return null;
   const normalized = color.length === 4
@@ -33,7 +32,6 @@ const hexToRgb = (color: string) => {
   };
 };
 
-// 지정된 색상에 흰색을 섞어 부드러운 배경색을 생성합니다.
 const mixWithWhite = (color: string | undefined, whiteRatio: number, fallback: string) => {
   const rgb = color ? hexToRgb(color) : null;
   if (!rgb) return fallback;
@@ -42,17 +40,12 @@ const mixWithWhite = (color: string | undefined, whiteRatio: number, fallback: s
   return `rgb(${mix(rgb.r)}, ${mix(rgb.g)}, ${mix(rgb.b)})`;
 };
 
-// 지정된 색상에 투명도를 적용한 rgba 색상을 생성합니다.
 const withAlpha = (color: string | undefined, alpha: number, fallback: string) => {
   const rgb = color ? hexToRgb(color) : null;
   if (!rgb) return fallback;
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 };
 
-/**
- * 시간표의 개별 수업 블록을 렌더링하는 컴포넌트입니다.
- * 클릭 시 상세 정보를 보여주며, 배경색과 테두리 색상을 강의 테마에 맞춰 동적으로 계산합니다.
- */
 export function TimetableBlock({
   block,
   top,

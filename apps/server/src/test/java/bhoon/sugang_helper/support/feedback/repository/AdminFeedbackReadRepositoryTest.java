@@ -26,20 +26,26 @@ class AdminFeedbackReadRepositoryTest {
 
     @Autowired
     private AdminFeedbackReadRepository adminFeedbackReadRepository;
+
     @Autowired
     private FeedbackRepository feedbackRepository;
+
     @Autowired
     private FeedbackReplyRepository feedbackReplyRepository;
+
     @Autowired
     private FeedbackAttachmentRepository feedbackAttachmentRepository;
+
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private EntityManager entityManager;
 
     @Test
     @DisplayName("관리자 읽기 모델은 삭제 피드백·답변을 포함하고 일반 JPA 조회는 계속 숨긴다.")
     void readsDeletedFeedbackAndRepliesOnlyThroughTheAdminProjection() {
+        // given
         User activeUser = userRepository.saveAndFlush(user("active@example.com", Role.USER));
         User withdrawnUser = userRepository.saveAndFlush(user("withdrawn@example.com", Role.USER));
         User admin = userRepository.saveAndFlush(user("admin@example.com", Role.ADMIN));
@@ -64,6 +70,7 @@ class AdminFeedbackReadRepositoryTest {
         feedbackReplyRepository.saveAndFlush(deletedReply);
         entityManager.clear();
 
+        // when
         var all = adminFeedbackReadRepository.findFeedbacks(AdminFeedbackDeletionFilter.ALL, PageRequest.of(0, 10));
         var activeOnly = adminFeedbackReadRepository.findFeedbacks(
                 AdminFeedbackDeletionFilter.ACTIVE, PageRequest.of(0, 10));
@@ -71,6 +78,7 @@ class AdminFeedbackReadRepositoryTest {
                 AdminFeedbackDeletionFilter.DELETED, PageRequest.of(0, 10));
         var detail = adminFeedbackReadRepository.findFeedbackDetail(deletedFeedback.getId()).orElseThrow();
 
+        // then
         assertThat(all.getContent()).extracting(AdminFeedbackSummary::id)
                 .containsExactlyInAnyOrder(activeFeedback.getId(), deletedFeedback.getId());
         assertThat(activeOnly.getContent()).extracting(AdminFeedbackSummary::id)

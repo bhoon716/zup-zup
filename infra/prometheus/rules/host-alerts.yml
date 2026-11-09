@@ -1,0 +1,59 @@
+groups:
+  - name: sugang-helper-host-jobs
+    rules:
+      - alert: HostJobMetricsUnavailable
+        expr: 'up{job="host-jobs"} == 0 or absent(up{job="host-jobs"})'
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "호스트 주기 작업 지표 수집이 중단되었습니다."
+      - alert: HostJobTextfileInvalid
+        expr: 'node_textfile_scrape_error{job="host-jobs"} != 0'
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "호스트 주기 작업 지표 파일을 읽지 못했습니다."
+      - alert: HostStorageUnhealthy
+        expr: '(sugang_host_storage_healthy{job="host-jobs"} == 0 or absent(sugang_host_storage_healthy{job="host-jobs",role="release"}) or absent(sugang_host_storage_healthy{job="host-jobs",role="docker_data"})) and on(job) (up{job="host-jobs"} == 1)'
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "호스트 디스크 또는 inode 여유가 부족하거나 측정할 수 없습니다."
+      - alert: HostJobFailed
+        expr: '(sugang_host_job_success{job="host-jobs"} == 0 and on(job,instance,task) sugang_host_job_running{job="host-jobs"} == 0) and on(job) (up{job="host-jobs"} == 1)'
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "호스트 주기 작업이 실패했습니다."
+      - alert: HostStorageCheckStale
+        expr: '(time() - sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="storage"} > 900 or sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="storage"} <= 0 or sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="storage"} > time() + 60 or absent(sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="storage"})) and on(job) (up{job="host-jobs"} == 1)'
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "호스트 저장 공간 점검의 최근 성공이 확인되지 않습니다."
+      - alert: HostBackupStale
+        expr: '(time() - sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="backup"} > 93600 or sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="backup"} <= 0 or sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="backup"} > time() + 60 or absent(sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="backup"})) and on(job) (up{job="host-jobs"} == 1)'
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB·감사·업로드 내보내기의 최근 성공이 확인되지 않습니다."
+      - alert: HostEventBackupStale
+        expr: '(time() - sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="event_backup"} > 900 or sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="event_backup"} <= 0 or sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="event_backup"} > time() + 60 or absent(sugang_host_job_last_success_timestamp_seconds{job="host-jobs",task="event_backup"})) and on(job) (up{job="host-jobs"} == 1)'
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "중요 사건 로그 내보내기의 최근 성공이 확인되지 않습니다."
+      - alert: HostJobExecutionStuck
+        expr: '((time() - sugang_host_job_last_started_timestamp_seconds{job="host-jobs",task="storage"} > 60 or time() - sugang_host_job_last_started_timestamp_seconds{job="host-jobs",task="backup"} > 960 or time() - sugang_host_job_last_started_timestamp_seconds{job="host-jobs",task="event_backup"} > 270) and on(job,instance,task) sugang_host_job_running{job="host-jobs"} == 1) and on(job) (up{job="host-jobs"} == 1)'
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "호스트 주기 작업이 제한 시간 안에 끝나지 않았습니다."

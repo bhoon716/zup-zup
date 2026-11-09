@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.9'
+    id 'org.springframework.boot' version '3.5.16'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'pmd'
     id 'checkstyle'
@@ -18,7 +18,9 @@ group = 'bhoon'
 version = '1.0.0'
 description = 'Demo project for Spring Boot'
 
-ext['netty.version'] = '4.1.132.Final'
+ext['logback.version'] = '1.5.38'
+ext['netty.version'] = '4.1.140.Final'
+ext['tomcat.version'] = '10.1.61'
 
 java {
     toolchain {
@@ -55,6 +57,10 @@ repositories {
 }
 
 dependencies {
+
+    implementation platform('org.springframework.modulith:spring-modulith-bom:1.4.14')
+    implementation 'org.springframework.modulith:spring-modulith-api'
+    testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
 
     constraints {
         implementation('org.bitbucket.b_c:jose4j') {
@@ -100,7 +106,6 @@ dependencies {
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-mysql'
     runtimeOnly 'com.mysql:mysql-connector-j'
-    runtimeOnly 'com.h2database:h2'
     testImplementation 'com.h2database:h2'
 
     compileOnly 'org.projectlombok:lombok'
@@ -126,7 +131,7 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'manual', 'performance', 'migration'
-        excludeTags 'session'
+        excludeTags 'session', 'modulith-docs'
     }
 }
 
@@ -166,4 +171,44 @@ task performanceTest(type: Test) {
     useJUnitPlatform {
         includeTags 'performance'
     }
+}
+
+tasks.register('modulithDocs', Test) {
+    group = 'documentation'
+    description = 'Generates documentation from the verified application module model.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'modulith-docs'
+    }
+    outputs.dir layout.buildDirectory.dir('spring-modulith')
+    reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/modulithDocs')
+    reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/modulithDocs')
+}
+
+sourceSets {
+    modulithE2e {
+        java.srcDir 'src/e2e/java'
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    modulithE2eImplementation.extendsFrom testImplementation
+    modulithE2eRuntimeOnly.extendsFrom testRuntimeOnly
+    modulithE2eCompileOnly.extendsFrom compileOnly
+    modulithE2eAnnotationProcessor.extendsFrom annotationProcessor
+}
+
+tasks.register('modulithE2e', Test) {
+    group = 'verification'
+    description = 'Runs full-application HTTP event E2E with isolated H2 and Redis.'
+    testClassesDirs = sourceSets.modulithE2e.output.classesDirs
+    classpath = sourceSets.modulithE2e.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'modulith-e2e'
+    }
+    reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/modulithE2e')
+    reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/modulithE2e')
 }

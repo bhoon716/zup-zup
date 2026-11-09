@@ -14,22 +14,28 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class EmailManualTest {
 
     private static final String TEST_EMAIL = "leafloveu@naver.com";
+
     @Autowired
     private EmailVerificationService emailVerificationService;
+
     @Autowired
     private EmailNotificationSender emailNotificationSender;
 
     @Test
     @DisplayName("인증 코드 HTML 메일 발송 수동 테스트")
     void sendVerificationEmail() {
+        // given
         System.out.println("SES 인증 메일 발송 테스트 시작: " + TEST_EMAIL);
         emailVerificationService.sendCode(9999L, TEST_EMAIL);
+
+        // when
         System.out.println("SES 인증 메일 발송 요청 완료!");
     }
 
     @Test
     @DisplayName("여석 알림 HTML 메일 발송 수동 테스트")
     void sendNotificationEmail() {
+        // given
         System.out.println("SES 알림 메일 발송 테스트 시작: " + TEST_EMAIL);
         String courseName = "운영체제";
         String professor = "홍길동";
@@ -38,6 +44,8 @@ public class EmailManualTest {
                 professor);
 
         emailNotificationSender.send(NotificationTarget.of(TEST_EMAIL), title, message);
+
+        // when
         System.out.println("SES 알림 메일 발송 요청 완료!");
     }
 }

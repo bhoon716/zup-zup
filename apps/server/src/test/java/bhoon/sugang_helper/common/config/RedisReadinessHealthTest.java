@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bhoon.sugang_helper.common.health.HealthController;
 import java.util.Properties;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -54,6 +55,7 @@ class RedisReadinessHealthTest {
 
     @Autowired
     private MockMvc mockMvc;
+
     @Autowired
     private RedisConnectionFactory redisConnectionFactory;
 
@@ -63,10 +65,13 @@ class RedisReadinessHealthTest {
     }
 
     @Test
+    @DisplayName("Redis에 연결할 수 없으면 준비 상태는 실패한다")
     void readinessIsDownWhenRedisCannotBeReached() throws Exception {
+        // given
         given(redisConnectionFactory.getConnection())
                 .willThrow(new RedisConnectionFailureException("Redis is unavailable"));
 
+        // when & then
         mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath(STATUS_PATH).value("DOWN"));
@@ -78,7 +83,9 @@ class RedisReadinessHealthTest {
     }
 
     @Test
+    @DisplayName("Redis가 복구되면 준비 상태도 회복한다")
     void readinessRecoversAfterRedisComesBack() throws Exception {
+        // given
         RedisConnection connection = mock(RedisConnection.class);
         RedisServerCommands serverCommands = mock(RedisServerCommands.class);
         given(redisConnectionFactory.getConnection())
@@ -87,6 +94,7 @@ class RedisReadinessHealthTest {
         given(connection.serverCommands()).willReturn(serverCommands);
         given(serverCommands.info()).willReturn(new Properties());
 
+        // when & then
         mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath(STATUS_PATH).value("DOWN"));

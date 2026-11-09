@@ -1,0 +1,12 @@
+[Unit]
+Description=Export Sugang helper database, audit and uploads daily
+
+[Timer]
+OnCalendar=*-*-* 19:00:00 UTC
+RandomizedDelaySec=5min
+AccuracySec=1min
+Persistent=true
+Unit=sugang-helper-backup.service
+
+[Install]
+WantedBy=timers.target

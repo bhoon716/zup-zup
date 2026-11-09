@@ -1,12 +1,12 @@
 package bhoon.sugang_helper.planning.wishlist.service;
 
-import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
+import bhoon.sugang_helper.academic.api.catalog.CourseCatalog;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
+import bhoon.sugang_helper.identity.api.users.Users;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistResponse;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistToggleResponse;
 import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;
@@ -28,8 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class WishlistService {
 
     private final WishlistRepository wishlistRepository;
-    private final CourseCatalogQueryService courseCatalogQuery;
-    private final UserIdentityQueryService userIdentityQuery;
+    private final CourseCatalog courseCatalogQuery;
+    private final Users userIdentityQuery;
 
     @Transactional
     public WishlistToggleResponse toggleWishlist(String courseKey) {

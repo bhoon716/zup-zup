@@ -8,17 +8,25 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
+import bhoon.sugang_helper.academic.api.catalog.CourseScheduleSummary;
+import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.event.UserRegisteredEvent;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
+import bhoon.sugang_helper.identity.events.UserRegisteredEvent;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.planning.api.PrimaryTimetableSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCourseScheduleSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCourseSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCustomScheduleSnapshot;
+import bhoon.sugang_helper.planning.api.TimetableCustomScheduleTimeSnapshot;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleTimeRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.TimetableRequest;
+import bhoon.sugang_helper.planning.timetable.entity.CustomSchedule;
+import bhoon.sugang_helper.planning.timetable.entity.CustomScheduleTime;
 import bhoon.sugang_helper.planning.timetable.entity.Timetable;
 import bhoon.sugang_helper.planning.timetable.entity.TimetableEntry;
 import bhoon.sugang_helper.planning.timetable.repository.TimetableEntryRepository;
@@ -42,16 +50,22 @@ class TimetableServiceTest {
 
     private static MockedStatic<SecurityUtil> securityUtil;
     private final String testEmail = "test@example.com";
+
     @InjectMocks
     private TimetableService timetableService;
+
     @Mock
     private TimetableRepository timetableRepository;
+
     @Mock
     private TimetableEntryRepository timetableEntryRepository;
+
     @Mock
     private CourseCatalogQueryService courseCatalogQuery;
+
     @Mock
     private UserIdentityQueryService userIdentityQuery;
+
     private UserIdentity testUser;
 
     @BeforeEach
@@ -73,14 +87,16 @@ class TimetableServiceTest {
     @Test
     @DisplayName("시간표 생성 - 성공")
     void createTimetable_Success() {
-
+        // given
         mockUser();
         TimetableRequest request = new TimetableRequest("My Timetable", false);
         given(timetableRepository.countByUserId(1L)).willReturn(0L);
         given(timetableRepository.save(any(Timetable.class))).willAnswer(invocation -> invocation.getArgument(0));
 
+        // when
         var response = timetableService.createTimetable(request);
 
+        // then
         assertThat(response.getName()).isEqualTo("My Timetable");
         verify(timetableRepository, times(1)).save(any(Timetable.class));
     }
@@ -88,11 +104,12 @@ class TimetableServiceTest {
     @Test
     @DisplayName("시간표 생성 - 10개 초과 시 예외 발생")
     void createTimetable_LimitExceeded_ThrowsException() {
-
+        // given
         mockUser();
         TimetableRequest request = new TimetableRequest("My Timetable", false);
         given(timetableRepository.countByUserId(1L)).willReturn(10L);
 
+        // when & then
         assertThatThrownBy(() -> timetableService.createTimetable(request))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MAX_TIMETABLE_LIMIT_EXCEEDED);
@@ -101,7 +118,7 @@ class TimetableServiceTest {
     @Test
     @DisplayName("강좌 추가 - 성공 (시간 겹침 없음)")
     void addCourse_Success() {
-
+        // given
         mockUser();
         Timetable timetable = Timetable.builder().userId(1L).name("P1").build();
         given(timetableRepository.findById(1L)).willReturn(Optional.of(timetable));
@@ -109,15 +126,17 @@ class TimetableServiceTest {
         given(courseCatalogQuery.existsByCourseKey("CK1")).willReturn(true);
         given(timetableEntryRepository.findByTimetableIdAndCourseKey(1L, "CK1")).willReturn(Optional.empty());
 
+        // when
         timetableService.addCourse(1L, "CK1");
 
+        // then
         assertThat(timetable.getEntries()).hasSize(1);
     }
 
     @Test
     @DisplayName("강좌 추가 - 성공 (시간 겹침 허용)")
     void addCourse_OverlapAllowed_Success() {
-
+        // given
         mockUser();
         Timetable timetable = Timetable.builder().userId(1L).name("P1").build();
         TimetableEntry existingEntry = TimetableEntry.builder().timetable(timetable).courseKey("EXISTING").build();
@@ -127,15 +146,17 @@ class TimetableServiceTest {
         given(courseCatalogQuery.existsByCourseKey("NEW")).willReturn(true);
         given(timetableEntryRepository.findByTimetableIdAndCourseKey(1L, "NEW")).willReturn(Optional.empty());
 
+        // when
         timetableService.addCourse(1L, "NEW");
 
+        // then
         assertThat(timetable.getEntries()).hasSize(2);
     }
 
     @Test
     @DisplayName("커스텀 일정 추가 - 강좌와 시간 겹침 허용")
     void addCustomSchedule_OverlapAllowed_Success() {
-
+        // given
         mockUser();
         Timetable timetable = Timetable.builder().userId(1L).name("P1").build();
         given(timetableRepository.findById(1L)).willReturn(Optional.of(timetable));
@@ -144,15 +165,17 @@ class TimetableServiceTest {
                 new CustomScheduleTimeRequest("월", LocalTime.of(9, 45), LocalTime.of(10, 45),
                         null)));
 
+        // when
         timetableService.addCustomSchedule(1L, request);
 
+        // then
         assertThat(timetable.getCustomSchedules()).hasSize(1);
     }
 
     @Test
     @DisplayName("대표 시간표 설정 - 이전 대표 시간표 해제 확인")
     void setPrimary_ResetsPreviousPrimary() {
-
+        // given
         mockUser();
         Timetable oldPrimary = Timetable.builder().userId(1L).name("Old").isPrimary(true).build();
         Timetable newPrimary = Timetable.builder().userId(1L).name("New").isPrimary(false).build();
@@ -160,8 +183,10 @@ class TimetableServiceTest {
         given(timetableRepository.findById(2L)).willReturn(Optional.of(newPrimary));
         given(timetableRepository.findByUserIdAndIsPrimaryTrue(1L)).willReturn(List.of(oldPrimary));
 
+        // when
         timetableService.setPrimary(2L);
 
+        // then
         assertThat(oldPrimary.isPrimary()).isFalse();
         assertThat(newPrimary.isPrimary()).isTrue();
     }
@@ -169,7 +194,7 @@ class TimetableServiceTest {
     @Test
     @DisplayName("시간표 삭제 - 대표 시간표 삭제 시 다른 시간표가 승계")
     void deleteTimetable_PrimarySuccession_Success() {
-
+        // given
         mockUser();
         Timetable primary = Timetable.builder().userId(1L).name("P1").isPrimary(true).build();
         ReflectionTestUtils.setField(primary, "id", 1L);
@@ -179,8 +204,10 @@ class TimetableServiceTest {
         given(timetableRepository.findById(1L)).willReturn(Optional.of(primary));
         given(timetableRepository.findByUserId(1L)).willReturn(List.of(primary, other));
 
+        // when
         timetableService.deleteTimetable(1L);
 
+        // then
         verify(timetableRepository, times(1)).delete(primary);
         assertThat(other.isPrimary()).isTrue();
     }
@@ -188,17 +215,20 @@ class TimetableServiceTest {
     @Test
     @DisplayName("신규 사용자 가입 시 기본 시간표 자동 생성")
     void handleUserRegisteredEvent_Success() {
-
+        // given
         UserRegisteredEvent event = new UserRegisteredEvent(1L, "new@example.com");
 
+        // when
         timetableService.handleUserRegisteredEvent(event);
 
+        // then
         verify(timetableRepository, times(1)).save(any(Timetable.class));
     }
 
     @Test
     @DisplayName("시간표 상세 조회 - 중복 courseKey는 기존 강의로 병합한다")
     void getTimetableDetail_DuplicateCourseKey_KeepsExistingCourse() {
+        // given
         mockUser();
         Timetable timetable = Timetable.builder().userId(1L).name("P1").build();
         TimetableEntry entry = TimetableEntry.builder().timetable(timetable).courseKey("CK1").build();
@@ -210,10 +240,59 @@ class TimetableServiceTest {
         given(courseCatalogQuery.findByCourseKeyIn(List.of("CK1")))
                 .willReturn(List.of(existingCourse, replacementCourse));
 
+        // when
         var response = timetableService.getTimetableDetail(1L);
 
+        // then
         assertThat(response.getCourses()).singleElement().satisfies(course ->
                 assertThat(course.getName()).isEqualTo("Existing Course"));
+    }
+
+    @Test
+    @DisplayName("대표 시간표 snapshot은 강좌와 사용자 일정의 모든 표시 값을 보존한다")
+    void primarySnapshotPreservesCoursesAndCustomSchedules() {
+        // given
+        mockUser();
+        Timetable primary = Timetable.builder().userId(1L).name("대표 시간표").isPrimary(true).build();
+        ReflectionTestUtils.setField(primary, "id", 11L);
+        primary.addEntry(TimetableEntry.builder().courseKey("CK1").build());
+        CustomSchedule custom = CustomSchedule.builder().title("사용자 일정").professor("담당자").build();
+        ReflectionTestUtils.setField(custom, "id", 21L);
+        CustomScheduleTime time = CustomScheduleTime.builder().dayOfWeek("TUESDAY")
+                .startTime(LocalTime.of(14, 0)).endTime(LocalTime.of(15, 0)).classroom("일정 장소").build();
+        ReflectionTestUtils.setField(time, "id", 31L);
+        custom.addTime(time);
+        primary.addCustomSchedule(custom);
+        CourseSummary course = new CourseSummary("CK1", "SUBJECT", "01", "강의명", "교수명", 30, 0,
+                "2026", "U211600010", "전공필수", "3", "월 1교시", "강의실",
+                List.of(new CourseScheduleSummary("MONDAY", "09:00", "10:00")));
+        given(timetableRepository.findByUserIdAndIsPrimaryTrue(1L)).willReturn(List.of(primary));
+        given(courseCatalogQuery.findByCourseKeyIn(List.of("CK1"))).willReturn(List.of(course));
+
+        // when
+        PrimaryTimetableSnapshot snapshot = timetableService.findPrimaryForCurrentUser().orElseThrow();
+
+        // then
+        assertThat(snapshot).isEqualTo(new PrimaryTimetableSnapshot(11L, "대표 시간표", true,
+                List.of(new TimetableCourseSnapshot("CK1", "강의명", "교수명", "월 1교시", "3", "전공필수", "강의실",
+                        List.of(new TimetableCourseScheduleSnapshot("MONDAY", "09:00", "10:00")))),
+                List.of(new TimetableCustomScheduleSnapshot(21L, "사용자 일정", "담당자",
+                        List.of(new TimetableCustomScheduleTimeSnapshot(31L, "TUESDAY",
+                                LocalTime.of(14, 0), LocalTime.of(15, 0), "일정 장소")))), "3.0"));
+    }
+
+    @Test
+    @DisplayName("대표 시간표가 없으면 snapshot도 비어 있다")
+    void primarySnapshotIsEmptyWithoutAPrimaryTimetable() {
+        // given
+        mockUser();
+        given(timetableRepository.findByUserIdAndIsPrimaryTrue(1L)).willReturn(List.of());
+
+        // when
+        Optional<PrimaryTimetableSnapshot> snapshot = timetableService.findPrimaryForCurrentUser();
+
+        // then
+        assertThat(snapshot).isEmpty();
     }
 
     private CourseSummary summary(String courseKey, String name) {

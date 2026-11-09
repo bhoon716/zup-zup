@@ -5,8 +5,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.identity.user.service.UserDeviceService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -45,6 +46,7 @@ class WebPushNotificationSenderTest {
     @Test
     @DisplayName("WEB 채널 지원 여부 확인")
     void supports_web_channel() {
+        // when & then
         assertThat(webPushNotificationSender.supports(NotificationChannel.WEB)).isTrue();
         assertThat(webPushNotificationSender.supports(NotificationChannel.EMAIL)).isFalse();
     }
@@ -52,8 +54,11 @@ class WebPushNotificationSenderTest {
     @Test
     @DisplayName("Web Push 성공 로그에 endpoint 원문을 남기지 않는다")
     void send_doesNotLogEndpoint() throws Exception {
+        // given
         String endpoint = "https://fcm.googleapis.com/fcm/send/endpoint-should-not-appear";
         PushService pushService = Mockito.mock(PushService.class);
+
+        // when
         HttpResponse response = Mockito.mock(HttpResponse.class);
         StatusLine statusLine = Mockito.mock(StatusLine.class);
         when(pushService.send(any(Notification.class))).thenReturn(response);
@@ -62,10 +67,13 @@ class WebPushNotificationSenderTest {
         webPushNotificationSender.init();
         ReflectionTestUtils.setField(webPushNotificationSender, "pushService", pushService);
         Logger logger = (Logger) LoggerFactory.getLogger(WebPushNotificationSender.class);
+        Level previousLevel = logger.getLevel();
+        logger.setLevel(Level.DEBUG);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
         logger.addAppender(appender);
 
+        // then
         try {
             webPushNotificationSender.send(NotificationTarget.ofWeb(endpoint, generateP256dh(), generateAuth()),
                     "제목", "내용");
@@ -77,6 +85,7 @@ class WebPushNotificationSenderTest {
         } finally {
             logger.detachAppender(appender);
             appender.stop();
+            logger.setLevel(previousLevel);
         }
     }
 

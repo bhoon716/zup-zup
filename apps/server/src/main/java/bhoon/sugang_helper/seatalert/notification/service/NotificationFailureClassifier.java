@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
-import bhoon.sugang_helper.common.error.CustomException;
+import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 
 public final class NotificationFailureClassifier {

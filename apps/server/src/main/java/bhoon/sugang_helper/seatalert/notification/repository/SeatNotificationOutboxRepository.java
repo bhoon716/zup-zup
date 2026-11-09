@@ -3,15 +3,22 @@ package bhoon.sugang_helper.seatalert.notification.repository;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
 import jakarta.persistence.LockModeType;
+import jakarta.persistence.QueryHint;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface SeatNotificationOutboxRepository extends JpaRepository<SeatNotificationOutbox, Long> {
+
+    @Transactional(readOnly = true, timeout = 10)
+    @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "5000"))
+    long countByStatus(SeatNotificationOutboxStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from SeatNotificationOutbox o where o.id = :id")

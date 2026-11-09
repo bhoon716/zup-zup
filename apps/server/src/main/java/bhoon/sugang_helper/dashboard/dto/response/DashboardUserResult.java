@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.dashboard.dto.response;
 
-import bhoon.sugang_helper.identity.user.dto.result.UserDashboardProfile;
+import bhoon.sugang_helper.identity.api.users.UserDashboardProfile;
 
 public record DashboardUserResult(
         Long id,

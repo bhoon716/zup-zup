@@ -65,6 +65,8 @@ scenarios = {
     'no-existing-app': (True, 1, 1),
     'migration-fails': (False, 1, 0),
     'startup-fails': (False, 1, 1),
+    'alerting-enabled': (True, 1, 1),
+    'alerting-invalid': (False, 0, 0),
 }
 
 for scenario, (success, migrations, starts) in scenarios.items():
@@ -75,9 +77,15 @@ for scenario, (success, migrations, starts) in scenarios.items():
         staging.mkdir(parents=True)
         required_files = [
             'docker-compose.yml', 'application-prod.yml', 'loki/loki-config.yaml',
-            'alloy/config.alloy', 'prometheus/prometheus.yml',
+            'alloy/config.alloy', 'alloy/docker-log-proxy.conf', 'alloy/docker-log-guard.js',
+            'prometheus/prometheus.yml',
             'grafana/provisioning/datasources/datasource.yml',
             'scripts/compose-observability-diagnostics.sh',
+            'scripts/backup-server-export.sh', 'scripts/backup-admin-audit.sh',
+            'scripts/run-host-job.py', 'scripts/check-storage-health.py', 'scripts/backup-important-events.py',
+            'systemd/host-jobs.env.example',
+            'docker-compose.alerting.yml', 'alertmanager/alertmanager.yml',
+            'scripts/validate-alerting-settings.py',
         ]
         for name in required_files:
             path = staging / name
@@ -96,7 +104,13 @@ DISCORD_REDIRECT_URI=https://www.zup-zup.com/api/v1/users/discord/callback
         smoke = staging / 'scripts/test-observability-smoke.sh'
         smoke.write_text('#!/bin/sh\nexit 0\n')
         smoke.chmod(0o755)
+        validator = staging / 'scripts/validate-alerting-config.sh'
+        validator.write_text('#!/bin/sh\nexit 0\n')
         (root / '.env').write_text('APP_IMAGE_NAME=ghcr.io/fixture/app\nFLYWAY_IMAGE=fixture@sha256:' + '0' * 64 + '\n')
+        if scenario.startswith('alerting-'):
+            enabled = 'true' if scenario == 'alerting-enabled' else 'invalid'
+            with (root / '.env').open('a') as stream:
+                stream.write(f'ALERTING_ENABLED={enabled}\n')
         fake_bin = Path(tmp) / 'bin'
         fake_bin.mkdir()
         curl_stub = '#!/bin/sh\nexit 0\n'
@@ -111,13 +125,23 @@ DISCORD_REDIRECT_URI=https://www.zup-zup.com/api/v1/users/discord/callback
                    SCENARIO=scenario, COMMAND_TRACE=str(trace))
         result = subprocess.run(['bash', str(fixture_script), sha, str(staging)],
                                 env=env, text=True, capture_output=True, timeout=20)
-        events = [json.loads(line)['event'] for line in trace.read_text().splitlines()]
+        calls = [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
+        events = [call['event'] for call in calls]
         assert (result.returncode == 0) == success, (scenario, result.stderr)
         assert events.count('migrate') == migrations, (scenario, events)
         assert events.count('app-start') == starts, (scenario, events)
         if migrations and scenario != 'no-existing-app':
             assert events.index('inspect-app') < events.index('migrate'), (scenario, events)
-        if not migrations:
+        if scenario == 'alerting-invalid':
+            assert 'ALERTING_ENABLED must be true or false' in result.stderr, result.stderr
+        elif not migrations:
             assert 'migration was not started' in result.stderr, (scenario, result.stderr)
+        if scenario == 'alerting-enabled':
+            compose_calls = [call['args'] for call in calls if call['args'][:1] == ['compose']]
+            assert compose_calls and all(any(arg.endswith('/docker-compose.alerting.yml') for arg in args)
+                                         for args in compose_calls), compose_calls
+            assert any('up' in args and 'alertmanager' in args for args in compose_calls), compose_calls
+            assert all('--force-recreate' in args and '--no-deps' in args
+                       for args in compose_calls if 'up' in args and 'alertmanager' in args), compose_calls
 print(f'deploy quiescence contract passed: {len(scenarios)} isolated scenarios; no Docker/HTTP calls')
 PY

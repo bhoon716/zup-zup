@@ -10,13 +10,14 @@ import bhoon.sugang_helper.academic.course.enums.DisclosureStatus;
 import bhoon.sugang_helper.academic.course.enums.GradingMethod;
 import bhoon.sugang_helper.academic.course.enums.LectureLanguage;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -61,7 +62,7 @@ public class JbnuCourseParser {
 
     public Iterator<ParsedCourseDto> streamCourses(InputStream responseStream, String year, String semester) {
         try {
-            String jsonData = new String(responseStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            String jsonData = new String(responseStream.readAllBytes(), StandardCharsets.UTF_8);
             return parseJumpCourses(jsonData, year, semester).iterator();
         } catch (IOException e) {
             throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "Malformed crawler JSON: " + e.getMessage());

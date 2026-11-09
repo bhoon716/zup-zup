@@ -15,13 +15,14 @@ import bhoon.sugang_helper.academic.course.service.CourseService;
 import bhoon.sugang_helper.academic.crawling.controller.CourseSearchTargetController;
 import bhoon.sugang_helper.academic.crawling.dto.response.SearchDefaultSemesterResponse;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -64,7 +65,9 @@ class CourseControllerValidationTest {
     }
 
     @Test
+    @DisplayName("길이 제한을 넘는 검색어는 검색 서비스 호출 전에 거부한다")
     void rejectsOversizedTextAndDoesNotInvokeSearch() throws Exception {
+        // when & then
         mockMvc.perform(post(SEARCH_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"" + "x".repeat(101) + "\"}"))
@@ -74,7 +77,9 @@ class CourseControllerValidationTest {
     }
 
     @Test
+    @DisplayName("지원하지 않는 대상 학년을 거부한다")
     void rejectsUnknownTargetGrade() throws Exception {
+        // when & then
         mockMvc.perform(post(SEARCH_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"targetGrades\":[\"NOT_A_GRADE\"]}"))
@@ -84,7 +89,9 @@ class CourseControllerValidationTest {
     }
 
     @Test
+    @DisplayName("조건 개수 제한을 넘는 공개 검색은 서비스 호출 전에 거부한다")
     void rejectsUnboundedPublicPredicateInputsWithoutInvokingSearch() throws Exception {
+        // given
         List<String> tooManyStatuses = Collections.nCopies(21, "일반");
         List<Map<String, Object>> invalidBodies = List.of(
                 Map.of("statuses", tooManyStatuses),
@@ -93,6 +100,7 @@ class CourseControllerValidationTest {
                 Map.of("courseDirection", "a,b,c,d,e,f,g,h,i,j,k"),
                 Map.of("courseDirection", "x".repeat(101)));
 
+        // when & then
         for (Map<String, Object> body : invalidBodies) {
             mockMvc.perform(post(SEARCH_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -105,11 +113,14 @@ class CourseControllerValidationTest {
     }
 
     @ParameterizedTest
+    @DisplayName("찜 정렬 별칭은 표준 인기순 정렬로 처리한다")
     @ValueSource(strings = {"popular", "wishlist", "wishlistCount", "wishlist_count", "wished"})
     void acceptsWishlistSortAliasesAsCanonicalPopularSort(String sortAlias) throws Exception {
+        // given
         given(courseService.searchCourses(any(CourseSearchCondition.class), any()))
                 .willReturn(new SliceImpl<>(List.of(), PageRequest.of(0, 30), false));
 
+        // when & then
         mockMvc.perform(post(SEARCH_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"sortBy\":\"" + sortAlias + "\"}"))
@@ -121,10 +132,13 @@ class CourseControllerValidationTest {
     }
 
     @Test
+    @DisplayName("검색 기본 학기는 기존 URL과 응답 형식을 유지한다")
     void searchDefaultSemesterKeepsItsExistingRouteAndResponse() throws Exception {
+        // given
         given(crawlerTargetService.getSearchDefaultSemester()).willReturn(
                 SearchDefaultSemesterResponse.builder().semester("U211600010").build());
 
+        // when & then
         mockMvc.perform(get("/api/v1/courses/search-default-semester"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.semester").value("U211600010"));

@@ -9,6 +9,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -28,11 +29,13 @@ class SchedulingConfigTest {
             .withPropertyValues("spring.task.scheduling.pool.size=8");
 
     @ParameterizedTest
+    @DisplayName("가상 스레드가 활성화돼도 오래 걸리는 예약 작업은 겹치지 않는다")
     @ValueSource(booleans = {false, true})
     void dueTasksDoNotOverlapWhileALongTaskRunsEvenWhenVirtualThreadsAreEnabled(boolean virtualThreads) {
+        // when & then
         contextRunner.withPropertyValues("spring.threads.virtual.enabled=" + virtualThreads).run(context -> {
 
-            assertThat(context).hasSingleBean(TaskScheduler.class);
+            assertThat(context.getBeansOfType(TaskScheduler.class)).hasSize(3);
             ThreadPoolTaskScheduler scheduler = context.getBean("taskScheduler", ThreadPoolTaskScheduler.class);
             assertThat(scheduler.getScheduledThreadPoolExecutor().getCorePoolSize()).isEqualTo(1);
             CountDownLatch firstStarted = new CountDownLatch(1);
@@ -55,22 +58,50 @@ class SchedulingConfigTest {
     }
 
     @Test
+    @DisplayName("컨텍스트 종료는 대기 작업을 취소하고 스케줄러를 종료한다")
     void closingTheContextCancelsPendingTasksAndTerminatesTheScheduler() throws InterruptedException {
-
+        // given
         AtomicReference<ScheduledThreadPoolExecutor> executor = new AtomicReference<>();
         AtomicReference<ScheduledFuture<?>> pending = new AtomicReference<>();
         AtomicInteger executions = new AtomicInteger();
 
+        // when
         contextRunner.withPropertyValues("spring.threads.virtual.enabled=true").run(context -> {
             ThreadPoolTaskScheduler scheduler = context.getBean("taskScheduler", ThreadPoolTaskScheduler.class);
             executor.set(scheduler.getScheduledThreadPoolExecutor());
             pending.set(scheduler.schedule(executions::incrementAndGet, Instant.now().plusSeconds(3_600)));
         });
 
+        // then
         assertThat(executor.get().isShutdown()).isTrue();
         assertThat(executor.get().awaitTermination(2, TimeUnit.SECONDS)).isTrue();
         assertThat(pending.get().isCancelled()).isTrue();
         assertThat(executions).hasValue(0);
+    }
+
+    @Test
+    @DisplayName("수집 작업이 막혀도 감시와 알림 예약 작업은 독립 실행한다")
+    void monitoringAndNotificationsRunWhileTheDefaultSchedulerIsBlocked() {
+        // when & then
+        contextRunner.run(context -> {
+            ThreadPoolTaskScheduler scheduler = context.getBean("taskScheduler", ThreadPoolTaskScheduler.class);
+            ThreadPoolTaskScheduler monitoring = context.getBean("monitoringTaskScheduler", ThreadPoolTaskScheduler.class);
+            ThreadPoolTaskScheduler notifications = context.getBean("notificationTaskScheduler", ThreadPoolTaskScheduler.class);
+            CountDownLatch started = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            CountDownLatch monitored = new CountDownLatch(1);
+            CountDownLatch notified = new CountDownLatch(1);
+            scheduler.schedule(() -> waitForRelease(started, release), Instant.now());
+            try {
+                assertThat(started.await(2, TimeUnit.SECONDS)).isTrue();
+                monitoring.schedule(monitored::countDown, Instant.now());
+                notifications.schedule(notified::countDown, Instant.now());
+                assertThat(monitored.await(2, TimeUnit.SECONDS)).isTrue();
+                assertThat(notified.await(2, TimeUnit.SECONDS)).isTrue();
+            } finally {
+                release.countDown();
+            }
+        });
     }
 
     private void waitForRelease(CountDownLatch started, CountDownLatch release) {

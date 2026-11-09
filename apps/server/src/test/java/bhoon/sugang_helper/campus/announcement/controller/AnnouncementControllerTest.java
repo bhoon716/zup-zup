@@ -12,6 +12,7 @@ import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -38,7 +39,9 @@ class AnnouncementControllerTest {
     }
 
     @Test
+    @DisplayName("고정 여부를 포함한 공지 페이지와 고정 페이지 크기를 반환한다")
     void returnsPagedAnnouncementsWithoutChangingPinnedOrderingContract() throws Exception {
+        // when
         AnnouncementListResponse response = AnnouncementListResponse.builder()
                 .id(1L)
                 .title("고정 공지")
@@ -50,6 +53,7 @@ class AnnouncementControllerTest {
                 eq("검색"), eq(AnnouncementSearchType.TITLE_CONTENT), eq(PageRequest.of(1, 30))))
                 .thenReturn(new PageImpl<>(List.of(response), PageRequest.of(1, 30), 61));
 
+        // then
         mockMvc.perform(get("/api/v1/announcements")
                         .param("keyword", "검색")
                         .param("page", "1")

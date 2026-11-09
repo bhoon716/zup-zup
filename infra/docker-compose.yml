@@ -206,6 +206,34 @@ services:
         max-size: "10m"
         max-file: "5"
 
+  docker-log-proxy:
+    image: nginx@sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417c70ae650cd66104c
+    profiles: ["observability"]
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+    entrypoint: ["nginx", "-g", "daemon off;"]
+    volumes:
+      - ./alloy/docker-log-proxy.conf:/etc/nginx/nginx.conf:ro
+      - ./alloy/docker-log-guard.js:/etc/nginx/docker-log-guard.js:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - sugang-helper-docker-logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- -T 3 http://127.0.0.1:2375/_ping | grep -qx OK"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
   alloy:
     image: grafana/alloy@sha256:41c41849989b7e054ccbadc17938ee1e5592fe26bfbc56ef3ffc109c0b0b2739
     container_name: ${ALLOY_CONTAINER_NAME:?ALLOY_CONTAINER_NAME must be set}
@@ -226,10 +254,13 @@ services:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - alloy_data:/var/lib/alloy
       - observability_probe_tools:/opt/observability-healthcheck:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${HOST_JOB_STATE_DIR:-/var/lib/sugang-helper-host-jobs}:/var/lib/sugang-helper-host-jobs:ro
     networks:
       - sugang-helper-runtime
+      - sugang-helper-docker-logs
     depends_on:
+      docker-log-proxy:
+        condition: service_healthy
       loki:
         condition: service_healthy
       observability-probe-tools:
@@ -262,6 +293,9 @@ services:
       - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-15d}
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - ${PROMETHEUS_HOST_JOB_RULES_FILE:-./prometheus/host-job-rules-disabled.yml}:/etc/prometheus/rules/host-alerts.yml:ro
+      - ${PROMETHEUS_ALERTMANAGER_TARGETS_FILE:-./prometheus/alertmanager-targets.json}:/etc/prometheus/alertmanager-targets.json:ro
       - prometheus_data:/prometheus
       - observability_probe_tools:/opt/observability-healthcheck:ro
     networks:
@@ -332,6 +366,8 @@ services:
         max-file: "5"
 
 networks:
+  sugang-helper-docker-logs:
+    internal: true
   sugang-helper-runtime:
     name: ${RUNTIME_NETWORK_NAME:-sugang-helper-runtime}
     driver: bridge

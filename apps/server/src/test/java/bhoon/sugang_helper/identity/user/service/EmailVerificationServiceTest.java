@@ -13,8 +13,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.EmailTemplateService;
 import jakarta.mail.internet.MimeMessage;
@@ -52,7 +52,7 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("인증 코드를 생성하여 Redis에 저장하고 이메일을 발송한다")
     void sendCode() {
-
+        // given
         Long userId = 1L;
         ReflectionTestUtils.setField(emailVerificationService, "from", FROM);
         ReflectionTestUtils.setField(emailVerificationService, "fromName", FROM_NAME);
@@ -62,8 +62,10 @@ class EmailVerificationServiceTest {
         when(templateService.loadTemplate(eq("verification_code"), anyMap())).thenReturn("<html>HTML</html>");
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
 
+        // when
         emailVerificationService.sendCode(userId, EMAIL);
 
+        // then
         verify(redisService, times(1)).setValues(eq("EMAIL_CODE:" + userId + ":" + EMAIL), anyString(),
                 any(Duration.class));
         verify(javaMailSender, times(1)).send(any(MimeMessage.class));
@@ -72,7 +74,7 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("이메일 dispatch 실패 시 cooldown을 유지하고 예외를 발생시킨다")
     void sendCode_MailDispatchError_PreservesCooldown() {
-
+        // given
         Long userId = 1L;
         ReflectionTestUtils.setField(emailVerificationService, "from", FROM);
         ReflectionTestUtils.setField(emailVerificationService, "fromName", FROM_NAME);
@@ -82,6 +84,7 @@ class EmailVerificationServiceTest {
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         doThrow(new RuntimeException("Mail server error")).when(javaMailSender).send(any(MimeMessage.class));
 
+        // when & then
         assertThatThrownBy(() -> emailVerificationService.sendCode(userId, EMAIL, "192.0.2.10"))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_SEND_ERROR);
@@ -93,11 +96,13 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("이메일 dispatch 전 준비 실패 시 획득한 cooldown을 롤백한다")
     void sendCode_PreDispatchError_ReleasesCooldown() {
+        // given
         Long userId = 1L;
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         when(templateService.loadTemplate(eq("verification_code"), anyMap()))
                 .thenThrow(new IllegalStateException("Template unavailable"));
 
+        // when & then
         assertThatThrownBy(() -> emailVerificationService.sendCode(userId, EMAIL, "192.0.2.10"))
                 .isInstanceOf(IllegalStateException.class);
 
@@ -108,9 +113,12 @@ class EmailVerificationServiceTest {
     }
 
     @Test
+    @DisplayName("인증 코드 재발송 제한 시간에는 발송을 거부한다")
     void sendCode_RejectsCooldown() {
+        // given
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
 
+        // when & then
         assertThatThrownBy(() -> emailVerificationService.sendCode(1L, EMAIL))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
@@ -120,9 +128,11 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("email cooldown 선점 실패 시 먼저 획득한 user cooldown을 롤백한다")
     void sendCode_RollsBackUserCooldownWhenEmailCooldownIsRejected() {
+        // given
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class)))
                 .thenReturn(true, false);
 
+        // when & then
         assertThatThrownBy(() -> emailVerificationService.sendCode(1L, EMAIL))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
@@ -134,9 +144,11 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("IP cooldown 선점 실패 시 user와 email cooldown을 롤백한다")
     void sendCode_RollsBackEarlierCooldownsWhenIpCooldownIsRejected() {
+        // given
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class)))
                 .thenReturn(true, true, false);
 
+        // when & then
         assertThatThrownBy(() -> emailVerificationService.sendCode(1L, EMAIL, "192.0.2.10"))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
@@ -149,10 +161,12 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("cooldown 후속 검사 예외 시 선행 user cooldown을 롤백한다")
     void sendCode_RollsBackUserCooldownWhenEmailCooldownCheckFails() {
+        // given
         when(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class)))
                 .thenReturn(true)
                 .thenThrow(new IllegalStateException("Redis unavailable"));
 
+        // when & then
         assertThatThrownBy(() -> emailVerificationService.sendCode(1L, EMAIL))
                 .isInstanceOf(IllegalStateException.class);
 
@@ -162,7 +176,7 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("올바른 코드로 인증을 완료한다")
     void verifyCode_Success() {
-
+        // given
         Long userId = 1L;
         String email = EMAIL;
         String code = CODE;
@@ -170,8 +184,10 @@ class EmailVerificationServiceTest {
 
         when(redisService.getValues(key)).thenReturn(code);
 
+        // when
         boolean result = emailVerificationService.verifyCode(userId, email, code);
 
+        // then
         assertThat(result).isTrue();
         verify(redisService).deleteValues(key);
         verify(redisService).setValues(eq("EMAIL_VERIFIED:" + userId + ":" + email), eq("true"), any(Duration.class));
@@ -180,26 +196,31 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("잘못된 코드로 인증 시도 시 실패한다")
     void verifyCode_WrongCode_ReturnsFalse() {
-
+        // given
         Long userId = 1L;
         String email = EMAIL;
         String key = "EMAIL_CODE:" + userId + ":" + email;
 
         when(redisService.getValues(key)).thenReturn("123456");
 
+        // when
         boolean result = emailVerificationService.verifyCode(userId, email, "654321");
 
+        // then
         assertThat(result).isFalse();
         verify(redisService, never()).deleteValues(anyString());
     }
 
     @Test
+    @DisplayName("최대 인증 실패 횟수에 도달하면 인증 코드를 삭제한다")
     void verifyCode_DeletesCodeAfterMaximumFailedAttempts() {
+        // given
         Long userId = 1L;
         String key = "EMAIL_CODE:" + userId + ":" + EMAIL;
         when(redisService.getValues(key)).thenReturn(CODE);
         when(redisService.increment(anyString(), any(Duration.class))).thenReturn(5L);
 
+        // when & then
         assertThat(emailVerificationService.verifyCode(userId, EMAIL, "000000")).isFalse();
         verify(redisService).deleteValues(key);
         verify(redisService).deleteValues("EMAIL_CODE_ATTEMPTS:" + userId + ":" + EMAIL);
@@ -208,26 +229,31 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("인증 여부를 확인한다")
     void isVerified() {
-
+        // given
         Long userId = 1L;
         String email = EMAIL;
         String key = "EMAIL_VERIFIED:" + userId + ":" + email;
 
         when(redisService.getValues(key)).thenReturn("true");
 
+        // when
         boolean result = emailVerificationService.isVerified(userId, email);
 
+        // then
         assertThat(result).isTrue();
     }
 
     @Test
     @DisplayName("탈퇴 시 사용자와 이메일에 연결된 단기 인증 상태를 제거한다")
     void clearVerificationState_removesUserAndEmailScopedKeys() {
+        // given
         Long userId = 1L;
         String notificationEmail = "notify@example.com";
 
+        // when
         emailVerificationService.clearVerificationState(userId, EMAIL, notificationEmail);
 
+        // then
         verify(redisService).deleteValues("EMAIL_SEND_COOLDOWN:USER:" + userId);
         verify(redisService).deleteValues("EMAIL_CODE:" + userId + ":" + EMAIL);
         verify(redisService).deleteValues("EMAIL_VERIFIED:" + userId + ":" + EMAIL);

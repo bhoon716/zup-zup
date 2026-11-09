@@ -10,6 +10,7 @@ import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,8 +25,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 class OAuth2SuccessHandlerTest {
 
     private static final String EMAIL = "test@example.com";
+
     @Mock
     private AuthService authService;
+
     @InjectMocks
     private OAuth2SuccessHandler successHandler;
 
@@ -35,7 +38,9 @@ class OAuth2SuccessHandlerTest {
     }
 
     @Test
+    @DisplayName("외부 제공자 식별 정보로 서버 세션을 만든 뒤 이동한다")
     void providerIdentityStartsAServerSessionBeforeRedirect() throws Exception {
+        // given
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         Authentication authentication = mock(Authentication.class);
@@ -43,8 +48,10 @@ class OAuth2SuccessHandlerTest {
                 Map.of("email", EMAIL, "sub", "google-subject"), "sub");
         given(authentication.getPrincipal()).willReturn(user);
 
+        // when
         successHandler.onAuthenticationSuccess(request, response, authentication);
 
+        // then
         verify(authService).login(request, response, 1L, EMAIL);
         assertThat(response.getRedirectedUrl()).isEqualTo("https://web.example.com");
         assertThat(response.getHeaders("Set-Cookie")).isEmpty();

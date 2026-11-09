@@ -60,7 +60,6 @@ export function CourseGuideModal() {
     try {
       window.localStorage.setItem(COURSE_GUIDE_MODAL_STORAGE_KEY, "seen");
     } catch {
-      // 저장소를 사용할 수 없어도 검색 흐름은 계속 진행한다.
     }
   }, []);
 

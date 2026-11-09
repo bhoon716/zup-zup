@@ -1,0 +1,51 @@
+# Opt-in only. See alertmanager/README.md before provisioning any credentials.
+services:
+  alertmanager:
+    image: ${ALERTMANAGER_IMAGE:?ALERTMANAGER_IMAGE must be an approved prom/alertmanager digest}
+    container_name: ${ALERTMANAGER_CONTAINER_NAME:-sugang-helper-alertmanager}
+    profiles: [observability]
+    restart: unless-stopped
+    read_only: true
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --data.retention=120h
+      - --cluster.listen-address=
+    ports:
+      - "127.0.0.1:${ALERTMANAGER_PORT_HOST:-9093}:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+      - observability_probe_tools:/opt/observability-healthcheck:ro
+    secrets:
+      - alertmanager_slack_webhook
+    networks:
+      - sugang-helper-runtime
+      - sugang-helper-egress
+    depends_on:
+      observability-probe-tools:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/opt/observability-healthcheck/busybox", "wget", "-q", "-O", "-", "-T", "5", "http://127.0.0.1:9093/-/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+secrets:
+  alertmanager_slack_webhook:
+    file: ${ALERTMANAGER_SLACK_WEBHOOK_FILE:?Set the approved operator-managed webhook file outside the release directory}
+
+volumes:
+  alertmanager_data:
+    name: ${ALERTMANAGER_VOLUME_NAME:-sugang-helper-alertmanager-data}

@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.seatalert.subscription.service;
 
+import bhoon.sugang_helper.seatalert.api.Subscriptions;
 import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class SubscriptionQueryService {
+public class SubscriptionQueryService implements Subscriptions {
 
     private final SubscriptionRepository subscriptionRepository;
 

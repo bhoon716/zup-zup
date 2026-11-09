@@ -1,8 +1,9 @@
 package bhoon.sugang_helper.identity.user.service;
 
+import bhoon.sugang_helper.identity.api.users.Users;
 import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
-import bhoon.sugang_helper.identity.user.dto.result.UserAccountStatus;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
+import bhoon.sugang_helper.identity.api.users.UserAccountStatus;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import java.util.List;
@@ -14,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserIdentityQueryService {
+public class UserIdentityQueryService implements Users {
 
     private final UserRepository userRepository;
 

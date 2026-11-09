@@ -56,3 +56,26 @@ describe("next config rewrites", () => {
     expect(nextConfig.output).toBeUndefined();
   });
 });
+
+describe("next config security headers", () => {
+  it("protects page and API responses while preserving the existing API headers", async () => {
+    const { default: nextConfig } = await import("../../../next.config");
+
+    const headers = await nextConfig.headers?.();
+
+    expect(headers).toContainEqual({
+      source: "/:path*",
+      headers: expect.arrayContaining([
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      ]),
+    });
+    expect(headers).toContainEqual({
+      source: "/api/:path*",
+      headers: [{ key: "ngrok-skip-browser-warning", value: "69420" }],
+    });
+    expect(nextConfig.poweredByHeader).toBe(false);
+  });
+});

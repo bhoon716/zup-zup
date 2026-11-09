@@ -8,7 +8,7 @@ import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
-import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
@@ -18,6 +18,7 @@ import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionReposit
 import jakarta.persistence.EntityManager;
 import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -28,10 +29,13 @@ class SubscriptionServiceQueryCountTest {
 
     @Autowired
     private SubscriptionRepository subscriptionRepository;
+
     @Autowired
     private CourseRepository courseRepository;
+
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private EntityManager entityManager;
 
@@ -45,7 +49,9 @@ class SubscriptionServiceQueryCountTest {
     }
 
     @Test
+    @DisplayName("내 구독 조회의 쿼리 수는 구독 개수와 무관하게 일정하다")
     void mySubscriptionsUsesAConstantNumberOfQueriesRegardlessOfSubscriptionCount() {
+        // given
         User user = userRepository.save(User.builder()
                 .name("Tester")
                 .email("test@example.com")
@@ -66,6 +72,8 @@ class SubscriptionServiceQueryCountTest {
                 new UserIdentityQueryService(userRepository),
                 mock(CourseCrawlerTargetService.class));
         ReflectionTestUtils.setField(service, "maxLimit", 3);
+
+        // when & then
         try (var securityUtil = mockStatic(SecurityUtil.class)) {
             securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn("test@example.com");
 

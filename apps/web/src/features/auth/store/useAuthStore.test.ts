@@ -9,11 +9,11 @@ vi.mock("@/shared/api/client", () => ({ resetSessionState: vi.fn() }));
 
 vi.mock("@/features/user/api/user.api", () => ({
   getMyProfile: vi.fn(),
-  clearMyProfileRequestCache: vi.fn(),
 }));
 
 describe("useAuthStore", () => {
   beforeEach(() => {
+    useAuthStore.getState().logout();
     vi.clearAllMocks();
     useAuthStore.persist.clearStorage();
 
@@ -22,6 +22,8 @@ describe("useAuthStore", () => {
       isAuthenticated: false,
       isLoading: true,
       isLoginModalOpen: false,
+      hasCheckedSession: false,
+      lastProfileCheckAt: 0,
     });
   });
 
@@ -47,6 +49,8 @@ describe("useAuthStore", () => {
       user: restoredUser,
       isAuthenticated: false,
       isLoading: false,
+      hasCheckedSession: false,
+      lastProfileCheckAt: 0,
     });
   });
 
@@ -356,7 +360,77 @@ describe("useAuthStore", () => {
     const state = useAuthStore.getState();
     expect(state.user).toBeNull();
     expect(state.isAuthenticated).toBe(false);
-    expect(userApi.clearMyProfileRequestCache).toHaveBeenCalledTimes(1);
     expect(resetSessionState).toHaveBeenCalledTimes(1);
   });
+});
+
+describe("중앙 프로필 갱신", () => {
+  const user: User = {
+    id: 1, email: "user@example.invalid", name: "사용자", role: "USER",
+    emailEnabled: true, webPushEnabled: false, discordEnabled: false, onboardingCompleted: true,
+  };
+
+  beforeEach(() => {
+    useAuthStore.getState().logout();
+    vi.resetAllMocks();
+  });
+
+  it("같은 정책의 진행 중 요청은 공유하고 완료된 요청은 보관하지 않는다", async () => {
+    let finish!: (value: User) => void;
+    vi.mocked(userApi.getMyProfile).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const first = useAuthStore.getState().refreshUser();
+    const second = useAuthStore.getState().refreshUser();
+    expect(userApi.getMyProfile).toHaveBeenCalledTimes(1);
+    finish(user);
+    await Promise.all([first, second]);
+    vi.mocked(userApi.getMyProfile).mockResolvedValueOnce(user);
+    await useAuthStore.getState().refreshUser();
+    expect(userApi.getMyProfile).toHaveBeenCalledTimes(2);
+  });
+
+  it("silent bootstrap과 일반 요청은 실패 정책을 분리하되 같은 사용자 상태를 갱신한다", async () => {
+    let finishSilent!: (value: User) => void;
+    let finishRegular!: (value: User) => void;
+    vi.mocked(userApi.getMyProfile)
+      .mockReturnValueOnce(new Promise(resolve => { finishSilent = resolve; }))
+      .mockReturnValueOnce(new Promise(resolve => { finishRegular = resolve; }));
+    const silent = useAuthStore.getState().refreshUser({ silentAuthFailure: true });
+    const regular = useAuthStore.getState().refreshUser();
+    expect(userApi.getMyProfile).toHaveBeenNthCalledWith(1, { silentAuthFailure: true });
+    expect(userApi.getMyProfile).toHaveBeenNthCalledWith(2, {});
+    finishSilent(user);
+    await silent;
+    finishRegular({ ...user, name: "최신 사용자" });
+    await regular;
+    expect(useAuthStore.getState().user).toEqual(user);
+  });
+
+  it.each(["logout", "account-change", "profile-update"])("상태 변경 전 시작한 조회는 늦게 성공해도 현재 사용자를 덮지 않는다 (%s)", async action => {
+    useAuthStore.getState().setUser(user);
+    let finish!: (value: User) => void;
+    vi.mocked(userApi.getMyProfile).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const request = useAuthStore.getState().refreshUser();
+    const expected = action === "logout" ? null
+      : { ...user, id: action === "account-change" ? 2 : 1, name: "현재 사용자" };
+    if (action === "logout") useAuthStore.getState().logout();
+    else useAuthStore.getState().setUser(expected);
+    finish(user);
+    if (action === "profile-update") await expect(request).resolves.toEqual(expected);
+    else await expect(request).rejects.toHaveProperty("code", "ERR_CANCELED");
+    expect(useAuthStore.getState().user).toEqual(expected);
+  });
+  it("다른 계정의 프로필이 먼저 확인되면 이전 계정 조회는 현재 계정을 덮지 않는다", async () => {
+    useAuthStore.getState().setUser(user);
+    let finishOld!: (value: User) => void;
+    const nextUser = { ...user, id: 2, name: "새 계정" };
+    vi.mocked(userApi.getMyProfile)
+      .mockReturnValueOnce(new Promise(resolve => { finishOld = resolve; }))
+      .mockResolvedValueOnce(nextUser);
+    const oldRequest = useAuthStore.getState().refreshUser({ silentAuthFailure: true });
+    await useAuthStore.getState().refreshUser();
+    finishOld(user);
+    await expect(oldRequest).rejects.toHaveProperty("code", "ERR_CANCELED");
+    expect(useAuthStore.getState().user).toEqual(nextUser);
+  });
+
 });

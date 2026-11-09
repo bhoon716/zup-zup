@@ -8,16 +8,15 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.academic.course.dto.result.CourseName;
-import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
-import bhoon.sugang_helper.academic.course.enums.SemesterType;
+import bhoon.sugang_helper.academic.api.catalog.CourseName;
+import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
+import bhoon.sugang_helper.academic.api.catalog.TrackedSemester;
+import bhoon.sugang_helper.academic.api.catalog.TrackedSemesterQuery;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
-import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
-import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.seatalert.subscription.dto.request.SubscriptionRequest;
 import bhoon.sugang_helper.seatalert.subscription.dto.response.SubscriptionResponse;
@@ -43,12 +42,15 @@ class SubscriptionServiceTest {
 
     @Mock
     private SubscriptionRepository subscriptionRepository;
+
     @Mock
     private CourseCatalogQueryService courseCatalogQuery;
+
     @Mock
     private UserIdentityQueryService userIdentityQuery;
+
     @Mock
-    private CourseCrawlerTargetService crawlerTargetQuery;
+    private TrackedSemesterQuery crawlerTargetQuery;
 
     @InjectMocks
     private SubscriptionService subscriptionService;
@@ -66,8 +68,10 @@ class SubscriptionServiceTest {
     @Test
     @DisplayName("구독 신청 성공")
     void subscribe_success() {
-
+        // given
         SubscriptionRequest request = new SubscriptionRequest("CK1");
+
+        // when & then
         try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
             mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(USER_EMAIL);
             given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
@@ -75,8 +79,8 @@ class SubscriptionServiceTest {
             given(subscriptionRepository.findByUserIdAndCourseKey(user.id(), course.courseKey()))
                     .willReturn(Optional.empty());
             given(subscriptionRepository.countByUserIdAndIsActiveTrue(user.id())).willReturn(0L);
-            given(crawlerTargetQuery.getCurrentTargetValue())
-                    .willReturn(new CrawlTargetInfo("2026", SemesterType.fromCode("U211600010")));
+            given(crawlerTargetQuery.currentTarget())
+                    .willReturn(new TrackedSemester("2026", "U211600010"));
 
             Subscription subscription = Subscription.builder()
                     .userId(user.id())
@@ -96,8 +100,10 @@ class SubscriptionServiceTest {
     @Test
     @DisplayName("구독 신청 실패 - 중복 구독")
     void subscribe_alreadyExists_throwsException() {
-
+        // given
         SubscriptionRequest request = new SubscriptionRequest("CK1");
+
+        // when & then
         try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
             mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(USER_EMAIL);
             given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
@@ -115,8 +121,10 @@ class SubscriptionServiceTest {
     @Test
     @DisplayName("구독 신청 실패 - 최대 개수 초과")
     void subscribe_limitExceeded_throwsException() {
-
+        // given
         SubscriptionRequest request = new SubscriptionRequest("CK1");
+
+        // when & then
         try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
             mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(USER_EMAIL);
             given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
@@ -135,10 +143,12 @@ class SubscriptionServiceTest {
     @Test
     @DisplayName("내 구독 목록의 강의는 한 번의 bulk 조회로 결합한다")
     void getMySubscriptions_bulkFetchesCourses() {
+        // given
         Subscription first = Subscription.builder().userId(user.id()).courseKey("CK1").isActive(true).build();
         Subscription second = Subscription.builder().userId(user.id()).courseKey("CK2").isActive(true).build();
         CourseName secondCourse = new CourseName("CK2", "Second Course", "Second Prof");
 
+        // when & then
         try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
             mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(USER_EMAIL);
             given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
@@ -158,9 +168,11 @@ class SubscriptionServiceTest {
     @Test
     @DisplayName("내 구독 목록의 중복 courseKey는 기존 강의로 병합한다")
     void getMySubscriptions_duplicateCourseKey_keepsExistingCourse() {
+        // given
         Subscription subscription = Subscription.builder().userId(user.id()).courseKey("CK1").isActive(true).build();
         CourseName replacementCourse = new CourseName("CK1", "Replacement Course", "Replacement Prof");
 
+        // when & then
         try (var mockedSecurityUtil = mockStatic(SecurityUtil.class)) {
             mockedSecurityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(USER_EMAIL);
             given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));

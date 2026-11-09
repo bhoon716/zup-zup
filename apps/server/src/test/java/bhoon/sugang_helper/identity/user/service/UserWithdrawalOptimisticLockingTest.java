@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -26,8 +27,10 @@ class UserWithdrawalOptimisticLockingTest {
     private PlatformTransactionManager transactionManager;
 
     @Test
+    @DisplayName("오래된 프로필 수정은 탈퇴한 계정을 복구할 수 없다")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void staleProfileUpdateCannotRestoreAWithdrawnAccount() {
+        // given
         TransactionTemplate transactions = new TransactionTemplate(transactionManager);
         transactions.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         User savedUser = transactions.execute(status -> userRepository.saveAndFlush(User.builder()
@@ -37,6 +40,7 @@ class UserWithdrawalOptimisticLockingTest {
                 .build()));
         User staleUser = transactions.execute(status -> userRepository.findById(savedUser.getId()).orElseThrow());
 
+        // when
         transactions.executeWithoutResult(status -> {
             User withdrawingUser = userRepository.findById(savedUser.getId()).orElseThrow();
             withdrawingUser.withdraw();
@@ -45,6 +49,7 @@ class UserWithdrawalOptimisticLockingTest {
 
         staleUser.update("동시 프로필 변경");
 
+        // then
         assertThatThrownBy(() -> transactions.executeWithoutResult(status -> userRepository.saveAndFlush(staleUser)))
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class);
         User persistedUser = transactions.execute(status -> userRepository.findById(savedUser.getId()).orElseThrow());

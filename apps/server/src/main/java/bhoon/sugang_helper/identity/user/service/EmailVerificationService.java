@@ -1,10 +1,10 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.redis.RedisService;
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
-import bhoon.sugang_helper.common.util.EmailTemplateService;
+import bhoon.sugang_helper.common.api.cache.RedisAccess;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.templates.EmailTemplates;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import java.security.SecureRandom;
@@ -33,10 +33,12 @@ public class EmailVerificationService {
     private static final int MAX_VERIFY_ATTEMPTS = 5;
     private static final String EMAIL_SUBJECT = "[수강신청 도우미] 이메일 인증 코드";
     private final JavaMailSender javaMailSender;
-    private final RedisService redisService;
-    private final EmailTemplateService templateService;
+    private final RedisAccess redisService;
+    private final EmailTemplates templateService;
+
     @Value("${spring.mail.from}")
     private String from;
+
     @Value("${spring.mail.from-name}")
     private String fromName;
 

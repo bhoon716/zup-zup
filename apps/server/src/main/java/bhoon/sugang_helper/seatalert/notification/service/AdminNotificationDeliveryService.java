@@ -1,15 +1,16 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
-import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.common.web.PageableGuard;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.audit.api.AuditRecorder;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.common.api.web.PageableGuard;
+import bhoon.sugang_helper.identity.api.users.Users;
 import bhoon.sugang_helper.seatalert.notification.dto.response.AdminNotificationDeliveryResponse;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,8 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminNotificationDeliveryService {
 
     private final SeatNotificationDeliveryRepository deliveryRepository;
-    private final AdminAuditService adminAuditRecorder;
-    private final UserIdentityQueryService userIdentityQuery;
+    private final AuditRecorder adminAuditRecorder;
+    private final Users userIdentityQuery;
 
     public Page<AdminNotificationDeliveryResponse> getDeadLetters(Pageable pageable) {
         return deliveryRepository.findByStatusOrderByDeadLetteredAtDescIdDesc(
@@ -53,7 +54,7 @@ public class AdminNotificationDeliveryService {
         }
 
         int attemptsBefore = delivery.getAttempts();
-        delivery.replay(java.time.LocalDateTime.now());
+        delivery.replay(LocalDateTime.now());
         delivery.getOutbox().markProcessing();
         adminAuditRecorder.recordDeliveryReplay(adminId, deliveryId, previousStatus.name(), attemptsBefore);
         return AdminNotificationDeliveryResponse.from(delivery);

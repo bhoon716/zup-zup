@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.identity.user.dto.result.UserDisplayName;
+import bhoon.sugang_helper.identity.api.users.UserDisplayNames;
+import bhoon.sugang_helper.identity.api.users.UserDisplayName;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;
@@ -11,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserDisplayNameQueryService {
+public class UserDisplayNameQueryService implements UserDisplayNames {
 
     private final UserRepository userRepository;
 

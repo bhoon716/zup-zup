@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.campus.announcement.controller;
 
-import bhoon.sugang_helper.common.web.PageableGuard;
+import bhoon.sugang_helper.common.api.web.PageableGuard;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementListResponse;
 import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;

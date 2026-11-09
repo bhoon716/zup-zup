@@ -7,18 +7,19 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.config.RedisConfig;
-import bhoon.sugang_helper.common.config.SecurityConfig;
 import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
+import bhoon.sugang_helper.identity.auth.config.SecurityConfig;
 import bhoon.sugang_helper.identity.auth.controller.AuthController;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2FailureHandler;
 import bhoon.sugang_helper.identity.auth.handler.OAuth2SuccessHandler;
 import bhoon.sugang_helper.identity.auth.service.AuthService;
 import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
 import bhoon.sugang_helper.identity.auth.service.SessionInvalidator;
+import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
 import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,6 +43,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -125,11 +127,17 @@ class RedisSessionEndToEndTest {
             .withExposedPorts(6379).waitingFor(Wait.forListeningPort());
 
     @LocalServerPort private int port;
+
     @Autowired private ObjectMapper objectMapper;
+
     @Autowired private RedisIndexedSessionRepository sessions;
+
     @Autowired private SessionInvalidator invalidator;
+
     @MockitoBean private UserIdentityQueryService users;
+
     @MockitoBean private CustomOAuth2UserService oauthUsers;
+
     private final Map<Long, AuthenticatedUser> accounts = new ConcurrentHashMap<>();
 
     @DynamicPropertySource
@@ -154,8 +162,10 @@ class RedisSessionEndToEndTest {
     }
 
     @Test
+    @DisplayName("기기별 로그아웃은 현재 세션만 종료하고 오래된 저장으로 복구할 수 없다")
     @Order(1)
     void independentDeviceSessionsLogoutOnlyTheCurrentDeviceAndStaleSaveCannotReviveIt() throws Exception {
+        // given
         AuthenticatedUser user = account(11L, "device-user@example.test", "ROLE_USER");
         Browser first = new Browser();
         Browser second = new Browser();
@@ -163,6 +173,8 @@ class RedisSessionEndToEndTest {
         login(second, user);
         String firstId = sessionId(first);
         String secondId = sessionId(second);
+
+        // when & then
         assertThat(firstId).isNotEqualTo(secondId);
         assertThat(sessions.findByPrincipalName(user.email())).containsKeys(firstId, secondId);
         RedisSession staleCopy = stored(firstId);
@@ -186,13 +198,17 @@ class RedisSessionEndToEndTest {
     }
 
     @Test
+    @DisplayName("브라우저 쿠키는 만료일이 없고 서버의 30일 유휴 기간만 연장된다")
     @Order(2)
     void browserCookieHasNoExpiryAndOnlyTheThirtyDayServerIdlePeriodRollsForward() throws Exception {
+        // given
         AuthenticatedUser user = account(21L, "rolling-user@example.test", "ROLE_USER");
         Browser browser = new Browser();
         HttpResponse<String> login = login(browser, user);
         String id = sessionId(browser);
         RedisSession before = stored(id);
+
+        // when & then
         assertThat(before.getMaxInactiveInterval()).isEqualTo(THIRTY_DAYS);
         assertBrowserSessionCookie(login);
         Instant oldAccess = Instant.now().minus(Duration.ofDays(29));
@@ -211,14 +227,18 @@ class RedisSessionEndToEndTest {
     }
 
     @Test
+    @DisplayName("만료 후 재로그인은 세션 ID를 바꾸고 이전 CSRF 토큰을 거부한다")
     @Order(3)
     void expiryRequiresReloginRotatesSessionIdAndRejectsThePreviousCsrfToken() throws Exception {
+        // given
         AuthenticatedUser user = account(31L, "expired-user@example.test", "ROLE_USER");
         Browser browser = new Browser();
         csrf(browser);
         String anonymousId = sessionId(browser);
         login(browser, user);
         String oldId = sessionId(browser);
+
+        // when & then
         assertThat(oldId).isNotEqualTo(anonymousId);
         String oldCsrf = csrf(browser);
         RedisSession expired = stored(oldId);
@@ -236,8 +256,10 @@ class RedisSessionEndToEndTest {
     }
 
     @Test
+    @DisplayName("탈퇴 계정의 모든 세션을 폐기하되 같은 이메일의 새 계정은 보존한다")
     @Order(4)
     void withdrawingAnAccountInvalidatesAllItsSessionsButPreservesANewAccountWithTheSameEmail() throws Exception {
+        // given
         String sharedEmail = "reused-email@example.test";
         AuthenticatedUser oldUser = account(41L, sharedEmail, "ROLE_USER");
         AuthenticatedUser newUser = account(42L, sharedEmail, "ROLE_USER");
@@ -250,6 +272,8 @@ class RedisSessionEndToEndTest {
         String firstOldId = sessionId(firstOldDevice);
         String secondOldId = sessionId(secondOldDevice);
         String newId = sessionId(newAccountDevice);
+
+        // when & then
         assertThat(sessions.findByPrincipalName(sharedEmail)).containsKeys(firstOldId, secondOldId, newId);
 
         invalidator.invalidateAll(oldUser.id(), sharedEmail);
@@ -264,12 +288,16 @@ class RedisSessionEndToEndTest {
     }
 
     @Test
+    @DisplayName("모든 요청에서 DB의 현재 권한과 탈퇴 상태를 다시 확인한다")
     @Order(5)
     void currentDatabaseRoleAndDeletedAccountLookupAreRecheckedForEveryRequest() throws Exception {
+        // given
         AuthenticatedUser user = account(51L, "role-user@example.test", "ROLE_ADMIN");
         Browser browser = new Browser();
         login(browser, user);
         String id = sessionId(browser);
+
+        // when & then
         assertThat(browser.get(ADMIN).statusCode()).isEqualTo(200);
         account(user.id(), user.email(), "ROLE_USER");
 
@@ -281,16 +309,20 @@ class RedisSessionEndToEndTest {
     }
 
     @Test
+    @DisplayName("DB 조회 실패는 접근을 거부하되 유효한 세션은 삭제하지 않는다")
     @Order(6)
     void databaseLookupFailureRejectsAccessWithoutDeletingTheStillValidSession() throws Exception {
+        // given
         AuthenticatedUser user = account(61L, "lookup-failure@example.test", "ROLE_USER");
         Browser browser = new Browser();
         login(browser, user);
         String id = sessionId(browser);
         when(users.findAuthenticatedUser(user.id(), user.email())).thenThrow(new IllegalStateException("test lookup"));
 
+        // when
         HttpResponse<String> response = browser.get(PROBE);
 
+        // then
         assertThat(response.statusCode()).isEqualTo(500);
         assertThat(objectMapper.readTree(response.body()).path("code").asText()).isEqualTo("G001");
         assertThat(sessions.findById(id)).isNotNull();
@@ -298,11 +330,15 @@ class RedisSessionEndToEndTest {
     }
 
     @Test
+    @DisplayName("Redis 장애 시 캐시된 인증 대신 기존 세션 접근을 거부한다")
     @Order(99)
     void redisOutageRejectsAnExistingSessionInsteadOfUsingCachedAuthentication() throws Exception {
+        // given
         AuthenticatedUser user = account(99L, "outage-user@example.test", "ROLE_USER");
         Browser browser = new Browser();
         login(browser, user);
+
+        // when & then
         assertThat(browser.get(PROBE).statusCode()).isEqualTo(200);
         String cookieBeforeOutage = browser.sessionCookie();
 

@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.dto.result;
 
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import java.time.LocalDateTime;
 
 public record SeatNotificationDeliveryClaim(Long deliveryId, String claimToken, LocalDateTime claimedAt,

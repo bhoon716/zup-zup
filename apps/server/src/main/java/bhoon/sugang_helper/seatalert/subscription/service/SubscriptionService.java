@@ -1,15 +1,15 @@
 package bhoon.sugang_helper.seatalert.subscription.service;
 
-import bhoon.sugang_helper.academic.course.dto.result.CourseName;
-import bhoon.sugang_helper.academic.course.dto.result.CourseSummary;
-import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
-import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
-import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.academic.api.catalog.CourseName;
+import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
+import bhoon.sugang_helper.academic.api.catalog.CourseCatalog;
+import bhoon.sugang_helper.academic.api.catalog.TrackedSemester;
+import bhoon.sugang_helper.academic.api.catalog.TrackedSemesterQuery;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
+import bhoon.sugang_helper.identity.api.users.Users;
 import bhoon.sugang_helper.seatalert.subscription.dto.request.SubscriptionRequest;
 import bhoon.sugang_helper.seatalert.subscription.dto.response.SubscriptionResponse;
 import bhoon.sugang_helper.seatalert.subscription.entity.Subscription;
@@ -31,9 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
-    private final CourseCatalogQueryService courseCatalogQuery;
-    private final UserIdentityQueryService userIdentityQuery;
-    private final CourseCrawlerTargetService crawlerTargetQuery;
+    private final CourseCatalog courseCatalogQuery;
+    private final Users userIdentityQuery;
+    private final TrackedSemesterQuery crawlerTargetQuery;
 
     @Value("${app.subscription.max-limit:3}")
     private int maxLimit;
@@ -67,8 +67,8 @@ public class SubscriptionService {
             throw new CustomException(ErrorCode.MAX_SUBSCRIPTION_LIMIT_EXCEEDED);
         }
 
-        CrawlTargetInfo target = crawlerTargetQuery.getCurrentTargetValue();
-        if (!course.isMatchingTarget(target.year(), target.semester().getCode())) {
+        TrackedSemester target = crawlerTargetQuery.currentTarget();
+        if (!course.isMatchingTarget(target.year(), target.semesterCode())) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "현재 추적 중인 학기의 강의만 구독할 수 있습니다.");
         }
     }

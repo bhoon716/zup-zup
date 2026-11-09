@@ -1,13 +1,14 @@
 package bhoon.sugang_helper.common.util;
 
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.dto.result.SanitizedImage;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
 import jakarta.annotation.PreDestroy;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Arrays;
@@ -46,14 +47,19 @@ public class ImageUploadSanitizer {
 
     @Value("${file.upload.image.max-source-bytes:10485760}")
     private long maximumImageSourceBytes = 10_485_760L;
+
     @Value("${file.upload.image.max-width:4096}")
     private int maximumImageWidth = 4096;
+
     @Value("${file.upload.image.max-height:4096}")
     private int maximumImageHeight = 4096;
+
     @Value("${file.upload.image.max-pixels:8388608}")
     private long maximumImagePixels = 8_388_608L;
+
     @Value("${file.upload.image.max-output-bytes:5242880}")
     private int maximumSanitizedImageBytes = 5_242_880;
+
     @Value("${file.upload.image.decode-timeout:PT2S}")
     private Duration imageDecodeTimeout = Duration.ofSeconds(2);
 
@@ -202,7 +208,7 @@ public class ImageUploadSanitizer {
         imageDecodeExecutor.shutdownNow();
     }
 
-    private static final class BoundedOutputStream extends java.io.OutputStream {
+    private static final class BoundedOutputStream extends OutputStream {
 
         private final int maximumSize;
         private final ByteArrayOutputStream output = new ByteArrayOutputStream();

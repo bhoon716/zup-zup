@@ -7,13 +7,13 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.common.config.NotificationProperties;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.notifications.NotificationProperties;
 import bhoon.sugang_helper.common.redis.RedisService;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationDevice;
-import bhoon.sugang_helper.identity.user.dto.result.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -57,13 +58,21 @@ class WebPushDeliveryTest {
     private static final String SECOND = "second-endpoint";
 
     @Autowired private SeatNotificationOutboxProcessor processor;
+
     @Autowired private SeatNotificationOutboxRepository outboxes;
+
     @Autowired private SeatNotificationDeliveryRepository deliveries;
+
     @Autowired private NotificationHistoryRepository histories;
+
     @MockitoBean private SubscriptionQueryService subscriptions;
+
     @MockitoBean private UserNotificationQueryService users;
+
     @MockitoBean private RedisService redisService;
+
     @MockitoBean private NotificationSender sender;
+
     @MockitoBean private NotificationProviderResilience resilience;
 
     private final List<NotificationDevice> devices = new ArrayList<>();
@@ -95,9 +104,10 @@ class WebPushDeliveryTest {
     }
 
     @ParameterizedTest
+    @DisplayName("만료된 구독이 다른 기기의 발송을 막지 않는다")
     @ValueSource(booleans = {true, false})
     void expiredSubscriptionDoesNotPreventDeliveryToTheOtherDevice(boolean expiredFirst) {
-
+        // given
         String expired = expiredFirst ? FIRST : SECOND;
         stubSender(target -> {
             if (target.equals(expired)) {
@@ -108,6 +118,7 @@ class WebPushDeliveryTest {
 
         processReadyDelivery();
 
+        // when & then
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertDelivery(SeatNotificationDeliveryStatus.SENT, SeatNotificationOutboxStatus.COMPLETED, 0);
         assertSuccessfulHistory();
@@ -115,8 +126,9 @@ class WebPushDeliveryTest {
     }
 
     @Test
+    @DisplayName("모든 구독이 만료되면 기존 영구 실패 정산을 유지한다")
     void allExpiredSubscriptionsKeepTheExistingPermanentFailureSettlement() {
-
+        // given
         stubSender(target -> {
             devices.removeIf(device -> device.token().equals(target));
             throw invalidSubscription();
@@ -124,6 +136,7 @@ class WebPushDeliveryTest {
 
         processReadyDelivery();
 
+        // when & then
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertThat(devices).isEmpty();
         assertDelivery(SeatNotificationDeliveryStatus.DLQ, SeatNotificationOutboxStatus.DLQ, 1);
@@ -133,9 +146,10 @@ class WebPushDeliveryTest {
     }
 
     @ParameterizedTest
+    @DisplayName("일시적 오류는 발송 전체의 재시도와 같은 멱등 키를 유지한다")
     @ValueSource(ints = {0, 1})
     void temporaryFailureKeepsWholeDeliveryRetryAndTheSameIdempotencyKey(int failedTargetIndex) {
-
+        // given
         String failed = failedTargetIndex == 0 ? FIRST : SECOND;
         stubSender(target -> {
             if (target.equals(failed)) {
@@ -146,6 +160,7 @@ class WebPushDeliveryTest {
 
         processReadyDelivery();
 
+        // when & then
         assertDelivery(SeatNotificationDeliveryStatus.PENDING, SeatNotificationOutboxStatus.PROCESSING, 1);
         assertThat(histories.findAll()).isEmpty();
         assertThat(attemptedTargets).containsExactlyElementsOf(
@@ -167,8 +182,9 @@ class WebPushDeliveryTest {
     }
 
     @Test
+    @DisplayName("그 밖의 웹 푸시 영구 오류는 무시하지 않는다")
     void otherPermanentWebPushErrorsAreNotIgnored() {
-
+        // given
         stubSender(target -> {
             if (target.equals(SECOND)) {
                 throw new NotificationProviderException(ErrorCode.WEB_PUSH_MISSING_KEYS,
@@ -178,6 +194,7 @@ class WebPushDeliveryTest {
 
         processReadyDelivery();
 
+        // when & then
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertDelivery(SeatNotificationDeliveryStatus.DLQ, SeatNotificationOutboxStatus.DLQ, 1);
         assertThat(histories.findAll()).isEmpty();

@@ -4,9 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
+import bhoon.sugang_helper.audit.service.AdminAuditService;
+import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
@@ -18,7 +19,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -33,17 +36,23 @@ class AdminNotificationDeliveryReplayConcurrencyTest {
 
     @Autowired
     private AdminNotificationDeliveryService service;
+
     @Autowired
     private SeatNotificationOutboxRepository outboxRepository;
+
     @Autowired
     private SeatNotificationDeliveryRepository deliveryRepository;
+
     @MockitoBean
     private AdminAuditService adminAuditRecorder;
+
     @MockitoBean
     private UserIdentityQueryService userIdentityQuery;
 
     @Test
+    @DisplayName("동시 재전송은 DLQ 작업 하나를 변경하고 감사 기록 하나를 남긴다")
     void concurrentReplaysChangeOneDlqDeliveryAndWriteOneAuditLog() throws Exception {
+        // given
         SeatNotificationOutbox outbox = outboxRepository.saveAndFlush(SeatNotificationOutbox.builder()
                 .courseKey("course-key")
                 .courseName("Course")
@@ -64,6 +73,8 @@ class AdminNotificationDeliveryReplayConcurrencyTest {
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        // when & then
         try {
             Future<Boolean> first = executor.submit(() -> replayTask(adminId, deliveryId, ready, start));
             Future<Boolean> second = executor.submit(() -> replayTask(adminId, deliveryId, ready, start));
@@ -79,10 +90,10 @@ class AdminNotificationDeliveryReplayConcurrencyTest {
                 .extracting(SeatNotificationDelivery::getStatus)
                 .isEqualTo(SeatNotificationDeliveryStatus.PENDING);
         verify(adminAuditRecorder, times(1)).recordDeliveryReplay(
-                org.mockito.ArgumentMatchers.eq(adminId),
-                org.mockito.ArgumentMatchers.eq(deliveryId),
-                org.mockito.ArgumentMatchers.eq("DLQ"),
-                org.mockito.ArgumentMatchers.eq(1));
+                ArgumentMatchers.eq(adminId),
+                ArgumentMatchers.eq(deliveryId),
+                ArgumentMatchers.eq("DLQ"),
+                ArgumentMatchers.eq(1));
     }
 
     private boolean replayTask(Long adminId, Long deliveryId, CountDownLatch ready, CountDownLatch start) throws Exception {
@@ -91,7 +102,7 @@ class AdminNotificationDeliveryReplayConcurrencyTest {
         try {
             service.replay(adminId, deliveryId, false);
             return true;
-        } catch (bhoon.sugang_helper.common.error.CustomException ignored) {
+        } catch (CustomException ignored) {
             return false;
         }
     }

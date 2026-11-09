@@ -374,3 +374,25 @@ markSuccess는 기준dev aade57db9부터있었고 현재도 수집성공의상�
 이전 JWT 단순화 `c7cc807c4` 이후 사용자 승인을 받아 자체 JWT/refresh/blacklist 계층과 웹 자동 재발급을 제거했다. Google 로그인·Discord OAuth는 유지하고 Redis indexed session 하나에서 인증을 관리한다. 30일 idle·활동 쿠키 갱신, 현재 기기 logout, 탈퇴 시 같은 userId 전체 세션 회수, 현재 DB id/email/미탈퇴/role 확인, CSRF 검증을 적용했다. 새 namespace `zup:sessions:v2`로 전환하므로 한 번 재로그인해야 한다. [전환 계약·설정·실제 검증 결과](redis-session-migration.md)를 현재 기준으로 사용한다.
 
 최종 서버 543건 + 실제 격리 Redis HTTP 7건·정적 검사·JAR, 웹 300건·타입·lint·build·재시도 없는 브라우저 7건, k6 helper 3건과 local/runtime Compose config 계약이 통과했다. 삭제한 JWT 전용 테스트 대신 현재 세션의 수명주기·실패 보장을 검증하며 다른 도메인 테스트는 유지했다. 운영 SESSION Secure를 명시한 소스/Compose 템플릿만 변경했다. 운영 자격 증명/서비스/DB/Redis/배포는 건드리지 않았으며 원본 dev도 보존했다.
+
+
+## 2026-11-06: 미사용 의존성·설정·배포 H2와 인증 상태 중복 정리
+
+사용자는 읽기 전용 복잡성 점검 결과에서 1·2번을 진행하고 H2 정리 뒤 4번 인증 상태 정리를 진행하도록 승인했다. 기존 `dev`의 `8ba68b627`에서 미커밋 변경이 없는 것을 확인하고 순서대로 적용했다. 커밋·푸시·배포·운영 접근은 하지 않았다.
+
+| 단계 | 최종 변경 | 검증 |
+| --- | --- | --- |
+| 1. 미사용 UI | Radix alert-dialog·checkbox·collapsible·tabs 의존성 4개와 소비처 없는 checkbox·collapsible·tabs 래퍼 3파일 제거. package/lockfile 갱신 | 1차 타입·ESLint·단위 380건 통과. 최종 lockfile 재설치 후 네 패키지가 package/lock/실제 설치 경로에서 모두 빠졌음을 확인 |
+| 2. 미사용 설정 | 기본·운영 YAML의 `app.notification.provider.write-timeout-ms` 제거 | 코드 소비처와 선언 잔재 없음 확인. 전체 발송 5초 제한과 Discord connect/read 설정 유지 |
+| 3. 배포 H2 | `runtimeOnly 'com.h2database:h2'`만 제거하고 테스트 H2 유지 | Java 21 `./gradlew --offline check bootJar` 성공. 130 suite·577건 실패/오류/skip 0, PMD·Checkstyle 통과. 새 app.jar의 H2 JAR 부재 확인. `modulithE2e` 13건·`sessionTest` 7건 모두 실패/오류/skip 0 |
+| 4. 인증 상태 | 기존 Zustand에 사용자 한 사본만 유지. Query의 사용자 캐시·API의 완료 후 100ms 캐시·설정 화면 사용자 사본 제거 | 인증/설정/CSRF 집중 74건 통과 뒤 경합 회귀 2건 추가. 최종 Node 22.23.4 타입·ESLint(경고 0)·전체 87파일/396건·production build 통과. Chromium E2E 26건 retries=0으로 통과 |
+
+프로필 API는 HTTP 호출만 담당하고 store가 정책별 진행 중 요청 공유와 갱신을 담당한다. bootstrap의 silent 401과 일반 조회의 로그인 안내는 유지하므로 진행 중 요청은 두 모드로 구분한다. 최초 검증 여부·5분 재사용 시각·요청 세대는 영속화하지 않는다. 복원 사용자는 기존처럼 표시용 정보로만 남기고 서버 검증 전 조회 소비자와 관리자 Guard에는 인증된 사용자로 노출하지 않는다. bootstrap의 250/500ms 일시 오류 재시도와 focus/online 재확인, 로그아웃 및 계정 변경 뒤 늦은 응답 차단은 유지했다.
+
+외부 사용자 수정은 같은 ID라도 이전 조회를 무효화한다. 내부 조회도 ID가 바뀌면 세대를 증가시킨다. 병행 bootstrap/일반 조회에서 늦은 응답의 ID가 현재 검증된 계정과 같으면 현재 값을 반환하며 오래된 응답으로 덮지 않는다. 다른 계정이나 로그아웃 상태면 취소한다. 프로필·온보딩·설정 저장 성공 콜백도 시작 세대를 확인한다. 독립 리뷰에서 내부 조회의 계정 전환 경합을 발견해 이 규칙과 회귀를 보강했고, 재리뷰에서 중요한 미해결 결함은 없었다.
+
+설정 화면은 프로필·기기 초기 조회가 모두 성공한 계정에서만 저장을 허용한다. 전역 사용자가 있어도 기기 조회 실패는 저장을 차단한다. 폼 reset은 초기 조회 성공·저장 완료에만 수행해 무관한 사용자 갱신이 초안을 덮지 않는다. 설정 PATCH의 실제 User 응답으로 공유 사용자를 갱신하여 저장 후 추가 프로필 GET을 없앴다.
+
+초기 기본 npm 캐시와 이전 작업 캐시의 오프라인 설치는 zwitch tarball 부재로 실패했다. 고정 lockfile로 온라인 `npm ci --legacy-peer-deps`를 수행했고 새 의존성이나 버전 변경은 추가하지 않았다. 첫 브라우저 실행은 가상 GA 식별자가 빠진 빌드로 23건 통과·온보딩 분석 3건 실패였다. assertion·timeout·retry를 바꾸지 않고 CI와 같은 `G-LOCALTEST`·`AQID`, production 분석 조건, 연결되지 않는 loopback API로 다시 빌드하여 전체 26건을 재시도 없이 확인했다. 초기 실패 로그는 별도 보존했다.
+
+검증 로그는 `/Users/bhoon/Documents/Codex/2026-11-06/task-4/`의 `step3-server-check.log`, `server-e2e.log`, `auth-focused.log`, `web-unit-final.log`, `web-typecheck.log`, `web-lint.log`, `web-build.log`, `web-e2e.log`, `web-e2e-initial.log`에 있다. 브라우저 E2E의 API는 가짜 응답이고 서버 HTTP E2E는 메모리 H2·일회용 Redis를 사용한다. 실제 MySQL·학교 API·메일·웹푸시 제공자·운영 부하는 이번 검증 범위가 아니다. 성능·메모리 절감은 측정하지 않았다.

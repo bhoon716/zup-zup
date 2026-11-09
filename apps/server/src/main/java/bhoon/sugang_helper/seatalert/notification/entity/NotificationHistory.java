@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.entity;
 
-import bhoon.sugang_helper.common.entity.BaseTimeEntity;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.common.api.persistence.BaseTimeEntity;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

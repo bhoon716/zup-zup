@@ -63,7 +63,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
                     : "bg-gray-50/50 dark:bg-gray-900/50 border-transparent hover:bg-white dark:hover:bg-gray-800 hover:border-gray-100 dark:hover:border-gray-700"
                 )}
               >
-                {/* 활성 상태 표시 바 */}
+
                 {isDDay && (
                   <div className="absolute left-0 top-3 bottom-3 w-1 bg-primary rounded-r-full" />
                 )}

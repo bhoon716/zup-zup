@@ -25,7 +25,6 @@ export const useWebPush = () => {
       if (!alias) {
 
           alias = "Unknown Device";
-          // 모바일 UA에도 "Mac"이나 "Linux"가 포함되므로 모바일 기기를 먼저 구분한다.
           if (ua.includes("iPhone") || ua.includes("iPad")) alias = "iOS Device";
           else if (ua.includes("Android")) alias = "Android Device";
           else if (ua.includes("Win")) alias = "Windows PC";

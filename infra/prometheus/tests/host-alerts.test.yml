@@ -1,0 +1,590 @@
+rule_files:
+  - "../rules/host-alerts.yml"
+evaluation_interval: "1m"
+tests:
+  - name: "missing target"
+    interval: "1m"
+    input_series: []
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobMetricsUnavailable"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+            exp_annotations:
+              summary: "호스트 주기 작업 지표 수집이 중단되었습니다."
+  - name: "down target"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobMetricsUnavailable"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+            exp_annotations:
+              summary: "호스트 주기 작업 지표 수집이 중단되었습니다."
+  - name: "target recovered"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "0x2 1x8"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobMetricsUnavailable"
+        exp_alerts: []
+  - name: "corrupt textfile"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "node_textfile_scrape_error{job=\"host-jobs\"}"
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobTextfileInvalid"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+            exp_annotations:
+              summary: "호스트 주기 작업 지표 파일을 읽지 못했습니다."
+  - name: "release unhealthy"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_storage_healthy{job=\"host-jobs\",role=\"docker_data\"}"
+        values: "1x10"
+      - series: "sugang_host_storage_healthy{job=\"host-jobs\",role=\"release\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostStorageUnhealthy"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              role: "release"
+            exp_annotations:
+              summary: "호스트 디스크 또는 inode 여유가 부족하거나 측정할 수 없습니다."
+  - name: "release missing"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_storage_healthy{job=\"host-jobs\",role=\"docker_data\"}"
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostStorageUnhealthy"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              role: "release"
+            exp_annotations:
+              summary: "호스트 디스크 또는 inode 여유가 부족하거나 측정할 수 없습니다."
+  - name: "docker_data unhealthy"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_storage_healthy{job=\"host-jobs\",role=\"release\"}"
+        values: "1x10"
+      - series: "sugang_host_storage_healthy{job=\"host-jobs\",role=\"docker_data\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostStorageUnhealthy"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              role: "docker_data"
+            exp_annotations:
+              summary: "호스트 디스크 또는 inode 여유가 부족하거나 측정할 수 없습니다."
+  - name: "docker_data missing"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_storage_healthy{job=\"host-jobs\",role=\"release\"}"
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostStorageUnhealthy"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              role: "docker_data"
+            exp_annotations:
+              summary: "호스트 디스크 또는 inode 여유가 부족하거나 측정할 수 없습니다."
+  - name: "storage healthy"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_storage_healthy{job=\"host-jobs\",role=\"release\"}"
+        values: "1x10"
+      - series: "sugang_host_storage_healthy{job=\"host-jobs\",role=\"docker_data\"}"
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostStorageUnhealthy"
+        exp_alerts: []
+  - name: "storage missing success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostStorageCheckStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "storage"
+            exp_annotations:
+              summary: "호스트 저장 공간 점검의 최근 성공이 확인되지 않습니다."
+  - name: "storage stale success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"storage\"}"
+        values: "1x1620"
+    alert_rule_test:
+      - eval_time: "20m"
+        alertname: "HostStorageCheckStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "storage"
+            exp_annotations:
+              summary: "호스트 저장 공간 점검의 최근 성공이 확인되지 않습니다."
+  - name: "storage zero success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"storage\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostStorageCheckStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "storage"
+            exp_annotations:
+              summary: "호스트 저장 공간 점검의 최근 성공이 확인되지 않습니다."
+  - name: "storage future clock"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"storage\"}"
+        values: "999999x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostStorageCheckStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "storage"
+            exp_annotations:
+              summary: "호스트 저장 공간 점검의 최근 성공이 확인되지 않습니다."
+  - name: "storage fresh success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"storage\"}"
+        values: "1+60x1620"
+    alert_rule_test:
+      - eval_time: "20m"
+        alertname: "HostStorageCheckStale"
+        exp_alerts: []
+  - name: "storage target unavailable suppresses freshness"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostStorageCheckStale"
+        exp_alerts: []
+  - name: "storage failure"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_success{job=\"host-jobs\",task=\"storage\"}"
+        values: "0x10"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"storage\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobFailed"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "storage"
+            exp_annotations:
+              summary: "호스트 주기 작업이 실패했습니다."
+  - name: "storage running is not failure"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_success{job=\"host-jobs\",task=\"storage\"}"
+        values: "0x10"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"storage\"}"
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobFailed"
+        exp_alerts: []
+  - name: "storage recovered"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_success{job=\"host-jobs\",task=\"storage\"}"
+        values: "0x2 1x8"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"storage\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobFailed"
+        exp_alerts: []
+  - name: "storage hung"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_started_timestamp_seconds{job=\"host-jobs\",task=\"storage\"}"
+        values: "1x30"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"storage\"}"
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: "20m"
+        alertname: "HostJobExecutionStuck"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "storage"
+            exp_annotations:
+              summary: "호스트 주기 작업이 제한 시간 안에 끝나지 않았습니다."
+  - name: "event_backup missing success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostEventBackupStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "event_backup"
+            exp_annotations:
+              summary: "중요 사건 로그 내보내기의 최근 성공이 확인되지 않습니다."
+  - name: "event_backup stale success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "1x1620"
+    alert_rule_test:
+      - eval_time: "20m"
+        alertname: "HostEventBackupStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "event_backup"
+            exp_annotations:
+              summary: "중요 사건 로그 내보내기의 최근 성공이 확인되지 않습니다."
+  - name: "event_backup zero success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostEventBackupStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "event_backup"
+            exp_annotations:
+              summary: "중요 사건 로그 내보내기의 최근 성공이 확인되지 않습니다."
+  - name: "event_backup future clock"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "999999x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostEventBackupStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "event_backup"
+            exp_annotations:
+              summary: "중요 사건 로그 내보내기의 최근 성공이 확인되지 않습니다."
+  - name: "event_backup fresh success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "1+60x1620"
+    alert_rule_test:
+      - eval_time: "20m"
+        alertname: "HostEventBackupStale"
+        exp_alerts: []
+  - name: "event_backup target unavailable suppresses freshness"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostEventBackupStale"
+        exp_alerts: []
+  - name: "event_backup failure"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_success{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "0x10"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobFailed"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "event_backup"
+            exp_annotations:
+              summary: "호스트 주기 작업이 실패했습니다."
+  - name: "event_backup running is not failure"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_success{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "0x10"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobFailed"
+        exp_alerts: []
+  - name: "event_backup recovered"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_success{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "0x2 1x8"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobFailed"
+        exp_alerts: []
+  - name: "event_backup hung"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_started_timestamp_seconds{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "1x30"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"event_backup\"}"
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: "20m"
+        alertname: "HostJobExecutionStuck"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "event_backup"
+            exp_annotations:
+              summary: "호스트 주기 작업이 제한 시간 안에 끝나지 않았습니다."
+  - name: "backup missing success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostBackupStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "backup"
+            exp_annotations:
+              summary: "DB·감사·업로드 내보내기의 최근 성공이 확인되지 않습니다."
+  - name: "backup stale success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"backup\"}"
+        values: "1x1620"
+    alert_rule_test:
+      - eval_time: "27h"
+        alertname: "HostBackupStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "backup"
+            exp_annotations:
+              summary: "DB·감사·업로드 내보내기의 최근 성공이 확인되지 않습니다."
+  - name: "backup zero success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"backup\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostBackupStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "backup"
+            exp_annotations:
+              summary: "DB·감사·업로드 내보내기의 최근 성공이 확인되지 않습니다."
+  - name: "backup future clock"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"backup\"}"
+        values: "999999x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostBackupStale"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "backup"
+            exp_annotations:
+              summary: "DB·감사·업로드 내보내기의 최근 성공이 확인되지 않습니다."
+  - name: "backup fresh success"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_success_timestamp_seconds{job=\"host-jobs\",task=\"backup\"}"
+        values: "1+60x1620"
+    alert_rule_test:
+      - eval_time: "27h"
+        alertname: "HostBackupStale"
+        exp_alerts: []
+  - name: "backup target unavailable suppresses freshness"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostBackupStale"
+        exp_alerts: []
+  - name: "backup failure"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_success{job=\"host-jobs\",task=\"backup\"}"
+        values: "0x10"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"backup\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobFailed"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "backup"
+            exp_annotations:
+              summary: "호스트 주기 작업이 실패했습니다."
+  - name: "backup running is not failure"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_success{job=\"host-jobs\",task=\"backup\"}"
+        values: "0x10"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"backup\"}"
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobFailed"
+        exp_alerts: []
+  - name: "backup recovered"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_success{job=\"host-jobs\",task=\"backup\"}"
+        values: "0x2 1x8"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"backup\"}"
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: "5m"
+        alertname: "HostJobFailed"
+        exp_alerts: []
+  - name: "backup hung"
+    interval: "1m"
+    input_series:
+      - series: "up{job=\"host-jobs\"}"
+        values: "1x1620"
+      - series: "sugang_host_job_last_started_timestamp_seconds{job=\"host-jobs\",task=\"backup\"}"
+        values: "1x30"
+      - series: "sugang_host_job_running{job=\"host-jobs\",task=\"backup\"}"
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: "20m"
+        alertname: "HostJobExecutionStuck"
+        exp_alerts:
+          - exp_labels:
+              job: "host-jobs"
+              severity: "warning"
+              task: "backup"
+            exp_annotations:
+              summary: "호스트 주기 작업이 제한 시간 안에 끝나지 않았습니다."

@@ -1,4 +1,7 @@
 spring:
+  main:
+    banner-mode: "off"
+
   application:
     name: zup-zup
 
@@ -99,14 +102,13 @@ app:
       daily-quota: ${APP_FEEDBACK_DAILY_QUOTA:5}
   admin-audit:
     fingerprint-secret: "${APP_ADMIN_AUDIT_FINGERPRINT_SECRET:${JWT_SECRET:local-dev-admin-audit-fingerprint-secret}}"
-    retention-days: ${APP_ADMIN_AUDIT_RETENTION_DAYS:180}
+    retention-days: ${APP_ADMIN_AUDIT_RETENTION_DAYS:0}
     retention-cron: "${APP_ADMIN_AUDIT_RETENTION_CRON:0 15 3 * * *}"
   notification:
     provider:
       timeout-ms: ${APP_NOTIFICATION_PROVIDER_TIMEOUT_MS:5000}
       connect-timeout-ms: ${APP_NOTIFICATION_PROVIDER_CONNECT_TIMEOUT_MS:2000}
       read-timeout-ms: ${APP_NOTIFICATION_PROVIDER_READ_TIMEOUT_MS:5000}
-      write-timeout-ms: ${APP_NOTIFICATION_PROVIDER_WRITE_TIMEOUT_MS:5000}
       circuit:
         failure-threshold: ${APP_NOTIFICATION_PROVIDER_CIRCUIT_FAILURE_THRESHOLD:3}
         open-seconds: ${APP_NOTIFICATION_PROVIDER_CIRCUIT_OPEN_SECONDS:30}
@@ -171,3 +173,9 @@ file:
       max-pixels: ${FILE_UPLOAD_IMAGE_MAX_PIXELS:8388608}
       max-output-bytes: ${FILE_UPLOAD_IMAGE_MAX_OUTPUT_BYTES:5242880}
       decode-timeout: ${FILE_UPLOAD_IMAGE_DECODE_TIMEOUT:PT2S}
+
+logging:
+  structured:
+    json:
+      add:
+        environment: ${jbnu.slack.environment:UNKNOWN}

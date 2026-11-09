@@ -1,0 +1,12 @@
+[Unit]
+Description=Export important Sugang helper events every five minutes
+
+[Timer]
+OnCalendar=*-*-* *:0/5:00 UTC
+RandomizedDelaySec=15
+AccuracySec=1s
+Persistent=true
+Unit=sugang-helper-event-backup.service
+
+[Install]
+WantedBy=timers.target

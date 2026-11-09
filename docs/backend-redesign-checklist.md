@@ -180,7 +180,7 @@
 
 ### 관리자 도구·감사 기록
 
-근거: [AdminController](../apps/server/src/main/java/bhoon/sugang_helper/admin/presentation/AdminController.java), [AdminActionLogController](../apps/server/src/main/java/bhoon/sugang_helper/admin/audit/presentation/AdminActionLogController.java), [AdminNotificationDeliveryController](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/presentation/AdminNotificationDeliveryController.java), [AdminAuditLogRetentionScheduler](../apps/server/src/main/java/bhoon/sugang_helper/admin/audit/application/AdminAuditLogRetentionScheduler.java)
+근거: [AdminController](../apps/server/src/main/java/bhoon/sugang_helper/admin/presentation/AdminController.java), [AdminActionLogController](../apps/server/src/main/java/bhoon/sugang_helper/audit/presentation/AdminActionLogController.java), [AdminNotificationDeliveryController](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/presentation/AdminNotificationDeliveryController.java), [AdminAuditLogRetentionScheduler](../apps/server/src/main/java/bhoon/sugang_helper/audit/application/AdminAuditLogRetentionScheduler.java)
 
 - 관리자 대시보드: `GET /api/v1/admin/dashboard`
 - 관리자 테스트 발송: `POST /api/v1/admin/notifications/test`
@@ -195,7 +195,7 @@
 
 ### 공통 HTTP·오류·보안·운영 표면
 
-근거: [GlobalExceptionHandler](../apps/server/src/main/java/bhoon/sugang_helper/common/web/GlobalExceptionHandler.java), [PageableGuard](../apps/server/src/main/java/bhoon/sugang_helper/common/web/PageableGuard.java), [SecurityConfig](../apps/server/src/main/java/bhoon/sugang_helper/bootstrap/SecurityConfig.java), [application-prod.yml](../apps/server/src/main/resources/application-prod.yml)
+근거: [GlobalExceptionHandler](../apps/server/src/main/java/bhoon/sugang_helper/common/web/GlobalExceptionHandler.java), [PageableGuard](../apps/server/src/main/java/bhoon/sugang_helper/common/api/web/PageableGuard.java), [SecurityConfig](../apps/server/src/main/java/bhoon/sugang_helper/bootstrap/SecurityConfig.java), [application-prod.yml](../apps/server/src/main/resources/application-prod.yml)
 
 - 공개 상태 확인: `GET /health`
 - 운영 관리 포트: Actuator health/readiness 및 Prometheus endpoint (운영 프로필의 포트 `8081`)

@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.identity.auth.client;
 
-import bhoon.sugang_helper.common.security.util.SensitiveDataRedactor;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.identity.auth.service.OAuth2AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.exception.OAuthAccountProvisioningException;

@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.client;
 
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 
 public interface NotificationSender {

@@ -1,10 +1,11 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
-import bhoon.sugang_helper.seatalert.notification.dto.result.NotificationHistoryItem;
+import bhoon.sugang_helper.seatalert.api.NotificationHistoryQueries;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.Users;
+import bhoon.sugang_helper.seatalert.api.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
 import java.time.LocalDateTime;
@@ -18,10 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class NotificationHistoryQueryService {
+public class NotificationHistoryQueryService implements NotificationHistoryQueries {
 
     private final NotificationHistoryRepository repository;
-    private final UserIdentityQueryService userIdentityQuery;
+    private final Users userIdentityQuery;
 
     public long countCreatedAfter(LocalDateTime start) {
         return repository.countByCreatedAtAfter(start);

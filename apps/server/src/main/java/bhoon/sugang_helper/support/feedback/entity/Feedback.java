@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.support.feedback.entity;
 
-import bhoon.sugang_helper.common.entity.BaseTimeEntity;
+import bhoon.sugang_helper.common.api.persistence.BaseTimeEntity;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import jakarta.persistence.CascadeType;

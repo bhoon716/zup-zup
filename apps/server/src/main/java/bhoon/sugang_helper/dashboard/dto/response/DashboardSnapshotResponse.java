@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.dashboard.dto.response;
 
-import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementPreview;
-import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleSummary;
+import bhoon.sugang_helper.campus.api.AnnouncementPreview;
+import bhoon.sugang_helper.campus.api.ScheduleSummary;
 import java.util.List;
 import lombok.Builder;
 import lombok.Getter;

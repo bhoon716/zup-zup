@@ -51,6 +51,7 @@ jobs:
             esac
             case "${changed_file}" in
               apps/server/Dockerfile|apps/server/.dockerignore) docker_image=true ;;
+              apps/server/src/main/resources/logback-spring.xml|apps/server/src/main/java/*/logging/*) infra=true ;;
             esac
           done < <(git diff --name-only --diff-filter=ACDMRT "${BASE_SHA}" "${HEAD_SHA}")
           {
@@ -71,9 +72,11 @@ jobs:
 
       - name: Shell 문법 및 Infra 계약 검증
         run: |
-          bash -n infra/scripts/*.sh
+          for script in infra/scripts/*.sh; do bash -n "$script"; done
           bash infra/scripts/test-runtime-contract.sh
           bash infra/scripts/test-observability-contract.sh
+          bash infra/scripts/test-host-metrics-pipeline.sh
+          python3 infra/scripts/test-json-log-pipeline.py
           bash infra/scripts/test-cd-workflow-contract.sh
           bash infra/scripts/test-deploy-quiescence.sh
           bash infra/scripts/test-app-env-preflight.sh
@@ -81,6 +84,14 @@ jobs:
           bash infra/scripts/test-local-app-image-flow.sh
           bash infra/scripts/test-local-compose.sh
           bash infra/scripts/test-backup-to-macbook.sh
+          bash infra/scripts/test-admin-audit-archive.sh
+          bash infra/scripts/test-backup-server-export.sh
+          bash infra/scripts/test-verify-mac-restore.sh
+          python3 infra/scripts/test-storage-health.py
+          python3 infra/scripts/test-host-jobs.py
+          python3 infra/scripts/test-important-event-backup.py
+          python3 infra/scripts/test-alert-delivery.py
+          python3 infra/scripts/test-alerting-settings.py
           bash infra/scripts/test-redis-auth-state-recovery.sh
 
   web:
@@ -165,7 +176,7 @@ jobs:
             -e FLYWAY_CLEAN_DISABLED=true \
             "${FLYWAY_IMAGE}" migrate
 
-      - name: Test·static analysis·migration regression·JAR
+      - name: Test·static analysis·migration regression·HTTP E2E·JAR
         working-directory: apps/server
         env:
           AWS_ACCESS_KEY_ID: ci-access-key
@@ -199,7 +210,7 @@ jobs:
           DISCORD_CLIENT_SECRET: ""
           DISCORD_REDIRECT_URI: http://localhost:8080/api/v1/users/discord/callback
         run: |
-          ./gradlew clean check migrationTest bootJar --no-daemon
+          ./gradlew clean check migrationTest modulithE2e sessionTest bootJar --no-daemon
 
       - name: QEMU 설정
         if: needs.changes.outputs.docker_image == 'true'

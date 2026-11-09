@@ -1,14 +1,17 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
+import bhoon.sugang_helper.academic.api.operations.CrawlerTargets;
+import bhoon.sugang_helper.academic.api.catalog.TrackedSemester;
+import bhoon.sugang_helper.academic.api.catalog.TrackedSemesterQuery;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
-import bhoon.sugang_helper.academic.crawling.dto.response.CrawlerAdminSnapshot;
+import bhoon.sugang_helper.academic.api.operations.CrawlerAdminSnapshot;
 import bhoon.sugang_helper.academic.crawling.dto.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.academic.crawling.dto.response.SearchDefaultSemesterResponse;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerSetting;
 import bhoon.sugang_helper.academic.crawling.repository.CrawlerSettingRepository;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class CourseCrawlerTargetService {
+public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemesterQuery {
 
     private final CrawlerSettingRepository crawlerSettingRepository;
 
@@ -55,6 +58,12 @@ public class CourseCrawlerTargetService {
     }
 
     @Transactional(readOnly = true)
+    @Override
+    public TrackedSemester currentTarget() {
+        CrawlTargetInfo target = getCurrentTargetValue();
+        return new TrackedSemester(target.year(), target.semester().getCode());
+    }
+
     public CrawlTargetInfo getCurrentTargetValue() {
         CrawlerSetting setting = resolveCurrentSetting();
         return new CrawlTargetInfo(setting.getTargetYear(), SemesterType.fromCode(setting.getTargetSemester()));

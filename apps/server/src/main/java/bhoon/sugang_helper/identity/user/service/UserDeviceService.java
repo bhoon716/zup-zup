@@ -1,8 +1,9 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.identity.api.notifications.WebPushSubscriptionManagement;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.command.RegisterDeviceCommand;
 import bhoon.sugang_helper.identity.user.dto.result.UserDeviceResult;
 import bhoon.sugang_helper.identity.user.entity.User;
@@ -23,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserDeviceService {
+public class UserDeviceService implements WebPushSubscriptionManagement {
 
     private final UserDeviceRepository userDeviceRepository;
     private final UserRepository userRepository;
@@ -81,6 +82,7 @@ public class UserDeviceService {
         log.info("[UserDevice] 지정 알림 기기 삭제. userId={}, deviceId={}", user.getId(), deviceId);
     }
 
+    @Override
     @Transactional
     public void deleteDeviceByToken(String token) {
         userDeviceRepository.findByToken(token)
@@ -90,6 +92,7 @@ public class UserDeviceService {
                 });
     }
 
+    @Override
     public void validateEndpoint(String endpoint) {
         webPushEndpointValidator.validate(endpoint);
     }

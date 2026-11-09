@@ -12,12 +12,12 @@ import bhoon.sugang_helper.academic.review.entity.CourseReviewReaction;
 import bhoon.sugang_helper.academic.review.enums.ReactionType;
 import bhoon.sugang_helper.academic.review.repository.CourseReviewReactionRepository;
 import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.common.util.SecurityUtil;
-import bhoon.sugang_helper.common.web.PageableGuard;
-import bhoon.sugang_helper.identity.user.dto.result.UserIdentity;
-import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.common.api.web.PageableGuard;
+import bhoon.sugang_helper.identity.api.users.UserIdentity;
+import bhoon.sugang_helper.identity.api.users.Users;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,7 @@ public class CourseReviewService {
     private final CourseReviewRepository reviewRepository;
     private final CourseReviewReactionRepository reactionRepository;
     private final CourseReviewCatalogService courseReviewCatalog;
-    private final UserIdentityQueryService userIdentityQuery;
+    private final Users userIdentityQuery;
 
     private UserIdentity getCurrentUser() {
         return userIdentityQuery.findByEmail(SecurityUtil.getCurrentUserEmail())

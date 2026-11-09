@@ -15,8 +15,8 @@ import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.crawling.client.CourseApiClient;
 import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -25,6 +25,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -47,18 +49,25 @@ class CourseCrawlerServiceTest {
 
     @Mock
     private CourseCrawlFetcher courseCrawlFetcher;
+
     @Mock
     private CourseCrawlCompletionService courseCrawlCompletionService;
+
     @Mock
     private CourseCrawlerTargetService crawlerTargetService;
+
     @Mock
     private CrawlerRunStateService crawlerRunStateService;
+
     @Mock
     private MeterRegistry meterRegistry;
+
     @Mock
     private Counter metricCounter;
+
     @Mock
     private CourseApiClient apiClient;
+
     @Mock
     private JbnuCourseParser courseParser;
 
@@ -68,6 +77,7 @@ class CourseCrawlerServiceTest {
     @Test
     @DisplayName("수집이 끝난 전체 결과를 Spring Batch 없이 동기화 서비스에 전달한다")
     void crawlAndSaveCourses_FetchesThenSynchronizes() {
+        // given
         ParsedCourseDto course = mock(ParsedCourseDto.class);
         given(crawlerTargetService.getCurrentTargetValue())
                 .willReturn(new CrawlTargetInfo(YEAR, SemesterType.FIRST_SEMESTER));
@@ -75,8 +85,10 @@ class CourseCrawlerServiceTest {
         given(meterRegistry.counter("crawler.runs", "status", "STARTED")).willReturn(metricCounter);
         given(meterRegistry.counter("crawler.runs", "status", "SUCCEEDED")).willReturn(metricCounter);
 
+        // when
         boolean started = courseCrawlerService.crawlAndSaveCourses();
 
+        // then
         assertThat(started).isTrue();
         verify(courseCrawlCompletionService).complete(List.of(course));
     }
@@ -84,10 +96,12 @@ class CourseCrawlerServiceTest {
     @Test
     @DisplayName("크롤러 실행 lifecycle 로그는 동일한 실행 식별자와 단계·결과·소요 시간을 기록한다")
     void crawlAndSaveCourses_LogsRunLifecycle() {
+        // given
         ParsedCourseDto course = mock(ParsedCourseDto.class);
         given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willReturn(List.of(course));
         ListAppender<ILoggingEvent> appender = attachAppender();
 
+        // when & then
         try {
             assertThat(courseCrawlerService.crawlAndSaveCourses(YEAR, SEMESTER)).isTrue();
 
@@ -126,9 +140,11 @@ class CourseCrawlerServiceTest {
     @Test
     @DisplayName("외부 수집·파싱 실패는 FETCH_PARSE 단계로 별도 기록한다")
     void fetchFailure_IsRecordedWithFetchParseStage() {
+        // given
         CustomException failure = new CustomException(ErrorCode.CRAWLER_PARSING_ERROR);
         given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willThrow(failure);
 
+        // when & then
         assertThatThrownBy(() -> courseCrawlerService.crawlAndSaveCourses(YEAR, SEMESTER))
                 .isSameAs(failure);
         verify(crawlerRunStateService).recordFailure(CrawlerFailureStage.FETCH_PARSE, failure);
@@ -137,10 +153,12 @@ class CourseCrawlerServiceTest {
     @Test
     @DisplayName("실패 lifecycle 로그는 실행 식별자와 실패 단계·원인·결과를 기록한다")
     void fetchFailure_LogsFailureLifecycle() {
+        // given
         CustomException failure = new CustomException(ErrorCode.CRAWLER_PARSING_ERROR);
         given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willThrow(failure);
         ListAppender<ILoggingEvent> appender = attachAppender();
 
+        // when & then
         try {
             assertThatThrownBy(() -> courseCrawlerService.crawlAndSaveCourses(YEAR, SEMESTER))
                     .isSameAs(failure);
@@ -168,10 +186,12 @@ class CourseCrawlerServiceTest {
     @Test
     @DisplayName("historical 크롤링은 대상별 canonical 실패 로그를 중복 기록하지 않는다")
     void historicalFailure_DoesNotDuplicateFailureLog() {
+        // given
         CustomException failure = new CustomException(ErrorCode.CRAWLER_PARSING_ERROR);
         given(courseCrawlFetcher.fetch(anyString(), anyString())).willThrow(failure);
         ListAppender<ILoggingEvent> appender = attachAppender();
 
+        // when & then
         try {
             assertThat(courseCrawlerService.crawlRecentYears()).isTrue();
 
@@ -195,6 +215,7 @@ class CourseCrawlerServiceTest {
     @Test
     @DisplayName("필수 필드가 누락된 외부 행은 DB 트랜잭션 전에 거부하고 FETCH_PARSE로 기록한다")
     void missingRequiredField_IsRejectedBeforeSynchronization() {
+        // given
         ByteArrayInputStream stream = new ByteArrayInputStream(new byte[0]);
         ParsedCourseDto missingName = new ParsedCourseDto(
                 "course-1", "COMP101", null, null, "01", null, 50, 20,
@@ -211,6 +232,7 @@ class CourseCrawlerServiceTest {
                 .willReturn(List.of(missingName).iterator())
                 .willReturn(Collections.emptyIterator());
 
+        // when & then
         assertThatThrownBy(() -> service.crawlAndSaveCourses(YEAR, SEMESTER))
                 .isInstanceOf(CustomException.class)
                 .satisfies(exception -> assertThat(((CustomException) exception).getErrorCode())
@@ -223,11 +245,13 @@ class CourseCrawlerServiceTest {
     @Test
     @DisplayName("DB 동기화 실패는 rollback 이후 PERSIST 단계로 별도 기록한다")
     void persistenceFailure_IsRecordedWithPersistStage() {
+        // given
         ParsedCourseDto course = mock(ParsedCourseDto.class);
         RuntimeException failure = new IllegalStateException("database unavailable");
         given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willReturn(List.of(course));
-        org.mockito.Mockito.doThrow(failure).when(courseCrawlCompletionService).complete(List.of(course));
+        Mockito.doThrow(failure).when(courseCrawlCompletionService).complete(List.of(course));
 
+        // when & then
         assertThatThrownBy(() -> courseCrawlerService.crawlAndSaveCourses(YEAR, SEMESTER))
                 .isInstanceOf(CustomException.class)
                 .satisfies(exception -> assertThat(((CustomException) exception).getErrorCode())
@@ -238,14 +262,17 @@ class CourseCrawlerServiceTest {
     @Test
     @DisplayName("이미 실행 중이면 중복 크롤링을 시작하지 않는다")
     void crawlAndSaveCourses_SkipsWhenAlreadyRunning() {
+        // given
         setCrawlingFlag(true);
 
+        // when & then
         assertThat(courseCrawlerService.crawlAndSaveCourses(YEAR, SEMESTER)).isFalse();
     }
 
     @Test
     @DisplayName("crawler_status의 마지막 성공 시각이 임계치를 넘으면 관리자 경고를 남긴다")
     void staleDataEmitsAdminAlert() {
+        // given
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         CourseCrawlerService service = new CourseCrawlerService(
                 courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
@@ -254,6 +281,8 @@ class CourseCrawlerServiceTest {
         given(crawlerRunStateService.findLastSuccessAt())
                 .willReturn(Optional.of(LocalDateTime.now().minusMinutes(20)));
         ListAppender<ILoggingEvent> appender = attachAppender();
+
+        // when & then
         try {
             service.checkDataFreshness();
 
@@ -269,14 +298,66 @@ class CourseCrawlerServiceTest {
     @Test
     @DisplayName("freshness gauge는 서비스 생성 시 한 번 등록된다")
     void freshnessGaugesAreRegisteredAtConstruction() {
+        // given
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
 
         new CourseCrawlerService(
                 courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
                 registry);
 
+        // when & then
         assertThat(registry.find("crawler.data.freshness.age.seconds").gauges()).hasSize(1);
         assertThat(registry.find("crawler.data.stale").gauges()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("신선도 조회 실패는 이전 정상값 대신 알 수 없는 상태와 실패 지표를 남긴다")
+    void freshnessReadFailureInvalidatesPreviousHealthyState() {
+        // given
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        CourseCrawlerService service = new CourseCrawlerService(
+                courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
+                registry);
+        ReflectionTestUtils.setField(service, "staleThresholdMinutes", 15L);
+        given(crawlerRunStateService.findLastSuccessAt())
+                .willReturn(Optional.of(LocalDateTime.now().minusMinutes(1)))
+                .willThrow(new IllegalStateException("password=private-database-secret"));
+        service.checkDataFreshness();
+        double checkedAt = registry.get("crawler.data.freshness.check.last.success.timestamp.seconds").gauge().value();
+
+        // when
+        service.checkDataFreshness();
+
+        // then
+        assertThat(registry.get("crawler.data.freshness.check.healthy").gauge().value()).isZero();
+        assertThat(registry.get("crawler.data.stale").gauge().value()).isEqualTo(1);
+        assertThat(registry.get("crawler.data.freshness.age.seconds").gauge().value()).isEqualTo(-1);
+        assertThat(registry.get("crawler.data.freshness.check.last.success.timestamp.seconds").gauge().value())
+                .isEqualTo(checkedAt);
+    }
+
+    @Test
+    @DisplayName("마지막 수집 성공과 검사 성공 시각을 별도로 노출해 멈춘 검사도 감지한다")
+    void exposesDataAndCheckTimestampsSeparately() {
+        // given
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        CourseCrawlerService service = new CourseCrawlerService(
+                courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
+                registry);
+        ReflectionTestUtils.setField(service, "staleThresholdMinutes", 15L);
+        LocalDateTime successAt = LocalDateTime.now().minusMinutes(20);
+        given(crawlerRunStateService.findLastSuccessAt()).willReturn(Optional.of(successAt));
+
+        // when
+        service.checkDataFreshness();
+
+        // then
+        double successTimestamp = registry.get("crawler.data.last.success.timestamp.seconds").gauge().value();
+        assertThat(successTimestamp).isEqualTo(successAt.atZone(ZoneId.systemDefault()).toEpochSecond());
+        assertThat(registry.get("crawler.data.freshness.check.last.success.timestamp.seconds").gauge().value())
+                .isGreaterThan(successTimestamp);
+        assertThat(registry.get("crawler.data.freshness.check.healthy").gauge().value()).isEqualTo(1);
+        assertThat(registry.get("crawler.data.freshness.threshold.seconds").gauge().value()).isEqualTo(900);
     }
 
     private ListAppender<ILoggingEvent> attachAppender() {

@@ -3,14 +3,15 @@ package bhoon.sugang_helper.common.filter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -22,13 +23,17 @@ import org.springframework.mock.web.MockHttpServletResponse;
 class HttpLoggingFilterTest {
 
     @ParameterizedTest
+    @DisplayName("필터 밖으로 전파되는 실패를 성공 응답으로 기록하지 않는다")
     @MethodSource("escapingFailures")
     void escapingFailuresAreNotLoggedAsSuccessfulResponses(Throwable failure) {
+        // given
         Logger logger = (Logger) LoggerFactory.getLogger(HttpLoggingFilter.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
         logger.addAppender(appender);
         MockHttpServletResponse response = new MockHttpServletResponse();
+
+        // when & then
         try {
             assertThatThrownBy(() -> new HttpLoggingFilter().doFilter(
                     new MockHttpServletRequest("GET", "/api/test"), response, (request, result) -> {
@@ -65,7 +70,9 @@ class HttpLoggingFilterTest {
     }
 
     @Test
+    @DisplayName("OAuth 쿼리 값과 경로의 토큰을 로그에 남기지 않는다")
     void doesNotLogOAuthQueryValuesOrTokenPathSegments() throws Exception {
+        // given
         String token = "device-token-should-not-appear";
         String authorizationCode = "oauth-code-should-not-appear";
         String state = "oauth-state-should-not-appear";
@@ -81,6 +88,7 @@ class HttpLoggingFilterTest {
         appender.start();
         logger.addAppender(appender);
 
+        // when & then
         try {
             new HttpLoggingFilter().doFilter(request, response, new MockFilterChain());
 
@@ -99,13 +107,17 @@ class HttpLoggingFilterTest {
     }
 
     @Test
+    @DisplayName("미기록 실패는 남기고 이미 처리한 오류의 경고는 중복 기록하지 않는다")
     void logsUnreportedFailuresAndAvoidsDuplicateWarningsForHandledErrors() throws Exception {
+        // given
         Logger logger = (Logger) LoggerFactory.getLogger(HttpLoggingFilter.class);
         Level previous = logger.getLevel();
         logger.setLevel(Level.DEBUG);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
         logger.addAppender(appender);
+
+        // when & then
         try {
             for (int status : new int[]{200, 403, 500}) {
                 MockHttpServletResponse response = new MockHttpServletResponse();

@@ -6,10 +6,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.admin.audit.service.AdminAuditService;
-import bhoon.sugang_helper.common.error.CustomException;
-import bhoon.sugang_helper.common.error.ErrorCode;
-import bhoon.sugang_helper.seatalert.enums.NotificationChannel;
+import bhoon.sugang_helper.audit.service.AdminAuditService;
+import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.response.AdminNotificationDeliveryResponse;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
@@ -17,6 +17,7 @@ import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDelivery
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,21 +30,27 @@ class AdminNotificationDeliveryServiceTest {
 
     @Mock
     private SeatNotificationDeliveryRepository deliveryRepository;
+
     @Mock
     private AdminAuditService adminAuditRecorder;
+
     @InjectMocks
     private AdminNotificationDeliveryService service;
 
     private static final Long ADMIN_ID = 7L;
 
     @Test
+    @DisplayName("DLQ 재전송은 발송 키를 유지하고 감사 기록 하나를 남긴다")
     void replayingDlqDeliveryKeepsItsKeyAndWritesOneAuditLog() {
+        // given
         SeatNotificationDelivery delivery = dlqDelivery();
         String idempotencyKey = delivery.getIdempotencyKey();
         when(deliveryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(delivery));
 
+        // when
         AdminNotificationDeliveryResponse response = service.replay(ADMIN_ID, 1L, false);
 
+        // then
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.idempotencyKeyRetained()).isTrue();
         assertThat(delivery.getIdempotencyKey()).isEqualTo(idempotencyKey);
@@ -53,10 +60,13 @@ class AdminNotificationDeliveryServiceTest {
     }
 
     @Test
+    @DisplayName("명시적인 강제 옵션 없이는 발송 완료 작업을 재전송하지 못한다")
     void sentDeliveryCannotBeReplayedWithoutAnExplicitOverride() {
+        // given
         SeatNotificationDelivery delivery = sentDelivery();
         when(deliveryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(delivery));
 
+        // when & then
         assertThatThrownBy(() -> service.replay(ADMIN_ID, 1L, false))
                 .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
@@ -67,13 +77,17 @@ class AdminNotificationDeliveryServiceTest {
     }
 
     @Test
+    @DisplayName("명시적인 강제 옵션으로만 발송 완료 작업을 재전송한다")
     void sentDeliveryCanBeReplayedOnlyWithAnExplicitOverride() {
+        // given
         SeatNotificationDelivery delivery = sentDelivery();
         String idempotencyKey = delivery.getIdempotencyKey();
         when(deliveryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(delivery));
 
+        // when
         service.replay(ADMIN_ID, 1L, true);
 
+        // then
         assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.PENDING);
         assertThat(delivery.getIdempotencyKey()).isEqualTo(idempotencyKey);
         verify(adminAuditRecorder).recordDeliveryReplay(ADMIN_ID, 1L, "SENT", 0);
