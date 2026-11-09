@@ -294,6 +294,7 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/rules:/etc/prometheus/rules:ro
+      - ${PROMETHEUS_HOST_JOB_RULES_FILE:-./prometheus/host-job-rules-disabled.yml}:/etc/prometheus/rules/host-alerts.yml:ro
       - ${PROMETHEUS_ALERTMANAGER_TARGETS_FILE:-./prometheus/alertmanager-targets.json}:/etc/prometheus/alertmanager-targets.json:ro
       - prometheus_data:/prometheus
       - observability_probe_tools:/opt/observability-healthcheck:ro

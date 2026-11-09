@@ -88,6 +88,16 @@ runtime_network = compose.get("networks", {}).get("sugang-helper-runtime", {})
 if not runtime_network.get("internal"):
     raise SystemExit("observability services must use the internal runtime network")
 
+prometheus_mounts = {
+    item["target"]: item for item in services["prometheus"].get("volumes", [])
+}
+host_job_rules = prometheus_mounts.get("/etc/prometheus/rules/host-alerts.yml", {})
+disabled_rules = repo_root / "infra/prometheus/host-job-rules-disabled.yml"
+if host_job_rules.get("source") != str(disabled_rules) or not host_job_rules.get("read_only"):
+    raise SystemExit("Host job rules must be disabled until the host jobs are activated")
+if disabled_rules.read_text(encoding="utf-8").strip() != "groups: []":
+    raise SystemExit("Disabled host job rules must be empty")
+
 alloy = (repo_root / "infra/alloy/config.alloy").read_text(encoding="utf-8")
 for required in (
     'discovery.docker "containers"',
@@ -186,6 +196,7 @@ docker run --rm \
 docker run --rm \
   --entrypoint /bin/promtool \
   -v "${repo_root}/infra/prometheus:/etc/prometheus:ro" \
+  -v "${repo_root}/infra/prometheus/host-job-rules-disabled.yml:/etc/prometheus/rules/host-alerts.yml:ro" \
   "${prometheus_image}" check config /etc/prometheus/prometheus.yml
 
 docker run --rm \
