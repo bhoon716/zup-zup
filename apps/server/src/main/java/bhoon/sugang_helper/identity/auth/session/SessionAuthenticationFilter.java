@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -49,8 +51,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
             response.setHeader("X-Error-Id", error.getCorrelationId());
-            log.error("[SESSION_UNAVAILABLE] 세션 확인 실패로 인증 거절. correlationId={} exceptionType={}",
-                    error.getCorrelationId(), exception.getClass().getSimpleName());
+            logSessionUnavailable(error, exception);
             objectMapper.writeValue(response.getWriter(), error);
             return;
         }
@@ -82,5 +83,15 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         SecurityContextHolder.clearContext();
         session.invalidate();
         sessionIdResolver.expireSession(request, response);
+    }
+
+    private void logSessionUnavailable(ErrorResponse error, RuntimeException failure) {
+        LoggingEventBuilder entry = log.atError().addKeyValue("event", "session_authentication_unavailable")
+                .addKeyValue("errorCode", error.getCode())
+                .addKeyValue("exceptionType", failure.getClass().getSimpleName());
+        if (MDC.get("correlationId") == null) {
+            entry.addKeyValue("correlationId", error.getCorrelationId());
+        }
+        entry.log("[SESSION_UNAVAILABLE] 세션 확인 실패로 인증 거절.");
     }
 }

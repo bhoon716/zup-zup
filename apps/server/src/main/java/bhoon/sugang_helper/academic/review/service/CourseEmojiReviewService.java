@@ -40,18 +40,14 @@ public class CourseEmojiReviewService {
                 .ifPresentOrElse(
                         existing -> {
                             emojiReviewRepository.delete(existing);
-                            log.debug(
-                                    "[EmojiReview] 이모지 반응 취소. courseKey={}, subjectCode={}, userId={}",
-                                    courseKey, scope.subjectCode(), user.id());
+                            logCourseEmojiReactionRemoved(courseKey, scope.subjectCode(), user.id());
                         },
                         () -> {
                             emojiReviewRepository.save(
                                     CourseEmojiReview.builder().courseKey(courseKey).userId(user.id()).emoji(emoji)
                                             .build()
                             );
-                            log.debug(
-                                    "[EmojiReview] 이모지 반응 등록. courseKey={}, subjectCode={}, userId={}",
-                                    courseKey, scope.subjectCode(), user.id());
+                            logCourseEmojiReactionAdded(courseKey, scope.subjectCode(), user.id());
                         }
                 );
     }
@@ -95,4 +91,21 @@ public class CourseEmojiReviewService {
         return courseReviewCatalog.findByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 강의입니다."));
     }
+
+    private void logCourseEmojiReactionRemoved(String courseKey, String subjectCode, Long userId) {
+        log.atDebug().addKeyValue("event", "course_emoji_reaction_removed")
+                .addKeyValue("courseKey", courseKey)
+                .addKeyValue("subjectCode", subjectCode)
+                .addKeyValue("userId", userId)
+                .log("[EmojiReview] 이모지 반응 취소.");
+    }
+
+    private void logCourseEmojiReactionAdded(String courseKey, String subjectCode, Long userId) {
+        log.atDebug().addKeyValue("event", "course_emoji_reaction_added")
+                .addKeyValue("courseKey", courseKey)
+                .addKeyValue("subjectCode", subjectCode)
+                .addKeyValue("userId", userId)
+                .log("[EmojiReview] 이모지 반응 등록.");
+    }
+
 }

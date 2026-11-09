@@ -95,7 +95,7 @@ public class NotificationService implements NotificationOperations {
         boolean delivered = false;
 
         for (NotificationChannel channel : channels) {
-            log.debug("[Notification Test] 테스트 알림 발송 시도. channel={}, userId={}", channel, user.id());
+            logNotificationTestSendStarted(channel, user.id());
             delivered = sendNotification(user, devices, notification, channel, failOnMissingTarget) || delivered;
         }
         return delivered;
@@ -116,7 +116,7 @@ public class NotificationService implements NotificationOperations {
             throw new CustomException(ErrorCode.INVALID_INPUT,
                     "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
         }
-        log.info("[User] 테스트 알림 요청. userId={}, channels={}", user.id(), channels);
+        logNotificationTestRequested(user.id(), channels);
     }
 
     private boolean sendNotification(NotificationRecipient user, List<NotificationDevice> devices,
@@ -167,6 +167,20 @@ public class NotificationService implements NotificationOperations {
                 .message(notification.body())
                 .channel(channel)
                 .build());
+    }
+
+    private void logNotificationTestSendStarted(NotificationChannel channel, Long userId) {
+        log.atDebug().addKeyValue("event", "notification_test_send_started")
+                .addKeyValue("channel", channel)
+                .addKeyValue("userId", userId)
+                .log("[Notification Test] 테스트 알림 발송 시도.");
+    }
+
+    private void logNotificationTestRequested(Long userId, List<NotificationChannel> channels) {
+        log.atInfo().addKeyValue("event", "notification_test_requested")
+                .addKeyValue("userId", userId)
+                .addKeyValue("channels", channels)
+                .log("[User] 테스트 알림 요청.");
     }
 
     private record NotificationMessage(String title, String body) {

@@ -93,7 +93,7 @@ public class ImageUploadSanitizer {
             if (cause instanceof Error error) {
                 throw error;
             }
-            log.warn("이미지 디코딩 실패. exceptionType= {}", cause.getClass().getSimpleName());
+            logUploadImageDecodeFailed(cause.getClass().getSimpleName());
             throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
         }
     }
@@ -206,6 +206,12 @@ public class ImageUploadSanitizer {
     @PreDestroy
     void stopImageDecoder() {
         imageDecodeExecutor.shutdownNow();
+    }
+
+    private void logUploadImageDecodeFailed(String exceptionType) {
+        log.atWarn().addKeyValue("event", "upload_image_decode_failed")
+                .addKeyValue("exceptionType", exceptionType)
+                .log("이미지 디코딩 실패.");
     }
 
     private static final class BoundedOutputStream extends OutputStream {

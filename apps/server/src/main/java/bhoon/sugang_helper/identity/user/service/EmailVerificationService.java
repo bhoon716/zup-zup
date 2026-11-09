@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EmailVerificationService {
 
+    private static final String EVENT_KEY = "event";
+
     private static final String CODE_PREFIX = "EMAIL_CODE:";
     private static final String VERIFIED_PREFIX = "EMAIL_VERIFIED:";
     private static final String SEND_COOLDOWN_PREFIX = "EMAIL_SEND_COOLDOWN:";
@@ -67,8 +69,7 @@ public class EmailVerificationService {
         }
 
         sendEmail(email, mimeMessage);
-        log.info("[EmailVerification] 인증 코드 발송 완료. userId={}, emailFingerprint={}", userId,
-                SensitiveDataRedactor.fingerprint(email));
+        logEmailVerificationCodeSent(userId, SensitiveDataRedactor.fingerprint(email));
     }
 
     public boolean verifyCode(Long userId, String email, String code) {
@@ -84,8 +85,7 @@ public class EmailVerificationService {
             redisService.deleteValues(getAttemptKey(userId, email));
             redisService.setValues(getVerifiedKey(userId, email), "true",
                     Duration.ofMinutes(VERIFIED_EXPIRATION_MINUTES));
-            log.info("[EmailVerification] 이메일 인증 완료. userId={}, emailFingerprint={}", userId,
-                    SensitiveDataRedactor.fingerprint(email));
+            logEmailVerificationCompleted(userId, SensitiveDataRedactor.fingerprint(email));
             return true;
         }
 
@@ -143,9 +143,7 @@ public class EmailVerificationService {
     }
 
     private CustomException emailSendException(String to, Exception exception) {
-        log.error("[EmailVerification] 인증 이메일 발송 실패. recipientFingerprint={}, failureCode={}, exceptionType={}",
-                SensitiveDataRedactor.fingerprint(to), ErrorCode.EMAIL_SEND_ERROR.getCode(),
-                SensitiveDataRedactor.exceptionType(exception));
+        logEmailVerificationSendFailed(SensitiveDataRedactor.fingerprint(to), ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(exception));
         return new CustomException(ErrorCode.EMAIL_SEND_ERROR, "Failed to send verification email");
     }
 
@@ -211,14 +209,43 @@ public class EmailVerificationService {
             try {
                 redisService.compareAndDeleteValues(key, token);
             } catch (RuntimeException exception) {
-                log.warn("[EmailVerification] 발송 실패 후 대기 제한 복구 실패. exceptionType={}",
-                        SensitiveDataRedactor.exceptionType(exception));
+                logEmailVerificationCooldownRestoreFailed(SensitiveDataRedactor.exceptionType(exception));
             }
         }
     }
 
     private String getAttemptKey(Long userId, String email) {
         return ATTEMPT_PREFIX + userId + ":" + email;
+    }
+
+    private void logEmailVerificationCodeSent(Long userId, String emailFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "email_verification_code_sent")
+                .addKeyValue("userId", userId)
+                .addKeyValue("emailFingerprint", emailFingerprint)
+                .log("[EmailVerification] 인증 코드 발송 완료.");
+    }
+
+    private void logEmailVerificationCompleted(Long userId, String emailFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "email_verification_completed")
+                .addKeyValue("userId", userId)
+                .addKeyValue("emailFingerprint", emailFingerprint)
+                .log("[EmailVerification] 이메일 인증 완료.");
+    }
+
+    private void logEmailVerificationSendFailed(String recipientFingerprint,
+                                                String failureCode,
+                                                String exceptionType) {
+        log.atError().addKeyValue(EVENT_KEY, "email_verification_send_failed")
+                .addKeyValue("recipientFingerprint", recipientFingerprint)
+                .addKeyValue("failureCode", failureCode)
+                .addKeyValue("exceptionType", exceptionType)
+                .log("[EmailVerification] 인증 이메일 발송 실패.");
+    }
+
+    private void logEmailVerificationCooldownRestoreFailed(String exceptionType) {
+        log.atWarn().addKeyValue(EVENT_KEY, "email_verification_cooldown_restore_failed")
+                .addKeyValue("exceptionType", exceptionType)
+                .log("[EmailVerification] 발송 실패 후 대기 제한 복구 실패.");
     }
 
     private record SendCooldownLease(String token, String userKey, String emailKey, String ipKey) {

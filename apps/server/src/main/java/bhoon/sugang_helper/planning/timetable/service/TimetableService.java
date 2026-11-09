@@ -80,7 +80,7 @@ public class TimetableService implements Timetables {
                 .isPrimary(true)
                 .build();
         timetableRepository.save(timetable);
-        log.info("[Timetable] 새 사용자 기본 시간표 생성. userId={}", event.userId());
+        logTimetableDefaultCreated(event.userId());
     }
 
     public List<TimetableResponse> getMyTimetables() {
@@ -213,7 +213,7 @@ public class TimetableService implements Timetables {
 
         resetPrimary(timetable.getUserId());
         timetable.setPrimary(true);
-        log.info("[Timetable] 대표 시간표 변경. timetableId={}", timetableId);
+        logTimetablePrimaryChanged(timetableId);
     }
 
     @Transactional
@@ -320,8 +320,7 @@ public class TimetableService implements Timetables {
                 .findFirst()
                 .ifPresent(timetable -> {
                     timetable.setPrimary(true);
-                    log.info("[Timetable] 대표 시간표 자동 변경. timetableId={}",
-                            timetable.getId());
+                    logTimetablePrimaryPromoted(timetable.getId());
                 });
     }
 
@@ -351,4 +350,23 @@ public class TimetableService implements Timetables {
         return userIdentityQuery.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
+
+    private void logTimetableDefaultCreated(Long userId) {
+        log.atInfo().addKeyValue("event", "timetable_default_created")
+                .addKeyValue("userId", userId)
+                .log("[Timetable] 새 사용자 기본 시간표 생성.");
+    }
+
+    private void logTimetablePrimaryChanged(Long timetableId) {
+        log.atInfo().addKeyValue("event", "timetable_primary_changed")
+                .addKeyValue("timetableId", timetableId)
+                .log("[Timetable] 대표 시간표 변경.");
+    }
+
+    private void logTimetablePrimaryPromoted(Long timetableId) {
+        log.atInfo().addKeyValue("event", "timetable_primary_promoted")
+                .addKeyValue("timetableId", timetableId)
+                .log("[Timetable] 대표 시간표 자동 변경.");
+    }
+
 }

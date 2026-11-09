@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -25,7 +26,6 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -104,10 +104,13 @@ class SeatNotificationOutboxProcessorTest {
         try {
             processor.processDelivery(claim);
 
-            String messages = appender.list.stream()
-                    .map(ILoggingEvent::getFormattedMessage)
-                    .collect(Collectors.joining("\n"));
-            assertThat(messages).doesNotContain(secret).contains("failureCode=UNEXPECTED");
+            assertThat(appender.list).singleElement().satisfies(event -> {
+                assertThat(event.getFormattedMessage()).doesNotContain(secret);
+                assertThat(event.getKeyValuePairs().toString()).doesNotContain(secret);
+                assertThat(event.getKeyValuePairs()).extracting(pair -> pair.key, pair -> pair.value)
+                        .contains(tuple("event", "notification_delivery_retry_scheduled"),
+                                tuple("failureCode", "UNEXPECTED"));
+            });
             verify(counter).increment();
         } finally {
             logger.detachAppender(appender);

@@ -89,8 +89,7 @@ public class JbnuCourseParser {
                 try {
                     courseList.add(processJumpRow(row, fallbackYear, fallbackSemester));
                 } catch (RuntimeException e) {
-                    log.warn("JUMP 강의 행 파싱 실패. rowIndex={}, exceptionType={}", rowIndex,
-                            SensitiveDataRedactor.exceptionType(e));
+                    logCrawlerCourseRowParseFailed(rowIndex, SensitiveDataRedactor.exceptionType(e));
                     throw e;
                 }
                 rowIndex++;
@@ -435,6 +434,13 @@ public class JbnuCourseParser {
             return new TimeRange(LocalTime.of(23, 30), LocalTime.of(23, 59));
         }
         return new TimeRange(LocalTime.of(hour, 30), LocalTime.of(hour + 1, 0));
+    }
+
+    private void logCrawlerCourseRowParseFailed(int rowIndex, String exceptionType) {
+        log.atWarn().addKeyValue("event", "crawler_course_row_parse_failed")
+                .addKeyValue("rowIndex", rowIndex)
+                .addKeyValue("exceptionType", exceptionType)
+                .log("JUMP 강의 행 파싱 실패.");
     }
 
     private record TimeRange(LocalTime start, LocalTime end) {

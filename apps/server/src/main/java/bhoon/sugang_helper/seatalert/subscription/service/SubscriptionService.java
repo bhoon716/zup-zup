@@ -53,7 +53,7 @@ public class SubscriptionService {
                 .build();
 
         Subscription saved = subscriptionRepository.save(subscription);
-        log.info("[Subscription] 구독 등록. userId={}, courseKey={}", user.id(), course.courseKey());
+        logSubscriptionCreated(user.id(), course.courseKey());
 
         return SubscriptionResponse.of(saved, course.name(), course.professor());
     }
@@ -84,14 +84,14 @@ public class SubscriptionService {
         }
 
         subscriptionRepository.delete(subscription);
-        log.info("[Subscription] 구독 취소. userId={}, subscriptionId={}", user.id(), subscriptionId);
+        logSubscriptionCancelled(user.id(), subscriptionId);
     }
 
     @Transactional
     public void unsubscribeAll() {
         UserIdentity user = getCurrentUser();
         subscriptionRepository.deleteAllByUserId(user.id());
-        log.info("[Subscription] 전체 구독 취소. userId={}", user.id());
+        logSubscriptionsCancelled(user.id());
     }
 
     public List<SubscriptionResponse> getMySubscriptions() {
@@ -122,4 +122,25 @@ public class SubscriptionService {
         return userIdentityQuery.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
+
+    private void logSubscriptionCreated(Long userId, String courseKey) {
+        log.atInfo().addKeyValue("event", "subscription_created")
+                .addKeyValue("userId", userId)
+                .addKeyValue("courseKey", courseKey)
+                .log("[Subscription] 구독 등록.");
+    }
+
+    private void logSubscriptionCancelled(Long userId, Long subscriptionId) {
+        log.atInfo().addKeyValue("event", "subscription_cancelled")
+                .addKeyValue("userId", userId)
+                .addKeyValue("subscriptionId", subscriptionId)
+                .log("[Subscription] 구독 취소.");
+    }
+
+    private void logSubscriptionsCancelled(Long userId) {
+        log.atInfo().addKeyValue("event", "subscriptions_cancelled")
+                .addKeyValue("userId", userId)
+                .log("[Subscription] 전체 구독 취소.");
+    }
+
 }

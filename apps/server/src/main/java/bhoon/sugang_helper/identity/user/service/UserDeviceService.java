@@ -26,6 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UserDeviceService implements WebPushSubscriptionManagement {
 
+    private static final String EVENT_KEY = "event";
+    private static final String USER_ID_KEY = "userId";
+    private static final String TOKEN_FINGERPRINT_KEY = "tokenFingerprint";
+
     private final UserDeviceRepository userDeviceRepository;
     private final UserRepository userRepository;
     private final WebPushEndpointValidator webPushEndpointValidator;
@@ -40,9 +44,7 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
                         device -> {
                             device.updateToken(user.getId(), command.token(), command.p256dh(), command.auth(),
                                     command.alias());
-                            log.info("[UserDevice] 기존 알림 기기 갱신. userId={}, tokenFingerprint={}",
-                                    user.getId(),
-                                    tokenFingerprint(command.token()));
+                            logNotificationDeviceUpdated(user.getId(), tokenFingerprint(command.token()));
                         },
                         () -> {
                             UserDevice newDevice = UserDevice.builder()
@@ -53,8 +55,7 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
                                     .alias(command.alias())
                                     .build();
                             userDeviceRepository.save(newDevice);
-                            log.info("[UserDevice] 알림 기기 등록. userId={}, tokenFingerprint={}",
-                                    user.getId(), tokenFingerprint(command.token()));
+                            logNotificationDeviceRegistered(user.getId(), tokenFingerprint(command.token()));
                         });
     }
 
@@ -63,8 +64,7 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
         User user = getCurrentUserOrThrow();
         long deletedCount = userDeviceRepository.deleteByTokenAndUserId(token, user.getId());
         if (deletedCount > 0) {
-            log.info("[UserDevice] 알림 기기 등록 해제. userId={}, tokenFingerprint={}",
-                    user.getId(), tokenFingerprint(token));
+            logNotificationDeviceUnregistered(user.getId(), tokenFingerprint(token));
         }
     }
 
@@ -79,7 +79,7 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
         }
 
         userDeviceRepository.delete(device);
-        log.info("[UserDevice] 지정 알림 기기 삭제. userId={}, deviceId={}", user.getId(), deviceId);
+        logNotificationDeviceDeleted(user.getId(), deviceId);
     }
 
     @Override
@@ -88,7 +88,7 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
         userDeviceRepository.findByToken(token)
                 .ifPresent(device -> {
                     userDeviceRepository.delete(device);
-                    log.info("[UserDevice] 유효하지 않은 알림 기기 자동 삭제. tokenFingerprint={}", tokenFingerprint(token));
+                    logNotificationInvalidDeviceDeleted(tokenFingerprint(token));
                 });
     }
 
@@ -121,4 +121,39 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
             throw new IllegalStateException("SHA-256 is required to fingerprint device tokens", e);
         }
     }
+
+    private void logNotificationDeviceUpdated(Long userId, String tokenFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "notification_device_updated")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue(TOKEN_FINGERPRINT_KEY, tokenFingerprint)
+                .log("[UserDevice] 기존 알림 기기 갱신.");
+    }
+
+    private void logNotificationDeviceRegistered(Long userId, String tokenFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "notification_device_registered")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue(TOKEN_FINGERPRINT_KEY, tokenFingerprint)
+                .log("[UserDevice] 알림 기기 등록.");
+    }
+
+    private void logNotificationDeviceUnregistered(Long userId, String tokenFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "notification_device_unregistered")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue(TOKEN_FINGERPRINT_KEY, tokenFingerprint)
+                .log("[UserDevice] 알림 기기 등록 해제.");
+    }
+
+    private void logNotificationDeviceDeleted(Long userId, Long deviceId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "notification_device_deleted")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue("deviceId", deviceId)
+                .log("[UserDevice] 지정 알림 기기 삭제.");
+    }
+
+    private void logNotificationInvalidDeviceDeleted(String tokenFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "notification_invalid_device_deleted")
+                .addKeyValue(TOKEN_FINGERPRINT_KEY, tokenFingerprint)
+                .log("[UserDevice] 유효하지 않은 알림 기기 자동 삭제.");
+    }
+
 }

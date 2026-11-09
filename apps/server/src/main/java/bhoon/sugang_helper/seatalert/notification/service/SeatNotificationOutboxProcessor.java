@@ -38,6 +38,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class SeatNotificationOutboxProcessor {
 
+    private static final String EVENT_KEY = "event";
+    private static final String DELIVERY_ID_KEY = "deliveryId";
+
     private static final String CHANNEL_TAG = "channel";
     private static final List<SeatNotificationDeliveryStatus> ACTIVE_DELIVERY_STATUSES = List.of(
             SeatNotificationDeliveryStatus.PENDING, SeatNotificationDeliveryStatus.PROCESSING);
@@ -102,7 +105,7 @@ public class SeatNotificationOutboxProcessor {
             notificationService.deliverSeatOpening(
                     dispatch.userId(), dispatch.channel(), dispatch.outbox(), dispatch.idempotencyKey());
             if (!settlementService.markSent(claim)) {
-                log.info("[Notification Outbox] 선점이 바뀐 작업의 성공 정산 생략. deliveryId={}", claim.deliveryId());
+                logSuccessSettlementSkipped(claim.deliveryId());
             }
         } catch (RuntimeException e) {
             handleDeliveryFailure(claim, dispatch, e);
@@ -118,7 +121,7 @@ public class SeatNotificationOutboxProcessor {
         }
         SeatNotificationDeliveryFailureResult result = settlementService.markFailure(claim, failureCode, attempts);
         if (!result.settled()) {
-            log.info("[Notification Outbox] 선점이 바뀐 작업의 실패 정산 생략. deliveryId={}", claim.deliveryId());
+            logFailureSettlementSkipped(claim.deliveryId());
             return;
         }
         if (result.deadLettered()) {
@@ -132,16 +135,25 @@ public class SeatNotificationOutboxProcessor {
 
     private void logDeadLetteredDelivery(SeatNotificationDeliveryClaim claim, SeatNotificationDeliveryDispatch dispatch,
                                          String failureCode, RuntimeException e) {
-        log.error("[Notification Outbox] 발송 재시도 종료 후 DLQ 이동. deliveryId={}, outboxId={}, channel={}, failureCode={}, exceptionType={}",
-                claim.deliveryId(), dispatch.outbox().getId(), dispatch.channel(), failureCode,
-                SensitiveDataRedactor.exceptionType(e), SensitiveDataRedactor.safeStackTrace(e));
+        log.atError().addKeyValue(EVENT_KEY, "notification_delivery_dead_lettered")
+                .addKeyValue(DELIVERY_ID_KEY, claim.deliveryId())
+                .addKeyValue("outboxId", dispatch.outbox().getId())
+                .addKeyValue("channel", dispatch.channel())
+                .addKeyValue("failureCode", failureCode)
+                .addKeyValue("exceptionType", SensitiveDataRedactor.exceptionType(e))
+                .setCause(SensitiveDataRedactor.safeStackTrace(e))
+                .log("[Notification Outbox] 발송 재시도 종료 후 DLQ 이동.");
     }
 
     private void logRetryScheduled(SeatNotificationDeliveryClaim claim, SeatNotificationDeliveryDispatch dispatch,
                                    int attempts, String failureCode, RuntimeException e) {
-        log.warn("[Notification Outbox] 발송 재시도 예약. deliveryId={}, attempts={}, channel={}, failureCode={}, exceptionType={}",
-                claim.deliveryId(), attempts, dispatch.channel(), failureCode,
-                SensitiveDataRedactor.exceptionType(e));
+        log.atWarn().addKeyValue(EVENT_KEY, "notification_delivery_retry_scheduled")
+                .addKeyValue(DELIVERY_ID_KEY, claim.deliveryId())
+                .addKeyValue("attempts", attempts)
+                .addKeyValue("channel", dispatch.channel())
+                .addKeyValue("failureCode", failureCode)
+                .addKeyValue("exceptionType", SensitiveDataRedactor.exceptionType(e))
+                .log("[Notification Outbox] 발송 재시도 예약.");
     }
 
     private void recordClaimLag(SeatNotificationDelivery delivery, LocalDateTime claimedAt) {
@@ -215,6 +227,18 @@ public class SeatNotificationOutboxProcessor {
                     .channel(channel)
                     .build());
         }
+    }
+
+    private void logSuccessSettlementSkipped(Long deliveryId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "notification_success_settlement_skipped")
+                .addKeyValue(DELIVERY_ID_KEY, deliveryId)
+                .log("[Notification Outbox] 선점이 바뀐 작업의 성공 정산 생략.");
+    }
+
+    private void logFailureSettlementSkipped(Long deliveryId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "notification_failure_settlement_skipped")
+                .addKeyValue(DELIVERY_ID_KEY, deliveryId)
+                .log("[Notification Outbox] 선점이 바뀐 작업의 실패 정산 생략.");
     }
 
 }

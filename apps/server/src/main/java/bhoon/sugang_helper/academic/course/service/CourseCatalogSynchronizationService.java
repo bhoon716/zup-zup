@@ -165,8 +165,7 @@ public class CourseCatalogSynchronizationService {
     }
 
     private void enqueueSeatOpening(Course course) {
-        log.debug("[Crawler] 빈자리 증가 감지. courseKey={}, available={}", course.getCourseKey(),
-                course.getAvailable());
+        logSeatIncrease(course.getCourseKey(), course.getAvailable());
         eventPublisher.publishEvent(new SeatOpenedEvent(
                 course.getCourseKey(), course.getName(), course.getProfessor(), 0, course.getAvailable()));
     }
@@ -206,4 +205,12 @@ public class CourseCatalogSynchronizationService {
         }
         return duplicateRows;
     }
+
+    private void logSeatIncrease(String courseKey, int available) {
+        log.atDebug().addKeyValue("event", "course_seat_increase_detected")
+                .addKeyValue("courseKey", courseKey)
+                .addKeyValue("available", available)
+                .log("[Crawler] 빈자리 증가 감지.");
+    }
+
 }

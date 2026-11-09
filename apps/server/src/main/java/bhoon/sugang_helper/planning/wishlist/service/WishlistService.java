@@ -40,7 +40,7 @@ public class WishlistService {
                 .orElse(null);
         if (existingWishlist != null) {
             wishlistRepository.delete(existingWishlist);
-            log.debug("[Wishlist] 관심 강의 제거. userId={}, courseKey={}", user.id(), courseKey);
+            logWishlistCourseRemoved(user.id(), courseKey);
             return WishlistToggleResponse.of(false);
         }
 
@@ -49,7 +49,7 @@ public class WishlistService {
                 .courseKey(courseKey)
                 .build();
         wishlistRepository.save(wishlist);
-        log.debug("[Wishlist] 관심 강의 추가. userId={}, courseKey={}", user.id(), courseKey);
+        logWishlistCourseAdded(user.id(), courseKey);
         return WishlistToggleResponse.of(true);
     }
 
@@ -88,8 +88,7 @@ public class WishlistService {
     private WishlistResponse toWishlistResponse(Wishlist wishlist, Map<String, CourseSummary> courseMap) {
         CourseSummary course = courseMap.get(wishlist.getCourseKey());
         if (course == null) {
-            log.warn("[Wishlist] 강의 정보가 없어 응답에서 제외. courseKey={}",
-                    wishlist.getCourseKey());
+            logWishlistCourseMissing(wishlist.getCourseKey());
             return null;
         }
         return WishlistResponse.of(wishlist, course);
@@ -100,4 +99,25 @@ public class WishlistService {
         return userIdentityQuery.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
+
+    private void logWishlistCourseRemoved(Long userId, String courseKey) {
+        log.atDebug().addKeyValue("event", "wishlist_course_removed")
+                .addKeyValue("userId", userId)
+                .addKeyValue("courseKey", courseKey)
+                .log("[Wishlist] 관심 강의 제거.");
+    }
+
+    private void logWishlistCourseAdded(Long userId, String courseKey) {
+        log.atDebug().addKeyValue("event", "wishlist_course_added")
+                .addKeyValue("userId", userId)
+                .addKeyValue("courseKey", courseKey)
+                .log("[Wishlist] 관심 강의 추가.");
+    }
+
+    private void logWishlistCourseMissing(String courseKey) {
+        log.atWarn().addKeyValue("event", "wishlist_course_missing")
+                .addKeyValue("courseKey", courseKey)
+                .log("[Wishlist] 강의 정보가 없어 응답에서 제외.");
+    }
+
 }

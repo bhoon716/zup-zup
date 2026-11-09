@@ -174,8 +174,7 @@ public class UserController {
             linkDiscordAccount(code);
             return buildDiscordRedirectResponse(resolveDiscordRedirectPath(redirectPath), "success");
         } catch (Exception e) {
-            log.warn("[Discord] OAuth 연결 응답 처리 실패. failureCode={}, exceptionType={}",
-                    "INVALID_INPUT", e.getClass().getSimpleName());
+            logDiscordOauthCallbackFailed(e.getClass().getSimpleName());
             return buildDiscordRedirectResponse(resolveDiscordRedirectPath(redirectPath), "error");
         }
     }
@@ -204,4 +203,12 @@ public class UserController {
                 .header("Location", frontendBaseUrl + redirectPath + "?discord=" + result)
                 .build();
     }
+
+    private void logDiscordOauthCallbackFailed(String exceptionType) {
+        log.atWarn().addKeyValue("event", "discord_oauth_callback_failed")
+                .addKeyValue("exceptionType", exceptionType)
+                .addKeyValue("failureCode", "INVALID_INPUT")
+                .log("[Discord] OAuth 연결 응답 처리 실패.");
+    }
+
 }

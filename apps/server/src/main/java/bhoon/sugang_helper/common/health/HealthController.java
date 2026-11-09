@@ -34,12 +34,24 @@ public class HealthController {
                 buildProperties.getTime(),
                 LocalDateTime.now());
         if (isReady) {
-            log.debug("상태 확인 정상.");
+            logReady();
         } else {
             String readinessStatus = readiness == null ? "UNKNOWN" : readiness.getStatus().getCode();
-            log.warn("상태 확인 실패. readinessStatus={}", readinessStatus);
+            logNotReady(readinessStatus);
         }
         HttpStatus httpStatus = isReady ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;
         return ResponseEntity.status(httpStatus).body(response);
     }
+
+    private void logReady() {
+        log.atDebug().addKeyValue("event", "health_ready")
+                .log("상태 확인 정상.");
+    }
+
+    private void logNotReady(String readinessStatus) {
+        log.atWarn().addKeyValue("event", "health_not_ready")
+                .addKeyValue("readinessStatus", readinessStatus)
+                .log("상태 확인 실패.");
+    }
+
 }

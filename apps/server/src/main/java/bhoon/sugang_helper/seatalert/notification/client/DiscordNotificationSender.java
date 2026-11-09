@@ -57,7 +57,7 @@ public class DiscordNotificationSender implements NotificationSender {
     @Override
     public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         if (botToken == null || botToken.isBlank() || botToken.equals("<DISCORD_BOT_TOKEN>")) {
-            log.warn("[Discord] 봇 토큰 미설정으로 알림 발송 생략.");
+            logMissingBotToken();
             return;
         }
 
@@ -93,11 +93,9 @@ public class DiscordNotificationSender implements NotificationSender {
                     .retrieve()
                     .toEntity(String.class);
 
-            log.debug("[Discord] 개인 메시지 발송 완료. userIdFingerprint={}", userIdFingerprint);
+            logMessageSent(userIdFingerprint);
         } catch (Exception e) {
-            log.debug("[Discord] 개인 메시지 발송 실패. userIdFingerprint={}, failureCode={}, exceptionType={}",
-                    userIdFingerprint,
-                    ErrorCode.DISCORD_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            logMessageFailed(userIdFingerprint, ErrorCode.DISCORD_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             Integer statusCode = e instanceof RestClientResponseException responseException
                     ? responseException.getStatusCode().value() : null;
             boolean retryable = statusCode == null || statusCode == 429 || statusCode >= 500;
@@ -106,4 +104,25 @@ public class DiscordNotificationSender implements NotificationSender {
             throw new NotificationProviderException(ErrorCode.DISCORD_SEND_ERROR, retryable, reason, statusCode, e);
         }
     }
+
+    private void logMissingBotToken() {
+        log.atWarn().addKeyValue("event", "discord_notification_skipped")
+                .addKeyValue("reason", "BOT_TOKEN_MISSING")
+                .log("[Discord] 봇 토큰 미설정으로 알림 발송 생략.");
+    }
+
+    private void logMessageSent(String userIdFingerprint) {
+        log.atDebug().addKeyValue("event", "discord_notification_sent")
+                .addKeyValue("userIdFingerprint", userIdFingerprint)
+                .log("[Discord] 개인 메시지 발송 완료.");
+    }
+
+    private void logMessageFailed(String userIdFingerprint, String failureCode, String exceptionType) {
+        log.atDebug().addKeyValue("event", "discord_notification_failed")
+                .addKeyValue("userIdFingerprint", userIdFingerprint)
+                .addKeyValue("failureCode", failureCode)
+                .addKeyValue("exceptionType", exceptionType)
+                .log("[Discord] 개인 메시지 발송 실패.");
+    }
+
 }

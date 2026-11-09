@@ -1,11 +1,13 @@
 package bhoon.sugang_helper.seatalert.notification.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.identity.user.service.UserDeviceService;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import ch.qos.logback.classic.Level;
@@ -19,7 +21,6 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
@@ -83,10 +84,12 @@ class WebPushNotificationSenderTest {
             webPushNotificationSender.send(NotificationTarget.ofWeb(endpoint, generateP256dh(), generateAuth()),
                     "제목", "내용");
 
-            String messages = appender.list.stream()
-                    .map(ILoggingEvent::getFormattedMessage)
-                    .collect(Collectors.joining("\n"));
-            assertThat(messages).doesNotContain(endpoint).contains("endpointFingerprint=sha256:");
+            assertThat(appender.list).hasSize(2).allSatisfy(event -> {
+                assertThat(event.getFormattedMessage()).doesNotContain(endpoint);
+                assertThat(event.getKeyValuePairs().toString()).doesNotContain(endpoint);
+                assertThat(event.getKeyValuePairs()).extracting(pair -> pair.key, pair -> pair.value)
+                        .contains(tuple("endpointFingerprint", SensitiveDataRedactor.fingerprint(endpoint)));
+            });
         } finally {
             logger.detachAppender(appender);
             appender.stop();

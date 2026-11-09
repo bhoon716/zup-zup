@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -18,7 +19,6 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import jakarta.mail.internet.MimeMessage;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -92,11 +92,17 @@ class EmailNotificationSenderTest {
         try {
             assertThatThrownBy(() -> emailNotificationSender.send(NotificationTarget.of(recipient), "제목", "내용"))
                     .hasMessageNotContaining(recipient);
-            String messages = appender.list.stream()
-                    .map(ILoggingEvent::getFormattedMessage)
-                    .collect(Collectors.joining("\n"));
-            assertThat(messages).doesNotContain(recipient, "@example.com", "provider rejected")
-                    .contains("recipientFingerprint=sha256:", "failureCode=N001", "exceptionType=RuntimeException");
+            assertThat(appender.list).singleElement().satisfies(event -> {
+                assertThat(event.getFormattedMessage()).doesNotContain(recipient, "@example.com", "provider rejected");
+                assertThat(event.getKeyValuePairs().toString()).doesNotContain(recipient, "@example.com", "provider rejected");
+                assertThat(event.getKeyValuePairs()).extracting(pair -> pair.key, pair -> pair.value)
+                        .contains(tuple("event", "email_notification_failed"), tuple("failureCode", "N001"),
+                                tuple("exceptionType", "RuntimeException"));
+                assertThat(event.getKeyValuePairs()).anySatisfy(pair -> {
+                    assertThat(pair.key).isEqualTo("recipientFingerprint");
+                    assertThat(pair.value).asString().startsWith("sha256:");
+                });
+            });
         } finally {
             logger.detachAppender(appender);
             appender.stop();

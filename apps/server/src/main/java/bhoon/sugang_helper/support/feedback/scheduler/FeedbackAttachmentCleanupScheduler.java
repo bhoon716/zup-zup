@@ -24,6 +24,13 @@ public class FeedbackAttachmentCleanupScheduler {
                 .map(FeedbackAttachment::getFileUrl)
                 .collect(Collectors.toUnmodifiableSet());
         fileUploadService.deleteOrphanedFiles(referencedFileUrls);
-        log.info("[Feedback Attachment] 참조가 없는 첨부 파일 정리 완료. referencedFiles={}", referencedFileUrls.size());
+        logCleanupCompleted(referencedFileUrls.size());
     }
+
+    private void logCleanupCompleted(int referencedFiles) {
+        log.atInfo().addKeyValue("event", "feedback_attachment_cleanup_completed")
+                .addKeyValue("referencedFiles", referencedFiles)
+                .log("[Feedback Attachment] 참조가 없는 첨부 파일 정리 완료.");
+    }
+
 }

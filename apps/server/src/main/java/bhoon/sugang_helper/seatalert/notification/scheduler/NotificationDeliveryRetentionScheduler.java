@@ -28,6 +28,13 @@ public class NotificationDeliveryRetentionScheduler {
         long effectiveRetentionDays = Math.max(MINIMUM_RETENTION_DAYS, retentionDays);
         long deletedCount = deliveryRepository.deleteByStatusAndDeadLetteredAtBefore(
                 SeatNotificationDeliveryStatus.DLQ, LocalDateTime.now().minusDays(effectiveRetentionDays));
-        log.info("[Notification Delivery] 보존 기간이 지난 DLQ 정리 완료. deletedCount={}", deletedCount);
+        logRetentionCompleted(deletedCount);
     }
+
+    private void logRetentionCompleted(long deletedCount) {
+        log.atInfo().addKeyValue("event", "notification_dlq_retention_completed")
+                .addKeyValue("deletedCount", deletedCount)
+                .log("[Notification Delivery] 보존 기간이 지난 DLQ 정리 완료.");
+    }
+
 }

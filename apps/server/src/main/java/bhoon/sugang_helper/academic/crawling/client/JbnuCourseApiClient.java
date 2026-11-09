@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.zip.GZIPInputStream;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
+import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -201,17 +201,22 @@ public class JbnuCourseApiClient implements CourseApiClient {
         String result = requestFailureResult(retryable, exhausted);
         String exceptionType = SensitiveDataRedactor.exceptionType(
                 CrawlerUpstreamFailure.rootCause(e));
+        Level level = Level.ERROR;
         if (retryable) {
-            log.warn("[Crawler] 상위 강의 API 요청 실패. upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
-                            + "attempt={}/{} upstreamStatus={} exceptionType={} retryable={} result={}",
-                    currentRunId(), year, semester, targetCertDivision, stage, retryCount, maximumAttempts,
-                    status, exceptionType, true, result);
-            return;
+            level = Level.WARN;
         }
-        log.error("[Crawler] 상위 강의 API 요청 실패. upstream_request_failed runId={} year={} semester={} certDiv={} stage={} "
-                        + "attempt={}/{} upstreamStatus={} exceptionType={} retryable={} result={}",
-                currentRunId(), year, semester, targetCertDivision, stage, retryCount, maximumAttempts,
-                status, exceptionType, false, result);
+        log.atLevel(level).addKeyValue("event", "upstream_request_failed")
+                .addKeyValue("year", year)
+                .addKeyValue("semester", semester)
+                .addKeyValue("certDiv", targetCertDivision)
+                .addKeyValue("stage", stage)
+                .addKeyValue("attempt", retryCount)
+                .addKeyValue("maximumAttempts", maximumAttempts)
+                .addKeyValue("upstreamStatus", status)
+                .addKeyValue("exceptionType", exceptionType)
+                .addKeyValue("retryable", retryable)
+                .addKeyValue("result", result)
+                .log("[Crawler] 상위 강의 API 요청 실패.");
     }
 
     private boolean isRetryableFailure(Exception failure, CrawlerUpstreamFailure upstream) {
@@ -354,9 +359,15 @@ public class JbnuCourseApiClient implements CourseApiClient {
                               Exception failure, long waitTime) {
         CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.find(failure);
         CrawlerFailureStage stage = failureStage(upstream);
-        log.debug("[Crawler] 상위 강의 API 재시도 대기. upstream_retry_wait runId={} year={} semester={} certDiv={} stage={} "
-                        + "attempt={} waitMs={} result=waiting",
-                currentRunId(), year, semester, targetCertDivision, stage, retryCount, waitTime);
+        log.atDebug().addKeyValue("event", "upstream_retry_wait")
+                .addKeyValue("year", year)
+                .addKeyValue("semester", semester)
+                .addKeyValue("certDiv", targetCertDivision)
+                .addKeyValue("stage", stage)
+                .addKeyValue("attempt", retryCount)
+                .addKeyValue("waitMs", waitTime)
+                .addKeyValue("result", "waiting")
+                .log("[Crawler] 상위 강의 API 재시도 대기.");
     }
 
     private CustomException connectionFailure(Exception cause) {
@@ -374,14 +385,6 @@ public class JbnuCourseApiClient implements CourseApiClient {
             current = current.getCause();
         }
         return null;
-    }
-
-    private String currentRunId() {
-        String runId = MDC.get("crawlerRunId");
-        if (runId == null || runId.isBlank()) {
-            return "NONE";
-        }
-        return runId;
     }
 
     private String statusLabel(Integer status) {

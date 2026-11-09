@@ -64,12 +64,26 @@ public class EmailNotificationSender implements NotificationSender {
             }
 
             javaMailSender.send(mimeMessage);
-            log.debug("[EmailNotification] 이메일 발송 완료. recipientFingerprint={}, fromFingerprint={}",
-                    recipientFingerprint, SensitiveDataRedactor.fingerprint(from));
+            logEmailSent(recipientFingerprint, SensitiveDataRedactor.fingerprint(from));
         } catch (Exception e) {
-            log.debug("[EmailNotification] 이메일 발송 실패. recipientFingerprint={}, failureCode={}, exceptionType={}",
-                    recipientFingerprint, ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            logEmailFailed(recipientFingerprint, ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new CustomException(ErrorCode.EMAIL_SEND_ERROR);
         }
     }
+
+    private void logEmailSent(String recipientFingerprint, String fromFingerprint) {
+        log.atDebug().addKeyValue("event", "email_notification_sent")
+                .addKeyValue("recipientFingerprint", recipientFingerprint)
+                .addKeyValue("fromFingerprint", fromFingerprint)
+                .log("[EmailNotification] 이메일 발송 완료.");
+    }
+
+    private void logEmailFailed(String recipientFingerprint, String failureCode, String exceptionType) {
+        log.atDebug().addKeyValue("event", "email_notification_failed")
+                .addKeyValue("recipientFingerprint", recipientFingerprint)
+                .addKeyValue("failureCode", failureCode)
+                .addKeyValue("exceptionType", exceptionType)
+                .log("[EmailNotification] 이메일 발송 실패.");
+    }
+
 }

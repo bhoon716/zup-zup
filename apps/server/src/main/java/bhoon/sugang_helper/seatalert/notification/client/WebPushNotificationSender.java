@@ -25,6 +25,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class WebPushNotificationSender implements NotificationSender {
 
+    private static final String EVENT_KEY = "event";
+
     private final String publicKey;
     private final String privateKey;
     private final String subject;
@@ -49,13 +51,13 @@ public class WebPushNotificationSender implements NotificationSender {
     public void init() {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
-            log.info("[WebPush] 암호화 제공자 등록 완료.");
+            logCryptoProviderRegistered();
         }
         try {
             if (publicKey != null && !publicKey.trim().isEmpty() &&
                     privateKey != null && !privateKey.trim().isEmpty()) {
                 this.pushService = new PushService(publicKey, privateKey, subject);
-                log.info("[WebPush] 발송 서비스 초기화 완료.");
+                logInitialized();
             }
         } catch (Exception e) {
             throw new RuntimeException("웹푸시 PushService 초기화에 실패했습니다.", e);
@@ -97,7 +99,7 @@ public class WebPushNotificationSender implements NotificationSender {
             }
             Notification notification = notificationBuilder.build();
 
-            log.debug("[WebPush] 단말 발송 시작. endpointFingerprint={}", endpointFingerprint);
+            logSendStarted(endpointFingerprint);
             @SuppressWarnings("deprecation")
             Future<HttpResponse> request = pushService.sendAsync(notification, Encoding.AESGCM);
             int statusCode = awaitStatusCode(request);
@@ -115,12 +117,11 @@ public class WebPushNotificationSender implements NotificationSender {
                         retryable, reason, statusCode, null);
             }
 
-            log.debug("[WebPush] 단말 발송 완료. endpointFingerprint={}", endpointFingerprint);
+            logSendSucceeded(endpointFingerprint);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.debug("[WebPush] 단말 발송 실패. endpointFingerprint={}, failureCode={}, exceptionType={}",
-                    endpointFingerprint, ErrorCode.WEB_PUSH_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            logSendFailed(endpointFingerprint, ErrorCode.WEB_PUSH_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
                     true, "ERROR", null, e);
         }
@@ -134,6 +135,36 @@ public class WebPushNotificationSender implements NotificationSender {
             Thread.currentThread().interrupt();
             throw exception;
         }
+    }
+
+    private void logCryptoProviderRegistered() {
+        log.atInfo().addKeyValue(EVENT_KEY, "web_push_crypto_provider_registered")
+                .log("[WebPush] 암호화 제공자 등록 완료.");
+    }
+
+    private void logInitialized() {
+        log.atInfo().addKeyValue(EVENT_KEY, "web_push_initialized")
+                .log("[WebPush] 발송 서비스 초기화 완료.");
+    }
+
+    private void logSendStarted(String endpointFingerprint) {
+        log.atDebug().addKeyValue(EVENT_KEY, "web_push_send_started")
+                .addKeyValue("endpointFingerprint", endpointFingerprint)
+                .log("[WebPush] 단말 발송 시작.");
+    }
+
+    private void logSendSucceeded(String endpointFingerprint) {
+        log.atDebug().addKeyValue(EVENT_KEY, "web_push_sent")
+                .addKeyValue("endpointFingerprint", endpointFingerprint)
+                .log("[WebPush] 단말 발송 완료.");
+    }
+
+    private void logSendFailed(String endpointFingerprint, String failureCode, String exceptionType) {
+        log.atDebug().addKeyValue(EVENT_KEY, "web_push_send_failed")
+                .addKeyValue("endpointFingerprint", endpointFingerprint)
+                .addKeyValue("failureCode", failureCode)
+                .addKeyValue("exceptionType", exceptionType)
+                .log("[WebPush] 단말 발송 실패.");
     }
 
     private record WebPushPayload(String title, String body, String url, String idempotencyKey) {

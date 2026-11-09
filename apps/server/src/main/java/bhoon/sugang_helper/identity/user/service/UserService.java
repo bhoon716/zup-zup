@@ -31,6 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UserService {
 
+    private static final String EVENT_KEY = "event";
+    private static final String USER_ID_KEY = "userId";
+
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final UserDeviceRepository userDeviceRepository;
@@ -56,7 +59,7 @@ public class UserService {
     public UserProfileUpdateResult updateProfile(UpdateProfileCommand command) {
         User user = getCurrentUser();
         user.update(command.name());
-        log.info("[User] 프로필 수정. userId={}", user.getId());
+        logUserProfileUpdated(user.getId());
         return UserProfileUpdateResult.from(user);
     }
 
@@ -76,8 +79,7 @@ public class UserService {
                 command.emailEnabled(),
                 command.webPushEnabled(),
                 command.discordEnabled());
-        log.info("[User] 알림 설정 변경. userId={}, emailEnabled={}, webPushEnabled={}",
-                user.getId(), command.emailEnabled(), command.webPushEnabled());
+        logUserNotificationSettingsUpdated(user.getId(), command.emailEnabled(), command.webPushEnabled());
         return UserSettingsResult.from(user);
     }
 
@@ -94,7 +96,7 @@ public class UserService {
         emailVerificationService.clearVerificationState(userId, email, notificationEmail);
         eventPublisher.publishEvent(new UserWithdrawnEvent(userId));
         userDeviceRepository.deleteAllByUserId(userId);
-        log.info("[User] 회원 탈퇴 처리. userId={}", userId);
+        logUserWithdrawn(userId);
     }
 
     @Transactional
@@ -113,8 +115,7 @@ public class UserService {
                 command.emailEnabled(),
                 command.webPushEnabled(),
                 command.discordEnabled());
-        log.info("[User] 초기 설정 완료. userId={}, emailFingerprint={}", user.getId(),
-                SensitiveDataRedactor.fingerprint(user.getEmail()));
+        logUserOnboardingCompleted(user.getId(), SensitiveDataRedactor.fingerprint(user.getEmail()));
         return UserOnboardingResult.from(user);
     }
 
@@ -142,15 +143,14 @@ public class UserService {
     public void linkDiscordId(String discordId) {
         User user = getCurrentUser();
         user.linkDiscord(discordId);
-        log.info("[User] Discord 계정 연결. userId={}, discordIdFingerprint={}", user.getId(),
-                SensitiveDataRedactor.fingerprint(discordId));
+        logUserDiscordLinked(user.getId(), SensitiveDataRedactor.fingerprint(discordId));
     }
 
     @Transactional
     public void unlinkDiscord() {
         User user = getCurrentUser();
         user.unlinkDiscord();
-        log.info("[User] Discord 계정 연결 해제. userId={}", user.getId());
+        logUserDiscordUnlinked(user.getId());
     }
 
     public User getCurrentUser() {
@@ -158,6 +158,46 @@ public class UserService {
         return userRepository.findByEmail(email)
                 .filter(user -> !user.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+    }
+
+    private void logUserProfileUpdated(Long userId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_profile_updated")
+                .addKeyValue(USER_ID_KEY, userId)
+                .log("[User] 프로필 수정.");
+    }
+
+    private void logUserNotificationSettingsUpdated(Long userId, boolean emailEnabled, boolean webPushEnabled) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_notification_settings_updated")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue("emailEnabled", emailEnabled)
+                .addKeyValue("webPushEnabled", webPushEnabled)
+                .log("[User] 알림 설정 변경.");
+    }
+
+    private void logUserWithdrawn(Long userId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_withdrawn")
+                .addKeyValue(USER_ID_KEY, userId)
+                .log("[User] 회원 탈퇴 처리.");
+    }
+
+    private void logUserOnboardingCompleted(Long userId, String emailFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_onboarding_completed")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue("emailFingerprint", emailFingerprint)
+                .log("[User] 초기 설정 완료.");
+    }
+
+    private void logUserDiscordLinked(Long userId, String discordIdFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_discord_linked")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue("discordIdFingerprint", discordIdFingerprint)
+                .log("[User] Discord 계정 연결.");
+    }
+
+    private void logUserDiscordUnlinked(Long userId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_discord_unlinked")
+                .addKeyValue(USER_ID_KEY, userId)
+                .log("[User] Discord 계정 연결 해제.");
     }
 
 }

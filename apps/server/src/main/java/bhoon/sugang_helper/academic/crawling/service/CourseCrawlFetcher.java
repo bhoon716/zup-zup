@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -68,31 +67,41 @@ public class CourseCrawlFetcher {
     }
 
     private void logChunkStarted(String year, String semester, String certDiv) {
-        log.debug("[Crawler] 강의 묶음 수집 시작. chunk_started runId={} year={} semester={} certDiv={} stage=COURSE_API result=started",
-                currentRunId(), year, semester, certDiv);
+        log.atDebug().addKeyValue("event", "chunk_started")
+                .addKeyValue("year", year)
+                .addKeyValue("semester", semester)
+                .addKeyValue("certDiv", certDiv)
+                .addKeyValue("stage", "COURSE_API")
+                .addKeyValue("result", "started")
+                .log("[Crawler] 강의 묶음 수집 시작.");
     }
 
     private void logChunkSucceeded(String year, String semester, String certDiv, int courseCount,
                                     int totalCount, long startNs) {
         long elapsedMs = (System.nanoTime() - startNs) / 1_000_000;
-        log.debug("[Crawler] 강의 묶음 수집 완료. chunk_succeeded runId={} year={} semester={} certDiv={} stage=COURSE_API "
-                        + "result=success rowCount={} totalSoFar={} elapsedMs={}",
-                currentRunId(), year, semester, certDiv, courseCount,
-                totalCount, elapsedMs);
+        log.atDebug().addKeyValue("event", "chunk_succeeded")
+                .addKeyValue("year", year)
+                .addKeyValue("semester", semester)
+                .addKeyValue("certDiv", certDiv)
+                .addKeyValue("rowCount", courseCount)
+                .addKeyValue("totalSoFar", totalCount)
+                .addKeyValue("elapsedMs", elapsedMs)
+                .addKeyValue("stage", "COURSE_API")
+                .addKeyValue("result", "success")
+                .log("[Crawler] 강의 묶음 수집 완료.");
     }
 
     private void logChunkFailed(String year, String semester, String certDiv, IOException exception) {
-        log.error("[Crawler] 강의 묶음 수집 실패. chunk_failed runId={} year={} semester={} certDiv={} stage=COURSE_API "
-                        + "result=failed failureCode=C001 exceptionType={} retryable=true",
-                currentRunId(), year, semester, certDiv, exception.getClass().getSimpleName());
-    }
-
-    private String currentRunId() {
-        String runId = MDC.get("crawlerRunId");
-        if (runId == null || runId.isBlank()) {
-            return "NONE";
-        }
-        return runId;
+        log.atError().addKeyValue("event", "chunk_failed")
+                .addKeyValue("year", year)
+                .addKeyValue("semester", semester)
+                .addKeyValue("certDiv", certDiv)
+                .addKeyValue("exceptionType", exception.getClass().getSimpleName())
+                .addKeyValue("stage", "COURSE_API")
+                .addKeyValue("result", "failed")
+                .addKeyValue("failureCode", "C001")
+                .addKeyValue("retryable", true)
+                .log("[Crawler] 강의 묶음 수집 실패.");
     }
 
     private void paceRequest(int currentIndex, int totalCount) {

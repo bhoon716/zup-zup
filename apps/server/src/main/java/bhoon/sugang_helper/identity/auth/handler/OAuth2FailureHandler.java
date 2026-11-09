@@ -20,8 +20,15 @@ public class OAuth2FailureHandler extends SimpleUrlAuthenticationFailureHandler 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {
-        log.warn("[OAuth2] 외부 계정 로그인 실패. exceptionType={}", SensitiveDataRedactor.exceptionType(exception));
+        logOauthLoginFailed(SensitiveDataRedactor.exceptionType(exception));
 
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }
+
+    private void logOauthLoginFailed(String exceptionType) {
+        log.atWarn().addKeyValue("event", "oauth_login_failed")
+                .addKeyValue("exceptionType", exceptionType)
+                .log("[OAuth2] 외부 계정 로그인 실패.");
+    }
+
 }

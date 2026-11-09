@@ -40,8 +40,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String name = requiredAttribute(attributes, "name");
         String subject = requiredAttribute(attributes, userNameAttributeName);
 
-        log.info("[OAuth2] 외부 계정 로그인 요청. provider={}, emailFingerprint={}", registrationId,
-                SensitiveDataRedactor.fingerprint(email));
+        logOauthLoginRequested(registrationId, SensitiveDataRedactor.fingerprint(email));
         AuthenticatedUser user;
         try {
             user = accountProvisioner.findOrCreate(issuer, subject, email, name);
@@ -49,7 +48,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             throw new OAuth2AuthenticationException(
                     new OAuth2Error(exception.errorCode()), exception.getMessage());
         }
-        log.info("[OAuth2] 로그인 사용자 조회 완료. userId={}", user.id());
+        logOauthLoginUserFound(user.id());
 
         return new OAuth2AuthenticatedUser(
                 user.id(), user.email(), user.roleKey(), attributes, userNameAttributeName);
@@ -79,4 +78,18 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
         return delegate.loadUser(userRequest);
     }
+
+    private void logOauthLoginRequested(String provider, String emailFingerprint) {
+        log.atInfo().addKeyValue("event", "oauth_login_requested")
+                .addKeyValue("provider", provider)
+                .addKeyValue("emailFingerprint", emailFingerprint)
+                .log("[OAuth2] 외부 계정 로그인 요청.");
+    }
+
+    private void logOauthLoginUserFound(Long userId) {
+        log.atInfo().addKeyValue("event", "oauth_login_user_found")
+                .addKeyValue("userId", userId)
+                .log("[OAuth2] 로그인 사용자 조회 완료.");
+    }
+
 }
