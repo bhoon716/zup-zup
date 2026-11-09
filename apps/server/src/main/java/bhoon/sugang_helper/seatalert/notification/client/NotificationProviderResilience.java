@@ -88,25 +88,20 @@ public class NotificationProviderResilience implements AutoCloseable {
                 future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
                 circuit.recordSuccess();
                 outcome = "success";
-            } catch (TimeoutException exception) {
+            } catch (TimeoutException | InterruptedException exception) {
                 future.cancel(true);
-                recordFailure(provider, true, "TIMEOUT", null);
+                String reason = "TIMEOUT";
+                if (exception instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                    reason = "INTERRUPTED";
+                }
+                recordFailure(provider, true, reason, null);
                 circuit.recordFailure(true, Instant.now(), failureThreshold, openDuration);
-                throw new NotificationProviderException(providerErrorCode(provider), true, "TIMEOUT", null, exception);
-            } catch (InterruptedException exception) {
-                future.cancel(true);
-                Thread.currentThread().interrupt();
-                recordFailure(provider, true, "INTERRUPTED", null);
-                circuit.recordFailure(true, Instant.now(), failureThreshold, openDuration);
-                throw new NotificationProviderException(providerErrorCode(provider), true, "INTERRUPTED", null, exception);
+                throw new NotificationProviderException(providerErrorCode(provider), true, reason, null, exception);
             } catch (ExecutionException exception) {
-                RuntimeException normalized = normalize(provider, exception.getCause());
-                boolean retryable = NotificationFailureClassifier.isRetryable(normalized);
-                Integer statusCode = normalized instanceof NotificationProviderException providerException
-                        ? providerException.getStatusCode() : null;
-                recordFailure(provider, retryable,
-                        normalized instanceof NotificationProviderException providerException
-                                ? providerException.getReason() : "ERROR", statusCode);
+                NotificationProviderException normalized = normalize(provider, exception.getCause());
+                boolean retryable = normalized.isRetryable();
+                recordFailure(provider, retryable, normalized.getReason(), normalized.getStatusCode());
                 circuit.recordFailure(retryable, Instant.now(), failureThreshold, openDuration);
                 throw normalized;
             }
@@ -120,7 +115,7 @@ public class NotificationProviderResilience implements AutoCloseable {
         }
     }
 
-    private RuntimeException normalize(NotificationChannel provider, Throwable throwable) {
+    private NotificationProviderException normalize(NotificationChannel provider, Throwable throwable) {
         if (throwable instanceof NotificationProviderException providerException) {
             return providerException;
         }
