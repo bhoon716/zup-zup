@@ -338,7 +338,8 @@ curl --fail --silent --show-error --max-time 10 \
 stage="observability-smoke"
 grafana_port_host="$(read_env_value GRAFANA_PORT_HOST)"
 [ -n "${grafana_port_host}" ] || grafana_port_host=3000
-if ! GRAFANA_ADMIN_USER="$(read_env_value GRAFANA_ADMIN_USER)" \
+if ! GRAFANA_SMOKE_TOKEN_FILE="$(read_env_value GRAFANA_SMOKE_TOKEN_FILE)" \
+  GRAFANA_ADMIN_USER="$(read_env_value GRAFANA_ADMIN_USER)" \
   GRAFANA_ADMIN_PASSWORD="$(read_env_value GRAFANA_ADMIN_PASSWORD)" \
   GRAFANA_CONTAINER_NAME="$(read_env_value GRAFANA_CONTAINER_NAME)" \
   RUNTIME_NETWORK_NAME="$(read_env_value RUNTIME_NETWORK_NAME)" \

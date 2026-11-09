@@ -10,6 +10,7 @@ runtime_network="${RUNTIME_NETWORK_NAME:-${DEFAULT_RUNTIME_NETWORK}}"
 probe_image="${DEFAULT_PROBE_IMAGE}"
 grafana_url="${GRAFANA_URL:-${DEFAULT_GRAFANA_URL}}"
 grafana_container="${GRAFANA_CONTAINER_NAME:-${DEFAULT_GRAFANA_CONTAINER}}"
+grafana_token_file="${GRAFANA_SMOKE_TOKEN_FILE:-}"
 grafana_user="${GRAFANA_ADMIN_USER:-}"
 grafana_password="${GRAFANA_ADMIN_PASSWORD:-}"
 grafana_prometheus_uid=""
@@ -72,8 +73,6 @@ command -v curl >/dev/null || fail "host curl is required for the Grafana endpoi
 command -v python3 >/dev/null || fail "python3 is required to validate query JSON"
 is_positive_integer "${timeout_seconds}" || fail "OBSERVABILITY_SMOKE_TIMEOUT_SECONDS must be a positive integer"
 is_positive_integer "${http_timeout_seconds}" || fail "OBSERVABILITY_SMOKE_HTTP_TIMEOUT_SECONDS must be a positive integer"
-[ -n "${grafana_user}" ] || fail "GRAFANA_ADMIN_USER is required for datasource API checks"
-[ -n "${grafana_password}" ] || fail "GRAFANA_ADMIN_PASSWORD is required for datasource API checks"
 
 deadline=$((SECONDS + timeout_seconds))
 marker_lifetime_seconds=$((timeout_seconds + http_timeout_seconds + 10))
@@ -88,10 +87,27 @@ escape_curl_config_value() {
 }
 
 grafana_curl_config="${temporary_dir}/grafana-curl.conf"
-grafana_user_config="$(escape_curl_config_value "${grafana_user}")"
-grafana_password_config="$(escape_curl_config_value "${grafana_password}")"
-printf 'user = "%s:%s"\n' "${grafana_user_config}" "${grafana_password_config}" >"${grafana_curl_config}"
-chmod 0600 "${grafana_curl_config}"
+
+write_grafana_curl_config() {
+  if [ -n "${grafana_token_file}" ]; then
+    [[ "${grafana_url}" =~ ^http://127\.0\.0\.1:[0-9]{1,5}$ ]] \
+      || fail "Grafana token authentication requires a loopback Grafana URL"
+    [ -f "${grafana_token_file}" ] && [ -r "${grafana_token_file}" ] \
+      || fail "GRAFANA_SMOKE_TOKEN_FILE must be a readable regular file"
+    local token
+    token="$(<"${grafana_token_file}")" || fail "Grafana smoke token could not be read"
+    [[ "${token}" =~ ^glsa_[A-Za-z0-9_+=/-]{12,490}$ ]] || fail "Grafana smoke token is invalid"
+    printf 'header = "Authorization: Bearer %s"\n' "${token}"
+    return
+  fi
+
+  [ -n "${grafana_user}" ] || fail "GRAFANA_ADMIN_USER is required for datasource API checks"
+  [ -n "${grafana_password}" ] || fail "GRAFANA_ADMIN_PASSWORD is required for datasource API checks"
+  printf 'user = "%s:%s"\n' "$(escape_curl_config_value "${grafana_user}")" \
+    "$(escape_curl_config_value "${grafana_password}")"
+}
+
+(umask 077; write_grafana_curl_config >"${grafana_curl_config}")
 
 if ! [[ "${runtime_network}" =~ ^[A-Za-z0-9_.-]+$ ]]; then
   fail "RUNTIME_NETWORK_NAME contains unsupported characters"
@@ -115,7 +131,7 @@ probe_http() {
 }
 
 grafana_curl() {
-  curl --config "${grafana_curl_config}" \
+  curl --disable --config "${grafana_curl_config}" --noproxy 127.0.0.1 \
     --fail --silent --show-error --max-time "${http_timeout_seconds}" "$@"
 }
 

@@ -59,6 +59,8 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 
 운영 배포는 앱 readiness 뒤에 `scripts/test-observability-smoke.sh`를 best-effort로 실행한다. 이 검증은 Prometheus의 앱 target `up=1`, Grafana Prometheus/Loki datasource health와 proxy query, 그리고 고유 Docker JSON marker의 Alloy→Loki round-trip을 확인한다. 실패하면 CD에 경고를 남기되 ready 상태의 앱은 계속 서비스한다. 수동 재기동에서 probe volume을 삭제했다면 먼저 `./scripts/compose-observability-diagnostics.sh probe`를 실행한다.
 
+운영 `.env`의 `GRAFANA_SMOKE_TOKEN_FILE`에는 배포 사용자가 읽을 수 있는 Grafana Viewer 토큰 파일의 절대 경로를 지정한다. 토큰 파일 권한은 `0600`으로 설정하고 토큰 자체는 `.env`나 저장소에 넣지 않는다. 점검은 루프백 Grafana API에만 이 토큰을 전송한다.
+
 현재 Loki는 호스트 filesystem에 30일 retention으로 저장합니다. 일반 진단 로그의 영구 보관을 뜻하지 않습니다. 중요한 관리자 감사 기록은 기본 자동 삭제를 중지하고 [최소 감사 아카이브·복구 절차](../docs/operations/important-record-retention.md)로 분리했습니다. 외부 저장소·자동 실행의 실제 운영 반영은 별도 확인해야 합니다.
 
 앱과 분리된 [경보 판정 규칙](prometheus/README.md)을 제공합니다. Grafana 대시보드는 사용자 선택에 따라 Grafana 페이지에서 관리하며 이번 변경에서 JSON/provisioning은 수정하지 않습니다. 아직 Alertmanager/외부 수신처를 연결하지 않았으므로 실제 장애 알림 수신이나 호스트 전체 장애 감시를 보장하지 않습니다. [읽기 전용 호스트 디스크/inode 점검](../docs/operations/host-storage-health.md)은 준비했으며 실제 서버 실행·주기 등록·알림 연결은 별도 운영 단계입니다.
