@@ -1,0 +1,38 @@
+rule_files:
+  - ../mac-backup-alerts.yml
+evaluation_interval: 1m
+
+tests:
+  - name: 이번 주 백업은 화요일 04시 이후에 필요하며 수신 후 해제된다
+    interval: 1m
+    input_series:
+      - series: 'sugang_mac_backup_snapshot_timestamp_seconds{job="host-jobs"}'
+        values: '1+0x6906 327660+0x10'
+    alert_rule_test:
+      - eval_time: 114h59m
+        alertname: MacBackupNotReceived
+        exp_alerts: []
+      - eval_time: 115h5m
+        alertname: MacBackupNotReceived
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              service: offhost-backup
+            exp_annotations:
+              summary: 맥북에 최신 운영 백업이 도착하지 않았습니다
+              description: 월요일 백업의 맥북 저장과 체크섬 검증을 확인하지 못했습니다. 맥북의 백업 작업과 SSH 연결을 확인하세요.
+      - eval_time: 115h8m
+        alertname: MacBackupNotReceived
+        exp_alerts: []
+
+  - name: 복사 확인 지표가 없으면 알린다
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: MacBackupNotReceived
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              service: offhost-backup
+            exp_annotations:
+              summary: 맥북에 최신 운영 백업이 도착하지 않았습니다
+              description: 월요일 백업의 맥북 저장과 체크섬 검증을 확인하지 못했습니다. 맥북의 백업 작업과 SSH 연결을 확인하세요.

@@ -16,7 +16,14 @@ bash infra/scripts/backup-server-export.sh
 - 성공한 묶음은 `${RELEASE_ROOT}/backups/export/full_backup_<UTC>_<random>/`에 디렉터리 단위로 공개된다. DB `.sql.gz`, 첨부 `.tar.gz`, `backup.manifest`와 각 파일의 `.sha256`을 함께 보관한다. 감사 아카이브는 별도 `backups/audit/`에 남는다.
 - manifest의 `schema=full-backup-v1`, `database=sugang_helper`, `dump_file`, `uploads`, `uploads_file`은 묶음 구성만 설명한다. 원본 DB의 같은 snapshot에 대한 정확한 행 수를 별도로 보증하지 않는다.
 - `--single-transaction`은 MySQL transactional table의 일관된 dump를 위한 옵션이다. 그 뒤 생성하는 첨부 tar와 DB 사이의 동일 시점 원자성, 동시에 실행한 DDL의 안전성을 보증하지 않는다. 운영 복구 시 첨부 연결을 별도로 확인해야 한다.
-- 수동 `backup-to-macbook.sh` 전송 정책은 유지한다. 이 변경이 외부 자동 전송이나 운영 설치를 수행하는 것은 아니다. 새 exporter에는 기존 백업을 삭제하는 pruning이 없다. 따라서 일일 timer로 활성화하면 완성 묶음이 누적되고, ADR의 서버 최신 세 개 정책이 자동 적용되지 않는다. 활성화 전에 수동 offhost 사본 확보와 보관·회전 정책을 확정해야 한다. 이번 변경은 기존 기록·백업을 삭제하지 않는다. 저장 공간 preflight/신선도 경보가 있어도 장기 여유 공간을 보장하지 않는다.
+- 운영 서버에서는 기존 주간 백업에 아래 자동 복사 구성을 적용한다. 수동으로 생성한 묶음도 같은 형식을 쓴다.
+
+## 맥북 자동 복사와 도착 알림
+
+- 기존 `jbnu-sugang-helper-db-backup.timer`의 월요일 04:00(한국 시간)에 전체 묶음을 생성한다. [서비스 설정](../../infra/systemd/weekly-backup-full-export.conf)은 생성에 성공하면 체크섬을 검증한 전체 묶음 중 최신 세 개를 서버에 보관한다.
+- 맥북의 `com.zupzup.offhost-backup` LaunchAgent는 로그인 시, 월요일 04:30 및 실행 중 매시간 기존 `zupzup` SSH 설정으로 최신 묶음을 확인한다. 검증한 압축본과 SHA-256을 `~/Backups/jbnu-sugang-helper/full/`에 저장한다. 로그는 `~/Backups/jbnu-sugang-helper/logs/automatic-copy.log`에 남는다.
+- [복사 스크립트](../../infra/scripts/offhost-backup.py)는 맥북에 저장된 사본을 검증한 후 서버에 원본 스냅샷 시각을 기록한다. 운영의 `PROMETHEUS_HOST_JOB_RULES_FILE`이 읽는 [경보 규칙](../../infra/prometheus/mac-backup-alerts.yml)은 화요일 04:00까지 해당 주 백업이 확인되지 않거나 도착 지표가 사라진 상태가 5분간 이어지면 기존 Slack으로 알린다.
+- 자동 복사 압축본에서 복원할 때는 접근이 제한된 디렉터리에서 먼저 `shasum -a 256 -c <압축본>.tar.gz.sha256`을 실행한다. `tar -xzf <압축본>.tar.gz`로 전체 묶음을 푼 뒤 아래의 DB 파일 경로를 넘긴다.
 
 ## Docker 실행 전 준비
 
