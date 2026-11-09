@@ -24,13 +24,14 @@ public class CourseScheduler {
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
-        if (runOnStartup) {
-            logStartupCrawlStarted();
-            try {
-                courseCrawlerService.crawlRecentYears();
-            } catch (Exception e) {
-                logStartupCrawlFailed(SensitiveDataRedactor.exceptionType(e));
-            }
+        if (!runOnStartup) {
+            return;
+        }
+        logStartupCrawlStarted();
+        try {
+            courseCrawlerService.crawlRecentYears();
+        } catch (Exception e) {
+            logStartupCrawlFailed(SensitiveDataRedactor.exceptionType(e));
         }
     }
 
