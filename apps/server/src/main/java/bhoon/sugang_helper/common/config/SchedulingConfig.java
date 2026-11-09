@@ -9,6 +9,16 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 public class SchedulingConfig {
 
     @Bean
+    public ThreadPoolTaskScheduler monitoringTaskScheduler(ThreadPoolTaskSchedulerBuilder builder) {
+        return builder.poolSize(1).threadNamePrefix("monitoring-").build();
+    }
+
+    @Bean
+    public ThreadPoolTaskScheduler notificationTaskScheduler(ThreadPoolTaskSchedulerBuilder builder) {
+        return builder.poolSize(1).threadNamePrefix("notification-").build();
+    }
+
+    @Bean
     public ThreadPoolTaskScheduler taskScheduler(ThreadPoolTaskSchedulerBuilder builder) {
         return builder.poolSize(1).build();
     }

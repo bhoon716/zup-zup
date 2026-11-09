@@ -1,0 +1,28 @@
+[Unit]
+Description=Sugang helper host storage capacity check
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+Environment=RELEASE_ROOT=/home/ubuntu/jbnu-sugang-helper
+Environment=DOCKER_DATA_PATH=/var/lib/docker
+EnvironmentFile=-/etc/sugang-helper/host-jobs.env
+ExecStart=/usr/bin/python3 ${RELEASE_ROOT}/scripts/run-host-job.py storage
+StateDirectory=sugang-helper-host-jobs
+StateDirectoryMode=0750
+UMask=0077
+TimeoutStartSec=60
+KillMode=control-group
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateNetwork=true
+ProtectSystem=strict
+ProtectHome=read-only
+RestrictAddressFamilies=AF_UNIX
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sugang-helper-host-job
+LogRateLimitIntervalSec=5min
+LogRateLimitBurst=30

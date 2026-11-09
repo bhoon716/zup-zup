@@ -83,6 +83,9 @@ for required in (
     'loki.source.docker "containers"',
     'refresh_interval = "5s"',
     'target_label  = "job"',
+    'source_labels = ["__meta_docker_container_label_com_docker_compose_project"]',
+    'regex = "sugang-helper"',
+    'action = "keep"',
     'url = "http://loki:3100/loki/api/v1/push"',
 ):
     if required not in alloy:
@@ -98,6 +101,9 @@ for required in ("http://prometheus:9090", "http://loki:3100"):
     if required not in datasources:
         raise SystemExit(f"Grafana datasource is missing: {required}")
 
+prometheus_mounts = {str(item.get("target")): item for item in services["prometheus"].get("volumes", [])}
+if prometheus_mounts.get("/etc/prometheus/rules", {}).get("read_only") is not True:
+    raise SystemExit("Prometheus rules must be mounted read-only")
 for dashboard in (repo_root / "infra/grafana/dashboards").glob("*.json"):
     definition = json.loads(dashboard.read_text(encoding="utf-8"))
     if definition.get("uid") == "zup-zup-operations":
@@ -167,7 +173,19 @@ docker run --rm \
 
 docker run --rm \
   --entrypoint /bin/promtool \
-  -v "${repo_root}/infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+  -v "${repo_root}/infra/prometheus:/etc/prometheus:ro" \
   "${prometheus_image}" check config /etc/prometheus/prometheus.yml
+
+docker run --rm \
+  --entrypoint /bin/promtool \
+  -v "${repo_root}/infra/prometheus:/etc/prometheus:ro" \
+  --workdir /etc/prometheus \
+  "${prometheus_image}" test rules tests/alerts.test.yml
+
+docker run --rm \
+  --entrypoint /bin/promtool \
+  -v "${repo_root}/infra/prometheus:/etc/prometheus:ro" \
+  --workdir /etc/prometheus \
+  "${prometheus_image}" test rules tests/host-alerts.test.yml
 
 echo "observability config validation passed"

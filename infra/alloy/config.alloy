@@ -3,6 +3,14 @@ logging {
 	format = "logfmt"
 }
 
+// 고정 역할/작업의 숫자 지표만 읽는다. 호스트 proc/root는 마운트하지 않는다.
+prometheus.exporter.unix "host_jobs" {
+	set_collectors = ["textfile"]
+	textfile {
+		directory = "/var/lib/sugang-helper-host-jobs"
+	}
+}
+
 
 
 discovery.docker "containers" {
@@ -12,6 +20,13 @@ discovery.docker "containers" {
 
 discovery.relabel "containers" {
 	targets = discovery.docker.containers.targets
+
+	// 배포 스크립트의 Compose 프로젝트에 속한 로그만 수집한다.
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		regex = "sugang-helper"
+		action = "keep"
+	}
 
 	rule {
 		source_labels = ["__meta_docker_container_name"]

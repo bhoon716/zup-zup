@@ -42,11 +42,11 @@ public class SeatNotificationOutboxWorker {
             AtomicInteger inFlight = new AtomicInteger();
             inFlightByChannel.put(channel, inFlight);
 
-            meterRegistry.gauge("notification.outbox.queue.depth", Tags.of("channel", channel.name()), inFlight);
+            meterRegistry.gauge("notification.outbox.in.flight", Tags.of("channel", channel.name()), inFlight);
         }
     }
 
-    @Scheduled(fixedDelayString = "${app.notification.outbox.poll-ms:5000}")
+    @Scheduled(fixedDelayString = "${app.notification.outbox.poll-ms:5000}", scheduler = "notificationTaskScheduler")
     public void processPendingNotifications() {
         if (stopping || Thread.currentThread().isInterrupted() || !running.compareAndSet(false, true)) {
             return;
@@ -89,9 +89,14 @@ public class SeatNotificationOutboxWorker {
     }
 
     private void logDeliveryProcessingFailure(SeatNotificationDeliveryClaim claim, RuntimeException exception) {
-        log.error("[Notification Outbox] 발송 작업 처리 실패. deliveryId={}, failureCode={}, exceptionType={}",
-                claim.deliveryId(), SensitiveDataRedactor.failureCode(exception),
-                SensitiveDataRedactor.exceptionType(exception), SensitiveDataRedactor.safeStackTrace(exception));
+        log.atError().addKeyValue("event", "notification_delivery_processing_failed")
+                .addKeyValue("deliveryId", claim.deliveryId())
+                .addKeyValue("failureCode", SensitiveDataRedactor.failureCode(exception))
+                .addKeyValue("exceptionType", SensitiveDataRedactor.exceptionType(exception))
+                .setCause(SensitiveDataRedactor.safeStackTrace(exception))
+                .log("[Notification Outbox] 발송 작업 처리 실패. deliveryId={}, failureCode={}, exceptionType={}",
+                        claim.deliveryId(), SensitiveDataRedactor.failureCode(exception),
+                        SensitiveDataRedactor.exceptionType(exception));
     }
 
     @EventListener(ContextClosedEvent.class)

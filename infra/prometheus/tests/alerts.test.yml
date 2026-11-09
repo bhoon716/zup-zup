@@ -1,0 +1,574 @@
+rule_files:
+  - ../rules/alerts.yml
+evaluation_interval: 1m
+tests:
+  - name: "sugang-helper-app down"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "0x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ApplicationMetricsUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "critical"
+            exp_annotations:
+              summary: "앱 메트릭 수집이 중단되었습니다."
+  - name: "sugang-helper-app absent"
+    interval: 1m
+    input_series: []
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ApplicationMetricsUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "critical"
+            exp_annotations:
+              summary: "앱 메트릭 수집이 중단되었습니다."
+  - name: "sugang-helper-app healthy"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ApplicationMetricsUnavailable
+        exp_alerts: []
+  - name: "sugang-helper-app brief failure"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1 0 1x10"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: ApplicationMetricsUnavailable
+        exp_alerts: []
+  - name: "sugang-helper-app recovered"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "0x4 1x8"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ApplicationMetricsUnavailable
+        exp_alerts: []
+  - name: "loki down"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"loki\"}"
+        values: "0x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: LokiMetricsUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: "loki"
+              severity: "warning"
+            exp_annotations:
+              summary: "loki 메트릭 수집이 중단되었습니다."
+  - name: "loki absent"
+    interval: 1m
+    input_series: []
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: LokiMetricsUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: "loki"
+              severity: "warning"
+            exp_annotations:
+              summary: "loki 메트릭 수집이 중단되었습니다."
+  - name: "loki healthy"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"loki\"}"
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: LokiMetricsUnavailable
+        exp_alerts: []
+  - name: "loki brief failure"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"loki\"}"
+        values: "1 0 1x10"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: LokiMetricsUnavailable
+        exp_alerts: []
+  - name: "loki recovered"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"loki\"}"
+        values: "0x4 1x8"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: LokiMetricsUnavailable
+        exp_alerts: []
+  - name: "alloy down"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"alloy\"}"
+        values: "0x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: AlloyMetricsUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: "alloy"
+              severity: "warning"
+            exp_annotations:
+              summary: "alloy 메트릭 수집이 중단되었습니다."
+  - name: "alloy absent"
+    interval: 1m
+    input_series: []
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: AlloyMetricsUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: "alloy"
+              severity: "warning"
+            exp_annotations:
+              summary: "alloy 메트릭 수집이 중단되었습니다."
+  - name: "alloy healthy"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"alloy\"}"
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: AlloyMetricsUnavailable
+        exp_alerts: []
+  - name: "alloy brief failure"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"alloy\"}"
+        values: "1 0 1x10"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: AlloyMetricsUnavailable
+        exp_alerts: []
+  - name: "alloy recovered"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"alloy\"}"
+        values: "0x4 1x8"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: AlloyMetricsUnavailable
+        exp_alerts: []
+  - name: "prometheus down"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"prometheus\"}"
+        values: "0x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PrometheusMetricsUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: "prometheus"
+              severity: "warning"
+            exp_annotations:
+              summary: "prometheus 메트릭 수집이 중단되었습니다."
+  - name: "prometheus absent"
+    interval: 1m
+    input_series: []
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PrometheusMetricsUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: "prometheus"
+              severity: "warning"
+            exp_annotations:
+              summary: "prometheus 메트릭 수집이 중단되었습니다."
+  - name: "prometheus healthy"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"prometheus\"}"
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PrometheusMetricsUnavailable
+        exp_alerts: []
+  - name: "prometheus brief failure"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"prometheus\"}"
+        values: "1 0 1x10"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: PrometheusMetricsUnavailable
+        exp_alerts: []
+  - name: "prometheus recovered"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"prometheus\"}"
+        values: "0x4 1x8"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PrometheusMetricsUnavailable
+        exp_alerts: []
+  - name: "OutboxMonitor stalled"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x12"
+      - series: "notification_outbox_monitor_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: OutboxMonitorStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "알림 대기열 점검이 실패했거나 3분 이상 갱신되지 않았습니다."
+  - name: "OutboxMonitor missing"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: OutboxMonitorStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "알림 대기열 점검이 실패했거나 3분 이상 갱신되지 않았습니다."
+  - name: "OutboxMonitor healthy"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x12"
+      - series: "notification_outbox_monitor_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "0+60x12"
+      - series: "notification_outbox_monitor_healthy{job=\"sugang-helper-app\"}"
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: OutboxMonitorStale
+        exp_alerts: []
+  - name: "OutboxMonitor failed"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x12"
+      - series: "notification_outbox_monitor_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "0+60x12"
+      - series: "notification_outbox_monitor_healthy{job=\"sugang-helper-app\"}"
+        values: "0x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: OutboxMonitorStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "알림 대기열 점검이 실패했거나 3분 이상 갱신되지 않았습니다."
+  - name: "OutboxMonitor app down suppresses"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "0x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: OutboxMonitorStale
+        exp_alerts: []
+  - name: "CrawlerFreshnessCheck stalled"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x12"
+      - series: "crawler_data_freshness_check_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: CrawlerFreshnessCheckStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "강의 최신성 점검이 실패했거나 3분 이상 갱신되지 않았습니다."
+  - name: "CrawlerFreshnessCheck missing"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: CrawlerFreshnessCheckStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "강의 최신성 점검이 실패했거나 3분 이상 갱신되지 않았습니다."
+  - name: "CrawlerFreshnessCheck healthy"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x12"
+      - series: "crawler_data_freshness_check_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "0+60x12"
+      - series: "crawler_data_freshness_check_healthy{job=\"sugang-helper-app\"}"
+        values: "1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: CrawlerFreshnessCheckStale
+        exp_alerts: []
+  - name: "CrawlerFreshnessCheck failed"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x12"
+      - series: "crawler_data_freshness_check_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "0+60x12"
+      - series: "crawler_data_freshness_check_healthy{job=\"sugang-helper-app\"}"
+        values: "0x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: CrawlerFreshnessCheckStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "강의 최신성 점검이 실패했거나 3분 이상 갱신되지 않았습니다."
+  - name: "CrawlerFreshnessCheck app down suppresses"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "0x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: CrawlerFreshnessCheckStale
+        exp_alerts: []
+  - name: "old notification backlog 2x20"
+    interval: 1m
+    input_series:
+      - series: "notification_outbox_queue_depth{job=\"sugang-helper-app\",channel=\"WEB_PUSH\"}"
+        values: "2x20"
+      - series: "notification_outbox_oldest_ready_timestamp_seconds{job=\"sugang-helper-app\",channel=\"WEB_PUSH\"}"
+        values: "1x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: NotificationReadyBacklogOld
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              channel: "WEB_PUSH"
+              severity: "warning"
+            exp_annotations:
+              summary: "전송 가능한 알림이 5분 이상 밀려 있습니다."
+  - name: "old notification backlog 0x20"
+    interval: 1m
+    input_series:
+      - series: "notification_outbox_queue_depth{job=\"sugang-helper-app\",channel=\"WEB_PUSH\"}"
+        values: "0x20"
+      - series: "notification_outbox_oldest_ready_timestamp_seconds{job=\"sugang-helper-app\",channel=\"WEB_PUSH\"}"
+        values: "1x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: NotificationReadyBacklogOld
+        exp_alerts: []
+  - name: "materialization pending"
+    interval: 1m
+    input_series:
+      - series: "notification_outbox_materialization_pending{job=\"sugang-helper-app\"}"
+        values: "1x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: NotificationMaterializationBacklog
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "알림 대상 생성 대기가 10분 이상 지속됩니다."
+  - name: "rule evaluation errors"
+    interval: 1m
+    input_series:
+      - series: "prometheus_rule_evaluation_failures_total{job=\"prometheus\"}"
+        values: "0+1x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PrometheusRuleEvaluationFailed
+        exp_alerts:
+          - exp_labels:
+              job: "prometheus"
+              severity: "warning"
+            exp_annotations:
+              summary: "Prometheus 규칙 평가가 실패했습니다."
+  - name: "reload failed"
+    interval: 1m
+    input_series:
+      - series: "prometheus_config_last_reload_successful{job=\"prometheus\"}"
+        values: "0x12"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PrometheusConfigReloadFailed
+        exp_alerts:
+          - exp_labels:
+              job: "prometheus"
+              severity: "warning"
+            exp_annotations:
+              summary: "Prometheus 설정 재적용이 실패했습니다."
+  - name: "crawler frozen timestamp crosses threshold despite stale flag remaining zero"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x30"
+      - series: "crawler_data_freshness_threshold_seconds{job=\"sugang-helper-app\"}"
+        values: "300x30"
+      - series: "crawler_data_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "60x30"
+      - series: "crawler_data_stale{job=\"sugang-helper-app\"}"
+        values: "0x30"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: CrawlerDataStale
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: CrawlerDataStale
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: CrawlerDataStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "강의 수집 데이터가 허용 시간을 넘었습니다."
+  - name: "crawler timestamp advances normally"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x30"
+      - series: "crawler_data_freshness_threshold_seconds{job=\"sugang-helper-app\"}"
+        values: "300x30"
+      - series: "crawler_data_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "1+60x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: CrawlerDataStale
+        exp_alerts: []
+  - name: "crawler no successful run"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x30"
+      - series: "crawler_data_freshness_threshold_seconds{job=\"sugang-helper-app\"}"
+        values: "300x30"
+      - series: "crawler_data_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "0x30"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: CrawlerDataStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "강의 수집 데이터가 허용 시간을 넘었습니다."
+  - name: "crawler missing timestamp"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x30"
+      - series: "crawler_data_freshness_threshold_seconds{job=\"sugang-helper-app\"}"
+        values: "300x30"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: CrawlerDataStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "강의 수집 데이터가 허용 시간을 넘었습니다."
+  - name: "crawler missing threshold"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x30"
+      - series: "crawler_data_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "1+60x30"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: CrawlerDataStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "강의 수집 데이터가 허용 시간을 넘었습니다."
+  - name: "crawler invalid threshold"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x30"
+      - series: "crawler_data_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "1+60x30"
+      - series: "crawler_data_freshness_threshold_seconds{job=\"sugang-helper-app\"}"
+        values: "0x30"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: CrawlerDataStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "강의 수집 데이터가 허용 시간을 넘었습니다."
+  - name: "crawler app down suppresses unknown freshness"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "0x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: CrawlerDataStale
+        exp_alerts: []
+  - name: "crawler app absent suppresses unknown freshness"
+    interval: 1m
+    input_series:
+      - series: "crawler_data_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "0x30"
+      - series: "crawler_data_freshness_threshold_seconds{job=\"sugang-helper-app\"}"
+        values: "300x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: CrawlerDataStale
+        exp_alerts: []
+  - name: "crawler new success clears stale condition"
+    interval: 1m
+    input_series:
+      - series: "up{job=\"sugang-helper-app\"}"
+        values: "1x30"
+      - series: "crawler_data_freshness_threshold_seconds{job=\"sugang-helper-app\"}"
+        values: "300x30"
+      - series: "crawler_data_last_success_timestamp_seconds{job=\"sugang-helper-app\"}"
+        values: "60x12 780+60x17"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: CrawlerDataStale
+        exp_alerts:
+          - exp_labels:
+              job: "sugang-helper-app"
+              severity: "warning"
+            exp_annotations:
+              summary: "강의 수집 데이터가 허용 시간을 넘었습니다."
+      - eval_time: 14m
+        alertname: CrawlerDataStale
+        exp_alerts: []

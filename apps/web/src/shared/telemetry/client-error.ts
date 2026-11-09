@@ -46,6 +46,31 @@ function readErrorProperty(error: unknown, property: string) {
   return typeof value === "string" || typeof value === "number" ? value : undefined;
 }
 
+function readObjectProperty(value: unknown, property: string): unknown {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  return (value as Record<string, unknown>)[property];
+}
+
+function serverErrorMetadata(error: unknown): ClientErrorEvent {
+  const body = readObjectProperty(readObjectProperty(error, "response"), "data");
+  const metadata: ClientErrorEvent = {};
+  const correlationId = readObjectProperty(body, "correlationId");
+  const code = readObjectProperty(body, "code");
+  // 원문을 치환하거나 잘라서 다른 식별자로 만들지 않는다.
+  if (typeof correlationId === "string" && correlationId.length > 0
+      && correlationId.length <= MAX_LABEL_LENGTH && /^[a-zA-Z0-9]/.test(correlationId)
+      && !/[^a-zA-Z0-9._-]/.test(correlationId)) {
+    metadata.correlation_id = correlationId;
+  }
+  if (typeof code === "string" && code.length > 0 && code.length <= 32
+      && /^[A-Z]/.test(code) && !/[^A-Z0-9_]/.test(code)) {
+    metadata.error_code = code;
+  }
+  return metadata;
+}
+
 function errorType(error: unknown) {
   if (error instanceof Error && error.name) {
     return sanitizeLabel(error.name);
@@ -75,6 +100,7 @@ export function buildClientErrorEvent(error: unknown, context: ClientErrorContex
     source: context.source,
     error_type: errorType(error),
     fatal: context.source === "global-error-boundary",
+    ...serverErrorMetadata(error),
   };
 
   if (context.operation) {
@@ -118,12 +144,18 @@ export function reportClientError(error: unknown, context: ClientErrorContext) {
   const analyticsWindow = window as unknown as AnalyticsGlobals;
   try {
     track("client_error", event);
-    const exceptionEvent = {
+    const exceptionEvent: ClientErrorEvent = {
       description: `${event.source}:${event.error_type}`,
       fatal: event.fatal,
       ...("status_code" in event ? { status_code: event.status_code } : {}),
       ...("transport_code" in event ? { transport_code: event.transport_code } : {}),
     };
+
+    for (const field of ["correlation_id", "error_code"]) {
+      if (field in event) {
+        exceptionEvent[field] = event[field];
+      }
+    }
 
     if (analyticsWindow.gtag) {
       analyticsWindow.gtag("event", "exception", exceptionEvent);

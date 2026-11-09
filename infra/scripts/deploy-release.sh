@@ -133,7 +133,13 @@ if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -f "${staging_dir}/prometheus/prometheus.yml" ] \
   || [ ! -f "${staging_dir}/grafana/provisioning/datasources/datasource.yml" ] \
   || [ ! -f "${staging_dir}/scripts/test-observability-smoke.sh" ] \
-  || [ ! -f "${staging_dir}/scripts/compose-observability-diagnostics.sh" ]; then
+  || [ ! -f "${staging_dir}/scripts/compose-observability-diagnostics.sh" ] \
+  || [ ! -f "${staging_dir}/scripts/backup-server-export.sh" ] \
+  || [ ! -f "${staging_dir}/scripts/backup-admin-audit.sh" ] \
+  || [ ! -f "${staging_dir}/scripts/run-host-job.py" ] \
+  || [ ! -f "${staging_dir}/scripts/check-storage-health.py" ] \
+  || [ ! -f "${staging_dir}/scripts/backup-important-events.py" ] \
+  || [ ! -d "${staging_dir}/systemd" ]; then
   fail "staging release is incomplete"
 fi
 if [ -L "${staging_dir}" ] || find -P "${staging_dir}" -type l -print -quit | grep -q .; then
@@ -147,6 +153,27 @@ read_env_value() {
   local key="$1"
   awk -F= -v wanted="${key}" '$1 == wanted { sub(/^[^=]*=/, ""); print; exit }' "${RUNTIME_ENV}"
 }
+
+alerting_enabled="$(read_env_value ALERTING_ENABLED)"
+if [ -n "${alerting_enabled}" ] && [ "${alerting_enabled}" != true ] && [ "${alerting_enabled}" != false ]; then
+  fail "ALERTING_ENABLED must be true or false"
+fi
+if [ "${alerting_enabled}" = true ]; then
+  if [ ! -f "${staging_dir}/docker-compose.alerting.yml" ] \
+    || [ ! -f "${staging_dir}/alertmanager/alertmanager.yml" ] \
+    || [ ! -f "${staging_dir}/scripts/validate-alerting-config.sh" ] \
+    || [ ! -f "${staging_dir}/scripts/validate-alerting-settings.py" ]; then
+    fail "enabled alerting release is incomplete"
+  fi
+  stage="alerting-preflight"
+  ALERTING_RELEASE_ROOT="${RELEASE_ROOT}" \
+    ALERTMANAGER_IMAGE="$(read_env_value ALERTMANAGER_IMAGE)" \
+    ALERTMANAGER_SLACK_WEBHOOK_FILE="$(read_env_value ALERTMANAGER_SLACK_WEBHOOK_FILE)" \
+    PROMETHEUS_ALERTMANAGER_TARGETS_FILE="$(read_env_value PROMETHEUS_ALERTMANAGER_TARGETS_FILE)" \
+    ALERTMANAGER_PORT_HOST="$(read_env_value ALERTMANAGER_PORT_HOST)" \
+    bash "${staging_dir}/scripts/validate-alerting-config.sh" --static-only \
+    || fail "enabled alerting settings validation failed"
+fi
 
 stage="app-env-preflight"
 validate_app_env_file "${staging_dir}/apps/server/.env"
@@ -171,6 +198,9 @@ APP_PROD_CONFIG_PATH=${staging_dir}/application-prod.yml
 EOF
 chmod 0600 "${compose_env}"
 compose_stage=(docker compose --project-name sugang-helper --env-file "${RUNTIME_ENV}" --env-file "${compose_env}" -f "${staging_dir}/docker-compose.yml")
+if [ "${alerting_enabled}" = true ]; then
+  compose_stage+=(-f "${staging_dir}/docker-compose.alerting.yml")
+fi
 "${compose_stage[@]}" --profile migration --profile observability config >/dev/null \
   || fail "staging Compose config validation failed"
 
@@ -181,23 +211,45 @@ mkdir -p \
   "${RELEASE_ROOT}/loki" \
   "${RELEASE_ROOT}/alloy" \
   "${RELEASE_ROOT}/prometheus" \
+  "${RELEASE_ROOT}/alertmanager" \
   "${RELEASE_ROOT}/grafana" \
+  "${RELEASE_ROOT}/systemd" \
   "${RELEASE_ROOT}/scripts"
 cp "${staging_dir}/docker-compose.yml" "${RELEASE_ROOT}/docker-compose.yml.tmp.$$"
 mv -f "${RELEASE_ROOT}/docker-compose.yml.tmp.$$" "${RELEASE_ROOT}/docker-compose.yml"
+if [ -f "${staging_dir}/docker-compose.alerting.yml" ]; then
+  cp "${staging_dir}/docker-compose.alerting.yml" "${RELEASE_ROOT}/docker-compose.alerting.yml.tmp.$$"
+  mv -f "${RELEASE_ROOT}/docker-compose.alerting.yml.tmp.$$" "${RELEASE_ROOT}/docker-compose.alerting.yml"
+fi
 cp "${staging_dir}/application-prod.yml" "${RELEASE_ROOT}/application-prod.yml.tmp.$$"
 mv -f "${RELEASE_ROOT}/application-prod.yml.tmp.$$" "${RELEASE_ROOT}/application-prod.yml"
 sync_directory "${staging_dir}/src/main/resources/db" "${RELEASE_ROOT}/src/main/resources/db"
 sync_directory "${staging_dir}/loki" "${RELEASE_ROOT}/loki"
 sync_directory "${staging_dir}/alloy" "${RELEASE_ROOT}/alloy"
 sync_directory "${staging_dir}/prometheus" "${RELEASE_ROOT}/prometheus"
+if [ -d "${staging_dir}/alertmanager" ]; then
+  sync_directory "${staging_dir}/alertmanager" "${RELEASE_ROOT}/alertmanager"
+fi
 sync_directory "${staging_dir}/grafana" "${RELEASE_ROOT}/grafana"
+sync_directory "${staging_dir}/systemd" "${RELEASE_ROOT}/systemd"
 cp "${staging_dir}/scripts/test-observability-smoke.sh" "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$"
 chmod 0755 "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$"
 mv -f "${RELEASE_ROOT}/scripts/test-observability-smoke.sh.tmp.$$" "${RELEASE_ROOT}/scripts/test-observability-smoke.sh"
 cp "${staging_dir}/scripts/compose-observability-diagnostics.sh" "${RELEASE_ROOT}/scripts/compose-observability-diagnostics.sh.tmp.$$"
 chmod 0755 "${RELEASE_ROOT}/scripts/compose-observability-diagnostics.sh.tmp.$$"
 mv -f "${RELEASE_ROOT}/scripts/compose-observability-diagnostics.sh.tmp.$$" "${RELEASE_ROOT}/scripts/compose-observability-diagnostics.sh"
+for backup_script in backup-server-export.sh backup-admin-audit.sh run-host-job.py check-storage-health.py backup-important-events.py; do
+  cp "${staging_dir}/scripts/${backup_script}" "${RELEASE_ROOT}/scripts/${backup_script}.tmp.$$"
+  chmod 0755 "${RELEASE_ROOT}/scripts/${backup_script}.tmp.$$"
+  mv -f "${RELEASE_ROOT}/scripts/${backup_script}.tmp.$$" "${RELEASE_ROOT}/scripts/${backup_script}"
+done
+for alert_script in test-alert-receiver.py validate-alerting-config.sh validate-alerting-settings.py; do
+  if [ -f "${staging_dir}/scripts/${alert_script}" ]; then
+    cp "${staging_dir}/scripts/${alert_script}" "${RELEASE_ROOT}/scripts/${alert_script}.tmp.$$"
+    chmod 0755 "${RELEASE_ROOT}/scripts/${alert_script}.tmp.$$"
+    mv -f "${RELEASE_ROOT}/scripts/${alert_script}.tmp.$$" "${RELEASE_ROOT}/scripts/${alert_script}"
+  fi
+done
 cp "${staging_dir}/apps/server/.env" "${APP_ENV_FILE}.tmp.$$"
 chmod 0600 "${APP_ENV_FILE}.tmp.$$"
 mv -f "${APP_ENV_FILE}.tmp.$$" "${APP_ENV_FILE}"
@@ -215,6 +267,9 @@ chmod 0600 "${runtime_env_tmp}"
 mv -f "${runtime_env_tmp}" "${runtime_env}"
 runtime_env_tmp=""
 compose=(docker compose --project-name sugang-helper --env-file "${RUNTIME_ENV}" --env-file "${runtime_env}" -f "${RELEASE_ROOT}/docker-compose.yml")
+if [ "${alerting_enabled}" = true ]; then
+  compose+=(-f "${RELEASE_ROOT}/docker-compose.alerting.yml")
+fi
 "${compose[@]}" --profile migration --profile observability config >/dev/null \
   || fail "runtime Compose config validation failed"
 
@@ -223,6 +278,10 @@ stage="observability-probe-tools"
   || fail "observability HTTP probe preparation failed"
 
 stage="infra-start"
+if [ "${alerting_enabled}" = true ]; then
+  "${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 alertmanager \
+    || fail "Alertmanager startup failed"
+fi
 "${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis \
   || fail "MySQL/Redis startup failed"
 "${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 loki prometheus \

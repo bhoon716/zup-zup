@@ -1,0 +1,80 @@
+groups:
+  - name: sugang-helper-health
+    rules:
+      - alert: ApplicationMetricsUnavailable
+        expr: "up{job=\"sugang-helper-app\"} == 0 or absent(up{job=\"sugang-helper-app\"})"
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "앱 메트릭 수집이 중단되었습니다."
+      - alert: LokiMetricsUnavailable
+        expr: "up{job=\"loki\"} == 0 or absent(up{job=\"loki\"})"
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "loki 메트릭 수집이 중단되었습니다."
+      - alert: AlloyMetricsUnavailable
+        expr: "up{job=\"alloy\"} == 0 or absent(up{job=\"alloy\"})"
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "alloy 메트릭 수집이 중단되었습니다."
+      - alert: PrometheusMetricsUnavailable
+        expr: "up{job=\"prometheus\"} == 0 or absent(up{job=\"prometheus\"})"
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "prometheus 메트릭 수집이 중단되었습니다."
+      - alert: PrometheusRuleEvaluationFailed
+        expr: "increase(prometheus_rule_evaluation_failures_total{job=\"prometheus\"}[5m]) > 0"
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus 규칙 평가가 실패했습니다."
+      - alert: PrometheusConfigReloadFailed
+        expr: "prometheus_config_last_reload_successful{job=\"prometheus\"} == 0"
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus 설정 재적용이 실패했습니다."
+      - alert: OutboxMonitorStale
+        expr: "(time() - notification_outbox_monitor_last_success_timestamp_seconds{job=\"sugang-helper-app\"} > 180 or notification_outbox_monitor_healthy{job=\"sugang-helper-app\"} == 0 or absent(notification_outbox_monitor_last_success_timestamp_seconds{job=\"sugang-helper-app\"})) and on(job) (up{job=\"sugang-helper-app\"} == 1)"
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "알림 대기열 점검이 실패했거나 3분 이상 갱신되지 않았습니다."
+      - alert: CrawlerFreshnessCheckStale
+        expr: "(time() - crawler_data_freshness_check_last_success_timestamp_seconds{job=\"sugang-helper-app\"} > 180 or crawler_data_freshness_check_healthy{job=\"sugang-helper-app\"} == 0 or absent(crawler_data_freshness_check_last_success_timestamp_seconds{job=\"sugang-helper-app\"})) and on(job) (up{job=\"sugang-helper-app\"} == 1)"
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "강의 최신성 점검이 실패했거나 3분 이상 갱신되지 않았습니다."
+      - alert: NotificationReadyBacklogOld
+        expr: "(time() - notification_outbox_oldest_ready_timestamp_seconds{job=\"sugang-helper-app\"} > 300) and (notification_outbox_queue_depth{job=\"sugang-helper-app\"} > 0)"
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "전송 가능한 알림이 5분 이상 밀려 있습니다."
+      - alert: NotificationMaterializationBacklog
+        expr: "notification_outbox_materialization_pending{job=\"sugang-helper-app\"} > 0"
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "알림 대상 생성 대기가 10분 이상 지속됩니다."
+      - alert: CrawlerDataStale
+        expr: "((time() - crawler_data_last_success_timestamp_seconds{job=\"sugang-helper-app\"} > crawler_data_freshness_threshold_seconds{job=\"sugang-helper-app\"}) or crawler_data_last_success_timestamp_seconds{job=\"sugang-helper-app\"} <= 0 or absent(crawler_data_last_success_timestamp_seconds{job=\"sugang-helper-app\"}) or absent(crawler_data_freshness_threshold_seconds{job=\"sugang-helper-app\"}) or crawler_data_freshness_threshold_seconds{job=\"sugang-helper-app\"} <= 0) and on(job) (up{job=\"sugang-helper-app\"} == 1)"
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "강의 수집 데이터가 허용 시간을 넘었습니다."

@@ -36,7 +36,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Import({CourseCatalogSynchronizationService.class, CourseCrawlCompletionService.class,
-        CrawlerRunStateService.class, SeatNotificationOutboxService.class, SeatOpenedListener.class})
+        CrawlerRunStateService.class, CrawlerFailurePersistenceService.class,
+        SeatNotificationOutboxService.class, SeatOpenedListener.class})
 class CourseCrawlCompletionTransactionTest {
 
     private static final String COURSE_KEY = "2026:U211600010:COMP101:01";

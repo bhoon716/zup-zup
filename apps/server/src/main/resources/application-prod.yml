@@ -78,7 +78,7 @@ app:
     max-limit: 10
   admin-audit:
     fingerprint-secret: "${APP_ADMIN_AUDIT_FINGERPRINT_SECRET:${JWT_SECRET}}"
-    retention-days: ${APP_ADMIN_AUDIT_RETENTION_DAYS:180}
+    retention-days: ${APP_ADMIN_AUDIT_RETENTION_DAYS:0}
     retention-cron: "${APP_ADMIN_AUDIT_RETENTION_CRON:0 15 3 * * *}"
   notification:
     provider:

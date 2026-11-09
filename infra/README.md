@@ -49,7 +49,7 @@ docker compose --profile migration run --rm migrate validate
 
 ## 로그 검색
 
-운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`만 수집하고, Alloy는 Docker socket을 읽기 전용으로 사용해 Compose 컨테이너의 JSON 로그를 Loki로 전송합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다. 배포 후 운영 상태·로그·probe 재준비·관측성 재기동은 release root에 배포되는 `scripts/compose-observability-diagnostics.sh`를 사용하며, 상세 명령은 운영 runbook을 따릅니다.
+운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`와 Prometheus/Loki/Alloy 자체 지표를 수집하고, Alloy는 Docker socket을 읽기 전용으로 사용해 `sugang-helper` Compose 프로젝트 컨테이너의 JSON 로그를 Loki로 전송합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다. 배포 후 운영 상태·로그·probe 재준비·관측성 재기동은 release root에 배포되는 `scripts/compose-observability-diagnostics.sh`를 사용하며, 상세 명령은 운영 runbook을 따릅니다.
 
 ```bash
 cd /home/ubuntu/jbnu-sugang-helper
@@ -59,7 +59,9 @@ ssh -L 3000:127.0.0.1:3000 ubuntu@<api-host>
 
 운영 배포는 앱 readiness 뒤에 `scripts/test-observability-smoke.sh`를 best-effort로 실행한다. 이 검증은 Prometheus의 앱 target `up=1`, Grafana Prometheus/Loki datasource health와 proxy query, 그리고 고유 Docker JSON marker의 Alloy→Loki round-trip을 확인한다. 실패하면 CD에 경고를 남기되 ready 상태의 앱은 계속 서비스한다. 수동 재기동에서 probe volume을 삭제했다면 먼저 `./scripts/compose-observability-diagnostics.sh probe`를 실행한다.
 
-현재 Loki는 호스트 filesystem에 30일 retention으로 저장합니다. Object Storage 장기 보존과 복구 rehearsal은 bucket/IAM 계약을 확정한 뒤 별도 운영 이슈로 진행합니다.
+현재 Loki는 호스트 filesystem에 30일 retention으로 저장합니다. 일반 진단 로그의 영구 보관을 뜻하지 않습니다. 중요한 관리자 감사 기록은 기본 자동 삭제를 중지하고 [최소 감사 아카이브·복구 절차](../docs/operations/important-record-retention.md)로 분리했습니다. 외부 저장소·자동 실행의 실제 운영 반영은 별도 확인해야 합니다.
+
+앱과 분리된 [경보 판정 규칙](prometheus/README.md)을 제공합니다. Grafana 대시보드는 사용자 선택에 따라 Grafana 페이지에서 관리하며 이번 변경에서 JSON/provisioning은 수정하지 않습니다. 아직 Alertmanager/외부 수신처를 연결하지 않았으므로 실제 장애 알림 수신이나 호스트 전체 장애 감시를 보장하지 않습니다. [읽기 전용 호스트 디스크/inode 점검](../docs/operations/host-storage-health.md)은 준비했으며 실제 서버 실행·주기 등록·알림 연결은 별도 운영 단계입니다.
 
 이미 migration history가 있는 DB를 배포할 때는 운영 runbook대로 `validate` 성공 후 `migrate`를 실행합니다. `docker compose up` 자체는 DB schema를 자동 변경하지 않습니다.
 
@@ -116,7 +118,7 @@ API_HOST=<api-duckdns-fqdn> bash scripts/test-uptime-contract.sh
 - `.env`, `secrets/`, host certificate/private key는 저장소에 커밋하지 않습니다.
 - 현재 운영은 기존 MySQL `root` 계정을 앱과 one-shot migration이 함께 사용합니다. 따라서 `DB_ROOT_PASSWORD`는 DB, 앱, migration에 전달되며 별도 runtime/migrator 계정은 만들지 않습니다. 이 선택은 1인 운영의 단순성을 높이는 대신 앱이 schema 변경 권한까지 갖는 보안 trade-off를 수용합니다.
 - `/home/ubuntu/jbnu-sugang-helper/backup-db-local.sh`는 OCI 서버에 직접 설치하는 파일이다. 매주 월요일 04:00(`Asia/Seoul`)에 systemd timer가 앱·DB를 중지하지 않고 MySQL logical dump를 `/home/ubuntu/jbnu-sugang-helper/backups/mysql`에 gzip/checksum과 함께 저장한다. 이 백업은 같은 OCI 인스턴스에 있으므로 host loss 보호가 아니다. `DB_BACKUP_*` 계정은 새 runtime contract에 추가하지 않는다.
-- 기존 NPM 상태·인증서는 서버에 남아 있는 공개 edge 운영 상태이며 저장소에 포함하지 않습니다. Prometheus 설정은 앱 metrics scrape와 Grafana datasource/dashboard만 포함하며 host exporter·cAdvisor·Alertmanager는 참조하지 않습니다. Loki/Alloy/Grafana 설정은 production Compose의 `observability` profile에서 참조합니다.
+- 기존 NPM 상태·인증서는 서버에 남아 있는 공개 edge 운영 상태이며 저장소에 포함하지 않습니다. Prometheus 설정은 앱/관측 구성요소 및 host job textfile 지표와 경보 판정을 포함합니다. [호스트 timer](../docs/operations/host-job-automation.md)와 [opt-in Alertmanager](alertmanager/README.md)는 로컬 준비이며 실제 설치·수신처 연결은 하지 않았습니다. cAdvisor는 추가하지 않았습니다. Loki/Alloy/Grafana 설정은 production Compose의 `observability` profile에서 참조합니다. 대시보드는 Grafana UI에서 관리합니다.
 
 ## 관련 문서
 

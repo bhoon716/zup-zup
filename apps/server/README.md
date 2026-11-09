@@ -14,7 +14,7 @@
 | 역할 | 강의 수집, 인증, 알림, 리뷰, 운영 API                            |
 | 성격 | Spring Boot 기반 백엔드                                   |
 | 운영 | OCI CPU + Docker                                     |
-| 로그 | `/var/log/jbnu-sugang-helper/server/application.log` |
+| 로그 | JSON stdout → Alloy/Loki (30일 검색), 컨테이너 `/tmp/application.log`는 임시 진단용 |
 
 ## 왜 이 앱이 필요한가
 
@@ -67,6 +67,7 @@
 예약된 크롤러는 외부 응답 전체를 먼저 수집·파싱·검증합니다. 검증에 성공한 결과만
 `CourseSynchronizationService`의 단일 트랜잭션으로 전달하며, 강의·시간표·좌석 이력·성공 상태·알림 outbox는
 전부 반영되거나 전부 rollback됩니다. 실패 상태와 실행별 실패 이력은 rollback 이후 별도 트랜잭션으로 기록합니다.
+DB 이력 저장과 Slack 알림 요청은 독립적으로 시도하므로 DB 연결·commit 실패가 알림 요청을 막지 않습니다.
 
 ## 모듈 경계
 
@@ -96,7 +97,8 @@ cd apps/server
 ## Operational Notes
 
 - 운영 기준은 루트 README와 함께 보는 것이 좋습니다.
-- Server 로그는 `/var/log/jbnu-sugang-helper/server/application.log`에 남습니다.
+- 운영 로그는 JSON stdout을 Alloy가 Loki로 수집하며 30일 검색합니다. `/tmp/application.log`는 재생성 시 사라지는 임시 진단 사본입니다.
+- 중요한 관리자 감사 기록은 별도 DB 정책과 [체크섬 아카이브/복구 절차](../../docs/operations/important-record-retention.md)를 따릅니다.
 - 이 문서는 데이터 흐름과 안정성 관점에서 읽는 것이 가장 유용합니다.
 
 인증은 [Redis 세션 단독 전환](../../docs/redis-session-migration.md)을 따른다. 자체 JWT·refresh API는 제거했고, 변경 요청에는 CSRF 토큰이 필요하다.

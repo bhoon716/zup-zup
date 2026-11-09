@@ -82,7 +82,7 @@ class SeatNotificationOutboxWorkerTest {
         ordered.verify(processor).claimReadyDeliveries(1);
         ordered.verify(processor).processDelivery(second);
         verifyNoMoreInteractions(processor);
-        assertThat(meterRegistry.get("notification.outbox.queue.depth").tag("channel", "EMAIL").gauge().value())
+        assertThat(meterRegistry.get("notification.outbox.in.flight").tag("channel", "EMAIL").gauge().value())
                 .isZero();
     }
 
@@ -116,7 +116,7 @@ class SeatNotificationOutboxWorkerTest {
 
         verify(processor).processDelivery(first);
         verify(processor).processDelivery(second);
-        assertThat(meterRegistry.get("notification.outbox.queue.depth").tag("channel", "EMAIL").gauge().value())
+        assertThat(meterRegistry.get("notification.outbox.in.flight").tag("channel", "EMAIL").gauge().value())
                 .isZero();
     }
 

@@ -25,6 +25,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -307,6 +308,56 @@ class CourseCrawlerServiceTest {
         // when & then
         assertThat(registry.find("crawler.data.freshness.age.seconds").gauges()).hasSize(1);
         assertThat(registry.find("crawler.data.stale").gauges()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("신선도 조회 실패는 이전 정상값 대신 알 수 없는 상태와 실패 지표를 남긴다")
+    void freshnessReadFailureInvalidatesPreviousHealthyState() {
+        // given
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        CourseCrawlerService service = new CourseCrawlerService(
+                courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
+                registry);
+        ReflectionTestUtils.setField(service, "staleThresholdMinutes", 15L);
+        given(crawlerRunStateService.findLastSuccessAt())
+                .willReturn(Optional.of(LocalDateTime.now().minusMinutes(1)))
+                .willThrow(new IllegalStateException("password=private-database-secret"));
+        service.checkDataFreshness();
+        double checkedAt = registry.get("crawler.data.freshness.check.last.success.timestamp.seconds").gauge().value();
+
+        // when
+        service.checkDataFreshness();
+
+        // then
+        assertThat(registry.get("crawler.data.freshness.check.healthy").gauge().value()).isZero();
+        assertThat(registry.get("crawler.data.stale").gauge().value()).isEqualTo(1);
+        assertThat(registry.get("crawler.data.freshness.age.seconds").gauge().value()).isEqualTo(-1);
+        assertThat(registry.get("crawler.data.freshness.check.last.success.timestamp.seconds").gauge().value())
+                .isEqualTo(checkedAt);
+    }
+
+    @Test
+    @DisplayName("마지막 수집 성공과 검사 성공 시각을 별도로 노출해 멈춘 검사도 감지한다")
+    void exposesDataAndCheckTimestampsSeparately() {
+        // given
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        CourseCrawlerService service = new CourseCrawlerService(
+                courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
+                registry);
+        ReflectionTestUtils.setField(service, "staleThresholdMinutes", 15L);
+        LocalDateTime successAt = LocalDateTime.now().minusMinutes(20);
+        given(crawlerRunStateService.findLastSuccessAt()).willReturn(Optional.of(successAt));
+
+        // when
+        service.checkDataFreshness();
+
+        // then
+        double successTimestamp = registry.get("crawler.data.last.success.timestamp.seconds").gauge().value();
+        assertThat(successTimestamp).isEqualTo(successAt.atZone(ZoneId.systemDefault()).toEpochSecond());
+        assertThat(registry.get("crawler.data.freshness.check.last.success.timestamp.seconds").gauge().value())
+                .isGreaterThan(successTimestamp);
+        assertThat(registry.get("crawler.data.freshness.check.healthy").gauge().value()).isEqualTo(1);
+        assertThat(registry.get("crawler.data.freshness.threshold.seconds").gauge().value()).isEqualTo(900);
     }
 
     private ListAppender<ILoggingEvent> attachAppender() {

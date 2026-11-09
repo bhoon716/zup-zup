@@ -227,6 +227,7 @@ services:
       - alloy_data:/var/lib/alloy
       - observability_probe_tools:/opt/observability-healthcheck:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${HOST_JOB_STATE_DIR:-/var/lib/sugang-helper-host-jobs}:/var/lib/sugang-helper-host-jobs:ro
     networks:
       - sugang-helper-runtime
     depends_on:
@@ -262,6 +263,8 @@ services:
       - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-15d}
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - ${PROMETHEUS_ALERTMANAGER_TARGETS_FILE:-./prometheus/alertmanager-targets.json}:/etc/prometheus/alertmanager-targets.json:ro
       - prometheus_data:/prometheus
       - observability_probe_tools:/opt/observability-healthcheck:ro
     networks:

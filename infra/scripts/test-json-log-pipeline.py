@@ -67,9 +67,17 @@ def start_pipeline(prefix, marker, directory, images):
            "-v", f"{directory}/config.alloy:/etc/alloy/config.alloy:ro",
            images["alloy"], "run", "/etc/alloy/config.alloy", "--storage.path=/tmp/alloy")
     docker("run", "-d", "--rm", "--name", prefix + "-fixture", "--network", prefix,
+           "--label", "com.docker.compose.project=sugang-helper",
            "--label", "com.docker.compose.service=app", "--label", f"zup_log_e2e={marker}",
            "-v", f"{directory}/fixture.log:/fixture.log:ro", images["observability-probe-tools"],
            "sh", "-c", "sleep 6; cat /fixture.log; sleep 90")
+
+    # 같은 테스트 표식이어도 다른 Compose 프로젝트의 로그는 수집하지 않아야 한다.
+    docker("run", "-d", "--rm", "--name", prefix + "-excluded", "--network", prefix,
+           "--label", "com.docker.compose.project=unrelated-project",
+           "--label", "com.docker.compose.service=app", "--label", f"zup_log_e2e={marker}",
+           images["observability-probe-tools"], "sh", "-c",
+           "sleep 6; echo '2026-11-06 12:00:00 INFO excluded-project-sentinel'; sleep 90")
 
 
 def query_logs(prefix, probe_image, expression):
@@ -107,6 +115,9 @@ def verify_pipeline(prefix, probe_image, trace_id, events):
     decoded = [json.loads(line) for line in lines if line.startswith("{")]
     assert {e["event"] for e in decoded} == {e["event"] for e in events}, lines
     assert len(lines) == 3 and len(decoded) == 2, f"JSON events must not merge or split: {lines!r}"
+    time.sleep(3)
+    excluded = query_logs(prefix, probe_image, stream + ' |= "excluded-project-sentinel"')
+    assert not excluded, "Logs from unrelated Compose projects must not be ingested"
     assert all("correlationId" not in result["stream"] for result in records), "Keep IDs out of ingestion labels"
     traced = [line for result in query_logs(prefix, probe_image, trace_query) for _, line in result["values"]]
     assert len(traced) == 3, "Grafana trace query must find both JSON events and the legacy event"
@@ -125,7 +136,7 @@ def main():
             start_pipeline(prefix, marker, directory, images)
             verify_pipeline(prefix, images["observability-probe-tools"], trace_id, events)
     finally:
-        for suffix in ("-fixture", "-alloy", "-loki", "-probe"):
+        for suffix in ("-fixture", "-excluded", "-alloy", "-loki", "-probe"):
             docker("rm", "-f", prefix + suffix, check=False)
         docker("network", "rm", prefix, check=False)
 

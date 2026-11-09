@@ -52,6 +52,26 @@ for fragment in (
 ):
     require(deploy, fragment, f"deploy script is missing: {fragment}")
 
+for script in ("backup-server-export.sh", "backup-admin-audit.sh"):
+    require(workflow, f'cp infra/scripts/{script} "${{stage_dir}}/scripts/{script}"',
+            f"CD must package both archive scripts: {script}")
+    require(deploy, script, f"deploy must preserve backup script pair: {script}")
+
+for script in ("run-host-job.py", "check-storage-health.py", "backup-important-events.py"):
+    require(workflow, script, f"CD must package host job dependency: {script}")
+    require(deploy, script, f"deploy must prepare host job dependency: {script}")
+require(workflow, 'cp -a infra/systemd "${stage_dir}/systemd"',
+        "CD must package host job templates")
+require(deploy, 'sync_directory "${staging_dir}/systemd" "${RELEASE_ROOT}/systemd"',
+        "deploy must prepare host job templates without activating them")
+for fragment in ('docker-compose.alerting.yml', 'ALERTING_ENABLED', 'alertmanager startup failed'):
+    require(deploy.lower(), fragment.lower(), f"deploy must retain opt-in receiver wiring: {fragment}")
+require(workflow, 'cp -a infra/alertmanager "${stage_dir}/alertmanager"',
+        "CD must package receiver configuration without its credential")
+for forbidden in ("systemctl enable", "systemctl start", "daemon-reload"):
+    if forbidden in deploy:
+        raise SystemExit(f"deployment must not activate new host jobs: {forbidden}")
+
 if '|| fail "observability data-plane smoke failed"' in deploy:
     raise SystemExit("observability smoke must not stop a ready application")
 

@@ -4,6 +4,7 @@ import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import jakarta.persistence.LockModeType;
+import jakarta.persistence.QueryHint;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -12,7 +13,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface SeatNotificationDeliveryRepository extends JpaRepository<SeatNotificationDelivery, Long> {
 
@@ -31,6 +34,29 @@ public interface SeatNotificationDeliveryRepository extends JpaRepository<SeatNo
 
     long deleteByStatusAndDeadLetteredAtBefore(
             SeatNotificationDeliveryStatus status, LocalDateTime cutoff);
+
+    @Transactional(readOnly = true, timeout = 10)
+    @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "5000"))
+    @Query("""
+            select d.channel as channel, count(d) as depth, min(d.nextAttemptAt) as oldestReadyAt
+            from SeatNotificationDelivery d
+            where (d.status = :pending and d.nextAttemptAt <= :now)
+               or (d.status = :processing and d.lockedUntil < :now)
+            group by d.channel
+            """)
+    List<ReadyBacklog> findReadyBacklog(
+            @Param("pending") SeatNotificationDeliveryStatus pending,
+            @Param("processing") SeatNotificationDeliveryStatus processing,
+            @Param("now") LocalDateTime now);
+
+    interface ReadyBacklog {
+
+        NotificationChannel getChannel();
+
+        long getDepth();
+
+        LocalDateTime getOldestReadyAt();
+    }
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select d from SeatNotificationDelivery d where d.id = :id")

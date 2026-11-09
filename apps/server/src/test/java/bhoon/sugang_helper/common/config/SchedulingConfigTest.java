@@ -35,7 +35,7 @@ class SchedulingConfigTest {
         // when & then
         contextRunner.withPropertyValues("spring.threads.virtual.enabled=" + virtualThreads).run(context -> {
 
-            assertThat(context).hasSingleBean(TaskScheduler.class);
+            assertThat(context.getBeansOfType(TaskScheduler.class)).hasSize(3);
             ThreadPoolTaskScheduler scheduler = context.getBean("taskScheduler", ThreadPoolTaskScheduler.class);
             assertThat(scheduler.getScheduledThreadPoolExecutor().getCorePoolSize()).isEqualTo(1);
             CountDownLatch firstStarted = new CountDownLatch(1);
@@ -77,6 +77,31 @@ class SchedulingConfigTest {
         assertThat(executor.get().awaitTermination(2, TimeUnit.SECONDS)).isTrue();
         assertThat(pending.get().isCancelled()).isTrue();
         assertThat(executions).hasValue(0);
+    }
+
+    @Test
+    @DisplayName("수집 작업이 막혀도 감시와 알림 예약 작업은 독립 실행한다")
+    void monitoringAndNotificationsRunWhileTheDefaultSchedulerIsBlocked() {
+        // when & then
+        contextRunner.run(context -> {
+            ThreadPoolTaskScheduler scheduler = context.getBean("taskScheduler", ThreadPoolTaskScheduler.class);
+            ThreadPoolTaskScheduler monitoring = context.getBean("monitoringTaskScheduler", ThreadPoolTaskScheduler.class);
+            ThreadPoolTaskScheduler notifications = context.getBean("notificationTaskScheduler", ThreadPoolTaskScheduler.class);
+            CountDownLatch started = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            CountDownLatch monitored = new CountDownLatch(1);
+            CountDownLatch notified = new CountDownLatch(1);
+            scheduler.schedule(() -> waitForRelease(started, release), Instant.now());
+            try {
+                assertThat(started.await(2, TimeUnit.SECONDS)).isTrue();
+                monitoring.schedule(monitored::countDown, Instant.now());
+                notifications.schedule(notified::countDown, Instant.now());
+                assertThat(monitored.await(2, TimeUnit.SECONDS)).isTrue();
+                assertThat(notified.await(2, TimeUnit.SECONDS)).isTrue();
+            } finally {
+                release.countDown();
+            }
+        });
     }
 
     private void waitForRelease(CountDownLatch started, CountDownLatch release) {

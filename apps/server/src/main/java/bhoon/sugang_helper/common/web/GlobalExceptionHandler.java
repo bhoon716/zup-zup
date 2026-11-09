@@ -26,9 +26,13 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
@@ -60,6 +64,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(HttpServletRequest req, MethodArgumentNotValidException e) {
+        return response(req, ErrorCode.INVALID_INPUT, e);
+    }
+
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class,
+            MissingServletRequestPartException.class})
+    public ResponseEntity<ErrorResponse> handleInvalidRequestInput(HttpServletRequest req, Exception e) {
+        return response(req, ErrorCode.INVALID_INPUT, e);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMethodValidation(HttpServletRequest req,
+                                                               HandlerMethodValidationException e) {
+        if (e.isForReturnValue()) {
+            return response(req, ErrorCode.INTERNAL_ERROR, e);
+        }
         return response(req, ErrorCode.INVALID_INPUT, e);
     }
 
