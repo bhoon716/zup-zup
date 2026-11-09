@@ -2,6 +2,7 @@ package bhoon.sugang_helper.seatalert.notification.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.identity.user.service.UserDeviceService;
@@ -17,7 +18,9 @@ import java.security.KeyPairGenerator;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import org.apache.http.HttpResponse;
@@ -53,6 +56,7 @@ class WebPushNotificationSenderTest {
 
     @Test
     @DisplayName("Web Push 성공 로그에 endpoint 원문을 남기지 않는다")
+    @SuppressWarnings("deprecation")
     void send_doesNotLogEndpoint() throws Exception {
         // given
         String endpoint = "https://fcm.googleapis.com/fcm/send/endpoint-should-not-appear";
@@ -61,7 +65,8 @@ class WebPushNotificationSenderTest {
         // when
         HttpResponse response = Mockito.mock(HttpResponse.class);
         StatusLine statusLine = Mockito.mock(StatusLine.class);
-        when(pushService.send(any(Notification.class))).thenReturn(response);
+        when(pushService.sendAsync(any(Notification.class), eq(Encoding.AESGCM)))
+                .thenReturn(CompletableFuture.completedFuture(response));
         when(response.getStatusLine()).thenReturn(statusLine);
         when(statusLine.getStatusCode()).thenReturn(201);
         webPushNotificationSender.init();

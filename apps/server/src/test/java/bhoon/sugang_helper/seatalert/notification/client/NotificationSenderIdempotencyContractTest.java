@@ -2,6 +2,7 @@ package bhoon.sugang_helper.seatalert.notification.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
@@ -25,6 +26,8 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import org.apache.http.HttpResponse;
@@ -68,6 +71,7 @@ class NotificationSenderIdempotencyContractTest {
 
     @Test
     @DisplayName("웹 푸시는 Topic과 암호화된 본문에 같은 발송 키를 전달한다")
+    @SuppressWarnings("deprecation")
     void webPushCarriesTheDeliveryKeyInBothTopicAndEncryptedPayload() throws Exception {
         // given
         WebPushNotificationSender sender = new WebPushNotificationSender("", "", "",
@@ -79,7 +83,8 @@ class NotificationSenderIdempotencyContractTest {
         HttpResponse response = mock(HttpResponse.class);
         StatusLine statusLine = mock(StatusLine.class);
         ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
-        when(pushService.send(notificationCaptor.capture())).thenReturn(response);
+        when(pushService.sendAsync(notificationCaptor.capture(), eq(Encoding.AESGCM)))
+                .thenReturn(CompletableFuture.completedFuture(response));
         when(response.getStatusLine()).thenReturn(statusLine);
         when(statusLine.getStatusCode()).thenReturn(201);
         sender.init();

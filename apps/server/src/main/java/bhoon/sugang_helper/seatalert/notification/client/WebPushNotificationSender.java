@@ -10,9 +10,13 @@ import bhoon.sugang_helper.seatalert.notification.exception.NotificationProvider
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import java.security.Security;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import lombok.extern.slf4j.Slf4j;
+import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
+import org.apache.http.HttpResponse;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -94,8 +98,9 @@ public class WebPushNotificationSender implements NotificationSender {
             Notification notification = notificationBuilder.build();
 
             log.debug("[WebPush] 단말 발송 시작. endpointFingerprint={}", endpointFingerprint);
-            var response = pushService.send(notification);
-            int statusCode = response.getStatusLine().getStatusCode();
+            @SuppressWarnings("deprecation")
+            Future<HttpResponse> request = pushService.sendAsync(notification, Encoding.AESGCM);
+            int statusCode = awaitStatusCode(request);
 
             if (statusCode == 404 || statusCode == 410) {
                 userDeviceWebPushManagement.deleteDeviceByToken(target.getRecipient());
@@ -118,6 +123,16 @@ public class WebPushNotificationSender implements NotificationSender {
                     endpointFingerprint, ErrorCode.WEB_PUSH_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
                     true, "ERROR", null, e);
+        }
+    }
+
+    private int awaitStatusCode(Future<HttpResponse> request) throws ExecutionException, InterruptedException {
+        try {
+            return request.get().getStatusLine().getStatusCode();
+        } catch (InterruptedException exception) {
+            request.cancel(true);
+            Thread.currentThread().interrupt();
+            throw exception;
         }
     }
 

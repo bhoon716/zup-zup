@@ -5,141 +5,94 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import bhoon.sugang_helper.common.api.concurrent.MdcTaskDecorator;
-import bhoon.sugang_helper.identity.user.service.UserDeviceService;
+import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.identity.api.notifications.WebPushSubscriptionManagement;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.net.httpserver.HttpServer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import java.io.IOException;
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.Security;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import nl.martijndwars.webpush.Encoding;
-import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
-import org.apache.http.HttpResponse;
+import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.impl.DefaultBHttpServerConnection;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.jose4j.lang.JoseException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class WebPushHttpCancellationTest {
 
+    private static final String LOOPBACK_HOST = "127.0.0.1";
+    private static final int APP_TIMEOUT_MS = 2_000;
+    private static final int SOCKET_TIMEOUT_MS = 5_000;
+
     @Test
-    @DisplayName("바깥 제한 시간 이후에도 실제 웹 푸시 HTTP 요청이 남는 동작을 확인한다")
-    void documentsThatOuterTimeoutLeavesTheRealWebPushHttpRequestRunning() throws Exception {
+    @DisplayName("웹 푸시 타임아웃이 발생하면 응답을 기다리던 HTTP 연결을 닫는다")
+    void timeoutClosesTheWebPushConnectionBeforeTheServerResponds() throws Exception {
         // given
         Security.addProvider(new BouncyCastleProvider());
-        ObservedPushService pushService = new ObservedPushService(generateKeyPair());
         WebPushNotificationSender sender = new WebPushNotificationSender("", "", "",
-                new ObjectMapper(), mock(UserDeviceService.class));
-        ReflectionTestUtils.setField(sender, "pushService", pushService);
-        CountDownLatch requestReceived = new CountDownLatch(1);
-        CountDownLatch releaseResponse = new CountDownLatch(1);
-        AtomicInteger encryptedRequestBytes = new AtomicInteger();
-        ExecutorService serverExecutor = Executors.newSingleThreadExecutor();
-        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.setExecutor(serverExecutor);
-        server.createContext("/push", exchange -> {
-            try {
-                encryptedRequestBytes.set(exchange.getRequestBody().readAllBytes().length);
-                requestReceived.countDown();
-                if (!releaseResponse.await(10, TimeUnit.SECONDS)) {
-                    throw new IOException("The local delayed response was not released");
-                }
-                exchange.sendResponseHeaders(201, -1);
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-            } finally {
-                exchange.close();
-            }
-        });
+                new ObjectMapper(), mock(WebPushSubscriptionManagement.class));
+        ReflectionTestUtils.setField(sender, "pushService",
+                new PushService(generateKeyPair(), "mailto:probe@example.invalid"));
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getByName(LOOPBACK_HOST));
+             ExecutorService serverExecutor = Executors.newVirtualThreadPerTaskExecutor();
+             NotificationProviderResilience resilience = new NotificationProviderResilience(
+                     registry, APP_TIMEOUT_MS, 3, 30, new MdcTaskDecorator())) {
+            server.setSoTimeout(SOCKET_TIMEOUT_MS);
+            Future<Integer> nextByte = serverExecutor.submit(() -> readAfterRequestBody(server));
+            NotificationTarget target = target(server.getLocalPort());
+
+            // when & then
+            assertThatThrownBy(() -> resilience.execute(NotificationChannel.WEB,
+                    () -> sender.send(target, "title", "body")))
+                    .isInstanceOf(NotificationProviderException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.WEB_PUSH_SEND_ERROR)
+                    .hasFieldOrPropertyWithValue("reason", "TIMEOUT");
+            assertThat(nextByte.get(2, TimeUnit.SECONDS)).isEqualTo(-1);
+        } finally {
+            registry.close();
+        }
+    }
+
+    private static int readAfterRequestBody(ServerSocket server) throws Exception {
+        try (Socket socket = server.accept()) {
+            socket.setSoTimeout(SOCKET_TIMEOUT_MS);
+            DefaultBHttpServerConnection connection = new DefaultBHttpServerConnection(4096);
+            connection.bind(socket);
+            HttpEntityEnclosingRequest request = (HttpEntityEnclosingRequest) connection.receiveRequestHeader();
+            connection.receiveRequestEntity(request);
+            assertThat(request.getEntity().getContent().readAllBytes()).isNotEmpty();
+            return socket.getInputStream().read();
+        }
+    }
+
+    private static NotificationTarget target(int port) throws GeneralSecurityException {
         KeyPair receiver = generateKeyPair();
         String receiverKey = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(((ECPublicKey) receiver.getPublic()).getQ().getEncoded(false));
         String auth = Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[16]);
-        String endpoint = "http://127.0.0.1:" + server.getAddress().getPort() + "/push";
-
-        SimpleMeterRegistry registry = new SimpleMeterRegistry();
-
-        // when & then
-        try (NotificationProviderResilience resilience = new NotificationProviderResilience(
-                registry, 5_000, 3, 30, new MdcTaskDecorator())) {
-            server.start();
-            long startedAt = System.nanoTime();
-
-            assertThatThrownBy(() -> resilience.execute(NotificationChannel.WEB,
-                    () -> sender.send(NotificationTarget.ofWeb(endpoint, receiverKey, auth), "title", "body")))
-                    .isInstanceOf(NotificationProviderException.class)
-                    .hasFieldOrPropertyWithValue("reason", "TIMEOUT");
-            long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
-
-            assertThat(requestReceived.getCount()).isZero();
-            assertThat(encryptedRequestBytes.get()).isPositive();
-            Future<HttpResponse> httpRequest = pushService.request();
-            assertThat(httpRequest).isNotNull();
-            boolean cancelledAtTimeout = httpRequest.isCancelled();
-            boolean completedAtTimeout = httpRequest.isDone();
-            assertThat(cancelledAtTimeout).isFalse();
-            assertThat(completedAtTimeout).isFalse();
-            releaseResponse.countDown();
-            int lateStatus = httpRequest.get(3, TimeUnit.SECONDS).getStatusLine().getStatusCode();
-            assertThat(lateStatus).isEqualTo(201);
-            System.out.printf("webpush_http_cancel_probe configuredTimeoutMs=5000 elapsedMs=%d "
-                            + "encryptedRequestBytes=%d lowerCancelledAtTimeout=%s lowerDoneAtTimeout=%s lateStatus=%d%n",
-                    elapsedMs, encryptedRequestBytes.get(), cancelledAtTimeout, completedAtTimeout, lateStatus);
-        } finally {
-            releaseResponse.countDown();
-            Future<HttpResponse> request = pushService.request();
-            if (request != null && !request.isDone()) {
-                request.cancel(true);
-            }
-            server.stop(0);
-            serverExecutor.shutdownNow();
-            registry.close();
-        }
+        return NotificationTarget.ofWeb("http://" + LOOPBACK_HOST + ":" + port + "/push", receiverKey, auth);
     }
 
     private static KeyPair generateKeyPair() throws GeneralSecurityException {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME);
         generator.initialize(new ECGenParameterSpec("secp256r1"));
         return generator.generateKeyPair();
-    }
-
-    private static final class ObservedPushService extends PushService {
-
-        private final AtomicReference<Future<HttpResponse>> request = new AtomicReference<>();
-
-        private ObservedPushService(KeyPair keyPair) {
-            super(keyPair, "mailto:probe@example.invalid");
-        }
-
-        @Override
-        @SuppressWarnings("deprecation")
-        public Future<HttpResponse> sendAsync(Notification notification, Encoding encoding)
-                throws GeneralSecurityException, IOException, JoseException {
-            Future<HttpResponse> result = super.sendAsync(notification, encoding);
-            request.set(result);
-            return result;
-        }
-
-        private Future<HttpResponse> request() {
-            return request.get();
-        }
     }
 }
