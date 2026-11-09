@@ -77,7 +77,8 @@ for scenario, (success, migrations, starts) in scenarios.items():
         staging.mkdir(parents=True)
         required_files = [
             'docker-compose.yml', 'application-prod.yml', 'loki/loki-config.yaml',
-            'alloy/config.alloy', 'prometheus/prometheus.yml',
+            'alloy/config.alloy', 'alloy/docker-log-proxy.conf', 'alloy/docker-log-guard.js',
+            'prometheus/prometheus.yml',
             'grafana/provisioning/datasources/datasource.yml',
             'scripts/compose-observability-diagnostics.sh',
             'scripts/backup-server-export.sh', 'scripts/backup-admin-audit.sh',

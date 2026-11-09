@@ -25,7 +25,9 @@ def pinned_images():
                                 "-f", str(ROOT / "infra/docker-compose.yml"),
                                 "--profile", "observability", "config", "--format", "json").stdout)
     services = compose["services"]
-    images = {name: services[name]["image"] for name in ("loki", "alloy", "observability-probe-tools")}
+    images = {name: services[name]["image"] for name in (
+        "loki", "alloy", "docker-log-proxy", "observability-probe-tools",
+    )}
     assert all("@sha256:" in image for image in images.values()), "Use repository-pinned test images"
     return images
 
@@ -58,12 +60,18 @@ def write_fixtures(directory, marker, trace_id):
 
 def start_pipeline(prefix, marker, directory, images):
     docker("network", "create", "--internal", prefix)
+    docker("run", "-d", "--rm", "--name", prefix + "-proxy", "--network", prefix,
+           "--network-alias", "docker-log-proxy", "--read-only",
+           "--tmpfs", "/tmp", "--tmpfs", "/var/cache/nginx",
+           "-v", "/var/run/docker.sock:/var/run/docker.sock:ro",
+           "-v", f"{ROOT}/infra/alloy/docker-log-proxy.conf:/etc/nginx/nginx.conf:ro",
+           "-v", f"{ROOT}/infra/alloy/docker-log-guard.js:/etc/nginx/docker-log-guard.js:ro",
+           "--entrypoint", "nginx", images["docker-log-proxy"], "-g", "daemon off;")
     docker("run", "-d", "--rm", "--name", prefix + "-loki", "--network", prefix, "--network-alias", "loki",
            "--tmpfs", "/var/lib/loki:rw,uid=10001,gid=10001",
            "-v", f"{ROOT}/infra/loki/loki-config.yaml:/etc/loki/config.yaml:ro",
            images["loki"], "-config.file=/etc/loki/config.yaml")
     docker("run", "-d", "--rm", "--name", prefix + "-alloy", "--network", prefix,
-           "-v", "/var/run/docker.sock:/var/run/docker.sock:ro",
            "-v", f"{directory}/config.alloy:/etc/alloy/config.alloy:ro",
            images["alloy"], "run", "/etc/alloy/config.alloy", "--storage.path=/tmp/alloy")
     docker("run", "-d", "--rm", "--name", prefix + "-fixture", "--network", prefix,
@@ -78,6 +86,30 @@ def start_pipeline(prefix, marker, directory, images):
            "--label", "com.docker.compose.service=app", "--label", f"zup_log_e2e={marker}",
            images["observability-probe-tools"], "sh", "-c",
            "sleep 6; echo '2026-11-06 12:00:00 INFO excluded-project-sentinel'; sleep 90")
+
+
+def verify_proxy_policy(prefix, probe_image):
+    fixture_id = docker("inspect", "-f", "{{.Id}}", prefix + "-fixture").stdout.strip()
+    excluded_id = docker("inspect", "-f", "{{.Id}}", prefix + "-excluded").stdout.strip()
+    base_url = "http://docker-log-proxy:2375"
+    probe = ["run", "--rm", "--network", prefix, probe_image, "wget"]
+    info = json.loads(docker(*probe, "-qO-", "-T", "3",
+                             f"{base_url}/containers/{fixture_id}/json").stdout)
+    assert set(info) == {"Id", "Config", "State"}
+    assert info["Config"] == {"Tty": False}, "Inspect must not expose environment or labels"
+    assert set(info["State"]) == {"Running", "FinishedAt"}
+    checks = [
+        (f"/containers/{excluded_id}/json", [], 404),
+        (f"/containers/{excluded_id}/logs?stdout=1", [], 404),
+        (f"/_docker_inspect/{fixture_id}/json", [], 404),
+        ("/images/json", [], 404),
+        ("/containers/json", ["--post-data", "{}"], 403),
+    ]
+    for path, arguments, status in checks:
+        result = docker(*probe, "-S", "-O", "/dev/null", "-T", "3", *arguments,
+                        f"{base_url}{path}", check=False)
+        assert f"HTTP/1.1 {status}" in result.stderr, (path, result.stderr)
+    print("Docker log proxy policy passed: redacted inspect, project boundary and no write API")
 
 
 def query_logs(prefix, probe_image, expression):
@@ -135,8 +167,9 @@ def main():
             events = write_fixtures(directory, marker, trace_id)
             start_pipeline(prefix, marker, directory, images)
             verify_pipeline(prefix, images["observability-probe-tools"], trace_id, events)
+            verify_proxy_policy(prefix, images["observability-probe-tools"])
     finally:
-        for suffix in ("-fixture", "-excluded", "-alloy", "-loki", "-probe"):
+        for suffix in ("-fixture", "-excluded", "-alloy", "-loki", "-proxy", "-probe"):
             docker("rm", "-f", prefix + suffix, check=False)
         docker("network", "rm", prefix, check=False)
 

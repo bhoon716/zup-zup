@@ -130,6 +130,8 @@ if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -d "${staging_dir}/src/main/resources/db/migration" ] \
   || [ ! -f "${staging_dir}/loki/loki-config.yaml" ] \
   || [ ! -f "${staging_dir}/alloy/config.alloy" ] \
+  || [ ! -f "${staging_dir}/alloy/docker-log-proxy.conf" ] \
+  || [ ! -f "${staging_dir}/alloy/docker-log-guard.js" ] \
   || [ ! -f "${staging_dir}/prometheus/prometheus.yml" ] \
   || [ ! -f "${staging_dir}/grafana/provisioning/datasources/datasource.yml" ] \
   || [ ! -f "${staging_dir}/scripts/test-observability-smoke.sh" ] \
@@ -284,8 +286,8 @@ if [ "${alerting_enabled}" = true ]; then
 fi
 "${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis \
   || fail "MySQL/Redis startup failed"
-"${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 loki prometheus \
-  || fail "Loki/Prometheus startup failed"
+"${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 loki prometheus docker-log-proxy \
+  || fail "Loki/Prometheus/Docker log proxy startup failed"
 "${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 alloy grafana \
   || fail "Alloy/Grafana startup failed"
 

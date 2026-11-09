@@ -35,6 +35,7 @@ services = compose.get("services", {})
 required_services = {
     "loki",
     "alloy",
+    "docker-log-proxy",
     "prometheus",
     "grafana",
     "observability-probe-tools",
@@ -50,7 +51,7 @@ for name in required_services:
     if not services[name].get("healthcheck") and name != "observability-probe-tools":
         raise SystemExit(f"{name} must define a healthcheck")
 
-for name in ("loki", "alloy", "prometheus"):
+for name in ("loki", "alloy", "docker-log-proxy", "prometheus"):
     if services[name].get("ports"):
         raise SystemExit(f"{name} must not publish a host port")
 
@@ -70,8 +71,18 @@ for key, expected in grafana_domain_settings.items():
         raise SystemExit(f"Grafana domain contract is missing or changed: {key}")
 
 alloy_mounts = {str(item.get("target")): item for item in services["alloy"].get("volumes", [])}
-if alloy_mounts.get("/var/run/docker.sock", {}).get("read_only") is not True:
-    raise SystemExit("Alloy must mount the Docker socket read-only")
+if "/var/run/docker.sock" in alloy_mounts:
+    raise SystemExit("Alloy must not mount the Docker socket")
+proxy = services["docker-log-proxy"]
+proxy_mounts = {str(item.get("target")): item for item in proxy.get("volumes", [])}
+if proxy_mounts.get("/var/run/docker.sock", {}).get("read_only") is not True:
+    raise SystemExit("Only the log proxy should mount the Docker socket")
+if set(proxy.get("networks", {})) != {"sugang-helper-docker-logs"}:
+    raise SystemExit("The log proxy must be isolated from the shared runtime network")
+if not compose["networks"]["sugang-helper-docker-logs"].get("internal"):
+    raise SystemExit("The Docker log network must be internal")
+if services["alloy"]["depends_on"].get("docker-log-proxy", {}).get("condition") != "service_healthy":
+    raise SystemExit("Alloy must wait for the Docker log proxy")
 
 runtime_network = compose.get("networks", {}).get("sugang-helper-runtime", {})
 if not runtime_network.get("internal"):
@@ -81,6 +92,7 @@ alloy = (repo_root / "infra/alloy/config.alloy").read_text(encoding="utf-8")
 for required in (
     'discovery.docker "containers"',
     'loki.source.docker "containers"',
+    'host             = "http://docker-log-proxy:2375"',
     'refresh_interval = "5s"',
     'target_label  = "job"',
     'source_labels = ["__meta_docker_container_label_com_docker_compose_project"]',

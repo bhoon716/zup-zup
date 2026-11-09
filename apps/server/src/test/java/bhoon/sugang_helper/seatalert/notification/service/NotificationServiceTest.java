@@ -172,23 +172,27 @@ class NotificationServiceTest {
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
-        verify(redisService, times(1)).deleteValues(anyString());
+        verify(redisService, never()).deleteValues(anyString());
     }
 
     @Test
-    @DisplayName("사용자 테스트 알림의 제공자 실패는 전파하고 재시도할 수 있게 쿨타임을 해제한다")
-    void sendUserTestNotification_ReleasesCooldownOnProviderFailure() {
+    @DisplayName("사용자 테스트 알림의 제공자 실패 후에도 요청 제한을 유지한다")
+    void sendUserTestNotification_KeepsCooldownOnProviderFailure() {
         // given
         User user = User.builder().id(1L).email(EMAIL).emailEnabled(true).build();
         addRecipient(user);
-        given(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).willReturn(true);
+        given(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).willReturn(true, false);
         given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
         RuntimeException failure = new RuntimeException("provider unavailable");
         doThrow(failure).when(notificationSender).send(any(), anyString(), anyString());
 
         // when & then
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId())).isSameAs(failure);
-        verify(redisService).deleteValues("ALERT:USER_TEST:1");
+        verify(redisService, never()).deleteValues(anyString());
+        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
+        verify(notificationSender).send(any(), anyString(), anyString());
         verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 

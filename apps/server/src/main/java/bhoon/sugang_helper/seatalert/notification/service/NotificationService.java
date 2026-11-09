@@ -108,21 +108,15 @@ public class NotificationService implements NotificationOperations {
             throw new CustomException(ErrorCode.TOO_MANY_REQUESTS, "알림 테스트는 10초에 한 번만 가능합니다. 잠시 후 다시 시도해주세요.");
         }
 
-        try {
-            NotificationRecipient user = userNotificationQuery.findById(userId)
-                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-            List<NotificationChannel> channels = notificationChannelPolicy.userEnabledChannels(user);
-            boolean delivered = sendTestNotification(
-                    user, channels, false);
-            if (!delivered) {
-                throw new CustomException(ErrorCode.INVALID_INPUT,
-                        "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
-            }
-            log.info("[User] 테스트 알림 요청. userId={}, channels={}", user.id(), channels);
-        } catch (RuntimeException e) {
-            redisService.deleteValues(cooldownKey);
-            throw e;
+        NotificationRecipient user = userNotificationQuery.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        List<NotificationChannel> channels = notificationChannelPolicy.userEnabledChannels(user);
+        boolean delivered = sendTestNotification(user, channels, false);
+        if (!delivered) {
+            throw new CustomException(ErrorCode.INVALID_INPUT,
+                    "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
         }
+        log.info("[User] 테스트 알림 요청. userId={}, channels={}", user.id(), channels);
     }
 
     private boolean sendNotification(NotificationRecipient user, List<NotificationDevice> devices,

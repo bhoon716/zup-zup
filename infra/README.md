@@ -49,7 +49,7 @@ docker compose --profile migration run --rm migrate validate
 
 ## 로그 검색
 
-운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`와 Prometheus/Loki/Alloy 자체 지표를 수집하고, Alloy는 Docker socket을 읽기 전용으로 사용해 `sugang-helper` Compose 프로젝트 컨테이너의 JSON 로그를 Loki로 전송합니다. Grafana는 `127.0.0.1:3000`에만 공개하므로 SSH 터널로 접속합니다. 배포 후 운영 상태·로그·probe 재준비·관측성 재기동은 release root에 배포되는 `scripts/compose-observability-diagnostics.sh`를 사용하며, 상세 명령은 운영 runbook을 따릅니다.
+운영 Compose는 `observability` profile에서 Prometheus, Loki, Grafana Alloy, Grafana를 실행합니다. Prometheus는 앱의 `/actuator/prometheus`와 관측 도구의 자체 지표를 수집합니다. Alloy는 전용 내부망의 Docker 로그 프록시로 `sugang-helper` 컨테이너를 검색하고 로그를 Loki로 전송합니다. 프록시는 컨테이너·네트워크 목록, 버전, ping, 로그 읽기 요청만 허용합니다. Grafana는 `127.0.0.1:3000`에 공개합니다. 배포 후 관측 상태 확인과 재기동은 `scripts/compose-observability-diagnostics.sh`를 사용합니다.
 
 ```bash
 cd /home/ubuntu/jbnu-sugang-helper

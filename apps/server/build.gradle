@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.9'
+    id 'org.springframework.boot' version '3.5.16'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'pmd'
     id 'checkstyle'
@@ -18,7 +18,9 @@ group = 'bhoon'
 version = '1.0.0'
 description = 'Demo project for Spring Boot'
 
-ext['netty.version'] = '4.1.132.Final'
+ext['logback.version'] = '1.5.38'
+ext['netty.version'] = '4.1.140.Final'
+ext['tomcat.version'] = '10.1.61'
 
 java {
     toolchain {
