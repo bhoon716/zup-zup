@@ -13,6 +13,7 @@ import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
+import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository.DeliveryRecipient;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -172,6 +174,10 @@ public class SeatNotificationOutboxProcessor {
                 .collect(Collectors.toMap(NotificationRecipient::id, Function.identity()));
         Map<Long, List<NotificationDevice>> devicesByUser = userNotificationQuery.findDevicesByUserIds(userIds).stream()
                 .collect(Collectors.groupingBy(NotificationDevice::userId));
+        Map<Long, Set<NotificationChannel>> existingChannelsByUser = deliveryRepository
+                .findExistingRecipientsByOutboxId(outbox.getId(), List.of(NotificationChannel.values())).stream()
+                .collect(Collectors.groupingBy(DeliveryRecipient::getUserId,
+                        Collectors.mapping(DeliveryRecipient::getChannel, Collectors.toSet())));
 
         List<SeatNotificationDelivery> deliveriesToSave = new ArrayList<>();
         for (Long userId : userIds) {
@@ -179,7 +185,8 @@ public class SeatNotificationOutboxProcessor {
             if (user == null) {
                 continue;
             }
-            addRecipientDeliveries(outbox, user, devicesByUser.get(userId), deliveriesToSave);
+            Set<NotificationChannel> existingChannels = existingChannelsByUser.getOrDefault(userId, Set.of());
+            addRecipientDeliveries(outbox, user, devicesByUser.get(userId), existingChannels, deliveriesToSave);
         }
         if (!deliveriesToSave.isEmpty()) {
             deliveryRepository.saveAll(deliveriesToSave);
@@ -194,11 +201,12 @@ public class SeatNotificationOutboxProcessor {
 
     private void addRecipientDeliveries(SeatNotificationOutbox outbox, NotificationRecipient user,
                                         List<NotificationDevice> devices,
+                                        Set<NotificationChannel> existingChannels,
                                         List<SeatNotificationDelivery> deliveries) {
         for (NotificationChannel channel : NotificationChannel.values()) {
             if (!notificationChannelPolicy.isChannelEnabled(user, channel)
                     || notificationChannelPolicy.resolveTargets(user, devices, channel).isEmpty()
-                    || deliveryRepository.existsByOutboxIdAndUserIdAndChannel(outbox.getId(), user.id(), channel)) {
+                    || existingChannels.contains(channel)) {
                 continue;
             }
             deliveries.add(SeatNotificationDelivery.builder()

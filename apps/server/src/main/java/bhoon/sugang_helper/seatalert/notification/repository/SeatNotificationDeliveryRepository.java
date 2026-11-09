@@ -19,7 +19,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface SeatNotificationDeliveryRepository extends JpaRepository<SeatNotificationDelivery, Long> {
 
-    boolean existsByOutboxIdAndUserIdAndChannel(Long outboxId, Long userId, NotificationChannel channel);
+    @Query("""
+            select d.userId as userId, d.channel as channel
+            from SeatNotificationDelivery d where d.outbox.id = :outboxId and d.channel in :channels
+            """)
+    List<DeliveryRecipient> findExistingRecipientsByOutboxId(
+            @Param("outboxId") Long outboxId, @Param("channels") List<NotificationChannel> channels);
+
+    interface DeliveryRecipient {
+        Long getUserId();
+        NotificationChannel getChannel();
+    }
 
     long countByOutboxIdAndStatusNot(Long outboxId, SeatNotificationDeliveryStatus status);
 
