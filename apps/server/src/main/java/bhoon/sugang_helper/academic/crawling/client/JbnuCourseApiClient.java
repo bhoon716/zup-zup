@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.academic.crawling.client;
 
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
-import bhoon.sugang_helper.academic.crawling.exception.CrawlerUpstreamFailure;
+import bhoon.sugang_helper.academic.crawling.exception.CrawlerUpstreamException;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
@@ -109,7 +109,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
         return DEFAULT_CERT_DIVISION;
     }
 
-    private byte[] executeSingleRequest(String year, String semester, String targetCertDivision) throws IOException {
+    private byte[] executeSingleRequest(String year, String semester, String targetCertDivision) {
         CookieManager cookieManager = new CookieManager();
         HttpClient.Builder httpClientBuilder = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
@@ -127,7 +127,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
     }
 
     private byte[] requestCourseData(RestClient restClient, String year, String semester,
-                                      String targetCertDivision) throws CrawlerUpstreamFailure {
+                                      String targetCertDivision) {
         try {
             return restClient.post()
                     .uri(apiUrl)
@@ -143,8 +143,8 @@ public class JbnuCourseApiClient implements CourseApiClient {
                     .body(JbnuJumpRequestEncoder.encode(buildRequest(year, semester, targetCertDivision)))
                     .exchange((request, response) -> readResponse(response));
         } catch (Exception exception) {
-            throw CrawlerUpstreamFailure.wrap(CrawlerFailureStage.COURSE_API,
-                    upstreamStatusCode(exception), exception, isTransientFailure(exception));
+            throw new CrawlerUpstreamException(CrawlerFailureStage.COURSE_API,
+                    upstreamStatusCode(exception), isTransientFailure(exception), exception);
         }
     }
 
@@ -181,26 +181,25 @@ public class JbnuCourseApiClient implements CourseApiClient {
     }
 
     private void handleRequestError(Exception e, int retryCount, String year, String semester, String targetCertDivision) {
-        CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.find(e);
-        boolean retryable = isRetryableFailure(e, upstream);
-        logRequestFailure(e, retryCount, year, semester, targetCertDivision, upstream, retryable);
+        boolean retryable = isTransientFailure(e);
+        logRequestFailure(e, retryCount, year, semester, targetCertDivision, retryable);
         if (!retryable || retryCount > maxRetries) {
             throw connectionFailure(e);
         }
     }
 
     private void logRequestFailure(Exception e, int retryCount, String year, String semester,
-                                   String targetCertDivision, CrawlerUpstreamFailure upstream, boolean retryable) {
-        CrawlerFailureStage stage = failureStage(upstream);
+                                   String targetCertDivision, boolean retryable) {
+        CrawlerFailureStage stage = failureStage(e);
         String status = "UNKNOWN";
-        if (upstream != null) {
+        if (e instanceof CrawlerUpstreamException upstream) {
             status = statusLabel(upstream.upstreamStatus());
         }
         int maximumAttempts = maxRetries + 1;
         boolean exhausted = retryCount > maxRetries;
         String result = requestFailureResult(retryable, exhausted);
         String exceptionType = SensitiveDataRedactor.exceptionType(
-                CrawlerUpstreamFailure.rootCause(e));
+                CrawlerUpstreamException.rootCause(e));
         Level level = Level.ERROR;
         if (retryable) {
             level = Level.WARN;
@@ -219,18 +218,11 @@ public class JbnuCourseApiClient implements CourseApiClient {
                 .log("[Crawler] 상위 강의 API 요청 실패.");
     }
 
-    private boolean isRetryableFailure(Exception failure, CrawlerUpstreamFailure upstream) {
-        if (upstream != null) {
-            return upstream.retryable();
+    private CrawlerFailureStage failureStage(Exception failure) {
+        if (failure instanceof CrawlerUpstreamException upstream) {
+            return upstream.stage();
         }
-        return isTransientFailure(failure);
-    }
-
-    private CrawlerFailureStage failureStage(CrawlerUpstreamFailure upstream) {
-        if (upstream == null) {
-            return CrawlerFailureStage.FETCH_PARSE;
-        }
-        return upstream.stage();
+        return CrawlerFailureStage.FETCH_PARSE;
     }
 
     private String requestFailureResult(boolean retryable, boolean exhausted) {
@@ -294,7 +286,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
         return values;
     }
 
-    private void fetchSessionCookies(RestClient restClient, CookieManager cookieManager) throws IOException {
+    private void fetchSessionCookies(RestClient restClient, CookieManager cookieManager) {
         try {
             restClient.get()
                     .uri(bootstrapUrl)
@@ -304,8 +296,8 @@ public class JbnuCourseApiClient implements CourseApiClient {
                 throw new IOException("JUMP session cookies are empty");
             }
         } catch (Exception exception) {
-            throw CrawlerUpstreamFailure.wrap(CrawlerFailureStage.JUMP_BOOTSTRAP,
-                    upstreamStatusCode(exception), exception, isTransientFailure(exception));
+            throw new CrawlerUpstreamException(CrawlerFailureStage.JUMP_BOOTSTRAP,
+                    upstreamStatusCode(exception), isTransientFailure(exception), exception);
         }
     }
 
@@ -322,7 +314,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
         if (throwable == null) {
             return false;
         }
-        if (throwable instanceof CrawlerUpstreamFailure upstream) {
+        if (throwable instanceof CrawlerUpstreamException upstream) {
             return upstream.retryable();
         }
         if (throwable instanceof SocketTimeoutException || throwable instanceof ConnectException
@@ -357,8 +349,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
 
     private void logRetryWait(int retryCount, String year, String semester, String targetCertDivision,
                               Exception failure, long waitTime) {
-        CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.find(failure);
-        CrawlerFailureStage stage = failureStage(upstream);
+        CrawlerFailureStage stage = failureStage(failure);
         log.atDebug().addKeyValue("event", "upstream_retry_wait")
                 .addKeyValue("year", year)
                 .addKeyValue("semester", semester)
@@ -371,6 +362,9 @@ public class JbnuCourseApiClient implements CourseApiClient {
     }
 
     private CustomException connectionFailure(Exception cause) {
+        if (cause instanceof CrawlerUpstreamException upstream) {
+            return upstream;
+        }
         CustomException exception = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
         exception.initCause(cause);
         return exception;
