@@ -109,6 +109,28 @@ describe("SearchPage", () => {
     expect(screen.getByRole("button", { name: "사용법" })).toBeInTheDocument();
   });
 
+  it("캐시된 검색 결과를 다시 조회하는 동안 페이지 추가를 멈추고 완료하면 재개한다", () => {
+    const fetchNextPage = vi.fn();
+    const query = {
+      data: { pages: [{ content: [] }] },
+      isLoading: false,
+      error: null,
+      fetchNextPage,
+      hasNextPage: true,
+      isFetchingNextPage: false,
+    };
+    mockUseCourses.mockReturnValue({ ...query, isFetching: true });
+
+    const { rerender } = render(<SearchPage />);
+    expect(mockCourseTable.mock.lastCall?.[0].onLoadMore).toBeUndefined();
+
+    mockUseCourses.mockReturnValue({ ...query, isFetching: false });
+    rerender(<SearchPage />);
+    act(() => mockCourseTable.mock.lastCall?.[0].onLoadMore());
+
+    expect(fetchNextPage).toHaveBeenCalledExactlyOnceWith({ cancelRefetch: false });
+  });
+
   it("검색 페이지는 전역 인증 상태의 사용자를 공통 기준으로 사용한다", () => {
     mockAuthState.user = {
       id: 1,

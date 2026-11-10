@@ -1,5 +1,6 @@
 "use client";
 
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
 
@@ -42,11 +43,6 @@ export function CourseReviewSection({
   isReviewed,
   isProfessorUnassigned = false,
 }: CourseReviewSectionProps) {
-  const { data: myReview, status: reviewStatus } = useReviews(reviewScopeKey, courseKey);
-  const { mutate: createReview, isPending: isCreating } = useCreateReview(reviewScopeKey, courseKey);
-  const { mutate: updateReview, isPending: isUpdating } = useUpdateReview(reviewScopeKey, courseKey);
-  const { data: emojiStats, status: emojiStatus } = useCourseEmojis(reviewScopeKey, courseKey);
-  const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(reviewScopeKey, courseKey);
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isUserLoading = useAuthStore(
@@ -54,6 +50,12 @@ export function CourseReviewSection({
   );
   const verifiedUser = isAuthenticated ? user : null;
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
+  const { data: review, status: reviewStatus } = useReviews(reviewScopeKey, courseKey, !!verifiedUser);
+  const myReview = verifiedUser ? review : null;
+  const { mutate: createReview, isPending: isCreating } = useCreateReview(reviewScopeKey, courseKey);
+  const { mutate: updateReview, isPending: isUpdating } = useUpdateReview(reviewScopeKey, courseKey);
+  const { data: emojiStats, status: emojiStatus } = useCourseEmojis(reviewScopeKey, courseKey);
+  const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(reviewScopeKey, courseKey);
 
   const [draftRating, setDraftRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number>(0);
@@ -94,7 +96,7 @@ export function CourseReviewSection({
           onError: (err: unknown) => {
             let errorMsg = "수정에 실패했습니다.";
             if (axios.isAxiosError(err)) {
-              errorMsg = err.response?.data?.message || errorMsg;
+              errorMsg = localizedErrorMessage(err.response?.data?.message, errorMsg);
             }
             toast.error(errorMsg);
           },
@@ -114,7 +116,7 @@ export function CourseReviewSection({
         onError: (err: unknown) => {
           let errorMsg = "작성에 실패했습니다. 이미 작성하셨을 수 있습니다.";
           if (axios.isAxiosError(err)) {
-            errorMsg = err.response?.data?.message || errorMsg;
+            errorMsg = localizedErrorMessage(err.response?.data?.message, errorMsg);
           }
           toast.error(errorMsg);
         },

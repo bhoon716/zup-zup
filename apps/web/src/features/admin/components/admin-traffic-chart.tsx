@@ -26,8 +26,8 @@ export function AdminTrafficChart({ traffic }: AdminTrafficChartProps) {
           <p className="text-slate-500 font-medium mt-1">최근 24시간 동안의 발송 패턴입니다.</p>
         </div>
         <div className="flex h-10 items-center gap-1 self-start rounded-xl bg-slate-50 p-1 sm:h-12 sm:rounded-2xl">
-          <button className="h-full rounded-xl bg-white px-5 text-sm font-bold text-primary shadow-sm">24H</button>
-          <button className="h-full rounded-xl px-5 text-sm font-bold text-slate-500 hover:text-primary transition-colors">7D</button>
+          <button className="h-full rounded-xl bg-white px-5 text-sm font-bold text-primary shadow-sm">24시간</button>
+          <button className="h-full rounded-xl px-5 text-sm font-bold text-slate-500 hover:text-primary transition-colors">7일</button>
         </div>
       </div>
 

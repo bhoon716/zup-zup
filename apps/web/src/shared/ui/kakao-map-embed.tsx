@@ -1,5 +1,6 @@
 "use client";
 
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { renderKakaoMapByKeyword } from "@/shared/lib/kakao-map";
@@ -65,9 +66,8 @@ export function KakaoMapEmbed({ query, className }: KakaoMapEmbedProps) {
             return;
           }
 
-          const message = error instanceof Error
-            ? error.message
-            : "지도를 불러오는 중 오류가 발생했습니다.";
+          const message = localizedErrorMessage(
+            error instanceof Error && error.message, "지도를 불러오는 중 오류가 발생했습니다.");
           setErrorMessage(message);
           setIsApiError(true);
         } finally {

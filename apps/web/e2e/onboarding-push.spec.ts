@@ -70,7 +70,7 @@ for (const mode of ['unsupported', 'denied', 'supported', 'retry'] as const) {
       await expect(push).not.toBeChecked();
       expect(devices).toBe(0);
     } else if (mode === 'retry') {
-      await expect(page.getByText('Request failed with status code 503', { exact: true })).toBeVisible();
+      await expect(page.getByText('웹 푸시 설정에 실패했습니다.', { exact: true })).toBeVisible();
       await expect(push).not.toBeChecked();
       expect(saved).toHaveLength(0);
       await push.click();

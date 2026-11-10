@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { localizedErrorMessage } from "@/shared/lib/error-message";
+import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { timetableApi } from '@/features/timetable/api/timetable.api';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
@@ -20,18 +21,23 @@ export const useTimetables = (enabled = true, initialUser?: User | null) => {
   });
 };
 
-export const useTimetableDetail = (id: number | null, enabled = true, initialUser?: User | null) => {
-  const queryEnabled = !!id && enabled;
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const canFetch = initialUser !== undefined ? !!initialUser : isAuthenticated;
-  return useQuery({
+export const timetableDetailOptions = (id: number | null) =>
+  queryOptions({
     queryKey: ['timetable', id],
     queryFn: async () => {
       if (!id) return null;
       const response = await timetableApi.getTimetable(id);
       return response ?? null;
     },
-    enabled: queryEnabled && canFetch,
+    staleTime: 60_000,
+  });
+
+export const useTimetableDetail = (id: number | null, enabled = true, initialUser?: User | null) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const canFetch = initialUser !== undefined ? !!initialUser : isAuthenticated;
+  return useQuery({
+    ...timetableDetailOptions(id),
+    enabled: !!id && enabled && canFetch,
   });
 };
 
@@ -61,7 +67,7 @@ export const useAddCourseToTimetable = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '강의 추가에 실패했습니다.';
+      const message = localizedErrorMessage(error.response?.data?.message, '강의 추가에 실패했습니다.');
       toast.error(message);
     },
   });
@@ -80,7 +86,7 @@ export const useRemoveCourseFromTimetable = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '강의 삭제에 실패했습니다.';
+      const message = localizedErrorMessage(error.response?.data?.message, '강의 삭제에 실패했습니다.');
       toast.error(message);
     },
   });
@@ -99,7 +105,7 @@ export const useAddCustomSchedule = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '일정 추가에 실패했습니다.';
+      const message = localizedErrorMessage(error.response?.data?.message, '일정 추가에 실패했습니다.');
       toast.error(message);
     },
   });
@@ -118,7 +124,7 @@ export const useRemoveCustomSchedule = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '일정 삭제에 실패했습니다.';
+      const message = localizedErrorMessage(error.response?.data?.message, '일정 삭제에 실패했습니다.');
       toast.error(message);
     },
   });

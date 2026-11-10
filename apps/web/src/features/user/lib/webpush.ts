@@ -1,6 +1,8 @@
 import { buildClientErrorEvent, reportClientError } from "@/shared/telemetry/client-error";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
+const SERVICE_WORKER_READY_TIMEOUT_MS = 15_000;
+const SERVICE_WORKER_READY_TIMEOUT_MESSAGE = "서비스 워커 로드 타임아웃";
 
 function isSameUint8Array(a: Uint8Array, b: Uint8Array) {
   if (a.length !== b.length) return false;
@@ -50,7 +52,9 @@ export async function getSubscription() {
   try {
     const registration = await Promise.race([
       navigator.serviceWorker.ready,
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("서비스 워커 로드 타임아웃")), 15000))
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error(SERVICE_WORKER_READY_TIMEOUT_MESSAGE)), SERVICE_WORKER_READY_TIMEOUT_MS);
+      }),
     ]);
     return await registration.pushManager.getSubscription();
   } catch (error) {
@@ -69,7 +73,9 @@ export async function subscribeToPush() {
 
   await Promise.race([
     navigator.serviceWorker.ready,
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("서비스 워커 로드 타임아웃")), 15000))
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(SERVICE_WORKER_READY_TIMEOUT_MESSAGE)), SERVICE_WORKER_READY_TIMEOUT_MS);
+    }),
   ]);
 
   if (!VAPID_PUBLIC_KEY) {

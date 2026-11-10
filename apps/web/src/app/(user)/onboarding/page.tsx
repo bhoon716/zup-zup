@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { localizedErrorMessage } from "@/shared/lib/error-message";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser, useCompleteOnboarding } from "@/features/user/hooks/useUser";
@@ -27,7 +28,7 @@ interface OnboardingForm {
 const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof AxiosError) {
     const responseData = error.response?.data as { message?: string } | undefined;
-    return responseData?.message || fallbackMessage;
+    return localizedErrorMessage(responseData?.message, fallbackMessage);
   }
   return fallbackMessage;
 };
@@ -52,7 +53,7 @@ const useSubmitGuard = () => {
   return { isSubmitting, tryStart, finish };
 };
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const discordStatus = searchParams.get("discord");
@@ -474,5 +475,13 @@ export default function OnboardingPage() {
         </div>
       </motion.main>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingContent />
+    </Suspense>
   );
 }

@@ -23,6 +23,7 @@ import {
 import { Input } from "@/shared/ui/input";
 import { Textarea } from "@/shared/ui/textarea";
 import { cn } from "@/shared/lib/utils";
+import { MAX_FEEDBACK_ATTACHMENTS } from "@/features/feedback/feedback-limits";
 
 const formSchema = z.object({
   type: z.enum(["BUG", "SUGGESTION", "OTHER"] as const),
@@ -150,7 +151,9 @@ export function FeedbackCreateForm({
           {            }
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">이미지 첨부 (최대 3장)</span>
+              <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">
+                이미지 첨부 (최대 {MAX_FEEDBACK_ATTACHMENTS}장)
+              </span>
               <Button
                 type="button"
                 variant="outline"

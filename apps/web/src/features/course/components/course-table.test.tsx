@@ -139,6 +139,29 @@ describe("CourseTable", () => {
     expect(screen.getByRole("button", { name: "Theories of International Relations 여석 알림 받기" })).toBeInTheDocument();
   });
 
+  it("페이지 추가가 다시 가능해지면 계속 보이는 목록 끝을 다시 관찰한다", () => {
+    const loadMore = vi.fn();
+    const disconnect = vi.fn();
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(private readonly callback: IntersectionObserverCallback) {}
+
+      observe() {
+        this.callback([{ isIntersecting: true } as IntersectionObserverEntry], this as unknown as IntersectionObserver);
+      }
+
+      disconnect = disconnect;
+    });
+
+    const courses = [testCourse];
+    const { rerender } = render(<CourseTable courses={courses} hasMore />);
+    expect(loadMore).not.toHaveBeenCalled();
+
+    rerender(<CourseTable courses={courses} hasMore onLoadMore={loadMore} />);
+
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(loadMore).toHaveBeenCalledOnce();
+  });
+
   it.each([
     { interaction: "포인터 클릭", key: null },
     { interaction: "Enter", key: "{Enter}" },

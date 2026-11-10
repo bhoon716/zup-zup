@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getCourseMetadata } from "@/shared/lib/public-metadata";
+import { getCourseMetadata, getPublicCourse } from "@/shared/lib/public-metadata";
+import { decodeCourseKey } from "@/shared/lib/course";
 import CourseDetailPage from "./course-detail-page";
 
 interface CoursePageProps {
@@ -8,9 +9,11 @@ interface CoursePageProps {
 
 export async function generateMetadata({ params }: CoursePageProps): Promise<Metadata> {
   const { courseKey } = await params;
-  return getCourseMetadata(courseKey);
+  return getCourseMetadata(decodeCourseKey(courseKey));
 }
 
-export default function Page() {
-  return <CourseDetailPage />;
+export default async function Page({ params }: CoursePageProps) {
+  const { courseKey } = await params;
+  const initialPublicCourse = await getPublicCourse(decodeCourseKey(courseKey));
+  return <CourseDetailPage initialPublicCourse={initialPublicCourse} />;
 }

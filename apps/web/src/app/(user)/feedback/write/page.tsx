@@ -1,5 +1,6 @@
 "use client";
 
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { useEffect, useState, useRef } from "react";
 import { 
   History,
@@ -11,6 +12,7 @@ import { toast } from "sonner";
 import { Suspense } from "react";
 
 import { compressImage, isSupportedImageType } from "@/shared/lib/image";
+import { MAX_FEEDBACK_ATTACHMENTS } from "@/features/feedback/feedback-limits";
 import { buildFeedbackMetadata } from "@/features/feedback/feedback-metadata";
 import { useCreateFeedback } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackCreateForm } from "@/features/feedback/components/feedback-create-form";
@@ -44,8 +46,8 @@ function FeedbackWritePageContent() {
       toast.error("JPEG 또는 PNG 이미지만 첨부할 수 있습니다.");
       return;
     }
-    if (files.length + selectedFiles.length > 3) {
-      toast.error("최대 3장까지만 첨부할 수 있습니다.");
+    if (files.length + selectedFiles.length > MAX_FEEDBACK_ATTACHMENTS) {
+      toast.error(`최대 ${MAX_FEEDBACK_ATTACHMENTS}장까지만 첨부할 수 있습니다.`);
       return;
     }
 
@@ -96,7 +98,7 @@ function FeedbackWritePageContent() {
       setPreviews([]);
       router.push("/feedback");
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "피드백 전송에 실패했습니다.";
+      const errorMessage = localizedErrorMessage(error instanceof Error && error.message, "피드백 전송에 실패했습니다.");
       toast.error(errorMessage);
     }
   };

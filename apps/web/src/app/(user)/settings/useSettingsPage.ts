@@ -1,5 +1,6 @@
 "use client";
 
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,10 +34,15 @@ export type SettingsFormValues = z.infer<typeof settingsSchema>;
 const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof AxiosError) {
     const responseData = error.response?.data as { message?: string } | undefined;
-    return responseData?.message || fallbackMessage;
+    return localizedErrorMessage(responseData?.message, fallbackMessage);
   }
   return fallbackMessage;
 };
+
+function loadSettingsProfile() {
+  const auth = useAuthStore.getState();
+  return auth.refreshUser(auth.hasCheckedSession ? undefined : { silentAuthFailure: true });
+}
 
 export const useSettingsPage = () => {
   const router = useRouter();
@@ -101,7 +107,7 @@ export const useSettingsPage = () => {
     const fetchProfile = async () => {
       try {
         const [profileRes, deviceRes] = await Promise.all([
-          refreshUser().then(profile => ({ profile, version: useAuthStore.getState().sessionVersion })),
+          loadSettingsProfile().then(profile => ({ profile, version: useAuthStore.getState().sessionVersion })),
           getDevices(),
         ]);
         if (!active) return;
@@ -130,7 +136,7 @@ export const useSettingsPage = () => {
 
     void fetchProfile();
     return () => { active = false; };
-  }, [reset, refreshUser]);
+  }, [reset]);
 
   useEffect(() => {
     if (testCooldownSeconds <= 0) {
@@ -237,7 +243,7 @@ export const useSettingsPage = () => {
       }
     } catch (error: unknown) {
       reportClientError(error, { source: "settings", operation: "register-device" });
-      toast.error(getErrorMessage(error, "기기 등록 중 오류가 발생했습니다. 메세지: " + (error instanceof Error ? error.message : "알 수 없음")));
+      toast.error(getErrorMessage(error, "기기 등록 중 오류가 발생했습니다."));
     }
   };
 

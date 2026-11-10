@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import HomePage from "./page";
+import { HomeSession } from "./home-session";
 
 const { mockAuthState, mockUseDashboardSnapshot } = vi.hoisted(() => ({
   mockAuthState: {
@@ -20,10 +20,6 @@ vi.mock("@/widgets/home/dashboard", () => ({
   Dashboard: () => <div data-testid="dashboard" />,
 }));
 
-vi.mock("@/widgets/home/home-landing", () => ({
-  HomeLanding: () => <div data-testid="home-landing" />,
-}));
-
 vi.mock("lucide-react", () => ({
   Loader2: () => <div data-testid="auth-loader" />,
 }));
@@ -32,7 +28,15 @@ vi.mock("@/features/auth/store/useAuthStore", () => ({
   useAuthStore: (selector: (state: typeof mockAuthState) => unknown) => selector(mockAuthState),
 }));
 
-describe("HomePage", () => {
+function renderHome(hasSessionCookie = false) {
+  return render(
+    <HomeSession hasSessionCookie={hasSessionCookie}>
+      <div data-testid="home-landing" />
+    </HomeSession>,
+  );
+}
+
+describe("HomeSession", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthState.user = null;
@@ -46,10 +50,22 @@ describe("HomePage", () => {
   });
 
   it("게스트 상태에서는 인증 대시보드 요청을 비활성화한다", () => {
-    render(<HomePage />);
+    mockAuthState.isLoading = true;
+
+    renderHome();
 
     expect(mockUseDashboardSnapshot).toHaveBeenCalledWith({ enabled: false });
     expect(screen.getByTestId("home-landing")).toBeInTheDocument();
+  });
+
+  it("세션 쿠키가 있으면 인증 결과가 오기 전까지 대시보드를 조회하지 않는다", () => {
+    mockAuthState.isLoading = true;
+
+    renderHome(true);
+
+    expect(mockUseDashboardSnapshot).toHaveBeenCalledWith({ enabled: false });
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.queryByTestId("home-landing")).not.toBeInTheDocument();
   });
 
   it("복원된 미검증 사용자의 세션 확인 중에는 게스트 화면을 노출하지 않는다", () => {
@@ -60,7 +76,7 @@ describe("HomePage", () => {
       role: "USER",
     };
 
-    render(<HomePage />);
+    renderHome();
 
     expect(mockUseDashboardSnapshot).toHaveBeenCalledWith({ enabled: false });
     expect(screen.getByTestId("auth-loader")).toBeInTheDocument();
@@ -82,7 +98,7 @@ describe("HomePage", () => {
       isError: false,
     });
 
-    render(<HomePage />);
+    renderHome();
 
     expect(mockUseDashboardSnapshot).toHaveBeenCalledWith({ enabled: true });
     expect(screen.getByTestId("dashboard")).toBeInTheDocument();

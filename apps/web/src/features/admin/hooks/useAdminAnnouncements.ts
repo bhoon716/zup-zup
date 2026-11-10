@@ -1,3 +1,4 @@
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
@@ -26,7 +27,7 @@ export const useCreateAdminAnnouncement = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      toast.error(error.response?.data?.message || "공지사항 등록 중 오류가 발생했습니다.");
+      toast.error(localizedErrorMessage(error.response?.data?.message, "공지사항 등록 중 오류가 발생했습니다."));
     },
   });
 };
@@ -44,7 +45,7 @@ export const useUpdateAdminAnnouncement = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      toast.error(error.response?.data?.message || "공지사항 수정 중 오류가 발생했습니다.");
+      toast.error(localizedErrorMessage(error.response?.data?.message, "공지사항 수정 중 오류가 발생했습니다."));
     },
   });
 };
@@ -61,7 +62,7 @@ export const useDeleteAdminAnnouncement = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      toast.error(error.response?.data?.message || "공지사항 삭제 중 오류가 발생했습니다.");
+      toast.error(localizedErrorMessage(error.response?.data?.message, "공지사항 삭제 중 오류가 발생했습니다."));
     },
   });
 };

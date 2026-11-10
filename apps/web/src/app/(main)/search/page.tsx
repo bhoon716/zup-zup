@@ -124,6 +124,7 @@ export default function SearchPage() {
   const {
     data,
     isLoading,
+    isFetching,
     error,
     fetchNextPage,
     hasNextPage,
@@ -135,6 +136,10 @@ export default function SearchPage() {
   }, {
     enabled: !isSemesterLoading,
   });
+
+  const loadMoreCourses = useCallback(() => {
+    void fetchNextPage({ cancelRefetch: false });
+  }, [fetchNextPage]);
 
   const handleSearch = useCallback((condition: CourseSearchCondition) => {
     setUserCondition(condition);
@@ -393,8 +398,8 @@ export default function SearchPage() {
       </div>
 
       <motion.main
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="container py-6 lg:py-8"
       >
@@ -518,7 +523,7 @@ export default function SearchPage() {
                 key={searchConditionKey}
                 courses={allCourses}
                 unmaskPublicCourseInfo={!searchCondition.isWishedOnly && !searchCondition.selectedSchedules?.length}
-                onLoadMore={fetchNextPage}
+                onLoadMore={isFetching ? undefined : loadMoreCourses}
                 hasMore={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
                 initialUser={verifiedUser ?? null}

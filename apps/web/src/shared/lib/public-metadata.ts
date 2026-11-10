@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import type { AnnouncementDetailResponse, Course } from "@/shared/types/api";
 import {
   BRAND_ICON_512_PATH,
@@ -7,6 +8,12 @@ import {
 } from "@/shared/seo/branding";
 
 const getApiUrl = () => process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
+const PUBLIC_PAGE_FETCH_TIMEOUT_MS = 3_000;
+
+export interface PublicPageData<T> {
+  data: T;
+  updatedAt: number;
+}
 
 const stripMarkup = (value: string) => value
   .replace(/[#*_>`~-]/g, "")
@@ -14,7 +21,7 @@ const stripMarkup = (value: string) => value
   .trim()
   .slice(0, 160);
 
-const fetchPublicData = async <T>(path: string): Promise<T | null> => {
+export const fetchPublicData = async <T>(path: string, options: RequestInit): Promise<PublicPageData<T> | null> => {
   const apiUrl = getApiUrl();
   if (!apiUrl) {
     return null;
@@ -22,22 +29,35 @@ const fetchPublicData = async <T>(path: string): Promise<T | null> => {
 
   try {
     const response = await fetch(new URL(path, apiUrl), {
-      next: { revalidate: 60 },
+      ...options,
+      signal: AbortSignal.timeout(PUBLIC_PAGE_FETCH_TIMEOUT_MS),
     });
     if (!response.ok) {
       return null;
     }
 
-    const body = await response.json() as T;
-    return body ?? null;
+    const data = await response.json() as T | null;
+    if (!data) return null;
+
+    const now = Date.now();
+    const responseDate = Date.parse(response.headers?.get("date") ?? "");
+    return { data, updatedAt: Number.isFinite(responseDate) ? Math.min(responseDate, now) : now };
   } catch {
     return null;
   }
 };
 
+export const getPublicAnnouncement = cache((id: number) =>
+  id > 0 && Number.isInteger(id)
+    ? fetchPublicData<AnnouncementDetailResponse>(`/api/v1/announcements/${id}`, { cache: "no-store" })
+    : Promise.resolve(null));
+
+export const getPublicCourse = cache((courseKey: string) =>
+  fetchPublicData<Course>(`/api/v1/courses/${encodeURIComponent(courseKey)}`, { next: { revalidate: 60 } }));
+
 export const getAnnouncementMetadata = async (id: number): Promise<Metadata> => {
   const fallbackTitle = "공지사항 | 줍줍";
-  const announcement = await fetchPublicData<AnnouncementDetailResponse>(`/api/v1/announcements/${id}`);
+  const announcement = (await getPublicAnnouncement(id))?.data;
 
   if (!announcement) {
     return {
@@ -83,7 +103,7 @@ export const getAnnouncementMetadata = async (id: number): Promise<Metadata> => 
 };
 
 export const getCourseMetadata = async (courseKey: string): Promise<Metadata> => {
-  const course = await fetchPublicData<Course>(`/api/v1/courses/${encodeURIComponent(courseKey)}`);
+  const course = (await getPublicCourse(courseKey))?.data;
   const fallbackTitle = `${courseKey} 강의 상세 | 줍줍`;
 
   if (!course) {

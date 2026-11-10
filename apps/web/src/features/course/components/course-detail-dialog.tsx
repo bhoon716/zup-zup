@@ -9,6 +9,7 @@ import {
 import type { Course } from "@/shared/types/api";
 import { useCourseDetail } from "@/features/course/hooks/useCourses";
 import { Loader2 } from "lucide-react";
+import type { RefObject } from "react";
 
 import { CourseDetailContent } from "./course-detail-content";
 
@@ -17,9 +18,10 @@ interface CourseDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   unmaskPublicCourseInfo?: boolean;
+  returnFocusRef?: RefObject<HTMLButtonElement | null>;
 }
 
-export function CourseDetailDialog({ course, open, onOpenChange, unmaskPublicCourseInfo = false }: CourseDetailDialogProps) {
+export function CourseDetailDialog({ course, open, onOpenChange, unmaskPublicCourseInfo = false, returnFocusRef }: CourseDetailDialogProps) {
   const courseKey = course?.courseKey ?? "";
   const { data: detailedCourse, isLoading } = useCourseDetail(open ? courseKey : "");
   if (!course) return null;
@@ -27,7 +29,15 @@ export function CourseDetailDialog({ course, open, onOpenChange, unmaskPublicCou
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-0 bg-transparent shadow-none flex flex-col">
+      <DialogContent
+        className="sm:max-w-4xl p-0 overflow-hidden border-0 bg-transparent shadow-none flex flex-col"
+        onCloseAutoFocus={(event) => {
+          const trigger = returnFocusRef?.current;
+          if (!trigger?.isConnected) return;
+          event.preventDefault();
+          trigger.focus();
+        }}
+      >
         <DialogTitle className="sr-only">강의 상세 정보</DialogTitle>
         <DialogDescription className="sr-only">
           선택한 강의의 상세 정보를 확인하는 대화상자입니다.

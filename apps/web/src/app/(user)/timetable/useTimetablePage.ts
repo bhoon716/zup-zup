@@ -57,7 +57,7 @@ export const useTimetablePage = () => {
 
   const { data: timetablesData, isLoading: isListLoading } = useTimetables();
   const timetables = useMemo(() => timetablesData ?? [], [timetablesData]);
-  const { data: wishlistData, isLoading: isWishlistLoading } = useWishlist();
+  const { data: wishlistData, isLoading: isWishlistLoading } = useWishlist(sidebarTab === "wishlist");
   const wishlist = wishlistData ?? [];
 
   const activeTimetableId = useMemo(() => {

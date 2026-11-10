@@ -6,20 +6,17 @@ import { useCourseDetail } from "@/features/course/hooks/useCourses";
 import { Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import Link from "next/link";
+import { decodeCourseKey } from "@/shared/lib/course";
+import type { PublicPageData } from "@/shared/lib/public-metadata";
+import type { Course } from "@/shared/types/api";
 
-function decodeCourseKey(courseKey: string) {
-  try {
-    return decodeURIComponent(courseKey);
-  } catch {
-    return courseKey;
-  }
-}
-
-export default function CourseDetailPage() {
+export default function CourseDetailPage({
+  initialPublicCourse,
+}: { initialPublicCourse?: PublicPageData<Course> | null }) {
   const params = useParams();
   const courseKey = decodeCourseKey(params.courseKey as string);
 
-  const { data: course, isLoading: isCourseLoading, error: courseError } = useCourseDetail(courseKey);
+  const { data: course, isLoading: isCourseLoading, error: courseError } = useCourseDetail(courseKey, initialPublicCourse);
 
   if (isCourseLoading) {
     return (

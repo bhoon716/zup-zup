@@ -3,6 +3,7 @@ import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CourseSmartFilters } from "./course-smart-filters";
+import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
 import type { CourseSearchCondition } from "@/shared/types/api";
 
 const { mockUseUser, mockSetLoginModalOpen } = vi.hoisted(() => ({
@@ -64,7 +65,7 @@ describe("CourseSmartFilters", () => {
       );
     }
 
-    render(<Harness />);
+    render(<Harness />, { wrapper: createQueryWrapper(createTestQueryClient()) });
 
     const toggleButton = screen.getByRole("button", { name: "공강 시간표 펼치기" });
     const selector = screen.getByTestId("time-table-selector").parentElement as HTMLElement;
@@ -88,7 +89,8 @@ describe("CourseSmartFilters", () => {
         setCondition={vi.fn()}
         scheduleOpen={false}
         setScheduleOpen={vi.fn()}
-      />
+      />,
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
     );
 
     await user.click(screen.getByRole("button", { name: "내 시간표에서 공강 불러오기" }));

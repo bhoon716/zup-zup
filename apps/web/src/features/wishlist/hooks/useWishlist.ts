@@ -1,3 +1,4 @@
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as wishlistApi from '@/features/wishlist/api/wishlist.api';
 import { toast } from 'sonner';
@@ -55,7 +56,7 @@ export const useToggleWishlist = () => {
 
     onError: (err, newTodo, context) => {
       queryClient.setQueryData(['wishlist'], context?.previousWishlist);
-      const message = (err as AxiosError<{ message: string }>).response?.data?.message || '찜 상태 변경에 실패했습니다';
+      const message = localizedErrorMessage((err as AxiosError<{ message: string }>).response?.data?.message, '찜 상태 변경에 실패했습니다');
       toast.error(message);
     },
 

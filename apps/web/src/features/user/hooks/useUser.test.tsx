@@ -73,7 +73,7 @@ describe("useUser hook", () => {
     const wrapper = createQueryWrapper(queryClient);
     renderHook(() => useUser(), { wrapper });
 
-    await waitFor(() => expect(userApi.getMyProfile).toHaveBeenCalledWith({}));
+    await waitFor(() => expect(userApi.getMyProfile).toHaveBeenCalledWith({ silentAuthFailure: true }));
   });
 
   it("disabled 상태에서는 사용자 조회를 실행하지 않는다", async () => {

@@ -4,13 +4,14 @@ import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { registerAuthFailureHandler } from "@/shared/api/client";
 import { resolveAllowedPwaUrl } from "@/shared/lib/pwa-navigation";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 import { LoginModal } from "@/widgets/auth/login-modal";
 import { reportClientError } from "@/shared/telemetry/client-error";
 
 import { usePathname, useRouter } from "next/navigation";
 import { TooltipProvider } from "@/shared/ui/tooltip";
+import { isCancel } from "axios";
 
 const createQueryClient = () =>
   new QueryClient({
@@ -26,9 +27,13 @@ const createQueryClient = () =>
         refetchOnWindowFocus: false,
 
         retry: (failureCount, error: unknown) => {
+          if (isCancel(error)) return false;
           if (error && typeof error === "object" && "response" in error) {
             const responseError = error as { response?: { status?: number } };
-            if (responseError.response?.status === 401) return false;
+            const status = responseError.response?.status;
+            if (typeof status === "number" && status >= 400 && status < 500 && status !== 408 && status !== 429) {
+              return false;
+            }
           }
           return failureCount < 3;
         },
@@ -147,12 +152,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster position="top-right" richColors />
-        <Suspense fallback={null}>
-          <AuthProvider>
-            {children}
-            <LoginModal />
-          </AuthProvider>
-        </Suspense>
+        <AuthProvider>
+          {children}
+          <LoginModal />
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

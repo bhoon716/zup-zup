@@ -16,6 +16,8 @@ import {
 import { useAnnouncement } from "@/features/announcement/hooks/useAnnouncements";
 import { MarkdownViewer } from "@/shared/ui/markdown-viewer";
 import { Button } from "@/shared/ui/button";
+import type { PublicPageData } from "@/shared/lib/public-metadata";
+import type { AnnouncementDetailResponse } from "@/shared/types/api";
 
 const formatDateTime = (value: string) => {
   const date = new Date(value);
@@ -31,10 +33,12 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-export default function AnnouncementDetailPage() {
+export default function AnnouncementDetailPage({
+  initialAnnouncement,
+}: { initialAnnouncement?: PublicPageData<AnnouncementDetailResponse> | null }) {
   const params = useParams<{ id: string }>();
   const id = Number(params?.id ?? 0);
-  const { data: announcement, isLoading } = useAnnouncement(id);
+  const { data: announcement, isLoading } = useAnnouncement(id, initialAnnouncement);
 
   const handleShare = async () => {
     if (!announcement) {

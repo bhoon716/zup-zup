@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import * as feedbackApi from "@/features/feedback/api/feedback.api";
 import {
+  feedbackKeys,
   useAdminFeedbackAttachmentDownload,
+  useAdminFeedbackDetail,
   useCreateFeedback,
   useFeedbacksForAdmin,
   useMyFeedbacks,
+  useUpdateFeedbackStatus,
 } from "./useFeedback";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
-import { PageResponse, FeedbackResponse } from "@/shared/types/api";
+import { PageResponse, FeedbackResponse, type AdminFeedbackDetailResponse } from "@/shared/types/api";
 
 vi.mock("@/features/feedback/api/feedback.api", () => ({
   createFeedback: vi.fn(),
@@ -74,7 +77,8 @@ describe("useFeedback hooks", () => {
       vi.mocked(feedbackApi.createFeedback).mockResolvedValue(1);
 
       const queryClient = createTestQueryClient();
-      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+      queryClient.setQueryData(feedbackKeys.myList(0), []);
+      queryClient.setQueryData(feedbackKeys.detail(7), { id: 7 });
       const wrapper = createQueryWrapper(queryClient);
 
       const { result } = renderHook(() => useCreateFeedback(), { wrapper });
@@ -85,11 +89,38 @@ describe("useFeedback hooks", () => {
       });
 
       expect(feedbackApi.createFeedback).toHaveBeenCalled();
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["feedback"] });
+      expect(queryClient.getQueryState(feedbackKeys.myList(0))?.isInvalidated).toBe(true);
+      expect(queryClient.getQueryState(feedbackKeys.detail(7))?.isInvalidated).toBe(false);
     });
   });
 
   describe("관리자 피드백", () => {
+    it("상태 변경 후 열린 상세를 한 번만 다시 조회한다", async () => {
+      const detail: AdminFeedbackDetailResponse = {
+        id: 7, type: "BUG", title: "문의", content: "본문", status: "PENDING",
+        createdAt: "2026-11-11T00:00:00", deleted: false, deletedAt: null,
+        authorLabel: "사용자", attachments: [], replies: [],
+      };
+      const updated = { ...detail, status: "COMPLETED" as const };
+      vi.mocked(feedbackApi.getFeedbackDetailForAdmin)
+        .mockResolvedValueOnce(detail)
+        .mockResolvedValue(updated);
+      vi.mocked(feedbackApi.updateFeedbackStatus).mockResolvedValue(undefined);
+      const queryClient = createTestQueryClient();
+      const wrapper = createQueryWrapper(queryClient);
+      const { result } = renderHook(() => ({
+        detail: useAdminFeedbackDetail(detail.id),
+        update: useUpdateFeedbackStatus(),
+      }), { wrapper });
+
+      await waitFor(() => expect(result.current.detail.data).toEqual(detail));
+      await act(async () => {
+        await result.current.update.mutateAsync({ id: detail.id, request: { status: updated.status } });
+      });
+      await waitFor(() => expect(result.current.detail.data).toEqual(updated));
+      expect(feedbackApi.getFeedbackDetailForAdmin).toHaveBeenCalledTimes(2);
+    });
+
     it("삭제 상태 필터를 별도 캐시 키와 API 요청으로 전달한다", async () => {
       vi.mocked(feedbackApi.getFeedbacksForAdmin).mockResolvedValue({
           content: [],

@@ -1,5 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
 import { useQuery } from "@tanstack/react-query";
+import { CanceledError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Providers, { getAppQueryClient } from "./providers";
 
@@ -227,6 +228,30 @@ describe("Providers", () => {
     const second = getAppQueryClient();
 
     expect(first).toBe(second);
+  });
+
+  it.each([400, 401, 403, 404, 408, 429, 503])("상태 코드 %s의 재시도 횟수를 제한한다", async (status) => {
+    const error = Object.assign(new Error("요청 실패"), { response: { status } });
+    const queryFn = vi.fn().mockRejectedValue(error);
+    const query = getAppQueryClient().fetchQuery({
+      queryKey: ["retry-policy", status],
+      queryFn,
+      retryDelay: 0,
+    });
+    await expect(query).rejects.toBe(error);
+    expect(queryFn).toHaveBeenCalledTimes([408, 429, 503].includes(status) ? 4 : 1);
+  });
+
+  it("취소된 요청을 재시도하지 않는다", async () => {
+    const error = new CanceledError();
+    const queryFn = vi.fn().mockRejectedValue(error);
+    const query = getAppQueryClient().fetchQuery({
+      queryKey: ["retry-policy", "canceled"],
+      queryFn,
+      retryDelay: 0,
+    });
+    await expect(query).rejects.toBe(error);
+    expect(queryFn).toHaveBeenCalledTimes(1);
   });
 
   it("QueryCache 오류를 중앙 클라이언트 오류 추적기로 전달한다", async () => {

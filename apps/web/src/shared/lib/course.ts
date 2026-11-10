@@ -43,3 +43,16 @@ export function getReviewScopeKey(course: Partial<Course>) {
 
   return `${subjectCode}::${professor}`;
 }
+
+export function parseCourseKey(courseKey: string) {
+  const [year = "", semester = "", subjectCode = "", classNumber = ""] = courseKey.split(":");
+  return { year, semester, subjectCode, classNumber };
+}
+
+export function decodeCourseKey(courseKey: string) {
+  try {
+    return decodeURIComponent(courseKey);
+  } catch {
+    return courseKey;
+  }
+}

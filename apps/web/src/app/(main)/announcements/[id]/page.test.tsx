@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import AnnouncementDetailPage from "./page";
+import AnnouncementDetailPage from "./announcement-detail-page";
 
 const mockUseAnnouncement = vi.fn();
 const mockUseParams = vi.fn();

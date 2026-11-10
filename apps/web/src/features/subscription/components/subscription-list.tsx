@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSubscriptions, useUnsubscribe, useUnsubscribeAll } from "@/features/subscription/hooks/useSubscriptions";
 import { Loader2, Bookmark, Trash2, XCircle } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
+import { parseCourseKey } from "@/shared/lib/course";
 import type { Course, Subscription } from "@/shared/types/api";
 
 export function SubscriptionList() {
@@ -15,15 +16,16 @@ export function SubscriptionList() {
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const detailTrigger = useRef<HTMLButtonElement>(null);
 
-  const handleCardClick = (sub: Subscription) => {
-    const parts = sub.courseKey.split(':');
+  const openCourseDetail = (sub: Subscription, { subjectCode, classNumber }: ReturnType<typeof parseCourseKey>, trigger: HTMLButtonElement) => {
+    detailTrigger.current = trigger;
     const mapped: Course = {
       courseKey: sub.courseKey,
       name: sub.courseName,
       professor: sub.professorName,
-      subjectCode: parts[2] || '',
-      classNumber: parts[3] || '',
+      subjectCode,
+      classNumber,
     };
     setSelectedCourse(mapped);
     setIsDialogOpen(true);
@@ -77,42 +79,46 @@ export function SubscriptionList() {
 
       <div className="space-y-4">
         {subscriptions.map((sub) => {
-          const parts = sub.courseKey.split(':');
-          const subjectCode = parts[2] || sub.courseKey;
-          const classNumber = parts[3] || '01';
+          const courseKey = parseCourseKey(sub.courseKey);
 
           return (
             <div 
               key={sub.id} 
               className="bg-white rounded-[1.25rem] p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all group relative cursor-pointer"
-              onClick={() => handleCardClick(sub)}
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="flex gap-3">
                   <div>
                     <h3 className="font-bold text-base text-slate-900 leading-tight group-hover:text-primary transition-colors">
-                      {sub.courseName}
+                      <button
+                        type="button"
+                        className="rounded-sm text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        onClick={(event) => openCourseDetail(sub, courseKey, event.currentTarget)}
+                      >
+                        {sub.courseName}
+                      </button>
                     </h3>
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <span className="text-[10px] text-slate-500 font-bold bg-slate-50 px-1.5 py-0.5 rounded">
-                        {classNumber}분반
+                        {courseKey.classNumber || "01"}분반
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium">
-                        {subjectCode}
+                        {courseKey.subjectCode || sub.courseKey}
                       </span>
                     </div>
                   </div>
                 </div>
                 
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
+                <button
+                  type="button"
+                  aria-label={`${sub.courseName} 알림 구독 해제`}
+                  onClick={() => {
                     if (confirm('이 강의의 알림 구독을 해제하시겠습니까?')) {
                       unsubscribe(sub.id);
                     }
                   }}
                   disabled={isUnsubscribing || isUnsubscribingAll}
-                  className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  className="relative z-10 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -136,6 +142,7 @@ export function SubscriptionList() {
 
       <CourseDetailDialog
         course={selectedCourse}
+        returnFocusRef={detailTrigger}
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
       />

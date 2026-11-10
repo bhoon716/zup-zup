@@ -30,10 +30,10 @@ describe('웹 푸시 기기 이름과 등록 주소', () => {
   beforeEach(() => { vi.clearAllMocks(); });
   afterEach(() => { vi.restoreAllMocks(); });
   it.each([
-    [macUA, 'Safari on Mac'],
-    [iphoneUA, 'Safari on iOS Device'],
-    [ipadUA, 'Safari on iOS Device'],
-    [androidUA, 'Chrome on Android Device'],
+    [macUA, 'Mac · Safari'],
+    [iphoneUA, 'iOS 기기 · Safari'],
+    [ipadUA, 'iOS 기기 · Safari'],
+    [androidUA, '안드로이드 기기 · Chrome'],
   ])('사용자 지정 이름이 없으면 UA에서 운영체제를 구분한다: %s', async (userAgent, alias) => {
     vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(userAgent);
     vi.mocked(subscribeToPush).mockResolvedValue(subscription());

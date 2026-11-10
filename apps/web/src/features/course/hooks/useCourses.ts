@@ -2,6 +2,11 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import * as courseApi from '@/features/course/api/course.api';
 import type { CourseSearchCondition, Course, SearchDefaultSemesterResponse, CourseSearchPageResponse } from '@/shared/types/api';
 import { normalizeCourse } from '@/shared/lib/course';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import type { PublicPageData } from '@/shared/lib/public-metadata';
+
+const COURSE_SEARCH_STALE_TIME_MS = 60_000;
+const INITIAL_COURSE_SEARCH_STALE_TIME_MS = 5 * 60 * 1000;
 
 export const useCourses = (
   condition: CourseSearchCondition,
@@ -10,9 +15,18 @@ export const useCourses = (
     initialPage?: CourseSearchPageResponse;
   },
 ) => {
+  const userId = useAuthStore((state) => state.isAuthenticated ? state.user?.id : undefined);
+  const queryKey = condition.isWishedOnly ? ['courses', condition, userId] : ['courses', condition];
+  let staleTime = COURSE_SEARCH_STALE_TIME_MS;
+  if (options?.initialPage) {
+    staleTime = INITIAL_COURSE_SEARCH_STALE_TIME_MS;
+  }
+  if (condition.isWishedOnly) {
+    staleTime = 0;
+  }
   return useInfiniteQuery({
-    queryKey: ['courses', condition],
-    enabled: options?.enabled ?? true,
+    queryKey,
+    enabled: (options?.enabled ?? true) && (!condition.isWishedOnly || userId !== undefined),
     queryFn: async ({ pageParam = 0 }) => {
       const response = await courseApi.searchCourses(condition, pageParam as number);
       const sliceData = response;
@@ -48,7 +62,7 @@ export const useCourses = (
       return (lastPage.number as number) + 1;
     },
     initialPageParam: 0,
-    staleTime: options?.initialPage ? 1000 * 60 * 5 : 0,
+    staleTime,
   });
 };
 
@@ -65,17 +79,25 @@ export const useCourseHistory = (courseKey: string) => {
   });
 };
 
-export const useCourseDetail = (courseKey: string) => {
+export const useCourseDetail = (courseKey: string, initialPublicCourse?: PublicPageData<Course> | null) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const hasCheckedSession = useAuthStore((state) => state.hasCheckedSession);
+  const publicSeed = !isAuthenticated && initialPublicCourse?.data.courseKey === courseKey
+    ? initialPublicCourse
+    : undefined;
+
   return useQuery({
-    queryKey: ['course-detail', courseKey],
+    queryKey: [publicSeed ? 'public-course-detail' : 'course-detail', courseKey],
     queryFn: async () => {
       const response = await courseApi.getCourseDetail(courseKey);
       const course = response;
       if (!course) return null;
 
-      return normalizeCourse(course);
+      return normalizeCourse(publicSeed ? { ...course, isReviewed: false } : course);
     },
-    enabled: !!courseKey,
+    initialData: publicSeed && normalizeCourse({ ...publicSeed.data, isReviewed: false }),
+    initialDataUpdatedAt: publicSeed?.updatedAt,
+    enabled: !!courseKey && (!publicSeed || hasCheckedSession),
   });
 };
 

@@ -1,3 +1,4 @@
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as subscriptionApi from '@/features/subscription/api/subscription.api';
 import { toast } from 'sonner';
@@ -32,7 +33,7 @@ export const useSubscribe = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '구독 신청에 실패했습니다';
+      const message = localizedErrorMessage(error.response?.data?.message, '구독 신청에 실패했습니다');
       toast.error(message);
     },
   });
@@ -49,7 +50,7 @@ export const useUnsubscribe = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '구독 취소에 실패했습니다';
+      const message = localizedErrorMessage(error.response?.data?.message, '구독 취소에 실패했습니다');
       toast.error(message);
     },
   });
@@ -66,7 +67,7 @@ export const useUnsubscribeAll = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '모든 구독 취소에 실패했습니다';
+      const message = localizedErrorMessage(error.response?.data?.message, '모든 구독 취소에 실패했습니다');
       toast.error(message);
     },
   });
