@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogSynchronizationService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,7 @@ public class CourseCrawlCompletionService {
     private final CrawlerRunStateService crawlerRunStateService;
 
     @Transactional
-    public void complete(List<ParsedCourseDto> parsedCourses) {
+    public void complete(List<ParsedCourse> parsedCourses) {
         courseCatalogSynchronizationService.synchronize(parsedCourses);
         crawlerRunStateService.markSuccess();
     }

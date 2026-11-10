@@ -9,7 +9,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.crawling.client.CourseApiClient;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
@@ -62,10 +62,10 @@ class CourseCrawlFetcherTest {
         stubResponses(Map.of("1", courseResponse(SUBJECT_CODE), "2", courseResponse("COMP102")));
 
         // when
-        List<ParsedCourseDto> courses = fetcher.fetch(YEAR, SEMESTER);
+        List<ParsedCourse> courses = fetcher.fetch(YEAR, SEMESTER);
 
         // then
-        assertThat(courses).extracting(ParsedCourseDto::courseKey).containsExactly(
+        assertThat(courses).extracting(ParsedCourse::courseKey).containsExactly(
                 "2026:U211600025:COMP101:01", "2026:U211600025:COMP102:01");
         assertThatThrownBy(() -> courses.add(courses.get(0))).isInstanceOf(UnsupportedOperationException.class);
     }
@@ -109,10 +109,10 @@ class CourseCrawlFetcherTest {
                 });
 
         // when
-        List<ParsedCourseDto> courses = fetcher.fetch(YEAR, SEMESTER);
+        List<ParsedCourse> courses = fetcher.fetch(YEAR, SEMESTER);
 
         // then
-        assertThat(courses).extracting(ParsedCourseDto::subjectCode)
+        assertThat(courses).extracting(ParsedCourse::subjectCode)
                 .containsExactlyElementsOf(CERT_DIVISIONS.stream()
                         .filter(division -> !division.equals(emptyDivision))
                         .map(division -> "COMP" + division)

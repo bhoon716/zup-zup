@@ -35,7 +35,7 @@ final class BoundedInputStream extends FilterInputStream {
     private void count(int read) throws IOException {
         bytesRead += read;
         if (bytesRead > maximumBytes) {
-            throw new IOException("Crawler response exceeds maximum size of " + maximumBytes + " bytes");
+            throw new IOException("강의 수집 응답이 최대 크기를 초과했습니다. 제한 바이트 수: " + maximumBytes);
         }
     }
 }

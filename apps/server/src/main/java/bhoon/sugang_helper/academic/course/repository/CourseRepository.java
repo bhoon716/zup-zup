@@ -4,6 +4,7 @@ import bhoon.sugang_helper.academic.course.entity.Course;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +21,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     boolean existsByCourseKey(String courseKey);
 
     List<Course> findByCourseKeyIn(List<String> courseKeys);
+
+    @EntityGraph(attributePaths = "schedules")
+    List<Course> findWithSchedulesByCourseKeyIn(List<String> courseKeys);
 
     @Query("""
             select c.courseKey

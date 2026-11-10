@@ -22,6 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CrawlerRunStateService implements CrawlerRuns {
 
+    private static final String EVENT_KEY = "event";
+    private static final String ORIGINAL_TYPE_KEY = "originalType";
+    private static final String STAGE_KEY = "stage";
+
     private final CrawlerStatusRepository crawlerStatusRepository;
     private final CrawlerFailurePersistenceService crawlerFailurePersistenceService;
     private final OperationalAlerts slackAlertService;
@@ -52,9 +56,9 @@ public class CrawlerRunStateService implements CrawlerRuns {
 
     private void logFailureRecordingFailed(CrawlerFailureSummary summary, RuntimeException originalException,
                                            RuntimeException recordingException) {
-        log.atError().addKeyValue("event", "crawler_failure_record_failed")
-                .addKeyValue("stage", summary.stage().name())
-                .addKeyValue("originalType", SensitiveDataRedactor.exceptionType(originalException))
+        log.atError().addKeyValue(EVENT_KEY, "crawler_failure_record_failed")
+                .addKeyValue(STAGE_KEY, summary.stage().name())
+                .addKeyValue(ORIGINAL_TYPE_KEY, SensitiveDataRedactor.exceptionType(originalException))
                 .addKeyValue("recordingType", SensitiveDataRedactor.exceptionType(recordingException))
                 .log("[Crawler] 수집 실패 이력 저장 실패. stage={}, originalType={}, recordingType={}",
                         summary.stage(), SensitiveDataRedactor.exceptionType(originalException),
@@ -63,9 +67,9 @@ public class CrawlerRunStateService implements CrawlerRuns {
 
     private void logFailureAlertFailed(CrawlerFailureSummary summary, RuntimeException originalException,
                                        RuntimeException alertException) {
-        log.atError().addKeyValue("event", "crawler_failure_alert_failed")
-                .addKeyValue("stage", summary.stage().name())
-                .addKeyValue("originalType", SensitiveDataRedactor.exceptionType(originalException))
+        log.atError().addKeyValue(EVENT_KEY, "crawler_failure_alert_failed")
+                .addKeyValue(STAGE_KEY, summary.stage().name())
+                .addKeyValue(ORIGINAL_TYPE_KEY, SensitiveDataRedactor.exceptionType(originalException))
                 .addKeyValue("alertType", SensitiveDataRedactor.exceptionType(alertException))
                 .log("[Crawler] 수집 실패 알림 요청 실패. stage={}, originalType={}, alertType={}",
                         summary.stage(), SensitiveDataRedactor.exceptionType(originalException),

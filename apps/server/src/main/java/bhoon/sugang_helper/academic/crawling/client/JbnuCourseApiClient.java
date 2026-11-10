@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.academic.crawling.client;
 
+import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
 import bhoon.sugang_helper.academic.crawling.exception.CrawlerUpstreamException;
 import bhoon.sugang_helper.common.api.error.CustomException;
@@ -29,9 +30,11 @@ import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
@@ -42,6 +45,17 @@ public class JbnuCourseApiClient implements CourseApiClient {
     private static final String DEFAULT_BOOTSTRAP_URL = "https://jump.jbnu.ac.kr/link?div=sucrPlan";
     private static final String DEFAULT_CERT_DIVISION = "6";
     private static final String KOREAN_LANGUAGE_CODE = "CCMN101.KOR";
+    private static final String GZIP_ENCODING = "gzip";
+    private static final String NO_CACHE = "no-cache";
+
+    private static final String ATTEMPT_KEY = "attempt";
+    private static final String CERT_DIVISION_KEY = "certDiv";
+    private static final String EVENT_KEY = "event";
+    private static final String RESULT_KEY = "result";
+    private static final String SEMESTER_KEY = "semester";
+    private static final String STAGE_KEY = "stage";
+    private static final String YEAR_KEY = "year";
+    private static final String UNKNOWN_STATUS = "UNKNOWN";
 
     @Value("${jbnu.api.url}")
     private String apiUrl;
@@ -92,70 +106,76 @@ public class JbnuCourseApiClient implements CourseApiClient {
     }
 
     private String resolveCertDivision(String requestedDivision) {
-        if (requestedDivision != null && !requestedDivision.isBlank()) {
+        if (StringUtils.hasText(requestedDivision)) {
             return requestedDivision;
         }
-        if (this.certDivision != null && !this.certDivision.isBlank()) {
+        if (StringUtils.hasText(this.certDivision)) {
             return this.certDivision;
         }
         return DEFAULT_CERT_DIVISION;
     }
 
-    private HttpClient createHttpClient(CookieManager cookieManager) {
-        HttpClient.Builder httpClientBuilder = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .cookieHandler(cookieManager)
-                .followRedirects(HttpClient.Redirect.ALWAYS);
-        if (timeoutMs > 0) {
-            httpClientBuilder.connectTimeout(Duration.ofMillis(timeoutMs));
-        }
-
-        return httpClientBuilder.build();
-    }
-
-    private byte[] requestCourseData(RestClient restClient, String year, String semester,
-                                      String targetCertDivision) {
+    private byte[] requestCourseData(RestClient restClient, CourseRequest courseRequest) {
         try {
             return restClient.post()
                     .uri(apiUrl)
-                    .header("Accept", "application/json, */*")
+                    .header(HttpHeaders.ACCEPT, "application/json, */*")
                     .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
-                    .header("Cache-Control", "no-cache")
+                    .header(HttpHeaders.CACHE_CONTROL, NO_CACHE)
                     .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
                     .header("Origin", originOf(apiUrl))
                     .header("Referer", bootstrapUrl)
-                    .header("Pragma", "no-cache")
+                    .header(HttpHeaders.PRAGMA, NO_CACHE)
                     .header("X-Requested-With", "XMLHttpRequest")
                     .header("xb_req_type", "enc")
-                    .body(JbnuJumpRequestEncoder.encode(buildRequest(year, semester, targetCertDivision)))
+                    .body(JbnuJumpRequestEncoder.encode(buildRequestFields(courseRequest)))
                     .exchange((request, response) -> readResponse(response));
         } catch (Exception exception) {
-            throw new CrawlerUpstreamException(CrawlerFailureStage.COURSE_API,
-                    upstreamStatusCode(exception), isTransientFailure(exception), exception);
+            throw upstreamFailure(CrawlerFailureStage.COURSE_API, exception);
         }
     }
 
-    private RestClient createRestClient(HttpClient httpClient) {
-        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        if (timeoutMs > 0) {
-            requestFactory.setReadTimeout(timeoutMs);
+    private Map<String, String> buildRequestFields(CourseRequest request) {
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("strYrsa", request.year());
+        values.put("strSemstrCd", SemesterType.toJumpCode(request.semester()));
+        values.put("strOpnltDivCd", "");
+        values.put("strEngLctrYn", "");
+        values.put("strCertDivCd", request.certDivision());
+        values.put("strSbjctNm", "");
+        values.put("strProfNo", "");
+        values.put("strProfNm", "");
+        values.put("strMngClgCd", "");
+        values.put("strMngScsbjtCd", "");
+        values.put("strScyrDivCd", "");
+        values.put("strRlmDivCd", "");
+        values.put("strCultDivCd", "");
+        values.put("strMtcltnYr", "");
+        values.put("strGdMngClgCd", "");
+        values.put("strGdMngScsbjtCd", "");
+        values.put("strLanDivcd", KOREAN_LANGUAGE_CODE);
+        values.put("strLang", "ko");
+        return values;
+    }
+
+    private String originOf(String url) {
+        try {
+            URI uri = new URI(url);
+            return uri.getScheme() + "://" + uri.getAuthority();
+        } catch (URISyntaxException e) {
+            return "https://jump.jbnu.ac.kr";
         }
-        return RestClient.builder()
-                .requestFactory(requestFactory)
-                .defaultHeader(HttpHeaders.USER_AGENT, "Mozilla/5.0 (compatible; jbnu-sugang-helper-crawler)")
-                .defaultHeader(HttpHeaders.ACCEPT_ENCODING, "gzip")
-                .build();
     }
 
     byte[] readResponse(ClientHttpResponse response) throws IOException {
-        if (response.getStatusCode().isError()) {
-
-            throw new RestClientResponseException("JUMP responded with HTTP " + response.getStatusCode().value(),
-                    response.getStatusCode().value(), response.getStatusText(), null, new byte[0],
-                    StandardCharsets.UTF_8);
+        HttpStatusCode status = response.getStatusCode();
+        if (status.isError()) {
+            throw new RestClientResponseException("JUMP 요청에 실패했습니다. HTTP 상태 코드: " + status.value(),
+                    status.value(), response.getStatusText(), null, new byte[0], StandardCharsets.UTF_8);
         }
+
         InputStream body = response.getBody();
-        if ("gzip".equalsIgnoreCase(response.getHeaders().getFirst(HttpHeaders.CONTENT_ENCODING))) {
+        if (GZIP_ENCODING.equalsIgnoreCase(response.getHeaders().getFirst(HttpHeaders.CONTENT_ENCODING))) {
             body = new GZIPInputStream(body);
         }
 
@@ -167,42 +187,111 @@ public class JbnuCourseApiClient implements CourseApiClient {
         }
     }
 
-    private void handleRequestError(Exception e, int retryCount, String year, String semester, String targetCertDivision) {
-        boolean retryable = isTransientFailure(e);
-        logRequestFailure(e, retryCount, year, semester, targetCertDivision, retryable);
-        if (!retryable || retryCount > maxRetries) {
-            throw connectionFailure(e);
+    private void retryOrThrow(CourseRequest request, int attempt, Exception failure) {
+        boolean retryable = isTransientFailure(failure);
+        boolean exhausted = attempt > maxRetries;
+        logRequestFailure(request, attempt, failure, retryable, exhausted);
+        if (!retryable || exhausted) {
+            throw connectionFailure(failure);
+        }
+        waitBeforeRetry(request, attempt, failure);
+    }
+
+    private void waitBeforeRetry(CourseRequest request, int attempt, Exception failure) {
+        try {
+            long waitTime = (long) retryWaitMs * attempt;
+            logRetryWait(request, attempt, failure, waitTime);
+            Thread.sleep(waitTime);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new CustomException(ErrorCode.INTERNAL_ERROR, "재시도 대기 중 프로세스가 중단되었습니다.");
         }
     }
 
-    private void logRequestFailure(Exception e, int retryCount, String year, String semester,
-                                   String targetCertDivision, boolean retryable) {
-        CrawlerFailureStage stage = failureStage(e);
-        String status = "UNKNOWN";
-        if (e instanceof CrawlerUpstreamException upstream) {
+    static boolean isTransientFailure(Throwable throwable) {
+        if (throwable == null) {
+            return false;
+        }
+        if (throwable instanceof CrawlerUpstreamException upstream) {
+            return upstream.retryable();
+        }
+        if (throwable instanceof SocketTimeoutException || throwable instanceof ConnectException
+                || throwable instanceof IOException || throwable instanceof TimeoutException
+                || throwable instanceof RestClientResponseException) {
+            return true;
+        }
+        return isTransientFailure(throwable.getCause());
+    }
+
+    private static CrawlerUpstreamException upstreamFailure(CrawlerFailureStage stage, Exception failure) {
+        return new CrawlerUpstreamException(stage, upstreamStatusCode(failure), isTransientFailure(failure), failure);
+    }
+
+    private static Integer upstreamStatusCode(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof RestClientResponseException statusException) {
+                return statusException.getStatusCode().value();
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private CustomException connectionFailure(Exception cause) {
+        if (cause instanceof CrawlerUpstreamException upstream) {
+            return upstream;
+        }
+        CustomException exception = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
+        exception.initCause(cause);
+        return exception;
+    }
+
+    private void recordUpstreamLatency(long startedAt) {
+        if (meterRegistry == null) {
+            return;
+        }
+        Timer timer = meterRegistry.timer("crawler.upstream.latency");
+        if (timer != null) {
+            timer.record(System.nanoTime() - startedAt, TimeUnit.NANOSECONDS);
+        }
+    }
+
+    private void logRequestFailure(CourseRequest request, int attempt, Exception failure,
+                                   boolean retryable, boolean exhausted) {
+        CrawlerFailureStage stage = failureStage(failure);
+        String status = UNKNOWN_STATUS;
+        if (failure instanceof CrawlerUpstreamException upstream) {
             status = statusLabel(upstream.upstreamStatus());
         }
-        int maximumAttempts = maxRetries + 1;
-        boolean exhausted = retryCount > maxRetries;
         String result = requestFailureResult(retryable, exhausted);
-        String exceptionType = SensitiveDataRedactor.exceptionType(
-                CrawlerUpstreamException.rootCause(e));
-        Level level = Level.ERROR;
-        if (retryable) {
-            level = Level.WARN;
-        }
-        log.atLevel(level).addKeyValue("event", "upstream_request_failed")
-                .addKeyValue("year", year)
-                .addKeyValue("semester", semester)
-                .addKeyValue("certDiv", targetCertDivision)
-                .addKeyValue("stage", stage)
-                .addKeyValue("attempt", retryCount)
-                .addKeyValue("maximumAttempts", maximumAttempts)
+        String exceptionType = SensitiveDataRedactor.exceptionType(CrawlerUpstreamException.rootCause(failure));
+        Level level = retryable ? Level.WARN : Level.ERROR;
+        log.atLevel(level).addKeyValue(EVENT_KEY, "upstream_request_failed")
+                .addKeyValue(YEAR_KEY, request.year())
+                .addKeyValue(SEMESTER_KEY, request.semester())
+                .addKeyValue(CERT_DIVISION_KEY, request.certDivision())
+                .addKeyValue(STAGE_KEY, stage)
+                .addKeyValue(ATTEMPT_KEY, attempt)
+                .addKeyValue("maximumAttempts", maxRetries + 1)
                 .addKeyValue("upstreamStatus", status)
                 .addKeyValue("exceptionType", exceptionType)
                 .addKeyValue("retryable", retryable)
-                .addKeyValue("result", result)
+                .addKeyValue(RESULT_KEY, result)
                 .log("[Crawler] 상위 강의 API 요청 실패.");
+    }
+
+    private void logRetryWait(CourseRequest request, int attempt, Exception failure, long waitTime) {
+        CrawlerFailureStage stage = failureStage(failure);
+        log.atDebug().addKeyValue(EVENT_KEY, "upstream_retry_wait")
+                .addKeyValue(YEAR_KEY, request.year())
+                .addKeyValue(SEMESTER_KEY, request.semester())
+                .addKeyValue(CERT_DIVISION_KEY, request.certDivision())
+                .addKeyValue(STAGE_KEY, stage)
+                .addKeyValue(ATTEMPT_KEY, attempt)
+                .addKeyValue("waitMs", waitTime)
+                .addKeyValue(RESULT_KEY, "waiting")
+                .log("[Crawler] 상위 강의 API 재시도 대기.");
     }
 
     private CrawlerFailureStage failureStage(Exception failure) {
@@ -222,74 +311,11 @@ public class JbnuCourseApiClient implements CourseApiClient {
         return "retrying";
     }
 
-    static String toJumpSemesterCode(String semester) {
-        if (semester.equals("U211600010")) {
-            return "SUSR016.010";
+    private String statusLabel(Integer status) {
+        if (status == null) {
+            return UNKNOWN_STATUS;
         }
-        if (semester.equals("U211600020")) {
-            return "SUSR016.020";
-        }
-        if (semester.equals("U211600015")) {
-            return "SUSR016.015";
-        }
-        if (semester.equals("U211600025")) {
-            return "SUSR016.025";
-        }
-        if (semester.equals("U211600016")) {
-            return "SUSR016.016";
-        }
-        if (semester.equals("U211600026")) {
-            return "SUSR016.026";
-        }
-        if (semester.equals("U211600009")) {
-            return "SUSR016.009";
-        }
-        if (semester.equals("U211600008")) {
-            return "SUSR016.008";
-        }
-        return semester;
-    }
-
-    private Map<String, String> buildRequest(String year, String semester, String targetCertDivision) {
-        Map<String, String> values = new LinkedHashMap<>();
-        values.put("strYrsa", year);
-        values.put("strSemstrCd", toJumpSemesterCode(semester));
-        values.put("strOpnltDivCd", "");
-        values.put("strEngLctrYn", "");
-        values.put("strCertDivCd", targetCertDivision);
-        values.put("strSbjctNm", "");
-        values.put("strProfNo", "");
-        values.put("strProfNm", "");
-        values.put("strMngClgCd", "");
-        values.put("strMngScsbjtCd", "");
-        values.put("strScyrDivCd", "");
-        values.put("strRlmDivCd", "");
-        values.put("strCultDivCd", "");
-        values.put("strMtcltnYr", "");
-        values.put("strGdMngClgCd", "");
-        values.put("strGdMngScsbjtCd", "");
-        values.put("strLanDivcd", KOREAN_LANGUAGE_CODE);
-        values.put("strLang", "ko");
-        return values;
-    }
-
-    private void fetchSessionCookies(RestClient restClient, CookieManager cookieManager) {
-        try {
-            restClient.get()
-                    .uri(bootstrapUrl)
-                    .header("Accept", "text/html, */*")
-                    .exchange((request, response) -> readResponse(response));
-            if (sessionCookiesExpired(cookieManager)) {
-                throw new IOException("JUMP session cookies are empty");
-            }
-        } catch (Exception exception) {
-            throw new CrawlerUpstreamException(CrawlerFailureStage.JUMP_BOOTSTRAP,
-                    upstreamStatusCode(exception), isTransientFailure(exception), exception);
-        }
-    }
-
-    private boolean sessionCookiesExpired(CookieManager cookieManager) {
-        return cookieManager.getCookieStore().getCookies().stream().allMatch(HttpCookie::hasExpired);
+        return status.toString();
     }
 
     private class JumpSession implements Session {
@@ -300,34 +326,22 @@ public class JbnuCourseApiClient implements CourseApiClient {
 
         @Override
         public InputStream fetchCourseDataStream(String year, String semester, String certDivision) {
-            String targetCertDivision = resolveCertDivision(certDivision);
-            int retryCount = 0;
+            CourseRequest request = new CourseRequest(year, semester, resolveCertDivision(certDivision));
+            int attempt = 1;
 
             while (true) {
                 long startedAt = System.nanoTime();
                 try {
-                    byte[] bodyBytes = requestCourseData(authenticatedClient(), year, semester, targetCertDivision);
+                    byte[] bodyBytes = requestCourseData(authenticatedClient(), request);
                     recordUpstreamLatency(startedAt);
                     return new BoundedInputStream(new ByteArrayInputStream(bodyBytes), maximumResponseBytes);
-                } catch (Exception e) {
+                } catch (Exception failure) {
                     close();
                     recordUpstreamLatency(startedAt);
-                    retryCount++;
-                    handleRequestError(e, retryCount, year, semester, targetCertDivision);
-                    waitBeforeRetry(retryCount, year, semester, targetCertDivision, e);
+                    retryOrThrow(request, attempt, failure);
+                    attempt++;
                 }
             }
-        }
-
-        private RestClient authenticatedClient() {
-            if (httpClient == null || httpClient.isTerminated()) {
-                httpClient = createHttpClient(cookieManager);
-                restClient = createRestClient(httpClient);
-            }
-            if (sessionCookiesExpired(cookieManager)) {
-                fetchSessionCookies(restClient, cookieManager);
-            }
-            return restClient;
         }
 
         @Override
@@ -338,92 +352,61 @@ public class JbnuCourseApiClient implements CourseApiClient {
             httpClient.close();
             cookieManager.getCookieStore().removeAll();
         }
-    }
 
-    private String originOf(String url) {
-        try {
-            URI uri = new URI(url);
-            return uri.getScheme() + "://" + uri.getAuthority();
-        } catch (URISyntaxException e) {
-            return "https://jump.jbnu.ac.kr";
-        }
-    }
-
-    static boolean isTransientFailure(Throwable throwable) {
-        if (throwable == null) {
-            return false;
-        }
-        if (throwable instanceof CrawlerUpstreamException upstream) {
-            return upstream.retryable();
-        }
-        if (throwable instanceof SocketTimeoutException || throwable instanceof ConnectException
-                || throwable instanceof IOException || throwable instanceof TimeoutException
-                || throwable instanceof RestClientResponseException) {
-            return true;
-        }
-        return isTransientFailure(throwable.getCause());
-    }
-
-    private void recordUpstreamLatency(long startedAt) {
-        if (meterRegistry == null) {
-            return;
-        }
-        Timer timer = meterRegistry.timer("crawler.upstream.latency");
-        if (timer != null) {
-            timer.record(System.nanoTime() - startedAt, TimeUnit.NANOSECONDS);
-        }
-    }
-
-    private void waitBeforeRetry(int retryCount, String year, String semester, String targetCertDivision,
-                                 Exception failure) {
-        try {
-            long waitTime = (long) retryWaitMs * retryCount;
-            logRetryWait(retryCount, year, semester, targetCertDivision, failure, waitTime);
-            Thread.sleep(waitTime);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new CustomException(ErrorCode.INTERNAL_ERROR, "재시도 대기 중 프로세스가 중단되었습니다.");
-        }
-    }
-
-    private void logRetryWait(int retryCount, String year, String semester, String targetCertDivision,
-                              Exception failure, long waitTime) {
-        CrawlerFailureStage stage = failureStage(failure);
-        log.atDebug().addKeyValue("event", "upstream_retry_wait")
-                .addKeyValue("year", year)
-                .addKeyValue("semester", semester)
-                .addKeyValue("certDiv", targetCertDivision)
-                .addKeyValue("stage", stage)
-                .addKeyValue("attempt", retryCount)
-                .addKeyValue("waitMs", waitTime)
-                .addKeyValue("result", "waiting")
-                .log("[Crawler] 상위 강의 API 재시도 대기.");
-    }
-
-    private CustomException connectionFailure(Exception cause) {
-        if (cause instanceof CrawlerUpstreamException upstream) {
-            return upstream;
-        }
-        CustomException exception = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
-        exception.initCause(cause);
-        return exception;
-    }
-
-    private Integer upstreamStatusCode(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null) {
-            if (current instanceof RestClientResponseException statusException) {
-                return statusException.getStatusCode().value();
+        private RestClient authenticatedClient() {
+            if (httpClient == null || httpClient.isTerminated()) {
+                httpClient = createHttpClient();
+                restClient = createRestClient(httpClient);
             }
-            current = current.getCause();
+            if (needsSessionCookies()) {
+                fetchSessionCookies();
+            }
+            return restClient;
         }
-        return null;
+
+        private HttpClient createHttpClient() {
+            HttpClient.Builder httpClientBuilder = HttpClient.newBuilder()
+                    .version(HttpClient.Version.HTTP_1_1)
+                    .cookieHandler(cookieManager)
+                    .followRedirects(HttpClient.Redirect.ALWAYS);
+            if (timeoutMs > 0) {
+                httpClientBuilder.connectTimeout(Duration.ofMillis(timeoutMs));
+            }
+
+            return httpClientBuilder.build();
+        }
+
+        private RestClient createRestClient(HttpClient httpClient) {
+            JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+            if (timeoutMs > 0) {
+                requestFactory.setReadTimeout(timeoutMs);
+            }
+            return RestClient.builder()
+                    .requestFactory(requestFactory)
+                    .defaultHeader(HttpHeaders.USER_AGENT, "Mozilla/5.0 (compatible; jbnu-sugang-helper-crawler)")
+                    .defaultHeader(HttpHeaders.ACCEPT_ENCODING, GZIP_ENCODING)
+                    .build();
+        }
+
+        private void fetchSessionCookies() {
+            try {
+                restClient.get()
+                        .uri(bootstrapUrl)
+                        .header(HttpHeaders.ACCEPT, "text/html, */*")
+                        .exchange((request, response) -> readResponse(response));
+                if (needsSessionCookies()) {
+                    throw new IOException("JUMP 세션 쿠키를 받지 못했습니다.");
+                }
+            } catch (Exception exception) {
+                throw upstreamFailure(CrawlerFailureStage.JUMP_BOOTSTRAP, exception);
+            }
+        }
+
+        private boolean needsSessionCookies() {
+            return cookieManager.getCookieStore().getCookies().stream().allMatch(HttpCookie::hasExpired);
+        }
     }
 
-    private String statusLabel(Integer status) {
-        if (status == null) {
-            return "UNKNOWN";
-        }
-        return status.toString();
+    private record CourseRequest(String year, String semester, String certDivision) {
     }
 }

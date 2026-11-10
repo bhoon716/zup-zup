@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.crawling.dto.diagnostic.CrawlerFailureSummary;
 import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
@@ -135,7 +135,7 @@ public class CourseCrawlerService {
         MDC.put(CRAWLER_RUN_ID_KEY, runId);
         try {
             logCrawlStarted(runId, year, semester, stage);
-            List<ParsedCourseDto> parsedCourses = courseCrawlFetcher.fetch(year, semester);
+            List<ParsedCourse> parsedCourses = courseCrawlFetcher.fetch(year, semester);
             logFetchCompleted(runId, year, semester, stage, parsedCourses.size(), startedAt);
             stage = CrawlerFailureStage.PERSIST;
             courseCrawlCompletionService.complete(parsedCourses);

@@ -1,7 +1,7 @@
 package bhoon.sugang_helper.academic.course.service;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseScheduleDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseSchedule;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.entity.CourseSchedule;
 import bhoon.sugang_helper.academic.course.entity.CourseSeatHistory;
@@ -40,7 +40,7 @@ public class CourseCatalogSynchronizationService {
     private final MeterRegistry meterRegistry;
 
     @Transactional
-    public void synchronize(List<ParsedCourseDto> parsedCourses) {
+    public void synchronize(List<ParsedCourse> parsedCourses) {
         Set<String> seenStdtrNos = new HashSet<>();
         for (int offset = 0; offset < parsedCourses.size(); offset += CHUNK_SIZE) {
             int end = Math.min(offset + CHUNK_SIZE, parsedCourses.size());
@@ -48,7 +48,7 @@ public class CourseCatalogSynchronizationService {
         }
     }
 
-    private void synchronizeChunk(List<ParsedCourseDto> chunk, Set<String> seenStdtrNos) {
+    private void synchronizeChunk(List<ParsedCourse> chunk, Set<String> seenStdtrNos) {
         long startedAt = System.nanoTime();
         List<CourseSeatHistory> seatHistories = new ArrayList<>();
         List<Course> newCourses = new ArrayList<>();
@@ -75,7 +75,7 @@ public class CourseCatalogSynchronizationService {
             return new HashMap<>();
         }
         List<String> courseKeys = crawledCourses.stream().map(Course::getCourseKey).distinct().toList();
-        return courseRepository.findByCourseKeyIn(courseKeys).stream()
+        return courseRepository.findWithSchedulesByCourseKeyIn(courseKeys).stream()
                 .collect(Collectors.toMap(Course::getCourseKey, Function.identity()));
     }
 
@@ -90,8 +90,14 @@ public class CourseCatalogSynchronizationService {
         return toSeatHistory(crawledCourse);
     }
 
-    private Course mapToEntity(ParsedCourseDto dto) {
-        Course course = Course.builder()
+    private Course mapToEntity(ParsedCourse dto) {
+        Course course = createCourse(dto);
+        addSchedules(course, dto.schedules());
+        return course;
+    }
+
+    private Course createCourse(ParsedCourse dto) {
+        return Course.builder()
                 .courseKey(canonical(dto.courseKey()))
                 .subjectCode(canonical(dto.subjectCode()))
                 .stdtrNo(canonical(dto.stdtrNo()))
@@ -122,17 +128,23 @@ public class CourseCatalogSynchronizationService {
                 .courseDirection(canonical(dto.courseDirection()))
                 .classDuration(canonical(dto.classDuration()))
                 .build();
+    }
 
-        if (dto.schedules() != null) {
-            dto.schedules().stream()
-                    .sorted(Comparator
-                            .comparing((ParsedCourseScheduleDto schedule) -> schedule.dayOfWeek().ordinal())
-                            .thenComparing(ParsedCourseScheduleDto::startTime)
-                            .thenComparing(ParsedCourseScheduleDto::endTime))
-                    .forEach(schedule -> course.addSchedule(new CourseSchedule(
-                            schedule.dayOfWeek(), schedule.startTime(), schedule.endTime())));
+    private void addSchedules(Course course, List<ParsedCourseSchedule> schedules) {
+        if (schedules == null) {
+            return;
         }
-        return course;
+        schedules.stream()
+                .sorted(Comparator
+                        .comparing((ParsedCourseSchedule schedule) -> schedule.dayOfWeek().ordinal())
+                        .thenComparing(ParsedCourseSchedule::startTime)
+                        .thenComparing(ParsedCourseSchedule::endTime))
+                .map(this::toCourseSchedule)
+                .forEach(course::addSchedule);
+    }
+
+    private CourseSchedule toCourseSchedule(ParsedCourseSchedule schedule) {
+        return new CourseSchedule(schedule.dayOfWeek(), schedule.startTime(), schedule.endTime());
     }
 
     private String canonical(String value) {
@@ -212,5 +224,4 @@ public class CourseCatalogSynchronizationService {
                 .addKeyValue("available", available)
                 .log("[Crawler] 빈자리 증가 감지.");
     }
-
 }

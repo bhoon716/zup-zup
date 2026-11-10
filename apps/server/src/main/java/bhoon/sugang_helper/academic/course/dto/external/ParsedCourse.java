@@ -9,7 +9,7 @@ import bhoon.sugang_helper.academic.course.enums.LectureLanguage;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
 import java.util.List;
 
-public record ParsedCourseDto(
+public record ParsedCourse(
         String courseKey,
         String subjectCode,
         String stdtrNo,
@@ -39,6 +39,6 @@ public record ParsedCourseDto(
         String generalCategoryByYear,
         String courseDirection,
         String classDuration,
-        List<ParsedCourseScheduleDto> schedules
+        List<ParsedCourseSchedule> schedules
 ) {
 }

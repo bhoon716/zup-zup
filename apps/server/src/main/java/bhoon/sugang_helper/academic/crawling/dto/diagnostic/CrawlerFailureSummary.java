@@ -4,15 +4,17 @@ import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
 import bhoon.sugang_helper.academic.crawling.exception.CrawlerUpstreamException;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import java.util.Objects;
 
 public record CrawlerFailureSummary(CrawlerFailureStage stage, String failureType, String failureMessage,
                                     Integer upstreamStatus, Boolean retryable) {
 
+    private static final String UNKNOWN_LABEL = "UNKNOWN";
     private static final int MAX_TYPE_LENGTH = 100;
     private static final int MAX_MESSAGE_LENGTH = 500;
 
     public static CrawlerFailureSummary from(CrawlerFailureStage stage, RuntimeException exception) {
-        String message = "Unexpected crawler failure";
+        String message = "강의 수집 중 예상하지 못한 오류가 발생했습니다.";
         if (exception instanceof CustomException customException) {
             message = customException.getErrorCode().getCode() + ": " + customException.getErrorCode().getMessage();
         }
@@ -48,7 +50,7 @@ public record CrawlerFailureSummary(CrawlerFailureStage stage, String failureTyp
     }
 
     public String retryableLabel() {
-        return retryable == null ? "UNKNOWN" : retryable.toString();
+        return Objects.toString(retryable, UNKNOWN_LABEL);
     }
 
     private static String truncate(String value, int maxLength) {
@@ -56,6 +58,6 @@ public record CrawlerFailureSummary(CrawlerFailureStage stage, String failureTyp
     }
 
     private static String upstreamStatusLabel(Integer status) {
-        return status == null ? "UNKNOWN" : status.toString();
+        return Objects.toString(status, UNKNOWN_LABEL);
     }
 }

@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.course.enums.CourseAccreditation;
 import bhoon.sugang_helper.academic.course.enums.CourseClassification;
 import bhoon.sugang_helper.academic.course.enums.CourseStatus;
@@ -24,6 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
@@ -76,13 +77,13 @@ public class JbnuCourseParser {
             .compile("^(?<before>.*?)(?:\\s+)(?<" + GRADE_GROUP + ">[1-6])(?:학년)?(?:\\s*등)?$");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    public List<ParsedCourseDto> parseCourses(String jsonData) {
+    public List<ParsedCourse> parseCourses(String jsonData) {
         return parseCourses(jsonData, null, null);
     }
 
-    public List<ParsedCourseDto> parseCourses(String jsonData, String year, String semester) {
+    public List<ParsedCourse> parseCourses(String jsonData, String year, String semester) {
         JsonNode rows = readCourseRows(jsonData);
-        List<ParsedCourseDto> courses = new ArrayList<>(rows.size());
+        List<ParsedCourse> courses = new ArrayList<>(rows.size());
         for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
             try {
                 courses.add(parseCourse(rows.get(rowIndex), year, semester));
@@ -94,11 +95,11 @@ public class JbnuCourseParser {
         return courses;
     }
 
-    public Iterator<ParsedCourseDto> streamCourses(InputStream responseStream) {
+    public Iterator<ParsedCourse> streamCourses(InputStream responseStream) {
         return streamCourses(responseStream, null, null);
     }
 
-    public Iterator<ParsedCourseDto> streamCourses(InputStream responseStream, String year, String semester) {
+    public Iterator<ParsedCourse> streamCourses(InputStream responseStream, String year, String semester) {
         try {
             String jsonData = new String(responseStream.readAllBytes(), StandardCharsets.UTF_8);
             return parseCourses(jsonData, year, semester).iterator();
@@ -116,34 +117,39 @@ public class JbnuCourseParser {
         }
 
         if (root == null || !root.isObject()) {
-            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP response must be a JSON object");
+            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP 응답은 JSON 객체여야 합니다.");
         }
         if (root.hasNonNull(ERROR_ENVELOPE_FIELD)) {
             throw new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR,
-                    "JUMP returned an error envelope: " + root.get(ERROR_ENVELOPE_FIELD));
+                    "JUMP 응답에 오류 정보가 포함됐습니다: " + root.get(ERROR_ENVELOPE_FIELD));
         }
         JsonNode rows = root.path(COURSE_LIST_FIELD);
         if (!rows.isArray()) {
-            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP response is missing " + COURSE_LIST_FIELD);
+            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP 응답에 다음 필드가 없습니다: " + COURSE_LIST_FIELD);
         }
         return rows;
     }
 
     private CustomException malformedJson(IOException exception) {
-        return new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "Malformed crawler JSON: " + exception.getMessage());
+        return new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "강의 수집 응답의 JSON 형식이 올바르지 않습니다: " + exception.getMessage());
     }
 
-    private ParsedCourseDto parseCourse(JsonNode row, String requestedYear, String requestedSemester) {
+    private ParsedCourse parseCourse(JsonNode row, String requestedYear, String requestedSemester) {
         if (row == null || !row.isObject()) {
-            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP course row must be a JSON object");
+            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP 강의 행은 JSON 객체여야 합니다.");
         }
         String subjectCode = jsonValue(row, SUBJECT_CODE_FIELD);
         String classNumber = jsonValue(row, CLASS_NUMBER_FIELD);
         String year = firstNonBlank(requestedYear, jsonValue(row, ACADEMIC_YEAR_FIELD));
         String semester = firstNonBlank(requestedSemester, jsonValue(row, SEMESTER_FIELD));
         if (subjectCode == null || classNumber == null || year == null || semester == null) {
-            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP course row is missing required identity fields");
+            throw new CustomException(ErrorCode.CRAWLER_PARSING_ERROR, "JUMP 강의 행에 강의를 식별하는 필수 값이 누락됐습니다.");
         }
+        return toParsedCourse(row, subjectCode, classNumber, year, semester);
+    }
+
+    private ParsedCourse toParsedCourse(JsonNode row, String subjectCode, String classNumber,
+                                           String year, String semester) {
         String stdtrNo = normalizeCourseNumber(jsonValue(row, COURSE_NUMBER_FIELD));
 
         String targetGradeValue = jsonValue(row, TARGET_GRADE_FIELD);
@@ -156,7 +162,7 @@ public class JbnuCourseParser {
         int effectiveCapacity = parseIntOrZero(firstNonBlank(
                 jsonValue(row, CAPACITY_FIELD), jsonValue(row, FALLBACK_CAPACITY_FIELD)));
 
-        return new ParsedCourseDto(
+        return new ParsedCourse(
                 generateCourseKey(year, semester, subjectCode, classNumber),
                 subjectCode,
                 stdtrNo,
@@ -201,28 +207,28 @@ public class JbnuCourseParser {
 
     private String jsonValue(JsonNode row, String field) {
         String text = row.path(field).asText(null);
-        if (text == null || text.isBlank() || text.equals(MISSING_VALUE_MARKER)) {
+        if (!StringUtils.hasText(text) || text.equals(MISSING_VALUE_MARKER)) {
             return null;
         }
         return text.trim();
     }
 
     private String normalizeCourseNumber(String value) {
-        if (value == null || value.isBlank()) {
+        if (!StringUtils.hasText(value)) {
             return null;
         }
         return value.trim().toUpperCase(Locale.ROOT);
     }
 
     private String firstNonBlank(String first, String second) {
-        if (first == null || first.isBlank()) {
+        if (!StringUtils.hasText(first)) {
             return second;
         }
         return first;
     }
 
     private String normalizeSubjectName(String rawSubjectName, String classNumber) {
-        if (rawSubjectName == null || rawSubjectName.isBlank()) {
+        if (!StringUtils.hasText(rawSubjectName)) {
             return rawSubjectName;
         }
 
@@ -245,7 +251,7 @@ public class JbnuCourseParser {
     }
 
     private String normalizeDepartmentName(String rawDepartment, TargetGrade targetGrade) {
-        if (rawDepartment == null || rawDepartment.isBlank()) {
+        if (!StringUtils.hasText(rawDepartment)) {
             return rawDepartment;
         }
 
@@ -288,7 +294,7 @@ public class JbnuCourseParser {
             }
 
             String before = matcher.group("before");
-            if (before == null || before.isBlank()) {
+            if (!StringUtils.hasText(before)) {
                 return current.trim();
             }
             current = before.trim();
@@ -318,7 +324,7 @@ public class JbnuCourseParser {
             return grade;
         }
 
-        if (deptNm == null || deptNm.isBlank()) {
+        if (!StringUtils.hasText(deptNm)) {
             return null;
         }
 

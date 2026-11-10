@@ -100,20 +100,18 @@ public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemest
 
     private CrawlerSetting resolveCurrentSetting() {
         return crawlerSettingRepository.findTopByOrderByIdAsc()
-                .orElseGet(() -> CrawlerSetting.builder()
-                        .targetYear(defaultYear)
-                        .targetSemester(defaultSemester)
-                        .build());
+                .orElseGet(this::defaultSetting);
     }
 
     private CrawlerSetting getOrCreateSetting() {
         return crawlerSettingRepository.findTopByOrderByIdAsc()
-                .orElseGet(() -> {
-                    CrawlerSetting defaultSetting = CrawlerSetting.builder()
-                            .targetYear(defaultYear)
-                            .targetSemester(defaultSemester)
-                            .build();
-                    return crawlerSettingRepository.save(defaultSetting);
-                });
+                .orElseGet(() -> crawlerSettingRepository.save(defaultSetting()));
+    }
+
+    private CrawlerSetting defaultSetting() {
+        return CrawlerSetting.builder()
+                .targetYear(defaultYear)
+                .targetSemester(defaultSemester)
+                .build();
     }
 }

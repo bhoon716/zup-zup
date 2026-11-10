@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
@@ -129,7 +129,7 @@ class CourseCrawlCompletionTransactionTest {
     void outboxFailureRollsBackPreviouslyWrittenChunksAndCrawlerSuccess() {
         // given
         courseRepository.saveAndFlush(fullCourse());
-        List<ParsedCourseDto> courses = new ArrayList<>();
+        List<ParsedCourse> courses = new ArrayList<>();
         for (int index = 0; index < 100; index++) {
             courses.add(parsedCourse("new-course-" + index, 59));
         }
@@ -173,12 +173,12 @@ class CourseCrawlCompletionTransactionTest {
                 .build();
     }
 
-    private ParsedCourseDto parsedCourseWithAvailableSeat() {
+    private ParsedCourse parsedCourseWithAvailableSeat() {
         return parsedCourse(COURSE_KEY, 59);
     }
 
-    private ParsedCourseDto parsedCourse(String courseKey, int current) {
-        return new ParsedCourseDto(
+    private ParsedCourse parsedCourse(String courseKey, int current) {
+        return new ParsedCourse(
                 courseKey,
                 "COMP101",
                 null,

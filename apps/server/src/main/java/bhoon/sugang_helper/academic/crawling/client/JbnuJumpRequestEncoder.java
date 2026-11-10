@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Objects;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -27,7 +28,7 @@ final class JbnuJumpRequestEncoder {
                     .getBytes(StandardCharsets.UTF_8)));
             return "xb_data=" + encodeComponent(encrypted);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to encode JUMP request", e);
+            throw new IllegalStateException("JUMP 요청을 인코딩하지 못했습니다.", e);
         }
     }
 
@@ -41,7 +42,7 @@ final class JbnuJumpRequestEncoder {
             }
             return hex.substring(5, 37);
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is unavailable", e);
+            throw new IllegalStateException("SHA-256 알고리즘을 사용할 수 없습니다.", e);
         }
     }
 
@@ -51,10 +52,7 @@ final class JbnuJumpRequestEncoder {
 
     private static String serialize(Map<String, String> values) {
         StringBuilder payload = new StringBuilder();
-        values.forEach((key, value) -> payload.append(encodeComponent(DATA_MAP_PREFIX + key))
-                .append('=')
-                .append(encodeComponent(value == null ? "" : value))
-                .append('&'));
+        values.forEach((key, value) -> appendDataMapField(payload, key, value));
         payload.append(encodeComponent("@d#"))
                 .append('=')
                 .append(encodeComponent(DATA_MAP_PREFIX))
@@ -67,6 +65,13 @@ final class JbnuJumpRequestEncoder {
                 .append('=')
                 .append(encodeComponent("dm"));
         return payload.toString();
+    }
+
+    private static void appendDataMapField(StringBuilder payload, String key, String value) {
+        payload.append(encodeComponent(DATA_MAP_PREFIX + key))
+                .append('=')
+                .append(encodeComponent(Objects.requireNonNullElse(value, "")))
+                .append('&');
     }
 
     private static String encodeComponent(String value) {

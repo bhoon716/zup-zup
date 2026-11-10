@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import bhoon.sugang_helper.SugangHelperApplication;
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.crawling.client.CourseApiClient;
@@ -669,7 +669,7 @@ class ModulithEventIntegrationTest {
 
         @PostMapping("/crawl")
         void crawl(@RequestParam String mode) {
-            List<ParsedCourseDto> parsed = new ArrayList<>();
+            List<ParsedCourse> parsed = new ArrayList<>();
             if ("chunk-failure".equals(mode)) {
                 for (int index = 0; index < 100; index++) {
                     parsed.add(parsed("isolated-new-" + index));
@@ -743,8 +743,8 @@ class ModulithEventIntegrationTest {
             return jdbc.queryForObject(query, Long.class);
         }
 
-        private ParsedCourseDto parsed(String key) {
-            return new ParsedCourseDto(key, "E2E101", null, "격리 강의", "01", "격리 교수", 60, 59,
+        private ParsedCourse parsed(String key) {
+            return new ParsedCourse(key, "E2E101", null, "격리 강의", "01", "격리 교수", 60, 59,
                     null, "2026", "U211600010", null, null, null, null, null, null, null, null, null,
                     null, null, null, null, null, null, null, null, null, List.of());
         }

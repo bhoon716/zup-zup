@@ -18,6 +18,6 @@ class BoundedInputStreamTest {
         // when & then
         assertThatThrownBy(input::readAllBytes)
                 .isInstanceOf(IOException.class)
-                .hasMessageContaining("maximum size");
+                .hasMessageContaining("최대 크기");
     }
 }

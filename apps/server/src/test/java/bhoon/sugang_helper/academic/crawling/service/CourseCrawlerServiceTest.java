@@ -10,7 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.crawling.client.CourseApiClient;
 import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
@@ -84,7 +84,7 @@ class CourseCrawlerServiceTest {
     @DisplayName("수집이 끝난 전체 결과를 Spring Batch 없이 동기화 서비스에 전달한다")
     void crawlAndSaveCourses_FetchesThenSynchronizes() {
         // given
-        ParsedCourseDto course = mock(ParsedCourseDto.class);
+        ParsedCourse course = mock(ParsedCourse.class);
         given(crawlerTargetService.getCurrentTargetValue())
                 .willReturn(new CrawlTargetInfo(YEAR, SemesterType.FIRST_SEMESTER));
         given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willReturn(List.of(course));
@@ -103,7 +103,7 @@ class CourseCrawlerServiceTest {
     @DisplayName("크롤러 실행 lifecycle 로그는 동일한 실행 식별자와 단계·결과·소요 시간을 기록한다")
     void crawlAndSaveCourses_LogsRunLifecycle() {
         // given
-        ParsedCourseDto course = mock(ParsedCourseDto.class);
+        ParsedCourse course = mock(ParsedCourse.class);
         given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willReturn(List.of(course));
         ListAppender<ILoggingEvent> appender = attachAppender();
 
@@ -223,7 +223,7 @@ class CourseCrawlerServiceTest {
     void missingRequiredField_IsRejectedBeforeSynchronization() {
         // given
         ByteArrayInputStream stream = new ByteArrayInputStream(new byte[0]);
-        ParsedCourseDto missingName = new ParsedCourseDto(
+        ParsedCourse missingName = new ParsedCourse(
                 "course-1", "COMP101", null, null, "01", null, 50, 20,
                 null, YEAR, SEMESTER, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, List.of());
@@ -253,7 +253,7 @@ class CourseCrawlerServiceTest {
     @DisplayName("DB 동기화 실패는 rollback 이후 PERSIST 단계로 별도 기록한다")
     void persistenceFailure_IsRecordedWithPersistStage() {
         // given
-        ParsedCourseDto course = mock(ParsedCourseDto.class);
+        ParsedCourse course = mock(ParsedCourse.class);
         RuntimeException failure = new IllegalStateException("database unavailable");
         given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willReturn(List.of(course));
         Mockito.doThrow(failure).when(courseCrawlCompletionService).complete(List.of(course));

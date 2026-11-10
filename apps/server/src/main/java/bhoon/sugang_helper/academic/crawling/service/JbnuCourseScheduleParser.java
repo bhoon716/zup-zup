@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseScheduleDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseSchedule;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
@@ -9,8 +9,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.util.StringUtils;
 
 final class JbnuCourseScheduleParser {
+
+    private static final int FIRST_PERIOD_HOUR = 8;
+    private static final int LAST_PERIOD_SLOT = 15;
+    private static final int HALF_PERIOD_MINUTES = 30;
 
     private static final String FIRST_HALF = "A";
     private static final String SECOND_HALF = "B";
@@ -24,14 +29,14 @@ final class JbnuCourseScheduleParser {
     private JbnuCourseScheduleParser() {
     }
 
-    static List<ParsedCourseScheduleDto> parse(String classTime) {
-        List<ParsedCourseScheduleDto> schedules = new ArrayList<>();
-        if (classTime == null || classTime.isBlank()) {
+    static List<ParsedCourseSchedule> parse(String classTime) {
+        List<ParsedCourseSchedule> schedules = new ArrayList<>();
+        if (!StringUtils.hasText(classTime)) {
             return schedules;
         }
 
         for (String token : classTime.split(",")) {
-            ParsedCourseScheduleDto schedule = parseSchedule(token.trim());
+            ParsedCourseSchedule schedule = parseSchedule(token.trim());
             if (schedule != null) {
                 schedules.add(schedule);
             }
@@ -39,7 +44,7 @@ final class JbnuCourseScheduleParser {
         return mergeConsecutiveSchedules(schedules);
     }
 
-    private static ParsedCourseScheduleDto parseSchedule(String token) {
+    private static ParsedCourseSchedule parseSchedule(String token) {
         String[] parts = token.split("\\s+");
         if (parts.length < 2) {
             return null;
@@ -50,7 +55,7 @@ final class JbnuCourseScheduleParser {
         if (day == null || timeRange == null) {
             return null;
         }
-        return new ParsedCourseScheduleDto(day, timeRange.start(), timeRange.end());
+        return new ParsedCourseSchedule(day, timeRange.start(), timeRange.end());
     }
 
     private static TimeRange parseTimeRange(String token) {
@@ -92,34 +97,34 @@ final class JbnuCourseScheduleParser {
     }
 
     private static TimeRange halfPeriodTimeRange(int slot, String half) {
-        if (slot < 0 || slot > 15) {
+        if (slot < 0 || slot > LAST_PERIOD_SLOT) {
             return null;
         }
 
-        int hour = 8 + slot;
+        int hour = FIRST_PERIOD_HOUR + slot;
         if (FIRST_HALF.equalsIgnoreCase(half)) {
-            return new TimeRange(LocalTime.of(hour, 0), LocalTime.of(hour, 30));
+            return new TimeRange(LocalTime.of(hour, 0), LocalTime.of(hour, HALF_PERIOD_MINUTES));
         }
-        if (slot == 15) {
-            return new TimeRange(LocalTime.of(23, 30), LocalTime.of(23, 59));
+        if (slot == LAST_PERIOD_SLOT) {
+            return new TimeRange(LocalTime.of(hour, HALF_PERIOD_MINUTES), LocalTime.of(hour, 59));
         }
-        return new TimeRange(LocalTime.of(hour, 30), LocalTime.of(hour + 1, 0));
+        return new TimeRange(LocalTime.of(hour, HALF_PERIOD_MINUTES), LocalTime.of(hour + 1, 0));
     }
 
-    private static List<ParsedCourseScheduleDto> mergeConsecutiveSchedules(List<ParsedCourseScheduleDto> schedules) {
+    private static List<ParsedCourseSchedule> mergeConsecutiveSchedules(List<ParsedCourseSchedule> schedules) {
         if (schedules.isEmpty()) {
             return schedules;
         }
 
-        schedules.sort(Comparator.comparing(ParsedCourseScheduleDto::dayOfWeek)
-                .thenComparing(ParsedCourseScheduleDto::startTime));
-        List<ParsedCourseScheduleDto> merged = new ArrayList<>();
-        ParsedCourseScheduleDto current = schedules.getFirst();
+        schedules.sort(Comparator.comparing(ParsedCourseSchedule::dayOfWeek)
+                .thenComparing(ParsedCourseSchedule::startTime));
+        List<ParsedCourseSchedule> merged = new ArrayList<>();
+        ParsedCourseSchedule current = schedules.getFirst();
 
         for (int i = 1; i < schedules.size(); i++) {
-            ParsedCourseScheduleDto next = schedules.get(i);
+            ParsedCourseSchedule next = schedules.get(i);
             if (current.dayOfWeek() == next.dayOfWeek() && current.endTime().equals(next.startTime())) {
-                current = new ParsedCourseScheduleDto(current.dayOfWeek(), current.startTime(), next.endTime());
+                current = new ParsedCourseSchedule(current.dayOfWeek(), current.startTime(), next.endTime());
                 continue;
             }
             merged.add(current);

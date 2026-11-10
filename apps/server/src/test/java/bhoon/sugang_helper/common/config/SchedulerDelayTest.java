@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.scheduler.CourseScheduler;
@@ -57,7 +57,7 @@ class SchedulerDelayTest {
         AtomicLong fetchStartedAt = new AtomicLong();
         AtomicLong outboxStartedAt = new AtomicLong();
         AtomicLong freshnessStartedAt = new AtomicLong();
-        List<ParsedCourseDto> courses = List.of(mock(ParsedCourseDto.class));
+        List<ParsedCourse> courses = List.of(mock(ParsedCourse.class));
         when(targetService.getCurrentTargetValue()).thenReturn(new CrawlTargetInfo(YEAR, SemesterType.FIRST_SEMESTER));
         when(fetcher.fetch(YEAR, SEMESTER)).thenAnswer(invocation -> {
             fetchStartedAt.set(System.nanoTime());
