@@ -67,7 +67,7 @@ describe("AdminNotificationDeliveriesPage", () => {
     expect(screen.getByText("CS-101")).toBeInTheDocument();
     expect(screen.getAllByText(/이메일 발송 중 오류가 발생했습니다\./)).toHaveLength(2);
     expect(screen.getByText("idempotency key 유지")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "선택 delivery 재처리" }));
+    fireEvent.click(screen.getByRole("button", { name: "선택한 발송 작업 재처리" }));
 
     await waitFor(() => {
       expect(mockReplay).toHaveBeenCalledWith({ id: 41, request: {} });

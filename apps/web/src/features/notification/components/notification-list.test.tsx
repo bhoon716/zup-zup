@@ -36,4 +36,30 @@ describe("NotificationList", () => {
 
     expect(refetch).toHaveBeenCalledTimes(1);
   });
+
+  it("알림 목록을 다시 조회하는 동안 더 보기를 잠그고 완료하면 다음 페이지를 요청한다", async () => {
+    const user = userEvent.setup();
+    const fetchNextPage = vi.fn();
+    const query = {
+      data: [{ id: 1, courseKey: "course", title: "빈자리 알림", message: "여석이 생겼습니다." }],
+      isLoading: false,
+      error: null,
+      fetchNextPage,
+      hasNextPage: true,
+      isFetchingNextPage: false,
+    };
+    mockUseNotifications.mockReturnValue({ ...query, isFetching: true } as unknown as ReturnType<typeof useNotifications>);
+
+    const { rerender } = render(<NotificationList />);
+    const busyButton = screen.getByRole("button", { name: "불러오는 중..." });
+    expect(busyButton).toBeDisabled();
+    await user.click(busyButton);
+    expect(fetchNextPage).not.toHaveBeenCalled();
+
+    mockUseNotifications.mockReturnValue({ ...query, isFetching: false } as unknown as ReturnType<typeof useNotifications>);
+    rerender(<NotificationList />);
+    await user.click(screen.getByRole("button", { name: "더 많은 내역 보기" }));
+
+    expect(fetchNextPage).toHaveBeenCalledExactlyOnceWith({ cancelRefetch: false });
+  });
 });

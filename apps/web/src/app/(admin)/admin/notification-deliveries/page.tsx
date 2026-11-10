@@ -75,14 +75,17 @@ export default function AdminNotificationDeliveriesPage() {
   const {
     data: dlqPage,
     isLoading: isListLoading,
+    isFetching: isListFetching,
     isError: isListError,
-    refetch,
+    refetch: refetchList,
   } = useAdminDlqNotificationDeliveries(page);
   const {
     data: selectedDelivery,
     isLoading: isDetailLoading,
+    isFetching: isDetailFetching,
     isError: isDetailError,
-  } = useAdminNotificationDelivery(selectedId, selectedId !== null);
+    refetch: refetchDetail,
+  } = useAdminNotificationDelivery(selectedId);
   const replayMutation = useReplayAdminNotificationDelivery();
   const totalPages = dlqPage?.totalPages
     ?? Math.max(1, Math.ceil((dlqPage?.totalElements ?? 0) / (dlqPage?.size ?? 30)));
@@ -92,9 +95,16 @@ export default function AdminNotificationDeliveriesPage() {
     setPage(Math.min(Math.max(nextPage, 0), Math.max(totalPages - 1, 0)));
   };
 
+  const refreshDeliveries = () => {
+    void refetchList({ cancelRefetch: false });
+    if (selectedId !== null) {
+      void refetchDetail({ cancelRefetch: false });
+    }
+  };
+
   const handleReplay = async () => {
     if (selectedId === null) return;
-    if (!window.confirm("원인 수정이 확인된 선택 delivery만 재처리합니다. 계속할까요?")) return;
+    if (!window.confirm("원인 수정이 확인된 선택한 발송 작업만 재처리합니다. 계속할까요?")) return;
 
     try {
       await replayMutation.mutateAsync({ id: selectedId, request: {} });
@@ -119,8 +129,8 @@ export default function AdminNotificationDeliveriesPage() {
             type="button"
             variant="outline"
             className="h-8 gap-1 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
-            onClick={() => void refetch()}
-            disabled={isListLoading}
+            onClick={refreshDeliveries}
+            disabled={isListFetching}
           >
             <RefreshCcw className="h-3.5 w-3.5" />
             새로고침
@@ -242,7 +252,7 @@ export default function AdminNotificationDeliveriesPage() {
                     <div>
                       <div className="mb-2 flex items-center gap-2">
                         <DeliveryStatusBadge delivery={selectedDelivery} />
-                        <span className="text-xs font-medium text-slate-400">delivery #{selectedDelivery.id}</span>
+                        <span className="text-xs font-medium text-slate-400">발송 작업 #{selectedDelivery.id}</span>
                       </div>
                       <h2 className="text-xl font-black text-slate-900">{selectedDelivery.courseName}</h2>
                       <p className="mt-1 text-sm font-medium text-slate-500">{selectedDelivery.courseKey}</p>
@@ -250,18 +260,18 @@ export default function AdminNotificationDeliveriesPage() {
                     <Button
                       type="button"
                       onClick={() => void handleReplay()}
-                      disabled={replayMutation.isPending || selectedDelivery.status !== "DLQ"}
+                      disabled={isDetailFetching || replayMutation.isPending || selectedDelivery.status !== "DLQ"}
                       className="gap-2 rounded-xl bg-primary text-xs font-bold text-white hover:bg-primary-dark"
                     >
                       {replayMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                      선택 delivery 재처리
+                      선택한 발송 작업 재처리
                     </Button>
                   </div>
                 </div>
 
                 <dl className="grid gap-x-6 gap-y-4 p-6 text-sm sm:grid-cols-2">
                   <div>
-                    <dt className="text-xs font-bold text-slate-400">outbox ID</dt>
+                    <dt className="text-xs font-bold text-slate-400">발송 대기열 ID</dt>
                     <dd className="mt-1 font-semibold text-slate-700">{selectedDelivery.outboxId}</dd>
                   </div>
                   <div>

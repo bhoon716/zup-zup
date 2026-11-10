@@ -6,7 +6,7 @@ import { Button } from "@/shared/ui/button";
 import { Loader2, Bell, ChevronDown } from "lucide-react";
 
 export function NotificationList() {
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications();
+  const { data, isLoading, isFetching, error, refetch, fetchNextPage, hasNextPage } = useNotifications();
 
   if (isLoading) {
     return (
@@ -25,7 +25,7 @@ export function NotificationList() {
         </div>
         <h3 className="text-lg font-bold text-slate-900 mb-2">불러오기 실패</h3>
         <p className="text-slate-500 text-sm mb-4">알림 목록을 불러오는데 실패했습니다.</p>
-        <Button onClick={() => { void refetch(); }} variant="outline" className="rounded-xl">다시 시도</Button>
+        <Button onClick={() => { void refetch({ cancelRefetch: false }); }} variant="outline" className="rounded-xl">다시 시도</Button>
       </div>
     );
   }
@@ -56,12 +56,12 @@ export function NotificationList() {
         <div className="mt-8 pt-4 border-t border-slate-50 text-center">
           <button
             type="button"
-            onClick={() => { void fetchNextPage(); }}
-            disabled={isFetchingNextPage}
+            onClick={() => { void fetchNextPage({ cancelRefetch: false }); }}
+            disabled={isFetching}
             className="inline-flex items-center gap-1 text-sm font-bold text-slate-400 hover:text-primary transition-colors py-2 px-4 rounded-xl hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50"
           >
-            <span>{isFetchingNextPage ? "불러오는 중..." : "더 많은 내역 보기"}</span>
-            {!isFetchingNextPage && <ChevronDown className="w-4 h-4" />}
+            <span>{isFetching ? "불러오는 중..." : "더 많은 내역 보기"}</span>
+            {!isFetching && <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
       )}
