@@ -22,13 +22,9 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.ByteArrayInputStream;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +42,13 @@ class CourseCrawlerServiceTest {
     private static final String YEAR = "2026";
     private static final String SEMESTER = "U211600010";
     private static final String RUN_ID_PREFIX = "runId=";
+    private static final String RUNS_METRIC = "crawler.runs";
+    private static final String STATUS_TAG = "status";
+    private static final String YEAR_LOG_PREFIX = "year=";
+    private static final String SEMESTER_LOG_PREFIX = "semester=";
+    private static final String FETCH_PARSE_STAGE_LOG = "stage=FETCH_PARSE";
+    private static final String ELAPSED_MS_LOG_PATTERN = "elapsedMs=\\d+";
+    private static final String RUN_FAILED_EVENT = "run_failed";
 
     @Mock
     private CourseCrawlFetcher courseCrawlFetcher;
@@ -82,8 +85,8 @@ class CourseCrawlerServiceTest {
         given(crawlerTargetService.getCurrentTargetValue())
                 .willReturn(new CrawlTargetInfo(YEAR, SemesterType.FIRST_SEMESTER));
         given(courseCrawlFetcher.fetch(YEAR, SEMESTER)).willReturn(List.of(course));
-        given(meterRegistry.counter("crawler.runs", "status", "STARTED")).willReturn(metricCounter);
-        given(meterRegistry.counter("crawler.runs", "status", "SUCCEEDED")).willReturn(metricCounter);
+        given(meterRegistry.counter(RUNS_METRIC, STATUS_TAG, "STARTED")).willReturn(metricCounter);
+        given(meterRegistry.counter(RUNS_METRIC, STATUS_TAG, "SUCCEEDED")).willReturn(metricCounter);
 
         // when
         boolean started = courseCrawlerService.crawlAndSaveCourses();
@@ -120,18 +123,18 @@ class CourseCrawlerServiceTest {
 
             assertThat(started)
                     .contains(RUN_ID_PREFIX + runId)
-                    .contains("year=" + YEAR)
-                    .contains("semester=" + SEMESTER)
-                    .contains("stage=FETCH_PARSE")
+                    .contains(YEAR_LOG_PREFIX + YEAR)
+                    .contains(SEMESTER_LOG_PREFIX + SEMESTER)
+                    .contains(FETCH_PARSE_STAGE_LOG)
                     .contains("result=started")
-                    .containsPattern("elapsedMs=\\d+");
+                    .containsPattern(ELAPSED_MS_LOG_PATTERN);
             assertThat(succeeded)
                     .contains(RUN_ID_PREFIX + runId)
-                    .contains("year=" + YEAR)
-                    .contains("semester=" + SEMESTER)
+                    .contains(YEAR_LOG_PREFIX + YEAR)
+                    .contains(SEMESTER_LOG_PREFIX + SEMESTER)
                     .contains("stage=PERSIST")
                     .contains("result=success")
-                    .containsPattern("elapsedMs=\\d+");
+                    .containsPattern(ELAPSED_MS_LOG_PATTERN);
         } finally {
             detachAppender(appender);
         }
@@ -165,19 +168,19 @@ class CourseCrawlerServiceTest {
 
             assertThat(appender.list.stream()
                     .map(ILoggingEvent::getFormattedMessage)
-                    .filter(message -> message.contains("run_failed"))
+                    .filter(message -> message.contains(RUN_FAILED_EVENT))
                     .findFirst()
                     .orElseThrow())
                     .contains(RUN_ID_PREFIX)
-                    .contains("year=" + YEAR)
-                    .contains("semester=" + SEMESTER)
-                    .contains("stage=FETCH_PARSE")
+                    .contains(YEAR_LOG_PREFIX + YEAR)
+                    .contains(SEMESTER_LOG_PREFIX + SEMESTER)
+                    .contains(FETCH_PARSE_STAGE_LOG)
                     .contains("result=failed")
                     .contains("failureCode=C002")
                     .contains("exceptionType=CustomException")
                     .contains("retryable=UNKNOWN")
                     .contains("upstreamStatus=UNKNOWN")
-                    .containsPattern("elapsedMs=\\d+");
+                    .containsPattern(ELAPSED_MS_LOG_PATTERN);
         } finally {
             detachAppender(appender);
         }
@@ -199,7 +202,7 @@ class CourseCrawlerServiceTest {
                     .map(ILoggingEvent::getFormattedMessage)
                     .toList();
             long runFailureCount = messages.stream()
-                    .filter(message -> message.contains("run_failed"))
+                    .filter(message -> message.contains(RUN_FAILED_EVENT))
                     .count();
             long historicalFailureCount = messages.stream()
                     .filter(message -> message.contains("Historical crawl failed"))
@@ -267,97 +270,6 @@ class CourseCrawlerServiceTest {
 
         // when & then
         assertThat(courseCrawlerService.crawlAndSaveCourses(YEAR, SEMESTER)).isFalse();
-    }
-
-    @Test
-    @DisplayName("crawler_status의 마지막 성공 시각이 임계치를 넘으면 관리자 경고를 남긴다")
-    void staleDataEmitsAdminAlert() {
-        // given
-        SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        CourseCrawlerService service = new CourseCrawlerService(
-                courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
-                registry);
-        ReflectionTestUtils.setField(service, "staleThresholdMinutes", 15L);
-        given(crawlerRunStateService.findLastSuccessAt())
-                .willReturn(Optional.of(LocalDateTime.now().minusMinutes(20)));
-        ListAppender<ILoggingEvent> appender = attachAppender();
-
-        // when & then
-        try {
-            service.checkDataFreshness();
-
-            assertThat(appender.list)
-                    .extracting(ILoggingEvent::getFormattedMessage)
-                    .anyMatch(message -> message.contains("강의 데이터 신선도 기준 초과")
-                            && message.contains("alert=ADMIN"));
-        } finally {
-            detachAppender(appender);
-        }
-    }
-
-    @Test
-    @DisplayName("freshness gauge는 서비스 생성 시 한 번 등록된다")
-    void freshnessGaugesAreRegisteredAtConstruction() {
-        // given
-        SimpleMeterRegistry registry = new SimpleMeterRegistry();
-
-        new CourseCrawlerService(
-                courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
-                registry);
-
-        // when & then
-        assertThat(registry.find("crawler.data.freshness.age.seconds").gauges()).hasSize(1);
-        assertThat(registry.find("crawler.data.stale").gauges()).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("신선도 조회 실패는 이전 정상값 대신 알 수 없는 상태와 실패 지표를 남긴다")
-    void freshnessReadFailureInvalidatesPreviousHealthyState() {
-        // given
-        SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        CourseCrawlerService service = new CourseCrawlerService(
-                courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
-                registry);
-        ReflectionTestUtils.setField(service, "staleThresholdMinutes", 15L);
-        given(crawlerRunStateService.findLastSuccessAt())
-                .willReturn(Optional.of(LocalDateTime.now().minusMinutes(1)))
-                .willThrow(new IllegalStateException("password=private-database-secret"));
-        service.checkDataFreshness();
-        double checkedAt = registry.get("crawler.data.freshness.check.last.success.timestamp.seconds").gauge().value();
-
-        // when
-        service.checkDataFreshness();
-
-        // then
-        assertThat(registry.get("crawler.data.freshness.check.healthy").gauge().value()).isZero();
-        assertThat(registry.get("crawler.data.stale").gauge().value()).isEqualTo(1);
-        assertThat(registry.get("crawler.data.freshness.age.seconds").gauge().value()).isEqualTo(-1);
-        assertThat(registry.get("crawler.data.freshness.check.last.success.timestamp.seconds").gauge().value())
-                .isEqualTo(checkedAt);
-    }
-
-    @Test
-    @DisplayName("마지막 수집 성공과 검사 성공 시각을 별도로 노출해 멈춘 검사도 감지한다")
-    void exposesDataAndCheckTimestampsSeparately() {
-        // given
-        SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        CourseCrawlerService service = new CourseCrawlerService(
-                courseCrawlFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
-                registry);
-        ReflectionTestUtils.setField(service, "staleThresholdMinutes", 15L);
-        LocalDateTime successAt = LocalDateTime.now().minusMinutes(20);
-        given(crawlerRunStateService.findLastSuccessAt()).willReturn(Optional.of(successAt));
-
-        // when
-        service.checkDataFreshness();
-
-        // then
-        double successTimestamp = registry.get("crawler.data.last.success.timestamp.seconds").gauge().value();
-        assertThat(successTimestamp).isEqualTo(successAt.atZone(ZoneId.systemDefault()).toEpochSecond());
-        assertThat(registry.get("crawler.data.freshness.check.last.success.timestamp.seconds").gauge().value())
-                .isGreaterThan(successTimestamp);
-        assertThat(registry.get("crawler.data.freshness.check.healthy").gauge().value()).isEqualTo(1);
-        assertThat(registry.get("crawler.data.freshness.threshold.seconds").gauge().value()).isEqualTo(900);
     }
 
     private ListAppender<ILoggingEvent> attachAppender() {

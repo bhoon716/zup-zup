@@ -8,6 +8,7 @@ import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.scheduler.CourseScheduler;
+import bhoon.sugang_helper.academic.crawling.scheduler.CrawlerFreshnessMonitor;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlCompletionService;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlFetcher;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerService;
@@ -74,7 +75,8 @@ class SchedulerDelayTest {
         // when & then
         try {
             CourseCrawlerService crawler = new CourseCrawlerService(fetcher, completion, targetService, runState, registry);
-            ReflectionTestUtils.setField(crawler, "staleThresholdMinutes", 15L);
+            CrawlerFreshnessMonitor freshnessMonitor = new CrawlerFreshnessMonitor(runState, registry);
+            ReflectionTestUtils.setField(freshnessMonitor, "staleThresholdMinutes", 15L);
             CourseScheduler courseScheduler = new CourseScheduler(crawler);
             SeatNotificationOutboxWorker worker = new SeatNotificationOutboxWorker(processor, registry, 1);
             ThreadPoolTaskScheduler scheduler = new SchedulingConfig()
@@ -95,7 +97,7 @@ class SchedulerDelayTest {
                 ScheduledFuture<?> freshness = scheduler.scheduleWithFixedDelay(observe(() -> {
                     freshnessStartedAt.compareAndSet(0, System.nanoTime());
                     dependentStarted.countDown();
-                    crawler.checkDataFreshness();
+                    freshnessMonitor.checkDataFreshness();
                     freshnessCompletedTwice.countDown();
                 }), due, Duration.ofMillis(60));
 
