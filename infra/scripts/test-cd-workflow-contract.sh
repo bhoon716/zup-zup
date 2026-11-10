@@ -48,7 +48,7 @@ for fragment in (
     '--profile migration run --rm --no-deps migrate migrate',
     '127.0.0.1:8081/actuator/health/readiness',
     'scripts/test-observability-smoke.sh',
-    'observability smoke warning; deployment remains active',
+    '모니터링 점검에서 문제가 발견됐습니다. 배포는 유지됩니다.',
 ):
     require(deploy, fragment, f"deploy script is missing: {fragment}")
 
@@ -64,7 +64,7 @@ require(workflow, 'cp -a infra/systemd "${stage_dir}/systemd"',
         "CD must package host job templates")
 require(deploy, 'sync_directory "${staging_dir}/systemd" "${RELEASE_ROOT}/systemd"',
         "deploy must prepare host job templates without activating them")
-for fragment in ('docker-compose.alerting.yml', 'ALERTING_ENABLED', 'alertmanager startup failed'):
+for fragment in ('docker-compose.alerting.yml', 'ALERTING_ENABLED', 'Alertmanager를 시작하지 못했습니다.'):
     require(deploy.lower(), fragment.lower(), f"deploy must retain opt-in receiver wiring: {fragment}")
 require(workflow, 'cp -a infra/alertmanager "${stage_dir}/alertmanager"',
         "CD must package receiver configuration without its credential")

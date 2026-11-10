@@ -9,7 +9,7 @@ print(json.dumps({"event": "backup_export", "status": sys.argv[1], "stage": sys.
 PYLOG
 }
 [ -n "${DB_ROOT_PASSWORD:-}" ] || {
-  log_backup_event failed preflight 'DB_ROOT_PASSWORD must be supplied by the existing backup environment' >&2; exit 1;
+  log_backup_event failed preflight '기존 백업 환경에 DB_ROOT_PASSWORD를 지정해야 합니다.' >&2; exit 1;
 }
 
 RELEASE_ROOT="${RELEASE_ROOT:-/home/ubuntu/jbnu-sugang-helper}"
@@ -19,7 +19,7 @@ BACKUP_INCLUDE_UPLOADS="${BACKUP_INCLUDE_UPLOADS:-1}"
 # so the ordinary backup owner never needs Docker data-root filesystem permissions.
 UPLOADS_VOL_PATH="${UPLOADS_VOL_PATH:-}"
 [[ "$BACKUP_INCLUDE_UPLOADS" = 0 || "$BACKUP_INCLUDE_UPLOADS" = 1 ]] || {
-  log_backup_event failed preflight 'BACKUP_INCLUDE_UPLOADS must be 0 (explicit DB-only) or 1 (required uploads)' >&2; exit 1;
+  log_backup_event failed preflight 'BACKUP_INCLUDE_UPLOADS는 0(DB만 포함) 또는 1(업로드 필수)이어야 합니다.' >&2; exit 1;
 }
 mkdir -p "$BACKUP_DIR"
 chmod 0700 "$BACKUP_DIR"
@@ -34,23 +34,23 @@ DB_FILE="sugang_helper_${TIMESTAMP}.sql.gz"
 UPLOADS_FILE="uploads_${TIMESTAMP}.tar.gz"
 
 if ! docker ps --format '{{.Names}}' | grep -Fxq 'sugang-helper-mysql'; then
-  log_backup_event failed preflight 'Required MySQL container is not running' >&2
+  log_backup_event failed preflight '필수 MySQL 컨테이너가 실행 중이 아닙니다.' >&2
   exit 1
 fi
 if [ "$BACKUP_INCLUDE_UPLOADS" = 1 ] && [ -n "$UPLOADS_VOL_PATH" ] && [ ! -d "$UPLOADS_VOL_PATH" ]; then
-  log_backup_event failed preflight 'Required uploads directory is missing; no complete bundle published' >&2
+  log_backup_event failed preflight '필수 업로드 디렉터리가 없어 전체 백업을 생성하지 않았습니다.' >&2
   exit 1
 fi
 
-log_backup_event started export 'Creating staging files for a complete backup bundle'
+log_backup_event started export '전체 백업에 필요한 임시 파일을 생성합니다.'
 if ! docker exec -e MYSQL_PWD="$DB_ROOT_PASSWORD" sugang-helper-mysql mysqldump \
   --single-transaction --source-data=2 --no-tablespaces --routines --events --triggers \
   -u root sugang_helper 2>/dev/null | gzip -9 > "${STAGING_DIR}/${DB_FILE}"; then
-  log_backup_event failed export 'MySQL export failed; private error details suppressed' >&2
+  log_backup_event failed export 'MySQL 내보내기에 실패했습니다. 민감한 오류 상세는 생략했습니다.' >&2
   exit 1
 fi
 gzip -t "${STAGING_DIR}/${DB_FILE}" 2>/dev/null || {
-  log_backup_event failed compression 'DB gzip verification failed' >&2; exit 1;
+  log_backup_event failed compression 'DB 백업의 gzip 검증에 실패했습니다.' >&2; exit 1;
 }
 (cd "$STAGING_DIR" && shasum -a 256 "$DB_FILE" > "${DB_FILE}.sha256")
 printf 'schema=full-backup-v1\ncreated_at_utc=%s\ndatabase=sugang_helper\ndump_file=%s\n' \
@@ -65,7 +65,7 @@ archive_uploads() {
 }
 if [ "$BACKUP_INCLUDE_UPLOADS" = 1 ]; then
   if ! archive_uploads || ! tar -tzf "${STAGING_DIR}/${UPLOADS_FILE}" >/dev/null 2>&1; then
-    log_backup_event failed uploads 'Uploads archive creation or verification failed' >&2
+    log_backup_event failed uploads '업로드 압축본 생성 또는 검증에 실패했습니다.' >&2
     exit 1
   fi
   (cd "$STAGING_DIR" && shasum -a 256 "$UPLOADS_FILE" > "${UPLOADS_FILE}.sha256")
@@ -78,4 +78,4 @@ fi
 # Audit facts have a separate long-lived retention scope. Failure still prevents bundle publication.
 RELEASE_ROOT="$RELEASE_ROOT" bash "$(dirname "$0")/backup-admin-audit.sh"
 mv "$STAGING_DIR" "${BACKUP_DIR}/${BUNDLE_NAME}"
-log_backup_event success complete 'Complete backup bundle published' "$BUNDLE_NAME"
+log_backup_event success complete '전체 백업 묶음을 저장했습니다.' "$BUNDLE_NAME"

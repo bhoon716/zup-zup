@@ -8,7 +8,7 @@ LOCAL_BACKUP_DIR="${LOCAL_BACKUP_DIR:-$HOME/Backups/jbnu-sugang-helper}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
 
 if ! [[ "${RETENTION_DAYS}" =~ ^[1-9][0-9]{0,3}$ ]]; then
-  echo "RETENTION_DAYS must be a positive integer from 1 to 9999" >&2
+  echo "RETENTION_DAYS는 1부터 9999 사이의 정수여야 합니다." >&2
   exit 1
 fi
 umask 077
@@ -68,8 +68,8 @@ prune_full_bundles() {
 TIMESTAMP="$(date +'%Y-%m-%d %H:%M:%S')"
 echo "======================================================================"
 echo "[MACBOOK-OFFHOST-BACKUP] ${TIMESTAMP}"
-echo "Syncing backups from ${SERVER_USER}@${SERVER_HOST}:${REMOTE_BACKUP_DIR}"
-echo "Local Target Directory: ${LOCAL_BACKUP_DIR}"
+echo "${SERVER_USER}@${SERVER_HOST}:${REMOTE_BACKUP_DIR}에서 백업을 동기화합니다."
+echo "로컬 백업 경로: ${LOCAL_BACKUP_DIR}"
 echo "======================================================================"
 
 mkdir -p "${LOCAL_BACKUP_DIR}/mysql"
@@ -87,33 +87,33 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "[1/4] Syncing MySQL dumps and export archives into staging via rsync..." | tee -a "${LOG_FILE}"
+echo "[1/4] rsync로 MySQL 덤프와 백업 압축본을 임시 경로에 복사합니다." | tee -a "${LOG_FILE}"
 rsync -avz --exclude=".pending.*" --exclude=".partial-events-*" --include="*.manifest" --include="*.sql.gz" --include="*.jsonl.gz" --include="*.tar.gz" --include="*.sha256" --include="*/" --exclude="*" \
   -e "ssh -o StrictHostKeyChecking=accept-new" \
   "${SERVER_USER}@${SERVER_HOST}:${REMOTE_BACKUP_DIR}/" \
   "${STAGING_DIR}/" | tee -a "${LOG_FILE}"
 
-echo "[2/4] Verifying SHA-256 checksums on MacBook..." | tee -a "${LOG_FILE}"
+echo "[2/4] 맥북에서 SHA-256 체크섬을 검증합니다." | tee -a "${LOG_FILE}"
 CHECKSUM_ERRORS=0
 CHECKSUM_FILES=0
 while IFS= read -r -d '' sha_file; do
   CHECKSUM_FILES=$((CHECKSUM_FILES + 1))
   artifact="${sha_file%.sha256}"
   relative_path="${sha_file#"${STAGING_DIR}/"}"
-  echo "Checking ${relative_path}..." | tee -a "${LOG_FILE}"
+  echo "체크섬 확인 중: ${relative_path}" | tee -a "${LOG_FILE}"
   expected_hash="$(awk 'NR == 1 { print $1 }' "${sha_file}")"
   if [ ! -f "${artifact}" ]; then
-    echo "ERROR: Missing backup artifact for ${relative_path}" | tee -a "${LOG_FILE}"
+    echo "ERROR: ${relative_path}에 해당하는 백업 파일이 없습니다." | tee -a "${LOG_FILE}"
     CHECKSUM_ERRORS=$((CHECKSUM_ERRORS + 1))
   elif ! [[ "${expected_hash}" =~ ^[[:xdigit:]]{64}$ ]]; then
-    echo "ERROR: Invalid checksum manifest ${relative_path}" | tee -a "${LOG_FILE}"
+    echo "ERROR: 체크섬 목록이 올바르지 않습니다. 경로: ${relative_path}" | tee -a "${LOG_FILE}"
     CHECKSUM_ERRORS=$((CHECKSUM_ERRORS + 1))
   else
     actual_hash="$(shasum -a 256 "${artifact}" | awk '{ print $1 }')"
     if [ "${actual_hash}" = "${expected_hash}" ]; then
       echo "OK: ${relative_path}" | tee -a "${LOG_FILE}"
     else
-      echo "ERROR: Checksum mismatch for ${relative_path}" | tee -a "${LOG_FILE}"
+      echo "ERROR: 체크섬이 일치하지 않습니다. 경로: ${relative_path}" | tee -a "${LOG_FILE}"
       CHECKSUM_ERRORS=$((CHECKSUM_ERRORS + 1))
     fi
   fi
@@ -122,7 +122,7 @@ done < <(find "${STAGING_DIR}" -type f -name "*.sha256" -print0)
 while IFS= read -r -d '' artifact; do
   if [ ! -f "${artifact}.sha256" ]; then
     relative_path="${artifact#"${STAGING_DIR}/"}"
-    echo "ERROR: Missing checksum manifest for ${relative_path}" | tee -a "${LOG_FILE}"
+    echo "ERROR: ${relative_path}에 해당하는 체크섬 목록이 없습니다." | tee -a "${LOG_FILE}"
     CHECKSUM_ERRORS=$((CHECKSUM_ERRORS + 1))
   fi
 done < <(find "${STAGING_DIR}" -type f \( -name "*.sql.gz" -o -name "*.jsonl.gz" -o -name "*.tar.gz" -o -name "*.manifest" \) -print0)
@@ -143,18 +143,18 @@ while IFS= read -r -d '' bundle; do
 done < <(find "${STAGING_DIR}/export" -type d -name 'full_backup_*' -print0 2>/dev/null)
 
 if [ "${CHECKSUM_FILES}" -eq 0 ]; then
-  echo "[ERROR] No checksum manifests were downloaded; refusing to promote or prune backups." | tee -a "${LOG_FILE}"
+  echo "[ERROR] 내려받은 체크섬 목록이 없어 백업 저장과 보관 기간 정리를 중단합니다." | tee -a "${LOG_FILE}"
   exit 1
 fi
 
 if [ "${CHECKSUM_ERRORS}" -gt 0 ]; then
-  echo "[ERROR] ${CHECKSUM_ERRORS} checksum verification failure(s); refusing to promote or prune backups." \
+  echo "[ERROR] 체크섬 검증 ${CHECKSUM_ERRORS}건이 실패해 백업 저장과 보관 기간 정리를 중단합니다." \
     | tee -a "${LOG_FILE}"
   exit 1
 fi
-echo "[SUCCESS] All checksums verified successfully!" | tee -a "${LOG_FILE}"
+echo "[SUCCESS] 모든 체크섬 검증을 완료했습니다." | tee -a "${LOG_FILE}"
 
-echo "[3/4] Promoting verified backups..." | tee -a "${LOG_FILE}"
+echo "[3/4] 검증한 백업을 보관 경로로 옮깁니다." | tee -a "${LOG_FILE}"
 
 promote_full_bundle() {
   local source_dir="$1"
@@ -221,9 +221,9 @@ while IFS= read -r -d '' source_file; do
   promote_file "${source_file}"
 done < <(find "${STAGING_DIR}" -type f -name "*.sha256" -print0)
 
-echo "[4/4] Cleaning up MacBook backups older than ${RETENTION_DAYS} days..." | tee -a "${LOG_FILE}"
+echo "[4/4] 맥북에서 ${RETENTION_DAYS}일이 지난 백업을 정리합니다." | tee -a "${LOG_FILE}"
 find "${LOCAL_BACKUP_DIR}/mysql" -type f ! -path '*/full_backup_*/*' -mtime +"${RETENTION_DAYS}" -delete
 prune_full_bundles
 find "${LOCAL_BACKUP_DIR}/logs" -type f -mtime +"${RETENTION_DAYS}" -delete
 
-echo "[MACBOOK-OFFHOST-BACKUP] Backup sync completed cleanly at $(date +'%Y-%m-%d %H:%M:%S')" | tee -a "${LOG_FILE}"
+echo "[MACBOOK-OFFHOST-BACKUP] 백업 동기화 완료 시각: $(date +'%Y-%m-%d %H:%M:%S')" | tee -a "${LOG_FILE}"

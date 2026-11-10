@@ -200,7 +200,7 @@ printf 'schema=full-backup-v1\ndatabase=sugang_helper\ndump_file=%s\nuploads=exc
   "$(basename "$bundle_dump")" > "$bundle/backup.manifest"
 shasum -a 256 "$bundle/backup.manifest" > "$bundle/backup.manifest.sha256"
 run_restore "$bundle_dump"
-grep -q 'Explicit DB-only bundle' "$tmp/out"
+grep -q 'DB 전용 백업으로 지정되어 첨부파일이 제외됐습니다.' "$tmp/out"
 rm "$bundle/backup.manifest" "$bundle/backup.manifest.sha256"
 expect_failure "$bundle_dump"
 test ! -s "$DOCKER_CALLS"

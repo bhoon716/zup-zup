@@ -7,7 +7,7 @@ expected_file="${repo_root}/infra/docker-compose.yml"
 compose_file="${1:-${expected_file}}"
 
 if [ "$(cd "$(dirname "${compose_file}")" && pwd)/$(basename "${compose_file}")" != "${expected_file}" ]; then
-  echo "only the minimal infra/docker-compose.yml contract is supported" >&2
+  echo "infra/docker-compose.yml의 기본 구성만 지원합니다." >&2
   exit 1
 fi
 

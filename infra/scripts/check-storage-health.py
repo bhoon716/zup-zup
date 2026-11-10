@@ -19,14 +19,14 @@ class SafeParser(argparse.ArgumentParser):
 def positive_bytes(value):
     number = int(value)
     if number <= 0:
-        raise ValueError("positive bytes required")
+        raise ValueError("바이트 수는 0보다 커야 합니다.")
     return number
 
 
 def percent(value):
     number = float(value)
     if not math.isfinite(number) or not 0 < number <= 100:
-        raise ValueError("percent must be in (0, 100]")
+        raise ValueError("백분율은 0보다 크고 100 이하여야 합니다.")
     return number
 
 
@@ -44,7 +44,7 @@ def measurements(stats):
     if (stats.f_frsize <= 0 or stats.f_blocks <= 0 or stats.f_files <= 0
             or not 0 <= stats.f_bavail <= stats.f_blocks
             or not 0 <= stats.f_favail <= stats.f_files):
-        raise ValueError("unavailable filesystem counters")
+        raise ValueError("파일 시스템 사용량을 읽을 수 없습니다.")
     return {
         "totalBytes": stats.f_blocks * stats.f_frsize,
         "freeBytes": stats.f_bavail * stats.f_frsize,
@@ -57,7 +57,7 @@ def measurements(stats):
 
 def check(role, path, options):
     if role not in ROLES:
-        raise ValueError("unsupported role")
+        raise ValueError("지원하지 않는 저장소 역할입니다.")
     event = {
         "event": "host_storage_health", "schemaVersion": 1,
         "timestamp": datetime.now(timezone.utc).isoformat(),
