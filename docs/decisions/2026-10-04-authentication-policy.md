@@ -4,7 +4,7 @@
 - 결정일: 2026-10-04
 - 범위: 인증·계정 재설계의 다중 기기 로그인 동작
 - 대체 결정: 없음
-- 관련 자료: [재설계 논의 계획](../backend-redesign-plan.md), [인증·계정 기능 체크리스트](../backend-redesign-checklist.md)
+- 관련 자료: [Redis 세션 동작과 배포 전환](../redis-session-migration.md)
 
 ## 문제와 목표
 
@@ -76,7 +76,7 @@ PC와 휴대폰 등 여러 기기에서 같은 계정을 사용할 때, 새 로�
 - 상태: Accepted
 - 결정일: 2026-10-04
 - 범위: 브라우저·PWA의 서비스 로그인 유지와 요청 인증 구조
-- 관련 자료: [현재 AuthService](../../apps/server/src/main/java/bhoon/sugang_helper/identity/auth/application/AuthService.java), [Spring Security 인증 유지 공식 문서](https://docs.spring.io/spring-security/reference/servlet/authentication/persistence.html)
+- 관련 자료: [현재 AuthService](../../apps/server/src/main/java/bhoon/sugang_helper/identity/auth/service/AuthService.java), [Spring Security 인증 유지 공식 문서](https://docs.spring.io/spring-security/reference/servlet/authentication/persistence.html)
 
 ### 비교와 결정
 

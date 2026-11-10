@@ -3,7 +3,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-13
 - 범위: 같은 기능의 저장소 계약과 Spring Data JPA 인터페이스 분리 구조
-- 관련 자료: [WishlistRepository](../../apps/server/src/main/java/bhoon/sugang_helper/planning/wishlist/domain/WishlistRepository.java), [WishlistJpaRepository](../../apps/server/src/main/java/bhoon/sugang_helper/planning/wishlist/infra/WishlistJpaRepository.java), [CourseRepository](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/domain/CourseRepository.java), [CourseJpaRepository](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/infra/CourseJpaRepository.java), [RepositoryContract](../../apps/server/src/main/java/bhoon/sugang_helper/common/domain/RepositoryContract.java)
+- 관련 자료: [WishlistRepository](../../apps/server/src/main/java/bhoon/sugang_helper/planning/wishlist/repository/WishlistRepository.java), `WishlistJpaRepository`, [CourseRepository](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/repository/CourseRepository.java), `CourseJpaRepository`, `RepositoryContract`
 
 ## 문제와 확인한 사실
 

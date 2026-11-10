@@ -44,8 +44,8 @@ API 입력은 request, API 직렬화 출력은 response, 서비스·조회 내�
 
 ### external
 
-- [ParsedCourseDto](../apps/server/src/main/java/bhoon/sugang_helper/academic/course/dto/external/ParsedCourseDto.java)
-- [ParsedCourseScheduleDto](../apps/server/src/main/java/bhoon/sugang_helper/academic/course/dto/external/ParsedCourseScheduleDto.java)
+- [ParsedCourse](../apps/server/src/main/java/bhoon/sugang_helper/academic/course/dto/external/ParsedCourse.java)
+- [ParsedCourseSchedule](../apps/server/src/main/java/bhoon/sugang_helper/academic/course/dto/external/ParsedCourseSchedule.java)
 
 ### provider
 

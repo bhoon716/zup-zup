@@ -29,7 +29,7 @@ HTTP controller가 public이라는 사실은 다른 Java 모듈의 공개 계약
 | academic.api.operations / operations | CrawlerTargets, CrawlerRuns, CrawlerAdminSnapshot |
 | academic.events / events | SeatOpenedEvent |
 | academic.api.search / search | CourseWishlistQuery — 아래의 명시적 검색 확장 계약 |
-| identity.api.users / users | Users, UserDisplayNames, UserDashboardProfiles 및 조회 DTO |
+| identity.api.users / users | CurrentUserQuery, UserAccountQuery, UserStatistics, UserDisplayNames, UserDashboardProfiles 및 조회 DTO |
 | identity.api.notifications / notifications | NotificationRecipients, WebPushSubscriptionManagement, NotificationRecipient·NotificationDevice |
 | identity.events / events | UserRegisteredEvent, UserWithdrawnEvent |
 | planning.api / api | Timetables 및 시간표·하위 시간 DTO |

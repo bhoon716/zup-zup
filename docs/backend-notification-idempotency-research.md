@@ -18,9 +18,9 @@
 
 ## 2. 우리 DB의 멱등성으로 막을 수 있는 범위
 
-현행 [발송 작업](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/domain/SeatNotificationDelivery.java)은 `outbox_id + user_id + channel` 유일 제약으로 같은 outbox의 같은 사용자·채널 작업 중복 생성을 막는다. 작업 생성 시 UUID 키를 저장하고 재시도·관리자 재처리에서도 유지한다. 작업 점유 때 새로 만드는 `claimToken`은 이 키와 별개다.
+현행 [발송 작업](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/entity/SeatNotificationDelivery.java)은 `outbox_id + user_id + channel` 유일 제약으로 같은 outbox의 같은 사용자·채널 작업 중복 생성을 막는다. 작업 생성 시 UUID 키를 저장하고 재시도·관리자 재처리에서도 유지한다. 작업 점유 때 새로 만드는 `claimToken`은 이 키와 별개다.
 
-[공급자 키 변환](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/application/NotificationDeliveryIdempotencyKey.java)은 저장된 키를 SHA-256·Base64 URL 형식의 22자로 바꾼다. 현재 발송 경로에서는 같은 작업이 같은 공급자 키를 사용한다. 이는 공급자 기능을 사용할 준비이며, 공급자별 실제 보장을 추가하지는 않는다.
+[공급자 키 변환](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/service/NotificationDeliveryIdempotencyKey.java)은 저장된 키를 SHA-256·Base64 URL 형식의 22자로 바꾼다. 현재 발송 경로에서는 같은 작업이 같은 공급자 키를 사용한다. 이는 공급자 기능을 사용할 준비이며, 공급자별 실제 보장을 추가하지는 않는다.
 
 남는 실패 구간은 다음과 같다.
 
@@ -35,7 +35,7 @@ MQ 소비자의 처리 기록도 외부 서비스 호출과 원자적으로 묶�
 
 ### 확인한 코드와 계약
 
-- [EmailNotificationSender](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/infra/EmailNotificationSender.java)는 `JavaMailSender`로 메시지를 보내고 임의 헤더 `X-Idempotency-Key`를 설정한다. 이 헤더를 조회해 중복을 차단하는 코드는 없다.
+- [EmailNotificationSender](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/client/EmailNotificationSender.java)는 `JavaMailSender`로 메시지를 보내고 임의 헤더 `X-Idempotency-Key`를 설정한다. 이 헤더를 조회해 중복을 차단하는 코드는 없다.
 - [운영 설정](../apps/server/src/main/resources/application-prod.yml)은 SES를 활성화하며 [의존성](../apps/server/build.gradle)에 Spring Cloud AWS SES가 있다. 기본 설정은 로컬 SMTP를 사용한다. 실제 운영에서 선택되는 `JavaMailSender` 구현과 발송 경로는 실행 환경에서 확인할 사항이다.
 - SES의 공개 [SendRawEmail](https://docs.aws.amazon.com/ses/latest/APIReference/API_SendRawEmail.html)과 [SendEmail v2](https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html) 요청 명세에서 멱등성 키나 `ClientToken` 기반 중복 차단 계약을 확인하지 못했다. `X-Idempotency-Key`에 중복 차단 의미를 부여하는 근거도 확인하지 못했다.
 - SES `SendRawEmail`은 발신자가 지정한 `Message-ID`와 `Date`를 자체 값으로 덮어쓴다. 같은 `Message-ID`를 넣으면 SES가 발송을 한 번만 수행한다는 방식으로 설계할 수 없다. [SES 명세](https://docs.aws.amazon.com/ses/latest/APIReference/API_SendRawEmail.html)
@@ -56,7 +56,7 @@ SES를 유지한다면 성공이 기록된 작업의 재발송을 막을 수 있
 
 ### 현재 구현과 의미
 
-[DiscordNotificationSender](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/infra/DiscordNotificationSender.java)는 봇의 DM 메시지 생성 요청에 두 필드를 이미 넣고 있다. 현재 22자 공급자 키는 길이 제한 안에 있다.
+[DiscordNotificationSender](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/client/DiscordNotificationSender.java)는 봇의 DM 메시지 생성 요청에 두 필드를 이미 넣고 있다. 현재 22자 공급자 키는 길이 제한 안에 있다.
 
 같은 작업의 짧은 간격 재시도에는 공급자 중복 억제를 활용할 수 있다. 긴 장애 뒤 재시도·관리자 재처리에서는 중복이 남을 수 있다. 다시 만석이 됐다가 새 여석이 생긴 사건은 새 작업·키로 구분해야 한다. 강의 ID만 nonce로 사용하면 실제 새 알림까지 억제할 수 있다.
 
@@ -66,7 +66,7 @@ SES를 유지한다면 성공이 기록된 작업의 재발송을 막을 수 있
 
 RFC 8030의 `Topic`은 **같은 구독에서 아직 대기 중인 메시지**를 교체한다. 키는 최대 32자의 URL 안전 Base64 문자다. 이미 전달된 메시지를 기억해서 모든 재요청을 막는 계약은 아니다. 또한 푸시 서비스의 HTTP 201은 요청 수락이며 브라우저 전달 완료를 의미하지 않는다. [RFC 8030 §5 및 §5.4](https://www.rfc-editor.org/rfc/rfc8030#section-5.4)
 
-[WebPushNotificationSender](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/infra/WebPushNotificationSender.java)는 같은 공급자 키를 `Topic`과 암호화된 payload의 `idempotencyKey`에 넣는다. 현재 22자 키는 Topic 제약에 맞는다. 기기가 오프라인일 때 같은 작업의 대기 메시지가 쌓이는 것을 줄일 수 있다. 서로 다른 여석 발생의 키까지 같게 만들면 전달할 발생 사실이 교체될 수 있으므로 구분이 필요하다.
+[WebPushNotificationSender](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/client/WebPushNotificationSender.java)는 같은 공급자 키를 `Topic`과 암호화된 payload의 `idempotencyKey`에 넣는다. 현재 22자 키는 Topic 제약에 맞는다. 기기가 오프라인일 때 같은 작업의 대기 메시지가 쌓이는 것을 줄일 수 있다. 서로 다른 여석 발생의 키까지 같게 만들면 전달할 발생 사실이 교체될 수 있으므로 구분이 필요하다.
 
 ### 브라우저 알림의 tag와 인앱 토스트
 
@@ -89,9 +89,9 @@ Notifications API의 `tag`는 같은 출처·tag의 기존 알림을 교체하�
 
 ## 6. 감지 시각: 합의한 요구와 현행 구현의 차이
 
-[수집 반영 코드](../apps/server/src/main/java/bhoon/sugang_helper/academic/course/application/CourseCatalogSynchronizationService.java)는 만석에서 여석으로 전환되면 이벤트를 발행한다. [SeatOpenedEvent](../apps/server/src/main/java/bhoon/sugang_helper/academic/course/contract/SeatOpenedEvent.java)와 [outbox](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/domain/SeatNotificationOutbox.java)에는 명시적인 감지 시각 필드가 없다. outbox의 감사용 `createdAt`과 서비스 워커의 `dateOfArrival`은 각각 기록 생성·도착 시각이므로 감지 시각과 같다고 간주할 수 없다.
+[수집 반영 코드](../apps/server/src/main/java/bhoon/sugang_helper/academic/course/service/CourseCatalogSynchronizationService.java)는 만석에서 여석으로 전환되면 이벤트를 발행한다. [SeatOpenedEvent](../apps/server/src/main/java/bhoon/sugang_helper/academic/events/SeatOpenedEvent.java)와 [outbox](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/entity/SeatNotificationOutbox.java)에는 명시적인 감지 시각 필드가 없다. outbox의 감사용 `createdAt`과 서비스 워커의 `dateOfArrival`은 각각 기록 생성·도착 시각이므로 감지 시각과 같다고 간주할 수 없다.
 
-[메시지 생성](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/application/NotificationService.java)은 현재 여석 수와 강의 정보만 사용한다. 감지 시각과 수집·발송 지연 안내는 아직 구현되지 않았다.
+[메시지 생성](../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/service/NotificationService.java)은 현재 여석 수와 강의 정보만 사용한다. 감지 시각과 수집·발송 지연 안내는 아직 구현되지 않았다.
 
 구현할 때 최초 감지 시각을 발송 데이터에 보존하고 재시도에도 사용해야 한다. 정확히 어느 수집 단계의 시각인지 함께 정해야 하며, 학교의 실제 여석 발생 시각이라고 표현하지 않는다. 표시 시각은 설명 정보이며 초 단위 시각 자체를 유일한 멱등성 키로 쓰지 않는다.
 

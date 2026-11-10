@@ -4,7 +4,7 @@
 
 ## markSuccess의 역할
 
-[CourseCrawlCompletionService.complete](../apps/server/src/main/java/bhoon/sugang_helper/academic/crawling/service/CourseCrawlCompletionService.java)는 강의 동기화 뒤 [CrawlerRunStateService.markSuccess](../apps/server/src/main/java/bhoon/sugang_helper/academic/crawling/service/CrawlerRunStateService.java)를 같은 트랜잭션에서 호출한다. crawler_status의 singleton 행은 latest_status=SUCCESS, last_success_at, updated_at이 바뀐다. 수집 DB 반영이 rollback되면 성공 시각도 함께 rollback된다. 알림 발송 성공은 SeatNotificationDeliverySettlementService.markSent의 별도 상태 전이다.
+[CourseCrawlCompletionService.complete](../apps/server/src/main/java/bhoon/sugang_helper/academic/crawling/service/CourseCrawlCompletionService.java)는 강의 동기화 뒤 [CrawlerRunStateService.markSuccess](../apps/server/src/main/java/bhoon/sugang_helper/academic/crawling/service/CrawlerRunStateService.java)를 같은 트랜잭션에서 호출한다. crawler_status의 singleton 행은 latest_status=SUCCESS, last_success_at, updated_at이 바뀐다. 수집 DB 반영이 rollback되면 성공 시각도 함께 rollback된다. 알림 발송 성공은 SeatNotificationDeliveryStateService.markSent의 별도 상태 전이다.
 
 마지막 성공 시각은 CourseCrawlerService 신선도 검사, AdminService 상태·통계, CrawlerCourseSearchContextProvider의 검색 맥락에 사용된다. 단순 로그만 남기고 markSuccess를 지우면 재시작 후 마지막 성공과 신선도를 잃는다. 이번 인증 작업에서 삭제하지 않는다. 기준 dev `aade57db93f213c98b035f979362075b6f2bf425`에도 같은 클래스·markSuccess 호출이 있었고 CrawlerStatus 엔티티의 필드·변경 본문은 그대로다. CourseCatalogSynchronizer의 서비스 이름과 DTO 패키지·불필요한 조회 인터페이스만 정리됐으며 이번 브랜치에서 성공 기록 동작을 새로 도입한 것이 아니다.
 

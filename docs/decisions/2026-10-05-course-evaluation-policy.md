@@ -4,7 +4,7 @@
 - 결정일: 2026-10-05
 - 범위: 강의 별점·이모지의 평가 집계 단위
 - 대체 결정: 없음
-- 관련 자료: [ReviewScopeKey](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/domain/ReviewScopeKey.java), [CourseReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/application/CourseReviewService.java), [CourseEmojiReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/application/CourseEmojiReviewService.java), [탈퇴 후 평가 보존 정책](2026-10-04-authentication-policy.md)
+- 관련 자료: [ReviewScopeKey](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/dto/criteria/ReviewScopeKey.java), [CourseReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/service/CourseReviewService.java), [CourseEmojiReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/service/CourseEmojiReviewService.java), [탈퇴 후 평가 보존 정책](2026-10-04-authentication-policy.md)
 
 ## 문제와 목표
 
@@ -68,7 +68,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-05
 - 범위: 재설계에서 강의 교수명 필드의 저장 규칙
-- 관련 자료: [Course](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/domain/Course.java), [CourseCatalogSynchronizationService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/application/CourseCatalogSynchronizationService.java), [강의 수집 정책](2026-10-04-course-collection-policy.md)
+- 관련 자료: [Course](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/entity/Course.java), [CourseCatalogSynchronizationService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/service/CourseCatalogSynchronizationService.java), [강의 수집 정책](2026-10-04-course-collection-policy.md)
 
 ### 확인과 결정
 
@@ -113,7 +113,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-05
 - 범위: 계정당 별점 개수와 수정 시 현재 집계 반영
-- 관련 자료: [CourseReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/application/CourseReviewService.java)
+- 관련 자료: [CourseReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/service/CourseReviewService.java)
 
 ### 비교와 결정
 
@@ -138,7 +138,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-05
 - 범위: 평가 그룹별 계정의 이모지 선택 개수와 취소 동작
-- 관련 자료: [CourseEmojiReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/application/CourseEmojiReviewService.java)
+- 관련 자료: [CourseEmojiReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/service/CourseEmojiReviewService.java)
 
 ### 비교와 결정
 
@@ -187,7 +187,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-05
 - 범위: 공개 평가 집계값의 계산·저장 방식과 최적화 시점
-- 관련 자료: [CourseReviewCatalogService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/application/CourseReviewCatalogService.java), [CourseSearchReadRepository](../../apps/server/src/main/java/bhoon/sugang_helper/readmodel/course/infra/CourseSearchReadRepository.java), [CourseEmojiReviewJpaRepository](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/infra/CourseEmojiReviewJpaRepository.java)
+- 관련 자료: [CourseReviewCatalogService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/service/CourseReviewCatalogService.java), [CourseSearchReadRepository](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/repository/CourseSearchReadRepository.java), [CourseEmojiReviewJpaRepository](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/repository/CourseEmojiReviewRepository.java)
 
 ### 확인된 현재 동작
 
@@ -266,7 +266,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-07
 - 범위: 별점·이모지 작성 시 수강 이력 확인 여부
-- 관련 자료: [CourseReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/application/CourseReviewService.java), [CourseEmojiReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/application/CourseEmojiReviewService.java)
+- 관련 자료: [CourseReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/service/CourseReviewService.java), [CourseEmojiReviewService](../../apps/server/src/main/java/bhoon/sugang_helper/academic/review/service/CourseEmojiReviewService.java)
 
 ### 비교와 결정
 

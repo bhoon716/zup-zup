@@ -4,7 +4,7 @@
 - 결정일: 2026-10-01
 - 범위: 지연된 여석 알림의 발송 대상 유지와 미전달 작업 보존
 - 대체 결정: 없음. 기존 발생 사실 발송·at-least-once 전달 목표를 보완한다.
-- 관련 자료: [발생 사실 발송 결정](2026-10-01-seat-alert-occurrence-notification.md), [중복 허용·감지 시각 표시 결정](2026-10-01-notification-duplicate-and-mq-policy.md), [전달 목표와 완료 기준](2026-10-01-notification-at-least-once-delivery.md), [재설계 논의 계획](../backend-redesign-plan.md)
+- 관련 자료: [발생 사실 발송 결정](2026-10-01-seat-alert-occurrence-notification.md), [중복 허용·감지 시각 표시 결정](2026-10-01-notification-duplicate-and-mq-policy.md), [전달 목표와 완료 기준](2026-10-01-notification-at-least-once-delivery.md)
 
 ## 문제와 목표
 
@@ -44,7 +44,7 @@
 
 사용자가 지연된 알림의 전달 가치를 설명하고 이 기록의 작성을 승인했다. 애플리케이션 코드와 실행 설정은 변경하지 않았다.
 
-현행 [실패 기록 정리](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/application/NotificationDeliveryRetentionScheduler.java)는 기본 30일 후 DLQ 작업을 삭제한다. 미전달 작업의 복구 가능성이 보관 기간 때문에 사라지지 않도록 이 정책과 데이터 정리 범위를 구현 설계에서 재검토한다.
+현행 [실패 기록 정리](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/scheduler/NotificationDeliveryRetentionScheduler.java)는 기본 30일 후 DLQ 작업을 삭제한다. 미전달 작업의 복구 가능성이 보관 기간 때문에 사라지지 않도록 이 정책과 데이터 정리 범위를 구현 설계에서 재검토한다.
 
 구현 시 오래 대기한 미발송 작업이 지연만을 이유로 취소되지 않는 동작과 최초 감지 시각 보존을 단위 테스트 후보로 둔다. 최종 E2E 범위와 실행 여부는 구현 논의에서 정한다. 이번 문서 작성에서는 테스트를 추가하거나 실행하지 않았다.
 

@@ -4,7 +4,7 @@
 - 결정일: 2026-10-05
 - 범위: 시간이 겹치는 강의·개인 일정의 시간표 추가
 - 대체 결정: 없음
-- 관련 자료: [TimetableService](../../apps/server/src/main/java/bhoon/sugang_helper/planning/timetable/application/TimetableService.java), [시간표 재설계 체크리스트](../backend-redesign-checklist.md)
+- 관련 자료: [TimetableService](../../apps/server/src/main/java/bhoon/sugang_helper/planning/timetable/service/TimetableService.java)
 
 ## 문제와 목표
 
@@ -38,7 +38,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-05
 - 범위: 시간표에 담긴 강의의 시간·강의실 등 학교 정보 변경 반영
-- 관련 자료: [TimetableService의 강의 정보 조회](../../apps/server/src/main/java/bhoon/sugang_helper/planning/timetable/application/TimetableService.java), [강의 수집 정책](2026-10-04-course-collection-policy.md)
+- 관련 자료: [TimetableService의 강의 정보 조회](../../apps/server/src/main/java/bhoon/sugang_helper/planning/timetable/service/TimetableService.java), [강의 수집 정책](2026-10-04-course-collection-policy.md)
 
 ### 비교와 결정
 
@@ -63,7 +63,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-05
 - 범위: 신규 사용자와 기본 시간표의 생성 흐름
-- 관련 자료: [UserOAuthAccountService](../../apps/server/src/main/java/bhoon/sugang_helper/identity/user/application/UserOAuthAccountService.java), [TimetableService](../../apps/server/src/main/java/bhoon/sugang_helper/planning/timetable/application/TimetableService.java)
+- 관련 자료: [UserOAuthAccountService](../../apps/server/src/main/java/bhoon/sugang_helper/identity/user/service/UserOAuthAccountService.java), [TimetableService](../../apps/server/src/main/java/bhoon/sugang_helper/planning/timetable/service/TimetableService.java)
 
 ### 결정
 

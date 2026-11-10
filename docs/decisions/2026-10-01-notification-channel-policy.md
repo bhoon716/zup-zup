@@ -4,7 +4,7 @@
 - 결정일: 2026-10-01
 - 범위: 여석 알림의 채널 구성과 부분 실패 처리, FCM 제거 범위
 - 대체 결정: 없음
-- 관련 자료: [재설계 논의 계획](../backend-redesign-plan.md), [여석 발생 사실 발송](2026-10-01-seat-alert-occurrence-notification.md), [채널 정책](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/application/NotificationChannelPolicy.java), [발송 작업](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/domain/SeatNotificationDelivery.java), [FCM 발송기](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/infra/FcmNotificationSender.java), [웹 Firebase 모듈](../../apps/web/src/shared/lib/firebase.ts)
+- 관련 자료: [여석 발생 사실 발송](2026-10-01-seat-alert-occurrence-notification.md), [채널 정책](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/service/NotificationChannelPolicy.java), [발송 작업](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/entity/SeatNotificationDelivery.java)
 
 ## 문제와 목표
 
@@ -37,7 +37,7 @@
 - 모바일 앱을 위한 FCM을 유지할 제품 요구가 사라졌다. 실제 사용 채널에 맞춰 이해해야 할 구현·설정·의존성을 줄인다.
 - 제거 대상은 서버 FCM 발송기·Firebase 초기화/의존성, 웹 Firebase 모듈·초기화/의존성, FCM 활성화 필드·기기 등록 경로, Firebase 환경 변수·인증 파일 마운트·배포 및 CI 설정이다.
 - 과거 FCM 이력·기기·대기 작업·사용자 설정 컬럼의 데이터와 호환성은 제거 구현 전에 확인한다. 운영에 적용된 Flyway 마이그레이션을 수정하지 않고 전환 방법을 정한다.
-- [WebPushEndpointValidator](../../apps/server/src/main/java/bhoon/sugang_helper/identity/user/application/WebPushEndpointValidator.java)의 `fcm.googleapis.com`은 현재 웹 푸시 endpoint로 허용된 주소다. FCM 앱 채널 제거 범위와 구분해 웹 푸시의 연결을 보존한다.
+- [WebPushEndpointValidator](../../apps/server/src/main/java/bhoon/sugang_helper/identity/user/service/WebPushEndpointValidator.java)의 `fcm.googleapis.com`은 현재 웹 푸시 endpoint로 허용된 주소다. FCM 앱 채널 제거 범위와 구분해 웹 푸시의 연결을 보존한다.
 
 ## 미결 사항
 

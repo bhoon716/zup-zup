@@ -4,7 +4,7 @@
 - 결정일: 2026-10-01
 - 범위: 여석 알림의 발송 판단과 사용자 메시지
 - 대체 결정: 없음
-- 관련 자료: [재설계 논의 계획](../backend-redesign-plan.md), [여석 감지](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/application/CourseCatalogSynchronizationService.java), [outbox 모델](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/domain/SeatNotificationOutbox.java), [발송 코드](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/application/NotificationService.java), [운영 설정](../../apps/server/src/main/resources/application-prod.yml)
+- 관련 자료: [여석 감지](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/service/CourseCatalogSynchronizationService.java), [outbox 모델](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/entity/SeatNotificationOutbox.java), [발송 코드](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/service/NotificationService.java), [운영 설정](../../apps/server/src/main/resources/application-prod.yml)
 
 ## 문제와 목표
 

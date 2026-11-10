@@ -85,14 +85,8 @@ Microsoft Clarity와 Google Analytics 4는 Vercel production deployment에서 ID
 
 Preview·Development에는 두 변수를 설정하지 않습니다. 코드에서도 `VERCEL_ENV=production`과 올바른 ID 형식을 함께 확인하므로 preview나 로컬 개발에서는 외부 분석 스크립트를 로드하지 않습니다. Clarity는 전체 페이지 텍스트를 기본 마스킹하며, GA4는 query를 제외한 경로만 전송하고 Google Signals와 광고 개인화를 비활성화합니다.
 
-## Related Docs
-
-- [Project release notes](../../docs/feature-updates.md)
-- [Troubleshooting log](../../docs/troubleshooting.md)
-
 ## Operational Notes
 
 - 배포 기준은 루트 README를 참고합니다.
 - Node.js 22.x와 `apps/web/package-lock.json`이 배포·CI의 기준입니다.
 - Web 로그는 `/var/log/jbnu-sugang-helper/web/web.log`에 남습니다.
-- 이 문서는 사용자 화면과 정보 구조를 이해하는 데 초점을 둡니다.

@@ -4,7 +4,7 @@
 - 결정일: 2026-10-13
 - 범위: 백엔드 전체 재설계의 의존성 방향, 업무 계약과 외부 구현의 경계
 - 변경 대상: [저장소 인터페이스 통합 결정](2026-10-13-repository-interface-policy.md)
-- 관련 자료: [Robert C. Martin의 원문](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html), [재설계 계획](../backend-redesign-plan.md), [기능 체크리스트](../backend-redesign-checklist.md)
+- 관련 자료: [Robert C. Martin의 원문](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
 ## 사용자 요구와 적용 기준
 
@@ -202,7 +202,6 @@
 - 상태: Accepted
 - 결정일: 2026-10-13
 - 범위: 클린 아키텍처로 전환할 첫 기능 흐름
-- 구현 계획: [첫 전환 구현 계획](../backend-redesign-first-slice-plan.md)
 
 수집·강의 갱신·outbox 기록, 인증·계정, 문의·첨부·답변 중에서 사용자는 첫 번째 흐름을 선택했다.
 
