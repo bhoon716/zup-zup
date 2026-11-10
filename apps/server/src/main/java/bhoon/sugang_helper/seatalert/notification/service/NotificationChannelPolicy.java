@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Component
 @RequiredArgsConstructor
@@ -79,7 +80,7 @@ public class NotificationChannelPolicy {
     }
 
     private String resolveNotificationEmail(NotificationRecipient user) {
-        return (user.notificationEmail() != null && !user.notificationEmail().isBlank())
+        return StringUtils.hasText(user.notificationEmail())
                 ? user.notificationEmail()
                 : user.email();
     }

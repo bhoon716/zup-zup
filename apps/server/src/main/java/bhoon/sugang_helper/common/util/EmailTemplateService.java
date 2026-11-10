@@ -31,7 +31,7 @@ public class EmailTemplateService implements EmailTemplates {
             return content;
         } catch (Exception e) {
             logEmailTemplateReadFailed(templateName, e);
-            return "Content Error: " + values.toString();
+            return "이메일 템플릿을 읽을 수 없습니다: " + values.toString();
         }
     }
 

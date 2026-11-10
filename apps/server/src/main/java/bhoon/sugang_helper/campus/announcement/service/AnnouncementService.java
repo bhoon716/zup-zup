@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.campus.announcement.service;
 
+import bhoon.sugang_helper.campus.announcement.AnnouncementPreviewText;
 import bhoon.sugang_helper.campus.announcement.dto.request.AnnouncementRequest;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementListResponse;
@@ -13,7 +14,9 @@ import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.web.PageableGuard;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -38,29 +41,32 @@ public class AnnouncementService implements Announcements {
 
     public Page<AnnouncementListResponse> getPublicAnnouncements(
             String keyword, AnnouncementSearchType searchType, Pageable pageable) {
-        Pageable bounded = PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, 10_000);
-        String normalizedKeyword = normalizeKeyword(keyword);
-        AnnouncementSearchType effectiveSearchType = searchType == null
-                ? AnnouncementSearchType.TITLE_CONTENT : searchType;
-        long started = System.nanoTime();
-        try {
-            return findPublicAnnouncements(normalizedKeyword, effectiveSearchType, bounded)
-                    .map(AnnouncementListResponse::from);
-        } finally {
-            if (meterRegistry != null) {
-                meterRegistry.timer("announcement.search.latency", "searchType", effectiveSearchType.name(),
-                        "hasKeyword", Boolean.toString(!normalizedKeyword.isEmpty()))
-                        .record(System.nanoTime() - started, TimeUnit.NANOSECONDS);
-            }
-        }
+        return queryPublicAnnouncements(keyword, searchType, pageable, AnnouncementListResponse::from);
     }
 
     public List<AnnouncementPreview> findDashboardAnnouncements(int limit) {
-        return getPublicAnnouncements(null, AnnouncementSearchType.TITLE_CONTENT, PageRequest.of(0, limit))
-                .getContent().stream()
-                .map(item -> new AnnouncementPreview(
-                        item.getId(), item.getTitle(), item.getPreviewContent(), item.isPinned(), item.getCreatedAt()))
-                .toList();
+        return queryPublicAnnouncements(null, AnnouncementSearchType.TITLE_CONTENT, PageRequest.of(0, limit),
+                AnnouncementService::toPreview).getContent();
+    }
+
+    private <T> Page<T> queryPublicAnnouncements(
+            String keyword, AnnouncementSearchType searchType, Pageable pageable, Function<Announcement, T> mapper) {
+        Pageable bounded = PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, PageableGuard.DEFAULT_MAX_OFFSET);
+        String normalizedKeyword = normalizeKeyword(keyword);
+        AnnouncementSearchType effectiveSearchType = Objects.requireNonNullElse(
+                searchType, AnnouncementSearchType.TITLE_CONTENT);
+        long startedAtNanos = System.nanoTime();
+        try {
+            return findPublicAnnouncements(normalizedKeyword, effectiveSearchType, bounded).map(mapper);
+        } finally {
+            recordSearchLatency(effectiveSearchType, !normalizedKeyword.isEmpty(), startedAtNanos);
+        }
+    }
+
+    private static AnnouncementPreview toPreview(Announcement announcement) {
+        return new AnnouncementPreview(announcement.getId(), announcement.getTitle(),
+                AnnouncementPreviewText.from(announcement.getContent()), announcement.isPinned(),
+                announcement.getCreatedAt());
     }
 
     public AnnouncementDetailResponse getPublicAnnouncement(Long id) {
@@ -75,7 +81,7 @@ public class AnnouncementService implements Announcements {
 
     public Page<AnnouncementDetailResponse> getAdminAnnouncements(Pageable pageable) {
         return announcementRepository.findAllByOrderByPinnedDescCreatedAtDesc(
-                        PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, 10_000))
+                        PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, PageableGuard.DEFAULT_MAX_OFFSET))
                 .map(AnnouncementDetailResponse::from);
     }
 
@@ -122,6 +128,15 @@ public class AnnouncementService implements Announcements {
             case CONTENT -> announcementRepository.searchPublishedByContent(keyword, pageable);
             case TITLE_CONTENT -> announcementRepository.searchPublishedByTitleOrContent(keyword, pageable);
         };
+    }
+
+    private void recordSearchLatency(AnnouncementSearchType searchType, boolean hasKeyword, long startedAtNanos) {
+        if (meterRegistry == null) {
+            return;
+        }
+        meterRegistry.timer("announcement.search.latency", "searchType", searchType.name(),
+                        "hasKeyword", Boolean.toString(hasKeyword))
+                .record(System.nanoTime() - startedAtNanos, TimeUnit.NANOSECONDS);
     }
 
     private String normalizeKeyword(String keyword) {

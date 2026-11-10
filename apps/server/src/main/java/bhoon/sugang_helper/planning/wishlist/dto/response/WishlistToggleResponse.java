@@ -9,7 +9,11 @@ import lombok.Getter;
 public class WishlistToggleResponse {
     private final boolean isWished;
 
-    public static WishlistToggleResponse of(boolean isWished) {
-        return new WishlistToggleResponse(isWished);
+    public static WishlistToggleResponse added() {
+        return new WishlistToggleResponse(true);
+    }
+
+    public static WishlistToggleResponse removed() {
+        return new WishlistToggleResponse(false);
     }
 }

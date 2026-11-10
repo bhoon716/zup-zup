@@ -11,8 +11,10 @@ import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailRe
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementListResponse;
 import bhoon.sugang_helper.campus.announcement.entity.Announcement;
 import bhoon.sugang_helper.campus.announcement.repository.AnnouncementRepository;
+import bhoon.sugang_helper.campus.api.AnnouncementPreview;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +50,32 @@ class AnnouncementServiceTest {
         // then
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).isEqualTo("제목");
+    }
+
+    @Test
+    @DisplayName("대시보드 공지는 공개 목록 순서와 미리보기 형식 및 조회 지표를 유지한다")
+    void dashboardAnnouncementsPreservePreviewsAndMetric() {
+        // given
+        String longContent = "가".repeat(121);
+        Announcement pinned = createAnnouncement("고정 공지", "**강조**\r\n" + longContent, true, true);
+        Announcement recent = createAnnouncement("최근 공지", "[신청 안내](https://example.org)", false, true);
+        PageRequest firstPage = PageRequest.of(0, 2);
+        given(announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(firstPage))
+                .willReturn(new PageImpl<>(List.of(pinned, recent)));
+
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+        AnnouncementService service = new AnnouncementService(announcementRepository, meterRegistry);
+
+        // when
+        List<AnnouncementPreview> previews = service.findDashboardAnnouncements(2);
+
+        // then
+        assertThat(previews).containsExactly(
+                new AnnouncementPreview(null, pinned.getTitle(), "강조 " + "가".repeat(117) + "...", true, null),
+                new AnnouncementPreview(null, recent.getTitle(), "신청 안내", false, null));
+        assertThat(meterRegistry.get("announcement.search.latency")
+                .tags("searchType", "TITLE_CONTENT", "hasKeyword", "false")
+                .timer().count()).isEqualTo(1);
     }
 
     @Test

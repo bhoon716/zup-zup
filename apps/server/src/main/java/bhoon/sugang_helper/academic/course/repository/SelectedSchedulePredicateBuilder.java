@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
 
 final class SelectedSchedulePredicateBuilder {
 
@@ -46,28 +47,34 @@ final class SelectedSchedulePredicateBuilder {
         List<ValidScheduleCondition> mergedAll = new ArrayList<>();
 
         for (Map.Entry<CourseDayOfWeek, List<ValidScheduleCondition>> entry : grouped.entrySet()) {
-            List<ValidScheduleCondition> dayConditions = new ArrayList<>(entry.getValue());
-            dayConditions.sort(Comparator.comparing(ValidScheduleCondition::startTime));
-
-            List<ValidScheduleCondition> mergedDay = new ArrayList<>();
-            ValidScheduleCondition currentMerged = dayConditions.get(0);
-            for (int i = 1; i < dayConditions.size(); i++) {
-                ValidScheduleCondition next = dayConditions.get(i);
-                if (!next.startTime().isAfter(currentMerged.endTime())) {
-                    LocalTime newEndTime = next.endTime().isAfter(currentMerged.endTime())
-                            ? next.endTime() : currentMerged.endTime();
-                    currentMerged = new ValidScheduleCondition(
-                            entry.getKey(), currentMerged.startTime(), newEndTime);
-                } else {
-                    mergedDay.add(currentMerged);
-                    currentMerged = next;
-                }
-            }
-            mergedDay.add(currentMerged);
-            mergedAll.addAll(mergedDay);
+            mergedAll.addAll(mergeDayConditions(entry.getKey(), entry.getValue()));
         }
-
         return mergedAll;
+    }
+
+    private List<ValidScheduleCondition> mergeDayConditions(
+            CourseDayOfWeek day, List<ValidScheduleCondition> conditions) {
+        List<ValidScheduleCondition> sorted = new ArrayList<>(conditions);
+        sorted.sort(Comparator.comparing(ValidScheduleCondition::startTime));
+
+        List<ValidScheduleCondition> merged = new ArrayList<>();
+        ValidScheduleCondition current = sorted.get(0);
+        for (int i = 1; i < sorted.size(); i++) {
+            ValidScheduleCondition next = sorted.get(i);
+            if (next.startTime().isAfter(current.endTime())) {
+                merged.add(current);
+                current = next;
+                continue;
+            }
+
+            LocalTime endTime = current.endTime();
+            if (next.endTime().isAfter(endTime)) {
+                endTime = next.endTime();
+            }
+            current = new ValidScheduleCondition(day, current.startTime(), endTime);
+        }
+        merged.add(current);
+        return merged;
     }
 
     private List<ValidScheduleCondition> toValidConditions(
@@ -108,7 +115,7 @@ final class SelectedSchedulePredicateBuilder {
     }
 
     private LocalTime parseTime(String time) {
-        if (time == null || time.isBlank()) {
+        if (!StringUtils.hasText(time)) {
             return null;
         }
         try {

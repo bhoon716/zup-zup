@@ -24,6 +24,8 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import lombok.AccessLevel;
@@ -32,6 +34,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.util.StringUtils;
 
 @Getter
 @Setter
@@ -39,7 +42,20 @@ import lombok.ToString;
 @ToString
 public class CourseSearchCondition {
 
-    private static final String DEFAULT_SORT_BY = "popular";
+    private static final String KEYWORD_AND_NAME_FIELD = "keyword/name";
+    private static final String CLASSIFICATIONS_FIELD = "classifications";
+    private static final String GRADING_METHODS_FIELD = "gradingMethods";
+    private static final String LECTURE_LANGUAGES_FIELD = "lectureLanguages";
+    private static final String STATUSES_FIELD = "statuses";
+    private static final String COURSE_DIRECTION_FIELD = "courseDirection";
+    private static final String DAY_OF_WEEK_FIELD = "dayOfWeek";
+    private static final String DISCLOSURE_FIELD = "disclosure";
+    private static final String LECTURE_HOURS_FIELD = "lectureHours";
+    private static final String CREDITS_FIELD = "credits";
+    private static final String SELECTED_SCHEDULES_FIELD = "selectedSchedules";
+    private static final String DEFAULT_SORT_ORDER = "desc";
+
+    private static final String DEFAULT_SORT_BY = CourseSearchCriteria.POPULAR_SORT;
     private static final Set<String> WISHLIST_SORT_ALIASES = Set.of(
             "wishlist", "wishlistcount", "wishlist_count", "wished");
 
@@ -164,7 +180,7 @@ public class CourseSearchCondition {
         this.targetGrades = targetGrades;
         this.disclosure = disclosure;
         this.sortBy = normalizeSortBy(sortBy);
-        this.sortOrder = sortOrder == null ? "desc" : sortOrder;
+        this.sortOrder = Objects.requireNonNullElse(sortOrder, DEFAULT_SORT_ORDER);
         this.userId = userId;
     }
 
@@ -182,13 +198,9 @@ public class CourseSearchCondition {
                 .lectureLanguages(lectureLanguages)
                 .isAvailableOnly(isAvailableOnly)
                 .dayOfWeek(dayOfWeek)
-                .selectedSchedules(selectedSchedules == null ? null : selectedSchedules.stream()
-                        .map(schedule -> CourseSelectedSchedule.builder()
-                                .dayOfWeek(schedule.getDayOfWeek())
-                                .startTime(schedule.getStartTime())
-                                .endTime(schedule.getEndTime())
-                                .build())
-                        .toList())
+                .selectedSchedules(Optional.ofNullable(selectedSchedules)
+                        .map(this::toSelectedSchedules)
+                        .orElse(null))
                 .credits(credits)
                 .lectureHours(lectureHours)
                 .minLectureHours(minLectureHours)
@@ -202,8 +214,22 @@ public class CourseSearchCondition {
                 .targetGrades(targetGrades)
                 .disclosure(disclosure)
                 .sortBy(sortBy)
-                .sortOrder(sortOrder == null ? "desc" : sortOrder)
+                .sortOrder(Objects.requireNonNullElse(sortOrder, DEFAULT_SORT_ORDER))
                 .userId(userId)
+                .build();
+    }
+
+    private List<CourseSelectedSchedule> toSelectedSchedules(List<ScheduleCondition> schedules) {
+        return schedules.stream()
+                .map(this::toSelectedSchedule)
+                .toList();
+    }
+
+    private CourseSelectedSchedule toSelectedSchedule(ScheduleCondition schedule) {
+        return CourseSelectedSchedule.builder()
+                .dayOfWeek(schedule.getDayOfWeek())
+                .startTime(schedule.getStartTime())
+                .endTime(schedule.getEndTime())
                 .build();
     }
 
@@ -212,28 +238,28 @@ public class CourseSearchCondition {
     }
 
     public void validateSearchValues() {
-        if (hasText(keyword) && hasText(name)) {
-            reject("keyword/name");
+        if (StringUtils.hasText(keyword) && StringUtils.hasText(name)) {
+            reject(KEYWORD_AND_NAME_FIELD);
         }
-        validateEnumValues(classifications, CourseClassification::from, "classifications");
-        validateEnumValues(gradingMethods, GradingMethod::from, "gradingMethods");
-        validateEnumValues(lectureLanguages, LectureLanguage::from, "lectureLanguages");
-        validateEnumValues(statuses, CourseStatus::from, "statuses");
+        validateEnumValues(classifications, CourseClassification::from, CLASSIFICATIONS_FIELD);
+        validateEnumValues(gradingMethods, GradingMethod::from, GRADING_METHODS_FIELD);
+        validateEnumValues(lectureLanguages, LectureLanguage::from, LECTURE_LANGUAGES_FIELD);
+        validateEnumValues(statuses, CourseStatus::from, STATUSES_FIELD);
         statuses = normalizeTextValues(statuses);
         if (!isCourseDirectionComplexityValid()) {
-            reject("courseDirection");
+            reject(COURSE_DIRECTION_FIELD);
         }
         List<String> directionTerms = CourseSearchCriteria.normalizeCourseDirectionTerms(courseDirection);
         courseDirection = String.join(",", directionTerms);
-        if (dayOfWeek != null && !dayOfWeek.isBlank() && CourseDayOfWeek.from(dayOfWeek) == null) {
-            reject("dayOfWeek");
+        if (StringUtils.hasText(dayOfWeek) && CourseDayOfWeek.from(dayOfWeek) == null) {
+            reject(DAY_OF_WEEK_FIELD);
         }
-        if (disclosure != null && !disclosure.isBlank() && DisclosureStatus.from(disclosure) == null) {
-            reject("disclosure");
+        if (StringUtils.hasText(disclosure) && DisclosureStatus.from(disclosure) == null) {
+            reject(DISCLOSURE_FIELD);
         }
         validateCredits();
         if (minLectureHours != null && lectureHours != null && minLectureHours > lectureHours) {
-            reject("lectureHours");
+            reject(LECTURE_HOURS_FIELD);
         }
         validateSelectedSchedules();
     }
@@ -246,10 +272,10 @@ public class CourseSearchCondition {
             try {
                 double value = Double.parseDouble(credit);
                 if (value < 0 || value > 30) {
-                    reject("credits");
+                    reject(CREDITS_FIELD);
                 }
             } catch (NumberFormatException ex) {
-                reject("credits");
+                reject(CREDITS_FIELD);
             }
         }
     }
@@ -261,12 +287,12 @@ public class CourseSearchCondition {
         for (ScheduleCondition schedule : selectedSchedules) {
             if (schedule == null || schedule.getDayOfWeek() == null
                     || !isValidTimeRange(schedule.getStartTime(), schedule.getEndTime())) {
-                reject("selectedSchedules");
+                reject(SELECTED_SCHEDULES_FIELD);
             }
         }
     }
 
-    @AssertTrue(message = "courseDirection terms exceed the search predicate limit")
+    @AssertTrue(message = CourseSearchCriteria.COURSE_DIRECTION_LIMIT_MESSAGE)
     @JsonIgnore
     public boolean isCourseDirectionComplexityValid() {
         try {
@@ -298,19 +324,21 @@ public class CourseSearchCondition {
 
     private boolean isValidTimeRange(String start, String end) {
         try {
-            return start != null && end != null && LocalTime.parse(start.length() == 5 ? start + ":00" : start)
-                    .isBefore(LocalTime.parse(end.length() == 5 ? end + ":00" : end));
+            return start != null && end != null && parseScheduleTime(start).isBefore(parseScheduleTime(end));
         } catch (RuntimeException ex) {
             return false;
         }
     }
 
-    private void reject(String field) {
-        throw new CustomException(ErrorCode.INVALID_INPUT, "검색 조건이 올바르지 않습니다: " + field);
+    private LocalTime parseScheduleTime(String value) {
+        if (value.length() == 5) {
+            return LocalTime.parse(value + ":00");
+        }
+        return LocalTime.parse(value);
     }
 
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
+    private void reject(String field) {
+        throw new CustomException(ErrorCode.INVALID_INPUT, "검색 조건이 올바르지 않습니다: " + field);
     }
 
     private String normalizeSortBy(String value) {

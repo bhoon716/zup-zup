@@ -21,11 +21,16 @@ public class DashboardSnapshotResponse {
 
     private final List<AnnouncementPreview> announcements;
 
-    public static DashboardSnapshotResponse of(DashboardUserResult user,
-                                                List<DashboardNotificationResult> notifications,
-                                                DashboardPrimaryTimetableResult primaryTimetable,
-                                                List<ScheduleSummary> upcomingSchedules,
-                                                List<AnnouncementPreview> announcements) {
+    public static DashboardSnapshotResponse forGuest(List<ScheduleSummary> upcomingSchedules,
+                                                     List<AnnouncementPreview> announcements) {
+        return new DashboardSnapshotResponse(null, List.of(), null, upcomingSchedules, announcements);
+    }
+
+    public static DashboardSnapshotResponse forSignedInUser(DashboardUserResult user,
+                                                            List<DashboardNotificationResult> notifications,
+                                                            DashboardPrimaryTimetableResult primaryTimetable,
+                                                            List<ScheduleSummary> upcomingSchedules,
+                                                            List<AnnouncementPreview> announcements) {
         return new DashboardSnapshotResponse(user, notifications, primaryTimetable, upcomingSchedules, announcements);
     }
 }

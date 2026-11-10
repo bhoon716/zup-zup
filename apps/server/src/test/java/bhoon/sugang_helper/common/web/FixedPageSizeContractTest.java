@@ -15,7 +15,7 @@ import bhoon.sugang_helper.seatalert.notification.controller.NotificationControl
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
-import bhoon.sugang_helper.support.feedback.service.FeedbackService;
+import bhoon.sugang_helper.support.feedback.service.AdminFeedbackService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,7 +39,7 @@ class FixedPageSizeContractTest {
 
     @Mock private NotificationHistoryQueryService notifications;
 
-    @Mock private FeedbackService feedback;
+    @Mock private AdminFeedbackService feedback;
 
     private MockMvc mvc;
 

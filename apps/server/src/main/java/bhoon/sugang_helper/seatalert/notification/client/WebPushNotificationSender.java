@@ -7,8 +7,10 @@ import bhoon.sugang_helper.identity.api.notifications.WebPushSubscriptionManagem
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import java.security.GeneralSecurityException;
 import java.security.Security;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -20,10 +22,13 @@ import org.apache.http.HttpResponse;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
 public class WebPushNotificationSender implements NotificationSender {
+
+    private static final String ENDPOINT_FINGERPRINT_KEY = "endpointFingerprint";
 
     private static final String EVENT_KEY = "event";
 
@@ -88,35 +93,11 @@ public class WebPushNotificationSender implements NotificationSender {
         String endpointFingerprint = SensitiveDataRedactor.fingerprint(target.getRecipient());
 
         try {
-            String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/", idempotencyKey));
-            Notification.NotificationBuilder notificationBuilder = Notification.builder()
-                    .endpoint(target.getRecipient())
-                    .userPublicKey(target.getP256dh())
-                    .userAuth(target.getAuth())
-                    .payload(payload);
-            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-                notificationBuilder.topic(idempotencyKey);
-            }
-            Notification notification = notificationBuilder.build();
-
+            Notification notification = createNotification(target, title, message, idempotencyKey);
             logSendStarted(endpointFingerprint);
             @SuppressWarnings("deprecation")
             Future<HttpResponse> request = pushService.sendAsync(notification, Encoding.AESGCM);
-            int statusCode = awaitStatusCode(request);
-
-            if (statusCode == 404 || statusCode == 410) {
-                userDeviceWebPushManagement.deleteDeviceByToken(target.getRecipient());
-                throw new NotificationProviderException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION,
-                        false, "INVALID_RECIPIENT", statusCode, null);
-            }
-
-            if (statusCode >= 400) {
-                boolean retryable = statusCode == 429 || statusCode >= 500;
-                String reason = statusCode == 429 ? "RATE_LIMIT" : statusCode >= 500 ? "OUTAGE" : "PERMANENT";
-                throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
-                        retryable, reason, statusCode, null);
-            }
-
+            validateResponseStatus(target, awaitStatusCode(request));
             logSendSucceeded(endpointFingerprint);
         } catch (CustomException e) {
             throw e;
@@ -125,6 +106,43 @@ public class WebPushNotificationSender implements NotificationSender {
             throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
                     true, "ERROR", null, e);
         }
+    }
+
+    private Notification createNotification(NotificationTarget target, String title, String message, String idempotencyKey)
+            throws JsonProcessingException, GeneralSecurityException {
+        String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/", idempotencyKey));
+        Notification.NotificationBuilder builder = Notification.builder()
+                .endpoint(target.getRecipient())
+                .userPublicKey(target.getP256dh())
+                .userAuth(target.getAuth())
+                .payload(payload);
+        if (StringUtils.hasText(idempotencyKey)) {
+            builder.topic(idempotencyKey);
+        }
+        return builder.build();
+    }
+
+    private void validateResponseStatus(NotificationTarget target, int statusCode) {
+        if (statusCode == 404 || statusCode == 410) {
+            userDeviceWebPushManagement.deleteDeviceByToken(target.getRecipient());
+            throw new NotificationProviderException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION,
+                    false, "INVALID_RECIPIENT", statusCode, null);
+        }
+        if (statusCode >= 400) {
+            boolean retryable = statusCode == 429 || statusCode >= 500;
+            throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
+                    retryable, failureReason(statusCode), statusCode, null);
+        }
+    }
+
+    private String failureReason(int statusCode) {
+        if (statusCode == 429) {
+            return "RATE_LIMIT";
+        }
+        if (statusCode >= 500) {
+            return "OUTAGE";
+        }
+        return "PERMANENT";
     }
 
     private int awaitStatusCode(Future<HttpResponse> request) throws ExecutionException, InterruptedException {
@@ -149,19 +167,19 @@ public class WebPushNotificationSender implements NotificationSender {
 
     private void logSendStarted(String endpointFingerprint) {
         log.atDebug().addKeyValue(EVENT_KEY, "web_push_send_started")
-                .addKeyValue("endpointFingerprint", endpointFingerprint)
+                .addKeyValue(ENDPOINT_FINGERPRINT_KEY, endpointFingerprint)
                 .log("[WebPush] 단말 발송 시작.");
     }
 
     private void logSendSucceeded(String endpointFingerprint) {
         log.atDebug().addKeyValue(EVENT_KEY, "web_push_sent")
-                .addKeyValue("endpointFingerprint", endpointFingerprint)
+                .addKeyValue(ENDPOINT_FINGERPRINT_KEY, endpointFingerprint)
                 .log("[WebPush] 단말 발송 완료.");
     }
 
     private void logSendFailed(String endpointFingerprint, String failureCode, String exceptionType) {
         log.atDebug().addKeyValue(EVENT_KEY, "web_push_send_failed")
-                .addKeyValue("endpointFingerprint", endpointFingerprint)
+                .addKeyValue(ENDPOINT_FINGERPRINT_KEY, endpointFingerprint)
                 .addKeyValue("failureCode", failureCode)
                 .addKeyValue("exceptionType", exceptionType)
                 .log("[WebPush] 단말 발송 실패.");

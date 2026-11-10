@@ -38,7 +38,7 @@ public class DashboardService {
 
         Optional<UserDashboardProfile> currentUser = userDashboardQuery.findCurrentUser();
         if (currentUser.isEmpty()) {
-            return DashboardSnapshotResponse.of(null, List.of(), null, upcomingSchedules, announcements);
+            return DashboardSnapshotResponse.forGuest(upcomingSchedules, announcements);
         }
 
         UserDashboardProfile user = currentUser.get();
@@ -55,6 +55,7 @@ public class DashboardService {
                 .map(DashboardPrimaryTimetableResult::from)
                 .orElse(null);
 
-        return DashboardSnapshotResponse.of(userResponse, notifications, primaryTimetable, upcomingSchedules, announcements);
+        return DashboardSnapshotResponse.forSignedInUser(
+                userResponse, notifications, primaryTimetable, upcomingSchedules, announcements);
     }
 }

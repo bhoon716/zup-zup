@@ -33,17 +33,18 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class ImageUploadSanitizer {
 
+    private static final String JPEG_FORMAT = "jpeg";
+    private static final String PNG_FORMAT = "png";
+    private static final String JPEG_EXTENSION = "jpg";
+
     private static final byte[] PNG_SIGNATURE = new byte[] {
             (byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
     };
     private static final byte[] PNG_ANIMATION_CONTROL = new byte[] {'a', 'c', 'T', 'L'};
     private static final byte[] PNG_END = new byte[] {'I', 'E', 'N', 'D'};
     private final ExecutorService imageDecodeExecutor = new ThreadPoolExecutor(
-            1, 1, 0L, TimeUnit.MILLISECONDS, new SynchronousQueue<>(), runnable -> {
-                Thread thread = new Thread(runnable, "feedback-image-decode");
-                thread.setDaemon(true);
-                return thread;
-            }, new ThreadPoolExecutor.AbortPolicy());
+            1, 1, 0L, TimeUnit.MILLISECONDS, new SynchronousQueue<>(),
+            ImageUploadSanitizer::newImageDecodeThread, new ThreadPoolExecutor.AbortPolicy());
 
     @Value("${file.upload.image.max-source-bytes:10485760}")
     private long maximumImageSourceBytes = 10_485_760L;
@@ -98,6 +99,12 @@ public class ImageUploadSanitizer {
         }
     }
 
+    private static Thread newImageDecodeThread(Runnable runnable) {
+        Thread thread = new Thread(runnable, "feedback-image-decode");
+        thread.setDaemon(true);
+        return thread;
+    }
+
     private SanitizedImage decodeAndEncodeImage(MultipartFile file, String mimeType) {
         if ("image/png".equals(mimeType) && containsPngAnimation(file)) {
             throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
@@ -105,34 +112,37 @@ public class ImageUploadSanitizer {
 
         try (InputStream input = file.getInputStream();
              ImageInputStream imageInput = ImageIO.createImageInputStream(input)) {
-            if (imageInput == null) {
-                throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
-            }
-
-            Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInput);
-            if (!readers.hasNext()) {
-                throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
-            }
-
-            ImageReader reader = readers.next();
-            try {
-                reader.setInput(imageInput, false, true);
-                int width = reader.getWidth(0);
-                int height = reader.getHeight(0);
-                validateDimensions(width, height);
-
-                BufferedImage image = reader.read(0);
-                if (image == null) {
-                    throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
-                }
-                return encodeSanitizedImage(image);
-            } finally {
-                reader.dispose();
-            }
+            return sanitizeImage(imageInput);
         } catch (CustomException exception) {
             throw exception;
         } catch (IOException | RuntimeException exception) {
             throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
+        }
+    }
+
+    private SanitizedImage sanitizeImage(ImageInputStream imageInput) throws IOException {
+        if (imageInput == null) {
+            throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
+        }
+        Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInput);
+        if (!readers.hasNext()) {
+            throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
+        }
+
+        ImageReader reader = readers.next();
+        try {
+            reader.setInput(imageInput, false, true);
+            int width = reader.getWidth(0);
+            int height = reader.getHeight(0);
+            validateDimensions(width, height);
+
+            BufferedImage image = reader.read(0);
+            if (image == null) {
+                throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT);
+            }
+            return encodeSanitizedImage(image);
+        } finally {
+            reader.dispose();
         }
     }
 
@@ -171,7 +181,7 @@ public class ImageUploadSanitizer {
             if (skipped > 0) {
                 remaining -= skipped;
             } else if (input.read() == -1) {
-                throw new IOException("Unexpected end of PNG chunk");
+                throw new IOException("PNG 청크가 끝나기 전에 데이터가 끊겼습니다.");
             } else {
                 remaining--;
             }
@@ -186,12 +196,17 @@ public class ImageUploadSanitizer {
     }
 
     private SanitizedImage encodeSanitizedImage(BufferedImage image) {
-        String format = image.getColorModel().hasAlpha() ? "png" : "jpeg";
+        String format = JPEG_FORMAT;
+        String extension = JPEG_EXTENSION;
+        if (image.getColorModel().hasAlpha()) {
+            format = PNG_FORMAT;
+            extension = PNG_FORMAT;
+        }
         try (BoundedOutputStream output = new BoundedOutputStream(maximumSanitizedImageBytes)) {
             if (!ImageIO.write(image, format, output)) {
-                throw new IOException("No image writer available");
+                throw new IOException("이미지를 저장할 인코더를 찾을 수 없습니다.");
             }
-            return new SanitizedImage(output.toByteArray(), format.equals("jpeg") ? "jpg" : "png");
+            return new SanitizedImage(output.toByteArray(), extension);
         } catch (ImageOutputLimitExceededException exception) {
             throw imageProcessingLimitExceeded();
         } catch (IOException exception) {

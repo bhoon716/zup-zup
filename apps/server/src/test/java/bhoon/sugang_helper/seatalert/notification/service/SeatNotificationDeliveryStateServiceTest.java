@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 
@@ -13,6 +12,7 @@ import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDelivery
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.time.LocalDateTime;
@@ -33,11 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import(SeatNotificationDeliverySettlementService.class)
-class SeatNotificationDeliverySettlementServiceTest {
+@Import({SeatNotificationDeliveryStateService.class, SimpleMeterRegistry.class})
+class SeatNotificationDeliveryStateServiceTest {
 
     @Autowired
-    private SeatNotificationDeliverySettlementService settlementService;
+    private SeatNotificationDeliveryStateService deliveryStateService;
 
     @Autowired
     private SeatNotificationOutboxRepository outboxRepository;
@@ -70,7 +70,7 @@ class SeatNotificationDeliverySettlementServiceTest {
         delivery = deliveryRepository.saveAndFlush(delivery);
 
         // when
-        boolean settled = settlementService.markSent(new SeatNotificationDeliveryClaim(
+        boolean settled = deliveryStateService.markSent(new SeatNotificationDeliveryClaim(
                 delivery.getId(), firstClaimToken));
 
         // then
@@ -102,26 +102,23 @@ class SeatNotificationDeliverySettlementServiceTest {
         CountDownLatch countInvocations = new CountDownLatch(2);
         doAnswer(invocation -> {
             Long outboxId = invocation.getArgument(0);
-            List<SeatNotificationDeliveryStatus> statuses = invocation.getArgument(1);
-            long result = entityManager.createQuery("""
-                    select count(d) from SeatNotificationDelivery d
-                    where d.outbox.id = :outboxId and d.status in :statuses
-                    """, Long.class)
+            List<SeatNotificationDeliveryStatus> result = entityManager.createQuery("""
+                    select distinct d.status from SeatNotificationDelivery d where d.outbox.id = :outboxId
+                    """, SeatNotificationDeliveryStatus.class)
                     .setParameter("outboxId", outboxId)
-                    .setParameter("statuses", statuses)
-                    .getSingleResult();
+                    .getResultList();
             countInvocations.countDown();
             countInvocations.await(250, TimeUnit.MILLISECONDS);
             return result;
-        }).when(deliveryRepository).countByOutboxIdAndStatusIn(anyLong(), any());
+        }).when(deliveryRepository).findStatusesByOutboxId(anyLong());
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
         // when & then
         try {
-            Future<Boolean> first = executor.submit(() -> settlementService.markSent(
+            Future<Boolean> first = executor.submit(() -> deliveryStateService.markSent(
                     new SeatNotificationDeliveryClaim(firstDelivery.getId(), firstDelivery.getClaimToken())));
-            Future<Boolean> second = executor.submit(() -> settlementService.markSent(
+            Future<Boolean> second = executor.submit(() -> deliveryStateService.markSent(
                     new SeatNotificationDeliveryClaim(secondDelivery.getId(), secondDelivery.getClaimToken())));
 
             assertThat(first.get(10, TimeUnit.SECONDS)).isTrue();

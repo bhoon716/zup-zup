@@ -15,6 +15,7 @@ import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerService;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
 import bhoon.sugang_helper.academic.crawling.service.CrawlerRunStateService;
 import bhoon.sugang_helper.seatalert.notification.scheduler.SeatNotificationOutboxWorker;
+import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationDeliveryStateService;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
@@ -67,7 +68,8 @@ class SchedulerDelayTest {
             }
             return courses;
         });
-        when(processor.claimReadyDeliveries(1)).thenReturn(List.of());
+        SeatNotificationDeliveryStateService deliveryStateService = mock(SeatNotificationDeliveryStateService.class);
+        when(deliveryStateService.claimReadyDeliveries(1)).thenReturn(List.of());
         when(runState.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
 
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
@@ -78,7 +80,7 @@ class SchedulerDelayTest {
             CrawlerFreshnessMonitor freshnessMonitor = new CrawlerFreshnessMonitor(runState, registry);
             ReflectionTestUtils.setField(freshnessMonitor, "staleThresholdMinutes", 15L);
             CourseScheduler courseScheduler = new CourseScheduler(crawler);
-            SeatNotificationOutboxWorker worker = new SeatNotificationOutboxWorker(processor, registry, 1);
+            SeatNotificationOutboxWorker worker = new SeatNotificationOutboxWorker(processor, deliveryStateService, registry, 1);
             ThreadPoolTaskScheduler scheduler = new SchedulingConfig()
                     .taskScheduler(new ThreadPoolTaskSchedulerBuilder());
             scheduler.initialize();

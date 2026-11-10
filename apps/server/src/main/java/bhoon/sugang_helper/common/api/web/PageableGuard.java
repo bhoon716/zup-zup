@@ -16,7 +16,7 @@ public final class PageableGuard {
     public static final long DEFAULT_MAX_OFFSET = 10_000;
 
     private PageableGuard() {
-        throw new IllegalStateException("Utility class");
+        throw new IllegalStateException("유틸리티 클래스는 인스턴스를 생성할 수 없습니다.");
     }
 
     public static Pageable fixedSize(Pageable pageable) {

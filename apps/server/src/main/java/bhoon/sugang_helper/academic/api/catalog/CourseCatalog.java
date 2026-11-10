@@ -5,9 +5,11 @@ import java.util.Optional;
 
 public interface CourseCatalog {
 
-    Optional<CourseSummary> findByCourseKey(String courseKey);
+    Optional<CourseSummary> findWithoutSchedulesByCourseKey(String courseKey);
 
     List<CourseSummary> findByCourseKeyIn(List<String> courseKeys);
+
+    List<CourseSummary> findWithoutSchedulesByCourseKeyIn(List<String> courseKeys);
 
     List<CourseName> findNamesByCourseKeyIn(List<String> courseKeys);
 

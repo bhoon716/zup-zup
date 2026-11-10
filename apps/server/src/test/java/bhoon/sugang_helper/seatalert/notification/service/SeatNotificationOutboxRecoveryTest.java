@@ -21,6 +21,7 @@ import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOut
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,13 +35,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import({SeatNotificationOutboxProcessor.class, SeatNotificationDeliverySettlementService.class,
+@Import({SeatNotificationOutboxProcessor.class, SeatNotificationDeliveryStateService.class,
         NotificationChannelPolicy.class,
         SeatNotificationOutboxRecoveryTest.TestConfig.class})
 class SeatNotificationOutboxRecoveryTest {
 
     @Autowired
     private SeatNotificationOutboxProcessor processor;
+
+    @Autowired
+    private SeatNotificationDeliveryStateService deliveryStateService;
 
     @Autowired
     private SeatNotificationOutboxRepository outboxRepository;
@@ -69,13 +73,14 @@ class SeatNotificationOutboxRecoveryTest {
                 .build());
         NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
                 true, true, true, "discord-id");
-        when(subscriptionQueryService.findActiveRecipientIds("course-key")).thenReturn(List.of(1L));
+        when(subscriptionQueryService.findActiveRecipientIdsByOutboxId(List.of(outbox.getId())))
+                .thenReturn(Map.of(outbox.getId(), List.of(1L)));
         when(userNotificationQuery.findByIds(List.of(1L))).thenReturn(List.of(user));
         when(userNotificationQuery.findDevicesByUserIds(List.of(1L))).thenReturn(List.of(
                 new NotificationDevice(1L, "web-endpoint", "p256", "auth")));
 
         processor.materializePendingOutboxes();
-        List<SeatNotificationDeliveryClaim> deliveryClaims = processor.claimReadyDeliveries();
+        List<SeatNotificationDeliveryClaim> deliveryClaims = deliveryStateService.claimReadyDeliveries();
         deliveryClaims.forEach(processor::processDelivery);
 
         // when & then
@@ -87,7 +92,7 @@ class SeatNotificationOutboxRecoveryTest {
                 .containsExactlyInAnyOrder(NotificationChannel.values());
         assertThat(deliveryRepository.findAll()).allSatisfy(delivery ->
                 assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.SENT));
-        assertThat(processor.claimReadyDeliveries()).isEmpty();
+        assertThat(deliveryStateService.claimReadyDeliveries()).isEmpty();
         assertThat(outboxRepository.findById(outbox.getId())).get()
                 .extracting(SeatNotificationOutbox::getStatus)
                 .isEqualTo(SeatNotificationOutboxStatus.COMPLETED);

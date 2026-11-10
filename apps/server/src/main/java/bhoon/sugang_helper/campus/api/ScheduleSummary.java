@@ -10,7 +10,9 @@ public record ScheduleSummary(
         String scheduleType,
         LocalDate startDate,
         LocalDate endDate,
-        @JsonFormat(pattern = "HH:mm") LocalTime startTime,
-        @JsonFormat(pattern = "HH:mm") LocalTime endTime,
+        @JsonFormat(pattern = ScheduleSummary.TIME_FORMAT) LocalTime startTime,
+        @JsonFormat(pattern = ScheduleSummary.TIME_FORMAT) LocalTime endTime,
         @JsonProperty("dDay") String dDay) {
+
+    private static final String TIME_FORMAT = "HH:mm";
 }

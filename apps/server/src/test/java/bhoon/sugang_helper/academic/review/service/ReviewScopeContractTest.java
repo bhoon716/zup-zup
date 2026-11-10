@@ -2,7 +2,6 @@ package bhoon.sugang_helper.academic.review.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.academic.course.entity.Course;
@@ -18,19 +17,16 @@ import bhoon.sugang_helper.academic.review.repository.CourseEmojiReviewRepositor
 import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -45,7 +41,6 @@ class ReviewScopeContractTest {
     private static final String SUBJECT = "CSE101";
     private static final String CURRENT = "2026:U211600020:CSE101:02";
     private static final String PREVIOUS = "2025:U211600010:CSE101:01";
-    private static final String EMAIL = "reviewer@example.com";
 
     @Autowired private CourseRepository courses;
 
@@ -61,19 +56,11 @@ class ReviewScopeContractTest {
 
     @MockitoBean private UserIdentityQueryService users;
 
-    private MockedStatic<SecurityUtil> security;
-
     @BeforeEach
     void setUp() {
-        security = mockStatic(SecurityUtil.class);
-        security.when(SecurityUtil::getCurrentUserEmail).thenReturn(EMAIL);
-        security.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(EMAIL);
-        when(users.findByEmail(EMAIL)).thenReturn(Optional.of(new UserIdentity(1L, false)));
-    }
-
-    @AfterEach
-    void tearDown() {
-        security.close();
+        UserIdentity user = new UserIdentity(1L, false);
+        when(users.requireCurrentUser()).thenReturn(user);
+        when(users.findCurrentUser()).thenReturn(Optional.of(user));
     }
 
     @ParameterizedTest

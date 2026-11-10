@@ -15,11 +15,12 @@ import bhoon.sugang_helper.academic.course.repository.CourseSearchReadRepository
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.common.api.web.PageableGuard;
-import bhoon.sugang_helper.identity.api.users.UserIdentity;
-import bhoon.sugang_helper.identity.api.users.Users;
+import bhoon.sugang_helper.identity.api.users.CurrentUserQuery;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -38,7 +39,7 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final CourseSearchReadRepository courseSearchReadRepository;
     private final CourseSeatHistoryRepository courseSeatHistoryRepository;
-    private final Users userIdentityQuery;
+    private final CurrentUserQuery currentUserQuery;
     private final CourseReviewQueryService courseReviewQuery;
 
     private final CrawlerCourseSearchContextProvider searchContextProvider;
@@ -48,10 +49,7 @@ public class CourseService {
         CourseSearchContext context = searchContextProvider.getCurrentContext();
         Long userId = condition.getUserId();
         if (Boolean.TRUE.equals(condition.getIsWishedOnly())) {
-            String email = SecurityUtil.getCurrentUserEmail();
-            UserIdentity user = userIdentityQuery.findByEmail(email)
-                    .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
-            userId = user.id();
+            userId = currentUserQuery.requireCurrentUser().id();
         }
         CourseSearchCriteria criteria = condition.toCriteria(userId);
         return courseSearchReadRepository.searchCourses(criteria, PageableGuard.requireBounded(pageable))
@@ -60,7 +58,7 @@ public class CourseService {
     }
 
     public Slice<CourseSeatHistoryResponse> getCourseHistory(String courseKey, Pageable pageable) {
-        PageableGuard.requireBounded(pageable, MAX_HISTORY_PAGE_SIZE, 10_000);
+        PageableGuard.requireBounded(pageable, MAX_HISTORY_PAGE_SIZE, PageableGuard.DEFAULT_MAX_OFFSET);
         Pageable boundedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
         return courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDescIdDesc(courseKey, boundedPageable)
@@ -68,27 +66,26 @@ public class CourseService {
     }
 
     public List<CourseCategoryResponse> getCourseCategories() {
-        return courseRepository.findDistinctGeneralCategories()
-                .stream()
-                .map(category -> CourseCategoryResponse.of(
-                        category, courseRepository.findDistinctGeneralDetailsByCategory(category)))
+        Map<String, List<String>> detailsByCategory = new LinkedHashMap<>();
+        for (var row : courseRepository.findGeneralCategoryDetails()) {
+            List<String> details = detailsByCategory.computeIfAbsent(row.getCategory(), category -> new ArrayList<>());
+            if (row.getDetail() != null) {
+                details.add(row.getDetail());
+            }
+        }
+        return detailsByCategory.entrySet().stream()
+                .map(entry -> CourseCategoryResponse.of(entry.getKey(), entry.getValue()))
                 .toList();
     }
 
     public CourseDetailResponse getCourse(String courseKey) {
-        Course course = courseRepository.findByCourseKey(courseKey)
+        Course course = courseRepository.findWithSchedulesByCourseKey(courseKey)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "강의를 찾을 수 없습니다: " + courseKey));
         CourseSearchContext context = searchContextProvider.getCurrentContext();
-        boolean isReviewed = false;
-        String email = SecurityUtil.getCurrentUserEmailOrNull();
-        if (email != null) {
-            isReviewed = userIdentityQuery.findByEmail(email)
-                    .map(user -> {
-                        return courseReviewQuery.hasReviewByUser(
-                                course.getCourseKey(), course.getSubjectCode(), course.getProfessor(), user.id());
-                    })
-                    .orElse(false);
-        }
+        boolean isReviewed = currentUserQuery.findCurrentUser()
+                .map(user -> courseReviewQuery.hasReviewByUser(
+                        course.getCourseKey(), course.getSubjectCode(), course.getProfessor(), user.id()))
+                .orElse(false);
 
         return CourseDetailResponse.from(
                 course, context.year(), context.semester().getCode(), isReviewed, context.lastCrawledAt());

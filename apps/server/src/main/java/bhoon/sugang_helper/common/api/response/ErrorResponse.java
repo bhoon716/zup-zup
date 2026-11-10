@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.slf4j.MDC;
+import org.springframework.util.StringUtils;
 
 @Getter
 @JsonInclude(Include.NON_NULL)
@@ -32,7 +33,7 @@ public class ErrorResponse {
 
     public static ErrorResponse of(ErrorCode errorCode, String path) {
         String mdcCorrelationId = MDC.get("correlationId");
-        String correlationId = (mdcCorrelationId != null && !mdcCorrelationId.isBlank())
+        String correlationId = StringUtils.hasText(mdcCorrelationId)
                 ? mdcCorrelationId
                 : UUID.randomUUID().toString();
 

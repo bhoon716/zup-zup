@@ -12,12 +12,15 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class ScheduleCondition {
+
+    private static final String TIME_PATTERN = "(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?";
+
     @NotNull
     private CourseDayOfWeek dayOfWeek;
 
-    @Pattern(regexp = "(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?")
+    @Pattern(regexp = TIME_PATTERN)
     private String startTime;
 
-    @Pattern(regexp = "(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?")
+    @Pattern(regexp = TIME_PATTERN)
     private String endTime;
 }

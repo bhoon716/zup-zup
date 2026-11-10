@@ -42,6 +42,7 @@ import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliv
 import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
 import bhoon.sugang_helper.support.feedback.controller.FeedbackController;
 import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
+import bhoon.sugang_helper.support.feedback.service.AdminFeedbackService;
 import bhoon.sugang_helper.support.feedback.service.FeedbackService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -133,6 +134,9 @@ class SecurityRequestAuthorizationTest {
 
     @MockitoBean
     private FeedbackService feedbackService;
+
+    @MockitoBean
+    private AdminFeedbackService adminFeedbackService;
 
     @MockitoBean
     private UserIdentityQueryService userIdentityQuery;
@@ -243,7 +247,7 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"));
 
-        given(feedbackService.getFeedbacksForAdmin(
+        given(adminFeedbackService.getFeedbacksForAdmin(
                 any(), any()))
                 .willReturn(Page.empty());
         mockMvc.perform(get("/api/v1/admin/feedbacks?deletion=DELETED")
@@ -274,7 +278,7 @@ class SecurityRequestAuthorizationTest {
     @DisplayName("관리자는 정제된 첨부를 실제 콘텐츠 타입으로 미리 볼 수 있다")
     void adminCanPreviewSanitizedAttachmentWithItsActualContentType() throws Exception {
         // given
-        given(feedbackService.getAttachmentForCurrentAdmin(10L, 20L, true)).willReturn(
+        given(adminFeedbackService.getAttachmentForCurrentAdmin(10L, 20L, true)).willReturn(
                 new FeedbackAttachmentDownload(new ByteArrayResource(new byte[] {1, 2, 3}),
                         "attachment.png", MediaType.IMAGE_PNG));
 
@@ -293,7 +297,7 @@ class SecurityRequestAuthorizationTest {
     @DisplayName("피드백과 첨부의 연결이 맞지 않으면 찾을 수 없음으로 응답한다")
     void adminAttachmentRequestWithMismatchedFeedbackAndAttachmentReturnsNotFound() throws Exception {
         // given
-        given(feedbackService.getAttachmentForCurrentAdmin(10L, 99L, true))
+        given(adminFeedbackService.getAttachmentForCurrentAdmin(10L, 99L, true))
                 .willThrow(new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
 
         // when & then

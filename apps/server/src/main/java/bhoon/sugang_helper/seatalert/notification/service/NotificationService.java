@@ -21,11 +21,15 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationService implements NotificationOperations {
+
+    private static final String EVENT_KEY = "event";
+    private static final String USER_ID_KEY = "userId";
 
     private static final String USER_TEST_COOLDOWN_KEY_PREFIX = "ALERT:USER_TEST:";
     private static final Duration USER_TEST_COOLDOWN = Duration.ofSeconds(10);
@@ -59,6 +63,13 @@ public class NotificationService implements NotificationOperations {
                 outbox.getCourseKey(), outbox.getCourseName(), outbox.getProfessor(),
                 outbox.getPreviousSeats(), outbox.getCurrentSeats()));
         String providerKey = NotificationDeliveryIdempotencyKey.providerKey(idempotencyKey);
+        sendSeatOpeningToTargets(channel, sender, targets, message, providerKey);
+        saveHistory(userId, outbox.getCourseKey(), message, channel);
+    }
+
+    private void sendSeatOpeningToTargets(NotificationChannel channel, NotificationSender sender,
+                                          List<NotificationTarget> targets, NotificationMessage message,
+                                          String providerKey) {
         boolean delivered = false;
         NotificationProviderException expiredSubscription = null;
         for (NotificationTarget target : targets) {
@@ -79,7 +90,6 @@ public class NotificationService implements NotificationOperations {
         if (!delivered && expiredSubscription != null) {
             throw expiredSubscription;
         }
-        saveHistory(userId, outbox.getCourseKey(), message, channel);
     }
 
     public void sendAdminTestNotification(Long userId, List<NotificationChannel> channels) {
@@ -105,7 +115,8 @@ public class NotificationService implements NotificationOperations {
         String cooldownKey = USER_TEST_COOLDOWN_KEY_PREFIX + userId;
         boolean acquired = redisService.setValuesIfAbsent(cooldownKey, "LOCK", USER_TEST_COOLDOWN);
         if (!acquired) {
-            throw new CustomException(ErrorCode.TOO_MANY_REQUESTS, "알림 테스트는 10초에 한 번만 가능합니다. 잠시 후 다시 시도해주세요.");
+            throw new CustomException(ErrorCode.TOO_MANY_REQUESTS,
+                    "알림 테스트는 " + USER_TEST_COOLDOWN.toSeconds() + "초에 한 번만 가능합니다. 잠시 후 다시 시도해주세요.");
         }
 
         NotificationRecipient user = userNotificationQuery.findById(userId)
@@ -138,7 +149,7 @@ public class NotificationService implements NotificationOperations {
     }
 
     private NotificationMessage createSeatOpenedMessage(SeatOpenedEvent event) {
-        String professor = (event.professor() != null && !event.professor().isBlank()) ? event.professor() : "미지정";
+        String professor = StringUtils.hasText(event.professor()) ? event.professor() : "미지정";
         String title = String.format("[줍줍] %s (%s) 여석 발생!", event.courseName(), professor);
         String body = String.format("과목명: %s (%s)\\n과목코드: %s\\n현재 여석이 발생했습니다! (%d명)",
                 event.courseName(), professor, event.courseKey(), event.currentSeats());
@@ -170,15 +181,15 @@ public class NotificationService implements NotificationOperations {
     }
 
     private void logNotificationTestSendStarted(NotificationChannel channel, Long userId) {
-        log.atDebug().addKeyValue("event", "notification_test_send_started")
+        log.atDebug().addKeyValue(EVENT_KEY, "notification_test_send_started")
                 .addKeyValue("channel", channel)
-                .addKeyValue("userId", userId)
+                .addKeyValue(USER_ID_KEY, userId)
                 .log("[Notification Test] 테스트 알림 발송 시도.");
     }
 
     private void logNotificationTestRequested(Long userId, List<NotificationChannel> channels) {
-        log.atInfo().addKeyValue("event", "notification_test_requested")
-                .addKeyValue("userId", userId)
+        log.atInfo().addKeyValue(EVENT_KEY, "notification_test_requested")
+                .addKeyValue(USER_ID_KEY, userId)
                 .addKeyValue("channels", channels)
                 .log("[User] 테스트 알림 요청.");
     }

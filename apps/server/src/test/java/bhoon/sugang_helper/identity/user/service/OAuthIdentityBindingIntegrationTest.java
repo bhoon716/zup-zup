@@ -46,7 +46,7 @@ class OAuthIdentityBindingIntegrationTest {
         assertThatThrownBy(() -> userOAuthAccountService.findOrCreate(
                 ISSUER, "reassigned-email-subject", EMAIL, "다른 사용자"))
                 .isInstanceOf(OAuthAccountProvisioningException.class)
-                .hasMessageContaining("already bound");
+                .hasMessageContaining("이미 연동된 OAuth 계정입니다.");
 
         assertThat(userRepository.count()).isEqualTo(1L);
         User persistedAdmin = userRepository.findById(admin.getId()).orElseThrow();

@@ -9,6 +9,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Component
 public class AdminAuditContentFingerprint {
@@ -18,7 +19,7 @@ public class AdminAuditContentFingerprint {
     private final SecretKeySpec secretKey;
 
     public AdminAuditContentFingerprint(@Value("${app.admin-audit.fingerprint-secret}") String secret) {
-        if (secret == null || secret.isBlank()) {
+        if (!StringUtils.hasText(secret)) {
             throw new IllegalArgumentException("관리자 감사 로그 HMAC secret이 비어 있습니다.");
         }
         secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM);

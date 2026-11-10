@@ -41,22 +41,8 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
 
         userDeviceRepository.findByToken(command.token())
                 .ifPresentOrElse(
-                        device -> {
-                            device.updateToken(user.getId(), command.token(), command.p256dh(), command.auth(),
-                                    command.alias());
-                            logNotificationDeviceUpdated(user.getId(), tokenFingerprint(command.token()));
-                        },
-                        () -> {
-                            UserDevice newDevice = UserDevice.builder()
-                                    .userId(user.getId())
-                                    .token(command.token())
-                                    .p256dh(command.p256dh())
-                                    .auth(command.auth())
-                                    .alias(command.alias())
-                                    .build();
-                            userDeviceRepository.save(newDevice);
-                            logNotificationDeviceRegistered(user.getId(), tokenFingerprint(command.token()));
-                        });
+                        device -> updateDevice(device, user.getId(), command),
+                        () -> createDevice(user.getId(), command));
     }
 
     @Transactional
@@ -86,10 +72,7 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
     @Transactional
     public void deleteDeviceByToken(String token) {
         userDeviceRepository.findByToken(token)
-                .ifPresent(device -> {
-                    userDeviceRepository.delete(device);
-                    logNotificationInvalidDeviceDeleted(tokenFingerprint(token));
-                });
+                .ifPresent(device -> deleteInvalidDevice(device, token));
     }
 
     @Override
@@ -109,6 +92,28 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
     }
 
+    private void updateDevice(UserDevice device, Long userId, RegisterDeviceCommand command) {
+        device.updateToken(userId, command.token(), command.p256dh(), command.auth(), command.alias());
+        logNotificationDeviceUpdated(userId, tokenFingerprint(command.token()));
+    }
+
+    private void createDevice(Long userId, RegisterDeviceCommand command) {
+        UserDevice device = UserDevice.builder()
+                .userId(userId)
+                .token(command.token())
+                .p256dh(command.p256dh())
+                .auth(command.auth())
+                .alias(command.alias())
+                .build();
+        userDeviceRepository.save(device);
+        logNotificationDeviceRegistered(userId, tokenFingerprint(command.token()));
+    }
+
+    private void deleteInvalidDevice(UserDevice device, String token) {
+        userDeviceRepository.delete(device);
+        logNotificationInvalidDeviceDeleted(tokenFingerprint(token));
+    }
+
     private String tokenFingerprint(String token) {
         if (token == null) {
             return "<none>";
@@ -118,7 +123,7 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
             return "sha256:" + HexFormat.of().formatHex(digest, 0, 6);
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is required to fingerprint device tokens", e);
+            throw new IllegalStateException("기기 토큰의 지문을 생성하려면 SHA-256 알고리즘이 필요합니다.", e);
         }
     }
 

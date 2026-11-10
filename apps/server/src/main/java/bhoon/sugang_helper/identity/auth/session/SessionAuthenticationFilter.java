@@ -31,6 +31,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final String CORRELATION_ID_KEY = "correlationId";
+
     private final UserIdentityQueryService userIdentityQuery;
     private final SecurityContextRepository securityContextRepository;
     private final HttpSessionIdResolver sessionIdResolver;
@@ -89,8 +91,8 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         LoggingEventBuilder entry = log.atError().addKeyValue("event", "session_authentication_unavailable")
                 .addKeyValue("errorCode", error.getCode())
                 .addKeyValue("exceptionType", failure.getClass().getSimpleName());
-        if (MDC.get("correlationId") == null) {
-            entry.addKeyValue("correlationId", error.getCorrelationId());
+        if (MDC.get(CORRELATION_ID_KEY) == null) {
+            entry.addKeyValue(CORRELATION_ID_KEY, error.getCorrelationId());
         }
         entry.log("[SESSION_UNAVAILABLE] 세션 확인 실패로 인증 거절.");
     }

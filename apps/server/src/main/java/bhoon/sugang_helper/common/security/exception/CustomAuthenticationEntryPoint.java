@@ -18,6 +18,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
+    private static final String CORRELATION_ID_KEY = "correlationId";
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -39,8 +41,8 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
                 .addKeyValue("method", method)
                 .addKeyValue("path", error.getPath())
                 .addKeyValue("exceptionType", failure.getClass().getSimpleName());
-        if (MDC.get("correlationId") == null) {
-            entry.addKeyValue("correlationId", error.getCorrelationId());
+        if (MDC.get(CORRELATION_ID_KEY) == null) {
+            entry.addKeyValue(CORRELATION_ID_KEY, error.getCorrelationId());
         }
         entry.log("[AUTHENTICATION_FAILED] 인증 실패.");
     }

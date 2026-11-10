@@ -10,8 +10,10 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
@@ -20,30 +22,36 @@ import org.springframework.transaction.annotation.Transactional;
 public interface SeatNotificationDeliveryRepository extends JpaRepository<SeatNotificationDelivery, Long> {
 
     @Query("""
-            select d.userId as userId, d.channel as channel
-            from SeatNotificationDelivery d where d.outbox.id = :outboxId and d.channel in :channels
+            select d.outbox.id as outboxId, d.userId as userId, d.channel as channel, d.status as status
+            from SeatNotificationDelivery d where d.outbox.id in :outboxIds and d.channel in :channels
             """)
-    List<DeliveryRecipient> findExistingRecipientsByOutboxId(
-            @Param("outboxId") Long outboxId, @Param("channels") List<NotificationChannel> channels);
+    List<DeliveryRecipient> findExistingRecipientsByOutboxIds(
+            @Param("outboxIds") List<Long> outboxIds, @Param("channels") List<NotificationChannel> channels);
 
     interface DeliveryRecipient {
+        Long getOutboxId();
+
         Long getUserId();
+
         NotificationChannel getChannel();
+
+        SeatNotificationDeliveryStatus getStatus();
     }
 
-    long countByOutboxIdAndStatusNot(Long outboxId, SeatNotificationDeliveryStatus status);
+    @Query("select distinct d.status from SeatNotificationDelivery d where d.outbox.id = :outboxId")
+    List<SeatNotificationDeliveryStatus> findStatusesByOutboxId(@Param("outboxId") Long outboxId);
 
-    long countByOutboxIdAndStatus(
-            Long outboxId, SeatNotificationDeliveryStatus status);
-
-    long countByOutboxIdAndStatusIn(
-            Long outboxId, List<SeatNotificationDeliveryStatus> statuses);
-
+    @EntityGraph(attributePaths = "outbox")
     Page<SeatNotificationDelivery> findByStatusOrderByDeadLetteredAtDescIdDesc(
             SeatNotificationDeliveryStatus status, Pageable pageable);
 
-    long deleteByStatusAndDeadLetteredAtBefore(
-            SeatNotificationDeliveryStatus status, LocalDateTime cutoff);
+    @EntityGraph(attributePaths = "outbox")
+    Optional<SeatNotificationDelivery> findWithOutboxById(Long id);
+
+    @Modifying
+    @Query("delete from SeatNotificationDelivery d where d.status = :status and d.deadLetteredAt < :cutoff")
+    int deleteByStatusAndDeadLetteredAtBefore(
+            @Param("status") SeatNotificationDeliveryStatus status, @Param("cutoff") LocalDateTime cutoff);
 
     @Transactional(readOnly = true, timeout = 10)
     @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "5000"))

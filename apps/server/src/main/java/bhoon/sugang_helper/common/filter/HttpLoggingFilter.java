@@ -16,6 +16,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class HttpLoggingFilter extends OncePerRequestFilter {
 
+    private static final String COMPLETED_OUTCOME = "completed";
+    private static final String ELAPSED_MS_KEY = "elapsedMs";
+    private static final String EVENT_KEY = "event";
+    private static final String METHOD_KEY = "method";
+    private static final String PATH_KEY = "path";
+    private static final String QUERY_PRESENT_KEY = "queryPresent";
+
     @Override
     @SuppressWarnings("NullableProblems")
     protected void doFilterInternal(
@@ -62,10 +69,10 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
         String message = "[HTTP] 요청 처리 중 예외 전파. method={} path={} queryPresent={} "
                 + "responseStatusAtExit={} elapsedMs={} exceptionType={} completed=false";
         failureLogEntry(errorAlreadyLogged)
-                .addKeyValue("event", "http_failure").addKeyValue("method", method)
-                .addKeyValue("path", uri).addKeyValue("queryPresent", queryPresent)
-                .addKeyValue("responseStatusAtExit", status).addKeyValue("elapsedMs", tookMs)
-                .addKeyValue("exceptionType", failureType).addKeyValue("completed", false)
+                .addKeyValue(EVENT_KEY, "http_failure").addKeyValue(METHOD_KEY, method)
+                .addKeyValue(PATH_KEY, uri).addKeyValue(QUERY_PRESENT_KEY, queryPresent)
+                .addKeyValue("responseStatusAtExit", status).addKeyValue(ELAPSED_MS_KEY, tookMs)
+                .addKeyValue("exceptionType", failureType).addKeyValue(COMPLETED_OUTCOME, false)
                 .log(message, method, uri, queryPresent, status, tookMs, failureType);
     }
 
@@ -84,10 +91,10 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
         }
         String message = "[HTTP] 요청 처리 결과. method={} path={} queryPresent={} status={} elapsedMs={}";
         completedRequestLogEntry(uri, resolvedStatus, errorAlreadyLogged)
-                .addKeyValue("event", "http_request").addKeyValue("method", method)
-                .addKeyValue("path", uri).addKeyValue("queryPresent", queryPresent)
-                .addKeyValue("status", resolvedStatus).addKeyValue("elapsedMs", tookMs)
-                .addKeyValue("completed", true)
+                .addKeyValue(EVENT_KEY, "http_request").addKeyValue(METHOD_KEY, method)
+                .addKeyValue(PATH_KEY, uri).addKeyValue(QUERY_PRESENT_KEY, queryPresent)
+                .addKeyValue("status", resolvedStatus).addKeyValue(ELAPSED_MS_KEY, tookMs)
+                .addKeyValue(COMPLETED_OUTCOME, true)
                 .log(message, method, uri, queryPresent, resolvedStatus, tookMs);
     }
 

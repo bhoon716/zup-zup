@@ -30,6 +30,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,15 +50,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import({SeatNotificationOutboxProcessor.class, SeatNotificationDeliverySettlementService.class,
+@Import({SeatNotificationOutboxProcessor.class, SeatNotificationDeliveryStateService.class,
         NotificationService.class, NotificationChannelPolicy.class, WebPushDeliveryTest.TestConfig.class})
 class WebPushDeliveryTest {
 
     private static final String COURSE_KEY = "course-key";
     private static final String FIRST = "first-endpoint";
     private static final String SECOND = "second-endpoint";
+    private static final List<String> TARGETS = List.of(FIRST, SECOND);
 
     @Autowired private SeatNotificationOutboxProcessor processor;
+
+    @Autowired
+    private SeatNotificationDeliveryStateService deliveryStateService;
 
     @Autowired private SeatNotificationOutboxRepository outboxes;
 
@@ -87,7 +92,6 @@ class WebPushDeliveryTest {
         outboxes.deleteAll();
         NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
                 false, true, false, null);
-        when(subscriptions.findActiveRecipientIds(COURSE_KEY)).thenReturn(List.of(1L));
         when(users.findByIds(List.of(1L))).thenReturn(List.of(user));
         when(users.findById(1L)).thenReturn(Optional.of(user));
         when(users.findDevicesByUserIds(List.of(1L))).thenAnswer(ignored -> List.copyOf(devices));
@@ -99,16 +103,17 @@ class WebPushDeliveryTest {
         }).when(resilience).execute(any(), any());
         outbox = outboxes.saveAndFlush(SeatNotificationOutbox.builder()
                 .courseKey(COURSE_KEY).courseName("Course").previousSeats(0).currentSeats(1).build());
+        when(subscriptions.findActiveRecipientIdsByOutboxId(List.of(outbox.getId())))
+                .thenReturn(Map.of(outbox.getId(), List.of(1L)));
         devices.add(device(FIRST));
         devices.add(device(SECOND));
     }
 
     @ParameterizedTest
     @DisplayName("만료된 구독이 다른 기기의 발송을 막지 않는다")
-    @ValueSource(booleans = {true, false})
-    void expiredSubscriptionDoesNotPreventDeliveryToTheOtherDevice(boolean expiredFirst) {
+    @ValueSource(strings = {FIRST, SECOND})
+    void expiredSubscriptionDoesNotPreventDeliveryToTheOtherDevice(String expired) {
         // given
-        String expired = expiredFirst ? FIRST : SECOND;
         stubSender(target -> {
             if (target.equals(expired)) {
                 devices.removeIf(device -> device.token().equals(expired));
@@ -116,13 +121,14 @@ class WebPushDeliveryTest {
             }
         });
 
+        // when
         processReadyDelivery();
 
-        // when & then
+        // then
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertDelivery(SeatNotificationDeliveryStatus.SENT, SeatNotificationOutboxStatus.COMPLETED, 0);
         assertSuccessfulHistory();
-        assertThat(processor.claimReadyDeliveries(1)).isEmpty();
+        assertThat(deliveryStateService.claimReadyDeliveries(1)).isEmpty();
     }
 
     @Test
@@ -134,15 +140,16 @@ class WebPushDeliveryTest {
             throw invalidSubscription();
         });
 
+        // when
         processReadyDelivery();
 
-        // when & then
+        // then
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertThat(devices).isEmpty();
         assertDelivery(SeatNotificationDeliveryStatus.DLQ, SeatNotificationOutboxStatus.DLQ, 1);
         assertThat(delivery().getLastError()).isEqualTo(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION.getCode());
         assertThat(histories.findAll()).isEmpty();
-        assertThat(processor.claimReadyDeliveries(1)).isEmpty();
+        assertThat(deliveryStateService.claimReadyDeliveries(1)).isEmpty();
     }
 
     @ParameterizedTest
@@ -150,7 +157,8 @@ class WebPushDeliveryTest {
     @ValueSource(ints = {0, 1})
     void temporaryFailureKeepsWholeDeliveryRetryAndTheSameIdempotencyKey(int failedTargetIndex) {
         // given
-        String failed = failedTargetIndex == 0 ? FIRST : SECOND;
+        String failed = TARGETS.get(failedTargetIndex);
+        List<String> firstAttemptTargets = TARGETS.subList(0, failedTargetIndex + 1);
         stubSender(target -> {
             if (target.equals(failed)) {
                 throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
@@ -158,24 +166,29 @@ class WebPushDeliveryTest {
             }
         });
 
+        // when
         processReadyDelivery();
 
-        // when & then
+        // then
         assertDelivery(SeatNotificationDeliveryStatus.PENDING, SeatNotificationOutboxStatus.PROCESSING, 1);
         assertThat(histories.findAll()).isEmpty();
-        assertThat(attemptedTargets).containsExactlyElementsOf(
-                failedTargetIndex == 0 ? List.of(FIRST) : List.of(FIRST, SECOND));
+        assertThat(attemptedTargets).containsExactlyElementsOf(firstAttemptTargets);
+
+        // given
         String key = delivery().getIdempotencyKey();
         SeatNotificationDelivery ready = delivery();
+        List<String> allAttemptTargets = new ArrayList<>(firstAttemptTargets);
+        allAttemptTargets.addAll(TARGETS);
 
         ReflectionTestUtils.setField(ready, "nextAttemptAt", LocalDateTime.now().minusSeconds(1));
         deliveries.saveAndFlush(ready);
         stubSender(target -> { });
 
+        // when
         processReadyDelivery();
 
-        assertThat(attemptedTargets).containsExactlyElementsOf(failedTargetIndex == 0
-                ? List.of(FIRST, FIRST, SECOND) : List.of(FIRST, SECOND, FIRST, SECOND));
+        // then
+        assertThat(attemptedTargets).containsExactlyElementsOf(allAttemptTargets);
         assertThat(attemptedKeys).containsOnly(NotificationDeliveryIdempotencyKey.providerKey(key));
         assertDelivery(SeatNotificationDeliveryStatus.SENT, SeatNotificationOutboxStatus.COMPLETED, 1);
         assertSuccessfulHistory();
@@ -212,7 +225,7 @@ class WebPushDeliveryTest {
 
     private void processReadyDelivery() {
         processor.materializePendingOutboxes();
-        var claims = processor.claimReadyDeliveries(1);
+        var claims = deliveryStateService.claimReadyDeliveries(1);
         assertThat(claims).hasSize(1);
         processor.processDelivery(claims.getFirst());
     }

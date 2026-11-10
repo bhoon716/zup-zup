@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.academic.review.repository;
 
+import bhoon.sugang_helper.academic.review.dto.result.CourseReviewStats;
 import bhoon.sugang_helper.academic.review.entity.CourseReview;
 import java.util.List;
 import java.util.Optional;
@@ -46,11 +47,12 @@ public interface CourseReviewRepository extends JpaRepository<CourseReview, Long
     long countByCourseKeysAndUserId(@Param("courseKeys") List<String> courseKeys,
                                     @Param("userId") Long userId);
 
-    @Query("select count(r) from CourseReview r where r.courseKey in :courseKeys")
-    long countByCourseKeys(@Param("courseKeys") List<String> courseKeys);
-
-    @Query("select coalesce(avg(r.rating), 0.0) from CourseReview r where r.courseKey in :courseKeys")
-    Double getAverageRatingByCourseKeys(@Param("courseKeys") List<String> courseKeys);
+    @Query("""
+            select new bhoon.sugang_helper.academic.review.dto.result.CourseReviewStats(
+                coalesce(avg(r.rating), 0.0), count(r))
+            from CourseReview r where r.courseKey in :courseKeys
+            """)
+    CourseReviewStats findStatsByCourseKeys(@Param("courseKeys") List<String> courseKeys);
 
     void deleteAllByUserId(Long userId);
 }

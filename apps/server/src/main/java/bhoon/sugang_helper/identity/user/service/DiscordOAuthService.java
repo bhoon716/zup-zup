@@ -18,6 +18,11 @@ import org.springframework.web.client.RestClient;
 @Service
 public class DiscordOAuthService {
 
+    private static final String ACCESS_TOKEN_FIELD = "access_token";
+    private static final String EVENT_KEY = "event";
+    private static final String EXCEPTION_TYPE_KEY = "exceptionType";
+    private static final String USER_ID_FIELD = "id";
+
     private static final String DISCORD_API_BASE_URL = "https://discord.com/api";
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
@@ -70,11 +75,11 @@ public class DiscordOAuthService {
                     .retrieve()
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
-            if (response == null || !response.containsKey("access_token")) {
+            if (response == null || !response.containsKey(ACCESS_TOKEN_FIELD)) {
                 throw new CustomException(ErrorCode.INVALID_INPUT, "Discord 토큰 교환에 실패했습니다.");
             }
 
-            return (String) response.get("access_token");
+            return (String) response.get(ACCESS_TOKEN_FIELD);
         } catch (Exception e) {
             logDiscordOauthTokenExchangeFailed(e.getClass().getSimpleName());
             throw new CustomException(ErrorCode.INVALID_INPUT, "Discord 인증 중 오류가 발생했습니다.");
@@ -89,11 +94,11 @@ public class DiscordOAuthService {
                     .retrieve()
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
-            if (response == null || !response.containsKey("id")) {
+            if (response == null || !response.containsKey(USER_ID_FIELD)) {
                 throw new CustomException(ErrorCode.INVALID_INPUT, "Discord 유저 정보 조회에 실패했습니다.");
             }
 
-            return (String) response.get("id");
+            return (String) response.get(USER_ID_FIELD);
         } catch (Exception e) {
             logDiscordOauthUserFetchFailed(e.getClass().getSimpleName());
             throw new CustomException(ErrorCode.INVALID_INPUT, "Discord 유저 정보를 가져올 수 없습니다.");
@@ -101,14 +106,14 @@ public class DiscordOAuthService {
     }
 
     private void logDiscordOauthTokenExchangeFailed(String exceptionType) {
-        log.atError().addKeyValue("event", "discord_oauth_token_exchange_failed")
-                .addKeyValue("exceptionType", exceptionType)
+        log.atError().addKeyValue(EVENT_KEY, "discord_oauth_token_exchange_failed")
+                .addKeyValue(EXCEPTION_TYPE_KEY, exceptionType)
                 .log("[DiscordOAuth] 토큰 교환 실패.");
     }
 
     private void logDiscordOauthUserFetchFailed(String exceptionType) {
-        log.atError().addKeyValue("event", "discord_oauth_user_fetch_failed")
-                .addKeyValue("exceptionType", exceptionType)
+        log.atError().addKeyValue(EVENT_KEY, "discord_oauth_user_fetch_failed")
+                .addKeyValue(EXCEPTION_TYPE_KEY, exceptionType)
                 .log("[DiscordOAuth] 사용자 정보 요청 실패.");
     }
 

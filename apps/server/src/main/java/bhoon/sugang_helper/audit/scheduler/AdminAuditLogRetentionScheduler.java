@@ -15,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class AdminAuditLogRetentionScheduler {
 
+    private static final String EVENT_KEY = "event";
+    private static final String RETENTION_DAYS_KEY = "retentionDays";
+
     private final AdminActionLogRepository adminActionLogRepository;
 
     @Value("${app.admin-audit.retention-days:0}")
@@ -42,14 +45,13 @@ public class AdminAuditLogRetentionScheduler {
     }
 
     private void logRetentionDisabled() {
-        log.atDebug().addKeyValue("event", "admin_audit_retention_skipped").addKeyValue("retentionDays", retentionDays)
+        log.atDebug().addKeyValue(EVENT_KEY, "admin_audit_retention_skipped").addKeyValue(RETENTION_DAYS_KEY, retentionDays)
                 .log("[Admin Audit] 보존 기간 정리 비활성화로 실행 생략.");
     }
 
     private void logRetentionCompleted(long deletedCount) {
-        log.atInfo().addKeyValue("event", "admin_audit_retention_completed").addKeyValue("deletedCount", deletedCount)
-                .addKeyValue("retentionDays", retentionDays)
+        log.atInfo().addKeyValue(EVENT_KEY, "admin_audit_retention_completed").addKeyValue("deletedCount", deletedCount)
+                .addKeyValue(RETENTION_DAYS_KEY, retentionDays)
                 .log("[Admin Audit] 보존 기간이 지난 기록 정리 완료. deletedCount={}", deletedCount);
     }
-
 }

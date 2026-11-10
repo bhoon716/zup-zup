@@ -1,10 +1,7 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
 import bhoon.sugang_helper.seatalert.api.NotificationHistoryQueries;
-import bhoon.sugang_helper.common.api.error.CustomException;
-import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
-import bhoon.sugang_helper.identity.api.users.Users;
+import bhoon.sugang_helper.identity.api.users.CurrentUserQuery;
 import bhoon.sugang_helper.seatalert.api.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
@@ -22,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationHistoryQueryService implements NotificationHistoryQueries {
 
     private final NotificationHistoryRepository repository;
-    private final Users userIdentityQuery;
+    private final CurrentUserQuery currentUserQuery;
 
     public long countCreatedAfter(LocalDateTime start) {
         return repository.countByCreatedAtAfter(start);
@@ -50,10 +47,7 @@ public class NotificationHistoryQueryService implements NotificationHistoryQueri
     }
 
     public Slice<NotificationHistoryItem> findForCurrentUser(Pageable pageable) {
-        String email = SecurityUtil.getCurrentUserEmail();
-        Long userId = userIdentityQuery.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED))
-                .id();
+        Long userId = currentUserQuery.requireCurrentUser().id();
         return findForUser(userId, pageable);
     }
 

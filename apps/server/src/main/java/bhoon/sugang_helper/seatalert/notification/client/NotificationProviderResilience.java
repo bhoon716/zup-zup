@@ -28,6 +28,10 @@ import org.springframework.stereotype.Component;
 @SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.NullAssignment"})
 public class NotificationProviderResilience implements AutoCloseable {
 
+    private static final String ERROR_REASON = "ERROR";
+    private static final String TIMEOUT_REASON = "TIMEOUT";
+    private static final String PROVIDER_TAG = "provider";
+
     private final MeterRegistry meterRegistry;
     private final Duration timeout;
     private final int failureThreshold;
@@ -56,13 +60,13 @@ public class NotificationProviderResilience implements AutoCloseable {
                                    Duration openDuration, ExecutorService executor,
                                    MdcTaskDecorator mdcTaskDecorator) {
         if (timeout.isZero() || timeout.isNegative()) {
-            throw new IllegalArgumentException("provider timeout must be positive");
+            throw new IllegalArgumentException("알림 발송 제공자의 요청 제한 시간은 0보다 커야 합니다.");
         }
         if (failureThreshold < 1) {
-            throw new IllegalArgumentException("provider circuit failure threshold must be positive");
+            throw new IllegalArgumentException("알림 발송 회로 차단의 실패 횟수 기준은 0보다 커야 합니다.");
         }
         if (openDuration.isNegative()) {
-            throw new IllegalArgumentException("provider circuit open duration must not be negative");
+            throw new IllegalArgumentException("알림 발송 회로 차단 유지 시간은 음수일 수 없습니다.");
         }
         this.meterRegistry = meterRegistry;
         this.timeout = timeout;
@@ -74,7 +78,7 @@ public class NotificationProviderResilience implements AutoCloseable {
 
     public void execute(NotificationChannel provider, Runnable operation) {
         Circuit circuit = circuits.computeIfAbsent(provider, ignored -> new Circuit());
-        Counter circuitOpenCounter = counter("notification.provider.circuit.open", "provider", provider.name());
+        Counter circuitOpenCounter = counter("notification.provider.circuit.open", PROVIDER_TAG, provider.name());
         if (!circuit.tryAcquire(Instant.now())) {
             circuitOpenCounter.increment();
             throw new NotificationProviderException(providerErrorCode(provider), true, "CIRCUIT_OPEN", null, null);
@@ -84,35 +88,43 @@ public class NotificationProviderResilience implements AutoCloseable {
         String outcome = "failure";
         try {
             Future<?> future = executor.submit(mdcTaskDecorator.decorate(operation));
-            try {
-                future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-                circuit.recordSuccess();
-                outcome = "success";
-            } catch (TimeoutException | InterruptedException exception) {
-                future.cancel(true);
-                String reason = "TIMEOUT";
-                if (exception instanceof InterruptedException) {
-                    Thread.currentThread().interrupt();
-                    reason = "INTERRUPTED";
-                }
-                recordFailure(provider, true, reason, null);
-                circuit.recordFailure(true, Instant.now(), failureThreshold, openDuration);
-                throw new NotificationProviderException(providerErrorCode(provider), true, reason, null, exception);
-            } catch (ExecutionException exception) {
-                NotificationProviderException normalized = normalize(provider, exception.getCause());
-                boolean retryable = normalized.isRetryable();
-                recordFailure(provider, retryable, normalized.getReason(), normalized.getStatusCode());
-                circuit.recordFailure(retryable, Instant.now(), failureThreshold, openDuration);
-                throw normalized;
-            }
+            awaitProviderResult(provider, circuit, future);
+            outcome = "success";
         } finally {
-            Timer timer = Timer.builder("notification.provider.latency")
-                    .description("Provider notification call latency")
-                    .tag("provider", provider.name())
-                    .tag("outcome", outcome)
-                    .register(meterRegistry);
-            sample.stop(timer);
+            recordLatency(provider, outcome, sample);
         }
+    }
+
+    private void awaitProviderResult(NotificationChannel provider, Circuit circuit, Future<?> future) {
+        try {
+            future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            circuit.recordSuccess();
+        } catch (TimeoutException | InterruptedException exception) {
+            future.cancel(true);
+            String reason = TIMEOUT_REASON;
+            if (exception instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+                reason = "INTERRUPTED";
+            }
+            recordFailure(provider, true, reason, null);
+            circuit.recordFailure(true, Instant.now(), failureThreshold, openDuration);
+            throw new NotificationProviderException(providerErrorCode(provider), true, reason, null, exception);
+        } catch (ExecutionException exception) {
+            NotificationProviderException normalized = normalize(provider, exception.getCause());
+            boolean retryable = normalized.isRetryable();
+            recordFailure(provider, retryable, normalized.getReason(), normalized.getStatusCode());
+            circuit.recordFailure(retryable, Instant.now(), failureThreshold, openDuration);
+            throw normalized;
+        }
+    }
+
+    private void recordLatency(NotificationChannel provider, String outcome, Timer.Sample sample) {
+        Timer timer = Timer.builder("notification.provider.latency")
+                .description("알림 발송 제공자 호출 지연 시간")
+                .tag(PROVIDER_TAG, provider.name())
+                .tag("outcome", outcome)
+                .register(meterRegistry);
+        sample.stop(timer);
     }
 
     private NotificationProviderException normalize(NotificationChannel provider, Throwable throwable) {
@@ -122,19 +134,19 @@ public class NotificationProviderResilience implements AutoCloseable {
         if (throwable instanceof CustomException customException) {
             return new NotificationProviderException(
                     customException.getErrorCode(), NotificationFailureClassifier.isRetryable(customException),
-                    "ERROR", null, throwable);
+                    ERROR_REASON, null, throwable);
         }
-        return new NotificationProviderException(providerErrorCode(provider), true, "ERROR", null, throwable);
+        return new NotificationProviderException(providerErrorCode(provider), true, ERROR_REASON, null, throwable);
     }
 
     private void recordFailure(NotificationChannel provider, boolean retryable, String reason, Integer statusCode) {
-        counter("notification.provider.failures", "provider", provider.name(),
+        counter("notification.provider.failures", PROVIDER_TAG, provider.name(),
                 "classification", retryable ? "retryable" : "permanent").increment();
-        if ("TIMEOUT".equals(reason)) {
-            counter("notification.provider.timeout", "provider", provider.name()).increment();
+        if (TIMEOUT_REASON.equals(reason)) {
+            counter("notification.provider.timeout", PROVIDER_TAG, provider.name()).increment();
         }
         if (statusCode != null) {
-            counter("notification.provider.http.status", "provider", provider.name(),
+            counter("notification.provider.http.status", PROVIDER_TAG, provider.name(),
                     "status", Integer.toString(statusCode)).increment();
         }
     }

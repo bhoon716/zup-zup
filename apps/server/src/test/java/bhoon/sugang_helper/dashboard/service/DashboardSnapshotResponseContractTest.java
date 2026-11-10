@@ -7,6 +7,8 @@ import bhoon.sugang_helper.campus.api.ScheduleSummary;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardNotificationResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardPrimaryTimetableResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardSnapshotResponse;
+import bhoon.sugang_helper.dashboard.dto.response.DashboardUserResult;
+import bhoon.sugang_helper.identity.api.users.UserDashboardProfile;
 import bhoon.sugang_helper.planning.api.TimetableCourseScheduleSnapshot;
 import bhoon.sugang_helper.planning.api.TimetableCourseSnapshot;
 import bhoon.sugang_helper.planning.api.TimetableCustomScheduleSnapshot;
@@ -48,8 +50,10 @@ class DashboardSnapshotResponseContractTest {
                 LocalTime.of(9, 0), LocalTime.of(18, 0), "D-2");
         AnnouncementPreview announcementPreview = new AnnouncementPreview(
                 50L, "공지", "미리보기", true, LocalDateTime.of(2026, 9, 29, 9, 0));
-        DashboardSnapshotResponse response = DashboardSnapshotResponse.of(
-                null, List.of(notification), primaryTimetable, List.of(upcomingSchedule), List.of(announcementPreview));
+        DashboardUserResult user = DashboardUserResult.from(new UserDashboardProfile(
+                7L, "user@example.com", "사용자", "USER", "user@example.com", true, false, true, null, false));
+        DashboardSnapshotResponse response = DashboardSnapshotResponse.forSignedInUser(
+                user, List.of(notification), primaryTimetable, List.of(upcomingSchedule), List.of(announcementPreview));
 
         // when
         JsonNode json = objectMapper.valueToTree(response);

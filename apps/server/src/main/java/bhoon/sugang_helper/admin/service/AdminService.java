@@ -12,16 +12,14 @@ import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
-import bhoon.sugang_helper.identity.api.users.Users;
+import bhoon.sugang_helper.identity.api.users.UserStatistics;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
-import bhoon.sugang_helper.seatalert.api.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.api.NotificationHistoryQueries;
 import bhoon.sugang_helper.seatalert.api.NotificationOperations;
 import bhoon.sugang_helper.seatalert.api.Subscriptions;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -36,9 +34,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminService {
 
-    private static final DateTimeFormatter HOUR_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final long CRAWLER_DELAY_MINUTES = 15L;
-    private final Users userIdentityQuery;
+    private static final int HOURLY_TRAFFIC_WINDOW_HOURS = 24;
+    private static final int RECENT_LOG_LIMIT = 20;
+    private final UserStatistics userStatistics;
     private final NotificationRecipients userNotificationQuery;
     private final Subscriptions subscriptionQueryService;
     private final NotificationHistoryQueries notificationHistoryQuery;
@@ -48,7 +47,7 @@ public class AdminService {
 
     private AdminOverviewResponse getDashboardOverview() {
         LocalDateTime now = LocalDateTime.now();
-        long totalUsers = userIdentityQuery.countUsers();
+        long totalUsers = userStatistics.countUsers();
         long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
         LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
         long todayNotifications = notificationHistoryQuery.countCreatedAfter(startOfToday);
@@ -84,13 +83,13 @@ public class AdminService {
     }
 
     private List<AdminHourlyTrafficResponse> buildHourlyNotificationTraffic(LocalDateTime now) {
-        LocalDateTime startHour = now.minusHours(23)
+        LocalDateTime startHour = now.minusHours(HOURLY_TRAFFIC_WINDOW_HOURS - 1)
                 .withMinute(0)
                 .withSecond(0)
                 .withNano(0);
 
         List<LocalDateTime> histories = notificationHistoryQuery.findCreatedAtAfter(startHour);
-        long[] hourlyCounts = new long[24];
+        long[] hourlyCounts = new long[HOURLY_TRAFFIC_WINDOW_HOURS];
 
         for (LocalDateTime createdAt : histories) {
             if (createdAt == null || createdAt.isBefore(startHour)) {
@@ -105,15 +104,14 @@ public class AdminService {
         }
 
         return IntStream.range(0, hourlyCounts.length)
-                .mapToObj(i -> AdminHourlyTrafficResponse.of(
-                        startHour.plusHours(i).format(HOUR_LABEL_FORMATTER), hourlyCounts[i]))
+                .mapToObj(index -> AdminHourlyTrafficResponse.of(startHour.plusHours(index), hourlyCounts[index]))
                 .toList();
     }
 
     private List<AdminRecentLogResponse> buildRecentLogs(LocalDateTime now, LocalDateTime lastCrawledAt) {
         List<AdminRecentLogResponse> notificationLogs = notificationHistoryQuery.findLatest()
                 .stream()
-                .map(this::toNotificationLog)
+                .map(AdminRecentLogResponse::from)
                 .toList();
 
         List<AdminRecentLogResponse> allLogs = new ArrayList<>(notificationLogs);
@@ -122,25 +120,20 @@ public class AdminService {
         return allLogs.stream()
                 .sorted(Comparator.comparing(AdminRecentLogResponse::getTimestamp,
                         Comparator.nullsLast(Comparator.reverseOrder())))
-                .limit(20)
+                .limit(RECENT_LOG_LIMIT)
                 .collect(Collectors.toList());
-    }
-
-    private AdminRecentLogResponse toNotificationLog(NotificationHistoryItem history) {
-        String message = String.format("알림 발송 완료: %s (%s)", history.title(), history.channel().name());
-        return AdminRecentLogResponse.of(history.createdAt(), "INFO", message, "NotificationService");
     }
 
     private AdminRecentLogResponse buildCrawlerLog(LocalDateTime now, LocalDateTime lastCrawledAt) {
         if (lastCrawledAt == null) {
-            return AdminRecentLogResponse.of(now, "WARN", "크롤링 이력이 없어 상태를 확인할 수 없습니다.", "CourseCrawler");
+            return AdminRecentLogResponse.crawlerHistoryMissing(now);
         }
 
         if (now.minusMinutes(CRAWLER_DELAY_MINUTES).isAfter(lastCrawledAt)) {
-            return AdminRecentLogResponse.of(now, "WARN", "크롤러 실행 지연이 감지되었습니다.", "CourseCrawler");
+            return AdminRecentLogResponse.crawlerDelayed(now);
         }
 
-        return AdminRecentLogResponse.of(lastCrawledAt, "INFO", "크롤러 주기가 정상 동작 중입니다.", "CourseCrawler");
+        return AdminRecentLogResponse.crawlerHealthy(lastCrawledAt);
     }
 
     @Transactional

@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.academic.course.repository;
 
+import static bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria.POPULAR_SORT;
 import static bhoon.sugang_helper.academic.course.entity.QCourse.course;
 
 import bhoon.sugang_helper.academic.api.search.CourseWishlistQuery;
@@ -46,20 +47,30 @@ public class CourseSearchReadRepository {
     }
 
     public Slice<Course> searchCourses(CourseSearchCriteria condition, Pageable pageable) {
-        String sortBy = condition.sortBy();
-        boolean isPopularSort = "popular".equals(sortBy);
+        List<Course> content = queryFactory.selectFrom(course)
+                .where(searchPredicates(condition))
+                .orderBy(getOrderSpecifiers(condition))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize() + 1)
+                .fetch();
 
-        var query = queryFactory.selectFrom(course);
+        boolean hasNext = content.size() > pageable.getPageSize();
+        if (hasNext) {
+            content.remove(pageable.getPageSize());
+        }
+        return new SliceImpl<>(content, pageable, hasNext);
+    }
 
-        query.where(
+    private BooleanExpression[] searchPredicates(CourseSearchCriteria condition) {
+        return new BooleanExpression[]{
                 containsKeyword(condition.keyword()),
                 containsName(condition.name()),
-                containsProfessor(condition.professor()),
+                containsAnyText(course.professor, condition.professor()),
                 eqSubjectCode(condition.subjectCode()),
                 eqAcademicYear(condition.academicYear()),
                 eqSemester(condition.semester()),
                 inClassifications(condition.classifications()),
-                containsDepartment(condition.department()),
+                containsAnyText(course.department, condition.department()),
                 inGradingMethods(condition.gradingMethods()),
                 inLectureLanguages(condition.lectureLanguages()),
                 isAvailable(condition.isAvailableOnly()),
@@ -73,22 +84,10 @@ public class CourseSearchReadRepository {
                 eqGeneralCategory(condition.generalCategory()),
                 eqGeneralDetail(condition.generalDetail()),
                 inStatuses(condition.statuses()),
-                containsCourseDirection(condition.courseDirectionTerms()),
+                containsAnyTerms(course.courseDirection, condition.courseDirectionTerms()),
                 selectedSchedulePredicateBuilder.build(condition.selectedSchedules()),
-                inWishlist(condition.isWishedOnly(), condition.userId()));
-
-        query.orderBy(getOrderSpecifiers(condition, isPopularSort))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize() + 1);
-
-        List<Course> content = query.fetch();
-        boolean hasNext = false;
-        if (content.size() > pageable.getPageSize()) {
-            content.remove(pageable.getPageSize());
-            hasNext = true;
-        }
-
-        return new SliceImpl<>(content, pageable, hasNext);
+                inWishlist(condition.isWishedOnly(), condition.userId())
+        };
     }
 
     private BooleanExpression containsName(String name) {
@@ -98,16 +97,14 @@ public class CourseSearchReadRepository {
     private BooleanExpression containsKeyword(String keyword) {
         return Optional.ofNullable(keyword)
                 .filter(StringUtils::hasText)
-                .map(value -> {
-                    String normalizedValue = value.trim();
-                    return course.name.contains(normalizedValue)
-                            .or(course.stdtrNo.eq(normalizedValue.toUpperCase(Locale.ROOT)));
-                })
+                .map(this::matchesKeyword)
                 .orElse(null);
     }
 
-    private BooleanExpression containsProfessor(String professor) {
-        return containsAnyText(course.professor, professor);
+    private BooleanExpression matchesKeyword(String keyword) {
+        String normalizedValue = keyword.trim();
+        return course.name.contains(normalizedValue)
+                .or(course.stdtrNo.eq(normalizedValue.toUpperCase(Locale.ROOT)));
     }
 
     private BooleanExpression eqSubjectCode(String subjectCode) {
@@ -139,10 +136,6 @@ public class CourseSearchReadRepository {
     private BooleanExpression inClassifications(List<String> classifications) {
         List<CourseClassification> values = toClassifications(classifications);
         return values.isEmpty() ? null : course.classification.in(values);
-    }
-
-    private BooleanExpression containsDepartment(String department) {
-        return containsAnyText(course.department, department);
     }
 
     private List<GradingMethod> toGradingMethods(List<String> values) {
@@ -239,10 +232,6 @@ public class CourseSearchReadRepository {
         return values.isEmpty() ? null : course.status.in(values);
     }
 
-    private BooleanExpression containsCourseDirection(List<String> courseDirectionTerms) {
-        return containsAnyTerms(course.courseDirection, courseDirectionTerms);
-    }
-
     private BooleanExpression inWishlist(Boolean wishedOnly, Long userId) {
         if (wishedOnly == null || !wishedOnly || userId == null) {
             return null;
@@ -250,58 +239,49 @@ public class CourseSearchReadRepository {
         return wishlistQuery.wishedBy(course.courseKey, userId);
     }
 
-    private OrderSpecifier<?>[] getOrderSpecifiers(CourseSearchCriteria condition, boolean isPopularSort) {
+    private OrderSpecifier<?>[] getOrderSpecifiers(CourseSearchCriteria condition) {
         String sortBy = condition.sortBy();
-        String sortOrder = condition.sortOrder();
-        Order order = "asc".equalsIgnoreCase(sortOrder) ? Order.ASC : Order.DESC;
+        Order order = "asc".equalsIgnoreCase(condition.sortOrder()) ? Order.ASC : Order.DESC;
 
-        if ("popular".equals(sortBy)) {
-            return new OrderSpecifier<?>[]{
-                    new OrderSpecifier<>(order, popularCount()),
-                    new OrderSpecifier<>(Order.DESC, course.current),
-                    new OrderSpecifier<>(Order.ASC, course.courseKey)
-            };
+        if (POPULAR_SORT.equals(sortBy)) {
+            return rankedOrder(order, wishlistQuery.popularity(course.courseKey));
         }
 
         if ("name".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier<?>[]{
-                    new OrderSpecifier<>(order, course.name),
-                    new OrderSpecifier<>(Order.ASC, course.courseKey)
-            };
+            return orderWithCourseKey(new OrderSpecifier<>(order, course.name));
         }
 
         if ("rating".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier<?>[]{
+            return orderWithCourseKey(
                     new OrderSpecifier<>(order, course.averageRating),
-                    new OrderSpecifier<>(Order.DESC, course.reviewCount),
-                    new OrderSpecifier<>(Order.ASC, course.courseKey)
-            };
+                    new OrderSpecifier<>(Order.DESC, course.reviewCount));
         }
 
         if ("current".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier<?>[]{
-                    new OrderSpecifier<>(order, course.current),
-                    new OrderSpecifier<>(Order.ASC, course.courseKey)
-            };
+            return orderWithCourseKey(new OrderSpecifier<>(order, course.current));
         }
 
         if ("available".equalsIgnoreCase(sortBy)) {
-            return new OrderSpecifier<?>[]{
+            return orderWithCourseKey(
                     new OrderSpecifier<>(order, course.capacity.subtract(course.current)),
-                    new OrderSpecifier<>(Order.ASC, course.name),
-                    new OrderSpecifier<>(Order.ASC, course.courseKey)
-            };
+                    new OrderSpecifier<>(Order.ASC, course.name));
         }
 
-        return new OrderSpecifier<?>[]{
-                new OrderSpecifier<>(order, isPopularSort ? popularCount() : course.reviewCount.longValue()),
-                new OrderSpecifier<>(Order.DESC, course.current),
-                new OrderSpecifier<>(Order.ASC, course.courseKey)
-        };
+        return rankedOrder(order, course.reviewCount.longValue());
     }
 
-    private NumberExpression<Long> popularCount() {
-        return wishlistQuery.popularity(course.courseKey);
+    private OrderSpecifier<?>[] rankedOrder(Order order, NumberExpression<Long> ranking) {
+        return orderWithCourseKey(
+                new OrderSpecifier<>(order, ranking),
+                new OrderSpecifier<>(Order.DESC, course.current));
+    }
+
+    private OrderSpecifier<?>[] orderWithCourseKey(OrderSpecifier<?> primary) {
+        return new OrderSpecifier<?>[]{primary, new OrderSpecifier<>(Order.ASC, course.courseKey)};
+    }
+
+    private OrderSpecifier<?>[] orderWithCourseKey(OrderSpecifier<?> primary, OrderSpecifier<?> secondary) {
+        return new OrderSpecifier<?>[]{primary, secondary, new OrderSpecifier<>(Order.ASC, course.courseKey)};
     }
 
     private BooleanExpression containsAnyText(StringExpression field, String value) {

@@ -3,6 +3,7 @@ package bhoon.sugang_helper.academic.course.enums;
 import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Getter
 @RequiredArgsConstructor
@@ -19,13 +20,17 @@ public enum LectureLanguage {
     private final String alias;
 
     public static LectureLanguage from(String value) {
-        if (value == null || value.isBlank()) {
+        if (!StringUtils.hasText(value)) {
             return null;
         }
+        String normalized = value.trim();
         return Arrays.stream(values())
-                .filter(lang -> lang.getValue().equalsIgnoreCase(value.trim()) ||
-                        lang.getAlias().equalsIgnoreCase(value.trim()))
+                .filter(language -> language.matches(normalized))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private boolean matches(String candidate) {
+        return value.equalsIgnoreCase(candidate) || alias.equalsIgnoreCase(candidate);
     }
 }

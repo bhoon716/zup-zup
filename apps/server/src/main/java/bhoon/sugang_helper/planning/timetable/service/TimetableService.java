@@ -4,20 +4,14 @@ import bhoon.sugang_helper.academic.api.catalog.CourseCatalog;
 import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.CurrentUserQuery;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
-import bhoon.sugang_helper.identity.api.users.Users;
 import bhoon.sugang_helper.identity.events.UserRegisteredEvent;
 import bhoon.sugang_helper.planning.api.PrimaryTimetableSnapshot;
-import bhoon.sugang_helper.planning.api.TimetableCourseScheduleSnapshot;
-import bhoon.sugang_helper.planning.api.TimetableCourseSnapshot;
-import bhoon.sugang_helper.planning.api.TimetableCustomScheduleSnapshot;
-import bhoon.sugang_helper.planning.api.TimetableCustomScheduleTimeSnapshot;
 import bhoon.sugang_helper.planning.api.Timetables;
 import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleRequest;
+import bhoon.sugang_helper.planning.timetable.dto.request.CustomScheduleTimeRequest;
 import bhoon.sugang_helper.planning.timetable.dto.request.TimetableRequest;
-import bhoon.sugang_helper.planning.timetable.dto.response.CustomScheduleResponse;
-import bhoon.sugang_helper.planning.timetable.dto.response.TimetableCourseResponse;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableDetailResponse;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableResponse;
 import bhoon.sugang_helper.planning.timetable.entity.CustomSchedule;
@@ -29,6 +23,7 @@ import bhoon.sugang_helper.planning.timetable.repository.TimetableEntryRepositor
 import bhoon.sugang_helper.planning.timetable.repository.TimetableRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -37,12 +32,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class TimetableService implements Timetables {
+
+    private static final String EVENT_KEY = "event";
+    private static final String TIMETABLE_ID_KEY = "timetableId";
 
     private static final int MAX_TIMETABLE_COUNT = 10;
     private static final int MAX_COURSE_COUNT = 10;
@@ -51,11 +50,11 @@ public class TimetableService implements Timetables {
     private final TimetableEntryRepository timetableEntryRepository;
     private final CustomScheduleRepository customScheduleRepository;
     private final CourseCatalog courseCatalogQuery;
-    private final Users userIdentityQuery;
+    private final CurrentUserQuery currentUserQuery;
 
     @Transactional
     public TimetableResponse createTimetable(TimetableRequest request) {
-        UserIdentity user = getCurrentUser();
+        UserIdentity user = currentUserQuery.requireCurrentUser();
         validateTimetableLimit(user.id());
 
         if (request.isPrimary()) {
@@ -84,56 +83,23 @@ public class TimetableService implements Timetables {
     }
 
     public List<TimetableResponse> getMyTimetables() {
-        UserIdentity user = getCurrentUser();
-        return timetableRepository.findByUserId(user.id()).stream()
+        UserIdentity user = currentUserQuery.requireCurrentUser();
+        return timetableRepository.findListItemsByUserId(user.id()).stream()
                 .map(TimetableResponse::from)
                 .toList();
     }
 
     public TimetableDetailResponse getPrimaryTimetable() {
-        UserIdentity user = getCurrentUser();
-        List<Timetable> primaryTimetables = timetableRepository.findByUserIdAndIsPrimaryTrue(user.id());
-        if (primaryTimetables.isEmpty()) {
-            return null;
-        }
-        return getTimetableDetail(primaryTimetables.get(0));
+        return findPrimaryTimetable().map(this::getTimetableDetail).orElse(null);
     }
 
     public Optional<PrimaryTimetableSnapshot> findPrimaryForCurrentUser() {
-        TimetableDetailResponse timetable = getPrimaryTimetable();
-        if (timetable == null) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new PrimaryTimetableSnapshot(
-                timetable.getId(), timetable.getName(), timetable.isPrimary(),
-                timetable.getCourses().stream().map(this::toCourseSnapshot).toList(),
-                timetable.getCustomSchedules().stream().map(this::toCustomScheduleSnapshot).toList(),
-                timetable.getTotalCredits()));
-    }
-
-    private TimetableCourseSnapshot toCourseSnapshot(TimetableCourseResponse course) {
-        return new TimetableCourseSnapshot(
-                course.getCourseKey(), course.getName(), course.getProfessor(), course.getClassTime(),
-                course.getCredits(), course.getClassification(), course.getClassroom(),
-                course.getSchedules().stream()
-                        .map(schedule -> new TimetableCourseScheduleSnapshot(
-                                schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()))
-                        .toList());
-    }
-
-    private TimetableCustomScheduleSnapshot toCustomScheduleSnapshot(CustomScheduleResponse schedule) {
-        return new TimetableCustomScheduleSnapshot(
-                schedule.getId(), schedule.getTitle(), schedule.getProfessor(),
-                schedule.getSchedules().stream()
-                        .map(time -> new TimetableCustomScheduleTimeSnapshot(
-                                time.getId(), time.getDayOfWeek(), time.getStartTime(),
-                                time.getEndTime(), time.getClassroom()))
-                        .toList());
+        return findPrimaryTimetable().map(this::toPrimarySnapshot);
     }
 
     public TimetableDetailResponse getTimetableDetail(Long timetableId) {
-        Timetable timetable = getTimetable(timetableId);
+        Timetable timetable = timetableRepository.findWithEntriesById(timetableId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 시간표입니다."));
         validateOwnership(timetable);
         return getTimetableDetail(timetable);
     }
@@ -176,18 +142,20 @@ public class TimetableService implements Timetables {
                 .professor(request.getProfessor())
                 .build();
 
-        request.getSchedules().forEach(timeRequest -> {
-            CustomScheduleTime time = CustomScheduleTime.builder()
-                    .customSchedule(schedule)
-                    .dayOfWeek(timeRequest.getDayOfWeek())
-                    .startTime(timeRequest.getStartTime())
-                    .endTime(timeRequest.getEndTime())
-                    .classroom(timeRequest.getClassroom())
-                    .build();
-            schedule.addTime(time);
-        });
+        request.getSchedules().forEach(timeRequest -> addCustomScheduleTime(schedule, timeRequest));
 
         timetable.addCustomSchedule(schedule);
+    }
+
+    private void addCustomScheduleTime(CustomSchedule schedule, CustomScheduleTimeRequest timeRequest) {
+        CustomScheduleTime time = CustomScheduleTime.builder()
+                .customSchedule(schedule)
+                .dayOfWeek(timeRequest.getDayOfWeek())
+                .startTime(timeRequest.getStartTime())
+                .endTime(timeRequest.getEndTime())
+                .classroom(timeRequest.getClassroom())
+                .build();
+        schedule.addTime(time);
     }
 
     @Transactional
@@ -232,43 +200,47 @@ public class TimetableService implements Timetables {
         promoteNextPrimary(userId, timetableId);
     }
 
-    private TimetableDetailResponse getTimetableDetail(Timetable timetable) {
-        Map<String, CourseSummary> courseMap = findCoursesByKey(timetable);
-        List<TimetableCourseResponse> courses = mapTimetableCourses(timetable, courseMap);
-        String totalCredits = calculateTotalCredits(courses);
-        return TimetableDetailResponse.from(timetable, courses, totalCredits);
+    private Optional<Timetable> findPrimaryTimetable() {
+        UserIdentity user = currentUserQuery.requireCurrentUser();
+        return timetableRepository.findWithEntriesByUserIdAndIsPrimaryTrue(user.id()).stream().findFirst();
     }
 
-    private Map<String, CourseSummary> findCoursesByKey(Timetable timetable) {
+    private TimetableDetailResponse getTimetableDetail(Timetable timetable) {
+        List<CourseSummary> courses = findTimetableCourses(timetable);
+        List<CustomSchedule> schedules = customScheduleRepository.findWithTimesByTimetableId(timetable.getId());
+        return TimetableDetailResponse.from(timetable, courses, schedules, calculateTotalCredits(courses));
+    }
+
+    private PrimaryTimetableSnapshot toPrimarySnapshot(Timetable timetable) {
+        List<CourseSummary> courses = findTimetableCourses(timetable);
+        List<CustomSchedule> schedules = customScheduleRepository.findWithTimesByTimetableId(timetable.getId());
+        return TimetableSnapshotMapper.from(timetable, courses, schedules, calculateTotalCredits(courses));
+    }
+
+    private List<CourseSummary> findTimetableCourses(Timetable timetable) {
         List<String> courseKeys = timetable.getEntries().stream()
                 .map(TimetableEntry::getCourseKey)
                 .toList();
 
-        return courseCatalogQuery.findByCourseKeyIn(courseKeys).stream()
+        Map<String, CourseSummary> coursesByKey = courseCatalogQuery.findByCourseKeyIn(courseKeys).stream()
                 .collect(Collectors.toMap(CourseSummary::courseKey, Function.identity(),
                         (existing, replacement) -> existing));
-    }
-
-    private List<TimetableCourseResponse> mapTimetableCourses(
-            Timetable timetable, Map<String, CourseSummary> courseMap) {
-        return timetable.getEntries().stream()
-                .map(TimetableEntry::getCourseKey)
-                .map(courseMap::get)
-                .filter(course -> course != null)
-                .map(TimetableCourseResponse::from)
+        return courseKeys.stream()
+                .map(coursesByKey::get)
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private String calculateTotalCredits(List<TimetableCourseResponse> courses) {
+    private String calculateTotalCredits(List<CourseSummary> courses) {
         double totalCredits = courses.stream()
-                .map(TimetableCourseResponse::getCredits)
+                .map(CourseSummary::credits)
                 .mapToDouble(this::toCreditValue)
                 .sum();
         return String.valueOf(totalCredits);
     }
 
     private double toCreditValue(String credits) {
-        if (credits == null || credits.isBlank()) {
+        if (!StringUtils.hasText(credits)) {
             return 0.0;
         }
 
@@ -318,10 +290,12 @@ public class TimetableService implements Timetables {
         timetableRepository.findByUserId(userId).stream()
                 .filter(timetable -> !timetable.getId().equals(deletedTimetableId))
                 .findFirst()
-                .ifPresent(timetable -> {
-                    timetable.setPrimary(true);
-                    logTimetablePrimaryPromoted(timetable.getId());
-                });
+                .ifPresent(this::promotePrimary);
+    }
+
+    private void promotePrimary(Timetable timetable) {
+        timetable.setPrimary(true);
+        logTimetablePrimaryPromoted(timetable.getId());
     }
 
     private void resetPrimary(Long userId) {
@@ -337,7 +311,7 @@ public class TimetableService implements Timetables {
     }
 
     private void validateOwnership(Timetable timetable) {
-        UserIdentity user = getCurrentUser();
+        UserIdentity user = currentUserQuery.requireCurrentUser();
         if (timetable.getUserId().equals(user.id())) {
             return;
         }
@@ -345,27 +319,21 @@ public class TimetableService implements Timetables {
         throw new CustomException(ErrorCode.FORBIDDEN);
     }
 
-    private UserIdentity getCurrentUser() {
-        String email = SecurityUtil.getCurrentUserEmail();
-        return userIdentityQuery.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
-    }
-
     private void logTimetableDefaultCreated(Long userId) {
-        log.atInfo().addKeyValue("event", "timetable_default_created")
+        log.atInfo().addKeyValue(EVENT_KEY, "timetable_default_created")
                 .addKeyValue("userId", userId)
                 .log("[Timetable] 새 사용자 기본 시간표 생성.");
     }
 
     private void logTimetablePrimaryChanged(Long timetableId) {
-        log.atInfo().addKeyValue("event", "timetable_primary_changed")
-                .addKeyValue("timetableId", timetableId)
+        log.atInfo().addKeyValue(EVENT_KEY, "timetable_primary_changed")
+                .addKeyValue(TIMETABLE_ID_KEY, timetableId)
                 .log("[Timetable] 대표 시간표 변경.");
     }
 
     private void logTimetablePrimaryPromoted(Long timetableId) {
-        log.atInfo().addKeyValue("event", "timetable_primary_promoted")
-                .addKeyValue("timetableId", timetableId)
+        log.atInfo().addKeyValue(EVENT_KEY, "timetable_primary_promoted")
+                .addKeyValue(TIMETABLE_ID_KEY, timetableId)
                 .log("[Timetable] 대표 시간표 자동 변경.");
     }
 

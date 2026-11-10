@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 
+    private static final String CORRELATION_ID_KEY = "correlationId";
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -41,8 +43,8 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
                 .addKeyValue("method", method)
                 .addKeyValue("path", error.getPath())
                 .addKeyValue("exceptionType", failure.getClass().getSimpleName());
-        if (MDC.get("correlationId") == null) {
-            entry.addKeyValue("correlationId", error.getCorrelationId());
+        if (MDC.get(CORRELATION_ID_KEY) == null) {
+            entry.addKeyValue(CORRELATION_ID_KEY, error.getCorrelationId());
         }
         entry.log("[ACCESS_DENIED] 접근 권한 없음.");
     }

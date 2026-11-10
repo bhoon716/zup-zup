@@ -39,6 +39,7 @@ import bhoon.sugang_helper.seatalert.notification.exception.NotificationProvider
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.seatalert.notification.scheduler.SeatNotificationOutboxWorker;
+import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationDeliveryStateService;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
 import bhoon.sugang_helper.seatalert.notification.service.UserNotificationTestService;
 import bhoon.sugang_helper.seatalert.subscription.entity.Subscription;
@@ -569,6 +570,7 @@ class ModulithEventIntegrationTest {
         private final SeatNotificationOutboxRepository outboxes;
         private final SeatNotificationDeliveryRepository deliveries;
         private final SeatNotificationOutboxProcessor processor;
+        private final SeatNotificationDeliveryStateService deliveryStateService;
         private final FeedbackRepository feedback;
         private final CourseCrawlCompletionService completion;
         private final UserService userService;
@@ -626,7 +628,7 @@ class ModulithEventIntegrationTest {
         @PostMapping("/dispatch")
         Map<String, Integer> dispatch() {
             processor.materializePendingOutboxes();
-            var claims = processor.claimReadyDeliveries();
+            var claims = deliveryStateService.claimReadyDeliveries();
             claims.forEach(processor::processDelivery);
             return Map.of("claimed", claims.size());
         }

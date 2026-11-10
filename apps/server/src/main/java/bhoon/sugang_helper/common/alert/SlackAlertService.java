@@ -1,42 +1,57 @@
 package bhoon.sugang_helper.common.alert;
 
 import bhoon.sugang_helper.common.api.alerts.OperationalAlerts;
-import bhoon.sugang_helper.common.api.alerts.SlackAlertProperties;
 import bhoon.sugang_helper.common.api.alerts.SlackAlertCategory;
+import bhoon.sugang_helper.common.api.alerts.SlackAlertProperties;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PreDestroy;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import io.micrometer.core.instrument.MeterRegistry;
-import jakarta.annotation.PreDestroy;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.function.LongSupplier;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @Slf4j
 public class SlackAlertService implements OperationalAlerts {
 
+    private static final String INVALID_LABEL = "INVALID";
+    private static final String NONE_LABEL = "NONE";
+    private static final String DISABLED_OUTCOME = "disabled";
+    private static final String EVENT_KEY = "event";
+    private static final String FAILURE_OUTCOME = "failure";
+    private static final String OUTCOME_TAG = "outcome";
+    private static final String NON_RETRYABLE_DETAIL = "retryable=false";
+    private static final String RETRYABLE_DETAIL = "retryable=true";
+    private static final String DELIVERY_METRIC = "slack.alert.delivery";
+    private static final String SUCCESS_OUTCOME = "success";
+    private static final String SUPPRESSED_OUTCOME = "suppressed";
+
     private static final int MAX_DEDUPLICATION_KEYS = 256;
+    private static final int DELIVERY_QUEUE_CAPACITY = 64;
     private static final DateTimeFormatter ALERT_TIME_FORMAT = DateTimeFormatter
-            .ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("Asia/Seoul"));
+            .ofPattern("yyyy-MM-dd HH:mm:ss")
+            .withZone(ZoneId.of("Asia/Seoul"));
     private static final String CATEGORY_KEY = "category";
     private static final String CORRELATION_ID_KEY = "correlationId";
     private static final String CRAWLER_RUN_ID_KEY = "crawlerRunId";
-    private static final String UNSUPPORTED_CATEGORY = "Unsupported alert category: ";
+    private static final String UNSUPPORTED_CATEGORY = "지원하지 않는 알림 분류입니다: ";
     private static final String REJECTED_OUTCOME = "rejected";
     private final SlackAlertProperties properties;
     private final SlackWebhookClient webhookClient;
@@ -61,18 +76,21 @@ public class SlackAlertService implements OperationalAlerts {
         this.executor = executor;
         this.cooldownNanos = TimeUnit.SECONDS.toNanos(properties.cooldownSeconds());
         for (SlackAlertCategory category : SlackAlertCategory.values()) {
-            for (String outcome : List.of("success", "failure", "suppressed", REJECTED_OUTCOME, "disabled")) {
-                registry.counter("slack.alert.delivery", CATEGORY_KEY, category.name(), "outcome", outcome);
+            for (String outcome : List.of(SUCCESS_OUTCOME, FAILURE_OUTCOME, SUPPRESSED_OUTCOME, REJECTED_OUTCOME, DISABLED_OUTCOME)) {
+                registry.counter(DELIVERY_METRIC, CATEGORY_KEY, category.name(), OUTCOME_TAG, outcome);
             }
         }
     }
 
     private static ExecutorService createExecutor() {
-        return new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(64), runnable -> {
-            Thread thread = new Thread(runnable, "slack-alert-delivery");
-            thread.setDaemon(true);
-            return thread;
-        }, new ThreadPoolExecutor.AbortPolicy());
+        return new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(DELIVERY_QUEUE_CAPACITY),
+                SlackAlertService::newAlertDeliveryThread, new ThreadPoolExecutor.AbortPolicy());
+    }
+
+    private static Thread newAlertDeliveryThread(Runnable runnable) {
+        Thread thread = new Thread(runnable, "slack-alert-delivery");
+        thread.setDaemon(true);
+        return thread;
     }
 
     public void alert(SlackAlertCategory category, String errorCode, Throwable exception) {
@@ -82,7 +100,7 @@ public class SlackAlertService implements OperationalAlerts {
     public void alert(SlackAlertCategory category, String errorCode, Throwable exception, String diagnostic) {
         Objects.requireNonNull(category);
         if (properties.webhookUrl().isBlank()) {
-            count(category, "disabled");
+            count(category, DISABLED_OUTCOME);
             return;
         }
         String key = category + ":" + label(errorCode) + ":" + SensitiveDataRedactor.exceptionType(exception)
@@ -90,7 +108,6 @@ public class SlackAlertService implements OperationalAlerts {
         if (!reserveAlertSlot(key, nanoTime.getAsLong(), category)) {
             return;
         }
-        // 호출자 문맥을 문자열로 고정하고 예외 객체와 MDC를 작업 스레드에 넘기지 않는다.
         String message = formatMessage(category, errorCode, exception, diagnostic);
         try {
             executor.execute(new Delivery(category, message,
@@ -105,7 +122,7 @@ public class SlackAlertService implements OperationalAlerts {
     private synchronized boolean reserveAlertSlot(String key, long nowNanos, SlackAlertCategory category) {
         lastAlertNanos.entrySet().removeIf(entry -> nowNanos - entry.getValue() >= cooldownNanos);
         if (lastAlertNanos.containsKey(key)) {
-            count(category, "suppressed");
+            count(category, SUPPRESSED_OUTCOME);
             return false;
         }
         if (lastAlertNanos.size() >= MAX_DEDUPLICATION_KEYS) {
@@ -122,7 +139,7 @@ public class SlackAlertService implements OperationalAlerts {
 
     private String failureSite(Throwable exception) {
         if (exception == null || exception.getStackTrace().length == 0) {
-            return "NONE";
+            return NONE_LABEL;
         }
         for (StackTraceElement frame : exception.getStackTrace()) {
             if (frame.getClassName().startsWith("bhoon.sugang_helper.")) {
@@ -133,16 +150,16 @@ public class SlackAlertService implements OperationalAlerts {
     }
 
     private void count(SlackAlertCategory category, String outcome) {
-        registry.counter("slack.alert.delivery", CATEGORY_KEY, category.name(), "outcome", outcome).increment();
+        registry.counter(DELIVERY_METRIC, CATEGORY_KEY, category.name(), OUTCOME_TAG, outcome).increment();
     }
 
     private void logDeliveryRejected(SlackAlertCategory category) {
-        log.atWarn().addKeyValue("event", "slack_alert_delivery_rejected")
+        log.atWarn().addKeyValue(EVENT_KEY, "slack_alert_delivery_rejected")
                 .addKeyValue(CATEGORY_KEY, category).log("Slack 오류 알림 전송 작업 거부");
     }
 
     private void logDeliveryFailed(Delivery delivery, RuntimeException failure) {
-        log.atWarn().addKeyValue("event", "slack_alert_delivery_failed")
+        log.atWarn().addKeyValue(EVENT_KEY, "slack_alert_delivery_failed")
                 .addKeyValue(CATEGORY_KEY, delivery.category)
                 .addKeyValue(CORRELATION_ID_KEY, delivery.correlationId)
                 .addKeyValue(CRAWLER_RUN_ID_KEY, delivery.crawlerRunId)
@@ -173,7 +190,7 @@ public class SlackAlertService implements OperationalAlerts {
     }
 
     private void logAbandonedDeliveries(int count) {
-        log.atWarn().addKeyValue("event", "slack_alert_shutdown_abandoned")
+        log.atWarn().addKeyValue(EVENT_KEY, "slack_alert_shutdown_abandoned")
                 .addKeyValue("abandonedCount", count).log("Slack 오류 알림 종료 중 대기 작업 취소");
     }
 
@@ -195,9 +212,9 @@ public class SlackAlertService implements OperationalAlerts {
         public void run() {
             try {
                 webhookClient.send(message);
-                count(category, "success");
+                count(category, SUCCESS_OUTCOME);
             } catch (RuntimeException failure) {
-                count(category, "failure");
+                count(category, FAILURE_OUTCOME);
                 logDeliveryFailed(this, failure);
             }
         }
@@ -270,10 +287,10 @@ public class SlackAlertService implements OperationalAlerts {
     }
 
     private String retryDescription(String detail) {
-        if (detail.contains("retryable=true")) {
+        if (detail.contains(RETRYABLE_DETAIL)) {
             return "재시도 가능한 유형 · 실제 예약·실행·성공 여부는 로그 확인";
         }
-        if (detail.contains("retryable=false")) {
+        if (detail.contains(NON_RETRYABLE_DETAIL)) {
             return "자동 재시도 대상 아님 · 원인 확인 후 재실행 여부 판단";
         }
         return "실행 여부 미확인";
@@ -299,7 +316,7 @@ public class SlackAlertService implements OperationalAlerts {
         String selector = "{app=\"jbnu-sugang-helper\",job=\"app\"} | json | __error__=\"\"";
         for (String key : List.of(CRAWLER_RUN_ID_KEY, CORRELATION_ID_KEY)) {
             String value = label(MDC.get(key));
-            if (!value.equals("NONE") && !value.equals("INVALID")) {
+            if (!value.equals(NONE_LABEL) && !value.equals(INVALID_LABEL)) {
                 return selector + " | " + key + "=\"" + value + "\"";
             }
         }
@@ -310,8 +327,8 @@ public class SlackAlertService implements OperationalAlerts {
         String description = detail.replace("failureStage=", "실패 단계=")
                 .replace("failureType=", "원인 유형=")
                 .replace("upstreamStatus=", "학교 응답=")
-                .replace("retryable=true", "")
-                .replace("retryable=false", "")
+                .replace(RETRYABLE_DETAIL, "")
+                .replace(NON_RETRYABLE_DETAIL, "")
                 .replace("retryable=UNKNOWN", "")
                 .replace("UNKNOWN", "미확인")
                 .replace("JUMP_BOOTSTRAP", "학교 API 접속 준비(JUMP_BOOTSTRAP)")
@@ -329,7 +346,7 @@ public class SlackAlertService implements OperationalAlerts {
     }
 
     private String safeDiagnostic(String diagnostic) {
-        if (diagnostic == null || diagnostic.isBlank()) {
+        if (!StringUtils.hasText(diagnostic)) {
             return "";
         }
         StringBuilder result = new StringBuilder();
@@ -349,11 +366,11 @@ public class SlackAlertService implements OperationalAlerts {
     }
 
     private String label(String value) {
-        if (value == null || value.isBlank()) {
-            return "NONE";
+        if (!StringUtils.hasText(value)) {
+            return NONE_LABEL;
         }
         if (!value.matches("[\\p{L}\\p{N}_.:-]{1,128}")) {
-            return "INVALID";
+            return INVALID_LABEL;
         }
         return value;
     }

@@ -1,11 +1,12 @@
 package bhoon.sugang_helper.academic.course.repository;
 
+import bhoon.sugang_helper.academic.api.catalog.CourseName;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +14,9 @@ import org.springframework.data.repository.query.Param;
 public interface CourseRepository extends JpaRepository<Course, Long> {
 
     Optional<Course> findByCourseKey(String courseKey);
+
+    @EntityGraph(attributePaths = "schedules")
+    Optional<Course> findWithSchedulesByCourseKey(String courseKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Course c where c.courseKey = :courseKey")
@@ -26,6 +30,13 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<Course> findWithSchedulesByCourseKeyIn(List<String> courseKeys);
 
     @Query("""
+            select new bhoon.sugang_helper.academic.api.catalog.CourseName(c.courseKey, c.name, c.professor)
+            from Course c
+            where c.courseKey in :courseKeys
+            """)
+    List<CourseName> findNamesByCourseKeyIn(@Param("courseKeys") List<String> courseKeys);
+
+    @Query("""
             select c.courseKey
             from Course c
             where c.subjectCode = :subjectCode
@@ -34,22 +45,22 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<String> findCourseKeysBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
                                                          @Param("professor") String professor);
 
-    @Query("""
-            select distinct c.generalCategory
-            from Course c
-            where c.generalCategory is not null
-              and c.generalCategory <> ''
-            order by c.generalCategory
-            """)
-    List<String> findDistinctGeneralCategories();
+    @Query(value = """
+            with categories as (
+                select distinct general_category as category
+                from courses
+                where general_category is not null and general_category <> ''
+            )
+            select distinct categories.category as category, nullif(c.general_detail, '') as detail
+            from categories
+            join courses c on c.general_category = categories.category
+            order by category, detail
+            """, nativeQuery = true)
+    List<GeneralCategoryDetail> findGeneralCategoryDetails();
 
-    @Query("""
-            select distinct c.generalDetail
-            from Course c
-            where c.generalCategory = :category
-              and c.generalDetail is not null
-              and c.generalDetail <> ''
-            order by c.generalDetail
-            """)
-    List<String> findDistinctGeneralDetailsByCategory(@Param("category") String category);
+    interface GeneralCategoryDetail {
+        String getCategory();
+
+        String getDetail();
+    }
 }

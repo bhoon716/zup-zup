@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class HealthController {
 
+    private static final String EVENT_KEY = "event";
+
     private static final String READINESS_GROUP = "readiness";
 
     private final BuildProperties buildProperties;
@@ -44,12 +46,12 @@ public class HealthController {
     }
 
     private void logReady() {
-        log.atDebug().addKeyValue("event", "health_ready")
+        log.atDebug().addKeyValue(EVENT_KEY, "health_ready")
                 .log("상태 확인 정상.");
     }
 
     private void logNotReady(String readinessStatus) {
-        log.atWarn().addKeyValue("event", "health_not_ready")
+        log.atWarn().addKeyValue(EVENT_KEY, "health_not_ready")
                 .addKeyValue("readinessStatus", readinessStatus)
                 .log("상태 확인 실패.");
     }

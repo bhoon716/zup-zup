@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -69,7 +70,7 @@ public class AdminAuditService implements AuditRecorder {
     }
 
     public Page<AdminActionLogResponse> getActionLogs(Pageable pageable) {
-        Pageable requested = PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, 10_000);
+        Pageable requested = PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, PageableGuard.DEFAULT_MAX_OFFSET);
         Pageable boundedPageable = PageRequest.of(requested.getPageNumber(), requested.getPageSize(),
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
         return adminActionLogRepository.findAllByOrderByCreatedAtDescIdDesc(boundedPageable)
@@ -101,7 +102,7 @@ public class AdminAuditService implements AuditRecorder {
     }
 
     private AdminAuditMetadata deserializeSafely(String serializedMetadata) {
-        if (serializedMetadata == null || serializedMetadata.isBlank()) {
+        if (!StringUtils.hasText(serializedMetadata)) {
             return AdminAuditMetadata.legacySanitized();
         }
 

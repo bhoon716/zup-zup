@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Getter
 @RequiredArgsConstructor
@@ -21,17 +22,21 @@ public enum TargetGrade {
 
     @JsonCreator
     public static TargetGrade from(String value) {
-        if (value == null || value.isBlank()) {
+        if (!StringUtils.hasText(value)) {
             return null;
         }
         String trimmedValue = value.trim();
         return Arrays.stream(values())
-                .filter(g -> g.name().equals(trimmedValue) ||
-                        g.description.equals(trimmedValue) ||
-                        (trimmedValue.length() == 1 && g.name().endsWith("_" + trimmedValue)) ||
-                        (g == GRADUATE && "대학원".equals(trimmedValue)))
+                .filter(grade -> grade.matches(trimmedValue))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private boolean matches(String value) {
+        return name().equals(value)
+                || description.equals(value)
+                || (value.length() == 1 && name().endsWith("_" + value))
+                || (this == GRADUATE && "대학원".equals(value));
     }
 
     @JsonValue

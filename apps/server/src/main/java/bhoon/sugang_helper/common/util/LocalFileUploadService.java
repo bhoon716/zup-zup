@@ -40,11 +40,12 @@ public class LocalFileUploadService implements FileStorage {
     private static final String PATH_KEY = "path";
 
     private static final String UPLOAD_URL_PREFIX = "/uploads/";
+    private static final int MAX_IMAGE_ATTACHMENTS = 3;
     private static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of(
-            "image/jpeg", "image/png");
+            MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_PNG_VALUE);
     private static final Map<String, MediaType> SAFE_PREVIEW_MEDIA_TYPES = Map.of(
-            "image/jpeg", MediaType.IMAGE_JPEG,
-            "image/png", MediaType.IMAGE_PNG);
+            MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_JPEG,
+            MediaType.IMAGE_PNG_VALUE, MediaType.IMAGE_PNG);
     private final Tika tika = new Tika();
     private final ImageUploadSanitizer imageUploadSanitizer;
 
@@ -63,22 +64,12 @@ public class LocalFileUploadService implements FileStorage {
             return new ArrayList<>();
         }
 
-        if (files.size() > 3) {
+        if (files.size() > MAX_IMAGE_ATTACHMENTS) {
             throw new CustomException(ErrorCode.MAX_FILE_UPLOAD_LIMIT_EXCEEDED);
         }
 
         List<String> fileUrls = new ArrayList<>();
-        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-
-        try {
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-        } catch (IOException e) {
-            logUploadDirectoryCreateFailed(uploadPath, e);
-            throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
-        }
-
+        Path uploadPath = prepareUploadDirectory();
         try {
             for (MultipartFile file : files) {
                 if (file.isEmpty()) {
@@ -96,6 +87,19 @@ public class LocalFileUploadService implements FileStorage {
         }
 
         return fileUrls;
+    }
+
+    private Path prepareUploadDirectory() {
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        try {
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+        } catch (IOException e) {
+            logUploadDirectoryCreateFailed(uploadPath, e);
+            throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
+        }
+        return uploadPath;
     }
 
     private String saveSanitizedImage(SanitizedImage image, Path uploadPath) {

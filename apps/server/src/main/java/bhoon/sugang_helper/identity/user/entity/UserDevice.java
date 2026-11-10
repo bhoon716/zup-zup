@@ -11,6 +11,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Entity
 @Getter
@@ -51,7 +52,7 @@ public class UserDevice extends BaseTimeEntity {
         this.token = token;
         this.p256dh = p256dh;
         this.auth = auth;
-        if (alias != null && !alias.isBlank()) {
+        if (StringUtils.hasText(alias)) {
             this.alias = alias;
         }
     }

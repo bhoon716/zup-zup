@@ -41,6 +41,8 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 @ExtendWith(MockitoExtension.class)
 class CourseControllerValidationTest {
 
+    private static final String COURSE_DIRECTION_FIELD = "courseDirection";
+    private static final String STATUSES_FIELD = "statuses";
     private static final String SEARCH_PATH = "/api/v1/courses/search";
 
     @Mock
@@ -94,11 +96,11 @@ class CourseControllerValidationTest {
         // given
         List<String> tooManyStatuses = Collections.nCopies(21, "일반");
         List<Map<String, Object>> invalidBodies = List.of(
-                Map.of("statuses", tooManyStatuses),
-                Map.of("statuses", List.of("x".repeat(51))),
-                Map.of("courseDirection", "x".repeat(501)),
-                Map.of("courseDirection", "a,b,c,d,e,f,g,h,i,j,k"),
-                Map.of("courseDirection", "x".repeat(101)));
+                Map.of(STATUSES_FIELD, tooManyStatuses),
+                Map.of(STATUSES_FIELD, List.of("x".repeat(51))),
+                Map.of(COURSE_DIRECTION_FIELD, "x".repeat(501)),
+                Map.of(COURSE_DIRECTION_FIELD, "a,b,c,d,e,f,g,h,i,j,k"),
+                Map.of(COURSE_DIRECTION_FIELD, "x".repeat(101)));
 
         // when & then
         for (Map<String, Object> body : invalidBodies) {

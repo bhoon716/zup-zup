@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -13,7 +12,6 @@ import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.events.UserRegisteredEvent;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
@@ -30,32 +28,31 @@ import bhoon.sugang_helper.planning.timetable.entity.CustomScheduleTime;
 import bhoon.sugang_helper.planning.timetable.entity.Timetable;
 import bhoon.sugang_helper.planning.timetable.entity.TimetableEntry;
 import bhoon.sugang_helper.planning.timetable.repository.TimetableEntryRepository;
+import bhoon.sugang_helper.planning.timetable.repository.CustomScheduleRepository;
 import bhoon.sugang_helper.planning.timetable.repository.TimetableRepository;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class TimetableServiceTest {
 
-    private static MockedStatic<SecurityUtil> securityUtil;
-    private final String testEmail = "test@example.com";
-
     @InjectMocks
     private TimetableService timetableService;
 
     @Mock
     private TimetableRepository timetableRepository;
+
+    @Mock
+    private CustomScheduleRepository customScheduleRepository;
 
     @Mock
     private TimetableEntryRepository timetableEntryRepository;
@@ -70,18 +67,11 @@ class TimetableServiceTest {
 
     @BeforeEach
     void setUp() {
-        securityUtil = mockStatic(SecurityUtil.class);
         testUser = new UserIdentity(1L, false);
     }
 
-    @AfterEach
-    void tearDown() {
-        securityUtil.close();
-    }
-
     private void mockUser() {
-        given(SecurityUtil.getCurrentUserEmail()).willReturn(testEmail);
-        given(userIdentityQuery.findByEmail(testEmail)).willReturn(Optional.of(testUser));
+        given(userIdentityQuery.requireCurrentUser()).willReturn(testUser);
     }
 
     @Test
@@ -233,7 +223,7 @@ class TimetableServiceTest {
         Timetable timetable = Timetable.builder().userId(1L).name("P1").build();
         TimetableEntry entry = TimetableEntry.builder().timetable(timetable).courseKey("CK1").build();
         timetable.addEntry(entry);
-        given(timetableRepository.findById(1L)).willReturn(Optional.of(timetable));
+        given(timetableRepository.findWithEntriesById(1L)).willReturn(Optional.of(timetable));
 
         CourseSummary existingCourse = summary("CK1", "Existing Course");
         CourseSummary replacementCourse = summary("CK1", "Replacement Course");
@@ -266,7 +256,8 @@ class TimetableServiceTest {
         CourseSummary course = new CourseSummary("CK1", "SUBJECT", "01", "강의명", "교수명", 30, 0,
                 "2026", "U211600010", "전공필수", "3", "월 1교시", "강의실",
                 List.of(new CourseScheduleSummary("MONDAY", "09:00", "10:00")));
-        given(timetableRepository.findByUserIdAndIsPrimaryTrue(1L)).willReturn(List.of(primary));
+        given(timetableRepository.findWithEntriesByUserIdAndIsPrimaryTrue(1L)).willReturn(List.of(primary));
+        given(customScheduleRepository.findWithTimesByTimetableId(11L)).willReturn(List.of(custom));
         given(courseCatalogQuery.findByCourseKeyIn(List.of("CK1"))).willReturn(List.of(course));
 
         // when
@@ -286,7 +277,7 @@ class TimetableServiceTest {
     void primarySnapshotIsEmptyWithoutAPrimaryTimetable() {
         // given
         mockUser();
-        given(timetableRepository.findByUserIdAndIsPrimaryTrue(1L)).willReturn(List.of());
+        given(timetableRepository.findWithEntriesByUserIdAndIsPrimaryTrue(1L)).willReturn(List.of());
 
         // when
         Optional<PrimaryTimetableSnapshot> snapshot = timetableService.findPrimaryForCurrentUser();

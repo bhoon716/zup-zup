@@ -274,7 +274,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
     @EnableJpaRepositories(basePackageClasses = {
         SeatNotificationOutboxRepository.class, SubscriptionRepository.class, UserRepository.class
     })
-    @Import({SeatNotificationOutboxProcessor.class, SeatNotificationDeliverySettlementService.class,
+    @Import({SeatNotificationOutboxProcessor.class, SeatNotificationDeliveryStateService.class,
         SubscriptionQueryService.class, UserNotificationQueryService.class, NotificationChannelPolicy.class})
     static class Config {
 

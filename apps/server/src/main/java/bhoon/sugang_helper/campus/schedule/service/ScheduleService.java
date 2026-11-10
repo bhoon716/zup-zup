@@ -9,6 +9,7 @@ import bhoon.sugang_helper.campus.schedule.repository.ScheduleRepository;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
@@ -21,24 +22,27 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class ScheduleService implements AcademicSchedules {
 
+    private static final String SEOUL_ZONE_ID = "Asia/Seoul";
+    private static final String SCHEDULE_NOT_FOUND_MESSAGE = "해당 일정을 찾을 수 없습니다.";
+
     private final ScheduleRepository scheduleRepository;
     private final Clock clock;
 
     @Autowired
     public ScheduleService(ScheduleRepository scheduleRepository) {
-        this(scheduleRepository, Clock.system(ZoneId.of("Asia/Seoul")));
+        this(scheduleRepository, Clock.system(ZoneId.of(SEOUL_ZONE_ID)));
     }
 
     ScheduleService(ScheduleRepository scheduleRepository, Clock clock) {
         this.scheduleRepository = scheduleRepository;
-        this.clock = clock.withZone(ZoneId.of("Asia/Seoul"));
+        this.clock = clock.withZone(ZoneId.of(SEOUL_ZONE_ID));
     }
 
     public List<ScheduleResponse> getUpcomingSchedules() {
-        LocalDateTime now = LocalDateTime.now(clock);
-        return scheduleRepository.findUpcomingSchedules(now.toLocalDate())
+        LocalDate today = LocalDate.now(clock);
+        return scheduleRepository.findUpcomingSchedules(today)
                 .stream()
-                .map(schedule -> ScheduleResponse.from(schedule, now.toLocalDate()))
+                .map(schedule -> ScheduleResponse.from(schedule, today))
                 .toList();
     }
 
@@ -55,15 +59,10 @@ public class ScheduleService implements AcademicSchedules {
     }
 
     public List<ScheduleSummary> findUpcomingSchedules() {
-        return getUpcomingSchedules().stream()
-                .map(schedule -> new ScheduleSummary(
-                        schedule.getId(),
-                        schedule.getScheduleType(),
-                        schedule.getStartDate(),
-                        schedule.getEndDate(),
-                        schedule.getStartTime(),
-                        schedule.getEndTime(),
-                        schedule.getDDay()))
+        LocalDate today = LocalDate.now(clock);
+        return scheduleRepository.findUpcomingSchedules(today)
+                .stream()
+                .map(schedule -> toSummary(schedule, today))
                 .toList();
     }
 
@@ -111,10 +110,15 @@ public class ScheduleService implements AcademicSchedules {
         return ScheduleResponse.from(schedule, LocalDateTime.now(clock).toLocalDate());
     }
 
+    private static ScheduleSummary toSummary(Schedule schedule, LocalDate today) {
+        return new ScheduleSummary(schedule.getId(), schedule.getScheduleType(), schedule.getStartDate(),
+                schedule.getEndDate(), schedule.getStartTime(), schedule.getEndTime(), schedule.dDayLabel(today));
+    }
+
     private Schedule getActiveSchedule(Long id) {
         Schedule schedule = getScheduleEntity(id);
         if (schedule.getDeletedAt() != null) {
-            throw new CustomException(ErrorCode.NOT_FOUND, "해당 일정을 찾을 수 없습니다.");
+            throw new CustomException(ErrorCode.NOT_FOUND, SCHEDULE_NOT_FOUND_MESSAGE);
         }
         return schedule;
     }
@@ -127,6 +131,6 @@ public class ScheduleService implements AcademicSchedules {
 
     private Schedule getScheduleEntity(Long id) {
         return scheduleRepository.findById(id)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "해당 일정을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, SCHEDULE_NOT_FOUND_MESSAGE));
     }
 }

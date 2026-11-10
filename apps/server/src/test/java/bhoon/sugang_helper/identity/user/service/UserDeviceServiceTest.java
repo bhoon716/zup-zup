@@ -220,7 +220,7 @@ class UserDeviceServiceTest {
     void unregisterDevice_Success() {
         // given
         mockUser();
-        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(1L);
+        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(1);
 
         // when
         userDeviceService.unregisterDevice(TOKEN);
@@ -234,7 +234,7 @@ class UserDeviceServiceTest {
     void unregisterDevice_OtherUsersDevice_IsNoOp() {
         // given
         mockUser();
-        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(0L);
+        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(0);
 
         // when
         userDeviceService.unregisterDevice(TOKEN);

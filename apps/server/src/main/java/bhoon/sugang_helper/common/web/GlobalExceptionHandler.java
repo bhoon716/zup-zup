@@ -39,6 +39,8 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String CORRELATION_ID_KEY = "correlationId";
+
     private static final long STACK_TRACE_LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
     private static final int MAX_STACK_TRACE_FINGERPRINTS = 256;
     private final Map<String, Long> stackTraceLogTimes = new LinkedHashMap<>(16, 0.75f, true);
@@ -146,14 +148,18 @@ public class GlobalExceptionHandler {
                 .addKeyValue("method", method)
                 .addKeyValue("path", path)
                 .addKeyValue("status", errorCode.getStatus().value());
-        if (MDC.get("correlationId") == null) {
-            entry.addKeyValue("correlationId", correlationId);
+        if (MDC.get(CORRELATION_ID_KEY) == null) {
+            entry.addKeyValue(CORRELATION_ID_KEY, correlationId);
         }
 
         if (!errorCode.getStatus().is5xxServerError()) {
             entry.log(message);
             return;
         }
+        logServerError(entry, message, errorCode, exception);
+    }
+
+    private void logServerError(LoggingEventBuilder entry, String message, ErrorCode errorCode, Exception exception) {
         boolean includeStackTrace = shouldLogStackTrace(errorCode, exception);
         String stackTraceState = " stackTraceIncluded=" + includeStackTrace;
         entry.addKeyValue("stackTraceIncluded", includeStackTrace);

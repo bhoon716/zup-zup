@@ -4,34 +4,32 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.academic.course.dto.result.CourseReference;
 import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
 import bhoon.sugang_helper.academic.review.dto.response.CourseEmojiReviewResponse;
+import bhoon.sugang_helper.academic.review.dto.result.CourseEmojiStats;
 import bhoon.sugang_helper.academic.review.entity.CourseEmojiReview;
 import bhoon.sugang_helper.academic.review.repository.CourseEmojiReviewRepository;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,20 +57,10 @@ class CourseEmojiReviewServiceTest {
     @Mock
     private UserIdentityQueryService userIdentityQuery;
 
-    private MockedStatic<SecurityUtil> securityUtilMockedStatic;
-
     @BeforeEach
     void setUp() {
-        securityUtilMockedStatic = mockStatic(SecurityUtil.class);
         lenient().when(courseReviewCatalog.findReviewCourseKeys(any(CourseReference.class)))
                 .thenReturn(List.of(COURSE_KEY));
-    }
-
-    @AfterEach
-    void tearDown() {
-        if (securityUtilMockedStatic != null) {
-            securityUtilMockedStatic.close();
-        }
     }
 
     private User createUser(Long id) {
@@ -97,9 +85,8 @@ class CourseEmojiReviewServiceTest {
     }
 
     private void mockCurrentUser(User user) {
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmail).thenReturn(user.getEmail());
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
-        lenient().when(userIdentityQuery.findByEmail(user.getEmail())).thenReturn(Optional.of(identity(user)));
+        lenient().when(userIdentityQuery.requireCurrentUser()).thenReturn(identity(user));
+        lenient().when(userIdentityQuery.findCurrentUser()).thenReturn(Optional.of(identity(user)));
     }
 
     @Test
@@ -191,8 +178,7 @@ class CourseEmojiReviewServiceTest {
     @DisplayName("이모지 토글 - 비로그인 상태면 인증 오류를 반환한다")
     void toggleEmoji_Unauthorized_throwsException() {
         // given
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmail).thenReturn("anonymous@test.com");
-        when(userIdentityQuery.findByEmail("anonymous@test.com")).thenReturn(Optional.empty());
+        when(userIdentityQuery.requireCurrentUser()).thenThrow(new CustomException(ErrorCode.USER_UNAUTHORIZED));
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
 
         // when & then
@@ -200,7 +186,7 @@ class CourseEmojiReviewServiceTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_UNAUTHORIZED);
         verify(courseReviewCatalog).findByCourseKey(COURSE_KEY);
-        verify(userIdentityQuery).findByEmail("anonymous@test.com");
+        verify(userIdentityQuery).requireCurrentUser();
         verifyNoInteractions(emojiReviewRepository);
     }
 
@@ -209,22 +195,15 @@ class CourseEmojiReviewServiceTest {
     void getCourseEmojiStats_ReturnsMergedStats() {
         // given
         User user = createUser(USER_ID);
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
-        when(userIdentityQuery.findByEmail(user.getEmail())).thenReturn(Optional.of(identity(user)));
+        when(userIdentityQuery.findCurrentUser()).thenReturn(Optional.of(identity(user)));
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
 
-        when(emojiReviewRepository.findEmojiStatsByCourseKeys(List.of(COURSE_KEY)))
-                .thenReturn(List.<Object[]>of(
-                        new Object[]{EMOJI_THUMB, 3L},
-                        new Object[]{EMOJI_FIRE, 1L},
-                        new Object[]{EMOJI_LAUGH, 1L}
+        when(emojiReviewRepository.findEmojiStatsByCourseKeys(List.of(COURSE_KEY), USER_ID))
+                .thenReturn(List.of(
+                        new CourseEmojiStats(EMOJI_THUMB, 3L, 1),
+                        new CourseEmojiStats(EMOJI_FIRE, 1L, 0),
+                        new CourseEmojiStats(EMOJI_LAUGH, 1L, 0)
                 ));
-        when(emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_THUMB))
-                .thenReturn(1L);
-        when(emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_FIRE))
-                .thenReturn(0L);
-        when(emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_LAUGH))
-                .thenReturn(0L);
 
         // when
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
@@ -255,20 +234,17 @@ class CourseEmojiReviewServiceTest {
     void getCourseEmojiStats_UnassignedProfessor_UsesCourseKeyOnly() {
         // given
         User user = createUser(USER_ID);
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
-        when(userIdentityQuery.findByEmail(user.getEmail())).thenReturn(Optional.of(identity(user)));
+        when(userIdentityQuery.findCurrentUser()).thenReturn(Optional.of(identity(user)));
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse(UNASSIGNED_PROFESSOR)));
-        when(emojiReviewRepository.findEmojiStatsByCourseKeys(List.of(COURSE_KEY)))
-                .thenReturn(List.<Object[]>of(new Object[]{EMOJI_FIRE, 1L}));
-        when(emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(List.of(COURSE_KEY), USER_ID, EMOJI_FIRE))
-                .thenReturn(1L);
+        when(emojiReviewRepository.findEmojiStatsByCourseKeys(List.of(COURSE_KEY), USER_ID))
+                .thenReturn(List.of(new CourseEmojiStats(EMOJI_FIRE, 1L, 1)));
 
         // when
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
         // then
         assertThat(result).containsExactly(CourseEmojiReviewResponse.of(EMOJI_FIRE, 1L, true));
-        verify(emojiReviewRepository).findEmojiStatsByCourseKeys(List.of(COURSE_KEY));
+        verify(emojiReviewRepository).findEmojiStatsByCourseKeys(List.of(COURSE_KEY), USER_ID);
     }
 
     @Test
@@ -293,31 +269,29 @@ class CourseEmojiReviewServiceTest {
     @DisplayName("외부교원N 강의는 같은 교수 식별자 범위의 이모지를 조회한다")
     void getCourseEmojiStats_ExternalInstructor_UsesSharedProfessorScope() {
         // given
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(null);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse(EXTERNAL_INSTRUCTOR)));
         List<String> courseKeys = List.of("LEGACY-C1", COURSE_KEY);
         when(courseReviewCatalog.findReviewCourseKeys(createCourse(EXTERNAL_INSTRUCTOR)))
                 .thenReturn(courseKeys);
-        when(emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys))
-                .thenReturn(List.<Object[]>of(new Object[]{EMOJI_THUMB, 2L}));
+        when(emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys, null))
+                .thenReturn(List.of(new CourseEmojiStats(EMOJI_THUMB, 2L, 0)));
 
         // when
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
         // then
         assertThat(result).containsExactly(CourseEmojiReviewResponse.of(EMOJI_THUMB, 2L, false));
-        verify(emojiReviewRepository).findEmojiStatsByCourseKeys(courseKeys);
+        verify(emojiReviewRepository).findEmojiStatsByCourseKeys(courseKeys, null);
     }
 
     @Test
     @DisplayName("이모지 통계 조회 - 비로그인 상태에서도 카운트는 조회된다")
     void getCourseEmojiStats_AnonymousUser_DoesNotSetMine() {
         // given
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(null);
         when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(createCourse()));
-        when(emojiReviewRepository.findEmojiStatsByCourseKeys(List.of(COURSE_KEY)))
-                .thenReturn(List.<Object[]>of(
-                        new Object[]{EMOJI_THUMB, 2L}
+        when(emojiReviewRepository.findEmojiStatsByCourseKeys(List.of(COURSE_KEY), null))
+                .thenReturn(List.of(
+                        new CourseEmojiStats(EMOJI_THUMB, 2L, 0)
                 ));
 
         // when
@@ -330,6 +304,7 @@ class CourseEmojiReviewServiceTest {
                 .findFirst().orElseThrow();
         assertThat(thumbResponse.count()).isEqualTo(2L);
         assertThat(thumbResponse.isMine()).isFalse();
-        verify(userIdentityQuery, never()).findByEmail(any());
+        verify(userIdentityQuery).findCurrentUser();
+        verifyNoMoreInteractions(userIdentityQuery);
     }
 }

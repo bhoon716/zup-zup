@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.common.config;
 
+import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
@@ -13,12 +14,14 @@ public class FlywayConfig {
 
     @Bean
     public FlywayMigrationStrategy flywayMigrationStrategy() {
-        return flyway -> {
-            if (isH2()) {
-                flyway.repair();
-            }
-            flyway.migrate();
-        };
+        return this::migrateDatabase;
+    }
+
+    private void migrateDatabase(Flyway flyway) {
+        if (isH2()) {
+            flyway.repair();
+        }
+        flyway.migrate();
     }
 
     private boolean isH2() {

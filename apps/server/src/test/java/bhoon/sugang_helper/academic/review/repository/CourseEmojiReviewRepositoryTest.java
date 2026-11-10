@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.review.dto.criteria.ReviewScopeKey;
+import bhoon.sugang_helper.academic.review.dto.result.CourseEmojiStats;
 import bhoon.sugang_helper.academic.review.entity.CourseEmojiReview;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -42,15 +43,11 @@ class CourseEmojiReviewRepositoryTest {
         ReviewScopeKey scope = ReviewScopeKey.from(currentCourse.getSubjectCode(), currentCourse.getProfessor());
         List<String> courseKeys = courseRepository.findCourseKeysBySubjectCodeAndProfessor(
                 scope.subjectCode(), scope.professor());
-        List<Object[]> stats = emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys);
+        List<CourseEmojiStats> stats = emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys, 1L);
 
         // then
         assertThat(scope.hasIdentifiableProfessor()).isTrue();
-        assertThat(stats).singleElement().satisfies(row -> {
-            assertThat(row[0]).isEqualTo("👍");
-            assertThat(row[1]).isEqualTo(1L);
-        });
-        assertThat(emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(courseKeys, 1L, "👍")).isEqualTo(1L);
+        assertThat(stats).containsExactly(new CourseEmojiStats("👍", 1L, 1));
     }
 
     @Test
@@ -75,13 +72,10 @@ class CourseEmojiReviewRepositoryTest {
         ReviewScopeKey scope = ReviewScopeKey.from(kimCourse.getSubjectCode(), kimCourse.getProfessor());
         List<String> courseKeys = courseRepository.findCourseKeysBySubjectCodeAndProfessor(
                 scope.subjectCode(), scope.professor());
-        List<Object[]> stats = emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys);
+        List<CourseEmojiStats> stats = emojiReviewRepository.findEmojiStatsByCourseKeys(courseKeys, 1L);
 
         // then
-        assertThat(stats).singleElement().satisfies(row -> {
-            assertThat(row[0]).isEqualTo("👍");
-            assertThat(row[1]).isEqualTo(1L);
-        });
+        assertThat(stats).containsExactly(new CourseEmojiStats("👍", 1L, 1));
     }
 
     private Course course(String courseKey, String professor, String semester) {

@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +14,7 @@ import bhoon.sugang_helper.academic.review.dto.request.ReviewCreateRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewReactionRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewUpdateRequest;
 import bhoon.sugang_helper.academic.review.dto.response.ReviewResponse;
+import bhoon.sugang_helper.academic.review.dto.result.CourseReviewStats;
 import bhoon.sugang_helper.academic.review.entity.CourseReview;
 import bhoon.sugang_helper.academic.review.entity.CourseReviewReaction;
 import bhoon.sugang_helper.academic.review.enums.ReactionType;
@@ -22,14 +22,12 @@ import bhoon.sugang_helper.academic.review.repository.CourseReviewReactionReposi
 import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,7 +35,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -68,20 +65,10 @@ class CourseReviewServiceTest {
     @Mock
     private UserIdentityQueryService userIdentityQuery;
 
-    private MockedStatic<SecurityUtil> securityUtilMockedStatic;
-
     @BeforeEach
     void setUp() {
-        securityUtilMockedStatic = mockStatic(SecurityUtil.class);
         lenient().when(courseReviewCatalog.findReviewCourseKeys(any(CourseReference.class)))
                 .thenReturn(List.of(COURSE_KEY));
-    }
-
-    @AfterEach
-    void tearDown() {
-        if (securityUtilMockedStatic != null) {
-            securityUtilMockedStatic.close();
-        }
     }
 
     private User createUser(Long id, Role role) {
@@ -114,16 +101,13 @@ class CourseReviewServiceTest {
     }
 
     private void mockCurrentUser(User user) {
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmail).thenReturn(user.getEmail());
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
-        lenient().when(userIdentityQuery.findByEmail(user.getEmail())).thenReturn(Optional.of(identity(user)));
+        lenient().when(userIdentityQuery.requireCurrentUser()).thenReturn(identity(user));
+        lenient().when(userIdentityQuery.findCurrentUser()).thenReturn(Optional.of(identity(user)));
     }
 
     private void mockCourseStats(double avgRating, long count) {
-        lenient().when(reviewRepository.getAverageRatingByCourseKeys(List.of(COURSE_KEY)))
-                .thenReturn(avgRating);
-        lenient().when(reviewRepository.countByCourseKeys(List.of(COURSE_KEY)))
-                .thenReturn(count);
+        lenient().when(reviewRepository.findStatsByCourseKeys(List.of(COURSE_KEY)))
+                .thenReturn(new CourseReviewStats(avgRating, count));
 
     }
 
@@ -204,8 +188,7 @@ class CourseReviewServiceTest {
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             when(reviewRepository.countByCourseKeysAndUserId(List.of(COURSE_KEY), user.getId())).thenReturn(0L);
             when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(createReview(COURSE_KEY, user.getId()));
-            when(reviewRepository.countByCourseKeys(List.of(COURSE_KEY))).thenReturn(1L);
-            when(reviewRepository.getAverageRatingByCourseKeys(List.of(COURSE_KEY))).thenReturn(5.0);
+            when(reviewRepository.findStatsByCourseKeys(List.of(COURSE_KEY))).thenReturn(new CourseReviewStats(5.0, 1L));
 
             // when
             reviewService.createReview(COURSE_KEY, request);

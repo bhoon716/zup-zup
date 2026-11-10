@@ -8,7 +8,7 @@ import bhoon.sugang_helper.support.feedback.dto.request.FeedbackStatusUpdateRequ
 import bhoon.sugang_helper.support.feedback.dto.response.AdminFeedbackDetailResponse;
 import bhoon.sugang_helper.support.feedback.dto.response.AdminFeedbackResponse;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
-import bhoon.sugang_helper.support.feedback.service.FeedbackService;
+import bhoon.sugang_helper.support.feedback.service.AdminFeedbackService;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
@@ -35,20 +35,20 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminFeedbackController {
 
-    private final FeedbackService feedbackService;
+    private final AdminFeedbackService adminFeedbackService;
 
     @GetMapping
     public ResponseEntity<Page<AdminFeedbackResponse>> getAllFeedbacks(
             @RequestParam(required = false) String deletion,
             Pageable pageable) {
         Pageable fixedPageable = PageableGuard.fixedSize(pageable);
-        return ResponseEntity.ok(feedbackService.getFeedbacksForAdmin(fixedPageable, AdminFeedbackDeletionFilter.from(deletion)));
+        return ResponseEntity.ok(adminFeedbackService.getFeedbacksForAdmin(fixedPageable, AdminFeedbackDeletionFilter.from(deletion)));
     }
 
     @GetMapping("/{feedbackId}")
     public ResponseEntity<AdminFeedbackDetailResponse> getFeedbackDetail(
             @PathVariable Long feedbackId) {
-        return ResponseEntity.ok(feedbackService.getFeedbackDetailForAdmin(feedbackId));
+        return ResponseEntity.ok(adminFeedbackService.getFeedbackDetailForAdmin(feedbackId));
     }
 
     @PostMapping("/{feedbackId}/attachments/{attachmentId}/download")
@@ -56,7 +56,7 @@ public class AdminFeedbackController {
             @PathVariable Long feedbackId,
             @PathVariable Long attachmentId,
             @Valid @RequestBody AdminFeedbackAttachmentDownloadRequest request) {
-        var download = feedbackService.getAttachmentForCurrentAdmin(
+        var download = adminFeedbackService.getAttachmentForCurrentAdmin(
                 feedbackId, attachmentId, request.confirmed());
         return ResponseEntity.ok()
                 .contentType(download.contentType())
@@ -72,7 +72,7 @@ public class AdminFeedbackController {
             @PathVariable Long feedbackId,
             @Valid @RequestBody FeedbackStatusUpdateRequest request) {
 
-        feedbackService.updateFeedbackStatusForCurrentAdmin(feedbackId, request);
+        adminFeedbackService.updateFeedbackStatusForCurrentAdmin(feedbackId, request);
         return ResponseEntity.ok().build();
     }
 
@@ -81,7 +81,7 @@ public class AdminFeedbackController {
             @PathVariable Long feedbackId,
             @Valid @RequestBody FeedbackReplyCreateRequest request) {
 
-        Long replyId = feedbackService.createFeedbackReplyForCurrentAdmin(feedbackId, request);
+        Long replyId = adminFeedbackService.createFeedbackReplyForCurrentAdmin(feedbackId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(replyId);
     }
@@ -91,7 +91,7 @@ public class AdminFeedbackController {
             @PathVariable Long replyId,
             @Valid @RequestBody FeedbackReplyUpdateRequest request) {
 
-        feedbackService.updateFeedbackReplyForCurrentAdmin(replyId, request);
+        adminFeedbackService.updateFeedbackReplyForCurrentAdmin(replyId, request);
         return ResponseEntity.ok().build();
     }
 
@@ -99,7 +99,7 @@ public class AdminFeedbackController {
     public ResponseEntity<Void> deleteReply(
             @PathVariable Long replyId) {
 
-        feedbackService.deleteFeedbackReplyForCurrentAdmin(replyId);
+        adminFeedbackService.deleteFeedbackReplyForCurrentAdmin(replyId);
         return ResponseEntity.noContent().build();
     }
 

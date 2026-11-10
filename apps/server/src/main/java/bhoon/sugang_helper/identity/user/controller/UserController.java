@@ -30,7 +30,9 @@ import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -45,6 +47,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
+
+    private static final String SETTINGS_RETURN_PATH = "/settings";
 
     private final UserService userService;
     private final DiscordOAuthService discordOAuthService;
@@ -84,7 +88,7 @@ public class UserController {
 
     private String resolveClientIp(HttpServletRequest request) {
         String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
+        if (StringUtils.hasText(forwardedFor)) {
             return forwardedFor.split(",", 2)[0].trim();
         }
         return request.getRemoteAddr();
@@ -137,9 +141,9 @@ public class UserController {
     }
 
     @GetMapping("/discord/authorize")
-    public ResponseEntity<Void> startDiscordAuthorization(@RequestParam(defaultValue = "/settings") String returnPath,
+    public ResponseEntity<Void> startDiscordAuthorization(@RequestParam(defaultValue = SETTINGS_RETURN_PATH) String returnPath,
                                                            HttpSession session) {
-        String safeReturnPath = ONBOARDING_PATH.equals(returnPath) ? ONBOARDING_PATH : "/settings";
+        String safeReturnPath = ONBOARDING_PATH.equals(returnPath) ? ONBOARDING_PATH : SETTINGS_RETURN_PATH;
         String state = createState();
         session.setAttribute(DISCORD_STATE_ATTRIBUTE, state);
         session.setAttribute(DISCORD_RETURN_PATH_ATTRIBUTE, safeReturnPath);
@@ -147,7 +151,7 @@ public class UserController {
         String location = "https://discord.com/api/oauth2/authorize?client_id=" + discordClientId
                 + "&redirect_uri=" + URLEncoder.encode(discordRedirectUri, StandardCharsets.UTF_8)
                 + "&response_type=code&scope=identify%20applications.commands&integration_type=1&state=" + state;
-        return ResponseEntity.status(302).header("Location", location).build();
+        return ResponseEntity.status(302).header(HttpHeaders.LOCATION, location).build();
     }
 
     @GetMapping("/discord/callback")
@@ -161,15 +165,15 @@ public class UserController {
         session.removeAttribute(DISCORD_RETURN_PATH_ATTRIBUTE);
 
         try {
-            if (error != null && !error.isBlank()) {
-                throw new IllegalArgumentException("Discord OAuth provider rejected request");
+            if (StringUtils.hasText(error)) {
+                throw new IllegalArgumentException("디스코드에서 OAuth 요청을 거절했습니다.");
             }
-            if (code == null || code.isBlank() || state == null || state.isBlank()) {
-                throw new IllegalArgumentException("Discord OAuth callback is missing required parameters");
+            if (!StringUtils.hasText(code) || !StringUtils.hasText(state)) {
+                throw new IllegalArgumentException("디스코드 OAuth 콜백에 필수 파라미터가 누락됐습니다.");
             }
             if (expectedState == null || !MessageDigest.isEqual(
                     expectedState.getBytes(StandardCharsets.UTF_8), state.getBytes(StandardCharsets.UTF_8))) {
-                throw new IllegalArgumentException("Invalid Discord OAuth state");
+                throw new IllegalArgumentException("디스코드 OAuth 상태 값이 올바르지 않습니다.");
             }
             linkDiscordAccount(code);
             return buildDiscordRedirectResponse(resolveDiscordRedirectPath(redirectPath), "success");
@@ -189,7 +193,7 @@ public class UserController {
         if ("onboarding".equals(state) || ONBOARDING_PATH.equals(state)) {
             return ONBOARDING_PATH;
         }
-        return "/settings";
+        return SETTINGS_RETURN_PATH;
     }
 
     private String createState() {
@@ -200,7 +204,7 @@ public class UserController {
 
     private ResponseEntity<Void> buildDiscordRedirectResponse(String redirectPath, String result) {
         return ResponseEntity.status(302)
-                .header("Location", frontendBaseUrl + redirectPath + "?discord=" + result)
+                .header(HttpHeaders.LOCATION, frontendBaseUrl + redirectPath + "?discord=" + result)
                 .build();
     }
 
