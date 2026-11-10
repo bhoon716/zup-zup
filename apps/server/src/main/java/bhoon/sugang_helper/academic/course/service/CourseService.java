@@ -70,10 +70,8 @@ public class CourseService {
     public List<CourseCategoryResponse> getCourseCategories() {
         return courseRepository.findDistinctGeneralCategories()
                 .stream()
-                .map(category -> CourseCategoryResponse.builder()
-                        .category(category)
-                        .details(courseRepository.findDistinctGeneralDetailsByCategory(category))
-                        .build())
+                .map(category -> CourseCategoryResponse.of(
+                        category, courseRepository.findDistinctGeneralDetailsByCategory(category)))
                 .toList();
     }
 

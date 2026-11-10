@@ -94,7 +94,7 @@ class ReviewScopeContractTest {
         assertThat(reviewService.getReviews(CURRENT, PageRequest.of(0, 10)))
                 .extracting(ReviewResponse::id).containsExactly(otherReview.getId());
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
-                .containsExactly(new CourseEmojiReviewResponse("🔥", 1L, false));
+                .containsExactly(CourseEmojiReviewResponse.of("🔥", 1L, false));
 
         reviewService.createReview(CURRENT, new ReviewCreateRequest(3));
         emojiService.toggleEmoji(CURRENT, "👍");
@@ -105,8 +105,8 @@ class ReviewScopeContractTest {
         assertThat(previous.getReviewCount()).isZero();
         assertThat(emojis.count()).isEqualTo(3);
         assertThat(emojiService.getCourseEmojiStats(CURRENT)).containsExactlyInAnyOrder(
-                new CourseEmojiReviewResponse("👍", 1L, true),
-                new CourseEmojiReviewResponse("🔥", 1L, false));
+                CourseEmojiReviewResponse.of("👍", 1L, true),
+                CourseEmojiReviewResponse.of("🔥", 1L, false));
         assertDuplicateReviewRejected();
     }
 
@@ -133,13 +133,13 @@ class ReviewScopeContractTest {
         assertThat(reviewService.getReviews(CURRENT, PageRequest.of(0, 10)))
                 .extracting(ReviewResponse::id).containsExactly(myReview.getId(), otherReview.getId());
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
-                .containsExactly(new CourseEmojiReviewResponse("👍", 2L, true));
+                .containsExactly(CourseEmojiReviewResponse.of("👍", 2L, true));
 
         emojiService.toggleEmoji(CURRENT, "👍");
         reviewService.updateReview(myReview.getId(), new ReviewUpdateRequest(1));
 
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
-                .containsExactly(new CourseEmojiReviewResponse("👍", 1L, false));
+                .containsExactly(CourseEmojiReviewResponse.of("👍", 1L, false));
         assertThat(List.of(current, previous)).allSatisfy(course -> {
             assertThat(course.getReviewCount()).isEqualTo(2);
             assertThat(course.getAverageRating()).isEqualTo(2.0f);
@@ -153,7 +153,7 @@ class ReviewScopeContractTest {
             assertThat(course.getAverageRating()).isEqualTo(3.0f);
         });
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
-                .containsExactly(new CourseEmojiReviewResponse("👍", 2L, true));
+                .containsExactly(CourseEmojiReviewResponse.of("👍", 2L, true));
         assertThat(List.of(otherProfessor, otherSubject)).allSatisfy(course -> {
             assertThat(course.getReviewCount()).isZero();
             assertThat(course.getAverageRating()).isZero();

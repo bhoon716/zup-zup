@@ -33,7 +33,7 @@ public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemest
     @Transactional(readOnly = true)
     public AdminCrawlTargetResponse getCurrentTarget() {
         CrawlerSetting setting = resolveCurrentSetting();
-        return toResponse(setting);
+        return AdminCrawlTargetResponse.from(setting);
     }
 
     public CrawlerAdminSnapshot findCurrentAdminSnapshot() {
@@ -44,9 +44,7 @@ public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemest
     @Transactional(readOnly = true)
     public SearchDefaultSemesterResponse getSearchDefaultSemester() {
         CrawlerSetting setting = resolveCurrentSetting();
-        return SearchDefaultSemesterResponse.builder()
-                .semester(setting.getTargetSemester())
-                .build();
+        return SearchDefaultSemesterResponse.of(setting.getTargetSemester());
     }
 
     @Transactional
@@ -54,7 +52,7 @@ public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemest
         CrawlTargetInfo target = normalizeTarget(year, semester);
         CrawlerSetting setting = getOrCreateSetting();
         setting.updateTarget(target.year(), target.semester().getCode());
-        return toResponse(setting);
+        return AdminCrawlTargetResponse.from(setting);
     }
 
     @Transactional(readOnly = true)
@@ -118,12 +116,4 @@ public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemest
                     return crawlerSettingRepository.save(defaultSetting);
                 });
     }
-
-    private AdminCrawlTargetResponse toResponse(CrawlerSetting setting) {
-        return AdminCrawlTargetResponse.builder()
-                .year(setting.getTargetYear())
-                .semester(setting.getTargetSemester())
-                .build();
-    }
-
 }

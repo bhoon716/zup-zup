@@ -22,7 +22,7 @@ public class SubscriptionResponse {
 
     private final LocalDateTime createdAt;
 
-    public static SubscriptionResponse of(Subscription subscription, String courseName, String professorName) {
+    public static SubscriptionResponse from(Subscription subscription, String courseName, String professorName) {
         return new SubscriptionResponse(
                 subscription.getId(),
                 subscription.getCourseKey(),

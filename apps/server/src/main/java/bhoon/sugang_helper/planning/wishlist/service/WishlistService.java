@@ -91,7 +91,7 @@ public class WishlistService {
             logWishlistCourseMissing(wishlist.getCourseKey());
             return null;
         }
-        return WishlistResponse.of(wishlist, course);
+        return WishlistResponse.from(wishlist, course);
     }
 
     private UserIdentity getCurrentUser() {

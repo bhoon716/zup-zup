@@ -9,34 +9,32 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ScheduleResponse {
 
-    private Long id;
+    private final Long id;
 
-    private String scheduleType;
+    private final String scheduleType;
 
-    private LocalDate startDate;
+    private final LocalDate startDate;
 
-    private LocalDate endDate;
-
-    @JsonFormat(pattern = "HH:mm")
-    private LocalTime startTime;
+    private final LocalDate endDate;
 
     @JsonFormat(pattern = "HH:mm")
-    private LocalTime endTime;
+    private final LocalTime startTime;
+
+    @JsonFormat(pattern = "HH:mm")
+    private final LocalTime endTime;
 
     @JsonProperty("dDay")
-    private String dDay;
+    private final String dDay;
 
-    private boolean ddayEnabled;
+    private final boolean ddayEnabled;
 
-    private LocalDateTime deletedAt;
+    private final LocalDateTime deletedAt;
 
     public static ScheduleResponse from(Schedule schedule, LocalDate today) {
         LocalDate startDate = schedule.getStartDate();
@@ -64,16 +62,15 @@ public class ScheduleResponse {
     }
 
     private static ScheduleResponse from(Schedule schedule, String dDayStr) {
-        return ScheduleResponse.builder()
-                .id(schedule.getId())
-                .scheduleType(schedule.getScheduleType())
-                .startDate(schedule.getStartDate())
-                .endDate(schedule.getEndDate())
-                .startTime(schedule.getStartTime())
-                .endTime(schedule.getEndTime())
-                .dDay(dDayStr)
-                .ddayEnabled(schedule.isDdayEnabled())
-                .deletedAt(schedule.getDeletedAt())
-                .build();
+        return new ScheduleResponse(
+                schedule.getId(),
+                schedule.getScheduleType(),
+                schedule.getStartDate(),
+                schedule.getEndDate(),
+                schedule.getStartTime(),
+                schedule.getEndTime(),
+                dDayStr,
+                schedule.isDdayEnabled(),
+                schedule.getDeletedAt());
     }
 }

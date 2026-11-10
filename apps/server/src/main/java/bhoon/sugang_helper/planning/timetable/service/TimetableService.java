@@ -68,7 +68,7 @@ public class TimetableService implements Timetables {
                 .isPrimary(request.isPrimary())
                 .build();
 
-        return TimetableResponse.of(timetableRepository.save(timetable));
+        return TimetableResponse.from(timetableRepository.save(timetable));
     }
 
     @EventListener
@@ -86,7 +86,7 @@ public class TimetableService implements Timetables {
     public List<TimetableResponse> getMyTimetables() {
         UserIdentity user = getCurrentUser();
         return timetableRepository.findByUserId(user.id()).stream()
-                .map(TimetableResponse::of)
+                .map(TimetableResponse::from)
                 .toList();
     }
 
@@ -236,7 +236,7 @@ public class TimetableService implements Timetables {
         Map<String, CourseSummary> courseMap = findCoursesByKey(timetable);
         List<TimetableCourseResponse> courses = mapTimetableCourses(timetable, courseMap);
         String totalCredits = calculateTotalCredits(courses);
-        return TimetableDetailResponse.of(timetable, courses, totalCredits);
+        return TimetableDetailResponse.from(timetable, courses, totalCredits);
     }
 
     private Map<String, CourseSummary> findCoursesByKey(Timetable timetable) {
@@ -255,7 +255,7 @@ public class TimetableService implements Timetables {
                 .map(TimetableEntry::getCourseKey)
                 .map(courseMap::get)
                 .filter(course -> course != null)
-                .map(TimetableCourseResponse::of)
+                .map(TimetableCourseResponse::from)
                 .toList();
     }
 

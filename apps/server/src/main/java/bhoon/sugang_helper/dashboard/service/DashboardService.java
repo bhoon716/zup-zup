@@ -38,13 +38,7 @@ public class DashboardService {
 
         Optional<UserDashboardProfile> currentUser = userDashboardQuery.findCurrentUser();
         if (currentUser.isEmpty()) {
-            return DashboardSnapshotResponse.builder()
-                    .user(null)
-                    .notifications(List.of())
-                    .primaryTimetable(null)
-                    .upcomingSchedules(upcomingSchedules)
-                    .announcements(announcements)
-                    .build();
+            return DashboardSnapshotResponse.of(null, List.of(), null, upcomingSchedules, announcements);
         }
 
         UserDashboardProfile user = currentUser.get();
@@ -57,15 +51,10 @@ public class DashboardService {
                 .map(DashboardNotificationResult::from)
                 .toList();
 
-        var primaryTimetable = primaryTimetableQuery.findPrimaryForCurrentUser().orElse(null);
+        DashboardPrimaryTimetableResult primaryTimetable = primaryTimetableQuery.findPrimaryForCurrentUser()
+                .map(DashboardPrimaryTimetableResult::from)
+                .orElse(null);
 
-        return DashboardSnapshotResponse.builder()
-                .user(userResponse)
-                .notifications(notifications)
-                .primaryTimetable(
-                        primaryTimetable == null ? null : DashboardPrimaryTimetableResult.from(primaryTimetable))
-                .upcomingSchedules(upcomingSchedules)
-                .announcements(announcements)
-                .build();
+        return DashboardSnapshotResponse.of(userResponse, notifications, primaryTimetable, upcomingSchedules, announcements);
     }
 }

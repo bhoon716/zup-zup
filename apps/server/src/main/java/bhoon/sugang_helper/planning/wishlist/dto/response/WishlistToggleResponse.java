@@ -1,18 +1,15 @@
 package bhoon.sugang_helper.planning.wishlist.dto.response;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@Builder
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class WishlistToggleResponse {
-    private boolean isWished;
+    private final boolean isWished;
 
     public static WishlistToggleResponse of(boolean isWished) {
-        return WishlistToggleResponse.builder()
-                .isWished(isWished)
-                .build();
+        return new WishlistToggleResponse(isWished);
     }
 }

@@ -3,20 +3,29 @@ package bhoon.sugang_helper.dashboard.dto.response;
 import bhoon.sugang_helper.campus.api.AnnouncementPreview;
 import bhoon.sugang_helper.campus.api.ScheduleSummary;
 import java.util.List;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class DashboardSnapshotResponse {
 
-    private DashboardUserResult user;
+    private final DashboardUserResult user;
 
-    private List<DashboardNotificationResult> notifications;
+    private final List<DashboardNotificationResult> notifications;
 
-    private DashboardPrimaryTimetableResult primaryTimetable;
+    private final DashboardPrimaryTimetableResult primaryTimetable;
 
-    private List<ScheduleSummary> upcomingSchedules;
+    private final List<ScheduleSummary> upcomingSchedules;
 
-    private List<AnnouncementPreview> announcements;
+    private final List<AnnouncementPreview> announcements;
+
+    public static DashboardSnapshotResponse of(DashboardUserResult user,
+                                                List<DashboardNotificationResult> notifications,
+                                                DashboardPrimaryTimetableResult primaryTimetable,
+                                                List<ScheduleSummary> upcomingSchedules,
+                                                List<AnnouncementPreview> announcements) {
+        return new DashboardSnapshotResponse(user, notifications, primaryTimetable, upcomingSchedules, announcements);
+    }
 }

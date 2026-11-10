@@ -2,33 +2,33 @@ package bhoon.sugang_helper.campus.announcement.dto.response;
 
 import bhoon.sugang_helper.campus.announcement.entity.Announcement;
 import java.time.LocalDateTime;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AnnouncementListResponse {
 
     private static final int PREVIEW_LENGTH = 120;
 
-    private Long id;
+    private final Long id;
 
-    private String title;
+    private final String title;
 
-    private String previewContent;
+    private final String previewContent;
 
-    private boolean pinned;
+    private final boolean pinned;
 
-    private LocalDateTime createdAt;
+    private final LocalDateTime createdAt;
 
     public static AnnouncementListResponse from(Announcement announcement) {
-        return AnnouncementListResponse.builder()
-                .id(announcement.getId())
-                .title(announcement.getTitle())
-                .previewContent(createPreview(announcement.getContent()))
-                .pinned(announcement.isPinned())
-                .createdAt(announcement.getCreatedAt())
-                .build();
+        return new AnnouncementListResponse(
+                announcement.getId(),
+                announcement.getTitle(),
+                createPreview(announcement.getContent()),
+                announcement.isPinned(),
+                announcement.getCreatedAt());
     }
 
     private static String createPreview(String content) {

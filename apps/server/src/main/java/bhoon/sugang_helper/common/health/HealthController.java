@@ -28,7 +28,7 @@ public class HealthController {
         HealthComponent readiness = healthEndpoint.healthForPath(READINESS_GROUP);
         boolean isReady = readiness != null && Status.UP.equals(readiness.getStatus());
         String status = isReady ? Status.UP.getCode() : Status.DOWN.getCode();
-        HealthCheckResponse response = new HealthCheckResponse(
+        HealthCheckResponse response = HealthCheckResponse.of(
                 status,
                 buildProperties.getVersion(),
                 buildProperties.getTime(),

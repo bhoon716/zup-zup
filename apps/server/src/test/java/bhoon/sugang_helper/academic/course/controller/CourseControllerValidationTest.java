@@ -136,7 +136,7 @@ class CourseControllerValidationTest {
     void searchDefaultSemesterKeepsItsExistingRouteAndResponse() throws Exception {
         // given
         given(crawlerTargetService.getSearchDefaultSemester()).willReturn(
-                SearchDefaultSemesterResponse.builder().semester("U211600010").build());
+                SearchDefaultSemesterResponse.of("U211600010"));
 
         // when & then
         mockMvc.perform(get("/api/v1/courses/search-default-semester"))

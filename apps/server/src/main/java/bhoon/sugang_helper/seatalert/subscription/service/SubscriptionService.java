@@ -55,7 +55,7 @@ public class SubscriptionService {
         Subscription saved = subscriptionRepository.save(subscription);
         logSubscriptionCreated(user.id(), course.courseKey());
 
-        return SubscriptionResponse.of(saved, course.name(), course.professor());
+        return SubscriptionResponse.from(saved, course.name(), course.professor());
     }
 
     private void validateSubscription(UserIdentity user, CourseSummary course) {
@@ -112,9 +112,9 @@ public class SubscriptionService {
 
     private SubscriptionResponse convertToResponse(Subscription subscription, CourseName course) {
         if (course == null) {
-            return SubscriptionResponse.of(subscription, "Unknown", "Unknown");
+            return SubscriptionResponse.from(subscription, "Unknown", "Unknown");
         }
-        return SubscriptionResponse.of(subscription, course.name(), course.professor());
+        return SubscriptionResponse.from(subscription, course.name(), course.professor());
     }
 
     private UserIdentity getCurrentUser() {

@@ -1,21 +1,21 @@
 package bhoon.sugang_helper.planning.timetable.dto.response;
 
 import bhoon.sugang_helper.academic.api.catalog.CourseScheduleSummary;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class TimetableCourseScheduleResponse {
-    private String dayOfWeek;
-    private String startTime;
-    private String endTime;
+    private final String dayOfWeek;
+    private final String startTime;
+    private final String endTime;
 
-    public static TimetableCourseScheduleResponse of(CourseScheduleSummary schedule) {
-        return TimetableCourseScheduleResponse.builder()
-                .dayOfWeek(schedule.dayOfWeek())
-                .startTime(schedule.startTime())
-                .endTime(schedule.endTime())
-                .build();
+    public static TimetableCourseScheduleResponse from(CourseScheduleSummary schedule) {
+        return new TimetableCourseScheduleResponse(
+                schedule.dayOfWeek(),
+                schedule.startTime(),
+                schedule.endTime());
     }
 }

@@ -1,13 +1,19 @@
 package bhoon.sugang_helper.academic.crawling.dto.response;
 
-import lombok.Builder;
+import bhoon.sugang_helper.academic.crawling.entity.CrawlerSetting;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AdminCrawlTargetResponse {
 
-    private String year;
+    private final String year;
 
-    private String semester;
+    private final String semester;
+
+    public static AdminCrawlTargetResponse from(CrawlerSetting setting) {
+        return new AdminCrawlTargetResponse(setting.getTargetYear(), setting.getTargetSemester());
+    }
 }

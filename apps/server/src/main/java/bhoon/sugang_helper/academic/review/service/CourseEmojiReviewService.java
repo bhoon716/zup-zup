@@ -65,11 +65,7 @@ public class CourseEmojiReviewService {
                     boolean isMine = currentUserId != null
                             && emojiReviewRepository.countByCourseKeysAndUserIdAndEmoji(
                                     courseKeys, currentUserId, emoji) > 0;
-                    return CourseEmojiReviewResponse.builder()
-                            .emoji(emoji)
-                            .count(count)
-                            .isMine(isMine)
-                            .build();
+                    return CourseEmojiReviewResponse.of(emoji, count, isMine);
                 })
                 .toList();
     }

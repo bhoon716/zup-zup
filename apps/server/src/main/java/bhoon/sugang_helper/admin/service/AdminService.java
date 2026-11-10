@@ -54,27 +54,23 @@ public class AdminService {
         long todayNotifications = notificationHistoryQuery.countCreatedAfter(startOfToday);
         LocalDateTime lastCrawledAt = crawlerStatusQuery.findLastSuccessAt().orElse(null);
 
-        return AdminOverviewResponse.builder()
-                .totalUsers(totalUsers)
-                .totalActiveSubscriptions(totalActiveSubscriptions)
-                .todayNotificationCount(todayNotifications)
-                .crawlingStatus(resolveCrawlerStatus(now, lastCrawledAt))
-                .lastCrawledAt(lastCrawledAt)
-                .jbnuLatencyMs(null)
-                .serverTime(now)
-                .notificationTraffic(buildHourlyNotificationTraffic(now))
-                .recentLogs(buildRecentLogs(now, lastCrawledAt))
-                .build();
+        return AdminOverviewResponse.of(
+                totalUsers,
+                totalActiveSubscriptions,
+                todayNotifications,
+                resolveCrawlerStatus(now, lastCrawledAt),
+                lastCrawledAt,
+                null,
+                now,
+                buildHourlyNotificationTraffic(now),
+                buildRecentLogs(now, lastCrawledAt));
     }
 
     public AdminDashboardSnapshotResponse getDashboardSnapshot() {
         AdminOverviewResponse overview = getDashboardOverview();
         CrawlerAdminSnapshot crawlTarget = crawlerAdminSnapshotQuery.findCurrentAdminSnapshot();
 
-        return AdminDashboardSnapshotResponse.builder()
-                .overview(overview)
-                .crawlTarget(crawlTarget)
-                .build();
+        return AdminDashboardSnapshotResponse.of(overview, crawlTarget);
     }
 
     private String resolveCrawlerStatus(LocalDateTime now, LocalDateTime lastCrawledAt) {
@@ -109,10 +105,8 @@ public class AdminService {
         }
 
         return IntStream.range(0, hourlyCounts.length)
-                .mapToObj(i -> AdminHourlyTrafficResponse.builder()
-                        .label(startHour.plusHours(i).format(HOUR_LABEL_FORMATTER))
-                        .count(hourlyCounts[i])
-                        .build())
+                .mapToObj(i -> AdminHourlyTrafficResponse.of(
+                        startHour.plusHours(i).format(HOUR_LABEL_FORMATTER), hourlyCounts[i]))
                 .toList();
     }
 
@@ -134,39 +128,19 @@ public class AdminService {
 
     private AdminRecentLogResponse toNotificationLog(NotificationHistoryItem history) {
         String message = String.format("알림 발송 완료: %s (%s)", history.title(), history.channel().name());
-        return AdminRecentLogResponse.builder()
-                .timestamp(history.createdAt())
-                .level("INFO")
-                .message(message)
-                .source("NotificationService")
-                .build();
+        return AdminRecentLogResponse.of(history.createdAt(), "INFO", message, "NotificationService");
     }
 
     private AdminRecentLogResponse buildCrawlerLog(LocalDateTime now, LocalDateTime lastCrawledAt) {
         if (lastCrawledAt == null) {
-            return AdminRecentLogResponse.builder()
-                    .timestamp(now)
-                    .level("WARN")
-                    .message("크롤링 이력이 없어 상태를 확인할 수 없습니다.")
-                    .source("CourseCrawler")
-                    .build();
+            return AdminRecentLogResponse.of(now, "WARN", "크롤링 이력이 없어 상태를 확인할 수 없습니다.", "CourseCrawler");
         }
 
         if (now.minusMinutes(CRAWLER_DELAY_MINUTES).isAfter(lastCrawledAt)) {
-            return AdminRecentLogResponse.builder()
-                    .timestamp(now)
-                    .level("WARN")
-                    .message("크롤러 실행 지연이 감지되었습니다.")
-                    .source("CourseCrawler")
-                    .build();
+            return AdminRecentLogResponse.of(now, "WARN", "크롤러 실행 지연이 감지되었습니다.", "CourseCrawler");
         }
 
-        return AdminRecentLogResponse.builder()
-                .timestamp(lastCrawledAt)
-                .level("INFO")
-                .message("크롤러 주기가 정상 동작 중입니다.")
-                .source("CourseCrawler")
-                .build();
+        return AdminRecentLogResponse.of(lastCrawledAt, "INFO", "크롤러 주기가 정상 동작 중입니다.", "CourseCrawler");
     }
 
     @Transactional

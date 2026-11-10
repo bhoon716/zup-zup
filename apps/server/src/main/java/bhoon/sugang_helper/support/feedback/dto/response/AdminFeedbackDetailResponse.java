@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.support.feedback.dto.response;
 
+import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import java.time.LocalDateTime;
@@ -17,4 +18,21 @@ public record AdminFeedbackDetailResponse(
         String authorLabel,
         List<AdminFeedbackAttachmentResponse> attachments,
         List<AdminFeedbackReplyResponse> replies) {
+
+    public static AdminFeedbackDetailResponse from(AdminFeedbackDetail feedback, String authorLabel,
+                                                   List<AdminFeedbackAttachmentResponse> attachments,
+                                                   List<AdminFeedbackReplyResponse> replies) {
+        return new AdminFeedbackDetailResponse(
+                feedback.id(),
+                feedback.type(),
+                feedback.title(),
+                feedback.content(),
+                feedback.status(),
+                feedback.createdAt(),
+                feedback.deleted(),
+                feedback.deletedAt(),
+                authorLabel,
+                attachments,
+                replies);
+    }
 }

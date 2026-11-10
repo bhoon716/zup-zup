@@ -2,29 +2,29 @@ package bhoon.sugang_helper.academic.course.dto.response;
 
 import bhoon.sugang_helper.academic.course.entity.CourseSeatHistory;
 import java.time.LocalDateTime;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CourseSeatHistoryResponse {
-    private Long id;
+    private final Long id;
 
-    private String courseKey;
+    private final String courseKey;
 
-    private Integer capacity;
+    private final Integer capacity;
 
-    private Integer current;
+    private final Integer current;
 
-    private LocalDateTime detectedAt;
+    private final LocalDateTime detectedAt;
 
     public static CourseSeatHistoryResponse from(CourseSeatHistory history) {
-        return CourseSeatHistoryResponse.builder()
-                .id(history.getId())
-                .courseKey(history.getCourseKey())
-                .capacity(history.getCapacity())
-                .current(history.getCurrent())
-                .detectedAt(history.getCreatedAt())
-                .build();
+        return new CourseSeatHistoryResponse(
+                history.getId(),
+                history.getCourseKey(),
+                history.getCapacity(),
+                history.getCurrent(),
+                history.getCreatedAt());
     }
 }

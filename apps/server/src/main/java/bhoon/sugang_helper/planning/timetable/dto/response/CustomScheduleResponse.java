@@ -3,25 +3,25 @@ package bhoon.sugang_helper.planning.timetable.dto.response;
 import bhoon.sugang_helper.planning.timetable.entity.CustomSchedule;
 import java.util.List;
 import java.util.stream.Collectors;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CustomScheduleResponse {
-    private Long id;
-    private String title;
-    private String professor;
-    private List<CustomScheduleTimeResponse> schedules;
+    private final Long id;
+    private final String title;
+    private final String professor;
+    private final List<CustomScheduleTimeResponse> schedules;
 
-    public static CustomScheduleResponse of(CustomSchedule schedule) {
-        return CustomScheduleResponse.builder()
-                .id(schedule.getId())
-                .title(schedule.getTitle())
-                .professor(schedule.getProfessor())
-                .schedules(schedule.getTimes().stream()
-                        .map(CustomScheduleTimeResponse::of)
-                        .collect(Collectors.toList()))
-                .build();
+    public static CustomScheduleResponse from(CustomSchedule schedule) {
+        return new CustomScheduleResponse(
+                schedule.getId(),
+                schedule.getTitle(),
+                schedule.getProfessor(),
+                schedule.getTimes().stream()
+                        .map(CustomScheduleTimeResponse::from)
+                        .collect(Collectors.toList()));
     }
 }

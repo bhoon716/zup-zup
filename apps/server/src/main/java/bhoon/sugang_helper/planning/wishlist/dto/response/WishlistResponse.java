@@ -3,9 +3,8 @@ package bhoon.sugang_helper.planning.wishlist.dto.response;
 import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
 import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;
 import java.time.LocalDateTime;
-import lombok.Builder;
+import java.util.Objects;
 
-@Builder
 public record WishlistResponse(
     Long id,
     String courseKey,
@@ -21,21 +20,20 @@ public record WishlistResponse(
     Integer available,
     LocalDateTime createdAt
 ) {
-    public static WishlistResponse of(Wishlist wishlist, CourseSummary course) {
-        return WishlistResponse.builder()
-                .id(wishlist.getId())
-                .courseKey(wishlist.getCourseKey())
-                .subjectCode(course.subjectCode())
-                .classNumber(course.classNumber())
-                .courseName(course.name())
-                .professor(course.professor())
-                .classification(course.classification() != null ? course.classification() : "")
-                .credits(course.credits())
-                .classTime(course.classTime())
-                .current(course.current())
-                .capacity(course.capacity())
-                .available(course.available())
-                .createdAt(wishlist.getCreatedAt())
-                .build();
+    public static WishlistResponse from(Wishlist wishlist, CourseSummary course) {
+        return new WishlistResponse(
+                wishlist.getId(),
+                wishlist.getCourseKey(),
+                course.subjectCode(),
+                course.classNumber(),
+                course.name(),
+                course.professor(),
+                Objects.requireNonNullElse(course.classification(), ""),
+                course.credits(),
+                course.classTime(),
+                course.current(),
+                course.capacity(),
+                course.available(),
+                wishlist.getCreatedAt());
     }
 }

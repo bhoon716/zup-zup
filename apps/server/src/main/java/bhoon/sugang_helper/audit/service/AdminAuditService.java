@@ -97,14 +97,7 @@ public class AdminAuditService implements AuditRecorder {
     }
 
     private AdminActionLogResponse toResponse(AdminActionLog actionLog) {
-        return new AdminActionLogResponse(
-                actionLog.getId(),
-                actionLog.getAdminId(),
-                actionLog.getActionType(),
-                actionLog.getTargetType(),
-                actionLog.getTargetId(),
-                deserializeSafely(actionLog.getMetaData()),
-                actionLog.getCreatedAt());
+        return AdminActionLogResponse.from(actionLog, deserializeSafely(actionLog.getMetaData()));
     }
 
     private AdminAuditMetadata deserializeSafely(String serializedMetadata) {

@@ -78,7 +78,7 @@ public class CourseReviewService {
 
         updateCourseReviewStats(courseKeys);
 
-        return ReviewResponse.of(saved, user.id());
+        return ReviewResponse.from(saved, user.id());
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +88,7 @@ public class CourseReviewService {
         Pageable boundedPageable = PageableGuard.requireBounded(pageable);
         List<String> courseKeys = courseReviewCatalog.findReviewCourseKeys(course);
         return reviewRepository.findByCourseKeysWithMyReviewFirst(courseKeys, currentUserId, boundedPageable)
-                .map(review -> ReviewResponse.of(review, currentUserId));
+                .map(review -> ReviewResponse.from(review, currentUserId));
     }
 
     @Transactional
@@ -107,7 +107,7 @@ public class CourseReviewService {
 
         updateCourseReviewStats(courseReviewCatalog.findReviewCourseKeys(course));
 
-        return ReviewResponse.of(review, user.id());
+        return ReviewResponse.from(review, user.id());
     }
 
     @Transactional

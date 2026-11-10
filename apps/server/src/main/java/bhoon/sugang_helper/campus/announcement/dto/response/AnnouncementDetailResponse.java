@@ -2,36 +2,36 @@ package bhoon.sugang_helper.campus.announcement.dto.response;
 
 import bhoon.sugang_helper.campus.announcement.entity.Announcement;
 import java.time.LocalDateTime;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AnnouncementDetailResponse {
 
-    private Long id;
+    private final Long id;
 
-    private String title;
+    private final String title;
 
-    private String content;
+    private final String content;
 
-    private boolean pinned;
+    private final boolean pinned;
 
-    private boolean published;
+    private final boolean published;
 
-    private LocalDateTime createdAt;
+    private final LocalDateTime createdAt;
 
-    private LocalDateTime updatedAt;
+    private final LocalDateTime updatedAt;
 
     public static AnnouncementDetailResponse from(Announcement announcement) {
-        return AnnouncementDetailResponse.builder()
-                .id(announcement.getId())
-                .title(announcement.getTitle())
-                .content(announcement.getContent())
-                .pinned(announcement.isPinned())
-                .published(announcement.isPublished())
-                .createdAt(announcement.getCreatedAt())
-                .updatedAt(announcement.getUpdatedAt())
-                .build();
+        return new AnnouncementDetailResponse(
+                announcement.getId(),
+                announcement.getTitle(),
+                announcement.getContent(),
+                announcement.isPinned(),
+                announcement.isPublished(),
+                announcement.getCreatedAt(),
+                announcement.getUpdatedAt());
     }
 }

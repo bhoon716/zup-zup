@@ -1,13 +1,18 @@
 package bhoon.sugang_helper.admin.dto.response;
 
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AdminHourlyTrafficResponse {
 
-    private String label;
+    private final String label;
 
-    private long count;
+    private final long count;
+
+    public static AdminHourlyTrafficResponse of(String label, long count) {
+        return new AdminHourlyTrafficResponse(label, count);
+    }
 }

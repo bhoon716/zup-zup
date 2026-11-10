@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementListResponse;
+import bhoon.sugang_helper.campus.announcement.entity.Announcement;
 import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -41,19 +43,16 @@ class AnnouncementControllerTest {
     @Test
     @DisplayName("고정 여부를 포함한 공지 페이지와 고정 페이지 크기를 반환한다")
     void returnsPagedAnnouncementsWithoutChangingPinnedOrderingContract() throws Exception {
-        // when
-        AnnouncementListResponse response = AnnouncementListResponse.builder()
-                .id(1L)
-                .title("고정 공지")
-                .previewContent("미리보기")
-                .pinned(true)
-                .createdAt(LocalDateTime.of(2026, 7, 13, 10, 0))
-                .build();
+        // given
+        Announcement announcement = new Announcement("고정 공지", "미리보기", true, true);
+        ReflectionTestUtils.setField(announcement, "id", 1L);
+        ReflectionTestUtils.setField(announcement, "createdAt", LocalDateTime.of(2026, 7, 13, 10, 0));
+        AnnouncementListResponse response = AnnouncementListResponse.from(announcement);
         when(announcementService.getPublicAnnouncements(
                 eq("검색"), eq(AnnouncementSearchType.TITLE_CONTENT), eq(PageRequest.of(1, 30))))
                 .thenReturn(new PageImpl<>(List.of(response), PageRequest.of(1, 30), 61));
 
-        // then
+        // when & then
         mockMvc.perform(get("/api/v1/announcements")
                         .param("keyword", "검색")
                         .param("page", "1")

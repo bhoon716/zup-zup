@@ -23,7 +23,7 @@ public class AuthController {
     @GetMapping("/csrf")
     public ResponseEntity<CsrfTokenResponse> csrf(CsrfToken csrfToken) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(new CsrfTokenResponse(csrfToken.getToken()));
+                .body(CsrfTokenResponse.of(csrfToken.getToken()));
     }
 
     @PostMapping("/logout")

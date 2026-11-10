@@ -234,16 +234,8 @@ public class FeedbackService {
                 .map(AdminFeedbackSummary::authorId)
                 .toList());
         return feedbacks
-                .map(feedback -> new AdminFeedbackResponse(
-                        feedback.id(),
-                        feedback.type(),
-                        feedback.title(),
-                        feedback.status(),
-                        feedback.createdAt(),
-                        feedback.hasReplies(),
-                        feedback.deleted(),
-                        feedback.deletedAt(),
-                        authorLabel(isWithdrawnAuthor(feedback.authorId(), withdrawnByUserId))));
+                .map(feedback -> AdminFeedbackResponse.from(
+                        feedback, authorLabel(isWithdrawnAuthor(feedback.authorId(), withdrawnByUserId))));
     }
 
     @Transactional(readOnly = true)
@@ -254,28 +246,14 @@ public class FeedbackService {
         Map<Long, Boolean> withdrawnByUserId = findAccountStatuses(feedback.authorId() == null
                 ? List.of()
                 : List.of(feedback.authorId()));
-        return new AdminFeedbackDetailResponse(
-                feedback.id(),
-                feedback.type(),
-                feedback.title(),
-                feedback.content(),
-                feedback.status(),
-                feedback.createdAt(),
-                feedback.deleted(),
-                feedback.deletedAt(),
+        return AdminFeedbackDetailResponse.from(
+                feedback,
                 authorLabel(isWithdrawnAuthor(feedback.authorId(), withdrawnByUserId)),
                 adminFeedbackReadRepository.findAttachments(feedbackId).stream()
-                        .map(attachment -> new AdminFeedbackAttachmentResponse(attachment.id()))
+                        .map(attachment -> AdminFeedbackAttachmentResponse.of(attachment.id()))
                         .toList(),
                 adminFeedbackReadRepository.findReplies(feedbackId).stream()
-                        .map(reply -> new AdminFeedbackReplyResponse(
-                                reply.id(),
-                                "관리자",
-                                reply.content(),
-                                reply.createdAt(),
-                                reply.updatedAt(),
-                                reply.deleted(),
-                                reply.deletedAt()))
+                        .map(reply -> AdminFeedbackReplyResponse.from(reply, "관리자"))
                         .toList());
     }
 

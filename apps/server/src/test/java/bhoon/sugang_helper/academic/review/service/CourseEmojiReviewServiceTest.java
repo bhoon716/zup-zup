@@ -267,7 +267,7 @@ class CourseEmojiReviewServiceTest {
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
         // then
-        assertThat(result).containsExactly(new CourseEmojiReviewResponse(EMOJI_FIRE, 1L, true));
+        assertThat(result).containsExactly(CourseEmojiReviewResponse.of(EMOJI_FIRE, 1L, true));
         verify(emojiReviewRepository).findEmojiStatsByCourseKeys(List.of(COURSE_KEY));
     }
 
@@ -305,7 +305,7 @@ class CourseEmojiReviewServiceTest {
         List<CourseEmojiReviewResponse> result = emojiReviewService.getCourseEmojiStats(COURSE_KEY);
 
         // then
-        assertThat(result).containsExactly(new CourseEmojiReviewResponse(EMOJI_THUMB, 2L, false));
+        assertThat(result).containsExactly(CourseEmojiReviewResponse.of(EMOJI_THUMB, 2L, false));
         verify(emojiReviewRepository).findEmojiStatsByCourseKeys(courseKeys);
     }
 

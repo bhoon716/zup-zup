@@ -8,4 +8,8 @@ public record HealthCheckResponse(
         String version,
         Instant buildTime,
         LocalDateTime timestamp) {
+
+    public static HealthCheckResponse of(String status, String version, Instant buildTime, LocalDateTime timestamp) {
+        return new HealthCheckResponse(status, version, buildTime, timestamp);
+    }
 }

@@ -1,18 +1,23 @@
 package bhoon.sugang_helper.admin.dto.response;
 
 import java.time.LocalDateTime;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AdminRecentLogResponse {
 
-    private LocalDateTime timestamp;
+    private final LocalDateTime timestamp;
 
-    private String level;
+    private final String level;
 
-    private String message;
+    private final String message;
 
-    private String source;
+    private final String source;
+
+    public static AdminRecentLogResponse of(LocalDateTime timestamp, String level, String message, String source) {
+        return new AdminRecentLogResponse(timestamp, level, message, source);
+    }
 }
