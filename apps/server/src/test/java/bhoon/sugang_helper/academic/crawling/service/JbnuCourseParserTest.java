@@ -18,6 +18,9 @@ import org.junit.jupiter.api.Test;
 
 class JbnuCourseParserTest {
 
+    private static final String COURSE_ROWS_JSON_PREFIX = "{\"dsEstSbjList\":[";
+    private static final String EMPTY_COURSE_LIST_JSON = COURSE_ROWS_JSON_PREFIX + "]}";
+
     private final JbnuCourseParser parser = new JbnuCourseParser();
 
     @Test
@@ -57,10 +60,13 @@ class JbnuCourseParserTest {
                           "SEMSTR_CD": "SUSR016.010",
                           "STDTR_NO": "GECO001"
                         }
-                        """).getBytes(StandardCharsets.UTF_8)), "2026", "SUSR016.010");
+                        """).getBytes(StandardCharsets.UTF_8)), "2027", "SUSR016.020");
 
         // then
-        assertThat(iterator).toIterable().extracting(ParsedCourseDto::stdtrNo).containsExactly("GECO001");
+        assertThat(iterator).toIterable().singleElement().satisfies(course -> {
+            assertThat(course.stdtrNo()).isEqualTo("GECO001");
+            assertThat(course.courseKey()).isEqualTo("2027:SUSR016.020:A001:1");
+        });
     }
 
     @Test
@@ -105,7 +111,7 @@ class JbnuCourseParserTest {
     @DisplayName("분류별 정상 빈 배열은 빈 목록으로 반환한다")
     void parseCourses_allowsEmptyCourseList() {
         // given
-        String json = "{\"dsEstSbjList\":[]}";
+        String json = EMPTY_COURSE_LIST_JSON;
 
         // when
         List<ParsedCourseDto> courses = parser.parseCourses(json);
@@ -119,7 +125,7 @@ class JbnuCourseParserTest {
     void streamCourses_allowsEmptyCourseList() {
         // given
         ByteArrayInputStream stream = new ByteArrayInputStream(
-                "{\"dsEstSbjList\":[]}".getBytes(StandardCharsets.UTF_8));
+                EMPTY_COURSE_LIST_JSON.getBytes(StandardCharsets.UTF_8));
 
         // when
         Iterator<ParsedCourseDto> courses = parser.streamCourses(stream, "2026", "U211600025");
@@ -147,7 +153,7 @@ class JbnuCourseParserTest {
     @DisplayName("잘못된 JSON은 파싱을 거부한다")
     void parseCourses_rejectsMalformedJson() {
         // when & then
-        assertThatThrownBy(() -> parser.parseCourses("{\"dsEstSbjList\":["))
+        assertThatThrownBy(() -> parser.parseCourses(COURSE_ROWS_JSON_PREFIX))
                 .isInstanceOf(CustomException.class)
                 .satisfies(t -> assertThat(((CustomException) t).getDetail()).contains("Malformed crawler JSON"));
     }
@@ -237,8 +243,34 @@ class JbnuCourseParserTest {
         assertThat(course.schedules().get(0).endTime()).isEqualTo(LocalTime.of(12, 0));
     }
 
+    @Test
+    @DisplayName("혼합된 시간 표기를 요일순으로 정리하고 이어지는 반 교시만 합친다")
+    void parseCourses_ordersAndMergesMixedScheduleFormats() {
+        // given
+        String json = jsonResponse("""
+                {
+                  "SBJCT_CD": "A001",
+                  "DVCLS_NO": 1,
+                  "YRSA": "2026",
+                  "SEMSTR_CD": "SUSR016.010",
+                  "DOW_HR_CN": "목 13:00-14:00, 수 2a~3B, 월 1-B, 화 2~3, 월 1a, 금 15-B, 수 99-A, 토 24:00-25:00"
+                }
+                """);
+
+        // when
+        ParsedCourseDto course = parser.parseCourses(json).getFirst();
+
+        // then
+        assertThat(course.schedules()).containsExactly(
+                new ParsedCourseScheduleDto(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)),
+                new ParsedCourseScheduleDto(CourseDayOfWeek.TUESDAY, LocalTime.of(10, 0), LocalTime.of(12, 0)),
+                new ParsedCourseScheduleDto(CourseDayOfWeek.WEDNESDAY, LocalTime.of(10, 0), LocalTime.of(12, 0)),
+                new ParsedCourseScheduleDto(CourseDayOfWeek.THURSDAY, LocalTime.of(13, 0), LocalTime.of(14, 0)),
+                new ParsedCourseScheduleDto(CourseDayOfWeek.FRIDAY, LocalTime.of(23, 30), LocalTime.of(23, 59)));
+    }
+
     private String jsonResponse(String row) {
-        return "{\"dsEstSbjList\":[" + row + "]}";
+        return COURSE_ROWS_JSON_PREFIX + row + "]}";
     }
 
     private String readFixture(String path) {
