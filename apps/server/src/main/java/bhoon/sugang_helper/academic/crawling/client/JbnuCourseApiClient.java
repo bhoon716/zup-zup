@@ -81,22 +81,14 @@ public class JbnuCourseApiClient implements CourseApiClient {
 
     @Override
     public InputStream fetchCourseDataStream(String year, String semester, String certDivision) {
-        String targetCertDivision = resolveCertDivision(certDivision);
-        int retryCount = 0;
-
-        while (true) {
-            long startedAt = System.nanoTime();
-            try {
-                byte[] bodyBytes = executeSingleRequest(year, semester, targetCertDivision);
-                recordUpstreamLatency(startedAt);
-                return new BoundedInputStream(new ByteArrayInputStream(bodyBytes), maximumResponseBytes);
-            } catch (Exception e) {
-                recordUpstreamLatency(startedAt);
-                retryCount++;
-                handleRequestError(e, retryCount, year, semester, targetCertDivision);
-                waitBeforeRetry(retryCount, year, semester, targetCertDivision, e);
-            }
+        try (Session session = openSession()) {
+            return session.fetchCourseDataStream(year, semester, certDivision);
         }
+    }
+
+    @Override
+    public Session openSession() {
+        return new JumpSession();
     }
 
     private String resolveCertDivision(String requestedDivision) {
@@ -109,8 +101,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
         return DEFAULT_CERT_DIVISION;
     }
 
-    private byte[] executeSingleRequest(String year, String semester, String targetCertDivision) {
-        CookieManager cookieManager = new CookieManager();
+    private HttpClient createHttpClient(CookieManager cookieManager) {
         HttpClient.Builder httpClientBuilder = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .cookieHandler(cookieManager)
@@ -119,11 +110,7 @@ public class JbnuCourseApiClient implements CourseApiClient {
             httpClientBuilder.connectTimeout(Duration.ofMillis(timeoutMs));
         }
 
-        try (HttpClient httpClient = httpClientBuilder.build()) {
-            RestClient restClient = createRestClient(httpClient);
-            fetchSessionCookies(restClient, cookieManager);
-            return requestCourseData(restClient, year, semester, targetCertDivision);
-        }
+        return httpClientBuilder.build();
     }
 
     private byte[] requestCourseData(RestClient restClient, String year, String semester,
@@ -292,12 +279,64 @@ public class JbnuCourseApiClient implements CourseApiClient {
                     .uri(bootstrapUrl)
                     .header("Accept", "text/html, */*")
                     .exchange((request, response) -> readResponse(response));
-            if (cookieManager.getCookieStore().getCookies().stream().allMatch(HttpCookie::hasExpired)) {
+            if (sessionCookiesExpired(cookieManager)) {
                 throw new IOException("JUMP session cookies are empty");
             }
         } catch (Exception exception) {
             throw new CrawlerUpstreamException(CrawlerFailureStage.JUMP_BOOTSTRAP,
                     upstreamStatusCode(exception), isTransientFailure(exception), exception);
+        }
+    }
+
+    private boolean sessionCookiesExpired(CookieManager cookieManager) {
+        return cookieManager.getCookieStore().getCookies().stream().allMatch(HttpCookie::hasExpired);
+    }
+
+    private class JumpSession implements Session {
+
+        private final CookieManager cookieManager = new CookieManager();
+        private HttpClient httpClient;
+        private RestClient restClient;
+
+        @Override
+        public InputStream fetchCourseDataStream(String year, String semester, String certDivision) {
+            String targetCertDivision = resolveCertDivision(certDivision);
+            int retryCount = 0;
+
+            while (true) {
+                long startedAt = System.nanoTime();
+                try {
+                    byte[] bodyBytes = requestCourseData(authenticatedClient(), year, semester, targetCertDivision);
+                    recordUpstreamLatency(startedAt);
+                    return new BoundedInputStream(new ByteArrayInputStream(bodyBytes), maximumResponseBytes);
+                } catch (Exception e) {
+                    close();
+                    recordUpstreamLatency(startedAt);
+                    retryCount++;
+                    handleRequestError(e, retryCount, year, semester, targetCertDivision);
+                    waitBeforeRetry(retryCount, year, semester, targetCertDivision, e);
+                }
+            }
+        }
+
+        private RestClient authenticatedClient() {
+            if (httpClient == null || httpClient.isTerminated()) {
+                httpClient = createHttpClient(cookieManager);
+                restClient = createRestClient(httpClient);
+            }
+            if (sessionCookiesExpired(cookieManager)) {
+                fetchSessionCookies(restClient, cookieManager);
+            }
+            return restClient;
+        }
+
+        @Override
+        public void close() {
+            if (httpClient == null) {
+                return;
+            }
+            httpClient.close();
+            cookieManager.getCookieStore().removeAll();
         }
     }
 

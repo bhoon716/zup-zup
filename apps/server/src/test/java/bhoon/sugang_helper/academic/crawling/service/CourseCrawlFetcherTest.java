@@ -42,10 +42,14 @@ class CourseCrawlFetcherTest {
     @Mock
     private CourseApiClient apiClient;
 
+    @Mock
+    private CourseApiClient.Session session;
+
     private CourseCrawlFetcher fetcher;
 
     @BeforeEach
     void setUp() {
+        given(apiClient.openSession()).willReturn(session);
         fetcher = new CourseCrawlFetcher(apiClient, new JbnuCourseParser());
         ReflectionTestUtils.setField(fetcher, "certDivisions", CERT_DIVISIONS);
         ReflectionTestUtils.setField(fetcher, "interRequestDelayMs", 0L);
@@ -97,7 +101,7 @@ class CourseCrawlFetcherTest {
     @DisplayName("첫 번째·중간·마지막 분류의 정상 빈 응답을 허용한다")
     void fetch_AllowsEmptyDivisionAtAnyPosition(String emptyDivision) {
         // given
-        given(apiClient.fetchCourseDataStream(eq(YEAR), eq(SEMESTER), anyString()))
+        given(session.fetchCourseDataStream(eq(YEAR), eq(SEMESTER), anyString()))
                 .willAnswer(invocation -> {
                     String division = invocation.getArgument(2);
                     return responseStream(division.equals(emptyDivision)
@@ -142,8 +146,9 @@ class CourseCrawlFetcherTest {
                 .as(description)
                 .isInstanceOf(CustomException.class)
                 .satisfies(exception -> assertThat(((CustomException) exception).getErrorCode()).isEqualTo(errorCode));
-        verify(apiClient).fetchCourseDataStream(YEAR, SEMESTER, "5");
-        verify(apiClient, never()).fetchCourseDataStream(YEAR, SEMESTER, "7");
+        verify(session).fetchCourseDataStream(YEAR, SEMESTER, "5");
+        verify(session, never()).fetchCourseDataStream(YEAR, SEMESTER, "7");
+        verify(session).close();
     }
 
     @Test
@@ -165,14 +170,15 @@ class CourseCrawlFetcherTest {
     void fetch_PropagatesUpstreamFailureAfterEmptyDivision() {
         // given
         CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
-        given(apiClient.fetchCourseDataStream(YEAR, SEMESTER, "1")).willReturn(responseStream(EMPTY_RESPONSE));
-        given(apiClient.fetchCourseDataStream(YEAR, SEMESTER, "2"))
+        given(session.fetchCourseDataStream(YEAR, SEMESTER, "1")).willReturn(responseStream(EMPTY_RESPONSE));
+        given(session.fetchCourseDataStream(YEAR, SEMESTER, "2"))
                 .willReturn(responseStream(courseResponse(SUBJECT_CODE)));
-        given(apiClient.fetchCourseDataStream(YEAR, SEMESTER, "5")).willThrow(failure);
+        given(session.fetchCourseDataStream(YEAR, SEMESTER, "5")).willThrow(failure);
 
         // when & then
         assertThatThrownBy(() -> fetcher.fetch(YEAR, SEMESTER)).isSameAs(failure);
-        verify(apiClient, never()).fetchCourseDataStream(YEAR, SEMESTER, "7");
+        verify(session, never()).fetchCourseDataStream(YEAR, SEMESTER, "7");
+        verify(session).close();
     }
 
     private static Stream<Arguments> invalidDivisionResponses() {
@@ -188,15 +194,17 @@ class CourseCrawlFetcherTest {
     }
 
     private void stubResponses(Map<String, String> responses) {
-        given(apiClient.fetchCourseDataStream(eq(YEAR), eq(SEMESTER), anyString()))
+        given(session.fetchCourseDataStream(eq(YEAR), eq(SEMESTER), anyString()))
                 .willAnswer(invocation -> responseStream(responses.getOrDefault(invocation.getArgument(2), EMPTY_RESPONSE)));
     }
 
     private void assertAllDivisionsRequestedInOrder() {
-        var ordered = inOrder(apiClient);
+        var ordered = inOrder(apiClient, session);
+        ordered.verify(apiClient).openSession();
         for (String division : CERT_DIVISIONS) {
-            ordered.verify(apiClient).fetchCourseDataStream(YEAR, SEMESTER, division);
+            ordered.verify(session).fetchCourseDataStream(YEAR, SEMESTER, division);
         }
+        ordered.verify(session).close();
         ordered.verifyNoMoreInteractions();
     }
 

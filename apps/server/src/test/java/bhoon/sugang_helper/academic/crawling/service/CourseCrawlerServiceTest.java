@@ -72,6 +72,9 @@ class CourseCrawlerServiceTest {
     private CourseApiClient apiClient;
 
     @Mock
+    private CourseApiClient.Session session;
+
+    @Mock
     private JbnuCourseParser courseParser;
 
     @InjectMocks
@@ -230,7 +233,8 @@ class CourseCrawlerServiceTest {
         CourseCrawlerService service = new CourseCrawlerService(
                 validatingFetcher, courseCrawlCompletionService, crawlerTargetService, crawlerRunStateService,
                 meterRegistry);
-        given(apiClient.fetchCourseDataStream(eq(YEAR), eq(SEMESTER), anyString())).willReturn(stream);
+        given(apiClient.openSession()).willReturn(session);
+        given(session.fetchCourseDataStream(eq(YEAR), eq(SEMESTER), anyString())).willReturn(stream);
         given(courseParser.streamCourses(any(), eq(YEAR), eq(SEMESTER)))
                 .willReturn(List.of(missingName).iterator())
                 .willReturn(Collections.emptyIterator());

@@ -42,19 +42,22 @@ public class CourseCrawlFetcher {
         List<ParsedCourseDto> accumulated = new ArrayList<>();
         int totalDivisions = divisions.size();
 
-        for (int i = 0; i < totalDivisions; i++) {
-            String certDiv = divisions.get(i);
-            fetchSingleChunk(year, semester, certDiv, accumulated);
-            paceRequest(i, totalDivisions);
+        try (CourseApiClient.Session session = apiClient.openSession()) {
+            for (int i = 0; i < totalDivisions; i++) {
+                String certDiv = divisions.get(i);
+                fetchSingleChunk(session, year, semester, certDiv, accumulated);
+                paceRequest(i, totalDivisions);
+            }
         }
         return accumulated;
     }
 
-    private void fetchSingleChunk(String year, String semester, String certDiv, List<ParsedCourseDto> accumulator) {
+    private void fetchSingleChunk(CourseApiClient.Session session, String year, String semester, String certDiv,
+                                  List<ParsedCourseDto> accumulator) {
         long startNs = System.nanoTime();
         logChunkStarted(year, semester, certDiv);
 
-        try (InputStream responseStream = apiClient.fetchCourseDataStream(year, semester, certDiv)) {
+        try (InputStream responseStream = session.fetchCourseDataStream(year, semester, certDiv)) {
             Iterator<ParsedCourseDto> iterator = courseParser.streamCourses(responseStream, year, semester);
             int initialSize = accumulator.size();
             iterator.forEachRemaining(accumulator::add);

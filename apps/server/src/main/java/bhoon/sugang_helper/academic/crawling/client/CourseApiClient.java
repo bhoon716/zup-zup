@@ -5,4 +5,14 @@ import java.io.InputStream;
 public interface CourseApiClient {
 
     InputStream fetchCourseDataStream(String year, String semester, String certDivision);
+
+    Session openSession();
+
+    interface Session extends AutoCloseable {
+
+        InputStream fetchCourseDataStream(String year, String semester, String certDivision);
+
+        @Override
+        void close();
+    }
 }
