@@ -178,6 +178,9 @@ public class TimetableService implements Timetables {
     public void setPrimary(Long timetableId) {
         Timetable timetable = getTimetable(timetableId);
         validateOwnership(timetable);
+        if (timetable.isPrimary()) {
+            return;
+        }
 
         resetPrimary(timetable.getUserId());
         timetable.setPrimary(true);
@@ -300,9 +303,14 @@ public class TimetableService implements Timetables {
 
     private void resetPrimary(Long userId) {
         List<Timetable> primaryTimetables = timetableRepository.findByUserIdAndIsPrimaryTrue(userId);
+        if (primaryTimetables.isEmpty()) {
+            return;
+        }
+
         for (Timetable primaryTimetable : primaryTimetables) {
             primaryTimetable.setPrimary(false);
         }
+        timetableRepository.flush();
     }
 
     private Timetable getTimetable(Long timetableId) {
