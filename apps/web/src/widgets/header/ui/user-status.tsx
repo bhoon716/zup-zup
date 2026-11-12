@@ -29,10 +29,7 @@ export function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLogi
 
   return (
     <div className="flex items-center gap-3">
-      <div className="mr-1 flex max-w-20 flex-col items-end 2xl:max-w-28">
-        <span className="w-full truncate text-right text-xs font-bold leading-none" title={user.name}>{user.name} 님</span>
-        <span className="text-[10px] text-muted-foreground mt-1">로그인 됨</span>
-      </div>
+      <span className="mr-1 max-w-20 truncate text-right text-xs font-bold leading-none 2xl:max-w-28" title={user.name}>{user.name} 님</span>
       <Button
         variant="ghost"
         size="sm"
