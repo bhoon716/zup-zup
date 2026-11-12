@@ -56,8 +56,8 @@ function MobileKeywordSearch({ initialKeyword, isLoading, onSearch }: MobileKeyw
       <div className="relative min-w-0 flex-1">
         <Input
           type="search"
-          aria-label="강의명 또는 학수번호"
-          placeholder="강의명 또는 학수번호"
+          aria-label="강의명"
+          placeholder="강의명"
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
           className="h-10 rounded-lg bg-card pl-9"

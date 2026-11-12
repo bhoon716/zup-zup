@@ -28,7 +28,7 @@ describe("CourseSearchBar", () => {
       />,
     );
 
-    expect(screen.getByPlaceholderText("강의명 또는 학수번호")).toHaveValue("첫번째");
+    expect(screen.getByPlaceholderText("강의명")).toHaveValue("첫번째");
 
     rerender(
       <CourseSearchBar
@@ -38,7 +38,7 @@ describe("CourseSearchBar", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText("강의명 또는 학수번호")).toHaveValue("두번째");
+      expect(screen.getByPlaceholderText("강의명")).toHaveValue("두번째");
     });
   });
 

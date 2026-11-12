@@ -173,7 +173,7 @@ describe("SearchPage", () => {
     const user = userEvent.setup();
     render(<SearchPage />);
 
-    const getKeywordInput = () => screen.getByRole("searchbox", { name: "강의명 또는 학수번호" });
+    const getKeywordInput = () => screen.getByRole("searchbox", { name: "강의명" });
     await user.type(getKeywordInput(), "자료구조");
     await user.click(screen.getByRole("button", { name: "검색" }));
 

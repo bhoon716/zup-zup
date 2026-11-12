@@ -96,8 +96,8 @@ export const CourseSearchBar = memo(function CourseSearchBar({
             <div className="relative min-w-0 flex-1">
               <Input
                 type="search"
-                aria-label="강의명 또는 학수번호"
-                placeholder="강의명 또는 학수번호"
+                aria-label="강의명"
+                placeholder="강의명"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onFocus={() => { isFocusedRef.current = true; }}

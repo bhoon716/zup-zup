@@ -22,9 +22,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Pageable;
@@ -95,16 +93,7 @@ public class CourseSearchReadRepository {
     }
 
     private BooleanExpression containsKeyword(String keyword) {
-        return Optional.ofNullable(keyword)
-                .filter(StringUtils::hasText)
-                .map(this::matchesKeyword)
-                .orElse(null);
-    }
-
-    private BooleanExpression matchesKeyword(String keyword) {
-        String normalizedValue = keyword.trim();
-        return course.name.contains(normalizedValue)
-                .or(course.stdtrNo.eq(normalizedValue.toUpperCase(Locale.ROOT)));
+        return StringUtils.hasText(keyword) ? course.name.contains(keyword.trim()) : null;
     }
 
     private BooleanExpression eqSubjectCode(String subjectCode) {
