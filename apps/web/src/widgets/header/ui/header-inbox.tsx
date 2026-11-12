@@ -3,8 +3,9 @@
 import { format } from "date-fns";
 import { ArrowRight, Bell } from "lucide-react";
 import Link from "next/link";
+import { useId } from "react";
 import type { InboxSelection } from "@/features/notification/api/inbox.api";
-import { useInbox } from "@/features/notification/hooks/useInbox";
+import { useHasUnreadInbox, useInbox } from "@/features/notification/hooks/useInbox";
 import { getInboxItemTitle, inboxTypeLabels } from "@/features/notification/lib/inbox-display";
 import { Button } from "@/shared/ui/button";
 import {
@@ -19,6 +20,9 @@ const previewSelection = { page: 0, read: "ALL", type: "ALL", keyword: "", sort:
 const previewLimit = 5;
 
 export function HeaderInbox({ userId }: { userId: number }) {
+  const { data: hasUnread } = useHasUnreadInbox(userId);
+  const unreadDescriptionId = useId();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -27,10 +31,18 @@ export function HeaderInbox({ userId }: { userId: number }) {
           variant="ghost"
           size="icon-lg"
           aria-label="알림함"
+          aria-describedby={hasUnread ? unreadDescriptionId : undefined}
           title="알림함"
           className="rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary xl:size-9 xl:rounded-xl"
         >
-          <Bell aria-hidden="true" className="size-5 xl:size-4" />
+          <span className="relative">
+            <Bell aria-hidden="true" className="size-5 xl:size-4" />
+            {hasUnread && (
+              <span id={unreadDescriptionId} className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-destructive ring-2 ring-card">
+                <span className="sr-only">읽지 않은 알림이 있습니다.</span>
+              </span>
+            )}
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={10} collisionPadding={12} className="w-80 max-w-[calc(100vw-1.5rem)] rounded-sm p-0 shadow-lg">

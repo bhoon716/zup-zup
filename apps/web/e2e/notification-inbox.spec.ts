@@ -5,6 +5,7 @@ import type { AnnouncementDetailResponse } from "../src/shared/types/api";
 const inboxPath = "/api/v1/notifications/inbox";
 const detectedAt = "2026-11-12T09:00:00";
 const readAt = "2026-11-12T10:00:00";
+const unreadDescription = "읽지 않은 알림이 있습니다.";
 const literalName = "확률%_실습";
 const similarName = "확률AB실습";
 
@@ -47,7 +48,7 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
     }
 
     if (pathname === inboxPath && request.method() === "GET") {
-      if (failNextList) {
+      if (failNextList && !searchParams.has("read")) {
         failNextList = false;
         return route.fulfill({ status: 503, json: {} });
       }
@@ -93,6 +94,8 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
 
   await page.goto("/notifications");
   await expect(page.getByRole("heading", { name: "알림함", exact: true })).toBeVisible();
+  const inboxTrigger = page.getByRole("banner").getByRole("button", { name: "알림함", exact: true });
+  await expect(inboxTrigger).toHaveAccessibleDescription(unreadDescription);
   const inboxTab = page.getByRole("tab", { name: "알림함", exact: true });
   const historyTab = page.getByRole("tab", { name: "발송 이력", exact: true });
   await expect(page.getByRole("tab")).toHaveCount(2);
@@ -183,6 +186,7 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   await filters.getByRole("button", { name: "읽지 않음", exact: true }).click();
   await page.getByRole("button", { name: "모두 읽음 처리", exact: true }).click();
   await expect(page.getByText("조건에 맞는 알림이 없습니다.")).toBeVisible();
+  await expect(inboxTrigger).not.toHaveAccessibleDescription(unreadDescription);
   await filters.getByRole("button", { name: "읽음", exact: true }).click();
   await expect(list.getByRole("listitem")).toHaveCount(30);
   await filters.getByRole("button", { name: "전체", exact: true }).click();

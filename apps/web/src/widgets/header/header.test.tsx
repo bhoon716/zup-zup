@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
+import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
 
 import { Header } from "./header";
 
@@ -30,12 +31,14 @@ type MockUserStatusProps = {
 };
 
 const {
+  mockGetInbox,
   mockLogout,
   mockInstall,
   mockAuthStore,
   mockNavLinks,
   mockDesktopUser,
 } = vi.hoisted(() => ({
+  mockGetInbox: vi.fn(),
   mockLogout: vi.fn(),
   mockInstall: vi.fn(),
   mockAuthStore: {
@@ -49,6 +52,10 @@ const {
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/search",
+}));
+
+vi.mock("@/features/notification/api/inbox.api", () => ({
+  getInbox: mockGetInbox,
 }));
 
 vi.mock("@/features/user/hooks/useUser", () => ({
@@ -145,8 +152,9 @@ describe("Header", () => {
       role: "ADMIN",
     };
     mockAuthStore.isAuthenticated = true;
+    mockGetInbox.mockResolvedValue({ content: [], number: 0, totalPages: 0, totalElements: 0 });
 
-    render(<Header />);
+    render(<Header />, { wrapper: createQueryWrapper(createTestQueryClient()) });
 
     expect(mockNavLinks).toHaveBeenCalledWith(
       expect.objectContaining({ isLoggedIn: true, isAdmin: true })

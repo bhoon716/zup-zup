@@ -7,6 +7,10 @@ test.use({ userAgent: "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit
 
 test("비로그인 새로고침에서는 프로필 응답을 기다리는 동안에도 공개 헤더가 보인다", async ({ page }) => {
   let finishProfile = () => {};
+  const inboxRequests: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === inboxPath) inboxRequests.push(request.url());
+  });
   const pendingProfile = new Promise<void>((resolve) => { finishProfile = resolve; });
   await page.route("**/api/v1/users/me", async (route) => {
     await pendingProfile;
@@ -22,6 +26,8 @@ test("비로그인 새로고침에서는 프로필 응답을 기다리는 동안
     await expect(header.getByRole("link", { name: "강의 검색" })).toBeVisible();
     await expect(header.getByRole("link", { name: "내 시간표" })).toHaveCount(0);
     await expect(header.locator(".animate-pulse")).toHaveCount(0);
+    await expect(header.getByRole("button", { name: inboxName })).toHaveCount(0);
+    expect(inboxRequests).toEqual([]);
   } finally {
     finishProfile();
   }
@@ -115,7 +121,7 @@ test("알림함 버튼은 열었을 때 최신 다섯 알림을 조회하고 전
     type: "ANNOUNCEMENT",
     title: `공지 ${6 - index}`,
     message: null,
-    readAt: null,
+    readAt: index === 5 ? null : "2026-11-12T10:00:00",
     occurredAt: `2026-11-0${6 - index}T10:00:00`,
     targetId: null,
     available: true,
@@ -126,13 +132,19 @@ test("알림함 버튼은 열었을 때 최신 다섯 알림을 조회하고 전
   await page.route("**/api/**", (route) => {
     const { pathname, searchParams } = new URL(route.request().url());
     if (pathname === "/api/v1/users/me") return route.fulfill({ json: viewer });
+    if (pathname === "/api/v1/announcements") {
+      return route.fulfill({ json: { content: [], number: 0, totalPages: 0, totalElements: 0 } });
+    }
     if (pathname.startsWith(inboxPath)) {
-      inboxRequests.push(route.request().method());
+      inboxRequests.push(searchParams.get("read") ?? "ALL");
       if (pathname === inboxPath) {
         expect(searchParams.get("page")).toBe("0");
         expect(searchParams.get("sort")).toBe("NEWEST");
       }
-      return route.fulfill({ json: { content: notifications, number: 0, totalPages: 1, totalElements: 6 } });
+      const content = searchParams.get("read") === "UNREAD"
+        ? notifications.filter(({ readAt }) => readAt === null)
+        : notifications;
+      return route.fulfill({ json: { content, number: 0, totalPages: 1, totalElements: content.length } });
     }
     return route.fulfill({ json: [] });
   });
@@ -141,7 +153,8 @@ test("알림함 버튼은 열었을 때 최신 다섯 알림을 조회하고 전
   await page.goto("/announcements");
   const inboxTrigger = page.getByRole("banner").getByRole("button", { name: inboxName });
   await expect(inboxTrigger).toBeVisible();
-  expect(inboxRequests).toEqual([]);
+  await expect(inboxTrigger).toHaveAccessibleDescription("읽지 않은 알림이 있습니다.");
+  expect(inboxRequests).toEqual(["UNREAD"]);
 
   await inboxTrigger.press("Enter");
   const preview = page.getByRole("menu", { name: inboxName });
@@ -149,12 +162,14 @@ test("알림함 버튼은 열었을 때 최신 다섯 알림을 조회하고 전
     /공지 6/, /공지 5/, /공지 4/, /공지 3/, /공지 2/,
   ]);
   await expect(preview.getByRole("menuitem", { name: "모두 보기" })).toHaveAttribute("href", "/notifications");
-  expect(inboxRequests).toEqual(["GET"]);
+  expect(inboxRequests.filter((filter) => filter === "ALL")).toHaveLength(1);
 
   await page.keyboard.press("Escape");
   await expect(preview).toBeHidden();
   await expect(inboxTrigger).toBeFocused();
 
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(inboxTrigger).toHaveAccessibleDescription("읽지 않은 알림이 있습니다.");
   await inboxTrigger.click();
   await preview.getByRole("menuitem", { name: "모두 보기" }).click();
   await expect(page).toHaveURL(/\/notifications$/);
