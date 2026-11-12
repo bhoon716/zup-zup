@@ -1,10 +1,10 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { defaultRangeExtractor, useWindowVirtualizer, type Range } from "@tanstack/react-virtual";
 import type { Course } from "@/shared/types/api";
+import { COURSE_CARD_GAP_PX } from "../constants/course-list-layout";
 
 const COURSE_LIST_WINDOW_THRESHOLD = 40;
 const ESTIMATED_COURSE_CARD_HEIGHT = 132;
-const COURSE_CARD_GAP = 10;
 
 export function useCourseListWindow(courses: Course[], activeIndex: number | null) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -40,7 +40,7 @@ export function useCourseListWindow(courses: Course[], activeIndex: number | nul
     count: courses.length,
     enabled,
     estimateSize: () => ESTIMATED_COURSE_CARD_HEIGHT,
-    gap: COURSE_CARD_GAP,
+    gap: COURSE_CARD_GAP_PX,
     getItemKey,
     scrollMargin,
     overscan: 6,

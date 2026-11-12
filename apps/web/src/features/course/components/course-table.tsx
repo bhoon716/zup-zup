@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { CourseDetailDialog } from "./course-detail-dialog";
 import { useCourseListWindow } from "../hooks/useCourseListWindow";
+import { COURSE_CARD_GAP_PX } from "../constants/course-list-layout";
 import type { Course, Subscription, TimetableResponse, User, WishlistResponse } from "@/shared/types/api";
 
 interface CourseTableProps {
@@ -490,8 +491,8 @@ export function CourseTable({
       <div className="space-y-2.5">
         <div
           ref={listRef}
-          className={isVirtual ? "relative [overflow-anchor:none]" : "space-y-2.5"}
-          style={isVirtual ? { height: virtualizer.getTotalSize() } : undefined}
+          className={isVirtual ? "relative [overflow-anchor:none]" : "grid"}
+          style={isVirtual ? { height: virtualizer.getTotalSize() } : { rowGap: COURSE_CARD_GAP_PX }}
         >
           {isVirtual
             ? virtualizer.getVirtualItems().map((row) => (
