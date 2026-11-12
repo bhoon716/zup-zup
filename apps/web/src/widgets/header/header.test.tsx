@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import { Header } from "./header";
 
@@ -30,6 +30,7 @@ type MockNavLinksProps = {
 type MockUserStatusProps = {
   user: MockUser | null | undefined;
   isLoading: boolean;
+  children?: ReactNode;
 };
 
 const {
@@ -87,9 +88,9 @@ vi.mock("./ui/nav-links", () => ({
 }));
 
 vi.mock("./ui/user-status", () => ({
-  HeaderDesktopUser: (props: MockUserStatusProps) => {
+  HeaderUserActions: (props: MockUserStatusProps) => {
     mockDesktopUser(props);
-    return <div data-testid="desktop-user" />;
+    return <div data-testid="desktop-user">{props.children}</div>;
   },
 
   HeaderMobileUserStatus: () => <div data-testid="mobile-user" />,
@@ -146,6 +147,7 @@ describe("Header", () => {
     expect(mockDesktopUser).toHaveBeenCalledWith(
       expect.objectContaining({ isLoading: true, user: undefined })
     );
+    expect(screen.queryByRole("button", { name: "알림함" })).not.toBeInTheDocument();
   });
 
   it("서버 검증이 완료된 사용자만 사용자명과 관리자 메뉴를 표시한다", () => {
@@ -165,6 +167,7 @@ describe("Header", () => {
     expect(mockDesktopUser).toHaveBeenCalledWith(
       expect.objectContaining({ isLoading: false, user: mockAuthStore.user })
     );
+    expect(screen.getByRole("button", { name: "알림함" })).toBeInTheDocument();
   });
 
   it("세션 검증이 끝난 게스트는 로그인 상태를 표시하지 않는다", () => {

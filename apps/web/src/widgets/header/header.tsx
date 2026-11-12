@@ -21,10 +21,12 @@ import {
   SheetTrigger,
 } from "@/shared/ui/sheet";
 import { usePWAInstall } from "@/shared/hooks/usePWAInstall";
+import { cn } from "@/shared/lib/utils";
 import { useHasMounted } from "@/shared/hooks/useHasMounted";
 
+import { HeaderInbox } from "./ui/header-inbox";
 import { NavLinks } from "./ui/nav-links";
-import { HeaderDesktopUser, HeaderMobileUserStatus } from "./ui/user-status";
+import { HeaderUserActions, HeaderMobileUserStatus } from "./ui/user-status";
 
 export function Header() {
   const mobileMenuTriggerId = "header-mobile-menu-trigger";
@@ -40,6 +42,7 @@ export function Header() {
   const hasMounted = useHasMounted();
   const shouldShowSkeleton = hasMounted ? isLoading && !user : true;
   const verifiedUser = isAuthenticated ? user : null;
+  const showInbox = hasMounted && !!verifiedUser;
   const shouldShowUserSkeleton = hasMounted
     ? (isLoading && !user) || Boolean(user && !isAuthenticated)
     : true;
@@ -86,14 +89,20 @@ export function Header() {
             <span className="font-medium">{platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}</span>
           </Button>
 
-          <div className="hidden items-center gap-2 border-l border-gray-100 pl-3 xl:flex" role="group" aria-label="사용자 메뉴">
-            <HeaderDesktopUser 
+          <div
+            className={cn("items-center xl:flex xl:border-l xl:border-gray-100 xl:pl-3", showInbox ? "flex" : "hidden")}
+            role="group"
+            aria-label="사용자 메뉴"
+          >
+            <HeaderUserActions
               user={hasMounted && (isAuthenticated || !user) ? verifiedUser : undefined}
               isLoading={shouldShowUserSkeleton}
               isPending={isPending} 
               onLogout={() => logout()} 
               onLoginClick={closeMenu}
-            />
+            >
+              {showInbox && <HeaderInbox key={verifiedUser.id} userId={verifiedUser.id} />}
+            </HeaderUserActions>
           </div>
 
           <div className="flex shrink-0 items-center gap-2 xl:hidden" role="group" aria-label="모바일 메뉴">

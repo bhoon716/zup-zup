@@ -3,6 +3,7 @@
 import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
+import type { ReactNode } from "react";
 import type { User } from "@/shared/types/api";
 
 interface UserProfileProps {
@@ -14,7 +15,7 @@ interface UserProfileProps {
   onLinkClick?: () => void;
 }
 
-export function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLoginClick }: UserProfileProps) {
+export function HeaderUserActions({ user, isLoading, isPending, onLogout, onLoginClick, children }: UserProfileProps & { children?: ReactNode }) {
   if (isLoading) return <div className="h-8 w-24 animate-pulse bg-muted/50 rounded-xl" />;
 
   if (!user) {
@@ -29,13 +30,14 @@ export function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLogi
 
   return (
     <div className="flex items-center gap-3">
-      <span className="mr-1 max-w-20 truncate text-right text-xs font-bold leading-none 2xl:max-w-28" title={user.name}>{user.name} 님</span>
+      <span className="hidden max-w-20 truncate text-right text-xs font-bold leading-none xl:block 2xl:max-w-28" title={user.name}>{user.name} 님</span>
+      {children}
       <Button
         variant="ghost"
         size="sm"
         onClick={onLogout}
         disabled={isPending}
-        className="gap-2 rounded-xl h-9 hover:bg-destructive/5 hover:text-destructive transition-colors"
+        className="hidden h-9 gap-2 rounded-xl transition-colors hover:bg-destructive/5 hover:text-destructive xl:inline-flex"
       >
         <LogOut className="w-4 h-4" />
         로그아웃

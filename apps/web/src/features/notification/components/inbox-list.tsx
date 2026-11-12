@@ -13,20 +13,13 @@ import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { inboxSortSchema, inboxTypeFilterSchema, type InboxCommand, type InboxItem, type InboxPage, type InboxReadFilter, type InboxSelection } from "../api/inbox.api";
 import { useInbox, useUpdateInbox } from "../hooks/useInbox";
+import { getInboxItemTitle, inboxTypeLabels } from "../lib/inbox-display";
 
 const readFilters = [
   { value: "ALL", label: "전체" },
   { value: "UNREAD", label: "읽지 않음" },
   { value: "READ", label: "읽음" },
 ] satisfies Array<{ value: InboxReadFilter; label: string }>;
-
-const typeLabels: Record<InboxItem["type"], string> = {
-  SEAT_OPENED: "빈자리",
-  FEEDBACK_REPLY: "문의 답변",
-  ANNOUNCEMENT: "중요 공지",
-  DELIVERY_FAILED: "발송 실패",
-  DEVICE_REREGISTRATION: "기기 재등록",
-};
 
 const sortLabels: Record<InboxSelection["sort"], string> = {
   NEWEST: "최신순",
@@ -151,7 +144,7 @@ export function InboxList({ userId }: { userId: number }) {
             </SelectTrigger>
             <SelectContent position="popper" align="start" className="rounded-xl border-slate-200 shadow-lg">
               <SelectItem value="ALL">모든 알림 유형</SelectItem>
-              {Object.entries(typeLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+              {Object.entries(inboxTypeLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
             </SelectContent>
           </Select>
 
@@ -240,7 +233,7 @@ export function InboxList({ userId }: { userId: number }) {
             const MailIcon = isUnread ? Mail : MailOpen;
             const isOpenDisabled = isShowingPreviousResults || (isUnread && update.isPending);
             const isSeatOpening = item.type === "SEAT_OPENED";
-            const title = isSeatOpening ? item.courseName : item.title ?? typeLabels[item.type];
+            const title = getInboxItemTitle(item);
             const message = isSeatOpening ? `빈자리가 ${item.availableSeats}석 생겼어요.` : getMessagePreview(item);
             return (
               <li key={item.id}>
@@ -275,7 +268,7 @@ export function InboxList({ userId }: { userId: number }) {
                       {message && <p className="mt-0.5 min-w-0 truncate text-sm text-slate-600 md:mt-0">{message}</p>}
                     </div>
                     <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xs leading-tight text-slate-600 md:mt-0 md:shrink-0">
-                      <span className="font-medium">{isSeatOpening ? "빈자리 감지" : typeLabels[item.type]}</span>
+                      <span className="font-medium">{isSeatOpening ? "빈자리 감지" : inboxTypeLabels[item.type]}</span>
                       <time dateTime={item.occurredAt} className="whitespace-nowrap tabular-nums">
                         {format(new Date(item.occurredAt), "yyyy년 M월 d일 HH:mm")}
                       </time>
@@ -336,8 +329,8 @@ export function InboxList({ userId }: { userId: number }) {
               trigger?.focus();
             }}
           >
-            <DialogTitle className="pr-6 leading-snug [overflow-wrap:anywhere]">{messageItem.title ?? typeLabels[messageItem.type]}</DialogTitle>
-            <DialogDescription className="whitespace-pre-wrap [overflow-wrap:anywhere]">{messageItem.message ?? typeLabels[messageItem.type]}</DialogDescription>
+            <DialogTitle className="pr-6 leading-snug [overflow-wrap:anywhere]">{getInboxItemTitle(messageItem)}</DialogTitle>
+            <DialogDescription className="whitespace-pre-wrap [overflow-wrap:anywhere]">{messageItem.message ?? inboxTypeLabels[messageItem.type]}</DialogDescription>
             {failedDetailRead && commandError}
             {messageLink && (
               <DialogFooter>

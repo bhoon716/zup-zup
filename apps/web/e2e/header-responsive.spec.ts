@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 
+const inboxPath = "/api/v1/notifications/inbox";
+const inboxName = "알림함";
+
 test.use({ userAgent: "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15" });
 
 test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼이 겹치지 않는다", async ({ page, baseURL }) => {
@@ -14,7 +17,7 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await page.route("**/api/**", (route) => {
     const { pathname } = new URL(route.request().url());
     if (pathname === "/api/v1/users/me") return route.fulfill({ json: admin });
-    if (pathname === "/api/v1/notifications/inbox") {
+    if (pathname === inboxPath) {
       return route.fulfill({ json: { content: [], number: 0, totalPages: 0, totalElements: 0 } });
     }
     return route.fulfill({ json: [] });
@@ -23,6 +26,7 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await page.setViewportSize({ width: 1280, height: 1254 });
   await page.goto("/notifications");
   const header = page.getByRole("banner");
+  const inboxTrigger = header.getByRole("button", { name: inboxName });
   const menuTrigger = header.getByRole("button", { name: "메뉴 열기" });
   const desktopNav = header.getByRole("navigation", { name: "주요 메뉴" });
   await expect(header.getByRole("button", { name: "로그아웃" })).toBeVisible();
@@ -31,6 +35,7 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   for (const width of [820, 1256, 1280, 1536]) {
     await page.setViewportSize({ width, height: 1254 });
     const isCompact = width < 1280;
+    await expect(inboxTrigger).toBeVisible();
     if (isCompact) {
       await expect(menuTrigger).toBeVisible();
       await expect(desktopNav).toBeHidden();
@@ -64,7 +69,65 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await page.setViewportSize({ width: 820, height: 1254 });
   await menuTrigger.click();
   const compactMenu = page.getByRole("dialog");
-  await expect(compactMenu.getByRole("link", { name: "알림함" })).toHaveAttribute("href", "/notifications");
   await expect(compactMenu.getByRole("link", { name: "대시보드" })).toHaveAttribute("href", "/admin");
   await expect(compactMenu.getByRole("button", { name: "로그아웃" })).toBeVisible();
+});
+
+test("알림함 버튼은 열었을 때 최신 다섯 알림을 조회하고 전체 알림함으로 이동한다", async ({ page, baseURL }) => {
+  const viewer = {
+    id: 1,
+    name: "사용자",
+    email: "user@example.invalid",
+    role: "USER",
+    onboardingCompleted: true,
+  };
+  const notifications = Array.from({ length: 6 }, (_, index) => ({
+    id: 6 - index,
+    type: "ANNOUNCEMENT",
+    title: `공지 ${6 - index}`,
+    message: null,
+    readAt: null,
+    occurredAt: `2026-11-0${6 - index}T10:00:00`,
+    targetId: null,
+    available: true,
+  }));
+  const inboxRequests: string[] = [];
+
+  await page.route("**/*", (route) => new URL(route.request().url()).origin === baseURL ? route.continue() : route.abort());
+  await page.route("**/api/**", (route) => {
+    const { pathname, searchParams } = new URL(route.request().url());
+    if (pathname === "/api/v1/users/me") return route.fulfill({ json: viewer });
+    if (pathname.startsWith(inboxPath)) {
+      inboxRequests.push(route.request().method());
+      if (pathname === inboxPath) {
+        expect(searchParams.get("page")).toBe("0");
+        expect(searchParams.get("sort")).toBe("NEWEST");
+      }
+      return route.fulfill({ json: { content: notifications, number: 0, totalPages: 1, totalElements: 6 } });
+    }
+    return route.fulfill({ json: [] });
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/announcements");
+  const inboxTrigger = page.getByRole("banner").getByRole("button", { name: inboxName });
+  await expect(inboxTrigger).toBeVisible();
+  expect(inboxRequests).toEqual([]);
+
+  await inboxTrigger.press("Enter");
+  const preview = page.getByRole("menu", { name: inboxName });
+  await expect(preview.getByRole("listitem")).toHaveText([
+    /공지 6/, /공지 5/, /공지 4/, /공지 3/, /공지 2/,
+  ]);
+  await expect(preview.getByRole("menuitem", { name: "모두 보기" })).toHaveAttribute("href", "/notifications");
+  expect(inboxRequests).toEqual(["GET"]);
+
+  await page.keyboard.press("Escape");
+  await expect(preview).toBeHidden();
+  await expect(inboxTrigger).toBeFocused();
+
+  await inboxTrigger.click();
+  await preview.getByRole("menuitem", { name: "모두 보기" }).click();
+  await expect(page).toHaveURL(/\/notifications$/);
+  await expect(page.getByRole("heading", { name: inboxName, exact: true })).toBeVisible();
 });

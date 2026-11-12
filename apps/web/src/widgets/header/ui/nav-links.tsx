@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
 import { 
-  ShieldCheck, Calendar, Search, Bell, Megaphone, LayoutDashboard, ChevronDown, Settings, MessageCircle, RotateCcw
+  ShieldCheck, Calendar, Search, Megaphone, LayoutDashboard, ChevronDown, Settings, MessageCircle, RotateCcw
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -56,7 +56,6 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
             <span className="text-sm font-medium">강의 검색</span>
           </Link>
         </Button>
-        <div className={skeletonClass} data-testid="nav-link-skeleton" />
         <Button asChild variant="ghost" size="sm" className={navLinkClass}>
           <Link href="/announcements" onClick={onLinkClick}>
             <Megaphone className="w-[1.1rem] h-[1.1rem]" />
@@ -82,12 +81,6 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
         <Link href="/search" onClick={onLinkClick}>
           <Search className="w-[1.1rem] h-[1.1rem]" />
           <span className="text-sm font-medium">강의 검색</span>
-        </Link>
-      </Button>
-      <Button asChild variant="ghost" size="sm" className={authOnlyClass}>
-        <Link href="/notifications" onClick={handleClick} tabIndex={isLoggedIn ? undefined : -1} aria-hidden={!isLoggedIn}>
-          <Bell className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">알림함</span>
         </Link>
       </Button>
       <Button asChild variant="ghost" size="sm" className={navLinkClass}>
