@@ -10,8 +10,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { JBNUSiteLinks } from "./jbnu-site-links";
@@ -119,8 +117,6 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick }:
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent id={adminMenuContentId} aria-labelledby={adminMenuTriggerId} align="end" className="w-56 rounded-2xl border-gray-100 bg-white/95 backdrop-blur-xl p-2 shadow-2xl">
-              <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-primary uppercase tracking-widest">시스템 관리자</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-gray-100" />
               <DropdownMenuItem asChild className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 cursor-pointer">
                 <Link href="/admin">
                   <LayoutDashboard className="w-4 h-4" />

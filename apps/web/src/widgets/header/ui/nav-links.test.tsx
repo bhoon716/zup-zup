@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { NavLinks } from "./nav-links";
 
@@ -34,7 +34,10 @@ describe("NavLinks", () => {
     unmount();
     render(<NavLinks {...defaultProps} isAdmin isLoggedIn />);
     fireEvent.pointerDown(screen.getByRole("button", { name: /관리자/ }));
-    expect(await screen.findByRole("menuitem", { name: "알림 DLQ 관리" }))
+    const menu = within(await screen.findByRole("menu", { name: "관리자" }));
+    expect(menu.getByRole("menuitem", { name: "알림 DLQ 관리" }))
       .toHaveAttribute("href", "/admin/notification-deliveries");
+    expect(menu.queryByText("시스템 관리자")).not.toBeInTheDocument();
+    expect(menu.queryByRole("separator")).not.toBeInTheDocument();
   });
 });
