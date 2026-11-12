@@ -120,9 +120,9 @@ export function TimetableSidebarSection({
                   )}
                 </div>
 
-                <div>
+                <section aria-labelledby="timetable-courses-heading">
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                    <h2 id="timetable-courses-heading" className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                       <BookOpen className="size-4 text-primary" />
                       담은 강의
                     </h2>
@@ -189,7 +189,7 @@ export function TimetableSidebarSection({
                       ))
                     )}
                   </div>
-                </div>
+                </section>
               </motion.div>
             ) : (
               <motion.div

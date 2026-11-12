@@ -75,7 +75,7 @@ for (const { path, label, now } of [
     await page.goto(path);
     const sidebar = page.locator("aside");
     const privateCourse = path === "/timetable"
-      ? sidebar.getByText("시간표 강의 1건", { exact: true }).locator("..").getByText(course.name, { exact: true })
+      ? sidebar.getByRole("region", { name: "담은 강의" }).getByText(course.name, { exact: true })
       : sidebar.getByRole("heading", { name: course.name, exact: true });
     if (path === "/timetable") {
       await expect(sidebar.getByText(course.name, { exact: true })).toHaveCount(label === "월요일" ? 2 : 1);

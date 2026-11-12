@@ -128,10 +128,10 @@ test("시간표 첫 화면은 찜 탭을 열기 전까지 찜 목록을 조회�
     new URL(response.url()).pathname === "/api/v1/timetables/1" && response.ok());
   await page.goto("/timetable");
   await timetableReady;
-  await expect(page.getByText("시간표 강의 0건")).toBeVisible();
+  await expect(page.getByRole("region", { name: "담은 강의" }).getByText("강의가 아직 없습니다.")).toBeVisible();
   const initialReads = wishlistReads;
-  await page.getByRole("button", { name: /찜/ }).click();
-  await expect(page.getByText("찜한 강의 0건")).toBeVisible();
+  await page.getByRole("button", { name: "찜 목록", exact: true }).click();
+  await expect(page.getByText("찜한 강의가 없습니다.")).toBeVisible();
   await expect.poll(() => wishlistReads).toBe(1);
   expect(initialReads).toBe(0);
 });
