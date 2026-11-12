@@ -51,7 +51,7 @@ export default function AnnouncementsPage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold leading-snug text-foreground sm:text-3xl">공지사항</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">공지사항</h1>
 
         <form
           ref={listTop}

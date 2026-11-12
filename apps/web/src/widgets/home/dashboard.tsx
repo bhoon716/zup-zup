@@ -25,7 +25,7 @@ export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse })
           transition={{ duration: 0.5 }}
           className="min-w-0"
         >
-          <h1 className="text-3xl font-semibold leading-snug text-foreground md:text-4xl">
+          <h1 className="text-4xl font-black leading-tight text-foreground md:text-5xl">
             안녕하세요, <span className="text-primary">{user.name}님</span>
           </h1>
         </motion.div>

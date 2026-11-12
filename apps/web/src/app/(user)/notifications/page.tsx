@@ -16,7 +16,7 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-        <h1 className="mb-5 text-3xl font-semibold leading-snug text-foreground sm:mb-8">알림함</h1>
+        <h1 className="mb-5 text-3xl font-bold tracking-tight text-foreground sm:mb-8">알림함</h1>
         {userId === undefined ? (
           <p role="status" className="text-sm text-slate-600">
             {hasCheckedSession ? "로그인하면 알림을 확인할 수 있습니다." : "로그인 상태를 확인하는 중입니다."}
