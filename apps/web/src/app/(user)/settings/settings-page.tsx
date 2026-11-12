@@ -55,22 +55,24 @@ export function SettingsPage({ model }: { model: SettingsPageModel }) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-7 text-foreground sm:px-6 sm:pt-10 lg:px-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold leading-normal sm:text-3xl">알림 설정</h1>
-        <p className="mt-1.5 break-keep text-sm leading-6 text-muted-foreground">빈자리, 문의 답변, 중요 공지 알림을 받을 채널을 설정하세요.</p>
+    <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-6 text-foreground sm:px-6 sm:pt-9 lg:px-8">
+      <header className="mb-7 flex items-start gap-4 rounded-xl border bg-primary/5 px-4 py-5 sm:items-center sm:gap-5 sm:px-6 sm:py-6">
+        <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground sm:size-13">
+          <Bell className="size-5 sm:size-6" />
+        </span>
+        <div>
+          <h1 className="text-2xl leading-8 font-semibold sm:text-3xl sm:leading-10">알림 설정</h1>
+          <p className="mt-1 break-keep text-sm leading-6 text-muted-foreground">빈자리, 문의 답변, 중요 공지 알림을 받을 채널을 설정하세요.</p>
+        </div>
       </header>
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-5">
         <form
           aria-labelledby="notification-channels-heading"
           onSubmit={handleSubmit(onSubmit)}
-          className="min-w-0 rounded-xl border bg-card"
+          className="min-w-0"
         >
-          <header className="flex items-center gap-2 rounded-t-xl border-b bg-muted/40 px-4 py-3.5 sm:px-5">
-            <Bell aria-hidden="true" className="size-4 text-primary" />
-            <h2 id="notification-channels-heading" className="text-sm font-semibold">알림 채널</h2>
-          </header>
-          <div className="divide-y">
+          <h2 id="notification-channels-heading" className="mb-3 text-lg leading-7 font-semibold">알림 채널</h2>
+          <div className="space-y-3">
             <DiscordIntegrationSection
               user={user}
               watch={watch}
@@ -116,12 +118,14 @@ export function SettingsPage({ model }: { model: SettingsPageModel }) {
           />
         </form>
         {user && (
-          <section aria-labelledby="course-subscriptions-heading" className="min-w-0 rounded-xl border bg-card">
-            <header className="flex items-center gap-2 rounded-t-xl border-b bg-muted/40 px-4 py-3.5">
+          <section aria-labelledby="course-subscriptions-heading" className="min-w-0">
+            <h2 id="course-subscriptions-heading" className="mb-3 flex items-center gap-2 text-lg leading-7 font-semibold">
               <Bookmark aria-hidden="true" className="size-4 text-primary" />
-              <h2 id="course-subscriptions-heading" className="text-sm font-semibold">구독 중인 강의</h2>
-            </header>
-            <SubscriptionList user={user} />
+              구독 중인 강의
+            </h2>
+            <div className="rounded-xl border bg-card">
+              <SubscriptionList user={user} />
+            </div>
           </section>
         )}
       </div>

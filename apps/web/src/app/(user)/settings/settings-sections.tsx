@@ -2,6 +2,7 @@
 
 import { BellRing, Laptop, Loader2, Mail, MessageSquare, Monitor, Plus, Save, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -13,9 +14,14 @@ type SettingsActionBarProps = Pick<SettingsPageModel, "isSubmitting"> &
     onCancel: () => void;
   };
 
+const channelIcons = {
+  discord: { Icon: MessageSquare, className: "bg-indigo-100 text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-300" },
+  email: { Icon: Mail, className: "bg-primary/10 text-primary" },
+  web: { Icon: Laptop, className: "bg-sky-100 text-sky-800 dark:bg-sky-400/15 dark:text-sky-300" },
+};
+
 function NotificationChannel({
   id,
-  icon,
   title,
   description,
   toggleLabel,
@@ -24,8 +30,7 @@ function NotificationChannel({
   disabled,
   children,
 }: {
-  id: string;
-  icon: ReactNode;
+  id: keyof typeof channelIcons;
   title: string;
   description: string;
   toggleLabel: string;
@@ -34,14 +39,16 @@ function NotificationChannel({
   disabled?: boolean;
   children: ReactNode;
 }) {
+  const { Icon, className } = channelIcons[id];
+
   return (
-    <section aria-labelledby={`${id}-heading`} className="px-4 py-4 sm:px-5">
-      <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-0.5">
-        <span aria-hidden="true" className="row-span-2 grid size-9 place-items-center rounded-lg bg-primary/8 text-primary">
-          {icon}
+    <section aria-labelledby={`${id}-heading`} className="rounded-xl border bg-card px-4 py-4 sm:px-5">
+      <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1">
+        <span aria-hidden="true" className={cn("grid size-10 place-items-center rounded-lg sm:row-span-2", className)}>
+          <Icon className="size-5" />
         </span>
         <h3 id={`${id}-heading`} className="self-center font-semibold">{title}</h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-center">
           <Label htmlFor={`${id}-enabled`} className="sr-only">{toggleLabel}</Label>
           <span aria-hidden="true" className="hidden text-xs text-muted-foreground sm:inline">
             {checked ? "켜짐" : "꺼짐"}
@@ -51,12 +58,15 @@ function NotificationChannel({
             checked={checked}
             onCheckedChange={onCheckedChange}
             disabled={disabled}
+            aria-describedby={`${id}-description`}
             className="data-[size=default]:h-5 data-[size=default]:w-9 [&_[data-slot=switch-thumb][data-state=checked]]:translate-x-full"
           />
         </div>
-        <p className="col-span-2 col-start-2 break-keep text-sm leading-5 text-muted-foreground">{description}</p>
+        <p id={`${id}-description`} className="col-span-3 break-keep text-sm leading-5 text-muted-foreground sm:col-span-2 sm:col-start-2">
+          {description}
+        </p>
       </header>
-      <div className="mt-3.5 space-y-3 sm:ml-12">{children}</div>
+      <div className="mt-3.5 space-y-3 border-t pt-3.5 sm:ml-[3.25rem]">{children}</div>
     </section>
   );
 }
@@ -77,14 +87,13 @@ export function DiscordIntegrationSection({
   return (
     <NotificationChannel
       id="discord"
-      icon={<MessageSquare className="size-[1.125rem]" />}
       title="Discord 연동"
       description="연결한 Discord 계정의 DM으로 알림을 받습니다."
       toggleLabel="DM 알림 활성화"
       checked={watch("discordEnabled")}
       onCheckedChange={(checked) => setValue("discordEnabled", checked, { shouldDirty: true })}
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg bg-muted/65 px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg bg-muted/65 px-3 py-2.5">
         {discordId ? (
           <>
             <div className="min-w-0">
@@ -110,7 +119,7 @@ export function DiscordIntegrationSection({
               variant="outline"
               size="sm"
               onClick={handleDiscordConnect}
-              className="rounded-md border-input bg-card"
+              className="rounded-md border-primary/20 bg-card text-primary"
             >
               Discord 계정 연결하기
             </Button>
@@ -160,7 +169,6 @@ export function EmailNotificationSection({
   return (
     <NotificationChannel
       id="email"
-      icon={<Mail className="size-[1.125rem]" />}
       title="이메일 알림"
       description="수신 주소를 변경하면 이메일 인증이 필요합니다."
       toggleLabel="이메일 알림 활성화"
@@ -174,7 +182,7 @@ export function EmailNotificationSection({
             <span className="text-xs font-medium text-primary">인증됨</span>
           )}
         </div>
-        <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             {...register("notificationEmail")}
             id="notification-email"
@@ -183,7 +191,7 @@ export function EmailNotificationSection({
             placeholder={user?.email}
             aria-invalid={!!emailError}
             aria-describedby={emailError ? "notification-email-error" : undefined}
-            className="h-10 min-w-40 flex-1 rounded-lg border-input bg-card shadow-none"
+            className="h-10 rounded-lg border-input bg-card shadow-none sm:flex-1"
           />
           {needsVerification && !verified && (
             <Button
@@ -254,7 +262,6 @@ export function WebPushSection({
   return (
     <NotificationChannel
       id="web"
-      icon={<Laptop className="size-[1.125rem]" />}
       title="웹 푸시 알림"
       description="등록한 모든 기기의 브라우저 알림을 켜거나 끕니다."
       toggleLabel="웹 푸시 알림 활성화"
@@ -264,13 +271,13 @@ export function WebPushSection({
     >
       <div className="space-y-1.5">
         <Label htmlFor="web-push-device-alias" className="text-xs text-muted-foreground">기기 별칭</Label>
-        <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             id="web-push-device-alias"
             value={deviceAlias}
             onChange={(event) => setDeviceAlias(event.target.value)}
             placeholder="예: 내 노트북"
-            className="h-10 min-w-36 flex-1 rounded-lg border-input bg-card shadow-none"
+            className="h-10 rounded-lg border-input bg-card shadow-none sm:flex-1"
           />
           <Button
             type="button"
@@ -335,9 +342,9 @@ export function SettingsActionBar({
   }
 
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 rounded-b-xl border-t bg-muted/40 px-4 py-3.5 sm:px-5">
+    <div className="mt-3 flex flex-col gap-3 rounded-xl border bg-card px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-5">
       {handleSendTestNotification && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <p id="notification-test-description" className="text-xs text-muted-foreground">저장된 설정으로 테스트합니다.</p>
           <Button
             type="button"
@@ -345,14 +352,14 @@ export function SettingsActionBar({
             onClick={handleSendTestNotification}
             disabled={isSendingTest || testCooldownSeconds > 0}
             aria-describedby="notification-test-description"
-            className="h-10 rounded-lg border-input bg-card"
+            className="h-10 w-full rounded-lg border-input bg-card sm:w-auto"
           >
             {isSendingTest ? <Loader2 aria-hidden="true" className="animate-spin" /> : <BellRing aria-hidden="true" />}
             {testLabel}
           </Button>
         </div>
       )}
-      <div className="ml-auto flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-2 sm:ml-auto">
         <Button type="button" variant="ghost" onClick={onCancel} className="h-10 rounded-lg text-muted-foreground">
           변경 취소
         </Button>

@@ -1,8 +1,9 @@
 "use client";
 
+import { ArrowRight, Bookmark, Loader2, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { useSubscriptions, useUnsubscribe, useUnsubscribeAll } from "@/features/subscription/hooks/useSubscriptions";
-import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
 import { parseCourseKey } from "@/shared/lib/course";
@@ -41,14 +42,30 @@ export function SubscriptionList({ user }: { user: User }) {
 
   if (!subscriptions || subscriptions.length === 0) {
     return (
-      <p className="px-4 py-4 text-sm text-muted-foreground">구독 중인 강의가 없습니다.</p>
+      <div className="px-4 py-5 sm:p-5">
+        <div className="flex flex-col items-start rounded-lg bg-primary/5 px-4 py-5">
+          <span aria-hidden="true" className="mb-3 grid size-10 place-items-center rounded-md bg-primary/10 text-primary">
+            <Bookmark className="size-5" />
+          </span>
+          <p className="text-sm font-semibold">구독 중인 강의가 없습니다.</p>
+          <p className="mt-1 break-keep text-sm leading-6 text-muted-foreground">
+            강의를 찾아 빈자리 알림을 신청할 수 있어요.
+          </p>
+          <Button asChild variant="outline" className="mt-4 h-10 border-primary/20 bg-card text-primary">
+            <Link href="/search">
+              강의 검색
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
+        </div>
+      </div>
     );
   }
 
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-        <p className="text-sm text-muted-foreground">{subscriptions.length}개 구독 중</p>
+        <p className="text-sm font-medium tabular-nums text-primary">{subscriptions.length}개 구독 중</p>
         <Button
           type="button"
           variant="ghost"
