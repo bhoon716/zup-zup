@@ -6,6 +6,7 @@ import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackReplySummary;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackSummary;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import java.sql.ResultSet;
@@ -42,7 +43,8 @@ public class AdminFeedbackReadRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public Page<AdminFeedbackSummary> findFeedbacks(AdminFeedbackDeletionFilter deletionFilter, Pageable pageable) {
+    public Page<AdminFeedbackSummary> findFeedbacks(
+            AdminFeedbackDeletionFilter deletionFilter, AdminFeedbackOrder order, Pageable pageable) {
         String condition = deletionCondition(deletionFilter);
         Long total = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM feedbacks f WHERE " + condition, Long.class);
         String sql = """
@@ -50,9 +52,9 @@ public class AdminFeedbackReadRepository {
                        EXISTS (SELECT 1 FROM feedback_replies r WHERE r.feedback_id = f.id) AS has_replies
                 FROM feedbacks f
                 WHERE %s
-                ORDER BY f.created_at DESC, f.id DESC
+                ORDER BY %s
                 LIMIT ? OFFSET ?
-                """.formatted(condition);
+                """.formatted(condition, feedbackOrder(order));
         List<AdminFeedbackSummary> content = jdbcTemplate.query(sql,
                 (resultSet, rowNum) -> mapSummary(resultSet),
                 pageable.getPageSize(), offset(pageable));
@@ -155,6 +157,14 @@ public class AdminFeedbackReadRepository {
             case ALL -> "1 = 1";
             case ACTIVE -> "f.deleted_at IS NULL";
             case DELETED -> "f.deleted_at IS NOT NULL";
+        };
+    }
+
+    private String feedbackOrder(AdminFeedbackOrder order) {
+        return switch (order) {
+            case PENDING_FIRST -> "CASE WHEN f.status = 'PENDING' THEN 0 ELSE 1 END, f.created_at DESC, f.id DESC";
+            case NEWEST -> "f.created_at DESC, f.id DESC";
+            case OLDEST -> "f.created_at ASC, f.id ASC";
         };
     }
 

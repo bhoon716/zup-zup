@@ -252,7 +252,7 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(jsonPath("$.code").value("A002"));
 
         given(adminFeedbackService.getFeedbacksForAdmin(
-                any(), any()))
+                any(), any(), any()))
                 .willReturn(Page.empty());
         mockMvc.perform(get("/api/v1/admin/feedbacks?deletion=DELETED")
                         .session(authenticatedSession("ROLE_ADMIN")))

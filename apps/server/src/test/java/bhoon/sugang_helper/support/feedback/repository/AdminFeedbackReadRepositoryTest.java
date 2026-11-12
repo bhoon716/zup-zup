@@ -11,8 +11,11 @@ import bhoon.sugang_helper.support.feedback.entity.Feedback;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackAttachment;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackReply;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
+import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,11 +74,11 @@ class AdminFeedbackReadRepositoryTest {
         entityManager.clear();
 
         // when
-        var all = adminFeedbackReadRepository.findFeedbacks(AdminFeedbackDeletionFilter.ALL, PageRequest.of(0, 10));
+        var all = adminFeedbackReadRepository.findFeedbacks(AdminFeedbackDeletionFilter.ALL, AdminFeedbackOrder.NEWEST, PageRequest.of(0, 10));
         var activeOnly = adminFeedbackReadRepository.findFeedbacks(
-                AdminFeedbackDeletionFilter.ACTIVE, PageRequest.of(0, 10));
+                AdminFeedbackDeletionFilter.ACTIVE, AdminFeedbackOrder.NEWEST, PageRequest.of(0, 10));
         var deletedOnly = adminFeedbackReadRepository.findFeedbacks(
-                AdminFeedbackDeletionFilter.DELETED, PageRequest.of(0, 10));
+                AdminFeedbackDeletionFilter.DELETED, AdminFeedbackOrder.NEWEST, PageRequest.of(0, 10));
         var detail = adminFeedbackReadRepository.findFeedbackDetail(deletedFeedback.getId()).orElseThrow();
 
         // then
@@ -109,6 +112,45 @@ class AdminFeedbackReadRepositoryTest {
         assertThat(feedbackRepository.findById(deletedFeedback.getId())).isEmpty();
         assertThat(feedbackRepository.findAll()).extracting(Feedback::getId).containsExactly(activeFeedback.getId());
         assertThat(feedbackReplyRepository.findById(deletedReply.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("관리자 문의 정렬은 페이지를 나누기 전에 적용하고 같은 시각에는 ID를 사용한다")
+    void sortsBeforePagination() {
+        // given
+        User author = userRepository.saveAndFlush(user("author@example.com", Role.USER));
+        Feedback olderPending = feedbackRepository.saveAndFlush(feedback(author, "첫 번째 문의"));
+        Feedback newerPending = feedbackRepository.saveAndFlush(feedback(author, "두 번째 문의"));
+        Feedback completed = feedback(author, "처리한 문의");
+        completed.updateStatus(FeedbackStatus.COMPLETED);
+        feedbackRepository.saveAndFlush(completed);
+
+        LocalDateTime firstDay = LocalDateTime.of(2026, 1, 1, 12, 0);
+        entityManager.createNativeQuery("UPDATE feedbacks SET created_at = :createdAt")
+                .setParameter("createdAt", firstDay)
+                .executeUpdate();
+        entityManager.createNativeQuery("UPDATE feedbacks SET created_at = :createdAt WHERE id = :id")
+                .setParameter("createdAt", firstDay.plusDays(1))
+                .setParameter("id", completed.getId())
+                .executeUpdate();
+
+        // when & then
+        assertThat(adminFeedbackReadRepository.findFeedbacks(
+                AdminFeedbackDeletionFilter.ACTIVE, AdminFeedbackOrder.PENDING_FIRST, PageRequest.of(0, 1)))
+                .extracting(AdminFeedbackSummary::id)
+                .containsExactly(newerPending.getId());
+        assertThat(adminFeedbackReadRepository.findFeedbacks(
+                AdminFeedbackDeletionFilter.ACTIVE, AdminFeedbackOrder.PENDING_FIRST, PageRequest.of(1, 1)))
+                .extracting(AdminFeedbackSummary::id)
+                .containsExactly(olderPending.getId());
+        assertThat(adminFeedbackReadRepository.findFeedbacks(
+                AdminFeedbackDeletionFilter.ACTIVE, AdminFeedbackOrder.NEWEST, PageRequest.of(0, 3)))
+                .extracting(AdminFeedbackSummary::id)
+                .containsExactly(completed.getId(), newerPending.getId(), olderPending.getId());
+        assertThat(adminFeedbackReadRepository.findFeedbacks(
+                AdminFeedbackDeletionFilter.ACTIVE, AdminFeedbackOrder.OLDEST, PageRequest.of(0, 3)))
+                .extracting(AdminFeedbackSummary::id)
+                .containsExactly(olderPending.getId(), newerPending.getId(), completed.getId());
     }
 
     private User user(String email, Role role) {

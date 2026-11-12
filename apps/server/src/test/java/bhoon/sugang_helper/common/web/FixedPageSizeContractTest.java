@@ -15,6 +15,7 @@ import bhoon.sugang_helper.seatalert.notification.controller.NotificationControl
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
 import bhoon.sugang_helper.support.feedback.service.AdminFeedbackService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -79,7 +80,7 @@ class FixedPageSizeContractTest {
         // given
         PageRequest expected = PageRequest.of(2, 30, Sort.by("createdAt").ascending());
         when(notifications.findForCurrentUser(expected)).thenReturn(new SliceImpl<>(List.of(), expected, true));
-        when(feedback.getFeedbacksForAdmin(expected, AdminFeedbackDeletionFilter.DELETED))
+        when(feedback.getFeedbacksForAdmin(expected, AdminFeedbackDeletionFilter.DELETED, AdminFeedbackOrder.NEWEST))
                 .thenReturn(new PageImpl<>(List.of(), expected, 100));
 
         // when & then
@@ -90,6 +91,6 @@ class FixedPageSizeContractTest {
                     .andExpect(jsonPath("$.number").value(2));
         }
         verify(notifications).findForCurrentUser(expected);
-        verify(feedback).getFeedbacksForAdmin(expected, AdminFeedbackDeletionFilter.DELETED);
+        verify(feedback).getFeedbacksForAdmin(expected, AdminFeedbackDeletionFilter.DELETED, AdminFeedbackOrder.NEWEST);
     }
 }

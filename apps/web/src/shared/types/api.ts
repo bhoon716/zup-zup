@@ -529,6 +529,7 @@ export interface FeedbackReplyResponse {
 }
 
 export type AdminFeedbackDeletionFilter = 'ALL' | 'ACTIVE' | 'DELETED';
+export type AdminFeedbackOrder = 'PENDING_FIRST' | 'NEWEST' | 'OLDEST';
 
 export interface AdminFeedbackResponse {
   id: number;

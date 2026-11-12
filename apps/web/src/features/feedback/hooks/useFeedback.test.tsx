@@ -121,7 +121,7 @@ describe("useFeedback hooks", () => {
       expect(feedbackApi.getFeedbackDetailForAdmin).toHaveBeenCalledTimes(2);
     });
 
-    it("삭제 상태 필터를 별도 캐시 키와 API 요청으로 전달한다", async () => {
+    it("삭제 상태와 정렬을 API 요청으로 전달한다", async () => {
       vi.mocked(feedbackApi.getFeedbacksForAdmin).mockResolvedValue({
           content: [],
           totalElements: 0,
@@ -137,10 +137,10 @@ describe("useFeedback hooks", () => {
 
       const queryClient = createTestQueryClient();
       const wrapper = createQueryWrapper(queryClient);
-      const { result } = renderHook(() => useFeedbacksForAdmin(0, "DELETED"), { wrapper });
+      const { result } = renderHook(() => useFeedbacksForAdmin(0, "DELETED", "OLDEST"), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(feedbackApi.getFeedbacksForAdmin).toHaveBeenCalledWith(0, "DELETED");
+      expect(feedbackApi.getFeedbacksForAdmin).toHaveBeenCalledWith(0, "DELETED", "OLDEST");
     });
 
     it("명시적으로 확인한 관리자 첨부파일 다운로드 요청만 전송한다", async () => {

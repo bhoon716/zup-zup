@@ -8,6 +8,7 @@ import bhoon.sugang_helper.support.feedback.dto.request.FeedbackStatusUpdateRequ
 import bhoon.sugang_helper.support.feedback.dto.response.AdminFeedbackDetailResponse;
 import bhoon.sugang_helper.support.feedback.dto.response.AdminFeedbackResponse;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
 import bhoon.sugang_helper.support.feedback.service.AdminFeedbackService;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
@@ -40,9 +41,11 @@ public class AdminFeedbackController {
     @GetMapping
     public ResponseEntity<Page<AdminFeedbackResponse>> getAllFeedbacks(
             @RequestParam(required = false) String deletion,
+            @RequestParam(defaultValue = "NEWEST") AdminFeedbackOrder order,
             Pageable pageable) {
         Pageable fixedPageable = PageableGuard.fixedSize(pageable);
-        return ResponseEntity.ok(adminFeedbackService.getFeedbacksForAdmin(fixedPageable, AdminFeedbackDeletionFilter.from(deletion)));
+        return ResponseEntity.ok(adminFeedbackService.getFeedbacksForAdmin(
+                fixedPageable, AdminFeedbackDeletionFilter.from(deletion), order));
     }
 
     @GetMapping("/{feedbackId}")

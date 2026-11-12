@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { 
-  Loader2, 
-  MessageSquare, 
-  ChevronRight,
-  Send,
-  Check,
-  Download
-} from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Loader2, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -16,28 +9,53 @@ import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import { Textarea } from "@/shared/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/shared/ui/select";
-import { 
-  useFeedbacksForAdmin, 
-  useAdminFeedbackDetail, 
-  useUpdateFeedbackStatus, 
+import {
+  useFeedbacksForAdmin,
+  useAdminFeedbackDetail,
+  useUpdateFeedbackStatus,
   useCreateFeedbackReply,
   useUpdateFeedbackReply,
   useDeleteFeedbackReply,
-  useAdminFeedbackAttachmentDownload
+  useAdminFeedbackAttachmentDownload,
 } from "@/features/feedback/hooks/useFeedback";
-import { AdminFeedbackDeletionFilter, FeedbackStatus, FeedbackType } from "@/shared/types/api";
+import type { AdminFeedbackDeletionFilter, AdminFeedbackOrder, FeedbackStatus, FeedbackType } from "@/shared/types/api";
 import { isCsrfFailure } from "@/shared/api/auth-error";
 
 const PREVIEW_FILE_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
+};
+
+const DELETION_OPTIONS = [
+  { value: "ACTIVE", label: "삭제 제외" },
+  { value: "ALL", label: "전체" },
+  { value: "DELETED", label: "삭제된 문의" },
+] satisfies { value: AdminFeedbackDeletionFilter; label: string }[];
+
+const ORDER_OPTIONS = [
+  { value: "PENDING_FIRST", label: "처리 대기 우선" },
+  { value: "NEWEST", label: "최신순" },
+  { value: "OLDEST", label: "오래된순" },
+] satisfies { value: AdminFeedbackOrder; label: string }[];
+
+const STATUS_OPTIONS = [
+  { value: "PENDING", label: "처리 대기", className: "border-amber-200 bg-amber-50 text-amber-800" },
+  { value: "IN_PROGRESS", label: "처리 중", className: "border-blue-200 bg-blue-50 text-blue-800" },
+  { value: "COMPLETED", label: "처리 완료", className: "border-green-200 bg-green-50 text-green-800" },
+  { value: "REJECTED", label: "반려", className: "border-red-200 bg-red-50 text-red-800" },
+] satisfies { value: FeedbackStatus; label: string; className: string }[];
+
+const TYPE_LABELS: Record<FeedbackType, string> = {
+  BUG: "버그",
+  SUGGESTION: "건의",
+  OTHER: "기타",
 };
 
 type AttachmentPreview = {
@@ -48,16 +66,22 @@ type AttachmentPreview = {
 
 export default function AdminFeedbackPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [deletionFilter, setDeletionFilter] = useState<AdminFeedbackDeletionFilter>("ALL");
+  const [deletionFilter, setDeletionFilter] = useState<AdminFeedbackDeletionFilter>("ACTIVE");
+  const [order, setOrder] = useState<AdminFeedbackOrder>("PENDING_FIRST");
+  const [page, setPage] = useState(0);
   const [replyContent, setReplyContent] = useState("");
   const [isReplySubmitting, setIsReplySubmitting] = useState(false);
   const [editingReplyId, setEditingReplyId] = useState<number | null>(null);
   const [attachmentPreview, setAttachmentPreview] = useState<AttachmentPreview | null>(null);
   const selectedFeedbackIdRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
+  const detailPaneRef = useRef<HTMLElement>(null);
+  const selectionTriggerRef = useRef<HTMLButtonElement>(null);
 
-  const { data: listData, isLoading: isListLoading } = useFeedbacksForAdmin(0, deletionFilter);
-  const { data: detailData, isLoading: isDetailLoading } = useAdminFeedbackDetail(selectedId!, !!selectedId);
+  const listQuery = useFeedbacksForAdmin(page, deletionFilter, order);
+  const detailQuery = useAdminFeedbackDetail(selectedId ?? 0, selectedId !== null);
+  const listData = listQuery.data;
+  const detailData = detailQuery.data;
 
   const updateStatusMutation = useUpdateFeedbackStatus();
   const createReplyMutation = useCreateFeedbackReply();
@@ -80,12 +104,21 @@ export default function AdminFeedbackPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!window.matchMedia?.("(width < 768px)").matches) return;
+    if (selectedId !== null) {
+      detailPaneRef.current?.focus();
+    } else {
+      selectionTriggerRef.current?.focus();
+    }
+  }, [selectedId]);
+
   const resetReplyDraft = () => {
     setEditingReplyId(null);
     setReplyContent("");
   };
 
-  const handleFeedbackSelection = (feedbackId: number) => {
+  const handleFeedbackSelection = (feedbackId: number | null) => {
     selectedFeedbackIdRef.current = feedbackId;
     setSelectedId(feedbackId);
     setAttachmentPreview(null);
@@ -93,17 +126,31 @@ export default function AdminFeedbackPage() {
   };
 
   const handleDeletionFilterChange = (value: string) => {
-    selectedFeedbackIdRef.current = null;
-    setDeletionFilter(value as AdminFeedbackDeletionFilter);
-    setSelectedId(null);
-    setAttachmentPreview(null);
-    resetReplyDraft();
+    const option = DELETION_OPTIONS.find(({ value: optionValue }) => optionValue === value);
+    if (!option) return;
+    setDeletionFilter(option.value);
+    setPage(0);
+    handleFeedbackSelection(null);
   };
 
-  const handleStatusChange = async (newStatus: FeedbackStatus) => {
-    if (!selectedId) return;
+  const handleOrderChange = (value: string) => {
+    const option = ORDER_OPTIONS.find(({ value: optionValue }) => optionValue === value);
+    if (!option) return;
+    setOrder(option.value);
+    setPage(0);
+    handleFeedbackSelection(null);
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    setPage(nextPage);
+    handleFeedbackSelection(null);
+  };
+
+  const handleStatusChange = async (value: string) => {
+    const option = STATUS_OPTIONS.find(({ value: status }) => status === value);
+    if (!selectedId || !option) return;
     try {
-      await updateStatusMutation.mutateAsync({ id: selectedId, request: { status: newStatus } });
+      await updateStatusMutation.mutateAsync({ id: selectedId, request: { status: option.value } });
       toast.success("상태가 변경되었습니다.");
     } catch {
       toast.error("변경에 실패했습니다.");
@@ -128,8 +175,9 @@ export default function AdminFeedbackPage() {
         });
         toast.success("답변 등록 완료");
       }
-      setReplyContent("");
-      setEditingReplyId(null);
+      if (selectedFeedbackIdRef.current === selectedId) {
+        resetReplyDraft();
+      }
     } catch {
       toast.error("답변 처리 실패");
     } finally {
@@ -183,25 +231,10 @@ export default function AdminFeedbackPage() {
     }
   };
 
-  const getStatusBadge = (status: FeedbackStatus) => {
-    switch (status) {
-      case "PENDING": return <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-100 rounded-md text-[11px] font-bold">대기</Badge>;
-      case "IN_PROGRESS": return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 rounded-md text-[11px] font-bold">처리중</Badge>;
-      case "COMPLETED": return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-100 rounded-md text-[11px] font-bold">완료</Badge>;
-      case "REJECTED": return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-100 rounded-md text-[11px] font-bold">반려</Badge>;
-    }
-  };
-
-  const getTypeBadge = (type: FeedbackType) => {
-    switch (type) {
-      case "BUG": return <span className="text-red-500 font-bold text-[11px]">[버그]</span>;
-      case "SUGGESTION": return <span className="text-amber-500 font-bold text-[11px]">[건의]</span>;
-      default: return <span className="text-blue-500 font-bold text-[11px]">[기타]</span>;
-    }
-  };
+  const totalPages = listData?.totalPages ?? 0;
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-[#0F0F0F] py-10 px-4">
+    <main className="mx-auto flex max-w-7xl flex-col gap-3 px-3 py-4 sm:px-5 md:h-[calc(100dvh-4rem)] md:min-h-[32rem]">
       <Dialog open={attachmentPreview !== null} onOpenChange={(open) => !open && setAttachmentPreview(null)}>
         <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
@@ -223,172 +256,232 @@ export default function AdminFeedbackPage() {
           )}
         </DialogContent>
       </Dialog>
-      <div className="max-w-7xl mx-auto flex flex-col gap-8">
-        <div className="border-b border-gray-200 dark:border-gray-800 pb-6">
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-1">전체 문의 관리</h1>
-          <p className="text-sm text-gray-400 font-medium">사용자가 등록한 버그 제보 및 건의사항을 관리하고 답변을 등록합니다.</p>
-        </div>
+      <h1 className="text-xl font-semibold tracking-tight text-slate-900">문의 관리</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[800px]">
-          {             }
-          <div className="lg:col-span-4 bg-white dark:bg-[#151515] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden flex flex-col shadow-sm">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 flex justify-between items-center">
-              <span className="text-xs font-black text-gray-500 uppercase tracking-wider">목록 (전체 {listData?.totalElements || 0}건)</span>
-              <Select value={deletionFilter} onValueChange={handleDeletionFilterChange}>
-                <SelectTrigger className="w-[100px] h-8 text-[11px] font-bold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL" className="text-xs">전체</SelectItem>
-                  <SelectItem value="ACTIVE" className="text-xs">활성</SelectItem>
-                  <SelectItem value="DELETED" className="text-xs">삭제됨</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
-              {isListLoading ? (
-                <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-primary/30" /></div>
-              ) : listData?.content.map((item) => (
-                <div 
-                  key={item.id}
-                  onClick={() => handleFeedbackSelection(item.id)}
-                  className={`p-4 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5 group ${selectedId === item.id ? "bg-primary/5 border-l-4 border-primary" : ""}`}
-                >
-                  <div className="flex flex-col gap-1.5 min-w-0">
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(item.status)}
-                      {item.deleted && <Badge variant="outline" className="bg-gray-100 text-gray-500 border-gray-200 rounded-md text-[11px] font-bold">삭제됨</Badge>}
-                      <span className="text-[11px] text-gray-400 font-medium">{format(new Date(item.createdAt), "MM.dd HH:mm")}</span>
-                    </div>
-                    <h3 className={`text-[14px] font-bold truncate ${selectedId === item.id ? "text-primary" : "text-gray-800 dark:text-gray-200"}`}>
-                      {getTypeBadge(item.type)} {item.title}
-                    </h3>
-                    <span className="text-[11px] text-gray-400 font-medium">{item.authorLabel}</span>
-                  </div>
-                </div>
-              ))}
+      <div className="grid min-h-0 flex-1 md:grid-cols-[minmax(17rem,1fr)_minmax(0,2fr)] md:gap-3">
+        <section
+          aria-label="문의 목록"
+          className={`min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white ${selectedId === null ? "flex" : "hidden md:flex"}`}
+        >
+          <div className="border-b border-slate-200 px-3 py-2.5">
+            <h2 className="mb-2 text-sm font-semibold text-slate-900">
+              문의 목록 {listData && <span className="ml-1 font-normal text-slate-500">{listData.totalElements}건</span>}
+            </h2>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="min-w-0">
+                <label htmlFor="feedback-deletion" className="mb-1 block text-xs text-slate-600">표시</label>
+                <Select value={deletionFilter} onValueChange={handleDeletionFilterChange}>
+                  <SelectTrigger id="feedback-deletion" size="sm" className="w-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DELETION_OPTIONS.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="feedback-order" className="mb-1 block text-xs text-slate-600">정렬</label>
+                <Select value={order} onValueChange={handleOrderChange}>
+                  <SelectTrigger id="feedback-order" size="sm" className="w-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORDER_OPTIONS.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-
-          {              }
-          <div className="lg:col-span-8 bg-white dark:bg-[#151515] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden flex flex-col shadow-sm">
-            {!selectedId ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-12 opacity-30 text-center">
-                <MessageSquare className="w-16 h-16 mb-4" />
-                <p className="text-lg font-bold">열람할 피드백을 선택해주세요.</p>
+          <div key={`${deletionFilter}-${order}-${page}`} className="min-h-0 flex-1 md:overflow-y-auto">
+            {listQuery.isLoading ? (
+              <div role="status" className="flex items-center justify-center gap-2 p-5 text-sm text-slate-600">
+                <Loader2 className="size-4 animate-spin" /> 문의를 불러오는 중
               </div>
-            ) : isDetailLoading ? (
-              <div className="flex-1 flex items-center justify-center p-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary/30" />
+            ) : listQuery.isError ? (
+              <div className="p-4 text-center text-sm text-slate-600">
+                <p>문의 목록을 불러오지 못했습니다.</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={() => void listQuery.refetch()}>다시 시도</Button>
               </div>
-            ) : detailData && (
-              <div className="flex-1 flex flex-col h-full overflow-hidden animate-in fade-in duration-300">
-                {        }
-                <div className="p-6 border-b border-gray-100 dark:border-gray-800">
-                  <div className="flex justify-between items-start gap-4 mb-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        {getTypeBadge(detailData.type)}
-                        <span className="text-xs text-gray-400 font-medium">{format(new Date(detailData.createdAt), "yyyy.MM.dd HH:mm:ss")}</span>
-                      </div>
-                      <h2 className="text-xl font-black text-gray-900 dark:text-white leading-tight">
-                        {detailData.title}
-                      </h2>
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-gray-400">
-                        <span>{detailData.authorLabel}</span>
-                        {detailData.deleted && <Badge variant="outline" className="text-[10px] text-gray-500">삭제됨</Badge>}
-                      </div>
-                    </div>
-                    <Select value={detailData.status} onValueChange={(val) => handleStatusChange(val as FeedbackStatus)} disabled={detailData.deleted}>
-                      <SelectTrigger className="w-[110px] h-9 text-xs font-bold rounded-lg px-3">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="PENDING" className="text-xs font-bold">대기</SelectItem>
-                        <SelectItem value="IN_PROGRESS" className="text-xs font-bold">처리중</SelectItem>
-                        <SelectItem value="COMPLETED" className="text-xs font-bold">완료</SelectItem>
-                        <SelectItem value="REJECTED" className="text-xs font-bold">반려</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                </div>
-
-                {                    }
-                <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                  <div className="bg-gray-50/50 dark:bg-black/20 p-5 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <div className="text-[14px] text-gray-700 dark:text-gray-300 leading-relaxed font-medium whitespace-pre-wrap">
-                      {detailData.content}
-                    </div>
-                    {detailData.attachments.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                        {detailData.attachments.map((attachment, index) => (
-                          <Button key={attachment.id} variant="outline" size="sm" className="text-xs" disabled={downloadAttachmentMutation.isPending} onClick={() => handleAttachmentDownload(attachment.id, index + 1)}>
-                            <Download className="w-3.5 h-3.5 mr-1" /> 첨부파일 {index + 1}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-[13px] font-black text-gray-900 dark:text-white flex items-center gap-1.5 uppercase tracking-wide">
-                      <ChevronRight className="w-3.5 h-3.5" /> 답변 기록
-                    </h4>
-                    {detailData.replies.length === 0 ? (
-                      <div className="py-10 text-center border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-400">
-                        등록된 답변이 없습니다.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {detailData.replies.map(reply => (
-                          <div key={reply.id} className="bg-primary/5 p-4 rounded-xl border border-primary/10">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-[11px] font-bold text-primary">{reply.authorLabel}</span>
-                              <div className="flex items-center gap-2">
-                                {reply.deleted && <Badge variant="outline" className="text-[10px] text-gray-500">삭제됨</Badge>}
-                                <span className="text-[10px] text-gray-400 font-medium">{format(new Date(reply.createdAt), "yyyy-MM-dd HH:mm")}</span>
-                                {!detailData.deleted && !reply.deleted && <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold px-1.5" onClick={() => startEditReply(reply.id, reply.content)}>수정</Button>}
-                                {!detailData.deleted && !reply.deleted && <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold px-1.5 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleReplyDelete(reply.id)}>삭제</Button>}
-                              </div>
-                            </div>
-                            <p className="text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed font-medium whitespace-pre-wrap">{reply.content}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {           }
-                {!detailData.deleted && <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20">
-                  <div className="relative">
-                    <Textarea 
-                      placeholder="답변을 입력하세요..." 
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      className="min-h-[100px] text-base md:text-[13px] p-4 pr-16 rounded-xl border-gray-200 dark:border-gray-800 resize-none font-medium"
-                    />
-                    <Button 
-                      onClick={handleReplySubmit}
-                      disabled={isReplySubmitting || !replyContent.trim()}
-                      className="absolute bottom-2 right-2 h-10 w-10 p-0 rounded-lg shadow-md"
-                    >
-                      {isReplySubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingReplyId ? <Check className="w-4 h-4"/> : <Send className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                  {editingReplyId && (
-                    <div className="mt-2 flex justify-between items-center px-2">
-                      <span className="text-[10px] font-bold text-primary animate-pulse underline">수정 모드 활성</span>
-                      <Button variant="link" className="h-auto p-0 text-[10px] text-gray-400 hover:text-red-500 font-bold" onClick={() => { setEditingReplyId(null); setReplyContent(""); }}>수정 취소</Button>
-                    </div>
-                  )}
-                </div>}
-              </div>
+            ) : listData?.content.length ? (
+              <ul className="divide-y divide-slate-100">
+                {listData.content.map((item) => {
+                  const status = STATUS_OPTIONS.find(({ value }) => value === item.status);
+                  const isSelected = selectedId === item.id;
+                  return (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        aria-current={isSelected ? "true" : undefined}
+                        onClick={(event) => {
+                          selectionTriggerRef.current = event.currentTarget;
+                          handleFeedbackSelection(item.id);
+                        }}
+                        className={`flex w-full cursor-pointer flex-col gap-1 border-l-2 px-3 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${isSelected ? "border-primary bg-primary/5" : "border-transparent hover:bg-slate-50"}`}
+                      >
+                        <span className="flex w-full flex-wrap items-center gap-x-1.5 gap-y-1">
+                          {status && <Badge variant="outline" className={status.className}>{status.label}</Badge>}
+                          {item.deleted && <Badge variant="secondary">삭제됨</Badge>}
+                          <time dateTime={item.createdAt} className="ml-auto text-xs tabular-nums text-slate-500">
+                            {format(new Date(item.createdAt), "MM.dd HH:mm")}
+                          </time>
+                        </span>
+                        <span className="w-full truncate text-sm font-semibold text-slate-900">{item.title}</span>
+                        <span className="flex w-full min-w-0 items-center gap-1.5 text-xs text-slate-600">
+                          <span className="shrink-0">{TYPE_LABELS[item.type]}</span>
+                          <span aria-hidden="true" className="text-slate-400">·</span>
+                          <span className="truncate">{item.authorLabel}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="p-5 text-center text-sm text-slate-600">표시할 문의가 없습니다.</p>
             )}
           </div>
-        </div>
+          {(totalPages > 1 || page > 0) && (
+            <nav aria-label="문의 목록 페이지" className="flex items-center justify-between border-t border-slate-200 px-2 py-1.5">
+              <Button variant="ghost" size="icon-sm" aria-label="이전 페이지" disabled={page === 0} onClick={() => handlePageChange(page - 1)}>
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="text-xs tabular-nums text-slate-600">{totalPages > 0 && `${page + 1} / ${totalPages}`}</span>
+              <Button variant="ghost" size="icon-sm" aria-label="다음 페이지" disabled={page + 1 >= totalPages} onClick={() => handlePageChange(page + 1)}>
+                <ChevronRight className="size-4" />
+              </Button>
+            </nav>
+          )}
+        </section>
+
+        <section
+          ref={detailPaneRef}
+          aria-label="문의 상세"
+          tabIndex={-1}
+          className={`min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white ${selectedId === null ? "hidden md:flex" : "flex"}`}
+        >
+          {selectedId !== null && (
+            <div className="border-b border-slate-100 px-2 py-1 md:hidden">
+              <Button variant="ghost" size="sm" onClick={() => handleFeedbackSelection(null)}>
+                <ArrowLeft className="size-4" /> 문의 목록
+              </Button>
+            </div>
+          )}
+          {selectedId === null ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-sm text-slate-500">
+              <MessageSquare className="size-6" />
+              <p>목록에서 문의를 선택해 주세요.</p>
+            </div>
+          ) : detailQuery.isLoading ? (
+            <div role="status" className="flex flex-1 items-center justify-center gap-2 p-5 text-sm text-slate-600">
+              <Loader2 className="size-4 animate-spin" /> 문의를 불러오는 중
+            </div>
+          ) : detailQuery.isError ? (
+            <div className="p-4 text-center text-sm text-slate-600">
+              <p>문의 상세를 불러오지 못했습니다.</p>
+              <Button variant="outline" size="sm" className="mt-2" onClick={() => void detailQuery.refetch()}>다시 시도</Button>
+            </div>
+          ) : detailData && (
+            <>
+              <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-b border-slate-200 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600">
+                    <span>{TYPE_LABELS[detailData.type]}</span>
+                    <span>{detailData.authorLabel}</span>
+                    <time dateTime={detailData.createdAt}>{format(new Date(detailData.createdAt), "yyyy.MM.dd HH:mm")}</time>
+                    {detailData.deleted && <Badge variant="secondary">삭제됨</Badge>}
+                  </div>
+                  <h2 className="text-lg leading-snug font-semibold break-words text-slate-900">{detailData.title}</h2>
+                </div>
+                <Select value={detailData.status} onValueChange={handleStatusChange} disabled={detailData.deleted || updateStatusMutation.isPending}>
+                  <SelectTrigger aria-label="처리 상태" size="sm" className="shrink-0 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </header>
+
+              <div key={selectedId} className="min-h-0 flex-1 md:overflow-y-auto">
+                <div className="px-4 py-3">
+                  <p className="text-sm leading-relaxed break-words whitespace-pre-wrap text-slate-700">
+                    {detailData.content}
+                  </p>
+                  {detailData.attachments.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {detailData.attachments.map((attachment, index) => (
+                        <Button key={attachment.id} variant="outline" size="sm" className="text-xs" disabled={downloadAttachmentMutation.isPending} onClick={() => handleAttachmentDownload(attachment.id, index + 1)}>
+                          <Download className="size-3.5" /> 첨부파일 {index + 1}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <section aria-label="답변 기록" className="border-t border-slate-100 px-4 py-3">
+                  <h3 className="mb-2 text-sm font-semibold text-slate-900">답변 기록</h3>
+                  {detailData.replies.length === 0 ? (
+                    <p className="text-sm text-slate-500">등록된 답변이 없습니다.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {detailData.replies.map((reply) => (
+                        <li key={reply.id} className="rounded-lg bg-slate-50 px-3 py-2">
+                          <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600">
+                            <span className="font-semibold text-slate-900">{reply.authorLabel}</span>
+                            {reply.deleted && <Badge variant="secondary">삭제됨</Badge>}
+                            <time dateTime={reply.createdAt}>{format(new Date(reply.createdAt), "yyyy.MM.dd HH:mm")}</time>
+                            {!detailData.deleted && !reply.deleted && (
+                              <div className="ml-auto flex items-center">
+                                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => startEditReply(reply.id, reply.content)}>수정</Button>
+                                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-red-700" onClick={() => handleReplyDelete(reply.id)}>삭제</Button>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-sm leading-relaxed break-words whitespace-pre-wrap text-slate-700">{reply.content}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </div>
+
+              {!detailData.deleted && (
+                <form
+                  className="space-y-2 border-t border-slate-200 px-4 py-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleReplySubmit();
+                  }}
+                >
+                  <label htmlFor="feedback-reply" className="sr-only">답변</label>
+                  <Textarea
+                    id="feedback-reply"
+                    placeholder="답변을 입력하세요..."
+                    value={replyContent}
+                    onChange={(event) => setReplyContent(event.target.value)}
+                    className="min-h-16 resize-none text-base md:text-[13px]"
+                  />
+                  <div className="flex justify-end gap-2">
+                    {editingReplyId !== null && (
+                      <Button type="button" size="sm" variant="ghost" onClick={resetReplyDraft}>수정 취소</Button>
+                    )}
+                    <Button type="submit" size="sm" disabled={isReplySubmitting || !replyContent.trim()}>
+                      {isReplySubmitting && <Loader2 className="size-4 animate-spin" />}
+                      {editingReplyId !== null ? "수정 저장" : "답변 등록"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </>
+          )}
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

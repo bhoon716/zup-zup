@@ -25,6 +25,7 @@ import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownloa
 import bhoon.sugang_helper.support.feedback.entity.Feedback;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackReply;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.repository.AdminFeedbackReadRepository;
 import bhoon.sugang_helper.support.feedback.repository.FeedbackReplyRepository;
@@ -72,9 +73,10 @@ public class AdminFeedbackService {
 
     @Transactional(readOnly = true)
     public Page<AdminFeedbackResponse> getFeedbacksForAdmin(Pageable pageable,
-                                                             AdminFeedbackDeletionFilter deletionFilter) {
+                                                             AdminFeedbackDeletionFilter deletionFilter,
+                                                             AdminFeedbackOrder order) {
         Page<AdminFeedbackSummary> feedbacks = adminFeedbackReadRepository.findFeedbacks(
-                deletionFilter, PageableGuard.requireBounded(pageable));
+                deletionFilter, order, PageableGuard.requireBounded(pageable));
         Map<Long, Boolean> withdrawnByUserId = findAccountStatuses(feedbacks.getContent().stream()
                 .map(AdminFeedbackSummary::authorId)
                 .toList());

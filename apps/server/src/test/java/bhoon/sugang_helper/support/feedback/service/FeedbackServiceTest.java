@@ -43,6 +43,7 @@ import bhoon.sugang_helper.support.feedback.entity.Feedback;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackAttachment;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackReply;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import bhoon.sugang_helper.support.feedback.repository.AdminFeedbackReadRepository;
@@ -615,7 +616,7 @@ class FeedbackServiceTest {
         given(userIdentityQuery.findAccountStatuses(List.of(73L)))
                 .willReturn(List.of(new UserAccountStatus(73L, true)));
         given(adminFeedbackReadRepository.findFeedbacks(
-                AdminFeedbackDeletionFilter.ALL,
+                AdminFeedbackDeletionFilter.ALL, AdminFeedbackOrder.NEWEST,
                 PageRequest.of(0, 20)))
                 .willReturn(new PageImpl<>(List.of(summary), PageRequest.of(0, 20), 1));
         given(adminFeedbackReadRepository.findFeedbackDetail(feedbackId)).willReturn(Optional.of(detail));
@@ -627,7 +628,7 @@ class FeedbackServiceTest {
 
         // when
         Page<AdminFeedbackResponse> list = adminFeedbackService.getFeedbacksForAdmin(
-                PageRequest.of(0, 20), AdminFeedbackDeletionFilter.ALL);
+                PageRequest.of(0, 20), AdminFeedbackDeletionFilter.ALL, AdminFeedbackOrder.NEWEST);
         AdminFeedbackDetailResponse response = adminFeedbackService.getFeedbackDetailForAdmin(feedbackId);
 
         // then
