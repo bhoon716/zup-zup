@@ -421,7 +421,15 @@
   }
 
   .heroArt {
-    min-height: 17.5rem;
+    min-height: 0;
+    gap: .8rem;
+    padding: 1.25rem 1rem;
+  }
+
+  .alertCard {
+    position: relative;
+    inset: auto;
+    margin-left: .75rem;
   }
 
   .reverse .copy {
