@@ -1,172 +1,143 @@
-import type { ReactNode } from "react";
-import { Bell, Calendar, Search } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/shared/lib/utils";
+import { ArrowDown, ArrowRight, Bell, CalendarDays, Check, Search } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import { LandingMotion } from "./landing-motion";
+import styles from "./home-landing.module.css";
 
-const everyTimeReviews = [
-  {
-    id: 1,
-    content: "덕분에 계절 자리 잡았습니다 감사합니다",
-    source: "에브리타임",
-  },
-  {
-    id: 2,
-    content: "너무너무 감사합니다… 알림 뜨는거 보고 바로 들어가면 자리 있더라고요!! 덕분에 시간표 예쁘게 만들었어요 감사합니다!!🥹🫶🏻",
-    source: "에브리타임",
-  },
-  {
-    id: 3,
-    content: "덕분에 전공 빈자리 잡았습니다 ㅜㅜ 감사합니다!!",
-    source: "에브리타임",
-  },
-  {
-    id: 4,
-    content: "수강신청 실패해서 한 과목 부족했는데 알림 덕분에 안전하게 잡았어요!! 진짜 유용하게 잘 쓰고 있습니다ㅠㅠ",
-    source: "에브리타임",
-  },
-  {
-    id: 5,
-    content: "알림 속도 엄청 빨라요! 뜨자마자 바로 들어가서 겨우 성공했습니다.. 개발자님 복 받으세요!",
-    source: "에브리타임",
-  },
-  {
-    id: 6,
-    content: "알림 덕분에 졸업 필수 전공 드디어 잡았어요ㅠㅠ 진짜 은인이십니다 감사합니다!!",
-    source: "에브리타임",
-  },
+const weekdays = ["월", "화", "수", "목", "금"];
+const sampleCourses = [
+  { name: "자료구조", meta: "전공필수 · 3학점", time: "화·목 10:00" },
+  { name: "알고리즘", meta: "전공선택 · 3학점", time: "월·수 13:00" },
+  { name: "인공지능", meta: "전공선택 · 3학점", time: "화·목 15:00" },
 ];
 
-const features = [
-  {
-    title: "실시간 여석 알림",
-    description: "원하는 강의에 빈자리가 생기면 즉시 웹 푸시 알림으로 알려드립니다. 더 이상 모니터 앞에서 대기하지 마세요.",
-    icon: Bell,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    title: "스마트 시간표 관리",
-    description: "복잡한 경우의 수를 고려하여 최적의 시간표를 시뮬레이션 해보세요. 중복되는 시간대와 총 이수 학점까지 실시간으로 체크합니다.",
-    icon: Calendar,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    title: "정밀 강의 검색",
-    description: "강의명, 교수님은 물론 이수 구분, 학점, 강의 시간대 등 다양한 필터로 나에게 딱 맞는 강의를 쉽고 빠르게 찾으세요.",
-    icon: Search,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-];
-
-export function HomeLanding({ countdown, schedules, announcements }: {
-  countdown: ReactNode;
-  schedules: ReactNode;
-  announcements: ReactNode;
-}) {
+export function HomeLanding() {
   return (
-    <main className="flex flex-col">
-      <section className="relative pt-16 pb-24 md:pt-32 md:pb-40 overflow-hidden flex items-center">
-        <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center text-center relative z-10 w-full">
-          <h1
-            className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-[#161118] mb-8 leading-[1.1]"
-          >
-            전북대 수강신청 빈자리,<br/>
-            <span className="text-primary">이제 알림으로 잡으세요.</span>
-          </h1>
-
-          <p
-            className="text-lg md:text-xl text-[#161118]/60 mb-12 max-w-2xl mx-auto leading-relaxed"
-          >
-            하루 종일 새로고침만 누르고 계신가요? 전북대 수강신청 빈자리 알림 서비스 &apos;줍줍&apos;이 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
-          </p>
-
-          <div className="mb-8 w-full flex justify-center">
-            {countdown}
-          </div>
-
-          <div
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
-          >
-            <Button asChild className="sm:w-auto h-auto w-full rounded-full bg-primary px-8 py-5 text-base font-bold text-white shadow-xl shadow-primary/30 transition-all hover:bg-primary/90">
-              <Link href="/login">
-                지금 시작하기
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="sm:w-auto h-auto w-full rounded-full border-2 border-primary/20 bg-white px-8 py-5 text-base font-bold text-primary transition-all hover:bg-primary/5">
-              <Link href="/search">
-                강의 먼저 둘러보기
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="pb-32">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <h2 className="sr-only">줍줍 주요 기능</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="bg-white dark:bg-primary/10 p-10 rounded-2xl shadow-sm border border-primary/5 flex flex-col gap-6 hover:shadow-xl transition-all group cursor-default"
-              >
-                <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform", feature.bgColor)}>
-                  <feature.icon className={cn("w-8 h-8", feature.color)} />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-[#161118] mb-4">{feature.title}</h3>
-                  <p className="text-[#161118]/60 leading-relaxed text-base font-medium">
-                    {feature.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="pb-32">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-[#161118] dark:text-white flex items-center gap-3">
-                생생한 사용자 후기
-              </h2>
-              <p className="mt-2 text-[#161118]/60 dark:text-slate-400 text-sm md:text-base font-medium">
-                줍줍 서비스를 이용한 대학생들의 실제 이용 후기입니다.
-              </p>
+    <LandingMotion>
+      <section className={styles.hero} aria-labelledby="landing-title">
+        <div className={`${styles.wrap} ${styles.heroLayout}`}>
+          <div className={styles.heroCopy}>
+            <p className={styles.eyebrow}>전북대 수강신청 도우미</p>
+            <h1 id="landing-title">
+              기다리던 빈자리,<br />
+              <span>생기면 알려드려요.</span>
+            </h1>
+            <p className={styles.description}>
+              마감된 강의를 계속 확인하느라 하루를 보내지 마세요.
+              줍줍에 알림을 걸어두고, 원하는 강의로 시간표를 미리 짜 보세요.
+            </p>
+            <div className={styles.actions}>
+              <Button asChild size="lg" className={styles.primaryAction}>
+                <Link href="/login">지금 시작하기 <ArrowRight aria-hidden="true" /></Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className={styles.secondaryAction}>
+                <Link href="/search">강의 먼저 둘러보기</Link>
+              </Button>
             </div>
           </div>
 
-          <ul
-            aria-label="사용자 후기 목록"
-            tabIndex={0}
-            className="custom-scrollbar flex snap-x gap-6 overflow-x-auto rounded-2xl py-4 focus-visible:outline-2 focus-visible:outline-primary"
-          >
-            {everyTimeReviews.map((review) => (
-              <li
-                key={review.id}
-                className="flex min-h-44 w-[min(320px,85%)] shrink-0 snap-start flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-xs dark:border-primary/5 dark:bg-primary/5"
-              >
-                <div>
-                  <p className="mb-3 text-xs font-bold text-slate-800 dark:text-slate-200">익명</p>
-                  <p className="break-all text-[13px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
-                    {review.content}
-                  </p>
+          <figure className={styles.heroFigure}>
+            <div className={styles.heroArt}>
+              <div className={styles.watchCard}>
+                <div className={styles.watchHeader}>
+                  <span>관심 강의</span><Bell size={18} aria-hidden="true" />
                 </div>
-                <p className="mt-4 text-right text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                  {review.source}
-                </p>
-              </li>
-            ))}
-          </ul>
+                <div className={styles.watchCourse}>
+                  <div><strong>자료구조</strong><span>화·목 10:00 · 3학점</span></div>
+                  <span className={styles.closed}>마감</span>
+                </div>
+                <div className={styles.watchFooter}><Check size={15} aria-hidden="true" /> 빈자리 알림 켜짐</div>
+              </div>
+              <div className={styles.alertCard}>
+                <div className={styles.alertIcon}><Bell size={22} aria-hidden="true" /></div>
+                <div><strong>자료구조에 빈자리가 생겼어요</strong><span>빈자리 1석</span></div>
+              </div>
+            </div>
+            <figcaption className={styles.caption}>빈자리 알림 예시</figcaption>
+          </figure>
+
+          <a href="#seat-alert" className={styles.explore}><ArrowDown size={16} aria-hidden="true" /> 기능 살펴보기</a>
         </div>
       </section>
-      {schedules}
-      {announcements}
-    </main>
+
+      <section id="seat-alert" className={styles.alertSection} aria-labelledby="seat-alert-title">
+        <div className={`${styles.wrap} ${styles.feature}`}>
+          <div className={styles.copy} data-landing-reveal>
+            <p className={styles.eyebrow}><Bell size={18} aria-hidden="true" /> 빈자리 알림</p>
+            <h2 id="seat-alert-title">새로고침은 그만.<br />빈자리가 나면 알려드려요.</h2>
+            <p className={styles.description}>
+              마감된 강의에 알림을 신청하면 빈자리가 확인됐을 때 알림함에 남겨드려요.
+              웹 푸시, 이메일, Discord를 연결해 두면 선택한 채널에서도 받을 수 있어요.
+            </p>
+          </div>
+          <ol className={styles.flow} data-landing-reveal>
+            <li><span><Search size={19} aria-hidden="true" /></span> 원하는 강의 찾기</li>
+            <li><span><Bell size={19} aria-hidden="true" /></span> 빈자리 알림 신청</li>
+            <li><span><Check size={19} aria-hidden="true" /></span> 빈자리 알림 받기</li>
+          </ol>
+        </div>
+      </section>
+
+      <section className={styles.searchSection} aria-labelledby="landing-search-title">
+        <div className={`${styles.wrap} ${styles.feature} ${styles.reverse}`}>
+          <div className={styles.copy} data-landing-reveal>
+            <p className={styles.eyebrow}><Search size={18} aria-hidden="true" /> 강의 검색</p>
+            <h2 id="landing-search-title">들으려는 강의만<br />빠르게 골라요.</h2>
+            <p className={styles.description}>
+              강의명이나 교수명으로 찾고, 이수 구분·학점·시간대 조건을 더해 필요한 강의만 모아 보세요.
+            </p>
+            <Link className={styles.textLink} href="/search">강의 검색 열기 <ArrowRight size={16} aria-hidden="true" /></Link>
+          </div>
+          <figure className={styles.demoFigure} data-landing-reveal>
+            <div className={styles.searchDemo}>
+              <div className={styles.searchField}><Search size={18} aria-hidden="true" /> 컴퓨터공학부</div>
+              <ul className={styles.filters} aria-label="검색 조건 예시">
+                <li>전공</li><li>3학점</li>
+              </ul>
+              <ul className={styles.courses}>
+                {sampleCourses.map((course) => (
+                  <li key={course.name}><div><strong>{course.name}</strong><span>{course.meta}</span></div><span>{course.time}</span></li>
+                ))}
+              </ul>
+            </div>
+            <figcaption className={styles.caption}>강의 검색 예시</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section className={styles.timetableSection} aria-labelledby="landing-timetable-title">
+        <div className={`${styles.wrap} ${styles.feature}`}>
+          <div className={styles.copy} data-landing-reveal>
+            <p className={styles.eyebrow}><CalendarDays size={18} aria-hidden="true" /> 내 시간표</p>
+            <h2 id="landing-timetable-title">강의를 담고<br />한 주를 미리 그려요.</h2>
+            <p className={styles.description}>
+              고민 중인 강의를 시간표에 넣고, 겹치는 시간과 총 학점을 한눈에 확인하세요.
+              여러 조합을 저장해 두고 비교할 수 있어요.
+            </p>
+          </div>
+          <figure className={styles.demoFigure} data-landing-reveal>
+            <table className={styles.week}>
+              <caption>시간표 예시</caption>
+              <thead><tr><td /><>{weekdays.map((day) => <th key={day} scope="col">{day}</th>)}</></tr></thead>
+              <tbody>
+                <tr><th scope="row">10:00</th><td /><td><span>자료구조</span></td><td /><td><span>자료구조</span></td><td /></tr>
+                <tr><th scope="row">13:00</th><td><span>알고리즘</span></td><td /><td><span>알고리즘</span></td><td /><td /></tr>
+                <tr><th scope="row">15:00</th><td /><td><span>인공지능</span></td><td /><td><span>인공지능</span></td><td /></tr>
+              </tbody>
+            </table>
+          </figure>
+        </div>
+      </section>
+
+      <section className={styles.closing} aria-labelledby="landing-cta-title">
+        <div className={styles.wrap} data-landing-reveal>
+          <h2 id="landing-cta-title">듣고 싶은 강의부터 찾아보세요.</h2>
+          <p>찾아보고, 알림을 걸고, 시간표에 담아 보세요.</p>
+          <Button asChild size="lg" className={styles.primaryAction}>
+            <Link href="/search">강의 검색하기 <ArrowRight aria-hidden="true" /></Link>
+          </Button>
+        </div>
+      </section>
+    </LandingMotion>
   );
 }
