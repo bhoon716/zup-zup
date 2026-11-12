@@ -249,28 +249,23 @@ export interface UserDeviceResponse {
   registeredAt: string;
 }
 
+export type AdminTrafficRange = "LAST_24_HOURS" | "LAST_7_DAYS";
+
 export interface AdminTrafficPointResponse {
   label: string;
-  count: number;
-}
-
-export interface AdminRecentLogResponse {
-  timestamp: string;
-  level: string;
-  message: string;
-  source: string;
+  bucketStart: string;
+  seatOpened: number;
+  feedbackReply: number;
+  announcement: number;
 }
 
 export interface AdminOverviewResponse {
   totalUsers: number;
   totalActiveSubscriptions: number;
-  todayNotificationCount: number;
   crawlingStatus: string;
   lastCrawledAt: string | null;
   jbnuLatencyMs: number | null;
   serverTime: string;
-  notificationTraffic: AdminTrafficPointResponse[];
-  recentLogs: AdminRecentLogResponse[];
 }
 
 export interface AdminDashboardSnapshotResponse {

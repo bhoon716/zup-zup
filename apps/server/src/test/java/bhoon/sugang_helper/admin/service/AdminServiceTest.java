@@ -2,7 +2,6 @@ package bhoon.sugang_helper.admin.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -19,9 +18,10 @@ import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +33,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,9 +49,6 @@ class AdminServiceTest {
     private SubscriptionQueryService subscriptionQueryService;
 
     @Mock
-    private NotificationHistoryQueryService notificationHistoryQuery;
-
-    @Mock
     private NotificationService notificationTestSender;
 
     @Mock
@@ -59,30 +57,34 @@ class AdminServiceTest {
     @Mock
     private CrawlerRunStateService crawlerStatusQuery;
 
+    @Spy
+    private SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     @InjectMocks
     private AdminService adminService;
 
     @ParameterizedTest
     @CsvSource(value = {
-            "없음|UNKNOWN|WARN|크롤링 이력이 없어 상태를 확인할 수 없습니다.",
-            "30|DEGRADED|WARN|크롤러 실행 지연이 감지되었습니다.",
-            "0|RUNNING|INFO|크롤러 주기가 정상 동작 중입니다."
+            "없음|UNKNOWN|false",
+            "30|DEGRADED|false",
+            "0|RUNNING|true"
     }, delimiter = '|', nullValues = "없음")
-    @DisplayName("관리자 대시보드는 크롤러 상태에 맞는 로그를 반환한다")
-    void getDashboardSnapshot(Long minutesAgo, String status, String level, String message) {
+    @DisplayName("관리자 대시보드는 크롤러 상태와 수집된 평균 지연 시간을 반환한다")
+    void getDashboardSnapshot(Long minutesAgo, String status, boolean recordSamples) {
         // given
-        LocalDateTime lastCrawledAt = null;
-        if (minutesAgo != null) {
-            lastCrawledAt = LocalDateTime.now().minusMinutes(minutesAgo);
-        }
+        LocalDateTime lastCrawledAt = minutesAgo == null ? null : LocalDateTime.now().minusMinutes(minutesAgo);
         when(userIdentityQuery.countUsers()).thenReturn(100L);
         when(subscriptionQueryService.countActiveSubscriptions()).thenReturn(50L);
-        when(notificationHistoryQuery.countCreatedAfter(any(LocalDateTime.class))).thenReturn(20L);
-        when(notificationHistoryQuery.findCreatedAtAfter(any(LocalDateTime.class))).thenReturn(List.of());
-        when(notificationHistoryQuery.findLatest()).thenReturn(List.of());
         when(crawlerStatusQuery.findLastSuccessAt()).thenReturn(Optional.ofNullable(lastCrawledAt));
         when(crawlerAdminSnapshotQuery.findCurrentAdminSnapshot())
                 .thenReturn(new CrawlerAdminSnapshot("2026", "U211600020"));
+        if (minutesAgo != null) {
+            var timer = meterRegistry.timer("crawler.upstream.latency");
+            if (recordSamples) {
+                timer.record(Duration.ofMillis(100));
+                timer.record(Duration.ofMillis(200));
+            }
+        }
 
         // when
         AdminDashboardSnapshotResponse result = adminService.getDashboardSnapshot();
@@ -90,15 +92,9 @@ class AdminServiceTest {
         // then
         assertThat(result.getOverview().getTotalUsers()).isEqualTo(100L);
         assertThat(result.getOverview().getTotalActiveSubscriptions()).isEqualTo(50L);
-        assertThat(result.getOverview().getTodayNotificationCount()).isEqualTo(20L);
         assertThat(result.getOverview().getCrawlingStatus()).isEqualTo(status);
-        LocalDateTime expectedTimestamp = "RUNNING".equals(status) ? lastCrawledAt : result.getOverview().getServerTime();
-        assertThat(result.getOverview().getRecentLogs()).singleElement().satisfies(log -> {
-            assertThat(log.getTimestamp()).isEqualTo(expectedTimestamp);
-            assertThat(log.getLevel()).isEqualTo(level);
-            assertThat(log.getMessage()).isEqualTo(message);
-            assertThat(log.getSource()).isEqualTo("CourseCrawler");
-        });
+        assertThat(result.getOverview().getLastCrawledAt()).isEqualTo(lastCrawledAt);
+        assertThat(result.getOverview().getJbnuLatencyMs()).isEqualTo(recordSamples ? 150L : null);
         assertThat(result.getCrawlTarget().year()).isEqualTo("2026");
         assertThat(result.getCrawlTarget().semester()).isEqualTo("U211600020");
     }

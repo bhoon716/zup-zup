@@ -1,79 +1,24 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { LucideIcon } from "lucide-react";
-import { cn } from "@/shared/lib/utils";
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface AdminStatCardProps {
-  label: string;
-  value: string | number;
-  sub?: string;
+  title: string;
   icon: LucideIcon;
-  color: "primary" | "amber" | "green" | "indigo";
-  meta?: {
-    label: string;
-    badgeClass: string;
-  };
-  badge?: string;
-  index: number;
+  children: ReactNode;
 }
 
-export function AdminStatCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  color,
-  meta,
-  badge,
-  index,
-}: AdminStatCardProps) {
+export function AdminStatCard({ title, icon: Icon, children }: AdminStatCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="group relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-5 shadow-2xl shadow-slate-200/50 transition-all hover:-translate-y-1 hover:border-primary/20 sm:p-6 lg:rounded-[2.5rem] lg:p-8"
-    >
-      <div className="mb-6 flex items-start justify-between sm:mb-8">
-        <div
-          className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-2xl transition-colors sm:h-14 sm:w-14",
-            color === "primary" ? "bg-primary/10 text-primary" :
-            color === "amber" ? "bg-amber-100 text-amber-600" :
-            color === "green" ? "bg-green-100 text-green-600" :
-            "bg-indigo-100 text-indigo-600"
-          )}
-        >
-          <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
-        </div>
-        
-        {meta ? (
-          <span
-            className={cn(
-              "inline-flex rounded-xl px-3 py-1 text-xs font-bold ring-1 ring-inset",
-              value === "RUNNING" ? "bg-green-50 text-green-600 ring-green-500/20" :
-              value === "DEGRADED" ? "bg-amber-50 text-amber-600 ring-amber-500/20" :
-              "bg-slate-50 text-slate-500 ring-slate-500/20"
-            )}
-          >
-            {meta.label}
-          </span>
-        ) : badge ? (
-          <span className="rounded-xl bg-primary px-3 py-1 text-[10px] font-black uppercase text-white shadow-lg shadow-primary/20">
-            {badge}
-          </span>
-        ) : null}
-      </div>
-
-      <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{value}</p>
-      {sub && (
-        <p className="mt-4 text-xs font-medium text-slate-500 flex items-center gap-1.5">
-          {sub}
-        </p>
-      )}
-      <div className="absolute -bottom-6 -right-6 h-32 w-32 rounded-full bg-slate-50/50 transition-transform group-hover:scale-150" />
-    </motion.div>
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <h2 className="mb-5 flex items-center gap-3 text-lg font-bold tracking-tight text-slate-900">
+        <span className="rounded-xl bg-primary/10 p-2.5 text-primary">
+          <Icon aria-hidden="true" className="size-5" />
+        </span>
+        {title}
+      </h2>
+      <dl className="grid gap-4 border-t border-slate-100 pt-4 min-[360px]:grid-cols-2">
+        {children}
+      </dl>
+    </section>
   );
 }

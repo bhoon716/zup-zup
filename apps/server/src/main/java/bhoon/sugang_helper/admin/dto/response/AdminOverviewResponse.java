@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.admin.dto.response;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,8 +13,6 @@ public class AdminOverviewResponse {
 
     private final long totalActiveSubscriptions;
 
-    private final long todayNotificationCount;
-
     private final String crawlingStatus;
 
     private final LocalDateTime lastCrawledAt;
@@ -24,15 +21,10 @@ public class AdminOverviewResponse {
 
     private final LocalDateTime serverTime;
 
-    private final List<AdminHourlyTrafficResponse> notificationTraffic;
-
-    private final List<AdminRecentLogResponse> recentLogs;
-
-    public static AdminOverviewResponse of(long totalUsers, long totalActiveSubscriptions, long todayNotificationCount,
+    public static AdminOverviewResponse of(long totalUsers, long totalActiveSubscriptions,
                                            String crawlingStatus, LocalDateTime lastCrawledAt, Long jbnuLatencyMs,
-                                           LocalDateTime serverTime, List<AdminHourlyTrafficResponse> notificationTraffic,
-                                           List<AdminRecentLogResponse> recentLogs) {
-        return new AdminOverviewResponse(totalUsers, totalActiveSubscriptions, todayNotificationCount, crawlingStatus,
-                lastCrawledAt, jbnuLatencyMs, serverTime, notificationTraffic, recentLogs);
+                                           LocalDateTime serverTime) {
+        return new AdminOverviewResponse(totalUsers, totalActiveSubscriptions, crawlingStatus, lastCrawledAt,
+                jbnuLatencyMs, serverTime);
     }
 }

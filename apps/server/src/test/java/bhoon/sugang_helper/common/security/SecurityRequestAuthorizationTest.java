@@ -37,6 +37,7 @@ import bhoon.sugang_helper.identity.auth.service.SessionPrincipal;
 import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
 import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.seatalert.api.NotificationTraffic;
 import bhoon.sugang_helper.seatalert.notification.controller.AdminNotificationDeliveryController;
 import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
 import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
@@ -122,6 +123,9 @@ class SecurityRequestAuthorizationTest {
 
     @MockitoBean
     private AdminService adminService;
+
+    @MockitoBean
+    private NotificationTraffic notificationTraffic;
 
     @MockitoBean
     private AdminAuditService adminAuditService;
@@ -387,6 +391,21 @@ class SecurityRequestAuthorizationTest {
     void sessionSecurityContextAuthenticatesProtectedRequestWithIdentity() throws Exception {
         // when & then
         mockMvc.perform(get("/api/v1/admin/dashboard").session(authenticatedSession("ROLE_ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("알림 트래픽은 관리자만 조회할 수 있다")
+    void notificationTrafficRequiresAdminRole() throws Exception {
+        // given
+        String path = "/api/v1/admin/notifications/traffic";
+
+        // when & then
+        mockMvc.perform(get(path).param("range", "LAST_7_DAYS"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get(path).param("range", "LAST_7_DAYS").session(authenticatedSession("ROLE_USER")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get(path).param("range", "LAST_7_DAYS").session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 

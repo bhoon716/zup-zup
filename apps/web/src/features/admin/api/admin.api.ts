@@ -1,8 +1,13 @@
 import api from "@/shared/api/client";
-import type { AdminDashboardSnapshotResponse, AdminCrawlTargetRequest, AdminCrawlTargetResponse, AdminNotificationDeliveryResponse, AnnouncementRequest, AnnouncementDetailResponse, NotificationDeliveryReplayRequest, PageResponse } from '@/shared/types/api';
+import type { AdminDashboardSnapshotResponse, AdminTrafficPointResponse, AdminTrafficRange, AdminCrawlTargetRequest, AdminCrawlTargetResponse, AdminNotificationDeliveryResponse, AnnouncementRequest, AnnouncementDetailResponse, NotificationDeliveryReplayRequest, PageResponse } from '@/shared/types/api';
 
 export const getDashboardSnapshot = async (): Promise<AdminDashboardSnapshotResponse> => {
   const { data } = await api.get('/api/v1/admin/dashboard');
+  return data;
+};
+
+export const getNotificationTraffic = async (range: AdminTrafficRange): Promise<AdminTrafficPointResponse[]> => {
+  const { data } = await api.get<AdminTrafficPointResponse[]>('/api/v1/admin/notifications/traffic', { params: { range } });
   return data;
 };
 

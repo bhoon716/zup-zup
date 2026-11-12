@@ -5,7 +5,6 @@ import bhoon.sugang_helper.identity.api.users.CurrentUserQuery;
 import bhoon.sugang_helper.seatalert.api.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
-import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -20,20 +19,6 @@ public class NotificationHistoryQueryService implements NotificationHistoryQueri
 
     private final NotificationHistoryRepository repository;
     private final CurrentUserQuery currentUserQuery;
-
-    public long countCreatedAfter(LocalDateTime start) {
-        return repository.countByCreatedAtAfter(start);
-    }
-
-    public List<LocalDateTime> findCreatedAtAfter(LocalDateTime start) {
-        return repository.findCreatedAtByCreatedAtAfter(start);
-    }
-
-    public List<NotificationHistoryItem> findLatest() {
-        return repository.findTop50ByOrderByCreatedAtDesc().stream()
-                .map(NotificationHistoryQueryService::toItem)
-                .toList();
-    }
 
     public List<NotificationHistoryItem> findLatestForUser(Long userId) {
         return repository.findTop3ByUserIdOrderByCreatedAtDesc(userId).stream()

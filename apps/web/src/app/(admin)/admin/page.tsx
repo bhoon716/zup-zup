@@ -1,26 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertCircle, BellRing, CloudCog, Gauge, Loader2, RefreshCcw, Users, Settings } from "lucide-react";
-import Link from "next/link";
+import { AlertCircle, CloudCog, Loader2, RefreshCcw, Users } from "lucide-react";
+import { useState } from "react";
 
-import { useAdminDashboardSnapshot } from "@/features/admin/hooks/useAdminDashboard";
-import { Button } from "@/shared/ui/button";
-
+import { AdminOverview } from "@/features/admin/components/admin-overview";
 import { AdminStatCard } from "@/features/admin/components/admin-stat-card";
 import { AdminTrafficChart } from "@/features/admin/components/admin-traffic-chart";
-import { AdminActivityLog } from "@/features/admin/components/admin-activity-log";
-import { AdminOverview } from "@/features/admin/components/admin-overview";
-import {
-  formatDateTime,
-  formatNumber,
-  formatRelative,
-  formatTime,
-  getLogMeta,
-  getStatusMeta,
-} from "@/features/admin/lib/formatters";
+import { useAdminDashboardSnapshot, useAdminNotificationTraffic } from "@/features/admin/hooks/useAdminDashboard";
+import { formatRelative, formatTime, getStatusMeta } from "@/features/admin/lib/formatters";
+import type { AdminTrafficRange } from "@/shared/types/api";
+import { Button } from "@/shared/ui/button";
 
 export default function AdminDashboardPage() {
+  const [range, setRange] = useState<AdminTrafficRange>("LAST_24_HOURS");
+  const traffic = useAdminNotificationTraffic(range);
   const {
     data: snapshot,
     isLoading: isSnapshotLoading,
@@ -32,6 +26,7 @@ export default function AdminDashboardPage() {
 
   const handleRefresh = () => {
     void refetchSnapshot();
+    void traffic.refetch();
   };
 
   if (isSnapshotLoading) {
@@ -72,94 +67,54 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const statusMeta = getStatusMeta(overview.crawlingStatus || "UNKNOWN");
-  const serverClockText = formatTime(overview.serverTime);
-
-  const statItems = [
-    { label: "크롤러 상태", value: overview.crawlingStatus || "UNKNOWN", sub: `마지막: ${formatRelative(overview.lastCrawledAt)}`, icon: CloudCog, meta: statusMeta, color: "primary" as const },
-    { label: "JBNU 지연시간", value: overview.jbnuLatencyMs === null ? "-" : `${overview.jbnuLatencyMs}ms`, sub: "실시간 연동 준비 중", icon: Gauge, color: "amber" as const },
-    { label: "누적 사용자 수", value: formatNumber(overview.totalUsers), sub: "이번 학기 활성 학생", icon: Users, badge: "LIVE", color: "green" as const },
-    { label: "현재 가동 중인 알림", value: formatNumber(overview.totalActiveSubscriptions), sub: "수강신청 빈자리 대기", icon: BellRing, badge: "Push", color: "indigo" as const }
-  ];
+  const status = getStatusMeta(overview.crawlingStatus);
+  const latency = overview.jbnuLatencyMs === null ? "측정 기록 없음" : `${overview.jbnuLatencyMs} ms`;
 
   return (
-    <div className="bg-[#f3f4f6] text-slate-900 min-h-[calc(100dvh-4rem)]">
-      <div className="sticky top-16 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[1920px] items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <span className="font-medium text-slate-800">시스템 현황 관제</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/admin/announcements">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-8 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
-              >
-                공지사항 관리
-              </Button>
-            </Link>
-            <Link href="/admin/settings">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-8 gap-1.5 rounded-lg border-indigo-200 bg-indigo-50/50 px-3 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
-              >
-                <Settings className="h-3.5 w-3.5" />
-                시스템 제어 & 설정
-              </Button>
-            </Link>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-8 gap-1 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
-              onClick={handleRefresh}
-            >
-              <RefreshCcw className="h-3.5 w-3.5" />
-              새로고침
-            </Button>
-          </div>
+    <main>
+      <AdminOverview serverClock={formatTime(overview.serverTime)} onRefresh={handleRefresh} />
+
+      <div className="mx-auto max-w-[1920px] space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <div className="grid gap-4 md:grid-cols-2 sm:gap-6">
+          <AdminStatCard title="크롤러 상태" icon={CloudCog}>
+            <div>
+              <dt className="text-sm font-medium text-slate-600">최근 크롤링</dt>
+              <dd className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
+                <span className={`rounded-full px-2.5 py-1 font-semibold ${status.badgeClass}`}>{status.label}</span>
+                {formatRelative(overview.lastCrawledAt)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-slate-600">JBNU 평균 지연시간</dt>
+              <dd className="mt-1 text-lg font-bold tabular-nums text-slate-900">{latency}</dd>
+            </div>
+          </AdminStatCard>
+
+          <AdminStatCard title="사용자 및 빈자리 구독" icon={Users}>
+            <div>
+              <dt className="text-sm font-medium text-slate-600">누적 사용자</dt>
+              <dd className="mt-1 text-lg font-bold tabular-nums text-slate-900">
+                {overview.totalUsers.toLocaleString("ko-KR")}명
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-slate-600">활성 빈자리 구독</dt>
+              <dd className="mt-1 text-lg font-bold tabular-nums text-slate-900">
+                {overview.totalActiveSubscriptions.toLocaleString("ko-KR")}건
+              </dd>
+            </div>
+          </AdminStatCard>
         </div>
+
+        <AdminTrafficChart
+          range={range}
+          onRangeChange={setRange}
+          traffic={traffic.data}
+          isLoading={traffic.isLoading}
+          isError={traffic.isError}
+          onRetry={() => void traffic.refetch()}
+        />
       </div>
-
-      <main>
-        <AdminOverview serverClock={serverClockText} onRefresh={handleRefresh} />
-
-        <div className="mx-auto max-w-[1920px] space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 sm:py-8 lg:space-y-12 lg:px-8">
-          {                  }
-          <section className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {statItems.map((stat, i) => (
-              <AdminStatCard key={stat.label} {...stat} index={i} />
-            ))}
-          </section>
-
-          {                                        }
-          <section className="grid grid-cols-1 gap-12 lg:grid-cols-3">
-            <div className="lg:col-span-3">
-              <AdminTrafficChart traffic={overview.notificationTraffic ?? []} />
-            </div>
-          </section>
-
-          {                  }
-          <AdminActivityLog 
-            logs={overview.recentLogs} 
-            formatDateTime={formatDateTime}
-            getLogMeta={getLogMeta}
-          />
-
-          {           }
-          <footer className="py-20 text-center">
-            <div className="flex items-center justify-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.3em] mb-4">
-               <div className="h-px w-8 bg-slate-100"></div>
-               내부 대시보드 관제
-               <div className="h-px w-8 bg-slate-100"></div>
-            </div>
-            <p className="text-xs font-bold text-slate-400">
-              © 2026 JBNU 수강신청 도우미 관리자. <br className="sm:hidden" /> 모든 권리 보유. V2.0.0-GOLD
-            </p>
-          </footer>
-        </div>
-      </main>
-    </div>
+    </main>
   );
 }

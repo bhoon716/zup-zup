@@ -18,19 +18,16 @@ describe("useAdminDashboardSnapshot hook", () => {
         overview: {
           totalUsers: 100,
           totalActiveSubscriptions: 50,
-          todayNotificationCount: 20,
           crawlingStatus: "RUNNING",
           lastCrawledAt: "2026-01-01T00:00:00",
           jbnuLatencyMs: 42,
           serverTime: "2026-01-01T00:01:00",
-          notificationTraffic: [],
-          recentLogs: [],
         },
         crawlTarget: {
           year: "2026",
           semester: "U211600020",
         },
-      } as never);
+      });
 
     const queryClient = createTestQueryClient();
     const wrapper = createQueryWrapper(queryClient);
