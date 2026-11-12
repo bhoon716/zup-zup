@@ -108,21 +108,21 @@ export default function AnnouncementsPage() {
               <li key={announcement.id}>
                 <Link
                   href={`/announcements/${announcement.id}`}
-                  className="group grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-2.5 gap-y-1 px-3 py-3.5 hover:bg-muted/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:px-6"
+                  className="group grid items-start gap-x-4 gap-y-1.5 px-4 py-3.5 hover:bg-muted/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary sm:grid-cols-[minmax(0,1fr)_auto] sm:px-5"
                 >
-                  <span className="w-3.5 pt-1">
-                    {announcement.pinned && (
-                      <>
-                        <Pin aria-hidden="true" className="size-3.5 text-muted-foreground" />
-                        <span className="sr-only">상단 고정</span>
-                      </>
-                    )}
-                  </span>
-                  <div>
-                    <h2 className="text-sm font-semibold wrap-anywhere break-keep text-foreground group-hover:text-primary sm:text-base">{announcement.title}</h2>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-semibold wrap-anywhere break-keep text-foreground group-hover:text-primary sm:text-base">
+                      {announcement.pinned && <span className="sr-only">상단 고정 </span>}
+                      {announcement.title}
+                      {announcement.pinned && (
+                        <span aria-hidden="true" className="ml-1.5 inline-flex size-5 items-center justify-center rounded bg-primary/10 align-middle text-primary">
+                          <Pin className="size-3" />
+                        </span>
+                      )}
+                    </h2>
                     {announcement.previewContent && <p className="mt-0.5 truncate text-sm leading-relaxed text-muted-foreground">{announcement.previewContent}</p>}
                   </div>
-                  <time dateTime={announcement.createdAt} className="col-start-2 whitespace-nowrap text-xs tabular-nums text-muted-foreground sm:col-start-3 sm:mt-1">
+                  <time dateTime={announcement.createdAt} className="whitespace-nowrap text-xs tabular-nums text-muted-foreground sm:mt-1">
                     {formatDate(announcement.createdAt)}
                   </time>
                 </Link>
