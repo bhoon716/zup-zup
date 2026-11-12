@@ -76,6 +76,12 @@ public interface SeatInboxRepository extends Repository<SeatInboxItem, Long> {
             """)
     List<InboxRecipient> findExistingRecipients(@Param("outboxIds") List<Long> outboxIds);
 
+    interface InboxRecipient {
+        Long getOutboxId();
+
+        Long getUserId();
+    }
+
     @Modifying
     @Query("""
             update SeatInboxItem i set i.readAt = :now
@@ -103,10 +109,4 @@ public interface SeatInboxRepository extends Repository<SeatInboxItem, Long> {
             where i.userId = :userId and i.deletedAt is null
             """)
     void softDeleteAll(@Param("userId") Long userId, @Param("now") LocalDateTime now);
-
-    interface InboxRecipient {
-        Long getOutboxId();
-
-        Long getUserId();
-    }
 }
