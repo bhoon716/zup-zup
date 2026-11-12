@@ -15,9 +15,9 @@ export function LandingMotion({ children }: { children: ReactNode }) {
         entry.target.setAttribute("data-landing-visible", "");
         observer.unobserve(entry.target);
       }
-    }, { threshold: 0.16 });
+    }, { rootMargin: "0px 0px -12% 0px", threshold: 0.18 });
 
-    root.current.querySelectorAll("[data-landing-reveal]").forEach((element) => observer.observe(element));
+    root.current.querySelectorAll("[data-landing-scene]").forEach((section) => observer.observe(section));
     return () => observer.disconnect();
   }, []);
 
