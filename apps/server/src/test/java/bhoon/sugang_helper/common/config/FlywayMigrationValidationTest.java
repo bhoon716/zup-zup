@@ -216,7 +216,9 @@ class FlywayMigrationValidationTest {
                             WHERE course_key = ?
                             """, Integer.class, "2026:U211600010:LONG_DIRECTION:01")).isEqualTo(501);
             assertAllCourseKeyCollationsMatchCourses(jdbcTemplate);
-            assertOnlyRequiredNonUniqueIndexes(jdbcTemplate);
+            String wishlistCourseKeyIndex = "wishlists.idx_wishlist_course_key";
+            assertThat(optionalNonUniqueIndexes(jdbcTemplate)).containsExactly(wishlistCourseKeyIndex);
+            assertThat(nonUniqueIndexes(jdbcTemplate)).containsEntry(wishlistCourseKeyIndex, "`course_key`");
             assertThat(columnCollation(jdbcTemplate, "course_emoji_reviews", "emoji"))
                     .isEqualTo("utf8mb4_0900_bin");
             jdbcTemplate.update("""
@@ -432,8 +434,8 @@ class FlywayMigrationValidationTest {
         }
     }
 
-    private static void assertOnlyRequiredNonUniqueIndexes(JdbcTemplate jdbc) {
-        List<String> optionalIndexes = jdbc.queryForList("""
+    private static List<String> optionalNonUniqueIndexes(JdbcTemplate jdbc) {
+        return jdbc.queryForList("""
                 SELECT DISTINCT CONCAT(s.TABLE_NAME, '.', s.INDEX_NAME)
                 FROM information_schema.statistics s
                 WHERE s.TABLE_SCHEMA = DATABASE() AND s.NON_UNIQUE = 1
@@ -446,7 +448,6 @@ class FlywayMigrationValidationTest {
                   )
                   AND s.SEQ_IN_INDEX = 1
                 """, String.class);
-        assertThat(optionalIndexes).as("성능 전용 비유니크 인덱스가 남지 않음").isEmpty();
     }
 
     private static Map<String, String> nonUniqueIndexes(JdbcTemplate jdbc) {
@@ -509,7 +510,7 @@ class FlywayMigrationValidationTest {
         Set<String> removed = new TreeSet<>(beforeIndexes.keySet());
         removed.removeAll(afterIndexes.keySet());
         assertThat(removed).hasSize(22);
-        assertOnlyRequiredNonUniqueIndexes(jdbc);
+        assertThat(optionalNonUniqueIndexes(jdbc)).as("성능 전용 비유니크 인덱스가 남지 않음").isEmpty();
         assertThat(constraints(jdbc)).containsExactlyElementsOf(beforeConstraints);
         assertThat(notificationPage(jdbc, userId, 0)).containsExactlyElementsOf(beforeNotifications).hasSize(30);
         assertThat(notificationPage(jdbc, userId, 30)).hasSize(2).doesNotContainAnyElementsOf(beforeNotifications);
