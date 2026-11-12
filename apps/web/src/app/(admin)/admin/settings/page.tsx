@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, Loader2, RefreshCcw, Settings, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { AlertCircle, Loader2, RefreshCcw } from "lucide-react";
 
 import { useAdminDashboardSnapshot } from "@/features/admin/hooks/useAdminDashboard";
 import {
   useCrawlCourses,
   useCrawlCoursesByTarget,
-  useSendTestNotification,
   useUpdateAdminCrawlTarget,
 } from "@/features/admin/hooks/useAdminActions";
 
@@ -28,7 +26,6 @@ export default function AdminSettingsPage() {
 
   const { mutate: crawlCourses, isPending: isCrawling } = useCrawlCourses();
   const { mutate: crawlCoursesByTarget, isPending: isCustomCrawling } = useCrawlCoursesByTarget();
-  const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
   const { mutate: updateCrawlTarget, isPending: isUpdatingCrawlTarget } = useUpdateAdminCrawlTarget();
 
   const [configuredDraft, setConfiguredDraft] = useState<{ year: string; semester: string } | null>(null);
@@ -86,100 +83,66 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="bg-[#f3f4f6] text-slate-900 min-h-[calc(100dvh-4rem)]">
-      <div className="sticky top-16 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[1920px] items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Link href="/admin" className="flex items-center gap-1.5 font-semibold text-slate-600 hover:text-slate-900 transition-colors">
-              <ArrowLeft className="h-4 w-4" />
-              대시보드 돌아가기
-            </Link>
-            <span className="text-slate-300">|</span>
-            <span className="font-medium text-slate-800">시스템 제어 & 설정</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-8 gap-1 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
-              onClick={handleRefresh}
-            >
-              <RefreshCcw className="h-3.5 w-3.5" />
-              새로고침
-            </Button>
-          </div>
-        </div>
+    <main className="mx-auto max-w-6xl space-y-4 px-4 py-5 sm:space-y-5 sm:px-6 sm:py-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">시스템 제어 및 설정</h1>
+        <Button type="button" variant="outline" onClick={handleRefresh}>
+          <RefreshCcw className="size-4" />
+          새로고침
+        </Button>
       </div>
 
-      <main className="mx-auto max-w-[1920px] space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 sm:py-8 lg:space-y-12 lg:px-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 border-b border-slate-200/60 pb-5"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 shadow-sm">
-            <Settings className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">시스템 제어 센터</h1>
-            <p className="text-xs text-slate-500 font-medium">크롤러 동기화 및 수강신청/종강 디데이 일정을 동적으로 구성합니다.</p>
-          </div>
-        </motion.div>
+      <AdminCrawlTargetPanel
+        configuredYear={configuredYear}
+        configuredSemester={configuredSemester}
+        onConfiguredYearChange={(value) => {
+          setConfiguredDraft((prev) => ({
+            year: value,
+            semester: prev?.semester ?? crawlTarget?.semester ?? "",
+          }));
+        }}
+        onConfiguredSemesterChange={(value) => {
+          setConfiguredDraft((prev) => ({
+            year: prev?.year ?? crawlTarget?.year ?? "",
+            semester: value,
+          }));
+        }}
+        onSaveConfiguredTarget={() => {
+          updateCrawlTarget({
+            year: configuredYear.trim(),
+            semester: configuredSemester.trim(),
+          });
+        }}
+        onRunConfiguredTarget={() => crawlCourses()}
+        isConfiguredTargetLoading={isSnapshotLoading}
+        isSavingConfiguredTarget={isUpdatingCrawlTarget}
+        isRunningConfiguredTarget={isCrawling}
+        canSaveConfiguredTarget={canSaveConfiguredTarget}
+        runYear={runYear}
+        runSemester={runSemester}
+        onRunYearChange={(value) => {
+          setRunDraft((prev) => ({
+            year: value,
+            semester: prev?.semester ?? crawlTarget?.semester ?? "",
+          }));
+        }}
+        onRunSemesterChange={(value) => {
+          setRunDraft((prev) => ({
+            year: prev?.year ?? crawlTarget?.year ?? "",
+            semester: value,
+          }));
+        }}
+        onRunCustomTarget={() => {
+          crawlCoursesByTarget({
+            year: runYear.trim(),
+            semester: runSemester.trim(),
+          });
+        }}
+        isRunningCustomTarget={isCustomCrawling}
+        canRunCustomTarget={canRunCustomTarget}
+      />
 
-        <AdminCrawlTargetPanel
-          configuredYear={configuredYear}
-          configuredSemester={configuredSemester}
-          onConfiguredYearChange={(value) => {
-            setConfiguredDraft((prev) => ({
-              year: value,
-              semester: prev?.semester ?? crawlTarget?.semester ?? "",
-            }));
-          }}
-          onConfiguredSemesterChange={(value) => {
-            setConfiguredDraft((prev) => ({
-              year: prev?.year ?? crawlTarget?.year ?? "",
-              semester: value,
-            }));
-          }}
-          onSaveConfiguredTarget={() => {
-            updateCrawlTarget({
-              year: configuredYear.trim(),
-              semester: configuredSemester.trim(),
-            });
-          }}
-          onRunConfiguredTarget={() => crawlCourses()}
-          isConfiguredTargetLoading={isSnapshotLoading}
-          isSavingConfiguredTarget={isUpdatingCrawlTarget}
-          isRunningConfiguredTarget={isCrawling}
-          canSaveConfiguredTarget={canSaveConfiguredTarget}
-          runYear={runYear}
-          runSemester={runSemester}
-          onRunYearChange={(value) => {
-            setRunDraft((prev) => ({
-              year: value,
-              semester: prev?.semester ?? crawlTarget?.semester ?? "",
-            }));
-          }}
-          onRunSemesterChange={(value) => {
-            setRunDraft((prev) => ({
-              year: prev?.year ?? crawlTarget?.year ?? "",
-              semester: value,
-            }));
-          }}
-          onRunCustomTarget={() => {
-            crawlCoursesByTarget({
-              year: runYear.trim(),
-              semester: runSemester.trim(),
-            });
-          }}
-          isRunningCustomTarget={isCustomCrawling}
-          canRunCustomTarget={canRunCustomTarget}
-          onSendTest={() => sendTestNotification()}
-          isSendingTest={isSendingTest}
-        />
-
-        <AdminSchedulePanel hidePastSchedules />
-      </main>
-    </div>
+      <AdminSchedulePanel upcomingOnly />
+    </main>
   );
 }

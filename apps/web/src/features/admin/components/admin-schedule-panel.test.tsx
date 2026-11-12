@@ -35,7 +35,7 @@ afterEach(() => {
 });
 
 describe("AdminSchedulePanel", () => {
-  it("설정에서는 한국 시간으로 종료된 일정만 숨기고 예정된 삭제 일정은 복원할 수 있다", () => {
+  it("설정에서는 삭제된 일정과 한국 시간으로 종료된 일정을 숨긴다", () => {
     vi.setSystemTime(new Date("2026-07-02T14:00:00Z"));
     mockAdminSchedules.mockReturnValue([
       { ...schedule, scheduleType: "시간이 끝난 일정", endTime: "23:00" },
@@ -44,25 +44,25 @@ describe("AdminSchedulePanel", () => {
       { ...schedule, id: 4, scheduleType: "삭제한 예정 일정", startDate: "2026-07-03", endDate: "2026-07-03", deletedAt: "2026-07-01T10:00:00" },
     ]);
 
-    const { rerender } = render(<AdminSchedulePanel hidePastSchedules />);
+    const { rerender } = render(<AdminSchedulePanel upcomingOnly />);
 
     expect(screen.queryByText("시간이 끝난 일정")).not.toBeInTheDocument();
     expect(screen.getByText("오늘까지인 일정")).toBeInTheDocument();
     expect(screen.getByText("진행 중인 일정")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "삭제한 예정 일정 복원" })).toBeEnabled();
+    expect(screen.queryByText("삭제한 예정 일정")).not.toBeInTheDocument();
 
     vi.setSystemTime(new Date("2026-07-02T15:00:00Z"));
-    rerender(<AdminSchedulePanel hidePastSchedules />);
+    rerender(<AdminSchedulePanel upcomingOnly />);
 
     expect(screen.queryByText("오늘까지인 일정")).not.toBeInTheDocument();
     expect(screen.queryByText("진행 중인 일정")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "삭제한 예정 일정 복원" })).toBeEnabled();
+    expect(screen.queryByText("삭제한 예정 일정")).not.toBeInTheDocument();
   });
 
   it("설정에서 모든 일정이 종료되면 빈 상태를 표시하고 전체 목록에서는 종료된 일정을 관리한다", () => {
     vi.setSystemTime(new Date("2026-07-03T00:00:00Z"));
 
-    const { rerender } = render(<AdminSchedulePanel hidePastSchedules />);
+    const { rerender } = render(<AdminSchedulePanel upcomingOnly />);
 
     expect(screen.getByText("진행 중이거나 예정된 일정이 없습니다.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "전체 일정 관리" })).toHaveAttribute("href", "/admin/schedules");
