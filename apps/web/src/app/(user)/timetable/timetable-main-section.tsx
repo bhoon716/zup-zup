@@ -1,9 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CalendarDays, Download, Loader2, Plus } from "lucide-react";
+import { Download, Loader2, Plus } from "lucide-react";
 import { Button } from "@/shared/ui/button";
-import { Badge } from "@/shared/ui/badge";
 import { TimetableGrid } from "@/features/timetable/components/timetable-grid";
 import { TimetableSelect } from "@/features/timetable/components/timetable-select";
 import type { TimetablePageModel } from "./useTimetablePage";
@@ -15,7 +14,6 @@ type TimetableMainSectionProps = Pick<
   | "activeTimetableId"
   | "timetableDetail"
   | "isDetailLoading"
-  | "timetableName"
   | "setSelectedTimetableId"
   | "onCreateTimetable"
   | "onDeleteTimetable"
@@ -32,7 +30,6 @@ export function TimetableMainSection({
   activeTimetableId,
   timetableDetail,
   isDetailLoading,
-  timetableName,
   setSelectedTimetableId,
   onCreateTimetable,
   onDeleteTimetable,
@@ -45,13 +42,7 @@ export function TimetableMainSection({
     <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card">
       <div className="space-y-3 border-b border-border p-3 sm:px-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-2">
-            <h1 className="shrink-0 text-2xl font-bold tracking-tight text-foreground sm:text-[28px]">내 시간표</h1>
-            <Badge variant="outline" className="min-w-0 shrink gap-1.5 rounded-full px-2 py-1 text-xs font-medium text-muted-foreground">
-              <CalendarDays className="size-3.5 shrink-0" />
-              <span className="truncate">{timetableName}</span>
-            </Badge>
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-[28px]">내 시간표</h1>
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Button
@@ -98,7 +89,7 @@ export function TimetableMainSection({
             transition={{ duration: 0.4 }}
             className="overflow-hidden rounded-lg border border-border bg-card"
           >
-            <TimetableGrid timetable={timetableDetail} className="w-full" showViewControls />
+            <TimetableGrid timetable={timetableDetail} className="w-full" allowHorizontalScroll />
           </motion.div>
         ) : null}
 

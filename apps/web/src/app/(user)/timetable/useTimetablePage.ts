@@ -284,7 +284,6 @@ export const useTimetablePage = () => {
     activeTimetableId,
     timetableDetail,
     isDetailLoading,
-    timetableName: timetableDetail?.name || "시간표",
     totalCredits,
     todayLabel,
     todaySchedules,

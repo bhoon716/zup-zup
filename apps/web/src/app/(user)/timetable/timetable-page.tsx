@@ -18,7 +18,6 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
     activeTimetableId,
     timetableDetail,
     isDetailLoading,
-    timetableName,
     setSelectedTimetableId,
     onCreateTimetable,
     onDeleteTimetable,
@@ -51,7 +50,6 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
           activeTimetableId={activeTimetableId}
           timetableDetail={timetableDetail}
           isDetailLoading={isDetailLoading}
-          timetableName={timetableName}
           setSelectedTimetableId={setSelectedTimetableId}
           onCreateTimetable={onCreateTimetable}
           onDeleteTimetable={onDeleteTimetable}

@@ -8,21 +8,16 @@ import { cn } from '@/shared/lib/utils';
 import { getRenderingBlocks, getTimeInMinutes, WEEK_DAYS, type RenderingBlock } from '@/features/timetable/lib/timetable';
 import { CourseDetailDialog } from '@/features/course/components/course-detail-dialog';
 import { CustomScheduleDetailDialog } from './custom-schedule-detail-dialog';
-import { TimetableAgenda } from './timetable-agenda';
 import { TimetableBlock, type OpenTimetableBlock } from './timetable-block';
 
 interface TimetableGridProps {
   timetable: TimetableResponse;
   className?: string;
   isPreview?: boolean;
-  showViewControls?: boolean;
+  allowHorizontalScroll?: boolean;
 }
 
 const MONDAY_TO_SATURDAY = WEEK_DAYS.slice(0, 6);
-const TIMETABLE_VIEWS = [
-  { value: 'grid', label: '주간 표' },
-  { value: 'agenda', label: '주간 목록' },
-] as const;
 interface BlockLayout {
   leftOffset: number;
   widthFraction: number;
@@ -103,16 +98,14 @@ function buildLayoutsForDay(dayBlocks: RenderingBlock[]): Map<string, BlockLayou
   return layouts;
 }
 
-export function TimetableGrid({ timetable, className, isPreview = false, showViewControls = false }: TimetableGridProps) {
+export function TimetableGrid({ timetable, className, isPreview = false, allowHorizontalScroll = false }: TimetableGridProps) {
   const blocks = useMemo(() => getRenderingBlocks(timetable), [timetable]);
   const displayDays = blocks.some((block) => block.dayOfWeek === '일') ? WEEK_DAYS : MONDAY_TO_SATURDAY;
-  const [view, setView] = useState<(typeof TIMETABLE_VIEWS)[number]['value']>('grid');
   const [selectedBlock, setSelectedBlock] = useState<RenderingBlock | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const returnFocusRef = useRef<HTMLButtonElement>(null);
   const scrollHintId = useId();
-  const isAgendaVisible = showViewControls && view === 'agenda';
-  const hasWideColumns = showViewControls && !isPreview;
+  const hasWideColumns = allowHorizontalScroll && !isPreview;
 
   const initialCourse = useMemo(() => {
     if (selectedBlock?.type !== 'course') return null;
@@ -183,40 +176,24 @@ export function TimetableGrid({ timetable, className, isPreview = false, showVie
 
   return (
     <div className="@container relative min-w-0">
-      {showViewControls && (
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border px-3 py-2 sm:px-4">
-          <div role="group" aria-label="시간표 보기" className="inline-flex rounded-lg bg-muted p-0.5">
-            {TIMETABLE_VIEWS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={view === value}
-                onClick={() => setView(value)}
-                className="cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring aria-pressed:bg-card aria-pressed:text-foreground aria-pressed:shadow-xs"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {!isAgendaVisible && (
-            <p id={scrollHintId} className={cn('flex items-center gap-1.5 text-xs text-muted-foreground', displayDays.length === 7 ? '@min-[56rem]:hidden' : '@min-[49rem]:hidden')}>
-              <MoveHorizontal aria-hidden="true" className="size-3.5" />
-              좌우로 밀어 요일 보기
-            </p>
+      {hasWideColumns && (
+        <p
+          id={scrollHintId}
+          className={cn(
+            'flex items-center gap-1.5 border-b border-border px-3 py-2 text-xs text-muted-foreground',
+            displayDays.length === 7 ? '@min-[55.75rem]:hidden' : '@min-[48.25rem]:hidden',
           )}
-        </div>
+        >
+          <MoveHorizontal aria-hidden="true" className="size-3.5" />
+          좌우로 밀어 요일 보기
+        </p>
       )}
-      {isAgendaVisible && <TimetableAgenda dayBlocks={dayBlocksMap} onOpen={handleOpenBlock} />}
       <div
         role="region"
         aria-label="주간 시간표"
-        aria-describedby={showViewControls && !isAgendaVisible ? scrollHintId : undefined}
-        inert={isAgendaVisible}
-        tabIndex={hasWideColumns && !isAgendaVisible ? 0 : undefined}
-        className={cn(
-          'custom-scrollbar w-full overflow-x-auto bg-white focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary',
-          isAgendaVisible && 'pointer-events-none absolute inset-0 overflow-hidden opacity-0',
-        )}
+        aria-describedby={hasWideColumns ? scrollHintId : undefined}
+        tabIndex={hasWideColumns ? 0 : undefined}
+        className="custom-scrollbar w-full overflow-x-auto bg-white focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
       >
         <div
           className={cn(
