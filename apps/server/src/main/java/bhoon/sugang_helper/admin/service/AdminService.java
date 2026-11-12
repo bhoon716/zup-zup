@@ -39,10 +39,11 @@ public class AdminService {
     private final CrawlerRuns crawlerStatusQuery;
     private final MeterRegistry meterRegistry;
 
-    private AdminOverviewResponse getDashboardOverview() {
+    private AdminOverviewResponse getDashboardOverview(CrawlerAdminSnapshot crawlTarget) {
         LocalDateTime now = LocalDateTime.now();
         long totalUsers = userStatistics.countUsers();
-        long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
+        long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions(
+                crawlTarget.year(), crawlTarget.semester());
         LocalDateTime lastCrawledAt = crawlerStatusQuery.findLastSuccessAt().orElse(null);
 
         return AdminOverviewResponse.of(
@@ -55,8 +56,8 @@ public class AdminService {
     }
 
     public AdminDashboardSnapshotResponse getDashboardSnapshot() {
-        AdminOverviewResponse overview = getDashboardOverview();
         CrawlerAdminSnapshot crawlTarget = crawlerAdminSnapshotQuery.findCurrentAdminSnapshot();
+        AdminOverviewResponse overview = getDashboardOverview(crawlTarget);
 
         return AdminDashboardSnapshotResponse.of(overview, crawlTarget);
     }

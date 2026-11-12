@@ -8,6 +8,7 @@ import { AdminOverview } from "@/features/admin/components/admin-overview";
 import { AdminStatCard } from "@/features/admin/components/admin-stat-card";
 import { AdminTrafficChart } from "@/features/admin/components/admin-traffic-chart";
 import { useAdminDashboardSnapshot, useAdminNotificationTraffic } from "@/features/admin/hooks/useAdminDashboard";
+import { CRAWL_SEMESTER_OPTIONS } from "@/features/admin/lib/crawl-semester-options";
 import { formatRelative, formatTime, getStatusMeta } from "@/features/admin/lib/formatters";
 import type { AdminTrafficRange } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
@@ -67,6 +68,8 @@ export default function AdminDashboardPage() {
     );
   }
 
+  const { year, semester } = snapshot.crawlTarget;
+  const semesterLabel = CRAWL_SEMESTER_OPTIONS.find((option) => option.code === semester)?.label ?? semester;
   const status = getStatusMeta(overview.crawlingStatus);
   const latency = overview.jbnuLatencyMs === null ? "측정 기록 없음" : `${overview.jbnuLatencyMs} ms`;
 
@@ -99,8 +102,11 @@ export default function AdminDashboardPage() {
             </div>
             <div>
               <dt className="text-sm font-medium text-slate-600">활성 빈자리 구독</dt>
-              <dd className="mt-1 text-lg font-bold tabular-nums text-slate-900">
-                {overview.totalActiveSubscriptions.toLocaleString("ko-KR")}건
+              <dd className="mt-1 flex flex-wrap items-baseline gap-x-2">
+                <span className="text-lg font-bold tabular-nums text-slate-900">
+                  {overview.totalActiveSubscriptions.toLocaleString("ko-KR")}건
+                </span>
+                <span className="text-xs font-medium text-slate-600">{year}학년도 {semesterLabel}</span>
               </dd>
             </div>
           </AdminStatCard>

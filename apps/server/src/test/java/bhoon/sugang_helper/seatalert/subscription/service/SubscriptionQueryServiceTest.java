@@ -64,21 +64,26 @@ class SubscriptionQueryServiceTest {
     private TrackedSemesterQuery trackedSemesterQuery;
 
     @Test
-    @DisplayName("수신 대상과 통계는 취소된 구독을 제외한다")
-    void recipientsAndStatisticsExcludeCancelledSubscriptions() {
+    @DisplayName("수신 대상은 취소된 구독을 제외하고 통계는 지정 학기의 활성 구독만 집계한다")
+    void countsActiveSubscriptionsForRequestedTerm() {
         // given
-        Subscription cancelled = subscription(2L, COURSE_KEY);
+        String courseKey = "2026:U211600020:SUBJECT:01";
+        Subscription cancelled = subscription(2L, courseKey);
         cancelled.cancel();
         repository.saveAllAndFlush(List.of(
-                subscription(1L, COURSE_KEY), cancelled, subscription(3L, "course-b")));
+                subscription(1L, courseKey),
+                cancelled,
+                subscription(3L, "2026:U211600020:SUBJECT:02"),
+                subscription(4L, "2026:U211600010:SUBJECT:01"),
+                subscription(5L, "2025:U211600020:SUBJECT:01")));
 
-        Long subscribed = saveOutbox(COURSE_KEY);
+        Long subscribed = saveOutbox(courseKey);
         Long empty = saveOutbox("missing-course");
 
         // when & then
         assertThat(queryService.findActiveRecipientIdsByOutboxId(List.of(subscribed, empty)))
                 .containsOnlyKeys(subscribed).containsEntry(subscribed, List.of(1L));
-        assertThat(queryService.countActiveSubscriptions()).isEqualTo(2);
+        assertThat(queryService.countActiveSubscriptions("2026", "U211600020")).isEqualTo(2);
     }
 
     @ParameterizedTest(name = "전체 해지={0}")

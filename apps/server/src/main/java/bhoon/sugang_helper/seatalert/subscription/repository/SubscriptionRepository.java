@@ -18,7 +18,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     List<Subscription> findByUserId(Long userId);
 
-    long countByIsActiveTrue();
+    long countByCourseKeyStartingWithAndIsActiveTrue(String courseKeyPrefix);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from Subscription s where s.id = :id")

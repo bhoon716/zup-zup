@@ -69,15 +69,16 @@ class AdminServiceTest {
             "30|DEGRADED|false",
             "0|RUNNING|true"
     }, delimiter = '|', nullValues = "없음")
-    @DisplayName("관리자 대시보드는 크롤러 상태와 수집된 평균 지연 시간을 반환한다")
+    @DisplayName("관리자 대시보드는 수집 대상 학기의 구독 수와 크롤러 상태 및 평균 지연 시간을 반환한다")
     void getDashboardSnapshot(Long minutesAgo, String status, boolean recordSamples) {
         // given
         LocalDateTime lastCrawledAt = minutesAgo == null ? null : LocalDateTime.now().minusMinutes(minutesAgo);
+        CrawlerAdminSnapshot crawlTarget = new CrawlerAdminSnapshot("2026", "U211600020");
         when(userIdentityQuery.countUsers()).thenReturn(100L);
-        when(subscriptionQueryService.countActiveSubscriptions()).thenReturn(50L);
+        when(subscriptionQueryService.countActiveSubscriptions(crawlTarget.year(), crawlTarget.semester()))
+                .thenReturn(50L);
         when(crawlerStatusQuery.findLastSuccessAt()).thenReturn(Optional.ofNullable(lastCrawledAt));
-        when(crawlerAdminSnapshotQuery.findCurrentAdminSnapshot())
-                .thenReturn(new CrawlerAdminSnapshot("2026", "U211600020"));
+        when(crawlerAdminSnapshotQuery.findCurrentAdminSnapshot()).thenReturn(crawlTarget);
         if (minutesAgo != null) {
             var timer = meterRegistry.timer("crawler.upstream.latency");
             if (recordSamples) {
@@ -95,8 +96,7 @@ class AdminServiceTest {
         assertThat(result.getOverview().getCrawlingStatus()).isEqualTo(status);
         assertThat(result.getOverview().getLastCrawledAt()).isEqualTo(lastCrawledAt);
         assertThat(result.getOverview().getJbnuLatencyMs()).isEqualTo(recordSamples ? 150L : null);
-        assertThat(result.getCrawlTarget().year()).isEqualTo("2026");
-        assertThat(result.getCrawlTarget().semester()).isEqualTo("U211600020");
+        assertThat(result.getCrawlTarget()).isEqualTo(crawlTarget);
     }
 
     @Test

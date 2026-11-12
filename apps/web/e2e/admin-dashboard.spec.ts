@@ -44,6 +44,8 @@ test("관리자는 알림 발송량을 종류별로 확인하고 24시간과 7�
 
   await page.setViewportSize({ width: 1368, height: 1254 });
   await page.goto("/admin");
+  const activeSubscriptions = page.locator("dd").filter({ hasText: "42건" });
+  await expect(activeSubscriptions.getByText("2026학년도 2학기", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "알림 트래픽 분석" })).toBeVisible();
   await expect(page.getByText("06:00", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("빈자리", { exact: true })).toBeVisible();

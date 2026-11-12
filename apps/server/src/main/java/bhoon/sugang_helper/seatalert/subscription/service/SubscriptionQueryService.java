@@ -23,7 +23,9 @@ public class SubscriptionQueryService implements Subscriptions {
                         Collectors.mapping(OutboxRecipient::getUserId, Collectors.toList())));
     }
 
-    public long countActiveSubscriptions() {
-        return subscriptionRepository.countByIsActiveTrue();
+    @Override
+    public long countActiveSubscriptions(String year, String semester) {
+        String courseKeyPrefix = year + ":" + semester + ":";
+        return subscriptionRepository.countByCourseKeyStartingWithAndIsActiveTrue(courseKeyPrefix);
     }
 }
