@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
 import { RecentNotifications } from "./recent-notifications";
 import { DashboardAnnouncements } from "./dashboard-announcements";
 import { DashboardTimetable } from "./dashboard-timetable";
@@ -16,40 +17,39 @@ export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse })
   }
 
   return (
-    <main className="grow py-8 md:py-12 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto w-full">
-      {                                                 }
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-8 gap-6 w-full">
-        <motion.div 
+    <main className="mx-auto w-full max-w-[1700px] grow px-4 py-5 sm:px-6 md:py-7 lg:px-8">
+      <div className="mb-5 flex w-full flex-wrap items-end justify-between gap-3">
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="min-w-0"
         >
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <Sparkles aria-hidden="true" className="size-3.5" />
+            다시 만나서 반가워요
+          </p>
           <h1 className="text-4xl font-black leading-tight text-foreground md:text-5xl">
             안녕하세요, <span className="text-primary">{user.name}님</span>
           </h1>
         </motion.div>
 
-        <div className="w-full xl:w-auto flex justify-end shrink-0">
+        <div className="shrink-0 empty:hidden">
           <DashboardCountdown />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {                                          }
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="h-full"
-          >
-            <DashboardTimetable timetable={primaryTimetable} />
-          </motion.div>
-        </div>
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="min-w-0 lg:col-span-7"
+        >
+          <DashboardTimetable timetable={primaryTimetable} />
+        </motion.div>
 
-        {                                            }
-        <div className="lg:col-span-5 flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-4 lg:col-span-5">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -65,7 +65,7 @@ export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse })
           >
             <RecentNotifications notifications={notifications || []} />
           </motion.div>
-          
+
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}

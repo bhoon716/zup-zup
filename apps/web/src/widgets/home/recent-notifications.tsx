@@ -10,8 +10,8 @@ export function RecentNotifications({ notifications }: { notifications: Notifica
   const limitedNotifications = notifications?.slice(0, 3) || [];
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-7 shadow-card border border-gray-100 dark:border-gray-800 transition-all hover:shadow-xl group flex flex-col h-full min-h-[300px]">
-      <div className="flex justify-between items-center mb-5 shrink-0">
+    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-4 sm:p-5 shadow-card border border-gray-100 dark:border-gray-800 transition-all hover:shadow-xl group flex flex-col">
+      <div className="flex justify-between items-center mb-2 shrink-0">
         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <span className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center">
             <Bell className="w-4 h-4 text-red-500" />
@@ -23,10 +23,10 @@ export function RecentNotifications({ notifications }: { notifications: Notifica
         </Link>
       </div>
       
-      <div className="space-y-4">
+      <div className="space-y-1">
         {limitedNotifications.length > 0 ? (
           limitedNotifications.map((notif) => (
-            <div key={notif.id} className="flex gap-4 items-start p-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-gray-100 dark:hover:border-gray-700 group/item">
+            <div key={notif.id} className="flex gap-2.5 items-start p-2.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-gray-100 dark:hover:border-gray-700 group/item">
               <div className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-2 shadow-[0_0_8px_rgba(239,68,68,0.5)] group-hover/item:scale-125 transition-transform" />
               <div className="flex flex-col gap-1 overflow-hidden">
                 <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate group-hover/item:text-primary transition-colors">
@@ -41,7 +41,7 @@ export function RecentNotifications({ notifications }: { notifications: Notifica
             </div>
           ))
         ) : (
-          <p className="text-xs text-center py-6 text-gray-400 font-medium">최근 알림이 없습니다.</p>
+          <p className="py-3 text-center text-sm text-muted-foreground">최근 알림이 없습니다.</p>
         )}
       </div>
     </div>

@@ -8,8 +8,8 @@ import { TimetableGrid } from "@/features/timetable/components/timetable-grid";
 
 export function DashboardTimetable({ timetable }: { timetable: TimetableDetailResponse | null | undefined }) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-4 sm:p-7 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col min-h-[500px] sm:min-h-[600px]">
-      <div className="flex justify-between items-center mb-5">
+    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-4 sm:p-5 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
+      <div className="flex justify-between items-center mb-3">
         <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center">
             <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
@@ -32,7 +32,7 @@ export function DashboardTimetable({ timetable }: { timetable: TimetableDetailRe
             />
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3">
+          <div className="flex flex-col items-center justify-center gap-3 py-10 text-slate-500">
             <Calendar className="w-12 h-12 opacity-20" />
             <p className="text-sm font-medium">등록된 시간표가 없습니다.</p>
             <Link href="/timetable">

@@ -13,8 +13,8 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
   const hasSchedules = Boolean(schedules?.length);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-7 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-5 shrink-0">
+    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-4 sm:p-5 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
+      <div className="flex justify-between items-center mb-3 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
             <Timer className="w-5 h-5 text-indigo-600" />
@@ -27,7 +27,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
       </div>
 
       <div
-        className="flex-1 min-h-0 max-h-[24rem] md:max-h-[30rem] overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="flex-1 min-h-0 max-h-88 space-y-1.5 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         role={hasSchedules ? "list" : undefined}
         aria-label={hasSchedules ? "주요 일정 목록" : undefined}
         tabIndex={hasSchedules ? 0 : undefined}
@@ -36,12 +36,12 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
           <div
             role="status"
             aria-label="주요 일정 불러오는 중"
-            className="flex items-center justify-center h-full min-h-[150px]"
+            className="flex items-center justify-center h-full min-h-20"
           >
             <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
           </div>
         ) : schedules?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full min-h-[150px] text-center gap-2 text-gray-400">
+          <div className="flex flex-col items-center justify-center h-full min-h-20 text-center gap-2 text-gray-400">
             <ClipboardList className="w-8 h-8 opacity-20" />
             <p className="text-sm font-medium">현재 등록된 주요 일정이 없습니다.</p>
           </div>
@@ -57,7 +57,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 * idx }}
                 className={cn(
-                  "relative flex w-full min-w-0 items-center gap-4 p-4 rounded-2xl border transition-all cursor-default group",
+                  "relative flex w-full min-w-0 items-center gap-3 rounded-xl px-3 py-2 border transition-all cursor-default group",
                   isDDay
                     ? "bg-white dark:bg-gray-800 border-primary/20 shadow-sm"
                     : "bg-gray-50/50 dark:bg-gray-900/50 border-transparent hover:bg-white dark:hover:bg-gray-800 hover:border-gray-100 dark:hover:border-gray-700"
@@ -69,10 +69,10 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
                 )}
 
                 <div className={cn(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
+                  "size-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
                   isDDay ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"
                 )}>
-                  <ClipboardList className="w-6 h-6" />
+                  <ClipboardList className="size-5" />
                 </div>
 
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
@@ -108,7 +108,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
         )}
       </div>
       
-      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 shrink-0">
+      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 shrink-0">
         <p className="text-[11px] text-gray-400 font-medium text-center">
           * 실제 일정과 차이가 있을 수 있습니다. <br className="sm:hidden" />자세한 내용은 전북대학교 오아시스 및 수강신청 시스템을 우선적으로 참고해 주세요.
         </p>
