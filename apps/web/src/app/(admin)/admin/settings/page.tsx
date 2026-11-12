@@ -15,7 +15,6 @@ import {
 
 import { Button } from "@/shared/ui/button";
 
-import { AdminQuickActions } from "@/features/admin/components/admin-quick-actions";
 import { AdminCrawlTargetPanel } from "@/features/admin/components/admin-crawl-target-panel";
 import { AdminSchedulePanel } from "@/features/admin/components/admin-schedule-panel";
 
@@ -127,72 +126,59 @@ export default function AdminSettingsPage() {
           </div>
         </motion.div>
 
-        <section className="grid grid-cols-1 gap-12 lg:grid-cols-3">
-          {                                      }
-          <AdminQuickActions 
-            onRefresh={handleRefresh}
-            onCrawl={() => crawlCourses()}
-            onSendTest={() => sendTestNotification()}
-            isCrawling={isCrawling}
-            isSendingTest={isSendingTest}
-          />
+        <AdminCrawlTargetPanel
+          configuredYear={configuredYear}
+          configuredSemester={configuredSemester}
+          onConfiguredYearChange={(value) => {
+            setConfiguredDraft((prev) => ({
+              year: value,
+              semester: prev?.semester ?? crawlTarget?.semester ?? "",
+            }));
+          }}
+          onConfiguredSemesterChange={(value) => {
+            setConfiguredDraft((prev) => ({
+              year: prev?.year ?? crawlTarget?.year ?? "",
+              semester: value,
+            }));
+          }}
+          onSaveConfiguredTarget={() => {
+            updateCrawlTarget({
+              year: configuredYear.trim(),
+              semester: configuredSemester.trim(),
+            });
+          }}
+          onRunConfiguredTarget={() => crawlCourses()}
+          isConfiguredTargetLoading={isSnapshotLoading}
+          isSavingConfiguredTarget={isUpdatingCrawlTarget}
+          isRunningConfiguredTarget={isCrawling}
+          canSaveConfiguredTarget={canSaveConfiguredTarget}
+          runYear={runYear}
+          runSemester={runSemester}
+          onRunYearChange={(value) => {
+            setRunDraft((prev) => ({
+              year: value,
+              semester: prev?.semester ?? crawlTarget?.semester ?? "",
+            }));
+          }}
+          onRunSemesterChange={(value) => {
+            setRunDraft((prev) => ({
+              year: prev?.year ?? crawlTarget?.year ?? "",
+              semester: value,
+            }));
+          }}
+          onRunCustomTarget={() => {
+            crawlCoursesByTarget({
+              year: runYear.trim(),
+              semester: runSemester.trim(),
+            });
+          }}
+          isRunningCustomTarget={isCustomCrawling}
+          canRunCustomTarget={canRunCustomTarget}
+          onSendTest={() => sendTestNotification()}
+          isSendingTest={isSendingTest}
+        />
 
-          {                     }
-          <div className="lg:col-span-2">
-            <AdminCrawlTargetPanel
-              configuredYear={configuredYear}
-              configuredSemester={configuredSemester}
-              onConfiguredYearChange={(value) => {
-                setConfiguredDraft((prev) => ({
-                  year: value,
-                  semester: prev?.semester ?? crawlTarget?.semester ?? "",
-                }));
-              }}
-              onConfiguredSemesterChange={(value) => {
-                setConfiguredDraft((prev) => ({
-                  year: prev?.year ?? crawlTarget?.year ?? "",
-                  semester: value,
-                }));
-              }}
-              onSaveConfiguredTarget={() => {
-                updateCrawlTarget({
-                  year: configuredYear.trim(),
-                  semester: configuredSemester.trim(),
-                });
-              }}
-              onRunConfiguredTarget={() => crawlCourses()}
-              isConfiguredTargetLoading={isSnapshotLoading}
-              isSavingConfiguredTarget={isUpdatingCrawlTarget}
-              isRunningConfiguredTarget={isCrawling}
-              canSaveConfiguredTarget={canSaveConfiguredTarget}
-              runYear={runYear}
-              runSemester={runSemester}
-              onRunYearChange={(value) => {
-                setRunDraft((prev) => ({
-                  year: value,
-                  semester: prev?.semester ?? crawlTarget?.semester ?? "",
-                }));
-              }}
-              onRunSemesterChange={(value) => {
-                setRunDraft((prev) => ({
-                  year: prev?.year ?? crawlTarget?.year ?? "",
-                  semester: value,
-                }));
-              }}
-              onRunCustomTarget={() => {
-                crawlCoursesByTarget({
-                  year: runYear.trim(),
-                  semester: runSemester.trim(),
-                });
-              }}
-              isRunningCustomTarget={isCustomCrawling}
-              canRunCustomTarget={canRunCustomTarget}
-            />
-          </div>
-        </section>
-
-        {                          }
-        <AdminSchedulePanel />
+        <AdminSchedulePanel hidePastSchedules />
       </main>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Loader2, Play, Save, Settings2 } from "lucide-react";
+import { Loader2, Play, Save, Send, Settings2 } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
 import { CRAWL_SEMESTER_OPTIONS, getCrawlYearOptions } from "@/features/admin/lib/crawl-semester-options";
@@ -41,6 +41,10 @@ interface AdminCrawlTargetPanelProps {
   isRunningCustomTarget: boolean;
 
   canRunCustomTarget: boolean;
+
+  onSendTest: () => void;
+
+  isSendingTest: boolean;
 }
 
 export function AdminCrawlTargetPanel({
@@ -61,23 +65,38 @@ export function AdminCrawlTargetPanel({
   onRunCustomTarget,
   isRunningCustomTarget,
   canRunCustomTarget,
+  onSendTest,
+  isSendingTest,
 }: AdminCrawlTargetPanelProps) {
   const yearOptions = getCrawlYearOptions();
 
   return (
     <motion.section
+      aria-labelledby="admin-crawl-target-heading"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-200/40 lg:rounded-[2.5rem] lg:p-8"
     >
-      <div className="mb-6 flex items-center gap-2">
-        <Settings2 className="h-5 w-5 text-primary" />
-        <h3 className="text-xl font-black tracking-tight text-slate-900">크롤링 대상 제어</h3>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Settings2 className="h-5 w-5 text-primary" />
+          <h2 id="admin-crawl-target-heading" className="text-xl font-black tracking-tight text-slate-900">크롤링 대상 제어</h2>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onSendTest}
+          disabled={isSendingTest}
+          className="h-9 rounded-xl px-4 text-xs font-bold"
+        >
+          {isSendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          자가 알림 테스트
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
-          <h4 className="mb-3 text-sm font-black text-slate-900">기본 대상 설정</h4>
+          <h3 className="mb-3 text-sm font-black text-slate-900">기본 대상 설정</h3>
           <p className="mb-4 text-xs font-medium text-slate-500">
             스케줄러 및 기본 크롤링 버튼에서 사용할 년도/학기를 저장합니다.
           </p>
@@ -137,7 +156,7 @@ export function AdminCrawlTargetPanel({
         </div>
 
         <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
-          <h4 className="mb-3 text-sm font-black text-slate-900">특정 대상 즉시 실행</h4>
+          <h3 className="mb-3 text-sm font-black text-slate-900">특정 대상 즉시 실행</h3>
           <p className="mb-4 text-xs font-medium text-slate-500">
             저장과 무관하게 1회성으로 원하는 년도/학기를 즉시 크롤링합니다.
           </p>
@@ -180,10 +199,6 @@ export function AdminCrawlTargetPanel({
             </Button>
           </div>
         </div>
-      </div>
-
-      <div className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-medium text-slate-500">
-        학기 선택: 1학기, 2학기, 하기/동기 계절학기, 여름/겨울/신입생/SW 특별학기
       </div>
     </motion.section>
   );

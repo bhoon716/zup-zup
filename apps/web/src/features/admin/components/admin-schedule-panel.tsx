@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Plus, Trash2, Edit2, Loader2, Save, X, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import {
   useAdminSchedules,
   useCreateSchedule,
@@ -32,7 +33,7 @@ const SCHEDULE_TYPE_OPTIONS = [
   "기타",
 ];
 
-export function AdminSchedulePanel() {
+export function AdminSchedulePanel({ hidePastSchedules = false }: { hidePastSchedules?: boolean }) {
   const { data: schedules, isLoading } = useAdminSchedules();
   const { mutate: createSchedule, isPending: isCreating } = useCreateSchedule();
   const { mutate: updateSchedule, isPending: isUpdating } = useUpdateSchedule();
@@ -120,6 +121,7 @@ export function AdminSchedulePanel() {
 
   const isSaving = isCreating || isUpdating;
   const isMutating = isSaving || isDeleting || isRestoring;
+  const visibleSchedules = hidePastSchedules ? filterUnfinishedSchedules(schedules) : schedules;
 
   return (
     <motion.section
@@ -127,27 +129,34 @@ export function AdminSchedulePanel() {
       animate={{ opacity: 1, y: 0 }}
       className="col-span-1 rounded-[2.5rem] bg-white p-8 shadow-2xl shadow-slate-200/50 md:p-10 lg:col-span-3"
     >
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-indigo-50 text-indigo-500 shadow-inner">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 shadow-inner">
             <Calendar className="h-6 w-6" />
           </div>
           <div>
             <h2 className="text-xl font-bold tracking-tight text-slate-900">수강 신청 일정 관리</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">
-              주요 일정을 관리하고 대표 D-day를 선택합니다. 삭제한 일정은 이 목록에서 복원할 수 있습니다.
+              주요 일정을 관리하고 대표 D-day를 선택합니다. 삭제한 일정은 {hidePastSchedules ? "전체 일정에서" : "이 목록에서"} 복원할 수 있습니다.
             </p>
           </div>
         </div>
-        {!isAdding && !editingId && (
-          <Button
-            onClick={() => setIsAdding(true)}
-            className="rounded-xl px-4 py-2 font-medium bg-slate-900 hover:bg-slate-800 text-white"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            일정 추가
-          </Button>
-        )}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {hidePastSchedules && (
+            <Button asChild variant="outline" className="rounded-xl">
+              <Link href="/admin/schedules">전체 일정 관리</Link>
+            </Button>
+          )}
+          {!isAdding && !editingId && (
+            <Button
+              onClick={() => setIsAdding(true)}
+              className="rounded-xl px-4 py-2 font-medium bg-slate-900 hover:bg-slate-800 text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              일정 추가
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -304,13 +313,15 @@ export function AdminSchedulePanel() {
             <div className="flex h-32 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
             </div>
-          ) : schedules?.length === 0 ? (
+          ) : visibleSchedules?.length === 0 ? (
             <div className="flex h-32 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50">
-              <p className="text-sm font-medium text-slate-500">등록된 일정이 없습니다.</p>
+              <p className="text-sm font-medium text-slate-500">
+                {hidePastSchedules ? "진행 중이거나 예정된 일정이 없습니다." : "등록된 일정이 없습니다."}
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {schedules?.map((schedule: ScheduleResponse) => (
+              {visibleSchedules?.map((schedule) => (
                 <div
                   key={schedule.id}
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:border-slate-200 hover:shadow-md"
@@ -379,4 +390,12 @@ export function AdminSchedulePanel() {
       </div>
     </motion.section>
   );
+}
+
+function filterUnfinishedSchedules(schedules: ScheduleResponse[] | undefined) {
+  const now = Date.now();
+  return schedules?.filter(({ endDate, endTime }) => {
+    const endsAt = Date.parse(`${endDate}T${endTime ?? "24:00"}+09:00`);
+    return now < endsAt;
+  });
 }
