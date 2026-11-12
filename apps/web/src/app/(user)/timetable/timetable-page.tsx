@@ -43,8 +43,8 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
   } = model;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-100">
-      <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-2 p-2 sm:gap-4 sm:p-4 lg:flex-row">
+    <div className="min-h-[calc(100vh-4rem)] bg-background">
+      <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:flex-row lg:items-start">
         <TimetableMainSection
           timetables={timetables}
           isListLoading={isListLoading}
