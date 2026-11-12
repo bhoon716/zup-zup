@@ -28,24 +28,24 @@ export function HeaderInbox({ userId }: { userId: number }) {
           size="icon-lg"
           aria-label="알림함"
           title="알림함"
-          className="rounded-xl text-slate-600 hover:bg-primary/5 hover:text-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary xl:size-9"
+          className="text-muted-foreground hover:bg-primary/5 hover:text-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary xl:size-9"
         >
           <Bell aria-hidden="true" className="size-5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" sideOffset={10} collisionPadding={12} className="w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl border-slate-200 p-0 shadow-lg">
-        <DropdownMenuLabel className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">
-          최근 알림
-        </DropdownMenuLabel>
-        <RecentInboxItems userId={userId} />
-        <div className="border-t border-slate-100 p-1">
-          <DropdownMenuItem asChild className="justify-center rounded-xl py-2 font-semibold text-primary focus:text-primary">
+      <DropdownMenuContent align="end" sideOffset={10} collisionPadding={12} className="w-80 max-w-[calc(100vw-1.5rem)] rounded-sm p-0 shadow-lg">
+        <div className="flex items-center justify-between gap-2 border-b py-1.5 pr-2 pl-4">
+          <DropdownMenuLabel className="p-0 font-semibold text-foreground">
+            최근 알림
+          </DropdownMenuLabel>
+          <DropdownMenuItem asChild className="h-9 cursor-pointer font-medium text-primary hover:bg-accent focus:text-primary">
             <Link href="/notifications">
               모두 보기
               <ArrowRight aria-hidden="true" className="size-4 text-primary" />
             </Link>
           </DropdownMenuItem>
         </div>
+        <RecentInboxItems userId={userId} />
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -53,7 +53,7 @@ export function HeaderInbox({ userId }: { userId: number }) {
 
 function RecentInboxItems({ userId }: { userId: number }) {
   const inbox = useInbox(userId, previewSelection);
-  const statusClass = "px-4 py-5 text-center text-sm text-slate-600";
+  const statusClass = "px-4 py-5 text-center text-sm text-muted-foreground";
 
   if (inbox.isError) {
     return <p role="alert" className={statusClass}>알림을 불러오지 못했습니다.</p>;
@@ -69,11 +69,11 @@ function RecentInboxItems({ userId }: { userId: number }) {
   }
 
   return (
-    <ul className="divide-y divide-slate-100">
+    <ul className="divide-y divide-border">
       {items.map((item) => (
         <li key={item.id} className="min-w-0 px-4 py-2.5">
-          <p className="truncate text-sm font-medium text-slate-900">{getInboxItemTitle(item)}</p>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-600">
+          <p className="truncate text-sm font-medium text-foreground">{getInboxItemTitle(item)}</p>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
             <span>{inboxTypeLabels[item.type]}</span>
             <time dateTime={item.occurredAt}>{format(new Date(item.occurredAt), "M월 d일 HH:mm")}</time>
           </p>

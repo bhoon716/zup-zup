@@ -61,7 +61,7 @@ export function Header() {
   const closeMenu = () => setIsMenuOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex shrink-0 items-center gap-2 group transition-all active:scale-95">
@@ -82,15 +82,14 @@ export function Header() {
           <Button
             onClick={install}
             variant="outline"
-            size="sm"
-            className="hidden gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20 xl:flex"
+            className="hidden border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary xl:inline-flex"
           >
-            <Download className="w-4 h-4" />
-            <span className="font-medium">{platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}</span>
+            <Download aria-hidden="true" />
+            {platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}
           </Button>
 
           <div
-            className={cn("items-center xl:flex xl:border-l xl:border-gray-100 xl:pl-3", showInbox ? "flex" : "hidden")}
+            className={cn("items-center xl:flex xl:border-l xl:pl-3", showInbox ? "flex" : "hidden")}
             role="group"
             aria-label="사용자 메뉴"
           >
@@ -113,10 +112,10 @@ export function Header() {
                   aria-controls={mobileMenuContentId}
                   aria-label="메뉴 열기"
                   variant="ghost"
-                  size="icon"
-                  className="rounded-xl w-10 h-10 hover:bg-accent/50"
+                  size="icon-lg"
+                  className="text-muted-foreground hover:bg-primary/5 hover:text-primary"
                 >
-                  <Menu className="w-6 h-6" />
+                  <Menu aria-hidden="true" className="size-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent id={mobileMenuContentId} side="right" className="w-[280px] sm:w-[350px] p-0 border-l border-white/5 bg-background/95 backdrop-blur-xl flex flex-col h-full">
