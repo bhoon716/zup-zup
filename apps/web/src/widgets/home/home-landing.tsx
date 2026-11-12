@@ -1,78 +1,82 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Bell, CalendarDays, Search } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { LandingMotion } from "./landing-motion";
 import styles from "./home-landing.module.css";
 
-const previews = {
-  search: {
-    caption: "줍줍 강의 검색 화면",
+const scenes = [
+  {
+    id: "course-search-preview",
+    label: "강의 검색",
+    title: "듣고 싶은 강의를 찾고.",
+    description: "강의명, 교수명, 시간대로 검색하고 남은 자리를 확인하세요.",
+    image: "search",
     alt: "검색 필터와 강의별 수강 인원 및 빈자리가 표시된 강의 목록",
     size: [1240, 732],
     mobileSize: [840, 1394],
   },
-  notifications: {
-    caption: "줍줍 알림함 화면",
+  {
+    id: "seat-alert",
+    label: "빈자리 알림",
+    title: "빈자리가 나면 알림 받고.",
+    description: "마감된 강의에 알림을 걸어 두세요. 빈자리가 확인되면 알림함과 연결한 채널로 알려드려요.",
+    image: "notifications",
     alt: "과목별 빈자리 수와 확인 시각이 최근 순으로 표시된 알림함",
     size: [1050, 620],
     mobileSize: [840, 1478],
   },
-  timetable: {
-    caption: "줍줍 시간표 화면",
+  {
+    id: "timetable-preview",
+    label: "내 시간표",
+    title: "시간표를 미리 짜 보세요.",
+    description: "고른 강의를 담고 겹치는 시간과 총 학점을 확인하세요.",
+    image: "timetable",
     alt: "요일과 시간대별로 강의가 배치된 주간 표. 모바일에서는 강의명과 장소가 표시된 주간 목록",
     size: [1200, 795],
     mobileSize: [840, 1260],
   },
-} satisfies Record<string, { caption: string; alt: string; size: [number, number]; mobileSize: [number, number] }>;
+] satisfies {
+  id: string;
+  label: string;
+  title: string;
+  description: string;
+  image: string;
+  alt: string;
+  size: [number, number];
+  mobileSize: [number, number];
+}[];
 
-type Preview = keyof typeof previews;
-
-const features = [
-  {
-    id: "seat-alert",
-    label: "빈자리 알림",
-    title: "마감된 강의는\n알림을 걸어 두세요.",
-    description: "빈자리가 확인되면 알림함에 남겨드려요. 웹 푸시, 이메일, Discord 중 편한 채널을 연결하면 알림을 받아볼 수 있어요.",
-    preview: "notifications",
-    icon: Bell,
-  },
-  {
-    id: "timetable-preview",
-    label: "내 시간표",
-    title: "듣고 싶은 강의로\n시간표를 미리 짜 보세요.",
-    description: "강의를 담으면서 겹치는 시간과 총 학점을 확인할 수 있어요. 시간표를 여러 개 만들어 비교하고, 이미지로 저장할 수도 있어요.",
-    preview: "timetable",
-    icon: CalendarDays,
-  },
-] satisfies { id: string; label: string; title: string; description: string; preview: Preview; icon: typeof Bell }[];
-
-function ServicePreview({ preview, priority = false }: { preview: Preview; priority?: boolean }) {
-  const { alt, caption, size: [width, height], mobileSize: [mobileWidth, mobileHeight] } = previews[preview];
+function StoryScene({ scene, first }: { scene: (typeof scenes)[number]; first: boolean }) {
+  const { id, title, description, image, alt, size: [width, height], mobileSize: [mobileWidth, mobileHeight] } = scene;
 
   return (
-    <figure className={styles.preview}>
-      <div className={styles.previewFrame}>
+    <section id={id} className={styles.scene} aria-labelledby={`${id}-title`} data-story-scene>
+      <div className={styles.sceneCopy}>
+        <h2 id={`${id}-title`} className={styles.featureTitle}>{title}</h2>
+        <p className={styles.description}>{description}</p>
+      </div>
+      <figure className={styles.preview}>
         <picture className={styles.previewImage}>
           <source
             media="(max-width: 639px)"
-            srcSet={`/landing/${preview}-mobile.webp`}
+            srcSet={`/landing/${image}-mobile.webp`}
             width={mobileWidth}
             height={mobileHeight}
           />
           <Image
-            src={`/landing/${preview}.webp`}
+            src={`/landing/${image}.webp`}
             alt={alt}
             width={width}
             height={height}
             unoptimized
-            loading={priority ? "eager" : "lazy"}
-            fetchPriority={priority ? "high" : undefined}
+            loading="eager"
+            fetchPriority={first ? "high" : "low"}
           />
         </picture>
-      </div>
-      <figcaption className="mt-2.5 text-center text-xs text-muted-foreground">{caption} · 예시 데이터</figcaption>
-    </figure>
+        <figcaption className="sr-only">실제 줍줍 화면 · 예시 데이터</figcaption>
+      </figure>
+    </section>
   );
 }
 
@@ -80,60 +84,44 @@ export function HomeLanding() {
   return (
     <LandingMotion>
       <section className={styles.hero} aria-labelledby="landing-title">
-        <div className={styles.wrap}>
-          <div className={styles.heroCopy}>
-            <p className="text-sm font-medium text-primary">전북대 수강신청 도우미</p>
-            <h1 id="landing-title" className={styles.title}>
-              기다리던 빈자리,<br />
-              생기면 알려드려요.
-            </h1>
+        <div className={`${styles.wrap} ${styles.heroCopy}`}>
+          <h1 id="landing-title" className={styles.title}>
+            기다리던 빈자리,<br /> 생기면 알려드려요.
+          </h1>
+          <div>
             <p className={styles.description}>
-              듣고 싶은 강의를 찾고, 마감된 강의는 빈자리 알림을 받아보세요.
-              수강신청 전에 내 시간표도 미리 짤 수 있어요.
+              전북대 강의를 찾고, 마감된 강의는 빈자리 알림을 받으세요.
+              내 시간표도 미리 만들 수 있어요.
             </p>
-            <div className="mt-7 flex flex-wrap justify-center gap-2.5 sm:mt-8">
-              <Button asChild size="lg" className="h-11 rounded-lg">
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Button asChild size="lg" className="h-11 rounded-full">
                 <Link href="/login">지금 시작하기 <ArrowRight aria-hidden="true" /></Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="h-11 rounded-lg bg-card">
+              <Button asChild variant="link" className="h-11 px-0">
                 <Link href="/search">강의 먼저 둘러보기</Link>
               </Button>
             </div>
           </div>
-
-          <div id="course-search-preview" className={styles.heroPreview}>
-            <ServicePreview preview="search" priority />
-          </div>
-
-          <nav aria-label="랜딩 기능 소개" className={styles.featureNav}>
-            <a href="#course-search-preview"><Search aria-hidden="true" /> 강의 검색</a>
-            <a href="#seat-alert"><Bell aria-hidden="true" /> 빈자리 알림</a>
-            <a href="#timetable-preview"><CalendarDays aria-hidden="true" /> 내 시간표</a>
-          </nav>
         </div>
       </section>
 
-      {features.map(({ id, label, title, description, preview, icon: Icon }) => (
-        <section
-          key={id}
-          id={id}
-          className={preview === "timetable" ? `${styles.featureSection} ${styles.timetableSection}` : styles.featureSection}
-          aria-labelledby={`${id}-title`}
-          data-landing-scene
-        >
-          <div className={`${styles.wrap} ${styles.featureLayout}`}>
-            <div className={styles.featureCopy}>
-              <p className="flex items-center gap-2 text-sm font-medium text-primary"><Icon aria-hidden="true" className="size-4" />{label}</p>
-              <h2 id={`${id}-title`} className={styles.featureTitle}>{title}</h2>
-              <p className={styles.description}>{description}</p>
-            </div>
-            <ServicePreview preview={preview} />
+      <div className={`${styles.wrap} ${styles.story}`} data-landing-story>
+        <div className={styles.stage} data-story-stage>
+          <div className={styles.scenes}>
+            {scenes.map((scene, index) => <StoryScene key={scene.id} scene={scene} first={index === 0} />)}
           </div>
-        </section>
-      ))}
+          <nav aria-label="랜딩 기능 소개" className={styles.featureNav}>
+            {scenes.map(({ id, label }) => (
+              <a key={id} href={`#${id}`} data-story-link>
+                {label}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </div>
 
-      <section className={styles.closing} aria-labelledby="landing-cta-title" data-landing-scene>
-        <div className={`${styles.wrap} ${styles.featureCopy}`}>
+      <section className={styles.closing} aria-labelledby="landing-cta-title">
+        <div className={styles.wrap}>
           <h2 id="landing-cta-title" className={styles.featureTitle}>듣고 싶은 강의부터 찾아보세요.</h2>
           <Button asChild size="lg" className="mt-5 h-11 rounded-lg sm:mt-6">
             <Link href="/search">강의 검색하기 <ArrowRight aria-hidden="true" /></Link>

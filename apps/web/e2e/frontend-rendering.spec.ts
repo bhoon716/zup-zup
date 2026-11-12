@@ -40,6 +40,29 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
   }
 });
 
+test("홈 기능 소개는 스크롤 방향에 맞춰 검색, 알림, 시간표를 전환한다", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/#seat-alert");
+
+  const steps = page.getByRole("navigation", { name: "랜딩 기능 소개" });
+  const alert = steps.getByRole("link", { name: "빈자리 알림" });
+  const timetable = steps.getByRole("link", { name: "내 시간표" });
+
+  await expect(alert).toHaveAttribute("aria-current", "step");
+  await expect(page.locator("#seat-alert")).toHaveCSS("opacity", "1");
+
+  await page.mouse.move(195, 420);
+  await page.mouse.wheel(0, 330);
+  await expect(timetable).toHaveAttribute("aria-current", "step");
+  await expect(page.locator("#timetable-preview")).toHaveCSS("opacity", "1");
+  await page.mouse.wheel(0, -330);
+  await expect(alert).toHaveAttribute("aria-current", "step");
+  await steps.getByRole("link", { name: "강의 검색" }).click();
+  await expect(page).toHaveURL(/#course-search-preview$/);
+  await expect(steps.getByRole("link", { name: "강의 검색" })).toHaveAttribute("aria-current", "step");
+});
+
 test("긴 검색 목록은 페이지를 추가해도 카드 수를 제한하고 상세를 닫으면 초점을 돌려준다", async ({ page, baseURL }) => {
   const requestedPages = new Set<number>();
   await page.setViewportSize({ width: 390, height: 844 });
