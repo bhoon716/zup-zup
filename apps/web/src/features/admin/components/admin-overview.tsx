@@ -1,14 +1,16 @@
 "use client";
 
-import { RefreshCcw } from "lucide-react";
+import { Loader2, RefreshCcw, Send } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 
 interface AdminOverviewProps {
   serverClock: string;
   onRefresh: () => void;
+  onSendTest: () => void;
+  isSendingTest: boolean;
 }
 
-export function AdminOverview({ serverClock, onRefresh }: AdminOverviewProps) {
+export function AdminOverview({ serverClock, onRefresh, onSendTest, isSendingTest }: AdminOverviewProps) {
   return (
     <section className="bg-white border-b border-slate-100">
       <div className="mx-auto flex max-w-[1920px] flex-col justify-between gap-4 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 md:flex-row md:items-end lg:px-8">
@@ -22,13 +24,24 @@ export function AdminOverview({ serverClock, onRefresh }: AdminOverviewProps) {
             서버 클럭: <span className="font-mono text-primary font-bold">{serverClock} (KST)</span>
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
+            type="button"
             variant="outline"
-            className="h-11 gap-2 rounded-xl border-slate-200 bg-white px-4 text-sm font-bold shadow-sm transition-all hover:border-primary/30 hover:bg-primary/5 active:scale-95 sm:h-14 sm:rounded-2xl sm:px-6 sm:text-base"
+            className="h-10 rounded-xl px-3"
+            onClick={onSendTest}
+            disabled={isSendingTest}
+          >
+            {isSendingTest ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+            자가 알림 테스트
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 rounded-xl px-3"
             onClick={onRefresh}
           >
-            <RefreshCcw className="h-5 w-5" />
+            <RefreshCcw className="size-4" />
             데이터 새로고침
           </Button>
         </div>

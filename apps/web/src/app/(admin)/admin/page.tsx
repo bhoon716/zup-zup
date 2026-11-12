@@ -7,6 +7,7 @@ import { useState } from "react";
 import { AdminOverview } from "@/features/admin/components/admin-overview";
 import { AdminStatCard } from "@/features/admin/components/admin-stat-card";
 import { AdminTrafficChart } from "@/features/admin/components/admin-traffic-chart";
+import { useSendTestNotification } from "@/features/admin/hooks/useAdminActions";
 import { useAdminDashboardSnapshot, useAdminNotificationTraffic } from "@/features/admin/hooks/useAdminDashboard";
 import { CRAWL_SEMESTER_OPTIONS } from "@/features/admin/lib/crawl-semester-options";
 import { formatRelative, formatTime, getStatusMeta } from "@/features/admin/lib/formatters";
@@ -16,6 +17,7 @@ import { Button } from "@/shared/ui/button";
 export default function AdminDashboardPage() {
   const [range, setRange] = useState<AdminTrafficRange>("LAST_24_HOURS");
   const traffic = useAdminNotificationTraffic(range);
+  const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
   const {
     data: snapshot,
     isLoading: isSnapshotLoading,
@@ -75,7 +77,12 @@ export default function AdminDashboardPage() {
 
   return (
     <main>
-      <AdminOverview serverClock={formatTime(overview.serverTime)} onRefresh={handleRefresh} />
+      <AdminOverview
+        serverClock={formatTime(overview.serverTime)}
+        onRefresh={handleRefresh}
+        onSendTest={() => sendTestNotification()}
+        isSendingTest={isSendingTest}
+      />
 
       <div className="mx-auto max-w-[1920px] space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="grid gap-4 md:grid-cols-2 sm:gap-6">

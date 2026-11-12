@@ -24,6 +24,8 @@ test("관리자는 알림 발송량을 종류별로 확인하고 24시간과 7�
         crawlTarget: { year: "2026", semester: "U211600020" },
       } });
     }
+    if (pathname === "/api/auth/csrf") return route.fulfill({ json: { token: "test-csrf" } });
+    if (pathname === "/api/v1/admin/notifications/test") return route.fulfill({ status: 200 });
     if (pathname === trafficPath) {
       const range = searchParams.get("range");
       if (range === "LAST_24_HOURS") {
@@ -44,6 +46,13 @@ test("관리자는 알림 발송량을 종류별로 확인하고 24시간과 7�
 
   await page.setViewportSize({ width: 1368, height: 1254 });
   await page.goto("/admin");
+  const [testRequest] = await Promise.all([
+    page.waitForRequest((request) => new URL(request.url()).pathname === "/api/v1/admin/notifications/test"),
+    page.getByRole("button", { name: "자가 알림 테스트" }).click(),
+  ]);
+  expect(testRequest.method()).toBe("POST");
+  await expect(page.getByText("테스트 알림이 성공적으로 전송되었습니다.")).toBeVisible();
+
   const activeSubscriptions = page.locator("dd").filter({ hasText: "42건" });
   await expect(activeSubscriptions.getByText("2026학년도 2학기", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "알림 트래픽 분석" })).toBeVisible();
