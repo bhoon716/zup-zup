@@ -28,9 +28,10 @@ test("공개 공지사항을 페이지 번호로 탐색하고 검색 시 첫 페
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/announcements");
   const list = page.getByRole("region", { name: "공지 목록" });
-  const pager = list.getByRole("navigation", { name: "공지 페이지 이동" });
+  const pager = page.getByRole("navigation", { name: "공지 페이지 이동" });
   await expect(list.getByRole("listitem")).toHaveCount(10);
-  await expect(list.getByText("중요 공지", { exact: true })).toBeVisible();
+  await expect(list.getByRole("listitem").first().getByRole("link", { name: /상단 고정 공개 공지 1 / })).toBeVisible();
+  await expect(list.getByText("중요 공지", { exact: true })).toHaveCount(0);
   const third = pager.getByRole("button", { name: "3 페이지", exact: true });
   await third.click();
   await expect(third).toHaveAttribute("aria-current", "page");

@@ -3,13 +3,7 @@
 import Link from "next/link";
 import { isAxiosError } from "axios";
 import { useParams } from "next/navigation";
-import {
-  ChevronLeft,
-  Loader2,
-  Pin,
-  ArrowRight,
-  Share2
-} from "lucide-react";
+import { ArrowRight, ChevronLeft, Loader2 } from "lucide-react";
 import { useAnnouncement } from "@/features/announcement/hooks/useAnnouncements";
 import { MarkdownViewer } from "@/shared/ui/markdown-viewer";
 import { Button } from "@/shared/ui/button";
@@ -38,103 +32,66 @@ export default function AnnouncementDetailPage({
   const { data: announcement, error, isLoading, isFetching } = useAnnouncement(id, initialAnnouncement);
   const isUnavailable = isAxiosError(error) && error.response?.status === 404;
 
-  const handleShare = async () => {
-    if (!announcement) {
-      return;
-    }
-
-    const shareUrl = window.location.href;
-    const shareData = {
-      title: announcement.title,
-      url: shareUrl,
-    };
-
-    if (navigator.share) {
-      await navigator.share(shareData);
-      return;
-    }
-
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(shareUrl);
-    }
-  };
-
   if (isLoading || (initialAnnouncement === null && isFetching)) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-slate-50">
-        <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
-        <p className="mt-4 text-sm font-bold text-slate-400">공지사항을 불러오는 중입니다...</p>
-      </div>
+      <main className="grid min-h-[calc(100dvh-4rem)] place-items-center px-4">
+        <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 aria-hidden="true" className="size-4 motion-safe:animate-spin" />
+          공지사항을 불러오는 중입니다.
+        </p>
+      </main>
     );
   }
 
   if (isUnavailable || !announcement) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-slate-50">
-        <h1 className="text-xl font-black text-slate-900">
+      <main className="flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center px-4 text-center">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {isUnavailable ? "더 이상 확인할 수 없는 공지입니다" : "공지사항을 불러오지 못했습니다"}
         </h1>
-        <Button asChild className="mt-6 rounded-2xl">
+        <Button asChild className="mt-6 rounded-lg">
           <Link href="/announcements">목록으로 돌아가기</Link>
         </Button>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-[calc(100dvh-4rem)] bg-slate-50">
-      <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-        <div className="mb-4 flex items-center justify-between">
-          <Button asChild variant="ghost" className="rounded-lg text-slate-600">
-            <Link href="/announcements">
-              <ChevronLeft aria-hidden="true" />
-              공지사항
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+      <Button asChild variant="ghost" className="-ml-2 mb-4 rounded-lg text-muted-foreground">
+        <Link href="/announcements">
+          <ChevronLeft aria-hidden="true" />
+          공지사항
+        </Link>
+      </Button>
+
+      <article className="rounded-xl border bg-card px-4 py-5 sm:px-7 sm:py-7">
+        <header className="mb-5 border-b pb-5">
+          <h1 className="text-2xl font-bold tracking-tight wrap-anywhere break-keep text-foreground sm:text-3xl">
+            {announcement.title}
+          </h1>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span>등록 <time dateTime={announcement.createdAt}>{formatDateTime(announcement.createdAt)}</time></span>
+            {announcement.updatedAt !== announcement.createdAt && (
+              <span>수정 <time dateTime={announcement.updatedAt}>{formatDateTime(announcement.updatedAt)}</time></span>
+            )}
+          </div>
+        </header>
+
+        <MarkdownViewer
+          content={announcement.content}
+          className="text-sm text-muted-foreground [&_:is(h1,h2,h3,h4)]:text-base [&_:is(h1,h2,h3,h4)]:font-semibold [&_:is(h1,h2,h3,h4,p,ul,ol,table,th)]:text-foreground"
+        />
+
+        <footer className="mt-8 border-t pt-4">
+          <Button asChild variant="outline" className="rounded-lg">
+            <Link href="/feedback">
+              문의 및 건의하기
+              <ArrowRight aria-hidden="true" />
             </Link>
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="rounded-lg"
-            aria-label="공지 공유"
-            title="공지 공유"
-            onClick={() => { void handleShare(); }}
-          >
-            <Share2 aria-hidden="true" />
-          </Button>
-        </div>
-
-        <article className="rounded-2xl border border-slate-200 bg-white px-4 py-5 shadow-sm sm:px-7 sm:py-7">
-          <header className="mb-5 border-b border-slate-200 pb-5">
-            {announcement.pinned && (
-              <span className="mb-2 inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
-                <Pin aria-hidden="true" className="size-3" />
-                중요 공지
-              </span>
-            )}
-            <h1 className="break-words text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              {announcement.title}
-            </h1>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600 sm:text-sm">
-              <span>등록 <time dateTime={announcement.createdAt}>{formatDateTime(announcement.createdAt)}</time></span>
-              {announcement.updatedAt !== announcement.createdAt && (
-                <span>수정 <time dateTime={announcement.updatedAt}>{formatDateTime(announcement.updatedAt)}</time></span>
-              )}
-            </div>
-          </header>
-
-          <MarkdownViewer content={announcement.content} className="text-base leading-relaxed text-slate-700" />
-
-          <footer className="mt-8 border-t border-slate-200 pt-4">
-            <Button asChild variant="outline" className="rounded-lg">
-              <Link href="/feedback">
-                문의 및 건의하기
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </Button>
-          </footer>
-        </article>
-      </main>
-    </div>
+        </footer>
+      </article>
+    </main>
   );
 }

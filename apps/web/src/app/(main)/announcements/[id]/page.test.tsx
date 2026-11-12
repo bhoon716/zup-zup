@@ -1,11 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import AnnouncementDetailPage from "./announcement-detail-page";
 
 const mockUseAnnouncement = vi.fn();
 const mockUseParams = vi.fn();
-const shareSpy = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useParams: () => mockUseParams(),
@@ -24,30 +23,21 @@ describe("AnnouncementDetailPage", () => {
         id: 1,
         title: "공지 제목",
         content: "본문",
-        pinned: false,
+        pinned: true,
         createdAt: "2026-07-06T00:00:00.000Z",
         updatedAt: "2026-07-06T00:00:00.000Z",
       },
       isLoading: false,
     });
-    Object.defineProperty(window.navigator, "share", {
-      configurable: true,
-      value: shareSpy,
-    });
-    window.history.pushState({}, "", "/announcements/1");
   });
 
-  it("공지 공유 버튼에 접근 가능한 이름을 제공하고 공유 API를 호출한다", () => {
+  it("상단 고정 공지의 제목과 본문을 보여주고 공유 버튼과 중요 표시를 숨긴다", () => {
     render(<AnnouncementDetailPage />);
 
-    const shareButton = screen.getByRole("button", { name: "공지 공유" });
-    fireEvent.click(shareButton);
-
-    expect(shareSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "공지 제목",
-        url: "http://localhost:3000/announcements/1",
-      })
-    );
+    expect(screen.getByRole("heading", { name: "공지 제목" })).toBeVisible();
+    expect(screen.getByText("본문")).toBeVisible();
+    expect(screen.getByRole("link", { name: "공지사항" })).toHaveAttribute("href", "/announcements");
+    expect(screen.queryByRole("button", { name: "공지 공유" })).not.toBeInTheDocument();
+    expect(screen.queryByText("중요 공지", { exact: true })).not.toBeInTheDocument();
   });
 });
