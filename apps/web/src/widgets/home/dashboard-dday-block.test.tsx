@@ -49,7 +49,7 @@ describe("DashboardDDayBlock", () => {
   it("대표 지정되지 않은 일정과 진행 중인 일정도 일반 목록에 표시한다", () => {
     render(<DashboardDDayBlock upcomingSchedules={[{ ...createSchedule(1), dDay: "진행 중" }, createSchedule(2)]} />);
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
-    expect(screen.getAllByText("진행 중")).toHaveLength(2);
+    expect(screen.getByText("진행 중")).toBeInTheDocument();
     expect(screen.getByText("주요 일정 2")).toBeInTheDocument();
   });
 
