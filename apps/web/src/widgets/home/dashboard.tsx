@@ -1,6 +1,5 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { RecentNotifications } from "./recent-notifications";
 import { DashboardAnnouncements } from "./dashboard-announcements";
@@ -26,13 +25,8 @@ export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse })
           transition={{ duration: 0.5 }}
           className="min-w-0"
         >
-          <div className="flex items-center gap-2 text-primary uppercase tracking-[0.2em] text-[10px] font-black mb-2">
-            <div className="w-8 h-px bg-primary/30" />
-            <Sparkles className="w-3 h-3" />
-            다시 만나서 반가워요
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-gray-100 leading-tight">
-            안녕하세요, <span className="text-primary">{user.name}님!</span>
+          <h1 className="text-3xl font-semibold leading-snug text-foreground md:text-4xl">
+            안녕하세요, <span className="text-primary">{user.name}님</span>
           </h1>
         </motion.div>
 

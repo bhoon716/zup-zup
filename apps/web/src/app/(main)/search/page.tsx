@@ -425,7 +425,7 @@ export default function SearchPage() {
           <section className="min-w-0 space-y-4">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="min-w-0 truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                <h1 className="min-w-0 truncate text-2xl font-semibold leading-snug text-foreground sm:text-3xl">
                   {searchCondition.keyword || searchCondition.name || searchCondition.professor
                     ? `"${searchCondition.keyword || searchCondition.name || searchCondition.professor}"`
                     : "강의 목록"}

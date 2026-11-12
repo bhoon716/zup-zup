@@ -46,7 +46,7 @@ export default function AnnouncementDetailPage({
   if (isUnavailable || !announcement) {
     return (
       <main className="flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center px-4 text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="text-2xl font-semibold leading-snug text-foreground">
           {isUnavailable ? "더 이상 확인할 수 없는 공지입니다" : "공지사항을 불러오지 못했습니다"}
         </h1>
         <Button asChild className="mt-6 rounded-lg">
@@ -67,7 +67,7 @@ export default function AnnouncementDetailPage({
 
       <article className="rounded-xl border bg-card px-4 py-5 sm:px-7 sm:py-7">
         <header className="mb-5 border-b pb-5">
-          <h1 className="text-2xl font-bold tracking-tight wrap-anywhere break-keep text-foreground sm:text-3xl">
+          <h1 className="text-2xl font-semibold leading-snug wrap-anywhere break-keep text-foreground sm:text-3xl">
             {announcement.title}
           </h1>
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">

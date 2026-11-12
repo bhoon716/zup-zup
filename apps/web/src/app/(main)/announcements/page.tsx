@@ -51,7 +51,7 @@ export default function AnnouncementsPage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">공지사항</h1>
+        <h1 className="text-2xl font-semibold leading-snug text-foreground sm:text-3xl">공지사항</h1>
 
         <form
           ref={listTop}
@@ -120,7 +120,7 @@ export default function AnnouncementsPage() {
                   </span>
                   <div>
                     <h2 className="text-sm font-semibold wrap-anywhere break-keep text-foreground group-hover:text-primary sm:text-base">{announcement.title}</h2>
-                    {announcement.previewContent && <p className="mt-0.5 truncate text-sm text-muted-foreground">{announcement.previewContent}</p>}
+                    {announcement.previewContent && <p className="mt-0.5 truncate text-sm leading-relaxed text-muted-foreground">{announcement.previewContent}</p>}
                   </div>
                   <time dateTime={announcement.createdAt} className="col-start-2 whitespace-nowrap text-xs tabular-nums text-muted-foreground sm:col-start-3 sm:mt-1">
                     {formatDate(announcement.createdAt)}
