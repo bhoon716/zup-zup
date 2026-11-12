@@ -69,20 +69,19 @@ describe('TimetableGrid', () => {
     expect(screen.getByText('목')).toBeInTheDocument();
     expect(screen.getByText('금')).toBeInTheDocument();
 
-    expect(screen.getByText(/9:00/)).toBeInTheDocument();
-    expect(screen.getByText(/10:00/)).toBeInTheDocument();
+    expect(screen.getByText('9:00', { exact: true })).toBeInTheDocument();
+    expect(screen.getByText('10:00', { exact: true })).toBeInTheDocument();
   });
 
   it.each([
-    { isPreview: false, mobile: '42px', desktopClass: 'md:[--slot-height:60px]' },
-    { isPreview: true, mobile: '45px', desktopClass: 'md:[--slot-height:45px]' },
-  ])('keeps the responsive slot height without an inline style tag', ({ isPreview, mobile, desktopClass }) => {
+    { isPreview: false, slotClasses: ['[--slot-height:42px]', 'md:[--slot-height:60px]'] },
+    { isPreview: true, slotClasses: ['[--slot-height:45px]'] },
+  ])('화면에 맞는 시간 칸 높이를 인라인 스타일 태그 없이 지정한다', ({ isPreview, slotClasses }) => {
     const { container } = renderGrid(mockTimetable, isPreview);
     const grid = container.querySelector<HTMLElement>('.timetable-grid-content');
 
     expect(grid).not.toBeNull();
-    expect(grid?.style.getPropertyValue('--slot-height')).toBe(mobile);
-    expect(grid).toHaveClass(desktopClass);
+    expect(grid).toHaveClass(...slotClasses);
     expect(container.querySelector('style')).not.toBeInTheDocument();
   });
 });

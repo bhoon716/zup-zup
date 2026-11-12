@@ -46,7 +46,7 @@ export function TimetableMainSection({
       <div className="space-y-3 border-b border-border p-3 sm:px-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-2">
-            <h1 className="shrink-0 text-2xl font-bold tracking-tight text-foreground sm:text-[28px]">내 시간표</h1>
+            <h1 className="shrink-0 text-2xl leading-snug font-semibold text-foreground sm:text-[28px]">내 시간표</h1>
             <Badge variant="outline" className="min-w-0 shrink gap-1.5 rounded-full px-2 py-1 text-xs font-medium text-muted-foreground">
               <CalendarDays className="size-3.5 shrink-0" />
               <span className="truncate">{timetableName}</span>
@@ -96,9 +96,9 @@ export function TimetableMainSection({
             initial={{ opacity: 0, scale: 0.99 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4 }}
-            className="overflow-auto rounded-lg border border-border bg-white"
+            className="overflow-hidden rounded-lg border border-border bg-card"
           >
-            <TimetableGrid timetable={timetableDetail} className="mx-auto w-full" />
+            <TimetableGrid timetable={timetableDetail} className="w-full" showViewControls />
           </motion.div>
         ) : null}
 

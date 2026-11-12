@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getTimeInMinutes, isOverlapping, getRenderingBlocks } from './timetable';
+import { getTimeInMinutes, isOverlapping, getRenderingBlocks, mergeAdjacentSchedules } from './timetable';
 import { TimetableResponse } from '@/shared/types/api';
 
 describe('Timetable Utils', () => {
@@ -108,6 +108,20 @@ describe('Timetable Utils', () => {
 
       const blocks = getRenderingBlocks(differentDayTimetable);
       expect(blocks.every((b) => !b.isOverlap)).toBe(true);
+    });
+
+    it('연속된 일정의 강의실이 다르면 목록과 상세에서 각 강의실을 표시한다', () => {
+      const firstSlot = mockTimetable.customSchedules[0].schedules[0];
+      const nextSlot = { ...firstSlot, id: 102, startTime: firstSlot.endTime, endTime: '14:00', classroom: '공학관 101' };
+      const schedules = [firstSlot, nextSlot];
+      const timetable = {
+        ...mockTimetable,
+        courses: [],
+        customSchedules: [{ ...mockTimetable.customSchedules[0], schedules }],
+      };
+
+      expect(getRenderingBlocks(timetable).map(({ classroom }) => classroom)).toEqual(['Cafeteria', '공학관 101']);
+      expect(mergeAdjacentSchedules(schedules)).toEqual(schedules);
     });
 
     it('should zero-pad overlap times and merge identical overlap regions', () => {
