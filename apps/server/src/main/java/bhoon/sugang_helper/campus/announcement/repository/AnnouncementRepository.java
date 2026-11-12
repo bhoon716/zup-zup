@@ -14,7 +14,7 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
 
     Page<Announcement> findAllByOrderByPinnedDescCreatedAtDescIdDesc(Pageable pageable);
 
-    Page<Announcement> findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDesc(Pageable pageable);
+    Page<Announcement> findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDescIdDesc(Pageable pageable);
 
     Optional<Announcement> findByIdAndPublishedTrueAndDeletedAtIsNull(Long id);
 
@@ -27,7 +27,7 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
             WHERE a.published = true
               AND a.deletedAt IS NULL
               AND LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            ORDER BY a.pinned DESC, a.createdAt DESC
+            ORDER BY a.pinned DESC, a.createdAt DESC, a.id DESC
             """)
     Page<Announcement> searchPublishedByTitle(@Param("keyword") String keyword, Pageable pageable);
 
@@ -36,7 +36,7 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
             WHERE a.published = true
               AND a.deletedAt IS NULL
               AND LOWER(a.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            ORDER BY a.pinned DESC, a.createdAt DESC
+            ORDER BY a.pinned DESC, a.createdAt DESC, a.id DESC
             """)
     Page<Announcement> searchPublishedByContent(@Param("keyword") String keyword, Pageable pageable);
 
@@ -46,7 +46,7 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
               AND a.deletedAt IS NULL
               AND (LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(a.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
-            ORDER BY a.pinned DESC, a.createdAt DESC
+            ORDER BY a.pinned DESC, a.createdAt DESC, a.id DESC
             """)
     Page<Announcement> searchPublishedByTitleOrContent(@Param("keyword") String keyword, Pageable pageable);
 }

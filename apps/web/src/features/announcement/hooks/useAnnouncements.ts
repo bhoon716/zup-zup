@@ -28,6 +28,16 @@ export const useAnnouncements = (params: UseAnnouncementsParams = {}) => {
   });
 };
 
+export const useAnnouncementPage = ({ keyword, searchType, page }: Required<
+  Pick<UseAnnouncementsParams, "keyword" | "searchType" | "page">
+>) => {
+  const search = { keyword: keyword.trim(), searchType, page };
+  return useQuery({
+    queryKey: ["announcements", "page", search],
+    queryFn: () => announcementApi.getAnnouncements(search),
+  });
+};
+
 export const useAnnouncement = (id: number, initialAnnouncement?: PublicPageData<AnnouncementDetailResponse> | null) => {
   const seed = initialAnnouncement?.data.id === id ? initialAnnouncement : undefined;
   return useQuery({

@@ -63,12 +63,12 @@ class FixedPageSizeContractTest {
         for (int page = 0; page < 3; page++) {
             mvc.perform(get("/api/v1/announcements").param("page", Integer.toString(page))
                             .param("size", size).param("sort", "createdAt,asc"))
-                    .andExpect(status().isOk()).andExpect(jsonPath("$.size").value(30))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.size").value(10))
                     .andExpect(jsonPath("$.number").value(page))
                     .andExpect(jsonPath("$.totalElements").value(100))
-                    .andExpect(jsonPath("$.totalPages").value(4));
+                    .andExpect(jsonPath("$.totalPages").value(10));
             verify(announcements).getPublicAnnouncements(null, AnnouncementSearchType.TITLE_CONTENT,
-                    PageRequest.of(page, 30, Sort.by("createdAt").ascending()));
+                    PageRequest.of(page, 10, Sort.by("createdAt").ascending()));
         }
     }
 

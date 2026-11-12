@@ -1,12 +1,12 @@
 package bhoon.sugang_helper.campus.announcement.controller;
 
-import bhoon.sugang_helper.common.api.web.PageableGuard;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementListResponse;
 import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AnnouncementController {
 
+    private static final int ANNOUNCEMENTS_PER_PAGE = 10;
+
     private final AnnouncementService announcementService;
 
     @GetMapping
@@ -27,7 +29,7 @@ public class AnnouncementController {
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "TITLE_CONTENT") AnnouncementSearchType searchType,
             Pageable pageable) {
-        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
+        Pageable fixedPageable = PageRequest.of(pageable.getPageNumber(), ANNOUNCEMENTS_PER_PAGE, pageable.getSort());
         Page<AnnouncementListResponse> response = announcementService.getPublicAnnouncements(keyword, searchType, fixedPageable);
         return ResponseEntity.ok(response);
     }

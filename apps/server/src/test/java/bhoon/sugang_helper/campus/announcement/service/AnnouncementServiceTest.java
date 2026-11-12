@@ -39,7 +39,7 @@ class AnnouncementServiceTest {
     void getPublicAnnouncements_success() {
         // given
         Announcement announcement = createAnnouncement("제목", "내용", true, true);
-        given(announcementRepository.findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDesc(any()))
+        given(announcementRepository.findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDescIdDesc(any()))
                 .willReturn(new PageImpl<>(List.of(announcement)));
 
         // when
@@ -58,7 +58,7 @@ class AnnouncementServiceTest {
         Announcement pinned = createAnnouncement("고정 공지", "**강조**\r\n" + longContent, true, true);
         Announcement recent = createAnnouncement("최근 공지", "[신청 안내](https://example.org)", false, true);
         PageRequest firstPage = PageRequest.of(0, 2);
-        given(announcementRepository.findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDesc(firstPage))
+        given(announcementRepository.findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDescIdDesc(firstPage))
                 .willReturn(new PageImpl<>(List.of(pinned, recent)));
 
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();

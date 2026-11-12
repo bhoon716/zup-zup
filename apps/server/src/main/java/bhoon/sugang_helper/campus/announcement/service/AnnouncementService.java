@@ -169,7 +169,7 @@ public class AnnouncementService implements Announcements {
     private Page<Announcement> findPublicAnnouncements(
             String keyword, AnnouncementSearchType searchType, Pageable pageable) {
         if (keyword.isEmpty()) {
-            return announcementRepository.findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDesc(pageable);
+            return announcementRepository.findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDescIdDesc(pageable);
         }
         return switch (searchType) {
             case TITLE -> announcementRepository.searchPublishedByTitle(keyword, pageable);
