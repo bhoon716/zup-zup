@@ -72,7 +72,7 @@ export function TimetableSelect({
             type="button"
             aria-pressed={t.id === currentId}
             onClick={() => onSelect(t.id)}
-            className="flex h-8 min-w-16 max-w-44 items-center gap-1.5 px-2.5 text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-current"
+            className="flex h-8 min-w-16 max-w-32 items-center gap-1.5 px-2.5 text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-current sm:max-w-44"
           >
             {t.primary && (
               <Crown className="size-4 shrink-0 text-current" />

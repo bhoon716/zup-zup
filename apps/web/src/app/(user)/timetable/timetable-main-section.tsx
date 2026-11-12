@@ -56,12 +56,13 @@ export function TimetableMainSection({
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Button
               variant="outline"
+              className="gap-1.5 has-[>svg]:px-2.5 sm:gap-2 sm:has-[>svg]:px-3"
               onClick={handleExportImage}
             >
               <Download className="h-4 w-4" />
               이미지로 저장
             </Button>
-            <Button onClick={onOpenCustomDialog}>
+            <Button className="gap-1.5 has-[>svg]:px-2.5 sm:gap-2 sm:has-[>svg]:px-3" onClick={onOpenCustomDialog}>
               <Plus className="h-4 w-4" />
               수업 직접 추가
             </Button>
