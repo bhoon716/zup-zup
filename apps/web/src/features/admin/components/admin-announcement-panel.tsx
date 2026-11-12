@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { EyeOff, Loader2, Megaphone, Pencil, Pin, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, EyeOff, Loader2, Megaphone, Pencil, Pin, Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
   useAdminAnnouncements,
   useCreateAdminAnnouncement,
@@ -113,6 +113,7 @@ function AnnouncementItem({ announcement, isActive, disabled, onClick }: {
 export function AdminAnnouncementPanel() {
   const [page, setPage] = useState(0);
   const { data: announcements, isLoading, isError, isPlaceholderData, refetch } = useAdminAnnouncements(page);
+  const listRef = useRef<HTMLDivElement>(null);
   const { mutate: createAnnouncement, isPending: isCreating } = useCreateAdminAnnouncement();
   const { mutate: updateAnnouncement, isPending: isUpdating } = useUpdateAdminAnnouncement();
   const { mutate: deleteAnnouncement, isPending: isDeleting } = useDeleteAdminAnnouncement();
@@ -133,6 +134,17 @@ export function AdminAnnouncementPanel() {
   const isDeleted = !!editingAnnouncement?.deletedAt;
   const canNotify = published && !isDeleted && (editingAnnouncement === null || editingAnnouncement.firstPublishedAt === null);
   const canSave = title.trim().length > 0 && content.trim().length > 0;
+  const totalPages = announcements?.totalPages ?? 0;
+  const pageNumbers = [...new Set([0, page - 1, page, page + 1, totalPages - 1])]
+    .filter((number) => number >= 0 && number < totalPages)
+    .sort((first, second) => first - second);
+  const paginationDisabled = isBusy || isPlaceholderData;
+
+  const changePage = (nextPage: number) => {
+    if (nextPage === page) return;
+    listRef.current?.scrollTo({ top: 0 });
+    setPage(nextPage);
+  };
 
   const filteredAnnouncements = useMemo(() => {
     return (announcements?.content ?? []).filter((announcement) =>
@@ -234,7 +246,7 @@ export function AdminAnnouncementPanel() {
                 <Button type="button" variant="outline" size="sm" onClick={() => { void refetch(); }}>다시 불러오기</Button>
               </div>
             ) : (
-              <div aria-busy={isPlaceholderData} className="max-h-[640px] space-y-2 overflow-y-auto pr-1">
+              <div ref={listRef} aria-busy={isPlaceholderData} className="max-h-[640px] space-y-2 overflow-y-auto pr-1">
                 {filteredAnnouncements.map((announcement) => (
                   <AnnouncementItem 
                     key={announcement.id}
@@ -251,14 +263,31 @@ export function AdminAnnouncementPanel() {
                 )}
               </div>
             )}
-            {(page > 0 || (announcements?.totalPages ?? 0) > 1) && (
-              <nav aria-label="관리 공지 페이지" className="mt-3 flex items-center justify-between gap-2">
-                <Button type="button" variant="outline" size="sm" disabled={page === 0 || isBusy || isPlaceholderData} onClick={() => setPage(page - 1)}>
-                  이전 페이지
+            {(page > 0 || totalPages > 1) && (
+              <nav aria-label="관리 공지 페이지" className="mt-3 flex flex-wrap items-center justify-center gap-0.5">
+                <Button type="button" variant="ghost" size="icon-sm" aria-label="이전 페이지" disabled={page === 0 || paginationDisabled} onClick={() => changePage(page - 1)}>
+                  <ChevronLeft aria-hidden="true" />
                 </Button>
-                <span className="text-xs text-slate-600">{page + 1} 페이지</span>
-                <Button type="button" variant="outline" size="sm" disabled={!announcements || page + 1 >= announcements.totalPages || isBusy || isPlaceholderData} onClick={() => setPage(page + 1)}>
-                  다음 페이지
+                {pageNumbers.map((number, index) => (
+                  <Fragment key={number}>
+                    {index > 0 && number - pageNumbers[index - 1] > 1 && (
+                      <span aria-hidden="true" className="px-0.5 text-xs text-slate-500">…</span>
+                    )}
+                    <Button
+                      type="button"
+                      variant={number === page ? "default" : "ghost"}
+                      size="icon-sm"
+                      aria-label={`${number + 1} 페이지`}
+                      aria-current={number === page ? "page" : undefined}
+                      disabled={paginationDisabled}
+                      onClick={() => changePage(number)}
+                    >
+                      {number + 1}
+                    </Button>
+                  </Fragment>
+                ))}
+                <Button type="button" variant="ghost" size="icon-sm" aria-label="다음 페이지" disabled={page + 1 >= totalPages || paginationDisabled} onClick={() => changePage(page + 1)}>
+                  <ChevronRight aria-hidden="true" />
                 </Button>
               </nav>
             )}

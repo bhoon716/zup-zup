@@ -83,7 +83,7 @@ public class AnnouncementService implements Announcements {
     }
 
     public Page<AnnouncementDetailResponse> getAdminAnnouncements(Pageable pageable) {
-        return announcementRepository.findAllByOrderByPinnedDescCreatedAtDesc(
+        return announcementRepository.findAllByOrderByPinnedDescCreatedAtDescIdDesc(
                         PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, PageableGuard.DEFAULT_MAX_OFFSET))
                 .map(AnnouncementDetailResponse::from);
     }

@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {
 
-    Page<Announcement> findAllByOrderByPinnedDescCreatedAtDesc(Pageable pageable);
+    Page<Announcement> findAllByOrderByPinnedDescCreatedAtDescIdDesc(Pageable pageable);
 
     Page<Announcement> findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDesc(Pageable pageable);
 
