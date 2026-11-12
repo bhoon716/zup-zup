@@ -17,7 +17,7 @@ interface UserProfileProps {
 export function HeaderUserActions({ user, isPending, onLogout, onLoginClick, children }: UserProfileProps & { children?: ReactNode }) {
   if (!user) {
     return (
-      <Button asChild className="rounded-xl">
+      <Button asChild className="rounded-xl leading-5">
         <Link href="/login" onClick={onLoginClick}>
           로그인
         </Link>
@@ -27,13 +27,13 @@ export function HeaderUserActions({ user, isPending, onLogout, onLoginClick, chi
 
   return (
     <div className="flex items-center gap-3">
-      <span className="hidden max-w-20 truncate text-right text-sm font-medium text-foreground xl:block 2xl:max-w-28" title={user.name}>{user.name} 님</span>
+      <span className="hidden max-w-20 truncate text-right text-sm leading-5 font-medium text-foreground xl:block 2xl:max-w-28" title={user.name}>{user.name} 님</span>
       {children}
       <Button
         variant="ghost"
         onClick={onLogout}
         disabled={isPending}
-        className="hidden rounded-xl text-muted-foreground hover:bg-destructive/5 hover:text-destructive xl:inline-flex"
+        className="hidden rounded-xl leading-5 text-muted-foreground hover:bg-destructive/5 hover:text-destructive xl:inline-flex"
       >
         <LogOut aria-hidden="true" />
         로그아웃

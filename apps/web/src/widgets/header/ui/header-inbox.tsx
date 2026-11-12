@@ -30,7 +30,7 @@ export function HeaderInbox({ userId }: { userId: number }) {
           title="알림함"
           className="rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary xl:size-9 xl:rounded-xl"
         >
-          <Bell aria-hidden="true" className="size-5" />
+          <Bell aria-hidden="true" className="size-5 xl:size-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={10} collisionPadding={12} className="w-80 max-w-[calc(100vw-1.5rem)] rounded-sm p-0 shadow-lg">

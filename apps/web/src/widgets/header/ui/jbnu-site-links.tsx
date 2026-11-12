@@ -30,7 +30,7 @@ export function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
     return (
       <div className={mobileMenuSectionClass}>
         <h3 className={mobileMenuHeadingClass}>바로가기</h3>
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-0.5">
           {JBNU_SITES.map((site) => (
             <Button asChild key={site.url} variant="ghost" size="sm" className={mobileMenuRowClass}>
               <a href={site.url} target="_blank" rel="noopener noreferrer" onClick={onLinkClick}>
@@ -48,8 +48,8 @@ export function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
     <div className="flex items-center">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button id={dropdownTriggerId} aria-controls={dropdownContentId} variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 text-gray-600 font-medium hover:bg-primary/5 group transition-colors xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3">
-            <ExternalLink className="w-[1.1rem] h-[1.1rem]" />
+          <Button id={dropdownTriggerId} aria-controls={dropdownContentId} variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 leading-5 text-gray-600 font-medium hover:bg-primary/5 group transition-colors xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3">
+            <ExternalLink aria-hidden="true" />
             <span className="text-sm">바로가기</span>
             <ChevronDown className="w-3.5 h-3.5 opacity-40" />
           </Button>

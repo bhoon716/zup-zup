@@ -46,9 +46,9 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex shrink-0 items-center gap-2 group transition-all active:scale-95">
-            <Image src="/zub-zub-logo.png" alt="로고" width={38} height={38} className="w-10 h-10 object-contain group-hover:scale-110 transition-transform" />
-            <span className="font-bold text-xl text-primary tracking-tight">줍줍</span>
+          <Link href="/" className="flex h-9 shrink-0 items-center gap-2 rounded-xl text-primary transition-colors hover:text-primary/80">
+            <Image src="/zub-zub-logo.png" alt="" width={32} height={32} className="size-8 object-contain" />
+            <span className="text-xl leading-none font-bold">줍줍</span>
           </Link>
           <nav aria-label="주요 메뉴" className="hidden items-center xl:flex 2xl:gap-1">
             <NavLinks
@@ -62,7 +62,7 @@ export function Header() {
           <Button
             onClick={install}
             variant="outline"
-            className="hidden rounded-xl border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary xl:inline-flex"
+            className="hidden rounded-xl border-primary/20 bg-primary/10 leading-5 text-primary hover:bg-primary/20 hover:text-primary xl:inline-flex"
           >
             <Download aria-hidden="true" />
             {platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}
@@ -110,7 +110,7 @@ export function Header() {
                   </SheetTitle>
                 </SheetHeader>
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                  <div className="shrink-0 space-y-1 border-b border-border pb-2">
+                  <div className="grid shrink-0 gap-1 border-b border-border pb-3">
                     <HeaderMobileUserStatus
                       user={verifiedUser}
                       onLinkClick={closeMenu}
@@ -128,7 +128,7 @@ export function Header() {
                     </Button>
                   </div>
 
-                  <nav aria-label="모바일 메뉴" className="flex shrink-0 flex-col py-2">
+                  <nav aria-label="모바일 메뉴" className="flex shrink-0 flex-col gap-0.5 py-3">
                     <h3 className={mobileMenuHeadingClass}>메뉴</h3>
                     <NavLinks
                       isMobile

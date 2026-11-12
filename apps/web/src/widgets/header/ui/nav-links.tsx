@@ -29,7 +29,7 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick }:
   const adminMenuContentId = "header-admin-menu-content";
   const navLinkClass = isMobile
     ? mobileMenuRowClass
-    : "gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3";
+    : "gap-1.5 rounded-xl px-3 h-9 leading-5 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3";
   const adminOnlyClass = cn(isMobile ? mobileMenuSectionClass : "flex items-center", !isAdmin && "hidden");
 
   return (
@@ -37,20 +37,20 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick }:
       {isLoggedIn && (
         <Button asChild variant="ghost" size="sm" className={navLinkClass}>
           <Link href="/timetable" onClick={onLinkClick}>
-            <Calendar className="w-[1.1rem] h-[1.1rem]" />
+            <Calendar aria-hidden="true" />
             <span className="text-sm font-medium">내 시간표</span>
           </Link>
         </Button>
       )}
       <Button asChild variant="ghost" size="sm" className={navLinkClass}>
         <Link href="/search" onClick={onLinkClick}>
-          <Search className="w-[1.1rem] h-[1.1rem]" />
+          <Search aria-hidden="true" />
           <span className="text-sm font-medium">강의 검색</span>
         </Link>
       </Button>
       <Button asChild variant="ghost" size="sm" className={navLinkClass}>
         <Link href="/announcements" onClick={onLinkClick}>
-          <Megaphone className="w-[1.1rem] h-[1.1rem]" />
+          <Megaphone aria-hidden="true" />
           <span className="text-sm font-medium">공지사항</span>
         </Link>
       </Button>
@@ -58,13 +58,13 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick }:
         <>
           <Button asChild variant="ghost" size="sm" className={navLinkClass}>
             <Link href="/feedback" onClick={onLinkClick}>
-              <MessageCircle className="w-[1.1rem] h-[1.1rem]" />
+              <MessageCircle aria-hidden="true" />
               <span className="text-sm font-medium">건의 / 버그</span>
             </Link>
           </Button>
           <Button asChild variant="ghost" size="sm" className={navLinkClass}>
             <Link href="/settings" onClick={onLinkClick}>
-              <Settings className="w-[1.1rem] h-[1.1rem]" />
+              <Settings aria-hidden="true" />
               <span className="text-sm font-medium">설정</span>
             </Link>
           </Button>
@@ -76,7 +76,7 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick }:
         {isMobile ? (
           <>
             <h3 className={mobileMenuHeadingClass}>관리 메뉴</h3>
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-0.5">
               <Button asChild variant="ghost" size="sm" className={mobileMenuRowClass}>
                 <Link href="/admin" onClick={onLinkClick}>
                   <LayoutDashboard className="w-4 h-4" />
@@ -112,8 +112,8 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick }:
         ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button id={adminMenuTriggerId} aria-controls={adminMenuContentId} variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 text-primary font-bold hover:bg-primary/5 xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3">
-                <ShieldCheck className="w-[1.1rem] h-[1.1rem]" />
+              <Button id={adminMenuTriggerId} aria-controls={adminMenuContentId} variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 leading-5 text-primary font-bold hover:bg-primary/5 xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3">
+                <ShieldCheck aria-hidden="true" />
                 <span className="text-sm">관리자</span>
                 <ChevronDown className="w-3.5 h-3.5 opacity-50" />
               </Button>
