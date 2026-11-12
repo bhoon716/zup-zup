@@ -27,11 +27,21 @@ public interface SeatInboxRepository extends Repository<SeatInboxItem, Long> {
               and (:type is null or i.type = :type)
               and (:read is null or (:read = true and i.readAt is not null) or (:read = false and i.readAt is null))
               and (:courseNamePattern is null or lower(i.courseName) like lower(:courseNamePattern) escape '!')
-            order by i.occurredAt desc, i.id desc
+              and (:keywordPattern is null
+                  or lower(i.courseName) like lower(:keywordPattern) escape '!'
+                  or lower(case when i.available = true then i.title else :unavailableTitle end)
+                      like lower(:keywordPattern) escape '!'
+                  or lower(case when i.available = true then i.message else :unavailableMessage end)
+                      like lower(:keywordPattern) escape '!')
+            order by case when :unreadFirst = true and i.readAt is null then 0 else 1 end
             """)
     Page<SeatInboxItem> findVisible(@Param("userId") Long userId, @Param("read") Boolean read,
                                     @Param("type") InboxNotificationType type,
-                                    @Param("courseNamePattern") String courseNamePattern, Pageable pageable);
+                                    @Param("courseNamePattern") String courseNamePattern,
+                                    @Param("keywordPattern") String keywordPattern,
+                                    @Param("unavailableTitle") String unavailableTitle,
+                                    @Param("unavailableMessage") String unavailableMessage,
+                                    @Param("unreadFirst") boolean unreadFirst, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select i from SeatInboxItem i where i.type = :type and i.sourceKey = :sourceKey order by i.id")

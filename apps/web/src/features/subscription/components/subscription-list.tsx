@@ -53,7 +53,7 @@ export function SubscriptionList() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold flex items-center gap-2 text-slate-900">
             <Bookmark className="text-primary w-5 h-5 fill-primary" />
-            나의 구독 강의
+            구독 중인 강의
           </h2>
           <span className="text-[10px] px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg font-bold">
             {subscriptions.length}개 구독 중
@@ -64,7 +64,7 @@ export function SubscriptionList() {
             variant="ghost"
             size="sm"
             onClick={() => {
-              if (confirm('현재 구독 중인 모든 강의 알림을 해제하시겠습니까?')) {
+              if (confirm('모든 강의의 알림 구독을 해제할까요?')) {
                 unsubscribeAll();
               }
             }}
@@ -72,7 +72,7 @@ export function SubscriptionList() {
             className="h-7 px-2 text-[11px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 gap-1 rounded-lg"
           >
             <XCircle className="w-3 h-3" />
-            구독 전부 삭제
+            모두 구독 해제
           </Button>
         </div>
       </div>
@@ -113,7 +113,7 @@ export function SubscriptionList() {
                   type="button"
                   aria-label={`${sub.courseName} 알림 구독 해제`}
                   onClick={() => {
-                    if (confirm('이 강의의 알림 구독을 해제하시겠습니까?')) {
+                    if (confirm('이 강의의 알림 구독을 해제할까요?')) {
                       unsubscribe(sub.id);
                     }
                   }}

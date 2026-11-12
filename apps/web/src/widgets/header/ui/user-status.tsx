@@ -29,8 +29,8 @@ export function HeaderDesktopUser({ user, isLoading, isPending, onLogout, onLogi
 
   return (
     <div className="flex items-center gap-3">
-      <div className="hidden sm:flex flex-col items-end mr-1">
-        <span className="text-xs font-bold leading-none">{user.name} 님</span>
+      <div className="mr-1 flex max-w-20 flex-col items-end 2xl:max-w-28">
+        <span className="w-full truncate text-right text-xs font-bold leading-none" title={user.name}>{user.name} 님</span>
         <span className="text-[10px] text-muted-foreground mt-1">로그인 됨</span>
       </div>
       <Button
@@ -63,11 +63,11 @@ export function HeaderMobileUserStatus({ user, isLoading, onLinkClick }: Omit<Us
   return (
     <div className="bg-accent/30 rounded-2xl p-4 border border-white/5">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+        <div className="w-10 h-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
           {user.name.charAt(0)}
         </div>
         <div>
-          <p className="font-bold text-sm">{user.name} 님</p>
+          <p className="text-sm font-bold wrap-anywhere">{user.name} 님</p>
           <p className="text-[10px] text-muted-foreground italic">환영합니다!</p>
         </div>
       </div>

@@ -24,6 +24,9 @@ import lombok.NoArgsConstructor;
 })
 public class SeatInboxItem {
 
+    public static final String UNAVAILABLE_TITLE = "확인할 수 없는 공지";
+    public static final String UNAVAILABLE_MESSAGE = "더 이상 확인할 수 없는 공지입니다.";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

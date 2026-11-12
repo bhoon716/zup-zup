@@ -35,7 +35,7 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
   };
 
   const navLinkClass = cn(
-    "gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors",
+    "gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3",
     isMobile && "w-full justify-start h-11 px-4 text-base",
   );
   const authOnlyClass = cn(navLinkClass, !isLoggedIn && "hidden");
@@ -153,7 +153,7 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
         ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button id={adminMenuTriggerId} aria-controls={adminMenuContentId} variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 text-primary font-bold hover:bg-primary/5">
+              <Button id={adminMenuTriggerId} aria-controls={adminMenuContentId} variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 text-primary font-bold hover:bg-primary/5 xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3">
                 <ShieldCheck className="w-[1.1rem] h-[1.1rem]" />
                 <span className="text-sm">관리자</span>
                 <ChevronDown className="w-3.5 h-3.5 opacity-50" />

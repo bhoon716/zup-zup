@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { InboxList } from "@/features/notification/components/inbox-list";
 import { NotificationList } from "@/features/notification/components/notification-list";
 import { SubscriptionList } from "@/features/subscription/components/subscription-list";
 import { Button } from "@/shared/ui/button";
+import { cn } from "@/shared/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <main className="mx-auto max-w-[1600px] p-4 sm:p-6 md:p-10 lg:p-12">
+      <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
         <h1 className="mb-5 text-3xl font-bold tracking-tight text-slate-900 sm:mb-8">알림함</h1>
         {userId === undefined ? (
           <p role="status" className="text-sm text-slate-600">
@@ -29,21 +30,86 @@ export default function NotificationsPage() {
   );
 }
 
+const notificationViews = [
+  { id: "inbox", label: "알림함" },
+  { id: "history", label: "발송 이력" },
+  { id: "subscriptions", label: "구독 강의" },
+] as const;
+
+type NotificationView = (typeof notificationViews)[number]["id"];
+
 function AccountNotifications({ userId }: { userId: number }) {
-  const [view, setView] = useState<"inbox" | "history">("inbox");
+  const [view, setView] = useState<NotificationView>("inbox");
+  const tabs = useRef(new Map<NotificationView, HTMLButtonElement>());
+
+  const moveTab = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const count = notificationViews.length;
+    let nextIndex: number;
+    switch (event.key) {
+      case "ArrowLeft":
+        nextIndex = (index - 1 + count) % count;
+        break;
+      case "ArrowRight":
+        nextIndex = (index + 1) % count;
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = count - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    const next = notificationViews[nextIndex].id;
+    setView(next);
+    tabs.current.get(next)?.focus();
+  };
+
+  const panels = {
+    inbox: <InboxList userId={userId} />,
+    history: <NotificationList />,
+    subscriptions: <SubscriptionList />,
+  };
 
   return (
-    <div className="flex flex-col items-start gap-6 lg:flex-row lg:gap-8">
-      <section aria-label={view === "inbox" ? "알림함" : "발송 이력"} className="w-full min-w-0 flex-1 rounded-2xl border border-slate-100 bg-white p-3 shadow-card sm:rounded-[2rem] sm:p-8">
-        <div role="group" aria-label="알림 보기" className="mb-5 flex gap-1 border-b border-slate-100 pb-3">
-          <Button type="button" variant={view === "inbox" ? "secondary" : "ghost"} aria-pressed={view === "inbox"} onClick={() => setView("inbox")}>알림함</Button>
-          <Button type="button" variant={view === "history" ? "secondary" : "ghost"} aria-pressed={view === "history"} onClick={() => setView("history")}>발송 이력</Button>
-        </div>
-        {view === "inbox" ? <InboxList userId={userId} /> : <NotificationList />}
-      </section>
-      <aside className="w-full shrink-0 lg:sticky lg:top-24 lg:w-96">
-        <SubscriptionList />
-      </aside>
+    <div className="w-full min-w-0 rounded-2xl border border-slate-100 bg-white p-4 shadow-card sm:rounded-[2rem] sm:p-7">
+      <div role="tablist" aria-label="알림 보기" className="mb-5 flex flex-wrap gap-1 border-b border-slate-100 pb-3">
+        {notificationViews.map(({ id, label }, index) => (
+          <Button
+            key={id}
+            ref={(node) => {
+              if (node) tabs.current.set(id, node);
+              else tabs.current.delete(id);
+            }}
+            id={`notification-tab-${id}`}
+            type="button"
+            role="tab"
+            variant={view === id ? "secondary" : "ghost"}
+            aria-selected={view === id}
+            aria-controls={`notification-panel-${id}`}
+            tabIndex={view === id ? 0 : -1}
+            className={cn("rounded-lg px-3 sm:px-4", view === id && "bg-primary/10 font-semibold text-primary hover:bg-primary/15")}
+            onClick={() => setView(id)}
+            onKeyDown={(event) => moveTab(event, index)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+      {notificationViews.map(({ id }) => (
+        <section
+          key={id}
+          id={`notification-panel-${id}`}
+          role="tabpanel"
+          aria-labelledby={`notification-tab-${id}`}
+          hidden={view !== id}
+          tabIndex={0}
+        >
+          {view === id && panels[id]}
+        </section>
+      ))}
     </div>
   );
 }

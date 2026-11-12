@@ -13,8 +13,10 @@ import bhoon.sugang_helper.identity.user.service.EmailVerificationService;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.identity.user.service.UserService;
+import bhoon.sugang_helper.seatalert.notification.dto.response.SeatInboxItemResponse;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatInboxReadFilter;
+import bhoon.sugang_helper.seatalert.notification.enums.SeatInboxSort;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.seatalert.subscription.entity.Subscription;
 import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionRepository;
@@ -36,7 +38,6 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -69,9 +70,9 @@ class SeatInboxMySqlTest {
     private static final String OWNER = "inbox-owner@example.invalid";
     private static final String WITHDRAWING_OWNER = "withdrawing-inbox-owner@example.invalid";
     private static final String SEARCH_NAME = "SQL%_! 분석";
+    private static final String DECOY_NAME = "SQLXYZ! 분석";
     private static final String SEARCH_TERM = "sql%_!";
     private static final String SEARCH_KEY = "seat-inbox-search";
-    private static final PageRequest FIRST_PAGE = PageRequest.of(0, 30);
 
     @Container
     static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4");
@@ -107,19 +108,24 @@ class SeatInboxMySqlTest {
         // given
         subscribe(OWNER, SEARCH_KEY);
         Long eventId = saveOutbox(SEARCH_KEY, SEARCH_NAME);
-        Long decoyId = saveOutbox(SEARCH_KEY, "SQLXYZ! 분석");
+        Long decoyId = saveOutbox(SEARCH_KEY, DECOY_NAME);
         LocalDateTime occurredAt = LocalDateTime.of(2024, 3, 4, 10, 0);
         jdbc.update("update seat_notification_outbox set created_at = ? where id = ?", occurredAt, eventId);
 
         // when
         processor.materializePendingOutboxes();
         outboxes.deleteAllById(List.of(eventId, decoyId));
-        var unread = inbox.getInbox(SeatInboxReadFilter.UNREAD, null, SEARCH_TERM, FIRST_PAGE).getContent();
+        Long newestId = inbox.getInbox(null, null, null, "sql", SeatInboxSort.NEWEST, 0).getContent().getFirst().id();
+        inbox.markRead(newestId);
+        var unreadFirst = inbox.getInbox(null, null, null, "sql", SeatInboxSort.UNREAD_FIRST, 0).getContent();
+        var unread = inbox.getInbox(SeatInboxReadFilter.UNREAD, null, SEARCH_TERM, null, SeatInboxSort.NEWEST, 0)
+                .getContent();
         assertThat(unread).hasSize(1);
         inbox.markRead(unread.getFirst().id());
 
         // then
-        assertThat(inbox.getInbox(SeatInboxReadFilter.READ, null, SEARCH_TERM, FIRST_PAGE).getContent())
+        assertThat(unreadFirst).extracting(SeatInboxItemResponse::courseName).containsExactly(SEARCH_NAME, DECOY_NAME);
+        assertThat(inbox.getInbox(SeatInboxReadFilter.READ, null, SEARCH_TERM, null, SeatInboxSort.NEWEST, 0).getContent())
                 .singleElement().satisfies(item -> {
                     assertThat(item.courseKey()).isEqualTo(SEARCH_KEY);
                     assertThat(item.courseName()).isEqualTo(SEARCH_NAME);

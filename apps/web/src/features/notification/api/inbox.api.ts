@@ -19,6 +19,7 @@ const seatInboxItemSchema = inboxItemBaseSchema.extend({
 
 const messageInboxItemSchema = inboxItemBaseSchema.extend({
   type: z.literal(["FEEDBACK_REPLY", "ANNOUNCEMENT", "DELIVERY_FAILED", "DEVICE_REREGISTRATION"]),
+  courseName: z.string().nullish(),
   title: z.string().nullable(),
   message: z.string().nullable(),
   targetId: z.number().int().positive().nullable(),
@@ -32,6 +33,8 @@ export const inboxTypeFilterSchema = z.union([
   seatInboxItemSchema.shape.type,
   messageInboxItemSchema.shape.type,
 ]);
+
+export const inboxSortSchema = z.enum(["NEWEST", "OLDEST", "UNREAD_FIRST"]);
 
 const inboxPageSchema = z.object({
   content: z.array(inboxItemSchema),
@@ -48,7 +51,8 @@ export interface InboxSelection {
   page: number;
   read: InboxReadFilter;
   type: z.infer<typeof inboxTypeFilterSchema>;
-  courseName: string;
+  keyword: string;
+  sort: z.infer<typeof inboxSortSchema>;
 }
 
 export type InboxCommand =
@@ -56,13 +60,14 @@ export type InboxCommand =
   | { kind: "readAll" }
   | { kind: "delete"; id: InboxItem["id"] };
 
-export async function getInbox({ page, read, type, courseName }: InboxSelection, signal: AbortSignal): Promise<InboxPage> {
+export async function getInbox({ page, read, type, keyword, sort }: InboxSelection, signal: AbortSignal): Promise<InboxPage> {
   const { data } = await api.get<unknown>(inboxPath, {
     params: {
       page,
       read: read === "ALL" ? undefined : read,
       type: type === "ALL" ? undefined : type,
-      courseName: courseName || undefined,
+      keyword: keyword || undefined,
+      sort,
     },
     signal,
   });

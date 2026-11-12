@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useRef, useState, type Ref } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, ChevronLeft, ChevronRight, RefreshCw, Trash2 } from "lucide-react";
+import { Bell, CheckCheck, ChevronLeft, ChevronRight, RefreshCw, Search, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
 import { parseCourseKey } from "@/shared/lib/course";
@@ -10,12 +10,13 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
-import { inboxTypeFilterSchema, type InboxCommand, type InboxItem, type InboxPage, type InboxReadFilter, type InboxSelection } from "../api/inbox.api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { inboxSortSchema, inboxTypeFilterSchema, type InboxCommand, type InboxItem, type InboxPage, type InboxReadFilter, type InboxSelection } from "../api/inbox.api";
 import { useInbox, useUpdateInbox } from "../hooks/useInbox";
 
 const readFilters = [
   { value: "ALL", label: "전체" },
-  { value: "UNREAD", label: "안 읽음" },
+  { value: "UNREAD", label: "읽지 않음" },
   { value: "READ", label: "읽음" },
 ] satisfies Array<{ value: InboxReadFilter; label: string }>;
 
@@ -27,6 +28,24 @@ const typeLabels: Record<InboxItem["type"], string> = {
   DEVICE_REREGISTRATION: "기기 재등록",
 };
 
+const sortLabels: Record<InboxSelection["sort"], string> = {
+  NEWEST: "최신순",
+  OLDEST: "오래된 순",
+  UNREAD_FIRST: "읽지 않은 알림 먼저",
+};
+
+const inboxCountFormat = new Intl.NumberFormat("ko-KR");
+const deliveryFailureAction = "알림 설정에서 수신처를 확인해 주세요.";
+const deliveryFailureMessage = `알림을 보내지 못했습니다. ${deliveryFailureAction}`;
+const noticePreviews = new Map<string, string | null>([
+  ["문의에 새 답변이 등록됐습니다. 문의 상세에서 답변을 확인해 주세요.", "문의 상세에서 답변을 확인해 주세요."],
+  ["줍줍에서 문의 답변을 확인해 주세요.", "문의 답변을 확인해 주세요."],
+  ["공지 상세 화면에서 안내 내용을 확인할 수 있습니다.", null],
+  ["줍줍에서 중요 공지 내용을 확인해 주세요.", null],
+  ["웹 푸시를 받을 수 있는 기기가 없습니다. 알림 설정에서 기기를 다시 등록해 주세요.", "알림 설정에서 기기를 다시 등록해 주세요."],
+  ["웹 푸시를 받을 수 있는 기기가 없습니다. 알림 설정에서 기기를 등록해 주세요.", "알림 설정에서 기기를 등록해 주세요."],
+]);
+
 const updateErrors: Record<InboxCommand["kind"], string> = {
   read: "알림을 읽음으로 표시하지 못했습니다.",
   readAll: "모든 알림을 읽음으로 표시하지 못했습니다.",
@@ -34,6 +53,18 @@ const updateErrors: Record<InboxCommand["kind"], string> = {
 };
 
 type MessageItem = Exclude<InboxItem, { type: "SEAT_OPENED" }>;
+
+function getMessagePreview(item: MessageItem) {
+  const { message, courseName } = item;
+  if (!message) return null;
+
+  if (item.type === "DELIVERY_FAILED" &&
+      (message === deliveryFailureMessage || (courseName && message === `${courseName} ${deliveryFailureMessage}`))) {
+    return courseName ? `${courseName} · ${deliveryFailureAction}` : deliveryFailureAction;
+  }
+  const preview = noticePreviews.get(message);
+  return preview === undefined ? message : preview;
+}
 
 function getMessageLink(item: MessageItem) {
   switch (item.type) {
@@ -48,12 +79,13 @@ function getMessageLink(item: MessageItem) {
 }
 
 export function InboxList({ userId }: { userId: number }) {
-  const [selection, setSelection] = useState<InboxSelection>({ page: 0, read: "ALL", type: "ALL", courseName: "" });
+  const [selection, setSelection] = useState<InboxSelection>({ page: 0, read: "ALL", type: "ALL", keyword: "", sort: "NEWEST" });
   const [previousResults, setPreviousResults] = useState<InboxPage>();
   const [searchText, setSearchText] = useState("");
   const [detail, setDetail] = useState<{ item: InboxItem; open: boolean }>();
   const detailTrigger = useRef<HTMLButtonElement>(null);
   const refreshButton = useRef<HTMLButtonElement>(null);
+  const topPagination = useRef<HTMLElement>(null);
   const inbox = useInbox(userId, selection);
   const update = useUpdateInbox(userId);
   const results = inbox.data ?? previousResults;
@@ -93,38 +125,58 @@ export function InboxList({ userId }: { userId: number }) {
   };
 
   const refresh = () => { void inbox.refetch({ cancelRefetch: false }); };
+  const changePage = (page: number) => {
+    if (page !== selection.page) changeSelection({ ...selection, page });
+  };
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <select
-          aria-label="알림 유형"
-          value={selection.type}
-          className="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-10 rounded-xl border bg-white px-3 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-          onChange={(event) => {
-            const type = inboxTypeFilterSchema.parse(event.target.value);
-            changeSelection({ ...selection, type, page: 0 });
-          }}
-        >
-          <option value="ALL">모든 알림 유형</option>
-          {Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
+      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
         <form
           role="search"
           aria-label="알림함 검색"
-          className="flex min-w-40 flex-1 gap-2"
+          className="flex gap-2"
           onSubmit={(event) => {
             event.preventDefault();
-            if (selection.courseName !== searchText || selection.page !== 0) {
-              changeSelection({ ...selection, courseName: searchText, page: 0 });
+            const keyword = searchText.trim();
+            if (selection.keyword !== keyword || selection.page !== 0) {
+              changeSelection({ ...selection, keyword, page: 0 });
             } else {
               refresh();
             }
           }}
         >
-          <Input type="search" aria-label="강의명" placeholder="강의명으로 검색" value={searchText} onChange={(event) => setSearchText(event.target.value)} className="h-10 min-w-0 rounded-xl" />
+          <div className="relative min-w-0 flex-1">
+            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+            <Input type="search" aria-label="검색어" placeholder="제목, 내용, 강의명 검색" value={searchText} onChange={(event) => setSearchText(event.target.value)} className="h-10 min-w-0 rounded-xl pl-9" />
+          </div>
           <Button type="submit" variant="outline" className="h-10 rounded-xl">검색</Button>
         </form>
+        <div className="grid grid-cols-2 gap-2 md:flex">
+          <Select
+            value={selection.type}
+            onValueChange={(value) => changeSelection({ ...selection, type: inboxTypeFilterSchema.parse(value), page: 0 })}
+          >
+            <SelectTrigger aria-label="알림 유형" className="data-[size=default]:h-10 w-full rounded-xl bg-white md:w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start" className="rounded-xl border-slate-200 shadow-lg">
+              <SelectItem value="ALL">모든 알림 유형</SelectItem>
+              {Object.entries(typeLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select
+            value={selection.sort}
+            onValueChange={(value) => changeSelection({ ...selection, sort: inboxSortSchema.parse(value), page: 0 })}
+          >
+            <SelectTrigger aria-label="알림 정렬" className="data-[size=default]:h-10 w-full rounded-xl bg-white md:w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start" className="rounded-xl border-slate-200 shadow-lg">
+              {Object.entries(sortLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -153,7 +205,7 @@ export function InboxList({ userId }: { userId: number }) {
           </Button>
           <Button type="button" variant="outline" size="sm" className="h-9 rounded-lg" disabled={update.isPending} onClick={() => update.mutate({ kind: "readAll" })}>
             <CheckCheck aria-hidden="true" />
-            모두 읽음
+            모두 읽음 처리
           </Button>
         </div>
       </div>
@@ -170,13 +222,24 @@ export function InboxList({ userId }: { userId: number }) {
 
       {inbox.isPending && <p role="status" className="text-sm text-slate-500">알림을 불러오는 중입니다.</p>}
 
+      {results && (
+        <InboxPagination
+          position="top"
+          navRef={topPagination}
+          results={results}
+          disabled={isShowingPreviousResults}
+          onPageChange={changePage}
+        />
+      )}
+
       {results && results.content.length > 0 && (
         <ul aria-label="알림 목록" className="space-y-2">
           {results.content.map((item) => {
             const isUnread = item.readAt === null;
             const isOpenDisabled = isShowingPreviousResults || (isUnread && update.isPending);
             const title = item.type === "SEAT_OPENED" ? item.courseName : item.title ?? typeLabels[item.type];
-            const message = item.type === "SEAT_OPENED" ? `감지 당시 빈자리 ${item.availableSeats}석` : item.message;
+            const isSeatOpening = item.type === "SEAT_OPENED";
+            const message = isSeatOpening ? `빈자리가 ${item.availableSeats}석 생겼어요.` : getMessagePreview(item);
             return (
               <li key={item.id}>
                 <article className={`relative flex items-start gap-2 rounded-xl border p-3 sm:p-4 ${isUnread ? "border-primary/20 bg-primary/5" : "border-slate-200 bg-white"}`}>
@@ -196,10 +259,13 @@ export function InboxList({ userId }: { userId: number }) {
                           {title}
                         </button>
                       </h2>
-                      <Badge variant={isUnread ? "default" : "secondary"}>{isUnread ? "안 읽음" : "읽음"}</Badge>
+                      <Badge variant={isUnread ? "default" : "secondary"}>{isUnread ? "읽지 않음" : "읽음"}</Badge>
                     </div>
                     {message && <p className="mt-1 text-sm text-slate-700 [overflow-wrap:anywhere]">{message}</p>}
-                    <time dateTime={item.occurredAt} className="text-xs text-slate-500">{format(new Date(item.occurredAt), "yyyy.MM.dd HH:mm")}</time>
+                    <p className="mt-2 text-xs text-slate-600">
+                      {isSeatOpening && <span className="mr-2 font-medium">빈자리 발생</span>}
+                      <time dateTime={item.occurredAt}>{format(new Date(item.occurredAt), "yyyy년 M월 d일 HH:mm")}</time>
+                    </p>
                   </div>
                   <Button
                     type="button"
@@ -224,17 +290,22 @@ export function InboxList({ userId }: { userId: number }) {
         <div className="rounded-xl bg-slate-50 px-4 py-12 text-center">
           <Bell aria-hidden="true" className="mx-auto mb-3 size-6 text-slate-400" />
           <p className="text-sm font-medium text-slate-700">
-            {selection.courseName || selection.read !== "ALL" || selection.type !== "ALL" ? "조건에 맞는 알림이 없습니다." : "받은 알림이 없습니다."}
+            {selection.keyword || selection.read !== "ALL" || selection.type !== "ALL" ? "조건에 맞는 알림이 없습니다." : "받은 알림이 없습니다."}
           </p>
         </div>
       )}
 
       {results && results.totalPages > 1 && (
         <InboxPagination
-          page={results.number}
-          totalPages={results.totalPages}
+          position="bottom"
+          results={results}
           disabled={isShowingPreviousResults}
-          onPageChange={(page) => changeSelection({ ...selection, page })}
+          onPageChange={(page) => {
+            if (page === selection.page) return;
+            changePage(page);
+            topPagination.current?.focus({ preventScroll: true });
+            topPagination.current?.scrollIntoView({ block: "start" });
+          }}
         />
       )}
 
@@ -271,41 +342,54 @@ export function InboxList({ userId }: { userId: number }) {
   );
 }
 
-function InboxPagination({ page, totalPages, disabled, onPageChange }: {
-  page: number;
-  totalPages: number;
+function InboxPagination({ position, results, disabled, onPageChange, navRef }: {
+  position: "top" | "bottom";
+  results: InboxPage;
   disabled: boolean;
   onPageChange: (page: number) => void;
+  navRef?: Ref<HTMLElement>;
 }) {
+  const { number: page, totalPages, totalElements } = results;
+  const total = <p className="text-sm font-medium text-slate-600">알림 {inboxCountFormat.format(totalElements)}개</p>;
+  if (totalPages <= 1) return total;
+
   const visiblePages = Math.min(3, totalPages);
   const firstPage = Math.max(0, Math.min(page - 1, totalPages - visiblePages));
   const nearbyPages = Array.from({ length: visiblePages }, (_, index) => firstPage + index);
   const pageNumbers = [...new Set([0, ...nearbyPages, totalPages - 1])];
 
   return (
-    <nav aria-label="알림 페이지" className="flex flex-wrap items-center justify-center gap-0.5 pt-2">
-      <Button type="button" variant="ghost" size="icon-sm" aria-label="이전 페이지" disabled={disabled || page === 0} onClick={() => onPageChange(page - 1)}>
-        <ChevronLeft aria-hidden="true" />
-      </Button>
-      {pageNumbers.map((number, index) => (
-        <Fragment key={number}>
-          {index > 0 && number - pageNumbers[index - 1] > 1 && <span aria-hidden="true" className="text-xs text-slate-500">…</span>}
-          <Button
-            type="button"
-            variant={number === page ? "secondary" : "ghost"}
-            size="icon-sm"
-            aria-label={`${number + 1} 페이지`}
-            aria-current={number === page ? "page" : undefined}
-            disabled={disabled}
-            onClick={() => onPageChange(number)}
-          >
-            {number + 1}
-          </Button>
-        </Fragment>
-      ))}
-      <Button type="button" variant="ghost" size="icon-sm" aria-label="다음 페이지" disabled={disabled || page + 1 >= totalPages} onClick={() => onPageChange(page + 1)}>
-        <ChevronRight aria-hidden="true" />
-      </Button>
+    <nav
+      ref={navRef}
+      aria-label={position === "top" ? "알림 목록 위 페이지 이동" : "알림 목록 아래 페이지 이동"}
+      tabIndex={position === "top" ? -1 : undefined}
+      className="flex scroll-mt-24 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      {total}
+      <div className="ml-auto flex items-center gap-0.5">
+        <Button type="button" variant="ghost" size="icon-sm" aria-label="이전 페이지" disabled={disabled || page === 0} onClick={() => onPageChange(page - 1)}>
+          <ChevronLeft aria-hidden="true" />
+        </Button>
+        {pageNumbers.map((number, index) => (
+          <Fragment key={number}>
+            {index > 0 && number - pageNumbers[index - 1] > 1 && <span aria-hidden="true" className="text-xs text-slate-500">…</span>}
+            <Button
+              type="button"
+              variant={number === page ? "default" : "ghost"}
+              size="icon-sm"
+              aria-label={`${number + 1} 페이지`}
+              aria-current={number === page ? "page" : undefined}
+              disabled={disabled}
+              onClick={() => onPageChange(number)}
+            >
+              {number + 1}
+            </Button>
+          </Fragment>
+        ))}
+        <Button type="button" variant="ghost" size="icon-sm" aria-label="다음 페이지" disabled={disabled || page + 1 >= totalPages} onClick={() => onPageChange(page + 1)}>
+          <ChevronRight aria-hidden="true" />
+        </Button>
+      </div>
     </nav>
   );
 }

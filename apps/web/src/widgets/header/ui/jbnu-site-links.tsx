@@ -49,7 +49,7 @@ export function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
     <div className="flex items-center">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button id={dropdownTriggerId} aria-controls={dropdownContentId} variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 text-gray-600 font-medium hover:bg-primary/5 group transition-colors">
+          <Button id={dropdownTriggerId} aria-controls={dropdownContentId} variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 text-gray-600 font-medium hover:bg-primary/5 group transition-colors xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3">
             <ExternalLink className="w-[1.1rem] h-[1.1rem]" />
             <span className="text-sm">바로가기</span>
             <ChevronDown className="w-3.5 h-3.5 opacity-40" />

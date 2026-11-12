@@ -1,5 +1,8 @@
 package bhoon.sugang_helper.seatalert.notification.dto.response;
 
+import static bhoon.sugang_helper.seatalert.notification.entity.SeatInboxItem.UNAVAILABLE_MESSAGE;
+import static bhoon.sugang_helper.seatalert.notification.entity.SeatInboxItem.UNAVAILABLE_TITLE;
+
 import bhoon.sugang_helper.seatalert.notification.entity.SeatInboxItem;
 import bhoon.sugang_helper.seatalert.notification.enums.InboxNotificationType;
 import java.time.LocalDateTime;
@@ -19,8 +22,8 @@ public record SeatInboxItemResponse(
 ) {
 
     public static SeatInboxItemResponse from(SeatInboxItem item) {
-        String title = item.isAvailable() ? item.getTitle() : "확인할 수 없는 공지";
-        String message = item.isAvailable() ? item.getMessage() : "더 이상 확인할 수 없는 공지입니다.";
+        String title = item.isAvailable() ? item.getTitle() : UNAVAILABLE_TITLE;
+        String message = item.isAvailable() ? item.getMessage() : UNAVAILABLE_MESSAGE;
         return new SeatInboxItemResponse(
                 item.getId(), item.getType(), item.getCourseKey(), item.getCourseName(), item.getAvailableSeats(),
                 title, message, item.getTargetId(), item.isAvailable(), item.getOccurredAt(), item.getReadAt());

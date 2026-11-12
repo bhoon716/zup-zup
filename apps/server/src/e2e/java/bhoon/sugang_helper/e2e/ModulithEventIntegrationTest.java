@@ -57,9 +57,11 @@ import java.io.IOException;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -439,9 +441,11 @@ class ModulithEventIntegrationTest {
         loginFixture();
 
         // when
-        JsonNode first = inbox("?size=1&sort=id,asc");
+        JsonNode first = inbox("?size=1");
         JsonNode second = inbox("?page=1");
-        JsonNode literalMatch = inbox("?courseName=sql%25_%21&read=UNREAD");
+        JsonNode literalMatch = inbox("?keyword=%20sql%25_%21%20&read=UNREAD&type=SEAT_OPENED");
+        JsonNode legacyMatch = inbox("?courseName=sql%25_%21");
+        JsonNode oldest = inbox("?sort=OLDEST");
 
         // then
         assertThat(first.path("number").asInt()).isZero();
@@ -456,6 +460,14 @@ class ModulithEventIntegrationTest {
         assertThat(ids).doesNotHaveDuplicates().isSortedAccordingTo(Comparator.reverseOrder());
         assertThat(literalMatch.path("totalElements").asInt()).isEqualTo(1);
         JsonNode item = literalMatch.path("content").get(0);
+        assertThat(legacyMatch.path("content")).isEqualTo(literalMatch.path("content"));
+        assertThat(oldest.path("content").get(0).path("id").asLong()).isEqualTo(ids.getLast());
+        assertThat(oldest.path("content").get(1).path("id").asLong()).isEqualTo(ids.get(ids.size() - 2));
+
+        mutateInbox("PATCH", "/" + ids.getFirst() + "/read");
+        JsonNode unreadFirst = inbox("?sort=UNREAD_FIRST&page=1");
+        assertThat(unreadFirst.path("content").get(0).path("id").asLong()).isEqualTo(ids.getLast());
+        assertThat(unreadFirst.path("content").get(1).path("id").asLong()).isEqualTo(ids.getFirst());
         assertThat(item.path("courseName").asText()).isEqualTo("SQL%_! 분석");
         assertThat(item.path("courseKey").asText()).isEqualTo(COURSE_KEY);
         assertThat(item.path("availableSeats").asInt()).isEqualTo(1);
@@ -464,6 +476,7 @@ class ModulithEventIntegrationTest {
         assertThat(state().path("activeInbox").asInt()).isEqualTo(64);
         assertThat(get("/api/v1/notifications/history").statusCode()).isEqualTo(200);
         assertThat(get(INBOX + "?page=-1").statusCode()).isEqualTo(400);
+        assertThat(get(INBOX + "?sort=id,asc").statusCode()).isEqualTo(400);
     }
 
     @Test
@@ -523,6 +536,8 @@ class ModulithEventIntegrationTest {
             long inboxId = announcement.path("id").asLong();
             assertThat(announcement.path("title").asText()).isEqualTo("중요 공지");
             assertThat(announcement.path("targetId").asLong()).isEqualTo(announcementId);
+            assertThat(firstInboxItem(keywordQuery("중요 공지")).path("id").asLong()).isEqualTo(inboxId);
+            assertThat(firstInboxItem(keywordQuery("내용을 확인")).path("id").asLong()).isEqualTo(inboxId);
             assertThat(inbox("?type=ANNOUNCEMENT").path("totalElements").asInt()).isEqualTo(1);
             mutateInbox("PATCH", "/" + inboxId + "/read");
 
@@ -531,6 +546,9 @@ class ModulithEventIntegrationTest {
             assertThat(apiMutation("DELETE", ADMIN_ANNOUNCEMENTS + "/" + announcementId).statusCode()).isEqualTo(200);
             loginFixture();
             assertThat(firstInboxItem("?type=ANNOUNCEMENT").path("available").asBoolean()).isFalse();
+            assertThat(inbox(keywordQuery("중요 공지")).path("totalElements").asInt()).isZero();
+            assertThat(inbox(keywordQuery("내용을 확인")).path("totalElements").asInt()).isZero();
+            assertThat(firstInboxItem(keywordQuery("확인할 수 없는")).path("id").asLong()).isEqualTo(inboxId);
             assertThat(get("/api/v1/announcements/" + announcementId).statusCode()).isEqualTo(404);
             loginFixture("?admin=true");
             assertThat(apiMutation("PATCH", ADMIN_ANNOUNCEMENTS + "/" + announcementId + "/restore").statusCode())
@@ -692,6 +710,10 @@ class ModulithEventIntegrationTest {
             assertThat(dispatch.statusCode()).isEqualTo(200);
             assertThat(mapper.readTree(dispatch.body()).path("claimed").asInt()).isZero();
         }
+    }
+
+    private static String keywordQuery(String keyword) {
+        return "?keyword=" + URLEncoder.encode(keyword, StandardCharsets.UTF_8);
     }
 
     private JsonNode inbox(String query) throws Exception {
