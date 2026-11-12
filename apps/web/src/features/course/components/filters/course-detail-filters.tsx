@@ -64,10 +64,10 @@ export function CourseDetailFilters({
   })), []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {           }
       <div className="space-y-1.5">
-        <Label className="text-[11px] font-bold text-muted-foreground">이수 구분</Label>
+        <Label className="text-xs font-medium text-muted-foreground">이수 구분</Label>
         <MultiSelectFilter
           idBase="course-detail-classification"
           options={classificationOptions}
@@ -84,7 +84,7 @@ export function CourseDetailFilters({
 
       {           }
       <div className="space-y-1.5">
-        <Label className="text-[11px] font-bold text-muted-foreground">강의 언어</Label>
+        <Label className="text-xs font-medium text-muted-foreground">강의 언어</Label>
         <MultiSelectFilter
           idBase="course-detail-language"
           options={languageOptions}
@@ -101,7 +101,7 @@ export function CourseDetailFilters({
 
       {           }
       <div className="space-y-1.5">
-        <Label className="text-[11px] font-bold text-muted-foreground">성적 평가</Label>
+        <Label className="text-xs font-medium text-muted-foreground">성적 평가</Label>
         <MultiSelectFilter
           idBase="course-detail-grading"
           options={gradingOptions}
@@ -118,7 +118,7 @@ export function CourseDetailFilters({
 
       {        }
       <div className="space-y-1.5">
-        <Label className="text-[11px] font-bold text-muted-foreground">학점</Label>
+        <Label className="text-xs font-medium text-muted-foreground">학점</Label>
         <MultiSelectFilter
           idBase="course-detail-credit"
           options={creditOptions}
@@ -135,7 +135,7 @@ export function CourseDetailFilters({
 
       {           }
       <div className="space-y-1.5">
-        <Label className="text-[11px] font-bold text-muted-foreground">강의 방식</Label>
+        <Label className="text-xs font-medium text-muted-foreground">강의 방식</Label>
         <MultiSelectFilter
           idBase="course-detail-direction"
           options={directionOptions}
@@ -152,7 +152,7 @@ export function CourseDetailFilters({
 
       {           }
       <div className="space-y-1.5">
-        <Label className="text-[11px] font-bold text-muted-foreground">대상 학년</Label>
+        <Label className="text-xs font-medium text-muted-foreground">대상 학년</Label>
         <MultiSelectFilter
           idBase="course-detail-grade"
           options={gradeOptions}

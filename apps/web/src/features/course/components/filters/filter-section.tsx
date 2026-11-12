@@ -28,7 +28,7 @@ export function FilterSection({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/40 bg-white/50 shadow-sm backdrop-blur-sm transition-all hover:bg-white/80",
+        "rounded-lg border bg-card",
         className,
       )}
     >
@@ -39,11 +39,11 @@ export function FilterSection({
         aria-controls={contentId}
         aria-expanded={open}
         onClick={() => onOpenChange?.(!open)}
-        className="flex h-auto w-full items-center justify-between px-4 py-3 hover:bg-transparent"
+        className="flex h-10 w-full items-center justify-between rounded-lg px-2.5 py-2 has-[>svg]:px-2.5"
       >
         <div className="flex items-center gap-2">
           {icon}
-          <span className="text-sm font-bold text-foreground/80">{title}</span>
+          <span className="text-sm font-semibold text-foreground">{title}</span>
         </div>
         <div
           className={cn(
@@ -57,7 +57,7 @@ export function FilterSection({
       <div
         id={contentId}
         hidden={!open}
-        className="border-t border-border/70 px-4 pb-4 pt-3"
+        className="border-t px-2.5 py-3"
       >
         {children}
       </div>

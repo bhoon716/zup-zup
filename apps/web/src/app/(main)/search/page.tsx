@@ -10,6 +10,7 @@ import { getDefaultCourseSortOrder, type CourseSortOption, type CourseSortOrder 
 import { resolveVisibleSearchCondition } from "@/features/course/lib/course-utils";
 import type { CourseSearchCondition } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
 import {
   Select,
   SelectContent,
@@ -52,20 +53,21 @@ function MobileKeywordSearch({ initialKeyword, isLoading, onSearch }: MobileKeyw
       }}
       className="flex items-center gap-2"
     >
-      <div className="relative flex-1">
-        <input
-          type="text"
-          placeholder="강의명 또는 학수번호를 입력하세요"
+      <div className="relative min-w-0 flex-1">
+        <Input
+          type="search"
+          aria-label="강의명 또는 학수번호"
+          placeholder="강의명 또는 학수번호"
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
-          className="h-11 w-full rounded-2xl border-none bg-muted/80 pl-11 pr-4 text-sm font-bold placeholder:text-muted-foreground/60 focus:bg-white focus:ring-2 focus:ring-primary/20"
+          className="h-10 rounded-lg bg-card pl-9"
         />
-        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       </div>
       <Button
         type="submit"
         disabled={isLoading}
-        className="h-11 rounded-2xl bg-primary px-5 font-bold text-white shadow-lg shadow-primary/20"
+        className="h-10 rounded-lg"
       >
         {isLoading ? (
           <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -328,10 +330,10 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
+    <div className="min-h-[calc(100dvh-4rem)] bg-background">
       {                    }
-      <div className="sticky top-16 z-30 border-b border-border/50 bg-white/95 px-4 py-4 backdrop-blur-md lg:hidden">
-        <div className="space-y-3">
+      <div className="sticky top-16 z-30 border-b bg-card/95 px-4 py-3 backdrop-blur-md lg:hidden">
+        <div className="space-y-2">
           {             }
           <MobileKeywordSearch
             key={draftCondition.keyword || "empty-mobile-keyword"}
@@ -346,13 +348,14 @@ export default function SearchPage() {
           <button
             type="button"
             onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-            className="flex w-full items-center justify-between rounded-xl bg-muted/50 px-4 py-3 text-sm font-bold text-foreground transition-colors hover:bg-muted"
+            aria-expanded={isFilterExpanded}
+            className="flex w-full items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4 text-primary" />
               상세 검색 필터
               {activeFiltersCount > 0 && (
-                <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-white">
+                <span className="ml-1 flex size-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
                   {activeFiltersCount}
                 </span>
               )}
@@ -378,18 +381,18 @@ export default function SearchPage() {
                 }}
                 className="overflow-y-auto overflow-x-hidden max-h-[70vh] px-0.5 pb-2 will-change-[height]"
               >
-                <div className="rounded-2xl border border-border/70 bg-white p-4 shadow-lg my-1 transform-gpu">
-                <CourseSearchBar
-                  key="mobile-search-bar"
-                  onSearch={handleSearch}
-                  onConditionChange={setDraftCondition}
-                  isLoading={isLoading}
-                initialCondition={visibleDraftCondition}
-                defaultCondition={resolvedDefaultCondition}
-                hideHeader
-                initialUser={verifiedUser ?? null}
-                skipPersonalFetch={skipPersonalFetch}
-              />
+                <div className="my-1 transform-gpu rounded-xl border bg-card p-2.5 shadow-sm">
+                  <CourseSearchBar
+                    key="mobile-search-bar"
+                    onSearch={handleSearch}
+                    onConditionChange={setDraftCondition}
+                    isLoading={isLoading}
+                    initialCondition={visibleDraftCondition}
+                    defaultCondition={resolvedDefaultCondition}
+                    hideHeader
+                    initialUser={verifiedUser ?? null}
+                    skipPersonalFetch={skipPersonalFetch}
+                  />
                 </div>
               </motion.div>
             )}
@@ -401,11 +404,11 @@ export default function SearchPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="container py-6 lg:py-8"
+        className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:py-6"
       >
-        <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)] xl:gap-8">
+        <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:gap-5">
           <aside className="hidden lg:block">
-            <div className="sticky top-20 h-[calc(100vh-6rem)] rounded-3xl border border-border/70 bg-white/85 p-4 shadow-[0_14px_28px_rgba(15,23,42,0.06)] backdrop-blur">
+            <div className="sticky top-20 h-[calc(100dvh-6rem)] rounded-xl border bg-card p-3 shadow-sm">
               <CourseSearchBar
                 key="desktop-search-bar"
                 onSearch={handleSearch}
@@ -419,10 +422,10 @@ export default function SearchPage() {
             </div>
           </aside>
 
-          <section className="min-w-0 space-y-6">
+          <section className="min-w-0 space-y-4">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="min-w-0 truncate text-xl font-bold text-foreground">
+                <h1 className="min-w-0 truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                   {searchCondition.keyword || searchCondition.name || searchCondition.professor
                     ? `"${searchCondition.keyword || searchCondition.name || searchCondition.professor}"`
                     : "강의 목록"}
@@ -438,7 +441,7 @@ export default function SearchPage() {
                       id="course-sort-trigger"
                       aria-controls="course-sort-content"
                       aria-label="정렬 기준"
-                      className="h-9 min-w-[120px] rounded-lg border-border/60 bg-transparent text-xs font-medium"
+                      className="h-9 min-w-[120px] rounded-lg bg-card"
                     >
                       <SelectValue placeholder="정렬" />
                     </SelectTrigger>
@@ -485,7 +488,7 @@ export default function SearchPage() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        className="flex items-center gap-1 rounded-md border border-border/50 bg-muted/30 px-2 py-1 text-[11px] font-medium text-muted-foreground"
+                        className="flex items-center gap-1 rounded-md border border-border/50 bg-muted/30 px-2 py-1 text-xs font-medium text-muted-foreground"
                       >
                         {filter.label}
                         <button
@@ -501,7 +504,7 @@ export default function SearchPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 px-1.5 text-[11px] font-medium text-muted-foreground/60 hover:text-primary"
+                        className="h-6 px-1.5 text-xs font-medium text-muted-foreground hover:text-primary"
                         onClick={resetAllFilters}
                       >
                         초기화

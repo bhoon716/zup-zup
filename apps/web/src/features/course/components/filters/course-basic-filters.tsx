@@ -26,6 +26,8 @@ export function CourseBasicFilters({
 }: CourseBasicFiltersProps) {
   const academicYearSelectId = `${idBasePrefix}-academic-year-select`;
   const semesterSelectId = `${idBasePrefix}-semester-select`;
+  const professorId = `${idBasePrefix}-professor`;
+  const departmentId = `${idBasePrefix}-department`;
 
   const [localProf, setLocalProf] = useState(() => condition.professor || "");
   const [localDept, setLocalDept] = useState(() => condition.department || "");
@@ -55,18 +57,18 @@ export function CourseBasicFilters({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {                           }
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold text-muted-foreground">학년도</Label>
+          <Label htmlFor={academicYearSelectId} className="text-xs font-medium text-muted-foreground">학년도</Label>
           <Select
             value={condition.academicYear}
             onValueChange={(value) =>
               setCondition((prev) => ({ ...prev, academicYear: value }))
             }
           >
-            <SelectTrigger id={academicYearSelectId} aria-controls={`${academicYearSelectId}-content`} className="h-10 w-full rounded-xl bg-muted/30 text-sm">
+            <SelectTrigger id={academicYearSelectId} aria-controls={`${academicYearSelectId}-content`} className="h-10 w-full rounded-lg bg-card text-sm">
               <SelectValue placeholder="- 선택 -" />
             </SelectTrigger>
             <SelectContent id={`${academicYearSelectId}-content`}>
@@ -80,14 +82,14 @@ export function CourseBasicFilters({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold text-muted-foreground">학기</Label>
+          <Label htmlFor={semesterSelectId} className="text-xs font-medium text-muted-foreground">학기</Label>
           <Select
             value={condition.semester}
             onValueChange={(value) =>
               setCondition((prev) => ({ ...prev, semester: value }))
             }
           >
-            <SelectTrigger id={semesterSelectId} aria-controls={`${semesterSelectId}-content`} className="h-10 w-full rounded-xl bg-muted/30 text-sm">
+            <SelectTrigger id={semesterSelectId} aria-controls={`${semesterSelectId}-content`} className="h-10 w-full rounded-lg bg-card text-sm">
               <SelectValue placeholder="- 선택 -" />
             </SelectTrigger>
             <SelectContent id={`${semesterSelectId}-content`}>
@@ -102,10 +104,12 @@ export function CourseBasicFilters({
       </div>
 
       {                                  }
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold text-muted-foreground">교수명</Label>
+          <Label htmlFor={professorId} className="text-xs font-medium text-muted-foreground">교수명</Label>
           <Input
+            id={professorId}
+            aria-describedby={`${professorId}-hint`}
             value={localProf}
             onChange={(e) => handleProfChange(e.target.value)}
             onFocus={() => {
@@ -115,15 +119,17 @@ export function CourseBasicFilters({
               isProfFocusedRef.current = false;
             }}
             placeholder="예: 홍길동, 김철수"
-            className="h-10 w-full rounded-xl bg-muted/30 text-xs"
+            className="h-10 rounded-lg bg-card"
           />
-          <p className="text-[10px] leading-snug text-muted-foreground">
-            쉼표(,)로 여러 명을 입력하면 OR 조건으로 검색됩니다.
+          <p id={`${professorId}-hint`} className="text-xs leading-relaxed text-muted-foreground">
+            여러 교수명을 쉼표로 구분해 입력할 수 있습니다.
           </p>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold text-muted-foreground">학과명</Label>
+          <Label htmlFor={departmentId} className="text-xs font-medium text-muted-foreground">학과명</Label>
           <Input
+            id={departmentId}
+            aria-describedby={`${departmentId}-hint`}
             value={localDept}
             onChange={(e) => handleDeptChange(e.target.value)}
             onFocus={() => {
@@ -133,10 +139,10 @@ export function CourseBasicFilters({
               isDeptFocusedRef.current = false;
             }}
             placeholder="예: 소프트웨어, 컴퓨터공학부"
-            className="h-10 w-full rounded-xl bg-muted/30 text-xs"
+            className="h-10 rounded-lg bg-card"
           />
-          <p className="text-[10px] leading-snug text-muted-foreground">
-            쉼표(,)로 여러 학과를 입력하면 OR 조건으로 검색됩니다.
+          <p id={`${departmentId}-hint`} className="text-xs leading-relaxed text-muted-foreground">
+            여러 학과명을 쉼표로 구분해 입력할 수 있습니다.
           </p>
         </div>
       </div>
