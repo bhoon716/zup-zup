@@ -64,7 +64,7 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await page.setViewportSize({ width: 820, height: 1254 });
   await menuTrigger.click();
   const compactMenu = page.getByRole("dialog");
-  await expect(compactMenu.getByRole("link", { name: "알림 / 구독" })).toHaveAttribute("href", "/notifications");
+  await expect(compactMenu.getByRole("link", { name: "알림함" })).toHaveAttribute("href", "/notifications");
   await expect(compactMenu.getByRole("link", { name: "대시보드" })).toHaveAttribute("href", "/admin");
   await expect(compactMenu.getByRole("button", { name: "로그아웃" })).toBeVisible();
 });

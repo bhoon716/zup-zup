@@ -89,6 +89,7 @@ test("session expiry cancels a write waiting for an old CSRF response", async ({
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (path === "/api/v1/users/me") { await route.fulfill({ json: user }); return; }
+    if (path === "/api/v1/subscriptions") { await route.fulfill({ json: [] }); return; }
     if (path === "/api/v1/users/devices") { await route.fulfill({ json: [] }); return; }
     if (path === "/api/auth/csrf") {
       csrfRequests += 1;

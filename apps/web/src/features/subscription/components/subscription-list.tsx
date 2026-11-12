@@ -2,15 +2,15 @@
 
 import { useRef, useState } from "react";
 import { useSubscriptions, useUnsubscribe, useUnsubscribeAll } from "@/features/subscription/hooks/useSubscriptions";
-import { Loader2, Bookmark, Trash2, XCircle } from "lucide-react";
+import { Loader2, Trash2, XCircle } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
 import { parseCourseKey } from "@/shared/lib/course";
-import type { Course, Subscription } from "@/shared/types/api";
+import type { Course, Subscription, User } from "@/shared/types/api";
 
-export function SubscriptionList() {
-  const { data: subscriptions, isLoading } = useSubscriptions();
+export function SubscriptionList({ user }: { user: User }) {
+  const { data: subscriptions, isLoading } = useSubscriptions(true, user);
   const { mutate: unsubscribe, isPending: isUnsubscribing } = useUnsubscribe();
   const { mutate: unsubscribeAll, isPending: isUnsubscribingAll } = useUnsubscribeAll();
 
@@ -49,32 +49,23 @@ export function SubscriptionList() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5 mb-1 mt-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2 text-slate-900">
-            <Bookmark className="text-primary w-5 h-5 fill-primary" />
-            구독 중인 강의
-          </h2>
-          <span className="text-[10px] px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg font-bold">
-            {subscriptions.length}개 구독 중
-          </span>
-        </div>
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (confirm('모든 강의의 알림 구독을 해제할까요?')) {
-                unsubscribeAll();
-              }
-            }}
-            disabled={isUnsubscribingAll || subscriptions.length === 0}
-            className="h-7 px-2 text-[11px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 gap-1 rounded-lg"
-          >
-            <XCircle className="w-3 h-3" />
-            모두 구독 해제
-          </Button>
-        </div>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-600">{subscriptions.length}개 구독 중</p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            if (confirm("모든 강의의 알림 구독을 해제할까요?")) {
+              unsubscribeAll();
+            }
+          }}
+          disabled={isUnsubscribingAll}
+          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+        >
+          <XCircle aria-hidden="true" />
+          모두 구독 해제
+        </Button>
       </div>
 
       <div className="space-y-4">

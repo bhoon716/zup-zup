@@ -17,6 +17,7 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   const items = [newest, ...Array.from({ length: 28 }, (_, index) => notification(30 - index)), notification(2, similarName), notification(1, literalName)];
   let failDeletion = true;
   let failNextList = false;
+  const subscribedCourses = [{ id: 1, courseKey: newest.courseKey, courseName: "구독 중인 강의", professorName: "담당 교수" }];
 
   await page.setViewportSize({ width: 360, height: 780 });
   await page.route("**/*", (route) => new URL(route.request().url()).origin === baseURL ? route.continue() : route.abort());
@@ -28,9 +29,14 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
       return route.fulfill({ json: { id: 1, name: "테스트 사용자", email: "inbox@example.invalid", role: "USER", onboardingCompleted: true } });
     }
     if (pathname === "/api/auth/csrf") return route.fulfill({ json: { token: "test-csrf" } });
-    if (pathname === "/api/v1/subscriptions") {
-      return route.fulfill({ json: [{ id: 1, courseKey: newest.courseKey, courseName: "구독 중인 강의", professorName: "담당 교수" }] });
+    if (pathname === "/api/v1/subscriptions" && request.method() === "GET") {
+      return route.fulfill({ json: subscribedCourses });
     }
+    if (pathname === "/api/v1/subscriptions" && request.method() === "DELETE" && request.headers()["x-csrf-token"] === "test-csrf") {
+      subscribedCourses.length = 0;
+      return route.fulfill({ status: 204 });
+    }
+    if (pathname === "/api/v1/users/devices") return route.fulfill({ json: [] });
     if (decodeURIComponent(pathname) === `/api/v1/courses/${newest.courseKey}`) {
       return route.fulfill({ json: { courseKey: newest.courseKey, name: newest.courseName, subjectCode: "INBOX31", classNumber: "01", professor: "담당 교수" } });
     }
@@ -88,29 +94,32 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   await page.goto("/notifications");
   await expect(page.getByRole("heading", { name: "알림함", exact: true })).toBeVisible();
   const inboxTab = page.getByRole("tab", { name: "알림함", exact: true });
-  const subscriptionsTab = page.getByRole("tab", { name: "구독 강의", exact: true });
+  const historyTab = page.getByRole("tab", { name: "발송 이력", exact: true });
+  await expect(page.getByRole("tab")).toHaveCount(2);
   await inboxTab.press("End");
-  await expect(subscriptionsTab).toBeFocused();
-  await expect(subscriptionsTab).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel", { name: "구독 강의" }).getByRole("button", { name: "구독 중인 강의", exact: true })).toBeVisible();
-  await subscriptionsTab.press("Home");
+  await expect(historyTab).toBeFocused();
+  await expect(historyTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel", { name: "발송 이력" }).getByText("외부 채널 발송")).toBeVisible();
+  await historyTab.press("Home");
   await expect(inboxTab).toBeFocused();
   const list = page.getByRole("list", { name: "알림 목록" });
   const newestTitle = page.getByRole("button", { name: newest.courseName, exact: true });
   const filters = page.getByRole("group", { name: "알림 읽음 상태" });
-  const pagination = page.getByRole("navigation", { name: "알림 목록 위 페이지 이동" });
-  const bottomPagination = page.getByRole("navigation", { name: "알림 목록 아래 페이지 이동" });
+  const toolbar = page.getByRole("group", { name: "알림 목록 도구" });
+  const pagination = page.getByRole("navigation", { name: "알림 목록 페이지 이동" });
   const pageOne = pagination.getByRole("button", { name: "1 페이지", exact: true });
   const pageTwo = pagination.getByRole("button", { name: "2 페이지", exact: true });
   await expect(pageOne).toHaveAttribute("aria-current", "page");
-  await expect(pagination.getByText("알림 31개")).toBeVisible();
-  await expect(bottomPagination.getByText("알림 31개")).toBeVisible();
+  await expect(pagination).toHaveCount(1);
+  await expect(page.getByText("알림 31개", { exact: true })).toHaveCount(1);
+  await expect(page.getByText("알림 31개", { exact: true })).toBeVisible();
   await expect(list.getByRole("listitem")).toHaveCount(30);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360);
-  const newestCard = list.getByRole("article").filter({ has: newestTitle });
-  await expect(newestCard.getByText("빈자리가 2석 생겼어요.")).toBeVisible();
-  await expect(newestCard.getByText("빈자리 발생", { exact: true })).toBeVisible();
-  await expect(newestCard.getByText("2026년 11월 12일 09:00", { exact: true })).toHaveAttribute("datetime", detectedAt);
+  const newestRow = list.getByRole("article").filter({ has: newestTitle });
+  await expect(newestRow.getByRole("img", { name: "읽지 않음", exact: true })).toBeVisible();
+  await expect(newestRow.getByText("빈자리가 2석 생겼어요.")).toBeVisible();
+  await expect(newestRow.getByText("빈자리 감지", { exact: true })).toBeVisible();
+  await expect(newestRow.getByText("2026년 11월 12일 09:00", { exact: true })).toHaveAttribute("datetime", detectedAt);
 
   await filters.getByRole("button", { name: "읽지 않음", exact: true }).click();
   await expect(newestTitle).toBeEnabled();
@@ -125,10 +134,11 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   await page.reload();
   await filters.getByRole("button", { name: "읽음", exact: true }).click();
   await expect(list.getByRole("listitem")).toHaveCount(1);
-  await expect(list.getByRole("article").filter({ has: newestTitle }).getByText("읽음", { exact: true })).toBeVisible();
+  await expect(newestRow.getByRole("img", { name: "읽음", exact: true })).toBeVisible();
   await filters.getByRole("button", { name: "전체", exact: true }).click();
-  await bottomPagination.getByRole("button", { name: "2 페이지", exact: true }).click();
-  await expect(pagination).toBeFocused();
+  await pageTwo.click();
+  await expect(toolbar).toBeFocused();
+  await expect(toolbar).toBeInViewport();
   await expect(pageTwo).toHaveAttribute("aria-current", "page");
   await expect(list.getByRole("button", { name: literalName, exact: true })).toBeVisible();
 
@@ -196,6 +206,14 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   items.unshift(whileClosed);
   await page.getByRole("tab", { name: "알림함", exact: true }).click();
   await expect(list.getByRole("button", { name: whileClosed.courseName, exact: true })).toBeVisible();
+
+  await page.goto("/settings");
+  const subscriptions = page.getByRole("region", { name: "구독 중인 강의" });
+  await expect(subscriptions.getByRole("button", { name: "구독 중인 강의", exact: true })).toBeVisible();
+  await expect(subscriptions.getByRole("button", { name: "구독 중인 강의 알림 구독 해제" })).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept());
+  await subscriptions.getByRole("button", { name: "모두 구독 해제" }).click();
+  await expect(subscriptions.getByText("구독 중인 강의가 없습니다.")).toBeVisible();
 });
 
 test("유형별 알림을 열면 읽음으로 바뀌고 관련 화면으로 연결된다", async ({ page, baseURL }) => {
@@ -258,13 +276,14 @@ test("유형별 알림을 열면 읽음으로 바뀌고 관련 화면으로 연�
       await expect(list.getByText("문의 상세에서 답변을 확인해 주세요.", { exact: true })).toBeVisible();
     }
     const open = list.getByRole("button", { name: message.title, exact: true });
+    await expect(list.getByRole("img", { name: "읽지 않음", exact: true })).toBeVisible();
     await open.click();
     const dialog = page.getByRole("dialog", { name: message.title });
     await expect(dialog.getByText(message.message ?? "", { exact: true })).toBeVisible();
     await expect(dialog.getByRole("link")).toHaveAttribute("href", message.href);
     await page.keyboard.press("Escape");
     await expect(open).toBeFocused();
-    await expect(list.getByText("읽음", { exact: true })).toBeVisible();
+    await expect(list.getByRole("img", { name: "읽음", exact: true })).toBeVisible();
   }
 
   await filter.click();

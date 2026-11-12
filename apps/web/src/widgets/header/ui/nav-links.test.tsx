@@ -17,7 +17,7 @@ describe("NavLinks", () => {
     render(<NavLinks {...defaultProps} isLoggedIn={true} isLoading={false} />);
 
     expect(screen.getByText("내 시간표")).toBeInTheDocument();
-    expect(screen.getByText("알림 / 구독")).toBeInTheDocument();
+    expect(screen.getByText("알림함")).toBeInTheDocument();
     expect(screen.getByText("건의 / 버그")).toBeInTheDocument();
     expect(screen.getByText("설정")).toBeInTheDocument();
   });

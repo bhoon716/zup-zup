@@ -4,7 +4,6 @@ import { useRef, useState, type KeyboardEvent } from "react";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { InboxList } from "@/features/notification/components/inbox-list";
 import { NotificationList } from "@/features/notification/components/notification-list";
-import { SubscriptionList } from "@/features/subscription/components/subscription-list";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
 
@@ -33,7 +32,6 @@ export default function NotificationsPage() {
 const notificationViews = [
   { id: "inbox", label: "알림함" },
   { id: "history", label: "발송 이력" },
-  { id: "subscriptions", label: "구독 강의" },
 ] as const;
 
 type NotificationView = (typeof notificationViews)[number]["id"];
@@ -69,13 +67,12 @@ function AccountNotifications({ userId }: { userId: number }) {
 
   const panels = {
     inbox: <InboxList userId={userId} />,
-    history: <NotificationList />,
-    subscriptions: <SubscriptionList />,
+    history: <div className="p-3 sm:p-5"><NotificationList /></div>,
   };
 
   return (
-    <div className="w-full min-w-0 rounded-2xl border border-slate-100 bg-white p-4 shadow-card sm:rounded-[2rem] sm:p-7">
-      <div role="tablist" aria-label="알림 보기" className="mb-5 flex flex-wrap gap-1 border-b border-slate-100 pb-3">
+    <div className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white shadow-card">
+      <div role="tablist" aria-label="알림 보기" className="flex flex-wrap gap-1 rounded-t-2xl border-b border-slate-200 px-3 py-2 sm:px-5">
         {notificationViews.map(({ id, label }, index) => (
           <Button
             key={id}

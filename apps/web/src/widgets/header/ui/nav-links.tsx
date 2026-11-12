@@ -87,7 +87,7 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
       <Button asChild variant="ghost" size="sm" className={authOnlyClass}>
         <Link href="/notifications" onClick={handleClick} tabIndex={isLoggedIn ? undefined : -1} aria-hidden={!isLoggedIn}>
           <Bell className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">알림 / 구독</span>
+          <span className="text-sm font-medium">알림함</span>
         </Link>
       </Button>
       <Button asChild variant="ghost" size="sm" className={navLinkClass}>

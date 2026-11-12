@@ -74,6 +74,7 @@ test("설정 첫 진입은 인증 확인과 프로필 초기화에 같은 요청
       profileReads += 1;
       return route.fulfill({ json: { ...user, notificationEmail: user.email, emailEnabled: true } });
     }
+    if (path === "/api/v1/subscriptions") return route.fulfill({ json: [] });
     if (path === "/api/v1/users/devices") return route.fulfill({ json: [] });
     return route.fulfill({ status: 500, json: { code: "UNEXPECTED_TEST_API" } });
   });

@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { SubscriptionList } from "@/features/subscription/components/subscription-list";
 import type { SettingsPageModel } from "./useSettingsPage";
 import {
   DiscordIntegrationSection,
@@ -116,6 +117,12 @@ export function SettingsPage({ model }: { model: SettingsPageModel }) {
             handleSendTestNotification={handleSendTestNotification}
           />
         </form>
+        {user && (
+          <section aria-labelledby="course-subscriptions-heading" className="mt-12 space-y-4 border-t border-slate-100 pt-8">
+            <h2 id="course-subscriptions-heading" className="text-xl font-bold text-slate-900">구독 중인 강의</h2>
+            <SubscriptionList user={user} />
+          </section>
+        )}
       </main>
     </div>
   );
