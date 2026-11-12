@@ -66,11 +66,18 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await expect(page.getByRole("menuitem", { name: "대시보드" })).toBeVisible();
   await page.keyboard.press("Escape");
 
-  await page.setViewportSize({ width: 820, height: 1254 });
+  await page.setViewportSize({ width: 390, height: 500 });
   await menuTrigger.click();
   const compactMenu = page.getByRole("dialog");
+  await expect(compactMenu.getByText(`${admin.name} 님`)).toBeVisible();
+  await expect(compactMenu.getByRole("heading", { level: 3 })).toHaveText(["메뉴", "바로가기", "관리 메뉴"]);
   await expect(compactMenu.getByRole("link", { name: "대시보드" })).toHaveAttribute("href", "/admin");
-  await expect(compactMenu.getByRole("button", { name: "로그아웃" })).toBeVisible();
+  const logout = compactMenu.getByRole("button", { name: "로그아웃" });
+  await logout.scrollIntoViewIfNeeded();
+  await expect(logout).toBeInViewport();
+  await page.keyboard.press("Escape");
+  await expect(compactMenu).toBeHidden();
+  await expect(menuTrigger).toBeFocused();
 });
 
 test("알림함 버튼은 열었을 때 최신 다섯 알림을 조회하고 전체 알림함으로 이동한다", async ({ page, baseURL }) => {

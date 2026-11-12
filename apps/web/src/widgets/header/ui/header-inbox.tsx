@@ -28,7 +28,7 @@ export function HeaderInbox({ userId }: { userId: number }) {
           size="icon-lg"
           aria-label="알림함"
           title="알림함"
-          className="text-muted-foreground hover:bg-primary/5 hover:text-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary xl:size-9"
+          className="rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary xl:size-9 xl:rounded-xl"
         >
           <Bell aria-hidden="true" className="size-5" />
         </Button>

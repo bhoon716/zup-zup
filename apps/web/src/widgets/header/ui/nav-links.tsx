@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { JBNUSiteLinks } from "./jbnu-site-links";
+import { mobileMenuHeadingClass, mobileMenuRowClass, mobileMenuSectionClass } from "./mobile-menu-styles";
 
 interface NavLinksProps {
   isMobile?: boolean;
@@ -34,17 +35,16 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
     onGuardedAction(e);
   };
 
-  const navLinkClass = cn(
-    "gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3",
-    isMobile && "w-full justify-start h-11 px-4 text-base",
-  );
+  const navLinkClass = isMobile
+    ? mobileMenuRowClass
+    : "gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3";
   const authOnlyClass = cn(navLinkClass, !isLoggedIn && "hidden");
-  const adminOnlyClass = cn(isMobile ? "mt-4 space-y-1 pt-4 border-t border-gray-100" : "flex items-center", !isAdmin && "hidden");
+  const adminOnlyClass = cn(isMobile ? mobileMenuSectionClass : "flex items-center", !isAdmin && "hidden");
 
   if (isLoading) {
     const skeletonClass = cn(
       "animate-pulse bg-gray-100 rounded-xl",
-      isMobile ? "w-full h-11" : "h-9 w-20"
+      isMobile ? "h-10 w-full rounded-lg bg-muted" : "h-9 w-20"
     );
 
     return (
@@ -106,36 +106,33 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
       <div className={adminOnlyClass} aria-hidden={!isAdmin}>
         {isMobile ? (
           <>
-            <p className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              관리 메뉴
-            </p>
-            <div className="flex flex-col gap-0.5 pl-3">
-              <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+            <h3 className={mobileMenuHeadingClass}>관리 메뉴</h3>
+            <div className="flex flex-col">
+              <Button asChild variant="ghost" size="sm" className={mobileMenuRowClass}>
                 <Link href="/admin" onClick={onLinkClick}>
                   <LayoutDashboard className="w-4 h-4" />
                   대시보드
                 </Link>
               </Button>
-              <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+              <Button asChild variant="ghost" size="sm" className={mobileMenuRowClass}>
                 <Link href="/admin/settings" onClick={onLinkClick}>
                   <Settings className="w-4 h-4" />
                   설정 및 제어
                 </Link>
               </Button>
-              <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+              <Button asChild variant="ghost" size="sm" className={mobileMenuRowClass}>
                 <Link href="/admin/announcements" onClick={onLinkClick}>
                   <Megaphone className="w-4 h-4" />
                   공지사항 관리
                 </Link>
               </Button>
-              <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+              <Button asChild variant="ghost" size="sm" className={mobileMenuRowClass}>
                 <Link href="/admin/feedbacks" onClick={onLinkClick}>
                   <MessageCircle className="w-4 h-4" />
                   건의/버그 관리
                 </Link>
               </Button>
-              <Button asChild variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-semibold hover:bg-primary/5 text-primary">
+              <Button asChild variant="ghost" size="sm" className={mobileMenuRowClass}>
                 <Link href="/admin/notification-deliveries" onClick={onLinkClick}>
                   <RotateCcw className="w-4 h-4" />
                   알림 DLQ 관리

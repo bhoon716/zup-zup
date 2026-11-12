@@ -16,11 +16,11 @@ interface UserProfileProps {
 }
 
 export function HeaderUserActions({ user, isLoading, isPending, onLogout, onLoginClick, children }: UserProfileProps & { children?: ReactNode }) {
-  if (isLoading) return <div className="h-9 w-24 animate-pulse rounded-md bg-muted" />;
+  if (isLoading) return <div className="h-9 w-24 animate-pulse rounded-xl bg-muted" />;
 
   if (!user) {
     return (
-      <Button asChild>
+      <Button asChild className="rounded-xl">
         <Link href="/login" onClick={onLoginClick}>
           로그인
         </Link>
@@ -36,7 +36,7 @@ export function HeaderUserActions({ user, isLoading, isPending, onLogout, onLogi
         variant="ghost"
         onClick={onLogout}
         disabled={isPending}
-        className="hidden text-muted-foreground hover:bg-destructive/5 hover:text-destructive xl:inline-flex"
+        className="hidden rounded-xl text-muted-foreground hover:bg-destructive/5 hover:text-destructive xl:inline-flex"
       >
         <LogOut aria-hidden="true" />
         로그아웃
@@ -46,11 +46,17 @@ export function HeaderUserActions({ user, isLoading, isPending, onLogout, onLogi
 }
 
 export function HeaderMobileUserStatus({ user, isLoading, onLinkClick }: Omit<UserProfileProps, 'isPending' | 'onLogout' | 'onLoginClick'> & { onLinkClick: () => void }) {
-  if (isLoading) return <div className="h-10 w-full animate-pulse bg-muted/50 rounded-xl" />;
+  if (isLoading) {
+    return (
+      <div className="flex h-10 items-center px-3">
+        <div className="h-4 w-24 animate-pulse rounded-sm bg-muted" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
-      <Button asChild className="w-full gap-2 rounded-xl h-11 bg-primary shadow-lg shadow-primary/20">
+      <Button asChild className="h-10 w-full rounded-lg">
         <Link href="/login" onClick={onLinkClick}>
           로그인하고 시작하기
         </Link>
@@ -59,16 +65,8 @@ export function HeaderMobileUserStatus({ user, isLoading, onLinkClick }: Omit<Us
   }
 
   return (
-    <div className="bg-accent/30 rounded-2xl p-4 border border-white/5">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-          {user.name.charAt(0)}
-        </div>
-        <div>
-          <p className="text-sm font-bold wrap-anywhere">{user.name} 님</p>
-          <p className="text-[10px] text-muted-foreground italic">환영합니다!</p>
-        </div>
-      </div>
-    </div>
+    <p className="truncate px-3 py-2 text-base font-semibold text-foreground" title={user.name}>
+      {user.name} 님
+    </p>
   );
 }

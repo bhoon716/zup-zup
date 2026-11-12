@@ -25,6 +25,7 @@ import { cn } from "@/shared/lib/utils";
 import { useHasMounted } from "@/shared/hooks/useHasMounted";
 
 import { HeaderInbox } from "./ui/header-inbox";
+import { mobileMenuHeadingClass, mobileMenuRowClass } from "./ui/mobile-menu-styles";
 import { NavLinks } from "./ui/nav-links";
 import { HeaderUserActions, HeaderMobileUserStatus } from "./ui/user-status";
 
@@ -82,7 +83,7 @@ export function Header() {
           <Button
             onClick={install}
             variant="outline"
-            className="hidden border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary xl:inline-flex"
+            className="hidden rounded-xl border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary xl:inline-flex"
           >
             <Download aria-hidden="true" />
             {platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}
@@ -113,65 +114,67 @@ export function Header() {
                   aria-label="메뉴 열기"
                   variant="ghost"
                   size="icon-lg"
-                  className="text-muted-foreground hover:bg-primary/5 hover:text-primary"
+                  className="rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary"
                 >
                   <Menu aria-hidden="true" className="size-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent id={mobileMenuContentId} side="right" className="w-[280px] sm:w-[350px] p-0 border-l border-white/5 bg-background/95 backdrop-blur-xl flex flex-col h-full">
-                <SheetHeader className="p-6 border-b border-white/5">
-                  <SheetTitle className="text-left flex items-center gap-2.5">
-                    <Image src="/zub-zub-logo.png" alt="로고" width={32} height={32} className="w-8 h-8 object-contain" />
-                    <span className="bg-linear-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent font-bold tracking-tight">줍줍</span>
+              <SheetContent
+                id={mobileMenuContentId}
+                side="right"
+                aria-describedby={undefined}
+                className="flex h-dvh w-[min(280px,100%)] flex-col gap-0 bg-background p-0 sm:w-[350px]"
+              >
+                <SheetHeader className="h-[72px] shrink-0 justify-center border-b border-border px-6">
+                  <SheetTitle className="flex items-center gap-2.5 text-left font-bold text-primary">
+                    <Image src="/zub-zub-logo.png" alt="" width={32} height={32} className="size-8 object-contain" />
+                    줍줍
                   </SheetTitle>
                 </SheetHeader>
-                <div className="flex flex-col gap-2 p-4 flex-1 overflow-y-auto min-h-0">
-                  <div className="mb-4 px-2">
-                    <HeaderMobileUserStatus 
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                  <div className="shrink-0 space-y-1 border-b border-border pb-2">
+                    <HeaderMobileUserStatus
                       user={hasMounted && (isAuthenticated || !user) ? verifiedUser : undefined}
                       isLoading={shouldShowUserSkeleton}
-                      onLinkClick={closeMenu} 
+                      onLinkClick={closeMenu}
                     />
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        install();
+                        closeMenu();
+                      }}
+                      className={cn(mobileMenuRowClass, "text-primary")}
+                    >
+                      <Download aria-hidden="true" />
+                      {platform === "ios" ? "홈 화면에 추가 안내" : "바로가기 설치하기"}
+                    </Button>
                   </div>
 
-                    <div className="px-2 mb-2">
-                      <Button
-                        onClick={() => {
-                          install();
-                          closeMenu();
-                        }}
-                        className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-                      >
-                        <Download className="w-4 h-4" />
-                        {platform === "ios" ? "홈 화면에 추가 안내" : "바로가기 설치하기"}
-                      </Button>
-                    </div>
-
-                  <div className="space-y-1">
-                    <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">메뉴</p>
-                    <NavLinks 
-                      isMobile 
+                  <nav aria-label="모바일 메뉴" className="flex shrink-0 flex-col py-2">
+                    <h3 className={mobileMenuHeadingClass}>메뉴</h3>
+                    <NavLinks
+                      isMobile
                       isLoading={shouldShowSkeleton}
-                      isLoggedIn={hasMounted ? !!user : false} 
+                      isLoggedIn={hasMounted ? !!user : false}
                       isAdmin={hasMounted ? verifiedUser?.role === "ADMIN" : false}
-                      onGuardedAction={handleGuardedAction} 
-                      onLinkClick={closeMenu} 
+                      onGuardedAction={handleGuardedAction}
+                      onLinkClick={closeMenu}
                     />
-                  </div>
+                  </nav>
 
                   {user && (
-                    <div className="mt-auto pt-6 border-t border-white/5 p-2 shrink-0">
+                    <div className="mt-auto shrink-0 border-t border-border pt-2">
                       <Button
                         variant="ghost"
-                        size="sm"
                         onClick={() => {
                           logout();
                           closeMenu();
                         }}
                         disabled={isPending}
-                        className="w-full gap-3 rounded-xl h-11 justify-start px-4 hover:bg-destructive/5 hover:text-destructive text-muted-foreground transition-colors"
+                        className={cn(mobileMenuRowClass, "text-muted-foreground hover:bg-destructive/5 hover:text-destructive")}
                       >
-                        <LogOut className="w-4 h-4" />
+                        <LogOut aria-hidden="true" />
                         로그아웃
                       </Button>
                     </div>
