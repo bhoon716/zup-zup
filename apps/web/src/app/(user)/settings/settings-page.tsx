@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Bell, Bookmark, Loader2 } from "lucide-react";
 import { SubscriptionList } from "@/features/subscription/components/subscription-list";
 import type { SettingsPageModel } from "./useSettingsPage";
 import {
@@ -55,60 +55,58 @@ export function SettingsPage({ model }: { model: SettingsPageModel }) {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <main className="mx-auto max-w-4xl px-6 pb-32 pt-10 sm:px-10 md:pb-40 md:pt-16">
-        <div className="mb-12 border-b border-slate-100 pb-8">
-          <h1 className="mb-2 text-3xl font-bold tracking-tight text-slate-900">알림 설정</h1>
-          <p className="font-medium text-slate-500">빈자리, 문의 답변, 중요 공지 알림을 받을 채널을 설정하세요.</p>
-        </div>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <section className="space-y-12">
-            <div className="space-y-6">
-              <div className="mb-8 flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">알림 채널 연동</h2>
-                  <p className="mt-2 text-sm font-medium text-slate-500">여러 채널을 연동하여 확실하게 알림을 받아보세요.</p>
-                </div>
-                <p className="text-xs text-slate-400">저장된 설정 기준으로 전송됩니다.</p>
-              </div>
-
-              <DiscordIntegrationSection
-                user={user}
-                watch={watch}
-                setValue={setValue}
-                isUnlinking={isUnlinking}
-                handleDiscordConnect={handleDiscordConnect}
-                handleDiscordUnlink={handleDiscordUnlink}
-              />
-              <EmailNotificationSection
-                user={user}
-                authCode={authCode}
-                setAuthCode={setAuthCode}
-                verified={verified}
-                emailSent={emailSent}
-                sending={sending}
-                verifying={verifying}
-                register={register}
-                watch={watch}
-                setValue={setValue}
-                errors={errors}
-                onSendCode={onSendCode}
-                onVerifyCode={onVerifyCode}
-                isGoogleEmail={isGoogleEmail}
-                needsVerification={needsVerification}
-              />
-              <WebPushSection
-                deviceAlias={deviceAlias}
-                setDeviceAlias={setDeviceAlias}
-                devices={devices}
-                loadingWebPush={loadingWebPush}
-                watch={watch}
-                setValue={setValue}
-                handleRegisterDevice={handleRegisterDevice}
-                handleDeleteDevice={handleDeleteDevice}
-              />
-            </div>
-          </section>
+    <main className="mx-auto w-full max-w-6xl px-4 pb-12 pt-7 text-foreground sm:px-6 sm:pt-10 lg:px-8">
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold leading-normal sm:text-3xl">알림 설정</h1>
+        <p className="mt-1.5 break-keep text-sm leading-6 text-muted-foreground">빈자리, 문의 답변, 중요 공지 알림을 받을 채널을 설정하세요.</p>
+      </header>
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <form
+          aria-labelledby="notification-channels-heading"
+          onSubmit={handleSubmit(onSubmit)}
+          className="min-w-0 rounded-xl border bg-card"
+        >
+          <header className="flex items-center gap-2 rounded-t-xl border-b bg-muted/40 px-4 py-3.5 sm:px-5">
+            <Bell aria-hidden="true" className="size-4 text-primary" />
+            <h2 id="notification-channels-heading" className="text-sm font-semibold">알림 채널</h2>
+          </header>
+          <div className="divide-y">
+            <DiscordIntegrationSection
+              user={user}
+              watch={watch}
+              setValue={setValue}
+              isUnlinking={isUnlinking}
+              handleDiscordConnect={handleDiscordConnect}
+              handleDiscordUnlink={handleDiscordUnlink}
+            />
+            <EmailNotificationSection
+              user={user}
+              authCode={authCode}
+              setAuthCode={setAuthCode}
+              verified={verified}
+              emailSent={emailSent}
+              sending={sending}
+              verifying={verifying}
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              errors={errors}
+              onSendCode={onSendCode}
+              onVerifyCode={onVerifyCode}
+              isGoogleEmail={isGoogleEmail}
+              needsVerification={needsVerification}
+            />
+            <WebPushSection
+              deviceAlias={deviceAlias}
+              setDeviceAlias={setDeviceAlias}
+              devices={devices}
+              loadingWebPush={loadingWebPush}
+              watch={watch}
+              setValue={setValue}
+              handleRegisterDevice={handleRegisterDevice}
+              handleDeleteDevice={handleDeleteDevice}
+            />
+          </div>
           <SettingsActionBar
             isSubmitting={isSubmitting}
             onCancel={() => router.back()}
@@ -118,12 +116,15 @@ export function SettingsPage({ model }: { model: SettingsPageModel }) {
           />
         </form>
         {user && (
-          <section aria-labelledby="course-subscriptions-heading" className="mt-12 space-y-4 border-t border-slate-100 pt-8">
-            <h2 id="course-subscriptions-heading" className="text-xl font-bold text-slate-900">구독 중인 강의</h2>
+          <section aria-labelledby="course-subscriptions-heading" className="min-w-0 rounded-xl border bg-card">
+            <header className="flex items-center gap-2 rounded-t-xl border-b bg-muted/40 px-4 py-3.5">
+              <Bookmark aria-hidden="true" className="size-4 text-primary" />
+              <h2 id="course-subscriptions-heading" className="text-sm font-semibold">구독 중인 강의</h2>
+            </header>
             <SubscriptionList user={user} />
           </section>
         )}
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }

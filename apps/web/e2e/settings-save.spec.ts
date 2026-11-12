@@ -52,9 +52,10 @@ for (const devicesFail of [false, true]) {
       expect(saved).toEqual([]);
       expect(stored).toEqual(profile);
     } else {
-      const emailSwitch = page.getByText("이메일 알림 활성화", { exact: true })
-        .locator("..").locator(":scope > div");
-      await emailSwitch.click();
+      const emailSwitch = page.getByRole("switch", { name: "이메일 알림 활성화" });
+      await emailSwitch.focus();
+      await emailSwitch.press("Space");
+      await expect(emailSwitch).not.toBeChecked();
       await save.click();
       await expect(page.getByText("알림 설정이 저장되었습니다.", { exact: true })).toBeVisible();
       expect(saved).toEqual([{
