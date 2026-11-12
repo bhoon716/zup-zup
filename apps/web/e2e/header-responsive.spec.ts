@@ -5,6 +5,28 @@ const inboxName = "알림함";
 
 test.use({ userAgent: "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15" });
 
+test("비로그인 새로고침에서는 프로필 응답을 기다리는 동안에도 공개 헤더가 보인다", async ({ page }) => {
+  let finishProfile = () => {};
+  const pendingProfile = new Promise<void>((resolve) => { finishProfile = resolve; });
+  await page.route("**/api/v1/users/me", async (route) => {
+    await pendingProfile;
+    await route.fulfill({ status: 401, json: { code: "A001" } });
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  try {
+    const profileRequest = page.waitForRequest("**/api/v1/users/me");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await profileRequest;
+    const header = page.getByRole("banner");
+    await expect(header.getByRole("link", { name: "로그인", exact: true })).toBeVisible();
+    await expect(header.getByRole("link", { name: "강의 검색" })).toBeVisible();
+    await expect(header.getByRole("link", { name: "내 시간표" })).toHaveCount(0);
+    await expect(header.locator(".animate-pulse")).toHaveCount(0);
+  } finally {
+    finishProfile();
+  }
+});
+
 test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼이 겹치지 않는다", async ({ page, baseURL }) => {
   const admin = {
     id: 1,

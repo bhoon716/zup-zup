@@ -7,17 +7,14 @@ import type { ReactNode } from "react";
 import type { User } from "@/shared/types/api";
 
 interface UserProfileProps {
-  user: User | null | undefined;
-  isLoading: boolean;
+  user: User | null;
   isPending?: boolean;
   onLogout?: () => void;
   onLoginClick?: () => void;
   onLinkClick?: () => void;
 }
 
-export function HeaderUserActions({ user, isLoading, isPending, onLogout, onLoginClick, children }: UserProfileProps & { children?: ReactNode }) {
-  if (isLoading) return <div className="h-9 w-24 animate-pulse rounded-xl bg-muted" />;
-
+export function HeaderUserActions({ user, isPending, onLogout, onLoginClick, children }: UserProfileProps & { children?: ReactNode }) {
   if (!user) {
     return (
       <Button asChild className="rounded-xl">
@@ -45,15 +42,7 @@ export function HeaderUserActions({ user, isLoading, isPending, onLogout, onLogi
   );
 }
 
-export function HeaderMobileUserStatus({ user, isLoading, onLinkClick }: Omit<UserProfileProps, 'isPending' | 'onLogout' | 'onLoginClick'> & { onLinkClick: () => void }) {
-  if (isLoading) {
-    return (
-      <div className="flex h-10 items-center px-3">
-        <div className="h-4 w-24 animate-pulse rounded-sm bg-muted" />
-      </div>
-    );
-  }
-
+export function HeaderMobileUserStatus({ user, onLinkClick }: Omit<UserProfileProps, 'isPending' | 'onLogout' | 'onLoginClick'> & { onLinkClick: () => void }) {
   if (!user) {
     return (
       <Button asChild className="h-10 w-full rounded-lg">

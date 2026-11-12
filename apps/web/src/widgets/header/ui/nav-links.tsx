@@ -1,6 +1,5 @@
 "use client";
 
-import type { MouseEvent } from "react";
 import Link from "next/link";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
@@ -22,61 +21,27 @@ interface NavLinksProps {
   isMobile?: boolean;
   isAdmin: boolean;
   isLoggedIn: boolean;
-  isLoading?: boolean;
-  onGuardedAction: (e: MouseEvent) => void;
   onLinkClick?: () => void;
 }
 
-export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = false, onGuardedAction, onLinkClick }: NavLinksProps) {
+export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick }: NavLinksProps) {
   const adminMenuTriggerId = "header-admin-menu-trigger";
   const adminMenuContentId = "header-admin-menu-content";
-  const handleClick = (e: MouseEvent) => {
-    onLinkClick?.();
-    onGuardedAction(e);
-  };
-
   const navLinkClass = isMobile
     ? mobileMenuRowClass
     : "gap-1.5 rounded-xl px-3 h-9 hover:bg-primary/5 text-gray-600 hover:text-primary transition-colors xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3";
-  const authOnlyClass = cn(navLinkClass, !isLoggedIn && "hidden");
   const adminOnlyClass = cn(isMobile ? mobileMenuSectionClass : "flex items-center", !isAdmin && "hidden");
-
-  if (isLoading) {
-    const skeletonClass = cn(
-      "animate-pulse bg-gray-100 rounded-xl",
-      isMobile ? "h-10 w-full rounded-lg bg-muted" : "h-9 w-20"
-    );
-
-    return (
-      <>
-        <div className={skeletonClass} data-testid="nav-link-skeleton" />
-        <Button asChild variant="ghost" size="sm" className={navLinkClass}>
-          <Link href="/search" onClick={onLinkClick}>
-            <Search className="w-[1.1rem] h-[1.1rem]" />
-            <span className="text-sm font-medium">강의 검색</span>
-          </Link>
-        </Button>
-        <Button asChild variant="ghost" size="sm" className={navLinkClass}>
-          <Link href="/announcements" onClick={onLinkClick}>
-            <Megaphone className="w-[1.1rem] h-[1.1rem]" />
-            <span className="text-sm font-medium">공지사항</span>
-          </Link>
-        </Button>
-        <div className={skeletonClass} data-testid="nav-link-skeleton" />
-        <div className={skeletonClass} data-testid="nav-link-skeleton" />
-        <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} />
-      </>
-    );
-  }
 
   return (
     <>
-      <Button asChild variant="ghost" size="sm" className={authOnlyClass}>
-        <Link href="/timetable" onClick={handleClick} tabIndex={isLoggedIn ? undefined : -1} aria-hidden={!isLoggedIn}>
-          <Calendar className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">내 시간표</span>
-        </Link>
-      </Button>
+      {isLoggedIn && (
+        <Button asChild variant="ghost" size="sm" className={navLinkClass}>
+          <Link href="/timetable" onClick={onLinkClick}>
+            <Calendar className="w-[1.1rem] h-[1.1rem]" />
+            <span className="text-sm font-medium">내 시간표</span>
+          </Link>
+        </Button>
+      )}
       <Button asChild variant="ghost" size="sm" className={navLinkClass}>
         <Link href="/search" onClick={onLinkClick}>
           <Search className="w-[1.1rem] h-[1.1rem]" />
@@ -89,18 +54,22 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, isLoading = fa
           <span className="text-sm font-medium">공지사항</span>
         </Link>
       </Button>
-      <Button asChild variant="ghost" size="sm" className={authOnlyClass}>
-        <Link href="/feedback" onClick={handleClick} tabIndex={isLoggedIn ? undefined : -1} aria-hidden={!isLoggedIn}>
-          <MessageCircle className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">건의 / 버그</span>
-        </Link>
-      </Button>
-      <Button asChild variant="ghost" size="sm" className={authOnlyClass}>
-        <Link href="/settings" onClick={handleClick} tabIndex={isLoggedIn ? undefined : -1} aria-hidden={!isLoggedIn}>
-          <Settings className="w-[1.1rem] h-[1.1rem]" />
-          <span className="text-sm font-medium">설정</span>
-        </Link>
-      </Button>
+      {isLoggedIn && (
+        <>
+          <Button asChild variant="ghost" size="sm" className={navLinkClass}>
+            <Link href="/feedback" onClick={onLinkClick}>
+              <MessageCircle className="w-[1.1rem] h-[1.1rem]" />
+              <span className="text-sm font-medium">건의 / 버그</span>
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className={navLinkClass}>
+            <Link href="/settings" onClick={onLinkClick}>
+              <Settings className="w-[1.1rem] h-[1.1rem]" />
+              <span className="text-sm font-medium">설정</span>
+            </Link>
+          </Button>
+        </>
+      )}
 
       <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} />
       <div className={adminOnlyClass} aria-hidden={!isAdmin}>

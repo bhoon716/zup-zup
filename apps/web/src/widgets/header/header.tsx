@@ -1,6 +1,5 @@
 "use client";
 
-import type { MouseEvent } from "react";
 import { useLogout } from "@/features/user/hooks/useUser";
 import { Button } from "@/shared/ui/button";
 import Link from "next/link";
@@ -22,7 +21,6 @@ import {
 } from "@/shared/ui/sheet";
 import { usePWAInstall } from "@/shared/hooks/usePWAInstall";
 import { cn } from "@/shared/lib/utils";
-import { useHasMounted } from "@/shared/hooks/useHasMounted";
 
 import { HeaderInbox } from "./ui/header-inbox";
 import { mobileMenuHeadingClass, mobileMenuRowClass } from "./ui/mobile-menu-styles";
@@ -32,32 +30,15 @@ import { HeaderUserActions, HeaderMobileUserStatus } from "./ui/user-status";
 export function Header() {
   const mobileMenuTriggerId = "header-mobile-menu-trigger";
   const mobileMenuContentId = "header-mobile-menu-content";
-  const user = useAuthStore((state) => state.user);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isLoading = useAuthStore((state) => state.isLoading);
+  const verifiedUser = useAuthStore((state) => state.isAuthenticated ? state.user : null);
   const { mutate: logout, isPending } = useLogout();
-  const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
   const pathname = usePathname();
   const { install, platform } = usePWAInstall();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const hasMounted = useHasMounted();
-  const shouldShowSkeleton = hasMounted ? isLoading && !user : true;
-  const verifiedUser = isAuthenticated ? user : null;
-  const showInbox = hasMounted && !!verifiedUser;
-  const shouldShowUserSkeleton = hasMounted
-    ? (isLoading && !user) || Boolean(user && !isAuthenticated)
-    : true;
 
   if (pathname === "/onboarding") {
     return null;
   }
-
-  const handleGuardedAction = (e: MouseEvent) => {
-    if (!user) {
-      e.preventDefault();
-      setLoginModalOpen(true);
-    }
-  };
 
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -70,11 +51,9 @@ export function Header() {
             <span className="font-bold text-xl text-primary tracking-tight">줍줍</span>
           </Link>
           <nav aria-label="주요 메뉴" className="hidden items-center xl:flex 2xl:gap-1">
-            <NavLinks 
-              isLoading={shouldShowSkeleton}
-              isLoggedIn={hasMounted ? !!user : false} 
-              isAdmin={hasMounted ? verifiedUser?.role === "ADMIN" : false}
-              onGuardedAction={handleGuardedAction} 
+            <NavLinks
+              isLoggedIn={Boolean(verifiedUser)}
+              isAdmin={verifiedUser?.role === "ADMIN"}
             />
           </nav>
         </div>
@@ -90,18 +69,17 @@ export function Header() {
           </Button>
 
           <div
-            className={cn("items-center xl:flex xl:border-l xl:pl-3", showInbox ? "flex" : "hidden")}
+            className={cn("items-center xl:flex xl:border-l xl:pl-3", verifiedUser ? "flex" : "hidden")}
             role="group"
             aria-label="사용자 메뉴"
           >
             <HeaderUserActions
-              user={hasMounted && (isAuthenticated || !user) ? verifiedUser : undefined}
-              isLoading={shouldShowUserSkeleton}
-              isPending={isPending} 
-              onLogout={() => logout()} 
+              user={verifiedUser}
+              isPending={isPending}
+              onLogout={() => logout()}
               onLoginClick={closeMenu}
             >
-              {showInbox && <HeaderInbox key={verifiedUser.id} userId={verifiedUser.id} />}
+              {verifiedUser && <HeaderInbox key={verifiedUser.id} userId={verifiedUser.id} />}
             </HeaderUserActions>
           </div>
 
@@ -134,8 +112,7 @@ export function Header() {
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                   <div className="shrink-0 space-y-1 border-b border-border pb-2">
                     <HeaderMobileUserStatus
-                      user={hasMounted && (isAuthenticated || !user) ? verifiedUser : undefined}
-                      isLoading={shouldShowUserSkeleton}
+                      user={verifiedUser}
                       onLinkClick={closeMenu}
                     />
                     <Button
@@ -155,15 +132,13 @@ export function Header() {
                     <h3 className={mobileMenuHeadingClass}>메뉴</h3>
                     <NavLinks
                       isMobile
-                      isLoading={shouldShowSkeleton}
-                      isLoggedIn={hasMounted ? !!user : false}
-                      isAdmin={hasMounted ? verifiedUser?.role === "ADMIN" : false}
-                      onGuardedAction={handleGuardedAction}
+                      isLoggedIn={Boolean(verifiedUser)}
+                      isAdmin={verifiedUser?.role === "ADMIN"}
                       onLinkClick={closeMenu}
                     />
                   </nav>
 
-                  {user && (
+                  {verifiedUser && (
                     <div className="mt-auto shrink-0 border-t border-border pt-2">
                       <Button
                         variant="ghost"
