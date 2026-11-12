@@ -52,8 +52,21 @@ test("관리자는 알림 발송량을 종류별로 확인하고 24시간과 7�
   await expect(page.getByText("문의 답변", { exact: true })).toBeVisible();
   await expect(page.getByText("중요 공지", { exact: true })).toBeVisible();
   const firstBucket = page.getByRole("button", { name: "06:00, 빈자리 1건, 문의 답변 2건, 중요 공지 0건" });
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toHaveCount(0);
+  await firstBucket.hover();
+  await expect(tooltip).toContainText("문의 답변");
+  await expect(tooltip).toContainText("2건");
+  const heading = await page.getByRole("heading", { name: "알림 트래픽 분석" }).boundingBox();
+  expect(heading).not.toBeNull();
+  if (!heading) throw new Error("차트 제목의 위치를 찾을 수 없습니다.");
+  await page.mouse.move(heading.x + 8, heading.y + 8, { steps: 10 });
+  await expect(tooltip).toHaveCount(0);
+
   await firstBucket.focus();
-  await expect(page.getByText("문의 답변 2건", { exact: true })).toBeVisible();
+  await expect(tooltip).toContainText("문의 답변");
+  await page.keyboard.press("Escape");
+  await expect(tooltip).toHaveCount(0);
   const colors = await firstBucket.locator("span").evaluateAll((segments) =>
     segments.map((segment) => getComputedStyle(segment).backgroundColor),
   );

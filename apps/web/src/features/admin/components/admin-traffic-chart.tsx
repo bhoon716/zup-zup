@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
-
 import { cn } from "@/shared/lib/utils";
 import type { AdminTrafficPointResponse, AdminTrafficRange } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 
 const RANGES: ReadonlyArray<{ id: AdminTrafficRange; label: string }> = [
   { id: "LAST_24_HOURS", label: "24시간" },
@@ -77,66 +76,62 @@ export function AdminTrafficChart({ range, onRangeChange, traffic, isLoading, is
 }
 
 function TrafficBars({ traffic }: { traffic: AdminTrafficPointResponse[] }) {
-  const [activeBucket, setActiveBucket] = useState<string>();
   const maxTraffic = Math.max(...traffic.map((point) => SERIES.reduce((sum, { key }) => sum + point[key], 0)), 1);
-  const detail = traffic.find((point) => point.bucketStart === activeBucket);
   const labelIndices = new Set([0, Math.floor(traffic.length / 2), traffic.length - 1]);
 
   return (
-    <>
-      <div className="relative mt-6">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 flex h-40 flex-col justify-between sm:h-52">
-          {[0, 1, 2, 3, 4].map((line) => (
-            <div key={line} className={line === 4 ? "border-t border-slate-300" : "border-t border-dashed border-slate-200"} />
-          ))}
-        </div>
-        <div className="relative flex items-start">
-          {traffic.map((point, index) => (
-            <div className="min-w-0 flex-1" key={point.bucketStart}>
-              <button
-                type="button"
-                aria-label={`${point.label}, ${SERIES.map(({ key, label }) => `${label} ${point[key]}건`).join(", ")}`}
-                onFocus={() => setActiveBucket(point.bucketStart)}
-                onPointerEnter={() => setActiveBucket(point.bucketStart)}
-                onClick={() => setActiveBucket(point.bucketStart)}
-                className={cn(
-                  "flex h-40 w-full flex-col-reverse items-center rounded-t-sm focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-primary sm:h-52",
-                  detail?.bucketStart === point.bucketStart && "bg-slate-100/70",
-                )}
-              >
-                {SERIES.map(({ key, color }) => (
-                  <span
-                    aria-hidden="true"
-                    className={cn("w-2/3 max-w-12", color)}
-                    key={key}
-                    style={{ height: `${point[key] / maxTraffic * 100}%` }}
-                  />
-                ))}
-              </button>
-              {labelIndices.has(index) && (
-                <div aria-hidden="true" className={cn(
-                  "mt-2 w-max whitespace-nowrap text-xs tabular-nums text-slate-600",
-                  index === 0 ? "" : index === traffic.length - 1 ? "ml-auto float-right" : "relative left-1/2 -translate-x-1/2",
-                )}>
-                  {point.label}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+    <div className="relative mt-6">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 flex h-40 flex-col justify-between sm:h-52">
+        {[0, 1, 2, 3, 4].map((line) => (
+          <div key={line} className={line === 4 ? "border-t border-slate-300" : "border-t border-dashed border-slate-200"} />
+        ))}
       </div>
-      <p className="mt-4 min-h-10 rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
-        {detail ? (
-          <>
-            <strong className="mr-2 font-semibold">{detail.label}</strong>
-            {SERIES.map(({ key, label }) => (
-              <span className="mr-3 inline-block" key={key}>{label} {detail[key].toLocaleString("ko-KR")}건</span>
-            ))}
-          </>
-        ) : (
-          "막대에 마우스를 올리거나 선택하면 구간별 건수를 볼 수 있습니다."
-        )}
-      </p>
-    </>
+      <div className="relative flex items-start">
+        {traffic.map((point, index) => (
+          <div className="min-w-0 flex-1" key={point.bucketStart}>
+            <Tooltip delayDuration={100}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`${point.label}, ${SERIES.map(({ key, label }) => `${label} ${point[key]}건`).join(", ")}`}
+                  className="flex h-40 w-full flex-col-reverse items-center rounded-t-sm focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-primary data-[state=delayed-open]:bg-slate-100/70 data-[state=instant-open]:bg-slate-100/70 sm:h-52"
+                >
+                  {SERIES.map(({ key, color }) => (
+                    <span
+                      aria-hidden="true"
+                      className={cn("w-2/3 max-w-12", color)}
+                      key={key}
+                      style={{ height: `${point[key] / maxTraffic * 100}%` }}
+                    />
+                  ))}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={6} collisionPadding={12} className="min-w-28 px-3 py-2 text-xs">
+                <p className="font-semibold">{point.label}</p>
+                <dl className="mt-1 grid grid-cols-[auto_auto] gap-x-3 gap-y-0.5">
+                  {SERIES.map(({ key, label, color }) => (
+                    <div key={key} className="contents">
+                      <dt className="flex items-center gap-1.5">
+                        <span aria-hidden="true" className={cn("size-1.5 rounded-full", color)} />
+                        {label}
+                      </dt>
+                      <dd className="text-right tabular-nums">{point[key].toLocaleString("ko-KR")}건</dd>
+                    </div>
+                  ))}
+                </dl>
+              </TooltipContent>
+            </Tooltip>
+            {labelIndices.has(index) && (
+              <div aria-hidden="true" className={cn(
+                "mt-2 w-max whitespace-nowrap text-xs tabular-nums text-slate-600",
+                index === 0 ? "" : index === traffic.length - 1 ? "ml-auto float-right" : "relative left-1/2 -translate-x-1/2",
+              )}>
+                {point.label}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
