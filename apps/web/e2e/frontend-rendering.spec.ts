@@ -27,8 +27,13 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
 
     await page.goto(baseURL!);
 
-    await expect(page.getByRole("heading", { level: 1, name: /전북대 수강신청 빈자리/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: "강의 먼저 둘러보기" })).toHaveAttribute("href", "/search");
+    const landing = page.getByRole("main");
+    await expect(landing.getByRole("heading", { level: 1, name: "전북대 수강신청 빈자리, 이제 알림으로 잡으세요." })).toBeVisible();
+    await expect(landing.getByRole("heading", { name: "실시간 여석 알림", exact: true })).toBeVisible();
+    await expect(landing.getByRole("heading", { name: "스마트 시간표 관리", exact: true })).toBeVisible();
+    await expect(landing.getByRole("heading", { name: "정밀 강의 검색", exact: true })).toBeVisible();
+    await expect(landing.getByRole("heading", { name: "생생한 사용자 후기", exact: true })).toBeVisible();
+    await expect(landing.getByRole("link", { name: "강의 먼저 둘러보기" })).toHaveAttribute("href", "/search");
   } finally {
     await context.close();
   }
