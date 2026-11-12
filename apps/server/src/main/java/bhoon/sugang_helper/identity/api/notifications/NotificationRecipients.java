@@ -9,7 +9,13 @@ public interface NotificationRecipients {
 
     Optional<NotificationRecipient> findByEmail(String email);
 
-    List<NotificationRecipient> findByIds(List<Long> userIds);
+    List<NotificationRecipient> findActiveByIdsForShare(List<Long> userIds);
+
+    Optional<NotificationRecipient> findActiveByIdForUpdate(Long userId);
+
+    Optional<Long> findLastActiveId();
+
+    List<Long> findActiveIdsBetween(Long afterId, Long throughId, int limit);
 
     List<NotificationDevice> findDevicesByUserId(Long userId);
 

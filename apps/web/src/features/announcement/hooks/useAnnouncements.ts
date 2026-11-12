@@ -39,5 +39,6 @@ export const useAnnouncement = (id: number, initialAnnouncement?: PublicPageData
     initialData: seed?.data,
     initialDataUpdatedAt: seed?.updatedAt,
     enabled: Number.isFinite(id) && id > 0,
+    staleTime: 0,
   });
 };

@@ -248,7 +248,7 @@ export const useSettingsPage = () => {
   };
 
   const handleDeleteDevice = async (id: number) => {
-    if (!confirm("이 기기를 삭제하시겠습니까? 더 이상 알림을 받을 수 없습니다.")) return;
+    if (!confirm("이 기기를 삭제하시겠습니까? 이 기기에서는 웹 푸시 알림을 받을 수 없습니다.")) return;
 
     try {
       await deleteDevice(id);

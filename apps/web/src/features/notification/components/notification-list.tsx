@@ -36,9 +36,9 @@ export function NotificationList() {
         <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center mb-6">
           <Bell className="w-10 h-10 text-slate-200" />
         </div>
-        <h3 className="text-lg font-bold text-slate-900 mb-2">알림 내역이 없습니다</h3>
+        <h3 className="text-lg font-bold text-slate-900 mb-2">발송 이력이 없습니다</h3>
         <p className="text-slate-500 text-sm">
-          강의를 구독하면 빈자리 알림을 이곳에서 확인할 수 있습니다.
+          연결한 채널로 발송에 성공한 알림을 확인할 수 있습니다.
         </p>
       </div>
     );

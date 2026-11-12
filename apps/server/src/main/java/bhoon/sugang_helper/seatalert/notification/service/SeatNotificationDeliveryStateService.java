@@ -1,11 +1,17 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
+import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryDispatch;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryFailureResult;
+import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
+import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -24,12 +30,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SeatNotificationDeliveryStateService {
 
-    private static final long MAX_RETRY_BACKOFF_SECONDS = 300;
-    private static final int MAX_RETRY_BACKOFF_EXPONENT = 8;
-
     private final SeatNotificationDeliveryRepository deliveryRepository;
     private final SeatNotificationOutboxRepository outboxRepository;
     private final MeterRegistry meterRegistry;
+    private final NotificationHistoryRepository histories;
+    private final NotificationRecipients recipients;
+    private final NotificationChannelPolicy policy;
+    private final InboxWebPushNotices notices;
 
     @Value("${app.notification.outbox.batch-size:50}")
     private int batchSize;
@@ -59,36 +66,62 @@ public class SeatNotificationDeliveryStateService {
     public SeatNotificationDeliveryDispatch loadForDispatch(SeatNotificationDeliveryClaim claim) {
         return deliveryRepository.findClaimedForDispatch(
                         claim.deliveryId(), SeatNotificationDeliveryStatus.PROCESSING, claim.claimToken())
+                .filter(delivery -> delivery.getLockedUntil().isAfter(LocalDateTime.now()))
                 .map(SeatNotificationDeliveryDispatch::from)
                 .orElse(null);
     }
 
     @Transactional
-    public boolean markSent(SeatNotificationDeliveryClaim claim) {
-        Optional<SeatNotificationDelivery> claimedDelivery = findClaimedForSettlement(claim);
-        if (claimedDelivery.isEmpty()) {
-            return false;
-        }
-        SeatNotificationDelivery delivery = claimedDelivery.get();
-        delivery.markSent();
-        updateOutboxTerminalStatus(delivery.getOutbox());
-        return true;
-    }
-
-    @Transactional
-    public SeatNotificationDeliveryFailureResult markFailure(SeatNotificationDeliveryClaim claim, String failureCode,
-                                                              int maximumAttempts) {
+    public SeatNotificationDeliveryFailureResult settleAttempt(SeatNotificationDeliveryClaim claim, Long userId,
+                                                                SeatDeliveryAttempt attempt, String failureCode,
+                                                                int maximumAttempts) {
+        Optional<NotificationRecipient> active = attempt.failures().isEmpty() && !attempt.missingWebTarget()
+                ? Optional.empty() : recipients.findActiveByIdForUpdate(userId);
         Optional<SeatNotificationDelivery> claimedDelivery = findClaimedForSettlement(claim);
         if (claimedDelivery.isEmpty()) {
             return SeatNotificationDeliveryFailureResult.stale();
         }
         SeatNotificationDelivery delivery = claimedDelivery.get();
-        LocalDateTime now = LocalDateTime.now();
-        int nextAttempt = delivery.getAttempts() + 1;
-        boolean deadLettered = delivery.markFailure(failureCode, maximumAttempts, now,
-                now.plusSeconds(backoffSeconds(nextAttempt)));
+        boolean deadLettered = false;
+        if (attempt.channelFailure() == null) {
+            delivery.markSent();
+            if (attempt.sent()) {
+                saveHistory(delivery, attempt);
+            }
+        } else {
+            LocalDateTime now = LocalDateTime.now();
+            deadLettered = delivery.markFailure(failureCode, maximumAttempts, now,
+                    now.plusSeconds(NotificationDeliveryRetry.backoffSeconds(delivery.getAttempts() + 1)));
+        }
         updateOutboxTerminalStatus(delivery.getOutbox());
-        return new SeatNotificationDeliveryFailureResult(true, deadLettered, delivery.getAttempts());
+        boolean terminalFailure = deadLettered;
+        active.ifPresent(user -> recordNotices(delivery, attempt, user, terminalFailure));
+        return new SeatNotificationDeliveryFailureResult(true, terminalFailure, delivery.getAttempts());
+    }
+
+    private void saveHistory(SeatNotificationDelivery delivery, SeatDeliveryAttempt attempt) {
+        histories.save(NotificationHistory.builder()
+                .userId(delivery.getUserId())
+                .courseKey(delivery.getOutbox().getCourseKey())
+                .title(attempt.title())
+                .message(attempt.body())
+                .channel(delivery.getChannel())
+                .build());
+    }
+
+    private void recordNotices(SeatNotificationDelivery delivery, SeatDeliveryAttempt attempt,
+                               NotificationRecipient user, boolean deadLettered) {
+        SeatNotificationOutbox outbox = delivery.getOutbox();
+        NotificationChannel channel = delivery.getChannel();
+        if (attempt.missingWebTarget() && policy.isChannelEnabled(user, channel) && !notices.hasUsableDevices(user)) {
+            notices.recordMissingDevice(user, "seat:" + outbox.getId(), outbox.getCourseKey(), outbox.getCourseName());
+        }
+        for (SeatDeliveryAttempt.TargetFailure failure : attempt.failures()) {
+            NotificationDevice device = failure.target().getDevice();
+            String sourceKey = "seat:" + delivery.getId() + (device == null ? "" : ":" + device.id());
+            notices.recordFailure(user, sourceKey, outbox.getCourseKey(), outbox.getCourseName(),
+                    channel, failure.target(), failure.exception(), deadLettered);
+        }
     }
 
     private SeatNotificationDeliveryClaim claimDelivery(SeatNotificationDelivery delivery, LocalDateTime now) {
@@ -127,7 +160,4 @@ public class SeatNotificationDeliveryStateService {
         }
     }
 
-    private long backoffSeconds(int attempt) {
-        return Math.min(MAX_RETRY_BACKOFF_SECONDS, 1L << Math.min(attempt - 1, MAX_RETRY_BACKOFF_EXPONENT));
-    }
 }

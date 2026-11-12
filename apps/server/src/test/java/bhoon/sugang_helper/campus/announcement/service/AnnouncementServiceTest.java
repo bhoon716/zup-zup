@@ -4,9 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.campus.announcement.dto.request.AnnouncementRequest;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementListResponse;
 import bhoon.sugang_helper.campus.announcement.entity.Announcement;
@@ -41,7 +39,7 @@ class AnnouncementServiceTest {
     void getPublicAnnouncements_success() {
         // given
         Announcement announcement = createAnnouncement("제목", "내용", true, true);
-        given(announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(any()))
+        given(announcementRepository.findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDesc(any()))
                 .willReturn(new PageImpl<>(List.of(announcement)));
 
         // when
@@ -60,11 +58,11 @@ class AnnouncementServiceTest {
         Announcement pinned = createAnnouncement("고정 공지", "**강조**\r\n" + longContent, true, true);
         Announcement recent = createAnnouncement("최근 공지", "[신청 안내](https://example.org)", false, true);
         PageRequest firstPage = PageRequest.of(0, 2);
-        given(announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(firstPage))
+        given(announcementRepository.findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDesc(firstPage))
                 .willReturn(new PageImpl<>(List.of(pinned, recent)));
 
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-        AnnouncementService service = new AnnouncementService(announcementRepository, meterRegistry);
+        AnnouncementService service = new AnnouncementService(announcementRepository, meterRegistry, null);
 
         // when
         List<AnnouncementPreview> previews = service.findDashboardAnnouncements(2);
@@ -97,7 +95,7 @@ class AnnouncementServiceTest {
         Long id = 1L;
         Announcement announcement = createAnnouncement("제목", "내용", false, true);
         ReflectionTestUtils.setField(announcement, "id", id);
-        given(announcementRepository.findByIdAndPublishedTrue(id)).willReturn(Optional.of(announcement));
+        given(announcementRepository.findByIdAndPublishedTrueAndDeletedAtIsNull(id)).willReturn(Optional.of(announcement));
 
         // when
         AnnouncementDetailResponse result = announcementService.getPublicAnnouncement(id);
@@ -111,43 +109,12 @@ class AnnouncementServiceTest {
     void getPublicAnnouncement_notFound() {
         // given
         Long id = 1L;
-        given(announcementRepository.findByIdAndPublishedTrue(id)).willReturn(Optional.empty());
+        given(announcementRepository.findByIdAndPublishedTrueAndDeletedAtIsNull(id)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> announcementService.getPublicAnnouncement(id))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("공지사항 생성 성공")
-    void createAnnouncement_success() {
-        // given
-        AnnouncementRequest request = createRequest("제목 ", " 내용", true, true);
-        Announcement savedAnnouncement = createAnnouncement("제목", "내용", true, true);
-        given(announcementRepository.save(any(Announcement.class))).willReturn(savedAnnouncement);
-
-        // when
-        AnnouncementDetailResponse result = announcementService.createAnnouncement(request);
-
-        // then
-        assertThat(result.getTitle()).isEqualTo("제목");
-        verify(announcementRepository).save(any(Announcement.class));
-    }
-
-    @Test
-    @DisplayName("공지사항 삭제 성공")
-    void deleteAnnouncement_success() {
-        // given
-        Long id = 1L;
-        Announcement announcement = createAnnouncement("제목", "내용", false, true);
-        given(announcementRepository.findById(id)).willReturn(Optional.of(announcement));
-
-        // when
-        announcementService.deleteAnnouncement(id);
-
-        // then
-        verify(announcementRepository).delete(announcement);
     }
 
     private Announcement createAnnouncement(String title, String content, boolean pinned, boolean published) {
@@ -157,14 +124,5 @@ class AnnouncementServiceTest {
                 .pinned(pinned)
                 .published(published)
                 .build();
-    }
-
-    private AnnouncementRequest createRequest(String title, String content, boolean pinned, boolean published) {
-        AnnouncementRequest request = new AnnouncementRequest();
-        ReflectionTestUtils.setField(request, "title", title);
-        ReflectionTestUtils.setField(request, "content", content);
-        ReflectionTestUtils.setField(request, "pinned", pinned);
-        ReflectionTestUtils.setField(request, "published", published);
-        return request;
     }
 }

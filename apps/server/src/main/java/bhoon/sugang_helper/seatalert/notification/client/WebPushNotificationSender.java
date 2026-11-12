@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import java.security.GeneralSecurityException;
 import java.security.Security;
+import java.security.spec.InvalidKeySpecException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import lombok.extern.slf4j.Slf4j;
@@ -81,6 +82,24 @@ public class WebPushNotificationSender implements NotificationSender {
 
     @Override
     public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
+        try {
+            sendPush(target, title, message, idempotencyKey, "/", false);
+        } catch (NotificationProviderException exception) {
+            if (exception.getErrorCode() == ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION) {
+                userDeviceWebPushManagement.deleteDeviceByToken(target.getRecipient());
+            }
+            throw exception;
+        }
+    }
+
+    @Override
+    public void sendDelivery(NotificationTarget target, String title, String message, String idempotencyKey,
+                             String path) {
+        sendPush(target, title, message, idempotencyKey, path, true);
+    }
+
+    private void sendPush(NotificationTarget target, String title, String message, String idempotencyKey,
+                          String path, boolean durable) {
         if (pushService == null) {
             throw new CustomException(ErrorCode.WEB_PUSH_NOT_INITIALIZED);
         }
@@ -89,15 +108,23 @@ public class WebPushNotificationSender implements NotificationSender {
             throw new CustomException(ErrorCode.WEB_PUSH_MISSING_KEYS);
         }
 
-        userDeviceWebPushManagement.validateEndpoint(target.getRecipient());
+        try {
+            userDeviceWebPushManagement.validateEndpoint(target.getRecipient());
+        } catch (CustomException exception) {
+            if (!durable) {
+                throw exception;
+            }
+            throw new NotificationProviderException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION,
+                    false, "INVALID_RECIPIENT", null, exception);
+        }
         String endpointFingerprint = SensitiveDataRedactor.fingerprint(target.getRecipient());
 
         try {
-            Notification notification = createNotification(target, title, message, idempotencyKey);
+            Notification notification = createNotification(target, title, message, idempotencyKey, path, durable);
             logSendStarted(endpointFingerprint);
             @SuppressWarnings("deprecation")
             Future<HttpResponse> request = pushService.sendAsync(notification, Encoding.AESGCM);
-            validateResponseStatus(target, awaitStatusCode(request));
+            validateResponseStatus(awaitStatusCode(request));
             logSendSucceeded(endpointFingerprint);
         } catch (CustomException e) {
             throw e;
@@ -108,23 +135,28 @@ public class WebPushNotificationSender implements NotificationSender {
         }
     }
 
-    private Notification createNotification(NotificationTarget target, String title, String message, String idempotencyKey)
+    private Notification createNotification(NotificationTarget target, String title, String message,
+                                            String idempotencyKey, String path, boolean durable)
             throws JsonProcessingException, GeneralSecurityException {
-        String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, "/", idempotencyKey));
-        Notification.NotificationBuilder builder = Notification.builder()
-                .endpoint(target.getRecipient())
-                .userPublicKey(target.getP256dh())
-                .userAuth(target.getAuth())
-                .payload(payload);
+        String payload = objectMapper.writeValueAsString(new WebPushPayload(title, message, path, idempotencyKey));
+        Notification.NotificationBuilder builder = Notification.builder().endpoint(target.getRecipient()).payload(payload);
+        try {
+            builder.userPublicKey(target.getP256dh()).userAuth(target.getAuth());
+        } catch (IllegalArgumentException | InvalidKeySpecException exception) {
+            if (!durable) {
+                throw exception;
+            }
+            throw new NotificationProviderException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION,
+                    false, "INVALID_RECIPIENT", null, exception);
+        }
         if (StringUtils.hasText(idempotencyKey)) {
             builder.topic(idempotencyKey);
         }
         return builder.build();
     }
 
-    private void validateResponseStatus(NotificationTarget target, int statusCode) {
+    private void validateResponseStatus(int statusCode) {
         if (statusCode == 404 || statusCode == 410) {
-            userDeviceWebPushManagement.deleteDeviceByToken(target.getRecipient());
             throw new NotificationProviderException(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION,
                     false, "INVALID_RECIPIENT", statusCode, null);
         }

@@ -1,0 +1,21 @@
+CREATE TABLE inbox_channel_deliveries (
+  id VARCHAR(80) NOT NULL,
+  inbox_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  channel VARCHAR(20) NOT NULL,
+  device_id BIGINT NULL,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  attempts INT NOT NULL,
+  next_attempt_at DATETIME(6) NOT NULL,
+  locked_until DATETIME(6) NULL,
+  claim_token VARCHAR(36) NULL,
+  finished_at DATETIME(6) NULL,
+  version BIGINT NOT NULL,
+  PRIMARY KEY (id),
+  KEY idx_inbox_delivery_owner (inbox_id, status),
+  KEY idx_inbox_delivery_ready (status, next_attempt_at, id),
+  KEY idx_inbox_delivery_lease (status, locked_until),
+  KEY idx_inbox_delivery_finished (finished_at)
+);

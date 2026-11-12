@@ -40,7 +40,7 @@ class NotificationChannelPolicyTest {
                 new NotificationProperties(true, true, true));
         NotificationRecipient user = new NotificationRecipient(1L, false, USER_EMAIL, null,
                 false, false, false, null);
-        NotificationDevice device = new NotificationDevice(1L, "endpoint", "p256", "auth");
+        NotificationDevice device = new NotificationDevice(1L, 1L, "endpoint", "p256", "auth", "브라우저");
 
         // when
         List<NotificationTarget> targets = policy.resolveTargets(user, List.of(device), NotificationChannel.WEB);

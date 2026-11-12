@@ -1,17 +1,17 @@
 import { localizedErrorMessage } from "@/shared/lib/error-message";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
 import * as adminApi from "@/features/admin/api/admin.api";
-import type { AnnouncementRequest } from "@/shared/types/api";
+import type { AnnouncementDetailResponse, AnnouncementRequest, PageResponse } from "@/shared/types/api";
 
-export const useAdminAnnouncements = () => {
+const adminAnnouncementsKey = ["admin", "announcements"];
+
+export const useAdminAnnouncements = (page: number) => {
   return useQuery({
-    queryKey: ["admin", "announcements"],
-    queryFn: async () => {
-      const response = await adminApi.getAdminAnnouncements();
-      return response.content;
-    },
+    queryKey: [...adminAnnouncementsKey, page],
+    queryFn: () => adminApi.getAdminAnnouncements(page),
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -21,7 +21,7 @@ export const useCreateAdminAnnouncement = () => {
     mutationFn: (request: AnnouncementRequest) => adminApi.createAdminAnnouncement(request),
 
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "announcements"] });
+      queryClient.invalidateQueries({ queryKey: adminAnnouncementsKey });
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
       toast.success("공지사항을 등록했습니다.");
     },
@@ -39,7 +39,7 @@ export const useUpdateAdminAnnouncement = () => {
       adminApi.updateAdminAnnouncement(id, request),
 
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "announcements"] });
+      queryClient.invalidateQueries({ queryKey: adminAnnouncementsKey });
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
       toast.success("공지사항을 수정했습니다.");
     },
@@ -56,13 +56,31 @@ export const useDeleteAdminAnnouncement = () => {
     mutationFn: (id: number) => adminApi.deleteAdminAnnouncement(id),
 
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "announcements"] });
+      queryClient.invalidateQueries({ queryKey: adminAnnouncementsKey });
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
       toast.success("공지사항을 삭제했습니다.");
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
       toast.error(localizedErrorMessage(error.response?.data?.message, "공지사항 삭제 중 오류가 발생했습니다."));
+    },
+  });
+};
+
+export const useRestoreAdminAnnouncement = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: adminApi.restoreAdminAnnouncement,
+    onSuccess: (restored) => {
+      queryClient.setQueriesData<PageResponse<AnnouncementDetailResponse>>({ queryKey: adminAnnouncementsKey }, (page) =>
+        page && { ...page, content: page.content.map((announcement) => announcement.id === restored.id ? restored : announcement) }
+      );
+      queryClient.invalidateQueries({ queryKey: adminAnnouncementsKey });
+      queryClient.invalidateQueries({ queryKey: ["announcements"] });
+      toast.success("공지사항을 복원했습니다.");
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      toast.error(localizedErrorMessage(error.response?.data?.message, "공지사항 복원 중 오류가 발생했습니다."));
     },
   });
 };

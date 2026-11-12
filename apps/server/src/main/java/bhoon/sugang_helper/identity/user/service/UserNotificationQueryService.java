@@ -1,8 +1,8 @@
 package bhoon.sugang_helper.identity.user.service;
 
-import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
 import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import bhoon.sugang_helper.identity.user.repository.UserDeviceRepository;
@@ -10,7 +10,9 @@ import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -29,10 +31,24 @@ public class UserNotificationQueryService implements NotificationRecipients {
         return userRepository.findByEmail(email).map(UserNotificationQueryService::toRecipient);
     }
 
-    public List<NotificationRecipient> findByIds(List<Long> userIds) {
-        return userRepository.findAllById(userIds).stream()
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<NotificationRecipient> findActiveByIdsForShare(List<Long> userIds) {
+        return userRepository.findActiveByIdsForShare(userIds).stream()
                 .map(UserNotificationQueryService::toRecipient)
                 .toList();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<NotificationRecipient> findActiveByIdForUpdate(Long userId) {
+        return userRepository.findActiveByIdForUpdate(userId).map(UserNotificationQueryService::toRecipient);
+    }
+
+    public Optional<Long> findLastActiveId() {
+        return userRepository.findLastActiveId();
+    }
+
+    public List<Long> findActiveIdsBetween(Long afterId, Long throughId, int limit) {
+        return userRepository.findActiveIdsBetween(afterId, throughId, PageRequest.of(0, limit));
     }
 
     public List<NotificationDevice> findDevicesByUserId(Long userId) {
@@ -60,10 +76,7 @@ public class UserNotificationQueryService implements NotificationRecipients {
     }
 
     private static NotificationDevice toNotificationDevice(UserDevice device) {
-        return new NotificationDevice(
-                device.getUserId(),
-                device.getToken(),
-                device.getP256dh(),
-                device.getAuth());
+        return new NotificationDevice(device.getId(), device.getUserId(), device.getToken(),
+                device.getP256dh(), device.getAuth(), device.getAlias());
     }
 }

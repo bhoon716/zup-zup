@@ -12,4 +12,9 @@ public interface NotificationSender {
     default void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         send(target, title, message);
     }
+
+    default void sendDelivery(NotificationTarget target, String title, String message, String idempotencyKey,
+                              String path) {
+        send(target, title, message, idempotencyKey);
+    }
 }

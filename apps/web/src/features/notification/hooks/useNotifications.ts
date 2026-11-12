@@ -3,15 +3,15 @@ import * as notificationApi from "@/features/notification/api/notification.api";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
 export const useNotifications = () => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const userId = useAuthStore((state) => state.isAuthenticated ? state.user?.id : undefined);
 
   const query = useInfiniteQuery({
-    queryKey: ["notifications"],
-    queryFn: async ({ pageParam }) => {
-      const response = await notificationApi.getNotifications(pageParam);
+    queryKey: ["notifications", userId],
+    queryFn: async ({ pageParam, signal }) => {
+      const response = await notificationApi.getNotifications(pageParam, signal);
       return response.data;
     },
-    enabled: isAuthenticated,
+    enabled: userId !== undefined,
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.last ? undefined : lastPage.number + 1,
   });

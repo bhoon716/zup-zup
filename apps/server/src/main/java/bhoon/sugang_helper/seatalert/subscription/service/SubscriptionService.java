@@ -12,6 +12,8 @@ import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.seatalert.subscription.dto.request.SubscriptionRequest;
 import bhoon.sugang_helper.seatalert.subscription.dto.response.SubscriptionResponse;
 import bhoon.sugang_helper.seatalert.subscription.entity.Subscription;
+import bhoon.sugang_helper.seatalert.subscription.entity.SubscriptionEnd;
+import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionEndRepository;
 import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionRepository;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -36,6 +39,7 @@ public class SubscriptionService {
     private final CourseCatalog courseCatalogQuery;
     private final CurrentUserQuery currentUserQuery;
     private final TrackedSemesterQuery crawlerTargetQuery;
+    private final SubscriptionEndRepository subscriptionEndRepository;
 
     @Value("${app.subscription.max-limit:3}")
     private int maxLimit;
@@ -75,25 +79,35 @@ public class SubscriptionService {
         }
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void unsubscribe(Long subscriptionId) {
         UserIdentity user = currentUserQuery.requireCurrentUser();
-        Subscription subscription = subscriptionRepository.findById(subscriptionId)
+        Subscription subscription = subscriptionRepository.findByIdForUpdate(subscriptionId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "구독 정보를 찾을 수 없습니다."));
 
         if (!subscription.getUserId().equals(user.id())) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
 
-        subscriptionRepository.delete(subscription);
+        deleteSubscription(subscription);
         logSubscriptionCancelled(user.id(), subscriptionId);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void unsubscribeAll() {
         UserIdentity user = currentUserQuery.requireCurrentUser();
-        subscriptionRepository.deleteAllByUserId(user.id());
+        for (Long subscriptionId : subscriptionRepository.findIdsByUserIdOrderById(user.id())) {
+            subscriptionRepository.findByIdForUpdate(subscriptionId).ifPresent(this::deleteSubscription);
+        }
         logSubscriptionsCancelled(user.id());
+    }
+
+    private void deleteSubscription(Subscription subscription) {
+        SubscriptionEnd.Key key = new SubscriptionEnd.Key(subscription.getUserId(), subscription.getCourseKey());
+        if (!subscriptionEndRepository.existsById(key)) {
+            subscriptionEndRepository.save(new SubscriptionEnd(key));
+        }
+        subscriptionRepository.delete(subscription);
     }
 
     public List<SubscriptionResponse> getMySubscriptions() {

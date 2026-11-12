@@ -12,7 +12,9 @@ import bhoon.sugang_helper.campus.api.Announcements;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.web.PageableGuard;
+import bhoon.sugang_helper.seatalert.api.NotificationPublications;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +36,7 @@ public class AnnouncementService implements Announcements {
 
     private final AnnouncementRepository announcementRepository;
     private final MeterRegistry meterRegistry;
+    private final NotificationPublications notificationPublications;
 
     public List<AnnouncementListResponse> getPublicAnnouncements(String keyword, AnnouncementSearchType searchType) {
         return getPublicAnnouncements(keyword, searchType, PageRequest.of(0, MAX_PAGE_SIZE)).getContent();
@@ -70,7 +73,7 @@ public class AnnouncementService implements Announcements {
     }
 
     public AnnouncementDetailResponse getPublicAnnouncement(Long id) {
-        Announcement announcement = announcementRepository.findByIdAndPublishedTrue(id)
+        Announcement announcement = announcementRepository.findByIdAndPublishedTrueAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "공개된 공지사항을 찾을 수 없습니다."));
         return AnnouncementDetailResponse.from(announcement);
     }
@@ -93,35 +96,80 @@ public class AnnouncementService implements Announcements {
                 .pinned(request.isPinnedOrDefault())
                 .published(request.isPublishedOrDefault())
                 .build();
-        return AnnouncementDetailResponse.from(announcementRepository.save(announcement));
+        Announcement saved = announcementRepository.save(announcement);
+        updatePublication(saved, false, request.isNotify());
+        return AnnouncementDetailResponse.from(saved);
     }
 
     @Transactional
     public AnnouncementDetailResponse updateAnnouncement(Long id, AnnouncementRequest request) {
-        Announcement announcement = getAnnouncement(id);
+        Announcement announcement = requireAnnouncementForUpdate(id);
+        if (announcement.getDeletedAt() != null) {
+            throw announcementNotFound();
+        }
+
+        boolean wasVisible = announcement.isPubliclyVisible();
         announcement.update(
                 request.getTitle().trim(),
                 request.getContent().trim(),
                 request.isPinnedOrDefault(),
                 request.isPublishedOrDefault());
+        updatePublication(announcement, wasVisible, request.isNotify());
         return AnnouncementDetailResponse.from(announcement);
     }
 
     @Transactional
     public void deleteAnnouncement(Long id) {
-        Announcement announcement = getAnnouncement(id);
-        announcementRepository.delete(announcement);
+        Announcement announcement = requireAnnouncementForUpdate(id);
+        if (announcement.getDeletedAt() != null) {
+            return;
+        }
+
+        boolean wasVisible = announcement.isPubliclyVisible();
+        announcement.delete(LocalDateTime.now());
+        if (wasVisible) {
+            notificationPublications.setAnnouncementAvailable(id, false);
+        }
     }
 
-    private Announcement getAnnouncement(Long id) {
-        return announcementRepository.findById(id)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "공지사항을 찾을 수 없습니다."));
+    @Transactional
+    public AnnouncementDetailResponse restoreAnnouncement(Long id) {
+        Announcement announcement = requireAnnouncementForUpdate(id);
+        if (announcement.getDeletedAt() != null) {
+            announcement.restore();
+            if (announcement.isPubliclyVisible()) {
+                notificationPublications.setAnnouncementAvailable(id, true);
+            }
+        }
+        return AnnouncementDetailResponse.from(announcement);
+    }
+
+    private void updatePublication(Announcement announcement, boolean wasVisible, boolean notify) {
+        if (announcement.recordFirstPublication(LocalDateTime.now())) {
+            if (notify) {
+                notificationPublications.publishAnnouncement(announcement.getId(), announcement.getTitle());
+            }
+            return;
+        }
+
+        boolean visible = announcement.isPubliclyVisible();
+        if (wasVisible != visible) {
+            notificationPublications.setAnnouncementAvailable(announcement.getId(), visible);
+        }
+    }
+
+    private Announcement requireAnnouncementForUpdate(Long id) {
+        return announcementRepository.findByIdForUpdate(id).orElseThrow(this::announcementNotFound);
+    }
+
+    private CustomException announcementNotFound() {
+        return new CustomException(ErrorCode.NOT_FOUND, "공지사항을 찾을 수 없습니다.");
     }
 
     private Page<Announcement> findPublicAnnouncements(
             String keyword, AnnouncementSearchType searchType, Pageable pageable) {
         if (keyword.isEmpty()) {
-            return announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(pageable);
+            return announcementRepository.findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDesc(pageable);
         }
         return switch (searchType) {
             case TITLE -> announcementRepository.searchPublishedByTitle(keyword, pageable);

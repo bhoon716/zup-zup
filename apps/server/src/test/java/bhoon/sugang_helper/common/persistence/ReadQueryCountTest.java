@@ -36,6 +36,7 @@ import bhoon.sugang_helper.seatalert.notification.dto.response.AdminNotification
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
+import bhoon.sugang_helper.seatalert.notification.repository.SeatInboxRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
 import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
@@ -102,6 +103,9 @@ class ReadQueryCountTest {
 
     @Autowired
     private SeatNotificationOutboxRepository outboxRepository;
+
+    @Autowired
+    private SeatInboxRepository inboxRepository;
 
     @Autowired
     private SubscriptionRepository subscriptionRepository;
@@ -210,7 +214,7 @@ class ReadQueryCountTest {
         Feedback hidden = saveFeedback("삭제 문의");
         hidden.delete();
         FeedbackService service = new FeedbackService(
-                feedbackRepository, null, currentUser(), null, null, null, null, null);
+                feedbackRepository, null, currentUser(), null, null, null, null, null, null);
 
         // when
         Statistics statistics = startCounting();
@@ -279,16 +283,16 @@ class ReadQueryCountTest {
         sent.markSent();
         deliveryRepository.save(sent);
         SeatNotificationOutboxProcessor processor = new SeatNotificationOutboxProcessor(
-                outboxRepository, deliveryRepository, new SubscriptionQueryService(subscriptionRepository),
+                outboxRepository, deliveryRepository, inboxRepository, new SubscriptionQueryService(subscriptionRepository),
                 new UserNotificationQueryService(userRepository, userDeviceRepository),
-                new NotificationChannelPolicy(new NotificationProperties(true, false, false)), null, null, null);
+                new NotificationChannelPolicy(new NotificationProperties(true, false, false)), null, null, null, null);
         ReflectionTestUtils.setField(processor, "batchSize", 10);
 
         // when
         Statistics statistics = startCounting();
         processor.materializePendingOutboxes();
         entityManager.flush();
-        assertQueryCount(statistics, "outbox-batch", 9);
+        assertQueryCount(statistics, "outbox-batch", 12);
 
         // then
         assertThat(outboxRepository.findAll()).extracting(SeatNotificationOutbox::getId, SeatNotificationOutbox::getStatus)

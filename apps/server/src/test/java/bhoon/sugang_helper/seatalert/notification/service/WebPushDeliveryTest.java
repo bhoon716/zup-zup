@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.common.api.error.ErrorCode;
@@ -12,6 +14,7 @@ import bhoon.sugang_helper.common.api.notifications.NotificationProperties;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.WebPushSubscriptionManagement;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
@@ -51,7 +54,7 @@ import org.springframework.transaction.annotation.Transactional;
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Import({SeatNotificationOutboxProcessor.class, SeatNotificationDeliveryStateService.class,
-        NotificationService.class, NotificationChannelPolicy.class, WebPushDeliveryTest.TestConfig.class})
+        NotificationService.class, NotificationChannelPolicy.class, InboxWebPushNotices.class, WebPushDeliveryTest.TestConfig.class})
 class WebPushDeliveryTest {
 
     private static final String COURSE_KEY = "course-key";
@@ -80,6 +83,10 @@ class WebPushDeliveryTest {
 
     @MockitoBean private NotificationProviderResilience resilience;
 
+    @MockitoBean private InboxDeliveryNotices notices;
+
+    @MockitoBean private WebPushSubscriptionManagement webPushSubscriptions;
+
     private final List<NotificationDevice> devices = new ArrayList<>();
     private final List<String> attemptedTargets = new ArrayList<>();
     private final List<String> attemptedKeys = new ArrayList<>();
@@ -92,11 +99,14 @@ class WebPushDeliveryTest {
         outboxes.deleteAll();
         NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
                 false, true, false, null);
-        when(users.findByIds(List.of(1L))).thenReturn(List.of(user));
+        when(users.findActiveByIdsForShare(List.of(1L))).thenReturn(List.of(user));
         when(users.findById(1L)).thenReturn(Optional.of(user));
+        when(users.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(user));
         when(users.findDevicesByUserIds(List.of(1L))).thenAnswer(ignored -> List.copyOf(devices));
         when(users.findDevicesByUserId(anyLong())).thenAnswer(ignored -> List.copyOf(devices));
         when(sender.supports(NotificationChannel.WEB)).thenReturn(true);
+        when(webPushSubscriptions.deleteInvalidSubscription(any()))
+                .thenAnswer(invocation -> devices.remove(invocation.getArgument(0)));
         doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(1)).run();
             return null;
@@ -116,7 +126,6 @@ class WebPushDeliveryTest {
         // given
         stubSender(target -> {
             if (target.equals(expired)) {
-                devices.removeIf(device -> device.token().equals(expired));
                 throw invalidSubscription();
             }
         });
@@ -128,6 +137,10 @@ class WebPushDeliveryTest {
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertDelivery(SeatNotificationDeliveryStatus.SENT, SeatNotificationOutboxStatus.COMPLETED, 0);
         assertSuccessfulHistory();
+        NotificationDevice device = device(expired);
+        verify(notices).recordFailure(1L, "seat:" + delivery().getId() + ":" + device.id(),
+                COURSE_KEY, "Course", NotificationChannel.WEB, device.alias());
+        verify(notices, never()).recordReregistration(any(), any(), any(), any());
         assertThat(deliveryStateService.claimReadyDeliveries(1)).isEmpty();
     }
 
@@ -136,7 +149,6 @@ class WebPushDeliveryTest {
     void allExpiredSubscriptionsKeepTheExistingPermanentFailureSettlement() {
         // given
         stubSender(target -> {
-            devices.removeIf(device -> device.token().equals(target));
             throw invalidSubscription();
         });
 
@@ -146,6 +158,7 @@ class WebPushDeliveryTest {
         // then
         assertThat(attemptedTargets).containsExactly(FIRST, SECOND);
         assertThat(devices).isEmpty();
+        verify(notices).recordReregistration(1L, "web:expired:" + device(SECOND).id(), COURSE_KEY, "Course");
         assertDelivery(SeatNotificationDeliveryStatus.DLQ, SeatNotificationOutboxStatus.DLQ, 1);
         assertThat(delivery().getLastError()).isEqualTo(ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION.getCode());
         assertThat(histories.findAll()).isEmpty();
@@ -158,7 +171,6 @@ class WebPushDeliveryTest {
     void temporaryFailureKeepsWholeDeliveryRetryAndTheSameIdempotencyKey(int failedTargetIndex) {
         // given
         String failed = TARGETS.get(failedTargetIndex);
-        List<String> firstAttemptTargets = TARGETS.subList(0, failedTargetIndex + 1);
         stubSender(target -> {
             if (target.equals(failed)) {
                 throw new NotificationProviderException(ErrorCode.WEB_PUSH_SEND_ERROR,
@@ -172,12 +184,12 @@ class WebPushDeliveryTest {
         // then
         assertDelivery(SeatNotificationDeliveryStatus.PENDING, SeatNotificationOutboxStatus.PROCESSING, 1);
         assertThat(histories.findAll()).isEmpty();
-        assertThat(attemptedTargets).containsExactlyElementsOf(firstAttemptTargets);
+        assertThat(attemptedTargets).containsExactlyElementsOf(TARGETS);
 
         // given
         String key = delivery().getIdempotencyKey();
         SeatNotificationDelivery ready = delivery();
-        List<String> allAttemptTargets = new ArrayList<>(firstAttemptTargets);
+        List<String> allAttemptTargets = new ArrayList<>(TARGETS);
         allAttemptTargets.addAll(TARGETS);
 
         ReflectionTestUtils.setField(ready, "nextAttemptAt", LocalDateTime.now().minusSeconds(1));
@@ -220,7 +232,7 @@ class WebPushDeliveryTest {
             attemptedKeys.add(invocation.getArgument(3));
             send.accept(target);
             return null;
-        }).when(sender).send(any(), anyString(), anyString(), anyString());
+        }).when(sender).sendDelivery(any(), anyString(), anyString(), anyString(), anyString());
     }
 
     private void processReadyDelivery() {
@@ -252,7 +264,8 @@ class WebPushDeliveryTest {
     }
 
     private static NotificationDevice device(String endpoint) {
-        return new NotificationDevice(1L, endpoint, "p256", "auth");
+        Long id = endpoint.equals(FIRST) ? 10L : 11L;
+        return new NotificationDevice(id, 1L, endpoint, "p256", "auth", "브라우저 " + id);
     }
 
     private static NotificationProviderException invalidSubscription() {

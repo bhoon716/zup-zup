@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,6 +35,12 @@ public class Announcement extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean published;
 
+    @Column(name = "first_published_at")
+    private LocalDateTime firstPublishedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @Builder
     public Announcement(String title, String content, boolean pinned, boolean published) {
         this.title = title;
@@ -47,5 +54,26 @@ public class Announcement extends BaseTimeEntity {
         this.content = content;
         this.pinned = pinned;
         this.published = published;
+    }
+
+    public boolean isPubliclyVisible() {
+        return published && deletedAt == null;
+    }
+
+    public boolean recordFirstPublication(LocalDateTime now) {
+        if (!isPubliclyVisible() || firstPublishedAt != null) {
+            return false;
+        }
+        firstPublishedAt = now;
+        return true;
+    }
+
+    public void delete(LocalDateTime now) {
+        deletedAt = now;
+    }
+
+    @SuppressWarnings("PMD.NullAssignment")
+    public void restore() {
+        deletedAt = null;
     }
 }

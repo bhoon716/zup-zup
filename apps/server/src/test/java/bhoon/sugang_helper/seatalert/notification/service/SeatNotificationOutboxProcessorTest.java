@@ -2,6 +2,7 @@ package bhoon.sugang_helper.seatalert.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.when;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryDispatch;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryFailureResult;
@@ -89,11 +91,9 @@ class SeatNotificationOutboxProcessorTest {
         SeatNotificationDelivery delivery = processingDelivery();
         SeatNotificationDeliveryClaim claim = new SeatNotificationDeliveryClaim(1L, "claim-token");
         when(deliveryStateService.loadForDispatch(claim)).thenReturn(dispatch(delivery));
-        when(deliveryStateService.markFailure(eq(claim), anyString(), eq(3)))
+        when(deliveryStateService.settleAttempt(eq(claim), eq(1L), any(), anyString(), eq(3)))
                 .thenReturn(new SeatNotificationDeliveryFailureResult(true, false, 1));
-        Mockito.doThrow(new RuntimeException(secret))
-                .when(notificationService).deliverSeatOpening(eq(1L), eq(NotificationChannel.EMAIL),
-                        eq(delivery.getOutbox()), anyString());
+        stubFailure(delivery, new RuntimeException(secret));
         Logger logger = (Logger) LoggerFactory.getLogger(SeatNotificationOutboxProcessor.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
@@ -124,11 +124,9 @@ class SeatNotificationOutboxProcessorTest {
         SeatNotificationDelivery delivery = processingDelivery();
         SeatNotificationDeliveryClaim claim = new SeatNotificationDeliveryClaim(1L, "claim-token");
         when(deliveryStateService.loadForDispatch(claim)).thenReturn(dispatch(delivery));
-        when(deliveryStateService.markFailure(eq(claim), anyString(), eq(3)))
+        when(deliveryStateService.settleAttempt(eq(claim), eq(1L), any(), anyString(), eq(3)))
                 .thenReturn(new SeatNotificationDeliveryFailureResult(true, true, 3));
-        Mockito.doThrow(new RuntimeException("mail unavailable"))
-                .when(notificationService).deliverSeatOpening(eq(1L), eq(NotificationChannel.EMAIL),
-                        eq(delivery.getOutbox()), anyString());
+        stubFailure(delivery, new RuntimeException("mail unavailable"));
 
         // when
         processor.processDelivery(claim);
@@ -144,18 +142,16 @@ class SeatNotificationOutboxProcessorTest {
         SeatNotificationDelivery delivery = processingDelivery();
         SeatNotificationDeliveryClaim claim = new SeatNotificationDeliveryClaim(1L, "claim-token");
         when(deliveryStateService.loadForDispatch(claim)).thenReturn(dispatch(delivery));
-        when(deliveryStateService.markFailure(eq(claim), anyString(), eq(1)))
+        when(deliveryStateService.settleAttempt(eq(claim), eq(1L), any(), anyString(), eq(1)))
                 .thenReturn(new SeatNotificationDeliveryFailureResult(true, true, 1));
-        Mockito.doThrow(new NotificationProviderException(
-                        ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION, false, "INVALID_RECIPIENT", 404, null))
-                .when(notificationService).deliverSeatOpening(eq(1L), eq(NotificationChannel.EMAIL),
-                        eq(delivery.getOutbox()), anyString());
+        stubFailure(delivery, new NotificationProviderException(
+                ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION, false, "INVALID_RECIPIENT", 404, null));
 
         // when
         processor.processDelivery(claim);
 
         // then
-        verify(deliveryStateService).markFailure(eq(claim), anyString(), eq(1));
+        verify(deliveryStateService).settleAttempt(eq(claim), eq(1L), any(), anyString(), eq(1));
         verify(counter).increment();
     }
 
@@ -169,7 +165,8 @@ class SeatNotificationOutboxProcessorTest {
                 ArgumentMatchers.any(Pageable.class));
 
         // when
-        new SeatNotificationDeliveryStateService(deliveryRepository, outboxRepository, meterRegistry)
+        new SeatNotificationDeliveryStateService(deliveryRepository, outboxRepository, meterRegistry,
+                null, null, null, null)
                 .claimReadyDeliveries(4);
 
         // then
@@ -178,6 +175,13 @@ class SeatNotificationOutboxProcessorTest {
                 ArgumentMatchers.any(), ArgumentMatchers.any(),
                 ArgumentMatchers.any(), pageable.capture());
         assertThat(pageable.getValue().getPageSize()).isEqualTo(4);
+    }
+
+    private void stubFailure(SeatNotificationDelivery delivery, RuntimeException failure) {
+        var target = new SeatDeliveryAttempt.TargetFailure(NotificationTarget.of("user@example.com"), failure);
+        when(notificationService.attemptSeatOpening(eq(1L), eq(NotificationChannel.EMAIL),
+                eq(delivery.getOutbox()), anyString()))
+                .thenReturn(new SeatDeliveryAttempt("제목", "내용", List.of(target), failure, false));
     }
 
     private SeatNotificationDelivery processingDelivery() {

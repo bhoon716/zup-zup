@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import bhoon.sugang_helper.audit.service.AdminAuditService;
 import bhoon.sugang_helper.common.api.error.CustomException;
@@ -18,10 +19,13 @@ import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.storage.LoadedFile;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
 import bhoon.sugang_helper.identity.api.users.UserAccountStatus;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserDisplayNameQueryService;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.seatalert.api.NotificationPublications;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
@@ -101,6 +105,12 @@ class FeedbackServiceTest {
 
     @Mock
     private RedisService redisService;
+
+    @Mock
+    private NotificationPublications notificationPublications;
+
+    @Mock
+    private NotificationRecipients notificationRecipients;
 
     @Spy
     private FeedbackMetadataNormalizer feedbackMetadataNormalizer = new FeedbackMetadataNormalizer(new ObjectMapper());
@@ -426,20 +436,21 @@ class FeedbackServiceTest {
     }
 
     @Test
-    @DisplayName("피드백을 삭제해도 관리자 보존용 첨부파일은 제거하지 않는다.")
+    @DisplayName("문의 삭제 시 답변 알림은 숨기고 관리자 보존용 첨부파일은 유지한다.")
     void deleteFeedback_preservesAttachmentsForAdminAudit() {
         // given
         Long userId = 1L;
         given(userIdentityQuery.requireCurrentUser()).willReturn(new UserIdentity(userId, false));
         Long feedbackId = 10L;
         Feedback feedback = Feedback.builder().userId(userId).build();
-        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
+        given(feedbackRepository.findByIdForUpdate(feedbackId)).willReturn(Optional.of(feedback));
 
         // when
         feedbackService.deleteCurrentUsersFeedback(feedbackId);
 
         // then
         assertThat(feedback.getDeletedAt()).isNotNull();
+        verify(notificationPublications).hideFeedbackReplies(feedbackId);
         verify(feedbackAttachmentRepository, never()).findAllByFeedbackId(feedbackId);
         verify(fileUploadService, never()).deleteFilesAfterTransactionCommit(anyList());
     }
@@ -456,7 +467,7 @@ class FeedbackServiceTest {
         FeedbackStatusUpdateRequest request = new FeedbackStatusUpdateRequest(FeedbackStatus.COMPLETED);
 
         given(userIdentityQuery.findById(adminId)).willReturn(Optional.of(admin));
-        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
+        given(feedbackRepository.findByIdForUpdate(feedbackId)).willReturn(Optional.of(feedback));
 
         // when
         adminFeedbackService.updateFeedbackStatusForCurrentAdmin(feedbackId, request);
@@ -477,12 +488,12 @@ class FeedbackServiceTest {
         assertThatThrownBy(() -> adminFeedbackService.updateFeedbackStatusForCurrentAdmin(10L, request))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_UNAUTHORIZED);
-        verify(feedbackRepository, never()).findById(any());
+        verify(feedbackRepository, never()).findByIdForUpdate(any());
         verify(adminAuditRecorder, never()).recordStatusChange(any(), any(), any(), any());
     }
 
     @Test
-    @DisplayName("관리자 답변 생성·수정·삭제는 공통 감사 서비스에 안전한 요약을 기록한다.")
+    @DisplayName("관리자 답변을 등록하면 문의 작성자에게 알리고 삭제하면 해당 알림을 숨긴다.")
     void manageFeedbackReply_recordsSharedAuditEvents() {
         // given
         Long adminId = 1L;
@@ -490,7 +501,8 @@ class FeedbackServiceTest {
         Long replyId = 20L;
         UserIdentity admin = new UserIdentity(adminId, true);
         given(userIdentityQuery.requireCurrentUser()).willReturn(admin);
-        Feedback feedback = Feedback.builder().title("제목").build();
+        Long ownerId = 2L;
+        Feedback feedback = Feedback.builder().userId(ownerId).title("제목").build();
         FeedbackReply reply = FeedbackReply.builder().feedback(feedback).adminId(adminId)
                 .content("기존 \"답변\"\n😀").build();
         FeedbackReplyCreateRequest createRequest = new FeedbackReplyCreateRequest("새 답변");
@@ -498,9 +510,12 @@ class FeedbackServiceTest {
         ReflectionTestUtils.setField(feedback, "id", feedbackId);
         ReflectionTestUtils.setField(reply, "id", replyId);
         given(userIdentityQuery.findById(adminId)).willReturn(Optional.of(admin));
-        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
+        given(feedbackRepository.findByIdForUpdate(feedbackId)).willReturn(Optional.of(feedback));
         given(feedbackReplyRepository.save(any(FeedbackReply.class))).willReturn(reply);
-        given(feedbackReplyRepository.findById(replyId)).willReturn(Optional.of(reply));
+        given(feedbackReplyRepository.findFeedbackIdById(replyId)).willReturn(Optional.of(feedbackId));
+        given(feedbackReplyRepository.findByIdForUpdate(replyId)).willReturn(Optional.of(reply));
+        given(feedbackRepository.findOwnerIdById(feedbackId)).willReturn(Optional.of(ownerId));
+        given(notificationRecipients.findActiveByIdsForShare(List.of(ownerId))).willReturn(List.of(recipient(ownerId)));
 
         // when
         adminFeedbackService.createFeedbackReplyForCurrentAdmin(feedbackId, createRequest);
@@ -508,6 +523,8 @@ class FeedbackServiceTest {
         adminFeedbackService.deleteFeedbackReplyForCurrentAdmin(replyId);
 
         // then
+        verify(notificationPublications).publishFeedbackReply(ownerId, feedbackId, replyId);
+        verify(notificationPublications).hideFeedbackReply(replyId);
         verify(adminAuditRecorder).recordReplyCreated(adminId, replyId, feedbackId, "새 답변");
         verify(adminAuditRecorder).recordReplyUpdated(adminId, replyId, feedbackId, "기존 \"답변\"\n😀", "수정 답변");
         verify(adminAuditRecorder).recordReplyDeleted(adminId, replyId, feedbackId, "수정 답변");
@@ -529,8 +546,8 @@ class FeedbackServiceTest {
         ReflectionTestUtils.setField(feedback, "id", feedbackId);
         ReflectionTestUtils.setField(reply, "id", replyId);
         given(userIdentityQuery.findById(adminId)).willReturn(Optional.of(admin));
-        given(feedbackReplyRepository.findById(replyId)).willReturn(Optional.of(reply));
-        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.empty());
+        given(feedbackReplyRepository.findFeedbackIdById(replyId)).willReturn(Optional.of(feedbackId));
+        given(feedbackRepository.findByIdForUpdate(feedbackId)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> adminFeedbackService.updateFeedbackReplyForCurrentAdmin(
@@ -543,9 +560,30 @@ class FeedbackServiceTest {
 
         assertThat(reply.getContent()).isEqualTo("보존 답변");
         assertThat(reply.getDeletedAt()).isNull();
-        verify(feedbackRepository, times(2)).findById(feedbackId);
+        verify(feedbackRepository, times(2)).findByIdForUpdate(feedbackId);
         verify(adminAuditRecorder, never()).recordReplyUpdated(any(), any(), any(), any(), any());
         verify(adminAuditRecorder, never()).recordReplyDeleted(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("답변을 등록하기 전에 문의가 삭제되면 답변과 알림이 생성되지 않는다")
+    void createReplyRejectsFeedbackDeletedBeforeLock() {
+        // given
+        Long feedbackId = 10L;
+        Long ownerId = 2L;
+        UserIdentity admin = new UserIdentity(1L, true);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(admin);
+        given(userIdentityQuery.findById(admin.id())).willReturn(Optional.of(admin));
+        given(feedbackRepository.findOwnerIdById(feedbackId)).willReturn(Optional.of(ownerId));
+        given(notificationRecipients.findActiveByIdsForShare(List.of(ownerId))).willReturn(List.of(recipient(ownerId)));
+        given(feedbackRepository.findByIdForUpdate(feedbackId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> adminFeedbackService.createFeedbackReplyForCurrentAdmin(
+                feedbackId, new FeedbackReplyCreateRequest("답변")))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_NOT_FOUND);
+        verifyNoInteractions(notificationPublications);
     }
 
     @Test
@@ -664,5 +702,9 @@ class FeedbackServiceTest {
 
         // then
         assertThat(response.authorLabel()).isEqualTo("탈퇴 사용자");
+    }
+
+    private NotificationRecipient recipient(Long ownerId) {
+        return new NotificationRecipient(ownerId, false, null, null, false, false, false, null);
     }
 }

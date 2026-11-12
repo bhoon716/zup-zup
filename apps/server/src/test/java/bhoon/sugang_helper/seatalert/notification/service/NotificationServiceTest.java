@@ -27,9 +27,7 @@ import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
-import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
-import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,9 +61,6 @@ class NotificationServiceTest {
     private NotificationSender notificationSender;
 
     @Mock
-    private NotificationHistoryRepository notificationHistoryRepository;
-
-    @Mock
     private NotificationProviderResilience notificationProviderResilience;
 
     private NotificationService notificationService;
@@ -84,7 +79,7 @@ class NotificationServiceTest {
         NotificationProperties props = new NotificationProperties(true, true, true);
         NotificationChannelPolicy notificationChannelPolicy = new NotificationChannelPolicy(props);
         notificationService = new NotificationService(redisService, userNotificationQuery,
-                notificationHistoryRepository, List.of(notificationSender), notificationChannelPolicy,
+                List.of(notificationSender), notificationChannelPolicy,
                 notificationProviderResilience);
         lenient().doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(1)).run();
@@ -109,7 +104,6 @@ class NotificationServiceTest {
 
         // then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -131,7 +125,6 @@ class NotificationServiceTest {
 
         // then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -193,7 +186,6 @@ class NotificationServiceTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
         verify(notificationSender).send(any(), anyString(), anyString());
-        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -230,7 +222,6 @@ class NotificationServiceTest {
 
         // then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -267,7 +258,6 @@ class NotificationServiceTest {
 
         // then
         verify(notificationSender, times(1)).send(any(NotificationTarget.class), anyString(), anyString());
-        verify(notificationHistoryRepository, never()).save(any(NotificationHistory.class));
     }
 
     @Test
@@ -291,7 +281,7 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("durable delivery는 지원하는 세 채널에 provider-safe key를 전파하고 발송 이력을 남긴다")
+    @DisplayName("durable delivery는 지원하는 세 채널에 provider-safe key를 전파한다")
     void deliversSeatOpeningWithProviderSafeIdempotencyKey() {
         // given
         String canonicalKey = "d35e8a1f-3135-4f9b-92b3-635f0c9ea641";
@@ -320,13 +310,12 @@ class NotificationServiceTest {
 
         // when
         for (NotificationChannel channel : NotificationChannel.values()) {
-            notificationService.deliverSeatOpening(1L, channel, outbox, canonicalKey);
+            notificationService.attemptSeatOpening(1L, channel, outbox, canonicalKey);
         }
 
         // then
-        verify(notificationSender, times(3)).send(any(NotificationTarget.class), anyString(), anyString(),
-                eq(NotificationDeliveryIdempotencyKey.providerKey(canonicalKey)));
-        verify(notificationHistoryRepository, times(3)).save(any(NotificationHistory.class));
+        verify(notificationSender, times(3)).sendDelivery(any(NotificationTarget.class), anyString(), anyString(),
+                eq(NotificationDeliveryIdempotencyKey.providerKey(canonicalKey)), eq("/"));
     }
 
     private void addRecipient(User user) {
@@ -343,7 +332,7 @@ class NotificationServiceTest {
 
     private void addDevice(UserDevice device) {
         devicesByUser.computeIfAbsent(device.getUserId(), ignored -> new ArrayList<>())
-                .add(new NotificationDevice(device.getUserId(), device.getToken(),
-                        device.getP256dh(), device.getAuth()));
+                .add(new NotificationDevice(1L, device.getUserId(), device.getToken(),
+                        device.getP256dh(), device.getAuth(), device.getAlias()));
     }
 }

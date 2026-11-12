@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { isAxiosError } from "axios";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -38,7 +39,8 @@ export default function AnnouncementDetailPage({
 }: { initialAnnouncement?: PublicPageData<AnnouncementDetailResponse> | null }) {
   const params = useParams<{ id: string }>();
   const id = Number(params?.id ?? 0);
-  const { data: announcement, isLoading } = useAnnouncement(id, initialAnnouncement);
+  const { data: announcement, error, isLoading, isFetching } = useAnnouncement(id, initialAnnouncement);
+  const isUnavailable = isAxiosError(error) && error.response?.status === 404;
 
   const handleShare = async () => {
     if (!announcement) {
@@ -61,7 +63,7 @@ export default function AnnouncementDetailPage({
     }
   };
 
-  if (isLoading) {
+  if (isLoading || (initialAnnouncement === null && isFetching)) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
         <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
@@ -70,15 +72,15 @@ export default function AnnouncementDetailPage({
     );
   }
 
-  if (!announcement) {
+  if (isUnavailable || !announcement) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
-        <h2 className="text-xl font-black text-slate-900">공지사항을 찾을 수 없습니다</h2>
-        <Link href="/announcements" className="mt-6">
-          <Button variant="default" className="rounded-2xl">
-            목록으로 돌아가기
-          </Button>
-        </Link>
+        <h1 className="text-xl font-black text-slate-900">
+          {isUnavailable ? "더 이상 확인할 수 없는 공지입니다" : "공지사항을 불러오지 못했습니다"}
+        </h1>
+        <Button asChild className="mt-6 rounded-2xl">
+          <Link href="/announcements">목록으로 돌아가기</Link>
+        </Button>
       </div>
     );
   }

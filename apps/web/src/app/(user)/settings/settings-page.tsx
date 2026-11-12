@@ -58,7 +58,7 @@ export function SettingsPage({ model }: { model: SettingsPageModel }) {
       <main className="mx-auto max-w-4xl px-6 pb-32 pt-10 sm:px-10 md:pb-40 md:pt-16">
         <div className="mb-12 border-b border-slate-100 pb-8">
           <h1 className="mb-2 text-3xl font-bold tracking-tight text-slate-900">알림 설정</h1>
-          <p className="font-medium text-slate-500">빈 좌석 알림을 받을 채널을 설정하고 관리하세요.</p>
+          <p className="font-medium text-slate-500">빈자리, 문의 답변, 중요 공지 알림을 받을 채널을 설정하세요.</p>
         </div>
         <form onSubmit={handleSubmit(onSubmit)}>
           <section className="space-y-12">

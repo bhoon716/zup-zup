@@ -24,6 +24,10 @@ public class AnnouncementDetailResponse {
 
     private final LocalDateTime updatedAt;
 
+    private final LocalDateTime firstPublishedAt;
+
+    private final LocalDateTime deletedAt;
+
     public static AnnouncementDetailResponse from(Announcement announcement) {
         return new AnnouncementDetailResponse(
                 announcement.getId(),
@@ -32,6 +36,8 @@ public class AnnouncementDetailResponse {
                 announcement.isPinned(),
                 announcement.isPublished(),
                 announcement.getCreatedAt(),
-                announcement.getUpdatedAt());
+                announcement.getUpdatedAt(),
+                announcement.getFirstPublishedAt(),
+                announcement.getDeletedAt());
     }
 }

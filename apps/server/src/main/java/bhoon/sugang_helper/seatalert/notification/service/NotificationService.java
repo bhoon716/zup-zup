@@ -12,11 +12,9 @@ import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationProviderResilience;
 import bhoon.sugang_helper.seatalert.notification.client.NotificationSender;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
-import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
-import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
-import bhoon.sugang_helper.seatalert.notification.repository.NotificationHistoryRepository;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,60 +34,64 @@ public class NotificationService implements NotificationOperations {
 
     private final RedisAccess redisService;
     private final NotificationRecipients userNotificationQuery;
-    private final NotificationHistoryRepository notificationHistoryRepository;
     private final List<NotificationSender> notificationSenders;
     private final NotificationChannelPolicy notificationChannelPolicy;
     private final NotificationProviderResilience notificationProviderResilience;
 
-    public void deliverSeatOpening(Long userId, NotificationChannel channel,
-                                   SeatNotificationOutbox outbox,
-                                   String idempotencyKey) {
-        NotificationRecipient user = userNotificationQuery.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        if (!notificationChannelPolicy.isChannelEnabled(user, channel)) {
-            return;
+    SeatDeliveryAttempt attemptSeatOpening(Long userId, NotificationChannel channel, SeatNotificationOutbox outbox,
+                                           String idempotencyKey) {
+        NotificationRecipient user = userNotificationQuery.findById(userId).orElse(null);
+        if (user == null || !notificationChannelPolicy.isChannelEnabled(user, channel)) {
+            return SeatDeliveryAttempt.skipped(false);
         }
-        List<NotificationTarget> targets = notificationChannelPolicy.resolveTargets(
-                user, userNotificationQuery.findDevicesByUserId(userId), channel);
+        List<NotificationTarget> targets = resolveDeliveryTargets(user, channel);
         if (targets.isEmpty()) {
-            return;
+            return SeatDeliveryAttempt.skipped(channel == NotificationChannel.WEB);
         }
+
+        NotificationMessage message = createSeatOpenedMessage(new SeatOpenedEvent(
+                outbox.getCourseKey(), outbox.getCourseName(), outbox.getProfessor(),
+                outbox.getPreviousSeats(), outbox.getCurrentSeats()));
+        List<SeatDeliveryAttempt.TargetFailure> failures = new ArrayList<>();
+        boolean delivered = false;
+        RuntimeException channelFailure = null;
+        for (NotificationTarget target : targets) {
+            try {
+                sendDelivery(channel, target, message.title(), message.body(), idempotencyKey, "/");
+                delivered = true;
+            } catch (RuntimeException exception) {
+                failures.add(new SeatDeliveryAttempt.TargetFailure(target, exception));
+                if (channel == NotificationChannel.WEB && InboxWebPushNotices.isInvalidSubscription(exception)) {
+                    continue;
+                }
+                if (channelFailure == null || (!NotificationFailureClassifier.isRetryable(channelFailure)
+                        && NotificationFailureClassifier.isRetryable(exception))) {
+                    channelFailure = exception;
+                }
+            }
+        }
+        if (!delivered && channelFailure == null && !failures.isEmpty()) {
+            channelFailure = failures.getFirst().exception();
+        }
+        return new SeatDeliveryAttempt(message.title(), message.body(), failures, channelFailure, false);
+    }
+
+    List<NotificationTarget> resolveDeliveryTargets(NotificationRecipient user, NotificationChannel channel) {
+        List<NotificationDevice> devices = channel == NotificationChannel.WEB
+                ? userNotificationQuery.findDevicesByUserId(user.id()) : List.of();
+        return notificationChannelPolicy.resolveDeliveryTargets(user, devices, channel);
+    }
+
+    void sendDelivery(NotificationChannel channel, NotificationTarget target, String title, String body,
+                      String idempotencyKey, String path) {
         NotificationSender sender = notificationSenders.stream()
                 .filter(candidate -> candidate.supports(channel))
                 .findFirst()
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
                         "알림 채널 발송기가 없습니다: " + channel));
-        NotificationMessage message = createSeatOpenedMessage(new SeatOpenedEvent(
-                outbox.getCourseKey(), outbox.getCourseName(), outbox.getProfessor(),
-                outbox.getPreviousSeats(), outbox.getCurrentSeats()));
         String providerKey = NotificationDeliveryIdempotencyKey.providerKey(idempotencyKey);
-        sendSeatOpeningToTargets(channel, sender, targets, message, providerKey);
-        saveHistory(userId, outbox.getCourseKey(), message, channel);
-    }
-
-    private void sendSeatOpeningToTargets(NotificationChannel channel, NotificationSender sender,
-                                          List<NotificationTarget> targets, NotificationMessage message,
-                                          String providerKey) {
-        boolean delivered = false;
-        NotificationProviderException expiredSubscription = null;
-        for (NotificationTarget target : targets) {
-            try {
-                notificationProviderResilience.execute(channel,
-                        () -> sender.send(target, message.title(), message.body(), providerKey));
-                delivered = true;
-            } catch (NotificationProviderException exception) {
-                if (channel != NotificationChannel.WEB
-                        || exception.getErrorCode() != ErrorCode.WEB_PUSH_INVALID_SUBSCRIPTION
-                        || exception.isRetryable()) {
-                    throw exception;
-                }
-
-                expiredSubscription = exception;
-            }
-        }
-        if (!delivered && expiredSubscription != null) {
-            throw expiredSubscription;
-        }
+        notificationProviderResilience.execute(channel,
+                () -> sender.sendDelivery(target, title, body, providerKey, path));
     }
 
     public void sendAdminTestNotification(Long userId, List<NotificationChannel> channels) {
@@ -167,17 +169,6 @@ public class NotificationService implements NotificationOperations {
                 .filter(sender -> sender.supports(channel))
                 .forEach(sender -> notificationProviderResilience.execute(channel,
                         () -> sender.send(target, title, message)));
-    }
-
-    private void saveHistory(Long userId, String courseKey, NotificationMessage notification,
-                             NotificationChannel channel) {
-        notificationHistoryRepository.save(NotificationHistory.builder()
-                .userId(userId)
-                .courseKey(courseKey)
-                .title(notification.title())
-                .message(notification.body())
-                .channel(channel)
-                .build());
     }
 
     private void logNotificationTestSendStarted(NotificationChannel channel, Long userId) {

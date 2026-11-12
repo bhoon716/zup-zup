@@ -8,10 +8,13 @@ import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryDispatch;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryFailureResult;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatInboxItem;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
+import bhoon.sugang_helper.seatalert.notification.repository.SeatInboxRepository;
+import bhoon.sugang_helper.seatalert.notification.repository.SeatInboxRepository.InboxRecipient;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository.DeliveryRecipient;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
@@ -49,12 +52,14 @@ public class SeatNotificationOutboxProcessor {
 
     private final SeatNotificationOutboxRepository outboxRepository;
     private final SeatNotificationDeliveryRepository deliveryRepository;
+    private final SeatInboxRepository inboxRepository;
     private final SubscriptionQueryService subscriptionQueryService;
     private final NotificationRecipients userNotificationQuery;
     private final NotificationChannelPolicy notificationChannelPolicy;
     private final NotificationService notificationService;
     private final SeatNotificationDeliveryStateService deliveryStateService;
     private final MeterRegistry meterRegistry;
+    private final InboxWebPushNotices webPushNotices;
 
     @Value("${app.notification.outbox.batch-size:50}")
     private int batchSize;
@@ -78,15 +83,21 @@ public class SeatNotificationOutboxProcessor {
         }
 
         RecipientData recipients = loadRecipientData(userIdsByOutbox.values().stream()
-                .flatMap(List::stream).distinct().toList());
+                .flatMap(List::stream).distinct().sorted().toList());
+        List<Long> outboxesWithRecipients = List.copyOf(userIdsByOutbox.keySet());
+        Map<Long, Set<Long>> existingInboxUsersByOutbox = inboxRepository.findExistingRecipients(outboxesWithRecipients)
+                .stream()
+                .collect(Collectors.groupingBy(InboxRecipient::getOutboxId,
+                        Collectors.mapping(InboxRecipient::getUserId, Collectors.toSet())));
         Map<Long, List<DeliveryRecipient>> existingDeliveriesByOutbox = deliveryRepository
-                .findExistingRecipientsByOutboxIds(List.copyOf(userIdsByOutbox.keySet()),
-                        List.of(NotificationChannel.values())).stream()
+                .findExistingRecipientsByOutboxIds(outboxesWithRecipients, List.of(NotificationChannel.values())).stream()
                 .collect(Collectors.groupingBy(DeliveryRecipient::getOutboxId));
 
         for (SeatNotificationOutbox outbox : outboxes) {
-            materializeDeliveries(outbox, userIdsByOutbox.getOrDefault(outbox.getId(), List.of()), recipients,
-                    existingDeliveriesByOutbox.getOrDefault(outbox.getId(), List.of()));
+            Long outboxId = outbox.getId();
+            materializeOutbox(outbox, userIdsByOutbox.getOrDefault(outboxId, List.of()), recipients,
+                    existingInboxUsersByOutbox.getOrDefault(outboxId, Set.of()),
+                    existingDeliveriesByOutbox.getOrDefault(outboxId, List.of()));
         }
     }
 
@@ -96,23 +107,26 @@ public class SeatNotificationOutboxProcessor {
             return;
         }
 
-        try {
-            recordClaimToAttemptLag(claim, dispatch.channel());
-            notificationService.deliverSeatOpening(
-                    dispatch.userId(), dispatch.channel(), dispatch.outbox(), dispatch.idempotencyKey());
-            if (!deliveryStateService.markSent(claim)) {
+        recordClaimToAttemptLag(claim, dispatch.channel());
+        SeatDeliveryAttempt attempt = notificationService.attemptSeatOpening(
+                dispatch.userId(), dispatch.channel(), dispatch.outbox(), dispatch.idempotencyKey());
+        RuntimeException failure = attempt.channelFailure();
+        String failureCode = failure == null ? null : SensitiveDataRedactor.failureCode(failure);
+        int attempts = failure != null && NotificationFailureClassifier.isRetryable(failure) ? maximumAttempts : 1;
+        SeatNotificationDeliveryFailureResult result = NotificationDeliveryRetry.settle(
+                () -> deliveryStateService.settleAttempt(claim, dispatch.userId(), attempt, failureCode, attempts));
+        if (failure == null) {
+            if (!result.settled()) {
                 logSuccessSettlementSkipped(claim.deliveryId());
             }
-        } catch (RuntimeException e) {
-            handleDeliveryFailure(claim, dispatch, e);
+            return;
         }
+        reportDeliveryFailure(claim, dispatch, failure, failureCode, result);
     }
 
-    private void handleDeliveryFailure(SeatNotificationDeliveryClaim claim, SeatNotificationDeliveryDispatch dispatch,
-                                        RuntimeException failure) {
-        String failureCode = SensitiveDataRedactor.failureCode(failure);
-        int attempts = NotificationFailureClassifier.isRetryable(failure) ? maximumAttempts : 1;
-        SeatNotificationDeliveryFailureResult result = deliveryStateService.markFailure(claim, failureCode, attempts);
+    private void reportDeliveryFailure(SeatNotificationDeliveryClaim claim, SeatNotificationDeliveryDispatch dispatch,
+                                       RuntimeException failure, String failureCode,
+                                       SeatNotificationDeliveryFailureResult result) {
         if (!result.settled()) {
             logFailureSettlementSkipped(claim.deliveryId());
             return;
@@ -157,15 +171,24 @@ public class SeatNotificationOutboxProcessor {
         }
     }
 
-    private void materializeDeliveries(SeatNotificationOutbox outbox, List<Long> userIds, RecipientData recipients,
-                                       List<DeliveryRecipient> existingDeliveries) {
+    private void materializeOutbox(SeatNotificationOutbox outbox, List<Long> userIds, RecipientData recipients,
+                                   Set<Long> existingInboxUsers, List<DeliveryRecipient> existingDeliveries) {
         if (userIds.isEmpty()) {
             outbox.markCompleted();
             return;
         }
 
+        List<NotificationRecipient> activeRecipients = userIds.stream()
+                .filter(recipients.usersById()::containsKey)
+                .map(recipients.usersById()::get)
+                .toList();
+        inboxRepository.saveAll(activeRecipients.stream()
+                .filter(user -> !existingInboxUsers.contains(user.id()))
+                .map(user -> SeatInboxItem.from(outbox, user.id()))
+                .toList());
+
         List<SeatNotificationDelivery> deliveriesToSave =
-                buildMissingDeliveries(outbox, userIds, recipients, existingDeliveries);
+                buildMissingDeliveries(outbox, activeRecipients, recipients.devicesByUser(), existingDeliveries);
         if (!deliveriesToSave.isEmpty()) {
             deliveryRepository.saveAll(deliveriesToSave);
             outbox.markProcessing();
@@ -184,7 +207,7 @@ public class SeatNotificationOutboxProcessor {
         Map<Long, List<NotificationDevice>> devicesByUser = new HashMap<>();
         for (int start = 0; start < userIds.size(); start += RECIPIENT_LOOKUP_BATCH_SIZE) {
             List<Long> batch = userIds.subList(start, Math.min(start + RECIPIENT_LOOKUP_BATCH_SIZE, userIds.size()));
-            for (NotificationRecipient user : userNotificationQuery.findByIds(batch)) {
+            for (NotificationRecipient user : userNotificationQuery.findActiveByIdsForShare(batch)) {
                 usersById.put(user.id(), user);
             }
             for (NotificationDevice device : userNotificationQuery.findDevicesByUserIds(batch)) {
@@ -195,21 +218,16 @@ public class SeatNotificationOutboxProcessor {
     }
 
     private List<SeatNotificationDelivery> buildMissingDeliveries(
-            SeatNotificationOutbox outbox, List<Long> userIds, RecipientData recipients,
-            List<DeliveryRecipient> existingDeliveries) {
+            SeatNotificationOutbox outbox, List<NotificationRecipient> activeRecipients,
+            Map<Long, List<NotificationDevice>> devicesByUser, List<DeliveryRecipient> existingDeliveries) {
         Map<Long, Set<NotificationChannel>> existingChannelsByUser = existingDeliveries.stream()
                 .collect(Collectors.groupingBy(DeliveryRecipient::getUserId,
                         Collectors.mapping(DeliveryRecipient::getChannel, Collectors.toSet())));
 
         List<SeatNotificationDelivery> deliveriesToSave = new ArrayList<>();
-        for (Long userId : userIds) {
-            NotificationRecipient user = recipients.usersById().get(userId);
-            if (user == null) {
-                continue;
-            }
-            Set<NotificationChannel> existingChannels = existingChannelsByUser.getOrDefault(userId, Set.of());
-            addRecipientDeliveries(outbox, user, recipients.devicesByUser().get(userId), existingChannels,
-                    deliveriesToSave);
+        for (NotificationRecipient user : activeRecipients) {
+            Set<NotificationChannel> existingChannels = existingChannelsByUser.getOrDefault(user.id(), Set.of());
+            addRecipientDeliveries(outbox, user, devicesByUser.get(user.id()), existingChannels, deliveriesToSave);
         }
         return deliveriesToSave;
     }
@@ -223,9 +241,14 @@ public class SeatNotificationOutboxProcessor {
                                         Set<NotificationChannel> existingChannels,
                                         List<SeatNotificationDelivery> deliveries) {
         for (NotificationChannel channel : NotificationChannel.values()) {
-            if (!notificationChannelPolicy.isChannelEnabled(user, channel)
-                    || notificationChannelPolicy.resolveTargets(user, devices, channel).isEmpty()
-                    || existingChannels.contains(channel)) {
+            if (!notificationChannelPolicy.isChannelEnabled(user, channel) || existingChannels.contains(channel)) {
+                continue;
+            }
+            if (notificationChannelPolicy.resolveDeliveryTargets(user, devices, channel).isEmpty()) {
+                if (channel == NotificationChannel.WEB) {
+                    webPushNotices.recordMissingDevice(user, "seat:" + outbox.getId(),
+                            outbox.getCourseKey(), outbox.getCourseName());
+                }
                 continue;
             }
             deliveries.add(SeatNotificationDelivery.builder()

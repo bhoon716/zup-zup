@@ -1,6 +1,7 @@
 package bhoon.sugang_helper.identity.user.service;
 
 import bhoon.sugang_helper.common.api.error.CustomException;
+import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
 import bhoon.sugang_helper.identity.api.notifications.WebPushSubscriptionManagement;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
@@ -73,6 +74,16 @@ public class UserDeviceService implements WebPushSubscriptionManagement {
     public void deleteDeviceByToken(String token) {
         userDeviceRepository.findByToken(token)
                 .ifPresent(device -> deleteInvalidDevice(device, token));
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteInvalidSubscription(NotificationDevice device) {
+        if (userDeviceRepository.deleteMatchingSubscription(device) == 0) {
+            return false;
+        }
+        logNotificationInvalidDeviceDeleted(tokenFingerprint(device.token()));
+        return true;
     }
 
     @Override

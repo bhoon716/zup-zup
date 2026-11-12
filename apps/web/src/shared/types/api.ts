@@ -460,6 +460,8 @@ export interface AnnouncementDetailResponse {
   published: boolean;
   createdAt: string;
   updatedAt: string;
+  firstPublishedAt: string | null;
+  deletedAt: string | null;
 }
 
 export interface AnnouncementRequest {
@@ -467,6 +469,7 @@ export interface AnnouncementRequest {
   content: string;
   pinned?: boolean;
   published?: boolean;
+  notify?: boolean;
 }
 
 export interface ReviewResponse {

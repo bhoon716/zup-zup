@@ -231,7 +231,7 @@ function OnboardingContent() {
       }
 
       if (!data.emailEnabled && !data.webPushEnabled && !data.discordEnabled) {
-        if (!confirm("모든 알림을 끄시겠습니까? 빈자리가 생겨도 알림을 받을 수 없습니다.")) {
+        if (!confirm("모든 외부 알림을 끄시겠습니까? 빈자리 알림은 줍줍 알림함에서 확인할 수 있습니다.")) {
           return;
         }
       }

@@ -54,7 +54,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = SeatNotificationOutboxProcessorBenchmarkTest.Config.class)
-@MockitoBean(types = NotificationService.class)
+@MockitoBean(types = {NotificationService.class, InboxWebPushNotices.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class SeatNotificationOutboxProcessorBenchmarkTest {
 
@@ -126,7 +126,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
             Map<String, SqlStats> before = sqlStats();
             long[] durations = measureCommits();
             Map<String, SqlStats> after = sqlStats();
-            assertAllOutboxesMaterialized(SAMPLES, subscribers * CHANNELS);
+            assertAllOutboxesMaterialized(SAMPLES, subscribers, subscribers * CHANNELS);
             reportTrial(subscribers, trial, durations, before, after);
         }
     }
@@ -150,11 +150,19 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
         try {
             // when
             processor.materializePendingOutboxes();
+            jdbc.update("update seat_inbox_items set read_at = now() where user_id = 1");
+            jdbc.update("update seat_inbox_items set deleted_at = now() where user_id = 2");
             jdbc.update("update seat_notification_outbox set status = 'PENDING' where id = ?", outboxId);
             processor.materializePendingOutboxes();
 
             // then
-            assertAllOutboxesMaterialized(1, 299);
+            assertAllOutboxesMaterialized(1, 100, 299);
+            assertThat(jdbc.queryForObject("""
+                    select count(*) from seat_inbox_items where user_id = 1 and read_at is not null
+                    """, Long.class)).isEqualTo(1);
+            assertThat(jdbc.queryForObject("""
+                    select count(*) from seat_inbox_items where user_id = 2 and deleted_at is not null
+                    """, Long.class)).isEqualTo(1);
             assertThat(jdbc.queryForList("""
                     select id, status, attempts, idempotency_key
                     from seat_notification_deliveries where user_id = 1 and channel = 'EMAIL'
@@ -178,6 +186,7 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
     }
 
     private void resetOutboxes(int events, String courseKey) {
+        jdbc.update("delete from seat_inbox_items");
         jdbc.update("delete from seat_notification_deliveries");
         jdbc.update("delete from seat_notification_outbox");
         List<String> courses = IntStream.range(0, events).mapToObj(index -> courseKey).toList();
@@ -188,13 +197,16 @@ class SeatNotificationOutboxProcessorBenchmarkTest {
                 """, courses, events, (statement, key) -> statement.setString(1, key));
     }
 
-    private void assertAllOutboxesMaterialized(int expectedEvents, int deliveriesPerEvent) {
+    private void assertAllOutboxesMaterialized(int expectedEvents, int subscribers, int deliveriesPerEvent) {
         assertThat(jdbc.queryForObject("""
                 select count(*) from seat_notification_outbox where status = 'PROCESSING'
                 """, Long.class)).isEqualTo(expectedEvents);
         assertThat(jdbc.queryForList("""
                 select count(*) from seat_notification_deliveries group by outbox_id
                 """, Long.class)).hasSize(expectedEvents).containsOnly((long) deliveriesPerEvent);
+        assertThat(jdbc.queryForList("""
+                select count(*) from seat_inbox_items group by outbox_id
+                """, Long.class)).hasSize(expectedEvents).containsOnly((long) subscribers);
     }
 
     private Map<String, SqlStats> sqlStats() throws IOException, InterruptedException {

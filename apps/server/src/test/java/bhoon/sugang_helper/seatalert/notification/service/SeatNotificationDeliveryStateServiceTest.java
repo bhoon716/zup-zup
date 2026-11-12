@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Import({SeatNotificationDeliveryStateService.class, SimpleMeterRegistry.class})
+@MockitoBean(types = {NotificationRecipients.class, NotificationChannelPolicy.class, InboxWebPushNotices.class})
 class SeatNotificationDeliveryStateServiceTest {
 
     @Autowired
@@ -70,8 +73,8 @@ class SeatNotificationDeliveryStateServiceTest {
         delivery = deliveryRepository.saveAndFlush(delivery);
 
         // when
-        boolean settled = deliveryStateService.markSent(new SeatNotificationDeliveryClaim(
-                delivery.getId(), firstClaimToken));
+        boolean settled = deliveryStateService.settleAttempt(new SeatNotificationDeliveryClaim(
+                delivery.getId(), firstClaimToken), 1L, SeatDeliveryAttempt.skipped(false), null, 1).settled();
 
         // then
         assertThat(settled).isFalse();
@@ -116,10 +119,8 @@ class SeatNotificationDeliveryStateServiceTest {
 
         // when & then
         try {
-            Future<Boolean> first = executor.submit(() -> deliveryStateService.markSent(
-                    new SeatNotificationDeliveryClaim(firstDelivery.getId(), firstDelivery.getClaimToken())));
-            Future<Boolean> second = executor.submit(() -> deliveryStateService.markSent(
-                    new SeatNotificationDeliveryClaim(secondDelivery.getId(), secondDelivery.getClaimToken())));
+            Future<Boolean> first = executor.submit(() -> settle(firstDelivery));
+            Future<Boolean> second = executor.submit(() -> settle(secondDelivery));
 
             assertThat(first.get(10, TimeUnit.SECONDS)).isTrue();
             assertThat(second.get(10, TimeUnit.SECONDS)).isTrue();
@@ -130,6 +131,13 @@ class SeatNotificationDeliveryStateServiceTest {
         assertThat(outboxRepository.findById(outbox.getId())).get()
                 .extracting(SeatNotificationOutbox::getStatus)
                 .isEqualTo(SeatNotificationOutboxStatus.COMPLETED);
+    }
+
+    private boolean settle(SeatNotificationDelivery delivery) {
+        SeatNotificationDeliveryClaim claim = new SeatNotificationDeliveryClaim(
+                delivery.getId(), delivery.getClaimToken());
+        return deliveryStateService.settleAttempt(claim, delivery.getUserId(),
+                SeatDeliveryAttempt.skipped(false), null, 1).settled();
     }
 
     private SeatNotificationDelivery claimedDelivery(SeatNotificationOutbox outbox, Long userId) {

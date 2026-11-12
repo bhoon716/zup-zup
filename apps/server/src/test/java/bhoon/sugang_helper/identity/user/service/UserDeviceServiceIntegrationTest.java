@@ -3,6 +3,7 @@ package bhoon.sugang_helper.identity.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import bhoon.sugang_helper.identity.api.notifications.NotificationDevice;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import bhoon.sugang_helper.identity.user.enums.Role;
@@ -80,6 +81,43 @@ class UserDeviceServiceIntegrationTest {
 
         // when & then
         assertThat(userDeviceRepository.findById(device.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("웹 푸시 만료 결과는 갱신된 구독을 삭제하지 않는다")
+    void expiredResultDoesNotDeleteARefreshedSubscription() {
+        // given
+        User owner = saveUser("owner@example.com");
+        UserDevice device = userDeviceRepository.saveAndFlush(UserDevice.builder()
+                .userId(owner.getId())
+                .token("owner-device-token")
+                .p256dh("old-key")
+                .auth("old-auth")
+                .alias("브라우저")
+                .build());
+        NotificationDevice original = notificationDevice(device);
+        device.updateToken(owner.getId(), device.getToken(), "new-key", "new-auth", device.getAlias());
+        UserDevice refreshed = userDeviceRepository.saveAndFlush(device);
+
+        // when
+        boolean originalDeleted = userDeviceService.deleteInvalidSubscription(original);
+
+        // then
+        assertThat(originalDeleted).isFalse();
+        assertThat(userDeviceRepository.findById(device.getId())).get()
+                .extracting(UserDevice::getP256dh).isEqualTo("new-key");
+
+        // when
+        boolean refreshedDeleted = userDeviceService.deleteInvalidSubscription(notificationDevice(refreshed));
+
+        // then
+        assertThat(refreshedDeleted).isTrue();
+        assertThat(userDeviceRepository.findById(device.getId())).isEmpty();
+    }
+
+    private static NotificationDevice notificationDevice(UserDevice device) {
+        return new NotificationDevice(device.getId(), device.getUserId(), device.getToken(),
+                device.getP256dh(), device.getAuth(), device.getAlias());
     }
 
     private User saveUser(String email) {

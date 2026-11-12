@@ -91,3 +91,8 @@ export const deleteAdminAnnouncement = async (id: number): Promise<void> => {
   const { data } = await api.delete(`/api/v1/admin/announcements/${id}`);
   return data;
 };
+
+export const restoreAdminAnnouncement = async (id: number): Promise<AnnouncementDetailResponse> => {
+  const { data } = await api.patch(`/api/v1/admin/announcements/${id}/restore`);
+  return data;
+};

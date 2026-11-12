@@ -38,11 +38,27 @@ public class NotificationChannelPolicy {
             return List.of();
         }
         return switch (channel) {
-            case EMAIL -> List.of(NotificationTarget.of(resolveNotificationEmail(user)));
+            case EMAIL -> {
+                String email = resolveNotificationEmail(user);
+                yield StringUtils.hasText(email) ? List.of(NotificationTarget.of(email)) : List.of();
+            }
             case DISCORD ->
                     user.discordId() != null ? List.of(NotificationTarget.of(user.discordId())) : List.of();
             case WEB -> resolveDeviceTargets(devices);
         };
+    }
+
+    public List<NotificationTarget> resolveDeliveryTargets(NotificationRecipient user, List<NotificationDevice> devices,
+                                                           NotificationChannel channel) {
+        return resolveTargets(user, devices, channel).stream()
+                .filter(target -> channel != NotificationChannel.WEB || hasPushCredentials(target))
+                .toList();
+    }
+
+    private boolean hasPushCredentials(NotificationTarget target) {
+        return StringUtils.hasText(target.getRecipient())
+                && StringUtils.hasText(target.getP256dh())
+                && StringUtils.hasText(target.getAuth());
     }
 
     public String buildNoTargetMessage(NotificationChannel channel) {
@@ -75,7 +91,7 @@ public class NotificationChannelPolicy {
         }
 
         return devices.stream()
-                .map(device -> NotificationTarget.ofWeb(device.token(), device.p256dh(), device.auth()))
+                .map(NotificationTarget::ofWeb)
                 .toList();
     }
 

@@ -5,10 +5,12 @@ import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.storage.FileStorage;
 import bhoon.sugang_helper.common.api.web.PageableGuard;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
 import bhoon.sugang_helper.identity.api.users.CurrentUserQuery;
 import bhoon.sugang_helper.identity.api.users.UserAccountQuery;
 import bhoon.sugang_helper.identity.api.users.UserAccountStatus;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
+import bhoon.sugang_helper.seatalert.api.NotificationPublications;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackStatusUpdateRequest;
@@ -49,6 +51,8 @@ public class AdminFeedbackService {
     private final CurrentUserQuery currentUserQuery;
     private final UserAccountQuery userAccountQuery;
     private final FileStorage fileUploadService;
+    private final NotificationPublications notificationPublications;
+    private final NotificationRecipients notificationRecipients;
 
     @Transactional
     public FeedbackAttachmentDownload getAttachmentForCurrentAdmin(Long feedbackId, Long attachmentId,
@@ -106,9 +110,7 @@ public class AdminFeedbackService {
         userAccountQuery.findById(adminId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        Feedback feedback = feedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
-
+        Feedback feedback = requireFeedbackWithOwnerLockedForUpdate(feedbackId);
         FeedbackReply reply = FeedbackReply.builder()
                 .feedback(feedback)
                 .adminId(adminId)
@@ -116,6 +118,7 @@ public class AdminFeedbackService {
                 .build();
 
         FeedbackReply savedReply = feedbackReplyRepository.save(reply);
+        notificationPublications.publishFeedbackReply(feedback.getUserId(), feedbackId, savedReply.getId());
 
         adminAuditRecorder.recordReplyCreated(adminId, savedReply.getId(), feedbackId, request.content());
 
@@ -128,15 +131,12 @@ public class AdminFeedbackService {
         userAccountQuery.findById(adminId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        FeedbackReply reply = feedbackReplyRepository.findById(replyId)
-                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_REPLY_NOT_FOUND));
-        Feedback feedback = feedbackRepository.findById(reply.getFeedback().getId())
-                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+        FeedbackReply reply = requireReplyForUpdate(replyId);
 
         String oldContent = reply.getContent();
         reply.updateContent(request.content());
 
-        adminAuditRecorder.recordReplyUpdated(adminId, reply.getId(), feedback.getId(), oldContent,
+        adminAuditRecorder.recordReplyUpdated(adminId, replyId, reply.getFeedback().getId(), oldContent,
                 request.content());
     }
 
@@ -146,15 +146,13 @@ public class AdminFeedbackService {
         userAccountQuery.findById(adminId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        FeedbackReply reply = feedbackReplyRepository.findById(replyId)
-                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_REPLY_NOT_FOUND));
-        Feedback feedback = feedbackRepository.findById(reply.getFeedback().getId())
-                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+        FeedbackReply reply = requireReplyForUpdate(replyId);
 
         String content = reply.getContent();
         reply.delete();
+        notificationPublications.hideFeedbackReply(replyId);
 
-        adminAuditRecorder.recordReplyDeleted(adminId, replyId, feedback.getId(), content);
+        adminAuditRecorder.recordReplyDeleted(adminId, replyId, reply.getFeedback().getId(), content);
     }
 
     @Transactional
@@ -163,13 +161,33 @@ public class AdminFeedbackService {
         userAccountQuery.findById(adminId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        Feedback feedback = feedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
-
+        Feedback feedback = requireFeedbackForUpdate(feedbackId);
         FeedbackStatus oldStatus = feedback.getStatus();
         feedback.updateStatus(request.status());
 
         adminAuditRecorder.recordStatusChange(adminId, feedbackId, oldStatus.name(), request.status().name());
+    }
+
+    private FeedbackReply requireReplyForUpdate(Long replyId) {
+        Long feedbackId = feedbackReplyRepository.findFeedbackIdById(replyId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_REPLY_NOT_FOUND));
+        requireFeedbackForUpdate(feedbackId);
+        return feedbackReplyRepository.findByIdForUpdate(replyId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_REPLY_NOT_FOUND));
+    }
+
+    private Feedback requireFeedbackForUpdate(Long feedbackId) {
+        return feedbackRepository.findByIdForUpdate(feedbackId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+    }
+
+    private Feedback requireFeedbackWithOwnerLockedForUpdate(Long feedbackId) {
+        Long ownerId = feedbackRepository.findOwnerIdById(feedbackId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+        if (notificationRecipients.findActiveByIdsForShare(List.of(ownerId)).isEmpty()) {
+            throw new CustomException(ErrorCode.FEEDBACK_NOT_FOUND);
+        }
+        return requireFeedbackForUpdate(feedbackId);
     }
 
     private UserIdentity requireCurrentAdmin() {

@@ -10,6 +10,7 @@ import bhoon.sugang_helper.identity.api.users.UserAccountQuery;
 import bhoon.sugang_helper.identity.api.users.UserDisplayName;
 import bhoon.sugang_helper.identity.api.users.UserDisplayNames;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
+import bhoon.sugang_helper.seatalert.api.NotificationPublications;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.response.FeedbackDetailResponse;
 import bhoon.sugang_helper.support.feedback.dto.response.FeedbackResponse;
@@ -52,6 +53,7 @@ public class FeedbackService {
     private final FileStorage fileUploadService;
     private final RedisAccess redisService;
     private final FeedbackMetadataNormalizer feedbackMetadataNormalizer;
+    private final NotificationPublications notificationPublications;
 
     @Value("${app.feedback.rate-limit.user-per-minute:5}")
     private long userRequestsPerMinute;
@@ -128,15 +130,20 @@ public class FeedbackService {
     @Transactional(readOnly = true)
     public FeedbackDetailResponse getMyFeedbackDetailForCurrentUser(Long feedbackId) {
         Long userId = currentUserQuery.requireCurrentUser().id();
-        Feedback feedback = requireOwnedFeedback(feedbackId, userId);
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+        requireOwner(feedback, userId);
         return FeedbackDetailResponse.from(feedback, adminNamesById(feedback.getReplies()));
     }
 
     @Transactional
     public void deleteCurrentUsersFeedback(Long feedbackId) {
         Long userId = currentUserQuery.requireCurrentUser().id();
-        Feedback feedback = requireOwnedFeedback(feedbackId, userId);
+        Feedback feedback = feedbackRepository.findByIdForUpdate(feedbackId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+        requireOwner(feedback, userId);
         feedback.delete();
+        notificationPublications.hideFeedbackReplies(feedbackId);
     }
 
     @Transactional
@@ -155,13 +162,10 @@ public class FeedbackService {
         return new FeedbackAttachmentDownload(file.resource(), attachment.getOriginalName(), file.contentType());
     }
 
-    private Feedback requireOwnedFeedback(Long feedbackId, Long userId) {
-        Feedback feedback = feedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
+    private void requireOwner(Feedback feedback, Long userId) {
         if (!feedback.getUserId().equals(userId)) {
             throw new CustomException(ErrorCode.FEEDBACK_UNAUTHORIZED);
         }
-        return feedback;
     }
 
     private Map<Long, String> adminNamesById(List<FeedbackReply> replies) {

@@ -16,6 +16,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.HtmlUtils;
 
 @Component
 @Slf4j
@@ -58,7 +59,7 @@ public class EmailNotificationSender implements NotificationSender {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, StandardCharsets.UTF_8.name());
 
-            String htmlContent = templateService.loadTemplate("notification", Map.of("message", message));
+            String htmlContent = templateService.loadTemplate("notification", Map.of("message", HtmlUtils.htmlEscape(message)));
 
             helper.setFrom(new InternetAddress(from, fromName, StandardCharsets.UTF_8.name()));
             helper.setTo(recipient);

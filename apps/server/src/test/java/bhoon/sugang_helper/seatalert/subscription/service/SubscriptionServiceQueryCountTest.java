@@ -14,6 +14,7 @@ import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.repository.UserRepository;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.seatalert.subscription.entity.Subscription;
+import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionEndRepository;
 import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionRepository;
 import jakarta.persistence.EntityManager;
 import org.hibernate.SessionFactory;
@@ -29,6 +30,9 @@ class SubscriptionServiceQueryCountTest {
 
     @Autowired
     private SubscriptionRepository subscriptionRepository;
+
+    @Autowired
+    private SubscriptionEndRepository subscriptionEndRepository;
 
     @Autowired
     private CourseRepository courseRepository;
@@ -70,7 +74,8 @@ class SubscriptionServiceQueryCountTest {
         SubscriptionService service = new SubscriptionService(subscriptionRepository,
                 new CourseCatalogQueryService(courseRepository),
                 new UserIdentityQueryService(userRepository),
-                mock(CourseCrawlerTargetService.class));
+                mock(CourseCrawlerTargetService.class),
+                subscriptionEndRepository);
         ReflectionTestUtils.setField(service, "maxLimit", 3);
 
         // when & then
