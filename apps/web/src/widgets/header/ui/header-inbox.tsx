@@ -33,7 +33,7 @@ export function HeaderInbox({ userId }: { userId: number }) {
           aria-label="알림함"
           aria-describedby={hasUnread ? unreadDescriptionId : undefined}
           title="알림함"
-          className="rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary xl:size-9 xl:rounded-xl"
+          className="rounded-lg bg-primary/5 text-muted-foreground hover:bg-primary/10 hover:text-primary data-[state=open]:bg-primary/15 data-[state=open]:text-primary xl:size-9"
         >
           <span className="relative">
             <Bell aria-hidden="true" className="size-5 xl:size-4" />
