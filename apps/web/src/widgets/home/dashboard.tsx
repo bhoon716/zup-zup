@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { RecentNotifications } from "./recent-notifications";
 import { DashboardAnnouncements } from "./dashboard-announcements";
 import { DashboardTimetable } from "./dashboard-timetable";
 import { DashboardDDayBlock } from "./dashboard-dday-block";
@@ -10,7 +9,7 @@ import { DashboardCountdown } from "./dashboard-countdown";
 import type { DashboardSnapshotResponse } from "@/shared/types/api";
 
 export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse }) {
-  const { user, notifications, primaryTimetable, upcomingSchedules, announcements } = snapshot;
+  const { user, primaryTimetable, upcomingSchedules, announcements } = snapshot;
 
   if (!user) {
     return null;
@@ -62,14 +61,6 @@ export function Dashboard({ snapshot }: { snapshot: DashboardSnapshotResponse })
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <RecentNotifications notifications={notifications || []} />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
           >
             <DashboardAnnouncements announcements={announcements} />
           </motion.div>
