@@ -1,6 +1,8 @@
 "use client";
 
 import { 
+  ChevronLeft,
+  ChevronRight,
   ShieldAlert, 
   Lightbulb, 
   HelpCircle,
@@ -8,16 +10,31 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Fragment, Suspense, useRef, useState } from "react";
 
 import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 import { useMyFeedbacks } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackStatus, FeedbackType } from "@/shared/types/api";
 import { FeedbackList } from "@/features/feedback/components/feedback-list";
 
 function FeedbackPageContent() {
   const router = useRouter();
-  const { data: feedbackList, isLoading: isListLoading } = useMyFeedbacks();
+  const [page, setPage] = useState(0);
+  const listTop = useRef<HTMLDivElement>(null);
+  const { data: feedbackList, isLoading: isListLoading, isFetching, isError, refetch } = useMyFeedbacks(page);
+
+  if (feedbackList && !isFetching && !isError) {
+    const lastPage = Math.max(0, feedbackList.totalPages - 1);
+    if (page > lastPage) setPage(lastPage);
+  }
+
+  const changePage = (nextPage: number) => {
+    if (nextPage === page) return;
+    setPage(nextPage);
+    listTop.current?.focus({ preventScroll: true });
+    listTop.current?.scrollIntoView({ block: "start" });
+  };
 
   const getStatusBadge = (status: FeedbackStatus) => {
     switch (status) {
@@ -54,18 +71,64 @@ function FeedbackPageContent() {
           </Link>
         </div>
 
-        <div className="bg-white dark:bg-black/10 min-h-[500px]">
-          <FeedbackList
-            isLoading={isListLoading}
-            feedbackList={feedbackList}
-            selectedFeedbackId={null}
-            onSelectFeedback={(id) => router.push(`/feedback/${id}`)}
-            getTypeIcon={getTypeIcon}
-            getStatusBadge={getStatusBadge}
-          />
+        <div ref={listTop} tabIndex={-1} className="bg-white dark:bg-black/10 min-h-[500px] scroll-mt-20">
+          {isError ? (
+            <div role="alert" className="flex flex-wrap items-center justify-center gap-3 px-4 py-12 text-sm text-muted-foreground">
+              문의 목록을 불러오지 못했습니다.
+              <Button type="button" variant="outline" size="sm" onClick={() => { void refetch(); }}>다시 시도</Button>
+            </div>
+          ) : (
+            <FeedbackList
+              isLoading={isListLoading}
+              feedbackList={feedbackList}
+              selectedFeedbackId={null}
+              onSelectFeedback={(id) => router.push(`/feedback/${id}`)}
+              getTypeIcon={getTypeIcon}
+              getStatusBadge={getStatusBadge}
+            />
+          )}
+          {feedbackList && feedbackList.totalPages > 1 && (
+            <FeedbackPagination page={page} totalPages={feedbackList.totalPages} onChange={changePage} />
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function FeedbackPagination({ page, totalPages, onChange }: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+}) {
+  const pages = [...new Set([0, page - 1, page, page + 1, totalPages - 1])]
+    .filter((number) => number >= 0 && number < totalPages)
+    .sort((first, second) => first - second);
+
+  return (
+    <nav aria-label="문의 목록 페이지" className="mt-5 flex flex-wrap items-center justify-center gap-1">
+      <Button type="button" variant="ghost" size="icon-sm" aria-label="이전 페이지" disabled={page === 0} onClick={() => onChange(page - 1)}>
+        <ChevronLeft aria-hidden="true" />
+      </Button>
+      {pages.map((number, index) => (
+        <Fragment key={number}>
+          {index > 0 && number - pages[index - 1] > 1 && <span aria-hidden="true" className="text-xs text-muted-foreground">…</span>}
+          <Button
+            type="button"
+            variant={number === page ? "default" : "ghost"}
+            size="icon-sm"
+            aria-label={`${number + 1} 페이지`}
+            aria-current={number === page ? "page" : undefined}
+            onClick={() => onChange(number)}
+          >
+            {number + 1}
+          </Button>
+        </Fragment>
+      ))}
+      <Button type="button" variant="ghost" size="icon-sm" aria-label="다음 페이지" disabled={page + 1 >= totalPages} onClick={() => onChange(page + 1)}>
+        <ChevronRight aria-hidden="true" />
+      </Button>
+    </nav>
   );
 }
 

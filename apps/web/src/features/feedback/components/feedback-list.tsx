@@ -5,11 +5,12 @@ import {
   FeedbackResponse,
   FeedbackStatus,
   FeedbackType,
+  PageResponse,
 } from "@/shared/types/api";
 
 interface FeedbackListProps {
   isLoading: boolean;
-  feedbackList?: { content: FeedbackResponse[] };
+  feedbackList?: PageResponse<FeedbackResponse>;
   selectedFeedbackId: number | null;
   onSelectFeedback: (id: number) => void;
   getTypeIcon: (type: FeedbackType) => React.ReactNode;
@@ -40,6 +41,8 @@ export function FeedbackList({
     );
   }
 
+  const firstRowNumber = feedbackList.totalElements - feedbackList.number * feedbackList.size;
+
   return (
     <div className="w-full">
       <div className="hidden md:grid grid-cols-[80px_100px_1fr_120px_100px] gap-4 px-4 py-3 border-y border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
@@ -60,7 +63,7 @@ export function FeedbackList({
             }`}
           >
             <div className="hidden md:block text-center text-sm text-gray-400 font-medium">
-              {feedbackList.content.length - index}
+              {firstRowNumber - index}
             </div>
 
             <div className="flex items-center gap-2">
