@@ -4,9 +4,7 @@ import Link from "next/link";
 import { HomeLanding } from "@/widgets/home/home-landing";
 import { HomeSession } from "@/widgets/home/home-session";
 import { DashboardCountdown } from "@/widgets/home/dashboard-countdown";
-import { HomeAnnouncements } from "@/widgets/home/home-announcements";
-import { HomeSchedules } from "@/widgets/home/home-schedules";
-import type { AnnouncementListItemResponse, PageResponse, ScheduleResponse } from "@/shared/types/api";
+import type { ScheduleResponse } from "@/shared/types/api";
 import { fetchPublicData } from "@/shared/lib/public-metadata";
 
 const SESSION_COOKIE_NAME = "SESSION";
@@ -14,20 +12,6 @@ const SESSION_COOKIE_NAME = "SESSION";
 async function PublicCountdown() {
   const data = await fetchPublicData<ScheduleResponse[]>("/api/v1/schedules/ddays", { cache: "no-store" });
   return <DashboardCountdown initialData={data} />;
-}
-
-async function PublicSchedules() {
-  const data = await fetchPublicData<ScheduleResponse[]>("/api/v1/schedules", { cache: "no-store" });
-  return <HomeSchedules initialData={data} />;
-}
-
-async function PublicAnnouncements() {
-  const result = await fetchPublicData<PageResponse<AnnouncementListItemResponse>>(
-    "/api/v1/announcements?searchType=TITLE_CONTENT&page=0",
-    { cache: "no-store" },
-  );
-  const data = Array.isArray(result?.data.content) ? { data: result.data.content, updatedAt: result.updatedAt } : null;
-  return <HomeAnnouncements initialData={data} />;
 }
 
 export default async function HomePage() {
@@ -38,8 +22,6 @@ export default async function HomePage() {
       <HomeSession hasSessionCookie={hasSessionCookie}>
         <HomeLanding
           countdown={hasSessionCookie ? <DashboardCountdown /> : <Suspense><PublicCountdown /></Suspense>}
-          schedules={hasSessionCookie ? <HomeSchedules /> : <Suspense fallback={<div className="h-56" />}><PublicSchedules /></Suspense>}
-          announcements={hasSessionCookie ? <HomeAnnouncements /> : <Suspense fallback={<div className="h-56" />}><PublicAnnouncements /></Suspense>}
         />
       </HomeSession>
       <footer className="bg-card border-t py-10">

@@ -61,11 +61,7 @@ const features = [
   },
 ];
 
-export function HomeLanding({ countdown, schedules, announcements }: {
-  countdown: ReactNode;
-  schedules: ReactNode;
-  announcements: ReactNode;
-}) {
+export function HomeLanding({ countdown }: { countdown: ReactNode }) {
   return (
     <main className="flex flex-col bg-[#fafafa] dark:bg-black">
       <section className="relative pt-16 pb-24 md:pt-32 md:pb-40 overflow-hidden flex items-center">
@@ -165,8 +161,6 @@ export function HomeLanding({ countdown, schedules, announcements }: {
           </ul>
         </div>
       </section>
-      {schedules}
-      {announcements}
     </main>
   );
 }
