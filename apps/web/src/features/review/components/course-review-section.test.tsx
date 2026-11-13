@@ -166,7 +166,7 @@ describe("CourseReviewSection", () => {
     expect(screen.getByText("(0개)")).toBeInTheDocument();
   });
 
-  it("교수 정보가 미지정이면 이전 학기 이모지 반응을 연결하지 않는다고 안내한다", () => {
+  it("담당 교수가 미지정이면 이 강의의 이모지 반응만 표시한다고 안내한다", () => {
     render(
       <CourseReviewSection
         courseKey="TEST-COURSE"
@@ -176,7 +176,7 @@ describe("CourseReviewSection", () => {
     );
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "교수 정보가 없어 이전 학기 반응과 자동 연결하지 않았습니다."
+      "담당 교수가 지정되지 않아 이 강의의 이모지 반응만 표시합니다."
     );
   });
 

@@ -254,7 +254,7 @@ export function CourseReviewSection({
             {isProfessorUnassigned && (
               <p className="mt-1 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300" role="status">
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                교수 정보가 없어 이전 학기 반응과 자동 연결하지 않았습니다.
+                담당 교수가 지정되지 않아 이 강의의 이모지 반응만 표시합니다.
               </p>
             )}
           </div>
