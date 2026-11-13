@@ -16,6 +16,9 @@ test("일정 하나로 대표 지정·수정·삭제·복원을 관리한다", a
     if (path === "/api/auth/csrf") return route.fulfill({ json: { token: "schedule-csrf" } });
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) writeCsrfTokens.push(route.request().headers()["x-csrf-token"]);
     if (path === "/api/v1/users/me") return route.fulfill({ json: admin });
+    if (path === "/api/v1/notifications/inbox" && method === "GET") {
+      return route.fulfill({ json: { content: [], number: 0, totalPages: 0, totalElements: 0 } });
+    }
     if (path === "/api/v1/admin/schedules" && method === "GET") return route.fulfill({ json: schedules });
     if (path === "/api/v1/admin/schedules" && method === "POST") {
       const body = route.request().postDataJSON() as ScheduleRequest;
@@ -48,7 +51,7 @@ test("일정 하나로 대표 지정·수정·삭제·복원을 관리한다", a
   await page.getByRole("button", { name: "일정 추가" }).click();
   await page.getByRole("combobox", { name: "일정 구분" }).click();
   await page.getByRole("option", { name: "기타", exact: true }).click();
-  await page.getByLabel("일정 이름").fill("대표 학사 일정");
+  await page.getByRole("textbox", { name: "일정 구분", exact: true }).fill("대표 학사 일정");
   await page.getByLabel("시작일").fill("2026-10-28");
   await page.getByLabel("종료일").fill("2026-10-29");
   await page.getByLabel("시작 시간", { exact: true }).fill("20:00");
