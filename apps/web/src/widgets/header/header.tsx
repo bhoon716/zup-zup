@@ -48,7 +48,7 @@ export function Header() {
         <div className="flex items-center gap-4">
           <Link href="/" className="flex h-9 shrink-0 items-center gap-2 rounded-xl text-primary transition-colors hover:text-primary/80">
             <Image src="/zub-zub-logo.png" alt="" width={32} height={32} className="size-8 object-contain" />
-            <span className="text-xl leading-none font-bold">줍줍</span>
+            <span className="text-[1.375rem] leading-none font-bold">줍줍</span>
           </Link>
           <nav aria-label="주요 메뉴" className="hidden items-center xl:flex 2xl:gap-1">
             <NavLinks
