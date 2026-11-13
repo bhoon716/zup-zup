@@ -17,8 +17,11 @@ import {
 } from "@/shared/seo/branding";
 
 const notoSansKr = localFont({
-  src: "./fonts/NotoSansKR.woff2",
-  weight: "100 900",
+  src: [
+    { path: "./fonts/NotoSansKR.woff2", weight: "400" },
+    { path: "./fonts/NotoSansKR.woff2", weight: "700" },
+    { path: "./fonts/NotoSansKR.woff2", weight: "900" },
+  ],
   style: "normal",
   display: "swap",
   preload: false,
