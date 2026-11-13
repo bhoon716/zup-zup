@@ -12,6 +12,7 @@ import {
   useRestoreSchedule,
 } from "@/features/schedule/hooks/useSchedules";
 import { localizedErrorMessage } from "@/shared/lib/error-message";
+import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import {
@@ -104,14 +105,15 @@ export function AdminSchedulePanel({ upcomingOnly = false }: { upcomingOnly?: bo
   const isSaving = isCreating || isUpdating;
   const isMutating = isSaving || isDeleting || isRestoring;
   const visibleSchedules = upcomingOnly ? filterActiveUpcomingSchedules(schedules) : schedules;
-  const editorProps = { id: editorId, isSaving, isMutating, error: saveError, onSave: handleSave, onCancel: closeEditor };
+  const fontClassName = upcomingOnly ? "font-schedule" : undefined;
+  const editorProps = { id: editorId, isSaving, isMutating, error: saveError, onSave: handleSave, onCancel: closeEditor, fontClassName };
 
   return (
     <motion.section
       aria-labelledby="admin-schedule-heading"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
+      className={cn("rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6", fontClassName)}
     >
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -237,7 +239,7 @@ export function AdminSchedulePanel({ upcomingOnly = false }: { upcomingOnly?: bo
   );
 }
 
-function ScheduleEditorForm({ id, schedule, isSaving, isMutating, error, onSave, onCancel }: {
+function ScheduleEditorForm({ id, schedule, isSaving, isMutating, error, onSave, onCancel, fontClassName }: {
   id: string;
   schedule?: ScheduleResponse;
   isSaving: boolean;
@@ -245,6 +247,7 @@ function ScheduleEditorForm({ id, schedule, isSaving, isMutating, error, onSave,
   error: string;
   onSave: (request: ScheduleRequest) => void;
   onCancel: () => void;
+  fontClassName?: string;
 }) {
   const [draft, setDraft] = useState<Required<ScheduleRequest>>(() => ({
     scheduleType: schedule?.scheduleType ?? "",
@@ -316,7 +319,7 @@ function ScheduleEditorForm({ id, schedule, isSaving, isMutating, error, onSave,
                 <SelectTrigger ref={typeSelect} id={typeId} className="w-full bg-white">
                   <SelectValue placeholder="구분 선택" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={fontClassName}>
                   {SCHEDULE_TYPE_OPTIONS.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}
                 </SelectContent>
               </Select>

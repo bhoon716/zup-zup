@@ -28,6 +28,15 @@ const notoSansKr = localFont({
   variable: "--font-noto-sans-kr",
 });
 
+const scheduleFont = localFont({
+  src: "./fonts/NotoSansKR.woff2",
+  weight: "100 900",
+  style: "normal",
+  display: "swap",
+  preload: false,
+  variable: "--font-schedule-noto-sans-kr",
+});
+
 const geistMono = localFont({
   src: "./fonts/GeistMono.woff2",
   weight: "100 900",
@@ -109,7 +118,7 @@ export default function RootLayout({
   const jsonLd = generateWebsiteJsonLd();
 
   return (
-    <html lang="ko" className={`${notoSansKr.variable} ${geistMono.variable}`}>
+    <html lang="ko" className={`${notoSansKr.variable} ${scheduleFont.variable} ${geistMono.variable}`}>
       <head>
         <script
           type="application/ld+json"

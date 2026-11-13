@@ -243,6 +243,12 @@
   animation: shine 1.5s infinite;
 }
 
+@layer utilities {
+  .font-schedule {
+    font-family: var(--font-schedule-noto-sans-kr), sans-serif;
+  }
+}
+
 @utility custom-scrollbar {
   &::-webkit-scrollbar {
     width: 6px;

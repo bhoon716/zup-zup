@@ -13,7 +13,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
   const hasSchedules = Boolean(schedules?.length);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-4 sm:p-5 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
+    <div className="font-schedule bg-white dark:bg-gray-900 rounded-[2.5rem] p-4 sm:p-5 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
       <div className="flex justify-between items-center mb-3 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
