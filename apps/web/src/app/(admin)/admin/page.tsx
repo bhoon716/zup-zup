@@ -5,7 +5,7 @@ import { AlertCircle, CloudCog, Loader2, RefreshCcw, Users } from "lucide-react"
 import { useState } from "react";
 
 import { AdminOverview } from "@/features/admin/components/admin-overview";
-import { AdminStatCard } from "@/features/admin/components/admin-stat-card";
+import { AdminStatGroup } from "@/features/admin/components/admin-stat-group";
 import { AdminTrafficChart } from "@/features/admin/components/admin-traffic-chart";
 import { useSendTestNotification } from "@/features/admin/hooks/useAdminActions";
 import { useAdminDashboardSnapshot, useAdminNotificationTraffic } from "@/features/admin/hooks/useAdminDashboard";
@@ -84,39 +84,42 @@ export default function AdminDashboardPage() {
         isSendingTest={isSendingTest}
       />
 
-      <div className="mx-auto max-w-[1920px] space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <div className="grid gap-4 md:grid-cols-2 sm:gap-6">
-          <AdminStatCard title="크롤러 상태" icon={CloudCog}>
+      <div className="@container mx-auto max-w-[1920px] space-y-4 px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+        <div className="grid divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white @min-[680px]:grid-cols-2 @min-[680px]:divide-x @min-[680px]:divide-y-0">
+          <AdminStatGroup title="크롤러 상태" icon={CloudCog}>
             <div>
-              <dt className="text-sm font-medium text-slate-600">최근 크롤링</dt>
-              <dd className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
-                <span className={`rounded-full px-2.5 py-1 font-semibold ${status.badgeClass}`}>{status.label}</span>
-                {formatRelative(overview.lastCrawledAt)}
+              <dt className="text-xs font-medium text-slate-600 sm:text-sm">최근 크롤링</dt>
+              <dd className="mt-1.5">
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-sm font-semibold ${status.badgeClass}`}>
+                  <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+                  {status.label}
+                </span>
+                <span className="mt-1 block text-xs text-slate-600">{formatRelative(overview.lastCrawledAt)}</span>
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-slate-600">JBNU 평균 지연시간</dt>
-              <dd className="mt-1 text-lg font-bold tabular-nums text-slate-900">{latency}</dd>
+              <dt className="text-xs font-medium text-slate-600 sm:text-sm">JBNU 평균 지연시간</dt>
+              <dd className="mt-1 text-lg font-semibold tabular-nums text-slate-900">{latency}</dd>
             </div>
-          </AdminStatCard>
+          </AdminStatGroup>
 
-          <AdminStatCard title="사용자 및 빈자리 구독" icon={Users}>
+          <AdminStatGroup title="사용자 및 빈자리 구독" icon={Users}>
             <div>
-              <dt className="text-sm font-medium text-slate-600">누적 사용자</dt>
-              <dd className="mt-1 text-lg font-bold tabular-nums text-slate-900">
+              <dt className="text-xs font-medium text-slate-600 sm:text-sm">누적 사용자</dt>
+              <dd className="mt-1 text-lg font-semibold tabular-nums text-slate-900">
                 {overview.totalUsers.toLocaleString("ko-KR")}명
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-slate-600">활성 빈자리 구독</dt>
-              <dd className="mt-1 flex flex-wrap items-baseline gap-x-2">
-                <span className="text-lg font-bold tabular-nums text-slate-900">
+              <dt className="text-xs font-medium text-slate-600 sm:text-sm">활성 빈자리 구독</dt>
+              <dd className="mt-1">
+                <span className="block text-lg font-semibold tabular-nums text-slate-900">
                   {overview.totalActiveSubscriptions.toLocaleString("ko-KR")}건
                 </span>
-                <span className="text-xs font-medium text-slate-600">{year}학년도 {semesterLabel}</span>
+                <span className="block text-xs text-slate-600">{year}학년도 {semesterLabel}</span>
               </dd>
             </div>
-          </AdminStatCard>
+          </AdminStatGroup>
         </div>
 
         <AdminTrafficChart

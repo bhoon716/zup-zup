@@ -16,6 +16,12 @@ const SERIES = [
   { key: "announcement", label: "중요 공지", color: "bg-amber-500" },
 ] as const;
 
+const AXIS_INTERVALS = 4;
+
+function getBucketTotal(point: AdminTrafficPointResponse) {
+  return SERIES.reduce((total, { key }) => total + point[key], 0);
+}
+
 interface AdminTrafficChartProps {
   range: AdminTrafficRange;
   onRangeChange: (range: AdminTrafficRange) => void;
@@ -26,14 +32,16 @@ interface AdminTrafficChartProps {
 }
 
 export function AdminTrafficChart({ range, onRangeChange, traffic, isLoading, isError, onRetry }: AdminTrafficChartProps) {
+  const periodTotal = traffic?.reduce((total, point) => total + getBucketTotal(point), 0);
+
   return (
-    <section className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <section className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">알림 트래픽 분석</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900">알림 트래픽 분석</h2>
           <p className="mt-1 text-sm text-slate-600">한국 시간 기준으로 외부 채널 발송이 성공한 건수입니다.</p>
         </div>
-        <div role="group" aria-label="알림 발송 기간" className="flex gap-1 rounded-xl bg-slate-100 p-1">
+        <div role="group" aria-label="알림 발송 기간" className="flex gap-0.5 rounded-lg bg-slate-100 p-0.5">
           {RANGES.map(({ id, label }) => (
             <button
               key={id}
@@ -41,7 +49,7 @@ export function AdminTrafficChart({ range, onRangeChange, traffic, isLoading, is
               aria-pressed={range === id}
               onClick={() => onRangeChange(id)}
               className={cn(
-                "rounded-lg px-3.5 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                "rounded-md px-3 py-1.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                 range === id ? "bg-white text-primary shadow-sm" : "text-slate-600 hover:text-primary",
               )}
             >
@@ -51,14 +59,21 @@ export function AdminTrafficChart({ range, onRangeChange, traffic, isLoading, is
         </div>
       </div>
 
-      <ul aria-label="알림 종류" className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-700">
-        {SERIES.map(({ key, label, color }) => (
-          <li key={key} className="flex items-center gap-1.5">
-            <span className={cn("size-2.5 rounded-sm", color)} />
-            {label}
-          </li>
-        ))}
-      </ul>
+      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-t border-slate-100 pt-3">
+        <ul aria-label="알림 종류" className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-slate-700">
+          {SERIES.map(({ key, label, color }) => (
+            <li key={key} className="flex items-center gap-1.5">
+              <span aria-hidden="true" className={cn("size-2.5 rounded-sm", color)} />
+              {label}
+            </li>
+          ))}
+        </ul>
+        {periodTotal !== undefined && (
+          <p className="whitespace-nowrap text-sm text-slate-600">
+            기간 합계 <strong className="font-semibold tabular-nums text-slate-900">{periodTotal.toLocaleString("ko-KR")}건</strong>
+          </p>
+        )}
+      </div>
 
       {isError && (
         <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-slate-700" role="status">
@@ -76,17 +91,30 @@ export function AdminTrafficChart({ range, onRangeChange, traffic, isLoading, is
 }
 
 function TrafficBars({ traffic }: { traffic: AdminTrafficPointResponse[] }) {
-  const maxTraffic = Math.max(...traffic.map((point) => SERIES.reduce((sum, { key }) => sum + point[key], 0)), 1);
+  const peak = Math.max(...traffic.map(getBucketTotal));
+  const rawStep = Math.max(peak / AXIS_INTERVALS, 1);
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const tickStep = Math.ceil(rawStep / magnitude) * magnitude;
+  const axisMax = tickStep * AXIS_INTERVALS;
+  const ticks = Array.from({ length: AXIS_INTERVALS + 1 }, (_, index) => axisMax - index * tickStep);
   const labelIndices = new Set([0, Math.floor(traffic.length / 2), traffic.length - 1]);
 
   return (
-    <div className="relative mt-6">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 flex h-40 flex-col justify-between sm:h-52">
-        {[0, 1, 2, 3, 4].map((line) => (
-          <div key={line} className={line === 4 ? "border-t border-slate-300" : "border-t border-dashed border-slate-200"} />
+    <div className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 sm:gap-x-3">
+      <div aria-hidden="true" className="flex h-44 flex-col justify-between text-right text-xs leading-none tabular-nums text-slate-600 sm:h-60">
+        {ticks.map((tick) => (
+          <span key={tick} className="h-0 -translate-y-1.5">{tick.toLocaleString("ko-KR")}</span>
         ))}
       </div>
       <div className="relative flex items-start">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 flex h-44 flex-col justify-between sm:h-60">
+          {ticks.map((tick) => (
+            <div
+              key={tick}
+              className={tick === 0 ? "h-0 border-t border-slate-300" : "h-0 border-t border-dashed border-slate-200"}
+            />
+          ))}
+        </div>
         {traffic.map((point, index) => (
           <div className="min-w-0 flex-1" key={point.bucketStart}>
             <Tooltip delayDuration={100}>
@@ -94,14 +122,14 @@ function TrafficBars({ traffic }: { traffic: AdminTrafficPointResponse[] }) {
                 <button
                   type="button"
                   aria-label={`${point.label}, ${SERIES.map(({ key, label }) => `${label} ${point[key]}건`).join(", ")}`}
-                  className="flex h-40 w-full flex-col-reverse items-center rounded-t-sm focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-primary data-[state=delayed-open]:bg-slate-100/70 data-[state=instant-open]:bg-slate-100/70 sm:h-52"
+                  className="relative flex h-44 w-full flex-col-reverse items-center rounded-sm focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-primary data-[state=delayed-open]:bg-primary/5 data-[state=instant-open]:bg-primary/5 sm:h-60"
                 >
                   {SERIES.map(({ key, color }) => (
                     <span
                       aria-hidden="true"
                       className={cn("w-2/3 max-w-12", color)}
                       key={key}
-                      style={{ height: `${point[key] / maxTraffic * 100}%` }}
+                      style={{ height: `${point[key] / axisMax * 100}%` }}
                     />
                   ))}
                 </button>
