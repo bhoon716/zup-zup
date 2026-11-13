@@ -50,7 +50,7 @@ export function HeaderInbox({ userId }: { userId: number }) {
           <DropdownMenuLabel className="p-0 font-semibold text-foreground">
             최근 알림
           </DropdownMenuLabel>
-          <DropdownMenuItem asChild className="h-9 cursor-pointer font-medium text-primary hover:bg-accent focus:text-primary">
+          <DropdownMenuItem asChild className="h-9 cursor-pointer font-semibold text-primary hover:bg-accent focus:text-primary">
             <Link href="/notifications">
               모두 보기
               <ArrowRight aria-hidden="true" className="size-4 text-primary" />
