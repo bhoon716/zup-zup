@@ -92,7 +92,7 @@ export function Header() {
                   aria-label="메뉴 열기"
                   variant="ghost"
                   size="icon-lg"
-                  className="rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary"
+                  className="rounded-[8px] bg-primary/5 text-muted-foreground hover:bg-primary/10 hover:text-primary data-[state=open]:bg-primary/15 data-[state=open]:text-primary"
                 >
                   <Menu aria-hidden="true" className="size-5" />
                 </Button>
