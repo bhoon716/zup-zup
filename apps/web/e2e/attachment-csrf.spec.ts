@@ -15,6 +15,9 @@ async function prepareServer(context: BrowserContext, baseURL: string) {
     const csrf = request.headers()["x-csrf-token"];
     const authenticated = state.authenticated && request.headers().cookie?.includes(`SESSION=${state.session}`);
     if (path === "/api/v1/users/me") return route.fulfill({ status: authenticated ? 200 : 401, json: authenticated ? admin : { code: "A001" } });
+    if (path === "/api/v1/notifications/inbox") {
+      return route.fulfill({ json: { content: [], number: 0, totalPages: 0, totalElements: 0 } });
+    }
     if (path === "/api/auth/csrf") { state.csrfRequests += 1; return route.fulfill({ json: { token: state.session } }); }
     if (path === "/api/auth/logout" && request.method() === "POST") {
       if (!authenticated || csrf !== state.session) return route.fulfill({ status: 403, json: { code: "A003" } });
@@ -58,7 +61,7 @@ async function openAttachment(page: Page) {
 test("another tab relogin recovers a Blob CSRF failure on the next click without replay", async ({ context, page, baseURL }) => {
   const state = await prepareServer(context, baseURL!);
   await page.goto("/admin/feedbacks");
-  await page.getByRole("heading", { name: "[버그] 첨부 확인", exact: true }).click();
+  await page.getByRole("button", { name: /첨부 확인/ }).click();
   await openAttachment(page);
   await expect(page.getByRole("dialog", { name: "첨부파일 미리보기" })).toBeVisible();
   await page.keyboard.press("Escape");
@@ -90,7 +93,7 @@ test("permission denial and malformed Blob errors stay rejected without token re
   const state = await prepareServer(context, baseURL!);
   state.errorCode = "A002";
   await page.goto("/admin/feedbacks");
-  await page.getByRole("heading", { name: "[버그] 첨부 확인", exact: true }).click();
+  await page.getByRole("button", { name: /첨부 확인/ }).click();
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const denied = page.waitForResponse(response => response.url().endsWith("/attachments/9/download") && response.status() === 403);
     await openAttachment(page);
