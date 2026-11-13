@@ -40,6 +40,9 @@ for (const action of ["create", "update"] as const) {
         writeCsrfTokens.push(route.request().headers()["x-csrf-token"]);
       }
       if (path === "/api/v1/users/me") return fulfill(user);
+      if (path === "/api/v1/notifications/inbox" && method === "GET") {
+        return fulfill({ content: [], number: 0, totalPages: 0, totalElements: 0 });
+      }
       if (path === "/api/v1/courses/search-default-semester") return fulfill({ semester: course.semester });
       if (path === "/api/v1/courses/search") {
         searchCsrfTokens.push(route.request().headers()["x-csrf-token"]);

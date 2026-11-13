@@ -11,6 +11,8 @@ const user = {
   onboardingCompleted: true,
 };
 
+const emptyInbox = { content: [], number: 0, totalPages: 0, totalElements: 0 };
+
 test.describe.configure({ retries: 0 });
 
 test.beforeEach(async ({ page, baseURL }) => {
@@ -30,6 +32,9 @@ test("authenticated logout sends CSRF and clears the displayed and persisted use
     const path = new URL(request.url()).pathname;
     if (path === "/api/v1/users/me") {
       return route.fulfill({ status: authenticated ? 200 : 401, json: authenticated ? user : { code: "A001" } });
+    }
+    if (path === "/api/v1/notifications/inbox" && request.method() === "GET") {
+      return route.fulfill({ json: emptyInbox });
     }
     if (path === "/api/auth/csrf") { csrfRequests += 1; return route.fulfill({ json: { token: "logout-csrf" } }); }
     if (path === "/api/auth/logout" && request.method() === "POST") {
@@ -89,6 +94,9 @@ test("session expiry cancels a write waiting for an old CSRF response", async ({
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (path === "/api/v1/users/me") { await route.fulfill({ json: user }); return; }
+    if (path === "/api/v1/notifications/inbox" && request.method() === "GET") {
+      return route.fulfill({ json: emptyInbox });
+    }
     if (path === "/api/v1/subscriptions") { await route.fulfill({ json: [] }); return; }
     if (path === "/api/v1/users/devices") { await route.fulfill({ json: [] }); return; }
     if (path === "/api/auth/csrf") {
