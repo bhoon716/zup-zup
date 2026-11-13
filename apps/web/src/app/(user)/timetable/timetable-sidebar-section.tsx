@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, Clock3, Heart, Loader2, Trash2, Plus } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { cn } from "@/shared/lib/utils";
-import { formatDayOfWeek } from "@/shared/lib/formatters";
+import { formatClassTime, formatDayOfWeek } from "@/shared/lib/formatters";
 import { CreditStatsCard } from "@/features/timetable/components/credit-stats-card";
 import type { TimetablePageModel } from "./useTimetablePage";
 
@@ -179,7 +179,7 @@ export function TimetableSidebarSection({
                                 (schedule) =>
                                   `${formatDayOfWeek(String(schedule.dayOfWeek))} ${schedule.startTime}-${schedule.endTime}`
                               )
-                              .join(", ") || course.classTime || "시간 정보 없음"}
+                              .join(", ") || formatClassTime(course.classTime) || "시간 정보 없음"}
                           </p>
                           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
                             <span>{course.classroom || "강의실 미배정"}</span>
@@ -272,7 +272,9 @@ export function TimetableSidebarSection({
                               )}
                             </div>
                           </div>
-                          <p className="mt-1 text-xs text-muted-foreground">{course.classTime}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {formatClassTime(course.classTime) || "시간 정보 없음"}
+                          </p>
                           <div className="mt-0.5 text-xs text-muted-foreground">
                             <span>{course.classification}</span>
                           </div>

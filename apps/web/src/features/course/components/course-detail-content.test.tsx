@@ -35,9 +35,27 @@ describe("강의 상세 Clarity 경계", () => {
     }
   });
 
-  it("정규화한 강의 일정도 텍스트에만 예외를 적용한다", () => {
-    render(<CourseDetailContent course={{ ...course, schedules: [{ dayOfWeek: "월", startTime: "09:00", endTime: "10:00" }] }} unmaskPublicCourseInfo />);
+  it("구조화한 강의 일정이 있으면 해당 시간 텍스트에만 예외를 적용한다", () => {
+    render(<CourseDetailContent course={{
+      ...course,
+      classTime: "0",
+      schedules: [{ dayOfWeek: "월", startTime: "09:00", endTime: "10:00" }],
+    }} unmaskPublicCourseInfo />);
+
     expect(screen.getByText("월 09:00 ~ 10:00")).toHaveAttribute("data-clarity-unmask", "true");
     expect(screen.getByText("시간 및 장소")).not.toHaveAttribute("data-clarity-unmask");
+    expect(screen.queryByText("시간 미배정")).not.toBeInTheDocument();
+  });
+});
+
+describe("강의 상세 일정", () => {
+  it.each([
+    ["0", "시간 미배정"],
+    [" 0 ", "시간 미배정"],
+    ["월 0-A", "월 0-A"],
+  ])("일정 원본 %j의 표시값은 %j이다", (classTime, expected) => {
+    render(<CourseDetailContent course={{ ...course, classTime, schedules: [] }} />);
+
+    expect(screen.getByText(expected)).toBeVisible();
   });
 });
