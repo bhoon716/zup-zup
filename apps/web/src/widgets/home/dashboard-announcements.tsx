@@ -59,9 +59,9 @@ export function DashboardAnnouncements({ announcements }: { announcements?: Anno
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2.5">
                   {item.pinned ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-black text-indigo-600 dark:border-indigo-900/50 dark:bg-indigo-950/50">
-                      <Pin className="h-3 w-3" />
-                      고정
+                    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50">
+                      <Pin aria-hidden="true" className="size-3" />
+                      <span className="sr-only">고정 공지</span>
                     </span>
                   ) : null}
                   <h4 className="truncate text-sm font-bold text-gray-800 transition-colors group-hover:text-indigo-600 dark:text-gray-200">
