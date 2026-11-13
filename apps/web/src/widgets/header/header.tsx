@@ -25,7 +25,7 @@ import { cn } from "@/shared/lib/utils";
 import { HeaderInbox } from "./ui/header-inbox";
 import { mobileMenuHeadingClass, mobileMenuRowClass } from "./ui/mobile-menu-styles";
 import { NavLinks } from "./ui/nav-links";
-import { HeaderUserActions, HeaderMobileUserStatus } from "./ui/user-status";
+import { HeaderUserActions } from "./ui/user-status";
 
 export function Header() {
   const mobileMenuTriggerId = "header-mobile-menu-trigger";
@@ -74,7 +74,7 @@ export function Header() {
             aria-label="사용자 메뉴"
           >
             <HeaderUserActions
-              user={verifiedUser}
+              isLoggedIn={Boolean(verifiedUser)}
               isPending={isPending}
               onLogout={() => logout()}
               onLoginClick={closeMenu}
@@ -111,10 +111,13 @@ export function Header() {
                 </SheetHeader>
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                   <div className="grid shrink-0 gap-1 border-b border-border pb-3">
-                    <HeaderMobileUserStatus
-                      user={verifiedUser}
-                      onLinkClick={closeMenu}
-                    />
+                    {!verifiedUser && (
+                      <Button asChild className="h-10 w-full rounded-lg">
+                        <Link href="/login" onClick={closeMenu}>
+                          로그인하고 시작하기
+                        </Link>
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       onClick={() => {

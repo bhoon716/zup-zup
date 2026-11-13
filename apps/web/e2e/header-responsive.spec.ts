@@ -55,6 +55,7 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await page.goto("/notifications");
   const header = page.getByRole("banner");
   const inboxTrigger = header.getByRole("button", { name: inboxName });
+  const profile = header.getByRole("link", { name: "프로필", exact: true });
   const menuTrigger = header.getByRole("button", { name: "메뉴 열기" });
   const desktopNav = header.getByRole("navigation", { name: "주요 메뉴" });
   await expect(header.getByRole("button", { name: "로그아웃" })).toBeVisible();
@@ -64,6 +65,8 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
     await page.setViewportSize({ width, height: 1254 });
     const isCompact = width < 1280;
     await expect(inboxTrigger).toBeVisible();
+    await expect(profile).toBeVisible();
+    await expect(profile).toHaveAttribute("href", "/settings");
     if (isCompact) {
       await expect(menuTrigger).toBeVisible();
       await expect(desktopNav).toBeHidden();
@@ -90,14 +93,18 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
     expect(geometry, `${width}px 헤더`).toEqual({ pageWidth: width, controlsFit: true });
   }
 
+  await expect(desktopNav.getByRole("link", { name: "설정", exact: true })).toHaveCount(0);
   await desktopNav.getByRole("button", { name: "관리자" }).click();
+  await expect(page.getByRole("menuitem", { name: "설정 및 제어" })).toHaveAttribute("href", "/admin/settings");
   await expect(page.getByRole("menuitem", { name: "대시보드" })).toBeVisible();
   await page.keyboard.press("Escape");
 
   await page.setViewportSize({ width: 390, height: 500 });
   await menuTrigger.click();
   const compactMenu = page.getByRole("dialog");
-  await expect(compactMenu.getByText(`${admin.name} 님`)).toBeVisible();
+  await expect(compactMenu.getByText(admin.name, { exact: false })).toHaveCount(0);
+  await expect(compactMenu.getByRole("link", { name: "설정", exact: true })).toHaveCount(0);
+  await expect(compactMenu.getByRole("link", { name: "설정 및 제어" })).toHaveAttribute("href", "/admin/settings");
   await expect(compactMenu.getByRole("heading", { level: 3 })).toHaveText(["메뉴", "바로가기", "관리 메뉴"]);
   await expect(compactMenu.getByRole("link", { name: "대시보드" })).toHaveAttribute("href", "/admin");
   const logout = compactMenu.getByRole("button", { name: "로그아웃" });
@@ -106,6 +113,8 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await page.keyboard.press("Escape");
   await expect(compactMenu).toBeHidden();
   await expect(menuTrigger).toBeFocused();
+  await profile.click();
+  await expect(page).toHaveURL(/\/settings$/);
 });
 
 test("알림함 버튼은 열었을 때 최신 다섯 알림을 조회하고 전체 알림함으로 이동한다", async ({ page, baseURL }) => {

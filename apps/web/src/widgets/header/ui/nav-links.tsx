@@ -53,20 +53,12 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick }:
         </Link>
       </Button>
       {isLoggedIn && (
-        <>
-          <Button asChild variant="ghost" size="sm" className={navLinkClass}>
-            <Link href="/feedback" onClick={onLinkClick}>
-              <MessageCircle aria-hidden="true" />
-              <span className="text-sm font-medium">건의 / 버그</span>
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className={navLinkClass}>
-            <Link href="/settings" onClick={onLinkClick}>
-              <Settings aria-hidden="true" />
-              <span className="text-sm font-medium">설정</span>
-            </Link>
-          </Button>
-        </>
+        <Button asChild variant="ghost" size="sm" className={navLinkClass}>
+          <Link href="/feedback" onClick={onLinkClick}>
+            <MessageCircle aria-hidden="true" />
+            <span className="text-sm font-medium">건의 / 버그</span>
+          </Link>
+        </Button>
       )}
 
       <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} />

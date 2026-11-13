@@ -47,7 +47,7 @@ test("일정 하나로 대표 지정·수정·삭제·복원을 관리한다", a
     return route.fulfill({ status: 500, json: { code: "UNEXPECTED_TEST_API", message: path } });
   });
   await page.goto("/admin/schedules");
-  await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByText("관리자 님", { exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByRole("link", { name: "프로필", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "일정 추가" }).click();
   await page.getByRole("combobox", { name: "일정 구분" }).click();
   await page.getByRole("option", { name: "기타", exact: true }).click();

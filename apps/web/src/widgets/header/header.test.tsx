@@ -1,6 +1,5 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ReactNode } from "react";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
 
 import { Header } from "./header";
@@ -25,18 +24,12 @@ type MockNavLinksProps = {
   onLinkClick?: () => void;
 };
 
-type MockUserStatusProps = {
-  user: MockUser | null;
-  children?: ReactNode;
-};
-
 const {
   mockGetInbox,
   mockLogout,
   mockInstall,
   mockAuthStore,
   mockNavLinks,
-  mockDesktopUser,
 } = vi.hoisted(() => ({
   mockGetInbox: vi.fn(),
   mockLogout: vi.fn(),
@@ -47,7 +40,6 @@ const {
     isLoading: false,
   } as MockAuthStore,
   mockNavLinks: vi.fn(),
-  mockDesktopUser: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -83,15 +75,6 @@ vi.mock("./ui/nav-links", () => ({
   },
 }));
 
-vi.mock("./ui/user-status", () => ({
-  HeaderUserActions: (props: MockUserStatusProps) => {
-    mockDesktopUser(props);
-    return <div data-testid="desktop-user">{props.children}</div>;
-  },
-
-  HeaderMobileUserStatus: () => <div data-testid="mobile-user" />,
-}));
-
 describe("Header", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -120,7 +103,7 @@ describe("Header", () => {
     render(<Header />);
 
     expect(mockNavLinks).toHaveBeenCalledWith(expect.objectContaining({ isLoggedIn: false, isAdmin: false }));
-    expect(mockDesktopUser).toHaveBeenCalledWith(expect.objectContaining({ user: null }));
+    expect(screen.getByRole("link", { name: "로그인" })).toBeInTheDocument();
   });
 
   it("캐시된 사용자 정보만 있을 때는 로그인 전용 메뉴를 표시하지 않는다", () => {
@@ -138,13 +121,11 @@ describe("Header", () => {
     expect(mockNavLinks).toHaveBeenCalledWith(
       expect.objectContaining({ isLoggedIn: false, isAdmin: false })
     );
-    expect(mockDesktopUser).toHaveBeenCalledWith(
-      expect.objectContaining({ user: null })
-    );
+    expect(screen.queryByRole("link", { name: "프로필" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "알림함" })).not.toBeInTheDocument();
   });
 
-  it("서버 검증이 완료된 사용자만 사용자명과 관리자 메뉴를 표시한다", () => {
+  it("서버 검증이 완료된 사용자는 프로필 링크와 관리자 메뉴를 볼 수 있다", () => {
     mockAuthStore.user = {
       id: 1,
       email: "admin@test.com",
@@ -159,9 +140,7 @@ describe("Header", () => {
     expect(mockNavLinks).toHaveBeenCalledWith(
       expect.objectContaining({ isLoggedIn: true, isAdmin: true })
     );
-    expect(mockDesktopUser).toHaveBeenCalledWith(
-      expect.objectContaining({ user: mockAuthStore.user })
-    );
+    expect(screen.getByRole("link", { name: "프로필" })).toHaveAttribute("href", "/settings");
     expect(screen.getByRole("button", { name: "알림함" })).toBeInTheDocument();
   });
 

@@ -40,7 +40,7 @@ test("renders an authenticated admin feedback attachment preview", async ({ page
     return route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("fake-png") });
   });
   await page.goto("/admin/feedbacks");
-  await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByText("관리자 님", { exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByRole("link", { name: "프로필", exact: true })).toBeVisible();
   await page.getByText("첨부 확인").click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "첨부파일 1" }).click();

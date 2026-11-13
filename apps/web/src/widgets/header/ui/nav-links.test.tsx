@@ -17,7 +17,6 @@ describe("NavLinks", () => {
 
     expect(screen.getByText("내 시간표")).toBeInTheDocument();
     expect(screen.getByText("건의 / 버그")).toBeInTheDocument();
-    expect(screen.getByText("설정")).toBeInTheDocument();
   });
 
   it("로딩 완료 후 비로그인(isLoggedIn = false) 상태이면 로그인 전용 링크들을 숨긴다", () => {
