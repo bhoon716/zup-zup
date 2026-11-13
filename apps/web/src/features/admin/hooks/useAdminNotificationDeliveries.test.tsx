@@ -19,8 +19,8 @@ const delivery: AdminNotificationDeliveryResponse = {
 };
 const dlqPage: PageResponse<AdminNotificationDeliveryResponse> = {
   content: [delivery],
-  pageable: { pageNumber: 0, pageSize: 30, sort: { empty: true, sorted: false, unsorted: true } },
-  totalElements: 1, totalPages: 1, last: true, size: 30, number: 0, first: true, numberOfElements: 1, empty: false,
+  pageable: { pageNumber: 0, pageSize: 10, sort: { empty: true, sorted: false, unsorted: true } },
+  totalElements: 1, totalPages: 1, last: true, size: 10, number: 0, first: true, numberOfElements: 1, empty: false,
 };
 
 vi.mock("@/features/admin/api/admin.api", () => ({

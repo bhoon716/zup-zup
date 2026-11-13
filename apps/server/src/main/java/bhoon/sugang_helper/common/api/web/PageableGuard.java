@@ -20,11 +20,15 @@ public final class PageableGuard {
     }
 
     public static Pageable fixedSize(Pageable pageable) {
+        return fixedSize(pageable, PAGE_SIZE);
+    }
+
+    public static Pageable fixedSize(Pageable pageable, int pageSize) {
         if (pageable == null || !pageable.isPaged() || pageable.getPageNumber() < 0) {
             throw new CustomException(ErrorCode.INVALID_INPUT, "페이지 번호는 0 이상이어야 합니다.");
         }
-        return requireBounded(PageRequest.of(pageable.getPageNumber(), PAGE_SIZE, pageable.getSort()),
-                PAGE_SIZE, DEFAULT_MAX_OFFSET);
+        return requireBounded(PageRequest.of(pageable.getPageNumber(), pageSize, pageable.getSort()),
+                pageSize, DEFAULT_MAX_OFFSET);
     }
 
     public static Pageable requireBounded(Pageable pageable) {

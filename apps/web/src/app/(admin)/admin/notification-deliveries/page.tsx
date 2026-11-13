@@ -85,12 +85,17 @@ export default function AdminNotificationDeliveriesPage() {
     refetch: refetchDetail,
   } = useAdminNotificationDelivery(selectedId);
   const replayMutation = useReplayAdminNotificationDelivery();
-  const totalPages = dlqPage?.totalPages
-    ?? Math.max(1, Math.ceil((dlqPage?.totalElements ?? 0) / (dlqPage?.size ?? 30)));
+  const totalPages = dlqPage?.totalPages ?? 0;
+  const lastPage = Math.max(totalPages - 1, 0);
+
+  if (dlqPage && !isListFetching && !isListError && page > lastPage) {
+    setSelectedId(null);
+    setPage(lastPage);
+  }
 
   const moveToPage = (nextPage: number) => {
     setSelectedId(null);
-    setPage(Math.min(Math.max(nextPage, 0), Math.max(totalPages - 1, 0)));
+    setPage(Math.min(Math.max(nextPage, 0), lastPage));
   };
 
   const refreshDeliveries = () => {

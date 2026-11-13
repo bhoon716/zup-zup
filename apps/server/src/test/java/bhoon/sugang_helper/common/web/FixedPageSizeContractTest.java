@@ -11,7 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bhoon.sugang_helper.campus.announcement.controller.AnnouncementController;
 import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
+import bhoon.sugang_helper.seatalert.notification.controller.AdminNotificationDeliveryController;
 import bhoon.sugang_helper.seatalert.notification.controller.NotificationController;
+import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
@@ -42,14 +44,35 @@ class FixedPageSizeContractTest {
 
     @Mock private AdminFeedbackService feedback;
 
+    @Mock private AdminNotificationDeliveryService deliveries;
+
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.standaloneSetup(new AnnouncementController(announcements),
-                        new NotificationController(notifications), new AdminFeedbackController(feedback))
+                        new NotificationController(notifications), new AdminFeedbackController(feedback),
+                        new AdminNotificationDeliveryController(deliveries))
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
+    }
+
+    @ParameterizedTest
+    @DisplayName("관리자 DLQ 두 번째 페이지는 요청한 크기와 관계없이 10건씩 조회한다")
+    @ValueSource(strings = {"1", "100", "-1", "invalid"})
+    void fixesDlqSizeAndOffset(String size) throws Exception {
+        // given
+        when(deliveries.getDeadLetters(any()))
+                .thenAnswer(invocation -> new PageImpl<>(List.of(), invocation.getArgument(0), 21));
+
+        // when & then
+        mvc.perform(get("/api/v1/admin/notification-deliveries/dlq").param("page", "1").param("size", size))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.number").value(1))
+                .andExpect(jsonPath("$.pageable.offset").value(10))
+                .andExpect(jsonPath("$.totalElements").value(21))
+                .andExpect(jsonPath("$.totalPages").value(3));
     }
 
     @ParameterizedTest

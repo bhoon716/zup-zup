@@ -22,12 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminNotificationDeliveryController {
 
+    private static final int DLQ_PAGE_SIZE = 10;
+
     private final AdminNotificationDeliveryService notificationDeliveryService;
 
     @GetMapping("/dlq")
     public ResponseEntity<Page<AdminNotificationDeliveryResponse>> getDeadLetters(
             Pageable pageable) {
-        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
+        Pageable fixedPageable = PageableGuard.fixedSize(pageable, DLQ_PAGE_SIZE);
         return ResponseEntity.ok(notificationDeliveryService.getDeadLetters(fixedPageable));
     }
 
