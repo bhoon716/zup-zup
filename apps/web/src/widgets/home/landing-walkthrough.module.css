@@ -103,9 +103,12 @@
     --chapter-scroll-distance: clamp(3rem, 4.5svh, 3.75rem);
   }
 
-  .story[data-active-chapter] .stage {
+  .story[data-active-chapter] .pinnedContent {
     position: sticky;
-    top: max(4.75rem, var(--inset-to-reach-end, 0px));
+    top: max(4.25rem, var(--inset-to-reach-end, 0px));
+  }
+
+  .story[data-active-chapter] .stage {
     gap: 0.75rem;
     grid-template-rows: auto auto;
   }
@@ -148,7 +151,6 @@
 
   @media (min-width: 48rem) {
     .story[data-active-chapter] .stage {
-      top: max(5.25rem, var(--inset-to-reach-end, 0px));
       grid-template-rows: auto;
     }
 

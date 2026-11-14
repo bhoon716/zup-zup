@@ -115,17 +115,20 @@ const chapters = [
 
 export function LandingWalkthrough() {
   const storyRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<HTMLOListElement>(null);
+  const pinnedContentRef = useRef<HTMLDivElement>(null);
   const runwayRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const story = storyRef.current;
-    const stage = stageRef.current;
+    const pinnedContent = pinnedContentRef.current;
     const runway = runwayRef.current;
-    if (!story || !stage || !runway) return;
+    if (!story || !pinnedContent || !runway) return;
 
-    const stickyLayout = window.matchMedia("(min-height: 36rem) and (prefers-reduced-motion: no-preference)");
+    const stickyLayout = window.matchMedia(
+      "(min-width: 48rem) and (min-height: 36rem) and (prefers-reduced-motion: no-preference), " +
+      "(min-height: 44rem) and (prefers-reduced-motion: no-preference)",
+    );
     let frame = 0;
     let lastInset = NaN;
     const updateChapter = () => {
@@ -147,11 +150,11 @@ export function LandingWalkthrough() {
       const distance = Math.min(runwayHeight, maxScroll);
       const insetToReachEnd = Math.ceil(storyTop + window.scrollY + distance - maxScroll);
       if (insetToReachEnd !== lastInset) {
-        stage.style.setProperty("--inset-to-reach-end", `${insetToReachEnd}px`);
+        pinnedContent.style.setProperty("--inset-to-reach-end", `${insetToReachEnd}px`);
         lastInset = insetToReachEnd;
       }
 
-      const inset = Number.parseFloat(getComputedStyle(stage).top);
+      const inset = Number.parseFloat(getComputedStyle(pinnedContent).top);
       const progress = distance > 0 ? (inset - storyTop) / distance : 0;
       setActiveIndex(Math.min(chapters.length - 1, Math.max(0, Math.floor(progress * chapters.length))));
     };
@@ -180,40 +183,41 @@ export function LandingWalkthrough() {
 
   return (
     <section aria-labelledby="landing-walkthrough-title" className="mx-auto w-full max-w-[1200px] px-6 pb-12 md:pb-16">
-      <div className="mb-5 border-t pt-8 lg:mb-6">
-        <h2 id="landing-walkthrough-title" className="text-2xl font-bold tracking-tight md:text-3xl">
-          줍줍으로 수강신청 준비하기
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base">
-          분반별 여석을 확인하고, 마감된 분반에는 빈자리 알림을 등록하세요.
-        </p>
-      </div>
-
       <div ref={storyRef} className={styles.story} data-active-chapter={activeChapter?.id}>
-        <ol ref={stageRef} className={styles.stage} data-testid="landing-walkthrough-stage" role="list">
-          {chapters.map(({ id, title, description, Icon, Preview }, index) => (
-            <li key={id} className={styles.chapter} aria-current={index === activeIndex ? "step" : undefined}>
-              <div className={styles.copy}>
-                <div className={styles.stepMark} aria-hidden="true">
-                  <Icon className="size-[18px]" />
+        <div ref={pinnedContentRef} className={styles.pinnedContent} data-testid="landing-walkthrough-pin">
+          <div className="mb-5 border-t pt-8 lg:mb-6">
+            <h2 id="landing-walkthrough-title" className="text-2xl font-bold tracking-tight md:text-3xl">
+              줍줍으로 수강신청 준비하기
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base">
+              분반별 여석을 확인하고, 마감된 분반에는 빈자리 알림을 등록하세요.
+            </p>
+          </div>
+          <ol className={styles.stage} data-testid="landing-walkthrough-stage" role="list">
+            {chapters.map(({ id, title, description, Icon, Preview }, index) => (
+              <li key={id} className={styles.chapter} aria-current={index === activeIndex ? "step" : undefined}>
+                <div className={styles.copy}>
+                  <div className={styles.stepMark} aria-hidden="true">
+                    <Icon className="size-[18px]" />
+                  </div>
+                  <h3 className="mt-3 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
+                  <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
                 </div>
-                <h3 className="mt-3 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
-                <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
-              </div>
 
-              <div className={styles.frame} aria-hidden="true">
-                <div className={styles.frameBar}>
-                  <span>줍줍 미리보기</span>
-                  <span className={styles.example}>화면 예시</span>
+                <div className={styles.frame} aria-hidden="true">
+                  <div className={styles.frameBar}>
+                    <span>줍줍 미리보기</span>
+                    <span className={styles.example}>화면 예시</span>
+                  </div>
+                  <div className={styles.scene}><Preview /></div>
+                  <div className={styles.progress}>
+                    {chapters.map(({ id: stepId }, step) => <span key={stepId} data-complete={step <= index || undefined} />)}
+                  </div>
                 </div>
-                <div className={styles.scene}><Preview /></div>
-                <div className={styles.progress}>
-                  {chapters.map(({ id: stepId }, step) => <span key={stepId} data-complete={step <= index || undefined} />)}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ol>
+              </li>
+            ))}
+          </ol>
+        </div>
         <div ref={runwayRef} className={styles.runway} style={{ height: `calc(${chapters.length} * var(--chapter-scroll-distance))` }} aria-hidden="true" />
       </div>
     </section>

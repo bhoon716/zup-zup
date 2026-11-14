@@ -48,26 +48,28 @@ for (const viewport of [
   { width: 1440, height: 880 },
   { width: 1440, height: 1600 },
 ]) {
-  test(`${viewport.width}×${viewport.height}에서 위아래로 스크롤하면 같은 자리에서 설명과 예시가 함께 바뀐다`, async ({ page, baseURL }) => {
+  test(`${viewport.width}×${viewport.height}에서 제목과 예시가 한 자리에 고정되고 단계가 바뀐다`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport);
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
       ? route.continue() : route.abort());
     await page.goto("/");
 
+    const pin = page.getByTestId("landing-walkthrough-pin");
     const stage = page.getByTestId("landing-walkthrough-stage");
+    const title = pin.getByRole("heading", { level: 2 });
     const search = { heading: "강의 검색", marker: "여석 2" };
     const registration = { heading: "빈자리 알림 등록", marker: "등록 완료" };
     const notification = { heading: "빈자리 알림", marker: "수강신청 빈자리가 생겼어요!" };
 
     async function readChapter(progress: number, chapter: typeof search, previous: typeof search) {
-      await stage.evaluate((element, fraction) => {
+      await pin.evaluate((element, fraction) => {
         const track = element.parentElement;
         if (!track) throw new Error("소개 영역을 찾지 못했습니다.");
         const { top, height } = track.getBoundingClientRect();
-        const stageHeight = element.getBoundingClientRect().height;
+        const pinnedHeight = element.getBoundingClientRect().height;
         const stickyInset = Number.parseFloat(getComputedStyle(element).top);
-        window.scrollBy(0, top - stickyInset + (height - stageHeight) * fraction);
+        window.scrollBy(0, top - stickyInset + (height - pinnedHeight) * fraction);
       }, progress);
 
       const copy = stage.getByRole("listitem").filter({
@@ -81,21 +83,28 @@ for (const viewport of [
       await expect(stage.getByText(previous.marker, { exact: true })).toBeHidden();
     }
 
-    await expect(stage).toHaveCSS("position", "sticky");
+    await expect(pin).toHaveCSS("position", "sticky");
     await expect(stage.getByRole("heading", { level: 3 })).toHaveText([
       search.heading,
       registration.heading,
       notification.heading,
     ]);
     await readChapter(0.18, search, registration);
-    await expect(stage).toBeInViewport({ ratio: 1 });
-    const pinned = await stage.boundingBox();
-    if (!pinned) throw new Error("고정된 소개 화면이 보이지 않습니다.");
+    await expect(pin).toBeInViewport({ ratio: 1 });
+    const pinnedStage = await stage.boundingBox();
+    const pinnedTitle = await title.boundingBox();
+    const header = await page.getByRole("banner").boundingBox();
+    if (!pinnedStage || !pinnedTitle || !header) throw new Error("고정된 소개 화면이 보이지 않습니다.");
+    expect(pinnedTitle.y).toBeGreaterThan(header.y + header.height);
+    if (viewport.width === 831 && viewport.height === 923) {
+      expect(pinnedTitle.y).toBeCloseTo(101, 0);
+    }
     const expectPinnedStage = async () => {
-      await expect(stage).toBeInViewport({ ratio: 1 });
-      const current = await stage.boundingBox();
-      expect(current?.y).toBeCloseTo(pinned.y, 0);
-      expect(current?.height).toBeCloseTo(pinned.height, 0);
+      await expect(pin).toBeInViewport({ ratio: 1 });
+      const currentStage = await stage.boundingBox();
+      expect(currentStage?.y).toBeCloseTo(pinnedStage.y, 0);
+      expect(currentStage?.height).toBeCloseTo(pinnedStage.height, 0);
+      expect((await title.boundingBox())?.y).toBeCloseTo(pinnedTitle.y, 0);
     };
 
     await readChapter(0.5, registration, search);
