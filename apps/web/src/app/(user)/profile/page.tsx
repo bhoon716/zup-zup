@@ -2,6 +2,8 @@
 
 import { Bell, Bookmark, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useWithdraw } from "@/features/user/hooks/useUser";
+import { Button } from "@/shared/ui/button";
 import { ProfileScreen } from "./profile-screen";
 
 const settingsLinks = [
@@ -10,6 +12,8 @@ const settingsLinks = [
 ];
 
 export default function ProfilePage() {
+  const { mutate: withdraw, isPending: isWithdrawing } = useWithdraw();
+
   return (
     <ProfileScreen title="프로필">
       {(user) => (
@@ -34,6 +38,21 @@ export default function ProfilePage() {
               ))}
             </ul>
           </nav>
+          <div className="mt-6">
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              disabled={isWithdrawing}
+              onClick={() => {
+                if (window.confirm("계정을 삭제할까요? 삭제한 계정은 다시 사용할 수 없으며 모든 기기에서 로그아웃됩니다.")) {
+                  withdraw();
+                }
+              }}
+            >
+              {isWithdrawing ? "계정 삭제 중…" : "계정 삭제"}
+            </Button>
+          </div>
         </>
       )}
     </ProfileScreen>
