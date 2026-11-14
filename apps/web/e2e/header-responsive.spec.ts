@@ -2,10 +2,13 @@ import { expect, test } from "@playwright/test";
 
 const inboxPath = "/api/v1/notifications/inbox";
 const inboxName = "알림함";
+const desktopInstallName = "공유 → 홈 추가";
+const settingsMenuName = "설정 메뉴";
+const backToSettingsName = "설정으로 돌아가기";
 
 test.use({ userAgent: "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15" });
 
-test("비로그인 프로필 방문에서 공개 헤더는 즉시 표시되고 프로필은 로그인 상태를 확인한다", async ({ page }) => {
+test("비로그인 설정 방문에서 공개 헤더는 즉시 표시되고 설정은 로그인 상태를 확인한다", async ({ page }) => {
   let finishProfile = () => {};
   const inboxRequests: string[] = [];
   page.on("request", (request) => {
@@ -23,19 +26,24 @@ test("비로그인 프로필 방문에서 공개 헤더는 즉시 표시되고 �
     await page.goto("/profile", { waitUntil: "domcontentloaded" });
     await profileRequest;
     const header = page.getByRole("banner");
-    await expect(header.getByRole("link", { name: "로그인", exact: true })).toBeVisible();
+    const login = header.getByRole("link", { name: "로그인", exact: true });
+    const install = header.getByRole("button", { name: desktopInstallName });
+    await expect(login).toBeVisible();
+    await install.focus();
+    await page.keyboard.press("Tab");
+    await expect(login).toBeFocused();
     await expect(header.getByRole("link", { name: "강의 검색" })).toBeVisible();
     await expect(header.getByRole("link", { name: "내 시간표" })).toHaveCount(0);
     await expect(header.locator(".animate-pulse")).toHaveCount(0);
     await expect(header.getByRole("button", { name: inboxName })).toHaveCount(0);
     await expect(main.getByRole("status")).toHaveText("로그인 상태를 확인하는 중입니다.");
-    await expect(main.getByRole("navigation", { name: "프로필 설정" })).toHaveCount(0);
+    await expect(main.getByRole("navigation", { name: settingsMenuName })).toHaveCount(0);
     expect(inboxRequests).toEqual([]);
   } finally {
     finishProfile();
   }
   await expect(main.getByRole("link", { name: "로그인", exact: true })).toHaveAttribute("href", "/login");
-  await expect(main.getByRole("navigation", { name: "프로필 설정" })).toHaveCount(0);
+  await expect(main.getByRole("navigation", { name: settingsMenuName })).toHaveCount(0);
 });
 
 test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼이 겹치지 않는다", async ({ page, baseURL }) => {
@@ -60,7 +68,8 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await page.goto("/notifications");
   const header = page.getByRole("banner");
   const inboxTrigger = header.getByRole("button", { name: inboxName });
-  const profile = header.getByRole("link", { name: "프로필", exact: true });
+  const settings = header.getByRole("link", { name: "설정", exact: true });
+  const install = header.getByRole("button", { name: desktopInstallName });
   const menuTrigger = header.getByRole("button", { name: "메뉴 열기" });
   const desktopNav = header.getByRole("navigation", { name: "주요 메뉴" });
   await expect(header.getByRole("button", { name: "로그아웃" })).toBeVisible();
@@ -70,15 +79,22 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
     await page.setViewportSize({ width, height: 1254 });
     const isCompact = width < 1280;
     await expect(inboxTrigger).toBeVisible();
-    await expect(profile).toBeVisible();
-    await expect(profile).toHaveAttribute("href", "/profile");
+    await expect(settings).toBeVisible();
+    await expect(settings).toHaveAttribute("href", "/profile");
     if (isCompact) {
       await expect(menuTrigger).toBeVisible();
       await expect(desktopNav).toBeHidden();
+      await expect(install).toBeHidden();
     } else {
       await expect(menuTrigger).toBeHidden();
       await expect(desktopNav).toBeVisible();
-      await expect(header.getByRole("button", { name: "공유 → 홈 추가" })).toBeVisible();
+      await expect(install).toBeVisible();
+      const inboxRight = await inboxTrigger.evaluate((button) => button.getBoundingClientRect().right);
+      const installLeft = await install.evaluate((button) => button.getBoundingClientRect().left);
+      expect(installLeft).toBeGreaterThanOrEqual(inboxRight);
+      await inboxTrigger.focus();
+      await page.keyboard.press("Tab");
+      await expect(install).toBeFocused();
       await expect(header.getByRole("button", { name: "로그아웃" })).toBeVisible();
     }
 
@@ -107,6 +123,7 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await page.setViewportSize({ width: 390, height: 500 });
   await menuTrigger.click();
   const compactMenu = page.getByRole("dialog");
+  await expect(compactMenu.getByRole("button", { name: "홈 화면에 추가 안내" })).toBeVisible();
   await expect(compactMenu.getByText(admin.name, { exact: false })).toHaveCount(0);
   await expect(compactMenu.getByRole("link", { name: "설정", exact: true })).toHaveCount(0);
   await expect(compactMenu.getByRole("link", { name: "설정 및 제어" })).toHaveAttribute("href", "/admin/settings");
@@ -118,24 +135,29 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await page.keyboard.press("Escape");
   await expect(compactMenu).toBeHidden();
   await expect(menuTrigger).toBeFocused();
-  await profile.click();
+  await settings.click();
   await expect(page).toHaveURL(/\/profile$/);
   const main = page.getByRole("main");
-  await expect(main.getByRole("heading", { name: "프로필", exact: true })).toBeVisible();
-  await expect(main.getByText(admin.name, { exact: true })).toBeVisible();
-  await expect(main.getByText(admin.email, { exact: true })).toBeVisible();
+  await expect(main.getByRole("heading", { name: "설정", exact: true })).toBeVisible();
+  await expect(main.getByText(admin.name, { exact: true })).toHaveCount(0);
+  await expect(main.getByText(admin.email, { exact: true })).toHaveCount(0);
+  await expect(main.getByText("탈퇴한 계정은 다시 사용할 수 없습니다.", { exact: true })).toHaveCount(0);
+  await main.getByRole("button", { name: "회원 탈퇴" }).click();
+  const withdrawDialog = page.getByRole("alertdialog", { name: "회원 탈퇴를 진행할까요?" });
+  await expect(withdrawDialog).toHaveAccessibleDescription("탈퇴한 계정은 다시 사용할 수 없고 모든 기기에서 로그아웃됩니다.");
+  await withdrawDialog.getByRole("button", { name: "취소" }).click();
 
   await main.getByRole("link", { name: "알림 설정", exact: true }).press("Enter");
   await expect(page).toHaveURL(/\/settings$/);
   await expect(main.getByRole("heading", { name: "알림 설정", exact: true })).toBeVisible();
   await expect(main.getByRole("heading", { name: "구독 중인 강의", exact: true })).toHaveCount(0);
-  await main.getByRole("link", { name: "프로필로 돌아가기" }).click();
+  await main.getByRole("link", { name: backToSettingsName }).click();
 
   await main.getByRole("link", { name: "구독 설정", exact: true }).click();
   await expect(page).toHaveURL(/\/profile\/subscriptions$/);
   await expect(main.getByRole("heading", { name: "구독 설정", exact: true })).toBeVisible();
   await expect(main.getByText("구독 중인 강의가 없습니다.", { exact: true })).toBeVisible();
-  await main.getByRole("link", { name: "프로필로 돌아가기" }).click();
+  await main.getByRole("link", { name: backToSettingsName }).click();
   await expect(page).toHaveURL(/\/profile$/);
 });
 

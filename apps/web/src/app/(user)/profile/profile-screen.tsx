@@ -28,7 +28,7 @@ export function ProfileScreen({ children, title, navigation }: {
       )}
       {!user && hasCheckedSession && (
         <div className="space-y-3 rounded-xl border bg-card p-4 sm:p-5">
-          <p className="text-sm text-muted-foreground">로그인하면 {title}을 확인할 수 있습니다.</p>
+          <p className="text-sm text-muted-foreground">설정을 보려면 로그인하세요.</p>
           <Button asChild>
             <Link href="/login">로그인</Link>
           </Button>

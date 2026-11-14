@@ -14,7 +14,7 @@ export default function SubscriptionSettingsPage() {
         <Button asChild variant="ghost" size="sm" className="-ml-2.5 mb-3 text-muted-foreground">
           <Link href="/profile">
             <ArrowLeft aria-hidden="true" />
-            프로필로 돌아가기
+            설정으로 돌아가기
           </Link>
         </Button>
       )}

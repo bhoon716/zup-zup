@@ -69,11 +69,11 @@ test("another tab relogin recovers a Blob CSRF failure on the next click without
   const other = await context.newPage();
   await other.goto("/login");
   const otherMenu = other.getByRole("group", { name: "사용자 메뉴", exact: true });
-  await expect(otherMenu.getByRole("link", { name: "프로필", exact: true })).toBeVisible();
+  await expect(otherMenu.getByRole("link", { name: "설정", exact: true })).toBeVisible();
   await otherMenu.getByRole("button", { name: "로그아웃", exact: true }).click();
   await expect(otherMenu.getByRole("link", { name: "로그인", exact: true })).toBeVisible();
   await other.goto("/oauth2/authorization/google");
-  await expect(otherMenu.getByRole("link", { name: "프로필", exact: true })).toBeVisible();
+  await expect(otherMenu.getByRole("link", { name: "설정", exact: true })).toBeVisible();
   expect(state.logoutRequests).toBe(1);
 
   await openAttachment(page);
@@ -111,5 +111,5 @@ test("permission denial and malformed Blob errors stay rejected without token re
   expect(state.unexpected).toEqual([]);
   await expect(page.getByText("로그인 상태가 변경되었습니다. 다시 시도해 주세요.", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("dialog", { name: "첨부파일 미리보기" })).toHaveCount(0);
-  await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByRole("link", { name: "프로필", exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByRole("link", { name: "설정", exact: true })).toBeVisible();
 });

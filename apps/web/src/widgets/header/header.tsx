@@ -41,6 +41,16 @@ export function Header() {
   }
 
   const closeMenu = () => setIsMenuOpen(false);
+  const installButton = (
+    <Button
+      onClick={install}
+      variant="outline"
+      className="hidden rounded-xl border-primary/20 bg-primary/10 leading-5 text-primary hover:bg-primary/20 hover:text-primary xl:inline-flex"
+    >
+      <Download aria-hidden="true" />
+      {platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}
+    </Button>
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md">
@@ -59,17 +69,10 @@ export function Header() {
         </div>
 
         <div role="group" aria-label="헤더 액션" className="flex shrink-0 items-center gap-2">
-          <Button
-            onClick={install}
-            variant="outline"
-            className="hidden rounded-xl border-primary/20 bg-primary/10 leading-5 text-primary hover:bg-primary/20 hover:text-primary xl:inline-flex"
-          >
-            <Download aria-hidden="true" />
-            {platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}
-          </Button>
+          {!verifiedUser && installButton}
 
           <div
-            className={cn("items-center xl:flex xl:border-l xl:pl-3", verifiedUser ? "flex" : "hidden")}
+            className={cn("items-center", verifiedUser ? "flex" : "hidden xl:flex xl:border-l xl:pl-3")}
             role="group"
             aria-label="사용자 메뉴"
           >
@@ -80,6 +83,7 @@ export function Header() {
               onLoginClick={closeMenu}
             >
               {verifiedUser && <HeaderInbox key={verifiedUser.id} userId={verifiedUser.id} />}
+              {verifiedUser && installButton}
             </HeaderUserActions>
           </div>
 

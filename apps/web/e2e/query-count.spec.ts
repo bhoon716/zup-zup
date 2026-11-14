@@ -51,7 +51,7 @@ test("검색에서는 시간표 메뉴를 열 때만 조회하고 다시 열면 
   await page.addInitScript(() => localStorage.setItem("course-guide-modal-seen-v1", "seen"));
 
   await page.goto("/search");
-  await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByRole("link", { name: "프로필", exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByRole("link", { name: "설정", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: course.name, exact: true })).toBeVisible();
   const initialReads = timetableReads;
 

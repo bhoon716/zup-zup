@@ -48,12 +48,12 @@ test("authenticated logout sends CSRF and clears the displayed and persisted use
   });
   await page.goto("/login");
   const menu = page.getByRole("group", { name: "사용자 메뉴", exact: true });
-  await expect(menu.getByRole("link", { name: "프로필", exact: true })).toBeVisible();
+  await expect(menu.getByRole("link", { name: "설정", exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("auth-storage")!).state.user.id)).toBe(user.id);
   await menu.getByRole("button", { name: "로그아웃", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(menu.getByRole("link", { name: "로그인", exact: true })).toBeVisible();
-  await expect(menu.getByRole("link", { name: "프로필", exact: true })).toHaveCount(0);
+  await expect(menu.getByRole("link", { name: "설정", exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("auth-storage")!).state.user)).toBeNull();
   expect({ csrfRequests, logoutRequests, logoutCsrf }).toEqual({ csrfRequests: 1, logoutRequests: 1, logoutCsrf: "logout-csrf" });
   expect(unexpected).toEqual([]);
@@ -115,7 +115,7 @@ test("session expiry cancels a write waiting for an old CSRF response", async ({
   try {
     await page.goto("/settings");
     const menu = page.getByRole("group", { name: "사용자 메뉴", exact: true });
-    await expect(menu.getByRole("link", { name: "프로필", exact: true })).toBeVisible();
+    await expect(menu.getByRole("link", { name: "설정", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "알림 테스트", exact: true }).click();
     await csrfRequested;
     expect(notificationRequests).toBe(0);

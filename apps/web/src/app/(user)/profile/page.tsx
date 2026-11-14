@@ -27,14 +27,10 @@ export default function ProfilePage() {
   const { mutate: withdraw, isPending: isWithdrawing, isError: withdrawFailed, reset: resetWithdraw } = useWithdraw();
 
   return (
-    <ProfileScreen title="프로필">
-      {(user) => (
+    <ProfileScreen title="설정">
+      {() => (
         <>
-          <div className="mb-5 wrap-anywhere sm:mb-6">
-            <p className="font-semibold">{user.name}</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">{user.email}</p>
-          </div>
-          <nav aria-label="프로필 설정" className="rounded-xl border bg-card">
+          <nav aria-label="설정 메뉴" className="rounded-xl border bg-card">
             <ul className="divide-y">
               {settingsLinks.map(({ href, label, icon: Icon }) => (
                 <li key={href} className="first:[&>a]:rounded-t-xl last:[&>a]:rounded-b-xl">
@@ -60,10 +56,7 @@ export default function ProfilePage() {
               }}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 id="account-management" className="text-sm font-semibold">계정 관리</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">탈퇴한 계정은 다시 사용할 수 없습니다.</p>
-                </div>
+                <h2 id="account-management" className="text-sm font-semibold">계정 관리</h2>
                 <DialogTrigger asChild>
                   <Button type="button" variant="outline" className="text-destructive hover:text-destructive">
                     회원 탈퇴

@@ -121,11 +121,11 @@ describe("Header", () => {
     expect(mockNavLinks).toHaveBeenCalledWith(
       expect.objectContaining({ isLoggedIn: false, isAdmin: false })
     );
-    expect(screen.queryByRole("link", { name: "프로필" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "설정" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "알림함" })).not.toBeInTheDocument();
   });
 
-  it("서버 검증이 완료된 사용자는 프로필 링크와 관리자 메뉴를 볼 수 있다", () => {
+  it("서버 검증이 완료된 사용자는 설정 링크와 관리자 메뉴를 볼 수 있다", () => {
     mockAuthStore.user = {
       id: 1,
       email: "admin@test.com",
@@ -140,7 +140,7 @@ describe("Header", () => {
     expect(mockNavLinks).toHaveBeenCalledWith(
       expect.objectContaining({ isLoggedIn: true, isAdmin: true })
     );
-    expect(screen.getByRole("link", { name: "프로필" })).toHaveAttribute("href", "/profile");
+    expect(screen.getByRole("link", { name: "설정" })).toHaveAttribute("href", "/profile");
     expect(screen.getByRole("button", { name: "알림함" })).toBeInTheDocument();
   });
 
