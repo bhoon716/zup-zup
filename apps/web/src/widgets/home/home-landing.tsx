@@ -8,8 +8,8 @@ import { LandingWalkthrough } from "./landing-walkthrough";
 import styles from "./landing-walkthrough.module.css";
 
 const statistics = [
-  { label: "누적 가입자", count: 687, unit: "명" },
-  { label: "빈자리 알림 발송 성공", count: 7038, unit: "건" },
+  { label: "누적 가입자", minimum: 680, unit: "명" },
+  { label: "빈자리 알림 발송 성공", minimum: 7000, unit: "건" },
 ];
 const countFormatter = new Intl.NumberFormat("ko-KR");
 
@@ -131,11 +131,11 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
       </section>
       <section aria-label="서비스 이용 통계" className="mx-auto w-full max-w-[1200px] px-6 pb-12 md:pb-16">
         <dl className="grid grid-cols-2 divide-x rounded-2xl border bg-card">
-          {statistics.map(({ label, count, unit }) => (
+          {statistics.map(({ label, minimum, unit }) => (
             <div key={label} className="px-4 py-5 sm:px-7 sm:py-6">
               <dt className="break-keep text-sm text-muted-foreground">{label}</dt>
               <dd className="mt-1.5 text-2xl font-bold tabular-nums text-primary sm:text-4xl">
-                {countFormatter.format(count)}<span className="ml-1 text-sm font-medium">{unit}</span>
+                {countFormatter.format(minimum)}+<span className="ml-1 text-sm font-medium">{unit}</span>
               </dd>
             </div>
           ))}
