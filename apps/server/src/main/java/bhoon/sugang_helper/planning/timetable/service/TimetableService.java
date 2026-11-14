@@ -89,10 +89,6 @@ public class TimetableService implements Timetables {
                 .toList();
     }
 
-    public TimetableDetailResponse getPrimaryTimetable() {
-        return findPrimaryTimetable().map(this::getTimetableDetail).orElse(null);
-    }
-
     public Optional<PrimaryTimetableSnapshot> findPrimaryForCurrentUser() {
         return findPrimaryTimetable().map(this::toPrimarySnapshot);
     }

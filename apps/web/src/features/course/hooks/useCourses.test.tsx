@@ -2,13 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import * as courseApi from "@/features/course/api/course.api";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
-import { useCourseDetail, useCourseHistory, useCourses, useSearchDefaultSemester } from "./useCourses";
+import { useCourseDetail, useCourses, useSearchDefaultSemester } from "./useCourses";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
 import type { Course, CourseSearchCondition, CourseSearchPageResponse } from "@/shared/types/api";
 
 vi.mock("@/features/course/api/course.api", () => ({
   searchCourses: vi.fn(),
-  getCourseHistory: vi.fn(),
   getCourseDetail: vi.fn(),
   getSearchDefaultSemester: vi.fn(),
 }));
@@ -115,16 +114,6 @@ describe("useCourses hooks", () => {
     await waitFor(() => expect(result.current.data?.isReviewed).toBe(true));
     expect(courseApi.getCourseDetail).toHaveBeenCalledExactlyOnceWith(course.courseKey);
     expect(client.getQueryData<Course>(["public-course-detail", course.courseKey])?.isReviewed).toBe(false);
-  });
-
-  it("courseKey가 없으면 강의 이력 조회를 실행하지 않는다", async () => {
-    const mockedHistory = vi.mocked(courseApi.getCourseHistory);
-    const queryClient = createTestQueryClient();
-    const wrapper = createQueryWrapper(queryClient);
-    const { result } = renderHook(() => useCourseHistory(""), { wrapper });
-
-    await waitFor(() => expect(result.current.fetchStatus).toBe("idle"));
-    expect(mockedHistory).not.toHaveBeenCalled();
   });
 
   it("강의 상세 조회 결과를 동일한 규격으로 정규화한다", async () => {

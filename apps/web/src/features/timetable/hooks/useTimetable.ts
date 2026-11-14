@@ -41,19 +41,6 @@ export const useTimetableDetail = (id: number | null, enabled = true, initialUse
   });
 };
 
-export const usePrimaryTimetable = (initialUser?: User | null) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const canFetch = initialUser !== undefined ? !!initialUser : isAuthenticated;
-  return useQuery({
-    queryKey: ['timetable', 'primary'],
-    queryFn: async () => {
-      const response = await timetableApi.getPrimaryTimetable();
-      return response ?? null;
-    },
-    enabled: canFetch,
-  });
-};
-
 export const useAddCourseToTimetable = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -62,7 +49,6 @@ export const useAddCourseToTimetable = () => {
 
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['timetable', variables.timetableId] });
-      queryClient.invalidateQueries({ queryKey: ['timetable', 'primary'] });
       toast.success('시간표에 강의가 추가되었습니다.');
     },
 
@@ -81,7 +67,6 @@ export const useRemoveCourseFromTimetable = () => {
 
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['timetable', variables.timetableId] });
-      queryClient.invalidateQueries({ queryKey: ['timetable', 'primary'] });
       toast.success('시간표에서 강의가 삭제되었습니다.');
     },
 
@@ -100,7 +85,6 @@ export const useAddCustomSchedule = () => {
 
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['timetable', variables.timetableId] });
-      queryClient.invalidateQueries({ queryKey: ['timetable', 'primary'] });
       toast.success('시간표에 일정이 추가되었습니다.');
     },
 
@@ -119,7 +103,6 @@ export const useRemoveCustomSchedule = () => {
 
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['timetable', variables.timetableId] });
-      queryClient.invalidateQueries({ queryKey: ['timetable', 'primary'] });
       toast.success('시간표에서 일정이 삭제되었습니다.');
     },
 

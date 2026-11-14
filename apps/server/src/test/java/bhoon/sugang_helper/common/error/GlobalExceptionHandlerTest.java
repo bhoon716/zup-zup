@@ -262,7 +262,7 @@ class GlobalExceptionHandlerTest {
     @DisplayName("낙관적 잠금 충돌은 재시도 가능한 충돌 응답을 반환한다")
     void optimisticLockConflictReturnsRetryableConflictResponse() {
         // given
-        MockHttpServletRequest request = new MockHttpServletRequest("PATCH", "/api/v1/users/me");
+        MockHttpServletRequest request = new MockHttpServletRequest("PATCH", "/api/v1/users/settings");
 
         // when
         ResponseEntity<ErrorResponse> response = new GlobalExceptionHandler()

@@ -10,7 +10,6 @@
 | 수동 수집 | 기존 문자열 payload를 JSON 문자열로 반환한다. |
 | 인증 | GET /api/auth/csrf는 `{ "token": "..." }`와 Cache-Control: no-store, 로그아웃은 200/빈 본문이다. 자체 JWT 갱신 API는 제거했다. SESSION 쿠키와 X-CSRF-TOKEN 계약은 [세션 전환](redis-session-migration.md)을 따른다. |
 | 데이터 없는 기존 200 성공 | 200과 빈 본문을 반환한다. 일괄 204로 바꾸지 않는다. |
-| 대표 시간표 없음 | 기존 200을 유지하고 빈 본문을 반환한다. 웹 API 함수는 빈 문자열·JSON null을 null로 해석한다. |
 | 기존 204 | 본문 없음과 상태를 유지한다. |
 | OAuth 이동 | 기존 302·Location·쿠키를 유지한다. |
 | 첨부 다운로드 | Resource/Blob·미디어 타입·Content-Disposition·소유권/관리자 확인을 유지한다. |
@@ -22,11 +21,12 @@
 
 서버와 웹은 이 계약으로 함께 전환해야 한다. 아직 운영 배포하지 않았으며 옛 클라이언트의 성공 공통 래퍼 의존은 호환 대상으로 남기지 않는다. 실제 운영 모니터링 제공자의 설정은 접속하지 않았다. 저장소 health 문서는 새 status 경로로 갱신했다.
 
-검증은 직접 배열·숫자·JSON 문자열·nullable·200 무본문·201·쿠키·공통 오류의 MockMvc 계약과 기존 페이지·파일·리다이렉트·인증/권한 검증을 포함한다. 웹은 nullable 대표 시간표와 서버 SEO·사이트맵 파싱을 보강하고 기존 리뷰 캐시 보존·세션 만료/CSRF·첨부 브라우저 흐름을 검증한다.
+검증은 직접 배열·숫자·JSON 문자열·200 무본문·201·쿠키·공통 오류의 MockMvc 계약과 기존 페이지·파일·리다이렉트·인증/권한 검증을 포함한다. 웹은 서버 SEO·사이트맵 파싱과 리뷰 캐시 보존·세션 만료/CSRF·첨부 브라우저 흐름을 검증한다.
 
 ## 웹 푸시 기기
 
 `POST /api/v1/users/devices`의 등록 요청은 `token`과 선택적인 `p256dh`·`auth`·`alias`를 받는다.
 기기는 모두 웹 푸시 구독이므로 별도의 `type`을 요구하지 않는다. endpoint 허용 검증과 기존 인증·CSRF·소유권 검사는 유지한다.
 조회 응답은 `id`·`alias`·`maskedToken`·`registeredAt`이며 `type`은 포함하지 않는다.
+`DELETE /api/v1/users/devices`는 JSON 본문으로 `token`을 받는다. 기기 ID로 삭제할 때는 `DELETE /api/v1/users/devices/{id}`를 사용한다.
 발송 채널 EMAIL·WEB·DISCORD의 구분과 사용자 웹 푸시 설정은 그대로 유지한다.

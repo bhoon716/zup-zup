@@ -9,14 +9,11 @@ import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.dto.response.CourseDetailResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseResponse;
-import bhoon.sugang_helper.academic.course.dto.response.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.academic.course.dto.result.CourseSearchContext;
 import bhoon.sugang_helper.academic.course.entity.Course;
-import bhoon.sugang_helper.academic.course.entity.CourseSeatHistory;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSearchReadRepository;
-import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.academic.crawling.service.CrawlerCourseSearchContextProvider;
 import bhoon.sugang_helper.academic.review.service.CourseReviewQueryService;
 import bhoon.sugang_helper.common.api.error.CustomException;
@@ -29,7 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
@@ -54,9 +50,6 @@ class CourseServiceTest {
     private CourseSearchReadRepository courseSearchReadRepository;
 
     @Mock
-    private CourseSeatHistoryRepository courseSeatHistoryRepository;
-
-    @Mock
     private UserIdentityQueryService userIdentityQuery;
 
     @Mock
@@ -69,7 +62,7 @@ class CourseServiceTest {
 
     @BeforeEach
     void setUp() {
-        courseService = new CourseService(courseRepository, courseSearchReadRepository, courseSeatHistoryRepository,
+        courseService = new CourseService(courseRepository, courseSearchReadRepository,
                 userIdentityQuery, courseReviewQuery, searchContextProvider);
     }
 
@@ -140,27 +133,6 @@ class CourseServiceTest {
         assertThatThrownBy(() -> courseService.getCourse(invalidCourseKey))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("강좌 시트 이력 조회 성공")
-    void getCourseHistory_success() {
-        // given
-        CourseSeatHistory history = CourseSeatHistory.builder()
-                .courseKey(COURSE_KEY)
-                .capacity(50)
-                .current(10)
-                .build();
-        given(courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDescIdDesc(
-                ArgumentMatchers.eq(COURSE_KEY), any(Pageable.class)))
-                .willReturn(new SliceImpl<>(List.of(history)));
-
-        // when
-        Slice<CourseSeatHistoryResponse> responses = courseService.getCourseHistory(COURSE_KEY, PageRequest.of(0, 30));
-
-        // then
-        assertThat(responses).hasSize(1);
-        assertThat(responses.getContent().get(0).getCapacity()).isEqualTo(50);
     }
 
     @Test

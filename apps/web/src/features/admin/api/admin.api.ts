@@ -23,11 +23,6 @@ export const crawlCoursesByTarget = async (
   return data;
 };
 
-export const getCrawlTarget = async (): Promise<AdminCrawlTargetResponse> => {
-  const { data } = await api.get('/api/v1/admin/courses/crawl-target');
-  return data;
-};
-
 export const updateCrawlTarget = async (
   request: AdminCrawlTargetRequest
 ): Promise<AdminCrawlTargetResponse> => {

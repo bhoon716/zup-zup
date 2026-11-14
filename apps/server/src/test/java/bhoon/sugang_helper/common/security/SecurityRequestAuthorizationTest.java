@@ -16,8 +16,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bhoon.sugang_helper.admin.controller.AdminController;
 import bhoon.sugang_helper.admin.service.AdminService;
-import bhoon.sugang_helper.audit.controller.AdminActionLogController;
-import bhoon.sugang_helper.audit.service.AdminAuditService;
 import bhoon.sugang_helper.campus.announcement.controller.AnnouncementController;
 import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
@@ -128,9 +126,6 @@ class SecurityRequestAuthorizationTest {
     private NotificationTraffic notificationTraffic;
 
     @MockitoBean
-    private AdminAuditService adminAuditService;
-
-    @MockitoBean
     private AdminNotificationDeliveryService adminNotificationDeliveryService;
 
     @MockitoBean
@@ -172,37 +167,6 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"))
                 .andExpect(jsonPath("$.path").value("/api/v1/admin/dashboard"));
-    }
-
-    @Test
-    @DisplayName("인증 없이 관리자 감사 로그에 접근하면 거부한다")
-    void adminAuditLogsWithoutAuthenticationAreRejected() throws Exception {
-        // when & then
-        mockMvc.perform(get("/api/v1/admin/audit-logs"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("A001"));
-    }
-
-    @Test
-    @DisplayName("일반 사용자의 관리자 감사 로그 접근을 금지한다")
-    void adminAuditLogsWithNonAdminUserAreForbidden() throws Exception {
-        // when & then
-        mockMvc.perform(get("/api/v1/admin/audit-logs").session(authenticatedSession("ROLE_USER")))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("A002"));
-    }
-
-    @Test
-    @DisplayName("관리자는 감사 로그를 조회할 수 있다")
-    void adminCanAccessAllAuditLogs() throws Exception {
-        // given
-        given(adminAuditService.getActionLogs(any()))
-                .willReturn(Page.empty());
-
-        // when & then
-        mockMvc.perform(get("/api/v1/admin/audit-logs?page=1&size=2").session(authenticatedSession("ROLE_ADMIN")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test
@@ -513,7 +477,6 @@ class SecurityRequestAuthorizationTest {
             CustomAccessDeniedHandler.class,
             CustomAuthenticationEntryPoint.class,
             AdminController.class,
-            AdminActionLogController.class,
             AdminNotificationDeliveryController.class,
             AdminFeedbackController.class,
             AnnouncementController.class,

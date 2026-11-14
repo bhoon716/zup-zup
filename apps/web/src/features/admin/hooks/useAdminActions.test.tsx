@@ -3,7 +3,6 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import * as adminApi from "@/features/admin/api/admin.api";
 import { toast } from "sonner";
 import {
-  useAdminCrawlTarget,
   useCrawlCourses,
   useCrawlCoursesByTarget,
   useSendTestNotification,
@@ -14,7 +13,6 @@ import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
 vi.mock("@/features/admin/api/admin.api", () => ({
   crawlCourses: vi.fn(),
   crawlCoursesByTarget: vi.fn(),
-  getCrawlTarget: vi.fn(),
   updateCrawlTarget: vi.fn(),
   sendTestNotification: vi.fn(),
 }));
@@ -81,18 +79,6 @@ describe("useAdminActions hooks", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(toast.success).toHaveBeenCalledWith("테스트 알림이 성공적으로 전송되었습니다.");
-  });
-
-  it("기본 크롤링 타겟 조회 성공 시 타겟 데이터를 반환한다", async () => {
-    const mockedGetTarget = vi.mocked(adminApi.getCrawlTarget);
-    mockedGetTarget.mockResolvedValue({ year: "2025", semester: "U211600020" } as never);
-
-    const queryClient = createTestQueryClient();
-    const wrapper = createQueryWrapper(queryClient);
-    const { result } = renderHook(() => useAdminCrawlTarget(), { wrapper });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual({ year: "2025", semester: "U211600020" });
   });
 
   it("기본 크롤링 타겟 저장 성공 시 관련 쿼리를 무효화하고 토스트를 노출한다", async () => {

@@ -141,28 +141,6 @@ export interface CourseSearchCondition {
   departmentId?: number;
 }
 
-export interface CourseCategoryResponse {
-  category: string;
-  details: string[];
-}
-
-export interface CollegeHierarchyResponse {
-  id: number;
-  name: string;
-  departments: {
-    id: number;
-    name: string;
-  }[];
-}
-
-export interface CourseSeatHistory {
-  id: number;
-  courseKey: string;
-  capacity: number;
-  current: number;
-  detectedAt: string;
-}
-
 export interface Subscription {
   id: number;
   courseKey: string;
@@ -203,10 +181,6 @@ export interface UserSettingsRequest {
   discordEnabled: boolean;
 }
 
-export interface UserUpdateRequest {
-  name: string;
-}
-
 export interface EmailRequest {
   email: string;
 }
@@ -224,15 +198,6 @@ export interface NotificationHistory {
   channel?: 'EMAIL' | 'WEB' | 'DISCORD';
   sentAt?: string;
   createdAt?: string;
-}
-
-export interface UserDevice {
-  id: number;
-  token: string;
-  p256dh?: string;
-  auth?: string;
-  isActive: boolean;
-  createdAt: string;
 }
 
 export interface UserDeviceRequest {
@@ -483,10 +448,6 @@ export interface ReviewCreateRequest {
 
 export interface ReviewUpdateRequest {
   rating: number;
-}
-
-export interface ReviewReactionRequest {
-  reactionType: 'LIKE' | 'DISLIKE';
 }
 
 export interface EmojiReviewResponse {

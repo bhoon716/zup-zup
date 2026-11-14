@@ -52,24 +52,4 @@ public class CourseReview extends BaseEntity {
     public void update(int rating) {
         this.rating = rating;
     }
-
-    public void increaseLikeCount() {
-        this.likeCount++;
-    }
-
-    public void decreaseLikeCount() {
-        if (this.likeCount > 0) {
-            this.likeCount--;
-        }
-    }
-
-    public void increaseDislikeCount() {
-        this.dislikeCount++;
-    }
-
-    public void decreaseDislikeCount() {
-        if (this.dislikeCount > 0) {
-            this.dislikeCount--;
-        }
-    }
 }

@@ -3,18 +3,15 @@ package bhoon.sugang_helper.identity.user.controller;
 import bhoon.sugang_helper.identity.auth.service.AuthService;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.dto.command.SendVerificationCodeCommand;
-import bhoon.sugang_helper.identity.user.dto.command.UpdateProfileCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateSettingsCommand;
 import bhoon.sugang_helper.identity.user.dto.command.VerifyEmailCommand;
 import bhoon.sugang_helper.identity.user.dto.request.EmailRequest;
 import bhoon.sugang_helper.identity.user.dto.request.EmailVerificationRequest;
 import bhoon.sugang_helper.identity.user.dto.request.OnboardingRequest;
 import bhoon.sugang_helper.identity.user.dto.request.UserSettingsRequest;
-import bhoon.sugang_helper.identity.user.dto.request.UserUpdateRequest;
 import bhoon.sugang_helper.identity.user.dto.response.UserResponse;
 import bhoon.sugang_helper.identity.user.dto.result.UserOnboardingResult;
 import bhoon.sugang_helper.identity.user.dto.result.UserProfileResult;
-import bhoon.sugang_helper.identity.user.dto.result.UserProfileUpdateResult;
 import bhoon.sugang_helper.identity.user.dto.result.UserSettingsResult;
 import bhoon.sugang_helper.identity.user.service.DiscordOAuthService;
 import bhoon.sugang_helper.identity.user.service.UserService;
@@ -104,13 +101,6 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMyProfile() {
         UserProfileResult result = userService.getMyProfile();
-        UserResponse response = UserResponse.from(result);
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/me")
-    public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody UserUpdateRequest request) {
-        UserProfileUpdateResult result = userService.updateProfile(new UpdateProfileCommand(request.getName()));
         UserResponse response = UserResponse.from(result);
         return ResponseEntity.ok(response);
     }

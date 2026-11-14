@@ -30,12 +30,6 @@ public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemest
     @Value("${jbnu.crawler.default-semester}")
     private String defaultSemester;
 
-    @Transactional(readOnly = true)
-    public AdminCrawlTargetResponse getCurrentTarget() {
-        CrawlerSetting setting = resolveCurrentSetting();
-        return AdminCrawlTargetResponse.from(setting);
-    }
-
     public CrawlerAdminSnapshot findCurrentAdminSnapshot() {
         CrawlerSetting setting = resolveCurrentSetting();
         return new CrawlerAdminSnapshot(setting.getTargetYear(), setting.getTargetSemester());

@@ -14,11 +14,9 @@ import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.auth.service.SessionInvalidator;
 import bhoon.sugang_helper.identity.events.UserWithdrawnEvent;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
-import bhoon.sugang_helper.identity.user.dto.command.UpdateProfileCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateSettingsCommand;
 import bhoon.sugang_helper.identity.user.dto.result.UserOnboardingResult;
 import bhoon.sugang_helper.identity.user.dto.result.UserProfileResult;
-import bhoon.sugang_helper.identity.user.dto.result.UserProfileUpdateResult;
 import bhoon.sugang_helper.identity.user.dto.result.UserSettingsResult;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
@@ -44,9 +42,7 @@ class UserServiceTest {
     private static final String TEST_EMAIL = "test@example.com";
     private static final String NEW_EMAIL = "new@example.com";
     private static final String TEST_NAME = "Tester";
-    private static final String OLD_NAME = "Old Name";
     private static final String NAME = "Name";
-    private static final String NEW_NAME = "New Name";
     private static final String TEST_USER = "Test User";
     private static final String NOTIFY_EMAIL = "notify@example.com";
 
@@ -78,28 +74,6 @@ class UserServiceTest {
     @AfterEach
     void tearDown() {
         securityUtil.close();
-    }
-
-    @Test
-    @DisplayName("사용자 프로필 정보를 정상적으로 수정한다")
-    void updateProfile() {
-        // given
-        User user = User.builder()
-                .id(1L)
-                .email(TEST_EMAIL)
-                .name(OLD_NAME)
-                .role(Role.USER)
-                .build();
-
-        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
-
-        // when
-        UserProfileUpdateResult result = userService.updateProfile(new UpdateProfileCommand(NEW_NAME));
-
-        // then
-        assertThat(result.name()).isEqualTo(NEW_NAME);
-        assertThat(user.getName()).isEqualTo(NEW_NAME);
     }
 
     @Test

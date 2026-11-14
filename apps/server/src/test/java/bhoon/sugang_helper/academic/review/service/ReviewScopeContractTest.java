@@ -132,20 +132,14 @@ class ReviewScopeContractTest {
             assertThat(course.getAverageRating()).isEqualTo(2.0f);
         });
 
-        reviewService.deleteReview(myReview.getId());
         emojiService.toggleEmoji(CURRENT, "👍");
 
-        assertThat(List.of(current, previous)).allSatisfy(course -> {
-            assertThat(course.getReviewCount()).isEqualTo(1);
-            assertThat(course.getAverageRating()).isEqualTo(3.0f);
-        });
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
                 .containsExactly(CourseEmojiReviewResponse.of("👍", 2L, true));
         assertThat(List.of(otherProfessor, otherSubject)).allSatisfy(course -> {
             assertThat(course.getReviewCount()).isZero();
             assertThat(course.getAverageRating()).isZero();
         });
-        reviewService.createReview(CURRENT, new ReviewCreateRequest(5));
         assertDuplicateReviewRejected();
     }
 

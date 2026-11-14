@@ -1,6 +1,6 @@
 import api from "@/shared/api/client";
 import type { AxiosRequestConfig } from "axios";
-import type { User, UserDeviceRequest, UserUpdateRequest, UserSettingsRequest, OnboardingRequest, EmailRequest, EmailVerificationRequest, UserDeviceResponse } from '@/shared/types/api';
+import type { User, UserDeviceRequest, UserSettingsRequest, OnboardingRequest, EmailRequest, EmailVerificationRequest, UserDeviceResponse } from '@/shared/types/api';
 
 export const completeOnboarding = async (request: OnboardingRequest): Promise<User> => {
   const { data } = await api.post('/api/v1/users/onboard', request);
@@ -59,11 +59,6 @@ export const deleteDevice = async (id: number): Promise<void> => {
 
 export const unregisterDevice = async (token: string): Promise<void> => {
   const { data } = await api.delete('/api/v1/users/devices', { data: { token } });
-  return data;
-};
-
-export const updateProfile = async (request: UserUpdateRequest): Promise<User> => {
-  const { data } = await api.patch('/api/v1/users/me', request);
   return data;
 };
 

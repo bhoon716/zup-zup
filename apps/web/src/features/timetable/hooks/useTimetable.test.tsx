@@ -5,7 +5,6 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   useTimetables,
   useTimetableDetail,
-  usePrimaryTimetable,
   useAddCourseToTimetable,
   useAddCustomSchedule,
 } from './useTimetable';
@@ -67,9 +66,6 @@ const handlers = [
   http.get('*/api/v1/timetables/1', () => {
     return HttpResponse.json(mockDetail);
   }),
-  http.get('*/api/v1/timetables/primary', () => {
-    return HttpResponse.json(mockDetail);
-  }),
   http.post('*/api/v1/timetables/1/courses', ({ request }) => {
     expect(request.headers.get('X-CSRF-TOKEN')).toBe('timetable-csrf-token');
     return HttpResponse.json(null);
@@ -125,14 +121,6 @@ describe('useTimetable hooks', () => {
 
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
-  });
-
-  it('usePrimaryTimetable fetches the primary timetable', async () => {
-    const queryClient = createTestQueryClient();
-    const wrapper = createQueryWrapper(queryClient);
-    const { result } = renderHook(() => usePrimaryTimetable(), { wrapper });
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.primary).toBe(true);
   });
 
   it('useAddCourseToTimetable adds a course to a timetable', async () => {

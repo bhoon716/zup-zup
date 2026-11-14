@@ -115,11 +115,6 @@ public class User extends BaseEntity {
         this.onboardingCompleted = true;
     }
 
-    public User update(String name) {
-        this.name = name;
-        return this;
-    }
-
     public boolean hasOAuthIdentity() {
         return oauthIssuer != null && oauthSubject != null;
     }

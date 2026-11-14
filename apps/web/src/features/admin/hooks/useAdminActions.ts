@@ -1,5 +1,5 @@
 import { localizedErrorMessage } from "@/shared/lib/error-message";
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as adminApi from '@/features/admin/api/admin.api';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
@@ -34,16 +34,6 @@ export const useSendTestNotification = () => {
     onError: (error: AxiosError<{ message: string }>) => {
       const errorMessage = localizedErrorMessage(error.response?.data?.message, '알림 전송 중 오류가 발생했습니다.');
       toast.error(errorMessage);
-    },
-  });
-};
-
-export const useAdminCrawlTarget = () => {
-  return useQuery({
-    queryKey: ['admin', 'crawl-target'],
-    queryFn: async () => {
-      const response = await adminApi.getCrawlTarget();
-      return response;
     },
   });
 };

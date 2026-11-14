@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.academic.review.controller;
 
 import bhoon.sugang_helper.academic.review.dto.request.ReviewCreateRequest;
-import bhoon.sugang_helper.academic.review.dto.request.ReviewReactionRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewUpdateRequest;
 import bhoon.sugang_helper.academic.review.dto.response.ReviewResponse;
 import bhoon.sugang_helper.academic.review.service.CourseReviewService;
@@ -15,7 +14,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -71,20 +69,5 @@ public class CourseReviewController {
             @Valid @RequestBody ReviewUpdateRequest request) {
         ReviewResponse response = reviewService.updateReview(reviewId, request);
         return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/reviews/{reviewId}")
-    public ResponseEntity<Void> deleteReview(
-            @PathVariable Long reviewId) {
-        reviewService.deleteReview(reviewId);
-        return ResponseEntity.ok(null);
-    }
-
-    @PostMapping("/reviews/{reviewId}/reaction")
-    public ResponseEntity<Void> toggleReaction(
-            @PathVariable Long reviewId,
-            @Valid @RequestBody ReviewReactionRequest request) {
-        reviewService.toggleReaction(reviewId, request);
-        return ResponseEntity.ok(null);
     }
 }

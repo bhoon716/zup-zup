@@ -28,7 +28,7 @@ test.beforeEach(async ({ page, context, baseURL }) => {
     if (path === "/api/v1/notifications/history" || path.endsWith("/reviews")) return fulfill({ content: [], last: true, number: 0 });
     if (path.endsWith("/emojis")) return fulfill([]);
     if (path === "/api/v1/timetables") return fulfill([{ id: 1, name: "개인 시간표", primary: true }]);
-    if (path === "/api/v1/timetables/1" || path === "/api/v1/timetables/primary") return fulfill({ id: 1, name: "개인 시간표", primary: true, courses: [course], customSchedules: [], totalCredits: "3" });
+    if (path === "/api/v1/timetables/1") return fulfill({ id: 1, name: "개인 시간표", primary: true, courses: [course], customSchedules: [], totalCredits: "3" });
     if (path === `/api/v1/courses/${course.courseKey}`) return fulfill(course);
     return route.fulfill({ status: 500, json: { code: "UNEXPECTED_TEST_API" } });
   });

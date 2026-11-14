@@ -85,13 +85,6 @@ export const SEMESTERS = [
   { label: "SW 특별학기", value: "U211600008" },
 ];
 
-export const GE_CATEGORIES: Record<string, string[]> = {
-  균형교양: ["AI·SW", "글로컬", "삶과사회", "예술과체육", "외국어", "인간과문화", "자연과과학"],
-  기초교양: ["기초필수", "문제해결", "의사소통"],
-  기타교양: ["타대학개설교양", "예비학기제교양"],
-  진로: ["진로"],
-};
-
 export const SMART_FILTER_DAYS: CourseDayOfWeek[] = ["월", "화", "수", "목", "금", "토"];
 export const SMART_FILTER_START_MINUTES = 8 * 60;
 export const SMART_FILTER_SLOT_MINUTES = 60;

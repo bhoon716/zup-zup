@@ -44,23 +44,4 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
             """)
     List<String> findCourseKeysBySubjectCodeAndProfessor(@Param("subjectCode") String subjectCode,
                                                          @Param("professor") String professor);
-
-    @Query(value = """
-            with categories as (
-                select distinct general_category as category
-                from courses
-                where general_category is not null and general_category <> ''
-            )
-            select distinct categories.category as category, nullif(c.general_detail, '') as detail
-            from categories
-            join courses c on c.general_category = categories.category
-            order by category, detail
-            """, nativeQuery = true)
-    List<GeneralCategoryDetail> findGeneralCategoryDetails();
-
-    interface GeneralCategoryDetail {
-        String getCategory();
-
-        String getDetail();
-    }
 }

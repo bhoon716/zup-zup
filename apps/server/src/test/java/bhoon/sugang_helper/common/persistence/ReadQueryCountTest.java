@@ -6,14 +6,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
-import bhoon.sugang_helper.academic.course.dto.response.CourseCategoryResponse;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.entity.CourseSchedule;
 import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.service.CourseCatalogQueryService;
 import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
-import bhoon.sugang_helper.academic.course.service.CourseService;
 import bhoon.sugang_helper.academic.review.dto.response.CourseEmojiReviewResponse;
 import bhoon.sugang_helper.academic.review.entity.CourseEmojiReview;
 import bhoon.sugang_helper.academic.review.repository.CourseEmojiReviewRepository;
@@ -77,8 +75,6 @@ class ReadQueryCountTest {
     private static final Logger log = LoggerFactory.getLogger(ReadQueryCountTest.class);
     private static final long USER_ID = 7L;
     private static final String COURSE_KEY = "query-course";
-    private static final String FIRST_CATEGORY = "교양 가";
-    private static final String SECOND_CATEGORY = "교양 나";
 
     @Autowired
     private EntityManager entityManager;
@@ -120,7 +116,7 @@ class ReadQueryCountTest {
     @DisplayName("이모지 통계는 반응 수와 내 반응을 정렬 순서대로 반환한다")
     void emojiStats() {
         // given
-        saveCourse(COURSE_KEY, null, null);
+        saveCourse(COURSE_KEY);
         saveEmoji(USER_ID, "A");
         saveEmoji(8L, "A");
         saveEmoji(8L, "B");
@@ -140,33 +136,12 @@ class ReadQueryCountTest {
     }
 
     @Test
-    @DisplayName("교양 분류는 중복을 제거하고 세부 분류가 없는 항목도 유지한다")
-    void categories() {
-        // given
-        saveCourse("category-a1", FIRST_CATEGORY, "나");
-        saveCourse("category-a2", FIRST_CATEGORY, "가");
-        saveCourse("category-a3", FIRST_CATEGORY, "가");
-        saveCourse("category-b1", SECOND_CATEGORY, "");
-        saveCourse("category-b2", SECOND_CATEGORY, null);
-        CourseService service = new CourseService(courseRepository, null, null, null, null, null);
-
-        // when
-        Statistics statistics = startCounting();
-        var results = service.getCourseCategories();
-
-        // then
-        assertThat(results).extracting(CourseCategoryResponse::getCategory, CourseCategoryResponse::getDetails)
-                .containsExactly(tuple(FIRST_CATEGORY, List.of("가", "나")), tuple(SECOND_CATEGORY, List.of()));
-        assertQueryCount(statistics, "categories", 1);
-    }
-
-    @Test
     @DisplayName("강좌 묶음 조회는 모든 강좌의 시간표를 반환한다")
     void courseSchedules() {
         // given
         List<String> keys = IntStream.range(0, 21).mapToObj(i -> "schedule-" + i).toList();
         for (String key : keys) {
-            Course course = saveCourse(key, null, null);
+            Course course = saveCourse(key);
             course.addSchedule(new CourseSchedule(CourseDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)));
         }
         CourseCatalogQueryService service = new CourseCatalogQueryService(courseRepository);
@@ -318,10 +293,10 @@ class ReadQueryCountTest {
         assertThat(count).as(path).isEqualTo(expectedCount);
     }
 
-    private Course saveCourse(String key, String category, String detail) {
+    private Course saveCourse(String key) {
         return courseRepository.save(Course.builder().courseKey(key).subjectCode(key).name(key)
                 .classNumber("1").capacity(30).current(0).academicYear("2026").semester("U211600010")
-                .generalCategory(category).generalDetail(detail).build());
+                .build());
     }
 
     private void saveEmoji(long userId, String emoji) {

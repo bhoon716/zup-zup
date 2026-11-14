@@ -35,11 +35,6 @@ public class TimetableController {
         return timetableService.getMyTimetables();
     }
 
-    @GetMapping("/primary")
-    public TimetableDetailResponse getPrimaryTimetable() {
-        return timetableService.getPrimaryTimetable();
-    }
-
     @GetMapping("/{timetableId}")
     public TimetableDetailResponse getTimetableDetail(@PathVariable Long timetableId) {
         return timetableService.getTimetableDetail(timetableId);

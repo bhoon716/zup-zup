@@ -1,5 +1,5 @@
 import api from "@/shared/api/client";
-import type { EmojiReviewResponse, ReviewCreateRequest, ReviewReactionRequest, ReviewResponse, ReviewUpdateRequest, SliceResponse } from "@/shared/types/api";
+import type { EmojiReviewResponse, ReviewCreateRequest, ReviewResponse, ReviewUpdateRequest, SliceResponse } from "@/shared/types/api";
 
 export const getReviews = async (
   courseKey: string,
@@ -25,14 +25,6 @@ export const updateReview = async (
   request: ReviewUpdateRequest
 ): Promise<ReviewResponse> => {
   const { data } = await api.put(`/api/v1/courses/reviews/${reviewId}`, request);
-  return data;
-};
-
-export const toggleReviewReaction = async (
-  reviewId: number,
-  request: ReviewReactionRequest
-): Promise<void> => {
-  const { data } = await api.post(`/api/v1/courses/reviews/${reviewId}/reaction`, request);
   return data;
 };
 

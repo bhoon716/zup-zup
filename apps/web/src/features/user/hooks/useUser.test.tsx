@@ -4,7 +4,7 @@ import { AxiosError } from "axios";
 import * as userApi from "@/features/user/api/user.api";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { reportClientError } from "@/shared/telemetry/client-error";
-import { useCompleteOnboarding, useUpdateProfile, useUser } from "./useUser";
+import { useCompleteOnboarding, useUser } from "./useUser";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
 import { trackOnboardingCompleted, trackOnboardingFailed } from "@/shared/analytics/onboarding-events";
 
@@ -16,7 +16,6 @@ vi.mock("@/features/user/api/user.api", () => ({
   getMyProfile: vi.fn(),
   logout: vi.fn(),
   withdraw: vi.fn(),
-  updateProfile: vi.fn(),
   completeOnboarding: vi.fn(),
 }));
 
@@ -104,20 +103,6 @@ describe("useUser hook", () => {
     expect(reportClientError).toHaveBeenCalledTimes(1);
   });
 
-  it("프로필 수정 성공 시 인증 스토어의 사용자 한 사본을 갱신한다", async () => {
-    const updatedUser = { id: 1, name: "수정된 사용자" };
-    vi.mocked(userApi.updateProfile).mockResolvedValue(updatedUser as never);
-    const queryClient = createTestQueryClient();
-    const wrapper = createQueryWrapper(queryClient);
-    const { result } = renderHook(() => useUpdateProfile(), { wrapper });
-
-    result.current.mutate({ name: "수정된 사용자" } as never);
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(queryClient.getQueryData(["user", "me"])).toBeUndefined();
-    expect(useAuthStore.getState().user).toEqual(updatedUser);
-  });
-
   it("온보딩 완료 성공 시 인증 스토어의 사용자 한 사본을 갱신한다", async () => {
     const onboardedUser = { id: 1, name: "사용자", onboardingCompleted: true };
     vi.mocked(userApi.completeOnboarding).mockResolvedValue(onboardedUser as never);
@@ -191,36 +176,34 @@ describe("useUser hook", () => {
     await waitFor(() => expect(userApi.getMyProfile).toHaveBeenCalledTimes(2));
   });
 
-  it.each(["profile", "onboarding"] as const)("로그아웃 뒤 늦은 저장 응답은 사용자를 복구하지 않는다 (%s)", async mutation => {
+  it("로그아웃 뒤 늦은 온보딩 저장 응답은 사용자를 복구하지 않는다", async () => {
     useAuthStore.getState().setUser(user);
     let finish!: (value: never) => void;
-    const apiMutation = mutation === "profile" ? userApi.updateProfile : userApi.completeOnboarding;
-    vi.mocked(apiMutation).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    vi.mocked(userApi.completeOnboarding).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
     const wrapper = createQueryWrapper(createTestQueryClient());
-    const { result } = renderHook(() => ({ profile: useUpdateProfile(), onboarding: useCompleteOnboarding() }), { wrapper });
-    act(() => result.current[mutation].mutate({} as never));
-    await waitFor(() => expect(apiMutation).toHaveBeenCalledTimes(1));
+    const { result } = renderHook(() => useCompleteOnboarding(), { wrapper });
+    act(() => result.current.mutate({} as never));
+    await waitFor(() => expect(userApi.completeOnboarding).toHaveBeenCalledTimes(1));
     act(() => useAuthStore.getState().logout());
     await act(async () => finish(user as never));
-    await waitFor(() => expect(result.current[mutation].isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(useAuthStore.getState().user).toBeNull();
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 
-  it.each(["profile", "onboarding"] as const)("새 계정 확인 뒤 이전 계정의 저장 응답은 무시한다 (%s)", async mutation => {
+  it("새 계정 확인 뒤 이전 계정의 온보딩 저장 응답은 무시한다", async () => {
     useAuthStore.getState().setUser(user);
     let finish!: (value: never) => void;
-    const apiMutation = mutation === "profile" ? userApi.updateProfile : userApi.completeOnboarding;
-    vi.mocked(apiMutation).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    vi.mocked(userApi.completeOnboarding).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
     const wrapper = createQueryWrapper(createTestQueryClient());
-    const { result } = renderHook(() => ({ profile: useUpdateProfile(), onboarding: useCompleteOnboarding() }), { wrapper });
-    act(() => result.current[mutation].mutate({} as never));
-    await waitFor(() => expect(apiMutation).toHaveBeenCalledTimes(1));
+    const { result } = renderHook(() => useCompleteOnboarding(), { wrapper });
+    act(() => result.current.mutate({} as never));
+    await waitFor(() => expect(userApi.completeOnboarding).toHaveBeenCalledTimes(1));
     const nextUser = { ...user, id: 2, name: "새 계정" };
     vi.mocked(userApi.getMyProfile).mockResolvedValueOnce(nextUser as never);
     await act(async () => { await useAuthStore.getState().refreshUser(); });
     await act(async () => finish(user as never));
-    await waitFor(() => expect(result.current[mutation].isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(useAuthStore.getState().user).toEqual(nextUser);
   });
 

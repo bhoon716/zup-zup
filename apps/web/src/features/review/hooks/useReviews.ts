@@ -6,7 +6,6 @@ import type {
   Course,
   EmojiReviewResponse,
   ReviewCreateRequest,
-  ReviewReactionRequest,
   ReviewResponse,
   ReviewUpdateRequest,
 } from "@/shared/types/api";
@@ -145,18 +144,6 @@ export const useUpdateReview = (reviewScopeKey: string, courseKey: string) => {
         queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current, updatedCourse));
         updateCourseDetailCaches(queryClient, updatedCourse);
       }
-    },
-  });
-};
-
-export const useToggleReviewReaction = (reviewScopeKey: string) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ reviewId, request }: { reviewId: number; request: ReviewReactionRequest }) =>
-      reviewApi.toggleReviewReaction(reviewId, request),
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["review", reviewScopeKey] });
     },
   });
 };

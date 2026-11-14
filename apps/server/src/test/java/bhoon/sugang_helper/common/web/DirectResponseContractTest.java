@@ -77,14 +77,6 @@ class DirectResponseContractTest {
     }
 
     @Test
-    @DisplayName("대표 시간표가 없으면 200 상태와 빈 본문을 유지한다")
-    void missingPrimaryTimetableKeeps200AndEmptyBody() throws Exception {
-        // when & then
-        mvc.perform(get("/api/v1/timetables/primary"))
-                .andExpect(status().isOk()).andExpect(content().string(""));
-    }
-
-    @Test
     @DisplayName("CSRF 토큰 객체는 성공 래퍼 없이 반환한다")
     void csrfReturnsItsTokenObjectWithoutSuccessEnvelope() throws Exception {
         // given

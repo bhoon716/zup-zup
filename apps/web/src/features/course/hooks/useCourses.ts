@@ -66,19 +66,6 @@ export const useCourses = (
   });
 };
 
-export const useCourseHistory = (courseKey: string) => {
-  return useInfiniteQuery({
-    queryKey: ['course-history', courseKey],
-    queryFn: async ({ pageParam }) => {
-      const response = await courseApi.getCourseHistory(courseKey, pageParam);
-      return response;
-    },
-    enabled: !!courseKey,
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => lastPage.last ? undefined : lastPage.number + 1,
-  });
-};
-
 export const useCourseDetail = (courseKey: string, initialPublicCourse?: PublicPageData<Course> | null) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasCheckedSession = useAuthStore((state) => state.hasCheckedSession);

@@ -77,25 +77,6 @@ export const useWithdraw = () => {
   });
 };
 
-export const useUpdateProfile = () => {
-  return useMutation({
-    onMutate: () => useAuthStore.getState().sessionVersion,
-    mutationFn: (request: Parameters<typeof userApi.updateProfile>[0]) => userApi.updateProfile(request),
-
-    onSuccess: (response, _request, version) => {
-      if (version !== useAuthStore.getState().sessionVersion) return;
-      const user = response ?? null;
-      useAuthStore.getState().setUser(user);
-      toast.success('프로필이 수정되었습니다');
-    },
-
-    onError: (error: AxiosError<{ message: string }>) => {
-      const message = localizedErrorMessage(error.response?.data?.message, '프로필 수정에 실패했습니다');
-      toast.error(message);
-    },
-  });
-};
-
 export const useCompleteOnboarding = (accountId?: number) => {
   return useMutation({
     onMutate: () => useAuthStore.getState().sessionVersion,

@@ -1,4 +1,4 @@
-export interface CrawlSemesterOption {
+interface CrawlSemesterOption {
   code: string;
   label: string;
 }

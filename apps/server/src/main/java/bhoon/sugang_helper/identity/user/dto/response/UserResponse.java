@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.identity.user.dto.response;
 
 import bhoon.sugang_helper.identity.user.dto.result.UserProfileResult;
-import bhoon.sugang_helper.identity.user.dto.result.UserProfileUpdateResult;
 import bhoon.sugang_helper.identity.user.dto.result.UserSettingsResult;
 import bhoon.sugang_helper.identity.user.dto.result.UserOnboardingResult;
 import bhoon.sugang_helper.identity.user.entity.User;
@@ -49,20 +48,6 @@ public class UserResponse {
     }
 
     public static UserResponse from(UserProfileResult result) {
-        return new UserResponse(
-                result.id(),
-                result.email(),
-                result.name(),
-                result.role(),
-                result.notificationEmail(),
-                result.emailEnabled(),
-                result.webPushEnabled(),
-                result.onboardingCompleted(),
-                result.discordId(),
-                result.discordEnabled());
-    }
-
-    public static UserResponse from(UserProfileUpdateResult result) {
         return new UserResponse(
                 result.id(),
                 result.email(),

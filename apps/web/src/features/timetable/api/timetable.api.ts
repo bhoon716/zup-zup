@@ -14,11 +14,6 @@ export const timetableApi = {
     return data;
   },
 
-  getPrimaryTimetable: async () => {
-    const { data } = await api.get<TimetableDetailResponse | null | "">(`${BASE_URL}/primary`);
-    return data || null;
-  },
-
   createTimetable: async (data: TimetableRequest) => {
     const payload = {
       name: data.name,

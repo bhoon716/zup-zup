@@ -9,11 +9,9 @@ import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.dto.command.SendVerificationCodeCommand;
-import bhoon.sugang_helper.identity.user.dto.command.UpdateProfileCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateSettingsCommand;
 import bhoon.sugang_helper.identity.user.dto.result.UserOnboardingResult;
 import bhoon.sugang_helper.identity.user.dto.result.UserProfileResult;
-import bhoon.sugang_helper.identity.user.dto.result.UserProfileUpdateResult;
 import bhoon.sugang_helper.identity.user.dto.result.UserSettingsResult;
 import bhoon.sugang_helper.identity.user.dto.command.VerifyEmailCommand;
 import bhoon.sugang_helper.identity.user.entity.User;
@@ -53,14 +51,6 @@ public class UserService {
 
         return userRepository.findByEmail(email)
                 .filter(user -> !user.isDeleted());
-    }
-
-    @Transactional
-    public UserProfileUpdateResult updateProfile(UpdateProfileCommand command) {
-        User user = getCurrentUser();
-        user.update(command.name());
-        logUserProfileUpdated(user.getId());
-        return UserProfileUpdateResult.from(user);
     }
 
     @Transactional
@@ -158,12 +148,6 @@ public class UserService {
         return userRepository.findByEmail(email)
                 .filter(user -> !user.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
-    }
-
-    private void logUserProfileUpdated(Long userId) {
-        log.atInfo().addKeyValue(EVENT_KEY, "user_profile_updated")
-                .addKeyValue(USER_ID_KEY, userId)
-                .log("[User] 프로필 수정.");
     }
 
     private void logUserNotificationSettingsUpdated(Long userId, boolean emailEnabled, boolean webPushEnabled) {

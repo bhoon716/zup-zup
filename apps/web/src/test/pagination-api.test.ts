@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import api from "@/shared/api/client";
-import { searchCourses, getCourseHistory } from "@/features/course/api/course.api";
+import { searchCourses } from "@/features/course/api/course.api";
 import { getReviews } from "@/features/review/api/review.api";
 import { getAnnouncements } from "@/features/announcement/api/announcement.api";
 import { getNotifications } from "@/features/notification/api/notification.api";
@@ -20,7 +20,6 @@ beforeEach(() => {
 describe("서버 고정 페이지 크기를 사용하는 API", () => {
   it.each([
     { name: "강의 검색", read: () => searchCourses({ name: "자료" }, 2), method: "post", path: "/api/v1/courses/search", params: { page: 2 }, body: { name: "자료" } },
-    { name: "강의 이력", read: () => getCourseHistory("course:1", 2), method: "get", path: "/api/v1/courses/course%3A1/history", params: { page: 2 } },
     { name: "리뷰 정렬", read: () => getReviews("course:1", 2, "rating,desc"), method: "get", path: "/api/v1/courses/course%3A1/reviews", params: { page: 2, sort: "rating,desc" } },
     { name: "공지 검색", read: () => getAnnouncements({ keyword: " 점검 ", searchType: "TITLE", page: 2 }), method: "get", path: "/api/v1/announcements", params: { keyword: "점검", searchType: "TITLE", page: 2 } },
     { name: "알림 이력", read: async () => (await getNotifications(2)).data, method: "get", path: "/api/v1/notifications/history", params: { page: 2 } },

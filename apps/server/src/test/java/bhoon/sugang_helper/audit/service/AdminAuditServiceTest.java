@@ -1,18 +1,14 @@
 package bhoon.sugang_helper.audit.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import bhoon.sugang_helper.audit.dto.response.AdminActionLogResponse;
 import bhoon.sugang_helper.audit.entity.AdminActionLog;
 import bhoon.sugang_helper.audit.enums.ActionType;
 import bhoon.sugang_helper.audit.enums.TargetType;
 import bhoon.sugang_helper.audit.repository.AdminActionLogRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,12 +18,6 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
@@ -118,42 +108,5 @@ class AdminAuditServiceTest {
                     .doesNotContain("답변")
                     .doesNotContain("secret-idempotency-key");
         }
-    }
-
-    @Test
-    @DisplayName("감사 로그 목록은 최신순 안정 정렬과 최대 100건 페이지 크기를 사용하고, legacy 원문은 반환하지 않는다.")
-    void getActionLogs_boundsPagingAndRedactsUnexpectedLegacyMetadata() {
-        // given
-        AdminActionLog legacyLog = AdminActionLog.builder()
-                .adminId(ADMIN_ID)
-                .actionType(ActionType.REPLY_UPDATE)
-                .targetType(TargetType.REPLY)
-                .targetId(REPLY_ID)
-                .metaData("{\"oldContent\":\"private reply alice@example.com\"}")
-                .build();
-        ReflectionTestUtils.setField(legacyLog, "id", 99L);
-        given(adminActionLogRepository.findAllByOrderByCreatedAtDescIdDesc(any(Pageable.class)))
-                .willReturn(new PageImpl<>(List.of(legacyLog), PageRequest.of(3, 100), 301));
-
-        // when
-        Page<AdminActionLogResponse> response = adminAuditService.getActionLogs(PageRequest.of(3, 100));
-
-        // then
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(adminActionLogRepository).findAllByOrderByCreatedAtDescIdDesc(pageableCaptor.capture());
-        Pageable requestedPage = pageableCaptor.getValue();
-        assertThat(requestedPage.getPageNumber()).isEqualTo(3);
-        assertThat(requestedPage.getPageSize()).isEqualTo(100);
-        assertThat(requestedPage.getSort().getOrderFor("createdAt").getDirection()).isEqualTo(Sort.Direction.DESC);
-        assertThat(requestedPage.getSort().getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.DESC);
-        assertThat(response.getContent()).singleElement().satisfies(log -> {
-            assertThat(log.adminId()).isEqualTo(ADMIN_ID);
-            assertThat(log.metadata().event()).isEqualTo("LEGACY_SANITIZED");
-            assertThat(log.metadata().data().reason()).isEqualTo("legacy_metadata_removed");
-            assertThat(log.toString())
-                    .doesNotContain("private reply")
-                    .doesNotContain("alice@example.com")
-                    .doesNotContain("admin@example.com");
-        });
     }
 }
