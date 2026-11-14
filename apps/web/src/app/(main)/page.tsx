@@ -8,45 +8,10 @@ import type { ScheduleResponse } from "@/shared/types/api";
 import { fetchPublicData } from "@/shared/lib/public-metadata";
 
 const SESSION_COOKIE_NAME = "SESSION";
-const countFormatter = new Intl.NumberFormat("ko-KR");
-
-interface PublicLandingStatsResponse {
-  totalUsers: number;
-  totalSentSeatNotifications: number;
-}
 
 async function PublicCountdown() {
   const data = await fetchPublicData<ScheduleResponse[]>("/api/v1/schedules/ddays", { cache: "no-store" });
   return <DashboardCountdown initialData={data} />;
-}
-
-async function PublicLandingStats() {
-  const stats = await fetchPublicData<PublicLandingStatsResponse>(
-    "/api/v1/dashboard/landing-stats",
-    { next: { revalidate: 300 } },
-  );
-  if (!stats) return null;
-
-  const metrics = [
-    { label: "누적 가입자", count: stats.data.totalUsers, unit: "명" },
-    { label: "빈자리 알림 발송 성공", count: stats.data.totalSentSeatNotifications, unit: "건" },
-  ];
-  if (metrics.some(({ count }) => !Number.isSafeInteger(count) || count < 0)) return null;
-
-  return (
-    <section aria-label="서비스 이용 통계" className="mx-auto w-full max-w-[1200px] px-6 pb-12 md:pb-16">
-      <dl className="grid grid-cols-2 divide-x rounded-2xl border bg-card">
-        {metrics.map(({ label, count, unit }) => (
-          <div key={label} className="px-4 py-5 sm:px-7 sm:py-6">
-            <dt className="break-keep text-sm text-muted-foreground">{label}</dt>
-            <dd className="mt-1.5 text-2xl font-bold tabular-nums text-primary sm:text-4xl">
-              {countFormatter.format(count)}<span className="ml-1 text-sm font-medium">{unit}</span>
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
 }
 
 export default async function HomePage() {
@@ -57,7 +22,6 @@ export default async function HomePage() {
       <HomeSession hasSessionCookie={hasSessionCookie}>
         <HomeLanding
           countdown={hasSessionCookie ? <DashboardCountdown /> : <Suspense><PublicCountdown /></Suspense>}
-          statistics={<Suspense><PublicLandingStats /></Suspense>}
         />
       </HomeSession>
       <footer className="bg-card border-t py-10">

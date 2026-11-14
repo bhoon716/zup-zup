@@ -1,7 +1,6 @@
 package bhoon.sugang_helper.dashboard.controller;
 
 import bhoon.sugang_helper.dashboard.dto.response.DashboardSnapshotResponse;
-import bhoon.sugang_helper.dashboard.dto.response.LandingStatsResponse;
 import bhoon.sugang_helper.dashboard.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,11 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class DashboardController {
 
     private final DashboardService dashboardService;
-
-    @GetMapping("/landing-stats")
-    public ResponseEntity<LandingStatsResponse> getLandingStats() {
-        return ResponseEntity.ok(dashboardService.getLandingStats());
-    }
 
     @GetMapping
     public ResponseEntity<DashboardSnapshotResponse> getDashboardSnapshot() {

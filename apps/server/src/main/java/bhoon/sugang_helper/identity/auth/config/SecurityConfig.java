@@ -72,7 +72,6 @@ public class SecurityConfig {
     private static final String[] PERMIT_GET_ENDPOINTS = new String[]{
             "/api/auth/csrf",
             "/api/v1/dashboard",
-            "/api/v1/dashboard/landing-stats",
             "/api/v1/courses/**",
             "/api/v1/announcements/**",
             "/api/v1/schedules/**"

@@ -7,6 +7,12 @@ import { LandingWalkthrough } from "./landing-walkthrough";
 
 import styles from "./landing-walkthrough.module.css";
 
+const statistics = [
+  { label: "누적 가입자", count: 121, unit: "명" },
+  { label: "빈자리 알림 발송 성공", count: 288, unit: "건" },
+];
+const countFormatter = new Intl.NumberFormat("ko-KR");
+
 const everyTimeReviews = [
   {
     id: 1,
@@ -68,7 +74,7 @@ function ReviewList({ repeated = false }: { repeated?: boolean }) {
   );
 }
 
-export function HomeLanding({ countdown, statistics }: { countdown: ReactNode; statistics: ReactNode }) {
+export function HomeLanding({ countdown }: { countdown: ReactNode }) {
   return (
     <main className="flex flex-col bg-[#fafafa] dark:bg-black">
       <section className="mx-auto w-full max-w-[1200px] px-6 pt-9 pb-10 sm:pt-12 lg:pt-16 lg:pb-14">
@@ -123,7 +129,21 @@ export function HomeLanding({ countdown, statistics }: { countdown: ReactNode; s
           </div>
         </div>
       </section>
-      {statistics}
+      <section aria-label="서비스 이용 통계" className="mx-auto w-full max-w-[1200px] px-6 pb-12 md:pb-16">
+        <dl className="grid grid-cols-2 divide-x rounded-2xl border bg-card">
+          {statistics.map(({ label, count, unit }) => (
+            <div key={label} className="px-4 py-5 sm:px-7 sm:py-6">
+              <dt className="break-keep text-sm text-muted-foreground">{label}</dt>
+              <dd className="mt-1.5 text-2xl font-bold tabular-nums text-primary sm:text-4xl">
+                {countFormatter.format(count)}<span className="ml-1 text-sm font-medium">{unit}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-2.5 text-right text-xs text-muted-foreground">
+          <time dateTime="2026-11-15">2026년 11월 15일</time> 기준
+        </p>
+      </section>
     </main>
   );
 }

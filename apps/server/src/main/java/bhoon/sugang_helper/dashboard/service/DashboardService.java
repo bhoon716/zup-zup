@@ -8,13 +8,10 @@ import bhoon.sugang_helper.dashboard.dto.response.DashboardNotificationResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardPrimaryTimetableResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardUserResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardSnapshotResponse;
-import bhoon.sugang_helper.dashboard.dto.response.LandingStatsResponse;
 import bhoon.sugang_helper.identity.api.users.UserDashboardProfile;
 import bhoon.sugang_helper.identity.api.users.UserDashboardProfiles;
-import bhoon.sugang_helper.identity.api.users.UserStatistics;
 import bhoon.sugang_helper.planning.api.Timetables;
 import bhoon.sugang_helper.seatalert.api.NotificationHistoryQueries;
-import bhoon.sugang_helper.seatalert.api.NotificationTraffic;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -33,12 +30,6 @@ public class DashboardService {
     private final Timetables primaryTimetableQuery;
     private final AcademicSchedules upcomingScheduleQuery;
     private final Announcements dashboardAnnouncementQuery;
-    private final UserStatistics userStatistics;
-    private final NotificationTraffic notificationTraffic;
-
-    public LandingStatsResponse getLandingStats() {
-        return LandingStatsResponse.of(userStatistics.countUsers(), notificationTraffic.countSentSeatNotifications());
-    }
 
     public DashboardSnapshotResponse getDashboardSnapshot() {
         List<ScheduleSummary> upcomingSchedules = upcomingScheduleQuery.findUpcomingSchedules();
