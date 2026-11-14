@@ -71,22 +71,24 @@ function FeedbackPageContent() {
           </Link>
         </div>
 
-        <div ref={listTop} tabIndex={-1} className="min-h-[500px] scroll-mt-20">
-          {isError ? (
-            <div role="alert" className="flex flex-wrap items-center justify-center gap-3 px-4 py-12 text-sm text-muted-foreground">
-              문의 목록을 불러오지 못했습니다.
-              <Button type="button" variant="outline" size="sm" onClick={() => { void refetch(); }}>다시 시도</Button>
-            </div>
-          ) : (
-            <FeedbackList
-              isLoading={isListLoading}
-              feedbackList={feedbackList}
-              selectedFeedbackId={null}
-              onSelectFeedback={(id) => router.push(`/feedback/${id}`)}
-              getTypeIcon={getTypeIcon}
-              getStatusBadge={getStatusBadge}
-            />
-          )}
+        <div ref={listTop} tabIndex={-1} className="scroll-mt-20">
+          <section aria-label="문의 목록" className="overflow-hidden rounded-xl border bg-card">
+            {isError ? (
+              <div role="alert" className="flex flex-wrap items-center justify-center gap-3 px-4 py-12 text-sm text-muted-foreground">
+                문의 목록을 불러오지 못했습니다.
+                <Button type="button" variant="outline" size="sm" onClick={() => { void refetch(); }}>다시 시도</Button>
+              </div>
+            ) : (
+              <FeedbackList
+                isLoading={isListLoading}
+                feedbackList={feedbackList}
+                selectedFeedbackId={null}
+                onSelectFeedback={(id) => router.push(`/feedback/${id}`)}
+                getTypeIcon={getTypeIcon}
+                getStatusBadge={getStatusBadge}
+              />
+            )}
+          </section>
           {feedbackList && feedbackList.totalPages > 1 && (
             <FeedbackPagination page={page} totalPages={feedbackList.totalPages} onChange={changePage} />
           )}

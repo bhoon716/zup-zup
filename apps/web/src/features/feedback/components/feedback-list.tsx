@@ -45,7 +45,7 @@ export function FeedbackList({
 
   return (
     <div className="w-full">
-      <div className="hidden md:grid grid-cols-[80px_100px_1fr_120px_100px] gap-4 px-4 py-3 border-y border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+      <div className="hidden grid-cols-[80px_100px_minmax(0,1fr)_120px_100px] gap-4 border-b bg-muted/60 px-4 py-3 text-xs font-medium text-muted-foreground md:grid">
         <div className="text-center">번호</div>
         <div>유형</div>
         <div>제목</div>
@@ -53,12 +53,12 @@ export function FeedbackList({
         <div className="text-center">상태</div>
       </div>
 
-      <div className="divide-y divide-gray-100 dark:divide-gray-800 border-b border-gray-100 dark:border-gray-800">
+      <div className="divide-y">
         {feedbackList.content.map((item, index) => (
           <div
             key={item.id}
             onClick={() => onSelectFeedback(item.id)}
-            className={`group grid grid-cols-1 md:grid-cols-[80px_100px_1fr_120px_100px] gap-2 md:gap-4 px-4 py-4 transition-colors cursor-pointer items-center hover:bg-gray-50/80 dark:hover:bg-white/5 ${
+            className={`group grid grid-cols-1 md:grid-cols-[80px_100px_minmax(0,1fr)_120px_100px] gap-2 md:gap-4 px-4 py-4 transition-colors cursor-pointer items-center hover:bg-muted/70 ${
               selectedFeedbackId === item.id ? "bg-primary/5" : ""
             }`}
           >
