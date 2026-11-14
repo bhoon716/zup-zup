@@ -136,26 +136,13 @@ export function InboxList({ userId, view }: { userId: number; view: InboxView })
         role="group"
         aria-label="알림 목록 도구"
         tabIndex={-1}
-        className="space-y-2 scroll-mt-20 border-b border-slate-200 px-3 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:px-5"
+        className="scroll-mt-20 space-y-3 border-b px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:px-5"
       >
-        <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-          <Select
-            value={selection.type}
-            onValueChange={(value) => changeSelection({ ...selection, type: inboxTypeFilterSchema.parse(value), page: 0 })}
-          >
-            <SelectTrigger aria-label="알림 유형" className="rounded-lg bg-white px-2.5 sm:w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" align="start" className="rounded-xl border-slate-200 shadow-lg">
-              <SelectItem value="ALL">모든 알림 유형</SelectItem>
-              {viewTypes[view].map((value) => <SelectItem key={value} value={value}>{inboxTypeLabels[value]}</SelectItem>)}
-            </SelectContent>
-          </Select>
-
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 md:grid-cols-[minmax(0,1fr)_9rem_9.5rem]">
           <form
             role="search"
             aria-label="알림함 검색"
-            className="flex min-w-0 gap-1.5"
+            className="col-span-2 flex min-w-0 gap-2 md:col-span-1"
             onSubmit={(event) => {
               event.preventDefault();
               const keyword = searchText.trim();
@@ -167,20 +154,33 @@ export function InboxList({ userId, view }: { userId: number; view: InboxView })
             }}
           >
             <div className="relative min-w-0 flex-1">
-              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-              <Input type="search" aria-label="검색어" placeholder="제목, 내용, 강의명 검색" value={searchText} onChange={(event) => setSearchText(event.target.value)} className="h-9 min-w-0 rounded-lg pl-9" />
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input type="search" aria-label="검색어" placeholder="제목, 내용, 강의명 검색" value={searchText} onChange={(event) => setSearchText(event.target.value)} className="h-9 min-w-0 rounded-lg pl-9 text-sm" />
             </div>
             <Button type="submit" variant="outline" className="rounded-lg px-2.5 sm:px-4">검색</Button>
           </form>
 
           <Select
+            value={selection.type}
+            onValueChange={(value) => changeSelection({ ...selection, type: inboxTypeFilterSchema.parse(value), page: 0 })}
+          >
+            <SelectTrigger aria-label="알림 유형" className="w-full min-w-0 rounded-lg bg-card px-2.5">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start" className="font-schedule">
+              <SelectItem value="ALL">모든 알림 유형</SelectItem>
+              {viewTypes[view].map((value) => <SelectItem key={value} value={value}>{inboxTypeLabels[value]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select
             value={selection.sort}
             onValueChange={(value) => changeSelection({ ...selection, sort: inboxSortSchema.parse(value), page: 0 })}
           >
-            <SelectTrigger aria-label="알림 정렬" className="col-start-2 justify-self-end rounded-lg bg-white px-2.5 sm:col-start-auto sm:w-40">
+            <SelectTrigger aria-label="알림 정렬" className="w-full min-w-0 rounded-lg bg-card px-2.5">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" align="end" className="rounded-xl border-slate-200 shadow-lg">
+            <SelectContent position="popper" align="end" className="font-schedule">
               {Object.entries(sortLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -193,9 +193,12 @@ export function InboxList({ userId, view }: { userId: number; view: InboxView })
                 key={value}
                 type="button"
                 size="sm"
-                variant={selection.read === value ? "secondary" : "ghost"}
+                variant="ghost"
                 aria-pressed={selection.read === value}
-                className="rounded-lg px-2 sm:px-3"
+                className={cn(
+                  "rounded-md px-2 text-muted-foreground sm:px-3",
+                  selection.read === value && "bg-primary/10 font-semibold text-primary hover:bg-primary/15 hover:text-primary",
+                )}
                 onClick={() => {
                   if (value !== selection.read) {
                     changeSelection({ ...selection, read: value, page: 0 });
@@ -228,10 +231,10 @@ export function InboxList({ userId, view }: { userId: number; view: InboxView })
       )}
       {!failedDetailRead && commandError}
 
-      {inbox.isPending && <p role="status" className="px-3 py-4 text-sm text-slate-500 sm:px-5">알림을 불러오는 중입니다.</p>}
+      {inbox.isPending && <p role="status" className="px-4 py-4 text-sm text-muted-foreground sm:px-5">알림을 불러오는 중입니다.</p>}
 
       {results && results.content.length > 0 && (
-        <ul aria-label="알림 목록" className="divide-y divide-slate-200">
+        <ul aria-label="알림 목록" className="divide-y">
           {results.content.map((item) => {
             const isUnread = item.readAt === null;
             const isOpenDisabled = isShowingPreviousResults || (isUnread && update.isPending);
@@ -241,18 +244,17 @@ export function InboxList({ userId, view }: { userId: number; view: InboxView })
             return (
               <li key={item.id}>
                 <article className={cn(
-                  "relative flex items-center gap-2 px-3 py-2.5 hover:bg-slate-50 sm:gap-3 sm:px-5",
-                  isUnread && "bg-primary/5 hover:bg-primary/10",
+                  "relative grid grid-cols-[0.5rem_minmax(0,1fr)] gap-x-2.5 px-4 py-3 hover:bg-muted/70 focus-within:bg-muted/70 sm:gap-x-3 sm:px-5",
+                  isUnread && "bg-primary/5 hover:bg-primary/10 focus-within:bg-primary/10",
                 )}>
-                  <span className="mt-1.5 size-2 shrink-0 self-start md:mt-0 md:self-auto">
+                  <span className="mt-2 size-2">
                     {isUnread && <span role="img" aria-label="읽지 않음" className="block size-full rounded-full bg-destructive" />}
                   </span>
-                  <div className="min-w-0 flex-1 md:flex md:items-center md:gap-4">
-                    <div className="min-w-0 flex-1 md:flex md:items-baseline md:gap-2">
+                  <div className="grid min-w-0 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-x-5">
+                    <div className="min-w-0">
                       <h2 className={cn(
-                        "min-w-0 text-sm text-slate-900",
-                        isUnread ? "font-bold" : "font-medium",
-                        message && "md:max-w-3/5",
+                        "text-[0.9375rem] leading-snug text-foreground sm:text-base",
+                        isUnread ? "font-semibold" : "font-medium",
                       )}>
                         <button
                           type="button"
@@ -266,10 +268,10 @@ export function InboxList({ userId, view }: { userId: number; view: InboxView })
                           {title}
                         </button>
                       </h2>
-                      {message && <p className="mt-0.5 min-w-0 truncate text-sm text-slate-600 md:mt-0">{message}</p>}
+                      {message && <p className="mt-1 truncate text-sm leading-normal text-muted-foreground">{message}</p>}
                     </div>
-                    <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xs leading-tight text-slate-600 md:mt-0 md:shrink-0">
-                      <span className="font-medium">{isSeatOpening ? "빈자리 감지" : inboxTypeLabels[item.type]}</span>
+                    <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-muted-foreground sm:mt-0.5 sm:flex-col sm:items-end sm:gap-y-0.5">
+                      <span className="font-medium text-foreground/80">{isSeatOpening ? "빈자리 감지" : inboxTypeLabels[item.type]}</span>
                       <time dateTime={item.occurredAt} className="whitespace-nowrap tabular-nums">
                         {format(new Date(item.occurredAt), "yyyy년 M월 d일 HH:mm")}
                       </time>
@@ -283,17 +285,17 @@ export function InboxList({ userId, view }: { userId: number; view: InboxView })
       )}
 
       {inbox.data?.content.length === 0 && (
-        <div className="bg-slate-50 px-4 py-12 text-center">
-          <Bell aria-hidden="true" className="mx-auto mb-3 size-6 text-slate-400" />
-          <p className="text-sm font-medium text-slate-700">
+        <div className="px-4 py-12 text-center">
+          <Bell aria-hidden="true" className="mx-auto mb-3 size-6 text-muted-foreground" />
+          <p className="text-sm font-medium text-muted-foreground">
             {selection.keyword || selection.read !== "ALL" || selection.type !== "ALL" ? "조건에 맞는 알림이 없습니다." : "받은 알림이 없습니다."}
           </p>
         </div>
       )}
 
       {results && (
-        <footer className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-3 py-2 sm:px-5">
-          <p className="text-sm font-medium text-slate-600">알림 {inboxCountFormat.format(results.totalElements)}개</p>
+        <footer className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-b-xl border-t bg-muted/45 px-4 py-2 sm:px-5">
+          <p className="text-sm font-medium text-muted-foreground">알림 {inboxCountFormat.format(results.totalElements)}개</p>
           {results.totalPages > 1 && (
             <InboxPagination results={results} disabled={isShowingPreviousResults} onPageChange={changePage} />
           )}
@@ -311,7 +313,7 @@ export function InboxList({ userId, view }: { userId: number; view: InboxView })
       {messageItem && (
         <Dialog open={isDetailOpen} onOpenChange={changeDetailOpen}>
           <DialogContent
-            className="max-h-[90dvh] overflow-y-auto"
+            className="font-schedule max-h-[90dvh] overflow-y-auto"
             onCloseAutoFocus={(event) => {
               event.preventDefault();
               const trigger = detailTrigger.current?.isConnected ? detailTrigger.current : refreshButton.current;

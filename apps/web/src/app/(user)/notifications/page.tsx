@@ -13,11 +13,11 @@ export default function NotificationsPage() {
   const hasCheckedSession = useAuthStore((state) => state.hasCheckedSession);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-        <h1 className="mb-5 text-3xl font-bold tracking-tight text-foreground sm:mb-8">알림함</h1>
+    <div className="min-h-[calc(100dvh-4rem)] bg-background">
+      <main className="font-schedule mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+        <h1 className="mb-5 text-2xl font-semibold text-foreground sm:text-3xl">알림함</h1>
         {userId === undefined ? (
-          <p role="status" className="text-sm text-slate-600">
+          <p role="status" className="text-sm text-muted-foreground">
             {hasCheckedSession ? "로그인하면 알림을 확인할 수 있습니다." : "로그인 상태를 확인하는 중입니다."}
           </p>
         ) : (
@@ -70,8 +70,8 @@ function AccountNotifications({ userId }: { userId: number }) {
   };
 
   return (
-    <div className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white shadow-card">
-      <div role="tablist" aria-label="알림 보기" className="flex flex-wrap gap-1 rounded-t-2xl border-b border-slate-200 px-3 py-2 sm:px-5">
+    <div className="w-full min-w-0 rounded-xl border bg-card">
+      <div role="tablist" aria-label="알림 보기" className="flex flex-wrap gap-4 border-b px-4 sm:gap-6 sm:px-5">
         {notificationViews.map(({ id, label }, index) => (
           <Button
             key={id}
@@ -82,11 +82,14 @@ function AccountNotifications({ userId }: { userId: number }) {
             id={`notification-tab-${id}`}
             type="button"
             role="tab"
-            variant={view === id ? "secondary" : "ghost"}
+            variant="ghost"
             aria-selected={view === id}
             aria-controls={`notification-panel-${id}`}
             tabIndex={view === id ? 0 : -1}
-            className={cn("rounded-lg px-3 sm:px-4", view === id && "bg-primary/10 font-semibold text-primary hover:bg-primary/15")}
+            className={cn(
+              "h-12 rounded-none border-b-2 border-transparent px-0.5 text-muted-foreground hover:bg-transparent hover:text-foreground",
+              view === id && "border-primary font-semibold text-primary hover:text-primary",
+            )}
             onClick={() => setView(id)}
             onKeyDown={(event) => moveTab(event, index)}
           >
