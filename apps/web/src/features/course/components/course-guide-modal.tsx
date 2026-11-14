@@ -114,7 +114,7 @@ export function CourseGuideModal() {
 
             <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs leading-relaxed text-muted-foreground">
-                닫아도 검색은 계속할 수 있고, 오른쪽 버튼으로 다시 열 수 있습니다.
+                ‘사용법’ 버튼을 누르면 이 안내를 다시 볼 수 있어요.
               </p>
               <Button type="button" onClick={() => handleOpenChange(false)} className="rounded-full px-5 font-bold">
                 이해했어요
