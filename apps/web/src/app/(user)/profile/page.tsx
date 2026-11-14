@@ -45,12 +45,12 @@ export default function ProfilePage() {
               className="text-destructive hover:text-destructive"
               disabled={isWithdrawing}
               onClick={() => {
-                if (window.confirm("계정을 삭제할까요? 삭제한 계정은 다시 사용할 수 없으며 모든 기기에서 로그아웃됩니다.")) {
+                if (window.confirm("회원 탈퇴를 진행할까요? 탈퇴한 계정은 다시 사용할 수 없으며 모든 기기에서 로그아웃됩니다.")) {
                   withdraw();
                 }
               }}
             >
-              {isWithdrawing ? "계정 삭제 중…" : "계정 삭제"}
+              {isWithdrawing ? "탈퇴 처리 중…" : "회원 탈퇴"}
             </Button>
           </div>
         </>
