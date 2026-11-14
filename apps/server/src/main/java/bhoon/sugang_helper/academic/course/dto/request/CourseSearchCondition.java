@@ -53,6 +53,7 @@ public class CourseSearchCondition {
     private static final String LECTURE_HOURS_FIELD = "lectureHours";
     private static final String CREDITS_FIELD = "credits";
     private static final String SELECTED_SCHEDULES_FIELD = "selectedSchedules";
+    private static final int MAX_SELECTED_SCHEDULES = 84;
     private static final String DEFAULT_SORT_ORDER = "desc";
 
     private static final String DEFAULT_SORT_BY = CourseSearchCriteria.POPULAR_SORT;
@@ -95,7 +96,7 @@ public class CourseSearchCondition {
     private String dayOfWeek;
 
     @Valid
-    @Size(max = 20)
+    @Size(max = MAX_SELECTED_SCHEDULES)
     private List<@Valid ScheduleCondition> selectedSchedules;
 
     @Size(max = 20)

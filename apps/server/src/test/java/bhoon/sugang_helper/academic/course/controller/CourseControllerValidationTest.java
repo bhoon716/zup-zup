@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
+import bhoon.sugang_helper.academic.course.dto.request.ScheduleCondition;
+import bhoon.sugang_helper.academic.course.enums.CourseDayOfWeek;
 import bhoon.sugang_helper.academic.course.service.CourseService;
 import bhoon.sugang_helper.academic.crawling.controller.CourseSearchTargetController;
 import bhoon.sugang_helper.academic.crawling.dto.response.SearchDefaultSemesterResponse;
@@ -18,9 +20,11 @@ import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +46,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 class CourseControllerValidationTest {
 
     private static final String COURSE_DIRECTION_FIELD = "courseDirection";
+    private static final String SELECTED_SCHEDULES_FIELD = "selectedSchedules";
     private static final String STATUSES_FIELD = "statuses";
     private static final String SEARCH_PATH = "/api/v1/courses/search";
 
@@ -95,9 +100,12 @@ class CourseControllerValidationTest {
     void rejectsUnboundedPublicPredicateInputsWithoutInvokingSearch() throws Exception {
         // given
         List<String> tooManyStatuses = Collections.nCopies(21, "일반");
+        List<ScheduleCondition> tooManySchedules = Collections.nCopies(85,
+                new ScheduleCondition(CourseDayOfWeek.MONDAY, "08:00", "09:00"));
         List<Map<String, Object>> invalidBodies = List.of(
                 Map.of(STATUSES_FIELD, tooManyStatuses),
                 Map.of(STATUSES_FIELD, List.of("x".repeat(51))),
+                Map.of(SELECTED_SCHEDULES_FIELD, tooManySchedules),
                 Map.of(COURSE_DIRECTION_FIELD, "x".repeat(501)),
                 Map.of(COURSE_DIRECTION_FIELD, "a,b,c,d,e,f,g,h,i,j,k"),
                 Map.of(COURSE_DIRECTION_FIELD, "x".repeat(101)));
@@ -112,6 +120,26 @@ class CourseControllerValidationTest {
         }
 
         verify(courseService, never()).searchCourses(any(CourseSearchCondition.class), any());
+    }
+
+    @Test
+    @DisplayName("공강 시간표에서 월요일부터 토요일까지 84칸을 모두 선택해 검색할 수 있다")
+    void acceptsAllTimetableSlots() throws Exception {
+        // given
+        List<ScheduleCondition> schedules = List.of(CourseDayOfWeek.MONDAY, CourseDayOfWeek.TUESDAY,
+                        CourseDayOfWeek.WEDNESDAY, CourseDayOfWeek.THURSDAY, CourseDayOfWeek.FRIDAY,
+                        CourseDayOfWeek.SATURDAY).stream()
+                .flatMap(day -> IntStream.range(8, 22).mapToObj(hour -> new ScheduleCondition(day,
+                        LocalTime.of(hour, 0).toString(), LocalTime.of(hour + 1, 0).toString())))
+                .toList();
+        given(courseService.searchCourses(any(CourseSearchCondition.class), any()))
+                .willReturn(new SliceImpl<>(List.of(), PageRequest.of(0, 30), false));
+
+        // when & then
+        mockMvc.perform(post(SEARCH_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(SELECTED_SCHEDULES_FIELD, schedules))))
+                .andExpect(status().isOk());
     }
 
     @ParameterizedTest
