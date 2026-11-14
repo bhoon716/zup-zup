@@ -4,6 +4,7 @@ import { Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useSubscriptions, useUnsubscribe, useUnsubscribeAll } from "@/features/subscription/hooks/useSubscriptions";
+import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
 import { SEMESTERS } from "@/features/course/constants/course-options";
@@ -92,21 +93,29 @@ export function SubscriptionList({ user }: { user: User }) {
           return (
             <li key={sub.id} className="group relative flex items-center gap-3 px-4 py-3 hover:bg-muted/40 last:rounded-b-xl sm:px-5">
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-semibold group-hover:text-primary">
-                  <button
-                    type="button"
-                    className="wrap-anywhere rounded-sm text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    onClick={(event) => openCourseDetail(sub, courseKey, event.currentTarget)}
-                  >
-                    {sub.courseName}
-                  </button>
-                </h3>
-                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                  {courseKey.year && semesterLabel && <span>{courseKey.year}학년도 {semesterLabel}</span>}
-                  <span>{courseKey.classNumber || "01"}분반</span>
-                  <span>{courseKey.subjectCode || sub.courseKey}</span>
-                  <span className="wrap-anywhere">{sub.professorName || "교수 미지정"}</span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <h3 className="min-w-0 text-sm font-semibold group-hover:text-primary">
+                    <button
+                      type="button"
+                      className="wrap-anywhere rounded-sm text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      onClick={(event) => openCourseDetail(sub, courseKey, event.currentTarget)}
+                    >
+                      {sub.courseName}
+                    </button>
+                  </h3>
+                  {semesterLabel && (
+                    <Badge variant="secondary" className="rounded-md bg-primary/10 px-1.5 py-0 text-primary">
+                      {semesterLabel}
+                    </Badge>
+                  )}
                 </div>
+                <p className="mt-1 wrap-anywhere text-xs text-muted-foreground">
+                  {courseKey.classNumber || "01"}분반
+                  <span className="mx-1">{" · "}</span>
+                  {courseKey.subjectCode || sub.courseKey}
+                  <span className="mx-1">{" · "}</span>
+                  {sub.professorName || "교수 미지정"}
+                </p>
               </div>
               <Button
                 type="button"
