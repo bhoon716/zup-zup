@@ -84,23 +84,6 @@ export function CourseDetailFilters({
 
       {           }
       <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-muted-foreground">강의 언어</Label>
-        <MultiSelectFilter
-          idBase="course-detail-language"
-          options={languageOptions}
-          selected={condition.lectureLanguages || []}
-          onChange={(values) =>
-            setCondition((prev) => ({
-              ...prev,
-              lectureLanguages: values as LectureLanguage[],
-            }))
-          }
-          placeholder="강의 언어 선택"
-        />
-      </div>
-
-      {           }
-      <div className="space-y-1.5">
         <Label className="text-xs font-medium text-muted-foreground">성적 평가</Label>
         <MultiSelectFilter
           idBase="course-detail-grading"
@@ -164,6 +147,22 @@ export function CourseDetailFilters({
             }))
           }
           placeholder="대상 학년 선택"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-muted-foreground">강의 언어</Label>
+        <MultiSelectFilter
+          idBase="course-detail-language"
+          options={languageOptions}
+          selected={condition.lectureLanguages || []}
+          onChange={(values) =>
+            setCondition((prev) => ({
+              ...prev,
+              lectureLanguages: values as LectureLanguage[],
+            }))
+          }
+          placeholder="강의 언어 선택"
         />
       </div>
     </div>

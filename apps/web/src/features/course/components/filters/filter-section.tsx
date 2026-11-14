@@ -39,7 +39,7 @@ export function FilterSection({
         aria-controls={contentId}
         aria-expanded={open}
         onClick={() => onOpenChange?.(!open)}
-        className="flex h-10 w-full items-center justify-between rounded-lg px-2.5 py-2 has-[>svg]:px-2.5"
+        className="flex h-10 w-full items-center justify-between rounded-lg bg-primary/5 px-2.5 py-2 hover:bg-primary/10 aria-expanded:rounded-b-none dark:hover:bg-primary/10 has-[>svg]:px-2.5"
       >
         <div className="flex items-center gap-2">
           {icon}

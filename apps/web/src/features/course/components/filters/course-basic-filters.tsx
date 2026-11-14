@@ -58,8 +58,7 @@ export function CourseBasicFilters({
 
   return (
     <div className="space-y-3">
-      {                           }
-      <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2">
         <div className="space-y-1.5">
           <Label htmlFor={academicYearSelectId} className="text-xs font-medium text-muted-foreground">학년도</Label>
           <Select
@@ -68,7 +67,7 @@ export function CourseBasicFilters({
               setCondition((prev) => ({ ...prev, academicYear: value }))
             }
           >
-            <SelectTrigger id={academicYearSelectId} aria-controls={`${academicYearSelectId}-content`} className="h-10 w-full rounded-lg bg-card text-sm">
+            <SelectTrigger id={academicYearSelectId} aria-controls={`${academicYearSelectId}-content`} className="h-10 w-full rounded-lg bg-card px-2 text-sm">
               <SelectValue placeholder="- 선택 -" />
             </SelectTrigger>
             <SelectContent id={`${academicYearSelectId}-content`}>
@@ -89,7 +88,7 @@ export function CourseBasicFilters({
               setCondition((prev) => ({ ...prev, semester: value }))
             }
           >
-            <SelectTrigger id={semesterSelectId} aria-controls={`${semesterSelectId}-content`} className="h-10 w-full rounded-lg bg-card text-sm">
+            <SelectTrigger id={semesterSelectId} aria-controls={`${semesterSelectId}-content`} className="h-10 w-full gap-1 rounded-lg bg-card px-2 text-sm *:data-[slot=select-value]:block *:data-[slot=select-value]:truncate">
               <SelectValue placeholder="- 선택 -" />
             </SelectTrigger>
             <SelectContent id={`${semesterSelectId}-content`}>
