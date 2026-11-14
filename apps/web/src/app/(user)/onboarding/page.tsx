@@ -272,11 +272,7 @@ function OnboardingContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa] p-4 font-sans">
-      <motion.main 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden relative"
-      >
+      <main className="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden relative">
         <div className="px-8 pt-10 pb-6 border-b border-gray-100 bg-white z-20 relative">
           <h1 className="text-2xl font-bold text-gray-900">프로필 설정</h1>
         </div>
@@ -473,7 +469,7 @@ function OnboardingContent() {
             </p>
           </form>
         </div>
-      </motion.main>
+      </main>
     </div>
   );
 }

@@ -83,7 +83,7 @@ export function TimetableSidebarSection({
         </div>
 
         <div className="min-h-0 flex-1 p-3">
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false} mode="wait">
             {sidebarTab === "schedule" ? (
               <motion.div
                 key="schedule-tab"

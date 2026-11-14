@@ -261,3 +261,14 @@
     @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
   }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-entrance {
+    animation: page-enter 180ms ease-out;
+  }
+
+  @keyframes page-enter {
+    from { opacity: 0.82; }
+    to { opacity: 1; }
+  }
+}

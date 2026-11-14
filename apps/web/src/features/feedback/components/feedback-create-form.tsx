@@ -65,7 +65,7 @@ export function FeedbackCreateForm({
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           {           }

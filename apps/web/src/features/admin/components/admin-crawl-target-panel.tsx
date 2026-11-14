@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Loader2, Play, Save, Settings2 } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
@@ -65,10 +64,8 @@ export function AdminCrawlTargetPanel({
   const yearOptions = getCrawlYearOptions();
 
   return (
-    <motion.section
+    <section
       aria-labelledby="admin-crawl-target-heading"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
     >
       <h2 id="admin-crawl-target-heading" className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
@@ -184,6 +181,6 @@ export function AdminCrawlTargetPanel({
           </div>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

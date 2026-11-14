@@ -400,12 +400,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <motion.main
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:py-6"
-      >
+      <main className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:py-6">
         <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:gap-5">
           <aside className="hidden lg:block">
             <div className="sticky top-20 h-[calc(100dvh-6rem)] rounded-xl border bg-card p-3 shadow-sm">
@@ -535,7 +530,7 @@ export default function SearchPage() {
             )}
           </section>
         </div>
-      </motion.main>
+      </main>
     </div>
   );
 }

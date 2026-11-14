@@ -40,7 +40,7 @@ export function FeedbackDetailView({
   if (!feedbackDetail) return null;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div>
       <div className="pb-6 border-b border-gray-100 dark:border-gray-800 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { AlertCircle, Loader2, RefreshCcw } from "lucide-react";
 
 import { useAdminDashboardSnapshot } from "@/features/admin/hooks/useAdminDashboard";
@@ -58,11 +57,7 @@ export default function AdminSettingsPage() {
   if (isSnapshotError || !snapshot || !crawlTarget) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 px-6 min-h-[70dvh]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-[2.5rem] border border-red-100 bg-white p-12 text-center shadow-xl shadow-red-500/5 max-w-md w-full"
-        >
+        <div className="rounded-[2.5rem] border border-red-100 bg-white p-12 text-center shadow-xl shadow-red-500/5 max-w-md w-full">
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-red-50 text-red-500">
             <AlertCircle className="h-10 w-10" />
           </div>
@@ -77,7 +72,7 @@ export default function AdminSettingsPage() {
             <RefreshCcw className="mr-2 h-5 w-5" />
             다시 시도하기
           </Button>
-        </motion.div>
+        </div>
       </div>
     );
   }

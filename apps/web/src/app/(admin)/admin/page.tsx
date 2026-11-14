@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { AlertCircle, CloudCog, Loader2, RefreshCcw, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -62,11 +61,7 @@ export default function AdminDashboardPage() {
   if (!snapshot) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 px-6 min-h-[70dvh]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-[2.5rem] border border-red-100 bg-white p-12 text-center shadow-xl shadow-red-500/5 max-w-md w-full"
-        >
+        <div className="rounded-[2.5rem] border border-red-100 bg-white p-12 text-center shadow-xl shadow-red-500/5 max-w-md w-full">
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-red-50 text-red-500">
             <AlertCircle className="h-10 w-10" />
           </div>
@@ -82,7 +77,7 @@ export default function AdminDashboardPage() {
             {isRefreshing ? <Loader2 aria-hidden="true" className="mr-2 h-5 w-5 animate-spin" /> : <RefreshCcw aria-hidden="true" className="mr-2 h-5 w-5" />}
             {isRefreshing ? "새로고침 중…" : "다시 시도하기"}
           </Button>
-        </motion.div>
+        </div>
       </div>
     );
   }

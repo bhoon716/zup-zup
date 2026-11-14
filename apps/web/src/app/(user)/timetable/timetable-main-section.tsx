@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Download, Loader2, Plus } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { TimetableGrid } from "@/features/timetable/components/timetable-grid";
@@ -83,14 +82,9 @@ export function TimetableMainSection({
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : activeTimetableId && timetableDetail ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.99 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
-            className="overflow-hidden rounded-lg border border-border bg-card"
-          >
+          <div className="overflow-hidden rounded-lg border border-border bg-card">
             <TimetableGrid timetable={timetableDetail} className="w-full" allowHorizontalScroll />
-          </motion.div>
+          </div>
         ) : null}
 
         {!isListLoading && timetables.length === 0 && (

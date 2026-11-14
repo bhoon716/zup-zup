@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "@/app/providers";
+import { PageEntrance } from "@/app/page-entrance";
 import { ThirdPartyAnalytics } from "@/shared/analytics/third-party-analytics";
 import { generateWebsiteJsonLd } from "@/shared/seo/json-ld";
 import {
@@ -128,7 +129,7 @@ export default function RootLayout({
       <body className="antialiased" data-clarity-mask="true">
         <Providers>
           <Header />
-          {children}
+          <PageEntrance>{children}</PageEntrance>
         </Providers>
         <Analytics />
         <SpeedInsights />

@@ -1,7 +1,6 @@
 "use client";
 
 import { Fragment, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, EyeOff, Loader2, Megaphone, Pencil, Pin, Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
   useAdminAnnouncements,
@@ -193,11 +192,7 @@ export function AdminAnnouncementPanel() {
   };
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-[2.2rem] bg-white p-5 shadow-2xl shadow-slate-200/50 md:p-6"
-    >
+    <section className="rounded-[2.2rem] bg-white p-5 shadow-2xl shadow-slate-200/50 md:p-6">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -390,6 +385,6 @@ export function AdminAnnouncementPanel() {
           </div>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

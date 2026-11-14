@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Timer, ClipboardList } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import type { ScheduleResponse } from "@/shared/types/api";
@@ -34,15 +33,12 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules: S
             <p className="text-sm font-medium">현재 등록된 주요 일정이 없습니다.</p>
           </div>
         ) : (
-          upcomingSchedules.map((event, idx) => {
+          upcomingSchedules.map((event) => {
             const isDDay = event.dDay === "D-Day" || event.dDay === "진행 중";
             return (
-              <motion.div
+              <div
                 key={event.id}
                 role="listitem"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 * idx }}
                 className={cn(
                   "relative flex w-full min-w-0 items-center gap-3 rounded-xl px-3 py-2 border transition-all cursor-default group",
                   isDDay
@@ -81,7 +77,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules: S
                 )}>
                   {event.dDay}
                 </div>
-              </motion.div>
+              </div>
             );
           })
         )}

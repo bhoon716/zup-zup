@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { isAxiosError } from "axios";
-import { motion } from "framer-motion";
 import { Calendar, Plus, Trash2, Edit2, Loader2, Save, X, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
@@ -109,10 +108,8 @@ export function AdminSchedulePanel({ upcomingOnly = false }: { upcomingOnly?: bo
   const editorProps = { id: editorId, isSaving, isMutating, error: saveError, onSave: handleSave, onCancel: closeEditor, fontClassName };
 
   return (
-    <motion.section
+    <section
       aria-labelledby="admin-schedule-heading"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
       className={cn("rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6", fontClassName)}
     >
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -235,7 +232,7 @@ export function AdminSchedulePanel({ upcomingOnly = false }: { upcomingOnly?: bo
           })}
         </ul>
       )}
-    </motion.section>
+    </section>
   );
 }
 
