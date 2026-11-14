@@ -49,34 +49,20 @@ export default function AnnouncementsPage() {
   };
 
   return (
-    <main className="font-schedule mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-      <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">공지사항</h1>
+    <main className="font-schedule mx-auto w-full max-w-5xl px-4 pt-7 pb-12 sm:px-6 sm:pt-10">
+      <header className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl leading-tight font-bold tracking-tight text-foreground sm:text-3xl">공지사항</h1>
 
         <form
           ref={listTop}
           role="search"
           aria-label="공지사항 검색"
           tabIndex={-1}
-          className="flex w-full scroll-mt-20 gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:w-auto"
+          className="flex w-full scroll-mt-20 items-center rounded-lg border bg-card px-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:w-80"
           onSubmit={(event) => event.preventDefault()}
         >
-          <Select
-            value={search.searchType}
-            onValueChange={(value) => {
-              const option = searchOptions.find((candidate) => candidate.value === value);
-              if (option) setSearch({ ...search, searchType: option.value, page: 0 });
-            }}
-          >
-            <SelectTrigger aria-label="검색 기준" className="rounded-lg bg-card">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" align="start" className="font-schedule">
-              {searchOptions.map(({ value, label }) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <div className="relative min-w-0 flex-1 sm:w-56">
-            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative min-w-0 flex-1">
+            <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
               aria-label="공지 검색어"
@@ -84,9 +70,23 @@ export default function AnnouncementsPage() {
               maxLength={100}
               onChange={(event) => setSearch({ ...search, keyword: event.target.value, page: 0 })}
               placeholder="공지 검색"
-              className="rounded-lg bg-card pl-9 text-sm"
+              className="h-10 rounded-md border-0 pr-2 pl-9 shadow-none"
             />
           </div>
+          <Select
+            value={search.searchType}
+            onValueChange={(value) => {
+              const option = searchOptions.find((candidate) => candidate.value === value);
+              if (option) setSearch({ ...search, searchType: option.value, page: 0 });
+            }}
+          >
+            <SelectTrigger aria-label="검색 기준" className="shrink-0 rounded-md border-0 px-2 shadow-none before:mr-1 before:h-4 before:w-px before:bg-border hover:bg-muted">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start" className="font-schedule">
+              {searchOptions.map(({ value, label }) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </form>
       </header>
 
@@ -108,23 +108,23 @@ export default function AnnouncementsPage() {
               <li key={announcement.id}>
                 <Link
                   href={`/announcements/${announcement.id}`}
-                  className="group grid items-start gap-x-4 gap-y-1.5 px-4 py-3.5 hover:bg-muted/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary sm:grid-cols-[minmax(0,1fr)_auto] sm:px-5"
+                  data-pinned={announcement.pinned || undefined}
+                  className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 border-l-2 border-transparent px-3.5 py-3 transition-colors hover:bg-muted/70 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary data-pinned:border-l-primary/45 data-pinned:bg-primary/[0.045] data-pinned:hover:bg-primary/[0.08] sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:gap-x-5 sm:px-5"
                 >
-                  <div className="min-w-0">
-                    <h2 className="text-[0.9375rem] leading-snug font-medium wrap-anywhere break-keep text-foreground group-hover:text-primary sm:text-base">
+                  <div className="col-start-1 row-start-1 min-w-0">
+                    <h2 className="flex items-start gap-2 text-[0.9375rem] leading-snug font-semibold text-foreground group-hover:text-primary sm:text-base">
                       {announcement.pinned && <span className="sr-only">상단 고정 </span>}
-                      {announcement.title}
                       {announcement.pinned && (
-                        <span aria-hidden="true" className="ml-1.5 inline-flex size-5 items-center justify-center rounded bg-primary/10 align-middle text-primary">
-                          <Pin className="size-3" />
-                        </span>
+                        <Pin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
                       )}
+                      <span className="min-w-0 wrap-anywhere break-keep">{announcement.title}</span>
                     </h2>
                     {announcement.previewContent && <p className="mt-1 truncate text-sm leading-normal text-muted-foreground">{announcement.previewContent}</p>}
                   </div>
-                  <time dateTime={announcement.createdAt} className="whitespace-nowrap text-xs tabular-nums text-muted-foreground sm:mt-1">
+                  <time dateTime={announcement.createdAt} className="col-start-1 row-start-2 text-xs whitespace-nowrap tabular-nums text-muted-foreground sm:col-start-2 sm:row-start-1">
                     {formatDate(announcement.createdAt)}
                   </time>
+                  <ChevronRight aria-hidden="true" className="col-start-2 row-span-2 row-start-1 size-4 text-muted-foreground/65 group-hover:text-primary sm:col-start-3 sm:row-span-1" />
                 </Link>
               </li>
             ))}
@@ -148,7 +148,7 @@ function AnnouncementPagination({ page, totalPages, onChange }: {
     .filter((number) => number >= 0 && number < totalPages)
     .sort((first, second) => first - second);
   return (
-    <nav aria-label="공지 페이지 이동" className="mt-5 flex flex-wrap items-center justify-center gap-1">
+    <nav aria-label="공지 페이지 이동" className="mx-auto mt-4 flex w-fit max-w-full flex-wrap items-center justify-center gap-1 rounded-lg border bg-card p-1">
       <Button type="button" variant="ghost" size="icon-sm" aria-label="이전 페이지" disabled={page === 0} onClick={() => onChange(page - 1)}>
         <ChevronLeft aria-hidden="true" />
       </Button>
