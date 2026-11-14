@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pause, Play } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/shared/ui/button";
 import { LandingWalkthrough } from "./landing-walkthrough";
@@ -71,18 +71,18 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
   return (
     <main className="flex flex-col bg-[#fafafa] dark:bg-black">
       <section className="py-10 sm:py-14 md:pt-20 md:pb-24">
-        <div className="mx-auto flex w-full max-w-[1200px] flex-col items-center px-6 text-center">
+        <div className={`${styles.heroEntrance} mx-auto flex w-full max-w-[1200px] flex-col items-center px-6 text-center`}>
           <h1
             className="mb-5 text-[clamp(1.5rem,7vw,2.125rem)] leading-[1.15] font-bold tracking-tight text-foreground md:text-[2.75rem] lg:text-5xl"
           >
-            전북대 수강신청 빈자리,<br />
+            수강신청 빈자리,<br />
             <span className="text-primary">이제 알림으로 잡으세요.</span>
           </h1>
 
           <p
             className="mx-auto mb-6 max-w-[34rem] break-keep text-base leading-relaxed text-muted-foreground md:mb-8 md:text-lg"
           >
-            하루 종일 새로고침만 누르고 계신가요? 전북대 수강신청 빈자리 알림 서비스 &apos;줍줍&apos;이 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
+            듣고 싶은 강의의 알림을 등록해 두세요. 자리가 나면 알려드려요.
           </p>
 
           <div className="mb-6 flex w-full justify-center empty:hidden">{countdown}</div>
@@ -93,10 +93,12 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
             <Button asChild className="h-auto w-full rounded-full px-6 py-3.5 text-sm font-bold shadow-md shadow-primary/20 sm:w-auto">
               <Link href="/login">
                 지금 시작하기
+                <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-auto w-full rounded-full border-primary/20 px-6 py-3.5 text-sm font-bold text-primary hover:bg-primary/5 sm:w-auto">
               <Link href="/search">
+                <Search className="size-4" aria-hidden="true" />
                 강의 먼저 둘러보기
               </Link>
             </Button>
@@ -108,8 +110,8 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
 
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-x-5 gap-y-3">
-            <div className="min-w-0">
+          <div className="grid gap-4">
+            <div>
               <h2 className="text-2xl md:text-3xl font-bold text-[#161118] dark:text-white flex items-center gap-3">
                 생생한 사용자 후기
               </h2>
@@ -117,13 +119,7 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
                 줍줍 서비스를 이용한 대학생들의 실제 이용 후기입니다.
               </p>
             </div>
-            <input id="pause-landing-reviews" type="checkbox" className={styles.pauseReviews} />
-            <label htmlFor="pause-landing-reviews" className={styles.reviewControl}>
-              <span className="sr-only">후기 자동 이동 일시정지 또는 다시 재생</span>
-              <span className={styles.pauseLabel} aria-hidden="true"><Pause className="size-3.5" />일시정지</span>
-              <span className={styles.playLabel} aria-hidden="true"><Play className="size-3.5" />다시 재생</span>
-            </label>
-            <div className={styles.reviewViewport}>
+            <div className={styles.reviewViewport} tabIndex={0} role="region" aria-label="사용자 후기">
               <div className={styles.reviewTrack}>
                 <ReviewList />
                 <ReviewList repeated />

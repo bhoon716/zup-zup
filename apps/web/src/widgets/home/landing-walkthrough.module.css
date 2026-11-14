@@ -1,19 +1,12 @@
-.story,
-.chapters {
-  min-width: 0;
-}
-
-.chapters {
+.stage {
   display: grid;
   gap: 2.25rem;
 }
 
 .chapter {
+  display: grid;
   min-width: 0;
-}
-
-.copy {
-  padding-bottom: 1rem;
+  gap: 1rem;
 }
 
 .stepMark {
@@ -25,7 +18,7 @@
   background: color-mix(in srgb, var(--primary) 9%, transparent);
 }
 
-.stickyPreview {
+.runway {
   display: none;
 }
 
@@ -97,14 +90,8 @@
   background: color-mix(in srgb, var(--primary) 10%, var(--card));
 }
 
-.pauseReviews,
-.reviewControl,
 .reviewList[aria-hidden] {
   display: none;
-}
-
-.reviewViewport {
-  width: 100%;
 }
 
 .reviewList {
@@ -113,182 +100,89 @@
   gap: 1rem;
 }
 
-@media (min-width: 56rem) {
-  .story:not([data-active-chapter]) .chapters {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
-    gap: 1rem;
-  }
+.reviewViewport {
+  min-width: 0;
 }
 
-@media (min-width: 56rem) and (min-height: 38rem) and (prefers-reduced-motion: no-preference) {
-  .story {
-    --chapter-columns: minmax(0, 0.83fr) minmax(0, 1.17fr);
-    --chapter-gap: clamp(2rem, 8vw, 7.5rem);
-  }
+.reviewViewport:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
 
-  .chapters {
-    --sticky-preview: 1;
-  }
-
-  .story[data-active-chapter],
-  .story:not([data-active-chapter]) .chapter {
-    display: grid;
-    grid-template-columns: var(--chapter-columns);
-    gap: var(--chapter-gap);
-  }
-
-  .story .chapters,
-  .story:not([data-active-chapter]) .chapters {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
-
+@media (min-width: 48rem) {
   .chapter {
-    min-height: clamp(21rem, 44dvh, 25rem);
+    grid-template-columns: minmax(0, 0.83fr) minmax(0, 1.17fr);
     align-items: center;
-  }
-
-  .story[data-active-chapter] .chapter {
-    display: flex;
-  }
-
-  .copy {
-    padding: 0.5rem 0 0.625rem 1.125rem;
-    border-left: 2px solid var(--border);
-  }
-
-  .story[data-active-chapter] .chapter[data-current] .copy {
-    border-left-color: var(--primary);
-  }
-
-  .story[data-active-chapter] .chapter[data-current] .stepMark {
-    color: var(--primary-foreground);
-    background: var(--primary);
-  }
-
-  .story[data-active-chapter] .inlinePreview {
-    display: none;
-  }
-
-  .story[data-active-chapter] .stickyPreview {
-    display: block;
-    position: sticky;
-    top: max(5.25rem, calc(50dvh - 11rem));
-    align-self: start;
-    min-width: 0;
-  }
-
-  .scenes {
-    display: grid;
-    overflow: hidden;
-  }
-
-  .scenes .scene {
-    grid-area: 1 / 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 1.25rem clamp(1rem, 3vw, 2rem);
-    visibility: hidden;
-    opacity: 0;
-  }
-
-  .scenes .scene[data-position="current"] {
-    z-index: 1;
-    visibility: visible;
-    opacity: 1;
-  }
-
-  .progress {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
-    gap: 0.375rem;
-    padding: 0.75rem 1rem;
-    border-top: 1px solid var(--border);
-  }
-
-  .progress span {
-    height: 0.1875rem;
-    border-radius: 1rem;
-    background: color-mix(in srgb, var(--primary) 14%, var(--card));
-  }
-
-  .progress span[data-complete] {
-    background: var(--primary);
-  }
-
-  .stepMark,
-  .progress span {
-    transition: color 200ms, background-color 200ms;
-  }
-
-  .copy {
-    transition: border-color 200ms;
-  }
-
-  .scenes .scene {
-    transform: translateY(2rem);
-    transition: transform 480ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 320ms, visibility 480ms;
-  }
-
-  .scenes .scene[data-position="before"] {
-    transform: translateY(-2rem);
-  }
-
-  .scenes .scene[data-position="current"] {
-    transform: translateY(0);
+    gap: clamp(2rem, 8vw, 7.5rem);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .pauseReviews {
-    position: absolute;
+  .heroEntrance {
+    animation: hero-enter 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .story[data-active-chapter] {
+    --chapter-scroll-distance: clamp(14rem, 45svh, 25rem);
+  }
+
+  .story[data-active-chapter] .stage {
+    position: sticky;
+    top: 4.75rem;
+    gap: 0.75rem;
+    grid-template-rows: auto auto;
+  }
+
+  .story[data-active-chapter] .runway {
     display: block;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
   }
 
-  .reviewControl {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    padding-inline: 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 0.625rem;
-    background: var(--card);
-    color: var(--muted-foreground);
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
+  .story[data-active-chapter] .chapter {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    grid-template-rows: subgrid;
+    opacity: 0;
+    pointer-events: none;
   }
 
-  .reviewControl:hover {
-    color: var(--foreground);
+  .story[data-active-chapter] .chapter:not([aria-current]) .frame {
+    visibility: hidden;
   }
 
-  .pauseReviews:focus-visible + .reviewControl {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
+  .story[data-active-chapter] .chapter[aria-current] {
+    opacity: 1;
+    pointer-events: auto;
   }
 
-  .pauseLabel,
-  .playLabel {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
+  .story[data-active-chapter] .stepMark {
+    color: var(--primary-foreground);
+    background: var(--primary);
   }
 
-  .playLabel,
-  .pauseReviews:checked + .reviewControl .pauseLabel {
-    display: none;
+  .story[data-active-chapter] .frame {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
   }
 
-  .pauseReviews:checked + .reviewControl .playLabel {
-    display: inline-flex;
+  .story[data-active-chapter] .scene {
+    display: grid;
+    align-content: center;
+  }
+
+  @media (min-width: 48rem) {
+    .story[data-active-chapter] .stage {
+      top: clamp(5.25rem, calc(50svh - 10rem), 12rem);
+      grid-template-rows: auto;
+    }
+
+    .story[data-active-chapter] .chapter {
+      grid-row: 1;
+      grid-template-rows: auto;
+    }
+
+    .story[data-active-chapter] .frame {
+      align-self: stretch;
+    }
   }
 
   .reviewViewport {
@@ -302,7 +196,7 @@
     animation: review-scroll 48s linear infinite;
   }
 
-  .pauseReviews:checked ~ .reviewViewport .reviewTrack {
+  .reviewViewport:focus-within .reviewTrack {
     animation-play-state: paused;
   }
 
@@ -322,7 +216,7 @@
     padding-inline-end: 1rem;
   }
 
-  :is(.inlinePreview[data-preview-entered], .stickyPreview[data-preview-entered] [data-position="current"]) {
+  .stage[data-preview-entered] .chapter[aria-current] {
     & .searchTerm {
       animation: preview-type 460ms steps(4) 120ms both;
     }
@@ -358,8 +252,31 @@
     }
   }
 
-  .inlinePreview[data-preview-entered] {
-    animation: preview-reveal 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.progress {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.375rem;
+  padding: 0.625rem 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.progress span {
+  height: 0.1875rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--primary) 14%, var(--card));
+}
+
+.progress span[data-complete] {
+  background: var(--primary);
+}
+
+@keyframes hero-enter {
+  from {
+    opacity: 0.8;
+    transform: translateY(0.375rem);
   }
 }
 

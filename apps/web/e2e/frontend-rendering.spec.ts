@@ -28,7 +28,7 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
     await page.goto(baseURL!);
 
     const landing = page.getByRole("main");
-    await expect(landing.getByRole("heading", { level: 1, name: "전북대 수강신청 빈자리, 이제 알림으로 잡으세요." })).toBeVisible();
+    await expect(landing.getByRole("heading", { level: 1, name: "수강신청 빈자리, 이제 알림으로 잡으세요." })).toBeVisible();
     await expect(landing.getByRole("heading", { level: 3 })).toHaveText([
       "강의 검색",
       "빈자리 알림 등록",
@@ -41,41 +41,65 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
   }
 });
 
-test("홈 소개를 위아래로 스크롤하면 한 미리보기에서 강의 준비 흐름을 따라갈 수 있다", async ({ page, baseURL }) => {
-  await page.setViewportSize({ width: 1440, height: 880 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
-    ? route.continue() : route.abort());
-  await page.goto("/");
+for (const viewport of [{ width: 1440, height: 880 }, { width: 390, height: 844 }]) {
+  test(`너비 ${viewport.width}에서 위아래로 스크롤하면 같은 자리에서 설명과 예시가 함께 바뀐다`, async ({ page, baseURL }) => {
+    await page.setViewportSize(viewport);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
+      ? route.continue() : route.abort());
+    await page.goto("/");
 
-  const preview = page.getByTestId("landing-sticky-preview");
-  const search = { heading: "강의 검색", marker: "여석 2" };
-  const registration = { heading: "빈자리 알림 등록", marker: "등록 완료" };
-  const notification = { heading: "빈자리 알림", marker: "수강신청 빈자리가 생겼어요!" };
-  await expect(preview).toBeVisible();
+    const stage = page.getByTestId("landing-walkthrough-stage");
+    const search = { heading: "강의 검색", marker: "여석 2" };
+    const registration = { heading: "빈자리 알림 등록", marker: "등록 완료" };
+    const notification = { heading: "빈자리 알림", marker: "수강신청 빈자리가 생겼어요!" };
 
-  async function readChapter(chapter: typeof search, previous?: typeof search) {
-    await page.getByRole("heading", { name: chapter.heading, exact: true }).evaluate((heading) => {
-      window.scrollBy(0, heading.getBoundingClientRect().top - window.innerHeight * 0.54);
-    });
-    const marker = preview.getByText(chapter.marker, { exact: true });
-    await expect(marker).toBeVisible();
-    await expect(marker).toBeInViewport();
-    if (previous) {
-      await expect(preview.getByText(previous.marker, { exact: true })).toBeHidden();
+    async function readChapter(progress: number, chapter: typeof search, previous: typeof search) {
+      await stage.evaluate((element, fraction) => {
+        const track = element.parentElement;
+        if (!track) throw new Error("소개 영역을 찾지 못했습니다.");
+        const { top, height } = track.getBoundingClientRect();
+        const stageHeight = element.getBoundingClientRect().height;
+        const stickyInset = Number.parseFloat(getComputedStyle(element).top);
+        window.scrollBy(0, top - stickyInset + (height - stageHeight) * fraction);
+      }, progress);
+
+      const copy = stage.getByRole("listitem").filter({
+        has: page.getByRole("heading", { name: chapter.heading, exact: true }),
+      });
+      await expect(copy).toHaveCSS("opacity", "1");
+      await expect(copy.getByRole("heading")).toBeInViewport();
+      await expect(copy.getByText(chapter.marker, { exact: true })).toBeInViewport();
+      await expect(stage.getByText(previous.marker, { exact: true })).toBeHidden();
     }
-  }
 
-  const previewTop = () => preview.evaluate((element) => element.getBoundingClientRect().top);
-  await readChapter(search);
-  await readChapter(registration, search);
-  const pinnedTop = await previewTop();
-  await readChapter(notification, registration);
-  expect(await previewTop()).toBeCloseTo(pinnedTop, 0);
-  await readChapter(registration, notification);
-  expect(await previewTop()).toBeCloseTo(pinnedTop, 0);
-  await readChapter(search, registration);
-});
+    await expect(stage).toHaveCSS("position", "sticky");
+    await expect(stage.getByRole("heading", { level: 3 })).toHaveText([
+      search.heading,
+      registration.heading,
+      notification.heading,
+    ]);
+    await readChapter(0.18, search, registration);
+    await expect(stage).toBeInViewport({ ratio: 1 });
+    const pinned = await stage.boundingBox();
+    if (!pinned) throw new Error("고정된 소개 화면이 보이지 않습니다.");
+    const expectPinnedStage = async () => {
+      await expect(stage).toBeInViewport({ ratio: 1 });
+      const current = await stage.boundingBox();
+      expect(current?.y).toBeCloseTo(pinned.y, 0);
+      expect(current?.height).toBeCloseTo(pinned.height, 0);
+    };
+
+    await readChapter(0.5, registration, search);
+    await expectPinnedStage();
+    await readChapter(0.82, notification, registration);
+    await expectPinnedStage();
+    await readChapter(0.5, registration, notification);
+    await expectPinnedStage();
+    await readChapter(0.18, search, registration);
+    await expectPinnedStage();
+  });
+}
 
 test("긴 검색 목록은 페이지를 추가해도 카드 수를 제한하고 상세를 닫으면 초점을 돌려준다", async ({ page, baseURL }) => {
   const requestedPages = new Set<number>();

@@ -114,66 +114,68 @@ const chapters = [
   },
 ] as const;
 
-type ChapterId = (typeof chapters)[number]["id"];
-
 export function LandingWalkthrough() {
-  const chapterListRef = useRef<HTMLOListElement>(null);
-  const stickyPreviewRef = useRef<HTMLDivElement>(null);
-  const [activeChapter, setActiveChapter] = useState<ChapterId | null>(null);
+  const storyRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLOListElement>(null);
+  const runwayRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    const list = chapterListRef.current;
-    if (!list) return;
+    const story = storyRef.current;
+    const stage = stageRef.current;
+    const runway = runwayRef.current;
+    if (!story || !stage || !runway) return;
 
+    const stickyLayout = window.matchMedia("(min-height: 36rem) and (prefers-reduced-motion: no-preference)");
     const previewObserver = new IntersectionObserver((entries, observer) => {
-      for (const { target, isIntersecting } of entries) {
-        if (!isIntersecting) continue;
-        target.setAttribute("data-preview-entered", "");
-        observer.unobserve(target);
+      if (entries.some(({ isIntersecting }) => isIntersecting)) {
+        stage.setAttribute("data-preview-entered", "");
+        observer.disconnect();
       }
     }, { threshold: 0.35 });
-    for (const preview of list.querySelectorAll(`.${styles.inlinePreview}`)) {
-      previewObserver.observe(preview);
-    }
-    if (stickyPreviewRef.current) previewObserver.observe(stickyPreviewRef.current);
+    previewObserver.observe(stage);
 
     let frame = 0;
     const updateChapter = () => {
       frame = 0;
-      if (getComputedStyle(list).getPropertyValue("--sticky-preview").trim() !== "1") {
-        setActiveChapter(null);
+      if (!stickyLayout.matches) {
+        setActiveIndex(null);
         return;
       }
 
-      const readingLine = window.innerHeight * 0.52;
-      let nextChapter: ChapterId = chapters[0].id;
-      for (const [index, chapter] of chapters.entries()) {
-        const item = list.children.item(index);
-        if (!item || item.getBoundingClientRect().top > readingLine) break;
-        nextChapter = chapter.id;
+      const distance = runway.offsetHeight;
+      if (!distance) {
+        setActiveIndex(0);
+        return;
       }
-      setActiveChapter(nextChapter);
+
+      const inset = Number.parseFloat(getComputedStyle(stage).top);
+      const offset = inset - story.getBoundingClientRect().top;
+      const progress = offset / distance;
+      setActiveIndex(Math.min(chapters.length - 1, Math.max(0, Math.floor(progress * chapters.length))));
     };
 
     const scheduleUpdate = () => {
       if (!frame) frame = window.requestAnimationFrame(updateChapter);
     };
-    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleUpdate);
-    resizeObserver?.observe(list);
+    const resizeObserver = new ResizeObserver(scheduleUpdate);
+    resizeObserver.observe(runway);
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
     window.addEventListener("resize", scheduleUpdate);
+    stickyLayout.addEventListener("change", scheduleUpdate);
     scheduleUpdate();
 
     return () => {
       previewObserver.disconnect();
-      resizeObserver?.disconnect();
+      resizeObserver.disconnect();
       window.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("resize", scheduleUpdate);
+      stickyLayout.removeEventListener("change", scheduleUpdate);
       window.cancelAnimationFrame(frame);
     };
   }, []);
 
-  const activeIndex = chapters.findIndex(({ id }) => id === activeChapter);
+  const activeChapter = activeIndex === null ? undefined : chapters[activeIndex];
 
   return (
     <section aria-labelledby="landing-walkthrough-title" className="mx-auto w-full max-w-[1200px] px-6 pb-20 md:pb-32">
@@ -186,56 +188,32 @@ export function LandingWalkthrough() {
         </p>
       </div>
 
-      <div className={styles.story} data-active-chapter={activeChapter ?? undefined}>
-        <ol ref={chapterListRef} className={styles.chapters}>
-          {chapters.map(({ id, title, description, Icon, Preview }) => (
-            <li key={id} className={styles.chapter} data-current={id === activeChapter || undefined}>
+      <div ref={storyRef} className={styles.story} data-active-chapter={activeChapter?.id}>
+        <ol ref={stageRef} className={styles.stage} data-testid="landing-walkthrough-stage" role="list">
+          {chapters.map(({ id, title, description, Icon, Preview }, index) => (
+            <li key={id} className={styles.chapter} aria-current={index === activeIndex ? "step" : undefined}>
               <div className={styles.copy}>
                 <div className={styles.stepMark} aria-hidden="true">
                   <Icon className="size-[18px]" />
                 </div>
-                <h3 className="mt-3.5 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
+                <h3 className="mt-3 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
                 <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
               </div>
-              <div className={styles.inlinePreview} aria-hidden="true">
-                <div className={styles.frame}>
-                  <div className={styles.frameBar}>
-                    <span className="flex items-center gap-2"><Icon className="size-4 text-primary" />{title}</span>
-                    <span className={styles.example}>화면 예시</span>
-                  </div>
-                  <div className={styles.scene}><Preview /></div>
+
+              <div className={styles.frame} aria-hidden="true">
+                <div className={styles.frameBar}>
+                  <span>줍줍 미리보기</span>
+                  <span className={styles.example}>화면 예시</span>
+                </div>
+                <div className={styles.scene}><Preview /></div>
+                <div className={styles.progress}>
+                  {chapters.map(({ id: stepId }, step) => <span key={stepId} data-complete={step <= index || undefined} />)}
                 </div>
               </div>
             </li>
           ))}
         </ol>
-
-        <div ref={stickyPreviewRef} className={styles.stickyPreview} data-testid="landing-sticky-preview" aria-hidden="true">
-          <div className={styles.frame}>
-            <div className={styles.frameBar}>
-              <span>줍줍 미리보기</span>
-              <span className={styles.example}>화면 예시</span>
-            </div>
-            <div className={styles.scenes}>
-              {chapters.map(({ id, title, Icon, Preview }, index) => (
-                <div
-                  key={id}
-                  className={styles.scene}
-                  data-position={index === activeIndex ? "current" : index < activeIndex ? "before" : "after"}
-                >
-                  <p className="mb-3 flex items-center gap-2 text-xs font-bold text-primary">
-                    <Icon className="size-4" />
-                    {title}
-                  </p>
-                  <Preview />
-                </div>
-              ))}
-            </div>
-            <div className={styles.progress}>
-              {chapters.map(({ id }, index) => <span key={id} data-complete={index <= activeIndex || undefined} />)}
-            </div>
-          </div>
-        </div>
+        <div ref={runwayRef} className={styles.runway} style={{ height: `calc(${chapters.length} * var(--chapter-scroll-distance))` }} aria-hidden="true" />
       </div>
     </section>
   );
