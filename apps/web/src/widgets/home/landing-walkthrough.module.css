@@ -1,0 +1,288 @@
+.story,
+.chapters {
+  min-width: 0;
+}
+
+.chapters {
+  display: grid;
+  gap: 2.25rem;
+}
+
+.chapter {
+  min-width: 0;
+}
+
+.copy {
+  padding-bottom: 1rem;
+}
+
+.stepMark {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem;
+  border-radius: 0.625rem;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 9%, transparent);
+}
+
+.stickyPreview {
+  display: none;
+}
+
+.frame {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--primary) 7%, transparent);
+}
+
+.frameBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--card);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.example {
+  flex: none;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.scene {
+  min-width: 0;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary) 4%, var(--card));
+  padding: 1rem;
+}
+
+.timetable {
+  display: grid;
+  grid-template-columns: 1.75rem repeat(5, minmax(0, 1fr));
+  grid-template-rows: auto repeat(4, 2.25rem);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card);
+  isolation: isolate;
+}
+
+.timetable::before {
+  content: "";
+  grid-area: 2 / 2 / -1 / -1;
+  z-index: -1;
+  background-image: linear-gradient(to bottom, var(--border) 1px, transparent 1px),
+    linear-gradient(to right, var(--border) 1px, transparent 1px);
+  background-size: 100% 25%, 20% 100%;
+}
+
+.day,
+.hour {
+  padding-block: 0.25rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  align-self: start;
+}
+
+.day {
+  grid-row: 1;
+}
+
+.hour {
+  grid-column: 1;
+}
+
+.courseBlock,
+.otherBlock {
+  display: grid;
+  place-items: center;
+  margin: 0.125rem;
+  padding: 0.125rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+}
+
+.courseBlock {
+  grid-row: 3 / 5;
+  align-self: start;
+  min-height: 2.625rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 16%, var(--card));
+}
+
+.otherBlock {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+@media (min-width: 56rem) {
+  .story:not([data-active-chapter]) .chapters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 56rem) and (min-height: 38rem) and (prefers-reduced-motion: no-preference) {
+  .story {
+    --chapter-columns: minmax(0, 0.83fr) minmax(0, 1.17fr);
+    --chapter-gap: clamp(2rem, 8vw, 7.5rem);
+  }
+
+  .chapters {
+    --sticky-preview: 1;
+  }
+
+  .story[data-active-chapter],
+  .story:not([data-active-chapter]) .chapter {
+    display: grid;
+    grid-template-columns: var(--chapter-columns);
+    gap: var(--chapter-gap);
+  }
+
+  .story .chapters,
+  .story:not([data-active-chapter]) .chapters {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .chapter {
+    min-height: clamp(21rem, 44dvh, 25rem);
+    align-items: center;
+  }
+
+  .story[data-active-chapter] .chapter {
+    display: flex;
+  }
+
+  .copy {
+    padding: 0.5rem 0 0.625rem 1.125rem;
+    border-left: 2px solid var(--border);
+  }
+
+  .story[data-active-chapter] .chapter[data-current] .copy {
+    border-left-color: var(--primary);
+  }
+
+  .story[data-active-chapter] .chapter[data-current] .stepMark {
+    color: var(--primary-foreground);
+    background: var(--primary);
+  }
+
+  .story[data-active-chapter] .inlinePreview {
+    display: none;
+  }
+
+  .story[data-active-chapter] .stickyPreview {
+    display: block;
+    position: sticky;
+    top: max(5.25rem, calc(50dvh - 11rem));
+    align-self: start;
+    min-width: 0;
+  }
+
+  .scenes {
+    display: grid;
+    overflow: hidden;
+  }
+
+  .scenes .scene {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.25rem clamp(1rem, 3vw, 2rem);
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .scenes .scene[data-position="current"] {
+    z-index: 1;
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .progress {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0.375rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .progress span {
+    height: 0.1875rem;
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--primary) 14%, var(--card));
+  }
+
+  .progress span[data-complete] {
+    background: var(--primary);
+  }
+
+  .stepMark,
+  .progress span {
+    transition: color 200ms, background-color 200ms;
+  }
+
+  .copy {
+    transition: border-color 200ms;
+  }
+
+  .scenes .scene {
+    transform: translateY(1.25rem);
+    transition: transform 320ms ease, opacity 260ms ease, visibility 320ms;
+  }
+
+  .scenes .scene[data-position="before"] {
+    transform: translateY(-1.25rem);
+  }
+
+  .scenes .scene[data-position="current"] {
+    transform: translateY(0);
+  }
+
+  .scenes [data-position="current"] [data-preview-focus] {
+    animation: preview-focus 300ms ease-out 120ms both;
+  }
+}
+
+@keyframes preview-focus {
+  from {
+    opacity: 0.4;
+    transform: translateY(0.375rem) scale(0.98);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (max-width: 55.999rem) and (prefers-reduced-motion: no-preference) {
+    .inlinePreview {
+      animation: preview-entry linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+  }
+}
+
+@keyframes preview-entry {
+  from {
+    transform: translateY(0.75rem);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}

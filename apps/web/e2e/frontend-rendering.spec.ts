@@ -39,6 +39,40 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
   }
 });
 
+test("홈 소개를 위아래로 스크롤하면 한 미리보기에서 강의 준비 흐름을 따라갈 수 있다", async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 1440, height: 880 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
+    ? route.continue() : route.abort());
+  await page.goto("/");
+
+  const preview = page.getByTestId("landing-sticky-preview");
+  const search = { heading: "정밀 강의 검색", marker: "여석 0" };
+  const notification = { heading: "실시간 여석 알림", marker: "수강신청 빈자리가 생겼어요!" };
+  const timetable = { heading: "스마트 시간표 관리", marker: "시간 겹침 없음" };
+  await expect(preview).toBeVisible();
+
+  async function readChapter(chapter: typeof search, previous?: typeof search) {
+    await page.getByRole("heading", { name: chapter.heading }).evaluate((heading) => {
+      window.scrollBy(0, heading.getBoundingClientRect().top - window.innerHeight * 0.54);
+    });
+    await expect(preview.getByText(chapter.marker, { exact: true })).toBeInViewport();
+    if (previous) {
+      await expect(preview.getByText(previous.marker, { exact: true })).toBeHidden();
+    }
+  }
+
+  const previewTop = () => preview.evaluate((element) => element.getBoundingClientRect().top);
+  await readChapter(search);
+  await readChapter(notification, search);
+  const pinnedTop = await previewTop();
+  await readChapter(timetable, notification);
+  expect(await previewTop()).toBeCloseTo(pinnedTop, 0);
+  await readChapter(notification, timetable);
+  expect(await previewTop()).toBeCloseTo(pinnedTop, 0);
+  await readChapter(search, notification);
+});
+
 test("긴 검색 목록은 페이지를 추가해도 카드 수를 제한하고 상세를 닫으면 초점을 돌려준다", async ({ page, baseURL }) => {
   const requestedPages = new Set<number>();
   await page.setViewportSize({ width: 390, height: 844 });

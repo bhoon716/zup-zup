@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
-import { Bell, Calendar, Search } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
+import { LandingWalkthrough } from "./landing-walkthrough";
 
 const everyTimeReviews = [
   {
@@ -34,30 +33,6 @@ const everyTimeReviews = [
     id: 6,
     content: "알림 덕분에 졸업 필수 전공 드디어 잡았어요ㅠㅠ 진짜 은인이십니다 감사합니다!!",
     source: "에브리타임",
-  },
-];
-
-const features = [
-  {
-    title: "실시간 여석 알림",
-    description: "원하는 강의에 빈자리가 생기면 즉시 웹 푸시 알림으로 알려드립니다. 더 이상 모니터 앞에서 대기하지 마세요.",
-    icon: Bell,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    title: "스마트 시간표 관리",
-    description: "복잡한 경우의 수를 고려하여 최적의 시간표를 시뮬레이션 해보세요. 중복되는 시간대와 총 이수 학점까지 실시간으로 체크합니다.",
-    icon: Calendar,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    title: "정밀 강의 검색",
-    description: "강의명, 교수님은 물론 이수 구분, 학점, 강의 시간대 등 다양한 필터로 나에게 딱 맞는 강의를 쉽고 빠르게 찾으세요.",
-    icon: Search,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
   },
 ];
 
@@ -100,29 +75,7 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
         </div>
       </section>
 
-      <section className="pb-32">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <h2 className="sr-only">줍줍 주요 기능</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="bg-white dark:bg-primary/10 p-10 rounded-2xl shadow-sm border border-primary/5 flex flex-col gap-6 hover:shadow-xl transition-all group cursor-default"
-              >
-                <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform", feature.bgColor)}>
-                  <feature.icon className={cn("w-8 h-8", feature.color)} />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-[#161118] mb-4">{feature.title}</h3>
-                  <p className="text-[#161118]/60 leading-relaxed text-base font-medium">
-                    {feature.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <LandingWalkthrough />
 
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
