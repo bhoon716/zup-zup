@@ -13,6 +13,7 @@ import {
 import { cn } from "@/shared/lib/utils";
 import { formatClassification } from "@/shared/lib/formatters";
 import { normalizeCourse } from "@/shared/lib/course";
+import { getCourseSchedule } from "@/shared/lib/course-schedule";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { useUser } from "@/features/user/hooks/useUser";
@@ -209,6 +210,7 @@ export function CourseTable({
 
   const renderCourse = (rawCourse: Course, index: number) => {
     const course = normalizeCourse(rawCourse);
+    const { blocks, fallback } = getCourseSchedule(course);
     const clarityUnmask = unmaskPublicCourseInfo && course.disclosure === "공개" ? true : undefined;
     const subscription = subscriptionMap.get(course.courseKey);
     const subscribed = !!subscription;
@@ -290,10 +292,10 @@ export function CourseTable({
                   </span>
                 </span>
 
-                <span className="flex items-center gap-1">
-                  <Clock3 className="h-3 w-3 text-gray-400 md:h-3.5 md:w-3.5" />
-                  <span data-clarity-unmask={clarityUnmask} className="max-w-[120px] truncate md:max-w-none">
-                    {course.classTime || "시간 미배정"}
+                <span className="flex min-w-0 items-baseline gap-1">
+                  <Clock3 aria-hidden="true" className="relative top-0.5 h-3 w-3 shrink-0 self-start text-gray-400 md:h-3.5 md:w-3.5" />
+                  <span data-clarity-unmask={clarityUnmask} className="tabular-nums">
+                    {blocks.length > 0 ? blocks.map(({ label }) => label).join(", ") : fallback}
                   </span>
                 </span>
 

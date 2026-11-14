@@ -27,10 +27,10 @@ describe("강의 상세 Clarity 경계", () => {
   it("공개 제목·학점·강의 시간만 허용하고 리뷰·입력·교수·장소는 유지한다", () => {
     const { container } = render(<CourseDetailContent course={course} unmaskPublicCourseInfo />);
     expect(container.querySelectorAll('[data-clarity-unmask="true"]')).toHaveLength(3);
-    for (const element of [screen.getByRole("heading", { name: course.name }), screen.getByText("3학점"), screen.getByText("월 6")]) {
+    for (const element of [screen.getByRole("heading", { name: course.name }), screen.getByText("3학점"), screen.getByText("월 14:00–15:00").closest("li")]) {
       expect(element).toHaveAttribute("data-clarity-unmask", "true");
     }
-    for (const element of [screen.getByText("개인 리뷰 본문"), screen.getByRole("textbox", { name: "리뷰 입력" }), screen.getByText("담당 교수"), screen.getByRole("heading", { name: "공학관 101" })]) {
+    for (const element of [screen.getByText("개인 리뷰 본문"), screen.getByRole("textbox", { name: "리뷰 입력" }), screen.getByText("담당 교수"), screen.getByText("공학관 101")]) {
       expect(element.closest("[data-clarity-unmask]")).toBeNull();
     }
   });
@@ -42,7 +42,9 @@ describe("강의 상세 Clarity 경계", () => {
       schedules: [{ dayOfWeek: "월", startTime: "09:00", endTime: "10:00" }],
     }} unmaskPublicCourseInfo />);
 
-    expect(screen.getByText("월 09:00 ~ 10:00")).toHaveAttribute("data-clarity-unmask", "true");
+    const schedule = screen.getByText("월 09:00–10:00").closest("li");
+    expect(schedule).toHaveAttribute("data-clarity-unmask", "true");
+    expect(schedule).toHaveTextContent("1-A · 1-B");
     expect(screen.getByText("시간 및 장소")).not.toHaveAttribute("data-clarity-unmask");
     expect(screen.queryByText("시간 미배정")).not.toBeInTheDocument();
   });
@@ -52,7 +54,9 @@ describe("강의 상세 일정", () => {
   it.each([
     ["0", "시간 미배정"],
     [" 0 ", "시간 미배정"],
-    ["월 0-A", "월 0-A"],
+    ["월 0-A", "월 08:00–08:30"],
+    ["월 6", "월 14:00–15:00"],
+    ["온라인 수업", "온라인 수업"],
   ])("일정 원본 %j의 표시값은 %j이다", (classTime, expected) => {
     render(<CourseDetailContent course={{ ...course, classTime, schedules: [] }} />);
 

@@ -116,13 +116,20 @@ describe("CourseTable", () => {
     const { container } = render(<CourseTable courses={[{ ...testCourse, disclosure }]} unmaskPublicCourseInfo={enabled} />);
     expect(container.querySelectorAll("[data-clarity-unmask]")).toHaveLength(visible ? 3 : 0);
     if (visible) {
-      for (const element of [screen.getByRole("heading", { name: testCourse.name }), screen.getByText("3학점"), screen.getByText("월 6")]) {
+      for (const element of [screen.getByRole("heading", { name: testCourse.name }), screen.getByText("3학점"), screen.getByText("월 14:00–15:00")]) {
         expect(element).toHaveAttribute("data-clarity-unmask", "true");
       }
     }
     for (const element of [screen.getByText(testCourse.professor!), screen.getByText("공학관 101"), screen.getByRole("button", { name: `${testCourse.name} 관심 강의 추가` }), screen.getByRole("button", { name: `${testCourse.name} 여석 알림 받기` })]) {
       expect(element.closest("[data-clarity-unmask]")).toBeNull();
     }
+  });
+
+  it("연속 교시가 합쳐져 실제 시간으로 표시되고 공강은 유지된다", () => {
+    const classTime = "수 6-A,수 11-B,수 6-B,수 7-A,수 10-B,수 11-A";
+    render(<CourseTable courses={[{ ...testCourse, classTime }]} />);
+
+    expect(screen.getByText("수 14:00–15:30, 수 18:30–20:00")).toBeVisible();
   });
 
   it("카드 제목을 순서에 맞는 heading으로 렌더링하고 아이콘 버튼에 이름을 제공한다", () => {
