@@ -529,6 +529,12 @@ export interface FeedbackReplyResponse {
 
 export type AdminFeedbackDeletionFilter = 'ALL' | 'ACTIVE' | 'DELETED';
 export type AdminFeedbackOrder = 'PENDING_FIRST' | 'NEWEST' | 'OLDEST';
+export type AdminFeedbackSearchType = 'TITLE' | 'TITLE_CONTENT' | 'TITLE_CONTENT_REPLY';
+
+export interface AdminFeedbackSearch {
+  keyword: string;
+  searchType: AdminFeedbackSearchType;
+}
 
 export interface AdminFeedbackResponse {
   id: number;

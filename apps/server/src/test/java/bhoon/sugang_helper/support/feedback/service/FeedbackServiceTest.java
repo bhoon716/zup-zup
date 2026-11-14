@@ -26,6 +26,7 @@ import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserDisplayNameQueryService;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.seatalert.api.NotificationPublications;
+import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackSearch;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
@@ -44,6 +45,7 @@ import bhoon.sugang_helper.support.feedback.entity.FeedbackAttachment;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackReply;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackSearchType;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import bhoon.sugang_helper.support.feedback.repository.AdminFeedbackReadRepository;
@@ -615,8 +617,9 @@ class FeedbackServiceTest {
                 73L);
         given(userIdentityQuery.findAccountStatuses(List.of(73L)))
                 .willReturn(List.of(new UserAccountStatus(73L, true)));
+        var search = new AdminFeedbackSearch(null, AdminFeedbackSearchType.TITLE_CONTENT);
         given(adminFeedbackReadRepository.findFeedbacks(
-                AdminFeedbackDeletionFilter.ALL, AdminFeedbackOrder.NEWEST,
+                AdminFeedbackDeletionFilter.ALL, AdminFeedbackOrder.NEWEST, search,
                 PageRequest.of(0, 20)))
                 .willReturn(new PageImpl<>(List.of(summary), PageRequest.of(0, 20), 1));
         given(adminFeedbackReadRepository.findFeedbackDetail(feedbackId)).willReturn(Optional.of(detail));
@@ -628,7 +631,7 @@ class FeedbackServiceTest {
 
         // when
         Page<AdminFeedbackResponse> list = adminFeedbackService.getFeedbacksForAdmin(
-                PageRequest.of(0, 20), AdminFeedbackDeletionFilter.ALL, AdminFeedbackOrder.NEWEST);
+                PageRequest.of(0, 20), AdminFeedbackDeletionFilter.ALL, AdminFeedbackOrder.NEWEST, search);
         AdminFeedbackDetailResponse response = adminFeedbackService.getFeedbackDetailForAdmin(feedbackId);
 
         // then

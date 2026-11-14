@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
+import { Input } from "@/shared/ui/input";
 import { Textarea } from "@/shared/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import {
@@ -25,7 +26,14 @@ import {
   useDeleteFeedbackReply,
   useAdminFeedbackAttachmentDownload,
 } from "@/features/feedback/hooks/useFeedback";
-import type { AdminFeedbackDeletionFilter, AdminFeedbackOrder, FeedbackStatus, FeedbackType } from "@/shared/types/api";
+import type {
+  AdminFeedbackDeletionFilter,
+  AdminFeedbackOrder,
+  AdminFeedbackSearch,
+  AdminFeedbackSearchType,
+  FeedbackStatus,
+  FeedbackType,
+} from "@/shared/types/api";
 import { isCsrfFailure } from "@/shared/api/auth-error";
 
 const PREVIEW_FILE_EXTENSIONS: Record<string, string> = {
@@ -44,6 +52,12 @@ const ORDER_OPTIONS = [
   { value: "NEWEST", label: "최신순" },
   { value: "OLDEST", label: "오래된순" },
 ] satisfies { value: AdminFeedbackOrder; label: string }[];
+
+const SEARCH_OPTIONS = [
+  { value: "TITLE", label: "제목" },
+  { value: "TITLE_CONTENT", label: "제목 + 본문" },
+  { value: "TITLE_CONTENT_REPLY", label: "제목 + 본문 + 답변" },
+] satisfies { value: AdminFeedbackSearchType; label: string }[];
 
 const STATUS_OPTIONS = [
   { value: "PENDING", label: "처리 대기", className: "border-amber-200 bg-amber-50 text-amber-800" },
@@ -69,6 +83,8 @@ export default function AdminFeedbackPage() {
   const [deletionFilter, setDeletionFilter] = useState<AdminFeedbackDeletionFilter>("ACTIVE");
   const [order, setOrder] = useState<AdminFeedbackOrder>("PENDING_FIRST");
   const [page, setPage] = useState(0);
+  const [keywordDraft, setKeywordDraft] = useState("");
+  const [search, setSearch] = useState<AdminFeedbackSearch>({ keyword: "", searchType: "TITLE_CONTENT" });
   const [replyContent, setReplyContent] = useState("");
   const [isReplySubmitting, setIsReplySubmitting] = useState(false);
   const [editingReplyId, setEditingReplyId] = useState<number | null>(null);
@@ -77,8 +93,9 @@ export default function AdminFeedbackPage() {
   const isMountedRef = useRef(true);
   const detailPaneRef = useRef<HTMLElement>(null);
   const selectionTriggerRef = useRef<HTMLButtonElement>(null);
+  const keywordInputRef = useRef<HTMLInputElement>(null);
 
-  const listQuery = useFeedbacksForAdmin(page, deletionFilter, order);
+  const listQuery = useFeedbacksForAdmin(page, deletionFilter, order, search.keyword ? search : undefined);
   const detailQuery = useAdminFeedbackDetail(selectedId ?? 0, selectedId !== null);
   const listData = listQuery.data;
   const detailData = detailQuery.data;
@@ -143,6 +160,13 @@ export default function AdminFeedbackPage() {
 
   const handlePageChange = (nextPage: number) => {
     setPage(nextPage);
+    handleFeedbackSelection(null);
+  };
+
+  const applySearch = (nextSearch: AdminFeedbackSearch) => {
+    if (nextSearch.keyword === search.keyword && nextSearch.searchType === search.searchType) return;
+    setSearch(nextSearch);
+    setPage(0);
     handleFeedbackSelection(null);
   };
 
@@ -267,6 +291,54 @@ export default function AdminFeedbackPage() {
             <h2 className="mb-2 text-sm font-semibold text-slate-900">
               문의 목록 {listData && <span className="ml-1 font-normal text-slate-500">{listData.totalElements}건</span>}
             </h2>
+            <form
+              role="search"
+              aria-label="문의 검색"
+              className="mb-2 space-y-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                applySearch({ ...search, keyword: keywordDraft.trim() });
+              }}
+            >
+              <Select
+                value={search.searchType}
+                onValueChange={(value) => {
+                  const option = SEARCH_OPTIONS.find((candidate) => candidate.value === value);
+                  if (option) applySearch({ ...search, searchType: option.value });
+                }}
+              >
+                <SelectTrigger aria-label="검색 범위" size="sm" className="w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  {SEARCH_OPTIONS.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={keywordInputRef}
+                  type="search"
+                  aria-label="문의 검색어"
+                  placeholder="검색어 입력"
+                  maxLength={100}
+                  value={keywordDraft}
+                  onChange={(event) => setKeywordDraft(event.target.value)}
+                  className="h-8"
+                />
+                <Button type="submit" size="sm">검색</Button>
+                {(keywordDraft || search.keyword) && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                    setKeywordDraft("");
+                    applySearch({ ...search, keyword: "" });
+                    keywordInputRef.current?.focus();
+                  }}>
+                    초기화
+                  </Button>
+                )}
+              </div>
+            </form>
             <div className="grid grid-cols-2 gap-2">
               <div className="min-w-0">
                 <label htmlFor="feedback-deletion" className="mb-1 block text-xs text-slate-600">표시</label>
@@ -296,7 +368,7 @@ export default function AdminFeedbackPage() {
               </div>
             </div>
           </div>
-          <div key={`${deletionFilter}-${order}-${page}`} className="min-h-0 flex-1 md:overflow-y-auto">
+          <div key={`${deletionFilter}-${order}-${page}-${search.searchType}-${search.keyword}`} className="min-h-0 flex-1 md:overflow-y-auto">
             {listQuery.isLoading ? (
               <div role="status" className="flex items-center justify-center gap-2 p-5 text-sm text-slate-600">
                 <Loader2 className="size-4 animate-spin" /> 문의를 불러오는 중
@@ -341,7 +413,9 @@ export default function AdminFeedbackPage() {
                 })}
               </ul>
             ) : (
-              <p className="p-5 text-center text-sm text-slate-600">표시할 문의가 없습니다.</p>
+              <p className="p-5 text-center text-sm text-slate-600">
+                {search.keyword ? "검색 결과가 없습니다." : "표시할 문의가 없습니다."}
+              </p>
             )}
           </div>
           {(totalPages > 1 || page > 0) && (

@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.support.feedback.repository;
 
+import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackSearch;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentAccess;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentSummary;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
@@ -20,6 +21,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -42,22 +45,26 @@ public class AdminFeedbackReadRepository {
     private static final String DELETED_AT_COLUMN = "deleted_at";
 
     private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate namedJdbcTemplate;
 
     public Page<AdminFeedbackSummary> findFeedbacks(
-            AdminFeedbackDeletionFilter deletionFilter, AdminFeedbackOrder order, Pageable pageable) {
-        String condition = deletionCondition(deletionFilter);
-        Long total = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM feedbacks f WHERE " + condition, Long.class);
+            AdminFeedbackDeletionFilter deletionFilter, AdminFeedbackOrder order, AdminFeedbackSearch search,
+            Pageable pageable) {
+        String condition = deletionCondition(deletionFilter) + searchCondition(search);
+        var params = new MapSqlParameterSource("keyword", search.keyword());
+        Long total = namedJdbcTemplate.queryForObject("SELECT COUNT(*) FROM feedbacks f WHERE " + condition,
+                params, Long.class);
         String sql = """
                 SELECT f.id, f.user_id AS author_id, f.type, f.title, f.status, f.created_at, f.deleted_at,
                        EXISTS (SELECT 1 FROM feedback_replies r WHERE r.feedback_id = f.id) AS has_replies
                 FROM feedbacks f
                 WHERE %s
                 ORDER BY %s
-                LIMIT ? OFFSET ?
+                LIMIT :limit OFFSET :offset
                 """.formatted(condition, feedbackOrder(order));
-        List<AdminFeedbackSummary> content = jdbcTemplate.query(sql,
-                (resultSet, rowNum) -> mapSummary(resultSet),
-                pageable.getPageSize(), offset(pageable));
+        List<AdminFeedbackSummary> content = namedJdbcTemplate.query(sql,
+                params.addValue("limit", pageable.getPageSize()).addValue("offset", offset(pageable)),
+                (resultSet, rowNum) -> mapSummary(resultSet));
         return new PageImpl<>(content, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()), total);
     }
 
@@ -158,6 +165,24 @@ public class AdminFeedbackReadRepository {
             case ACTIVE -> "f.deleted_at IS NULL";
             case DELETED -> "f.deleted_at IS NOT NULL";
         };
+    }
+
+    private String searchCondition(AdminFeedbackSearch search) {
+        if (search.keyword().isEmpty()) {
+            return "";
+        }
+        String title = "LOCATE(LOWER(:keyword), LOWER(f.title)) > 0";
+        String content = "LOCATE(LOWER(:keyword), LOWER(f.content)) > 0";
+        String replies = """
+                EXISTS (SELECT 1 FROM feedback_replies r
+                        WHERE r.feedback_id = f.id AND LOCATE(LOWER(:keyword), LOWER(r.content)) > 0)
+                """;
+        String match = switch (search.type()) {
+            case TITLE -> title;
+            case TITLE_CONTENT -> title + " OR " + content;
+            case TITLE_CONTENT_REPLY -> title + " OR " + content + " OR " + replies;
+        };
+        return " AND (" + match + ")";
     }
 
     private String feedbackOrder(AdminFeedbackOrder order) {

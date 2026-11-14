@@ -11,6 +11,7 @@ import bhoon.sugang_helper.identity.api.users.UserAccountQuery;
 import bhoon.sugang_helper.identity.api.users.UserAccountStatus;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.seatalert.api.NotificationPublications;
+import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackSearch;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackStatusUpdateRequest;
@@ -74,9 +75,10 @@ public class AdminFeedbackService {
     @Transactional(readOnly = true)
     public Page<AdminFeedbackResponse> getFeedbacksForAdmin(Pageable pageable,
                                                              AdminFeedbackDeletionFilter deletionFilter,
-                                                             AdminFeedbackOrder order) {
+                                                             AdminFeedbackOrder order,
+                                                             AdminFeedbackSearch search) {
         Page<AdminFeedbackSummary> feedbacks = adminFeedbackReadRepository.findFeedbacks(
-                deletionFilter, order, PageableGuard.requireBounded(pageable));
+                deletionFilter, order, search, PageableGuard.requireBounded(pageable));
         Map<Long, Boolean> withdrawnByUserId = findAccountStatuses(feedbacks.getContent().stream()
                 .map(AdminFeedbackSummary::authorId)
                 .toList());

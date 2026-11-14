@@ -11,7 +11,7 @@ import {
   useUpdateFeedbackStatus,
 } from "./useFeedback";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
-import { PageResponse, FeedbackResponse, type AdminFeedbackDetailResponse } from "@/shared/types/api";
+import { PageResponse, FeedbackResponse, type AdminFeedbackDetailResponse, type AdminFeedbackSearch } from "@/shared/types/api";
 
 vi.mock("@/features/feedback/api/feedback.api", () => ({
   createFeedback: vi.fn(),
@@ -121,7 +121,7 @@ describe("useFeedback hooks", () => {
       expect(feedbackApi.getFeedbackDetailForAdmin).toHaveBeenCalledTimes(2);
     });
 
-    it("삭제 상태와 정렬을 API 요청으로 전달한다", async () => {
+    it("삭제 상태와 정렬을 유지하고 검색 범위가 바뀌면 다시 요청한다", async () => {
       vi.mocked(feedbackApi.getFeedbacksForAdmin).mockResolvedValue({
           content: [],
           totalElements: 0,
@@ -137,10 +137,19 @@ describe("useFeedback hooks", () => {
 
       const queryClient = createTestQueryClient();
       const wrapper = createQueryWrapper(queryClient);
-      const { result } = renderHook(() => useFeedbacksForAdmin(0, "DELETED", "OLDEST"), { wrapper });
+      const titleSearch: AdminFeedbackSearch = { keyword: "수강 신청", searchType: "TITLE" };
+      const replySearch: AdminFeedbackSearch = { keyword: "수강 신청", searchType: "TITLE_CONTENT_REPLY" };
+      const { result, rerender } = renderHook(
+        ({ search }: { search: AdminFeedbackSearch }) =>
+          useFeedbacksForAdmin(0, "DELETED", "OLDEST", search),
+        { wrapper, initialProps: { search: titleSearch } },
+      );
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(feedbackApi.getFeedbacksForAdmin).toHaveBeenCalledWith(0, "DELETED", "OLDEST");
+      expect(feedbackApi.getFeedbacksForAdmin).toHaveBeenLastCalledWith(0, "DELETED", "OLDEST", titleSearch);
+      rerender({ search: replySearch });
+      await waitFor(() => expect(feedbackApi.getFeedbacksForAdmin)
+        .toHaveBeenLastCalledWith(0, "DELETED", "OLDEST", replySearch));
     });
 
     it("명시적으로 확인한 관리자 첨부파일 다운로드 요청만 전송한다", async () => {

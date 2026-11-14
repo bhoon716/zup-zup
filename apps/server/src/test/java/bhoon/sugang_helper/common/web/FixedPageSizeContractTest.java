@@ -16,8 +16,10 @@ import bhoon.sugang_helper.seatalert.notification.controller.NotificationControl
 import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
+import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackSearch;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackSearchType;
 import bhoon.sugang_helper.support.feedback.service.AdminFeedbackService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,17 +105,21 @@ class FixedPageSizeContractTest {
         // given
         PageRequest expected = PageRequest.of(2, 30, Sort.by("createdAt").ascending());
         when(notifications.findForCurrentUser(expected)).thenReturn(new SliceImpl<>(List.of(), expected, true));
-        when(feedback.getFeedbacksForAdmin(expected, AdminFeedbackDeletionFilter.DELETED, AdminFeedbackOrder.NEWEST))
+        var search = new AdminFeedbackSearch("답변", AdminFeedbackSearchType.TITLE_CONTENT_REPLY);
+        when(feedback.getFeedbacksForAdmin(
+                expected, AdminFeedbackDeletionFilter.DELETED, AdminFeedbackOrder.NEWEST, search))
                 .thenReturn(new PageImpl<>(List.of(), expected, 100));
 
         // when & then
         for (String path : List.of("/api/v1/notifications/history", "/api/v1/admin/feedbacks")) {
             mvc.perform(get(path).param("size", size).param("page", "2").param("sort", "createdAt,asc")
-                            .param("deletion", "DELETED"))
+                            .param("deletion", "DELETED").param("keyword", " 답변 ")
+                            .param("searchType", "TITLE_CONTENT_REPLY"))
                     .andExpect(status().isOk()).andExpect(jsonPath("$.size").value(30))
                     .andExpect(jsonPath("$.number").value(2));
         }
         verify(notifications).findForCurrentUser(expected);
-        verify(feedback).getFeedbacksForAdmin(expected, AdminFeedbackDeletionFilter.DELETED, AdminFeedbackOrder.NEWEST);
+        verify(feedback).getFeedbacksForAdmin(expected, AdminFeedbackDeletionFilter.DELETED, AdminFeedbackOrder.NEWEST,
+                search);
     }
 }

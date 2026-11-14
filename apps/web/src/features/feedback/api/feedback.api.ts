@@ -1,5 +1,18 @@
 import api from "@/shared/api/client";
-import type { PageResponse, FeedbackResponse, FeedbackDetailResponse, AdminFeedbackDeletionFilter, AdminFeedbackOrder, AdminFeedbackDetailResponse, AdminFeedbackResponse, FeedbackCreateRequest, FeedbackStatusUpdateRequest, FeedbackReplyCreateRequest, FeedbackReplyUpdateRequest } from "@/shared/types/api";
+import type {
+  AdminFeedbackDeletionFilter,
+  AdminFeedbackDetailResponse,
+  AdminFeedbackOrder,
+  AdminFeedbackResponse,
+  AdminFeedbackSearch,
+  FeedbackCreateRequest,
+  FeedbackDetailResponse,
+  FeedbackReplyCreateRequest,
+  FeedbackReplyUpdateRequest,
+  FeedbackResponse,
+  FeedbackStatusUpdateRequest,
+  PageResponse,
+} from "@/shared/types/api";
 
 export const createFeedback = async (
   request: FeedbackCreateRequest,
@@ -44,10 +57,11 @@ export const deleteFeedback = async (feedbackId: number): Promise<void> => {
 export const getFeedbacksForAdmin = async (
   page: number = 0,
   deletion: AdminFeedbackDeletionFilter = 'ALL',
-  order: AdminFeedbackOrder = 'NEWEST'
+  order: AdminFeedbackOrder = 'NEWEST',
+  search?: AdminFeedbackSearch,
 ): Promise<PageResponse<AdminFeedbackResponse>> => {
   const { data } = await api.get<PageResponse<AdminFeedbackResponse>>('/api/v1/admin/feedbacks', {
-    params: { page, deletion, order },
+    params: { page, deletion, order, ...search },
   });
   return data;
 };

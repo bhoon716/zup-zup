@@ -12,12 +12,13 @@ import {
   deleteFeedbackReply,
   downloadFeedbackAttachmentForAdmin,
 } from "../api/feedback.api";
-import { 
+import type {
   FeedbackCreateRequest, 
   FeedbackReplyCreateRequest, 
   FeedbackReplyUpdateRequest, 
   AdminFeedbackDeletionFilter,
   AdminFeedbackOrder,
+  AdminFeedbackSearch,
   FeedbackStatusUpdateRequest 
 } from "@/shared/types/api";
 
@@ -25,8 +26,8 @@ export const feedbackKeys = {
   all: ["feedback"] as const,
   myList: (page: number) => [...feedbackKeys.all, "my", { page }] as const,
 
-  adminList: (page: number, deletion: AdminFeedbackDeletionFilter, order: AdminFeedbackOrder) =>
-    [...feedbackKeys.all, "admin", { page, deletion, order }] as const,
+  adminList: (page: number, deletion: AdminFeedbackDeletionFilter, order: AdminFeedbackOrder, search?: AdminFeedbackSearch) =>
+    [...feedbackKeys.all, "admin", { page, deletion, order, ...search }] as const,
 
   detail: (id: number) => [...feedbackKeys.all, "detail", id] as const,
 };
@@ -85,14 +86,12 @@ export function useDeleteFeedback() {
 export function useFeedbacksForAdmin(
   page: number = 0,
   deletion: AdminFeedbackDeletionFilter = "ALL",
-  order: AdminFeedbackOrder = "NEWEST"
+  order: AdminFeedbackOrder = "NEWEST",
+  search?: AdminFeedbackSearch,
 ) {
   return useQuery({
-    queryKey: feedbackKeys.adminList(page, deletion, order),
-    queryFn: async () => {
-      const response = await getFeedbacksForAdmin(page, deletion, order);
-      return response;
-    },
+    queryKey: feedbackKeys.adminList(page, deletion, order, search),
+    queryFn: () => getFeedbacksForAdmin(page, deletion, order, search),
   });
 }
 
