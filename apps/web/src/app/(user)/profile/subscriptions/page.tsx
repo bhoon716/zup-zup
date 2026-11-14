@@ -20,11 +20,9 @@ export default function SubscriptionSettingsPage() {
       )}
     >
       {(user) => (
-        <section aria-labelledby="course-subscriptions-heading">
-          <h2 id="course-subscriptions-heading" className="mb-3 text-lg font-semibold">구독 중인 강의</h2>
-          <div className="rounded-xl border bg-card">
-            <SubscriptionList key={user.id} user={user} />
-          </div>
+        <section aria-labelledby="course-subscriptions-heading" className="rounded-xl border bg-card">
+          <h2 id="course-subscriptions-heading" className="sr-only">구독 중인 강의</h2>
+          <SubscriptionList key={user.id} user={user} />
         </section>
       )}
     </ProfileScreen>

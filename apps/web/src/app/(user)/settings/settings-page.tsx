@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Bell, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/shared/ui/button";
 import type { SettingsPageModel } from "./useSettingsPage";
@@ -63,22 +63,17 @@ export function SettingsPage({ model }: { model: SettingsPageModel }) {
           프로필로 돌아가기
         </Link>
       </Button>
-      <header className="mb-7 flex items-start gap-4 rounded-xl border bg-primary/5 px-4 py-5 sm:items-center sm:gap-5 sm:px-6 sm:py-6">
-        <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground sm:size-13">
-          <Bell className="size-5 sm:size-6" />
-        </span>
-        <div>
-          <h1 className="text-2xl leading-8 font-semibold sm:text-3xl sm:leading-10">알림 설정</h1>
-          <p className="mt-1 break-keep text-sm leading-6 text-muted-foreground">빈자리, 문의 답변, 중요 공지 알림을 받을 채널을 설정하세요.</p>
-        </div>
+      <header className="mb-5 sm:mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">알림 설정</h1>
+        <p className="mt-2 break-keep text-sm text-muted-foreground">빈자리, 문의 답변, 중요 공지 알림을 받을 채널을 선택하세요.</p>
       </header>
       <form
         aria-labelledby="notification-channels-heading"
         onSubmit={handleSubmit(onSubmit)}
         className="min-w-0"
       >
-        <h2 id="notification-channels-heading" className="mb-3 text-lg leading-7 font-semibold">알림 채널</h2>
-        <div className="space-y-3">
+        <h2 id="notification-channels-heading" className="sr-only">알림 채널</h2>
+        <div className="divide-y rounded-xl border bg-card">
           <DiscordIntegrationSection
             user={user}
             watch={watch}
