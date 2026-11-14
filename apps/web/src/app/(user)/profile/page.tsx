@@ -2,8 +2,19 @@
 
 import { Bell, Bookmark, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { useWithdraw } from "@/features/user/hooks/useUser";
 import { Button } from "@/shared/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/shared/ui/dialog";
 import { ProfileScreen } from "./profile-screen";
 
 const settingsLinks = [
@@ -12,7 +23,8 @@ const settingsLinks = [
 ];
 
 export default function ProfilePage() {
-  const { mutate: withdraw, isPending: isWithdrawing } = useWithdraw();
+  const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
+  const { mutate: withdraw, isPending: isWithdrawing, isError: withdrawFailed, reset: resetWithdraw } = useWithdraw();
 
   return (
     <ProfileScreen title="프로필">
@@ -38,21 +50,49 @@ export default function ProfilePage() {
               ))}
             </ul>
           </nav>
-          <div className="mt-6">
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              disabled={isWithdrawing}
-              onClick={() => {
-                if (window.confirm("회원 탈퇴를 진행할까요? 탈퇴한 계정은 다시 사용할 수 없으며 모든 기기에서 로그아웃됩니다.")) {
-                  withdraw();
-                }
+          <section aria-labelledby="account-management" className="mt-8 border-t pt-5">
+            <Dialog
+              open={isWithdrawDialogOpen}
+              onOpenChange={(open) => {
+                if (isWithdrawing) return;
+                if (open) resetWithdraw();
+                setIsWithdrawDialogOpen(open);
               }}
             >
-              {isWithdrawing ? "탈퇴 처리 중…" : "회원 탈퇴"}
-            </Button>
-          </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 id="account-management" className="text-sm font-semibold">계정 관리</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">탈퇴한 계정은 다시 사용할 수 없습니다.</p>
+                </div>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" className="text-destructive hover:text-destructive">
+                    회원 탈퇴
+                  </Button>
+                </DialogTrigger>
+              </div>
+              <DialogContent role="alertdialog" showCloseButton={false} className="sm:max-w-sm">
+                <DialogHeader className="text-left">
+                  <DialogTitle>회원 탈퇴를 진행할까요?</DialogTitle>
+                  <DialogDescription className="break-keep leading-relaxed">
+                    탈퇴한 계정은 다시 사용할 수 없고 모든 기기에서 로그아웃됩니다.
+                  </DialogDescription>
+                </DialogHeader>
+                {withdrawFailed && (
+                  <p role="alert" className="text-sm text-destructive">
+                    탈퇴를 완료하지 못했습니다. 다시 시도해 주세요.
+                  </p>
+                )}
+                <DialogFooter className="flex-row justify-end">
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline" disabled={isWithdrawing}>취소</Button>
+                  </DialogClose>
+                  <Button type="button" variant="destructive" disabled={isWithdrawing} onClick={() => withdraw()}>
+                    {isWithdrawing ? "탈퇴 처리 중…" : "회원 탈퇴"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </section>
         </>
       )}
     </ProfileScreen>
