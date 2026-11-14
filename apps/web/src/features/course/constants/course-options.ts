@@ -72,7 +72,7 @@ export const COURSE_DIRECTIONS = [
   "특별(영어)",
 ];
 
-export const YEARS = ["2026", "2025", "2024"];
+export const YEARS = ["2027", "2026", "2025", "2024"];
 
 export const SEMESTERS = [
   { label: "1학기", value: "U211600010" },
