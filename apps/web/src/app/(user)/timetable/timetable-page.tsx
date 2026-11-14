@@ -27,8 +27,6 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
     sidebarTab,
     setSidebarTab,
     totalCredits,
-    todayLabel,
-    todaySchedules,
     timetableCourses,
     wishlist,
     isWishlistLoading,
@@ -62,8 +60,6 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
           sidebarTab={sidebarTab}
           setSidebarTab={setSidebarTab}
           totalCredits={totalCredits}
-          todayLabel={todayLabel}
-          todaySchedules={todaySchedules}
           timetableCourses={timetableCourses}
           wishlist={wishlist}
           isWishlistLoading={isWishlistLoading}

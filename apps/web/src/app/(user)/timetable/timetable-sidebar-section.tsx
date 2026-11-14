@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, Clock3, Heart, Loader2, Trash2, Plus } from "lucide-react";
+import { BookOpen, Heart, Loader2, Trash2, Plus } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { cn } from "@/shared/lib/utils";
 import { formatClassTime, formatDayOfWeek } from "@/shared/lib/formatters";
@@ -13,8 +13,6 @@ type TimetableSidebarSectionProps = Pick<
   | "sidebarTab"
   | "setSidebarTab"
   | "totalCredits"
-  | "todayLabel"
-  | "todaySchedules"
   | "timetableCourses"
   | "wishlist"
   | "isWishlistLoading"
@@ -33,8 +31,6 @@ export function TimetableSidebarSection({
   sidebarTab,
   setSidebarTab,
   totalCredits,
-  todayLabel,
-  todaySchedules,
   timetableCourses,
   wishlist,
   isWishlistLoading,
@@ -91,35 +87,7 @@ export function TimetableSidebarSection({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
-                className="space-y-3"
               >
-                <div className="rounded-lg border border-border p-3">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                      <Clock3 className="size-4 text-primary" />
-                      오늘 일정
-                    </h2>
-                    <Badge variant="outline" className="rounded-full bg-muted text-xs text-muted-foreground">
-                      {todayLabel}요일
-                    </Badge>
-                  </div>
-                  {todaySchedules.length === 0 ? (
-                    <p className="py-1 text-sm text-muted-foreground">오늘 등록된 일정이 없습니다.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {todaySchedules.map((item) => (
-                        <div key={item.key} className="rounded-md bg-muted px-2.5 py-2">
-                          <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">{item.subtitle}</p>
-                          <p className="mt-1 text-xs font-medium tabular-nums text-primary">
-                            {item.startTime} - {item.endTime}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
                 <section aria-labelledby="timetable-courses-heading">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <h2 id="timetable-courses-heading" className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
