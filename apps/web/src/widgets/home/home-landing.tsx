@@ -80,9 +80,9 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
           </h1>
 
           <p
-            className="mx-auto mb-6 max-w-[34rem] break-keep text-base leading-relaxed text-muted-foreground md:mb-8 md:text-lg"
+            className="mx-auto mb-6 max-w-[35rem] text-pretty break-keep text-base leading-relaxed text-muted-foreground md:mb-8 md:text-lg"
           >
-            듣고 싶은 강의의 알림을 등록해 두세요. 자리가 나면 알려드려요.
+            듣고 싶은 강의가 꽉 찼나요? 원하는 분반에 알림을 걸어 두면, 계속 새로고침하지 않아도 빈자리가 생겼을 때 바로 확인할 수 있어요.
           </p>
 
           <div className="mb-6 flex w-full justify-center empty:hidden">{countdown}</div>
@@ -90,13 +90,13 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
           <div
             className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row"
           >
-            <Button asChild className="h-auto w-full rounded-full px-6 py-3.5 text-sm font-bold shadow-md shadow-primary/20 sm:w-auto">
+            <Button asChild className="h-auto w-full rounded-full py-3.5 text-sm font-bold shadow-md shadow-primary/20 has-[>svg]:px-7 sm:w-auto">
               <Link href="/login">
                 지금 시작하기
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-auto w-full rounded-full border-primary/20 px-6 py-3.5 text-sm font-bold text-primary hover:bg-primary/5 sm:w-auto">
+            <Button asChild variant="outline" className="h-auto w-full rounded-full border-primary/20 py-3.5 text-sm font-bold text-primary hover:bg-primary/5 has-[>svg]:px-7 sm:w-auto">
               <Link href="/search">
                 <Search className="size-4" aria-hidden="true" />
                 강의 먼저 둘러보기
