@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { useSubscriptions, useUnsubscribe, useUnsubscribeAll } from "@/features/subscription/hooks/useSubscriptions";
 import { Button } from "@/shared/ui/button";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
+import { SEMESTERS } from "@/features/course/constants/course-options";
 import { parseCourseKey } from "@/shared/lib/course";
 import type { Course, Subscription, User } from "@/shared/types/api";
 
@@ -86,6 +87,7 @@ export function SubscriptionList({ user }: { user: User }) {
       <ul className="divide-y border-t">
         {subscriptions.map((sub) => {
           const courseKey = parseCourseKey(sub.courseKey);
+          const semesterLabel = SEMESTERS.find(({ value }) => value === courseKey.semester)?.label;
 
           return (
             <li key={sub.id} className="group relative flex items-center gap-3 px-4 py-3 hover:bg-muted/40 last:rounded-b-xl sm:px-5">
@@ -100,6 +102,7 @@ export function SubscriptionList({ user }: { user: User }) {
                   </button>
                 </h3>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                  {courseKey.year && semesterLabel && <span>{courseKey.year}학년도 {semesterLabel}</span>}
                   <span>{courseKey.classNumber || "01"}분반</span>
                   <span>{courseKey.subjectCode || sub.courseKey}</span>
                   <span className="wrap-anywhere">{sub.professorName || "교수 미지정"}</span>
