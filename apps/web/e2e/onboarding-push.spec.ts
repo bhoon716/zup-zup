@@ -16,6 +16,7 @@ for (const mode of ['unsupported', 'denied', 'supported', 'retry'] as const) {
     let completed = false;
     let devices = 0;
     const saved: Record<string, unknown>[] = [];
+    const testRequests: Record<string, unknown>[] = [];
     await page.addInitScript(({ mode }) => {
       if (mode === 'unsupported') {
         Reflect.deleteProperty(window, 'PushManager');
@@ -57,13 +58,17 @@ for (const mode of ['unsupported', 'denied', 'supported', 'retry'] as const) {
         completed = true;
         return route.fulfill({ json: { ...initialUser, ...payload, onboardingCompleted: true } });
       }
+      if (path === '/api/v1/users/notifications/test/onboarding') {
+        testRequests.push(request.postDataJSON());
+        return route.fulfill({ status: 204 });
+      }
       return route.fulfill({ json: [] });
     });
     await page.goto('/onboarding');
     const push = page.getByRole('switch', { name: '웹 푸시 (현재 기기)' });
     await expect(push).not.toBeChecked();
     expect(devices).toBe(0);
-    await page.getByPlaceholder('기기 이름 (예: 내 노트북, 스마트폰)').fill('로컬 테스트');
+    await page.getByRole('textbox', { name: '기기 별칭' }).fill('로컬 테스트');
     await push.click();
     if (mode === 'unsupported' || mode === 'denied') {
       await expect(page.getByText(mode === 'unsupported' ? /이 브라우저에서는 웹 푸시/ : /웹 푸시 권한이 허용되지/)).toBeVisible();
@@ -79,8 +84,14 @@ for (const mode of ['unsupported', 'denied', 'supported', 'retry'] as const) {
     } else {
       await expect(push).toBeChecked();
       expect(devices).toBe(1);
+      await page.getByRole('button', { name: '알림 테스트', exact: true }).click();
+      await expect(page.getByText('알림 테스트를 전송했습니다.', { exact: true })).toBeVisible();
+      expect(testRequests).toEqual([{
+        notificationEmail: initialUser.email, emailEnabled: true, webPushEnabled: true, discordEnabled: false,
+      }]);
+      expect(saved).toHaveLength(0);
     }
-    await page.getByRole('button', { name: '완료', exact: true }).click();
+    await page.getByRole('button', { name: '설정 완료', exact: true }).click();
     await expect(page).toHaveURL(/\/$/);
     expect(saved).toHaveLength(1);
     expect(saved[0]).toMatchObject({ emailEnabled: true, webPushEnabled: mode === 'supported' || mode === 'retry' });

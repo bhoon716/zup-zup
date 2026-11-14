@@ -76,3 +76,7 @@ export const sendTestNotification = async (): Promise<void> => {
   const { data } = await api.post('/api/v1/notifications/test');
   return data;
 };
+
+export const sendOnboardingTestNotification = async (request: OnboardingRequest): Promise<void> => {
+  await api.post('/api/v1/users/notifications/test/onboarding', request);
+};

@@ -15,7 +15,7 @@ describe("WebPushSection Component", () => {
       },
     ],
     loadingWebPush: false,
-    watch: vi.fn().mockReturnValue(true),
+    webPushEnabled: true,
     setValue: vi.fn(),
     handleRegisterDevice: vi.fn(),
     handleDeleteDevice: vi.fn(),
@@ -45,17 +45,28 @@ describe("WebPushSection Component", () => {
     );
 
     expect(screen.queryByText("THIS", { exact: true })).not.toBeInTheDocument();
-    expect(screen.getByText("내 계정에 등록된 기기")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "등록된 기기" })).toBeInTheDocument();
     for (const alias of aliases) {
       expect(screen.getByText(alias, { exact: true })).toBeInTheDocument();
     }
   });
 
+  it("빈 별칭으로 등록하면 입력란을 안내하고 등록을 호출하지 않는다", () => {
+    const handleRegisterDevice = vi.fn();
+    render(<WebPushSection {...defaultProps} deviceAlias="   " handleRegisterDevice={handleRegisterDevice} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "현재 기기 등록" }));
+
+    expect(screen.getByRole("textbox", { name: "기기 별칭" })).toHaveAccessibleDescription("기기 별칭을 입력해 주세요.");
+    expect(screen.getByRole("textbox", { name: "기기 별칭" })).toHaveFocus();
+    expect(handleRegisterDevice).not.toHaveBeenCalled();
+  });
 });
 
 describe("SettingsActionBar Component", () => {
   const defaultProps = {
     isSubmitting: false,
+    isDirty: true,
     onCancel: vi.fn(),
   };
 
@@ -63,7 +74,7 @@ describe("SettingsActionBar Component", () => {
     render(<SettingsActionBar {...defaultProps} />);
 
     expect(screen.getByText("변경 취소")).toBeInTheDocument();
-    expect(screen.getByText("설정 저장하기")).toBeInTheDocument();
+    expect(screen.getByText("변경 저장")).toBeInTheDocument();
   });
 
   it("renders test notification button when handler is provided and handles clicks", () => {

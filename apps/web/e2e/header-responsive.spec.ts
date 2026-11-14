@@ -151,7 +151,7 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await expect(page).toHaveURL(/\/settings$/);
   await expect(main.getByRole("heading", { name: "알림 설정", exact: true })).toBeVisible();
   await expect(main.getByRole("heading", { name: "구독 중인 강의", exact: true })).toHaveCount(0);
-  await main.getByRole("link", { name: backToSettingsName }).click();
+  await settings.click();
 
   await main.getByRole("link", { name: "구독 설정", exact: true }).click();
   await expect(page).toHaveURL(/\/profile\/subscriptions$/);
