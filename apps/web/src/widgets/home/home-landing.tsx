@@ -9,7 +9,7 @@ import styles from "./landing-walkthrough.module.css";
 
 const statistics = [
   { label: "누적 가입자", minimum: 680, unit: "명" },
-  { label: "빈자리 알림 발송 성공", minimum: 7000, unit: "건" },
+  { label: "빈자리 알림 발송", minimum: 7000, unit: "건" },
 ];
 const countFormatter = new Intl.NumberFormat("ko-KR");
 
