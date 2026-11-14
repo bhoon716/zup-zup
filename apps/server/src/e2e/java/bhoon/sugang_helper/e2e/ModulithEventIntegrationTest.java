@@ -310,8 +310,8 @@ class ModulithEventIntegrationTest {
         assertThat(dispatch.statusCode()).isEqualTo(200);
         assertThat(mapper.readTree(dispatch.body()).path("claimed").asInt()).isZero();
         loginFixture();
-        assertThat(firstInboxItem("").path("courseKey").asText()).isEqualTo(COURSE_KEY);
-        assertThat(inbox("").path("totalElements").asInt()).isEqualTo(1);
+        assertThat(firstSeatAlert("").path("courseKey").asText()).isEqualTo(COURSE_KEY);
+        assertThat(seatAlerts("").path("totalElements").asInt()).isEqualTo(1);
     }
 
     @Test
@@ -343,7 +343,7 @@ class ModulithEventIntegrationTest {
         // given
         seedInbox(1);
         loginFixture();
-        assertThat(inbox("").path("totalElements").asInt()).isEqualTo(1);
+        assertThat(seatAlerts("").path("totalElements").asInt()).isEqualTo(1);
 
         // when
         assertThat(post("/withdraw?rollback=false").statusCode()).isEqualTo(200);
@@ -356,7 +356,7 @@ class ModulithEventIntegrationTest {
         assertThat(state.path("devices").asInt()).isZero();
         assertThat(get(INBOX).statusCode()).isEqualTo(401);
         loginFixture("?other=true");
-        assertThat(inbox("").path("totalElements").asInt()).isEqualTo(1);
+        assertThat(seatAlerts("").path("totalElements").asInt()).isEqualTo(1);
     }
 
     @Test
@@ -370,7 +370,7 @@ class ModulithEventIntegrationTest {
         assertThat(post("/withdraw?rollback=true").statusCode()).isEqualTo(500);
         assertWithdrawalRolledBack(state(), 2);
         loginFixture();
-        assertThat(inbox("").path("totalElements").asInt()).isEqualTo(1);
+        assertThat(seatAlerts("").path("totalElements").asInt()).isEqualTo(1);
     }
 
     @Test
@@ -437,23 +437,25 @@ class ModulithEventIntegrationTest {
     void inboxPersistsSeatOpeningsAndPagesByOccurrenceAndId() throws Exception {
         // given
         seedInbox(32);
+        seedInboxViews();
         assertThat(get(INBOX).statusCode()).isEqualTo(401);
         loginFixture();
 
         // when
-        JsonNode first = inbox("?size=1");
-        JsonNode second = inbox("?page=1");
-        JsonNode literalMatch = inbox("?keyword=%20sql%25_%21%20&read=UNREAD&type=SEAT_OPENED");
-        JsonNode legacyMatch = inbox("?courseName=sql%25_%21");
-        JsonNode oldest = inbox("?sort=OLDEST");
+        JsonNode first = seatAlerts("?size=1");
+        JsonNode second = seatAlerts("?page=1");
+        JsonNode literalMatch = seatAlerts("?keyword=%20sql%25_%21%20&read=UNREAD&type=SEAT_OPENED");
+        JsonNode legacyMatch = seatAlerts("?courseName=sql%25_%21");
+        JsonNode oldest = seatAlerts("?sort=OLDEST");
 
         // then
         assertThat(first.path("number").asInt()).isZero();
         assertThat(second.path("number").asInt()).isEqualTo(1);
-        assertThat(first.path("totalElements").asInt()).isEqualTo(32);
+        assertThat(first.path("totalElements").asInt()).isEqualTo(33);
         assertThat(first.path("totalPages").asInt()).isEqualTo(2);
+        assertThat(first.path("content").get(0).path("type").asText()).isEqualTo("ANNOUNCEMENT");
         assertThat(first.path("content").size()).isEqualTo(30);
-        assertThat(second.path("content").size()).isEqualTo(2);
+        assertThat(second.path("content").size()).isEqualTo(3);
         List<Long> ids = new ArrayList<>();
         first.path("content").forEach(item -> ids.add(item.path("id").asLong()));
         second.path("content").forEach(item -> ids.add(item.path("id").asLong()));
@@ -465,52 +467,61 @@ class ModulithEventIntegrationTest {
         assertThat(oldest.path("content").get(1).path("id").asLong()).isEqualTo(ids.get(ids.size() - 2));
 
         mutateInbox("PATCH", "/" + ids.getFirst() + "/read");
-        JsonNode unreadFirst = inbox("?sort=UNREAD_FIRST&page=1");
-        assertThat(unreadFirst.path("content").get(0).path("id").asLong()).isEqualTo(ids.getLast());
-        assertThat(unreadFirst.path("content").get(1).path("id").asLong()).isEqualTo(ids.getFirst());
+        JsonNode unreadFirst = seatAlerts("?sort=UNREAD_FIRST&page=1");
+        assertThat(unreadFirst.path("content").get(1).path("id").asLong()).isEqualTo(ids.getLast());
+        assertThat(unreadFirst.path("content").get(2).path("id").asLong()).isEqualTo(ids.getFirst());
         assertThat(item.path("courseName").asText()).isEqualTo("SQL%_! 분석");
         assertThat(item.path("courseKey").asText()).isEqualTo(COURSE_KEY);
         assertThat(item.path("availableSeats").asInt()).isEqualTo(1);
         assertThat(item.path("occurredAt").asText()).isEqualTo(INBOX_OCCURRED_AT);
         assertThat(item.path("readAt").isNull()).isTrue();
-        assertThat(state().path("activeInbox").asInt()).isEqualTo(64);
+        assertThat(state().path("activeInbox").asInt()).isEqualTo(68);
         assertThat(get("/api/v1/notifications/history").statusCode()).isEqualTo(200);
         assertThat(get(INBOX + "?page=-1").statusCode()).isEqualTo(400);
         assertThat(get(INBOX + "?sort=id,asc").statusCode()).isEqualTo(400);
+        assertThat(get(INBOX + "?view=unknown").statusCode()).isEqualTo(400);
     }
 
     @Test
-    @DisplayName("읽음·전체 읽음·삭제는 로그인한 소유자의 보이는 항목에만 반복 적용된다")
-    void inboxMutationsAreScopedAndIdempotent() throws Exception {
+    @DisplayName("알림 탭의 유형과 전체 읽음은 로그인한 사용자의 선택한 탭으로 제한된다")
+    void inboxViewsAndReadMutationsAreScopedAndIdempotent() throws Exception {
         // given
         seedInbox(2);
+        seedInboxViews();
         loginFixture("?other=true");
-        long otherId = firstInboxItem("?read=UNREAD").path("id").asLong();
+        long otherId = firstSeatAlert("?read=UNREAD").path("id").asLong();
         loginFixture();
-        JsonNode myItems = inbox("").path("content");
-        long readId = myItems.get(0).path("id").asLong();
-        long deleteId = myItems.get(1).path("id").asLong();
+        long readId = firstSeatAlert("?type=SEAT_OPENED").path("id").asLong();
 
         // when & then
+        List<String> inboxTypes = new ArrayList<>();
+        inbox("").path("content").forEach(item -> inboxTypes.add(item.path("type").asText()));
+        assertThat(inboxTypes).containsExactlyInAnyOrder("FEEDBACK_REPLY", "DELIVERY_FAILED", "DEVICE_REREGISTRATION");
+        assertThat(inbox("?type=SEAT_OPENED").path("totalElements").asInt()).isZero();
+        assertThat(inbox("?type=ANNOUNCEMENT").path("totalElements").asInt()).isZero();
+        assertThat(seatAlerts("?type=DELIVERY_FAILED").path("totalElements").asInt()).isZero();
+
         mutateInbox("PATCH", "/" + otherId + "/read");
-        mutateInbox("DELETE", "/" + otherId);
         mutateInbox("PATCH", "/" + readId + "/read");
-        String readAt = firstInboxItem("?read=READ").path("readAt").asText();
+        String readAt = firstSeatAlert("?read=READ").path("readAt").asText();
         assertThat(readAt).isNotBlank();
         mutateInbox("PATCH", "/" + readId + "/read");
-        assertThat(firstInboxItem("?read=READ").path("readAt").asText()).isEqualTo(readAt);
-        assertThat(inbox("?read=UNREAD").path("totalElements").asInt()).isEqualTo(1);
+        assertThat(firstSeatAlert("?read=READ").path("readAt").asText()).isEqualTo(readAt);
+
+        assertThat(apiMutation("DELETE", INBOX + "/" + readId).statusCode()).isEqualTo(404);
+        assertThat(seatAlerts("").path("totalElements").asInt()).isEqualTo(3);
+
         mutateInbox("PATCH", "/read-all");
         assertThat(inbox("?read=UNREAD").path("totalElements").asInt()).isZero();
-        assertThat(inbox("?read=READ").path("totalElements").asInt()).isEqualTo(2);
-        mutateInbox("DELETE", "/" + deleteId);
-        mutateInbox("DELETE", "/" + deleteId);
-        mutateInbox("PATCH", "/" + deleteId + "/read");
-        assertThat(inbox("").path("totalElements").asInt()).isEqualTo(1);
-        assertThat(firstInboxItem("").path("id").asLong()).isEqualTo(readId);
+        assertThat(inbox("?read=READ").path("totalElements").asInt()).isEqualTo(3);
+        assertThat(seatAlerts("?read=UNREAD").path("totalElements").asInt()).isEqualTo(2);
+
+        mutateInbox("PATCH", "/read-all?view=SEAT_ALERTS");
+        assertThat(seatAlerts("?read=UNREAD").path("totalElements").asInt()).isZero();
+        assertThat(seatAlerts("?read=READ").path("totalElements").asInt()).isEqualTo(3);
 
         loginFixture("?other=true");
-        assertThat(inbox("?read=UNREAD").path("totalElements").asInt()).isEqualTo(2);
+        assertThat(seatAlerts("?read=UNREAD").path("totalElements").asInt()).isEqualTo(2);
     }
 
     @Nested
@@ -532,23 +543,23 @@ class ModulithEventIntegrationTest {
             verify(emailSender).sendDelivery(any(), eq("중요 공지"), anyString(), anyString(), eq("/notifications"));
             long announcementId = mapper.readTree(created.body()).path("id").asLong();
             loginFixture();
-            JsonNode announcement = firstInboxItem("?type=ANNOUNCEMENT");
+            JsonNode announcement = firstSeatAlert("?type=ANNOUNCEMENT");
             long inboxId = announcement.path("id").asLong();
             assertThat(announcement.path("title").asText()).isEqualTo("중요 공지");
             assertThat(announcement.path("targetId").asLong()).isEqualTo(announcementId);
-            assertThat(firstInboxItem(keywordQuery("중요 공지")).path("id").asLong()).isEqualTo(inboxId);
-            assertThat(firstInboxItem(keywordQuery("내용을 확인")).path("id").asLong()).isEqualTo(inboxId);
-            assertThat(inbox("?type=ANNOUNCEMENT").path("totalElements").asInt()).isEqualTo(1);
+            assertThat(firstSeatAlert(keywordQuery("중요 공지")).path("id").asLong()).isEqualTo(inboxId);
+            assertThat(firstSeatAlert(keywordQuery("내용을 확인")).path("id").asLong()).isEqualTo(inboxId);
+            assertThat(seatAlerts("?type=ANNOUNCEMENT").path("totalElements").asInt()).isEqualTo(1);
             mutateInbox("PATCH", "/" + inboxId + "/read");
 
             // when
             loginFixture("?admin=true");
             assertThat(apiMutation("DELETE", ADMIN_ANNOUNCEMENTS + "/" + announcementId).statusCode()).isEqualTo(200);
             loginFixture();
-            assertThat(firstInboxItem("?type=ANNOUNCEMENT").path("available").asBoolean()).isFalse();
-            assertThat(inbox(keywordQuery("중요 공지")).path("totalElements").asInt()).isZero();
-            assertThat(inbox(keywordQuery("내용을 확인")).path("totalElements").asInt()).isZero();
-            assertThat(firstInboxItem(keywordQuery("확인할 수 없는")).path("id").asLong()).isEqualTo(inboxId);
+            assertThat(firstSeatAlert("?type=ANNOUNCEMENT").path("available").asBoolean()).isFalse();
+            assertThat(seatAlerts(keywordQuery("중요 공지")).path("totalElements").asInt()).isZero();
+            assertThat(seatAlerts(keywordQuery("내용을 확인")).path("totalElements").asInt()).isZero();
+            assertThat(firstSeatAlert(keywordQuery("확인할 수 없는")).path("id").asLong()).isEqualTo(inboxId);
             assertThat(get("/api/v1/announcements/" + announcementId).statusCode()).isEqualTo(404);
             loginFixture("?admin=true");
             assertThat(apiMutation("PATCH", ADMIN_ANNOUNCEMENTS + "/" + announcementId + "/restore").statusCode())
@@ -556,11 +567,11 @@ class ModulithEventIntegrationTest {
 
             // then
             loginFixture();
-            JsonNode restored = firstInboxItem("?type=ANNOUNCEMENT&read=READ");
+            JsonNode restored = firstSeatAlert("?type=ANNOUNCEMENT&read=READ");
             assertThat(restored.path("id").asLong()).isEqualTo(inboxId);
             assertThat(restored.path("available").asBoolean()).isTrue();
             assertThat(get("/api/v1/announcements/" + announcementId).statusCode()).isEqualTo(200);
-            assertThat(inbox("?type=ANNOUNCEMENT").path("totalElements").asInt()).isEqualTo(1);
+            assertThat(seatAlerts("?type=ANNOUNCEMENT").path("totalElements").asInt()).isEqualTo(1);
         }
 
         @Test
@@ -712,6 +723,10 @@ class ModulithEventIntegrationTest {
         }
     }
 
+    private void seedInboxViews() throws Exception {
+        assertThat(post("/seed-inbox-views").statusCode()).isEqualTo(200);
+    }
+
     private static String keywordQuery(String keyword) {
         return "?keyword=" + URLEncoder.encode(keyword, StandardCharsets.UTF_8);
     }
@@ -720,6 +735,15 @@ class ModulithEventIntegrationTest {
         HttpResponse<String> response = get(INBOX + query);
         assertThat(response.statusCode()).isEqualTo(200);
         return mapper.readTree(response.body());
+    }
+
+    private JsonNode seatAlerts(String query) throws Exception {
+        String filters = query.isEmpty() ? "" : "&" + query.substring(1);
+        return inbox("?view=SEAT_ALERTS" + filters);
+    }
+
+    private JsonNode firstSeatAlert(String query) throws Exception {
+        return seatAlerts(query).path("content").get(0);
     }
 
     private JsonNode firstInboxItem(String query) throws Exception {
@@ -904,6 +928,22 @@ class ModulithEventIntegrationTest {
                         values (?, ?, 0, 1, 'PENDING', 0, ?)
                         """, COURSE_KEY, name, LocalDateTime.parse(INBOX_OCCURRED_AT));
             }
+        }
+
+        @PostMapping("/seed-inbox-views")
+        void seedInboxViews() {
+            Long userId = users.findByEmail(EMAIL).orElseThrow().getId();
+            LocalDateTime occurredAt = LocalDateTime.parse(INBOX_OCCURRED_AT).plusDays(1);
+            for (String type : List.of("FEEDBACK_REPLY", "DELIVERY_FAILED", "DEVICE_REREGISTRATION", "ANNOUNCEMENT")) {
+                jdbc.update("""
+                        insert into seat_inbox_items (user_id, type, title, available, occurred_at)
+                        values (?, ?, ?, true, ?)
+                        """, userId, type, type, occurredAt);
+            }
+            jdbc.update("""
+                    insert into seat_inbox_items (user_id, type, title, available, occurred_at, deleted_at)
+                    values (?, 'DELIVERY_FAILED', '삭제된 알림', true, ?, ?)
+                    """, userId, occurredAt, occurredAt);
         }
 
         @PostMapping("/seed-dead-letter")

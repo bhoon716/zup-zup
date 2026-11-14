@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.seatalert.notification.service;
 
+import static bhoon.sugang_helper.seatalert.notification.enums.SeatInboxView.SEAT_ALERTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doAnswer;
@@ -115,17 +116,19 @@ class SeatInboxMySqlTest {
         // when
         processor.materializePendingOutboxes();
         outboxes.deleteAllById(List.of(eventId, decoyId));
-        Long newestId = inbox.getInbox(null, null, null, "sql", SeatInboxSort.NEWEST, 0).getContent().getFirst().id();
+        Long newestId = inbox.getInbox(SEAT_ALERTS, null, null, null, "sql", SeatInboxSort.NEWEST, 0)
+                .getContent().getFirst().id();
         inbox.markRead(newestId);
-        var unreadFirst = inbox.getInbox(null, null, null, "sql", SeatInboxSort.UNREAD_FIRST, 0).getContent();
-        var unread = inbox.getInbox(SeatInboxReadFilter.UNREAD, null, SEARCH_TERM, null, SeatInboxSort.NEWEST, 0)
+        var unreadFirst = inbox.getInbox(SEAT_ALERTS, null, null, null, "sql", SeatInboxSort.UNREAD_FIRST, 0).getContent();
+        var unread = inbox.getInbox(SEAT_ALERTS, SeatInboxReadFilter.UNREAD, null, SEARCH_TERM, null, SeatInboxSort.NEWEST, 0)
                 .getContent();
         assertThat(unread).hasSize(1);
         inbox.markRead(unread.getFirst().id());
 
         // then
         assertThat(unreadFirst).extracting(SeatInboxItemResponse::courseName).containsExactly(SEARCH_NAME, DECOY_NAME);
-        assertThat(inbox.getInbox(SeatInboxReadFilter.READ, null, SEARCH_TERM, null, SeatInboxSort.NEWEST, 0).getContent())
+        assertThat(inbox.getInbox(SEAT_ALERTS, SeatInboxReadFilter.READ, null, SEARCH_TERM, null, SeatInboxSort.NEWEST, 0)
+                .getContent())
                 .singleElement().satisfies(item -> {
                     assertThat(item.courseKey()).isEqualTo(SEARCH_KEY);
                     assertThat(item.courseName()).isEqualTo(SEARCH_NAME);

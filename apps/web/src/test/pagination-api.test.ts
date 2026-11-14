@@ -3,7 +3,6 @@ import api from "@/shared/api/client";
 import { searchCourses } from "@/features/course/api/course.api";
 import { getReviews } from "@/features/review/api/review.api";
 import { getAnnouncements } from "@/features/announcement/api/announcement.api";
-import { getNotifications } from "@/features/notification/api/notification.api";
 import { getMyFeedbacks, getFeedbacksForAdmin } from "@/features/feedback/api/feedback.api";
 import { getAdminAnnouncements, getAdminDlqNotificationDeliveries } from "@/features/admin/api/admin.api";
 
@@ -22,7 +21,6 @@ describe("서버 고정 페이지 크기를 사용하는 API", () => {
     { name: "강의 검색", read: () => searchCourses({ name: "자료" }, 2), method: "post", path: "/api/v1/courses/search", params: { page: 2 }, body: { name: "자료" } },
     { name: "리뷰 정렬", read: () => getReviews("course:1", 2, "rating,desc"), method: "get", path: "/api/v1/courses/course%3A1/reviews", params: { page: 2, sort: "rating,desc" } },
     { name: "공지 검색", read: () => getAnnouncements({ keyword: " 점검 ", searchType: "TITLE", page: 2 }), method: "get", path: "/api/v1/announcements", params: { keyword: "점검", searchType: "TITLE", page: 2 } },
-    { name: "알림 이력", read: async () => (await getNotifications(2)).data, method: "get", path: "/api/v1/notifications/history", params: { page: 2 } },
     { name: "내 문의", read: () => getMyFeedbacks(2), method: "get", path: "/api/v1/feedbacks/me", params: { page: 2 } },
     { name: "관리자 문의 필터", read: () => getFeedbacksForAdmin(2, "DELETED", "OLDEST"), method: "get", path: "/api/v1/admin/feedbacks", params: { page: 2, deletion: "DELETED", order: "OLDEST" } },
     { name: "관리자 문의 검색", read: () => getFeedbacksForAdmin(2, "DELETED", "OLDEST", { keyword: "수강", searchType: "TITLE_CONTENT_REPLY" }), method: "get", path: "/api/v1/admin/feedbacks", params: { page: 2, deletion: "DELETED", order: "OLDEST", keyword: "수강", searchType: "TITLE_CONTENT_REPLY" } },

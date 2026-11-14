@@ -13,10 +13,9 @@ function notification(id: number, courseName = `빈자리 확인 강의 ${id}`):
   return { id, type: "SEAT_OPENED", courseName, courseKey: `2026:U211600010:INBOX${id}:01`, availableSeats: 2, occurredAt: detectedAt, readAt: null };
 }
 
-test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 알림을 다시 불러온다", async ({ page, baseURL }) => {
+test("작은 화면에서 빈자리 알림을 읽고 검색하고 새로고침한다", async ({ page, baseURL }) => {
   const newest = notification(31);
   const items = [newest, ...Array.from({ length: 28 }, (_, index) => notification(30 - index)), notification(2, similarName), notification(1, literalName)];
-  let failDeletion = true;
   let failNextList = false;
   const subscribedCourses = [{ id: 1, courseKey: newest.courseKey, courseName: "구독 중인 강의", professorName: "담당 교수" }];
 
@@ -43,11 +42,10 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
     }
     if (pathname.endsWith("/reviews")) return route.fulfill({ json: { content: [], number: 0, last: true } });
     if (pathname.endsWith("/emojis")) return route.fulfill({ json: [] });
-    if (pathname === "/api/v1/notifications/history") {
-      return route.fulfill({ json: { content: [{ id: 1, title: "외부 채널 발송", message: "메일로 발송한 알림", channel: "EMAIL", sentAt: detectedAt }], number: 0, last: true } });
-    }
-
     if (pathname === inboxPath && request.method() === "GET") {
+      if (searchParams.get("view") !== "SEAT_ALERTS") {
+        return route.fulfill({ json: { content: [], number: 0, totalPages: 0, totalElements: 0 } });
+      }
       if (failNextList && !searchParams.has("read")) {
         failNextList = false;
         return route.fulfill({ status: 503, json: {} });
@@ -74,17 +72,8 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
         newest.readAt ??= readAt;
         return route.fulfill({ status: 204 });
       }
-      if (request.method() === "PATCH" && pathname === `${inboxPath}/read-all`) {
+      if (request.method() === "PATCH" && pathname === `${inboxPath}/read-all` && searchParams.get("view") === "SEAT_ALERTS") {
         for (const item of items) item.readAt ??= readAt;
-        return route.fulfill({ status: 204 });
-      }
-      if (request.method() === "DELETE" && pathname === `${inboxPath}/1`) {
-        if (failDeletion) {
-          failDeletion = false;
-          return route.fulfill({ status: 503, json: {} });
-        }
-        const index = items.findIndex((item) => item.id === 1);
-        if (index >= 0) items.splice(index, 1);
         return route.fulfill({ status: 204 });
       }
     }
@@ -95,16 +84,14 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   await page.goto("/notifications");
   await expect(page.getByRole("heading", { name: "알림함", exact: true })).toBeVisible();
   const inboxTrigger = page.getByRole("banner").getByRole("button", { name: "알림함", exact: true });
-  await expect(inboxTrigger).toHaveAccessibleDescription(unreadDescription);
+  await expect(inboxTrigger).not.toHaveAccessibleDescription(unreadDescription);
+  await expect(page.getByText("받은 알림이 없습니다.", { exact: true })).toBeVisible();
   const inboxTab = page.getByRole("tab", { name: "알림함", exact: true });
-  const historyTab = page.getByRole("tab", { name: "발송 이력", exact: true });
+  const historyTab = page.getByRole("tab", { name: "빈자리 알림", exact: true });
   await expect(page.getByRole("tab")).toHaveCount(2);
   await inboxTab.press("End");
   await expect(historyTab).toBeFocused();
   await expect(historyTab).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel", { name: "발송 이력" }).getByText("외부 채널 발송")).toBeVisible();
-  await historyTab.press("Home");
-  await expect(inboxTab).toBeFocused();
   const list = page.getByRole("list", { name: "알림 목록" });
   const newestTitle = page.getByRole("button", { name: newest.courseName, exact: true });
   const filters = page.getByRole("group", { name: "알림 읽음 상태" });
@@ -120,6 +107,7 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360);
   const newestRow = list.getByRole("article").filter({ has: newestTitle });
   await expect(newestRow.getByRole("img", { name: "읽지 않음", exact: true })).toBeVisible();
+  await expect(list.getByRole("button", { name: /알림 삭제/ })).toHaveCount(0);
   await expect(newestRow.getByText("빈자리가 2석 생겼어요.")).toBeVisible();
   await expect(newestRow.getByText("빈자리 감지", { exact: true })).toBeVisible();
   await expect(newestRow.getByText("2026년 11월 12일 09:00", { exact: true })).toHaveAttribute("datetime", detectedAt);
@@ -135,9 +123,10 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   await expect(newestTitle).toHaveCount(0);
 
   await page.reload();
+  await historyTab.click();
   await filters.getByRole("button", { name: "읽음", exact: true }).click();
   await expect(list.getByRole("listitem")).toHaveCount(1);
-  await expect(newestRow.getByRole("img", { name: "읽음", exact: true })).toBeVisible();
+  await expect(newestRow.getByRole("img", { name: "읽지 않음", exact: true })).toHaveCount(0);
   await filters.getByRole("button", { name: "전체", exact: true }).click();
   await pageTwo.click();
   await expect(toolbar).toBeFocused();
@@ -165,23 +154,15 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   await sort.click();
   await page.getByRole("option", { name: "최신순" }).click();
   await expect(newestTitle).toBeVisible();
-  await pageTwo.click();
-  const deleteButton = list.getByRole("button", { name: `${literalName} 알림 삭제`, exact: true });
-  await deleteButton.click();
-  await expect(page.getByRole("alert").filter({ hasText: "알림을 삭제하지 못했습니다." })).toBeVisible();
-  await expect(deleteButton).toBeVisible();
-  await page.getByRole("button", { name: "다시 시도", exact: true }).click();
-  await expect(newestTitle).toBeVisible();
-  await expect(pagination).toHaveCount(0);
-
   items.unshift(notification(32));
   await page.getByRole("button", { name: "새로고침", exact: true }).click();
   await pageTwo.click();
   await expect(list.getByRole("button", { name: similarName, exact: true })).toBeVisible();
   await page.reload();
+  await historyTab.click();
   await pageTwo.click();
   await expect(list.getByRole("button", { name: similarName, exact: true })).toBeVisible();
-  await expect(list.getByRole("button", { name: literalName, exact: true })).toHaveCount(0);
+  await expect(list.getByRole("button", { name: literalName, exact: true })).toBeVisible();
 
   await filters.getByRole("button", { name: "읽지 않음", exact: true }).click();
   await page.getByRole("button", { name: "모두 읽음 처리", exact: true }).click();
@@ -204,11 +185,12 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   await page.getByRole("button", { name: "다시 불러오기", exact: true }).click();
   await expect(incomingTitle).toBeVisible();
 
-  await page.getByRole("tab", { name: "발송 이력", exact: true }).click();
-  await expect(page.getByText("외부 채널 발송", { exact: true })).toBeVisible();
+  await historyTab.press("Home");
+  await expect(inboxTab).toBeFocused();
+  await expect(inboxTab).toHaveAttribute("aria-selected", "true");
   const whileClosed = notification(34, "알림함을 열어 받은 알림");
   items.unshift(whileClosed);
-  await page.getByRole("tab", { name: "알림함", exact: true }).click();
+  await historyTab.click();
   await expect(list.getByRole("button", { name: whileClosed.courseName, exact: true })).toBeVisible();
 
   await page.goto("/profile/subscriptions");
@@ -244,7 +226,13 @@ test("유형별 알림을 열면 읽음으로 바뀌고 관련 화면으로 연�
     if (pathname === "/api/v1/subscriptions") return route.fulfill({ json: [] });
     if (pathname === inboxPath && request.method() === "GET") {
       const type = searchParams.get("type");
-      const content = type ? items.filter((item) => item.type === type) : items;
+      const seatAlerts = searchParams.get("view") === "SEAT_ALERTS";
+      const read = searchParams.get("read");
+      const content = items.filter((item) => {
+        const goesToSeatAlerts = item.type === "SEAT_OPENED" || item.type === "ANNOUNCEMENT";
+        return seatAlerts === goesToSeatAlerts && (!type || item.type === type)
+          && (!read || (read === "UNREAD") === (item.readAt === null));
+      });
       return route.fulfill({ json: { content, number: 0, totalPages: 1, totalElements: content.length } });
     }
     const item = items.find(({ id }) => pathname === `${inboxPath}/${id}/read`);
@@ -265,13 +253,21 @@ test("유형별 알림을 열면 읽음으로 바뀌고 관련 화면으로 연�
   await page.goto("/notifications");
   const filter = page.getByRole("combobox", { name: "알림 유형" });
   const list = page.getByRole("list", { name: "알림 목록" });
-  await expect(list.getByRole("listitem")).toHaveCount(messages.length);
+  await expect(list.getByRole("listitem")).toHaveCount(3);
+  await expect(list.getByText("확인할 수 없는 공지", { exact: true })).toHaveCount(0);
+  const header = page.getByRole("banner").getByRole("button", { name: "알림함", exact: true });
+  await header.click();
+  const preview = page.getByRole("menu");
+  await expect(preview.getByRole("img", { name: "읽지 않음", exact: true })).toHaveCount(3);
+  await expect(preview.getByText("확인할 수 없는 공지", { exact: true })).toHaveCount(0);
+  await page.keyboard.press("Escape");
   await filter.press("Space");
   await expect(page.getByRole("listbox").getByRole("option"))
-    .toHaveText(["모든 알림 유형", "빈자리", ...messages.map(({ label }) => label)]);
+    .toHaveText(["모든 알림 유형", "문의 답변", "발송 실패", "기기 재등록"]);
   await page.keyboard.press("Escape");
 
   for (const message of messages) {
+    await page.getByRole("tab", { name: message.type === "ANNOUNCEMENT" ? "빈자리 알림" : "알림함", exact: true }).click();
     await filter.press("Space");
     await page.getByRole("option", { name: message.label, exact: true }).click();
     await expect(filter).toBeFocused();
@@ -287,9 +283,10 @@ test("유형별 알림을 열면 읽음으로 바뀌고 관련 화면으로 연�
     await expect(dialog.getByRole("link")).toHaveAttribute("href", message.href);
     await page.keyboard.press("Escape");
     await expect(open).toBeFocused();
-    await expect(list.getByRole("img", { name: "읽음", exact: true })).toBeVisible();
+    await expect(list.getByRole("img", { name: "읽지 않음", exact: true })).toHaveCount(0);
   }
 
+  await page.getByRole("tab", { name: "빈자리 알림", exact: true }).click();
   await filter.click();
   await page.getByRole("option", { name: "중요 공지", exact: true }).click();
   await list.getByRole("button", { name: "확인할 수 없는 공지", exact: true }).click();

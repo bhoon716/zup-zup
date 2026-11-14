@@ -46,8 +46,10 @@ const inboxPageSchema = z.object({
 export type InboxItem = z.infer<typeof inboxItemSchema>;
 export type InboxPage = z.infer<typeof inboxPageSchema>;
 export type InboxReadFilter = "ALL" | "UNREAD" | "READ";
+export type InboxView = "INBOX" | "SEAT_ALERTS";
 
 export interface InboxSelection {
+  view: InboxView;
   page: number;
   read: InboxReadFilter;
   type: z.infer<typeof inboxTypeFilterSchema>;
@@ -57,12 +59,12 @@ export interface InboxSelection {
 
 export type InboxCommand =
   | { kind: "read"; id: InboxItem["id"] }
-  | { kind: "readAll" }
-  | { kind: "delete"; id: InboxItem["id"] };
+  | { kind: "readAll"; view: InboxView };
 
-export async function getInbox({ page, read, type, keyword, sort }: InboxSelection, signal: AbortSignal): Promise<InboxPage> {
+export async function getInbox({ view, page, read, type, keyword, sort }: InboxSelection, signal: AbortSignal): Promise<InboxPage> {
   const { data } = await api.get<unknown>(inboxPath, {
     params: {
+      view,
       page,
       read: read === "ALL" ? undefined : read,
       type: type === "ALL" ? undefined : type,
@@ -80,10 +82,7 @@ export async function updateInbox(command: InboxCommand): Promise<void> {
       await api.patch(`${inboxPath}/${command.id}/read`);
       break;
     case "readAll":
-      await api.patch(`${inboxPath}/read-all`);
-      break;
-    case "delete":
-      await api.delete(`${inboxPath}/${command.id}`);
+      await api.patch(`${inboxPath}/read-all`, undefined, { params: { view: command.view } });
       break;
   }
 }

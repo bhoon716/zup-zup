@@ -4,7 +4,7 @@ import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { getInbox, updateInbox, type InboxSelection } from "../api/inbox.api";
 
 const inboxKey = (userId: number) => ["notification-inbox", userId] as const;
-const unreadSelection = { page: 0, read: "UNREAD", type: "ALL", keyword: "", sort: "NEWEST" } satisfies InboxSelection;
+const unreadSelection = { view: "INBOX", page: 0, read: "UNREAD", type: "ALL", keyword: "", sort: "NEWEST" } satisfies InboxSelection;
 const unreadRefreshIntervalMs = 60_000;
 
 export function useHasUnreadInbox(userId: number) {

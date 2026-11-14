@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 
-const previewSelection = { page: 0, read: "ALL", type: "ALL", keyword: "", sort: "NEWEST" } satisfies InboxSelection;
+const previewSelection = { view: "INBOX", page: 0, read: "ALL", type: "ALL", keyword: "", sort: "NEWEST" } satisfies InboxSelection;
 const previewLimit = 5;
 
 export function HeaderInbox({ userId }: { userId: number }) {
@@ -84,7 +84,10 @@ function RecentInboxItems({ userId }: { userId: number }) {
     <ul className="divide-y divide-border">
       {items.map((item) => (
         <li key={item.id} className="min-w-0 px-4 py-2.5">
-          <p className="truncate text-sm font-medium text-foreground">{getInboxItemTitle(item)}</p>
+          <div className="flex min-w-0 items-center gap-2">
+            {item.readAt === null && <span role="img" aria-label="읽지 않음" className="size-2 shrink-0 rounded-full bg-destructive" />}
+            <p className="truncate text-sm font-medium text-foreground">{getInboxItemTitle(item)}</p>
+          </div>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
             <span>{inboxTypeLabels[item.type]}</span>
             <time dateTime={item.occurredAt}>{format(new Date(item.occurredAt), "M월 d일 HH:mm")}</time>

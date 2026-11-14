@@ -10,6 +10,7 @@ import bhoon.sugang_helper.seatalert.notification.dto.response.SeatInboxItemResp
 import bhoon.sugang_helper.seatalert.notification.enums.InboxNotificationType;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatInboxReadFilter;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatInboxSort;
+import bhoon.sugang_helper.seatalert.notification.enums.SeatInboxView;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatInboxRepository;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -29,13 +30,13 @@ public class SeatInboxService {
     private final CurrentUserQuery currentUserQuery;
 
     @Transactional(readOnly = true)
-    public Page<SeatInboxItemResponse> getInbox(SeatInboxReadFilter read, InboxNotificationType type,
+    public Page<SeatInboxItemResponse> getInbox(SeatInboxView view, SeatInboxReadFilter read, InboxNotificationType type,
                                                String courseName, String keyword, SeatInboxSort sort, int page) {
         Boolean readStatus = read == null ? null : read == SeatInboxReadFilter.READ;
         String keywordPattern = containsPattern(keyword == null ? null : keyword.strip());
         Sort.Direction direction = sort == SeatInboxSort.OLDEST ? Sort.Direction.ASC : Sort.Direction.DESC;
         PageRequest pageRequest = PageRequest.of(page, PageableGuard.PAGE_SIZE, Sort.by(direction, "occurredAt", "id"));
-        return inboxRepository.findVisible(currentUserId(), readStatus, type, containsPattern(courseName),
+        return inboxRepository.findVisible(currentUserId(), readStatus, view.types(), type, containsPattern(courseName),
                 keywordPattern, UNAVAILABLE_TITLE, UNAVAILABLE_MESSAGE, sort == SeatInboxSort.UNREAD_FIRST, pageRequest)
                 .map(SeatInboxItemResponse::from);
     }
@@ -46,13 +47,8 @@ public class SeatInboxService {
     }
 
     @Transactional
-    public void markAllRead() {
-        inboxRepository.markAllRead(currentUserId(), LocalDateTime.now());
-    }
-
-    @Transactional
-    public void delete(Long id) {
-        inboxRepository.softDelete(currentUserId(), id, LocalDateTime.now());
+    public void markAllRead(SeatInboxView view) {
+        inboxRepository.markAllRead(currentUserId(), view.types(), LocalDateTime.now());
     }
 
     @EventListener

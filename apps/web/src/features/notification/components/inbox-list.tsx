@@ -2,7 +2,7 @@
 
 import { Fragment, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, ChevronLeft, ChevronRight, Mail, MailOpen, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Bell, CheckCheck, ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
 import { format } from "date-fns";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
 import { parseCourseKey } from "@/shared/lib/course";
@@ -11,7 +11,7 @@ import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import { inboxSortSchema, inboxTypeFilterSchema, type InboxCommand, type InboxItem, type InboxPage, type InboxReadFilter, type InboxSelection } from "../api/inbox.api";
+import { inboxSortSchema, inboxTypeFilterSchema, type InboxCommand, type InboxItem, type InboxPage, type InboxReadFilter, type InboxSelection, type InboxView } from "../api/inbox.api";
 import { useInbox, useUpdateInbox } from "../hooks/useInbox";
 import { getInboxItemTitle, inboxTypeLabels } from "../lib/inbox-display";
 
@@ -28,6 +28,11 @@ const sortLabels: Record<InboxSelection["sort"], string> = {
 };
 
 const inboxCountFormat = new Intl.NumberFormat("ko-KR");
+const viewTypes = {
+  INBOX: ["FEEDBACK_REPLY", "DELIVERY_FAILED", "DEVICE_REREGISTRATION"],
+  SEAT_ALERTS: ["SEAT_OPENED", "ANNOUNCEMENT"],
+} satisfies Record<InboxView, InboxItem["type"][]>;
+
 const deliveryFailureAction = "알림 설정에서 수신처를 확인해 주세요.";
 const deliveryFailureMessage = `알림을 보내지 못했습니다. ${deliveryFailureAction}`;
 const noticePreviews = new Map<string, string | null>([
@@ -42,7 +47,6 @@ const noticePreviews = new Map<string, string | null>([
 const updateErrors: Record<InboxCommand["kind"], string> = {
   read: "알림을 읽음으로 표시하지 못했습니다.",
   readAll: "모든 알림을 읽음으로 표시하지 못했습니다.",
-  delete: "알림을 삭제하지 못했습니다.",
 };
 
 type MessageItem = Exclude<InboxItem, { type: "SEAT_OPENED" }>;
@@ -71,8 +75,8 @@ function getMessageLink(item: MessageItem) {
   }
 }
 
-export function InboxList({ userId }: { userId: number }) {
-  const [selection, setSelection] = useState<InboxSelection>({ page: 0, read: "ALL", type: "ALL", keyword: "", sort: "NEWEST" });
+export function InboxList({ userId, view }: { userId: number; view: InboxView }) {
+  const [selection, setSelection] = useState<InboxSelection>({ view, page: 0, read: "ALL", type: "ALL", keyword: "", sort: "NEWEST" });
   const [previousResults, setPreviousResults] = useState<InboxPage>();
   const [searchText, setSearchText] = useState("");
   const [detail, setDetail] = useState<{ item: InboxItem; open: boolean }>();
@@ -144,7 +148,7 @@ export function InboxList({ userId }: { userId: number }) {
             </SelectTrigger>
             <SelectContent position="popper" align="start" className="rounded-xl border-slate-200 shadow-lg">
               <SelectItem value="ALL">모든 알림 유형</SelectItem>
-              {Object.entries(inboxTypeLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+              {viewTypes[view].map((value) => <SelectItem key={value} value={value}>{inboxTypeLabels[value]}</SelectItem>)}
             </SelectContent>
           </Select>
 
@@ -206,7 +210,7 @@ export function InboxList({ userId }: { userId: number }) {
             <Button ref={refreshButton} type="button" variant="ghost" size="icon-sm" aria-label="새로고침" title="새로고침" aria-disabled={inbox.isFetching} onClick={() => { if (!inbox.isFetching) refresh(); }}>
               <RefreshCw aria-hidden="true" className={inbox.isFetching ? "motion-safe:animate-spin" : undefined} />
             </Button>
-            <Button type="button" variant="outline" size="sm" className="rounded-lg" disabled={update.isPending} onClick={() => update.mutate({ kind: "readAll" })}>
+            <Button type="button" variant="outline" size="sm" className="rounded-lg" disabled={update.isPending} onClick={() => update.mutate({ kind: "readAll", view })}>
               <CheckCheck aria-hidden="true" />
               모두 읽음 처리
             </Button>
@@ -230,7 +234,6 @@ export function InboxList({ userId }: { userId: number }) {
         <ul aria-label="알림 목록" className="divide-y divide-slate-200">
           {results.content.map((item) => {
             const isUnread = item.readAt === null;
-            const MailIcon = isUnread ? Mail : MailOpen;
             const isOpenDisabled = isShowingPreviousResults || (isUnread && update.isPending);
             const isSeatOpening = item.type === "SEAT_OPENED";
             const title = getInboxItemTitle(item);
@@ -241,11 +244,9 @@ export function InboxList({ userId }: { userId: number }) {
                   "relative flex items-center gap-2 px-3 py-2.5 hover:bg-slate-50 sm:gap-3 sm:px-5",
                   isUnread && "bg-primary/5 hover:bg-primary/10",
                 )}>
-                  <MailIcon
-                    role="img"
-                    aria-label={isUnread ? "읽지 않음" : "읽음"}
-                    className={cn("size-[18px] shrink-0 self-start md:self-auto", isUnread ? "text-primary" : "text-slate-500")}
-                  />
+                  <span className="mt-1.5 size-2 shrink-0 self-start md:mt-0 md:self-auto">
+                    {isUnread && <span role="img" aria-label="읽지 않음" className="block size-full rounded-full bg-destructive" />}
+                  </span>
                   <div className="min-w-0 flex-1 md:flex md:items-center md:gap-4">
                     <div className="min-w-0 flex-1 md:flex md:items-baseline md:gap-2">
                       <h2 className={cn(
@@ -274,18 +275,6 @@ export function InboxList({ userId }: { userId: number }) {
                       </time>
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    aria-label={`${title} 알림 삭제`}
-                    title="알림 삭제"
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={isShowingPreviousResults || update.isPending}
-                    className="relative z-10 text-slate-500 hover:bg-red-50 hover:text-red-700"
-                    onClick={() => update.mutate({ kind: "delete", id: item.id })}
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </Button>
                 </article>
               </li>
             );

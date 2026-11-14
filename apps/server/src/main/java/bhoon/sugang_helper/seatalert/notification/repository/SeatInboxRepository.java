@@ -5,6 +5,7 @@ import bhoon.sugang_helper.seatalert.notification.enums.InboxNotificationType;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
@@ -24,6 +25,7 @@ public interface SeatInboxRepository extends Repository<SeatInboxItem, Long> {
     @Query("""
             select i from SeatInboxItem i
             where i.userId = :userId and i.deletedAt is null
+              and i.type in :types
               and (:type is null or i.type = :type)
               and (:read is null or (:read = true and i.readAt is not null) or (:read = false and i.readAt is null))
               and (:courseNamePattern is null or lower(i.courseName) like lower(:courseNamePattern) escape '!')
@@ -36,6 +38,7 @@ public interface SeatInboxRepository extends Repository<SeatInboxItem, Long> {
             order by case when :unreadFirst = true and i.readAt is null then 0 else 1 end
             """)
     Page<SeatInboxItem> findVisible(@Param("userId") Long userId, @Param("read") Boolean read,
+                                    @Param("types") Set<InboxNotificationType> types,
                                     @Param("type") InboxNotificationType type,
                                     @Param("courseNamePattern") String courseNamePattern,
                                     @Param("keywordPattern") String keywordPattern,
@@ -92,16 +95,10 @@ public interface SeatInboxRepository extends Repository<SeatInboxItem, Long> {
     @Modifying
     @Query("""
             update SeatInboxItem i set i.readAt = :now
-            where i.userId = :userId and i.deletedAt is null and i.readAt is null
+            where i.userId = :userId and i.type in :types and i.deletedAt is null and i.readAt is null
             """)
-    void markAllRead(@Param("userId") Long userId, @Param("now") LocalDateTime now);
-
-    @Modifying
-    @Query("""
-            update SeatInboxItem i set i.deletedAt = :now
-            where i.userId = :userId and i.id = :id and i.deletedAt is null
-            """)
-    void softDelete(@Param("userId") Long userId, @Param("id") Long id, @Param("now") LocalDateTime now);
+    void markAllRead(@Param("userId") Long userId, @Param("types") Set<InboxNotificationType> types,
+                     @Param("now") LocalDateTime now);
 
     @Modifying
     @Query("""

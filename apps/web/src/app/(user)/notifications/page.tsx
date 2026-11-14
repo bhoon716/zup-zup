@@ -3,7 +3,6 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { InboxList } from "@/features/notification/components/inbox-list";
-import { NotificationList } from "@/features/notification/components/notification-list";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
 
@@ -31,7 +30,7 @@ export default function NotificationsPage() {
 
 const notificationViews = [
   { id: "inbox", label: "알림함" },
-  { id: "history", label: "발송 이력" },
+  { id: "history", label: "빈자리 알림" },
 ] as const;
 
 type NotificationView = (typeof notificationViews)[number]["id"];
@@ -66,8 +65,8 @@ function AccountNotifications({ userId }: { userId: number }) {
   };
 
   const panels = {
-    inbox: <InboxList userId={userId} />,
-    history: <div className="p-3 sm:p-5"><NotificationList /></div>,
+    inbox: <InboxList userId={userId} view="INBOX" />,
+    history: <InboxList userId={userId} view="SEAT_ALERTS" />,
   };
 
   return (
