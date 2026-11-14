@@ -41,8 +41,14 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
   }
 });
 
-for (const viewport of [{ width: 1440, height: 880 }, { width: 390, height: 844 }]) {
-  test(`너비 ${viewport.width}에서 위아래로 스크롤하면 같은 자리에서 설명과 예시가 함께 바뀐다`, async ({ page, baseURL }) => {
+for (const viewport of [
+  { width: 390, height: 844 },
+  { width: 831, height: 923 },
+  { width: 831, height: 1320 },
+  { width: 1440, height: 880 },
+  { width: 1440, height: 1600 },
+]) {
+  test(`${viewport.width}×${viewport.height}에서 위아래로 스크롤하면 같은 자리에서 설명과 예시가 함께 바뀐다`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport);
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
@@ -69,7 +75,9 @@ for (const viewport of [{ width: 1440, height: 880 }, { width: 390, height: 844 
       });
       await expect(copy).toHaveCSS("opacity", "1");
       await expect(copy.getByRole("heading")).toBeInViewport();
-      await expect(copy.getByText(chapter.marker, { exact: true })).toBeInViewport();
+      const marker = copy.getByText(chapter.marker, { exact: true });
+      expect(await marker.evaluate((element) => element.checkVisibility({ opacityProperty: true, visibilityProperty: true }))).toBe(true);
+      await expect(marker).toBeInViewport();
       await expect(stage.getByText(previous.marker, { exact: true })).toBeHidden();
     }
 

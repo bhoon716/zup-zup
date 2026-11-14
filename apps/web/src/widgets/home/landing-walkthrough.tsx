@@ -19,21 +19,21 @@ function SearchPreview() {
     <div className="grid gap-3">
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5 text-sm font-semibold">
         <Search className="size-4 text-muted-foreground" />
-        <span className={styles.searchTerm}>{sampleCourse.name}</span>
+        <span className="whitespace-nowrap">{sampleCourse.name}</span>
       </div>
       <div className="flex flex-wrap gap-1.5">
         <Badge variant="outline" className="bg-card">전공필수</Badge>
         <Badge variant="outline" className="bg-card">{sampleCourse.credits}</Badge>
       </div>
       <ul className="grid gap-2">
-        <li className={`${styles.searchResult} flex items-center justify-between gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5`}>
+        <li className="flex items-center justify-between gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
           <div className="min-w-0">
             <p className="text-sm font-bold">{sampleCourse.name} <span className="text-xs text-primary">{sampleCourse.section}</span></p>
             <p className="mt-0.5 text-xs text-muted-foreground">{sampleCourse.meetingTime}</p>
           </div>
           <span className="shrink-0 text-xs font-bold text-muted-foreground">여석 0</span>
         </li>
-        <li className={`${styles.searchResult} flex items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2.5`}>
+        <li className="flex items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2.5">
           <div className="min-w-0">
             <p className="text-sm font-semibold">{sampleCourse.name} <span className="text-xs text-muted-foreground">02분반</span></p>
             <p className="mt-0.5 text-xs text-muted-foreground">화·목 13:00–14:15</p>
@@ -56,12 +56,11 @@ function RegistrationPreview() {
           </div>
           <Badge variant="outline" className="shrink-0 text-muted-foreground">여석 0</Badge>
         </div>
-        <div className={styles.registrationAction} aria-hidden="true">
-          <span className={styles.registrationPrompt}><BellPlus className="size-4" /> 알림 신청</span>
-          <span className={styles.registrationConfirmation}><Check className="size-4" /> 등록 완료</span>
+        <div className={styles.registrationConfirmation}>
+          <Check className="size-4" /> 등록 완료
         </div>
       </div>
-      <p className={`${styles.registrationHint} px-1 text-xs font-semibold text-muted-foreground`}>
+      <p className="px-1 text-xs font-semibold text-muted-foreground">
         빈자리가 생기면 웹 푸시를 보내드려요.
       </p>
     </div>
@@ -74,17 +73,17 @@ function NotificationPreview() {
       <p className="flex items-center gap-2 px-1 text-xs font-bold text-primary">
         <Check className="size-4" /> {sampleCourse.name} {sampleCourse.section} 알림 구독 중
       </p>
-      <div className={`${styles.notificationCard} rounded-xl border border-primary/20 bg-card p-4`}>
+      <div className="rounded-xl border border-primary/20 bg-card p-4">
         <div className="flex items-center gap-2.5">
           <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <Bell className={`${styles.notificationBell} size-4`} />
+            <Bell className="size-4" />
           </span>
           <p className="min-w-0 flex-1 text-xs font-bold text-muted-foreground">줍줍 웹 푸시</p>
           <span className="text-xs text-muted-foreground">방금</span>
         </div>
         <p className="mt-3 text-base font-bold">수강신청 빈자리가 생겼어요!</p>
         <p className="mt-1 text-sm text-muted-foreground">{sampleCourse.name} {sampleCourse.section}</p>
-        <Badge className={`${styles.availableSeat} mt-3 bg-primary/10 text-primary`}>여석 1</Badge>
+        <Badge className="mt-3 bg-primary/10 text-primary">여석 1</Badge>
       </div>
     </div>
   );
@@ -127,15 +126,8 @@ export function LandingWalkthrough() {
     if (!story || !stage || !runway) return;
 
     const stickyLayout = window.matchMedia("(min-height: 36rem) and (prefers-reduced-motion: no-preference)");
-    const previewObserver = new IntersectionObserver((entries, observer) => {
-      if (entries.some(({ isIntersecting }) => isIntersecting)) {
-        stage.setAttribute("data-preview-entered", "");
-        observer.disconnect();
-      }
-    }, { threshold: 0.35 });
-    previewObserver.observe(stage);
-
     let frame = 0;
+    let lastInset = NaN;
     const updateChapter = () => {
       frame = 0;
       if (!stickyLayout.matches) {
@@ -143,15 +135,24 @@ export function LandingWalkthrough() {
         return;
       }
 
-      const distance = runway.offsetHeight;
-      if (!distance) {
+      const runwayHeight = runway.getBoundingClientRect().height;
+      if (!runwayHeight) {
         setActiveIndex(0);
         return;
       }
 
+      const viewport = document.documentElement;
+      const maxScroll = viewport.scrollHeight - viewport.clientHeight;
+      const storyTop = story.getBoundingClientRect().top;
+      const distance = Math.min(runwayHeight, maxScroll);
+      const insetToReachEnd = Math.ceil(storyTop + window.scrollY + distance - maxScroll);
+      if (insetToReachEnd !== lastInset) {
+        stage.style.setProperty("--inset-to-reach-end", `${insetToReachEnd}px`);
+        lastInset = insetToReachEnd;
+      }
+
       const inset = Number.parseFloat(getComputedStyle(stage).top);
-      const offset = inset - story.getBoundingClientRect().top;
-      const progress = offset / distance;
+      const progress = distance > 0 ? (inset - storyTop) / distance : 0;
       setActiveIndex(Math.min(chapters.length - 1, Math.max(0, Math.floor(progress * chapters.length))));
     };
 
@@ -160,13 +161,13 @@ export function LandingWalkthrough() {
     };
     const resizeObserver = new ResizeObserver(scheduleUpdate);
     resizeObserver.observe(runway);
+    resizeObserver.observe(document.body);
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
     window.addEventListener("resize", scheduleUpdate);
     stickyLayout.addEventListener("change", scheduleUpdate);
     scheduleUpdate();
 
     return () => {
-      previewObserver.disconnect();
       resizeObserver.disconnect();
       window.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("resize", scheduleUpdate);

@@ -56,18 +56,8 @@
   padding: 1rem;
 }
 
-.searchTerm {
-  white-space: nowrap;
-}
-
-.registrationAction {
-  display: grid;
-  margin-top: 1rem;
-}
-
-.registrationPrompt,
 .registrationConfirmation {
-  grid-area: 1 / 1;
+  margin-top: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -77,15 +67,6 @@
   border-radius: 0.625rem;
   font-size: 0.8125rem;
   font-weight: 700;
-}
-
-.registrationPrompt {
-  visibility: hidden;
-  color: var(--primary-foreground);
-  background: var(--primary);
-}
-
-.registrationConfirmation {
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 10%, var(--card));
 }
@@ -124,7 +105,7 @@
 
   .story[data-active-chapter] .stage {
     position: sticky;
-    top: 4.75rem;
+    top: max(4.75rem, var(--inset-to-reach-end, 0px));
     gap: 0.75rem;
     grid-template-rows: auto auto;
   }
@@ -167,7 +148,7 @@
 
   @media (min-width: 48rem) {
     .story[data-active-chapter] .stage {
-      top: max(5.25rem, calc(100svh - 68rem));
+      top: max(5.25rem, var(--inset-to-reach-end, 0px));
       grid-template-rows: auto;
     }
 
@@ -212,42 +193,9 @@
     padding-inline-end: 1rem;
   }
 
-  .stage[data-preview-entered] .chapter[aria-current] {
-    & .searchTerm {
-      animation: preview-type 460ms steps(4) 120ms both;
-    }
-
-    & .searchResult {
-      animation: preview-reveal 460ms cubic-bezier(0.2, 0.8, 0.2, 1) 460ms both;
-    }
-
-    & .searchResult + .searchResult {
-      animation-delay: 590ms;
-    }
-
-    & .registrationPrompt {
-      animation: registration-prompt 460ms ease both;
-    }
-
-    & .registrationConfirmation,
-    & .registrationHint {
-      animation: preview-reveal 320ms cubic-bezier(0.2, 0.8, 0.2, 1) 400ms both;
-    }
-
-    & .notificationCard {
-      animation: notification-arrives 560ms cubic-bezier(0.2, 0.8, 0.2, 1) 210ms both;
-    }
-
-    & .notificationBell {
-      transform-origin: center 24%;
-      animation: bell-ring 510ms ease 540ms;
-    }
-
-    & .availableSeat {
-      animation: preview-reveal 420ms cubic-bezier(0.2, 0.8, 0.2, 1) 680ms both;
-    }
+  .story[data-active-chapter] .chapter[aria-current] .scene > div {
+    animation: preview-enter 160ms ease-out;
   }
-
 }
 
 .progress {
@@ -273,54 +221,6 @@
   to { transform: translateX(-50%); }
 }
 
-@keyframes preview-type {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0); }
-}
-
-@keyframes preview-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(0.75rem);
-  }
-}
-
-@keyframes registration-prompt {
-  0%, 78% {
-    visibility: visible;
-    opacity: 1;
-    transform: none;
-  }
-
-  86% {
-    opacity: 1;
-    transform: scale(0.96);
-  }
-
-  100% {
-    visibility: hidden;
-    opacity: 0;
-    transform: scale(0.96);
-  }
-}
-
-@keyframes notification-arrives {
-  0% {
-    opacity: 0;
-    transform: translateY(-1.75rem) scale(0.96);
-  }
-
-  74% {
-    transform: translateY(0.125rem) scale(1);
-  }
-
-  100% {
-    transform: none;
-  }
-}
-
-@keyframes bell-ring {
-  25% { transform: rotate(20deg); }
-  50% { transform: rotate(-16deg); }
-  75% { transform: rotate(9deg); }
+@keyframes preview-enter {
+  from { transform: translateY(0.25rem); }
 }
