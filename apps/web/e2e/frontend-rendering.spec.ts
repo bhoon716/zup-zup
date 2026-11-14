@@ -41,6 +41,44 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
   }
 });
 
+test("휠을 연속으로 내리고 올리면 수강신청 안내가 세 단계를 차례로 보여 준다", async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 831, height: 923 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
+    ? route.continue() : route.abort());
+  await page.goto("/");
+
+  const pin = page.getByTestId("landing-walkthrough-pin");
+  const header = page.getByRole("banner");
+  const currentChapter = pin.locator('[aria-current="step"] h3');
+  await expect(pin).toHaveCSS("position", "sticky");
+  await page.evaluate(() => document.fonts.ready);
+  const headerBounds = await header.boundingBox();
+  if (!headerBounds) throw new Error("헤더를 찾지 못했습니다.");
+  const headerBottom = headerBounds.y + headerBounds.height;
+  await pin.evaluate((element, bottom) => {
+    window.scrollBy(0, element.getBoundingClientRect().top - bottom - 8);
+  }, headerBottom);
+
+  for (const [deltaY, chapter] of [
+    [120, "강의 검색"],
+    [120, "빈자리 알림 등록"],
+    [120, "빈자리 알림"],
+    [-120, "빈자리 알림 등록"],
+    [-120, "강의 검색"],
+  ] as const) {
+    const before = await page.evaluate(() => window.scrollY);
+    await page.mouse.wheel(0, deltaY);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).not.toBe(before);
+    await expect(currentChapter).toHaveText(chapter);
+    await expect.poll(async () => (await pin.boundingBox())?.y).toBeCloseTo(headerBottom + 3, 0);
+  }
+
+  await page.mouse.wheel(0, 600);
+  await expect(page.getByRole("heading", { name: "생생한 사용자 후기" })).toBeInViewport();
+  await expect.poll(async () => (await pin.boundingBox())?.y).toBeLessThan(headerBottom);
+});
+
 for (const viewport of [
   { width: 390, height: 844 },
   { width: 831, height: 923 },
