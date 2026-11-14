@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { AlertCircle, CloudCog, Loader2, RefreshCcw, Users } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { AdminOverview } from "@/features/admin/components/admin-overview";
 import { AdminStatGroup } from "@/features/admin/components/admin-stat-group";
@@ -16,23 +17,38 @@ import { Button } from "@/shared/ui/button";
 
 export default function AdminDashboardPage() {
   const [range, setRange] = useState<AdminTrafficRange>("LAST_24_HOURS");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const traffic = useAdminNotificationTraffic(range);
   const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
   const {
     data: snapshot,
     isLoading: isSnapshotLoading,
-    isError: isSnapshotError,
     refetch: refetchSnapshot,
   } = useAdminDashboardSnapshot();
 
-  const overview = snapshot?.overview;
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    const options = { throwOnError: true, cancelRefetch: false };
+    const [snapshotResult, trafficResult] = await Promise.allSettled([
+      refetchSnapshot(options),
+      traffic.refetch(options),
+    ]);
+    setIsRefreshing(false);
 
-  const handleRefresh = () => {
-    void refetchSnapshot();
-    void traffic.refetch();
+    const snapshotFailed = snapshotResult.status === "rejected";
+    const trafficFailed = trafficResult.status === "rejected";
+    if (snapshotFailed && trafficFailed) {
+      toast.error("대시보드 데이터를 새로고침하지 못했습니다.");
+    } else if (snapshotFailed) {
+      toast.error("시스템 현황을 새로고침하지 못했습니다.");
+    } else if (trafficFailed) {
+      toast.error("알림 발송량을 새로고침하지 못했습니다.");
+    } else {
+      toast.success("대시보드 데이터를 새로고침했습니다.");
+    }
   };
 
-  if (isSnapshotLoading) {
+  if (isSnapshotLoading && !isRefreshing) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 min-h-[70dvh]">
         <div className="flex flex-col items-center gap-4">
@@ -43,7 +59,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (isSnapshotError || !snapshot || !overview) {
+  if (!snapshot) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 px-6 min-h-[70dvh]">
         <motion.div
@@ -60,26 +76,27 @@ export default function AdminDashboardPage() {
           </p>
           <Button
             onClick={handleRefresh}
+            disabled={isRefreshing}
             className="w-full h-14 rounded-2xl bg-primary hover:bg-primary-dark transition-all text-base font-semibold"
           >
-            <RefreshCcw className="mr-2 h-5 w-5" />
-            다시 시도하기
+            {isRefreshing ? <Loader2 aria-hidden="true" className="mr-2 h-5 w-5 animate-spin" /> : <RefreshCcw aria-hidden="true" className="mr-2 h-5 w-5" />}
+            {isRefreshing ? "새로고침 중…" : "다시 시도하기"}
           </Button>
         </motion.div>
       </div>
     );
   }
 
-  const { year, semester } = snapshot.crawlTarget;
+  const { overview, crawlTarget: { year, semester } } = snapshot;
   const semesterLabel = CRAWL_SEMESTER_OPTIONS.find((option) => option.code === semester)?.label ?? semester;
   const status = getStatusMeta(overview.crawlingStatus);
-  const latency = overview.jbnuLatencyMs === null ? "측정 기록 없음" : `${overview.jbnuLatencyMs} ms`;
 
   return (
     <main>
       <AdminOverview
         serverClock={formatTime(overview.serverTime)}
         onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
         onSendTest={() => sendTestNotification()}
         isSendingTest={isSendingTest}
       />
@@ -96,10 +113,6 @@ export default function AdminDashboardPage() {
                 </span>
                 <span className="mt-1 block text-xs text-slate-600">{formatRelative(overview.lastCrawledAt)}</span>
               </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-slate-600 sm:text-sm">JBNU 평균 지연시간</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums text-slate-900">{latency}</dd>
             </div>
           </AdminStatGroup>
 
@@ -128,7 +141,7 @@ export default function AdminDashboardPage() {
           traffic={traffic.data}
           isLoading={traffic.isLoading}
           isError={traffic.isError}
-          onRetry={() => void traffic.refetch()}
+          onRetry={() => void traffic.refetch({ cancelRefetch: false })}
         />
       </div>
     </main>

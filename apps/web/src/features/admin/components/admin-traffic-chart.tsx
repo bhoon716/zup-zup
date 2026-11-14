@@ -77,7 +77,9 @@ export function AdminTrafficChart({ range, onRangeChange, traffic, isLoading, is
 
       {isError && (
         <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-slate-700" role="status">
-          <p>알림 발송량을 불러오지 못했습니다.</p>
+          <p>{traffic
+            ? "알림 발송량을 새로고침하지 못해 이전 데이터를 표시하고 있습니다."
+            : "알림 발송량을 불러오지 못했습니다."}</p>
           <Button variant="outline" size="sm" onClick={onRetry}>다시 시도</Button>
         </div>
       )}

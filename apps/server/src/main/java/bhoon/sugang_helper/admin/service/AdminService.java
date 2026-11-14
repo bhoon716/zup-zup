@@ -14,12 +14,9 @@ import bhoon.sugang_helper.identity.api.users.UserStatistics;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.api.NotificationOperations;
 import bhoon.sugang_helper.seatalert.api.Subscriptions;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,14 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminService {
 
     private static final long CRAWLER_DELAY_MINUTES = 15L;
-    private static final String JBNU_LATENCY_METRIC = "crawler.upstream.latency";
     private final UserStatistics userStatistics;
     private final NotificationRecipients userNotificationQuery;
     private final Subscriptions subscriptionQueryService;
     private final NotificationOperations notificationTestSender;
     private final CrawlerTargets crawlerAdminSnapshotQuery;
     private final CrawlerRuns crawlerStatusQuery;
-    private final MeterRegistry meterRegistry;
 
     private AdminOverviewResponse getDashboardOverview(CrawlerAdminSnapshot crawlTarget) {
         LocalDateTime now = LocalDateTime.now();
@@ -51,7 +46,6 @@ public class AdminService {
                 totalActiveSubscriptions,
                 resolveCrawlerStatus(now, lastCrawledAt),
                 lastCrawledAt,
-                findJbnuLatencyMs(),
                 now);
     }
 
@@ -70,14 +64,6 @@ public class AdminService {
             return "DEGRADED";
         }
         return "RUNNING";
-    }
-
-    private Long findJbnuLatencyMs() {
-        Timer timer = meterRegistry.find(JBNU_LATENCY_METRIC).timer();
-        if (timer == null || timer.count() == 0) {
-            return null;
-        }
-        return Math.round(timer.mean(TimeUnit.MILLISECONDS));
     }
 
     @Transactional

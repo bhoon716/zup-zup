@@ -20,8 +20,6 @@ import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +31,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,20 +54,17 @@ class AdminServiceTest {
     @Mock
     private CrawlerRunStateService crawlerStatusQuery;
 
-    @Spy
-    private SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-
     @InjectMocks
     private AdminService adminService;
 
     @ParameterizedTest
     @CsvSource(value = {
-            "없음|UNKNOWN|false",
-            "30|DEGRADED|false",
-            "0|RUNNING|true"
+            "없음|UNKNOWN",
+            "30|DEGRADED",
+            "0|RUNNING"
     }, delimiter = '|', nullValues = "없음")
-    @DisplayName("관리자 대시보드는 수집 대상 학기의 구독 수와 크롤러 상태 및 평균 지연 시간을 반환한다")
-    void getDashboardSnapshot(Long minutesAgo, String status, boolean recordSamples) {
+    @DisplayName("관리자 대시보드는 수집 대상 학기의 구독 수와 크롤러 상태를 반환한다")
+    void getDashboardSnapshot(Long minutesAgo, String status) {
         // given
         LocalDateTime lastCrawledAt = minutesAgo == null ? null : LocalDateTime.now().minusMinutes(minutesAgo);
         CrawlerAdminSnapshot crawlTarget = new CrawlerAdminSnapshot("2026", "U211600020");
@@ -79,13 +73,6 @@ class AdminServiceTest {
                 .thenReturn(50L);
         when(crawlerStatusQuery.findLastSuccessAt()).thenReturn(Optional.ofNullable(lastCrawledAt));
         when(crawlerAdminSnapshotQuery.findCurrentAdminSnapshot()).thenReturn(crawlTarget);
-        if (minutesAgo != null) {
-            var timer = meterRegistry.timer("crawler.upstream.latency");
-            if (recordSamples) {
-                timer.record(Duration.ofMillis(100));
-                timer.record(Duration.ofMillis(200));
-            }
-        }
 
         // when
         AdminDashboardSnapshotResponse result = adminService.getDashboardSnapshot();
@@ -95,7 +82,6 @@ class AdminServiceTest {
         assertThat(result.getOverview().getTotalActiveSubscriptions()).isEqualTo(50L);
         assertThat(result.getOverview().getCrawlingStatus()).isEqualTo(status);
         assertThat(result.getOverview().getLastCrawledAt()).isEqualTo(lastCrawledAt);
-        assertThat(result.getOverview().getJbnuLatencyMs()).isEqualTo(recordSamples ? 150L : null);
         assertThat(result.getCrawlTarget()).isEqualTo(crawlTarget);
     }
 

@@ -264,7 +264,6 @@ export interface AdminOverviewResponse {
   totalActiveSubscriptions: number;
   crawlingStatus: string;
   lastCrawledAt: string | null;
-  jbnuLatencyMs: number | null;
   serverTime: string;
 }
 

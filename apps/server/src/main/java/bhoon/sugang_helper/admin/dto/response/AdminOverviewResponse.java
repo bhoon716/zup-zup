@@ -17,14 +17,12 @@ public class AdminOverviewResponse {
 
     private final LocalDateTime lastCrawledAt;
 
-    private final Long jbnuLatencyMs;
-
     private final LocalDateTime serverTime;
 
     public static AdminOverviewResponse of(long totalUsers, long totalActiveSubscriptions,
-                                           String crawlingStatus, LocalDateTime lastCrawledAt, Long jbnuLatencyMs,
+                                           String crawlingStatus, LocalDateTime lastCrawledAt,
                                            LocalDateTime serverTime) {
         return new AdminOverviewResponse(totalUsers, totalActiveSubscriptions, crawlingStatus, lastCrawledAt,
-                jbnuLatencyMs, serverTime);
+                serverTime);
     }
 }

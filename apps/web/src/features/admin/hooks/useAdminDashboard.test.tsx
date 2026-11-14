@@ -20,7 +20,6 @@ describe("useAdminDashboardSnapshot hook", () => {
           totalActiveSubscriptions: 50,
           crawlingStatus: "RUNNING",
           lastCrawledAt: "2026-01-01T00:00:00",
-          jbnuLatencyMs: 42,
           serverTime: "2026-01-01T00:01:00",
         },
         crawlTarget: {

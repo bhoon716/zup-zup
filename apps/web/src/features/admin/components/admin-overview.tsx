@@ -6,11 +6,12 @@ import { Button } from "@/shared/ui/button";
 interface AdminOverviewProps {
   serverClock: string;
   onRefresh: () => void;
+  isRefreshing: boolean;
   onSendTest: () => void;
   isSendingTest: boolean;
 }
 
-export function AdminOverview({ serverClock, onRefresh, onSendTest, isSendingTest }: AdminOverviewProps) {
+export function AdminOverview({ serverClock, onRefresh, isRefreshing, onSendTest, isSendingTest }: AdminOverviewProps) {
   return (
     <section className="bg-white border-b border-slate-100">
       <div className="mx-auto flex max-w-[1920px] flex-col justify-between gap-4 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 md:flex-row md:items-end lg:px-8">
@@ -40,9 +41,10 @@ export function AdminOverview({ serverClock, onRefresh, onSendTest, isSendingTes
             variant="outline"
             className="h-10 rounded-xl px-3"
             onClick={onRefresh}
+            disabled={isRefreshing}
           >
-            <RefreshCcw className="size-4" />
-            데이터 새로고침
+            {isRefreshing ? <Loader2 aria-hidden="true" className="size-4 animate-spin" /> : <RefreshCcw aria-hidden="true" className="size-4" />}
+            {isRefreshing ? "새로고침 중…" : "데이터 새로고침"}
           </Button>
         </div>
       </div>
