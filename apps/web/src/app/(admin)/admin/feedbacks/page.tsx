@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Loader2, MessageSquare } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Loader2, MessageSquare, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -60,11 +60,11 @@ const SEARCH_OPTIONS = [
 ] satisfies { value: AdminFeedbackSearchType; label: string }[];
 
 const STATUS_OPTIONS = [
-  { value: "PENDING", label: "처리 대기", className: "border-amber-200 bg-amber-50 text-amber-800" },
-  { value: "IN_PROGRESS", label: "처리 중", className: "border-blue-200 bg-blue-50 text-blue-800" },
-  { value: "COMPLETED", label: "처리 완료", className: "border-green-200 bg-green-50 text-green-800" },
-  { value: "REJECTED", label: "반려", className: "border-red-200 bg-red-50 text-red-800" },
-] satisfies { value: FeedbackStatus; label: string; className: string }[];
+  { value: "PENDING", label: "처리 대기", textColor: "text-amber-800" },
+  { value: "IN_PROGRESS", label: "처리 중", textColor: "text-slate-600" },
+  { value: "COMPLETED", label: "처리 완료", textColor: "text-slate-600" },
+  { value: "REJECTED", label: "반려", textColor: "text-slate-600" },
+] satisfies { value: FeedbackStatus; label: string; textColor: string }[];
 
 const TYPE_LABELS: Record<FeedbackType, string> = {
   BUG: "버그",
@@ -256,6 +256,7 @@ export default function AdminFeedbackPage() {
   };
 
   const totalPages = listData?.totalPages ?? 0;
+  const canResetSearch = Boolean(keywordDraft || search.keyword);
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-3 px-3 py-4 sm:px-5 md:h-[calc(100dvh-4rem)] md:min-h-[32rem]">
@@ -294,7 +295,7 @@ export default function AdminFeedbackPage() {
             <form
               role="search"
               aria-label="문의 검색"
-              className="mb-2 space-y-2"
+              className="mb-2 flex items-center gap-2"
               onSubmit={(event) => {
                 event.preventDefault();
                 applySearch({ ...search, keyword: keywordDraft.trim() });
@@ -307,16 +308,16 @@ export default function AdminFeedbackPage() {
                   if (option) applySearch({ ...search, searchType: option.value });
                 }}
               >
-                <SelectTrigger aria-label="검색 범위" size="sm" className="w-full text-xs">
+                <SelectTrigger aria-label="검색 범위" size="sm" className="shrink-0 gap-1 px-2 text-xs">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent position="popper">
+                <SelectContent position="popper" align="start">
                   {SEARCH_OPTIONS.map(({ value, label }) => (
                     <SelectItem key={value} value={value}>{label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
                 <Input
                   ref={keywordInputRef}
                   type="search"
@@ -325,19 +326,27 @@ export default function AdminFeedbackPage() {
                   maxLength={100}
                   value={keywordDraft}
                   onChange={(event) => setKeywordDraft(event.target.value)}
-                  className="h-8"
+                  className={`h-8 px-2 text-xs md:text-xs [&::-webkit-search-cancel-button]:hidden ${canResetSearch ? "pr-7" : ""}`}
                 />
-                <Button type="submit" size="sm">검색</Button>
-                {(keywordDraft || search.keyword) && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => {
-                    setKeywordDraft("");
-                    applySearch({ ...search, keyword: "" });
-                    keywordInputRef.current?.focus();
-                  }}>
-                    초기화
+                {canResetSearch && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label="초기화"
+                    title="검색어 초기화"
+                    className="absolute inset-y-1 right-1 text-slate-600"
+                    onClick={() => {
+                      setKeywordDraft("");
+                      applySearch({ ...search, keyword: "" });
+                      keywordInputRef.current?.focus();
+                    }}
+                  >
+                    <X aria-hidden="true" />
                   </Button>
                 )}
               </div>
+              <Button type="submit" size="sm" className="px-2.5 text-xs">검색</Button>
             </form>
             <div className="grid grid-cols-2 gap-2">
               <div className="min-w-0">
@@ -392,20 +401,20 @@ export default function AdminFeedbackPage() {
                           selectionTriggerRef.current = event.currentTarget;
                           handleFeedbackSelection(item.id);
                         }}
-                        className={`flex w-full cursor-pointer flex-col gap-1 border-l-2 px-3 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${isSelected ? "border-primary bg-primary/5" : "border-transparent hover:bg-slate-50"}`}
+                        className={`flex w-full cursor-pointer flex-col gap-1 px-3 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${isSelected ? "bg-slate-100" : "hover:bg-slate-50"}`}
                       >
-                        <span className="flex w-full flex-wrap items-center gap-x-1.5 gap-y-1">
-                          {status && <Badge variant="outline" className={status.className}>{status.label}</Badge>}
-                          {item.deleted && <Badge variant="secondary">삭제됨</Badge>}
-                          <time dateTime={item.createdAt} className="ml-auto text-xs tabular-nums text-slate-500">
-                            {format(new Date(item.createdAt), "MM.dd HH:mm")}
-                          </time>
+                        <span className="flex w-full items-baseline justify-between gap-2">
+                          <span className="truncate text-sm font-semibold text-slate-900">{item.title}</span>
+                          {status && <span className={`shrink-0 text-xs ${status.textColor}`}>{status.label}</span>}
                         </span>
-                        <span className="w-full truncate text-sm font-semibold text-slate-900">{item.title}</span>
-                        <span className="flex w-full min-w-0 items-center gap-1.5 text-xs text-slate-600">
+                        <span className="flex w-full items-baseline gap-x-1.5 text-xs text-slate-600">
                           <span className="shrink-0">{TYPE_LABELS[item.type]}</span>
                           <span aria-hidden="true" className="text-slate-400">·</span>
                           <span className="truncate">{item.authorLabel}</span>
+                          {item.deleted && <span className="shrink-0">삭제됨</span>}
+                          <time dateTime={item.createdAt} className="ml-auto shrink-0 tabular-nums text-slate-500">
+                            {format(new Date(item.createdAt), "MM.dd HH:mm")}
+                          </time>
                         </span>
                       </button>
                     </li>
