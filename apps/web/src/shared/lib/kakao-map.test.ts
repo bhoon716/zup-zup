@@ -57,7 +57,7 @@ describe("kakao-map escapeHtml 및 InfoWindow XSS 검증", () => {
 
       const mockKeywordSearch = vi
         .fn()
-        .mockImplementation((keyword: string, callback: (data: unknown[], status: string) => void) => {
+        .mockImplementation((_keyword: string, callback: (data: unknown[], status: string) => void) => {
           callback(
             [
               {

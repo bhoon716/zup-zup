@@ -56,16 +56,3 @@ export function getCampusMapQuery(classroom?: string): string | null {
 
   return `전북대학교 ${building}`.trim();
 }
-
-export function getMapSearchUrls(classroom?: string): { kakao: string; naver: string } | null {
-  const query = getCampusMapQuery(classroom);
-  if (!query) {
-    return null;
-  }
-
-  const encoded = encodeURIComponent(query);
-  return {
-    kakao: `https://map.kakao.com/?q=${encoded}`,
-    naver: `https://map.naver.com/p/search/${encoded}`,
-  };
-}

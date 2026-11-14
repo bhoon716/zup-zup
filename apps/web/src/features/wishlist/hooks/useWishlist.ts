@@ -54,7 +54,7 @@ export const useToggleWishlist = () => {
       return { previousWishlist };
     },
 
-    onError: (err, newTodo, context) => {
+    onError: (err, _courseKey, context) => {
       queryClient.setQueryData(['wishlist'], context?.previousWishlist);
       const message = localizedErrorMessage((err as AxiosError<{ message: string }>).response?.data?.message, '찜 상태 변경에 실패했습니다');
       toast.error(message);

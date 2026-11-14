@@ -1,16 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Timer, ClipboardList, Loader2 } from "lucide-react";
+import { Timer, ClipboardList } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
-import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
 import type { ScheduleResponse } from "@/shared/types/api";
 
-export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: ScheduleResponse[] } = {}) {
-  const { data: fetchedUpcomingSchedules, isLoading } = useUpcomingSchedules(upcomingSchedules === undefined);
-  const schedules = upcomingSchedules ?? fetchedUpcomingSchedules;
-  const loading = upcomingSchedules ? false : isLoading;
-  const hasSchedules = Boolean(schedules?.length);
+export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules: ScheduleResponse[] }) {
+  const hasSchedules = upcomingSchedules.length > 0;
 
   return (
     <div className="font-schedule bg-white dark:bg-gray-900 rounded-[2.5rem] p-4 sm:p-5 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
@@ -32,21 +28,13 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
         aria-label={hasSchedules ? "주요 일정 목록" : undefined}
         tabIndex={hasSchedules ? 0 : undefined}
       >
-        {loading ? (
-          <div
-            role="status"
-            aria-label="주요 일정 불러오는 중"
-            className="flex items-center justify-center h-full min-h-20"
-          >
-            <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
-          </div>
-        ) : schedules?.length === 0 ? (
+        {!hasSchedules ? (
           <div className="flex flex-col items-center justify-center h-full min-h-20 text-center gap-2 text-gray-400">
             <ClipboardList className="w-8 h-8 opacity-20" />
             <p className="text-sm font-medium">현재 등록된 주요 일정이 없습니다.</p>
           </div>
         ) : (
-          schedules?.map((event, idx) => {
+          upcomingSchedules.map((event, idx) => {
             const isDDay = event.dDay === "D-Day" || event.dDay === "진행 중";
             return (
               <motion.div

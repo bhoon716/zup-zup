@@ -36,7 +36,7 @@ describe('일정 변경 계약', () => {
     expect(invalidate.mock.calls).toEqual(cacheKeys.map(queryKey => [{ queryKey }]));
   });
 
-  it('삭제 실패를 전파하고 성공한 뒤에만 일반·대표·관리자·대시보드 캐시를 갱신한다', async () => {
+  it('삭제 실패를 전파하고 성공한 뒤에만 대표·관리자·대시보드 캐시를 갱신한다', async () => {
     const failure = new Error('삭제 실패');
     vi.mocked(api.delete).mockRejectedValueOnce(failure).mockResolvedValueOnce({ status: 204 });
     const client = createTestQueryClient();
@@ -67,24 +67,21 @@ describe('일정 변경 계약', () => {
   });
 });
 
-it('일반 목록과 선택된 대표 목록을 분리하고 서버 순서·진행 상태·삭제된 관리자 항목을 보존한다', async () => {
-  const general = { ...schedule, id: 8, ddayEnabled: false };
+it('대표 일정과 관리자 목록을 분리하고 서버 순서·진행 상태·삭제된 관리자 항목을 보존한다', async () => {
   const deleted = { ...schedule, id: 9, deletedAt: '2026-10-26T10:00:00' };
   vi.mocked(api.get).mockImplementation(async (url) => ({
-    data: url === '/api/v1/schedules' ? [general, schedule]
-      : url === '/api/v1/schedules/ddays' ? [schedule] : [schedule, deleted],
+    data: url === '/api/v1/schedules/ddays' ? [schedule] : [schedule, deleted],
   }));
   const client = createTestQueryClient();
   const wrapper = createQueryWrapper(client);
-  const publicHooks = renderHook(({ enabled }) => ({
-    general: hooks.useUpcomingSchedules(enabled), ddays: hooks.useScheduleDdays(enabled),
-  }), { wrapper, initialProps: { enabled: false } });
+  const publicSchedules = renderHook(({ enabled }) => hooks.useScheduleDdays(enabled), {
+    wrapper, initialProps: { enabled: false },
+  });
   expect(api.get).not.toHaveBeenCalled();
-  publicHooks.rerender({ enabled: true });
+  publicSchedules.rerender({ enabled: true });
   const admin = renderHook(() => hooks.useAdminSchedules(), { wrapper });
-  await waitFor(() => expect(publicHooks.result.current.general.isSuccess && publicHooks.result.current.ddays.isSuccess && admin.result.current.isSuccess).toBe(true));
-  expect(publicHooks.result.current.general.data).toEqual([general, schedule]);
-  expect(publicHooks.result.current.ddays.data).toEqual([schedule]);
+  await waitFor(() => expect(publicSchedules.result.current.isSuccess && admin.result.current.isSuccess).toBe(true));
+  expect(publicSchedules.result.current.data).toEqual([schedule]);
   expect(admin.result.current.data).toEqual([schedule, deleted]);
   expect(client.getQueryData(['schedules', 'ddays'])).toEqual([schedule]);
 });

@@ -1,12 +1,7 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
+import { describe, expect, it } from "vitest";
 import type { ScheduleResponse } from "@/shared/types/api";
 import { DashboardDDayBlock } from "./dashboard-dday-block";
-
-vi.mock("@/features/schedule/hooks/useSchedules", () => ({
-  useUpcomingSchedules: vi.fn(),
-}));
 
 function createSchedule(id: number): ScheduleResponse {
   return {
@@ -21,13 +16,6 @@ function createSchedule(id: number): ScheduleResponse {
 }
 
 describe("DashboardDDayBlock", () => {
-  beforeEach(() => {
-    vi.mocked(useUpcomingSchedules).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-    } as never);
-  });
-
   it("일정이 많아도 모든 항목을 표시하고 키보드로 목록에 접근할 수 있다", () => {
     const schedules = Array.from({ length: 8 }, (_, index) => createSchedule(index + 1));
 
@@ -51,17 +39,5 @@ describe("DashboardDDayBlock", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByText("진행 중")).toBeInTheDocument();
     expect(screen.getByText("주요 일정 2")).toBeInTheDocument();
-  });
-
-  it("로딩 중에는 진행 상태를 알린다", () => {
-    vi.mocked(useUpcomingSchedules).mockReturnValue({
-      data: undefined,
-      isLoading: true,
-    } as never);
-
-    render(<DashboardDDayBlock />);
-
-    expect(screen.getByRole("status", { name: "주요 일정 불러오는 중" })).toBeInTheDocument();
-    expect(screen.queryByRole("list", { name: "주요 일정 목록" })).not.toBeInTheDocument();
   });
 });
