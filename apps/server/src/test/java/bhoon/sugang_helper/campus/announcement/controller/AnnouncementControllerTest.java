@@ -49,8 +49,8 @@ class AnnouncementControllerTest {
         ReflectionTestUtils.setField(announcement, "createdAt", LocalDateTime.of(2026, 7, 13, 10, 0));
         AnnouncementListResponse response = AnnouncementListResponse.from(announcement);
         when(announcementService.getPublicAnnouncements(
-                eq("검색"), eq(AnnouncementSearchType.TITLE_CONTENT), eq(PageRequest.of(1, 30))))
-                .thenReturn(new PageImpl<>(List.of(response), PageRequest.of(1, 30), 61));
+                eq("검색"), eq(AnnouncementSearchType.TITLE_CONTENT), eq(PageRequest.of(1, 10))))
+                .thenReturn(new PageImpl<>(List.of(response), PageRequest.of(1, 10), 21));
 
         // when & then
         mockMvc.perform(get("/api/v1/announcements")
@@ -61,6 +61,6 @@ class AnnouncementControllerTest {
                 .andExpect(jsonPath("$.content[0].title").value("고정 공지"))
                 .andExpect(jsonPath("$.content[0].pinned").value(true))
                 .andExpect(jsonPath("$.number").value(1))
-                .andExpect(jsonPath("$.size").value(30));
+                .andExpect(jsonPath("$.size").value(10));
     }
 }
