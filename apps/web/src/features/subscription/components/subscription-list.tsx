@@ -88,7 +88,9 @@ export function SubscriptionList({ user }: { user: User }) {
       <ul className="divide-y border-t">
         {subscriptions.map((sub) => {
           const courseKey = parseCourseKey(sub.courseKey);
+          const yearLabel = /^\d{4}$/.test(courseKey.year) ? courseKey.year : "";
           const semesterLabel = SEMESTERS.find(({ value }) => value === courseKey.semester)?.label;
+          const termLabel = [yearLabel, semesterLabel].filter(Boolean).join(" · ");
 
           return (
             <li key={sub.id} className="group relative flex items-center gap-3 px-4 py-3 hover:bg-muted/40 last:rounded-b-xl sm:px-5">
@@ -103,16 +105,14 @@ export function SubscriptionList({ user }: { user: User }) {
                       {sub.courseName}
                     </button>
                   </h3>
-                  {semesterLabel && (
+                  {termLabel && (
                     <Badge variant="secondary" className="rounded-md bg-primary/10 px-1.5 py-0 text-primary">
-                      {semesterLabel}
+                      {termLabel}
                     </Badge>
                   )}
                 </div>
                 <p className="mt-1 wrap-anywhere text-xs text-muted-foreground">
                   {courseKey.classNumber || "01"}분반
-                  <span className="mx-1">{" · "}</span>
-                  {courseKey.subjectCode || sub.courseKey}
                   <span className="mx-1">{" · "}</span>
                   {sub.professorName || "교수 미지정"}
                 </p>
