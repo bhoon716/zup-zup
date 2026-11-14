@@ -263,7 +263,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
               key={day}
               type="button"
               onClick={() => handleSelectAllByDay(day)}
-              className="rounded-[6px] bg-muted py-1 text-center text-xs font-medium text-foreground hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-primary"
+              className="rounded-[6px] bg-neutral-100 py-1 text-center text-xs font-medium text-foreground hover:bg-neutral-200 focus-visible:outline-2 focus-visible:outline-primary dark:bg-white/8 dark:hover:bg-white/12"
             >
               {day}
             </button>
@@ -297,8 +297,8 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
                       className={cn(
                         "grid h-8 touch-none place-items-center rounded-[6px] border transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
                         isSelected
-                          ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/20"
-                          : "border-border bg-background hover:border-primary/30 hover:bg-primary/5",
+                          ? "border-teal-700/30 bg-teal-700/12 text-teal-900 hover:bg-teal-700/18 dark:border-teal-400/40 dark:bg-teal-400/15 dark:text-teal-200 dark:hover:bg-teal-400/25"
+                          : "border-neutral-200 bg-card hover:border-teal-700/25 hover:bg-teal-700/5 dark:border-white/12 dark:hover:border-teal-400/35 dark:hover:bg-teal-400/8",
                       )}
                       onClick={(event) => {
                         if (event.detail === 0) handleToggleCell(day, slot);
