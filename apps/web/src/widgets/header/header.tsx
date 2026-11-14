@@ -118,7 +118,7 @@ export function Header() {
                     {!verifiedUser && (
                       <Button asChild className="h-10 w-full rounded-lg">
                         <Link href="/login" onClick={closeMenu}>
-                          로그인하고 시작하기
+                          로그인
                         </Link>
                       </Button>
                     )}
