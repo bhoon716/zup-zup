@@ -7,6 +7,8 @@ public interface NotificationTraffic {
 
     List<Bucket> findRecent(Range range);
 
+    long countSentSeatNotifications();
+
     enum Range {
         LAST_24_HOURS, LAST_7_DAYS
     }

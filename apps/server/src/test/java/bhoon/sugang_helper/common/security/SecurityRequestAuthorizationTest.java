@@ -25,6 +25,9 @@ import bhoon.sugang_helper.common.config.SecurityContextRepositoryConfig;
 import bhoon.sugang_helper.common.security.exception.CustomAccessDeniedHandler;
 import bhoon.sugang_helper.common.security.exception.CustomAuthenticationEntryPoint;
 import bhoon.sugang_helper.common.web.GlobalExceptionHandler;
+import bhoon.sugang_helper.dashboard.controller.DashboardController;
+import bhoon.sugang_helper.dashboard.dto.response.LandingStatsResponse;
+import bhoon.sugang_helper.dashboard.service.DashboardService;
 import bhoon.sugang_helper.identity.auth.client.CustomOAuth2UserService;
 import bhoon.sugang_helper.identity.auth.config.SecurityConfig;
 import bhoon.sugang_helper.identity.auth.controller.AuthController;
@@ -78,6 +81,7 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.unit.DataSize;
@@ -122,6 +126,9 @@ class SecurityRequestAuthorizationTest {
 
     @MockitoBean
     private AdminService adminService;
+
+    @MockitoBean
+    private DashboardService dashboardService;
 
     @MockitoBean
     private NotificationTraffic notificationTraffic;
@@ -448,6 +455,20 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("A003"));
     }
 
+    @Test
+    @DisplayName("로그인 없이 랜딩 페이지에 공개된 두 통계만 조회할 수 있다")
+    void landingStatsArePublic() throws Exception {
+        // given
+        given(dashboardService.getLandingStats()).willReturn(LandingStatsResponse.of(120L, 3_400L));
+
+        // when & then
+        mockMvc.perform(get("/api/v1/dashboard/landing-stats"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {"totalUsers": 120, "totalSentSeatNotifications": 3400}
+                        """, JsonCompareMode.STRICT));
+    }
+
     private MockHttpSession authenticatedSession(String role) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(new SessionPrincipal(1L, "admin@example.com").authentication(role));
@@ -493,6 +514,7 @@ class SecurityRequestAuthorizationTest {
             CustomAccessDeniedHandler.class,
             CustomAuthenticationEntryPoint.class,
             AdminController.class,
+            DashboardController.class,
             AdminNotificationDeliveryController.class,
             AdminFeedbackController.class,
             AnnouncementController.class,

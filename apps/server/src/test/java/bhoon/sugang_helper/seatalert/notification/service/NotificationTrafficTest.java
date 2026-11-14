@@ -64,6 +64,25 @@ class NotificationTrafficTest {
         assertThat(daily.getLast()).isEqualTo(bucket("10/13", "2026-10-13T00:00+09:00", 1, 0, 1));
     }
 
+    @Test
+    @DisplayName("공석 알림 발송 건수는 오래된 성공 이력을 포함하며 다른 알림 발송을 제외한다")
+    void countsAllRecordedSeatNotifications() {
+        // given
+        seat("2025-01-03T12:00");
+        seat(SEOUL_MIDNIGHT_UTC);
+        long announcement = inbox("ANNOUNCEMENT", SEOUL_MIDNIGHT_UTC);
+        long seatInbox = inbox("SEAT_OPENED", SEOUL_MIDNIGHT_UTC);
+        delivery("announcement-web", announcement, SENT, SEOUL_MIDNIGHT_UTC);
+        delivery("seat-inbox", seatInbox, SENT, SEOUL_MIDNIGHT_UTC);
+        var traffic = new NotificationTrafficService(repository, UTC_CLOCK);
+
+        // when
+        long result = traffic.countSentSeatNotifications();
+
+        // then
+        assertThat(result).isEqualTo(2);
+    }
+
     private void seat(String at) {
         jdbc.update("""
                 insert into notification_histories (user_id, course_key, title, message, channel, created_at)

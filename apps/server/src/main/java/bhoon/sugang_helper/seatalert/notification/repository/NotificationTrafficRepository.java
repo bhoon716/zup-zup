@@ -28,6 +28,8 @@ public interface NotificationTrafficRepository extends Repository<NotificationHi
             """, nativeQuery = true)
     List<InboxCount> countInboxDeliveries(LocalDateTime start, LocalDateTime now, double bucketSeconds);
 
+    long count();
+
     interface SeatCount {
         int getBucket();
 

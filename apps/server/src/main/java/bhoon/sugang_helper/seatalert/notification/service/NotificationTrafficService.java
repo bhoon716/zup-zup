@@ -65,5 +65,10 @@ public class NotificationTrafficService implements NotificationTraffic {
                 .toList();
     }
 
+    @Override
+    public long countSentSeatNotifications() {
+        return repository.count();
+    }
+
     private record Window(int size, ChronoUnit unit, DateTimeFormatter label) {}
 }

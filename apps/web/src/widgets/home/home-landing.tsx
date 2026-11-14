@@ -68,7 +68,7 @@ function ReviewList({ repeated = false }: { repeated?: boolean }) {
   );
 }
 
-export function HomeLanding({ countdown }: { countdown: ReactNode }) {
+export function HomeLanding({ countdown, statistics }: { countdown: ReactNode; statistics: ReactNode }) {
   return (
     <main className="flex flex-col bg-[#fafafa] dark:bg-black">
       <section className="mx-auto w-full max-w-[1200px] px-6 pt-9 pb-10 sm:pt-12 lg:pt-16 lg:pb-14">
@@ -103,7 +103,7 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
 
       <LandingWalkthrough />
 
-      <section className="pb-32">
+      <section className="pb-10 md:pb-12">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="grid gap-4">
             <div>
@@ -123,6 +123,7 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
           </div>
         </div>
       </section>
+      {statistics}
     </main>
   );
 }
