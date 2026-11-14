@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { Check } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import type { CourseDayOfWeek, ScheduleCondition } from "@/shared/types/api";
@@ -103,8 +104,6 @@ function buildNextSchedulesFromDrag(dragState: DragState): ScheduleCondition[] {
 
 export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps) {
   const [dragState, setDragState] = useState<DragState | null>(null);
-  const [hoveredDay, setHoveredDay] = useState<CourseDayOfWeek | null>(null);
-  const [hoveredSlot, setHoveredSlot] = useState<number | null>(null);
   const activePointerIdRef = useRef<number | null>(null);
 
   const selectedKeySet = useMemo(
@@ -148,16 +147,12 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
       mode,
       snapshot: selected,
     });
-    setHoveredDay(day);
-    setHoveredSlot(slot);
   }, [selected, selectedKeySet]);
 
   const updateDragCell = useCallback((day: CourseDayOfWeek, slot: number) => {
     const dayIndex = DAYS.indexOf(day);
     if (dayIndex < 0) return;
 
-    setHoveredDay(day);
-    setHoveredSlot(slot);
     setDragState((prev) => {
       if (!prev) return prev;
       if (prev.currentCell.dayIndex === dayIndex && prev.currentCell.slot === slot) return prev;
@@ -213,6 +208,15 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
     }
   };
 
+  const handleToggleCell = (day: CourseDayOfWeek, slot: number) => {
+    const schedule = toSchedule(day, slot);
+    const key = toScheduleKey(schedule);
+    const next = selectedKeySet.has(key)
+      ? selected.filter((entry) => toScheduleKey(entry) !== key)
+      : [...selected, schedule];
+    onChange(sortSchedules(next));
+  };
+
   const handleSelectAllByDay = (day: CourseDayOfWeek) => {
     const daySchedules = SLOT_NUMBERS.map((slot) => toSchedule(day, slot));
     const dayScheduleKeys = new Set(daySchedules.map((s) => toScheduleKey(s)));
@@ -237,54 +241,43 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
 
   return (
     <div
-      className="w-full max-w-full select-none overflow-hidden rounded-xl border border-border/20 bg-card/20 p-3 backdrop-blur-md"
-      onMouseLeave={() => {
-        setHoveredDay(null);
-        setHoveredSlot(null);
-      }}
+      className="w-full select-none"
       onPointerMove={handlePointerMove}
       onPointerUp={(e) => finishDrag(e.pointerId)}
       onPointerCancel={(e) => finishDrag(e.pointerId)}
-      style={{ touchAction: "none" }}
     >
-      <div className="mb-3 flex justify-end gap-2">
-        <Button variant="outline" size="xs" onClick={handleSelectAll} className="h-7 border-border/40 bg-background/50 text-[11px] hover:bg-muted">
+      <div className="mb-2 flex justify-end gap-2">
+        <Button type="button" variant="outline" size="xs" onClick={handleSelectAll} className="h-7">
           전체 선택
         </Button>
-        <Button variant="outline" size="xs" onClick={handleDeselectAll} className="h-7 border-border/40 bg-background/50 text-[11px] hover:bg-muted">
+        <Button type="button" variant="outline" size="xs" onClick={handleDeselectAll} className="h-7">
           전체 해제
         </Button>
       </div>
 
       <div className="w-full">
-        {           }
         <div className={cn("mb-1 grid gap-1", GRID_COLUMNS_CLASS)}>
-          <div className="flex items-center justify-center rounded-sm border border-border/60 bg-muted text-[9px] font-black text-foreground">시간</div>
+          <div className="flex items-center justify-center text-[11px] font-medium text-muted-foreground">시간</div>
           {DAYS.map((day) => (
             <button
               key={day}
               type="button"
               onClick={() => handleSelectAllByDay(day)}
-              onMouseEnter={() => setHoveredDay(day)}
-              className={cn(
-                "rounded-sm border border-border/60 bg-muted py-1 text-center text-[11px] font-bold text-foreground transition-all",
-                hoveredDay === day ? "border-border/60 bg-muted text-foreground" : "text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground/80",
-              )}
+              className="rounded-[6px] bg-muted py-1 text-center text-xs font-medium text-foreground hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-primary"
             >
               {day}
             </button>
           ))}
         </div>
 
-        {            }
         <div className="space-y-1">
           {SLOT_NUMBERS.map((slot) => {
             const slotRange = getSlotRange(slot);
             return (
-              <div key={slot} className={cn("grid gap-1 rounded-sm transition-colors", GRID_COLUMNS_CLASS, slot % 2 === 1 && "bg-muted/5", hoveredSlot === slot && "bg-muted/10")}>
-                <div className={cn("flex flex-col items-center justify-center rounded-sm border border-border/60 bg-muted transition-colors", hoveredSlot === slot && "bg-muted/80")}>
-                  <span className="text-[10px] font-black leading-none text-foreground">{slotRange.label}</span>
-                  <span className="text-[8px] font-bold text-foreground/80">
+              <div key={slot} className={cn("grid gap-1", GRID_COLUMNS_CLASS)}>
+                <div className="flex flex-col items-center justify-center gap-0.5">
+                  <span className="text-[11px] font-medium leading-none tabular-nums">{slotRange.label}</span>
+                  <span className="text-[9px] text-muted-foreground">
                     {Math.floor(SMART_FILTER_START_MINUTES / 60) - 8 + slot}교시
                   </span>
                 </div>
@@ -292,16 +285,6 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
                 {DAYS.map((day) => {
                   const key = toScheduleKey(toSchedule(day, slot));
                   const isSelected = displayKeySet.has(key);
-                  const isDraggingCell = dragState && dragRectKeySet.has(key);
-
-                  let cellClassName = "border border-border/30 bg-background/40 hover:bg-muted/30";
-                  if (dragState && isDraggingCell) {
-                    cellClassName = dragState.mode === "select" ? "border-primary/20 bg-primary/30 ring-2 ring-primary/40" : "border-border/20 bg-muted/30";
-                  } else if (isSelected) {
-                    cellClassName = "border-primary/20 bg-primary/70 text-primary-foreground shadow-sm hover:bg-primary/60";
-                  } else if (hoveredDay === day) {
-                    cellClassName += " border-border/40 bg-muted/50";
-                  }
 
                   return (
                     <button
@@ -310,10 +293,21 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
                       data-day={day}
                       data-slot={slot}
                       aria-label={`${day} ${Math.floor(SMART_FILTER_START_MINUTES / 60) - 8 + slot}교시`}
-                      className={cn("h-10 rounded-sm transition-all duration-100", cellClassName)}
+                      aria-pressed={selectedKeySet.has(key)}
+                      className={cn(
+                        "grid h-8 touch-none place-items-center rounded-[6px] border transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
+                        isSelected
+                          ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/20"
+                          : "border-border bg-background hover:border-primary/30 hover:bg-primary/5",
+                      )}
+                      onClick={(event) => {
+                        if (event.detail === 0) handleToggleCell(day, slot);
+                      }}
                       onPointerDown={(e) => handlePointerDownCell(e, day, slot)}
                       onPointerEnter={(e) => activePointerIdRef.current === e.pointerId && updateDragCell(day, slot)}
-                    />
+                    >
+                      {isSelected && <Check aria-hidden="true" className="size-3.5" />}
+                    </button>
                   );
                 })}
               </div>

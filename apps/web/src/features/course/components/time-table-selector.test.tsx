@@ -24,6 +24,21 @@ describe("TimeTableSelector", () => {
     expect(screen.queryByRole("button", { name: "월 14교시" })).not.toBeInTheDocument();
   });
 
+  it("키보드로 칸을 선택하고 다시 해제할 수 있다", () => {
+    render(<SelectorHarness initial={[]} />);
+    const cell = screen.getByRole("button", { name: "월 1교시", pressed: false });
+
+    fireEvent.click(cell, { detail: 0 });
+
+    expect(screen.getByRole("button", { name: "월 1교시", pressed: true })).toBe(cell);
+    expect(screen.getByTestId("selected-count")).toHaveTextContent("1");
+
+    fireEvent.click(cell, { detail: 0 });
+
+    expect(screen.getByRole("button", { name: "월 1교시", pressed: false })).toBe(cell);
+    expect(screen.getByTestId("selected-count")).toHaveTextContent("0");
+  });
+
   it("사각형 드래그로 여러 칸을 한 번에 선택한다", () => {
 
     const originalElementFromPoint = document.elementFromPoint;
