@@ -22,6 +22,10 @@
   display: none;
 }
 
+.pinnedContent {
+  top: 4.25rem;
+}
+
 .frame {
   min-width: 0;
   overflow: hidden;
@@ -99,13 +103,8 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .story[data-active-chapter] {
-    --chapter-scroll-distance: clamp(3rem, 4.5svh, 3.75rem);
-  }
-
   .story[data-active-chapter] .pinnedContent {
     position: sticky;
-    top: max(4.25rem, var(--inset-to-reach-end, 0px));
   }
 
   .story[data-active-chapter] .stage {
@@ -132,6 +131,7 @@
   .story[data-active-chapter] .chapter[aria-current] {
     opacity: 1;
     pointer-events: auto;
+    animation: chapter-enter 160ms ease-out;
   }
 
   .story[data-active-chapter] .stepMark {
@@ -194,10 +194,6 @@
     flex: none;
     padding-inline-end: 1rem;
   }
-
-  .story[data-active-chapter] .chapter[aria-current] .scene > div {
-    animation: preview-enter 160ms ease-out;
-  }
 }
 
 .progress {
@@ -223,6 +219,6 @@
   to { transform: translateX(-50%); }
 }
 
-@keyframes preview-enter {
-  from { transform: translateY(0.25rem); }
+@keyframes chapter-enter {
+  from { opacity: 0.75; }
 }

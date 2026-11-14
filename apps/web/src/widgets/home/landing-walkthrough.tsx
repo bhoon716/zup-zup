@@ -113,24 +113,24 @@ const chapters = [
   },
 ] as const;
 
+const chapterScrollDistance = 128;
+const walkthroughScrollDistance = chapters.length * chapterScrollDistance;
+
 export function LandingWalkthrough() {
   const storyRef = useRef<HTMLDivElement>(null);
   const pinnedContentRef = useRef<HTMLDivElement>(null);
-  const runwayRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const story = storyRef.current;
     const pinnedContent = pinnedContentRef.current;
-    const runway = runwayRef.current;
-    if (!story || !pinnedContent || !runway) return;
+    if (!story || !pinnedContent) return;
 
     const stickyLayout = window.matchMedia(
-      "(min-width: 48rem) and (min-height: 36rem) and (prefers-reduced-motion: no-preference), " +
-      "(min-height: 44rem) and (prefers-reduced-motion: no-preference)",
+      "(min-width: 48rem) and (36rem <= height <= 80rem) and (prefers-reduced-motion: no-preference), " +
+      "(44rem <= height <= 80rem) and (prefers-reduced-motion: no-preference)",
     );
     let frame = 0;
-    let lastInset = NaN;
     const updateChapter = () => {
       frame = 0;
       if (!stickyLayout.matches) {
@@ -138,32 +138,17 @@ export function LandingWalkthrough() {
         return;
       }
 
-      const runwayHeight = runway.getBoundingClientRect().height;
-      if (!runwayHeight) {
-        setActiveIndex(0);
-        return;
-      }
-
-      const viewport = document.documentElement;
-      const maxScroll = viewport.scrollHeight - viewport.clientHeight;
-      const storyTop = story.getBoundingClientRect().top;
-      const distance = Math.min(runwayHeight, maxScroll);
-      const insetToReachEnd = Math.ceil(storyTop + window.scrollY + distance - maxScroll);
-      if (insetToReachEnd !== lastInset) {
-        pinnedContent.style.setProperty("--inset-to-reach-end", `${insetToReachEnd}px`);
-        lastInset = insetToReachEnd;
-      }
-
       const inset = Number.parseFloat(getComputedStyle(pinnedContent).top);
-      const progress = distance > 0 ? (inset - storyTop) / distance : 0;
-      setActiveIndex(Math.min(chapters.length - 1, Math.max(0, Math.floor(progress * chapters.length))));
+      const storyTop = story.getBoundingClientRect().top;
+      const distance = Math.max(0, inset - storyTop);
+      setActiveIndex(Math.min(chapters.length - 1, Math.floor(distance / chapterScrollDistance)));
     };
 
     const scheduleUpdate = () => {
       if (!frame) frame = window.requestAnimationFrame(updateChapter);
     };
     const resizeObserver = new ResizeObserver(scheduleUpdate);
-    resizeObserver.observe(runway);
+    resizeObserver.observe(story);
     resizeObserver.observe(document.body);
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
     window.addEventListener("resize", scheduleUpdate);
@@ -218,7 +203,11 @@ export function LandingWalkthrough() {
             ))}
           </ol>
         </div>
-        <div ref={runwayRef} className={styles.runway} style={{ height: `calc(${chapters.length} * var(--chapter-scroll-distance))` }} aria-hidden="true" />
+        <div
+          className={styles.runway}
+          style={{ height: walkthroughScrollDistance }}
+          aria-hidden="true"
+        />
       </div>
     </section>
   );

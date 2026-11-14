@@ -57,8 +57,9 @@ test("휠을 연속으로 내리고 올리면 수강신청 안내가 세 단계�
   if (!headerBounds) throw new Error("헤더를 찾지 못했습니다.");
   const headerBottom = headerBounds.y + headerBounds.height;
   await pin.evaluate((element, bottom) => {
-    window.scrollBy(0, element.getBoundingClientRect().top - bottom - 8);
+    window.scrollBy(0, element.getBoundingClientRect().top - bottom);
   }, headerBottom);
+  await expect(currentChapter).toHaveText("강의 검색");
 
   for (const [deltaY, chapter] of [
     [120, "강의 검색"],
@@ -82,9 +83,8 @@ test("휠을 연속으로 내리고 올리면 수강신청 안내가 세 단계�
 for (const viewport of [
   { width: 390, height: 844 },
   { width: 831, height: 923 },
-  { width: 831, height: 1320 },
   { width: 1440, height: 880 },
-  { width: 1440, height: 1600 },
+  { width: 1440, height: 1280 },
 ]) {
   test(`${viewport.width}×${viewport.height}에서 제목과 예시가 한 자리에 고정되고 단계가 바뀐다`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport);
@@ -129,14 +129,12 @@ for (const viewport of [
     ]);
     await readChapter(0.18, search, registration);
     await expect(pin).toBeInViewport({ ratio: 1 });
+    const pinnedContent = await pin.boundingBox();
     const pinnedStage = await stage.boundingBox();
     const pinnedTitle = await title.boundingBox();
     const header = await page.getByRole("banner").boundingBox();
-    if (!pinnedStage || !pinnedTitle || !header) throw new Error("고정된 소개 화면이 보이지 않습니다.");
-    expect(pinnedTitle.y).toBeGreaterThan(header.y + header.height);
-    if (viewport.width === 831 && viewport.height === 923) {
-      expect(pinnedTitle.y).toBeCloseTo(101, 0);
-    }
+    if (!pinnedContent || !pinnedStage || !pinnedTitle || !header) throw new Error("고정된 소개 화면이 보이지 않습니다.");
+    expect(pinnedContent.y - (header.y + header.height)).toBeCloseTo(3, 0);
     const expectPinnedStage = async () => {
       await expect(pin).toBeInViewport({ ratio: 1 });
       const currentStage = await stage.boundingBox();
@@ -155,6 +153,40 @@ for (const viewport of [
     await expectPinnedStage();
   });
 }
+
+test("고정하기에 너무 높거나 낮은 화면과 동작 줄이기에서는 세 단계가 순서대로 보인다", async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 1440, height: 1600 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
+    ? route.continue() : route.abort());
+  await page.goto("/");
+
+  const pin = page.getByTestId("landing-walkthrough-pin");
+  const registration = pin.getByRole("heading", { name: "빈자리 알림 등록", exact: true });
+  const notification = pin.getByRole("heading", { name: "빈자리 알림", exact: true });
+  const search = pin.getByRole("heading", { name: "강의 검색", exact: true });
+
+  async function expectSequentialChapters() {
+    await expect(registration).toBeVisible();
+    await expect(notification).toBeVisible();
+    await expect.poll(async () => {
+      const first = await search.boundingBox();
+      const second = await registration.boundingBox();
+      const third = await notification.boundingBox();
+      return Boolean(first && second && third && first.y < second.y && second.y < third.y);
+    }).toBe(true);
+  }
+
+  await expectSequentialChapters();
+  await page.setViewportSize({ width: 831, height: 1320 });
+  await expectSequentialChapters();
+  await page.setViewportSize({ width: 390, height: 600 });
+  await expectSequentialChapters();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(pin).toHaveCSS("position", "sticky");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expectSequentialChapters();
+});
 
 test("긴 검색 목록은 페이지를 추가해도 카드 수를 제한하고 상세를 닫으면 초점을 돌려준다", async ({ page, baseURL }) => {
   const requestedPages = new Set<number>();
