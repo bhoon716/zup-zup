@@ -178,13 +178,13 @@ export function LandingWalkthrough() {
   const activeChapter = activeIndex === null ? undefined : chapters[activeIndex];
 
   return (
-    <section aria-labelledby="landing-walkthrough-title" className="mx-auto w-full max-w-[1200px] px-6 pb-20 md:pb-32">
-      <div className="mb-8 border-t pt-10 lg:mb-10 lg:pt-12">
+    <section aria-labelledby="landing-walkthrough-title" className="mx-auto w-full max-w-[1200px] px-6 pb-12 md:pb-16">
+      <div className="mb-5 border-t pt-8 lg:mb-6">
         <h2 id="landing-walkthrough-title" className="text-2xl font-bold tracking-tight md:text-3xl">
           줍줍으로 수강신청 준비하기
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base">
-          강의를 찾고 빈자리 알림을 받는 방법이에요.
+          분반별 여석을 확인하고, 마감된 분반에는 빈자리 알림을 등록하세요.
         </p>
       </div>
 

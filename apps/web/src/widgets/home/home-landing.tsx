@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/shared/ui/button";
+import { LandingHeroPreview } from "./landing-hero-preview";
 import { LandingWalkthrough } from "./landing-walkthrough";
 
 import styles from "./landing-walkthrough.module.css";
@@ -70,40 +71,34 @@ function ReviewList({ repeated = false }: { repeated?: boolean }) {
 export function HomeLanding({ countdown }: { countdown: ReactNode }) {
   return (
     <main className="flex flex-col bg-[#fafafa] dark:bg-black">
-      <section className="py-10 sm:py-14 md:pt-20 md:pb-24">
-        <div className={`${styles.heroEntrance} mx-auto flex w-full max-w-[1200px] flex-col items-center px-6 text-center`}>
-          <h1
-            className="mb-5 text-[clamp(1.5rem,7vw,2.125rem)] leading-[1.15] font-bold tracking-tight text-foreground md:text-[2.75rem] lg:text-5xl"
-          >
+      <section className="mx-auto w-full max-w-[1200px] px-6 pt-9 pb-10 sm:pt-12 lg:pt-16 lg:pb-14">
+        <div className="mb-7 grid gap-5 lg:mb-10 lg:grid-cols-[1.08fr_1fr] lg:items-center lg:gap-12">
+          <h1 className="text-[clamp(1.75rem,6.5vw,3.375rem)] leading-[1.17] font-bold tracking-tight text-foreground">
             수강신청 빈자리,<br />
-            <span className="text-primary">이제 알림으로 잡으세요.</span>
+            <span className="break-keep text-primary">이제 알림으로 잡으세요.</span>
           </h1>
-
-          <p
-            className="mx-auto mb-6 max-w-[35rem] text-pretty break-keep text-base leading-relaxed text-muted-foreground md:mb-8 md:text-lg"
-          >
-            듣고 싶은 강의가 꽉 찼나요? 원하는 분반에 알림을 걸어 두면, 계속 새로고침하지 않아도 빈자리가 생겼을 때 바로 확인할 수 있어요.
-          </p>
-
-          <div className="mb-6 flex w-full justify-center empty:hidden">{countdown}</div>
-
-          <div
-            className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row"
-          >
-            <Button asChild className="h-auto w-full rounded-full py-3.5 text-sm font-bold shadow-md shadow-primary/20 has-[>svg]:px-7 sm:w-auto">
-              <Link href="/login">
-                지금 시작하기
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-auto w-full rounded-full border-primary/20 py-3.5 text-sm font-bold text-primary hover:bg-primary/5 has-[>svg]:px-7 sm:w-auto">
-              <Link href="/search">
-                <Search className="size-4" aria-hidden="true" />
-                강의 먼저 둘러보기
-              </Link>
-            </Button>
+          <div className="min-w-0 space-y-5">
+            <p className="max-w-[28rem] break-keep text-sm leading-relaxed text-muted-foreground sm:text-base">
+              듣고 싶은 분반이 마감됐다면 알림을 등록해 두세요. 수강신청 화면을 계속 새로고침하지 않아도, 빈자리가 나면 웹 푸시로 알려드려요.
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              <Button asChild className="h-11 rounded-full text-sm font-semibold has-[>svg]:px-5">
+                <Link href="/login">
+                  지금 시작하기
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-11 rounded-full border-primary/20 text-sm font-semibold text-primary hover:bg-primary/5 has-[>svg]:px-5">
+                <Link href="/search">
+                  <Search className="size-4" aria-hidden="true" />
+                  강의 먼저 둘러보기
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
+        <LandingHeroPreview />
+        <div className="mt-5 flex empty:hidden">{countdown}</div>
       </section>
 
       <LandingWalkthrough />
