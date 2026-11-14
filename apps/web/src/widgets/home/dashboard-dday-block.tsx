@@ -20,7 +20,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
             <Timer className="w-5 h-5 text-indigo-600" />
           </div>
           
-          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          <h3 className="text-xl font-normal text-gray-900 dark:text-gray-100">
             주요 일정
           </h3>
         </div>
@@ -75,7 +75,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
                 </div>
 
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 break-keep">
+                  <h4 className="text-sm font-normal text-gray-900 dark:text-gray-100 break-keep">
                     {event.scheduleType}
                   </h4>
                   <p className="text-[11px] text-gray-500 font-medium">
@@ -86,7 +86,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules?: 
                 </div>
 
                 <div className={cn(
-                  "px-3 py-1.5 rounded-xl text-sm font-black tracking-tight shrink-0 flex items-center justify-center min-w-14",
+                  "px-3 py-1.5 rounded-xl text-sm font-normal tracking-tight shrink-0 flex items-center justify-center min-w-14",
                   isDDay
                     ? "bg-primary text-white shadow-lg shadow-primary/20"
                     : "bg-white dark:bg-gray-800 text-gray-400 border border-gray-100 dark:border-gray-700"
