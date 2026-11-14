@@ -55,7 +55,7 @@ function FeedbackPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0F0F0F] py-12 px-4 md:px-8">
+    <main className="min-h-screen px-4 py-12 md:px-8">
       <div className="container max-w-5xl mx-auto space-y-10">
         <div className="border-b border-gray-100 dark:border-gray-800 pb-8 mt-4">
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">문의 및 건의사항</h1>
@@ -71,7 +71,7 @@ function FeedbackPageContent() {
           </Link>
         </div>
 
-        <div ref={listTop} tabIndex={-1} className="bg-white dark:bg-black/10 min-h-[500px] scroll-mt-20">
+        <div ref={listTop} tabIndex={-1} className="min-h-[500px] scroll-mt-20">
           {isError ? (
             <div role="alert" className="flex flex-wrap items-center justify-center gap-3 px-4 py-12 text-sm text-muted-foreground">
               문의 목록을 불러오지 못했습니다.
@@ -92,7 +92,7 @@ function FeedbackPageContent() {
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
