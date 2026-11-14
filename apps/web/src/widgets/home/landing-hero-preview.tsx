@@ -8,12 +8,8 @@ const sections = [
 
 export function LandingHeroPreview() {
   return (
-    <figure className="relative h-64 overflow-hidden rounded-2xl bg-primary/10 sm:h-[21rem] lg:h-[23rem]">
-      <figcaption className="absolute top-3 left-4 text-xs text-primary sm:top-5 sm:left-6">
-        서비스 화면 예시
-      </figcaption>
+    <div aria-hidden="true" className="relative h-64 overflow-hidden rounded-2xl bg-primary/10 sm:h-[21rem] lg:h-[23rem]">
       <div
-        aria-hidden="true"
         className="absolute top-11 right-[-1rem] left-[12%] overflow-hidden rounded-xl border bg-card shadow-lg shadow-primary/10 sm:top-9 sm:right-[6%] sm:left-[24%]"
       >
         <div className="flex items-center gap-3 border-b px-4 py-2.5 sm:px-5">
@@ -54,7 +50,6 @@ export function LandingHeroPreview() {
         </div>
       </div>
       <div
-        aria-hidden="true"
         className="absolute -bottom-8 left-[5%] w-[11.5rem] rounded-[1.5rem] border-4 border-foreground bg-background p-2.5 pb-5 shadow-lg shadow-primary/20 sm:left-[7%] sm:w-56 sm:p-3 sm:pb-16"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-foreground/80" />
@@ -67,6 +62,6 @@ export function LandingHeroPreview() {
           <p className="mt-1 text-xs text-muted-foreground">자료구조 01분반 · 여석 1</p>
         </div>
       </div>
-    </figure>
+    </div>
   );
 }
