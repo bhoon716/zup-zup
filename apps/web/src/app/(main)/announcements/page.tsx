@@ -49,9 +49,9 @@ export default function AnnouncementsPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="font-schedule mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">공지사항</h1>
+        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">공지사항</h1>
 
         <form
           ref={listTop}
@@ -71,7 +71,7 @@ export default function AnnouncementsPage() {
             <SelectTrigger aria-label="검색 기준" className="rounded-lg bg-card">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" align="start">
+            <SelectContent position="popper" align="start" className="font-schedule">
               {searchOptions.map(({ value, label }) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -111,7 +111,7 @@ export default function AnnouncementsPage() {
                   className="group grid items-start gap-x-4 gap-y-1.5 px-4 py-3.5 hover:bg-muted/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary sm:grid-cols-[minmax(0,1fr)_auto] sm:px-5"
                 >
                   <div className="min-w-0">
-                    <h2 className="text-sm font-semibold wrap-anywhere break-keep text-foreground group-hover:text-primary sm:text-base">
+                    <h2 className="text-[0.9375rem] leading-snug font-medium wrap-anywhere break-keep text-foreground group-hover:text-primary sm:text-base">
                       {announcement.pinned && <span className="sr-only">상단 고정 </span>}
                       {announcement.title}
                       {announcement.pinned && (
@@ -120,7 +120,7 @@ export default function AnnouncementsPage() {
                         </span>
                       )}
                     </h2>
-                    {announcement.previewContent && <p className="mt-0.5 truncate text-sm leading-relaxed text-muted-foreground">{announcement.previewContent}</p>}
+                    {announcement.previewContent && <p className="mt-1 truncate text-sm leading-normal text-muted-foreground">{announcement.previewContent}</p>}
                   </div>
                   <time dateTime={announcement.createdAt} className="whitespace-nowrap text-xs tabular-nums text-muted-foreground sm:mt-1">
                     {formatDate(announcement.createdAt)}
