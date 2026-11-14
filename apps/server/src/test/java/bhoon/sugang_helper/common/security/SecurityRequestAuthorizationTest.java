@@ -81,6 +81,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.unit.DataSize;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @SpringBootTest(classes = SecurityRequestAuthorizationTest.TestApplication.class)
 @AutoConfigureMockMvc
@@ -148,6 +149,21 @@ class SecurityRequestAuthorizationTest {
 
     @MockitoBean
     private OAuth2FailureHandler oAuth2FailureHandler;
+
+    @Test
+    @DisplayName("Google 로그인은 계정 선택을 요청한다")
+    void googleLoginRequestsAccountChooser() throws Exception {
+        // when
+        MvcResult result = mockMvc.perform(get("/oauth2/authorization/google"))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        // then
+        var redirect = UriComponentsBuilder.fromUriString(result.getResponse().getRedirectedUrl()).build();
+        assertThat(redirect.getHost()).isEqualTo("accounts.google.com");
+        assertThat(redirect.getQueryParams().getFirst("prompt")).isEqualTo("select_account");
+        assertThat(redirect.getQueryParams().getFirst("state")).isNotBlank();
+    }
 
     @Test
     @DisplayName("인증 없이 관리자 대시보드에 접근하면 거부한다")

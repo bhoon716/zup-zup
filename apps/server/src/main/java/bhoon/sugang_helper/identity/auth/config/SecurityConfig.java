@@ -19,6 +19,11 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -38,6 +43,9 @@ public class SecurityConfig {
 
     private static final String COURSE_SEARCH_PATH = "/api/v1/courses/search";
     private static final String ADMIN_ROLE = "ADMIN";
+    private static final String GOOGLE_REGISTRATION_ID = "google";
+    private static final String GOOGLE_PROMPT_PARAMETER = "prompt";
+    private static final String GOOGLE_ACCOUNT_SELECTION_PROMPT = "select_account";
 
     private static final String[] PERMIT_ALL_ENDPOINTS = new String[]{
             "/api/health",
@@ -93,7 +101,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository securityContextRepository,
-                                          CsrfTokenRepository csrfTokenRepository) throws Exception {
+                                          CsrfTokenRepository csrfTokenRepository,
+                                          ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository)
@@ -118,6 +127,8 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(FrameOptionsConfig::sameOrigin))
                 .addFilterBefore(sessionAuthenticationFilter, CsrfFilter.class)
                 .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(endpoint -> endpoint.authorizationRequestResolver(
+                                authorizationRequestResolver(clientRegistrationRepository)))
                         .securityContextRepository(securityContextRepository)
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService))
@@ -125,6 +136,19 @@ public class SecurityConfig {
                         .failureHandler(oAuth2FailureHandler));
 
         return http.build();
+    }
+
+    private OAuth2AuthorizationRequestResolver authorizationRequestResolver(
+            ClientRegistrationRepository clientRegistrationRepository) {
+        DefaultOAuth2AuthorizationRequestResolver resolver = new DefaultOAuth2AuthorizationRequestResolver(
+                clientRegistrationRepository, OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI);
+        resolver.setAuthorizationRequestCustomizer(builder -> builder.attributes(attributes -> {
+            if (GOOGLE_REGISTRATION_ID.equals(attributes.get(OAuth2ParameterNames.REGISTRATION_ID))) {
+                builder.additionalParameters(parameters -> parameters.put(
+                        GOOGLE_PROMPT_PARAMETER, GOOGLE_ACCOUNT_SELECTION_PROMPT));
+            }
+        }));
+        return resolver;
     }
 
     @Bean
