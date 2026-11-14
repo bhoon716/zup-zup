@@ -57,13 +57,18 @@ public class DiscordNotificationSender implements NotificationSender {
     }
 
     @Override
+    public boolean isConfigured() {
+        return StringUtils.hasText(botToken) && !botToken.equals("<DISCORD_BOT_TOKEN>");
+    }
+
+    @Override
     public void send(NotificationTarget target, String title, String message) {
         send(target, title, message, null);
     }
 
     @Override
     public void send(NotificationTarget target, String title, String message, String idempotencyKey) {
-        if (!StringUtils.hasText(botToken) || botToken.equals("<DISCORD_BOT_TOKEN>")) {
+        if (!isConfigured()) {
             logMissingBotToken();
             return;
         }

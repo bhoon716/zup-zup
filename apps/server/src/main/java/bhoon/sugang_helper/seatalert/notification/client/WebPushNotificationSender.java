@@ -76,6 +76,11 @@ public class WebPushNotificationSender implements NotificationSender {
     }
 
     @Override
+    public boolean isConfigured() {
+        return pushService != null;
+    }
+
+    @Override
     public void send(NotificationTarget target, String title, String message) {
         send(target, title, message, null);
     }
@@ -100,7 +105,7 @@ public class WebPushNotificationSender implements NotificationSender {
 
     private void sendPush(NotificationTarget target, String title, String message, String idempotencyKey,
                           String path, boolean durable) {
-        if (pushService == null) {
+        if (!isConfigured()) {
             throw new CustomException(ErrorCode.WEB_PUSH_NOT_INITIALIZED);
         }
 

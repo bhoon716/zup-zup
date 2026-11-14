@@ -69,7 +69,7 @@ public class NotificationChannelPolicy {
         };
     }
 
-    private boolean isGlobalChannelEnabled(NotificationChannel channel) {
+    boolean isGlobalChannelEnabled(NotificationChannel channel) {
         return switch (channel) {
             case EMAIL -> notificationProperties.email();
             case DISCORD -> notificationProperties.discord();

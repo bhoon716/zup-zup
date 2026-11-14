@@ -7,6 +7,8 @@ import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.identity.auth.service.SessionInvalidator;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.OnboardingNotificationRecipients;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.dto.command.SendVerificationCodeCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateSettingsCommand;
@@ -27,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserService {
+public class UserService implements OnboardingNotificationRecipients {
 
     private static final String EVENT_KEY = "event";
     private static final String USER_ID_KEY = "userId";
@@ -94,11 +96,7 @@ public class UserService {
         User user = getCurrentUser();
         String newEmail = command.notificationEmail();
 
-        if (newEmail != null && !newEmail.equals(user.getEmail())) {
-            if (!emailVerificationService.isVerified(user.getId(), newEmail)) {
-                throw new CustomException(ErrorCode.UNVERIFIED_EMAIL);
-            }
-        }
+        requireVerifiedNotificationEmail(user, newEmail);
 
         user.completeOnboarding(
                 newEmail,
@@ -107,6 +105,16 @@ public class UserService {
                 command.discordEnabled());
         logUserOnboardingCompleted(user.getId(), SensitiveDataRedactor.fingerprint(user.getEmail()));
         return UserOnboardingResult.from(user);
+    }
+
+    @Override
+    public NotificationRecipient requireCurrentOnboardingTestRecipient(String requestedEmail) {
+        User user = getCurrentUser();
+        if (user.isOnboardingCompleted()) {
+            throw new CustomException(ErrorCode.FORBIDDEN, "초기 설정이 완료된 계정은 설정에서 테스트해 주세요.");
+        }
+        requireVerifiedNotificationEmail(user, requestedEmail);
+        return UserNotificationQueryService.toRecipient(user, requestedEmail);
     }
 
     @Transactional
@@ -148,6 +156,13 @@ public class UserService {
         return userRepository.findByEmail(email)
                 .filter(user -> !user.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+    }
+
+    private void requireVerifiedNotificationEmail(User user, String requestedEmail) {
+        if (requestedEmail != null && !requestedEmail.equals(user.getEmail())
+                && !emailVerificationService.isVerified(user.getId(), requestedEmail)) {
+            throw new CustomException(ErrorCode.UNVERIFIED_EMAIL);
+        }
     }
 
     private void logUserNotificationSettingsUpdated(Long userId, boolean emailEnabled, boolean webPushEnabled) {

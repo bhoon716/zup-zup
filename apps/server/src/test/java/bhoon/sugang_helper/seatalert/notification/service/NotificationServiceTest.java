@@ -3,6 +3,7 @@ package bhoon.sugang_helper.seatalert.notification.service;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.anyString;
@@ -31,9 +32,11 @@ import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -203,6 +206,92 @@ class NotificationServiceTest {
         assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
+    }
+
+    @Test
+    @DisplayName("온보딩 테스트는 설정에 저장하지 않은 채널로 본인의 발송 대상만 사용한다")
+    void sendsToOnlyTheDraftRecipientAndTheirRegisteredDevice() {
+        // given
+        String draftEmail = "draft@example.com";
+        String discordId = "linked-discord";
+        User user = User.builder().id(1L).email(EMAIL).notificationEmail(draftEmail).discordId(discordId).build();
+        addRecipient(user);
+        addDevice(UserDevice.builder().userId(1L).token(DEVICE_TOKEN).p256dh("p256").auth("auth").build());
+        addDevice(UserDevice.builder().userId(2L).token("other-token").p256dh("p256").auth("auth").build());
+        given(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).willReturn(true);
+        given(notificationSender.supports(any(NotificationChannel.class))).willReturn(true);
+        given(notificationSender.isConfigured()).willReturn(true);
+
+        // when
+        notificationService.sendOnboardingTestNotification(recipients.get(user.getId()),
+                List.of(NotificationChannel.EMAIL, NotificationChannel.WEB, NotificationChannel.DISCORD));
+
+        // then
+        for (String target : List.of(draftEmail, DEVICE_TOKEN, discordId)) {
+            verify(notificationSender).sendDelivery(
+                    argThat(value -> value.getRecipient().equals(target)),
+                    anyString(), anyString(), eq(null), eq("/"));
+        }
+        verify(notificationSender, times(3)).sendDelivery(any(), anyString(), anyString(), eq(null), eq("/"));
+    }
+
+    @Test
+    @DisplayName("선택한 디스코드가 연동되지 않았으면 온보딩 테스트는 이메일도 발송하지 않는다")
+    void rejectsUnavailableDraftTargetBeforeDispatchingOtherChannels() {
+        // given
+        User user = User.builder().id(1L).email(EMAIL).build();
+        addRecipient(user);
+        given(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).willReturn(true);
+        given(notificationSender.supports(any(NotificationChannel.class))).willReturn(true);
+        given(notificationSender.isConfigured()).willReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> notificationService.sendOnboardingTestNotification(recipients.get(user.getId()),
+                List.of(NotificationChannel.EMAIL, NotificationChannel.DISCORD)))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+        verify(notificationSender, never()).sendDelivery(any(), anyString(), anyString(), any(), anyString());
+    }
+
+    @Test
+    @DisplayName("발송기가 설정되지 않은 채널은 온보딩 테스트 성공으로 처리하지 않는다")
+    void rejectsUnconfiguredSender() {
+        // given
+        User user = User.builder().id(1L).email(EMAIL).discordId("linked-discord").build();
+        addRecipient(user);
+        given(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class))).willReturn(true);
+        given(notificationSender.supports(NotificationChannel.DISCORD)).willReturn(true);
+        given(notificationSender.isConfigured()).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> notificationService.sendOnboardingTestNotification(recipients.get(user.getId()),
+                List.of(NotificationChannel.DISCORD)))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+        verify(notificationSender, never()).sendDelivery(any(), anyString(), anyString(), any(), anyString());
+    }
+
+    @Test
+    @DisplayName("온보딩 테스트와 저장된 설정 테스트는 계정별 요청 제한을 공유한다")
+    void sharesCooldownBetweenDraftAndSavedSettingsTests() {
+        // given
+        User user = User.builder().id(1L).email(EMAIL).emailEnabled(true).build();
+        addRecipient(user);
+        Set<String> acquiredKeys = new HashSet<>();
+        given(redisService.setValuesIfAbsent(anyString(), anyString(), any(Duration.class)))
+                .willAnswer(invocation -> acquiredKeys.add(invocation.getArgument(0)));
+        given(notificationSender.supports(NotificationChannel.EMAIL)).willReturn(true);
+        given(notificationSender.isConfigured()).willReturn(true);
+
+        // when
+        notificationService.sendOnboardingTestNotification(
+                recipients.get(user.getId()), List.of(NotificationChannel.EMAIL));
+
+        // then
+        assertThatThrownBy(() -> notificationService.sendUserTestNotification(user.getId()))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
+        verify(notificationSender, never()).send(any(), anyString(), anyString());
     }
 
     @Test

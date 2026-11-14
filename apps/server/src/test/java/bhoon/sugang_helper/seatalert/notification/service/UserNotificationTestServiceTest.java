@@ -12,6 +12,9 @@ import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
+import bhoon.sugang_helper.identity.api.notifications.OnboardingNotificationRecipients;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +29,8 @@ class UserNotificationTestServiceTest {
     private static final String EMAIL = "module@example.invalid";
 
     @Mock private NotificationRecipients recipients;
+
+    @Mock private OnboardingNotificationRecipients onboardingRecipients;
 
     @Mock private NotificationService notifications;
 
@@ -94,6 +99,21 @@ class UserNotificationTestServiceTest {
             assertThatThrownBy(service::sendTestNotification).isInstanceOf(CustomException.class);
             verifyNoInteractions(notifications);
         }
+    }
+
+    @Test
+    @DisplayName("이메일을 선택하지 않은 온보딩 테스트에는 이메일 발송 주소를 지정하지 않는다")
+    void onlyResolvesDraftEmailWhenSelected() {
+        // given
+        NotificationRecipient user = recipient(false, false);
+        given(onboardingRecipients.requireCurrentOnboardingTestRecipient(null)).willReturn(user);
+        List<NotificationChannel> channels = List.of(NotificationChannel.WEB);
+
+        // when
+        service.sendOnboardingTestNotification(EMAIL, channels);
+
+        // then
+        verify(notifications).sendOnboardingTestNotification(user, channels);
     }
 
     private NotificationRecipient recipient(boolean deleted, boolean emailEnabled) {

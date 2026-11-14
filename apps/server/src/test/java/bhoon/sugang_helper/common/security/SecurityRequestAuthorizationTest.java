@@ -37,7 +37,9 @@ import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.seatalert.api.NotificationTraffic;
 import bhoon.sugang_helper.seatalert.notification.controller.AdminNotificationDeliveryController;
+import bhoon.sugang_helper.seatalert.notification.controller.UserNotificationTestController;
 import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
+import bhoon.sugang_helper.seatalert.notification.service.UserNotificationTestService;
 import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
 import bhoon.sugang_helper.support.feedback.controller.FeedbackController;
 import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
@@ -130,6 +132,9 @@ class SecurityRequestAuthorizationTest {
     private AdminNotificationDeliveryService adminNotificationDeliveryService;
 
     @MockitoBean
+    private UserNotificationTestService userNotificationTestService;
+
+    @MockitoBean
     private AnnouncementService announcementService;
 
     @MockitoBean
@@ -217,6 +222,29 @@ class SecurityRequestAuthorizationTest {
                         .content("{}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"));
+    }
+
+    @Test
+    @DisplayName("온보딩 테스트 알림에는 로그인과 CSRF 토큰이 필요하다")
+    void onboardingTestRequiresAuthenticationAndCsrf() throws Exception {
+        // given
+        String path = "/api/v1/users/notifications/test/onboarding";
+        String request = """
+                {"notificationEmail":"user@example.com","emailEnabled":true}
+                """;
+
+        // when & then
+        mockMvc.perform(post(path).with(csrf().asHeader())
+                        .contentType(MediaType.APPLICATION_JSON).content(request))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+        mockMvc.perform(post(path).session(authenticatedSession("ROLE_USER"))
+                        .contentType(MediaType.APPLICATION_JSON).content(request))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("A003"));
+        mockMvc.perform(post(path).session(authenticatedSession("ROLE_USER")).with(csrf().asHeader())
+                        .contentType(MediaType.APPLICATION_JSON).content(request))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -494,6 +522,7 @@ class SecurityRequestAuthorizationTest {
             CustomAuthenticationEntryPoint.class,
             AdminController.class,
             AdminNotificationDeliveryController.class,
+            UserNotificationTestController.class,
             AdminFeedbackController.class,
             AnnouncementController.class,
             FeedbackController.class,

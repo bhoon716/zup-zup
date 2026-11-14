@@ -15,7 +15,9 @@ import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarge
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -84,11 +86,7 @@ public class NotificationService implements NotificationOperations {
 
     void sendDelivery(NotificationChannel channel, NotificationTarget target, String title, String body,
                       String idempotencyKey, String path) {
-        NotificationSender sender = notificationSenders.stream()
-                .filter(candidate -> candidate.supports(channel))
-                .findFirst()
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
-                        "알림 채널 발송기가 없습니다: " + channel));
+        NotificationSender sender = requireSender(channel);
         String providerKey = NotificationDeliveryIdempotencyKey.providerKey(idempotencyKey);
         notificationProviderResilience.execute(channel,
                 () -> sender.sendDelivery(target, title, body, providerKey, path));
@@ -114,13 +112,7 @@ public class NotificationService implements NotificationOperations {
     }
 
     public void sendUserTestNotification(Long userId) {
-        String cooldownKey = USER_TEST_COOLDOWN_KEY_PREFIX + userId;
-        boolean acquired = redisService.setValuesIfAbsent(cooldownKey, "LOCK", USER_TEST_COOLDOWN);
-        if (!acquired) {
-            throw new CustomException(ErrorCode.TOO_MANY_REQUESTS,
-                    "알림 테스트는 " + USER_TEST_COOLDOWN.toSeconds() + "초에 한 번만 가능합니다. 잠시 후 다시 시도해주세요.");
-        }
-
+        acquireUserTestCooldown(userId);
         NotificationRecipient user = userNotificationQuery.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         List<NotificationChannel> channels = notificationChannelPolicy.userEnabledChannels(user);
@@ -130,6 +122,54 @@ public class NotificationService implements NotificationOperations {
                     "활성화된 알림 채널에 발송 대상이 없습니다. 설정에서 수신 대상을 확인해주세요.");
         }
         logNotificationTestRequested(user.id(), channels);
+    }
+
+    void sendOnboardingTestNotification(NotificationRecipient user, List<NotificationChannel> channels) {
+        acquireUserTestCooldown(user.id());
+        Map<NotificationChannel, List<NotificationTarget>> targetsByChannel = requireTestTargets(user, channels);
+        NotificationMessage message = createTestMessage();
+
+        for (var entry : targetsByChannel.entrySet()) {
+            NotificationChannel channel = entry.getKey();
+            logNotificationTestSendStarted(channel, user.id());
+            for (NotificationTarget target : entry.getValue()) {
+                sendDelivery(channel, target, message.title(), message.body(), null, "/");
+            }
+        }
+        logNotificationTestRequested(user.id(), channels);
+    }
+
+    private Map<NotificationChannel, List<NotificationTarget>> requireTestTargets(
+            NotificationRecipient user, List<NotificationChannel> channels) {
+        Map<NotificationChannel, List<NotificationTarget>> targetsByChannel = new EnumMap<>(NotificationChannel.class);
+        for (NotificationChannel channel : channels) {
+            if (!notificationChannelPolicy.isGlobalChannelEnabled(channel) || !requireSender(channel).isConfigured()) {
+                throw new CustomException(ErrorCode.INVALID_INPUT, "현재 사용할 수 없는 알림 채널입니다: " + channel);
+            }
+            List<NotificationTarget> targets = resolveDeliveryTargets(user, channel);
+            if (targets.isEmpty()) {
+                throw new CustomException(ErrorCode.INVALID_INPUT, notificationChannelPolicy.buildNoTargetMessage(channel));
+            }
+            targetsByChannel.put(channel, targets);
+        }
+        return targetsByChannel;
+    }
+
+    private NotificationSender requireSender(NotificationChannel channel) {
+        return notificationSenders.stream()
+                .filter(candidate -> candidate.supports(channel))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
+                        "알림 채널 발송기가 없습니다: " + channel));
+    }
+
+    private void acquireUserTestCooldown(Long userId) {
+        String cooldownKey = USER_TEST_COOLDOWN_KEY_PREFIX + userId;
+        boolean acquired = redisService.setValuesIfAbsent(cooldownKey, "LOCK", USER_TEST_COOLDOWN);
+        if (!acquired) {
+            throw new CustomException(ErrorCode.TOO_MANY_REQUESTS,
+                    "알림 테스트는 " + USER_TEST_COOLDOWN.toSeconds() + "초에 한 번만 가능합니다. 잠시 후 다시 시도해주세요.");
+        }
     }
 
     private boolean sendNotification(NotificationRecipient user, List<NotificationDevice> devices,

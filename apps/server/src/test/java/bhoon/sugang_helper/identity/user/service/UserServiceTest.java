@@ -230,4 +230,59 @@ class UserServiceTest {
         assertThat(user.getNotificationEmail()).isEqualTo(NOTIFY_EMAIL);
     }
 
+    @Test
+    @DisplayName("온보딩 테스트는 본인 인증을 받은 이메일과 연결한 디스코드를 사용하고 설정을 저장하지 않는다")
+    void resolvesVerifiedDraftRecipientWithoutSavingSettings() {
+        // given
+        String discordId = "linked-discord";
+        User user = User.builder().id(1L).email(TEST_EMAIL).notificationEmail(NOTIFY_EMAIL)
+                .discordId(discordId).build();
+        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
+        when(emailVerificationService.isVerified(1L, NEW_EMAIL)).thenReturn(true);
+
+        // when
+        var recipient = userService.requireCurrentOnboardingTestRecipient(NEW_EMAIL);
+
+        // then
+        assertThat(recipient.id()).isEqualTo(1L);
+        assertThat(recipient.notificationEmail()).isEqualTo(NEW_EMAIL);
+        assertThat(recipient.discordId()).isEqualTo(discordId);
+        assertThat(user.getNotificationEmail()).isEqualTo(NOTIFY_EMAIL);
+        assertThat(user.hasEnabledNotificationChannels()).isFalse();
+        assertThat(user.isOnboardingCompleted()).isFalse();
+        verify(userRepository, never()).save(ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("온보딩 테스트는 로그인 이메일을 허용하고 검증되지 않은 이메일을 거부한다")
+    void acceptsLoginEmailAndRejectsUnverifiedDraftEmail() {
+        // given
+        User user = User.builder().id(1L).email(TEST_EMAIL).notificationEmail(NOTIFY_EMAIL).build();
+        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
+
+        // when & then
+        assertThat(userService.requireCurrentOnboardingTestRecipient(TEST_EMAIL).notificationEmail())
+                .isEqualTo(TEST_EMAIL);
+        verify(emailVerificationService, never()).isVerified(1L, TEST_EMAIL);
+        assertThatThrownBy(() -> userService.requireCurrentOnboardingTestRecipient(NOTIFY_EMAIL))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNVERIFIED_EMAIL);
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료한 계정은 온보딩 테스트 알림을 보낼 수 없다")
+    void rejectsDraftTestAfterCompletingOnboarding() {
+        // given
+        User user = User.builder().id(1L).email(TEST_EMAIL).onboardingCompleted(true).build();
+        securityUtil.when(SecurityUtil::getCurrentUserEmail).thenReturn(TEST_EMAIL);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
+
+        // when & then
+        assertThatThrownBy(() -> userService.requireCurrentOnboardingTestRecipient(TEST_EMAIL))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FORBIDDEN);
+    }
+
 }

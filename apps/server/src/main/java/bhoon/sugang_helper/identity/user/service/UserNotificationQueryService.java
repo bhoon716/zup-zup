@@ -64,11 +64,15 @@ public class UserNotificationQueryService implements NotificationRecipients {
     }
 
     private static NotificationRecipient toRecipient(User user) {
+        return toRecipient(user, user.getNotificationEmail());
+    }
+
+    static NotificationRecipient toRecipient(User user, String notificationEmail) {
         return new NotificationRecipient(
                 user.getId(),
                 user.isDeleted(),
                 user.getEmail(),
-                user.getNotificationEmail(),
+                notificationEmail,
                 user.isEmailEnabled(),
                 user.isWebPushEnabled(),
                 user.isDiscordEnabled(),
