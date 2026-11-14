@@ -4,7 +4,8 @@ import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackSearchType;
 
 public record AdminFeedbackSearch(String keyword, AdminFeedbackSearchType type) {
 
-    public AdminFeedbackSearch {
-        keyword = keyword == null ? "" : keyword.strip();
+    public AdminFeedbackSearch(String keyword, AdminFeedbackSearchType type) {
+        this.keyword = keyword == null ? "" : keyword.strip();
+        this.type = type;
     }
 }
