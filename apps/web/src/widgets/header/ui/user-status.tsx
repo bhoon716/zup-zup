@@ -27,7 +27,7 @@ export function HeaderUserActions({ isLoggedIn, isPending, onLogout, onLoginClic
   return (
     <div className="flex items-center gap-2 xl:gap-3">
       <Button asChild variant="ghost" size="icon-lg" className="rounded-[8px] text-muted-foreground hover:bg-primary/10 hover:text-primary xl:size-9">
-        <Link href="/settings" aria-label="프로필" title="프로필">
+        <Link href="/profile" aria-label="프로필" title="프로필">
           <CircleUserRound aria-hidden="true" className="size-5 xl:size-4" />
         </Link>
       </Button>

@@ -140,7 +140,7 @@ describe("Header", () => {
     expect(mockNavLinks).toHaveBeenCalledWith(
       expect.objectContaining({ isLoggedIn: true, isAdmin: true })
     );
-    expect(screen.getByRole("link", { name: "프로필" })).toHaveAttribute("href", "/settings");
+    expect(screen.getByRole("link", { name: "프로필" })).toHaveAttribute("href", "/profile");
     expect(screen.getByRole("button", { name: "알림함" })).toBeInTheDocument();
   });
 

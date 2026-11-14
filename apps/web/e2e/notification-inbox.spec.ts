@@ -211,7 +211,7 @@ test("작은 화면에서 알림을 읽고, 검색하고, 삭제한 뒤 최신 �
   await page.getByRole("tab", { name: "알림함", exact: true }).click();
   await expect(list.getByRole("button", { name: whileClosed.courseName, exact: true })).toBeVisible();
 
-  await page.goto("/settings");
+  await page.goto("/profile/subscriptions");
   const subscriptions = page.getByRole("region", { name: "구독 중인 강의" });
   await expect(subscriptions.getByRole("button", { name: "구독 중인 강의", exact: true })).toBeVisible();
   await expect(subscriptions.getByRole("button", { name: "구독 중인 강의 알림 구독 해제" })).toBeVisible();

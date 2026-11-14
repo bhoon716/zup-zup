@@ -10,7 +10,7 @@ import { parseCourseKey } from "@/shared/lib/course";
 import type { Course, Subscription, User } from "@/shared/types/api";
 
 export function SubscriptionList({ user }: { user: User }) {
-  const { data: subscriptions, isLoading } = useSubscriptions(true, user);
+  const { data: subscriptions, isLoading, isError, isFetching, refetch } = useSubscriptions(true, user);
   const { mutate: unsubscribe, isPending: isUnsubscribing } = useUnsubscribe();
   const { mutate: unsubscribeAll, isPending: isUnsubscribingAll } = useUnsubscribeAll();
 
@@ -37,6 +37,17 @@ export function SubscriptionList({ user }: { user: User }) {
         <Loader2 aria-hidden="true" className="size-4 animate-spin text-primary" />
         강의 구독을 불러오는 중입니다.
       </p>
+    );
+  }
+
+  if (isError && !subscriptions) {
+    return (
+      <div className="space-y-3 p-4 sm:p-5">
+        <p role="alert" className="text-sm text-muted-foreground">강의 구독을 불러오지 못했습니다.</p>
+        <Button type="button" variant="outline" disabled={isFetching} onClick={() => void refetch()}>
+          다시 불러오기
+        </Button>
+      </div>
     );
   }
 

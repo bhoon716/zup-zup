@@ -5,7 +5,7 @@ const inboxName = "알림함";
 
 test.use({ userAgent: "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15" });
 
-test("비로그인 새로고침에서는 프로필 응답을 기다리는 동안에도 공개 헤더가 보인다", async ({ page }) => {
+test("비로그인 프로필 방문에서 공개 헤더는 즉시 표시되고 프로필은 로그인 상태를 확인한다", async ({ page }) => {
   let finishProfile = () => {};
   const inboxRequests: string[] = [];
   page.on("request", (request) => {
@@ -17,9 +17,10 @@ test("비로그인 새로고침에서는 프로필 응답을 기다리는 동안
     await route.fulfill({ status: 401, json: { code: "A001" } });
   });
   await page.setViewportSize({ width: 1440, height: 900 });
+  const main = page.getByRole("main");
   try {
     const profileRequest = page.waitForRequest("**/api/v1/users/me");
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.goto("/profile", { waitUntil: "domcontentloaded" });
     await profileRequest;
     const header = page.getByRole("banner");
     await expect(header.getByRole("link", { name: "로그인", exact: true })).toBeVisible();
@@ -27,10 +28,14 @@ test("비로그인 새로고침에서는 프로필 응답을 기다리는 동안
     await expect(header.getByRole("link", { name: "내 시간표" })).toHaveCount(0);
     await expect(header.locator(".animate-pulse")).toHaveCount(0);
     await expect(header.getByRole("button", { name: inboxName })).toHaveCount(0);
+    await expect(main.getByRole("status")).toHaveText("로그인 상태를 확인하는 중입니다.");
+    await expect(main.getByRole("navigation", { name: "프로필 설정" })).toHaveCount(0);
     expect(inboxRequests).toEqual([]);
   } finally {
     finishProfile();
   }
+  await expect(main.getByRole("link", { name: "로그인", exact: true })).toHaveAttribute("href", "/login");
+  await expect(main.getByRole("navigation", { name: "프로필 설정" })).toHaveCount(0);
 });
 
 test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼이 겹치지 않는다", async ({ page, baseURL }) => {
@@ -66,7 +71,7 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
     const isCompact = width < 1280;
     await expect(inboxTrigger).toBeVisible();
     await expect(profile).toBeVisible();
-    await expect(profile).toHaveAttribute("href", "/settings");
+    await expect(profile).toHaveAttribute("href", "/profile");
     if (isCompact) {
       await expect(menuTrigger).toBeVisible();
       await expect(desktopNav).toBeHidden();
@@ -114,7 +119,24 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await expect(compactMenu).toBeHidden();
   await expect(menuTrigger).toBeFocused();
   await profile.click();
+  await expect(page).toHaveURL(/\/profile$/);
+  const main = page.getByRole("main");
+  await expect(main.getByRole("heading", { name: "프로필", exact: true })).toBeVisible();
+  await expect(main.getByText(admin.name, { exact: true })).toBeVisible();
+  await expect(main.getByText(admin.email, { exact: true })).toBeVisible();
+
+  await main.getByRole("link", { name: "알림 설정", exact: true }).press("Enter");
   await expect(page).toHaveURL(/\/settings$/);
+  await expect(main.getByRole("heading", { name: "알림 설정", exact: true })).toBeVisible();
+  await expect(main.getByRole("heading", { name: "구독 중인 강의", exact: true })).toHaveCount(0);
+  await main.getByRole("link", { name: "프로필로 돌아가기" }).click();
+
+  await main.getByRole("link", { name: "구독 설정", exact: true }).click();
+  await expect(page).toHaveURL(/\/profile\/subscriptions$/);
+  await expect(main.getByRole("heading", { name: "구독 설정", exact: true })).toBeVisible();
+  await expect(main.getByText("구독 중인 강의가 없습니다.", { exact: true })).toBeVisible();
+  await main.getByRole("link", { name: "프로필로 돌아가기" }).click();
+  await expect(page).toHaveURL(/\/profile$/);
 });
 
 test("알림함 버튼은 열었을 때 최신 다섯 알림을 조회하고 전체 알림함으로 이동한다", async ({ page, baseURL }) => {
