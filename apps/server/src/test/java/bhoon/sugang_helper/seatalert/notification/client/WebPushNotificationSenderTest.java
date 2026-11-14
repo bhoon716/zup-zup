@@ -9,9 +9,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.identity.user.service.UserDeviceService;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import bhoon.sugang_helper.identity.user.service.UserDeviceService;
+import bhoon.sugang_helper.identity.user.service.WebPushEndpointValidator;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import bhoon.sugang_helper.seatalert.notification.exception.NotificationProviderException;
@@ -21,6 +22,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigInteger;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.ECPublicKey;
@@ -31,7 +33,12 @@ import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
 import org.apache.http.StatusLine;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.message.BasicHttpResponse;
+import org.jose4j.jws.JsonWebSignature;
+import org.jose4j.jwt.JwtClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -130,6 +137,41 @@ class WebPushNotificationSenderTest {
         verify(pushService).sendAsync(notification.capture(), eq(Encoding.AESGCM));
         String payload = new String(notification.getValue().getPayload(), StandardCharsets.UTF_8);
         assertThat(new ObjectMapper().readTree(payload).get("url").asText()).isEqualTo("/notifications");
+    }
+
+    @Test
+    @DisplayName("Chromium 테스트 푸시 발송 요청을 원래 주소와 VAPID 대상으로 만든다")
+    @SuppressWarnings("deprecation")
+    void createsChromiumStagingPushRequest() throws Exception {
+        // given
+        String endpoint = "https://jmt17.google.com/fcm/send/client_id:fixture-token_1";
+        UserDeviceService subscriptions = new UserDeviceService(null, null, new WebPushEndpointValidator());
+        WebPushNotificationSender sender = new WebPushNotificationSender("", "", "", new ObjectMapper(), subscriptions);
+        sender.init();
+
+        PushService pushService = Mockito.mock(PushService.class);
+        HttpResponse response = new BasicHttpResponse(HttpVersion.HTTP_1_1, 201, "Created");
+        when(pushService.sendAsync(any(Notification.class), eq(Encoding.AESGCM)))
+                .thenReturn(CompletableFuture.completedFuture(response));
+        ReflectionTestUtils.setField(sender, "pushService", pushService);
+
+        // when
+        sender.sendDelivery(NotificationTarget.ofWeb(endpoint, generateP256dh(), generateAuth()),
+                "제목", "내용", "key", "/notifications");
+
+        // then
+        ArgumentCaptor<Notification> notification = ArgumentCaptor.forClass(Notification.class);
+        verify(pushService).sendAsync(notification.capture(), eq(Encoding.AESGCM));
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC");
+        keyPairGenerator.initialize(new ECGenParameterSpec("secp256r1"));
+        PushService requestBuilder = new PushService(keyPairGenerator.generateKeyPair());
+        HttpPost request = requestBuilder.preparePost(notification.getValue(), Encoding.AESGCM);
+        assertThat(request.getURI()).isEqualTo(URI.create(endpoint));
+        assertThat(request.getEntity().getContentLength()).isPositive();
+        JsonWebSignature signature = new JsonWebSignature();
+        signature.setCompactSerialization(request.getFirstHeader("Authorization").getValue().split(" ", 2)[1]);
+        assertThat(JwtClaims.parse(signature.getUnverifiedPayload()).getAudience())
+                .containsExactly("https://jmt17.google.com");
     }
 
     private static String generateP256dh() throws Exception {
