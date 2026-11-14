@@ -491,7 +491,7 @@ export function CourseTable({
       <div className="space-y-2.5">
         <div
           ref={listRef}
-          className={isVirtual ? "relative [overflow-anchor:none]" : "grid"}
+          className={isVirtual ? "relative [overflow-anchor:none]" : "grid grid-cols-1"}
           style={isVirtual ? { height: virtualizer.getTotalSize() } : { rowGap: COURSE_CARD_GAP_PX }}
         >
           {isVirtual
