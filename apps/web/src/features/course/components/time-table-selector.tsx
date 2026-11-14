@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import { Check } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import type { CourseDayOfWeek, ScheduleCondition } from "@/shared/types/api";
@@ -295,9 +294,9 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
                       aria-label={`${day} ${Math.floor(SMART_FILTER_START_MINUTES / 60) - 8 + slot}교시`}
                       aria-pressed={selectedKeySet.has(key)}
                       className={cn(
-                        "grid h-8 touch-none place-items-center rounded-[6px] border transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
+                        "h-8 touch-none rounded-[6px] border transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
                         isSelected
-                          ? "border-teal-700/30 bg-teal-700/12 text-teal-900 hover:bg-teal-700/18 dark:border-teal-400/40 dark:bg-teal-400/15 dark:text-teal-200 dark:hover:bg-teal-400/25"
+                          ? "border-teal-700/30 bg-teal-700/12 hover:bg-teal-700/18 dark:border-teal-400/40 dark:bg-teal-400/15 dark:hover:bg-teal-400/25"
                           : "border-neutral-200 bg-card hover:border-teal-700/25 hover:bg-teal-700/5 dark:border-white/12 dark:hover:border-teal-400/35 dark:hover:bg-teal-400/8",
                       )}
                       onClick={(event) => {
@@ -305,9 +304,7 @@ export function TimeTableSelector({ selected, onChange }: TimeTableSelectorProps
                       }}
                       onPointerDown={(e) => handlePointerDownCell(e, day, slot)}
                       onPointerEnter={(e) => activePointerIdRef.current === e.pointerId && updateDragCell(day, slot)}
-                    >
-                      {isSelected && <Check aria-hidden="true" className="size-3.5" />}
-                    </button>
+                    />
                   );
                 })}
               </div>
