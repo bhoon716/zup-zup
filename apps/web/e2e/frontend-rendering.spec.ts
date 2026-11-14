@@ -29,9 +29,11 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
 
     const landing = page.getByRole("main");
     await expect(landing.getByRole("heading", { level: 1, name: "전북대 수강신청 빈자리, 이제 알림으로 잡으세요." })).toBeVisible();
-    await expect(landing.getByRole("heading", { name: "실시간 여석 알림", exact: true })).toBeVisible();
-    await expect(landing.getByRole("heading", { name: "스마트 시간표 관리", exact: true })).toBeVisible();
-    await expect(landing.getByRole("heading", { name: "정밀 강의 검색", exact: true })).toBeVisible();
+    await expect(landing.getByRole("heading", { level: 3 })).toHaveText([
+      "강의 검색",
+      "빈자리 알림 등록",
+      "빈자리 알림",
+    ]);
     await expect(landing.getByRole("heading", { name: "생생한 사용자 후기", exact: true })).toBeVisible();
     await expect(landing.getByRole("link", { name: "강의 먼저 둘러보기" })).toHaveAttribute("href", "/search");
   } finally {
@@ -47,16 +49,18 @@ test("홈 소개를 위아래로 스크롤하면 한 미리보기에서 강의 �
   await page.goto("/");
 
   const preview = page.getByTestId("landing-sticky-preview");
-  const search = { heading: "정밀 강의 검색", marker: "여석 0" };
-  const notification = { heading: "실시간 여석 알림", marker: "수강신청 빈자리가 생겼어요!" };
-  const timetable = { heading: "스마트 시간표 관리", marker: "시간 겹침 없음" };
+  const search = { heading: "강의 검색", marker: "여석 2" };
+  const registration = { heading: "빈자리 알림 등록", marker: "등록 완료" };
+  const notification = { heading: "빈자리 알림", marker: "수강신청 빈자리가 생겼어요!" };
   await expect(preview).toBeVisible();
 
   async function readChapter(chapter: typeof search, previous?: typeof search) {
-    await page.getByRole("heading", { name: chapter.heading }).evaluate((heading) => {
+    await page.getByRole("heading", { name: chapter.heading, exact: true }).evaluate((heading) => {
       window.scrollBy(0, heading.getBoundingClientRect().top - window.innerHeight * 0.54);
     });
-    await expect(preview.getByText(chapter.marker, { exact: true })).toBeInViewport();
+    const marker = preview.getByText(chapter.marker, { exact: true });
+    await expect(marker).toBeVisible();
+    await expect(marker).toBeInViewport();
     if (previous) {
       await expect(preview.getByText(previous.marker, { exact: true })).toBeHidden();
     }
@@ -64,13 +68,13 @@ test("홈 소개를 위아래로 스크롤하면 한 미리보기에서 강의 �
 
   const previewTop = () => preview.evaluate((element) => element.getBoundingClientRect().top);
   await readChapter(search);
-  await readChapter(notification, search);
+  await readChapter(registration, search);
   const pinnedTop = await previewTop();
-  await readChapter(timetable, notification);
+  await readChapter(notification, registration);
   expect(await previewTop()).toBeCloseTo(pinnedTop, 0);
-  await readChapter(notification, timetable);
+  await readChapter(registration, notification);
   expect(await previewTop()).toBeCloseTo(pinnedTop, 0);
-  await readChapter(search, notification);
+  await readChapter(search, registration);
 });
 
 test("긴 검색 목록은 페이지를 추가해도 카드 수를 제한하고 상세를 닫으면 초점을 돌려준다", async ({ page, baseURL }) => {

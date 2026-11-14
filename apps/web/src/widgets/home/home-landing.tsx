@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
+import { Pause, Play } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/shared/ui/button";
 import { LandingWalkthrough } from "./landing-walkthrough";
+
+import styles from "./landing-walkthrough.module.css";
 
 const everyTimeReviews = [
   {
@@ -36,37 +39,63 @@ const everyTimeReviews = [
   },
 ];
 
+function ReviewList({ repeated = false }: { repeated?: boolean }) {
+  return (
+    <ul
+      aria-hidden={repeated || undefined}
+      aria-label={repeated ? undefined : "사용자 후기 목록"}
+      className={styles.reviewList}
+      role="list"
+    >
+      {everyTimeReviews.map((review) => (
+        <li
+          key={review.id}
+          className="flex min-h-40 min-w-0 flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-xs dark:border-primary/5 dark:bg-primary/5"
+        >
+          <div>
+            <p className="mb-3 text-xs font-bold text-slate-800 dark:text-slate-200">익명</p>
+            <p className="text-[13px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+              {review.content}
+            </p>
+          </div>
+          <p className="mt-4 text-right text-[10px] font-bold text-slate-500 dark:text-slate-400">
+            {review.source}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function HomeLanding({ countdown }: { countdown: ReactNode }) {
   return (
     <main className="flex flex-col bg-[#fafafa] dark:bg-black">
-      <section className="relative pt-16 pb-24 md:pt-32 md:pb-40 overflow-hidden flex items-center">
-        <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center text-center relative z-10 w-full">
+      <section className="py-10 sm:py-14 md:pt-20 md:pb-24">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col items-center px-6 text-center">
           <h1
-            className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-[#161118] mb-8 leading-[1.1]"
+            className="mb-5 text-[clamp(1.5rem,7vw,2.125rem)] leading-[1.15] font-bold tracking-tight text-foreground md:text-[2.75rem] lg:text-5xl"
           >
-            전북대 수강신청 빈자리,<br/>
+            전북대 수강신청 빈자리,<br />
             <span className="text-primary">이제 알림으로 잡으세요.</span>
           </h1>
 
           <p
-            className="text-lg md:text-xl text-[#161118]/60 mb-12 max-w-2xl mx-auto leading-relaxed"
+            className="mx-auto mb-6 max-w-[34rem] break-keep text-base leading-relaxed text-muted-foreground md:mb-8 md:text-lg"
           >
             하루 종일 새로고침만 누르고 계신가요? 전북대 수강신청 빈자리 알림 서비스 &apos;줍줍&apos;이 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
           </p>
 
-          <div className="mb-8 w-full flex justify-center">
-            {countdown}
-          </div>
+          <div className="mb-6 flex w-full justify-center empty:hidden">{countdown}</div>
 
           <div
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
+            className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row"
           >
-            <Button asChild className="sm:w-auto h-auto w-full rounded-full bg-primary px-8 py-5 text-base font-bold text-white shadow-xl shadow-primary/30 transition-all hover:bg-primary/90">
+            <Button asChild className="h-auto w-full rounded-full px-6 py-3.5 text-sm font-bold shadow-md shadow-primary/20 sm:w-auto">
               <Link href="/login">
                 지금 시작하기
               </Link>
             </Button>
-            <Button asChild variant="outline" className="sm:w-auto h-auto w-full rounded-full border-2 border-primary/20 bg-white px-8 py-5 text-base font-bold text-primary transition-all hover:bg-primary/5">
+            <Button asChild variant="outline" className="h-auto w-full rounded-full border-primary/20 px-6 py-3.5 text-sm font-bold text-primary hover:bg-primary/5 sm:w-auto">
               <Link href="/search">
                 강의 먼저 둘러보기
               </Link>
@@ -79,8 +108,8 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
 
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-            <div>
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-x-5 gap-y-3">
+            <div className="min-w-0">
               <h2 className="text-2xl md:text-3xl font-bold text-[#161118] dark:text-white flex items-center gap-3">
                 생생한 사용자 후기
               </h2>
@@ -88,30 +117,19 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
                 줍줍 서비스를 이용한 대학생들의 실제 이용 후기입니다.
               </p>
             </div>
+            <input id="pause-landing-reviews" type="checkbox" className={styles.pauseReviews} />
+            <label htmlFor="pause-landing-reviews" className={styles.reviewControl}>
+              <span className="sr-only">후기 자동 이동 일시정지 또는 다시 재생</span>
+              <span className={styles.pauseLabel} aria-hidden="true"><Pause className="size-3.5" />일시정지</span>
+              <span className={styles.playLabel} aria-hidden="true"><Play className="size-3.5" />다시 재생</span>
+            </label>
+            <div className={styles.reviewViewport}>
+              <div className={styles.reviewTrack}>
+                <ReviewList />
+                <ReviewList repeated />
+              </div>
+            </div>
           </div>
-
-          <ul
-            aria-label="사용자 후기 목록"
-            tabIndex={0}
-            className="custom-scrollbar flex snap-x gap-6 overflow-x-auto rounded-2xl py-4 focus-visible:outline-2 focus-visible:outline-primary"
-          >
-            {everyTimeReviews.map((review) => (
-              <li
-                key={review.id}
-                className="flex min-h-44 w-[min(320px,85%)] shrink-0 snap-start flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-xs dark:border-primary/5 dark:bg-primary/5"
-              >
-                <div>
-                  <p className="mb-3 text-xs font-bold text-slate-800 dark:text-slate-200">익명</p>
-                  <p className="break-all text-[13px] font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
-                    {review.content}
-                  </p>
-                </div>
-                <p className="mt-4 text-right text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                  {review.source}
-                </p>
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
     </main>
