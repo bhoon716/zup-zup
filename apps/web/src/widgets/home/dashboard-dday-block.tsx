@@ -1,93 +1,49 @@
-"use client";
-
-import { Timer, ClipboardList } from "lucide-react";
+import { Timer } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import type { ScheduleResponse } from "@/shared/types/api";
+import { dashboardListStyles as styles } from "./dashboard-list-styles";
 
 export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules: ScheduleResponse[] }) {
-  const hasSchedules = upcomingSchedules.length > 0;
-
   return (
-    <div className="font-schedule bg-white dark:bg-gray-900 rounded-[2.5rem] p-4 sm:p-5 shadow-floating border border-gray-50 dark:border-gray-800 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-3 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
-            <Timer className="w-5 h-5 text-indigo-600" />
-          </div>
-          
-          <h3 className="text-xl font-normal text-gray-900 dark:text-gray-100">
-            주요 일정
-          </h3>
-        </div>
-      </div>
+    <div className={styles.card}>
+      <h3 className={styles.header}>
+        <span className={styles.icon}>
+          <Timer aria-hidden="true" className="size-5" />
+        </span>
+        주요 일정
+      </h3>
 
-      <div
-        className="flex-1 min-h-0 max-h-88 space-y-1.5 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        role={hasSchedules ? "list" : undefined}
-        aria-label={hasSchedules ? "주요 일정 목록" : undefined}
-        tabIndex={hasSchedules ? 0 : undefined}
-      >
-        {!hasSchedules ? (
-          <div className="flex flex-col items-center justify-center h-full min-h-20 text-center gap-2 text-gray-400">
-            <ClipboardList className="w-8 h-8 opacity-20" />
-            <p className="text-sm font-medium">현재 등록된 주요 일정이 없습니다.</p>
-          </div>
-        ) : (
-          upcomingSchedules.map((event) => {
-            const isDDay = event.dDay === "D-Day" || event.dDay === "진행 중";
+      {upcomingSchedules.length === 0 ? (
+        <p className={styles.empty}>현재 등록된 주요 일정이 없습니다.</p>
+      ) : (
+        <ul
+          className="max-h-88 space-y-2 overflow-y-auto overscroll-contain pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          aria-label="주요 일정 목록"
+          role="list"
+          tabIndex={0}
+        >
+          {upcomingSchedules.map((event) => {
+            const isOngoing = event.dDay === "D-Day" || event.dDay === "진행 중";
+            const start = [event.startDate, event.startTime].filter(Boolean).join(" ");
+            const end = [event.endDate, event.endTime].filter(Boolean).join(" ");
             return (
-              <div
-                key={event.id}
-                role="listitem"
-                className={cn(
-                  "relative flex w-full min-w-0 items-center gap-3 rounded-xl px-3 py-2 border transition-all cursor-default group",
-                  isDDay
-                    ? "bg-white dark:bg-gray-800 border-primary/20 shadow-sm"
-                    : "bg-gray-50/50 dark:bg-gray-900/50 border-transparent hover:bg-white dark:hover:bg-gray-800 hover:border-gray-100 dark:hover:border-gray-700"
-                )}
-              >
-
-                {isDDay && (
-                  <div className="absolute left-0 top-3 bottom-3 w-1 bg-primary rounded-r-full" />
-                )}
-
-                <div className={cn(
-                  "size-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
-                  isDDay ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"
-                )}>
-                  <ClipboardList className="size-5" />
+              <li key={event.id} className={styles.row}>
+                <div className="flex items-start justify-between gap-3">
+                  <h4 className={cn(styles.title, "wrap-anywhere break-keep")}>{event.scheduleType}</h4>
+                  <span className={cn(styles.metadata, isOngoing && "rounded bg-primary/10 px-1.5 py-0.5 text-primary")}>
+                    {event.dDay}
+                  </span>
                 </div>
-
-                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <h4 className="text-sm font-normal text-gray-900 dark:text-gray-100 break-keep">
-                    {event.scheduleType}
-                  </h4>
-                  <p className="text-[11px] text-gray-500 font-medium">
-                    {event.startDate} {event.startTime ? event.startTime : ""}
-                    {" "}~{" "}
-                    {event.endDate} {event.endTime ? event.endTime : ""}
-                  </p>
-                </div>
-
-                <div className={cn(
-                  "px-3 py-1.5 rounded-xl text-sm font-normal tracking-tight shrink-0 flex items-center justify-center min-w-14",
-                  isDDay
-                    ? "bg-primary text-white shadow-lg shadow-primary/20"
-                    : "bg-white dark:bg-gray-800 text-gray-400 border border-gray-100 dark:border-gray-700"
-                )}>
-                  {event.dDay}
-                </div>
-              </div>
+                <p className={styles.summary}>{start} ~ {end}</p>
+              </li>
             );
-          })
-        )}
-      </div>
-      
-      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 shrink-0">
-        <p className="text-[11px] text-gray-400 font-medium text-center">
-          * 실제 일정과 차이가 있을 수 있습니다. <br className="sm:hidden" />자세한 내용은 전북대학교 오아시스 및 수강신청 시스템을 우선적으로 참고해 주세요.
-        </p>
-      </div>
+          })}
+        </ul>
+      )}
+
+      <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
+        정확한 일정은 전북대학교 오아시스 및 수강신청 시스템에서 확인해 주세요.
+      </p>
     </div>
   );
 }

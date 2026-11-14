@@ -4,7 +4,9 @@ import Link from "next/link";
 import { ChevronRight, Loader2, Megaphone, Pin } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { useAnnouncements } from "@/features/announcement/hooks/useAnnouncements";
+import { cn } from "@/shared/lib/utils";
 import type { AnnouncementListItemResponse } from "@/shared/types/api";
+import { dashboardListStyles as styles } from "./dashboard-list-styles";
 
 const formatDate = (value: string) => {
   const date = new Date(value);
@@ -24,19 +26,17 @@ export function DashboardAnnouncements({ announcements }: { announcements?: Anno
   const loading = announcements ? false : isLoading;
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-4 sm:p-5 shadow-floating border border-gray-50 dark:border-gray-800 h-full">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
-            <Megaphone className="w-5 h-5 text-indigo-600" />
-          </div>
+    <div className={styles.card}>
+      <div className="flex items-start justify-between">
+        <h3 className={styles.header}>
+          <span className={styles.icon}>
+            <Megaphone aria-hidden="true" className="size-5" />
+          </span>
           공지사항
         </h3>
-        <Link href="/announcements">
-          <Button variant="ghost" size="sm" className="text-xs font-bold text-gray-400 hover:text-primary transition-colors">
-            전체보기 <ChevronRight className="w-4 h-4" />
-          </Button>
-        </Link>
+        <Button asChild variant="ghost" size="sm" className="self-start text-xs font-bold text-muted-foreground hover:text-primary">
+          <Link href="/announcements">전체보기 <ChevronRight aria-hidden="true" className="size-4" /></Link>
+        </Button>
       </div>
 
       {loading ? (
@@ -45,7 +45,7 @@ export function DashboardAnnouncements({ announcements }: { announcements?: Anno
           공지사항 불러오는 중...
         </div>
       ) : latestAnnouncements.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+        <div className={styles.empty}>
           등록된 공지사항이 없습니다.
         </div>
       ) : (
@@ -54,7 +54,7 @@ export function DashboardAnnouncements({ announcements }: { announcements?: Anno
             <Link
               key={item.id}
               href={`/announcements/${item.id}`}
-              className="group block rounded-2xl border border-gray-50 p-3 transition-all hover:border-indigo-100 hover:bg-indigo-50/30 dark:border-gray-800/50 dark:hover:border-indigo-900/40 dark:hover:bg-indigo-900/10"
+              className={cn(styles.row, "group transition-colors hover:border-indigo-100 hover:bg-indigo-50/30 dark:hover:border-indigo-900/40 dark:hover:bg-indigo-900/10")}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2.5">
@@ -64,13 +64,13 @@ export function DashboardAnnouncements({ announcements }: { announcements?: Anno
                       <span className="sr-only">고정 공지</span>
                     </span>
                   ) : null}
-                  <h4 className="truncate text-sm font-bold text-gray-800 transition-colors group-hover:text-indigo-600 dark:text-gray-200">
+                  <h4 className={cn(styles.title, "truncate transition-colors group-hover:text-indigo-600")}>
                     {item.title}
                   </h4>
                 </div>
-                <span className="shrink-0 text-[10px] font-medium text-gray-400">{formatDate(item.createdAt)}</span>
+                <span className={styles.metadata}>{formatDate(item.createdAt)}</span>
               </div>
-              <p className="mt-2 line-clamp-2 text-xs text-slate-500">{item.previewContent || "-"}</p>
+              <p className={cn(styles.summary, "line-clamp-2")}>{item.previewContent || "-"}</p>
             </Link>
           ))}
         </div>
