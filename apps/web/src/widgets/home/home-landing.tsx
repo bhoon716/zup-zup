@@ -8,8 +8,8 @@ import { LandingWalkthrough } from "./landing-walkthrough";
 import styles from "./landing-walkthrough.module.css";
 
 const statistics = [
-  { label: "누적 가입자", count: 121, unit: "명" },
-  { label: "빈자리 알림 발송 성공", count: 288, unit: "건" },
+  { label: "누적 가입자", count: 687, unit: "명" },
+  { label: "빈자리 알림 발송 성공", count: 7038, unit: "건" },
 ];
 const countFormatter = new Intl.NumberFormat("ko-KR");
 
