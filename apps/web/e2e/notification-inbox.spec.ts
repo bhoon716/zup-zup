@@ -206,7 +206,7 @@ test("유형별 알림을 열면 읽음으로 바뀌고 관련 화면으로 연�
   const messages = [
     { type: "FEEDBACK_REPLY", label: "문의 답변", title: "문의에 답변이 달렸습니다", message: "문의에 새 답변이 등록됐습니다. 문의 상세에서 답변을 확인해 주세요.", targetId: 21, href: "/feedback/21", available: true },
     { type: "ANNOUNCEMENT", label: "중요 공지", title: "확인할 수 없는 공지", message: "더 이상 확인할 수 없는 공지입니다.", targetId: 31, href: "/announcements/31", available: false },
-    { type: "DELIVERY_FAILED", label: "발송 실패", title: "이메일 발송 실패", message: "알림 설정에서 이메일을 확인하세요.", targetId: null, href: "/settings", available: true },
+    { type: "DELIVERY_FAILED", label: "알림 발송 실패", title: "이메일 발송 실패", message: "알림 설정에서 이메일을 확인하세요.", targetId: null, href: "/settings", available: true },
     { type: "DEVICE_REREGISTRATION", label: "기기 재등록", title: "웹 푸시 기기 재등록", message: "이 기기를 다시 등록하세요.", targetId: null, href: "/settings", available: true },
   ] satisfies Array<Pick<Exclude<InboxItem, { type: "SEAT_OPENED" }>, "type" | "title" | "message" | "targetId" | "available"> & { label: string; href: string }>;
   const items: InboxItem[] = messages.map(({ type, title, message, targetId, available }, index) => ({
@@ -263,7 +263,7 @@ test("유형별 알림을 열면 읽음으로 바뀌고 관련 화면으로 연�
   await page.keyboard.press("Escape");
   await filter.press("Space");
   await expect(page.getByRole("listbox").getByRole("option"))
-    .toHaveText(["모든 알림 유형", "문의 답변", "발송 실패", "기기 재등록"]);
+    .toHaveText(["모든 알림 유형", "문의 답변", "알림 발송 실패", "기기 재등록"]);
   await page.keyboard.press("Escape");
 
   for (const message of messages) {

@@ -4,7 +4,7 @@ export const inboxTypeLabels: Record<InboxItem["type"], string> = {
   SEAT_OPENED: "빈자리",
   FEEDBACK_REPLY: "문의 답변",
   ANNOUNCEMENT: "중요 공지",
-  DELIVERY_FAILED: "발송 실패",
+  DELIVERY_FAILED: "알림 발송 실패",
   DEVICE_REREGISTRATION: "기기 재등록",
 };
 
