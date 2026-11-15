@@ -109,7 +109,7 @@ export default function AnnouncementsPage() {
                 <Link
                   href={`/announcements/${announcement.id}`}
                   data-pinned={announcement.pinned || undefined}
-                  className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 border-l-2 border-transparent px-3.5 py-3 transition-colors hover:bg-muted/70 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary data-pinned:border-l-primary/45 data-pinned:bg-primary/[0.045] data-pinned:hover:bg-primary/[0.08] sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:gap-x-5 sm:px-5"
+                  className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 border-l-2 border-transparent px-3.5 py-3 transition-colors hover:bg-muted/70 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary data-pinned:border-l-primary/45 data-pinned:bg-primary/12 data-pinned:hover:bg-primary/16 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:gap-x-5 sm:px-5"
                 >
                   <div className="col-start-1 row-start-1 min-w-0">
                     <h2 className="flex items-start gap-2 text-[0.9375rem] leading-snug font-medium text-foreground group-hover:text-primary sm:text-base">
