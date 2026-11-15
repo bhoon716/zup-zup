@@ -2,7 +2,7 @@ import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { timetableApi } from '@/features/timetable/api/timetable.api';
 import { toast } from 'sonner';
-import { AxiosError } from 'axios';
+import { isAxiosError, type AxiosError } from 'axios';
 import type { CustomScheduleRequest, User } from '@/shared/types/api';
 
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
@@ -79,6 +79,11 @@ export const useRemoveCourseFromTimetable = () => {
       });
       void queryClient.invalidateQueries({ queryKey, exact: true });
       toast.success('시간표에서 강의가 삭제되었습니다.');
+    },
+
+    onError: (error) => {
+      const message = isAxiosError<{ message?: unknown }>(error) ? error.response?.data?.message : undefined;
+      toast.error(localizedErrorMessage(message, '강의 삭제에 실패했습니다. 다시 시도해 주세요.'));
     },
   });
 };

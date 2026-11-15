@@ -32,8 +32,8 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
     isWishlistLoading,
     handleSidebarCourseClick,
     handleAddCourse,
-    courseRemoval,
-    requestCourseRemoval,
+    handleRemoveCourse,
+    isRemovingCourse,
     isAddingCourse,
     pendingAddCourseKey,
   } = model;
@@ -66,8 +66,8 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
           activeTimetableId={activeTimetableId}
           handleSidebarCourseClick={handleSidebarCourseClick}
           handleAddCourse={handleAddCourse}
-          courseRemoval={courseRemoval}
-          requestCourseRemoval={requestCourseRemoval}
+          handleRemoveCourse={handleRemoveCourse}
+          isRemovingCourse={isRemovingCourse}
           isAddingCourse={isAddingCourse}
           pendingAddCourseKey={pendingAddCourseKey}
         />

@@ -4,16 +4,6 @@ import { useRef, type MouseEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, Heart, Loader2, Trash2, Plus } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
 import { cn } from "@/shared/lib/utils";
 import { formatClassTime, formatDayOfWeek } from "@/shared/lib/formatters";
 import { CreditStatsCard } from "@/features/timetable/components/credit-stats-card";
@@ -31,8 +21,8 @@ type TimetableSidebarSectionProps = Pick<
   | "activeTimetableId"
   | "handleSidebarCourseClick"
   | "handleAddCourse"
-  | "courseRemoval"
-  | "requestCourseRemoval"
+  | "handleRemoveCourse"
+  | "isRemovingCourse"
   | "isAddingCourse"
   | "pendingAddCourseKey"
 >;
@@ -48,21 +38,22 @@ export function TimetableSidebarSection({
   activeTimetableId,
   handleSidebarCourseClick,
   handleAddCourse,
-  courseRemoval,
-  requestCourseRemoval,
+  handleRemoveCourse,
+  isRemovingCourse,
   isAddingCourse,
   pendingAddCourseKey,
 }: TimetableSidebarSectionProps) {
-  const removalTriggerRef = useRef<HTMLButtonElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
 
-  const handleRemoveCourse = (
+  const handleRemoveCourseClick = (
     event: MouseEvent<HTMLButtonElement>,
-    course: Parameters<typeof requestCourseRemoval>[0],
+    { courseKey, courseName }: { courseKey: string; courseName: string },
   ) => {
     event.stopPropagation();
-    removalTriggerRef.current = event.currentTarget;
-    requestCourseRemoval(course);
+    if (!window.confirm(`${courseName} 강의를 시간표에서 삭제하시겠습니까?`)) return;
+
+    activeTabRef.current?.focus({ preventScroll: true });
+    handleRemoveCourse(courseKey);
   };
 
   return (
@@ -149,9 +140,9 @@ export function TimetableSidebarSection({
                               <button
                                 type="button"
                                 aria-label={`${course.name} 시간표에서 삭제`}
-                                aria-haspopup="dialog"
-                                className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                                onClick={(event) => handleRemoveCourse(event, { courseKey: course.courseKey, courseName: course.name })}
+                                disabled={isRemovingCourse}
+                                className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors enabled:hover:bg-destructive/10 enabled:hover:text-destructive disabled:opacity-50"
+                                onClick={(event) => handleRemoveCourseClick(event, { courseKey: course.courseKey, courseName: course.name })}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -229,10 +220,9 @@ export function TimetableSidebarSection({
                                 <button
                                   type="button"
                                   aria-label={`${course.courseName} 시간표에서 삭제`}
-                                  aria-haspopup="dialog"
-                                  disabled={isPending}
-                                  className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                                  onClick={(event) => handleRemoveCourse(event, course)}
+                                  disabled={isPending || isRemovingCourse}
+                                  className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors enabled:hover:bg-destructive/10 enabled:hover:text-destructive disabled:opacity-50"
+                                  onClick={(event) => handleRemoveCourseClick(event, course)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
@@ -268,41 +258,6 @@ export function TimetableSidebarSection({
           </AnimatePresence>
         </div>
       </div>
-      <Dialog
-        open={courseRemoval !== null}
-        onOpenChange={(open) => {
-          if (!open) courseRemoval?.cancel();
-        }}
-      >
-        {courseRemoval && (
-          <DialogContent
-            role="alertdialog"
-            showCloseButton={false}
-            className="sm:max-w-sm"
-            onInteractOutside={(event) => event.preventDefault()}
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              const trigger = removalTriggerRef.current;
-              const focusTarget = trigger?.isConnected && !trigger.disabled ? trigger : activeTabRef.current;
-              focusTarget?.focus();
-            }}
-          >
-            <DialogHeader className="text-left">
-              <DialogTitle>강의를 시간표에서 삭제할까요?</DialogTitle>
-              <DialogDescription className="wrap-anywhere">{courseRemoval.courseName}</DialogDescription>
-            </DialogHeader>
-            {courseRemoval.error && <p role="alert" className="text-sm text-destructive">{courseRemoval.error}</p>}
-            <DialogFooter className="flex-row justify-end">
-              <DialogClose asChild>
-                <Button type="button" variant="outline" disabled={courseRemoval.isPending}>취소</Button>
-              </DialogClose>
-              <Button type="button" variant="destructive" disabled={courseRemoval.isPending} onClick={courseRemoval.confirm}>
-                {courseRemoval.isPending ? "삭제 중…" : "삭제"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
     </aside>
   );
 }
