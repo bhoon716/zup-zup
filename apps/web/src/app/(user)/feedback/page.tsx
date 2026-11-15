@@ -1,8 +1,6 @@
 "use client";
 
 import { 
-  ChevronLeft,
-  ChevronRight,
   ShieldAlert, 
   Lightbulb, 
   HelpCircle,
@@ -10,13 +8,14 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Fragment, Suspense, useRef, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { useMyFeedbacks } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackStatus, FeedbackType } from "@/shared/types/api";
 import { FeedbackList } from "@/features/feedback/components/feedback-list";
+import { FeedbackPagination } from "@/features/feedback/components/feedback-pagination";
 
 function FeedbackPageContent() {
   const router = useRouter();
@@ -90,47 +89,11 @@ function FeedbackPageContent() {
             )}
           </section>
           {feedbackList && feedbackList.totalPages > 1 && (
-            <FeedbackPagination page={page} totalPages={feedbackList.totalPages} onChange={changePage} />
+            <FeedbackPagination className="mt-5" page={page} totalPages={feedbackList.totalPages} onChange={changePage} />
           )}
         </div>
       </div>
     </main>
-  );
-}
-
-function FeedbackPagination({ page, totalPages, onChange }: {
-  page: number;
-  totalPages: number;
-  onChange: (page: number) => void;
-}) {
-  const pages = [...new Set([0, page - 1, page, page + 1, totalPages - 1])]
-    .filter((number) => number >= 0 && number < totalPages)
-    .sort((first, second) => first - second);
-
-  return (
-    <nav aria-label="문의 목록 페이지" className="mt-5 flex flex-wrap items-center justify-center gap-1">
-      <Button type="button" variant="ghost" size="icon-sm" aria-label="이전 페이지" disabled={page === 0} onClick={() => onChange(page - 1)}>
-        <ChevronLeft aria-hidden="true" />
-      </Button>
-      {pages.map((number, index) => (
-        <Fragment key={number}>
-          {index > 0 && number - pages[index - 1] > 1 && <span aria-hidden="true" className="text-xs text-muted-foreground">…</span>}
-          <Button
-            type="button"
-            variant={number === page ? "default" : "ghost"}
-            size="icon-sm"
-            aria-label={`${number + 1} 페이지`}
-            aria-current={number === page ? "page" : undefined}
-            onClick={() => onChange(number)}
-          >
-            {number + 1}
-          </Button>
-        </Fragment>
-      ))}
-      <Button type="button" variant="ghost" size="icon-sm" aria-label="다음 페이지" disabled={page + 1 >= totalPages} onClick={() => onChange(page + 1)}>
-        <ChevronRight aria-hidden="true" />
-      </Button>
-    </nav>
   );
 }
 

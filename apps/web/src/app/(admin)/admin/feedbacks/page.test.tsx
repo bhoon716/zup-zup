@@ -86,7 +86,7 @@ describe("AdminFeedbackPage attachment preview", () => {
           authorLabel: "사용자",
         }],
         totalElements: 2,
-        totalPages: 2,
+        totalPages: 3,
       },
       isLoading: false,
     });
@@ -232,15 +232,24 @@ describe("AdminFeedbackPage attachment preview", () => {
       .toHaveClass("text-base", "md:text-[13px]");
   });
 
-  it("검색을 제출하면 첫 페이지로 돌아가고 선택을 해제하며 범위 변경과 초기화를 적용한다", async () => {
+  it("페이지 번호로 이동한 뒤 검색하면 첫 페이지로 돌아가고 선택을 해제한다", async () => {
     const user = userEvent.setup();
     render(<AdminFeedbackPage />);
 
-    await user.click(screen.getByRole("button", { name: "다음 페이지" }));
+    const pager = within(screen.getByRole("navigation", { name: "문의 목록 페이지" }));
+    const firstPage = pager.getByRole("button", { name: "1 페이지" });
+    const thirdPage = pager.getByRole("button", { name: "3 페이지" });
+    expect(firstPage).toHaveAttribute("aria-current", "page");
+    expect(pager.getByRole("button", { name: "2 페이지" })).toBeEnabled();
+
+    await user.click(thirdPage);
+    expect(thirdPage).toHaveAttribute("aria-current", "page");
+    expect(pager.getByRole("button", { name: "다음 페이지" })).toBeDisabled();
+    expect(screen.getByRole("heading", { name: /문의 목록/ })).toHaveFocus();
     await user.click(screen.getByText("이미지 첨부 문의"));
     const keyword = screen.getByRole("searchbox", { name: "문의 검색어" });
     await user.type(keyword, "  학점  ");
-    expect(mockUseFeedbacksForAdmin).toHaveBeenLastCalledWith(1, "ACTIVE", "PENDING_FIRST", undefined);
+    expect(mockUseFeedbacksForAdmin).toHaveBeenLastCalledWith(2, "ACTIVE", "PENDING_FIRST", undefined);
 
     await user.keyboard("{Enter}");
     expect(mockUseFeedbacksForAdmin).toHaveBeenLastCalledWith(0, "ACTIVE", "PENDING_FIRST", {
@@ -248,6 +257,7 @@ describe("AdminFeedbackPage attachment preview", () => {
       searchType: "TITLE_CONTENT",
     });
     expect(screen.queryByRole("heading", { name: "이미지 첨부 문의" })).not.toBeInTheDocument();
+    expect(firstPage).toHaveAttribute("aria-current", "page");
 
     const scope = screen.getByRole("combobox", { name: "검색 범위" });
     scope.focus();

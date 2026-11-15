@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Loader2, MessageSquare, X } from "lucide-react";
+import { ArrowLeft, Download, Loader2, MessageSquare, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select";
+import { FeedbackPagination } from "@/features/feedback/components/feedback-pagination";
 import {
   useFeedbacksForAdmin,
   useAdminFeedbackDetail,
@@ -91,6 +92,7 @@ export default function AdminFeedbackPage() {
   const [attachmentPreview, setAttachmentPreview] = useState<AttachmentPreview | null>(null);
   const selectedFeedbackIdRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
+  const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const detailPaneRef = useRef<HTMLElement>(null);
   const selectionTriggerRef = useRef<HTMLButtonElement>(null);
   const keywordInputRef = useRef<HTMLInputElement>(null);
@@ -99,6 +101,12 @@ export default function AdminFeedbackPage() {
   const detailQuery = useAdminFeedbackDetail(selectedId ?? 0, selectedId !== null);
   const listData = listQuery.data;
   const detailData = detailQuery.data;
+  const totalPages = listData?.totalPages ?? 0;
+
+  if (listData && !listQuery.isFetching && !listQuery.isError) {
+    const lastPage = Math.max(0, totalPages - 1);
+    if (page > lastPage) setPage(lastPage);
+  }
 
   const updateStatusMutation = useUpdateFeedbackStatus();
   const createReplyMutation = useCreateFeedbackReply();
@@ -159,8 +167,10 @@ export default function AdminFeedbackPage() {
   };
 
   const handlePageChange = (nextPage: number) => {
+    if (nextPage === page) return;
     setPage(nextPage);
     handleFeedbackSelection(null);
+    listHeadingRef.current?.focus();
   };
 
   const applySearch = (nextSearch: AdminFeedbackSearch) => {
@@ -255,7 +265,6 @@ export default function AdminFeedbackPage() {
     }
   };
 
-  const totalPages = listData?.totalPages ?? 0;
   const canResetSearch = Boolean(keywordDraft || search.keyword);
 
   return (
@@ -289,7 +298,7 @@ export default function AdminFeedbackPage() {
           className={`min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white ${selectedId === null ? "flex" : "hidden md:flex"}`}
         >
           <div className="border-b border-slate-200 px-3 py-2.5">
-            <h2 className="mb-2 text-sm font-semibold text-slate-900">
+            <h2 ref={listHeadingRef} tabIndex={-1} className="mb-2 text-sm font-semibold text-slate-900">
               문의 목록 {listData && <span className="ml-1 font-normal text-slate-500">{listData.totalElements}건</span>}
             </h2>
             <form
@@ -428,15 +437,12 @@ export default function AdminFeedbackPage() {
             )}
           </div>
           {(totalPages > 1 || page > 0) && (
-            <nav aria-label="문의 목록 페이지" className="flex items-center justify-between border-t border-slate-200 px-2 py-1.5">
-              <Button variant="ghost" size="icon-sm" aria-label="이전 페이지" disabled={page === 0} onClick={() => handlePageChange(page - 1)}>
-                <ChevronLeft className="size-4" />
-              </Button>
-              <span className="text-xs tabular-nums text-slate-600">{totalPages > 0 && `${page + 1} / ${totalPages}`}</span>
-              <Button variant="ghost" size="icon-sm" aria-label="다음 페이지" disabled={page + 1 >= totalPages} onClick={() => handlePageChange(page + 1)}>
-                <ChevronRight className="size-4" />
-              </Button>
-            </nav>
+            <FeedbackPagination
+              page={page}
+              totalPages={totalPages}
+              onChange={handlePageChange}
+              className="gap-0.5 border-t border-slate-200 px-1 py-1.5"
+            />
           )}
         </section>
 
