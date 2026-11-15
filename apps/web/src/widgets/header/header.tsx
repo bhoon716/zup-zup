@@ -51,7 +51,7 @@ export function Header() {
       {platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}
     </Button>
   );
-  const mobileShortcutAction = (
+  const mobileInstallAction = (
     <Button
       variant="ghost"
       onClick={() => {
@@ -61,7 +61,7 @@ export function Header() {
       className={cn(mobileMenuRowClass, "text-primary")}
     >
       <Download aria-hidden="true" />
-      {platform === "ios" ? "홈 화면에 추가 안내" : "바로가기 설치하기"}
+      웹앱 설치하기
     </Button>
   );
 
@@ -144,7 +144,7 @@ export function Header() {
                       isLoggedIn={Boolean(verifiedUser)}
                       isAdmin={verifiedUser?.role === "ADMIN"}
                       onLinkClick={closeMenu}
-                      mobileShortcutAction={mobileShortcutAction}
+                      mobileInstallAction={mobileInstallAction}
                     />
                   </nav>
 

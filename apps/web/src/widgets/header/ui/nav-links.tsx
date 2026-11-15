@@ -21,10 +21,10 @@ interface NavLinksProps {
   isAdmin: boolean;
   isLoggedIn: boolean;
   onLinkClick?: () => void;
-  mobileShortcutAction?: ReactNode;
+  mobileInstallAction?: ReactNode;
 }
 
-export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick, mobileShortcutAction }: NavLinksProps) {
+export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick, mobileInstallAction }: NavLinksProps) {
   const adminMenuTriggerId = "header-admin-menu-trigger";
   const adminMenuContentId = "header-admin-menu-content";
   const navLinkClass = isMobile
@@ -63,7 +63,10 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick, m
         </Button>
       )}
 
-      <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} mobileShortcutAction={mobileShortcutAction} />
+      <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} />
+      {isMobile && mobileInstallAction && (
+        <div className={mobileMenuSectionClass}>{mobileInstallAction}</div>
+      )}
       <div className={adminOnlyClass} aria-hidden={!isAdmin}>
         {isMobile ? (
           <>

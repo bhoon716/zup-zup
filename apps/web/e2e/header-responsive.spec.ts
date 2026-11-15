@@ -123,7 +123,7 @@ test("관리자 헤더는 화면 너비에 맞춰 메뉴를 전환하고 버튼�
   await page.setViewportSize({ width: 390, height: 500 });
   await menuTrigger.click();
   const compactMenu = page.getByRole("dialog");
-  await expect(compactMenu.getByRole("button", { name: "홈 화면에 추가 안내" })).toBeVisible();
+  await expect(compactMenu.getByRole("button", { name: "웹앱 설치하기", exact: true })).toBeVisible();
   await expect(compactMenu.getByText(admin.name, { exact: false })).toHaveCount(0);
   await expect(compactMenu.getByRole("link", { name: "설정", exact: true })).toHaveCount(0);
   await expect(compactMenu.getByRole("link", { name: "설정 및 제어" })).toHaveAttribute("href", "/admin/settings");

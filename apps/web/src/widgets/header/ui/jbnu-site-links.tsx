@@ -2,7 +2,6 @@
 
 import { Button } from "@/shared/ui/button";
 import { ExternalLink, ChevronDown } from "lucide-react";
-import type { ReactNode } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,10 +20,9 @@ const JBNU_SITES = [
 interface JBNUSiteLinksProps {
   isMobile: boolean;
   onLinkClick?: () => void;
-  mobileShortcutAction?: ReactNode;
 }
 
-export function JBNUSiteLinks({ isMobile, onLinkClick, mobileShortcutAction }: JBNUSiteLinksProps) {
+export function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
   const dropdownTriggerId = "jbnu-site-links-trigger";
   const dropdownContentId = "jbnu-site-links-content";
 
@@ -41,7 +39,6 @@ export function JBNUSiteLinks({ isMobile, onLinkClick, mobileShortcutAction }: J
               </a>
             </Button>
           ))}
-          {mobileShortcutAction}
         </div>
       </div>
     );
