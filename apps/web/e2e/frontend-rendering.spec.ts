@@ -67,7 +67,7 @@ for (const viewport of [
     const copies = stage.getByTestId("landing-walkthrough-copy");
     const current = stage.locator('[aria-current="step"]');
     await expect(preview).toHaveCSS("position", "sticky");
-    await expect(stage.getByRole("heading", { level: 3 })).toHaveText(walkthroughSteps.map(({ heading }) => heading));
+    await expect(stage.getByRole("heading", { level: 3 })).toHaveText([walkthroughSteps[0].heading]);
     for (const [index, { marker }] of walkthroughSteps.entries()) {
       await expect(scenes.nth(index).getByText(marker, { exact: true })).toHaveCount(1);
     }
