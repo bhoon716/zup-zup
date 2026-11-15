@@ -47,6 +47,17 @@ const walkthroughSteps = [
   { heading: "빈자리 알림", marker: "수강신청 빈자리가 생겼어요!" },
 ];
 
+test("1463×1313에서 스크롤 안내가 한 미리보기 안에서 전환된다", async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 1463, height: 1313 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
+    ? route.continue() : route.abort());
+  await page.goto("/");
+
+  const preview = page.getByTestId("landing-walkthrough-sticky-preview");
+  await expect(preview).toHaveCSS("position", "sticky");
+});
+
 for (const viewport of [
   { width: 390, height: 600 },
   { width: 390, height: 844 },
