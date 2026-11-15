@@ -151,7 +151,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster position="top-right" richColors />
+        <Toaster position="top-right" richColors closeButton toastOptions={{ closeButtonAriaLabel: "알림 닫기" }} />
         <AuthProvider>
           {children}
           <LoginModal />
