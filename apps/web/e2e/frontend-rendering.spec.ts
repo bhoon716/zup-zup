@@ -41,152 +41,88 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
   }
 });
 
-test("휠을 연속으로 내리고 올리면 수강신청 안내가 세 단계를 차례로 보여 준다", async ({ page, baseURL }) => {
-  await page.setViewportSize({ width: 831, height: 923 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
-    ? route.continue() : route.abort());
-  await page.goto("/");
-
-  const pin = page.getByTestId("landing-walkthrough-pin");
-  const header = page.getByRole("banner");
-  const currentChapter = pin.locator('[aria-current="step"] h3');
-  await expect(pin).toHaveCSS("position", "sticky");
-  await page.evaluate(() => document.fonts.ready);
-  const headerBounds = await header.boundingBox();
-  if (!headerBounds) throw new Error("헤더를 찾지 못했습니다.");
-  const headerBottom = headerBounds.y + headerBounds.height;
-  await pin.evaluate((element, bottom) => {
-    window.scrollBy(0, element.getBoundingClientRect().top - bottom);
-  }, headerBottom);
-  await expect(currentChapter).toHaveText("강의 검색");
-
-  for (const [deltaY, chapter] of [
-    [120, "강의 검색"],
-    [120, "빈자리 알림 등록"],
-    [120, "빈자리 알림"],
-    [-120, "빈자리 알림 등록"],
-    [-120, "강의 검색"],
-  ] as const) {
-    const before = await page.evaluate(() => window.scrollY);
-    await page.mouse.wheel(0, deltaY);
-    await expect.poll(() => page.evaluate(() => window.scrollY)).not.toBe(before);
-    await expect(currentChapter).toHaveText(chapter);
-    await expect.poll(async () => (await pin.boundingBox())?.y).toBeCloseTo(headerBottom + 3, 0);
-  }
-
-  await page.mouse.wheel(0, 600);
-  await expect(page.getByRole("heading", { name: "생생한 사용자 후기" })).toBeInViewport();
-  await expect.poll(async () => (await pin.boundingBox())?.y).toBeLessThan(headerBottom);
-});
+const walkthroughSteps = [
+  { heading: "강의 검색", marker: "여석 2" },
+  { heading: "빈자리 알림 등록", marker: "등록 완료" },
+  { heading: "빈자리 알림", marker: "수강신청 빈자리가 생겼어요!" },
+];
 
 for (const viewport of [
+  { width: 390, height: 600 },
   { width: 390, height: 844 },
   { width: 831, height: 923 },
-  { width: 1440, height: 880 },
-  { width: 1440, height: 1280 },
-  { width: 1546, height: 1313 },
+  { width: 1783, height: 1327 },
 ]) {
-  test(`${viewport.width}×${viewport.height}에서 제목과 예시가 한 자리에 고정되고 단계가 바뀐다`, async ({ page, baseURL }) => {
+  test(`${viewport.width}×${viewport.height}에서 안내가 문서 순서대로 배치되고 후기로 이어진다`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport);
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
       ? route.continue() : route.abort());
     await page.goto("/");
+    await page.evaluate(() => document.fonts.ready);
 
-    const pin = page.getByTestId("landing-walkthrough-pin");
     const stage = page.getByTestId("landing-walkthrough-stage");
-    const title = pin.getByRole("heading", { level: 2 });
-    const search = { heading: "강의 검색", marker: "여석 2" };
-    const registration = { heading: "빈자리 알림 등록", marker: "등록 완료" };
-    const notification = { heading: "빈자리 알림", marker: "수강신청 빈자리가 생겼어요!" };
+    const chapters = stage.getByRole("listitem");
+    const reviews = page.getByRole("heading", { name: "생생한 사용자 후기", exact: true });
+    await expect(stage.getByRole("heading", { level: 3 })).toHaveText(walkthroughSteps.map(({ heading }) => heading));
+    const reviewBounds = await reviews.boundingBox();
+    if (!reviewBounds) throw new Error("후기의 위치를 찾지 못했습니다.");
 
-    async function readChapter(progress: number, chapter: typeof search, previous: typeof search) {
-      await pin.evaluate((element, fraction) => {
-        const track = element.parentElement;
-        if (!track) throw new Error("소개 영역을 찾지 못했습니다.");
-        const { top, height } = track.getBoundingClientRect();
-        const pinnedHeight = element.getBoundingClientRect().height;
-        const stickyInset = Number.parseFloat(getComputedStyle(element).top);
-        window.scrollBy(0, top - stickyInset + (height - pinnedHeight) * fraction);
-      }, progress);
-
-      const copy = stage.getByRole("listitem").filter({
-        has: page.getByRole("heading", { name: chapter.heading, exact: true }),
-      });
-      await expect(copy).toHaveCSS("opacity", "1");
-      await expect(copy.getByRole("heading")).toBeInViewport();
-      const marker = copy.getByText(chapter.marker, { exact: true });
-      expect(await marker.evaluate((element) => element.checkVisibility({ opacityProperty: true, visibilityProperty: true }))).toBe(true);
-      await expect(marker).toBeInViewport();
-      await expect(stage.getByText(previous.marker, { exact: true })).toBeHidden();
+    let previousBottom: number | undefined;
+    for (const index of walkthroughSteps.keys()) {
+      const bounds = await chapters.nth(index).boundingBox();
+      if (!bounds) throw new Error("안내 단계의 위치를 찾지 못했습니다.");
+      if (previousBottom !== undefined) {
+        expect(bounds.y - previousBottom).toBeGreaterThanOrEqual(0);
+        expect(bounds.y - previousBottom).toBeLessThanOrEqual(52);
+      }
+      previousBottom = bounds.y + bounds.height;
     }
+    if (previousBottom === undefined) throw new Error("마지막 안내의 위치를 찾지 못했습니다.");
+    const gapBeforeReviews = reviewBounds.y - previousBottom;
+    expect(gapBeforeReviews).toBeGreaterThanOrEqual(0);
+    expect(gapBeforeReviews).toBeLessThanOrEqual(64);
 
-    await expect(pin).toHaveCSS("position", "sticky");
-    await expect(stage.getByRole("heading", { level: 3 })).toHaveText([
-      search.heading,
-      registration.heading,
-      notification.heading,
-    ]);
-    await readChapter(0.18, search, registration);
-    await expect(pin).toBeInViewport({ ratio: 1 });
-    const pinnedContent = await pin.boundingBox();
-    const pinnedStage = await stage.boundingBox();
-    const pinnedTitle = await title.boundingBox();
-    const header = await page.getByRole("banner").boundingBox();
-    if (!pinnedContent || !pinnedStage || !pinnedTitle || !header) throw new Error("고정된 소개 화면이 보이지 않습니다.");
-    expect(pinnedContent.y - (header.y + header.height)).toBeCloseTo(3, 0);
-    const expectPinnedStage = async () => {
-      await expect(pin).toBeInViewport({ ratio: 1 });
-      const currentStage = await stage.boundingBox();
-      expect(currentStage?.y).toBeCloseTo(pinnedStage.y, 0);
-      expect(currentStage?.height).toBeCloseTo(pinnedStage.height, 0);
-      expect((await title.boundingBox())?.y).toBeCloseTo(pinnedTitle.y, 0);
-    };
-
-    await readChapter(0.5, registration, search);
-    await expectPinnedStage();
-    await readChapter(0.82, notification, registration);
-    await expectPinnedStage();
-    await readChapter(0.5, registration, notification);
-    await expectPinnedStage();
-    await readChapter(0.18, search, registration);
-    await expectPinnedStage();
+    for (const index of [0, 1, 2, 1, 0]) {
+      const preview = chapters.nth(index).getByText(walkthroughSteps[index].marker, { exact: true });
+      await preview.scrollIntoViewIfNeeded();
+      await expect(preview).toBeInViewport({ ratio: 1 });
+    }
   });
 }
 
-test("고정하기에 너무 높거나 낮은 화면과 동작 줄이기에서는 세 단계가 순서대로 보인다", async ({ page, baseURL }) => {
-  await page.setViewportSize({ width: 1440, height: 1600 });
+test("작은 스크롤에 미리보기가 서서히 나타나고 동작 줄이기에서는 효과를 끈다", async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 831, height: 923 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
     ? route.continue() : route.abort());
   await page.goto("/");
+  await page.evaluate(() => document.fonts.ready);
 
-  const pin = page.getByTestId("landing-walkthrough-pin");
-  const registration = pin.getByRole("heading", { name: "빈자리 알림 등록", exact: true });
-  const notification = pin.getByRole("heading", { name: "빈자리 알림", exact: true });
-  const search = pin.getByRole("heading", { name: "강의 검색", exact: true });
+  const preview = page.getByTestId("landing-walkthrough-preview").nth(1);
+  await preview.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    window.scrollBy(0, bounds.top - window.innerHeight + bounds.height * 0.12);
+  });
+  const opacity = () => preview.evaluate((element) => Number(getComputedStyle(element).opacity));
+  await expect.poll(opacity).toBeLessThan(0.96);
+  const enteringOpacity = await opacity();
+  expect(enteringOpacity).toBeGreaterThan(0.6);
 
-  async function expectSequentialChapters() {
-    await expect(registration).toBeVisible();
-    await expect(notification).toBeVisible();
-    await expect.poll(async () => {
-      const first = await search.boundingBox();
-      const second = await registration.boundingBox();
-      const third = await notification.boundingBox();
-      return Boolean(first && second && third && first.y < second.y && second.y < third.y);
-    }).toBe(true);
-  }
+  await page.mouse.wheel(0, 36);
+  await expect.poll(opacity).toBeGreaterThan(enteringOpacity);
+  const progressedOpacity = await opacity();
+  expect(progressedOpacity).toBeLessThan(0.99);
+  await expect(preview).toBeInViewport();
 
-  await expectSequentialChapters();
-  await page.setViewportSize({ width: 831, height: 1536 });
-  await expectSequentialChapters();
-  await page.setViewportSize({ width: 390, height: 600 });
-  await expectSequentialChapters();
-  await page.setViewportSize({ width: 390, height: 844 });
-  await expect(pin).toHaveCSS("position", "sticky");
+  await page.mouse.wheel(0, -36);
+  await expect.poll(opacity).toBeLessThan(progressedOpacity);
+  await page.mouse.wheel(0, 240);
+  await expect.poll(opacity).toBe(1);
+
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expectSequentialChapters();
+  await expect(preview).toHaveCSS("animation-name", "none");
+  await expect(preview).toHaveCSS("opacity", "1");
 });
 
 test("긴 검색 목록은 페이지를 추가해도 카드 수를 제한하고 상세를 닫으면 초점을 돌려준다", async ({ page, baseURL }) => {

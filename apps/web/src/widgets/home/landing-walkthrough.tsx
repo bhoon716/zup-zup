@@ -1,6 +1,3 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
 import { Bell, BellPlus, Check, Search } from "lucide-react";
 
 import { Badge } from "@/shared/ui/badge";
@@ -113,102 +110,41 @@ const chapters = [
   },
 ] as const;
 
-const chapterScrollDistance = 128;
-const walkthroughScrollDistance = chapters.length * chapterScrollDistance;
-
 export function LandingWalkthrough() {
-  const storyRef = useRef<HTMLDivElement>(null);
-  const pinnedContentRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    const story = storyRef.current;
-    const pinnedContent = pinnedContentRef.current;
-    if (!story || !pinnedContent) return;
-
-    const stickyLayout = window.matchMedia(
-      "(min-width: 48rem) and (36rem <= height <= 84rem) and (prefers-reduced-motion: no-preference), " +
-      "(44rem <= height <= 84rem) and (prefers-reduced-motion: no-preference)",
-    );
-    let frame = 0;
-    const updateChapter = () => {
-      frame = 0;
-      if (!stickyLayout.matches) {
-        setActiveIndex(null);
-        return;
-      }
-
-      const inset = Number.parseFloat(getComputedStyle(pinnedContent).top);
-      const storyTop = story.getBoundingClientRect().top;
-      const distance = Math.max(0, inset - storyTop);
-      setActiveIndex(Math.min(chapters.length - 1, Math.floor(distance / chapterScrollDistance)));
-    };
-
-    const scheduleUpdate = () => {
-      if (!frame) frame = window.requestAnimationFrame(updateChapter);
-    };
-    const resizeObserver = new ResizeObserver(scheduleUpdate);
-    resizeObserver.observe(story);
-    resizeObserver.observe(document.body);
-    window.addEventListener("scroll", scheduleUpdate, { passive: true });
-    window.addEventListener("resize", scheduleUpdate);
-    stickyLayout.addEventListener("change", scheduleUpdate);
-    scheduleUpdate();
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("scroll", scheduleUpdate);
-      window.removeEventListener("resize", scheduleUpdate);
-      stickyLayout.removeEventListener("change", scheduleUpdate);
-      window.cancelAnimationFrame(frame);
-    };
-  }, []);
-
-  const activeChapter = activeIndex === null ? undefined : chapters[activeIndex];
-
   return (
-    <section aria-labelledby="landing-walkthrough-title" className="mx-auto w-full max-w-[1200px] px-6 pb-12 md:pb-16">
-      <div ref={storyRef} className={styles.story} data-active-chapter={activeChapter?.id}>
-        <div ref={pinnedContentRef} className={styles.pinnedContent} data-testid="landing-walkthrough-pin">
-          <div className="mb-5 border-t pt-8 lg:mb-6">
-            <h2 id="landing-walkthrough-title" className="text-2xl font-bold tracking-tight md:text-3xl">
-              줍줍으로 수강신청 준비하기
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base">
-              분반별 여석을 확인하고, 마감된 분반에는 빈자리 알림을 등록하세요.
-            </p>
-          </div>
-          <ol className={styles.stage} data-testid="landing-walkthrough-stage" role="list">
-            {chapters.map(({ id, title, description, Icon, Preview }, index) => (
-              <li key={id} className={styles.chapter} aria-current={index === activeIndex ? "step" : undefined}>
-                <div className={styles.copy}>
-                  <div className={styles.stepMark} aria-hidden="true">
-                    <Icon className="size-[18px]" />
-                  </div>
-                  <h3 className="mt-3 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
-                  <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
-                </div>
-
-                <div className={styles.frame} aria-hidden="true">
-                  <div className={styles.frameBar}>
-                    <span>줍줍 미리보기</span>
-                    <span className={styles.example}>화면 예시</span>
-                  </div>
-                  <div className={styles.scene}><Preview /></div>
-                  <div className={styles.progress}>
-                    {chapters.map(({ id: stepId }, step) => <span key={stepId} data-complete={step <= index || undefined} />)}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-        <div
-          className={styles.runway}
-          style={{ height: walkthroughScrollDistance }}
-          aria-hidden="true"
-        />
+    <section aria-labelledby="landing-walkthrough-title" className="mx-auto w-full max-w-[1200px] px-6 pb-10 md:pb-12">
+      <div className="mb-5 border-t pt-8 lg:mb-6">
+        <h2 id="landing-walkthrough-title" className="text-2xl font-bold tracking-tight md:text-3xl">
+          줍줍으로 수강신청 준비하기
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base">
+          분반별 여석을 확인하고, 마감된 분반에는 빈자리 알림을 등록하세요.
+        </p>
       </div>
+      <ol className={styles.stage} data-testid="landing-walkthrough-stage" role="list">
+        {chapters.map(({ id, title, description, Icon, Preview }, index) => (
+          <li key={id} className={styles.chapter}>
+            <div>
+              <div className={styles.stepMark} aria-hidden="true">
+                <Icon className="size-[18px]" />
+              </div>
+              <h3 className="mt-3 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
+              <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
+            </div>
+
+            <div className={styles.frame} data-testid="landing-walkthrough-preview" aria-hidden="true">
+              <div className={styles.frameBar}>
+                <span>줍줍 미리보기</span>
+                <span className={styles.example}>화면 예시</span>
+              </div>
+              <div className={styles.scene}><Preview /></div>
+              <div className={styles.progress}>
+                {chapters.map(({ id: stepId }, step) => <span key={stepId} data-complete={step <= index || undefined} />)}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
