@@ -49,8 +49,10 @@ const otherSection = {
   ],
 } satisfies Course;
 
+const reopenedCourse = { ...fullCourse, current: 39 };
+const availableSeats = reopenedCourse.capacity - reopenedCourse.current;
 const pushTitle = `[줍줍] ${fullCourse.name} (${fullCourse.professor}) 여석 발생!`;
-const pushBody = `과목명: ${fullCourse.name} (${fullCourse.professor})\n과목코드: ${fullCourse.courseKey}\n현재 여석이 발생했습니다! (1명)`;
+const pushBody = `과목명: ${fullCourse.name} (${fullCourse.professor})\n과목코드: ${fullCourse.courseKey}\n현재 여석이 발생했습니다! (${availableSeats}명)`;
 const subscriptionMessage = "구독이 완료되었습니다";
 
 function ExampleCourseCard({ course, subscribed = false }: { course: Course; subscribed?: boolean }) {
@@ -97,16 +99,22 @@ function ExampleToast({ kind }: { kind: "success" | "push" }) {
   );
 }
 
+function ExampleKeywordSearch() {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="relative min-w-0 flex-1">
+        <Input type="search" value={fullCourse.name} readOnly className="h-10 rounded-lg bg-card pl-9" />
+        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+      </div>
+      <Button asChild className="h-10 rounded-lg"><span>검색</span></Button>
+    </div>
+  );
+}
+
 export function SearchPreview({ registered = false }: { registered?: boolean }) {
   return (
     <div className="relative grid content-start gap-3">
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Input type="search" value={fullCourse.name} readOnly className="h-10 rounded-lg bg-card pl-9" />
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        </div>
-        <Button asChild className="h-10 rounded-lg"><span>검색</span></Button>
-      </div>
+      <ExampleKeywordSearch />
       <div className="flex items-center justify-between gap-3">
         <p className="text-lg font-bold tracking-tight">&quot;{fullCourse.name}&quot;</p>
         <span className="rounded-md border border-border/50 bg-muted/30 px-2 py-1 text-xs font-medium text-muted-foreground">
@@ -126,20 +134,38 @@ export function RegistrationPreview() {
   return <SearchPreview registered />;
 }
 
+export function HeroSearchPreview() {
+  return (
+    <div className="grid gap-3">
+      <ExampleKeywordSearch />
+      <ExampleCourseCard course={reopenedCourse} subscribed />
+      <div className="hidden lg:block">
+        <ExampleCourseCard course={otherSection} />
+      </div>
+    </div>
+  );
+}
+
+export function SystemNotificationPreview() {
+  return (
+    <div className={styles.systemNotification}>
+      <Image src={BRAND_ICON_192_PATH} alt="" width={36} height={36} className="rounded-lg" />
+      <div className="min-w-0">
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>줍줍</span>
+          <span>지금</span>
+        </div>
+        <p className="mt-1 text-sm font-semibold">{pushTitle}</p>
+        <p className="mt-0.5 text-xs leading-relaxed whitespace-pre-line [overflow-wrap:anywhere] text-muted-foreground">{pushBody}</p>
+      </div>
+    </div>
+  );
+}
+
 export function NotificationPreview() {
   return (
     <div className="grid content-center gap-3">
-      <div className={styles.systemNotification}>
-        <Image src={BRAND_ICON_192_PATH} alt="" width={36} height={36} className="rounded-lg" />
-        <div className="min-w-0">
-          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-            <span>줍줍</span>
-            <span>지금</span>
-          </div>
-          <p className="mt-1 text-sm font-semibold">{pushTitle}</p>
-          <p className="mt-0.5 text-xs leading-relaxed whitespace-pre-line [overflow-wrap:anywhere] text-muted-foreground">{pushBody}</p>
-        </div>
-      </div>
+      <SystemNotificationPreview />
       <ExampleToast kind="push" />
     </div>
   );
