@@ -9,20 +9,16 @@ import { CourseDetailDialog } from '@/features/course/components/course-detail-d
 import { CustomScheduleDetailDialog } from './custom-schedule-detail-dialog';
 import { TimetableBlock, type OpenTimetableBlock, type TimetableBlockLayout } from './timetable-block';
 
-type OverlapLayout = 'spread' | 'stacked';
-
 interface TimetableGridProps {
   timetable: TimetableResponse;
   className?: string;
   isPreview?: boolean;
   allowHorizontalScroll?: boolean;
-  overlapLayout?: OverlapLayout;
 }
 
 const MONDAY_TO_SATURDAY = WEEK_DAYS.slice(0, 6);
-const BLOCK_OVERLAP_FRACTION = 0.25;
-const MAX_STACK_OFFSET_PX = 6;
-const MAX_STACK_OFFSET_PERCENT = 25;
+const MAX_STACK_OFFSET_PX = 44;
+const MAX_STACK_OFFSET_PERCENT = 30;
 
 function sortBlocksByTime(a: RenderingBlock, b: RenderingBlock): number {
   const startDiff = getTimeInMinutes(a.startTime) - getTimeInMinutes(b.startTime);
@@ -33,7 +29,7 @@ function sortBlocksByTime(a: RenderingBlock, b: RenderingBlock): number {
   return getTimeInMinutes(a.endTime) - getTimeInMinutes(b.endTime);
 }
 
-function buildLayoutsForDay(dayBlocks: RenderingBlock[], overlapLayout: OverlapLayout | 'separate'): Map<string, TimetableBlockLayout> {
+function buildLayoutsForDay(dayBlocks: RenderingBlock[], isPreview: boolean): Map<string, TimetableBlockLayout> {
   const layouts = new Map<string, TimetableBlockLayout>();
   if (dayBlocks.length === 0) {
     return layouts;
@@ -70,7 +66,7 @@ function buildLayoutsForDay(dayBlocks: RenderingBlock[], overlapLayout: OverlapL
 
   for (const cluster of clusters) {
     const columnEndTimes: number[] = [];
-    const placements: { key: string; column: number; start: number; end: number }[] = [];
+    const placements: { key: string; column: number }[] = [];
 
     for (const block of cluster) {
       const start = getTimeInMinutes(block.startTime);
@@ -84,44 +80,37 @@ function buildLayoutsForDay(dayBlocks: RenderingBlock[], overlapLayout: OverlapL
         columnEndTimes[column] = end;
       }
 
-      placements.push({ key: block.key, column, start, end });
+      placements.push({ key: block.key, column });
     }
 
     const totalColumns = columnEndTimes.length;
-    const overlapFraction = overlapLayout === 'spread' ? BLOCK_OVERLAP_FRACTION : 0;
-    const stepFraction = 1 - overlapFraction;
-    const widthFraction = 1 / (1 + (totalColumns - 1) * stepFraction);
-    for (const { key, column, start, end } of placements) {
+    for (const { key, column } of placements) {
       const layer = column - totalColumns + 1;
-      if (overlapLayout === 'stacked') {
-        const offsetFraction = column / Math.max(1, totalColumns - 1);
-        const left = `min(${offsetFraction * MAX_STACK_OFFSET_PX}px, ${offsetFraction * MAX_STACK_OFFSET_PERCENT}%)`;
+      if (isPreview) {
+        const widthPercent = 100 / totalColumns;
         layouts.set(key, {
-          left: column === 0 ? '0%' : left,
-          width: column === 0 ? '100%' : `calc(100% - ${left})`,
-          coveredFraction: 0,
+          left: `${column * widthPercent}%`,
+          width: `${widthPercent}%`,
           layer,
         });
         continue;
       }
 
-      const coveredByNeighbor = overlapFraction > 0 && placements.some((neighbor) => (
-        neighbor.column === column + 1 && start < neighbor.end && neighbor.start < end
-      ));
+      if (column === 0) {
+        layouts.set(key, { left: '0%', width: '100%', layer });
+        continue;
+      }
 
-      layouts.set(key, {
-        left: `${column * widthFraction * stepFraction * 100}%`,
-        width: `${widthFraction * 100}%`,
-        coveredFraction: coveredByNeighbor ? overlapFraction : 0,
-        layer,
-      });
+      const offsetFraction = column / (totalColumns - 1);
+      const left = `min(${offsetFraction * MAX_STACK_OFFSET_PX}px, ${offsetFraction * MAX_STACK_OFFSET_PERCENT}%)`;
+      layouts.set(key, { left, width: `calc(100% - ${left})`, layer });
     }
   }
 
   return layouts;
 }
 
-export function TimetableGrid({ timetable, className, isPreview = false, allowHorizontalScroll = false, overlapLayout = 'spread' }: TimetableGridProps) {
+export function TimetableGrid({ timetable, className, isPreview = false, allowHorizontalScroll = false }: TimetableGridProps) {
   const blocks = useMemo(() => getRenderingBlocks(timetable), [timetable]);
   const displayDays = blocks.some((block) => block.dayOfWeek === '일') ? WEEK_DAYS : MONDAY_TO_SATURDAY;
   const [selectedBlock, setSelectedBlock] = useState<RenderingBlock | null>(null);
@@ -182,11 +171,11 @@ export function TimetableGrid({ timetable, className, isPreview = false, allowHo
     const map = new Map<string, Map<string, TimetableBlockLayout>>();
 
     displayDays.forEach((day) => {
-      map.set(day, buildLayoutsForDay(dayBlocksMap.get(day) ?? [], isPreview ? 'separate' : overlapLayout));
+      map.set(day, buildLayoutsForDay(dayBlocksMap.get(day) ?? [], isPreview));
     });
 
     return map;
-  }, [dayBlocksMap, displayDays, isPreview, overlapLayout]);
+  }, [dayBlocksMap, displayDays, isPreview]);
 
   const handleOpenBlock: OpenTimetableBlock = (block, trigger) => {
     returnFocusRef.current = trigger;

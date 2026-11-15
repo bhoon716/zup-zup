@@ -10,11 +10,10 @@ export type OpenTimetableBlock = (block: RenderingBlock, trigger: HTMLButtonElem
 export interface TimetableBlockLayout {
   left: string;
   width: string;
-  coveredFraction: number;
   layer: number;
 }
 
-const FULL_WIDTH_LAYOUT: TimetableBlockLayout = { left: '0%', width: '100%', coveredFraction: 0, layer: 0 };
+const FULL_WIDTH_LAYOUT: TimetableBlockLayout = { left: '0%', width: '100%', layer: 0 };
 
 interface TimetableBlockProps {
   block: RenderingBlock;
@@ -56,7 +55,6 @@ export function TimetableBlock({ block, top, height, layout = FULL_WIDTH_LAYOUT,
         style={{
           backgroundColor: `color-mix(in srgb, ${color} 12%, white)`,
           borderInlineStartColor: `color-mix(in srgb, ${color} 70%, #475569)`,
-          paddingInlineEnd: `${layout.coveredFraction * 100}%`,
         }}
       >
         <span className={styles.content}>

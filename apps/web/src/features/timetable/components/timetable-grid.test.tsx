@@ -6,7 +6,13 @@ import { TimetableResponse } from '@/shared/types/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/shared/ui/tooltip';
 
-type GridOptions = Pick<ComponentProps<typeof TimetableGrid>, 'isPreview' | 'overlapLayout'>;
+type GridOptions = Pick<ComponentProps<typeof TimetableGrid>, 'isPreview' | 'allowHorizontalScroll'>;
+
+const stackedPositions = [
+  { left: '0%', width: '100%' },
+  { left: 'min(22px, 15%)', width: 'calc(100% - min(22px, 15%))' },
+  { left: 'min(44px, 30%)', width: 'calc(100% - min(44px, 30%))' },
+];
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -90,9 +96,9 @@ describe('TimetableGrid', () => {
 
   it.each<{ options: GridOptions; label: string }>([
     { options: {}, label: '대시보드' },
+    { options: { allowHorizontalScroll: true }, label: '내 시간표' },
     { options: { isPreview: true }, label: '미리보기' },
-    { options: { overlapLayout: 'stacked' }, label: '내 시간표' },
-  ])('$label에서 충돌한 일정의 겹침과 요일 칸 경계를 지킨다', ({ options }) => {
+  ])('$label에서 충돌한 일정의 배치와 요일 칸 경계를 지킨다', ({ options }) => {
     renderGrid({
       ...mockTimetable,
       customSchedules: [
@@ -106,30 +112,15 @@ describe('TimetableGrid', () => {
     expect(screen.getByRole('button', { name: /바로 다음 일정/ })).toHaveStyle({ left: '0%', width: '100%' });
     expect(screen.getByRole('button', { name: /다른 요일 일정/ })).toHaveStyle({ left: '0%', width: '100%' });
 
-    const overlappingCards = [/Java Programming/, /동시 일정 1/, /동시 일정 2/].map((name) => screen.getByRole('button', { name }));
-
-    if (options.overlapLayout === 'stacked') {
-      const [back, middle, front] = overlappingCards;
-      expect(back).toHaveStyle({ left: '0%', width: '100%' });
-      expect(middle).toHaveStyle({ left: 'min(3px, 12.5%)', width: 'calc(100% - min(3px, 12.5%))' });
-      expect(front).toHaveStyle({ left: 'min(6px, 25%)', width: 'calc(100% - min(6px, 25%))' });
-      return;
-    }
-
-    const [first, second, third] = overlappingCards.map(({ style }) => ({ left: parseFloat(style.left), width: parseFloat(style.width) }));
-    const overlaps = [first.left + first.width - second.left, second.left + second.width - third.left];
-
-    expect(first.left).toBe(0);
-    expect(second.left).toBeGreaterThan(first.left);
-    expect(third.left).toBeGreaterThan(second.left);
-    expect(third.left + third.width).toBeCloseTo(100);
-    for (const overlap of overlaps) {
+    [/Java Programming/, /동시 일정 1/, /동시 일정 2/].forEach((name, index) => {
+      const card = screen.getByRole('button', { name });
       if (options.isPreview) {
-        expect(overlap).toBeCloseTo(0);
-      } else {
-        expect(overlap).toBeGreaterThan(0);
-        expect(overlap).toBeLessThan(first.width / 2);
+        expect(parseFloat(card.style.left)).toBeCloseTo(index * 100 / 3);
+        expect(parseFloat(card.style.width)).toBeCloseTo(100 / 3);
+        return;
       }
-    }
+
+      expect(card).toHaveStyle(stackedPositions[index]);
+    });
   });
 });
