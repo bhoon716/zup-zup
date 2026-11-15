@@ -85,6 +85,7 @@ for (const viewport of [
   { width: 831, height: 923 },
   { width: 1440, height: 880 },
   { width: 1440, height: 1280 },
+  { width: 1546, height: 1313 },
 ]) {
   test(`${viewport.width}×${viewport.height}에서 제목과 예시가 한 자리에 고정되고 단계가 바뀐다`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport);
