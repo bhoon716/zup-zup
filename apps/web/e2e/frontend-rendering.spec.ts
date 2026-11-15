@@ -34,6 +34,7 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
       "빈자리 알림 등록",
       "빈자리 알림",
     ]);
+    await expect(landing.getByTestId("landing-walkthrough-sticky-preview")).toBeHidden();
     await expect(landing.getByRole("heading", { name: "생생한 사용자 후기", exact: true })).toBeVisible();
     await expect(landing.getByRole("link", { name: "강의 먼저 둘러보기" })).toHaveAttribute("href", "/search");
   } finally {
@@ -44,97 +45,136 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
 const walkthroughSteps = [
   { heading: "강의 검색", marker: "여석 2" },
   { heading: "빈자리 알림 등록", marker: "등록 완료" },
-  { heading: "빈자리 알림", marker: "수강신청 빈자리가 생겼어요!" },
+  { heading: "빈자리 알림", marker: "[줍줍] 자료구조 (김민준) 여석 발생!" },
 ];
 
-test("1463×1313에서 스크롤 안내가 한 미리보기 안에서 전환된다", async ({ page, baseURL }) => {
-  await page.setViewportSize({ width: 1463, height: 1313 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
-    ? route.continue() : route.abort());
-  await page.goto("/");
-
-  const preview = page.getByTestId("landing-walkthrough-sticky-preview");
-  await expect(preview).toHaveCSS("position", "sticky");
-});
-
 for (const viewport of [
-  { width: 390, height: 600 },
-  { width: 390, height: 844 },
   { width: 831, height: 923 },
+  { width: 1463, height: 1313 },
   { width: 1783, height: 1327 },
+  { width: 1463, height: 1700 },
 ]) {
-  test(`${viewport.width}×${viewport.height}에서 안내가 문서 순서대로 배치되고 후기로 이어진다`, async ({ page, baseURL }) => {
+  test(`${viewport.width}×${viewport.height}에서 설명과 미리보기가 같은 단계로 전환된다`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport);
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
       ? route.continue() : route.abort());
     await page.goto("/");
-    await page.evaluate(() => document.fonts.ready);
 
     const stage = page.getByTestId("landing-walkthrough-stage");
-    const chapters = stage.getByRole("listitem");
-    const reviews = page.getByRole("heading", { name: "생생한 사용자 후기", exact: true });
+    const preview = stage.getByTestId("landing-walkthrough-sticky-preview");
+    const scenes = preview.getByTestId("landing-walkthrough-scene");
+    const copies = stage.getByTestId("landing-walkthrough-copy");
+    const current = stage.locator('[aria-current="step"]');
+    await expect(preview).toHaveCSS("position", "sticky");
     await expect(stage.getByRole("heading", { level: 3 })).toHaveText(walkthroughSteps.map(({ heading }) => heading));
-    const reviewBounds = await reviews.boundingBox();
-    if (!reviewBounds) throw new Error("후기의 위치를 찾지 못했습니다.");
-
-    let previousBottom: number | undefined;
-    for (const index of walkthroughSteps.keys()) {
-      const bounds = await chapters.nth(index).boundingBox();
-      if (!bounds) throw new Error("안내 단계의 위치를 찾지 못했습니다.");
-      if (previousBottom !== undefined) {
-        expect(bounds.y - previousBottom).toBeGreaterThanOrEqual(0);
-        expect(bounds.y - previousBottom).toBeLessThanOrEqual(52);
-      }
-      previousBottom = bounds.y + bounds.height;
+    for (const [index, { marker }] of walkthroughSteps.entries()) {
+      await expect(scenes.nth(index).getByText(marker, { exact: true })).toHaveCount(1);
     }
-    if (previousBottom === undefined) throw new Error("마지막 안내의 위치를 찾지 못했습니다.");
-    const gapBeforeReviews = reviewBounds.y - previousBottom;
-    expect(gapBeforeReviews).toBeGreaterThanOrEqual(0);
-    expect(gapBeforeReviews).toBeLessThanOrEqual(64);
+    await page.evaluate(() => document.fonts.ready);
 
-    for (const index of [0, 1, 2, 1, 0]) {
-      const preview = chapters.nth(index).getByText(walkthroughSteps[index].marker, { exact: true });
-      await preview.scrollIntoViewIfNeeded();
-      await expect(preview).toBeInViewport({ ratio: 1 });
-    }
+    const { start, travel, inset } = await preview.evaluate((element) => {
+      const track = element.closest('[data-testid="landing-walkthrough-stage"]');
+      if (!track) throw new Error("안내 영역을 찾지 못했습니다.");
+      const bounds = track.getBoundingClientRect();
+      const inset = parseFloat(getComputedStyle(element).top);
+      const start = bounds.top + window.scrollY - inset;
+      const release = bounds.bottom + window.scrollY - inset - element.getBoundingClientRect().height;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      return { start, travel: Math.min(release, maxScroll) - start, inset };
+    });
+    expect(travel).toBeGreaterThan(240);
+    const scrollTo = (fraction: number) => page.evaluate(y => window.scrollTo(0, y), start + travel * fraction);
+    const opacity = () => scenes.evaluateAll(elements => elements.map(element => Number(getComputedStyle(element).opacity)));
+    const copyOffsets = () => copies.evaluateAll(elements => elements.map(element => parseFloat(getComputedStyle(element).translate)));
+
+    await scrollTo(0);
+    await expect.poll(opacity).toEqual([1, 0, 0]);
+    await expect.poll(copyOffsets).toEqual([10, 0, 0]);
+    await expect(current.getByRole("heading")).toHaveText("강의 검색");
+    await page.mouse.wheel(0, 32);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(start + 20);
+    await expect.poll(opacity).toEqual([1, 0, 0]);
+
+    await scrollTo(0.25);
+    await expect.poll(async () => (await opacity())[1]).toBeGreaterThan(0.12);
+    const [outgoing, incoming] = await opacity();
+    expect(outgoing).toBeGreaterThan(0.12);
+    expect(incoming).toBeLessThan(0.88);
+    const [outgoingOffset, incomingOffset] = await copyOffsets();
+    expect(outgoingOffset).toBeCloseTo(outgoing * 10, 3);
+    expect(incomingOffset).toBeCloseTo(incoming * 10, 3);
+
+    await page.mouse.wheel(0, 20);
+    await expect.poll(async () => (await opacity())[1]).toBeGreaterThan(incoming + 0.04);
+    const progressed = (await opacity())[1];
+    expect(progressed).toBeLessThan(0.99);
+    await expect.poll(async () => (await copyOffsets())[1]).toBeGreaterThan(incomingOffset);
+    await page.mouse.wheel(0, -20);
+    await expect.poll(async () => (await opacity())[1]).toBeLessThan(progressed - 0.04);
+
+    await scrollTo(0.5);
+    await expect.poll(opacity).toEqual([0, 1, 0]);
+    await expect.poll(copyOffsets).toEqual([0, 10, 0]);
+    await expect(current.getByRole("heading")).toHaveText("빈자리 알림 등록");
+    await scrollTo(0.75);
+    await expect.poll(async () => (await opacity())[2]).toBeGreaterThan(0.12);
+    expect((await opacity())[1]).toBeGreaterThan(0.12);
+    await scrollTo(0.9);
+    await expect.poll(opacity).toEqual([0, 0, 1]);
+    await expect.poll(copyOffsets).toEqual([0, 0, 10]);
+    await expect(current.getByRole("heading")).toHaveText("빈자리 알림");
+    await expect.poll(async () => (await preview.boundingBox())?.y).toBeCloseTo(inset, 0);
+    await expect(preview).toBeInViewport({ ratio: 1 });
+
+    const reviews = page.getByRole("heading", { name: "생생한 사용자 후기", exact: true });
+    const rows = stage.getByRole("listitem");
+    const lastRow = await rows.last().boundingBox();
+    const reviewsBounds = await reviews.boundingBox();
+    if (!lastRow || !reviewsBounds) throw new Error("마지막 안내나 후기의 위치를 찾지 못했습니다.");
+    const gap = reviewsBounds.y - lastRow.y - lastRow.height;
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThanOrEqual(64);
+    await reviews.scrollIntoViewIfNeeded();
+    await expect(reviews).toBeInViewport();
   });
 }
 
-test("작은 스크롤에 미리보기가 서서히 나타나고 동작 줄이기에서는 효과를 끈다", async ({ page, baseURL }) => {
-  await page.setViewportSize({ width: 831, height: 923 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
-    ? route.continue() : route.abort());
-  await page.goto("/");
-  await page.evaluate(() => document.fonts.ready);
+for (const scenario of [
+  { width: 390, height: 844, reducedMotion: "no-preference" },
+  { width: 768, height: 640, reducedMotion: "no-preference" },
+  { width: 1463, height: 1920, reducedMotion: "no-preference" },
+  { width: 1463, height: 1313, reducedMotion: "reduce" },
+] as const) {
+  test(`${scenario.width}×${scenario.height} ${scenario.reducedMotion}에서 세 안내가 차례로 읽힌다`, async ({ page, baseURL }) => {
+    await page.setViewportSize({ width: scenario.width, height: scenario.height });
+    await page.emulateMedia({ reducedMotion: scenario.reducedMotion });
+    await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
+      ? route.continue() : route.abort());
+    await page.goto("/");
 
-  const preview = page.getByTestId("landing-walkthrough-preview").nth(1);
-  await preview.evaluate((element) => {
-    const bounds = element.getBoundingClientRect();
-    window.scrollBy(0, bounds.top - window.innerHeight + bounds.height * 0.12);
+    const stage = page.getByTestId("landing-walkthrough-stage");
+    await expect(stage.getByTestId("landing-walkthrough-sticky-preview")).toBeHidden();
+    const chapters = stage.getByRole("listitem");
+    let previousBottom = 0;
+    for (const [index, { heading }] of walkthroughSteps.entries()) {
+      const chapter = chapters.nth(index);
+      await expect(chapter.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+      const bounds = await chapter.boundingBox();
+      if (!bounds) throw new Error("안내 단계의 위치를 찾지 못했습니다.");
+      expect(bounds.y).toBeGreaterThan(previousBottom);
+      previousBottom = bounds.y + bounds.height;
+      if (scenario.reducedMotion === "reduce") {
+        await expect(chapter.getByTestId("landing-walkthrough-preview")).toHaveCSS("animation-name", "none");
+      }
+    }
+    for (const [index, { marker }] of walkthroughSteps.entries()) {
+      const sample = chapters.nth(index).getByText(marker, { exact: true });
+      await sample.scrollIntoViewIfNeeded();
+      await expect(sample).toBeInViewport({ ratio: 1 });
+    }
   });
-  const opacity = () => preview.evaluate((element) => Number(getComputedStyle(element).opacity));
-  await expect.poll(opacity).toBeLessThan(0.96);
-  const enteringOpacity = await opacity();
-  expect(enteringOpacity).toBeGreaterThan(0.6);
-
-  await page.mouse.wheel(0, 36);
-  await expect.poll(opacity).toBeGreaterThan(enteringOpacity);
-  const progressedOpacity = await opacity();
-  expect(progressedOpacity).toBeLessThan(0.99);
-  await expect(preview).toBeInViewport();
-
-  await page.mouse.wheel(0, -36);
-  await expect.poll(opacity).toBeLessThan(progressedOpacity);
-  await page.mouse.wheel(0, 240);
-  await expect.poll(opacity).toBe(1);
-
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(preview).toHaveCSS("animation-name", "none");
-  await expect(preview).toHaveCSS("opacity", "1");
-});
+}
 
 test("긴 검색 목록은 페이지를 추가해도 카드 수를 제한하고 상세를 닫으면 초점을 돌려준다", async ({ page, baseURL }) => {
   const requestedPages = new Set<number>();

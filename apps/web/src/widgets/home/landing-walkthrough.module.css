@@ -1,4 +1,4 @@
-.stage {
+.chapterList {
   display: grid;
   gap: 2.25rem;
 }
@@ -27,6 +27,25 @@
   box-shadow: 0 8px 28px color-mix(in srgb, var(--primary) 7%, transparent);
 }
 
+.stickyPreview {
+  display: none;
+}
+
+.sceneStack {
+  display: grid;
+  isolation: isolate;
+}
+
+.stickyScene {
+  grid-area: 1 / 1;
+  opacity: 0;
+  mix-blend-mode: plus-lighter;
+}
+
+.stickyScene:first-child {
+  opacity: 1;
+}
+
 .frameBar {
   display: flex;
   justify-content: space-between;
@@ -46,25 +65,11 @@
 }
 
 .scene {
+  display: grid;
   min-width: 0;
   border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--primary) 4%, var(--card));
   padding: 1rem;
-}
-
-.registrationConfirmation {
-  margin-top: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 2.5rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.625rem;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 10%, var(--card));
 }
 
 .reviewList[aria-hidden] {
@@ -89,14 +94,46 @@
 @media (min-width: 48rem) {
   .chapter {
     grid-template-columns: minmax(0, 0.83fr) minmax(0, 1.17fr);
+    column-gap: clamp(2rem, 8vw, 7.5rem);
     align-items: center;
-    gap: clamp(2rem, 8vw, 7.5rem);
+  }
+}
+
+@media (min-width: 48rem) and (min-height: 40rem) and (prefers-reduced-motion: no-preference) {
+  .stage[data-sticky] {
+    display: grid;
+    grid-template-columns: minmax(0, 0.83fr) minmax(0, 1.17fr);
+    column-gap: clamp(2rem, 8vw, 7.5rem);
+  }
+
+  .stage[data-sticky] .chapter {
+    display: flex;
+    min-height: 14rem;
+  }
+
+  .stage[data-sticky] .copy {
+    translate: calc(0.625rem * var(--chapter-emphasis, 0)) 0;
+  }
+
+  .stage[data-sticky] .stepMark {
+    background: color-mix(in srgb, var(--primary) calc(9% + 13% * var(--chapter-emphasis, 0)), transparent);
+  }
+
+  .stage[data-sticky] .inlinePreview {
+    display: none;
+  }
+
+  .stage[data-sticky] .stickyPreview {
+    display: block;
+    position: sticky;
+    top: clamp(5rem, 36vh, 32rem);
+    align-self: start;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) and (animation-range: entry 0% entry 70%) {
-    .frame {
+    .inlinePreview {
       animation: preview-enter linear both;
       animation-timeline: view();
       animation-range: entry 0% entry 70%;
