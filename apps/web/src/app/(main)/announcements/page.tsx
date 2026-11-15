@@ -49,9 +49,9 @@ export default function AnnouncementsPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 pt-7 pb-12 sm:px-6 sm:pt-10">
+    <main className="font-schedule mx-auto w-full max-w-5xl px-4 pt-7 pb-12 sm:px-6 sm:pt-10">
       <header className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl leading-tight font-bold tracking-tight text-foreground sm:text-3xl">공지사항</h1>
+        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">공지사항</h1>
 
         <form
           ref={listTop}
@@ -70,7 +70,7 @@ export default function AnnouncementsPage() {
               maxLength={100}
               onChange={(event) => setSearch({ ...search, keyword: event.target.value, page: 0 })}
               placeholder="공지 검색"
-              className="h-10 rounded-md border-0 pr-2 pl-9 shadow-none"
+              className="h-10 rounded-md border-0 pr-2 pl-9 text-sm shadow-none"
             />
           </div>
           <Select
@@ -83,7 +83,7 @@ export default function AnnouncementsPage() {
             <SelectTrigger aria-label="검색 기준" className="shrink-0 rounded-md border-0 px-2 shadow-none before:mr-1 before:h-4 before:w-px before:bg-border hover:bg-muted">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" align="start">
+            <SelectContent position="popper" align="start" className="font-schedule">
               {searchOptions.map(({ value, label }) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -112,7 +112,7 @@ export default function AnnouncementsPage() {
                   className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 border-l-2 border-transparent px-3.5 py-3 transition-colors hover:bg-muted/70 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary data-pinned:border-l-primary/45 data-pinned:bg-primary/[0.045] data-pinned:hover:bg-primary/[0.08] sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:gap-x-5 sm:px-5"
                 >
                   <div className="col-start-1 row-start-1 min-w-0">
-                    <h2 className="flex items-start gap-2 text-[0.9375rem] leading-snug font-semibold text-foreground group-hover:text-primary sm:text-base">
+                    <h2 className="flex items-start gap-2 text-[0.9375rem] leading-snug font-medium text-foreground group-hover:text-primary sm:text-base">
                       {announcement.pinned && <span className="sr-only">상단 고정 </span>}
                       {announcement.pinned && (
                         <Pin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
