@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
 import { 
@@ -20,9 +21,10 @@ interface NavLinksProps {
   isAdmin: boolean;
   isLoggedIn: boolean;
   onLinkClick?: () => void;
+  mobileShortcutAction?: ReactNode;
 }
 
-export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick }: NavLinksProps) {
+export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick, mobileShortcutAction }: NavLinksProps) {
   const adminMenuTriggerId = "header-admin-menu-trigger";
   const adminMenuContentId = "header-admin-menu-content";
   const navLinkClass = isMobile
@@ -61,7 +63,7 @@ export function NavLinks({ isMobile = false, isAdmin, isLoggedIn, onLinkClick }:
         </Button>
       )}
 
-      <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} />
+      <JBNUSiteLinks isMobile={isMobile} onLinkClick={onLinkClick} mobileShortcutAction={mobileShortcutAction} />
       <div className={adminOnlyClass} aria-hidden={!isAdmin}>
         {isMobile ? (
           <>

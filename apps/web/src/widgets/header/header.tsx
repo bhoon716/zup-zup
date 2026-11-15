@@ -51,6 +51,19 @@ export function Header() {
       {platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}
     </Button>
   );
+  const mobileShortcutAction = (
+    <Button
+      variant="ghost"
+      onClick={() => {
+        install();
+        closeMenu();
+      }}
+      className={cn(mobileMenuRowClass, "text-primary")}
+    >
+      <Download aria-hidden="true" />
+      {platform === "ios" ? "홈 화면에 추가 안내" : "바로가기 설치하기"}
+    </Button>
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md">
@@ -114,26 +127,15 @@ export function Header() {
                   </SheetTitle>
                 </SheetHeader>
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                  <div className="grid shrink-0 gap-1 border-b border-border pb-3">
-                    {!verifiedUser && (
+                  {!verifiedUser && (
+                    <div className="shrink-0 border-b border-border pb-3">
                       <Button asChild className="h-10 w-full rounded-lg">
                         <Link href="/login" onClick={closeMenu}>
                           로그인
                         </Link>
                       </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        install();
-                        closeMenu();
-                      }}
-                      className={cn(mobileMenuRowClass, "text-primary")}
-                    >
-                      <Download aria-hidden="true" />
-                      {platform === "ios" ? "홈 화면에 추가 안내" : "바로가기 설치하기"}
-                    </Button>
-                  </div>
+                    </div>
+                  )}
 
                   <nav aria-label="모바일 메뉴" className="flex shrink-0 flex-col gap-0.5 py-3">
                     <h3 className={mobileMenuHeadingClass}>메뉴</h3>
@@ -142,6 +144,7 @@ export function Header() {
                       isLoggedIn={Boolean(verifiedUser)}
                       isAdmin={verifiedUser?.role === "ADMIN"}
                       onLinkClick={closeMenu}
+                      mobileShortcutAction={mobileShortcutAction}
                     />
                   </nav>
 
