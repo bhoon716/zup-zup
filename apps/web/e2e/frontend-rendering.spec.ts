@@ -179,7 +179,7 @@ test("고정하기에 너무 높거나 낮은 화면과 동작 줄이기에서�
   }
 
   await expectSequentialChapters();
-  await page.setViewportSize({ width: 831, height: 1320 });
+  await page.setViewportSize({ width: 831, height: 1536 });
   await expectSequentialChapters();
   await page.setViewportSize({ width: 390, height: 600 });
   await expectSequentialChapters();

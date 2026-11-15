@@ -127,8 +127,8 @@ export function LandingWalkthrough() {
     if (!story || !pinnedContent) return;
 
     const stickyLayout = window.matchMedia(
-      "(min-width: 48rem) and (36rem <= height <= 80rem) and (prefers-reduced-motion: no-preference), " +
-      "(44rem <= height <= 80rem) and (prefers-reduced-motion: no-preference)",
+      "(min-width: 48rem) and (36rem <= height <= 84rem) and (prefers-reduced-motion: no-preference), " +
+      "(44rem <= height <= 84rem) and (prefers-reduced-motion: no-preference)",
     );
     let frame = 0;
     const updateChapter = () => {
