@@ -84,4 +84,41 @@ describe('TimetableGrid', () => {
     expect(grid).toHaveClass(...slotClasses);
     expect(container.querySelector('style')).not.toBeInTheDocument();
   });
+
+  it.each([
+    { isPreview: false, label: '전체 시간표' },
+    { isPreview: true, label: '미리보기' },
+  ])('$label에서 충돌한 일정의 겹침과 요일 칸 경계를 지킨다', ({ isPreview }) => {
+    renderGrid({
+      ...mockTimetable,
+      customSchedules: [
+        { id: 2, title: '동시 일정 1', schedules: [{ id: 102, dayOfWeek: '월', startTime: '09:30', endTime: '10:15' }] },
+        { id: 3, title: '동시 일정 2', schedules: [{ id: 103, dayOfWeek: '월', startTime: '10:00', endTime: '10:15' }] },
+        { id: 4, title: '바로 다음 일정', schedules: [{ id: 104, dayOfWeek: '월', startTime: '10:15', endTime: '11:00' }] },
+        { id: 5, title: '다른 요일 일정', schedules: [{ id: 105, dayOfWeek: '화', startTime: '09:30', endTime: '10:15' }] },
+      ],
+    }, isPreview);
+
+    const overlappingCards = [/Java Programming/, /동시 일정 1/, /동시 일정 2/].map((name) => {
+      const { style } = screen.getByRole('button', { name });
+      return { left: parseFloat(style.left), width: parseFloat(style.width) };
+    });
+    const [first, second, third] = overlappingCards;
+    const overlaps = [first.left + first.width - second.left, second.left + second.width - third.left];
+
+    expect(first.left).toBe(0);
+    expect(second.left).toBeGreaterThan(first.left);
+    expect(third.left).toBeGreaterThan(second.left);
+    expect(third.left + third.width).toBeCloseTo(100);
+    for (const overlap of overlaps) {
+      if (isPreview) {
+        expect(overlap).toBeCloseTo(0);
+      } else {
+        expect(overlap).toBeGreaterThan(0);
+        expect(overlap).toBeLessThan(first.width / 2);
+      }
+    }
+    expect(screen.getByRole('button', { name: /바로 다음 일정/ })).toHaveStyle({ left: '0%', width: '100%' });
+    expect(screen.getByRole('button', { name: /다른 요일 일정/ })).toHaveStyle({ left: '0%', width: '100%' });
+  });
 });

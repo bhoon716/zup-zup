@@ -8,10 +8,20 @@
 }
 
 .content {
+  --content-gap: 0.125rem;
+  --content-padding-block: 0.125rem;
+  --detail-line-height: 0.875rem;
+  --detail-lines: 1;
+  --visible-details: 0;
+  --time-space: 0rem;
+  --title-space: calc(
+    100cqh - 2 * var(--content-padding-block) - var(--time-space) -
+    var(--visible-details) * (var(--detail-lines) * var(--detail-line-height) + var(--content-gap))
+  );
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
-  padding: 0.125rem 0.25rem;
+  gap: var(--content-gap);
+  padding: var(--content-padding-block) 0.25rem;
 }
 
 .title {
@@ -30,10 +40,20 @@
 .time {
   display: none;
   overflow: hidden;
+  font-size: 0.6875rem;
+  line-height: var(--detail-line-height);
+}
+
+.instructor,
+.classroom {
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--detail-lines);
+}
+
+.time {
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.6875rem;
-  line-height: 0.875rem;
 }
 
 .instructor {
@@ -54,35 +74,42 @@
 
 @container (min-height: 1.125rem) {
   .content {
-    padding: 0.1875rem 0.375rem;
+    --content-padding-block: 0.1875rem;
+    padding-inline: 0.375rem;
   }
 }
 
-@container (min-width: 3rem) and (min-height: 2.3125rem) {
+@container (max-width: 3.5rem) {
+  .content {
+    padding-inline: 0.25rem;
+  }
+}
+
+@container (min-width: 2.5rem) and (min-height: 2.3125rem) {
+  .content:has(.instructor, .classroom) {
+    --visible-details: 1;
+  }
+
   .instructor,
   .content:not(:has(.instructor)) .classroom {
-    display: block;
+    display: -webkit-box;
   }
 }
 
 @container (min-width: 5.5rem) and (min-height: 2.5rem) and (max-height: 2.999rem) {
   .content {
-    gap: 0;
-    padding-block: 0.0625rem;
+    --content-gap: 0rem;
+    --content-padding-block: 0.0625rem;
+    --detail-line-height: 0.75rem;
   }
 
   .title {
     -webkit-line-clamp: 2;
-  }
-
-  .title,
-  .instructor,
-  .classroom {
     line-height: 0.75rem;
   }
 }
 
-@container (min-width: 3rem) and (min-height: 3rem) {
+@container (min-height: 3.125rem) {
   .title {
     -webkit-line-clamp: 2;
   }
@@ -90,28 +117,63 @@
 
 @container (min-width: 5.5rem) and (min-height: 3.75rem) {
   .content {
-    padding: 0.25rem 0.5rem;
+    --content-padding-block: 0.25rem;
+    padding-inline: 0.5rem;
   }
 
   .title {
     font-size: 0.75rem;
     line-height: 1rem;
   }
+}
+
+@container (min-width: 5.5rem) and (min-height: 4.5rem) {
+  .content:has(.instructor):has(.classroom) {
+    --visible-details: 2;
+  }
 
   .classroom {
-    display: block;
+    display: -webkit-box;
   }
 }
 
-@container (min-width: 5.5rem) and (min-height: 4.9375rem) {
+@container (min-width: 5.5rem) and (min-height: 5.5rem) {
+  .content {
+    --time-space: calc(var(--detail-line-height) + var(--content-gap));
+  }
+
   .time {
     display: block;
   }
 }
 
-@container (min-width: 5.5rem) and (min-height: 5.9375rem) {
+@container (min-height: 6.5rem) {
   .title {
     -webkit-line-clamp: 3;
+  }
+}
+
+@container (min-height: 8.25rem) {
+  .content {
+    --detail-lines: 2;
+  }
+}
+
+@container (width < 5.5rem) and (min-height: 8.25rem) {
+  .title {
+    -webkit-line-clamp: 6;
+  }
+}
+
+@container (width < 5.5rem) and (min-height: 10.5rem) {
+  .title {
+    -webkit-line-clamp: 9;
+  }
+}
+
+@supports (-webkit-line-clamp: round(down, 1px / 1px, 1)) {
+  .card:not(.preview) .title {
+    -webkit-line-clamp: max(1, round(down, var(--title-space) / 1lh, 1));
   }
 }
 

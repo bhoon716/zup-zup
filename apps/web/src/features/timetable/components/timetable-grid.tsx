@@ -7,7 +7,7 @@ import { cn } from '@/shared/lib/utils';
 import { getRenderingBlocks, getTimeInMinutes, WEEK_DAYS, type RenderingBlock } from '@/features/timetable/lib/timetable';
 import { CourseDetailDialog } from '@/features/course/components/course-detail-dialog';
 import { CustomScheduleDetailDialog } from './custom-schedule-detail-dialog';
-import { TimetableBlock, type OpenTimetableBlock } from './timetable-block';
+import { TimetableBlock, type OpenTimetableBlock, type TimetableBlockLayout } from './timetable-block';
 
 interface TimetableGridProps {
   timetable: TimetableResponse;
@@ -17,10 +17,7 @@ interface TimetableGridProps {
 }
 
 const MONDAY_TO_SATURDAY = WEEK_DAYS.slice(0, 6);
-interface BlockLayout {
-  leftOffset: number;
-  widthFraction: number;
-}
+const BLOCK_OVERLAP_FRACTION = 0.25;
 
 function sortBlocksByTime(a: RenderingBlock, b: RenderingBlock): number {
   const startDiff = getTimeInMinutes(a.startTime) - getTimeInMinutes(b.startTime);
@@ -31,8 +28,8 @@ function sortBlocksByTime(a: RenderingBlock, b: RenderingBlock): number {
   return getTimeInMinutes(a.endTime) - getTimeInMinutes(b.endTime);
 }
 
-function buildLayoutsForDay(dayBlocks: RenderingBlock[]): Map<string, BlockLayout> {
-  const layouts = new Map<string, BlockLayout>();
+function buildLayoutsForDay(dayBlocks: RenderingBlock[], overlapFraction: number): Map<string, TimetableBlockLayout> {
+  const layouts = new Map<string, TimetableBlockLayout>();
   if (dayBlocks.length === 0) {
     return layouts;
   }
@@ -68,7 +65,7 @@ function buildLayoutsForDay(dayBlocks: RenderingBlock[]): Map<string, BlockLayou
 
   for (const cluster of clusters) {
     const columnEndTimes: number[] = [];
-    const placements: { block: RenderingBlock; column: number }[] = [];
+    const placements: { key: string; column: number; start: number; end: number }[] = [];
 
     for (const block of cluster) {
       const start = getTimeInMinutes(block.startTime);
@@ -82,14 +79,22 @@ function buildLayoutsForDay(dayBlocks: RenderingBlock[]): Map<string, BlockLayou
         columnEndTimes[column] = end;
       }
 
-      placements.push({ block, column });
+      placements.push({ key: block.key, column, start, end });
     }
 
-    const totalColumns = Math.max(columnEndTimes.length, 1);
-    placements.forEach(({ block, column }) => {
-      layouts.set(block.key, {
-        leftOffset: column / totalColumns,
-        widthFraction: 1 / totalColumns,
+    const totalColumns = columnEndTimes.length;
+    const stepFraction = 1 - overlapFraction;
+    const widthFraction = 1 / (1 + (totalColumns - 1) * stepFraction);
+    placements.forEach(({ key, column, start, end }) => {
+      const coveredByNeighbor = overlapFraction > 0 && placements.some((neighbor) => (
+        neighbor.column === column + 1 && start < neighbor.end && neighbor.start < end
+      ));
+
+      layouts.set(key, {
+        leftOffset: column * widthFraction * stepFraction,
+        widthFraction,
+        coveredFraction: coveredByNeighbor ? overlapFraction : 0,
+        layer: column - totalColumns + 1,
       });
     });
   }
@@ -155,14 +160,14 @@ export function TimetableGrid({ timetable, className, isPreview = false, allowHo
   }, [blocks, displayDays]);
 
   const dayLayoutMap = useMemo(() => {
-    const map = new Map<string, Map<string, BlockLayout>>();
+    const map = new Map<string, Map<string, TimetableBlockLayout>>();
 
     displayDays.forEach((day) => {
-      map.set(day, buildLayoutsForDay(dayBlocksMap.get(day) ?? []));
+      map.set(day, buildLayoutsForDay(dayBlocksMap.get(day) ?? [], isPreview ? 0 : BLOCK_OVERLAP_FRACTION));
     });
 
     return map;
-  }, [dayBlocksMap, displayDays]);
+  }, [dayBlocksMap, displayDays, isPreview]);
 
   const handleOpenBlock: OpenTimetableBlock = (block, trigger) => {
     returnFocusRef.current = trigger;
@@ -237,7 +242,7 @@ export function TimetableGrid({ timetable, className, isPreview = false, allowHo
 
             <div className="pointer-events-none z-10 col-[2/-1] row-start-1 grid h-full grid-cols-[repeat(var(--day-count),minmax(0,1fr))]">
               {displayDays.map((day) => (
-                <div key={day} className="relative h-full">
+                <div key={day} className="relative isolate h-full">
                   {dayBlocksMap.get(day)?.map((block) => {
                     const start = getTimeInMinutes(block.startTime);
                     const end = getTimeInMinutes(block.endTime);
@@ -251,8 +256,7 @@ export function TimetableGrid({ timetable, className, isPreview = false, allowHo
                         block={block}
                         top={top}
                         height={height}
-                        leftOffset={layout?.leftOffset ?? 0}
-                        widthFraction={layout?.widthFraction ?? 1}
+                        layout={layout}
                         isPreview={isPreview}
                         onOpen={handleOpenBlock}
                       />
