@@ -1,7 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { MoveHorizontal } from 'lucide-react';
+import { useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Course, TimetableResponse } from '@/shared/types/api';
 import { parseCourseKey } from '@/shared/lib/course';
 import { cn } from '@/shared/lib/utils';
@@ -104,7 +103,6 @@ export function TimetableGrid({ timetable, className, isPreview = false, allowHo
   const [selectedBlock, setSelectedBlock] = useState<RenderingBlock | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const returnFocusRef = useRef<HTMLButtonElement>(null);
-  const scrollHintId = useId();
   const hasWideColumns = allowHorizontalScroll && !isPreview;
 
   const initialCourse = useMemo(() => {
@@ -175,23 +173,10 @@ export function TimetableGrid({ timetable, className, isPreview = false, allowHo
   const columns = 'grid grid-cols-[var(--time-column)_repeat(var(--day-count),minmax(0,1fr))]';
 
   return (
-    <div className="@container relative min-w-0">
-      {hasWideColumns && (
-        <p
-          id={scrollHintId}
-          className={cn(
-            'flex items-center gap-1.5 border-b border-border px-3 py-2 text-xs text-muted-foreground',
-            displayDays.length === 7 ? '@min-[55.75rem]:hidden' : '@min-[48.25rem]:hidden',
-          )}
-        >
-          <MoveHorizontal aria-hidden="true" className="size-3.5" />
-          좌우로 밀어 요일 보기
-        </p>
-      )}
+    <div className="relative min-w-0">
       <div
         role="region"
         aria-label="주간 시간표"
-        aria-describedby={hasWideColumns ? scrollHintId : undefined}
         tabIndex={hasWideColumns ? 0 : undefined}
         className="custom-scrollbar w-full overflow-x-auto bg-white focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
       >
