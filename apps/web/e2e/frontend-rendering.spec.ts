@@ -42,6 +42,47 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
   }
 });
 
+test("홈 상단 알림 예시가 스크롤 없이 위로 반복되고 모션 설정을 따른다", async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 1463, height: 1313 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
+    ? route.continue() : route.abort());
+  await page.goto("/");
+
+  const notices = page.getByTestId("landing-hero-notifications");
+  const track = notices.getByTestId("landing-hero-notification-track");
+  const trackOffset = () => track.evaluate(element => element.getBoundingClientRect().top - (element.parentElement?.getBoundingClientRect().top ?? 0));
+  await expect(notices).toBeInViewport({ ratio: 1 });
+  const initialOffset = await trackOffset();
+  await expect.poll(async () => Math.abs(await trackOffset() - initialOffset), { timeout: 8_000 }).toBeGreaterThan(20);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+  const frames = await track.evaluate(element => {
+    const [animation] = element.getAnimations();
+    const duration = Number(animation.effect?.getComputedTiming().duration);
+    const viewport = element.closest('[data-testid="landing-hero-notifications"]');
+    if (!viewport || !duration) throw new Error("예시 알림의 반복 구간을 찾지 못했습니다.");
+
+    const top = viewport.getBoundingClientRect().top;
+    const cards = Array.from(element.querySelectorAll('[data-testid="landing-hero-notification"]'));
+    animation.pause();
+    return [0.04, 0.38, 0.71, 1.04].map(phase => {
+      animation.currentTime = duration * phase;
+      const firstCard = cards.find(card => card.getBoundingClientRect().top >= top - 1);
+      return { text: firstCard?.textContent, offset: element.getBoundingClientRect().top - top };
+    });
+  });
+  expect(new Set(frames.slice(0, 3).map(frame => frame.text)).size).toBe(3);
+  expect(frames.every(frame => frame.text)).toBe(true);
+  expect(frames[1].offset).toBeLessThan(frames[0].offset);
+  expect(frames[2].offset).toBeLessThan(frames[1].offset);
+  expect(frames[3]).toEqual(frames[0]);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(notices.getByTestId("landing-hero-notification").first()).toBeVisible();
+  await expect.poll(() => track.evaluate(element => element.getAnimations().length)).toBe(0);
+});
+
 const walkthroughSteps = [
   { heading: "강의 검색", marker: "COM2101-01" },
   { heading: "빈자리 알림 등록", marker: "구독이 완료되었습니다" },
