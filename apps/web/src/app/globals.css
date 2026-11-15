@@ -155,6 +155,17 @@
   background-attachment: fixed;
 }
 
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"]:has(> [data-close-button]) {
+  padding-right: 40px;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] > [data-close-button] {
+  top: 50%;
+  right: 12px;
+  left: auto;
+  transform: translateY(-50%);
+}
+
 @layer components {
   .container {
     @apply max-w-[1200px] mx-auto px-6;
