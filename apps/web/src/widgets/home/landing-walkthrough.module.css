@@ -28,7 +28,7 @@
   box-shadow: 0 8px 28px color-mix(in srgb, var(--primary) 7%, transparent);
 }
 
-.stickyPreview {
+.animatedPreview {
   display: none;
 }
 
@@ -36,7 +36,7 @@
   display: grid;
 }
 
-.stickyScene {
+.animatedScene {
   grid-area: 1 / 1;
 }
 
@@ -107,45 +107,36 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .stage[data-sticky]::after {
-    content: "";
-    display: block;
-    block-size: 22rem;
-  }
-
-  .stage[data-sticky] .stickyPanel {
+  .stage[data-animated] .animatedPanel {
     display: grid;
-    position: sticky;
-    top: 5rem;
     grid-template-columns: minmax(0, 1fr);
     gap: 1rem clamp(2rem, 8vw, 7.5rem);
     align-items: center;
   }
 
   @media (min-width: 48rem) {
-    .stage[data-sticky] .stickyPanel {
-      top: clamp(5rem, max(min(36vh, 32rem), var(--sticky-inset-minimum, 0px)), var(--sticky-inset-limit, 32rem));
+    .stage[data-animated] .animatedPanel {
       grid-template-columns: minmax(0, 0.83fr) minmax(0, 1.17fr);
     }
   }
 
   @media (max-height: 38rem), (width < 48rem) {
-    .stage[data-sticky] :is(.frameBar, .stickyScene) {
+    .stage[data-animated] :is(.frameBar, .animatedScene) {
       padding: 0.625rem;
     }
   }
 
   @media (max-height: 38rem) {
-    .stage[data-sticky] :is(.searchSummary, .toastBody) {
+    .stage[data-animated] :is(.searchSummary, .toastBody) {
       display: none;
     }
 
-    .stage[data-sticky] .progress {
+    .stage[data-animated] .progress {
       padding-block: 0.375rem;
     }
 
     @media (min-width: 48rem) {
-      .stage[data-sticky] .stickyPanel {
+      .stage[data-animated] .animatedPanel {
         grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
         column-gap: 2rem;
       }
@@ -153,62 +144,61 @@
   }
 
   @media (width < 48rem) {
-    .stage[data-sticky] .copy {
+    .stage[data-animated] .copy {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
       align-items: center;
       gap: 0.375rem 0.625rem;
     }
 
-    .stage[data-sticky] .copy :is(h3, p) {
+    .stage[data-animated] .copy :is(h3, p) {
       margin-top: 0;
     }
 
-    .stage[data-sticky] .copy p {
+    .stage[data-animated] .copy p {
       grid-column: 1 / -1;
     }
 
-    .stage[data-sticky] .stepMark {
+    .stage[data-animated] .stepMark {
       padding: 0.375rem;
     }
 
-    .stage[data-sticky] .secondCourse {
+    .stage[data-animated] .secondCourse {
       display: none;
     }
   }
 
-  .stage[data-sticky] .chapter {
+  .stage[data-animated] .chapter {
     grid-area: 1 / 1;
     grid-template-columns: minmax(0, 1fr);
     align-self: center;
   }
 
-  .stage[data-sticky] :is(.chapter, .stickyScene) {
+  .stage[data-animated] :is(.chapter, .animatedScene) {
     visibility: hidden;
   }
 
-  .stage[data-sticky] :is(.copy, .stickyScene) {
+  .stage[data-animated] :is(.copy, .animatedScene) {
     opacity: 0;
   }
 
-  .stage[data-sticky] :is(.chapter[aria-current="step"], .stickyScene[data-active]) {
+  .stage[data-animated] :is(.chapter[aria-current="step"], .animatedScene[data-active]) {
     visibility: visible;
   }
 
-  .stage[data-sticky] :is(.chapter[aria-current="step"] .copy, .stickyScene[data-active]) {
+  .stage[data-animated] :is(.chapter[aria-current="step"] .copy, .animatedScene[data-active]) {
     opacity: var(--step-opacity);
-    translate: 0 var(--step-offset);
   }
 
-  .stage[data-sticky] .stepMark {
+  .stage[data-animated] .stepMark {
     background: color-mix(in srgb, var(--primary) 22%, transparent);
   }
 
-  .stage[data-sticky] .inlinePreview {
+  .stage[data-animated] .inlinePreview {
     display: none;
   }
 
-  .stage[data-sticky] .stickyPreview {
+  .stage[data-animated] .animatedPreview {
     display: block;
   }
 
@@ -278,7 +268,6 @@
 @keyframes preview-enter {
   from {
     opacity: 0.75;
-    translate: 0 12px;
   }
 }
 

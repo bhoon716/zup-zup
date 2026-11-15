@@ -34,15 +34,15 @@ const chapters = [
   },
 ] as const;
 
-function WalkthroughPreview({ activeIndex, children, sticky = false }: {
+function WalkthroughPreview({ activeIndex, children, animated = false }: {
   activeIndex: number;
   children: ReactNode;
-  sticky?: boolean;
+  animated?: boolean;
 }) {
   return (
     <div
-      className={`${styles.frame} ${sticky ? styles.stickyPreview : styles.inlinePreview}`}
-      data-testid={sticky ? "landing-walkthrough-sticky-preview" : "landing-walkthrough-preview"}
+      className={`${styles.frame} ${animated ? styles.animatedPreview : styles.inlinePreview}`}
+      data-testid={animated ? "landing-walkthrough-animated-preview" : "landing-walkthrough-preview"}
       aria-hidden="true"
       inert
     >
@@ -69,13 +69,12 @@ export function LandingWalkthrough() {
 
     const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
     const chapterItems = panel.querySelectorAll(`.${styles.chapter}`);
-    const scenes = panel.querySelectorAll(`.${styles.stickyScene}`);
-    const progressIndicators = panel.querySelectorAll(`.${styles.stickyPreview} .${styles.progress} > span`);
-    const minimumStickyDistance = 240;
+    const scenes = panel.querySelectorAll(`.${styles.animatedScene}`);
+    const progressIndicators = panel.querySelectorAll(`.${styles.animatedPreview} .${styles.progress} > span`);
+    const minimumScrollDistance = 160;
     const fadePortion = 0.4;
     const holdPortion = (1 - fadePortion) / 2;
     const minimumOpacity = 0.12;
-    const fadeTravel = 12;
     let frame: number | undefined;
     let range: { start: number; distance: number } | undefined;
     let needsMeasure = true;
@@ -84,27 +83,21 @@ export function LandingWalkthrough() {
 
     const measureRange = () => {
       if (!motion.matches) {
-        stage.removeAttribute("data-sticky");
+        stage.removeAttribute("data-animated");
         return;
       }
 
-      stage.setAttribute("data-sticky", "");
+      stage.setAttribute("data-animated", "");
       const { clientHeight, scrollHeight } = document.documentElement;
-      const panelHeight = panel.getBoundingClientRect().height;
-      const { top, bottom, height } = stage.getBoundingClientRect();
-      const maxScroll = scrollHeight - clientHeight;
-      const trackLength = height - panelHeight;
-      const earliestInset = window.scrollY + top + trackLength - maxScroll;
-      panel.style.setProperty("--sticky-inset-limit", `${Math.floor(clientHeight - panelHeight)}px`);
-      panel.style.setProperty("--sticky-inset-minimum", `${Math.ceil(earliestInset)}px`);
-      const inset = Number.parseFloat(window.getComputedStyle(panel).top);
-      const stickyStart = window.scrollY + top - inset;
-      const stickyEnd = window.scrollY + bottom - inset - panelHeight;
-      const start = Math.max(0, stickyStart);
-      const end = Math.min(stickyEnd, maxScroll);
+      const { top, height } = panel.getBoundingClientRect();
+      const documentTop = window.scrollY + top;
+      const headerClearance = 80;
+      const preferredDistance = 352;
+      const end = Math.min(documentTop - headerClearance, scrollHeight - clientHeight);
+      const start = Math.max(0, end - preferredDistance, documentTop - clientHeight + height * 0.45);
       const distance = end - start;
-      if (distance < minimumStickyDistance || inset + panelHeight > clientHeight) {
-        stage.removeAttribute("data-sticky");
+      if (distance < minimumScrollDistance || headerClearance + height > clientHeight) {
+        stage.removeAttribute("data-animated");
         return;
       }
 
@@ -136,10 +129,8 @@ export function LandingWalkthrough() {
 
       lastProgress = progress;
       const activeIndex = Math.round(progress);
-      const offset = (activeIndex - progress) * 2;
-      const opacity = 1 - (1 - minimumOpacity) * Math.abs(offset);
+      const opacity = 1 - (1 - minimumOpacity) * Math.abs(activeIndex - progress) * 2;
       panel.style.setProperty("--step-opacity", String(opacity));
-      panel.style.setProperty("--step-offset", `${offset * fadeTravel}px`);
       if (activeIndex === lastActiveIndex) return;
 
       if (lastActiveIndex !== undefined) {
@@ -192,7 +183,7 @@ export function LandingWalkthrough() {
         </p>
       </div>
       <div ref={stageRef} className={styles.stage} data-testid="landing-walkthrough-stage">
-        <div ref={panelRef} className={styles.stickyPanel} data-testid="landing-walkthrough-sticky-panel">
+        <div ref={panelRef} className={styles.animatedPanel} data-testid="landing-walkthrough-animated-panel">
           <ol className={styles.chapterList} role="list">
             {chapters.map(({ id, title, description, Icon, Preview }, index) => (
               <li key={id} className={styles.chapter}>
@@ -211,10 +202,10 @@ export function LandingWalkthrough() {
             ))}
           </ol>
 
-          <WalkthroughPreview activeIndex={0} sticky>
+          <WalkthroughPreview activeIndex={0} animated>
             <div className={styles.sceneStack}>
               {chapters.map(({ id, Preview }) => (
-                <div key={id} className={`${styles.scene} ${styles.stickyScene}`} data-chapter={id} data-testid="landing-walkthrough-scene">
+                <div key={id} className={`${styles.scene} ${styles.animatedScene}`} data-chapter={id} data-testid="landing-walkthrough-scene">
                   <Preview />
                 </div>
               ))}

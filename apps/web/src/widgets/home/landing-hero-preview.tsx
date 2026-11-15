@@ -40,30 +40,24 @@ export function LandingHeroPreview() {
         </div>
       </div>
       <div className={styles.notificationViewport} data-testid="landing-hero-notifications">
-        <div className={styles.notificationTrack} data-testid="landing-hero-notification-track">
-          {["first", "repeat"].map((group) => (
-            <div key={group} className={styles.notificationGroup}>
-              {seatNotifications.map(({ courseName, section, seats }) => (
-                <div
-                  key={courseName}
-                  className="flex items-center gap-2.5 rounded-xl border bg-card px-2.5 sm:gap-3 sm:px-3.5"
-                  data-testid="landing-hero-notification"
-                >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-[0.625rem] border border-[#572970]/10 bg-white">
-                    <Image src={BRAND_ICON_32_PATH} alt="" width={22} height={22} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-5 font-bold tracking-tight text-card-foreground">{courseName}</p>
-                    <p className="mt-0.5 text-xs leading-4 text-muted-foreground">{section}분반 · 빈자리 알림</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-primary/[0.08] px-2.5 py-1 text-xs leading-4 font-semibold whitespace-nowrap text-primary">
-                    {seats}석
-                  </span>
-                </div>
-              ))}
+        {seatNotifications.map(({ courseName, section, seats }) => (
+          <div
+            key={courseName}
+            className={`${styles.notificationCard} flex items-center gap-2.5 rounded-xl border bg-card px-2.5 sm:gap-3 sm:px-3.5`}
+            data-testid="landing-hero-notification"
+          >
+            <span className="grid size-9 shrink-0 place-items-center rounded-[0.625rem] border border-[#572970]/10 bg-white">
+              <Image src={BRAND_ICON_32_PATH} alt="" width={22} height={22} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm leading-5 font-bold tracking-tight text-card-foreground">{courseName}</p>
+              <p className="mt-0.5 text-xs leading-4 text-muted-foreground">{section}분반 · 빈자리 알림</p>
             </div>
-          ))}
-        </div>
+            <span className="shrink-0 rounded-full bg-primary/[0.08] px-2.5 py-1 text-xs leading-4 font-semibold whitespace-nowrap text-primary">
+              {seats}석
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
