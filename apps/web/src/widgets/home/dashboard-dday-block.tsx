@@ -1,4 +1,4 @@
-import { Timer } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import type { ScheduleResponse } from "@/shared/types/api";
 import { dashboardListStyles as styles } from "./dashboard-list-styles";
@@ -8,7 +8,7 @@ export function DashboardDDayBlock({ upcomingSchedules }: { upcomingSchedules: S
     <div className={styles.card}>
       <h3 className={styles.header}>
         <span className={styles.icon}>
-          <Timer aria-hidden="true" className="size-5" />
+          <CalendarDays aria-hidden="true" className="size-5" />
         </span>
         주요 일정
       </h3>
