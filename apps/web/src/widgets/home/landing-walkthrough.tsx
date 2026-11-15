@@ -87,18 +87,23 @@ export function LandingWalkthrough() {
 
       stage.setAttribute("data-animated", "");
       const { clientHeight, scrollHeight } = document.documentElement;
-      const { top, height } = panel.getBoundingClientRect();
-      const documentTop = window.scrollY + top;
-      const headerClearance = 80;
-      const preferredDistance = 352;
-      const end = Math.min(documentTop - headerClearance, scrollHeight - clientHeight);
-      const start = Math.max(0, end - preferredDistance, documentTop - clientHeight + height * 0.45);
+      const stageBounds = stage.getBoundingClientRect();
+      const panelHeight = panel.getBoundingClientRect().height;
+      const documentTop = window.scrollY + stageBounds.top;
+      const track = stageBounds.height - panelHeight;
+      const maxScroll = scrollHeight - clientHeight;
+      const baseInset = Number.parseFloat(getComputedStyle(panel).getPropertyValue("--walkthrough-top"));
+      const fittingInset = Math.min(documentTop, clientHeight - panelHeight);
+      const inset = Math.max(baseInset, Math.min(fittingInset, documentTop + track - maxScroll));
+      const start = Math.max(0, documentTop - inset);
+      const end = Math.min(start + track, maxScroll);
       const distance = end - start;
-      if (distance < minimumScrollDistance || headerClearance + height > clientHeight) {
+      if (distance < minimumScrollDistance || baseInset + panelHeight > clientHeight) {
         stage.removeAttribute("data-animated");
         return;
       }
 
+      panel.style.setProperty("--walkthrough-inset", `${inset}px`);
       return { start, distance };
     };
 
@@ -172,43 +177,45 @@ export function LandingWalkthrough() {
 
   return (
     <section aria-labelledby="landing-walkthrough-title" className="mx-auto w-full max-w-[1200px] px-6 pb-10 md:pb-12">
-      <div className="mb-5 border-t pt-8 lg:mb-6">
-        <h2 id="landing-walkthrough-title" className="text-2xl font-bold tracking-tight md:text-3xl">
-          줍줍으로 수강신청 준비하기
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base">
-          분반별 여석을 확인하고, 마감된 분반에는 빈자리 알림을 등록하세요.
-        </p>
-      </div>
       <div ref={stageRef} className={styles.stage} data-testid="landing-walkthrough-stage">
         <div ref={panelRef} className={styles.animatedPanel} data-testid="landing-walkthrough-animated-panel">
-          <ol className={styles.chapterList} role="list">
-            {chapters.map(({ id, title, description, Icon, Preview }, index) => (
-              <li key={id} className={styles.chapter}>
-                <div className={styles.copy} data-testid="landing-walkthrough-copy">
-                  <div className={styles.stepMark} aria-hidden="true">
-                    <Icon className="size-[18px]" />
+          <div className={`${styles.intro} mb-5 border-t pt-8 lg:mb-6`}>
+            <h2 id="landing-walkthrough-title" className="text-2xl font-bold tracking-tight md:text-3xl">
+              줍줍으로 수강신청 준비하기
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base">
+              분반별 여석을 확인하고, 마감된 분반에는 빈자리 알림을 등록하세요.
+            </p>
+          </div>
+          <div className={styles.panelContent}>
+            <ol className={styles.chapterList} role="list">
+              {chapters.map(({ id, title, description, Icon, Preview }, index) => (
+                <li key={id} className={styles.chapter}>
+                  <div className={styles.copy} data-testid="landing-walkthrough-copy">
+                    <div className={styles.stepMark} aria-hidden="true">
+                      <Icon className="size-[18px]" />
+                    </div>
+                    <h3 className="mt-3 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
+                    <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
                   </div>
-                  <h3 className="mt-3 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
-                  <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
-                </div>
 
-                <WalkthroughPreview activeIndex={index}>
-                  <div className={styles.scene}><Preview /></div>
-                </WalkthroughPreview>
-              </li>
-            ))}
-          </ol>
-
-          <WalkthroughPreview activeIndex={0} animated>
-            <div className={styles.sceneStack}>
-              {chapters.map(({ id, Preview }) => (
-                <div key={id} className={`${styles.scene} ${styles.animatedScene}`} data-chapter={id} data-testid="landing-walkthrough-scene">
-                  <Preview />
-                </div>
+                  <WalkthroughPreview activeIndex={index}>
+                    <div className={styles.scene}><Preview /></div>
+                  </WalkthroughPreview>
+                </li>
               ))}
-            </div>
-          </WalkthroughPreview>
+            </ol>
+
+            <WalkthroughPreview activeIndex={0} animated>
+              <div className={styles.sceneStack}>
+                {chapters.map(({ id, Preview }) => (
+                  <div key={id} className={`${styles.scene} ${styles.animatedScene}`} data-chapter={id} data-testid="landing-walkthrough-scene">
+                    <Preview />
+                  </div>
+                ))}
+              </div>
+            </WalkthroughPreview>
+          </div>
         </div>
       </div>
     </section>

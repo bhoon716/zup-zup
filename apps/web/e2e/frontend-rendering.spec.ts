@@ -35,6 +35,7 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
       "빈자리 알림",
     ]);
     await expect(landing.getByTestId("landing-walkthrough-animated-preview")).toBeHidden();
+    await expect(landing.getByTestId("landing-hero-notifications")).toHaveCount(0);
     const courseTools = landing.getByRole("region", { name: "시간표부터 강의 리뷰까지" });
     await expect(courseTools.getByRole("heading", { level: 3 })).toHaveText(["내 시간표", "관심 강의 찜하기", "강의 리뷰"]);
     expect(await courseTools.evaluate(element => element.nextElementSibling?.querySelector("h2")?.textContent)).toBe("생생한 사용자 후기");
@@ -42,43 +43,6 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
   } finally {
     await context.close();
   }
-});
-
-test("홈 상단 알림 예시가 스크롤 없이 위에 쌓이고 모션 설정을 따른다", async ({ page, baseURL }) => {
-  await page.setViewportSize({ width: 1209, height: 1313 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
-    ? route.continue() : route.abort());
-  await page.goto("/");
-
-  const notices = page.getByTestId("landing-hero-notifications");
-  const cards = notices.getByTestId("landing-hero-notification");
-  await expect(notices).toBeInViewport({ ratio: 1 });
-  await expect(cards).toHaveCount(3);
-  await expect.poll(() => cards.nth(1).evaluate(element => getComputedStyle(element).opacity), { timeout: 5_000 }).toBe("1");
-  expect(await page.evaluate(() => window.scrollY)).toBe(0);
-
-  const frames = await notices.evaluate(element => {
-    const animations = element.getAnimations({ subtree: true });
-    const cards = Array.from(element.querySelectorAll('[data-testid="landing-hero-notification"]'));
-    const duration = Number(animations[0]?.effect?.getComputedTiming().duration);
-    if (!duration) throw new Error("예시 알림의 반복 구간을 찾지 못했습니다.");
-
-    animations.forEach(animation => animation.pause());
-    return [0.05, 0.35, 0.6, 1.05].map(phase => {
-      animations.forEach(animation => { animation.currentTime = duration * phase; });
-      return cards.map(card => ({ top: card.getBoundingClientRect().top, opacity: Number(getComputedStyle(card).opacity) }));
-    });
-  });
-  expect(frames.map(frame => frame.map(card => card.opacity))).toEqual([[1, 0, 0], [1, 1, 0], [1, 1, 1], [1, 0, 0]]);
-  const [bottom, middle, top] = frames[0].map(card => card.top);
-  expect(bottom).toBeGreaterThan(middle);
-  expect(middle).toBeGreaterThan(top);
-  expect(frames.every(frame => frame[0].top === bottom && frame[1].top === middle && frame[2].top === top)).toBe(true);
-
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect.poll(() => notices.evaluate(element => element.getAnimations({ subtree: true }).length)).toBe(0);
-  await expect.poll(() => cards.evaluateAll(elements => elements.map(element => getComputedStyle(element).opacity))).toEqual(["1", "1", "1"]);
 });
 
 const walkthroughSteps = [
@@ -95,12 +59,13 @@ for (const viewport of [
   { width: 1024, height: 768 },
   { width: 831, height: 923 },
   { width: 1209, height: 1313 },
+  { width: 1286, height: 1313 },
   { width: 1463, height: 1313 },
   { width: 1783, height: 1327 },
   { width: 1463, height: 1700 },
   { width: 1463, height: 1920 },
 ]) {
-  test(`${viewport.width}×${viewport.height}에서 설명과 미리보기가 같은 단계로 전환된다`, async ({ page, baseURL }) => {
+  test(`${viewport.width}×${viewport.height}에서 제목을 고정하고 설명과 미리보기를 같은 단계로 전환한다`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport);
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.route("**/*", (route) => new URL(route.request().url()).origin === new URL(baseURL!).origin
@@ -113,26 +78,26 @@ for (const viewport of [
     const scenes = preview.getByTestId("landing-walkthrough-scene");
     const headings = stage.getByRole("heading", { level: 3 });
     await expect(preview).toBeVisible();
-    await expect(panel).toHaveCSS("position", "static");
+    await expect(panel).toHaveCSS("position", "sticky");
+    await expect(panel.getByRole("heading", { level: 2 })).toHaveText("줍줍으로 수강신청 준비하기");
     await expect(headings).toHaveText([walkthroughSteps[0].heading]);
     for (const [index, { marker }] of walkthroughSteps.entries()) {
       await expect(scenes.nth(index).getByText(marker, { exact: true })).toHaveCount(1);
     }
     await page.evaluate(() => document.fonts.ready);
 
-    const { start, travel, documentTop } = await panel.evaluate(element => {
-      const { top, height } = element.getBoundingClientRect();
-      const { clientHeight, scrollHeight } = document.documentElement;
-      const documentTop = top + window.scrollY;
-      const end = Math.min(documentTop - 80, scrollHeight - clientHeight);
-      const start = Math.max(0, end - 352, documentTop - clientHeight + height * 0.45);
-      return { start, travel: end - start, documentTop };
+    const { start, travel, inset, release, maxScroll } = await panel.evaluate(element => {
+      const stage = element.parentElement;
+      if (!stage) throw new Error("안내 영역을 찾지 못했습니다.");
+      const { top, bottom } = stage.getBoundingClientRect();
+      const inset = parseFloat(getComputedStyle(element).top);
+      const start = Math.max(0, top + window.scrollY - inset);
+      const release = bottom + window.scrollY - inset - element.getBoundingClientRect().height;
+      const maxScroll = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      return { start, travel: Math.min(release, maxScroll) - start, inset, release, maxScroll };
     });
     expect(travel).toBeGreaterThanOrEqual(160);
-    const expectPanelInFlow = async () => {
-      const top = await panel.evaluate(element => element.getBoundingClientRect().top + window.scrollY);
-      expect(top).toBeCloseTo(documentTop, 0);
-    };
+    const expectPinned = () => expect.poll(async () => (await panel.boundingBox())?.y).toBeCloseTo(inset, 0);
     const scrollTo = (fraction: number) => page.evaluate(y => window.scrollTo(0, y), start + travel * fraction);
     const layers = () => stage.evaluate(element => {
       const read = (testId: string) => Array.from(
@@ -164,6 +129,7 @@ for (const viewport of [
 
     await scrollTo(0);
     await expectStep(0);
+    await expectPinned();
     await page.mouse.wheel(0, 24);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(start + 20);
     await expectStep(0);
@@ -186,19 +152,21 @@ for (const viewport of [
 
     await scrollTo(0.5);
     await expectStep(1);
-    await expectPanelInFlow();
+    await expectPinned();
     await scrollTo(0.8);
     await expectStep(2);
     await expectMatchingFade(2);
     await scrollTo(0.9);
     await expectStep(2);
     await expect.poll(async () => (await layers()).left[2].opacity).toBe(1);
-    await expectPanelInFlow();
+    await expectPinned();
     await expect(panel).toBeInViewport({ ratio: 1 });
 
-    const stageBounds = await stage.boundingBox();
-    const panelBounds = await panel.boundingBox();
-    expect(stageBounds?.height).toBe(panelBounds?.height);
+    if (release + 32 <= maxScroll) {
+      await page.evaluate(y => window.scrollTo(0, y), release + 32);
+      await expect.poll(async () => (await panel.boundingBox())?.y).toBeLessThan(inset - 28);
+      await expectStep(2);
+    }
   });
 }
 

@@ -49,8 +49,7 @@ const otherSection = {
   ],
 } satisfies Course;
 
-const reopenedCourse = { ...fullCourse, current: 39 };
-const availableSeats = reopenedCourse.capacity - reopenedCourse.current;
+const availableSeats = 1;
 const pushTitle = `[줍줍] ${fullCourse.name} (${fullCourse.professor}) 여석 발생!`;
 const pushBody = `과목명: ${fullCourse.name} (${fullCourse.professor})\n과목코드: ${fullCourse.courseKey}\n현재 여석이 발생했습니다! (${availableSeats}명)`;
 const subscriptionMessage = "구독이 완료되었습니다";
@@ -146,18 +145,6 @@ export function SearchPreview({ registered = false }: { registered?: boolean }) 
 
 export function RegistrationPreview() {
   return <SearchPreview registered />;
-}
-
-export function HeroSearchPreview() {
-  return (
-    <div className="grid gap-3">
-      <ExampleKeywordSearch />
-      <ExampleCourseCard course={reopenedCourse} subscribed />
-      <div className="hidden lg:block">
-        <ExampleCourseCard course={otherSection} />
-      </div>
-    </div>
-  );
 }
 
 export function SystemNotificationPreview() {

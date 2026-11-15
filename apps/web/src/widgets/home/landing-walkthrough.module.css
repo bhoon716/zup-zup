@@ -88,7 +88,19 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .stage[data-animated]::after {
+    display: block;
+    block-size: 22rem;
+    content: "";
+  }
+
   .stage[data-animated] .animatedPanel {
+    --walkthrough-top: 80px;
+    position: sticky;
+    top: var(--walkthrough-inset, var(--walkthrough-top));
+  }
+
+  .stage[data-animated] .panelContent {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 1rem clamp(2rem, 8vw, 7.5rem);
@@ -96,7 +108,7 @@
   }
 
   @media (min-width: 48rem) {
-    .stage[data-animated] .animatedPanel {
+    .stage[data-animated] .panelContent {
       grid-template-columns: minmax(0, 0.83fr) minmax(0, 1.17fr);
     }
   }
@@ -108,6 +120,15 @@
   }
 
   @media (max-height: 38rem) {
+    .stage[data-animated] .animatedPanel {
+      --walkthrough-top: 64px;
+    }
+
+    .stage[data-animated] .intro {
+      margin-bottom: 0.75rem;
+      padding-top: 0.75rem;
+    }
+
     .stage[data-animated] :is(.searchSummary, .toastBody) {
       display: none;
     }
@@ -117,10 +138,26 @@
     }
 
     @media (min-width: 48rem) {
-      .stage[data-animated] .animatedPanel {
+      .stage[data-animated] .panelContent {
         grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
         column-gap: 2rem;
       }
+    }
+  }
+
+  @media (max-height: 31rem), (max-height: 38rem) and (width < 23rem) {
+    .stage[data-animated] .intro {
+      margin-bottom: 0.5rem;
+      padding-top: 0.5rem;
+    }
+
+    .stage[data-animated] .intro h2 {
+      font-size: 1.125rem;
+      line-height: 1.375rem;
+    }
+
+    .stage[data-animated] .intro p {
+      display: none;
     }
   }
 

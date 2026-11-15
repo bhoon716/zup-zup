@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { ArrowRight, CalendarDays, Heart, Search, Star } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/shared/ui/button";
-import { LandingHeroPreview } from "./landing-hero-preview";
 import { LandingWalkthrough } from "./landing-walkthrough";
 
 import styles from "./landing-walkthrough.module.css";
@@ -96,7 +95,7 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
   return (
     <main className="flex flex-col bg-[#fafafa] dark:bg-black">
       <section className="mx-auto w-full max-w-[1200px] px-6 pt-9 pb-10 sm:pt-12 lg:pt-16 lg:pb-14">
-        <div className="mb-7 grid gap-5 lg:mb-10 lg:grid-cols-[1.08fr_1fr] lg:items-center lg:gap-12">
+        <div className="grid gap-5 lg:grid-cols-[1.08fr_1fr] lg:items-center lg:gap-12">
           <h1 className="text-[clamp(1.75rem,6.5vw,3.375rem)] leading-[1.17] font-bold tracking-tight text-foreground">
             수강신청 빈자리,<br />
             <span className="break-keep text-primary">이제 알림으로 잡으세요.</span>
@@ -121,7 +120,6 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
             </div>
           </div>
         </div>
-        <LandingHeroPreview />
         <div className="mt-5 flex empty:hidden">{countdown}</div>
       </section>
 
