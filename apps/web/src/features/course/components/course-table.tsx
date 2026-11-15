@@ -11,9 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { cn } from "@/shared/lib/utils";
-import { formatClassification } from "@/shared/lib/formatters";
 import { normalizeCourse } from "@/shared/lib/course";
-import { getCourseSchedule } from "@/shared/lib/course-schedule";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { useUser } from "@/features/user/hooks/useUser";
@@ -23,13 +21,10 @@ import { useToggleWishlist, useWishlist } from "@/features/wishlist/hooks/useWis
 import {
   Bell,
   CalendarPlus,
-  Clock3,
   Crown,
   Heart,
-  MapPin,
-  Star,
-  UserRound,
 } from "lucide-react";
+import { CourseResultCard, CourseSeatAlertButton, courseResultActionBorder, courseResultActionSize } from "./course-result-card";
 import { CourseDetailDialog } from "./course-detail-dialog";
 import { useCourseListWindow } from "../hooks/useCourseListWindow";
 import { COURSE_CARD_GAP_PX } from "../constants/course-list-layout";
@@ -46,52 +41,6 @@ interface CourseTableProps {
   initialWishlist?: WishlistResponse[];
   initialTimetables?: TimetableResponse[];
   skipPersonalFetch?: boolean;
-}
-
-function getSeatStatus(available: number) {
-  if (available <= 0) {
-    return {
-      label: "마감됨",
-      badgeClass: "bg-red-100 text-red-800",
-      barClass: "bg-red-500",
-    };
-  }
-
-  if (available <= 5) {
-    return {
-      label: "마감 임박",
-      badgeClass: "bg-amber-100 text-amber-800",
-      barClass: "bg-amber-500",
-    };
-  }
-
-  return {
-    label: "여석 있음",
-    badgeClass: "bg-emerald-100 text-emerald-800",
-    barClass: "bg-emerald-500",
-  };
-}
-
-function getClassificationStripe(classification?: string) {
-  const normalized = classification || "";
-
-  if (normalized.includes("전공필수")) {
-    return "bg-blue-500";
-  }
-
-  if (normalized.includes("전공")) {
-    return "bg-purple-500";
-  }
-
-  if (normalized.includes("교양")) {
-    return "bg-emerald-500";
-  }
-
-  if (normalized.includes("교직")) {
-    return "bg-amber-500";
-  }
-
-  return "bg-gray-400";
 }
 
 export function CourseTable({
@@ -210,281 +159,146 @@ export function CourseTable({
 
   const renderCourse = (rawCourse: Course, index: number) => {
     const course = normalizeCourse(rawCourse);
-    const { blocks, fallback } = getCourseSchedule(course);
-    const clarityUnmask = unmaskPublicCourseInfo && course.disclosure === "공개" ? true : undefined;
     const subscription = subscriptionMap.get(course.courseKey);
     const subscribed = !!subscription;
     const wished = wishlistSet.has(course.courseKey);
 
-    const { capacity, current, available } = course;
-    const seatRatio = capacity > 0 ? Math.min((current / capacity) * 100, 100) : 0;
-    const seatStatus = getSeatStatus(available);
-
     return (
-      <article
-        className="group relative overflow-hidden rounded-xl border border-border bg-white transition-all duration-300 hover:border-primary/40 hover:shadow-md"
+      <CourseResultCard
+        course={course}
+        unmaskPublicCourseInfo={unmaskPublicCourseInfo}
         onFocus={() => setActiveIndex(index)}
-      >
-        <div className="flex items-stretch">
-          <div
-            className={cn(
-              "w-1 shrink-0 md:w-1.5",
-              getClassificationStripe(course.classification),
-            )}
-          />
+        onOpen={(event) => openCourseDetail(course, index, event.currentTarget)}
+        actions={<>
+          {!resolvedUser ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className={cn(courseResultActionSize, courseResultActionBorder)}
+              onClick={() => setLoginModalOpen(true)}
+              aria-label={`${course.name}를 시간표에 추가하려면 로그인`}
+              title="로그인 후 시간표에 추가"
+            >
+              <CalendarPlus className="h-4 w-4" />
+            </Button>
+          ) : (
+            <DropdownMenu onOpenChange={(open) => {
+              if (open) setActiveIndex(index);
+              setTimetableMenuOpen(open);
+            }}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className={cn(courseResultActionSize, courseResultActionBorder)}
+                  disabled={isAdding}
+                  aria-label={`${course.name}를 시간표에 추가`}
+                  title="시간표에 추가"
+                >
+                  <CalendarPlus className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
 
-          <div className="flex min-w-0 flex-1 flex-col p-3 md:flex-row md:items-center md:gap-4 md:p-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex flex-wrap items-center gap-1 md:mb-1.5 md:gap-1.5">
-                    <span className="rounded border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                      {formatClassification(course.classification)}
-                    </span>
-                    <span data-clarity-unmask={clarityUnmask} className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
-                      {course.credits || 0}학점
-                    </span>
-                    <span className="text-[10px] font-semibold tracking-wide text-gray-600">
-                      {course.stdtrNo || "학수번호 미제공"}
-                    </span>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground">
+                  추가할 시간표 선택
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                {isTimetableLoading ? (
+                  <div role="status" className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    시간표를 불러오는 중입니다.
                   </div>
-
-                  <h2 data-clarity-unmask={clarityUnmask} className="mb-1 text-sm font-bold text-foreground md:mb-1.5 md:text-base">
-                    <button
-                      type="button"
-                      className="block max-w-full truncate rounded-sm text-left transition-colors after:absolute after:inset-0 after:content-[''] group-hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                      onClick={(event) => openCourseDetail(course, index, event.currentTarget)}
-                    >
-                      {course.name}
-                    </button>
-                  </h2>
-                </div>
-
-                {                      }
-                <div className="flex items-center gap-2 pt-1 md:hidden">
-                  <span
-                    className={cn(
-                      "rounded-sm px-1.5 py-0.5 text-[9px] font-bold shrink-0",
-                      seatStatus.badgeClass,
-                    )}
-                  >
-                    {seatStatus.label}
-                  </span>
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[10px] font-bold text-gray-900">
-                      {current} / {capacity}
-                    </span>
-                    <div className="h-1 w-12 overflow-hidden rounded-full bg-gray-100">
-                      <div
-                        className={cn("h-full transition-all", seatStatus.barClass)}
-                        style={{ width: `${seatRatio}%` }}
-                      />
-                    </div>
+                ) : Array.isArray(resolvedTimetables) && resolvedTimetables.length > 0 ? (
+                  [...resolvedTimetables]
+                    .sort((a, b) => Number(b.primary) - Number(a.primary))
+                    .map((timetable) => (
+                      <DropdownMenuItem
+                        key={timetable.id}
+                        className="cursor-pointer py-1.5"
+                        onClick={() => {
+                          addToTimetable({
+                            timetableId: timetable.id,
+                            courseKey: course.courseKey,
+                          });
+                        }}
+                      >
+                        <span className="flex max-w-[160px] items-center gap-2 text-[11px] font-medium">
+                          {timetable.primary && (
+                            <Crown className="h-2.5 w-2.5 shrink-0 fill-yellow-500 text-yellow-500" />
+                          )}
+                          <span className="truncate">{timetable.name}</span>
+                        </span>
+                      </DropdownMenuItem>
+                    ))
+                ) : (
+                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    시간표가 없습니다.
                   </div>
-                </div>
-              </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-600 md:text-[11px]">
-                <span className="flex items-center gap-1">
-                  <UserRound className="h-3 w-3 text-gray-400 md:h-3.5 md:w-3.5" />
-                  <span className="font-medium text-gray-700">
-                    {course.professor || "미지정"}
-                  </span>
-                </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className={cn(courseResultActionSize, courseResultActionBorder)}
+            onClick={() => {
+              if (!resolvedUser) {
+                setLoginModalOpen(true);
+                return;
+              }
+              toggleWishlist(course.courseKey);
+            }}
+            aria-label={wished ? `${course.name} 관심 강의 해제` : `${course.name} 관심 강의 추가`}
+            title={wished ? "관심 강의 해제" : "관심 강의 추가"}
+          >
+            <Heart
+              className={cn(
+                "h-4 w-4 transition-all",
+                wished && "fill-rose-500 text-rose-500",
+              )}
+            />
+          </Button>
 
-                <span className="flex min-w-0 items-baseline gap-1">
-                  <Clock3 aria-hidden="true" className="relative top-0.5 h-3 w-3 shrink-0 self-start text-gray-400 md:h-3.5 md:w-3.5" />
-                  <span data-clarity-unmask={clarityUnmask} className="tabular-nums">
-                    {blocks.length > 0 ? blocks.map(({ label }) => label).join(", ") : fallback}
-                  </span>
-                </span>
-
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3 text-gray-400 md:h-3.5 md:w-3.5" />
-                  <span className="max-w-[100px] truncate md:max-w-none">
-                    {course.classroom || "강의실 미배정"}
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5 md:mt-0 md:flex md:flex-col md:justify-center md:min-w-[190px] md:border-l md:border-t-0 md:pl-6 md:pt-0">
-              <div className="hidden w-full md:block">
-                <div className="mb-2.5 flex items-center justify-between gap-2">
-                  <span
-                    className={cn(
-                      "rounded px-1.5 py-0.5 text-[10px] font-bold",
-                      seatStatus.badgeClass,
-                    )}
-                  >
-                    {seatStatus.label}
-                  </span>
-                  <span className="text-xs font-bold text-gray-900">
-                    {current} / {capacity}
-                  </span>
-                </div>
-
-                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                  <div
-                    className={cn("h-full rounded-full transition-all", seatStatus.barClass)}
-                    style={{ width: `${seatRatio}%` }}
-                  />
-                </div>
-              </div>
-
-              <div
-                className="relative z-10 mt-0 flex w-full items-center justify-between gap-1 md:mt-4 md:w-full md:gap-1.5"
-              >
-                <div className="flex items-center gap-1">
-                  <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                  <span className="text-xs font-bold text-gray-700">{course.averageRating ? course.averageRating.toFixed(1) : "0.0"}</span>
-                  <span className="text-[10px] text-gray-600">({course.reviewCount || 0})</span>
-                </div>
-
-                <div className="flex items-center gap-1 md:gap-1.5">
-                  {!resolvedUser ? (
+          {!course.isSubscribable ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="cursor-not-allowed">
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="h-7 w-7 rounded-lg border-gray-200 text-gray-500 md:h-8 md:w-8"
-                      onClick={() => setLoginModalOpen(true)}
-                      aria-label={`${course.name}를 시간표에 추가하려면 로그인`}
-                      title="로그인 후 시간표에 추가"
+                      className="h-7 w-7 rounded-lg border-gray-100 text-gray-400 pointer-events-none md:h-8 md:w-8"
+                      disabled
+                      aria-label="현재 추적 중인 학기가 아닙니다"
+                      title="현재 추적 중인 학기가 아닙니다"
                     >
-                      <CalendarPlus className="h-4 w-4" />
+                      <Bell className="h-4 w-4" />
                     </Button>
-                  ) : (
-                    <DropdownMenu onOpenChange={(open) => {
-                      if (open) setActiveIndex(index);
-                      setTimetableMenuOpen(open);
-                    }}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7 rounded-lg border-gray-200 text-gray-500 md:h-8 md:w-8"
-                          disabled={isAdding}
-                          aria-label={`${course.name}를 시간표에 추가`}
-                          title="시간표에 추가"
-                        >
-                          <CalendarPlus className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground">
-                          추가할 시간표 선택
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-
-                        {isTimetableLoading ? (
-                          <div role="status" className="px-2 py-3 text-center text-xs text-muted-foreground">
-                            시간표를 불러오는 중입니다.
-                          </div>
-                        ) : Array.isArray(resolvedTimetables) && resolvedTimetables.length > 0 ? (
-                          [...resolvedTimetables]
-                            .sort((a, b) => Number(b.primary) - Number(a.primary))
-                            .map((timetable) => (
-                              <DropdownMenuItem
-                                key={timetable.id}
-                                className="cursor-pointer py-1.5"
-                                onClick={() => {
-                                  addToTimetable({
-                                    timetableId: timetable.id,
-                                    courseKey: course.courseKey,
-                                  });
-                                }}
-                              >
-                                <span className="flex max-w-[160px] items-center gap-2 text-[11px] font-medium">
-                                  {timetable.primary && (
-                                    <Crown className="h-2.5 w-2.5 shrink-0 fill-yellow-500 text-yellow-500" />
-                                  )}
-                                  <span className="truncate">{timetable.name}</span>
-                                </span>
-                              </DropdownMenuItem>
-                            ))
-                        ) : (
-                          <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                            시간표가 없습니다.
-                          </div>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7 rounded-lg border-gray-200 text-gray-500 md:h-8 md:w-8"
-                    onClick={() => {
-                      if (!resolvedUser) {
-                        setLoginModalOpen(true);
-                        return;
-                      }
-                      toggleWishlist(course.courseKey);
-                    }}
-                    aria-label={wished ? `${course.name} 관심 강의 해제` : `${course.name} 관심 강의 추가`}
-                    title={wished ? "관심 강의 해제" : "관심 강의 추가"}
-                  >
-                    <Heart
-                      className={cn(
-                        "h-4 w-4 transition-all",
-                        wished && "fill-rose-500 text-rose-500",
-                      )}
-                    />
-                  </Button>
-
-                  {!course.isSubscribable ? (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="cursor-not-allowed">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7 rounded-lg border-gray-100 text-gray-400 pointer-events-none md:h-8 md:w-8"
-                              disabled
-                              aria-label="현재 추적 중인 학기가 아닙니다"
-                              title="현재 추적 중인 학기가 아닙니다"
-                            >
-                              <Bell className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>현재 추적 중인 학기가 아닙니다.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant={subscribed ? "default" : "outline"}
-                      size="icon"
-                      className={cn(
-                        "h-7 w-7 rounded-lg md:h-8 md:w-8",
-                        subscribed
-                          ? "bg-primary text-white hover:bg-primary/90"
-                          : "border-gray-200 text-gray-500",
-                      )}
-                      onClick={() => handleSubscribe(course.courseKey)}
-                      disabled={isSubscribing || isUnsubscribing}
-                      aria-label={subscribed ? `${course.name} 여석 알림 해제` : `${course.name} 여석 알림 받기`}
-                      title={subscribed ? "여석 알림 해제" : "여석 알림 받기"}
-                    >
-                      <Bell className={cn("h-4 w-4", subscribed && "fill-white")} />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </article>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>현재 추적 중인 학기가 아닙니다.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <CourseSeatAlertButton
+              subscribed={subscribed}
+              onClick={() => handleSubscribe(course.courseKey)}
+              disabled={isSubscribing || isUnsubscribing}
+              aria-label={subscribed ? `${course.name} 여석 알림 해제` : `${course.name} 여석 알림 받기`}
+              title={subscribed ? "여석 알림 해제" : "여석 알림 받기"}
+            />
+          )}
+        </>}
+      />
     );
   };
 

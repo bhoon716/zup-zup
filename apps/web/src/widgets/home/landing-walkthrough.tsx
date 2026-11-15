@@ -1,129 +1,14 @@
 "use client";
 
-import { Bell, BellPlus, CalendarPlus, Check, Clock3, Heart, MapPin, Search, UserRound } from "lucide-react";
-import Image from "next/image";
+import { Bell, BellPlus, Search } from "lucide-react";
 import { useEffect, useRef, type ReactNode, type Ref } from "react";
 
-import { Badge } from "@/shared/ui/badge";
-
+import {
+  SearchPreview,
+  RegistrationPreview,
+  NotificationPreview,
+} from "./landing-walkthrough-previews";
 import styles from "./landing-walkthrough.module.css";
-
-const sampleCourse = {
-  name: "자료구조",
-  professor: "김민준",
-  code: "COM2101",
-  credits: "3학점",
-  capacity: 40,
-  sections: [
-    { number: "01", time: "월·수 10:00–11:15", room: "공대 7호관 204호", enrolled: 40 },
-    { number: "02", time: "화·목 13:00–14:15", room: "공대 7호관 201호", enrolled: 38 },
-  ],
-};
-
-function SampleCourseCard({ section, subscribed = false }: {
-  section: (typeof sampleCourse.sections)[number];
-  subscribed?: boolean;
-}) {
-  const available = sampleCourse.capacity - section.enrolled;
-  const actionClass = "grid size-7 place-items-center rounded-md border text-muted-foreground";
-
-  return (
-    <div className="grid gap-2 rounded-xl border border-l-[3px] border-l-blue-500 bg-card px-3 py-2.5">
-      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-        <span className="rounded bg-blue-500/10 px-1.5 py-0.5 font-semibold text-blue-700 dark:text-blue-300">전공필수</span>
-        <span className="rounded bg-muted px-1.5 py-0.5">{sampleCourse.credits}</span>
-        <span className="text-muted-foreground">{sampleCourse.code}-{section.number}</span>
-      </div>
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-          <p className="text-sm font-bold">
-            {sampleCourse.name} <span className="text-xs font-medium text-muted-foreground">{section.number}분반</span>
-          </p>
-          <Badge variant="outline" className={available ? "bg-amber-500/10 text-amber-800 dark:text-amber-200" : "bg-red-500/10 text-red-700 dark:text-red-300"}>
-            {available ? "마감 임박" : "마감"}
-          </Badge>
-        </div>
-        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1"><UserRound className="size-3 shrink-0" />{sampleCourse.professor}</span>
-          <span className="inline-flex items-center gap-1"><Clock3 className="size-3 shrink-0" />{section.time}</span>
-          <span className="inline-flex items-center gap-1"><MapPin className="size-3 shrink-0" />{section.room}</span>
-        </div>
-      </div>
-      <div className="flex items-end gap-3 border-t pt-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap justify-between gap-x-2 text-[11px] text-muted-foreground">
-            <span>신청 / 정원 <strong className="text-foreground">{section.enrolled} / {sampleCourse.capacity}</strong></span>
-            <span className={available ? "font-semibold text-primary" : undefined}>여석 {available}</span>
-          </div>
-          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
-            <div
-              className={available ? "h-full rounded-full bg-amber-500" : "h-full rounded-full bg-red-500"}
-              style={{ width: `${(section.enrolled / sampleCourse.capacity) * 100}%` }}
-            />
-          </div>
-        </div>
-        <div className="flex shrink-0 gap-1">
-          <span className={actionClass}><CalendarPlus className="size-3.5" /></span>
-          <span className={actionClass}><Heart className="size-3.5" /></span>
-          <span className={subscribed ? "grid size-7 place-items-center rounded-md bg-primary text-primary-foreground" : actionClass}>
-            <Bell className={subscribed ? "size-3.5 fill-current" : "size-3.5"} />
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SearchPreview({ registered = false }: { registered?: boolean }) {
-  return (
-    <div className="grid gap-2.5">
-      {registered ? (
-        <div className="flex min-h-[34px] flex-wrap items-center gap-x-2 gap-y-0.5 rounded-lg border border-primary/15 bg-card px-3 py-1.5 text-xs">
-          <span className="inline-flex items-center gap-1.5 font-bold text-primary">
-            <Check className="size-3.5" /> 등록 완료
-          </span>
-          <span className="text-muted-foreground">빈자리가 생기면 웹 푸시로 알려드려요.</span>
-        </div>
-      ) : (
-        <div className="flex min-h-[34px] items-center gap-2 rounded-lg border bg-card py-1 pr-1 pl-3 text-sm font-semibold">
-          <Search className="size-4 shrink-0 text-muted-foreground" />
-          <span className="flex-1">{sampleCourse.name}</span>
-          <span className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground">검색</span>
-        </div>
-      )}
-      {sampleCourse.sections.map((section, index) => (
-        <SampleCourseCard key={section.number} section={section} subscribed={registered && index === 0} />
-      ))}
-    </div>
-  );
-}
-
-function RegistrationPreview() {
-  return <SearchPreview registered />;
-}
-
-function NotificationPreview() {
-  const [section] = sampleCourse.sections;
-
-  return (
-    <div className="grid content-center gap-2.5">
-      <div className="rounded-2xl border bg-card p-3.5 shadow-sm">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Image src="/icons/zup-zup-192.png" alt="" width={24} height={24} className="rounded-md" />
-          <span className="flex-1 font-semibold">줍줍</span>
-          <span>방금</span>
-        </div>
-        <p className="mt-2 text-sm font-bold">[줍줍] {sampleCourse.name} ({sampleCourse.professor}) 여석 발생!</p>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          과목코드: {sampleCourse.code}-{section.number}
-          <br />
-          현재 여석이 발생했습니다! (1명)
-        </p>
-      </div>
-      <SampleCourseCard section={{ ...section, enrolled: sampleCourse.capacity - 1 }} subscribed />
-    </div>
-  );
-}
 
 const chapters = [
   {
@@ -160,6 +45,7 @@ function WalkthroughPreview({ activeIndex, children, stickyRef }: {
       className={`${styles.frame} ${stickyRef ? styles.stickyPreview : styles.inlinePreview}`}
       data-testid={stickyRef ? "landing-walkthrough-sticky-preview" : "landing-walkthrough-preview"}
       aria-hidden="true"
+      inert
     >
       <div className={styles.frameBar}>
         <span>줍줍 미리보기</span>

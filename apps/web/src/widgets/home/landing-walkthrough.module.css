@@ -19,6 +19,7 @@
 }
 
 .frame {
+  container: walkthrough-preview / inline-size;
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -96,6 +97,12 @@
     grid-template-columns: minmax(0, 0.83fr) minmax(0, 1.17fr);
     column-gap: clamp(2rem, 8vw, 7.5rem);
     align-items: center;
+  }
+
+  @container walkthrough-preview (width < 36rem) {
+    .secondCourse {
+      display: none;
+    }
   }
 }
 
@@ -200,4 +207,104 @@
     opacity: 0.75;
     translate: 0 12px;
   }
+}
+
+.toastPreview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: end;
+  width: min(100%, 356px);
+  padding: 16px 40px 16px 16px;
+  border: 1px solid var(--toast-border);
+  border-radius: 8px;
+  background: var(--toast-background);
+  color: var(--toast-text);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.toastPreview[data-kind="success"] {
+  --toast-background: hsl(143 85% 96%);
+  --toast-border: hsl(145 92% 87%);
+  --toast-text: hsl(140 100% 27%);
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.toastPreview[data-kind="push"] {
+  --toast-background: hsl(208 100% 97%);
+  --toast-border: hsl(221 91% 93%);
+  --toast-text: hsl(210 92% 45%);
+}
+
+.toastTitle {
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.toastBody {
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.toastIcon {
+  display: grid;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-right: 3px;
+  margin-left: -2px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--toast-text);
+  color: var(--toast-background);
+}
+
+.toastAction {
+  display: grid;
+  flex: none;
+  min-height: 24px;
+  margin-left: auto;
+  padding-inline: 8px;
+  place-items: center;
+  border-radius: 4px;
+  background: hsl(0 0% 9%);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.toastClose {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+  place-items: center;
+  border: 1px solid var(--toast-border);
+  border-radius: 50%;
+}
+
+.systemNotification {
+  display: flex;
+  align-items: start;
+  gap: 0.625rem;
+  justify-self: end;
+  width: min(100%, 356px);
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--card);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 8%);
+}
+
+.systemNotification img {
+  flex: none;
 }

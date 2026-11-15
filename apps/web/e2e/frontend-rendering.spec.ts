@@ -43,9 +43,9 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
 });
 
 const walkthroughSteps = [
-  { heading: "강의 검색", marker: "여석 2" },
-  { heading: "빈자리 알림 등록", marker: "등록 완료" },
-  { heading: "빈자리 알림", marker: "[줍줍] 자료구조 (김민준) 여석 발생!" },
+  { heading: "강의 검색", marker: "COM2101-01" },
+  { heading: "빈자리 알림 등록", marker: "구독이 완료되었습니다" },
+  { heading: "빈자리 알림", marker: "보기" },
 ];
 
 for (const viewport of [
@@ -142,7 +142,7 @@ for (const viewport of [
 
 for (const scenario of [
   { width: 390, height: 844, reducedMotion: "no-preference" },
-  { width: 768, height: 640, reducedMotion: "no-preference" },
+  { width: 831, height: 600, reducedMotion: "no-preference" },
   { width: 1463, height: 1920, reducedMotion: "no-preference" },
   { width: 1463, height: 1313, reducedMotion: "reduce" },
 ] as const) {
