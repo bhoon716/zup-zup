@@ -49,7 +49,7 @@ export default function AnnouncementsPage() {
   };
 
   return (
-    <main className="font-schedule mx-auto w-full max-w-5xl px-4 pt-7 pb-12 sm:px-6 sm:pt-10">
+    <main className="mx-auto w-full max-w-5xl px-4 pt-7 pb-12 sm:px-6 sm:pt-10">
       <header className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl leading-tight font-bold tracking-tight text-foreground sm:text-3xl">공지사항</h1>
 
@@ -83,7 +83,7 @@ export default function AnnouncementsPage() {
             <SelectTrigger aria-label="검색 기준" className="shrink-0 rounded-md border-0 px-2 shadow-none before:mr-1 before:h-4 before:w-px before:bg-border hover:bg-muted">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" align="start" className="font-schedule">
+            <SelectContent position="popper" align="start">
               {searchOptions.map(({ value, label }) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
             </SelectContent>
           </Select>
