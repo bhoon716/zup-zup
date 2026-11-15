@@ -1,8 +1,19 @@
 "use client";
 
+import { useRef, type MouseEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, Heart, Loader2, Trash2, Plus } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog";
 import { cn } from "@/shared/lib/utils";
 import { formatClassTime, formatDayOfWeek } from "@/shared/lib/formatters";
 import { CreditStatsCard } from "@/features/timetable/components/credit-stats-card";
@@ -20,11 +31,10 @@ type TimetableSidebarSectionProps = Pick<
   | "activeTimetableId"
   | "handleSidebarCourseClick"
   | "handleAddCourse"
-  | "handleRemoveCourse"
+  | "courseRemoval"
+  | "requestCourseRemoval"
   | "isAddingCourse"
-  | "isRemovingCourse"
   | "pendingAddCourseKey"
-  | "pendingRemoveCourseKey"
 >;
 
 export function TimetableSidebarSection({
@@ -38,12 +48,23 @@ export function TimetableSidebarSection({
   activeTimetableId,
   handleSidebarCourseClick,
   handleAddCourse,
-  handleRemoveCourse,
+  courseRemoval,
+  requestCourseRemoval,
   isAddingCourse,
-  isRemovingCourse,
   pendingAddCourseKey,
-  pendingRemoveCourseKey,
 }: TimetableSidebarSectionProps) {
+  const removalTriggerRef = useRef<HTMLButtonElement>(null);
+  const activeTabRef = useRef<HTMLButtonElement>(null);
+
+  const handleRemoveCourse = (
+    event: MouseEvent<HTMLButtonElement>,
+    course: Parameters<typeof requestCourseRemoval>[0],
+  ) => {
+    event.stopPropagation();
+    removalTriggerRef.current = event.currentTarget;
+    requestCourseRemoval(course);
+  };
+
   return (
     <aside className="w-full min-w-0 lg:w-80 lg:shrink-0">
       <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
@@ -55,6 +76,7 @@ export function TimetableSidebarSection({
           <div className="grid grid-cols-2 rounded-lg bg-muted p-1">
             <button
               type="button"
+              ref={sidebarTab === "schedule" ? activeTabRef : undefined}
               aria-pressed={sidebarTab === "schedule"}
               className={cn(
                 "h-9 rounded-md px-3 text-sm font-medium transition-colors",
@@ -66,6 +88,7 @@ export function TimetableSidebarSection({
             </button>
             <button
               type="button"
+              ref={sidebarTab === "wishlist" ? activeTabRef : undefined}
               aria-pressed={sidebarTab === "wishlist"}
               className={cn(
                 "h-9 rounded-md px-3 text-sm font-medium transition-colors",
@@ -126,18 +149,11 @@ export function TimetableSidebarSection({
                               <button
                                 type="button"
                                 aria-label={`${course.name} 시간표에서 삭제`}
-                                disabled={isRemovingCourse && pendingRemoveCourseKey === course.courseKey}
+                                aria-haspopup="dialog"
                                 className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleRemoveCourse(course.courseKey, course.name);
-                                }}
+                                onClick={(event) => handleRemoveCourse(event, { courseKey: course.courseKey, courseName: course.name })}
                               >
-                                {isRemovingCourse && pendingRemoveCourseKey === course.courseKey ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
                           </div>
@@ -186,9 +202,7 @@ export function TimetableSidebarSection({
                   <div className="space-y-2">
                     {wishlist.map((course) => {
                       const isInTimetable = timetableDetail?.courses?.some((timetableCourse) => timetableCourse.courseKey === course.courseKey);
-                      const isPending =
-                        (isAddingCourse && pendingAddCourseKey === course.courseKey) ||
-                        (isRemovingCourse && pendingRemoveCourseKey === course.courseKey);
+                      const isPending = isAddingCourse && pendingAddCourseKey === course.courseKey;
 
                       return (
                         <motion.div
@@ -215,14 +229,12 @@ export function TimetableSidebarSection({
                                 <button
                                   type="button"
                                   aria-label={`${course.courseName} 시간표에서 삭제`}
+                                  aria-haspopup="dialog"
                                   disabled={isPending}
                                   className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleRemoveCourse(course.courseKey, course.courseName);
-                                  }}
+                                  onClick={(event) => handleRemoveCourse(event, course)}
                                 >
-                                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                  <Trash2 className="h-4 w-4" />
                                 </button>
                               ) : (
                                 <button
@@ -256,6 +268,41 @@ export function TimetableSidebarSection({
           </AnimatePresence>
         </div>
       </div>
+      <Dialog
+        open={courseRemoval !== null}
+        onOpenChange={(open) => {
+          if (!open) courseRemoval?.cancel();
+        }}
+      >
+        {courseRemoval && (
+          <DialogContent
+            role="alertdialog"
+            showCloseButton={false}
+            className="sm:max-w-sm"
+            onInteractOutside={(event) => event.preventDefault()}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              const trigger = removalTriggerRef.current;
+              const focusTarget = trigger?.isConnected && !trigger.disabled ? trigger : activeTabRef.current;
+              focusTarget?.focus();
+            }}
+          >
+            <DialogHeader className="text-left">
+              <DialogTitle>강의를 시간표에서 삭제할까요?</DialogTitle>
+              <DialogDescription className="wrap-anywhere">{courseRemoval.courseName}</DialogDescription>
+            </DialogHeader>
+            {courseRemoval.error && <p role="alert" className="text-sm text-destructive">{courseRemoval.error}</p>}
+            <DialogFooter className="flex-row justify-end">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={courseRemoval.isPending}>취소</Button>
+              </DialogClose>
+              <Button type="button" variant="destructive" disabled={courseRemoval.isPending} onClick={courseRemoval.confirm}>
+                {courseRemoval.isPending ? "삭제 중…" : "삭제"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
     </aside>
   );
 }

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
+import { isAxiosError } from "axios";
 import { timetableApi } from "@/features/timetable/api/timetable.api";
 import {
   useAddCourseToTimetable,
@@ -12,6 +13,7 @@ import {
   useTimetables,
 } from "@/features/timetable/hooks/useTimetable";
 import { useWishlist } from "@/features/wishlist/hooks/useWishlist";
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { formatDayOfWeek } from "@/shared/lib/formatters";
 import { reportClientError } from "@/shared/telemetry/client-error";
 import type {
@@ -37,6 +39,7 @@ const COURSE_CLASSIFICATIONS = new Set<CourseClassification>([
 ]);
 
 type SidebarCourseSource = TimetableEntryResponse | WishlistResponse;
+type CourseRemoval = { timetableId: number; courseKey: string; courseName: string };
 
 function normalizeClassification(value?: string): CourseClassification | undefined {
   if (!value || !COURSE_CLASSIFICATIONS.has(value as CourseClassification)) {
@@ -53,6 +56,7 @@ export const useTimetablePage = () => {
   const [customDialogOpen, setCustomDialogOpen] = useState(false);
   const [selectedSidebarCourse, setSelectedSidebarCourse] = useState<Course | null>(null);
   const [sidebarCourseDialogOpen, setSidebarCourseDialogOpen] = useState(false);
+  const [pendingCourseRemoval, setPendingCourseRemoval] = useState<CourseRemoval | null>(null);
 
   const { data: timetablesData, isLoading: isListLoading } = useTimetables();
   const timetables = useMemo(() => timetablesData ?? [], [timetablesData]);
@@ -218,20 +222,42 @@ export const useTimetablePage = () => {
     });
   };
 
-  const handleRemoveCourse = (courseKey: string, courseName: string) => {
-    if (!activeTimetableId) {
-      return;
-    }
+  const removalForActiveTimetable = pendingCourseRemoval?.timetableId === activeTimetableId
+    ? pendingCourseRemoval
+    : null;
+  const removedFromTimetable = removeCourseMutation.isSuccess && removalForActiveTimetable &&
+    !timetableDetail?.courses.some((course) => course.courseKey === removalForActiveTimetable.courseKey);
+  const courseRemoval = removedFromTimetable ? null : removalForActiveTimetable;
 
-    if (!confirm(`${courseName} 강의를 시간표에서 삭제하시겠습니까?`)) {
-      return;
-    }
+  if (pendingCourseRemoval && !courseRemoval) {
+    setPendingCourseRemoval(null);
+  }
 
-    removeCourseMutation.mutate({
-      timetableId: activeTimetableId,
-      courseKey,
-    });
+  const requestCourseRemoval = ({ courseKey, courseName }: Omit<CourseRemoval, "timetableId">) => {
+    if (activeTimetableId === null || removeCourseMutation.isPending) return;
+
+    removeCourseMutation.reset();
+    setPendingCourseRemoval({ timetableId: activeTimetableId, courseKey, courseName });
   };
+
+  const confirmCourseRemoval = () => {
+    if (!courseRemoval || removeCourseMutation.isPending) return;
+
+    const { timetableId, courseKey } = courseRemoval;
+    removeCourseMutation.mutate({ timetableId, courseKey });
+  };
+
+  const cancelCourseRemoval = () => {
+    if (removeCourseMutation.isPending) return;
+
+    setPendingCourseRemoval(null);
+  };
+
+  const removalError = removeCourseMutation.error;
+  const courseRemovalError = removalError ? localizedErrorMessage(
+    isAxiosError<{ message?: unknown }>(removalError) ? removalError.response?.data?.message : undefined,
+    "강의 삭제에 실패했습니다. 다시 시도해 주세요.",
+  ) : null;
 
   return {
     selectedTimetableId,
@@ -261,11 +287,16 @@ export const useTimetablePage = () => {
     onSetPrimaryTimetable: (id: number) => setPrimaryMutation.mutate(id),
     isCreatingTimetable: createMutation.isPending,
     handleAddCourse,
-    handleRemoveCourse,
+    requestCourseRemoval,
+    courseRemoval: courseRemoval && {
+      courseName: courseRemoval.courseName,
+      error: courseRemovalError,
+      isPending: removeCourseMutation.isPending,
+      confirm: confirmCourseRemoval,
+      cancel: cancelCourseRemoval,
+    },
     pendingAddCourseKey: addCourseMutation.isPending ? addCourseMutation.variables?.courseKey ?? null : null,
-    pendingRemoveCourseKey: removeCourseMutation.isPending ? removeCourseMutation.variables?.courseKey ?? null : null,
     isAddingCourse: addCourseMutation.isPending,
-    isRemovingCourse: removeCourseMutation.isPending,
   };
 };
 

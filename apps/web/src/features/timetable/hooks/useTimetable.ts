@@ -3,10 +3,9 @@ import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/r
 import { timetableApi } from '@/features/timetable/api/timetable.api';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
-import { CustomScheduleRequest } from '@/shared/types/api';
+import type { CustomScheduleRequest, User } from '@/shared/types/api';
 
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
-import type { User } from "@/shared/types/api";
 
 export const useTimetables = (enabled = true, initialUser?: User | null) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -62,17 +61,24 @@ export const useAddCourseToTimetable = () => {
 export const useRemoveCourseFromTimetable = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ timetableId, courseKey }: { timetableId: number; courseKey: string }) => 
+    mutationFn: ({ timetableId, courseKey }: { timetableId: number; courseKey: string }) =>
       timetableApi.removeCourse(timetableId, courseKey),
 
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['timetable', variables.timetableId] });
-      toast.success('시간표에서 강의가 삭제되었습니다.');
-    },
+    onSuccess: async (_, { timetableId, courseKey }) => {
+      const { queryKey } = timetableDetailOptions(timetableId);
+      await queryClient.cancelQueries({ queryKey, exact: true });
+      queryClient.setQueryData(queryKey, (detail) => {
+        if (!detail) return detail;
 
-    onError: (error: AxiosError<{ message: string }>) => {
-      const message = localizedErrorMessage(error.response?.data?.message, '강의 삭제에 실패했습니다.');
-      toast.error(message);
+        const courses = detail.courses.filter((course) => course.courseKey !== courseKey);
+        const totalCredits = courses.reduce((sum, course) => {
+          const credits = Number(course.credits);
+          return sum + (Number.isFinite(credits) ? credits : 0);
+        }, 0);
+        return { ...detail, courses, totalCredits: String(totalCredits) };
+      });
+      void queryClient.invalidateQueries({ queryKey, exact: true });
+      toast.success('시간표에서 강의가 삭제되었습니다.');
     },
   });
 };
