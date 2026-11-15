@@ -30,7 +30,7 @@ export function CourseDetailDialog({ course, open, onOpenChange, unmaskPublicCou
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex flex-col gap-0 overflow-hidden rounded-2xl bg-card p-0 sm:max-w-3xl"
+        className="flex flex-col gap-0 overflow-hidden rounded-3xl border-gray-100 bg-white p-0 shadow-2xl sm:max-w-4xl dark:border-gray-800 dark:bg-[#121212]"
         onCloseAutoFocus={(event) => {
           const trigger = returnFocusRef?.current;
           if (!trigger?.isConnected) return;
@@ -42,7 +42,7 @@ export function CourseDetailDialog({ course, open, onOpenChange, unmaskPublicCou
         <DialogDescription className="sr-only">
           선택한 강의의 상세 정보를 확인하는 대화상자입니다.
         </DialogDescription>
-        <div className="max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain">
+        <div className="max-h-[min(90dvh,calc(100dvh-2rem))] w-full overflow-y-auto overscroll-contain">
           {isLoading ? (
             <div className="flex items-center justify-center p-20 min-h-[400px]">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />

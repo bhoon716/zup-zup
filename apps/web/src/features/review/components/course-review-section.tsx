@@ -163,16 +163,16 @@ export function CourseReviewSection({
   };
 
   return (
-    <section className="space-y-4 border-t border-border pt-4">
+    <section className="mt-8 flex flex-col gap-6">
       <div className="flex items-center gap-2">
-        <MessageSquare className="size-4 text-primary" aria-hidden="true" />
-        <h2 className="text-base font-semibold text-foreground">강의 리뷰</h2>
+        <MessageSquare className="size-5 text-primary" aria-hidden="true" />
+        <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">강의 리뷰</h2>
       </div>
 
-      <div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl bg-muted/50 px-4 py-3">
-            <div className="flex items-end justify-between gap-3">
+      <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#1E1E1E]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-gray-900/30">
+            <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">전체 평균 별점</p>
               </div>
@@ -193,13 +193,13 @@ export function CourseReviewSection({
                 })}
               </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-xl font-semibold tabular-nums text-foreground">{averageRatingText}</span>
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
+              <span className="text-3xl font-black tracking-tight tabular-nums text-primary">{averageRatingText}</span>
               <span className="text-sm text-gray-500 dark:text-gray-400">({averageReviewCount}개)</span>
             </div>
           </div>
 
-          <div className="py-1">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-[#151515]">
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -239,7 +239,7 @@ export function CourseReviewSection({
                   </Button>
                 </form>
               ) : (
-                <div className="text-sm text-muted-foreground">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
                   리뷰를 작성하려면 로그인이 필요합니다.
                 </div>
               )}
