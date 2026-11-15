@@ -1,6 +1,8 @@
 import { ArrowRight, CalendarDays, Download, Heart, Plus, Star } from "lucide-react";
 import Link from "next/link";
 
+import styles from "./landing-motion.module.css";
+
 const courseTools = [
   {
     title: "내 시간표",
@@ -156,36 +158,34 @@ export function LandingCourseTools() {
   return (
     <section
       aria-labelledby="landing-course-tools-title"
-      className="mx-auto w-full max-w-[1200px] px-6 pb-10 md:pb-12"
+      className="mx-auto w-full max-w-[1200px] px-6 py-12 md:py-20"
     >
-      <div className="border-t pt-8">
-        <h2 id="landing-course-tools-title" className="text-2xl font-bold tracking-tight md:text-3xl">
-          시간표부터 강의 리뷰까지
-        </h2>
-        <ul className="mt-5 grid gap-3 md:grid-cols-3 md:gap-4" role="list">
-          {courseTools.map(({ title, description, Icon, Preview, href, action }) => (
-            <li key={title} className="flex min-w-0 flex-col gap-4 rounded-2xl border bg-card p-4 text-card-foreground sm:p-5">
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <Icon className="size-[18px]" aria-hidden="true" />
-                </span>
-                <h3 className="font-bold">{title}</h3>
-              </div>
-              <div aria-hidden="true" className="flex h-39 flex-col gap-2 rounded-xl border border-border/60 bg-muted/55 p-3">
-                <Preview />
-              </div>
-              <p className="break-keep text-sm leading-relaxed text-muted-foreground">{description}</p>
-              <Link
-                href={href}
-                className="-mx-1.5 mt-auto inline-flex min-h-8 w-fit items-center gap-1.5 rounded-md px-1.5 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-              >
-                {action}
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <h2 id="landing-course-tools-title" className="text-2xl font-bold tracking-tight md:text-4xl">
+        시간표부터 강의 리뷰까지
+      </h2>
+      <ul className="mt-6 grid gap-3 md:mt-8 md:grid-cols-3 md:gap-4" role="list">
+        {courseTools.map(({ title, description, Icon, Preview, href, action }) => (
+          <li key={title} className={`${styles.toolCard} flex min-w-0 flex-col gap-4 rounded-3xl border bg-card p-4 text-card-foreground sm:p-5`}>
+            <div className="flex items-center gap-2.5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                <Icon className="size-[18px]" aria-hidden="true" />
+              </span>
+              <h3 className="text-lg font-bold tracking-tight">{title}</h3>
+            </div>
+            <div aria-hidden="true" className={`${styles.toolIllustration} flex h-39 flex-col gap-2 rounded-2xl border border-primary/8 bg-primary/5 p-3`}>
+              <Preview />
+            </div>
+            <p className="break-keep text-sm leading-relaxed text-muted-foreground">{description}</p>
+            <Link
+              href={href}
+              className="-mx-1.5 mt-auto inline-flex min-h-8 w-fit items-center gap-1.5 rounded-md px-1.5 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              {action}
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

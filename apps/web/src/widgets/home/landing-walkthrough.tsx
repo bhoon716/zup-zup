@@ -132,8 +132,11 @@ export function LandingWalkthrough() {
 
       lastProgress = progress;
       const activeIndex = Math.round(progress);
-      const opacity = 1 - (1 - minimumOpacity) * Math.abs(activeIndex - progress) * 2;
-      panel.style.setProperty("--step-opacity", String(opacity));
+      const phase = (activeIndex - progress) * 2;
+      const depth = Math.abs(phase);
+      panel.style.setProperty("--step-opacity", String(1 - (1 - minimumOpacity) * depth));
+      panel.style.setProperty("--scene-phase", String(phase));
+      panel.style.setProperty("--deck-depth", String(depth));
       if (activeIndex === lastActiveIndex) return;
 
       if (lastActiveIndex !== undefined) {
@@ -142,6 +145,7 @@ export function LandingWalkthrough() {
       }
       chapterItems[activeIndex]?.setAttribute("aria-current", "step");
       scenes[activeIndex]?.setAttribute("data-active", "");
+      panel.dataset.activeChapter = chapters[activeIndex].id;
       lastActiveIndex = activeIndex;
       progressIndicators.forEach((indicator, index) => {
         indicator.toggleAttribute("data-complete", index <= activeIndex);
@@ -176,45 +180,49 @@ export function LandingWalkthrough() {
   }, []);
 
   return (
-    <section aria-labelledby="landing-walkthrough-title" className="mx-auto w-full max-w-[1200px] px-6 pb-10 md:pb-12">
-      <div ref={stageRef} className={styles.stage} data-testid="landing-walkthrough-stage">
-        <div ref={panelRef} className={styles.animatedPanel} data-testid="landing-walkthrough-animated-panel">
-          <div className={`${styles.intro} mb-5 border-t pt-8 lg:mb-6`}>
-            <h2 id="landing-walkthrough-title" className="text-2xl font-bold tracking-tight md:text-3xl">
-              줍줍으로 수강신청 준비하기
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base">
-              분반별 여석을 확인하고, 마감된 분반에는 빈자리 알림을 등록하세요.
-            </p>
-          </div>
-          <div className={styles.panelContent}>
-            <ol className={styles.chapterList} role="list">
-              {chapters.map(({ id, title, description, Icon, Preview }, index) => (
-                <li key={id} className={styles.chapter}>
-                  <div className={styles.copy} data-testid="landing-walkthrough-copy">
-                    <div className={styles.stepMark} aria-hidden="true">
-                      <Icon className="size-[18px]" />
-                    </div>
-                    <h3 className="mt-3 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
-                    <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
-                  </div>
-
-                  <WalkthroughPreview activeIndex={index}>
-                    <div className={styles.scene}><Preview /></div>
-                  </WalkthroughPreview>
-                </li>
-              ))}
-            </ol>
-
-            <WalkthroughPreview activeIndex={0} animated>
-              <div className={styles.sceneStack}>
-                {chapters.map(({ id, Preview }) => (
-                  <div key={id} className={`${styles.scene} ${styles.animatedScene}`} data-chapter={id} data-testid="landing-walkthrough-scene">
-                    <Preview />
-                  </div>
-                ))}
+    <section aria-labelledby="landing-walkthrough-title" className={styles.walkthrough}>
+      <div className="mx-auto w-full max-w-[1200px] px-3 sm:px-6">
+        <div ref={stageRef} className={styles.stage} data-testid="landing-walkthrough-stage">
+          <div ref={panelRef} className={styles.animatedPanel} data-testid="landing-walkthrough-animated-panel">
+            <div className={styles.deck}>
+              <div className={styles.intro}>
+                <h2 id="landing-walkthrough-title" className="text-2xl font-bold tracking-tight md:text-4xl">
+                  줍줍으로 수강신청 준비하기
+                </h2>
+                <p className="mt-2 break-keep text-sm leading-relaxed text-muted-foreground md:text-base">
+                  분반별 여석을 확인하고, 마감된 분반에는 빈자리 알림을 등록하세요.
+                </p>
               </div>
-            </WalkthroughPreview>
+              <div className={styles.panelContent}>
+                <ol className={styles.chapterList} role="list">
+                  {chapters.map(({ id, title, description, Icon, Preview }, index) => (
+                    <li key={id} className={styles.chapter}>
+                      <div className={styles.copy} data-testid="landing-walkthrough-copy">
+                        <div className={styles.stepMark} aria-hidden="true">
+                          <Icon className="size-[18px]" />
+                        </div>
+                        <h3 className="mt-3 text-xl font-bold tracking-tight md:text-3xl">{title}</h3>
+                        <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
+                      </div>
+
+                      <WalkthroughPreview activeIndex={index}>
+                        <div className={styles.scene}><Preview /></div>
+                      </WalkthroughPreview>
+                    </li>
+                  ))}
+                </ol>
+
+                <WalkthroughPreview activeIndex={0} animated>
+                  <div className={styles.sceneStack}>
+                    {chapters.map(({ id, Preview }) => (
+                      <div key={id} className={`${styles.scene} ${styles.animatedScene}`} data-chapter={id} data-testid="landing-walkthrough-scene">
+                        <Preview />
+                      </div>
+                    ))}
+                  </div>
+                </WalkthroughPreview>
+              </div>
+            </div>
           </div>
         </div>
       </div>
