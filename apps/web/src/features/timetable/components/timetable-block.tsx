@@ -8,13 +8,13 @@ import styles from './timetable-block.module.css';
 export type OpenTimetableBlock = (block: RenderingBlock, trigger: HTMLButtonElement) => void;
 
 export interface TimetableBlockLayout {
-  leftOffset: number;
-  widthFraction: number;
+  left: string;
+  width: string;
   coveredFraction: number;
   layer: number;
 }
 
-const FULL_WIDTH_LAYOUT: TimetableBlockLayout = { leftOffset: 0, widthFraction: 1, coveredFraction: 0, layer: 0 };
+const FULL_WIDTH_LAYOUT: TimetableBlockLayout = { left: '0%', width: '100%', coveredFraction: 0, layer: 0 };
 
 interface TimetableBlockProps {
   block: RenderingBlock;
@@ -33,8 +33,8 @@ export function TimetableBlock({ block, top, height, layout = FULL_WIDTH_LAYOUT,
   const position: CSSProperties & { '--block-layer': number } = {
     top,
     height,
-    left: `${layout.leftOffset * 100}%`,
-    width: `${layout.widthFraction * 100}%`,
+    left: layout.left,
+    width: layout.width,
     '--block-layer': layout.layer,
   };
 

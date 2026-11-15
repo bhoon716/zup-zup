@@ -9,15 +9,20 @@ import { CourseDetailDialog } from '@/features/course/components/course-detail-d
 import { CustomScheduleDetailDialog } from './custom-schedule-detail-dialog';
 import { TimetableBlock, type OpenTimetableBlock, type TimetableBlockLayout } from './timetable-block';
 
+type OverlapLayout = 'spread' | 'stacked';
+
 interface TimetableGridProps {
   timetable: TimetableResponse;
   className?: string;
   isPreview?: boolean;
   allowHorizontalScroll?: boolean;
+  overlapLayout?: OverlapLayout;
 }
 
 const MONDAY_TO_SATURDAY = WEEK_DAYS.slice(0, 6);
 const BLOCK_OVERLAP_FRACTION = 0.25;
+const MAX_STACK_OFFSET_PX = 6;
+const MAX_STACK_OFFSET_PERCENT = 25;
 
 function sortBlocksByTime(a: RenderingBlock, b: RenderingBlock): number {
   const startDiff = getTimeInMinutes(a.startTime) - getTimeInMinutes(b.startTime);
@@ -28,7 +33,7 @@ function sortBlocksByTime(a: RenderingBlock, b: RenderingBlock): number {
   return getTimeInMinutes(a.endTime) - getTimeInMinutes(b.endTime);
 }
 
-function buildLayoutsForDay(dayBlocks: RenderingBlock[], overlapFraction: number): Map<string, TimetableBlockLayout> {
+function buildLayoutsForDay(dayBlocks: RenderingBlock[], overlapLayout: OverlapLayout | 'separate'): Map<string, TimetableBlockLayout> {
   const layouts = new Map<string, TimetableBlockLayout>();
   if (dayBlocks.length === 0) {
     return layouts;
@@ -83,26 +88,40 @@ function buildLayoutsForDay(dayBlocks: RenderingBlock[], overlapFraction: number
     }
 
     const totalColumns = columnEndTimes.length;
+    const overlapFraction = overlapLayout === 'spread' ? BLOCK_OVERLAP_FRACTION : 0;
     const stepFraction = 1 - overlapFraction;
     const widthFraction = 1 / (1 + (totalColumns - 1) * stepFraction);
-    placements.forEach(({ key, column, start, end }) => {
+    for (const { key, column, start, end } of placements) {
+      const layer = column - totalColumns + 1;
+      if (overlapLayout === 'stacked') {
+        const offsetFraction = column / Math.max(1, totalColumns - 1);
+        const left = `min(${offsetFraction * MAX_STACK_OFFSET_PX}px, ${offsetFraction * MAX_STACK_OFFSET_PERCENT}%)`;
+        layouts.set(key, {
+          left: column === 0 ? '0%' : left,
+          width: column === 0 ? '100%' : `calc(100% - ${left})`,
+          coveredFraction: 0,
+          layer,
+        });
+        continue;
+      }
+
       const coveredByNeighbor = overlapFraction > 0 && placements.some((neighbor) => (
         neighbor.column === column + 1 && start < neighbor.end && neighbor.start < end
       ));
 
       layouts.set(key, {
-        leftOffset: column * widthFraction * stepFraction,
-        widthFraction,
+        left: `${column * widthFraction * stepFraction * 100}%`,
+        width: `${widthFraction * 100}%`,
         coveredFraction: coveredByNeighbor ? overlapFraction : 0,
-        layer: column - totalColumns + 1,
+        layer,
       });
-    });
+    }
   }
 
   return layouts;
 }
 
-export function TimetableGrid({ timetable, className, isPreview = false, allowHorizontalScroll = false }: TimetableGridProps) {
+export function TimetableGrid({ timetable, className, isPreview = false, allowHorizontalScroll = false, overlapLayout = 'spread' }: TimetableGridProps) {
   const blocks = useMemo(() => getRenderingBlocks(timetable), [timetable]);
   const displayDays = blocks.some((block) => block.dayOfWeek === '일') ? WEEK_DAYS : MONDAY_TO_SATURDAY;
   const [selectedBlock, setSelectedBlock] = useState<RenderingBlock | null>(null);
@@ -163,11 +182,11 @@ export function TimetableGrid({ timetable, className, isPreview = false, allowHo
     const map = new Map<string, Map<string, TimetableBlockLayout>>();
 
     displayDays.forEach((day) => {
-      map.set(day, buildLayoutsForDay(dayBlocksMap.get(day) ?? [], isPreview ? 0 : BLOCK_OVERLAP_FRACTION));
+      map.set(day, buildLayoutsForDay(dayBlocksMap.get(day) ?? [], isPreview ? 'separate' : overlapLayout));
     });
 
     return map;
-  }, [dayBlocksMap, displayDays, isPreview]);
+  }, [dayBlocksMap, displayDays, isPreview, overlapLayout]);
 
   const handleOpenBlock: OpenTimetableBlock = (block, trigger) => {
     returnFocusRef.current = trigger;

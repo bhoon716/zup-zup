@@ -1,9 +1,12 @@
 import { render, screen } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { describe, it, expect } from 'vitest';
 import { TimetableGrid } from './timetable-grid';
 import { TimetableResponse } from '@/shared/types/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/shared/ui/tooltip';
+
+type GridOptions = Pick<ComponentProps<typeof TimetableGrid>, 'isPreview' | 'overlapLayout'>;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,11 +47,11 @@ describe('TimetableGrid', () => {
     ],
   };
 
-  const renderGrid = (timetable: TimetableResponse, isPreview = false) => {
+  const renderGrid = (timetable: TimetableResponse, options?: GridOptions) => {
     return render(
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <TimetableGrid timetable={timetable} isPreview={isPreview} />
+          <TimetableGrid timetable={timetable} {...options} />
         </TooltipProvider>
       </QueryClientProvider>
     );
@@ -77,7 +80,7 @@ describe('TimetableGrid', () => {
     { isPreview: false, slotClasses: ['[--slot-height:42px]', 'md:[--slot-height:60px]'] },
     { isPreview: true, slotClasses: ['[--slot-height:45px]'] },
   ])('화면에 맞는 시간 칸 높이를 인라인 스타일 태그 없이 지정한다', ({ isPreview, slotClasses }) => {
-    const { container } = renderGrid(mockTimetable, isPreview);
+    const { container } = renderGrid(mockTimetable, { isPreview });
     const grid = container.querySelector<HTMLElement>('.timetable-grid-content');
 
     expect(grid).not.toBeNull();
@@ -85,10 +88,11 @@ describe('TimetableGrid', () => {
     expect(container.querySelector('style')).not.toBeInTheDocument();
   });
 
-  it.each([
-    { isPreview: false, label: '전체 시간표' },
-    { isPreview: true, label: '미리보기' },
-  ])('$label에서 충돌한 일정의 겹침과 요일 칸 경계를 지킨다', ({ isPreview }) => {
+  it.each<{ options: GridOptions; label: string }>([
+    { options: {}, label: '대시보드' },
+    { options: { isPreview: true }, label: '미리보기' },
+    { options: { overlapLayout: 'stacked' }, label: '내 시간표' },
+  ])('$label에서 충돌한 일정의 겹침과 요일 칸 경계를 지킨다', ({ options }) => {
     renderGrid({
       ...mockTimetable,
       customSchedules: [
@@ -97,13 +101,22 @@ describe('TimetableGrid', () => {
         { id: 4, title: '바로 다음 일정', schedules: [{ id: 104, dayOfWeek: '월', startTime: '10:15', endTime: '11:00' }] },
         { id: 5, title: '다른 요일 일정', schedules: [{ id: 105, dayOfWeek: '화', startTime: '09:30', endTime: '10:15' }] },
       ],
-    }, isPreview);
+    }, options);
 
-    const overlappingCards = [/Java Programming/, /동시 일정 1/, /동시 일정 2/].map((name) => {
-      const { style } = screen.getByRole('button', { name });
-      return { left: parseFloat(style.left), width: parseFloat(style.width) };
-    });
-    const [first, second, third] = overlappingCards;
+    expect(screen.getByRole('button', { name: /바로 다음 일정/ })).toHaveStyle({ left: '0%', width: '100%' });
+    expect(screen.getByRole('button', { name: /다른 요일 일정/ })).toHaveStyle({ left: '0%', width: '100%' });
+
+    const overlappingCards = [/Java Programming/, /동시 일정 1/, /동시 일정 2/].map((name) => screen.getByRole('button', { name }));
+
+    if (options.overlapLayout === 'stacked') {
+      const [back, middle, front] = overlappingCards;
+      expect(back).toHaveStyle({ left: '0%', width: '100%' });
+      expect(middle).toHaveStyle({ left: 'min(3px, 12.5%)', width: 'calc(100% - min(3px, 12.5%))' });
+      expect(front).toHaveStyle({ left: 'min(6px, 25%)', width: 'calc(100% - min(6px, 25%))' });
+      return;
+    }
+
+    const [first, second, third] = overlappingCards.map(({ style }) => ({ left: parseFloat(style.left), width: parseFloat(style.width) }));
     const overlaps = [first.left + first.width - second.left, second.left + second.width - third.left];
 
     expect(first.left).toBe(0);
@@ -111,14 +124,12 @@ describe('TimetableGrid', () => {
     expect(third.left).toBeGreaterThan(second.left);
     expect(third.left + third.width).toBeCloseTo(100);
     for (const overlap of overlaps) {
-      if (isPreview) {
+      if (options.isPreview) {
         expect(overlap).toBeCloseTo(0);
       } else {
         expect(overlap).toBeGreaterThan(0);
         expect(overlap).toBeLessThan(first.width / 2);
       }
     }
-    expect(screen.getByRole('button', { name: /바로 다음 일정/ })).toHaveStyle({ left: '0%', width: '100%' });
-    expect(screen.getByRole('button', { name: /다른 요일 일정/ })).toHaveStyle({ left: '0%', width: '100%' });
   });
 });

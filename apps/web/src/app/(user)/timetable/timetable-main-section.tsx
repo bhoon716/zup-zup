@@ -83,7 +83,7 @@ export function TimetableMainSection({
           </div>
         ) : activeTimetableId && timetableDetail ? (
           <div className="overflow-hidden rounded-lg border border-border bg-card">
-            <TimetableGrid timetable={timetableDetail} className="w-full" allowHorizontalScroll />
+            <TimetableGrid timetable={timetableDetail} className="w-full" allowHorizontalScroll overlapLayout="stacked" />
           </div>
         ) : null}
 
