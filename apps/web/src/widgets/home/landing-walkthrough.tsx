@@ -4,6 +4,7 @@ import { Bell, BellPlus, Search } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import {
+  LandingSearchPreviewHeader,
   SearchPreview,
   RegistrationPreview,
   NotificationPreview,
@@ -46,10 +47,7 @@ function WalkthroughPreview({ activeIndex, children, animated = false }: {
       aria-hidden="true"
       inert
     >
-      <div className={styles.frameBar}>
-        <span>줍줍 미리보기</span>
-        <span className={styles.example}>화면 예시</span>
-      </div>
+      <LandingSearchPreviewHeader />
       {children}
       <div className={styles.progress}>
         {chapters.map(({ id }, index) => <span key={id} data-complete={index <= activeIndex || undefined} />)}

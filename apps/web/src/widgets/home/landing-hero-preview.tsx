@@ -1,10 +1,9 @@
-import { Search } from "lucide-react";
 import Image from "next/image";
 
 import { BRAND_ICON_32_PATH } from "@/shared/seo/branding";
 
 import styles from "./landing-hero-preview.module.css";
-import { HeroSearchPreview } from "./landing-walkthrough-previews";
+import { HeroSearchPreview, LandingSearchPreviewHeader } from "./landing-walkthrough-previews";
 
 type SeatNotification = {
   readonly courseName: string;
@@ -26,15 +25,7 @@ export function LandingHeroPreview() {
       className={`${styles.panel} grid items-center gap-3 rounded-[1.25rem] border p-3 sm:gap-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] lg:gap-6 lg:p-6`}
     >
       <div className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-sm shadow-primary/5">
-        <div className="flex items-center gap-4 border-b px-3 py-2.5 text-sm sm:px-4">
-          <span className="flex items-center gap-1.5 font-bold text-primary">
-            <Image src={BRAND_ICON_32_PATH} alt="" width={22} height={22} />
-            줍줍
-          </span>
-          <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-            <Search className="size-3.5" /> 강의 검색
-          </span>
-        </div>
+        <LandingSearchPreviewHeader />
         <div className="bg-background/75 p-3 sm:p-4">
           <HeroSearchPreview />
         </div>

@@ -9,7 +9,7 @@ import {
 } from "@/features/course/components/course-result-card";
 import { normalizeCourse } from "@/shared/lib/course";
 import { cn } from "@/shared/lib/utils";
-import { BRAND_ICON_192_PATH } from "@/shared/seo/branding";
+import { BRAND_ICON_32_PATH, BRAND_ICON_192_PATH } from "@/shared/seo/branding";
 import type { Course } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -107,6 +107,20 @@ function ExampleKeywordSearch() {
         <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
       </div>
       <Button asChild className="h-10 rounded-lg"><span>검색</span></Button>
+    </div>
+  );
+}
+
+export function LandingSearchPreviewHeader() {
+  return (
+    <div className="flex items-center gap-4 border-b px-3 py-2.5 text-sm sm:px-4">
+      <span className="flex items-center gap-1.5 font-bold text-primary">
+        <Image src={BRAND_ICON_32_PATH} alt="" width={22} height={22} />
+        줍줍
+      </span>
+      <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
+        <Search className="size-3.5" /> 강의 검색
+      </span>
     </div>
   );
 }

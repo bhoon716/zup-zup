@@ -40,28 +40,9 @@
   grid-area: 1 / 1;
 }
 
-.frameBar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: var(--card);
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.example {
-  flex: none;
-  color: var(--muted-foreground);
-  font-size: 0.75rem;
-  font-weight: 400;
-}
-
 .scene {
   display: grid;
   min-width: 0;
-  border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--primary) 4%, var(--card));
   padding: 1rem;
 }
@@ -121,7 +102,7 @@
   }
 
   @media (max-height: 38rem), (width < 48rem) {
-    .stage[data-animated] :is(.frameBar, .animatedScene) {
+    .stage[data-animated] .animatedScene {
       padding: 0.625rem;
     }
   }
